@@ -1,0 +1,26 @@
+-- cs-unmet
+
+-- ============================================================
+-- scrabble.players — an AI seat gets its player back
+-- ============================================================
+-- `players_human_xor_ai` said a seat is EITHER a human or an AI, never both:
+--
+--   check ((user_id is null) <> (ai_level is null))
+--
+-- That was true while an AI seat had nobody to be. Now it does — the three
+-- bots are real accounts (`common.profiles.ai_member`) seated in
+-- `common.game_players` like any player — and the constraint is exactly what
+-- stops the seat naming them. Both halves of it are wrong at once:
+--
+--   `user_id is null`   an AI seat HAS a user now, and that is the point:
+--                       its moves are attributed, it can win, and
+--                       common.end_game writes it a result.
+--   `ai_level is null`  is what still separates a bot's seat from a
+--                       person's, and it keeps doing that on its own —
+--                       nothing else in the game reads the XOR.
+--
+-- `user_id` stays nullable here, for the games that already exist: a game
+-- dealt before this migration has AI seats with no user, and it has to keep
+-- being playable. New games fill it. The column tightens in the phase that
+-- also tightens `scrabble.events.user_id`, once nothing old is left.
+alter table scrabble.players drop constraint players_human_xor_ai;

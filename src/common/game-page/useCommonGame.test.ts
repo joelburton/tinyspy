@@ -154,23 +154,27 @@ const GAME_ROW = {
   ended_at: null,
 }
 
-// ada = self, bea = a live peer, cara = a peer who has conceded.
-// cara exercises the concede/result merge AND the concede-aware
-// presence-pause filter (a missing conceder must not pause the game).
+// ada = self, bea = a live peer, cara = a peer who has conceded, zed-bot = an
+// AI opponent. cara exercises the concede/result merge AND the concede-aware
+// presence-pause filter (a missing conceder must not pause the game); zed-bot
+// exercises the other filter on the same roster — a bot never opens a tab, so
+// counting it would pause every game it sits in, forever.
 const PLAYER_ROWS = [
   { user_id: 'ada', conceded: false, conceded_at: null, result: null },
   { user_id: 'bea', conceded: false, conceded_at: null, result: null },
   { user_id: 'cara', conceded: true, conceded_at: '2026-01-01T00:00:00Z', result: null },
+  { user_id: 'zed-bot', conceded: false, conceded_at: null, result: null },
 ]
 const PROFILES = [
-  { user_id: 'ada', username: 'ada', color: 'red' },
-  { user_id: 'bea', username: 'bea', color: 'blue' },
-  { user_id: 'cara', username: 'cara', color: 'green' },
+  { user_id: 'ada', username: 'ada', color: 'red', ai_member: false },
+  { user_id: 'bea', username: 'bea', color: 'blue', ai_member: false },
+  { user_id: 'cara', username: 'cara', color: 'green', ai_member: false },
+  { user_id: 'zed-bot', username: 'zed-bot', color: 'brown', ai_member: true },
 ]
 // The hook merges the game_players concede/result bits onto each profile.
 const GAME_PLAYERS = [
-  { user_id: 'ada', username: 'ada', color: 'red', conceded: false, conceded_at: null, result: null },
-  { user_id: 'bea', username: 'bea', color: 'blue', conceded: false, conceded_at: null, result: null },
+  { user_id: 'ada', username: 'ada', color: 'red', conceded: false, conceded_at: null, result: null, ai_member: false },
+  { user_id: 'bea', username: 'bea', color: 'blue', conceded: false, conceded_at: null, result: null, ai_member: false },
   {
     user_id: 'cara',
     username: 'cara',
@@ -178,6 +182,16 @@ const GAME_PLAYERS = [
     conceded: true,
     conceded_at: '2026-01-01T00:00:00Z',
     result: null,
+    ai_member: false,
+  },
+  {
+    user_id: 'zed-bot',
+    username: 'zed-bot',
+    color: 'brown',
+    conceded: false,
+    conceded_at: null,
+    result: null,
+    ai_member: true,
   },
 ]
 
@@ -349,8 +363,34 @@ describe('useCommonGame — paused unification', () => {
 
     expect(result.current.paused).toBe(false)
     // The roster the pause watches is where cara's absence stops mattering:
-    // she is off it, so nobody is waiting on her.
+    // she is off it, so nobody is waiting on her. zed-bot is off it too, for
+    // the other reason — it is never going to arrive.
     expect(result.current.activePlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
+  })
+
+  it('a bot never pauses the game, and never draws an absent dot', async () => {
+    // zed-bot holds a game_players row like any player — it can win, and
+    // end_game writes it a result — but it has no tab and no presence. If it
+    // counted here, every game with an AI opponent would sit behind the pause
+    // overlay from the first move to the last.
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    // Every HUMAN who has not conceded is present; the bot is not, and never
+    // will be.
+    presenceStateRecord = {
+      ada: [{ user_id: 'ada' }],
+      bea: [{ user_id: 'bea' }],
+    }
+    act(() => firePresenceSync())
+
+    expect(result.current.paused).toBe(false)
+    // `activePlayers` is also what the overlay draws its present/absent dots
+    // from, which is why the filter is here rather than inside computePause:
+    // a bot on that list would be a permanently hollow ring.
+    expect(result.current.activePlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
+    // …and it is still a player of the game everywhere participation counts.
+    expect(result.current.players.map((p) => p.user_id)).toContain('zed-bot')
   })
 
   it('paused is true (manual) when sendManualPause fires, even with everyone present', async () => {

@@ -987,11 +987,22 @@ begin
   -- Identify any listed uid that isn't in clubs_members for this
   -- club. The COALESCE-to-empty-array guard keeps the IF below
   -- behaving when the result is null (no non-members).
+  --
+  -- A BOT is exempt, and is the only thing that is: an AI opponent is a real
+  -- account with a real profile, seated by the game that offers it, but it
+  -- belongs to no human's club and must not — the club page's roster reads
+  -- clubs_members, and a bot in there would show up as one of the friends.
+  -- `profiles.ai_member` is the discriminator rather than the handle's shape;
+  -- see docs/common.md.
   select coalesce(array_agg(uid::text), array[]::text[]) into non_members
   from unnest(player_user_ids) as uid
   where not exists (
     select 1 from common.clubs_members
      where club_handle = target_club and user_id = uid
+  )
+  and not exists (
+    select 1 from common.profiles p
+     where p.user_id = uid and p.ai_member
   );
 
   if array_length(non_members, 1) > 0 then

@@ -3,8 +3,14 @@
 -- ============================================================
 -- Test: compete AI players (docs/scrabble-ai-strength.md)
 -- ============================================================
--- AI seats are scrabble-local: rows in scrabble.players with a null user_id +
--- an ai_level, NOT in common.game_players / profiles. Turns are seat-based.
+-- An AI seat is a real player: the bot holds a `common.profiles` row marked
+-- `ai_member`, a `common.game_players` row, and a `scrabble.players` row that
+-- carries both its user_id and the game's `ai_level`. What is still
+-- scrabble-local is the SEAT — turns are seat-based in compete.
+--
+-- The bots are environment, like the word list: `gmake db-bots` provisions
+-- them and `db-reset` chains it. These tests name them by `ai_member` and
+-- alphabetical order rather than by uuid, which is how create_game picks.
 -- Covers:
 --   - create_game seats the AI (ai_count + ai_level), and rejects a dictionary
 --     narrower than the AI's band / bad counts / coop
@@ -28,7 +34,7 @@ begin execute sql into result; return result; end;
 $envfn$ language plpgsql;
 \ir setup.psql
 
-select plan(24);
+select plan(27);
 
 -- A compete game: ada (human, seat 0) + one best AI (seat 1), full dictionary.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -46,7 +52,15 @@ select is((select count(*)::int from scrabble.players where game_id = (select id
 select is((select ai_level from scrabble.players where game_id = (select id from gai) and seat = 1),
   'best', 'the AI seat carries its level');
 select is((select user_id from scrabble.players where game_id = (select id from gai) and seat = 1),
-  null, 'the AI seat has no user_id');
+  (select user_id from common.profiles where ai_member order by username limit 1),
+  'the AI seat is held by the first bot in alphabetical order');
+select is((select count(*)::int from common.game_players
+            where game_id = (select id from gai)),
+  2, 'the bot is seated in common.game_players like any player');
+select is((select count(*)::int from common.clubs_members cm
+            join common.profiles p on p.user_id = cm.user_id
+           where cm.club_handle = (select handle from cl) and p.ai_member),
+  0, 'and is in no human''s club — create_game exempts a bot from that gate');
 select is((select ai_level from scrabble.players where game_id = (select id from gai) and seat = 0),
   null, 'the human seat has no ai_level');
 
@@ -111,7 +125,8 @@ select is((select score from scrabble.players where game_id = (select id from ga
 select is((select seat from scrabble.events where game_id = (select id from gai) order by id limit 1),
   1, 'the play is attributed to the AI seat');
 select is((select user_id from scrabble.events where game_id = (select id from gai) order by id limit 1),
-  null, 'an AI play has a null user_id — the one nullable column in any events table');
+  (select user_id from common.profiles where ai_member order by username limit 1),
+  'an AI play is attributed to the bot that made it');
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
@@ -147,11 +162,18 @@ update scrabble.players set rack = '{}', score = 50
 select scrabble._finish((select id from gwin), 'complete', null);
 
 select is((select status->>'winner_user_id' from common.games where id = (select id from gwin)),
-  null, 'no human winner uuid when the AI wins');
+  (select user_id::text from common.profiles where ai_member order by username limit 1),
+  'a bot winner is named by uuid like any other winner');
 select is((select status->>'winner_seat' from common.games where id = (select id from gwin)),
   '1', 'the winning seat is the AI seat');
 select is((select status->>'winner_username' from common.games where id = (select id from gwin)),
-  'AI 1', 'the AI winner is labeled "AI 1"');
+  (select username from common.profiles where ai_member order by username limit 1),
+  'the bot winner is labeled by its handle');
+select is((select result->>'won' from common.game_players
+           where game_id = (select id from gwin)
+             and user_id = (select user_id from common.profiles where ai_member
+                             order by username limit 1)),
+  'true', 'a bot''s win counts — it has a game_players result like anyone');
 select is((select result->>'won' from common.game_players
            where game_id = (select id from gwin) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'false', 'the out-scored human is recorded a loss');

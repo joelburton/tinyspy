@@ -1,6 +1,6 @@
 # scrabble-ai-players — the three bots become real users
 
-**Status: phase 1 built, awaiting review.** Agreed with Joel 2026-09-17. The
+**Status: phases 1 and 2 built, awaiting review.** Agreed with Joel 2026-09-17. The
 middle plan of three; see [events.md](events.md) for the framing and the deploy
 rule (nothing ships until all three are done).
 
@@ -298,6 +298,48 @@ Two regressions this phase must carry, both found by the review:
   two more readers of that list in the same phase: `GamePage.tsx`'s auto-suspend
   on `players.length <= 1`, and the header players strip, which would otherwise
   draw a permanently hollow bot dot.
+
+> **Phase 2 built 2026-09-17.** `common.create_game`'s membership gate grew its
+> one `or` (a listed uid may be a non-member if its profile is `ai_member`);
+> `scrabble.create_game` resolves `ai_count` to the first N bots by username and
+> passes them in the player list, so they reach `common.game_players`; and the
+> AI seat's `scrabble.players` row now names the bot.
+>
+> **`players_human_xor_ai` had to go HERE, not in phase 3.** The check is
+> `(user_id is null) <> (ai_level is null)` — a seat is either a human or an AI,
+> never both — and it is precisely what stops an AI seat naming its bot. Phase 2
+> cannot seat them without it. `scrabble.players.user_id` stays NULLABLE, for
+> the games already dealt: an old game's AI seats have no user and must keep
+> being playable. Phase 4 tightens it with `events.user_id`.
+>
+> **Both regressions the review found are fixed and pinned.**
+> `_maybe_finish_compete` counts PEOPLE now (`join common.profiles … and not
+> pr.ai_member`) — a bot never concedes, so counting seats would never reach
+> zero and a table whose humans had all dropped out would sit in `playing`
+> forever. `concede_test.sql` has the case. And the presence filter went into
+> `useCommonGame` (`activePlayers` drops bots as well as conceders), not into
+> `computePause`, because `activePlayers` is also what the pause overlay draws
+> its dots from — patching the flag alone would have left a permanently hollow
+> bot ring. `useCommonGame.test.ts` asserts both halves.
+>
+> `GamePlayer` gained `ai_member`, and `Member` deliberately did not: only a
+> seated player can be a bot, while a chat sender, a club roster entry and a
+> feedback message's actor are all Members and none of them can.
+>
+> Two more readers, checked as the review asked: `GamePage`'s auto-suspend now
+> counts `activePlayers`, so a game whose only other seat is a bot leaves
+> without the "your peers will be dragged along" confirm — there are no peers.
+> The in-game header strip needed nothing: it passes no `presentUserIds`, so
+> every dot is filled and the bot simply appears, named, which is right.
+>
+> The rematch trap (§10.6) is closed at the same time: `player_user_ids` filters
+> bots out and `ai_count` seats them, as it does today.
+>
+> What fell out for free, and is the point: `scrabble._finish`'s `player_results`
+> inner join started including bots with no change, so **a bot's win counts** —
+> it gets a `game_players.result` like anyone. The winner's name is now its
+> handle rather than "AI 1"; the "AI k" fallback stays for games dealt before
+> the bots were accounts.
 
 **Phase 3 — scrabble sheds its second shape**, and optionally its second
 rotation (§6). `scrabble.players.user_id` becomes

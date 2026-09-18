@@ -15,7 +15,7 @@ export function gp(
   user_id: string,
   username: string,
   color: string,
-  over: Partial<Pick<GamePlayer, 'conceded' | 'conceded_at' | 'result'>> = {},
+  over: Partial<Pick<GamePlayer, 'conceded' | 'conceded_at' | 'result' | 'ai_member'>> = {},
 ): GamePlayer {
   return {
     user_id,
@@ -24,6 +24,7 @@ export function gp(
     conceded: false,
     conceded_at: null,
     result: null,
+    ai_member: false,
     ...over,
   }
 }

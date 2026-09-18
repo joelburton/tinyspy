@@ -199,9 +199,13 @@ export function GamePage({
   //     the last leaver clears is_current_view via cleanup.
   const requestBackToClub = useCallback(async () => {
     if (gameOver) navigate(clubPath(clubHandle))
-    else if (players.length <= 1) sendSuspend()
+    // `activePlayers`, not `players`: the question is "are there peers this
+    // would surprise", and a bot is nobody to surprise — a game whose only
+    // other seat is an AI leaves the same way a solo game does, without a
+    // confirm.
+    else if (activePlayers.length <= 1) sendSuspend()
     else if ((await askConfirmation(suspendConfirm(commonGame.title))) === 'confirm') sendSuspend()
-  }, [clubHandle, commonGame.title, gameOver, players.length, sendSuspend])
+  }, [clubHandle, commonGame.title, gameOver, activePlayers.length, sendSuspend])
   // `<` → Back to club. The menu's row is this same binding, which is what makes
   // the key discoverable: the row shows it.
   const actBackToClub = useBoundAction('act-back-to-club', {

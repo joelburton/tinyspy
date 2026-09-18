@@ -71,9 +71,20 @@ export type Actor = Pick<Member, 'username' | 'color'>
  *   - `result`       — the per-player end-state jsonb from
  *                      common.game_players.result; null until the
  *                      game ends.
+ *   - `ai_member`    — this seat is one of scrabble's AI opponents.
+ *                      A profile fact (`common.profiles.ai_member`)
+ *                      rather than a game one, but it sits HERE and
+ *                      not on `Member` because only a seated player
+ *                      can be a bot: a chat sender, a club roster
+ *                      entry and a feedback message's actor are all
+ *                      Members and none of them can. What reads it
+ *                      is presence — a bot never connects, so it
+ *                      must not count toward the pause or draw a
+ *                      permanently hollow dot.
  */
 export type GamePlayer = Member & {
   conceded: boolean
   conceded_at: string | null
   result: Record<string, unknown> | null
+  ai_member: boolean
 }

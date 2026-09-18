@@ -404,7 +404,10 @@ type Suggested =
       db.rpc('create_game', {
         target_club: clubHandle,
         setup: setup as unknown as ScrabbleSetup,
-        player_user_ids: players.map((p) => p.user_id),
+        // HUMANS only. The bots are seated by `setup.ai_count`, which is what
+        // the setup form asks for and what create_game resolves to profiles —
+        // passing their ids here too would seat each one twice.
+        player_user_ids: players.filter((p) => !p.ai_member).map((p) => p.user_id),
         mode: gameMode,
       }),
     )

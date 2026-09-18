@@ -463,10 +463,11 @@ begin
        where p.game_id = g_id and not coalesce(gp.conceded, false) and p.score = v_max;
     end if;
 
-    -- player_results feeds common.game_players.result — HUMANS ONLY (an AI has
-    -- no game_players row; its outcome rides in the status leaderboard). The
-    -- inner join drops AI seats. A human is {won} iff they hold the top score
-    -- and didn't concede, so a lone AI winner makes every human {won:false}.
+    -- player_results feeds common.game_players.result — EVERY seat, bots
+    -- included, which is what seating them as real players bought: a bot's win
+    -- counts, and this inner join started including them with no change here.
+    -- A player is {won} iff they hold the top score and didn't concede, so a
+    -- bot winning makes every human {won:false}.
     select jsonb_object_agg(
              p.user_id::text,
              jsonb_build_object('won', not gp.conceded and p.score = v_max, 'score', p.score))
@@ -476,9 +477,11 @@ begin
         on gp.game_id = p.game_id and gp.user_id = p.user_id
      where p.game_id = g_id;
 
-    -- The winner's display name (NULL on a tie / all-conceded): a human's
-    -- username, or "AI k" for an AI winner (k = its 1-based position among the
-    -- AI seats, in seat order — matches the FE's AI labels).
+    -- The winner's display name (NULL on a tie / all-conceded): the winner's
+    -- username, bot or person — a bot is an account with a handle like anyone
+    -- else. The "AI k" fallback below is for games dealt BEFORE the bots were
+    -- accounts, whose AI seats have no user to name; it goes when nothing that
+    -- old is left.
     if v_winner_seat is not null then
       if v_winner_user is not null then
         select username into v_winner_name from common.profiles where user_id = v_winner_user;
@@ -491,7 +494,7 @@ begin
 
     v_status := jsonb_build_object(
       'mode', 'compete', 'outcome', outcome,
-      'winner_user_id', v_winner_user,        -- a HUMAN winner's uuid; null if AI won / tie
+      'winner_user_id', v_winner_user,        -- the winner's uuid, bot or person; null on a tie
       'winner_seat', v_winner_seat,   -- the winning seat (human or AI); null on tie
       'winner_username', v_winner_name,
       -- The winning score, for the club-list label. The leaderboard below
@@ -563,6 +566,7 @@ declare
   v_ai_band     int;
   v_total       int;
   v_i           int;
+  v_bot_ids     uuid[] := array[]::uuid[];
   first_turn    uuid;
 begin
   perform common.require_club_member(target_club);
@@ -643,6 +647,26 @@ begin
       detail = 'scrabble seats at most 4';
   end if;
 
+  -- Which bots take the AI seats: the first `v_ai_count` by username, which is
+  -- what the setup form's "how many opponents" means. They are ordinary
+  -- accounts (common.profiles.ai_member) rather than rowless seats, so they
+  -- are listed as players below and reach common.game_players like anyone.
+  if v_ai_count > 0 then
+    select coalesce(array_agg(p.user_id order by p.username), array[]::uuid[])
+      into v_bot_ids
+      from (select user_id, username from common.profiles
+             where ai_member order by username limit v_ai_count) p;
+    if coalesce(array_length(v_bot_ids, 1), 0) < v_ai_count then
+      -- Provisioning, not gameplay: the bots are made once per environment by
+      -- `gmake db-bots`, and a database that never had it run has no seats to
+      -- offer. Nothing the player can fix from the form.
+      raise exception 'BUG: % AI opponents asked for, % exist', v_ai_count,
+        coalesce(array_length(v_bot_ids, 1), 0)
+      using errcode = 'PN496', hint = 'fault', column = '_',
+      detail = 'common.profiles has fewer ai_member rows than the setup asked to seat';
+    end if;
+  end if;
+
   perform common.require_valid_timer(setup->'timer');
 
   -- Shuffle the bag (the only per-game randomness).
@@ -652,8 +676,12 @@ begin
   -- An empty board: 225 JSON nulls.
   select jsonb_agg(null::jsonb) into v_empty_board from generate_series(1, 225);
 
+  -- The bots ride in the player list: they hold a seat, they can win, and
+  -- common.end_game writes a result for every game_players row. They are
+  -- exempt from that function's club-membership gate — a bot is in no human's
+  -- club by design.
   new_id := common.create_game(
-    target_club, 'scrabble_' || mode, player_user_ids, 'New game', setup,
+    target_club, 'scrabble_' || mode, player_user_ids || v_bot_ids, 'New game', setup,
     -- saved_default strips first_turn_user_id (per-game "who goes first" pick,
     -- not a per-club preference; coop_style rides).
     setup - 'first_turn_user_id');
@@ -673,12 +701,14 @@ begin
       values (new_id, uid, v_seat, 0, v_drawn);
       v_seat := v_seat + 1;
     end loop;
-    -- Then the AI seats (h..h+a-1): same 7-tile deal, carrying the level, no user.
+    -- Then the AI seats (h..h+a-1): same 7-tile deal, carrying the level and
+    -- the bot whose seat it is. `ai_level` is this game's strength setting for
+    -- this game, not a property of the bot, so it stays on the row.
     for v_i in 1..v_ai_count loop
       v_drawn := v_bag[1:7];
       v_bag   := v_bag[8:];
       insert into scrabble.players (game_id, user_id, seat, score, rack, ai_level)
-      values (new_id, null, v_seat, 0, v_drawn, v_ai_level);
+      values (new_id, v_bot_ids[v_i], v_seat, 0, v_drawn, v_ai_level);
       v_seat := v_seat + 1;
     end loop;
     -- Qualify the column: `returns table(id uuid)` puts an `id` in scope too.
@@ -1471,11 +1501,16 @@ as $$
 declare
   v_active int;
 begin
+  -- HUMANS only, and the `ai_member` test is what makes that true now that a
+  -- bot holds a game_players row like anyone else. Without it the count could
+  -- never reach zero — a bot never concedes — and a table whose humans had all
+  -- dropped out would sit in `playing` forever.
   select count(*) into v_active
     from scrabble.players p
     join common.game_players gp
       on gp.game_id = p.game_id and gp.user_id = p.user_id
-   where p.game_id = target_game and not gp.conceded;
+    join common.profiles pr on pr.user_id = p.user_id
+   where p.game_id = target_game and not gp.conceded and not pr.ai_member;
 
   if v_active > 0 then return false; end if;
 

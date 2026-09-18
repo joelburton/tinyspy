@@ -19,7 +19,7 @@ begin;
 set search_path = scrabble, common, public, extensions;
 \ir ../_shared/setup.psql
 
-select plan(8);
+select plan(9);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -73,6 +73,22 @@ select is(
 select is(
   (select status->>'outcome' from common.games where id = (select id from g)),
   'conceded', 'status.outcome names the cause');
+
+-- ── (4) The last HUMAN conceding ends it, even against a bot ──
+-- A bot holds a common.game_players row now, and a bot never concedes. The
+-- all-conceded check counts PEOPLE for exactly that reason: counting seats
+-- would never reach zero here and the table would sit in `playing` forever.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gb on commit drop as
+  select (scrabble.create_game((select handle from club),
+    '{"dict_2": 6, "dict_3plus": 6, "ai_count": 1, "ai_level": "best", "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete')->'data'->>'id')::uuid as id;
+select scrabble.concede((select id from gb));
+reset role;
+
+select ok(
+  (select is_terminal from common.games where id = (select id from gb)),
+  'the last human conceding ends the game, though the bot is still seated');
 
 select * from finish();
 rollback;

@@ -310,7 +310,10 @@ export function useCommonGame(
       const userIds = (playerRows ?? []).map((r) => r.user_id)
       if (userIds.length > 0) {
         const profilesRes = await readRows(
-          commonDb.from('profiles').select('user_id, username, color').in('user_id', userIds),
+          commonDb
+            .from('profiles')
+            .select('user_id, username, color, ai_member')
+            .in('user_id', userIds),
         )
         if (!mounted || myGen !== generation) return
         if (profilesRes.type === 'not-ok') {
@@ -326,11 +329,13 @@ export function useCommonGame(
         )
         playerList = (profileData ?? []).map(function mergeGamePlayerBits(prof) {
           const gp = byId.get(prof.user_id)
+          const { ai_member, ...member } = prof
           return {
-            ...(prof as Member),
+            ...(member as Member),
             conceded: gp?.conceded ?? false,
             conceded_at: gp?.conceded_at ?? null,
             result: (gp?.result as GamePlayer['result']) ?? null,
+            ai_member,
           }
         })
       }
@@ -636,7 +641,12 @@ export function useCommonGame(
   // conceder drops out "while the others keep racing"). Invited-but-
   // not-yet-joined players stay counted — that presence-pause IS
   // deliberate; only a real concede removes someone.
-  const activePlayers = players.filter((p) => !p.conceded)
+  // …and minus the bots. A bot holds a seat and can win, but it never opens a
+  // tab, so counting it here would park every game with one behind the pause
+  // overlay forever. Filtered HERE rather than inside computePause because
+  // `activePlayers` is also what the overlay draws its present/absent dots
+  // from — patching the flag alone would leave a permanently hollow bot ring.
+  const activePlayers = players.filter((p) => !p.conceded && !p.ai_member)
   const presencePaused = computePause(presentUserIds, activePlayers)
   const manuallyPausedBy: Member | null = manuallyPausedById
     ? players.find((m) => m.user_id === manuallyPausedById) ??

@@ -20,6 +20,7 @@ const player = (over: Partial<GamePlayer> = {}): GamePlayer => ({
   conceded: false,
   conceded_at: null,
   result: null,
+  ai_member: false,
   ...over,
 })
 
