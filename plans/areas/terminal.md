@@ -4,20 +4,26 @@ The folders it reads: `terminal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: CLOSED 2026-09-18, blessed** (Joel: *"bless the files in this
-area"*) — seven files `cs-blessed-terminal`, and **all fourteen findings
-worked**: ten prose in one pass, then F-11 to F-14 one at a time, every one
-answered as (a). Roster agreed and stamped 2026-09-18 (Joel: *"list is good"*);
-taken out of order after `word-entry`, so §3's next in sequence is row 42,
-`word-list`.
+**Status: OPEN — the roster is blessed, and that is NOT a close.** Seven files
+`cs-blessed-terminal` (Joel: *"bless the files in this area"*, 2026-09-18) and
+**all fourteen findings worked**: ten prose in one pass, then F-11 to F-14 one
+at a time, every one answered as (a). Roster agreed and stamped 2026-09-18
+(Joel: *"list is good"*); taken out of order after `word-entry`, so §3's next in
+sequence is row 42, `word-list`.
 
-**No closing re-read happened** — Joel read the files and blessed them after
-F-14, and made his own edits first (`91e67ce8` "Tweaking celebration modal",
+**This file said CLOSED for one commit, and it was wrong.** Joel asked for the
+blessing and nothing else; Claude inferred the close from it and from
+`word-entry`'s wording the same day. Joel: *"why is terminal closed? did i tell
+you to close it?"*, then *"re-open the area; that was ENTIRELY WRONG."* A
+blessing is Joel's reading of the files; a close is a separate word he says.
+
+**What is owed before this area can close: the whole-area re-read in one
+sitting.** It has never been done here — the blessing came straight after F-14,
+and after Joel's own edits (`91e67ce8` "Tweaking celebration modal",
 `64bf03bd` "Tweak comments"). What those changed is under Notes, including the
-one thing they leave open: the celebration's heading is an `<h1>` now, so
-neither `base.css` nor `docs/ui.md` says any more what level a dialog title
-takes when it is this one. The `title`-required rider under F-13 is the other
-open item.
+question they leave open: the celebration's heading is an `<h1>` now, so neither
+`base.css` nor `docs/ui.md` says any more what level a dialog title takes. The
+`title`-required rider under F-13 is the other open item.
 
 ## The roster
 
