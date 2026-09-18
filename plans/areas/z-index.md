@@ -4,9 +4,11 @@ The stacking order, end to end. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: WORKED 2026-09-18, OPEN.** Every question below is answered and all
-six findings are worked; what remains is Joel's read of the diff. This area
-blesses nothing and takes no stamps, so there is no roster line to tick.
+**Status: CLOSED 2026-09-18** (Joel: *"we can close the zindex area"*). Every
+question answered, all six findings worked, the closing re-read done. **No files
+were blessed and none needed to be** — this area had no roster by Joel's own
+framing at the open, so closing is not gated on a stamp here the way an ordinary
+area's is. Shipped in `ecec3ce4`, plus the re-read's corrections.
 
 | | |
 |---|---|
@@ -295,6 +297,56 @@ thirty legitimate locals"). Re-counted 2026-09-18: thirty-nine declarations,
 nine reading a token, thirty literals. The difference is the count, not the
 conclusion.
 
+## What is still held by the gap, and not by containment
+
+Two sets of local numbers sit OUTSIDE any board, so the seal does not reach them.
+Both are correct today and both are correct for the old reason — they are small,
+not contained. Named here because each is a real question and neither was this
+area's to answer.
+
+**The history banner's `5`** (`common/event-log/historyViewer.module.css`). The
+banner is `position: absolute; inset: 0` over the below-board region, rendered as
+the FIRST child of its host, so it cannot rely on paint order and needs the
+number. What it is beating today is nearly nothing — of everything it covers
+(the feedback slot, `EntryRow`, `GuessKeyboard`, `MoveRow`, `WordEntry`) only
+scrabble's `.rackShuffle` writes a z-index at all, at `3`. So the margin is two,
+in one game.
+
+Joel's worry, 2026-09-18, and it is the right one: *"if we started needing to
+stack things for wordentry, we might end up with something at zindex 10, and it
+would appear over the history banner."* **A bigger number does not fix it.** The
+guard caps a bare literal at 10, so the banner could only move to 6–10 — and at
+10 it ties the largest local in the app while spending the whole shared range on
+one element. Worse, it would not close the hole: layering added inside the
+word-entry would sit on a DESCENDANT of a sibling, competing in the same stacking
+context whatever number the banner holds. The next person picks 11.
+
+The lever that works is the one the boards used: **seal what the banner covers**,
+so nothing inside it can out-stack the banner however big a number is written.
+Two shapes, and the second is the recommendation — (a) `seal-the-covered-box`,
+one wrapper per game inside the below-board region, airtight and a ten-game
+refactor; (b) `a-component-that-layers-seals-itself`, a rule rather than a
+wrapper — a below-board component that needs internal layering becomes its own
+stacking context — which costs nothing today and applies exactly where the risk
+appears. Either way the invariant should be written at `.historyBanner`, where
+the `5` currently sits with no statement of what it is beating.
+
+**The RankBar's `0` / `1` / `2`** (`shared/rank-ladder/RankBar.module.css`).
+Asked and answered 2026-09-18: **do not seal this one.** A board could be sealed
+because nothing inside it needs to escape; the RankBar fails that test at its one
+interesting element. `.tooltip` exists to leave the bar's box, and below the
+`--mobile` breakpoint it flips to `top: calc(100% + 8px)` and hangs DOWN over the
+Score/Words figures — which are `<Stats>`, later in the DOM in both mounts
+(`InfoCol` and the mobile status bar) and carrying no z-index. The bubble covers
+them today only because its `2` beats Stats' `auto`. Seal the bar and Stats,
+painting later, would go over the bubble. The other two numbers have nowhere to
+go: a rule behind the squares and the squares on top of it, inside a 14px row.
+
+If that `2` should be honest rather than merely small, the thing to make explicit
+is the **tooltip**, not the bar — a satellite in `base.css`'s sense, attaching to
+a layer rather than occupying one, the way a `<FilterSelect>` dropdown reads
+`--z-host`.
+
 ## Predicted test breaks
 
 *(named when the area starts changing things)*
@@ -312,11 +364,22 @@ conclusion.
 ## Closing
 
 - [x] Q1 answered, and Q2 with it — 2026-09-18, `sealed-board` + the ghosts
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group — 2026-09-18,
+      and it found five stale claims, every one of them the correction failing to
+      reach a paragraph the first pass had already written:
+      `base.css`'s "a thousand — a different world — **the play surface**" (the
+      play surface is no longer on the ladder at all) and its "under the info
+      column beside it" (side-by-side things are not under each other);
+      `docs/code-conventions.md` still carrying "a board's **rank** against chat"
+      where the guard's own copy had been corrected hours earlier, and a
+      board-vs-column sentence pointing at a table row that had been deleted; and
+      — twice, in the doc and in `.infoCol` itself — the stacking-context /
+      containing-block conflation that this area exists to have untangled, which
+      is the same error in the same week from the same hand
 - [x] `base.css` → THE Z- LAYERS and `docs/code-conventions.md` → The z- layers
       describe the app that exists
 - [x] **DELETES: `--z-board-question` out of `base.css` and out of
       `DECLARED_AHEAD`** — the one removal in the area, ruled 2026-09-18
 - [x] `shared/grid-and-drag/todo.md` line removed (the ghosts agree now)
 - [x] F-5's conversion question handed to `src/crosswords/todo.md`
-- [ ] no roster, no stamps — this area blesses nothing
+- [x] no roster, no stamps — this area blesses nothing

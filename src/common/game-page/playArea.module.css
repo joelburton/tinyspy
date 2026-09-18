@@ -315,10 +315,13 @@
      as the host puts those dropdowns at 1301, clear of the local layering the
      column legitimately uses (the history viewer's 5, RankBar's 2).
 
-     A CUSTOM PROPERTY ONLY: no `z-index`, no `position`. Either would make this
-     a stacking context or a containing block, which would change where an
-     absolutely-positioned dropdown anchors. This declares a rank and moves
-     nothing. */
+     A CUSTOM PROPERTY ONLY: no `z-index`, no `position` — and the two have
+     DIFFERENT consequences, which is worth keeping straight. A `position` would
+     make the column a containing block and move where the dropdown anchors; a
+     `z-index` would make it a stacking context and confine the dropdown inside
+     it. Neither is wanted, and neither is needed: on desktop the column is a
+     flex sibling of the board and overlaps nothing, so it competes for no layer.
+     This line declares a rank for the dropdown to read and moves nothing. */
   --z-host: var(--z-infocol);
 
   flex: 0 0 var(--info-col-width);

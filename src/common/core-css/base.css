@@ -445,8 +445,10 @@
      numbers inside a board are ranked against each other and against
      nothing, and a tile cannot reach chat however big a number someone
      writes on it. It takes no rung BECAUSE it needs none: the board
-     stays at its natural place in the flow, under the info column
-     beside it, exactly as it sat before anything was sealed.
+     keeps its natural place in the flow, so wherever something beside
+     it does overhang — the info column's rank bubble is the one that
+     does — that thing still paints over the board, exactly as it did
+     before anything was sealed.
 
      WHAT IS NOT A RUNG. Things that attach to a layer instead of
      occupying one, which is what keeps this list short: a scrim sits
@@ -459,10 +461,10 @@
 
      THE NUMBERS ENCODE RELATIONSHIPS:
 
-       a thousand   a different world — the play surface, the floating
-                    windows, the always-available system, an
-                    announcement, a stop. Crossing one is a change of
-                    kind
+       a thousand   a different world — what rides over the play
+                    surface, the floating windows, the always-available
+                    system, an announcement, a stop. Crossing one is a
+                    change of kind
        a hundred    a layer within a world: kin, ordered, genuinely
                     distinct
        ten          would be a tweak of a layer rather than a new one.
