@@ -37,10 +37,6 @@ import '../theme.css'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
-/** Disc colors for AI seats (up to 3), kept distinct from the common
- *  member-color palette's usual first picks so a bot reads as "not one of us". */
-const AI_DISC_COLORS = ['brown', 'purple', 'pink']
-
 /**
  * scrabble's play surface (coop + compete). PlayArea is the **coordinator**: it holds
  * the game data (`useGame`), the board-viewer coordination (`useHistoryViewer`, whose
@@ -181,33 +177,20 @@ export function PlayArea({
   const canShare = game?.mode === 'coop' && players.length >= 2
 
   // ─── AI opponents (compete; docs/scrabble-ai-strength.md) ──────────
-  // AI seats live in the per-seat state (user_id null + ai_level), NOT in the
-  // common roster (`players`) — so we build their display identity here:
-  // numbered "AI 1".."AI 3" in seat order, each a distinct disc color. Used by
-  // the turn line, the Moves log, and the compact AI score strip.
-  const aiRoster = useMemo(
-    () =>
-      playerStates
-        .filter((p) => p.ai_level != null)
-        .sort((a, b) => a.seat - b.seat)
-        .map((p, i) => ({
-          seat: p.seat,
-          name: `AI ${i + 1}`,
-          color: AI_DISC_COLORS[i % AI_DISC_COLORS.length],
-          score: p.score ?? 0,
-        })),
+  // A bot is a player: its name and dot come off its profile like anyone's, and
+  // `players` already holds it. What stays scrabble-local is the SEAT — which
+  // seats are the bots' is `ai_level`, on the per-seat state.
+  const aiSeatNumbers = useMemo(
+    () => new Set(playerStates.filter((p) => p.ai_level != null).map((p) => p.seat)),
     [playerStates],
   )
-  // A synthetic Member for an AI seat (the turn line + Moves log resolve identity
-  // through Member, keyed on the disc color + name). Memoized so the peer-news
-  // effect below doesn't re-fire every render.
-  const aiMemberOfSeat = useCallback(
+  const memberOfSeat = useCallback(
     (seat: number | null): Member | undefined => {
       if (seat == null) return undefined
-      const ai = aiRoster.find((a) => a.seat === seat)
-      return ai ? ({ user_id: `ai:${seat}`, username: ai.name, color: ai.color } as Member) : undefined
+      const uid = playerStates.find((p) => p.seat === seat)?.user_id
+      return uid ? players.find((m) => m.user_id === uid) : undefined
     },
-    [aiRoster],
+    [playerStates, players],
   )
 
   // Drive the AI opponent: when the turn lands on an AI seat, poke the
@@ -216,8 +199,11 @@ export function PlayArea({
   // seat+version guarded, so a duplicate poke is a harmless no-op). Fire once per
   // board `version` so we don't spam while the bot is thinking; a real move bumps
   // the version and re-arms this.
+  // Asked of the SEAT, not of the user: a bot has a user_id now, so "nobody is
+  // sitting here" stopped being the question. Get this wrong and nothing pokes
+  // the edge function — the bot never moves and the table stalls.
   const currentSeatIsAi =
-    isCompete && game != null && game.currentUserId == null && aiRoster.some((a) => a.seat === game.currentSeat)
+    isCompete && game != null && game.currentSeat != null && aiSeatNumbers.has(game.currentSeat)
   /** What `scrabble-ai-move` puts in `data`. `turns` is how many seats it
    *  played this invocation — 0..40, and 0 is COMMON: every client pokes and
    *  only one wins the race. Nothing reads it; the poke is fire-and-forget. */
@@ -281,13 +267,11 @@ export function PlayArea({
     // The newest OPPONENT move in this batch (mine already showed in the commit slot).
     const latest = fresh.filter((p) => p.user_id !== session.user.id).at(-1)
     if (!latest) return
-    const actor = latest.user_id
-      ? players.find((m) => m.user_id === latest.user_id)
-      : aiMemberOfSeat(latest.seat)
+    const actor = players.find((m) => m.user_id === latest.user_id)
     globalFeedbackSlot.show(
       FeedbackMessage.peer(actor, ANSWER_OUTCOME[latest.kind], peerMoveText(latest)),
     )
-  }, [plays, game, isCompete, session.user.id, players, aiMemberOfSeat, globalFeedbackSlot])
+  }, [plays, game, isCompete, session.user.id, players, globalFeedbackSlot])
 
   // ─── Suggest-a-move (coop AI hints — docs/scrabble-ai.md S5) ──────────
   // State lives here (the coordinator): InfoCol renders the box, BoardCol
@@ -505,9 +489,12 @@ type Suggested =
   const statusOutcome = (status?.outcome as string | undefined) ?? null
   const winnerId = (status?.winner_user_id as string | undefined) ?? null
   const winnerSeat = (status?.winner_seat as number | null | undefined) ?? null
+  // A bot wins by uuid like anyone, so one lookup covers both. The seat is
+  // still read below for `hasWinner`, because a game that ended before the
+  // bots were accounts has a winning seat and no winning uuid.
   const winnerMember =
     players.find((m: Member) => m.user_id === winnerId) ??
-    (winnerSeat != null ? aiMemberOfSeat(winnerSeat) : undefined)
+    (winnerSeat != null ? memberOfSeat(winnerSeat) : undefined)
   const winnerName =
     winnerMember?.username ??
     (winnerId !== null || winnerSeat !== null ? (status?.winner_username as string | undefined) : undefined)
@@ -589,10 +576,9 @@ type Suggested =
       ? { status: 'idle' }
       : suggest
   // The player whose turn it is (compete) — for the "Turn: ● name" state line.
-  // A human (by currentUserId) or, when it's an AI seat's turn, the synthetic
-  // "AI n" member.
+  // Whoever holds the seat — a person or a bot, both of them on `players`.
   const currentMember =
-    players.find((m: Member) => m.user_id === game.currentUserId) ?? aiMemberOfSeat(game.currentSeat)
+    players.find((m: Member) => m.user_id === game.currentUserId) ?? memberOfSeat(game.currentSeat)
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -651,9 +637,6 @@ type Suggested =
           onApplySuggestion={handleApplySuggestion}
           setup={scrabbleSetup}
           setupRows={summaryRows}
-          aiSeats={aiRoster}
-          winnerSeat={(status?.winner_seat as number | null | undefined) ?? null}
-          aiMemberOfSeat={aiMemberOfSeat}
           plays={plays}
           historyId={historyId}
           onShowHistory={(id: number) => showHistory({ kind: 'turn', id })}

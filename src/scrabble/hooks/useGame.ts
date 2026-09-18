@@ -12,8 +12,9 @@ import type { Cell } from '../lib/board'
  *  always-public tile count. In coop, `score`/`rack` are null (they live
  *  on the game row). */
 export type PlayerRow = {
-  /** Null for an AI seat (which has no profile); `ai_level` is set instead. */
-  user_id: string | null
+  /** Every seat is somebody's — a person or one of the bots, which hold
+   *  profiles like anyone. `ai_level` is what says which. */
+  user_id: string
   seat: number
   score: number | null
   rack: string[] | null
@@ -29,8 +30,9 @@ export type PlayRow = {
    *  It replaced a game-wide `seq` that said the same thing in a second
    *  column. */
   id: number
-  /** Null for an AI seat's play; `seat` is the real attribution key. */
-  user_id: string | null
+  /** Who played it — a person or a bot, both of them on the common roster.
+   *  `seat` says which seat they were sitting in. */
+  user_id: string
   seat: number
   /** 'leftovers' = a coop game ended with tiles in hand; `score` is the
    *  (negative) leftover-tile value lost. No player made that move. */

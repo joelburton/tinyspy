@@ -69,9 +69,6 @@ export function InfoCol({
   actSuggestMove,
   onApplySuggestion,
   setupRows,
-  aiSeats,
-  winnerSeat,
-  aiMemberOfSeat,
   plays,
   historyId,
   onShowHistory,
@@ -135,47 +132,24 @@ export function InfoCol({
   /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
   setupRows: SetupRow[]
 
-  // ── AI opponents (compete; docs/scrabble-ai-strength.md) ──
-  /** The AI seats' display rows (name + disc color + live score), or empty. */
-  aiSeats: { seat: number; name: string; color: string; score: number }[]
-  /** The winning seat at terminal (`status.winner_seat`), or null. Only an AI
-   *  needs it — a human's result rides their `common.game_players` row, but a
-   *  bot has no such row, so the seat is the only thing that names it a winner. */
-  winnerSeat: number | null
-  /** Resolve an AI seat to a synthetic Member (for the Moves log actor tag). */
-  aiMemberOfSeat: (seat: number | null) => Member | undefined
-
   // ── Turn-history log (Moves) ──
   plays: PlayRow[]
   /** The play currently open in the board viewer (by seq), or null. */
   historyId: number | null
   onShowHistory: (seq: number) => void
 }) {
-  // ── The score strip's roster: every SEAT, human and AI, in seat order ──
-  // AI seats aren't in `common.game_players`, so they're synthesized as Members
-  // — the same shape (and the same `ai:<seat>` id space) the turn log already
-  // uses for a bot's actor cell, so the two surfaces name a bot identically.
-  const aiAsMembers: Member[] = aiSeats.map((ai) => ({
-    user_id: `ai:${ai.seat}`,
-    username: ai.name,
-    color: ai.color,
-  }))
-  const scoreRoster: Member[] = [...players, ...aiAsMembers]
-  // One lookup for both kinds: a bot's score rides its seat row, a human's its
-  // player row.
-  const aiOfMember = (player: Member) => aiSeats.find((a) => `ai:${a.seat}` === player.user_id)
+  // ── The score strip's roster: every seat, in seat order ──
+  // A bot is a player like anyone, so `players` already holds it; what the
+  // common roster has no notion of is SEAT ORDER, which is this game's and
+  // lives on `playerStates`. Ordering by it keeps the strip reading left to
+  // right the way the table is dealt.
+  const scoreRoster: Member[] = [...playerStates]
+    .sort((a, b) => a.seat - b.seat)
+    .flatMap((p) => players.find((m) => m.user_id === p.user_id) ?? [])
   const scoreOf = (player: Member): number =>
-    aiOfMember(player)?.score
-    ?? playerStates.find((p) => p.user_id === player.user_id)?.score
-    ?? 0
-  // A bot has no common.game_players row, so `terminalOutcomeVerb` can't reach it — its
-  // result comes off the winning SEAT instead. A bot can't concede, so Won/Lost
-  // is the whole space for it.
-  const outcomeOf = (player: Member): string => {
-    const ai = aiOfMember(player)
-    if (ai) return ai.seat === winnerSeat ? 'Won' : 'Lost'
-    return terminalOutcomeVerb(players.find((m) => m.user_id === player.user_id))
-  }
+    playerStates.find((p) => p.user_id === player.user_id)?.score ?? 0
+  const outcomeOf = (player: Member): string =>
+    terminalOutcomeVerb(players.find((m) => m.user_id === player.user_id))
 
   return (
     <div className={shared.infoCol}>
@@ -333,10 +307,6 @@ export function InfoCol({
       <GameTurnLog
         plays={plays}
         players={players}
-        // The bots as pickable actors — the same synthetic Members the log's
-        // rows resolve to, so "AI 1" filters like any other player.
-        aiMembers={aiSeats.flatMap((a) => aiMemberOfSeat(a.seat) ?? [])}
-        aiMemberOfSeat={aiMemberOfSeat}
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
         historyId={historyId}

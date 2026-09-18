@@ -2081,7 +2081,7 @@ export type Database = {
           seat: number
           tile_count: number | null
           took_turn: boolean
-          user_id: string | null
+          user_id: string
           words: string[] | null
         }
         Insert: {
@@ -2094,7 +2094,7 @@ export type Database = {
           seat: number
           tile_count?: number | null
           took_turn?: boolean
-          user_id?: string | null
+          user_id: string
           words?: string[] | null
         }
         Update: {
@@ -2107,7 +2107,7 @@ export type Database = {
           seat?: number
           tile_count?: number | null
           took_turn?: boolean
-          user_id?: string | null
+          user_id?: string
           words?: string[] | null
         }
         Relationships: [
@@ -2182,7 +2182,7 @@ export type Database = {
           rack: string[] | null
           score: number | null
           seat: number
-          user_id: string | null
+          user_id: string
         }
         Insert: {
           ai_level?: string | null
@@ -2190,7 +2190,7 @@ export type Database = {
           rack?: string[] | null
           score?: number | null
           seat: number
-          user_id?: string | null
+          user_id: string
         }
         Update: {
           ai_level?: string | null
@@ -2198,7 +2198,7 @@ export type Database = {
           rack?: string[] | null
           score?: number | null
           seat?: number
-          user_id?: string | null
+          user_id?: string
         }
         Relationships: [
           {

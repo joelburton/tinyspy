@@ -1,6 +1,6 @@
 # scrabble-ai-players — the three bots become real users
 
-**Status: phases 1 and 2 built, awaiting review.** Agreed with Joel 2026-09-17. The
+**Status: DONE — all four phases built; 3 and 4 awaiting review.** Agreed with Joel 2026-09-17. The
 middle plan of three; see [events.md](events.md) for the framing and the deploy
 rule (nothing ships until all three are done).
 
@@ -356,6 +356,39 @@ seat them, as it does today.
 
 **Phase 4 — the closing proof.** `scrabble.events.user_id` becomes `not null`,
 which [events.md](events.md) §10 left open for exactly this moment.
+
+> **Phases 3 and 4 built 2026-09-17.** `scrabble.players.user_id` is `not null`
+> and the key is `(game_id, user_id)` — a player is in a game once, and which
+> SEAT they hold is a fact about the game rather than their identity in it;
+> `seat` keeps its own unique constraint, since it owns the rack and the
+> display order. Then `scrabble.events.user_id`, the last nullable `user_id` in
+> any log, and the skeleton guard's assertion 2 is back to `is_empty`.
+>
+> **Phase 2 shipped a regression that this phase fixes, and it is worth
+> recording.** The AI driver's predicate was
+> `isCompete && game.currentUserId == null && aiRoster.some(…)` — "nobody is
+> sitting here" as the test for an AI seat. Seating the bots gave that seat a
+> user, so the predicate went false, nothing poked the edge function, and the
+> bot would never have moved: §7's rule from the other side, exactly as §10.7
+> warned, arriving a phase earlier than the note expected. It asks the SEAT now
+> (`ai_level`), not the user. Nothing in the suites covers the poke, so this was
+> found by reading rather than by a red test.
+>
+> The synthetic identities are gone: `AI_DISC_COLORS`, `aiMemberOfSeat`, the
+> `ai:<seat>` id space, `aiSeats`/`aiMembers` as props, InfoCol's parallel
+> score/outcome lookups, and the `AI n` display name. A bot's name, dot and
+> result all come off its profile and its `game_players` row now, like anyone's.
+> Net 31 lines down, and the parallel shapes are what went.
+>
+> **Where the "not one of us" signal went** (§10.9): `AI_DISC_COLORS` kept its
+> three colors off the palette's usual first picks so a bot read as not a
+> friend. Color cannot carry that any more — a bot picks from the same eight —
+> and the `-bot` suffix carries it instead, which is why it is load-bearing in
+> §2 rather than decoration.
+>
+> The `AI k` fallback in `_finish` and the `winner_seat` read in the frontend
+> both stay: a game that ended before the bots were accounts has a winning seat
+> and no winning uuid, and nothing should make those games unreadable.
 
 ## 9. Open — nothing that blocks starting
 

@@ -20,11 +20,14 @@ import type { PlayRow } from '../hooks/useGame'
 import { GameTurnLog } from './GameTurnLog'
 import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
 
+// ada and bea are people, ada-bot is one of the three AI opponents. All three
+// are on the common roster, which is the whole point: a bot is pickable, and
+// nameable, like anyone.
 const PLAYERS: Member[] = [
   { user_id: 'u1', username: 'ada', color: 'red' },
   { user_id: 'u2', username: 'bea', color: 'blue' },
+  { user_id: 'bot1', username: 'ada-bot', color: 'brown' },
 ]
-const AI: Member[] = [{ user_id: 'ai:2', username: 'AI 1', color: 'green' }]
 
 const play = (o: Partial<PlayRow>): PlayRow => ({
   user_id: 'u1',
@@ -42,17 +45,15 @@ const play = (o: Partial<PlayRow>): PlayRow => ({
 const PLAYS: PlayRow[] = [
   play({ id: 1, user_id: 'u1', seat: 0, words: ['ADAWORD'] }),
   play({ id: 2, user_id: 'u2', seat: 1, words: ['BEAWORD'] }),
-  // A bot's play — no user_id at all, attributed by seat.
-  play({ id: 3, user_id: null, seat: 2, words: ['BOTWORD'] }),
+  // A bot's play — attributed to its account, like any other row.
+  play({ id: 3, user_id: 'bot1', seat: 2, words: ['BOTWORD'] }),
 ]
 
-function renderLog(mode: 'coop' | 'compete' = 'compete') {
+function renderLog(mode: 'coop' | 'compete' = 'compete', players: Member[] = PLAYERS) {
   return render(
     <GameTurnLog
       plays={PLAYS}
-      players={PLAYERS}
-      aiMembers={mode === 'compete' ? AI : []}
-      aiMemberOfSeat={(seat) => (seat === 2 ? AI[0] : undefined)}
+      players={players}
       selfId="u1"
       mode={mode}
       historyId={null}
@@ -68,7 +69,7 @@ describe('scrabble GameTurnLog — the whose-moves picker', () => {
     renderLog()
     // Viewer first, then everyone else by handle — the bot takes its alphabetical
     // place rather than being segregated, because it plays like anyone else.
-    expect(await options()).toEqual(['All', 'ada', 'AI 1', 'bea'])
+    expect(await options()).toEqual(['All', 'ada', 'ada-bot', 'bea'])
   })
 
   it('defaults to All even in compete — the board is shared', () => {
@@ -90,13 +91,16 @@ describe('scrabble GameTurnLog — the whose-moves picker', () => {
 
   it('narrows to the BOT’s plays — the `ai:<seat>` key, since user_id is null', async () => {
     renderLog()
-    await pickFilter('AI 1')
+    await pickFilter('ada-bot')
     expect(screen.getByText('BOTWORD')).toBeInTheDocument()
     expect(screen.queryByText('ADAWORD')).not.toBeInTheDocument()
   })
 
-  it('coop lists Team and no bot — the AI opponent is compete-only', async () => {
-    renderLog('coop')
+  it('coop says Team where compete says All', async () => {
+    // A coop roster has no bot in it — AI opponents seat only in compete, and
+    // create_game refuses them anywhere else (PN081). So the coop case is the
+    // humans, and what changes is the aggregate's LABEL.
+    renderLog('coop', PLAYERS.slice(0, 2))
     expect(await options()).toEqual(['Team', 'ada', 'bea'])
   })
 
@@ -105,8 +109,6 @@ describe('scrabble GameTurnLog — the whose-moves picker', () => {
       <GameTurnLog
         plays={[PLAYS[0]]}
         players={PLAYERS}
-        aiMembers={AI}
-        aiMemberOfSeat={() => AI[0]}
         selfId="u1"
         mode="compete"
         historyId={null}

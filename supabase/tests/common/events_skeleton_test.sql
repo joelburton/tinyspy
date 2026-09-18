@@ -82,13 +82,11 @@ select set_eq(
   'every converted log is <game>.events with the six skeleton columns — and nothing else is'
 );
 
--- 2. None of the six is nullable — every one is a fact the row cannot be
---    missing: which game, who, what they did, whether it cost them a go,
---    when. With ONE exception, listed rather than exempted so it cannot
---    quietly grow: scrabble's AI seats hold a seat and play like anyone
---    else, and no profile row answers for them. When those seats have
---    accounts this list is empty again.
-select set_eq(
+-- 2. None of the six is nullable. Every one of them is a fact the row
+--    cannot be missing: which game, who, what they did, whether it cost
+--    them a go, when. scrabble was the exception while its AI seats had no
+--    user to name; they are accounts now, so there is none.
+select is_empty(
   $$
     select r.schema || '.' || c.column_name
       from roster r
@@ -98,8 +96,7 @@ select set_eq(
        and c.column_name in ('id', 'game_id', 'user_id', 'kind', 'took_turn', 'created_at')
        and c.is_nullable = 'YES'
   $$,
-  $$ values ('scrabble.user_id') $$,
-  'the only nullable skeleton column is the one the AI seats need'
+  'no skeleton column is nullable'
 );
 
 -- 3. `id` is the whole primary key, and it is an identity column — the

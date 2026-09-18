@@ -9,9 +9,6 @@ import { ANSWER_OUTCOME } from '../lib/answer'
 import type { PlayRow } from '../hooks/useGame'
 import styles from './GameTurnLog.module.css'
 
-/** A bot's stand-in user id — matches `aiMemberOfSeat`'s synthetic Member. */
-const aiId = (seat: number | null) => `ai:${seat}`
-
 /**
  * scrabble's move log — the shared `<TurnLog>` table (same chrome the other v3
  * games use). Each play is its OWN single `<tr>` (the shared layer no longer owns
@@ -33,9 +30,9 @@ const aiId = (seat: number | null) => `ai:${seat}`
  *   - It defaults to the aggregate in BOTH modes (`competeSharesOneGame`). Even
  *     compete is one board everyone plays on, so "All" is what you're actually
  *     looking at; filtering to a player is the extra ("just my own plays").
- *   - **AI seats are pickable people.** A bot's play has `user_id: null`, so the
- *     rows are keyed by a synthetic `ai:<seat>` id — the same one `aiMemberOfSeat`
- *     mints — which lets "how did AI 1 play?" be a filter like any other.
+ *   - **A bot is pickable like anyone.** It holds a profile and a
+ *     `game_players` row, so its plays carry its user_id and "how did ada-bot
+ *     play?" is a filter like any other, with no second id space.
  *
  * It ignores the hook's `boardIsShown`: scrabble's `#N` handle addresses a play
  * by the row's `id`, not by log position, so filtering can't misaddress it (unlike the
@@ -44,8 +41,6 @@ const aiId = (seat: number | null) => `ai:${seat}`
 export function GameTurnLog({
   plays,
   players,
-  aiMembers,
-  aiMemberOfSeat,
   selfId,
   mode,
   historyId,
@@ -53,10 +48,6 @@ export function GameTurnLog({
 }: {
   plays: PlayRow[]
   players: Member[]
-  /** The bots at the table (compete only), as pickable actors. */
-  aiMembers: Member[]
-  /** Resolve an AI seat's play (user_id null) to its "AI n" actor. */
-  aiMemberOfSeat: (seat: number | null) => Member | undefined
   selfId: string
   mode: 'coop' | 'compete'
   /** The turn currently open in the board viewer (highlights its row), or null. */
@@ -68,7 +59,7 @@ export function GameTurnLog({
     // Humans and bots in one roster — the hook orders them (you first, then by
     // handle), so a bot takes its alphabetical place rather than being
     // segregated. It plays like anyone else; it reads back like anyone else.
-    players: [...players, ...aiMembers],
+    players,
     selfId,
     mode,
     // Every play is public here (the board is public), so no row is ever
@@ -78,12 +69,8 @@ export function GameTurnLog({
     label: 'Whose moves to show',
     emptyLabel: 'No moves yet.',
   })
-  // Filtered by hand rather than through `turnLogPicker.filter`, because a bot's play has
-  // `user_id: null` and the row's identity is `user_id ?? ai:<seat>`. Reading
-  // `picked` / `showsEveryone` keeps the ONE selection the hook owns without
-  // rewriting every row just to give it a synthetic id.
   const shown = plays.filter(
-    (p) => turnLogPicker.showsEveryone || turnLogPicker.picked === (p.user_id ?? aiId(p.seat)),
+    (p) => turnLogPicker.showsEveryone || turnLogPicker.picked === p.user_id,
   )
 
   return (
@@ -123,7 +110,7 @@ export function GameTurnLog({
             )}
           </td>
           <TurnLogActor
-            actor={p.user_id ? players.find((m) => m.user_id === p.user_id) : aiMemberOfSeat(p.seat)}
+            actor={players.find((m) => m.user_id === p.user_id)}
             fallback="someone"
           />
         </tr>
