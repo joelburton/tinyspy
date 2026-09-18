@@ -82,7 +82,7 @@ export function Wheel({
     }
   }
   return (
-    <div className={styles.board}>
+    <div className={cls(shared.boardSeal, styles.board)}>
       <div className={styles.floatAnchor}>
         {/* The whole wheel takes the head-shake, not a tile: wordwheel's
             refusal is about the WORD, and its letters are all legal tiles that

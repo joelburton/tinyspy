@@ -106,7 +106,7 @@ export function Board({
   const pct = (px: number) => `${(px / natural) * 100}%`
 
   return (
-    <div className={cls(styles.canvas, isViewingHistory && history.historyFrame)}>
+    <div className={cls(shared.boardSeal, styles.canvas, isViewingHistory && history.historyFrame)}>
       {present.map((t) => {
         const isExp = exposed.has(t.id)
         const corner = letterCorner(t, present)

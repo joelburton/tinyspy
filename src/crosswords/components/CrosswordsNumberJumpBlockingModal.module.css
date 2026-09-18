@@ -1,12 +1,10 @@
 /* cs-unmet */
 
-/* The `#` jump-to-number popup. A lightweight centered-near-top modal that
- * takes the POPOVER tier rather than the panel one — above board content,
- * below the floating chat, matching Menu/DefinitionPopover. That a dialog
- * rides the popover tier is a question for crosswords' own audit, not changed
- * here. It is also a blocking modal built by hand: `<BlockingModal>` now
- * exists and is what it wants, but converting it MOVES its tier, which is why
- * the area that owns the game gets to see it. */
+/* The `#` jump-to-number popup — a lightweight centered-near-top modal, built by
+ * hand: its own backdrop and card, where `<BlockingModal>` would supply both.
+ * It already sits at `--z-modal-blocking`, the tier that shell resolves from its
+ * family, so converting it would move no layer — it is crosswords' call whether
+ * the shell's scrim, tab ring and Escape should replace these rules. */
 /* @@ */ .backdrop {
   position: fixed;
   inset: 0;

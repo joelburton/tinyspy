@@ -178,6 +178,47 @@
   background: var(--board-col-debug-tint-color);
 }
 
+/* THE BOARD'S SEAL. Composed onto the root element of every game's board —
+ * `cls(shared.boardSeal, styles.board)` — and it carries one decision: a board is
+ * a stacking context, so nothing inside it can be layered against anything
+ * outside it.
+ *
+ * CONTAINMENT, NOT RANK, and the difference matters. A board's insides layer in
+ * small numbers — a letter lifted over the attention flash, the in-flight dim
+ * above that, the keyboard cursor, a floating shuffle in the corner — and those
+ * numbers mean "within this board". Only the seal makes that so: without it they
+ * join the ROOT stacking context and are ranked directly against chat and the
+ * toasts, where a board's 5 keeps its place by being small rather than by being
+ * contained. `guards/vocabularies.test.ts` allows 0–10 anywhere in `src/` on the
+ * strength of this rule; this class is what makes the rule true.
+ *
+ * WHAT IT DELIBERATELY DOES NOT DO is give the board a rung on the z- ladder
+ * (core-css/base.css → THE Z- LAYERS). The board is a flex sibling of the info
+ * column, side by side with it; the two never overlap, so a rank between them
+ * would settle a contest that does not happen — and it would put the board
+ * ABOVE the column, inverting what the ladder says. `isolation: isolate` is a
+ * stacking context and nothing else: the board keeps its natural place in the
+ * flow.
+ *
+ * `isolation` rather than `position: relative; z-index: 0`, which is identical in
+ * effect: this way the declaration says containment out loud, where a `0` reads
+ * as a rank to the next person — and `base.css` already warns that a positioned
+ * `z-index: 0` is how things get trapped by ACCIDENT. Not `transform`, `filter`,
+ * `will-change` or `contain`, which seal too but also make the element a
+ * containing block for fixed descendants, re-anchoring a drag ghost to the board.
+ * `isolation`'s only other effect is on `mix-blend-mode`, which `src/` never uses.
+ *
+ * WHAT GOES ON IT is the element that encloses the board AND anything floating
+ * over it — bananagrams' `.boardFrame` (the arena plus its zoom controls), not
+ * the scroll area inside it. WHAT MUST STAY OUTSIDE is anything that has to paint
+ * over the rest of the page: the drag ghosts (`--z-ghost`, rendered as siblings
+ * of the board) and the games' hand-built modals. Tooltips, the definition
+ * popover and the toasts portal to `document.body` and are out of reach of any
+ * seal. */
+/* @@ */ .boardSeal {
+  isolation: isolate;
+}
+
 /* The rectangular HUG width, shared by every non-square grid board. The board
  * is as wide as its columns + gaps need, capped per tile by --max-tile-width,
  * and never wider than --avail-w (the space left beside the info column). With

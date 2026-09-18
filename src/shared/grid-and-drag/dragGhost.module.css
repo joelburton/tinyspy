@@ -20,9 +20,12 @@
  * shallower `0 4px 10px`), each on its own color tokens, and scrabble sizes its
  * ghost from `--rack-tile-size` where bananagrams's is sized by its content. A
  * ghost that stopped resembling the tile it came from would be a worse drag, not
- * a more consistent one. The z-indexes also differ (1000 vs 100) and are left
- * alone pending the `z-index` area (plans/app-audit.md §3) — a fixed-position
- * overlay's tier is a whole-app question, not a per-component one.
+ * a more consistent one.
+ *
+ * WHAT IS NOT A PER-GAME DECISION is the tier: both ghosts read `--z-ghost`, and
+ * both render OUTSIDE the board root. They have to — a board is a stacking
+ * context (`.boardSeal` in game-page/playArea.module.css), and a ghost confined
+ * to one could not follow the pointer onto the rack or hand it came from.
  */
 /* @@ */ .ghost {
   position: fixed;

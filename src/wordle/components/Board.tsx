@@ -115,7 +115,7 @@ export function Board({
   if (!isViewingHistory && rows.length < flipBaseline) setFlipBaseline(rows.length)
 
   return (
-    <div className={styles.board} style={{ ['--rows' as string]: maxGuesses }}>
+    <div className={cls(shared.boardSeal, styles.board)} style={{ ['--rows' as string]: maxGuesses }}>
       <div
         className={cls(
           shared.hugRectWidth,

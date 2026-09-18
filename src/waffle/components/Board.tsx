@@ -175,7 +175,7 @@ export function Board({
   }
 
   return (
-    <div className={styles.board}>
+    <div className={cls(shared.boardSeal, styles.board)}>
       {/* Four marks ride on the board box, all shared: the gray-blue frame of
           "you're viewing a past turn"
           (common/event-log/historyViewer.module.css), the dim of "a

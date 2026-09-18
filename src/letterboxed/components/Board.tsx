@@ -83,7 +83,7 @@ export function Board({
     // be hand-translated into SVG idioms and re-scaled by hand. The two layers
     // cannot drift: both are addressed in the same 0-100 coordinates, the SVG
     // through its viewBox and the letters as percentages.
-    <div className={cls(styles.board, play.board)}>
+    <div className={cls(shared.boardSeal, styles.board, play.board)}>
       <svg className={styles.lines} viewBox="0 0 100 100" role="presentation">
         <rect
           className={styles.box}

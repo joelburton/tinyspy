@@ -196,18 +196,6 @@ describe('CSS custom-property tokens', () => {
     '--letter-spacing-label',
     '--letter-spacing-wide',
     '--border-width-frame',
-
-
-    // The z- ladder (base.css → THE Z- LAYERS). Almost all of it is LIVE now —
-    // the floating panels resolve their tier from their family, and the menu,
-    // toasts, tooltips, the definition popover and the info sheet all read a
-    // rung directly. What is left is the BOARD's three, which arrive when the
-    // games convert: a board's own stacking is still local 0–5 today, and
-    // `--z-board` graduating to a reader is the signal that boards became
-    // sealed.
-    '--z-board',
-    '--z-board-question',
-    '--z-ghost',
   ]
 
   /**

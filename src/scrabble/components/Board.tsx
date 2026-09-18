@@ -10,6 +10,7 @@ import {
   type Cell,
   type PremiumType,
 } from '../lib/board'
+import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import gridCursor from '@/shared/board-cursor/gridCursor.module.css'
 import styles from './Board.module.css'
@@ -139,7 +140,7 @@ export function Board({
   // data-board is the e2e layout hook (the stable board-root selector every
   // game's mobile e2e uses); the cells keep their data-cell/-x/-y hooks.
   return (
-    <div data-board className={cls(styles.board, isViewingHistory && history.historyFrame)}>
+    <div data-board className={cls(shared.boardSeal, styles.board, isViewingHistory && history.historyFrame)}>
       {cells}
     </div>
   )

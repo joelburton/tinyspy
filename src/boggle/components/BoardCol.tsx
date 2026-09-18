@@ -246,7 +246,7 @@ export function BoardCol({
           <Stats {...stats} />
         </div>
       </MobileStatusBar>
-      <div className={styles.grid}>
+      <div className={cls(shared.boardSeal, styles.grid)}>
         {view.flatMap((row, y) =>
           row.map((cell, x) => {
             const isBlank = cell === '?'

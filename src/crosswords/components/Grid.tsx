@@ -12,6 +12,7 @@ import {
 import type { Cell as CellT, PuzzleTemplate } from '../lib/types'
 import { cellKey, type CellsMap } from '../hooks/useCells'
 import { cls } from '@/common/utils/cls'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './Grid.module.css'
 
 // Board sizing — a single computed cell size, everything else in `em`.
@@ -107,7 +108,7 @@ export function Grid({
 
   return (
     <div
-      className={styles.board}
+      className={cls(shared.boardSeal, styles.board)}
       style={{
         ['--cw-cell' as string]: cellSize,
         ['--cw-cell-mobile' as string]: cellSizeMobile,

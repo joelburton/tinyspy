@@ -136,7 +136,7 @@ export function Board({
   const rows = Math.ceil(words.length / cols)
   return (
     <div
-      className={styles.board}
+      className={cls(shared.boardSeal, styles.board)}
       // data-board: a stable handle for e2e board-measurement (the height must not
       // change as the below-board slot swaps / the history banner overlays it) —
       // matching the other games' boards.

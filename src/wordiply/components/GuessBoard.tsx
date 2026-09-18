@@ -75,7 +75,7 @@ export function GuessBoard({
     // data-board: the stable handle a spec uses to ask what the BOARD holds,
     // since the event log beside it shows the same words (the repo's
     // [data-board] / [data-cell] convention).
-    <ol className={cls(styles.board, isViewingHistory && history.historyFrame)} data-board>
+    <ol className={cls(shared.boardSeal, styles.board, isViewingHistory && history.historyFrame)} data-board>
       {Array.from({ length: MAX_GUESSES }, (_, i) => {
         if (held && i === guesses.length) {
           return (

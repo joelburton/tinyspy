@@ -311,5 +311,5 @@
   border: 1px solid var(--bananagrams-tile-edge);
   border-radius: 7px;
   box-shadow: var(--bananagrams-drag-shadow);
-  z-index: 1000;
+  z-index: var(--z-ghost);
 }

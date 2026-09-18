@@ -14,6 +14,7 @@ import {
 } from '../hooks/usePlayerBoard'
 import { idx } from '../lib/board'
 import { cls } from '@/common/utils/cls'
+import shared from '@/common/game-page/playArea.module.css'
 import gridCursor from '@/shared/board-cursor/gridCursor.module.css'
 import styles from './PlayerBoard.module.css'
 
@@ -108,7 +109,7 @@ export function BoardArena({
   return (
     // The arena frame: fills the column above the fixed feedback slot; the scroll area +
     // floating controls are absolutely positioned within it.
-    <div className={styles.boardFrame}>
+    <div className={cls(shared.boardSeal, styles.boardFrame)}>
       {/* onPointerDown blurs a focused chat box so clicking the board hands the keyboard
           back to the game (the cells are non-focusable divs). */}
       <div className={styles.boardScroll} ref={scrollRef} onPointerDown={blurActiveField}>

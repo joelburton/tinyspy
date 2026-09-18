@@ -92,7 +92,7 @@ export function Board({
     // data-board: a stable handle for the e2e layout-stability test, which
     // measures this element's height across below-board states (it must not
     // change as the clue UI swaps). See e2e/codenamesduet.e2e.ts.
-    <div className={styles.board} data-board>
+    <div className={cls(shared.boardSeal, styles.board)} data-board>
       {/* While viewing a past turn the history `.historyFrame` rings the board AND
           makes it click-through (pointer-events: none), so a click anywhere on the
           board falls through to the viewer's document click-to-exit — no per-game

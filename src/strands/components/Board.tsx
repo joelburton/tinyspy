@@ -2,6 +2,7 @@
 
 import { COLS, ROWS, coordKey, letterAt, type Board as BoardLetters, type Coord } from '../lib/board'
 import { cls } from '@/common/utils/cls'
+import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
 
@@ -87,7 +88,7 @@ export function Board({
     path.map(([r, c]) => `${cx(c)},${cy(r)}`).join(' ')
 
   return (
-    <div className={cls(styles.board, isViewingHistory && history.historyFrame)} data-board>
+    <div className={cls(shared.boardSeal, styles.board, isViewingHistory && history.historyFrame)} data-board>
       {/* The drawing layer: lines first, then discs, so a disc always covers the
           line ends. aria-hidden — it carries no information the letters don't. */}
       <svg

@@ -417,20 +417,36 @@
      drift from this one. Two components state otherwise and say why in
      their own files: chat at `--z-chat`, Help at `--z-help`.
 
-     WHAT BELONGS HERE is anything that leaves its box — `position:
-     fixed`, or absolute against the page. Those join the root stacking
-     context and genuinely compete with each other.
+     WHAT BELONGS HERE is anything that LEAVES THE FLOW — `position:
+     fixed`, or absolute against the page. Those land in one shared
+     contest and genuinely compete with each other, which is what a rung
+     settles.
 
-     WHAT DOES NOT is layering INSIDE a component's own stacking
-     context: a ring over a tile, a floating shuffle over its board, the
-     keyboard cursor. Those compete only with their siblings, and the
-     numbers are small and local by nature. The app has a clean gap —
-     everything local is ≤ 10, everything page-level is ≥ 1000 — which
-     is what lets `guards/vocabularies.test.ts` draw the line at 10 and
-     require a token above it, across `src/` INCLUDING the boards. A
-     board's radius is tuned to its game; a board's rank against chat is
-     a whole-app question that merely happens to be written in a game's
-     file.
+     WHAT DOES NOT is anything that merely sits in the layout. The board
+     and the info column are two flex siblings side by side; they do not
+     overlap and they have never competed, so neither is a rung. (The
+     info column's rung is earned by the MOBILE SHEET, which does leave
+     the flow — see `--z-infocol`.) A layer list that numbers things
+     which never meet is the fastest way to lose the thread of what this
+     list is for.
+
+     NOR IS LAYERING INSIDE a component's own stacking context: a ring
+     over a tile, a floating shuffle over its board, the keyboard
+     cursor. Those compete only with their siblings, and the numbers are
+     small and local by nature. Everything local is ≤ 10 and everything
+     page-level is ≥ 1000, which is what lets
+     `guards/vocabularies.test.ts` draw the line at 10 and require a
+     token above it, across `src/` INCLUDING the boards.
+
+     A BOARD IS SEALED, NOT RANKED, and that distinction is the whole
+     reason the paragraph above is true rather than merely observed.
+     `.boardSeal` makes every game's board root a stacking context with
+     `isolation: isolate` — containment and nothing else — so the
+     numbers inside a board are ranked against each other and against
+     nothing, and a tile cannot reach chat however big a number someone
+     writes on it. It takes no rung BECAUSE it needs none: the board
+     stays at its natural place in the flow, under the info column
+     beside it, exactly as it sat before anything was sealed.
 
      WHAT IS NOT A RUNG. Things that attach to a layer instead of
      occupying one, which is what keeps this list short: a scrim sits
@@ -457,20 +473,22 @@
      LIVED OR MORE IMPORTANT SITS HIGHER. */
   --z-page:            0;     /* the page itself. Nothing here is ever
                                           deliberately drawn over anything else */
-  --z-board:           1000;  /* the play surface and the pieces on it. OWNS
-                                          THE RANGE 1000–1099, for pieces stacked on
-                                          other pieces — stackdown's depth. Every
-                                          layer could have a range; only this one
-                                          needs one today */
-  --z-board-question:  1100;  /* a box over ONE square, showing or taking
-                                          something for that square: crosswords'
-                                          rebus entry and its read-only peek */
   --z-ghost:           1200;  /* a piece in transit, following the pointer
-                                          between two places on its own board */
-  --z-infocol:         1300;  /* the readouts beside the board — and a layer
-                                          on desktop too, where nothing overlaps:
-                                          sitting beside rather than over is a fact
-                                          about the viewport, not about the kind */
+                                          between two places on its own board. Renders
+                                          OUTSIDE the board root — it has to, since a
+                                          sealed board would confine it, and both
+                                          games drag between the board and a rack or
+                                          hand that sits elsewhere */
+  --z-infocol:         1300;  /* the readouts beside the board, WHEN THEY LEAVE
+                                          THE FLOW — which is only on mobile, where
+                                          <InfoSheet> slides them over the board as a
+                                          fixed sheet. On desktop the column is a flex
+                                          sibling of the board and overlaps nothing,
+                                          so it takes no z-index and wants none. What
+                                          it does declare there is `--z-host`, the
+                                          rank a <FilterSelect> opening inside it sits
+                                          one above — a value read by the dropdown,
+                                          not a layer occupied by the column */
   --z-companion:       2000;  /* something you keep NEARBY while you play:
                                           open it, keep it open, move it where you
                                           want it. Reading is the common case (help,

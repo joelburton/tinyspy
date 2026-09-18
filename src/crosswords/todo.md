@@ -63,12 +63,12 @@
   source format; whether a canonical URL is available per publisher, or has to
   be composed from the puzzle's date and slug, is the thing to find out.
 - **`CrosswordsNumberJumpBlockingModal` is a blocking modal not built as
-  one** — a hand-rolled `position: fixed` box with its own scrim, riding the
-  popover tier, so a menu can open over it. `<BlockingModal>` is what it
-  wants: the shell brings the backdrop, the tab ring, immovability and
-  content-fit height. Left for this game's own audit because the conversion
-  MOVES ITS TIER, and a behavior change to a game's modal should be seen by
-  the area that owns the game.
+  one** — a hand-rolled `position: fixed` box with its own scrim, where
+  `<BlockingModal>` brings the backdrop, the tab ring, immovability and
+  content-fit height. **The conversion moves no layer**: it already reads
+  `--z-modal-blocking`, the tier that shell resolves from its family. What the
+  shell would change is this game's own scrim, tab ring and Escape, which is
+  why the decision sits here.
 - The setup chooser is drifted on three values — `6px` where `--radius-md`
   is the vocabulary, and its own hover and rule colors. Unintended, per Joel.
 - **The control bar picks a font size off the ramp.** `Controls.module.css`'s

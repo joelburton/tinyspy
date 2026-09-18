@@ -43,10 +43,10 @@ import { describe, expect, it } from 'vitest'
  * sat under `src/common/` and were checked by this same list.
  *
  * `z-index` says otherwise, and is the shape of the exception: a board's
- * radius is a game's decision, but a board's rank against the chat panel is a
- * whole-app decision that merely happens to be WRITTEN in a game's file. Being
- * tuned buys a game freedom over its own surface — never over where that
- * surface sits in the page's stacking order.
+ * radius is a game's decision, but whether a number in a game's file can reach
+ * the chat panel is a whole-app decision that merely happens to be WRITTEN
+ * there. Being tuned buys a game freedom over its own surface — never over the
+ * page's stacking order.
  */
 
 const SRC = join(process.cwd(), 'src')
@@ -539,17 +539,19 @@ const VOCABULARIES: Vocabulary[] = [
     // ring over a tile, a shuffle floating on its board, the keyboard cursor.
     // Those compete only with their siblings, so they are not on the ladder
     // and do not want a name. The cut is 10 because the app has a clean gap
-    // there: everything local today is ≤ 10 and everything page-level is
-    // ≥ 1000, which is what makes a number the honest test. If something ever
-    // needs 11 locally, that is the conversation, not a quiet edit here.
+    // there: everything local is ≤ 10 and everything page-level is ≥ 1000,
+    // which is what makes a number the honest test. If something ever needs
+    // 11 locally, that is the conversation, not a quiet edit here.
+    //
+    // The boards are the reason this rule can be repo-wide. Each one is a
+    // stacking context (`.boardSeal`, game-page/playArea.module.css — sealed
+    // with `isolation: isolate`, containment and no rank), so a number written
+    // inside a board is confined to it whatever its size. That is why a game's
+    // file may write a bare 5 while the same 5 in a page-level component would
+    // be a bug.
     allowed: /^([0-9]|10|auto|inherit|initial|unset|revert)$/,
     root: '.',
-    pending: {
-      // All three are recorded decisions, not oversights — docs/code-conventions.md
-      // → The z- layers names them, and the owning folder's todo.md carries each.
-      'src/bananagrams/components/PlayerBoard.module.css': ['1000'], // drag ghost → shared-game-chrome
-      'src/scrabble/components/BoardCol.module.css': ['100'], //        drag ghost → shared-game-chrome
-    },
+    pending: {},
     fix:
       'Page-level layers read a token from base.css → THE Z- LAYERS ' +
       '(`--z-companion`, `--z-modal-normal`, …). A tier that is not on the ' +

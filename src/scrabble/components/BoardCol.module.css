@@ -113,6 +113,6 @@
   border: 1px solid var(--scrabble-tile-edge);
   border-radius: 4px;
   font-size: calc(var(--rack-tile-size) * 0.5);
-  z-index: 100;
+  z-index: var(--z-ghost);
   box-shadow: var(--scrabble-tile-lift-shadow);
 }

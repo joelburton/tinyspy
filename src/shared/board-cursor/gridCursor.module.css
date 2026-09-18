@@ -25,8 +25,11 @@
   inset: 0;
   box-sizing: border-box;
   pointer-events: none;
-  /* Above the cell's own contents (letter + premium label) but below the drag
-   * ghost and any overlay — see the board-layer tier in each game's board CSS. */
+  /* Above the cell's own contents (letter + premium label). A local number, and
+   * local is all it can be: the board is a stacking context (`.boardSeal` in
+   * common/game-page/playArea.module.css), so this 5 is ranked against the
+   * board's own pieces and nothing else. The drag ghost stays above it by
+   * rendering outside the board entirely. */
   z-index: 5;
 }
 

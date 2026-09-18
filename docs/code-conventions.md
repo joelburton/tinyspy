@@ -553,10 +553,8 @@ Two boundary rules, because both edges leak: **a common component's module holds
 | token | value | what |
 |---|---|---|
 | `--z-page` | 0 | the page itself. Nothing here is ever deliberately drawn over anything else |
-| `--z-board` | 1000 (–1099) | the play surface and the pieces on it, including pieces stacked on other pieces. **Not read yet** — a board's own stacking is still local 0–5, and this token gaining a reader is the signal that boards became sealed |
-| `--z-board-question` | 1100 | a box over ONE square, taking or showing something for it: crosswords' rebus entry. **Not read yet** |
-| `--z-ghost` | 1200 | a piece in transit, following the pointer. **Not read yet** |
-| `--z-infocol` | 1300 | the readouts beside the board — and a layer on desktop too, where nothing overlaps: sitting beside rather than over is a fact about the viewport, not about the kind of thing it is |
+| `--z-ghost` | 1200 | a piece in transit, following the pointer. Rendered OUTSIDE the board root, which a sealed board makes mandatory: a ghost confined to the board could not follow the pointer onto the rack or hand it came from |
+| `--z-infocol` | 1300 | the readouts beside the board, **when they leave the flow** — which is only on mobile, where `<InfoSheet>` slides them over the board as a fixed sheet. On desktop the column is a flex sibling of the board, overlaps nothing, and takes no z-index; what it declares there is `--z-host`, a value a dropdown reads, not a layer the column occupies |
 | `--z-companion` | 2000 | something you keep NEARBY while you play: the scratchpad, a setter's note, a clue explainer |
 | `--z-dialog` | 2100 | a question that can wait. No dim, movable, opens where you left it |
 | `--z-modal-normal` | 2200 | a question worth thinking or talking about. Dims to focus you; chat stays reachable, which is not a leak — a normal modal never claimed the world stopped |
@@ -581,12 +579,16 @@ Two boundary rules, because both edges leak: **a common component's module holds
 
 **What is NOT on the ladder** is layering inside a component's own stacking context — a ring over a tile, a floating shuffle on its board, the keyboard cursor. Those compete only with their siblings and stay small local numbers. The app has a clean gap: everything local is ≤ 10, everything page-level is ≥ 1000.
 
+**And a board is SEALED — contained, not ranked.** `.boardSeal` makes every game's board root a stacking context with `isolation: isolate`, so the numbers inside a board are ranked against each other and against nothing else, and a tile cannot reach chat however big a number someone writes on it. That is what makes the paragraph above true rather than merely observed. It goes on the element enclosing the board *and* anything floating over it (bananagrams' `.boardFrame`, the arena plus its zoom controls), and it is why the drag ghosts and the games' hand-built modals render as siblings of the board rather than inside it.
+
+**A board takes no rung, and that is deliberate.** It is a flex sibling of the info column, side by side with it; the two never overlap, so a rank between them would settle a contest that does not happen — and it would put the board *above* the column, inverting what this table says. `isolation: isolate` is a stacking context and nothing else, so the board keeps its natural place in the flow. The ladder is for things that leave the flow; a board does not.
+
 **The rule is guarded**, by `guards/vocabularies.test.ts`, and in two halves:
 
 - **In CSS, across all of `src/` — boards included.** This is the one vocabulary where tuned surfaces are *not* exempt: a board's radius is a game's decision, but a board's rank against chat is a whole-app decision that merely happens to be written in a game's file. Values 0–10 stay legal as local layering; anything above must read a token.
 - **In TypeScript.** `<FloatingPanel>`'s `zIndex` prop is typed `string` and takes `var(--z-chat)`, so the order has one home rather than a CSS list and a TS list free to disagree. A numeric literal fails the guard. A *computed* z-index is still fine — stackdown stacks its tile pile with `zIndex: t.z`, which is per-tile data, not a tier.
 
-**Three values are deliberately still literals**, each with an owner (`shared/grid-and-drag/todo.md` for the ghosts; the blank picker is scrabble's): the two drag ghosts, which disagree at 1000 (bananagrams) and 100 (scrabble); and scrabble's `ScrabbleBlankPickerBlockingModal` overlay at 50, a full-screen `position: fixed` modal parked *below* the panel tier, so an open chat or menu paints over it. Naming them would bless arrangements nobody has decided on. They sit on the guard's pending list until then.
+**The guard's pending list is empty**, and the rule is that it stays that way: every page-level `z-index` in `src/` reads a rung, and every local one is inside a sealed board or a component's own stacking context.
 
 #### Duplication and drift that are deliberate
 

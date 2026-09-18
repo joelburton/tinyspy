@@ -259,7 +259,7 @@ export function Board({
     // --rows (bands + tile-rows) drives the grid's 1fr row tracks AND the
     // board's max-height (both computed in CSS from the --max-tile-* caps — see
     // PlayArea.module.css). A band is one of these rows spanning all columns.
-    <div className={styles.board} style={{ ['--rows' as string]: rows }} data-board>
+    <div className={cls(shared.boardSeal, styles.board)} style={{ ['--rows' as string]: rows }} data-board>
       {/* Four shared marks ride on the grid box, and all four are about the whole
           surface rather than any piece of it: the blue frame of "you're viewing a
           past turn" (which also makes the board click-through, so a click

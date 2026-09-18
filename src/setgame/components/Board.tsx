@@ -6,6 +6,7 @@ import type { FlashKind } from '../lib/flash'
 import { letterForSlot } from '../lib/letters'
 import { cls } from '@/common/utils/cls'
 import { Card, CardDefs } from './Card'
+import shared from '@/common/game-page/playArea.module.css'
 import styles from './Board.module.css'
 
 type Props = {
@@ -82,7 +83,7 @@ export function Board({
       // neither should fade, because both are states people sit and study. Only
       // `waiting` fades. (It carried `styles.disabled` for a while, a class that
       // never existed; the intent and the effect happened to agree.)
-      className={cls(styles.board, waiting && styles.waiting)}
+      className={cls(shared.boardSeal, styles.board, waiting && styles.waiting)}
       style={{ '--cols': widest } as React.CSSProperties}
     >
       <CardDefs />

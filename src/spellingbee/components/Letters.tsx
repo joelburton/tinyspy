@@ -62,7 +62,7 @@ export function Letters({
 }: Props) {
   const letters = [centerLetter, ...outerLetters]
   return (
-    <div className={styles.board}>
+    <div className={cls(shared.boardSeal, styles.board)}>
       <div className={styles.floatAnchor}>
         {/* The whole hive takes the head-shake, not a hex: spellingbee's
             refusal is about the WORD, and its letters are all legal tiles that
