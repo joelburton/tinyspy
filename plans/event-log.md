@@ -348,6 +348,50 @@ Otherwise: every game's `PlayArea` and `GameTurnLog` tests, the `turn-log` folde
 tests renamed with their subjects, and the board-geometry baseline left alone (it
 is gitignored and unrelated).
 
+> **BUILT 2026-09-17 — `e2e/events-realtime.e2e.ts`**, ten tests, one per renamed
+> table. Each opens the game in a browser and THEN writes one row from Node
+> through that game's own RPC, so nothing the page did can explain the row
+> arriving: no submit, no optimistic update, and no post-RPC refetch (none of the
+> ten `PlayArea`s calls `load()` after a move — every one waits for the event).
+> The assertion is uniform — the log's `#N` handle goes from absent to present.
+>
+> The cheapest legal row differs per game: a hint (psychicnum, stackdown,
+> letterboxed), a real move (wordle, waffle, connections, strands, setgame,
+> wordiply), and for scrabble a tile EXCHANGE — a pass is compete-only (PN454)
+> and the test's game is coop.
+>
+> The two existing `#N` specs the phase put at risk are green:
+> `stackdown-history` and `codenamesduet-history`, along with the other four
+> history specs.
+>
+> **The full suite ran: 226 passed, 19 failed — and 18 of the 19 are older than
+> this sprint.** It had not been run since 2026-09-15, and three of that day's
+> changes left specs behind:
+>
+> - **letterboxed, 15 tests** (the whole file + its print smoke + its tap-target
+>   row) — `1ca1402a letterboxed: the letters become tiles` took the letters out
+>   of the SVG, and every spec still waited on `svg text` / clicked `svg g` /
+>   found the board by "the SVG with twelve `<text>`s". Repointed at the letter
+>   boxes (`[class*="node"]`) and at the board square (`svg[class*="lines"]`).
+> - **wordwheel's tap-target** — same shape: its tiles are `div[data-tile]` now,
+>   not `g[data-tile]`. Only spellingbee is still an SVG-drawn board, and the
+>   spec's comment said "the two".
+> - **connections' restart test** — `24664a0a … a restart mounts a new board`
+>   means the restart takes the open hints panel with it. The spec's premise
+>   ("a restart doesn't unmount the surface") is obsolete; its INTENT is intact,
+>   so it now reopens the panel and reads what the replay starts with.
+>
+> **The one failure that is ours** was `scrabble-ai-player`: it asserted the log
+> says "AI 1", and after scrabble-ai-players the AI's row is attributed to
+> `ada-bot`. The spec asserts the bot's name now — which is the feature, not a
+> workaround.
+>
+> **`setgame-flash` is left RED on purpose — it is catching a real bug**, and it
+> is setgame's, not this sprint's. Opening a game that already has claims
+> flashes all twelve cards as freshly arrived. Filed with the diagnosis in
+> [src/setgame/todo.md](../src/setgame/todo.md) → Bugs, which is the file the fix
+> would be made in.
+
 ## E. Open
 
 1. ~~**`boardIsShown`'s new name** (§B.5).~~ **MOOT, answered by B.2/B.3**: the

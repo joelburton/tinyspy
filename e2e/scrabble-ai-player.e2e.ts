@@ -9,13 +9,14 @@ import { signIn } from './helpers/session'
  * real scrabble-ai-move edge function. A game with one human (alice) + one AI is
  * rigged so it's the AI's turn on load; alice's client detects the AI turn and
  * pokes the edge function, which plays the AI seat via ai_play_word. We assert
- * the AI's move lands in the shared Moves log attributed to "AI 1" — proving the
- * whole chain (FE trigger → edge fn → get_ai_context → choosePlay → ai_play_word
+ * the AI's move lands in the shared Moves log attributed to the BOT'S USERNAME
+ * (`ada-bot` — the bots are real users now, seated in username order, so one AI
+ * takes the first of the three) — proving the whole chain (FE trigger → edge fn → get_ai_context → choosePlay → ai_play_word
  * → seat-based turn/log). The local edge runtime serves it (part of
  * `supabase start`); the bundled wordlist must exist (`gmake g-scrabble-trie`).
  */
 test.describe('scrabble — AI opponent (compete)', () => {
-  test('the AI takes its turn and its play shows in the log as "AI 1"', async ({ browser }) => {
+  test('the AI takes its turn and its play shows in the log as ada-bot', async ({ browser }) => {
     const club = await createClubWithMembers(['alice', 'bob'])
     const [alice] = club.members
     // 1 human + 1 best AI, full dictionary (the band rule requires 6 for best).
@@ -35,7 +36,7 @@ test.describe('scrabble — AI opponent (compete)', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
-    // "AI 1" is present from the start (the score strip), so it alone doesn't
+    // The bot's name is present from the start (the score strip), so it alone doesn't
     // prove a move. A first Moves-log row (#1) is the real signal: it's the AI's
     // turn and alice isn't playing, so the only actor who can produce a
     // committed play is the AI, driven by the edge function.
@@ -43,8 +44,8 @@ test.describe('scrabble — AI opponent (compete)', () => {
       page.getByText('#1'),
       'the AI committed its opening play (turn #1 appears)',
     ).toBeVisible({ timeout: 30_000 })
-    // And it's attributed to the AI in the log.
-    await expect(page.getByText('AI 1', { exact: false }).first()).toBeVisible()
+    // And it's attributed to the bot in the log's actor column.
+    await expect(page.getByRole('cell', { name: 'ada-bot' }).first()).toBeVisible()
 
     await ctx.close()
   })

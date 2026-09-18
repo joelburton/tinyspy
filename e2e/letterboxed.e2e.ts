@@ -31,8 +31,8 @@ test.describe('letterboxed', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
     // The board renders all twelve letters.
-    await boardReady(page, page.locator('svg text').first(), 15000)
-    await expect(page.locator('svg text')).toHaveCount(12)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
+    await expect(page.locator('[class*="node"]')).toHaveCount(12)
 
     // Nothing covered yet.
     await expect(page.getByText('No words yet')).toBeVisible()
@@ -73,7 +73,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
     // Sides are `abc | def | ghi | jkl`, so B cannot follow A — they share a
     // side. The keystroke is refused rather than accepted-then-rejected.
@@ -96,7 +96,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
@@ -126,15 +126,15 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
+    // The board square is the SVG the letters are laid over — `Board.module.css
+    // → .lines`, the layer carrying the box and the two chain paths. The letters
+    // themselves are boxes above it, so measuring the square is measuring the board.
     const boardTop = async () => {
-      const svgs = page.locator('svg')
-      for (let i = 0; i < (await svgs.count()); i++) {
-        const el = svgs.nth(i)
-        if ((await el.locator('text').count()) === 12) return (await el.boundingBox())!.y
-      }
-      throw new Error('board not found')
+      const box = await page.locator('svg[class*="lines"]').first().boundingBox()
+      if (!box) throw new Error('board not found')
+      return box.y
     }
 
     const empty = await boardTop()
@@ -171,7 +171,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
@@ -217,7 +217,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
     // HINT describes the word without giving it: the fixture's two-word
     // solution opens with ADGJBEHK — 8 letters, so three of them (four only
@@ -249,7 +249,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
     await page.getByRole('button', { name: /end game/i }).click()
     const confirm = page.getByRole('button', { name: /^(end|yes|confirm)/i }).last()
@@ -274,7 +274,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
@@ -323,7 +323,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
     const pills = () =>
       page.evaluate(() =>
@@ -377,9 +377,10 @@ test.describe('letterboxed', () => {
     await signIn(ctx, alice.session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
-    const letter = (ch: string) => page.locator('svg g').filter({ hasText: new RegExp(`^${ch}$`) })
+    const letter = (ch: string) =>
+      page.locator('[class*="node"]').filter({ hasText: new RegExp(`^${ch}$`) })
 
     await letter('A').click()
     await letter('D').click()
@@ -416,7 +417,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
     const ghost = page.locator('svg polyline[class*="ghostPath"]')
     const live = page.locator('svg polyline[class*="path"]:not([class*="ghostPath"])')
@@ -470,7 +471,7 @@ test.describe('letterboxed', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await boardReady(page, page.locator('svg text').first(), 15000)
+    await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
     // Reject a word: three board letters that don't spell anything.
     await page.keyboard.type('adl')
@@ -513,7 +514,7 @@ test.describe('letterboxed custom board', () => {
    *  innerText is an HTML-rendering concept — it comes back empty here, which
    *  reads exactly like a board that failed to load. */
   const readBoard = async (page: import('@playwright/test').Page) =>
-    (await page.locator('svg text').allTextContents()).join('')
+    (await page.locator('[class*="node"]').allTextContents()).join('')
 
   test('a rolled board can be typed back, and the recap reads it in the same form', async ({
     browser,
@@ -532,8 +533,8 @@ test.describe('letterboxed custom board', () => {
     await rollPage.goto(`/c/${rollClub.handle}`)
     await startGameRow(rollPage, /SnakeBox/).click()
     await rollPage.getByRole('button', { name: 'Start' }).click()
-    await boardReady(rollPage, rollPage.locator('svg text').first(), 20000)
-    await expect(rollPage.locator('svg text')).toHaveCount(12)
+    await boardReady(rollPage, rollPage.locator('[class*="node"]').first(), 20000)
+    await expect(rollPage.locator('[class*="node"]')).toHaveCount(12)
     const rolled = await readBoard(rollPage)
     expect(rolled).toMatch(/^[A-Z]{12}$/)
     await rollCtx.close()
@@ -558,8 +559,8 @@ test.describe('letterboxed custom board', () => {
     await page.getByRole('button', { name: 'Start' }).click()
 
     // The board IS the one typed — same letters, same sides, same positions.
-    await boardReady(page, page.locator('svg text').first(), 20000)
-    await expect(page.locator('svg text')).toHaveCount(12)
+    await boardReady(page, page.locator('[class*="node"]').first(), 20000)
+    await expect(page.locator('[class*="node"]')).toHaveCount(12)
     expect(await readBoard(page)).toBe(rolled)
 
     // And the recap prints it in the form the dialog takes back — the round

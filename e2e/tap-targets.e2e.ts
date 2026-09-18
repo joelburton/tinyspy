@@ -40,15 +40,17 @@ import { signIn } from './helpers/session'
 
 /** Games you play by tapping the board, with a selector for one tap target. */
 const TAPPED_BOARDS = [
-  // The two SVG-drawn boards — the shape that made this bug possible. Their
-  // rule has to live on the <svg> root, not on the <g> that is the tile.
-  // `data-hex` / `data-tile`, not `g[role="button"]`: those tiles are
-  // pointer-only and carry no ARIA role (2026-08-16 — the role + tabIndex was an
-  // unreachable button costume that trapped focus instead). The touch-action
-  // rule this asserts lives on the <svg> root either way.
+  // spellingbee is the SVG-drawn board — the shape that made this bug possible.
+  // Its rule has to live on the <svg> root, not on the <g> that is the hex.
+  // `data-hex`, not `g[role="button"]`: those tiles are pointer-only and carry
+  // no ARIA role (2026-08-16 — the role + tabIndex was an unreachable button
+  // costume that trapped focus instead).
   { name: 'spellingbee', make: createSpellingbeeGame, target: 'g[data-hex]' },
-  { name: 'wordwheel', make: createWordwheelGame, target: 'g[data-tile]' },
-  { name: 'letterboxed', make: createLetterboxedGame, target: 'svg circle' },
+  // wordwheel's tiles and letterboxed's letters are HTML boxes laid OVER their
+  // SVG, so each carries its own touch-action and the inert-child trap can't
+  // reach them.
+  { name: 'wordwheel', make: createWordwheelGame, target: '[data-tile]' },
+  { name: 'letterboxed', make: createLetterboxedGame, target: '[class*="node"]' },
   // HTML tiles: bespoke ones (strands, boggle, scrabble) and the shared `.tile`
   // (connections, waffle, stackdown).
   { name: 'strands', make: createStrandsGame, target: 'button[class*="tile"]' },

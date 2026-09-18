@@ -149,6 +149,10 @@ test('connections: Restart un-reveals a spent hint', async ({ browser }) => {
   await page.locator('[data-floating-panel]').getByRole('button', { name: 'Restart' }).click()
   await page.waitForTimeout(2000)
 
+  // A restart mounts a new board, which takes the open hints panel with it — so
+  // open it again to read what the replay starts with.
+  await page.getByRole('button', { name: /Hints/i }).first().click()
+
   // All four are hidden again — the second attempt is blind.
   await expect(page.getByRole('button', { name: /Reveal/i })).toHaveCount(4)
 })

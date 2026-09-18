@@ -26,7 +26,7 @@ test.describe('letterboxed — print board', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${gametype}/${id}`)
-    await boardReady(page, page.locator('svg text').first())
+    await boardReady(page, page.locator('[class*="node"]').first())
 
     await page.keyboard.type('adg')
     await page.keyboard.press('Enter')
