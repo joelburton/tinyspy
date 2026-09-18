@@ -278,9 +278,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/setup-form/SetupTimerSection.module.css': ['0.3rem'],
       'src/common/terminal/CelebrationBlockingModal.module.css': ['0.3rem', '0.4rem', '0.2rem', '1.4rem'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1rem'],
-      'src/common/word-entry/EntryBox.module.css': ['1px'],
+      'src/common/word-entry/WordEntryInput.module.css': ['1px'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.4rem'],
-      'src/common/word-entry/MoveRow.module.css': ['0.5rem'],
+      'src/common/word-entry/WordEntryRow.module.css': ['0.5rem'],
       'src/common/lists/FilterSelect.module.css': ['0.35rem'],
       'src/shared/bee-games/foundWordsPlayArea.module.css': ['1.5rem'],
       'src/common/game-page/GamePage.module.css': ['0.1rem'],
@@ -445,7 +445,7 @@ const VOCABULARIES: Vocabulary[] = [
       // wordiply and letterboxed all wrote 0.2em. Unconverted, not
       // unconsidered: it is what makes typed letters read like tiles.
       'src/common/fields/ManualBoardField.module.css': ['0.2em'],
-      'src/common/word-entry/EntryBox.module.css': ['0.05em'],
+      'src/common/word-entry/WordEntryInput.module.css': ['0.05em'],
       'src/common/word-list/WordList.module.css': ['0.02em'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.04em'],
       'src/common/game-page/playArea.module.css': ['0.03em'],

@@ -59,7 +59,7 @@ session, and nothing else — F-11.6 and the gametype move); `error-page/
 ErrorPage.tsx` (took a `title` prop for this area's Not-Found page); `pause-suspend/
 PauseBoundary.tsx` + `PauseOverlay.tsx` (take `actEndGame`); every game's
 `PlayArea.tsx` (reads `GamePageCtx`); `bananagrams/components/PlayArea.tsx`
-(the one `DeviceBlockNotice` caller); `word-entry/EntryBox.tsx` (the one caller
+(the one `DeviceBlockNotice` caller); `word-entry/WordEntryInput.tsx` (the one caller
 of `useGameHasKeyboard`, with `lists/FilterSelect.tsx` and
 `bananagrams/hooks/usePlayerBoard.ts` citing it in prose but not calling it);
 `menu/gameMenuStore.ts`; `core-css/base.css` (the `--z-` ladder,
@@ -136,7 +136,7 @@ What the pass turned up that the audit had not:
 
 - **Two of the audit's own claims were wrong, and the same mistake made both:
   counting mentions as callers.** `useGameHasKeyboard` has exactly ONE caller,
-  `word-entry/EntryBox`. F-5 says "`FilterSelect` and bananagrams' board read it
+  `word-entry/WordEntryInput`. F-5 says "`FilterSelect` and bananagrams' board read it
   too" and F-10 says its readers are those three — neither calls it; both cite
   it in a docstring, because each is a control that takes focus away and has to
   give it back, which is the invariant this hook states. **F-10 is still open,
@@ -456,7 +456,7 @@ a description of today, so it keeps the vocabulary of its own moment.
 
 **The evidence first recorded here was wrong** (corrected 2026-09-14 during the
 prose pass): it named three readers, and two of them only mention the hook in a
-docstring. Its ONE caller is `word-entry/EntryBox`, for the simulated caret.
+docstring. Its ONE caller is `word-entry/WordEntryInput`, for the simulated caret.
 `lists/FilterSelect` and bananagrams' `usePlayerBoard` cite it as the reason
 they hand focus back, which makes it a rule they obey, not a hook they call.
 
@@ -477,7 +477,7 @@ folder — does not hold: `keyboard/` already hosts `useDismissOnEscape.ts`
 area's stamp is precedented, and this one's stamp is honest about who audited
 it.
 
-Moved with `git mv`; one import in `EntryBox`, and its own import of
+Moved with `git mv`; one import in `WordEntryInput`, and its own import of
 `editableField` shortens to `./`. Two prose citations name it without a path,
 so they did not move. `docs/keyboard-shortcuts.md` links it by path and was
 corrected — **the `docLinks` guard caught that, not me.**

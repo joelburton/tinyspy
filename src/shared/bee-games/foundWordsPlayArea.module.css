@@ -100,12 +100,12 @@
  * feedback pill, or the terminal status. Width pinned to the board width so a
  * long typed word can't widen the column and shift the centered board. Column
  * so that box STRETCHES to the full board width (so the input row spans the
- * board and its EntryBox flex-fills between the buttons). `margin-top` drops the
+ * board and its WordEntryInput flex-fills between the buttons). `margin-top` drops the
  * row down off the board for breathing room (on top of the board column's
  * 0.75rem gap) — counted into `--avail-h` above.
  *
- * (The input row + its EntryBox/Delete/Submit live in the shared
- * common/word-entry/EntryRow; only the slot wrapper is here.) */
+ * (The input row + its WordEntryInput/Delete/Submit live in the shared
+ * common/word-entry/WordEntryArea; only the slot wrapper is here.) */
 /* @@ */ .belowBoard {
   width: var(--board-width);
   margin-top: 1.5rem;

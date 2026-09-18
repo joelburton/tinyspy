@@ -238,7 +238,7 @@ sending anyone to read it.
 `--pageHeader-border-color` (daylight, midnight) and `--page-header-height`
 (base.css) name the same component. Every other component-named token in the
 area is camelCase — `--pageMain-width`, `--floatingPanel-titlebar-height`,
-`--floatingPanel-titlebar-color`, `--iconButton-size`, `--entryBox-font-size`
+`--floatingPanel-titlebar-color`, `--iconButton-size`, `--wordEntryInput-font-size`
 — and `page.css:10` reserves `--page-*` for `<body>`. Readers of the odd one:
 `PageHeader.module.css`, a docstring in `PageHeader.tsx`, `base.css`
 (`--game-header-bottom`), and one sentence in `docs/ui.md`.
@@ -870,7 +870,7 @@ its own `.frame`, the one page not wearing `.pageHeaderAndMainArea`;
   `--page-text-strong-color` and `-label-color` are unread and on
   `DECLARED_AHEAD`; `--z-board`, `--z-board-question`, `--z-ghost` unread
   and declared ahead; `--tile-edge-width` / `--tile-selected-edge-width`,
-  `--iconButton-size`, `--entryBox-font-size` (re-set by strands and
+  `--iconButton-size`, `--wordEntryInput-font-size` (re-set by strands and
   psychicnum) all read; the crosswords picker still folds "ended manually"
   into the suspended stripe, so daylight's "gets minted when crosswords
   converts" is current.

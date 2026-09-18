@@ -437,7 +437,7 @@ The tile-spend rule is surfaced in the UI two ways, both driven by per-letter
 - **Submit is vetoed, not rejected, for a word the wheel can't spell.** A word
   with an off-wheel letter or an over-used tile (`!wordFitsWheel`, the boolean
   twin of the edge fn's `fitsTiles`) leaves the Submit button + Enter inert
-  (`EntryRow`'s `submitDisabled`) — editing stays live so you can fix it. So a
+  (`WordEntryArea`'s `submitDisabled`) — editing stays live so you can fix it. So a
   word like `FOOD` on a wheel without F/O can't submit and read as "not a word"
   (i.e. "not in the dictionary"), which was the misleading old behavior.
   Consequently `explainReject` only ever fires for a *fitting* word: it names the

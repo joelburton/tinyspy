@@ -3,7 +3,7 @@
 import { useCallback, useMemo, type CSSProperties } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { EntryRow } from '@/common/word-entry/EntryRow'
+import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { Board } from './Board'
 import { ChainStrip } from './ChainStrip'
 import { TypedWord } from './TypedWord'
@@ -120,7 +120,7 @@ export function BoardCol({
     [boardLetters],
   )
 
-  // EntryRow hands back the whole intended value; this is the one gate it
+  // WordEntryArea hands back the whole intended value; this is the one gate it
   // passes through, and it enforces two things:
   //
   //   1. Anything that no longer begins with the seed is an attempt to
@@ -243,7 +243,7 @@ export function BoardCol({
         {isViewingHistory && (
           <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
         )}
-        <EntryRow
+        <WordEntryArea
           value={word}
           onChange={handleChange}
           onSubmit={onSubmit}

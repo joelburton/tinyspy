@@ -10,7 +10,7 @@
  */
 import { render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { MoveRow } from './MoveRow'
+import { WordEntryRow } from './WordEntryRow'
 import type { BoundAction } from '../actions/useBoundAction'
 import { ACTIONS, type ActionId } from '../actions/registry'
 
@@ -30,12 +30,12 @@ function action(id: ActionId): BoundAction {
 const glyphIn = (el: Element | null) =>
   el?.querySelector('svg')?.getAttribute('class')?.match(/lucide-([a-z-]+)/)?.[1]
 
-describe('MoveRow', () => {
+describe('WordEntryRow', () => {
   it('draws each action its own glyph, never the generic square', () => {
     const { container } = render(
-      <MoveRow actDelete={action('act-delete-last')} actSubmit={action('act-submit-entry')}>
+      <WordEntryRow actDelete={action('act-delete-last')} actSubmit={action('act-submit-entry')}>
         <span>cat</span>
-      </MoveRow>,
+      </WordEntryRow>,
     )
     const [del, submit] = [...container.querySelectorAll('button')]
     expect(glyphIn(del!)).toBe('delete')
@@ -46,9 +46,9 @@ describe('MoveRow', () => {
 
   it('puts the entry between them, take-back first', () => {
     const { container } = render(
-      <MoveRow actDelete={action('act-delete-last')} actSubmit={action('act-submit-entry')}>
+      <WordEntryRow actDelete={action('act-delete-last')} actSubmit={action('act-submit-entry')}>
         <span>cat</span>
-      </MoveRow>,
+      </WordEntryRow>,
     )
     expect(container.textContent).toContain('cat')
     expect([...container.querySelectorAll('button')]).toHaveLength(2)

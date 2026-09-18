@@ -9,7 +9,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { EntryRow } from '@/common/word-entry/EntryRow'
+import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { db } from '../db'
 import { ANSWER_OUTCOME } from '../lib/answer'
@@ -174,7 +174,7 @@ export function BoardCol({
   // ⌥Z shuffles — a fresh visual scan of the SAME words, never a move. Bound
   // HERE rather than in the PlayArea because this column owns the display
   // order, and bound at all (rather than hung off the entry) because the
-  // <EntryRow> is UNMOUNTED once you can't guess — at terminal, while viewing
+  // <WordEntryArea> is UNMOUNTED once you can't guess — at terminal, while viewing
   // history, on someone else's turn — and shuffling is worth having in every one
   // of those states. Hence plainly active, always: the round pill below is this
   // same binding, and it is documented as live even on a finished board.
@@ -312,10 +312,10 @@ export function BoardCol({
           {isViewingHistory && (
             <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
           )}
-          {/* The shared <EntryRow> (icon-only Delete + the EntryBox + icon-only
+          {/* The shared <WordEntryArea> (icon-only Delete + the WordEntryInput + icon-only
               Submit + the capture keyboard). `bigEntry` bumps the entry font
               (psychicnum's one short guess word reads large). */}
-          <EntryRow
+          <WordEntryArea
             value={pending}
             onChange={handleEntryChange}
             onSubmit={submitGuess}

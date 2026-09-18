@@ -31,7 +31,7 @@ import { boardReady } from './helpers/ready'
  */
 
 const cell = (page: Page, [r, c]: [number, number]) => page.locator(`[data-cell="${r},${c}"]`)
-/** The traced word, as the EntryBox renders it. */
+/** The traced word, as the WordEntryInput renders it. */
 const entry = (page: Page) => page.getByTestId('entry-value')
 /** Cells ringed red because a typed letter matched more than one of them. */
 const rings = (page: Page) => page.locator('circle[class*="ringAmbiguous"]')

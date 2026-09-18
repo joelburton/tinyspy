@@ -209,11 +209,11 @@ wordwheel, letterboxed), the play surface does **not** use a real
 go, and a focused `<input>` loses focus the instant you click a board tile, so
 typing silently stops. Instead we **capture keystrokes off the window** (the
 shared **`useCaptureKeys`** hook, which binds the entry actions) and show the
-pending value in a read-only display box (the shared **`<EntryBox>`**), so there's
+pending value in a read-only display box (the shared **`<WordEntryInput>`**), so there's
 no focus to lose — typing and tile-clicks both feed one pending value, and clicking
 anywhere never interrupts entry.
 
-Every such game renders the shared **`<EntryRow>`** (`common/word-entry/EntryRow.tsx`):
+Every such game renders the shared **`<WordEntryArea>`** (`common/word-entry/WordEntryArea.tsx`):
 one component bundling the whole entry control so it looks + behaves identically
 everywhere — the `useCaptureKeys` keyboard, the **pill swap** (pass the
 below-board `localFeedbackSlot` and it renders whatever is on top of it as a
@@ -223,20 +223,20 @@ itself. The host owns only the below-board *slot* (its board-matched width +
 reserved height) and which messages go into it. A new word game gets the entire
 entry for free.
 
-**The row is its own component** — **`<MoveRow>`** (`common/word-entry/MoveRow.tsx`):
+**The row is its own component** — **`<WordEntryRow>`** (`common/word-entry/WordEntryRow.tsx`):
 `⌫ | whatever you're entering | Submit`, the two icon-only buttons at the ends
-and the display flex-filling between them. Split out from `<EntryRow>` because
+and the display flex-filling between them. Split out from `<WordEntryArea>` because
 two games need that exact control *without* the capture keyboard, since a
 keystroke there doesn't mean "append this character":
 
-| | what's being entered | why not `<EntryRow>` |
+| | what's being entered | why not `<WordEntryArea>` |
 |---|---|---|
 | **stackdown** | five slots holding picked-up **tiles** | no text buffer at all — a letter names a tile |
-| **strands** | an `<EntryBox>` over the **traced path** | the string is *derived* from the path, so `value`/`onChange` run backwards |
+| **strands** | an `<WordEntryInput>` over the **traced path** | the string is *derived* from the path, so `value`/`onChange` run backwards |
 
-Reach for `<EntryRow>` when a keystroke appends a character; reach for
-`<MoveRow>` directly when it doesn't. Both games bring their own keyboard and
-hand `<MoveRow>` the two **bound actions** their `⌫` and `↵` keys fire — the row
+Reach for `<WordEntryArea>` when a keystroke appends a character; reach for
+`<WordEntryRow>` directly when it doesn't. Both games bring their own keyboard and
+hand `<WordEntryRow>` the two **bound actions** their `⌫` and `↵` keys fire — the row
 places the very bindings rather than callbacks beside them, so a button and its
 key cannot disagree about when either may act. That is the seam that lets the
 control look identical while meaning something different.
@@ -248,7 +248,7 @@ capture; free text → `<input>`.*
 
 The contract for the capture model:
 
-- **Simulated caret = honesty.** `<EntryBox>` draws a blinking caret to say "type
+- **Simulated caret = honesty.** `<WordEntryInput>` draws a blinking caret to say "type
   here" (recovering the one thing a real input's cursor gave). It blinks **only
   while the game owns the keyboard *and* something's been typed** — keyboard
   ownership is gated on `useGameHasKeyboard` (no
@@ -256,7 +256,7 @@ The contract for the capture model:
   condition under which the action dispatcher fires an entry key. So **caret
   visible ⟺ keyboard-owned AND non-empty**: an empty box shows only its gray
   placeholder (which already says "type here"), and the caret never duels with the
-  chat box's cursor. The non-empty gate lives in the shared `<EntryBox>`, so it's
+  chat box's cursor. The non-empty gate lives in the shared `<WordEntryInput>`, so it's
   uniform, not a per-game choice.
 - **No tabbing between controls.** The play surface declares an empty tab ring,
   so `Tab` is caught and goes nowhere — these games are navigated by clicks +
@@ -274,7 +274,7 @@ The contract for the capture model:
   `recall` value, `ArrowDown` clears — is a SEPARATE layer, `useArrowHistory`,
   because it answers a different question: the core is about the characters going
   IN, the arrows about the whole entry coming BACK, and a game may want either
-  without the other. `<EntryRow>` composes both, so a typing game gets the arrows
+  without the other. `<WordEntryArea>` composes both, so a typing game gets the arrows
   by rendering it and opts out with `hasHistory={false}` where a submitted entry
   doesn't come back (letterboxed: the word joins the chain); a game running its
   own capture loop calls `useArrowHistory` directly if recall helps it (wordiply,
@@ -326,14 +326,14 @@ player was already looking and explains why the entry is gone.
 
 **Locked names for the below-board row.** The row below the board and its parts
 use one vocabulary across games, and the parts that are the same everywhere have
-become shared stylesheets rather than a name each game retypes: **`.moveRow`**
-(`common/word-entry/MoveRow.module.css`) is the `⌫ | entry | Submit` control
+become shared stylesheets rather than a name each game retypes: **`.wordEntryRow`**
+(`common/word-entry/WordEntryRow.module.css`) is the `⌫ | entry | Submit` control
 itself, and **`.localFeedback`** + **`.moveAreaOrLocalFeedback`**
 (`common/game-page/playArea.module.css`) are the pill's centering box and the
 reserved-height box the controls and the pill swap inside. What stays in each
 game's *own* module is the naming of its region: **`.belowBoard`** (the wrapper
 under the board, often `display: contents`) and **`.moveArea`** (that game's move
-controls where they aren't a `<MoveRow>` — connections' Clear / Submit pair,
+controls where they aren't a `<WordEntryRow>` — connections' Clear / Submit pair,
 wordle's on-screen keyboard). Reuse these names when a new game grows the same
 row; connections keeps one of its own, **`.inputButton`**, for the floor width on
 a labeled button in its commit row.

@@ -1,8 +1,8 @@
 /* cs-unmet */
 
-/* Per-character styling for a typed word rendered inside <EntryBox> (a game
+/* Per-character styling for a typed word rendered inside <WordEntryInput> (a game
  * passes its own `<TypedWord>` as the box's children). The input-like box, the
- * blinking caret, and the placeholder are EntryBox's; only the illegal-letter
+ * blinking caret, and the placeholder are WordEntryInput's; only the illegal-letter
  * dim lives here.
  *
  * Shared by spellingbee + wordwheel. Their `TypedWord.tsx` files genuinely

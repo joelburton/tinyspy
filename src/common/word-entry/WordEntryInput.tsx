@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
 import { useGameHasKeyboard } from '../keyboard/useGameHasKeyboard'
-import styles from './EntryBox.module.css'
+import styles from './WordEntryInput.module.css'
 
 type Props = {
   // The text currently entered. Empty string shows the placeholder.
@@ -32,11 +32,11 @@ type Props = {
  *
  * This DISPLAYS; it never changes the value. The keys that do are the
  * caller's — `keyboard/useCaptureKeys` types, deletes and submits, and
- * `./useArrowHistory` adds the ↑/↓ recall. `<EntryRow>` is the three of them
+ * `./useArrowHistory` adds the ↑/↓ recall. `<WordEntryArea>` is the three of them
  * assembled (doc.md → Intro to area); reach for the box alone only when
  * something other than typing produces the string.
  */
-export function EntryBox({ value, placeholder, children, className }: Props) {
+export function WordEntryInput({ value, placeholder, children, className }: Props) {
   const gameHasKeyboard = useGameHasKeyboard()
 
   const empty = value === ''

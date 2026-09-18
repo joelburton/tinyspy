@@ -9,7 +9,7 @@ import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalF
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
-import { MoveRow } from '@/common/word-entry/MoveRow'
+import { WordEntryRow } from '@/common/word-entry/WordEntryRow'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { exposedIds, type Tile } from '../lib/board'
 import { ANSWER_OUTCOME } from '../lib/answer'
@@ -157,7 +157,7 @@ export function BoardCol({
   const deleteLast = useCallback(() => {
     if (!canDelete) return
     // A ⌫ click is a move like any keystroke, so it dismisses a result the
-    // same way (the EntryRow rule — it matters most on touch, where there is
+    // same way (the WordEntryArea rule — it matters most on touch, where there is
     // no next keystroke to do it).
     localFeedbackSlot.dismiss()
     retractTo(currentWord.length - 1)
@@ -196,7 +196,7 @@ export function BoardCol({
   // to click one. A pattern action, so it is handed whichever letter fired it.
   // Any key is the next move, so any key drops the previous move's result —
   // the rule every game follows, bound here because stackdown mounts no
-  // EntryRow.
+  // WordEntryArea.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   useBoundAction('act-pick-tile', {
@@ -251,17 +251,17 @@ export function BoardCol({
           <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
         )}
         {/* The shared move row (docs/playarea.md → Text entry) around the five
-            slots. stackdown can't use <EntryRow> — its "entry" is a grid of
-            picked-up TILES, so EntryRow's capture keyboard, arrow-history and
+            slots. stackdown can't use <WordEntryArea> — its "entry" is a grid of
+            picked-up TILES, so WordEntryArea's capture keyboard, arrow-history and
             string `value` have nothing to bind to — but the ROW is the same row,
-            which is what `<MoveRow>` exists to share.
+            which is what `<WordEntryRow>` exists to share.
 
             Both buttons stay MOUNTED and merely disabled when they can't act —
             including while a past turn is being viewed — so the region never
             reflows (the reserve-the-slot rule, docs/ui.md). The ⌫ is the
             touch-reachable twin of physical Backspace, which is the real gain:
             stackdown has a supported phone layout and no keyboard there. */}
-        <MoveRow className={styles.moveArea} actDelete={actDeleteLast} actSubmit={actSubmit}>
+        <WordEntryRow className={styles.moveArea} actDelete={actDeleteLast} actSubmit={actSubmit}>
           <WordEntry
             tiles={tiles}
             currentWord={currentWord}
@@ -270,7 +270,7 @@ export function BoardCol({
             flash={flash}
             verdict={refusedWord ? ANSWER_OUTCOME.invalid : null}
           />
-        </MoveRow>
+        </WordEntryRow>
         {/* The LOCAL feedback area — reserves its own height (shared
             `.localFeedback`) so the board above never reflows when the pill
             appears/clears. */}

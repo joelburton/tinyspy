@@ -16,7 +16,7 @@ export function asciiLetters(store: 'lower' | 'upper' = 'lower') {
   }
 }
 
-/** The two entry keys that also have a button — handed back so `<MoveRow>` can
+/** The two entry keys that also have a button — handed back so `<WordEntryRow>` can
  *  place the very bindings the keys fire. Typing and dismissal have no button,
  *  so they are offered and not returned. */
 export type CaptureKeysActions = {
@@ -64,7 +64,7 @@ export type CaptureKeysOptions = {
 /**
  * The shared **capture-entry keys** — typing, deleting and submitting, for every
  * game whose entry has no `<input>` to focus (the keyboard half of the capture
- * model; the display half is `<EntryBox>`, when there is one).
+ * model; the display half is `<WordEntryInput>`, when there is one).
  *
  * It binds four actions rather than reading the keyboard itself, so a game's
  * entry keys are in the same list as its commands: `act-type-letter`,
@@ -86,7 +86,7 @@ export type CaptureKeysOptions = {
  * recalls the last entry, `ArrowDown` clears it — are NOT here. They are the
  * separate `word-entry/useArrowHistory`, a different question (the whole entry
  * coming back, rather than the characters going in) that a game may want without
- * this core or with it; `<EntryRow>` composes the two.
+ * this core or with it; `<WordEntryArea>` composes the two.
  */
 export function useCaptureKeys({
   value,

@@ -373,8 +373,8 @@ src/spellingbee/
                           message (a TerminalMessage the verdict + the info-column row share), and pops the
                           shared CelebrationBlockingModal on a coop win via useCelebration.
     BoardCol.tsx          The board column: the honeycomb <Letters> + a floating Shuffle over its
-                          top-right + the below-board <EntryRow> (the typed-word input + capture
-                          keyboard, whose <EntryBox> renders the per-character illegal-letter dim
+                          top-right + the below-board <WordEntryArea> (the typed-word input + capture
+                          keyboard, whose <WordEntryInput> renders the per-character illegal-letter dim
                           via <TypedWord>). Owns the local outer-letter shuffle (per-player,
                           view-only, never persisted) and a letter-click appending to the word.
                           The shuffle is a bound action (act-shuffle, ⌥Z), so the pill and the
@@ -443,13 +443,13 @@ src/spellingbee/
                           `used` flag and, when a refused word used its letter, that
                           word's outcome.
     TypedWord.tsx         The current typed word, rendered as the children INSIDE the shared
-                          <EntryBox> (which owns the box + blinking caret + placeholder).
+                          <WordEntryInput> (which owns the box + blinking caret + placeholder).
                           One <span> per character so illegal letters (not in the puzzle's
                           allowed set) dim individually. No <input> — typing is captured by
                           useCaptureKeys in PlayArea.
                           (The Delete / Shuffle / Enter controls are no longer a per-game
                           Actions.tsx: they're the shared semantic buttons —
-                          act-delete-last + act-submit-entry flanking the EntryBox in the input
+                          act-delete-last + act-submit-entry flanking the WordEntryInput in the input
                           row, and a floating <ShuffleButton> over the board's top-right.)
                           (The own-move result pill is no longer a per-game Feedback.tsx:
                           it's a `result` in the shared local feedback slot, drawn in the below-board

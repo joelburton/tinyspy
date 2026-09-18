@@ -17,18 +17,18 @@
 
 /* psychicnum's one deliberate entry tweak (kept from the old GuessForm): a bigger
  * entry font — a single short guess word reads large. Applied to the shared
- * <EntryRow>'s row; the var cascades down to the EntryBox inside it. */
+ * <WordEntryArea>'s row; the var cascades down to the WordEntryInput inside it. */
 /* @@ */ .bigEntry {
-/* @@ */   --entryBox-font-size: 2rem;
+/* @@ */   --wordEntryInput-font-size: 2rem;
 }
 
 /* On a phone the board fills the screen and 2rem reads oversized, so dial the
  * enlargement back toward the default. Safe below the 16px iOS floor because the
- * EntryBox is a display <div>, not a focusable <input> — it never raises the
+ * WordEntryInput is a display <div>, not a focusable <input> — it never raises the
  * keyboard, so it can't trigger focus-zoom. Phones only; tablets/desktop keep 2rem. */
 @media (--phone) {
 /* @@ */   .bigEntry {
-/* @@ */     --entryBox-font-size: 1.5rem;
+/* @@ */     --wordEntryInput-font-size: 1.5rem;
   }
 }
 

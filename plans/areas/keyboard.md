@@ -316,7 +316,7 @@ their areas open — right. Stale inside it:
   exists and the modal families use it; the doc line it corrects is wrong the
   OTHER way now (F-keyboard-16 item 2).
 - "Nothing handles Tab at all — letterboxed" (leak 1) — letterboxed renders
-  `<EntryRow>`, so it has `useCaptureKeys`' swallow. codenamesduet's board
+  `<WordEntryArea>`, so it has `useCaptureKeys`' swallow. codenamesduet's board
   still leaks (its PlayArea only passes `exitOnKey`), which is that game's.
 - "the scratchpad does not close on Escape (`closeOnEsc={false}`)" — the prop
   is gone; the companion family closes.
@@ -333,7 +333,7 @@ the fold "as each surface converts", which argues for standing.
 `docs/common.md:755`, `docs/playarea.md:259`, `docs/games/spellingbee.md:81`
 and `:469`, `plans/keyboard-nav-plan.md:241`, `plans/tab-rings.md:7`. A
 find-and-replace this area ships. (`docs/playarea.md:209` and `:218` say
-`common/components/game/entry/` for `EntryRow`/`MoveRow`, which is
+`common/components/game/entry/` for `WordEntryArea`/`WordEntryRow`, which is
 `word-entry`'s — noted in passing, same fix, same commit if wanted.)
 
 ## F-keyboard-19 · `common-md-second-copy` · `docs/common.md` carries a second, older copy of the shortcuts

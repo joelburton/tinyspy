@@ -673,13 +673,13 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
     input.remove()
   })
 
-  it('has NO ArrowUp-recall / ArrowDown-clear (wordle is not an EntryBox)', async () => {
+  it('has NO ArrowUp-recall / ArrowDown-clear (wordle is not an WordEntryInput)', async () => {
     rpc.mockResolvedValue({ data: { result: 'incorrect' }, error: null })
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('crane')
-    // In an EntryBox game ArrowDown would clear the entry; here it must do nothing,
+    // In an WordEntryInput game ArrowDown would clear the entry; here it must do nothing,
     // so Enter still submits the intact "crane".
     await user.keyboard('{ArrowDown}{Enter}')
     await waitFor(() =>

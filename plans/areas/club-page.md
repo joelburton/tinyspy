@@ -511,7 +511,7 @@ them instead — `home-keyboard` included, since the handle it wanted is the one
 `SelectionList` now has. `homepage`'s own note is struck through and points
 here.
 
-The shape follows the one precedent in the app, `EntryBox`'s
+The shape follows the one precedent in the app, `WordEntryInput`'s
 `data-testid="entry-value"`: kebab-case, named for what the thing is.
 
 **The e2es are NOT run** — a selector swap with no behavior behind it, and e2e

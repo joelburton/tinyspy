@@ -372,7 +372,7 @@ element, and the match is what says so.
 Measured 2026-08-21: `<Dot>` is the common case — ten consumer modules style it
 as a bare `.dot`, while others already qualify (`greetingDot`, `playerDot`,
 `rosterDot`, `actorDot`, `itemDot`, `bonusDot`). Same for `<ShuffleButton>`
-(`.rackShuffle`, `.floatingRotate` — good) and `<MoveRow>` (`.moveRow`).
+(`.rackShuffle`, `.floatingRotate` — good) and `<WordEntryRow>` (`.wordEntryRow`).
 
 **Don't give a local class a global's bare name.** `styles.button` beside
 `'button'` on the same element are two unrelated classes that look like one; a
@@ -824,7 +824,7 @@ Every game's `.boardCol` reads the same skeleton below the board, so a reader ca
 .boardCol
   <board>
   .belowBoard              ← the region: everything below the board. ALWAYS present.
-    .moveArea              ← the below-board move controls (keyboard / EntryBox+buttons /
+    .moveArea              ← the below-board move controls (keyboard / WordEntryInput+buttons /
                               rack / mistakes+buttons). ALWAYS present — EMPTY (with a short
                               comment) where the move is made on the board itself (bananagrams,
                               waffle). A game has zero or one.
@@ -832,7 +832,7 @@ Every game's `.boardCol` reads the same skeleton below the board, so a reader ca
                               reserves its own min-height so the board never reflows.
 ```
 
-**The swap.** In many games the move controls and the feedback pill occupy the **same** spot — the pill replaces the controls (connections, the `EntryRow` games, codenamesduet, and scrabble's *commit buttons only*). There, a `.moveAreaOrLocalFeedback` box holds the reserved height and swaps `.moveArea` ↔ `.localFeedback`:
+**The swap.** In many games the move controls and the feedback pill occupy the **same** spot — the pill replaces the controls (connections, the `WordEntryArea` games, codenamesduet, and scrabble's *commit buttons only*). There, a `.moveAreaOrLocalFeedback` box holds the reserved height and swaps `.moveArea` ↔ `.localFeedback`:
 
 ```
 .belowBoard

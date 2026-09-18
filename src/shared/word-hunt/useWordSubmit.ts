@@ -37,7 +37,7 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
  * game's local feedback slot, which the PlayArea makes (`useFeedbackSlot`) and
  * hands in — the slot stays the host's, since a game's End / Concede show into
  * it too. It does NOT own `useCaptureKeys`; that lives inside the shared
- * `<EntryRow>`, which draws the same slot.
+ * `<WordEntryArea>`, which draws the same slot.
  */
 
 /** One entry of a game's shipped legal list. `word` is the canonical lowercase
@@ -166,7 +166,7 @@ export type WordSubmitApi = {
   /** The raw state setter — accepts a value or an updater, so a game can append
    *  a clicked letter (`setWord((w) => w + 'A')`) as well as replace. */
   setWord: Dispatch<SetStateAction<string>>
-  /** The last word submitted (accepted or rejected), for `<EntryRow recall>` —
+  /** The last word submitted (accepted or rejected), for `<WordEntryArea recall>` —
    *  ArrowUp brings it back to fix a typo. */
   lastWord: string
   /** Fire a submit of the current `word`. */

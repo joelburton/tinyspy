@@ -64,7 +64,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * for the dictionary check. Traceability is checked client-side (trusting-commit).
  *
  * Move entry is the shared capture model (window key capture + a chrome-less
- * `<EntryBox>` display), the same as spellingbee — boggle's structural twin.
+ * `<WordEntryInput>` display), the same as spellingbee — boggle's structural twin.
  */
 /** What `boggle.submit_word` puts in `data`. Both results mean the row landed;
  *  they differ only by the bonus flag the caller sent. A duplicate and a

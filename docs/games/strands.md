@@ -417,14 +417,14 @@ has no Enter key. The last tile keeps its second ring: it marks where the trace
 ends, which is what tells you which neighbors are live and what Backspace will
 take.
 
-**The move row** is the shared `<MoveRow>` (⌫ | the traced word in an
-`<EntryBox>` | Submit) — the same control every other game's entry wears. strands
-can't use `<EntryRow>`: its string is *derived* from the path (`wordFromPath`),
-so EntryRow's `value`/`onChange` contract runs backwards. The buttons are the
+**The move row** is the shared `<WordEntryRow>` (⌫ | the traced word in an
+`<WordEntryInput>` | Submit) — the same control every other game's entry wears. strands
+can't use `<WordEntryArea>`: its string is *derived* from the path (`wordFromPath`),
+so WordEntryArea's `value`/`onChange` contract runs backwards. The buttons are the
 pointer twins of Backspace and Enter, and the win is touch — on a phone there's
 no keyboard, so the Submit button is the ONLY way to send a word. The row **shares its fixed-height slot with the feedback pill** (you're
 either building a word or reading what the last one did) — the same swap
-`<EntryRow>` makes; stackdown, whose pill has a separate reserved row, is the odd
+`<WordEntryArea>` makes; stackdown, whose pill has a separate reserved row, is the odd
 one out. The local slot's standing conditions are the verdict, out of the race
 ("Solved — waiting on the rest" for a solver), whose turn, and the **theme clue
 as a `prompt`** on an untouched board — it leaves when a trace begins and comes

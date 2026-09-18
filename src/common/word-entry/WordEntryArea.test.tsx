@@ -2,7 +2,7 @@
 
 import { act, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
-import { EntryRow } from './EntryRow'
+import { WordEntryArea } from './WordEntryArea'
 import { createFeedbackSlot } from '../feedback/feedbackSlotStore'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 
@@ -15,11 +15,11 @@ import { FeedbackMessage } from '../feedback/FeedbackMessage'
 
 function mount(slot: ReturnType<typeof createFeedbackSlot>, value = '') {
   return render(
-    <EntryRow value={value} onChange={vi.fn()} onSubmit={vi.fn()} localFeedbackSlot={slot} />,
+    <WordEntryArea value={value} onChange={vi.fn()} onSubmit={vi.fn()} localFeedbackSlot={slot} />,
   )
 }
 
-describe('EntryRow — the pill swap', () => {
+describe('WordEntryArea — the pill swap', () => {
   it('shows the controls while the slot is empty', () => {
     const slot = createFeedbackSlot('local')
     mount(slot)

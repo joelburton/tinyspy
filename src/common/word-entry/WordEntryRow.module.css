@@ -1,14 +1,14 @@
 /* cs-audited-word-entry */
 
-/* The shared move row (MoveRow.tsx): an icon-only Delete button | whatever is
+/* The shared move row (WordEntryRow.tsx): an icon-only Delete button | whatever is
  * being entered | an icon-only Submit button, on one centered line. The display
- * between them flex-fills where it can (see EntryBox.module.css → `.box
+ * between them flex-fills where it can (see WordEntryInput.module.css → `.box
  * { flex: 1 }`); the buttons keep their intrinsic icon-square size at the ends.
  *
  * One control wherever a game commits a move from below the board, whatever it
  * is committing. The fixed slot HEIGHT and the board-matched WIDTH stay with
  * each host's below-board region — those are board-specific. */
-/* @@ */ .moveRow {
+/* @@ */ .wordEntryRow {
   display: flex;
   flex-direction: row;
   align-items: center;

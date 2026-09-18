@@ -259,7 +259,7 @@
  * The fixed-height reservation now lives on the `shared.moveAreaOrLocalFeedback`
  * swap box inside it. Column so that box STRETCHES to the full board width
  * (column flex's default align-items: stretch) — that's what lets the input row
- * span the board and its EntryBox flex-fill between the buttons. */
+ * span the board and its WordEntryInput flex-fill between the buttons. */
 /* @@ */ .belowBoard {
   width: var(--side);
   margin-top: 1.5rem;
@@ -268,8 +268,8 @@
 }
 
 /* The entry row: icon-only Delete | the entry box | icon-only Submit, centered. */
-/* (The input row + its EntryBox/Delete/Submit live in the shared
- * common/word-entry/EntryRow now; only the below-board slot wrapper is here.) */
+/* (The input row + its WordEntryInput/Delete/Submit live in the shared
+ * common/word-entry/WordEntryArea now; only the below-board slot wrapper is here.) */
 
 /* @@ */ .loading,
 /* @@ */ .empty {

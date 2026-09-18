@@ -514,7 +514,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
     hook hands back, so a cap and its key can't disagree about whether the move is available — and
     both go gray on an EMPTY entry, so Enter there does nothing rather than asking for letters.
     `↑` recalls the last word and `↓` clears the entry (`useArrowHistory`, the same two
-    actions the EntryBox games bind). The keyboard sits **below** the grid and **doubles as the
+    actions the WordEntryInput games bind). The keyboard sits **below** the grid and **doubles as the
     feedback area**: the local slot's top message above the keys (a rejection, "you're
     out", whose turn it is), and at terminal the keyboard leaves and the same slot fills
     its place with the verdict ([ui.md → Feedback pill](../ui.md#feedback-pill)).
@@ -718,7 +718,7 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
 - **Entry + submit:** the shared **`common/…/entry/GuessKeyboard`** (the Wordle-style on-screen
   keyboard, shared with wordle) for touch input + **`useCaptureKeys`** for physical keys, both
   driving the same `word`. Submit reuses **`useWordSubmit`** (shipped-list, trusting-commit)
-  with a wordiply validator (points = the word's length). No `<EntryRow>` / `<EntryBox>` (that
+  with a wordiply validator (points = the word's length). No `<WordEntryArea>` / `<WordEntryInput>` (that
   needs a physical keyboard).
 - **Feedback:** `useFeedbackSlot` / `usePeerFeedback` / `<FeedbackPill>`.
 - **Info column:** `<OpponentStrip>`, `<SetupDisclosure>`, `<Stats>`-style readout,

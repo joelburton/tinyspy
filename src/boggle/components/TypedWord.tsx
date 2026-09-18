@@ -12,12 +12,12 @@ type Props = {
 }
 
 /**
- * Renders the in-progress word as the value INSIDE the shared <EntryBox> (passed
+ * Renders the in-progress word as the value INSIDE the shared <WordEntryInput> (passed
  * as its `children`) — one <span> per character, so the letters the board cannot
- * follow can be dimmed. EntryBox owns the input-like box, the blinking caret and
+ * follow can be dimmed. WordEntryInput owns the input-like box, the blinking caret and
  * the empty-state placeholder; this owns only the per-character styling. (It
  * returns just the spans, no wrapper — the caret must sit right after the last
- * character, which EntryBox appends.)
+ * character, which WordEntryInput appends.)
  *
  * The dim is positional, unlike the bee games' (a letter off their puzzle's
  * letters entirely): GO on the board with no T beside it dims the T of GOT, and

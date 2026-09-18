@@ -4,10 +4,10 @@ import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
 import { ActionButton } from '../actions/ActionButton'
 import type { BoundAction } from '../actions/useBoundAction'
-import styles from './MoveRow.module.css'
+import styles from './WordEntryRow.module.css'
 
 type Props = {
-  // The entry display this row wraps — an `<EntryBox>`, a grid of slots, …
+  // The entry display this row wraps — an `<WordEntryInput>`, a grid of slots, …
   children: ReactNode
   // Take back the last thing entered (a character, a tile, a traced cell) —
   // the same binding as the `⌫` key, so the two cannot disagree about when
@@ -24,17 +24,17 @@ type Props = {
  * line. The two icon-only buttons at the ends, the display flex-filling between
  * them.
  *
- * This is the LAYOUT half of word entry, split out from `<EntryRow>` so the
- * games that can't use EntryRow's *keyboard* half can still be the same control.
+ * This is the LAYOUT half of word entry, split out from `<WordEntryArea>` so the
+ * games that can't use WordEntryArea's *keyboard* half can still be the same control.
  * The surfaces that render it are entering genuinely different things:
  *
- *   - **EntryRow** (every typing game) — an `<EntryBox>` over a text buffer,
+ *   - **WordEntryArea** (every typing game) — an `<WordEntryInput>` over a text buffer,
  *     with `useCaptureKeys` + the history arrows layered on.
  *   - **stackdown** — five slots holding picked-up TILES. There's no text
  *     buffer at all: a letter names a tile, and a word is exactly five of them.
- *   - **strands** — an `<EntryBox>`, but its string is *derived from the traced
+ *   - **strands** — an `<WordEntryInput>`, but its string is *derived from the traced
  *     path*, never typed into. A keystroke there resolves to a CELL (which one
- *     of the three `A`s?), so the string is an output, and EntryRow's
+ *     of the three `A`s?), so the string is an output, and WordEntryArea's
  *     string-in/string-out contract runs backwards.
  *
  * **The two buttons ARE the two keys.** Each takes the bound action its key
@@ -45,9 +45,9 @@ type Props = {
  * Anything that varies — what's being entered, what a keystroke means, whether
  * a feedback pill replaces this row or sits below it — stays with the caller.
  */
-export function MoveRow({ children, actDelete, actSubmit, className }: Props) {
+export function WordEntryRow({ children, actDelete, actSubmit, className }: Props) {
   return (
-    <div className={cls(styles.moveRow, className)}>
+    <div className={cls(styles.wordEntryRow, className)}>
       <ActionButton action={actDelete} show="icon" />
       {children}
       {/* Filled: committing is the row's main act, and the ⌫ beside it is not. */}

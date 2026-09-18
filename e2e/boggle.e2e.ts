@@ -31,7 +31,7 @@ test.describe('boggle play loop', () => {
     await settled(page)
 
     // v3 move entry is the shared CAPTURE model (window key-capture + a
-    // chrome-less <EntryBox> display — no <input>), so type on the page keyboard
+    // chrome-less <WordEntryInput> display — no <input>), so type on the page keyboard
     // rather than filling a field.
     // Type the required word "cat" and submit → it lands in the list (rows are
     // role=button, rendered uppercase).

@@ -5,7 +5,7 @@ The folders it reads: `word-entry`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18, eleven findings; the prose pass (F-1, F-2,
-F-3) and F-4 … F-7 worked 2026-09-18.** Roster
+F-3) and F-4 … F-8 worked 2026-09-18.** Roster
 agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
 word-entry area (it's not the next, but we're taking this one out of order)"*);
 §3's next in sequence is row 42, `word-list`. Nine files
@@ -17,22 +17,37 @@ word-entry area (it's not the next, but we're taking this one out of order)"*);
 own two docs (not stamped; the script's scope is files with a first-line
 comment):
 
-- `EntryBox.tsx` · `EntryBox.module.css` — the typed-word box. No `<input>`;
-  keystrokes come off the window
-- `EntryRow.tsx` · `EntryRow.test.tsx` — the row that wraps the box: Delete, the
-  box, Submit, and the feedback line under it
-- `MoveRow.tsx` · `MoveRow.module.css` · `MoveRow.test.tsx` — the below-board
-  move row
+- `WordEntryInput.tsx` · `WordEntryInput.module.css` — where the typed word
+  appears. No `<input>`; keystrokes come off the window
+- `WordEntryArea.tsx` · `WordEntryArea.test.tsx` — the whole control: the row,
+  the capture keyboard, the arrows, and the feedback swap
+- `WordEntryRow.tsx` · `WordEntryRow.module.css` · `WordEntryRow.test.tsx` —
+  the row alone: ⌫ | whatever is being entered | ↵
 - `useArrowHistory.ts` · `useArrowHistory.test.ts` — ↑/↓ recall of earlier
   entries
 - `doc.md` · `todo.md`
+
+**All three components were RENAMED 2026-09-18** — `EntryBox` → `WordEntryInput`,
+`EntryRow` → `WordEntryArea`, `MoveRow` → `WordEntryRow` — on Joel's call, and
+this file is written in the new names throughout, quotations included. The old
+ones were weak (`EntryBox`, `EntryRow`) or actively wrong (`MoveRow`: *"it's not
+just about a move; it's about a word-entry. a move can be clicking on a tile"*),
+and the `WordEntry` stem now matches the folder. Two objections of mine were
+overruled and both deserved to be: stackdown and strands ARE entering a word,
+just through a different UI, so the stem fits all three; and `Input` is the right
+word for where typed letters appear even with no `<input>` element, since that is
+the role it plays. Rode along: `--entryBox-font-size` → `--wordEntryInput-font-size`
+(base.css + psychicnum + strands), the shared class `.moveRow` → `.wordEntryRow`,
+and strands' own override class of the same name. **`data-testid="entry-value"`
+was deliberately left** — boggle's `PlayArea.test` and three e2e specs read it,
+and an e2e run is Joel's to authorize.
 
 **Deliberately NOT on it**, both ruled by Joel at the open:
 
 - **`shared/onscreen-keyboard/GuessKeyboard`** — *"isn't related at all"*. It has
   its own area (§3 row 52).
 - **`common/keyboard/useCaptureKeys`** — *"already handled"* (that area closed
-  2026-09-10, blessed). `EntryBox` is built on it, and Joel allowed it **as
+  2026-09-10, blessed). `WordEntryInput` is built on it, and Joel allowed it **as
   evidence**: *"you can use it as evidence if its useful"* — read it, compare
   against it, quote it; it takes no stamp from this area and joins no roster
   (§4 → `cs-found` means found, not read).
@@ -42,23 +57,23 @@ comment):
 Four exports, and every word game's below-board row is made of them:
 
 ```
-<EntryRow>                    the typing games: psychicnum · spellingbee · boggle · wordwheel · letterboxed
+<WordEntryArea>                    the typing games: psychicnum · spellingbee · boggle · wordwheel · letterboxed
 ├── useCaptureKeys            keyboard/ — A–Z, ⌫, ↵, the any-key dismiss (four bound actions)
 ├── useArrowHistory           ↑ recall · ↓ clear (two bound actions)
 ├── useTopFeedbackMessage     feedback/ — is anything on the slot?
 └── either
     ├── <div .localFeedback>  game-page/playArea.module.css — a message is on top
     │     └── <FeedbackPill>  feedback/
-    └── <MoveRow>             ⌫ | <EntryBox> | ↵
-          └── <EntryBox>      the box: value or placeholder, the caret while the game owns the keyboard
+    └── <WordEntryRow>             ⌫ | <WordEntryInput> | ↵
+          └── <WordEntryInput>      the box: value or placeholder, the caret while the game owns the keyboard
                 └── children  a game's <TypedWord> (spellingbee · boggle · wordwheel · letterboxed), or the plain value
 
-<MoveRow> alone               stackdown (five tile slots) · strands (an <EntryBox> echoing the traced path)
+<WordEntryRow> alone               stackdown (five tile slots) · strands (an <WordEntryInput> echoing the traced path)
 useArrowHistory alone         wordiply (a <GuessBoard>, no box — see F-word-entry-6)
 useCaptureKeys alone          wordle (letters land on the grid; no arrows)
 ```
 
-The three readers of `--entryBox-font-size` (`base.css` default 1.5rem;
+The three readers of `--wordEntryInput-font-size` (`base.css` default 1.5rem;
 psychicnum's `.bigEntry` on the ROW, 2rem / 1.5rem on a phone; strands' `.echo`
 on the BOX, 1.75rem) and the caret's `1.15em` are the whole of the box's
 per-game tuning.
@@ -79,7 +94,7 @@ for a decision or a word.)*
 
 ### F-word-entry-1 · `props-take-double-slash` · Every props and options block in the folder wears `/**` — WORKED
 
-`EntryBox` (four props), `EntryRow` (twelve), `MoveRow` (four) and
+`WordEntryInput` (four props), `WordEntryArea` (twelve), `WordEntryRow` (four) and
 `useArrowHistory`'s options (three) all mark each member with `/**`. The
 folder's own foundation next door, `useCaptureKeys`, has the rule right: its
 `CaptureKeysOptions` members take `//` and only the hook and the exported type
@@ -92,77 +107,77 @@ one read per file; the test helpers (`action`, `glyphIn`, `press`, `setup`,
 
 Per file, each anchored by what the code IS:
 
-- **`EntryBox.tsx`** docstring, "What the consumer owns": *"the universal keys —
+- **`WordEntryInput.tsx`** docstring, "What the consumer owns": *"the universal keys —
   Backspace / Enter / the ArrowUp-recall + ArrowDown-clear last-move history —
   are built into the hook"*. The arrows are not in `useCaptureKeys`; they are
-  `useArrowHistory`, which `EntryRow` layers on. The box's own docstring
+  `useArrowHistory`, which `WordEntryArea` layers on. The box's own docstring
   contradicts the hook it names.
-- **`EntryBox.module.css`** header: *"Shared by psychicnum + spellingbee +
+- **`WordEntryInput.module.css`** header: *"Shared by psychicnum + spellingbee +
   boggle"* is a census, and a wrong one (six readers today) — delete rather than
-  recount. *"docs/playarea.md → Text entry — WordInput / EntryBox"* names a
+  recount. *"docs/playarea.md → Text entry — WordInput / WordEntryInput"* names a
   heading that does not exist and a component (`WordInput`) that appears nowhere
   in the repo. `.box`'s *"the model psychicnum already used — now the shared
   default"* is archaeology.
-- **`EntryRow.tsx`**: *"See docs/ui.md → 'Text entry'"* — `ui.md` has no such
+- **`WordEntryArea.tsx`**: *"See docs/ui.md → 'Text entry'"* — `ui.md` has no such
   section; the section is `docs/playarea.md → Text entry`. *"It bundles the
   three things that were being duplicated"* is archaeology. The `recall` prop's
-  *"the universal last-move history"* — letterboxed renders an `EntryRow` and
+  *"the universal last-move history"* — letterboxed renders an `WordEntryArea` and
   offers no recall. The `disabled` prop's *"the buttons are disabled"* — they are
   not drawn at all (F-word-entry-7). The `busy` prop's *"the Submit button is
   disabled"* — both buttons gray (the probe above).
-- **`MoveRow.tsx`**: *"Three surfaces render it"* is a count. *"Extracted rather
+- **`WordEntryRow.tsx`**: *"Three surfaces render it"* is a count. *"Extracted rather
   than copied because the copies had already started: the row is three files'
   worth …"* is archaeology, and its cite — *"the setup-recap sweep in
   docs/pdf.md"* — names a sweep `pdf.md` does not describe under that name (it
   has a recap section and a drift note, no sweep). The paragraph goes; the rule
   it carries — what varies stays with the caller — is already the docstring's
   last sentence.
-- **`MoveRow.module.css`** header: *"Rendered by every EntryBox game (via
-  <EntryRow>), by stackdown's five tile slots and by strands' traced-word echo"*
+- **`WordEntryRow.module.css`** header: *"Rendered by every WordEntryInput game (via
+  <WordEntryArea>), by stackdown's five tile slots and by strands' traced-word echo"*
   is a census.
 - **`useArrowHistory.ts`**: *"(docs/ui.md → Text entry)"*, the same dead cite;
-  and *"every game that renders an `<EntryRow>` and ONLY them"* is false
+  and *"every game that renders an `<WordEntryArea>` and ONLY them"* is false
   (F-word-entry-6).
 - **`useArrowHistory.test.ts`** header: *"(split out of useCaptureKeys)"* is
-  archaeology; *"a key-capture game that isn't an EntryBox (wordle) never wires
+  archaeology; *"a key-capture game that isn't an WordEntryInput (wordle) never wires
   this"* is F-word-entry-6 again.
-- **`MoveRow.test.tsx`** header: *"That shipped for a few minutes when the entry
+- **`WordEntryRow.test.tsx`** header: *"That shipped for a few minutes when the entry
   keys became actions, and Joel caught it by looking rather than by any test
   failing"* — the reason the test exists (a missing glyph fails SILENTLY) is the
   keep; the incident is archaeology.
-- **`doc.md`** lede: *"`<MoveRow>`'s buttons are `<ActionButton>`s placing the
+- **`doc.md`** lede: *"`<WordEntryRow>`'s buttons are `<ActionButton>`s placing the
   same bindings"* — read after the sentence that names the two arrow actions,
   "the same bindings" says the arrows have buttons. They do not; the buttons
   place `useCaptureKeys`' ⌫ and ↵.
 - **Where the size token is set** — `base.css` says *"a consumer raises it by
-  re-setting the token on its own EntryBox element ."* (with the stray space);
-  `EntryBox.module.css` says *"on an ANCESTOR of its EntryBox"*. Both work
+  re-setting the token on its own WordEntryInput element ."* (with the stray space);
+  `WordEntryInput.module.css` says *"on an ANCESTOR of its WordEntryInput"*. Both work
   (psychicnum sets it on the row, strands on the box) and the two comments
   should say the same thing — and `1.15em` for the caret is written in three
-  places (`base.css`, twice in `EntryBox.module.css`) for one rule in `.caret`.
+  places (`base.css`, twice in `WordEntryInput.module.css`) for one rule in `.caret`.
 
 Owed with the pass, not a finding: the `## Intro to area` (`INTROS_OWED` lists
 `common/word-entry`) and a `## Details` with the render tree above.
 
-### F-word-entry-3 · `playarea-doc-text-entry-stale` · `docs/playarea.md → Text entry` describes an `EntryRow` that no longer exists — WORKED
+### F-word-entry-3 · `playarea-doc-text-entry-stale` · `docs/playarea.md → Text entry` describes an `WordEntryArea` that no longer exists — WORKED
 
 The section every file in this folder cites (or means to — F-word-entry-2) is
 itself behind, in four places:
 
 - *"pass a `pill` and it renders that `<FeedbackPill>`"* and *"which `pill` to
-  show"* — there is no `pill` prop. `EntryRow` takes `localFeedbackSlot` and
+  show"* — there is no `pill` prop. `WordEntryArea` takes `localFeedbackSlot` and
   draws whatever is on top of it.
 - *"the path boggle/spellingbee should converge on"* — they converged; both
-  render `<EntryRow>`.
+  render `<WordEntryArea>`.
 - *"Both games still route their keys through their own handler and hand
-  `<MoveRow>` two callbacks"* — `MoveRow` takes two `BoundAction`s, and the
+  `<WordEntryRow>` two callbacks"* — `WordEntryRow` takes two `BoundAction`s, and the
   docstring's whole point is that the buttons ARE the keys.
 - **"Locked names for the input row"** — `.inputRow`, `.inputButton`,
   `.inputMessage` *"each still in the game's own module — same names, not yet a
-  shared stylesheet"*. There is a shared stylesheet now (`MoveRow.module.css`,
-  `.moveRow`); `.inputRow` and `.inputMessage` exist nowhere in `src/`; only
+  shared stylesheet"*. There is a shared stylesheet now (`WordEntryRow.module.css`,
+  `.wordEntryRow`); `.inputRow` and `.inputMessage` exist nowhere in `src/`; only
   connections still writes `.inputButton`. The paragraph describes the world
-  before `MoveRow`.
+  before `WordEntryRow`.
 
 Outside the roster (a doc), fixed by this area under §4 → not a fence; the
 `connections` half (`.inputButton`) is that game's.
@@ -182,7 +197,7 @@ class and `KeyList.module.css` has no disabled rule, which `actions/doc.md`
 states as the design ("the bound actions that have a key and are not hidden").
 So the row was not gray: it read exactly like a working key, in a game with no
 recall. Nothing else reads these two bindings — **neither arrow has a button
-anywhere** (`MoveRow` places `actDelete` + `actSubmit` only, and the registry
+anywhere** (`WordEntryRow` places `actDelete` + `actSubmit` only, and the registry
 gives the arrows no icon), so the key list is the whole of what the state is
 for.
 
@@ -195,7 +210,7 @@ all, where today's ↓ at least clears letterboxed's first word (`seed` is `''`
 before a chain exists).
 
 **Shipped:** `hasHistory?: boolean` (default true) on `ArrowHistoryOptions` and
-on `EntryRow`, which forwards it; `act-recall-last` → `!enabled || !hasHistory ?
+on `WordEntryArea`, which forwards it; `act-recall-last` → `!enabled || !hasHistory ?
 'hidden' : recall ? 'active' : 'disabled'`, `act-clear-entry` → `enabled &&
 hasHistory ? 'active' : 'hidden'`. letterboxed passes `hasHistory={false}`; the
 four games that offer recall are untouched. `recall`'s note drops the "Omit /
@@ -216,7 +231,7 @@ without the prop at the call site.
 
 ### F-word-entry-5 · `busy-hides-the-arrows` · Mid-submit, ⌫ and ↵ gray while ↑ and ↓ vanish — WORKED as (a)
 
-`EntryRow` gates the arrows with one boolean — `enabled: !disabled && !busy`
+`WordEntryArea` gates the arrows with one boolean — `enabled: !disabled && !busy`
 — and the hook maps `!enabled` to `hidden`. `useCaptureKeys` next to it maps
 the same two props to two words: `disabled` → `hidden` (the entry is gone, its
 keys leave the list), `busy` → `disabled` (frozen, grayed). So for the length
@@ -245,8 +260,8 @@ actually costs is two things, and the second is not in the finding at all:
 
 - **(a) the same two props as the core** — `useArrowHistory({ recall, onChange,
   disabled, busy })`, answering `hidden` / `disabled` / by-value exactly as
-  `useCaptureKeys` does. `EntryRow` forwards what it already holds.
-- **(b) one `editState: ActionState`** computed once in `EntryRow` and handed
+  `useCaptureKeys` does. `WordEntryArea` forwards what it already holds.
+- **(b) one `editState: ActionState`** computed once in `WordEntryArea` and handed
   to both hooks. Fewer words, but `useCaptureKeys` is blessed and does not take
   one, so the two hooks would still read differently.
 
@@ -254,7 +269,7 @@ Recommend (a) — **Joel chose (a), 2026-09-18.**
 
 **Shipped:** `ArrowHistoryOptions` takes `disabled` / `busy` in place of
 `enabled`, and computes one `editState` the way `useCaptureKeys` computes its
-own, so the four keys on the row can't disagree. `EntryRow` forwards the two
+own, so the four keys on the row can't disagree. `WordEntryArea` forwards the two
 props it already holds (one boolean fewer at the call site); wordiply's call
 becomes `disabled: entryDisabled`.
 
@@ -270,13 +285,13 @@ watches the key list change.
 **Tests:** the predicted split happened, and F-7 then merged the two halves back
 onto `disabled`.
 
-### F-word-entry-6 · `arrows-not-entrybox-only` · The hook says "EntryBox games and ONLY them"; wordiply is neither and wires it — WORKED as (c)
+### F-word-entry-6 · `arrows-not-entrybox-only` · The hook says "WordEntryInput games and ONLY them"; wordiply is neither and wires it — WORKED as (c)
 
 `useArrowHistory`'s docstring: *"it applies to every game that renders an
-`<EntryRow>` and ONLY them — a key-capture game that isn't an EntryBox (wordle)
+`<WordEntryArea>` and ONLY them — a key-capture game that isn't an WordEntryInput (wordle)
 uses the core alone"*. The test header, `useCaptureKeys`' docstring
 ("Layering"), `docs/playarea.md → Text entry` and wordle's `BoardCol` comment
-all repeat the boundary. Wordiply renders no `EntryRow` and no `EntryBox` —
+all repeat the boundary. Wordiply renders no `WordEntryArea` and no `WordEntryInput` —
 its letters land on a `<GuessBoard>` row like wordle's — and calls
 `useArrowHistory` directly, with its own reason written down: *"handy here
 since the next guess is often the last one plus a letter"*. Its
@@ -286,7 +301,7 @@ bringing back".
 
 **Wrong in BOTH directions by the time it was presented.** At the audit only
 the "ONLY them" half was false (wordiply). F-4 falsified the other half the same
-day: letterboxed renders an `<EntryRow>` and, with `hasHistory={false}`, has no
+day: letterboxed renders an `<WordEntryArea>` and, with `hasHistory={false}`, has no
 arrows. A rule that names a roster had been outrun by the tree twice in one
 sitting.
 
@@ -294,12 +309,12 @@ sitting.
 
 - **(a) the prose moves to what the tree does.** The arrows are the
   *whole-entry* recall, offered by any capture game that keeps a last entry;
-  `EntryRow` composes them by default. Wordle's "no arrows" stays a choice
+  `WordEntryArea` composes them by default. Wordle's "no arrows" stays a choice
   wordle made (its test asserts it), not a rule the hook enforces. Edits in
   four places (the hook, its test, `docs/playarea.md`, wordle's comment — and
   `useCaptureKeys`' blessed docstring, one sentence).
 - **(b) wordiply is wrong to wire it** and loses ↑/↓, restoring the
-  EntryBox-only boundary. A behavior change in a game for the sake of a
+  WordEntryInput-only boundary. A behavior change in a game for the sake of a
   sentence, against a reason that game wrote down.
 
 - **(c) the docstrings stop naming games at all** — say what the hook is FOR
@@ -310,8 +325,8 @@ sitting.
 Recommended (c); **Joel chose (c), 2026-09-18.**
 
 **Shipped.** The hook's docstring now opens on what it is for and says
-`<EntryRow>` composes it while a game with its own capture loop calls it
-directly. The other statements: the hook's test header, `EntryRow`'s inline
+`<WordEntryArea>` composes it while a game with its own capture loop calls it
+directly. The other statements: the hook's test header, `WordEntryArea`'s inline
 comment, `useCaptureKeys`' **Layering** paragraph, `docs/playarea.md → Text
 entry`, and wordle's `BoardCol` comment — which now says only that wordle
 doesn't wire the arrows, and why (a played guess is on the board in front of
@@ -320,7 +335,7 @@ since illustrating a rule is not the same as listing its members.
 
 **A SIXTH statement the audit missed**, found by grepping the phrasings rather
 than the files: `common/keyboard/useCaptureKeys.test.ts`'s header, *"The
-EntryBox-only history arrows are a separate layer"*. Fixed with the rest. Two
+WordEntryInput-only history arrows are a separate layer"*. Fixed with the rest. Two
 `cs-blessed-keyboard` files carry a conformance edit each, under §4 → not a
 fence.
 
@@ -328,13 +343,13 @@ fence.
 
 Probe: `disabled` → zero buttons. `useCaptureKeys` answers `hidden` for both
 entry actions at `disabled` (deliberately — *"Gone takes its keys off the list
-entirely"*), and `ActionButton` renders nothing for `hidden`, so `MoveRow`
+entirely"*), and `ActionButton` renders nothing for `hidden`, so `WordEntryRow`
 draws the box alone between two absences. The `disabled` prop's docstring says
-*"the buttons are disabled"*; stackdown, rendering the same `MoveRow` with its
+*"the buttons are disabled"*; stackdown, rendering the same `WordEntryRow` with its
 own actions, states the opposite rule for the same row — *"Both buttons stay
 MOUNTED and merely disabled when they can't act — including while a past turn
 is being viewed — so the region never reflows"*. Where it shows: a disabled
-`EntryRow` with nothing on the slot, which in the five games is the history
+`WordEntryArea` with nothing on the slot, which in the five games is the history
 view (psychicnum, letterboxed) — every other `disabled` case has a pill over
 the row. The board does not move (the swap box holds its height); the row's
 two ends do.
@@ -345,7 +360,7 @@ two ends do.
   gone by the keyboard folder's design, and the buttons are the keys, so they
   go with them; the swap box is what reserves the slot. Stackdown's rule stays
   stackdown's, since it binds its own actions.
-- **(b) `MoveRow` holds each button's footprint** when its action is hidden
+- **(b) `WordEntryRow` holds each button's footprint** when its action is hidden
   (an empty `--iconButton-size` box), so the row's shape never changes and no
   action changes its answer. A row-level fix for a row-level rule.
 - **(c) the entry actions answer `disabled` at hard-off** — puts gray ⌫/↵ rows
@@ -359,14 +374,14 @@ recorded against turned out to be wrong.**
 with an opaque fill over the whole slot, so nothing of the row is visible while
 viewing a past turn. And every other hard-off state across the five games puts a
 message on the slot — the waiting note, the terminal verdict, "Chain is full" —
-and a message makes `EntryRow` return the pill INSTEAD of the row. So the
+and a message makes `WordEntryArea` return the pill INSTEAD of the row. So the
 buttonless row is a state the code can reach and a player cannot, with one
 possible exception: the verdict goes up in a `useEffect`, which runs after
 paint, so there may be one frame at game over where it is drawn. Never observed.
 
-**stackdown does not belong in this finding** (Joel): it renders `<MoveRow>`,
-but `MoveRow` decides nothing — it places two bound actions and `ActionButton`
-draws what each says. `EntryRow`'s buttons carry `useCaptureKeys`' answer;
+**stackdown does not belong in this finding** (Joel): it renders `<WordEntryRow>`,
+but `WordEntryRow` decides nothing — it places two bound actions and `ActionButton`
+draws what each says. `WordEntryArea`'s buttons carry `useCaptureKeys`' answer;
 stackdown binds its own actions and answers for itself. Two callers deciding for
 their own actions is the component working, which its docstring already says.
 
@@ -392,16 +407,16 @@ that the never-widen constraint asserted at `useBoundAction.ts:233` is an
 invention of the implementing session rather than Joel's — he proposed the asker
 parameter, not the rule on it.
 
-### F-word-entry-8 · `local-feedback-class-home` · Whose class is `.localFeedback`?
+### F-word-entry-8 · `local-feedback-class-home` · Whose class is `.localFeedback`? — WORKED as (a), no change
 
 `todo.md` → Soon, parked from `setup-form` for this folder to argue. The
 argument: `.localFeedback` centers a lone pill in the below-board slot and
 reserves that slot's height, and it is read by codenamesduet, connections,
 stackdown, wordle, waffle, bananagrams and scrabble — none of which touch this
-folder. `EntryRow` reads it for the one thing those readers do: wrap a
+folder. `WordEntryArea` reads it for the one thing those readers do: wrap a
 `<FeedbackPill>` in the slot. It is play-surface chrome, in a lowercase sheet
 that exists to be worn by others (`docs/deferred.md → Common / architecture`
-states that half of the rule), and `EntryRow` is one wearer.
+states that half of the rule), and `WordEntryArea` is one wearer.
 
 **Options:**
 
@@ -411,31 +426,34 @@ states that half of the rule), and `EntryRow` is one wearer.
   subdivision item and not changed by this answer.
 - **(b) the pill wrapper moves up to each host** — the five games wrap the
   pill in `.localFeedback` themselves, as the non-swap games do, and
-  `EntryRow` returns the bare pill. It unbundles the one thing the row
+  `WordEntryArea` returns the bare pill. It unbundles the one thing the row
   bundles (the swap), and the host would need the row's `top !== null`.
 
-- **(c) the docstrings stop naming games at all** — say what the hook is FOR
-  and what `hasHistory` means; let a reader answer "does my game keep a last
-  entry worth bringing back" instead of looking themselves up on a list. The
-  standing rule behind it: a "who uses this" always rots.
+Recommended (a); **Joel chose (a), 2026-09-18.**
 
-Recommended (c); **Joel chose (c), 2026-09-18.**
+**Two facts settled it at the re-verify.** The sheet is not component-named and
+has not been since 2026-09-14, when it was renamed to lowercase
+`playArea.module.css` because no `PlayArea` component exists in `game-page` —
+and `docs/deferred.md` → Common / architecture already states that lowercase IS
+the repo's mark for a sheet anyone may read, so this import is the sanctioned
+case rather than the violation the objection was about. And the class is
+play-surface chrome by its readers, verified: seven games wrap a pill in it
+themselves, none touching this folder.
 
-**Shipped.** The hook's docstring now opens on what it is for and says
-`<EntryRow>` composes it while a game with its own capture loop calls it
-directly. The other statements: the hook's test header, `EntryRow`'s inline
-comment, `useCaptureKeys`' **Layering** paragraph, `docs/playarea.md → Text
-entry`, and wordle's `BoardCol` comment — which now says only that wordle
-doesn't wire the arrows, and why (a played guess is on the board in front of
-you), instead of legislating for every game. `playarea.md` keeps the examples,
-since illustrating a rule is not the same as listing its members.
+**Worked as:** a struck entry in `todo.md` — a no-change ruling is kept with its
+reasoning and what would reopen it (the below-board classes leaving
+`playArea.module.css`, which is `game-page/todo.md`'s subdivision item) — and a
+`doc.md` Details paragraph saying whose the box is. No code changed.
 
-**A SIXTH statement the audit missed**, found by grepping the phrasings rather
-than the files: `common/keyboard/useCaptureKeys.test.ts`'s header, *"The
-EntryBox-only history arrows are a separate layer"*. Fixed with the rest. Two
-`cs-blessed-keyboard` files carry a conformance edit each, under §4 → not a
-fence. `terminal` and `info-sheet` hold the same question about other
-classes and answer for themselves.
+**Raised in passing and answered** (Joel): why the pill is rendered by
+`WordEntryArea` rather than by each game's `BoardCol`. Because both hooks are called
+above the early return — swapping at the host would unmount the row, taking
+`useCaptureKeys` with it, so no keystroke would dismiss anything or type. It
+does not separate (a) from (b), since (b) also keeps the row mounted and merely
+returns a bare pill.
+
+`terminal` and `info-sheet` hold the same question about other classes and
+answer for themselves.
 
 ### F-word-entry-9 · `raw-values` · Five literals, one of them a vocabulary value already
 
@@ -443,8 +461,8 @@ The a/b/c pass over the two stylesheets:
 
 | where | value | vocabulary | reading |
 |---|---|---|---|
-| `MoveRow.module.css` `.moveRow` | `gap: 0.5rem` | spacer | `--spacer-4` is 0.5rem — converts silently, and its `pending` row goes |
-| `EntryBox.module.css` `.caret` | `margin: 0 1px` | spacer (`pending: ['1px']`) | no spacer step is a hairline; it is the breath between the last glyph and the bar — surface |
+| `WordEntryRow.module.css` `.wordEntryRow` | `gap: 0.5rem` | spacer | `--spacer-4` is 0.5rem — converts silently, and its `pending` row goes |
+| `WordEntryInput.module.css` `.caret` | `margin: 0 1px` | spacer (`pending: ['1px']`) | no spacer step is a hairline; it is the breath between the last glyph and the bar — surface |
 | `.caret` | `width: 2px` | none (`width` is unswept) | a bar, not a border; `--border-width-line-thick` is 2px but says the wrong thing |
 | `.caret` | `height: 1.15em` | none | tracks the font-size on purpose; the number is stated in three comments (F-word-entry-2) |
 | `.caret` | `animation: caretBlink 1.1s` | none (`animation` is unswept) | the only motion in the folder |
@@ -454,31 +472,32 @@ The a/b/c pass over the two stylesheets:
 whether a caret's three numbers are one bespoke rule left as-is with a marker.
 The gap is not a decision.
 
-### F-word-entry-10 · `move-row-test-fixture` · `MoveRow.test` hand-rolls the fixture that names it
+### F-word-entry-10 · `move-row-test-fixture` · `WordEntryRow.test` hand-rolls the fixture that names it
 
-`MoveRow.test.tsx`'s `action(id)` builds `{ id, spec: ACTIONS[id], run:
+`WordEntryRow.test.tsx`'s `action(id)` builds `{ id, spec: ACTIONS[id], run:
 vi.fn(), describe, pending: false }` — which is `boundActionFixture` from
 `common/actions/boundAction.fixture.ts` line for line, and that file's
-docstring lists *"a `<MoveRow>`'s two keys"* as the case it exists for. The
+docstring lists *"a `<WordEntryRow>`'s two keys"* as the case it exists for. The
 fixture postdates the test. Use it; no decision in it.
 
 ### F-word-entry-11 · `entrybox-untested` · The box has no test of its own
 
-`EntryBox` owns three rules — the caret shows only while the game owns the
+`WordEntryInput` owns three rules — the caret shows only while the game owns the
 keyboard AND something is typed; the value wrapper is unconditional whichever
 path renders it; the placeholder shows only when empty and supplied — and no
 spec in the folder exercises any of them. They are pinned from outside, by
 accident of other tests: `entry-value` is read by boggle's `PlayArea.test` and
 by three e2e files, and none looks at the caret. A file per unit: an
-`EntryBox.test.tsx` covering the three rules, the caret gate driven by focusing
+`WordEntryInput.test.tsx` covering the three rules, the caret gate driven by focusing
 an `<input>` (jsdom fires `focusin`, which is what `useGameHasKeyboard`
 tracks). Mechanical once F-word-entry-2's docstring says what the box owns.
 
 ## Notes
 
 **What `todo.md` handed the area**, its first read per §4: the ↑ bug is
-F-word-entry-4, and the `.localFeedback` question is F-word-entry-8. Both
-items leave `todo.md` when their finding is worked.
+F-word-entry-4, and the `.localFeedback` question is F-word-entry-8. Both are
+closed — the ↑ item deleted (it shipped), the `.localFeedback` one struck (it
+closed against itself).
 
 **Evidence, not roster.** `useCaptureKeys` was read against every claim here
 and quoted in F-word-entry-5, 6 and 7; it and its test keep
@@ -486,7 +505,7 @@ and quoted in F-word-entry-5, 6 and 7; it and its test keep
 conformance edit this area owns the rule for, under §4 → not a fence.
 
 **Where the font-size token is set is not a finding.** psychicnum sets
-`--entryBox-font-size` on the row and strands on the box; a custom property
+`--wordEntryInput-font-size` on the row and strands on the box; a custom property
 cascades, so both reach `.box` and the caret alike. Only the two comments
 disagree (F-word-entry-2).
 
@@ -507,7 +526,7 @@ F-word-entry-7 turns on), and the `.inputButton` connections still writes
 - F-word-entry-5 — HAPPENED exactly as predicted, and nothing else moved:
   wordiply's own tests pass unchanged through the `enabled` → `disabled`
   rename at its call site.
-- F-word-entry-9: `vocabularies.test.ts` — the `MoveRow.module.css` `pending`
+- F-word-entry-9: `vocabularies.test.ts` — the `WordEntryRow.module.css` `pending`
   row must go with the conversion (a listed value that is no longer written
   fails from the other side).
 

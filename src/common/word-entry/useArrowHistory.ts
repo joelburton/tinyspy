@@ -30,7 +30,7 @@ export type ArrowHistoryOptions = {
  * the one you're typing. Reach for it when your game keeps a whole last entry
  * worth bringing back: the next guess is so often the last one plus a letter.
  *
- * `<EntryRow>` composes it over the `useCaptureKeys` core already, so a typing
+ * `<WordEntryArea>` composes it over the `useCaptureKeys` core already, so a typing
  * game gets the arrows by rendering that; a game running its own capture loop
  * calls this directly. A game whose submitted entry doesn't come back at all
  * passes `hasHistory: false` and gets neither arrow.

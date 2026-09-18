@@ -5,9 +5,9 @@ import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import type { Coord } from '../lib/board'
-import { MoveRow } from '@/common/word-entry/MoveRow'
+import { WordEntryRow } from '@/common/word-entry/WordEntryRow'
 import type { BoundAction } from '@/common/actions/useBoundAction'
-import { EntryBox } from '@/common/word-entry/EntryBox'
+import { WordEntryInput } from '@/common/word-entry/WordEntryInput'
 import { Board, type FoundPath } from './Board'
 import { HintBar } from './HintBar'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
@@ -58,7 +58,7 @@ type Props = {
  *
  * The **move row and the pill share one fixed-height slot** because they are
  * mutually exclusive in time — you are either building a word or reading what
- * the last one did. (The same swap `<EntryRow>` makes; stackdown, whose pill
+ * the last one did. (The same swap `<WordEntryArea>` makes; stackdown, whose pill
  * has a separate reserved row, is the odd one out.) Fixed height because the
  * slot empties between traces, and a collapsing row would bounce the board on
  * every submission (the no-reflow rule).
@@ -124,18 +124,18 @@ export function BoardCol({
           <FeedbackPill slot={localFeedbackSlot} />
         ) : (
           /* The shared move row (docs/playarea.md → Text entry) around the
-             traced word. strands can't use <EntryRow>: its string is DERIVED
+             traced word. strands can't use <WordEntryArea>: its string is DERIVED
              from the path (`wordFromPath`), so `value`/`onChange` run backwards
              — a keystroke here resolves to a CELL, not to a character. What it
-             shares is the row, the EntryBox and the two buttons, which is what
+             shares is the row, the WordEntryInput and the two buttons, which is what
              makes it the same control players learned elsewhere.
 
              The buttons are the pointer twins of Backspace and Enter, and the
              real gain is touch: on a phone there is no keyboard, so this is the
              ONLY way to submit — load-bearing rather than a convenience. */
-          <MoveRow className={styles.moveRow} actDelete={actDelete} actSubmit={actSubmit}>
-            <EntryBox value={echo} className={styles.echo} />
-          </MoveRow>
+          <WordEntryRow className={styles.wordEntryRow} actDelete={actDelete} actSubmit={actSubmit}>
+            <WordEntryInput value={echo} className={styles.echo} />
+          </WordEntryRow>
         )}
       </div>
 

@@ -663,7 +663,7 @@ export function PlayArea({
         isStillPlaying={isStillPlaying}
         // Turn-order: gates the ENTRY input only (not the play-vs-terminal look
         // above). Always true for free-for-all / solo. When false the waiting
-        // message takes the entry slot (EntryRow's designed swap — same height),
+        // message takes the entry slot (WordEntryArea's designed swap — same height),
         // so the frozen input explains itself instead of silently ignoring taps.
         isMyTurn={isMyTurn}
         // ── The below-board slot: BoardCol shows results into it and draws it ──

@@ -6,8 +6,8 @@ import { useTopFeedbackMessage } from '../feedback/useFeedbackSlot'
 import { FeedbackPill } from '../feedback/FeedbackPill'
 import { useCaptureKeys } from '../keyboard/useCaptureKeys'
 import { useArrowHistory } from './useArrowHistory'
-import { EntryBox } from './EntryBox'
-import { MoveRow } from './MoveRow'
+import { WordEntryInput } from './WordEntryInput'
+import { WordEntryRow } from './WordEntryRow'
 import shared from '../game-page/playArea.module.css'
 
 type Props = {
@@ -19,7 +19,7 @@ type Props = {
   onSubmit: () => void
   // Faint hint shown when empty.
   placeholder?: ReactNode
-  // Custom per-character rendering of the value inside the EntryBox
+  // Custom per-character rendering of the value inside the WordEntryInput
   // (spellingbee's `<TypedWord>` dims out-of-puzzle letters). Plain if omitted.
   children?: ReactNode
   // The game's below-board slot. While it holds a message, the pill
@@ -59,7 +59,7 @@ type Props = {
   // hasn't got them. Default true; a game that offers recall leaves this alone
   // and passes `recall`.
   hasHistory?: boolean
-  // Extra class on the row — e.g. a per-game `--entryBox-font-size` override.
+  // Extra class on the row — e.g. a per-game `--wordEntryInput-font-size` override.
   className?: string
 }
 
@@ -70,22 +70,23 @@ type Props = {
  *
  *   1. the **capture keyboard** (`useCaptureKeys` — letters/Backspace/Enter;
  *      `useArrowHistory` — the ArrowUp-recall / ArrowDown-clear history);
- *   2. the **controls** — the shared `<MoveRow>` (⌫ | display | Submit) around a
- *      chrome-less `<EntryBox>`;
+ *   2. the **controls** — the shared `<WordEntryRow>` (⌫ | display | Submit) around a
+ *      chrome-less `<WordEntryInput>`;
  *   3. the **pill swap** — while the slot has a message, a centered
  *      `<FeedbackPill>` replaces the controls in the same slot, without
  *      unmounting (so the capture stays live and a keystroke dismisses a
  *      gesture-cleared message — the one kind that yields to typing).
  *
  * **This is the TYPING half.** Reach for it when a keystroke means "append this
- * character"; when it doesn't, reach for `<MoveRow>` directly and bring your own
- * keyboard (stackdown enters TILES, strands enters a PATH).
+ * character"; when it doesn't, reach for `<WordEntryRow>` directly and bring your
+ * own keyboard — stackdown spells its word into tile slots, strands traces one
+ * on the board, and both are entering a word by a route this can't drive.
  *
  * What stays with the host: the below-board *slot* (its board-matched width +
  * reserved height), the capture *values* (`value`/`onSubmit`/`charFor`/…), and
  * which messages go into the slot. See docs/playarea.md → "Text entry".
  */
-export function EntryRow({
+export function WordEntryArea({
   value,
   onChange,
   onSubmit,
@@ -132,10 +133,10 @@ export function EntryRow({
   }
 
   return (
-    <MoveRow className={className} actDelete={actDeleteLast} actSubmit={actSubmitEntry}>
-      <EntryBox value={value} placeholder={placeholder}>
+    <WordEntryRow className={className} actDelete={actDeleteLast} actSubmit={actSubmitEntry}>
+      <WordEntryInput value={value} placeholder={placeholder}>
         {children}
-      </EntryBox>
-    </MoveRow>
+      </WordEntryInput>
+    </WordEntryRow>
   )
 }

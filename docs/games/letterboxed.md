@@ -617,7 +617,7 @@ sheet. The **last word carries an ×**, and that is the whole undo affordance
 the board down (layout stability).
 
 **The locked first letter.** Once the chain has a word, the next one must start
-with its last letter — so the shared `<EntryRow>` seeds itself with it and
+with its last letter — so the shared `<WordEntryArea>` seeds itself with it and
 won't let you delete it. State is only the part the player typed (`draft`); the
 shown value is `seed + draft`, **derived every render**, so playing a word
 re-seeds the box with no effect and no stale state. `<TypedWord>` renders the
@@ -627,7 +627,7 @@ at the seed**. Two more entry gates: only the twelve board letters are typeable
 follow the previous one (same side) **never enters the field** — refusing the
 keystroke says "wrong" immediately, instead of letting you finish typing a word
 you can already see is illegal. **Neither history arrow is bound here** — the
-`<EntryRow>` takes `hasHistory={false}`, so `↑` and `↓` are off the key list
+`<WordEntryArea>` takes `hasHistory={false}`, so `↑` and `↓` are off the key list
 entirely: a submitted word goes into the chain rather than away, and `↓` could
 only clear back to the locked seed, which the gate above refuses anyway.
 

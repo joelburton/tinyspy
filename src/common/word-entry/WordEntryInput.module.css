@@ -20,10 +20,10 @@
   flex: 1 1 auto;
   min-width: 0;
   /* Size is a per-game knob — the default lives at :root in core-css/base.css;
-     a consumer raises it by re-setting --entryBox-font-size on the EntryBox or
+     a consumer raises it by re-setting --wordEntryInput-font-size on the WordEntryInput or
      any ancestor of it (psychicnum sets it on the row, strands on the box; a
      custom property cascades, so both reach here). The caret tracks it. */
-  font-size: var(--entryBox-font-size);
+  font-size: var(--wordEntryInput-font-size);
   /* The shared entered-text look: bold, all-caps, slightly letter-spaced. On
      `.box` (not `.value`) so it also reaches a consumer that renders the value
      via `children` (spellingbee's per-character <TypedWord>). The placeholder
@@ -53,11 +53,11 @@
 /* Simulated text cursor — stands in for the blinking caret a real <input>
  * would give, supplying the "type here" affordance without a focusable
  * field. Sits after the typed value (or before the placeholder when empty).
- * EntryBox only renders it while the game owns the keyboard. */
+ * WordEntryInput only renders it while the game owns the keyboard. */
 /* @@ */ .caret {
   display: inline-block;
   width: 2px;
-  /* In `em`, so the bar grows with --entryBox-font-size instead of needing a
+  /* In `em`, so the bar grows with --wordEntryInput-font-size instead of needing a
      second per-game knob. A shade taller than the text it stands beside. */
   height: 1.15em;
   background: var(--chrome-caret-color);

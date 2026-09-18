@@ -388,7 +388,7 @@ also differed in size), not in caller burden.
 
 `--simpleScrollableList-row-height` / `-rows` / `-pad` are camelCase-prefixed;
 `--filter-select-dot` is kebab. The repo has both conventions (`--iconButton-size`,
-`--pageHeader-height`, `--entryBox-font-size` on one side; `--info-col-width`,
+`--pageHeader-height`, `--wordEntryInput-font-size` on one side; `--info-col-width`,
 `--dot-size`, `--logo-size` on the other) and no doc rules on it. Two things
 to decide: which spelling, and where that rule lives (docs/code-conventions.md).
 This folder then follows it; the rest converts area by area.

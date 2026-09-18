@@ -227,7 +227,7 @@ closing and reopening it is the fix, and clicking the stale row is safe
 regardless.
 
 **Testing a surface that takes an action it does not bind** — a game's
-`ctx.menu.actBackToClub`, a `<MoveRow>`'s two keys, a menu built from rows —
+`ctx.menu.actBackToClub`, a `<WordEntryRow>`'s two keys, a menu built from rows —
 uses `boundActionFixture(id)`: the registry's real fixed half with a `vi.fn()`
 run, so the test asserts which action fired without dragging a React tree and
 the dispatcher in. A test that fires a confirming action for real mounts

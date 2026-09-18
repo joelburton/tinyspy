@@ -14,12 +14,12 @@ type Props = {
 }
 
 /**
- * Renders the in-progress word as the value INSIDE the shared <EntryBox> (passed
+ * Renders the in-progress word as the value INSIDE the shared <WordEntryInput> (passed
  * as its `children`) — one <span> per character so illegal letters can be dimmed
- * individually. EntryBox owns the input-like box, the blinking caret, and the
+ * individually. WordEntryInput owns the input-like box, the blinking caret, and the
  * empty-state placeholder; this owns only the per-character styling. (It returns
  * just the spans, no wrapper — the caret must sit right after the last character,
- * which EntryBox appends.)
+ * which WordEntryInput appends.)
  *
  * A character is dimmed ("illegal") when EITHER:
  *   - it's not one of the puzzle's letters (off the wheel), OR

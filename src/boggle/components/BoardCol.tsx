@@ -6,7 +6,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import type { TraceCells } from '../lib/boardTrace'
-import { EntryRow } from '@/common/word-entry/EntryRow'
+import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { TypedWord } from './TypedWord'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -45,7 +45,7 @@ function pathWord(path: Cell[], view: string[][]): string {
 
 /**
  * boggle's board column — the square tile grid, a floating Rotate control over its
- * top-right, and the below-board slot (the shared `<EntryRow>` — the typed-word input
+ * top-right, and the below-board slot (the shared `<WordEntryArea>` — the typed-word input
  * + capture keyboard — which draws the local feedback slot's top message in
  * place of the controls).
  *
@@ -317,13 +317,13 @@ export function BoardCol({
             invalidates the traced path's coords, so clear it. */}
         <ShuffleButton action={actRotate} tooltip="Rotate board" className={shared.floatingShuffle} />
       </div>
-      {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the EntryBox
+      {/* The below-board slot — the shared <WordEntryArea> (icon-only Delete + the WordEntryInput
           + icon-only Submit, plus the capture keyboard). While the slot holds a
           message it draws it in place of the controls — the verdict, "you're
           out", a word result, whichever ranks highest. */}
       <div className={styles.belowBoard}>
         <div className={shared.moveAreaOrLocalFeedback}>
-          <EntryRow
+          <WordEntryArea
             value={word}
             onChange={handleTyping}
             onSubmit={handleSubmit}
@@ -338,7 +338,7 @@ export function BoardCol({
                 dimmed. A tapped word is traced by construction, so `reach` is
                 its whole length and nothing dims. */}
             <TypedWord word={word} reach={typedCells?.reach ?? word.length} />
-          </EntryRow>
+          </WordEntryArea>
         </div>
       </div>
     </div>

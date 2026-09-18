@@ -220,7 +220,7 @@ boggle and activate in psychicnum, that is exactly the drift this project exists
 to remove. `⌥Z` is free (`⌥S` is not — it opens the scratchpad), and the Z-shape
 is a good mnemonic for a shuffle.
 
-**2. psychicnum drops its `EntryRow`.** It is the only arrow collision in the
+**2. psychicnum drops its `WordEntryArea`.** It is the only arrow collision in the
 whole set (`useArrowHistory` binds `↑`/`↓` to recall-last-guess and clear-entry),
 and typing a word that is visible on screen was always the odd input. It goes with
 the `words.includes(guess)` pre-check and its "Not on the board" pill (typing was

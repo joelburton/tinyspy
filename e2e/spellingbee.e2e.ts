@@ -36,7 +36,7 @@ test.describe('spellingbee play loop', () => {
     await boardReady(page, page.locator('[data-hive]'), 15000)
 
     // v3 move entry is the shared CAPTURE model (window key-capture + a
-    // chrome-less <EntryBox>), so type on the page keyboard.
+    // chrome-less <WordEntryInput>), so type on the page keyboard.
     const submit = async (w: string) => {
       await page.keyboard.type(w)
       await page.keyboard.press('Enter')

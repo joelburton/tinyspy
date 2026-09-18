@@ -417,9 +417,9 @@ accepted / rejected word additionally flashes its letters green/red in the
 results a ring can't.
 
 **The move row** is `⌫ | the five-slot WordEntry | Submit` — the arrangement the
-shared `<EntryRow>` gives every typing game ([playarea.md → Text entry](../playarea.md#text-entry--capture-not-input)),
+shared `<WordEntryArea>` gives every typing game ([playarea.md → Text entry](../playarea.md#text-entry--capture-not-input)),
 rebuilt locally rather than reused, because stackdown's "entry" is a grid of
-picked-up **tiles**, not a text buffer: `EntryRow`'s capture keyboard,
+picked-up **tiles**, not a text buffer: `WordEntryArea`'s capture keyboard,
 arrow-history and string `value` have nothing to bind to. The two buttons ARE the
 shared ones, so the control reads as the same control it is elsewhere.
 
@@ -432,7 +432,7 @@ shared ones, so the control reads as the same control it is elsewhere.
   every tile after it* (the word is an order — you can't pull one from the middle
   and keep the rest). The button is the touch-reachable twin of the key, which is
   the real gain: stackdown has a supported phone layout and no keyboard there.
-- **Non-swap, unlike `EntryRow`**: the feedback pill does NOT take the row's slot
+- **Non-swap, unlike `WordEntryArea`**: the feedback pill does NOT take the row's slot
   over — it has its own reserved row below — so the buttons stay visible while a
   pill shows. Both buttons stay mounted and merely disabled when they can't act
   (including while a past turn is being viewed), so the region never reflows.

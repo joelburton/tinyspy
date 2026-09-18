@@ -467,7 +467,7 @@ board), swapped in for spellingbee's hex flower.
   result, "you're out", the verdict — one replacing the other so the board
   never reflows ([ui.md → Feedback pill](../ui.md#feedback-pill)).
   - **Move entry** is the shared **capture model** (`useCaptureKeys` + a chrome-less
-    `<EntryBox>` display, same as spellingbee): window key-capture, letters stored
+    `<WordEntryInput>` display, same as spellingbee): window key-capture, letters stored
     UPPERCASE, the icon-only `act-delete-last` + `act-submit-entry` flanking the box. Enter
     submits; **Up arrow** recalls the last submitted word for editing, **Down arrow**
     clears (the universal `useCaptureKeys` last-move history). Words can also be built

@@ -45,7 +45,7 @@ same answer, and a second copy of it is how `<select>` gets omitted.
 
 **The caret's version of that question is `useGameHasKeyboard`**, which tracks
 `focusin`/`focusout` and reports whether the game owns the keyboard right now.
-`word-entry/EntryBox` gates its simulated caret on it — **caret visible ⟺
+`word-entry/WordEntryInput` gates its simulated caret on it — **caret visible ⟺
 keystrokes go to the game** — because a caret on the board while a real one
 sits in the chat box reads as two cursors. `lists/FilterSelect` and
 bananagrams' board hook cite that invariant as the reason they hand focus back;

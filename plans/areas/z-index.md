@@ -308,7 +308,7 @@ area's to answer.
 banner is `position: absolute; inset: 0` over the below-board region, rendered as
 the FIRST child of its host, so it cannot rely on paint order and needs the
 number. What it is beating today is nearly nothing — of everything it covers
-(the feedback slot, `EntryRow`, `GuessKeyboard`, `MoveRow`, `WordEntry`) only
+(the feedback slot, `WordEntryArea`, `GuessKeyboard`, `WordEntryRow`, `WordEntry`) only
 scrabble's `.rackShuffle` writes a z-index at all, at `3`. So the margin is two,
 in one game.
 

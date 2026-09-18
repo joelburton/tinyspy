@@ -13,7 +13,7 @@ import { boardReady } from './helpers/ready'
  * which runs a beat after the paint that satisfied the visibility wait.
  * Seen live (2026-08-07): `type('bead')` arrived as `EAD — too short` and
  * the spec starved waiting for a pill that could never come. So: clear,
- * type, check the entry box heard the WHOLE word (EntryBox's
+ * type, check the entry box heard the WHOLE word (WordEntryInput's
  * `data-testid="entry-value"`), retry if not, and only then press Enter.
  */
 async function submitWord(page: Page, word: string): Promise<void> {

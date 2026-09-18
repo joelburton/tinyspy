@@ -3,7 +3,7 @@
 import styles from './PlayArea.module.css'
 
 /**
- * The in-progress word as the value INSIDE the shared `<EntryBox>` (passed as
+ * The in-progress word as the value INSIDE the shared `<WordEntryInput>` (passed as
  * its `children`), one span per character — the same seam spellingbee and
  * wordwheel use to style letters individually.
  *

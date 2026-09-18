@@ -9,7 +9,7 @@ import type { BoundAction, Described } from './useBoundAction'
  * half.
  *
  * For the tests that render a surface which takes an action but isn't the thing
- * binding it: a game's `ctx.menu.actBackToClub`, a `<MoveRow>`'s two keys, a
+ * binding it: a game's `ctx.menu.actBackToClub`, a `<WordEntryRow>`'s two keys, a
  * menu built from rows. Binding for real would drag a React tree and the key
  * dispatcher in with it, and neither is what those tests are about.
  *

@@ -37,7 +37,7 @@ Why this matters here:
 - **Modal for rare-and-rich.** The win *moment* → the `<CelebrationBlockingModal>` overlaying the static layout; the *record* (the verdict, the replay/new-game actions) rotates into reserved in-page slots instead — see [Terminal results](#terminal-results--the-moment-vs-the-record). The play surface stays visible in review mode either way.
 - **Disabled in place, not removed.** The clue-input field is always rendered; grayed out when it's not your turn. Same shape, different state.
 
-> **⚠️ The #1 offender — conditionally removing a flow element on state change.** Writing `{showInput && <CommitRow/>}` / `{isTerminal ? … : <EntryRow/>}` so the input/commit/entry row is *removed* at terminal looks harmless, but the board above is usually `flex: 1` — so when the row vanishes, **the board grows into the freed space.** That's a reflow on a state change, the exact thing this section forbids.
+> **⚠️ The #1 offender — conditionally removing a flow element on state change.** Writing `{showInput && <CommitRow/>}` / `{isTerminal ? … : <WordEntryArea/>}` so the input/commit/entry row is *removed* at terminal looks harmless, but the board above is usually `flex: 1` — so when the row vanishes, **the board grows into the freed space.** That's a reflow on a state change, the exact thing this section forbids.
 >
 > **Mechanical check, every time you write `{cond && <X>}` or a state ternary in a PlayArea:** does `<X>` take layout space, and is a sibling grow-to-fill (the board)? If yes, **don't remove it** — keep it mounted and (a) toggle `visibility: hidden` (exact height kept even under wrapping — connections' `.commitFrozen`), or (b) rotate the *content* in a fixed-height slot (psychicnum swaps the entry for the terminal reveal in the same slot), or (c) give the slot a mount-time `min-height`. The board's bottom boundary (the input/commit row) is where this bites most.
 - **Mono-width digits for ticking values.** Timer in a `font-variant-numeric: tabular-nums` slot so `0:09 → 0:10` doesn't shift the header.
@@ -722,7 +722,7 @@ uses. The rest of the grammar:
   idea. **Part-count is not a thing to optimize**: five parts is fine, and
   compressing to reach four is how the rule gets misapplied.
 - **A bucket that names a COMPONENT is spelled the way the code spells it** —
-  `--pageHeader-height`, `--iconButton-size`, `--entryBox-font-size`,
+  `--pageHeader-height`, `--iconButton-size`, `--wordEntryInput-font-size`,
   `--floatingPanel-titlebar-height`, `--simpleScrollableList-row-height`,
   `--infoCol-width`. The bucket is a pointer to a file, so kebabing it
   (`--page-header-height`) breaks the one thing it is for: you can no longer
@@ -2137,8 +2137,8 @@ computer, and a row for them would pad every menu to teach nothing.
 |---|---|
 | Shuffle / rotate (`IconShuffle`) | boggle, connections, psychicnum, scrabble, spellingbee, wordwheel, bananagrams |
 | Pause | the `GamePage` header, every game |
-| Delete / backspace (`IconDelete`) | the shared `EntryRow` |
-| Submit — the up-arrow (`IconSubmit`) | `EntryRow`, and each game's commit button |
+| Delete / backspace (`IconDelete`) | the shared `WordEntryArea` |
+| Submit — the up-arrow (`IconSubmit`) | `WordEntryArea`, and each game's commit button |
 
 The test is whether the glyph is a *convention* — a backspace arrow and a pause
 bar mean the same thing in every app the friends already use — not whether it's

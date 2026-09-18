@@ -698,7 +698,7 @@ info column, so a desktop board shows the same column count it always did.
   unused tile is ignored; **typing or Delete clears the path** (you switched to the
   keyboard). Visual feedback: a traced tile gets an **accent fill + ring**
   (`.selected`), plus the same `:active` press-scale + tap-highlight suppression as
-  spellingbee. The EntryBox placeholder is now "Type or tap letters". Path-tracing
+  spellingbee. The WordEntryInput placeholder is now "Type or tap letters". Path-tracing
   works with a mouse too, so it's a desktop affordance as well. Guarded by
   [`boggle.e2e.ts`](../e2e/boggle.e2e.ts) (trace C→A→T, adjacency guard, backtrack,
   submit-via-button-then-path-clears — Enter would land on the focused tile's own
@@ -797,7 +797,7 @@ grid on a 390px-tall viewport and not something this doc's breakpoints address.
 recipe (`useInfoSheet` + `<InfoSheet>` + `shared.mobileFill`), input is
 tap-a-letter on the SVG square (touch-native; re-tapping the word's last letter
 submits, so a phone needs no keyboard at all — physical keys still work through
-the shared `EntryRow`). It has **no mobile status bar** — see the adoption-rule
+the shared `WordEntryArea`). It has **no mobile status bar** — see the adoption-rule
 note below: the board and the chain strip ARE the readouts, and the
 accepted-word pill ("APPLE — 2 words left") carries the cap. The chain strip
 stays on the play surface — it's per-turn state (what letter the next word must

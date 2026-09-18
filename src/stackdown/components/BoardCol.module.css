@@ -31,10 +31,10 @@
   position: relative;
 }
 
-/* stackdown's slice of the shared `<MoveRow>` (⌫ | the five word slots |
+/* stackdown's slice of the shared `<WordEntryRow>` (⌫ | the five word slots |
  * Submit): only the spacing above it, since the row's layout is the shared one.
  *
- * stackdown is NON-SWAP: unlike `<EntryRow>`, the feedback pill does NOT take
+ * stackdown is NON-SWAP: unlike `<WordEntryArea>`, the feedback pill does NOT take
  * this row's place — it has its own reserved slot below (the shared
  * `.localFeedback`, whose min-height keeps the board from shifting as the pill
  * appears/clears). So these buttons stay visible while a pill is showing.

@@ -236,9 +236,9 @@ not just its letters, is what you're looking for)
 
 ## Shared entry / submit machinery (who consumes what from `common/`)
 `useWordSubmit` (shipped-list lookup + optimistic trusting-commit):  FB MC MW WW
-`EntryRow` / `EntryBox` (the typed-word box + Delete/Submit row):  PN FB MC MW SB
+`WordEntryArea` / `WordEntryInput` (the typed-word box + Delete/Submit row):  PN FB MC MW SB
 `useCaptureKeys` directly (bare-keys grab, no focused input):  FB MC WN MW WW
-  (PN + SB get their capture via `EntryRow`; WN/WW letters land on the board,
+  (PN + SB get their capture via `WordEntryArea`; WN/WW letters land on the board,
   not a box. SB deliberately skips `useWordSubmit` — a chain append isn't a
   found-word, so its validation is `lib/board.ts` + a plain RPC.)
 `GuessKeyboard` (shared on-screen QWERTY):  WN WW

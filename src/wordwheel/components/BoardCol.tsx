@@ -5,7 +5,7 @@ import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
-import { EntryRow } from '@/common/word-entry/EntryRow'
+import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { RankBar } from '@/shared/rank-ladder/RankBar'
@@ -29,8 +29,8 @@ function shuffled<T>(arr: readonly T[]): T[] {
 
 /**
  * wordwheel's board column — the `<Wheel>`, a floating Shuffle over its
- * top-right, and the below-board slot (the shared `<EntryRow>` — the typed-word input
- * + capture keyboard, whose `<EntryBox>` renders the per-character illegal-letter dim
+ * top-right, and the below-board slot (the shared `<WordEntryArea>` — the typed-word input
+ * + capture keyboard, whose `<WordEntryInput>` renders the per-character illegal-letter dim
  * via `<TypedWord>`).
  *
  * It owns the **local outer-letter shuffle** (a per-player view-only rearrange — never
@@ -198,15 +198,15 @@ export function BoardCol({
           />
         }
       />
-      {/* The below-board slot — the shared <EntryRow> (icon-only Delete + the EntryBox
+      {/* The below-board slot — the shared <WordEntryArea> (icon-only Delete + the WordEntryInput
           + icon-only Submit + the capture keyboard).
-          The EntryBox renders the per-character illegal-letter dim via <TypedWord>.
-          While the slot holds a message, EntryRow draws it in place of the
+          The WordEntryInput renders the per-character illegal-letter dim via <TypedWord>.
+          While the slot holds a message, WordEntryArea draws it in place of the
           controls (same slot, no reflow) — the verdict, "you're out", a word
           result, whichever ranks highest. */}
       <div className={surface.belowBoard}>
         <div className={shared.moveAreaOrLocalFeedback}>
-          <EntryRow
+          <WordEntryArea
             value={word}
             onChange={handleChange}
             onSubmit={onSubmit}
@@ -226,7 +226,7 @@ export function BoardCol({
             localFeedbackSlot={localFeedbackSlot}
           >
             <TypedWord word={word} letterCounts={letterCounts} />
-          </EntryRow>
+          </WordEntryArea>
         </div>
       </div>
     </div>
