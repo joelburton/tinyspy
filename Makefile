@@ -529,8 +529,48 @@ db-restore: ## pg_restore DUMP=backups/<file>.dump (data only) into ENV's databa
 	bash supabase/scripts/backup-toc-order.sh "$(DUMP)" > "$$toc"
 	pg_restore --data-only --single-transaction -L "$$toc" -d "$$SUPABASE_DB_URL" "$(DUMP)"
 	rm -f "$$toc"
-	echo "── restored. The dictionary bulk is NOT in a backup:"
-	echo "   run \`gmake all-words all-pangrams ENV=$(ENV)\` to finish."
+	echo "── restored. The excluded bulk is NOT in a backup:"
+	echo "   run \`gmake all-words all-pangrams g-letterboxed-seeds ENV=$(ENV)\` to finish."
+
+# ── rehearsing a data migration ─────────────────────────────────
+# The normal loop never runs a backfill. `db reset` builds the new shape on an
+# EMPTY database, so every data statement in a migration runs over zero rows,
+# succeeds, and proves nothing — and production is then the first place that
+# statement ever meets a row. This target stages what production will do:
+# hold back the migrations it has not applied, reset to ITS shape, restore its
+# rows, and only then let the migrations run.
+#
+# SINCE is the cut — the first migration production has NOT applied; it and
+# everything after it are held back. There is no default, because the cut is a
+# fact about the hosted project rather than about this checkout:
+# `supabase migration list --linked` is what answers it.
+#
+# A composite of sub-makes only, so `gmake -n` stays a real dry run (see the
+# header). The order is load-bearing and is why this isn't three commands in a
+# doc: the reload has to come AFTER the reset that wipes it, and the pgTAP
+# suite needs the word list it brings back.
+#
+# Those three reloads, and not `db-data`: they are exactly what BACKUP_EXCLUDE
+# leaves out of a dump and no migration puts back (common.words, both pangram
+# pools, letterboxed.seeds). The rest of db-data would reload the board and
+# puzzle libraries with FRESH ids, orphaning the restored games that reference
+# them — the same trap db-restore's comment names.
+.PHONY: db-rehearse
+db-rehearse: ## local: replay pending migrations over a restored prod dump, then the suite
+	@$(MAKE) _db-rehearse ENV=$(ENV) DUMP=$(DUMP) SINCE=$(SINCE)
+	$(MAKE) all-words all-pangrams g-letterboxed-seeds ENV=local
+	$(MAKE) _db-rehearse-verify ENV=local
+
+.PHONY: _db-rehearse
+_db-rehearse:
+	@[[ "$(ENV)" == "local" ]] || { echo "REFUSED: db-rehearse is local-only — it drops the database it runs against." >&2; exit 1; }
+	$(PRELUDE)
+	DUMP="$(DUMP)" SINCE="$(SINCE)" bash supabase/scripts/rehearse-migration.sh
+
+.PHONY: _db-rehearse-verify
+_db-rehearse-verify:
+	@echo "── the pgTAP suite, against production's rows"
+	npm run test:db
 
 # Answers "does ENV's database match the migration baselines?" — the active
 # complement to db-schema's passive up-to-date NOTE. While baselines are

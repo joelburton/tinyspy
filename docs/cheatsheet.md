@@ -136,9 +136,15 @@ gmake db-drift ENV=prod                      # does that database's SHAPE match 
 gmake db-backup ENV=prod                     # pg_dump the irreplaceable data (auth accounts +
                                              # app rows; dictionary/seed bulk excluded) → backups/
 gmake db-restore ENV=local DUMP=backups/<f>  # data-only pg_restore; structure comes from git
-                                             # (db-schema-sql first; all-words + all-pangrams
-                                             # after — NOT db-data, whose stackdown reload would
-                                             # delete restored boards out from under games)
+                                             # (db-schema-sql first; all-words + all-pangrams +
+                                             # g-letterboxed-seeds after — NOT db-data, whose
+                                             # stackdown reload would delete restored boards out
+                                             # from under games)
+gmake db-rehearse ENV=local \                # run a migration that MOVES DATA over production's
+  DUMP=backups/<f>.dump SINCE=<version>      #   real rows: holds back every migration from
+                                             #   SINCE on, resets to prod's shape, restores the
+                                             #   dump, then applies them and runs the suite.
+                                             #   `supabase migration list --linked` gives SINCE
 
 # deploying — `gmake deploy-<TAB>`
 gmake deploy ENV=prod                        # schema + code + functions + FE (NOT data)

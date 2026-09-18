@@ -1,8 +1,8 @@
 # events — one shape for every game's log table
 
-**Status: NOT STARTED.** Agreed with Joel 2026-09-17, in the conversation that
-began as `history-always-available` and turned out to be sitting on top of a
-schema question.
+**Status: phase 0 built, awaiting review; psychicnum next.** Agreed with Joel
+2026-09-17, in the conversation that began as `history-always-available` and
+turned out to be sitting on top of a schema question.
 
 **Nothing deploys until all three plans are finished** (Joel: *"we're going to
 do them all, though, and we'll never deploy before we complete all"*). That is
@@ -413,6 +413,24 @@ rename half: row loss, ordering, and a table quietly leaving the publication.
 publication assertion already exists and needs only to be known about (§14.1);
 the skeleton guard is the per-game column assertion nine games lack, so it is
 written before the first rename, not after.
+
+> **Built 2026-09-17.** `supabase/scripts/rehearse-migration.sh` +
+> `gmake db-rehearse ENV=local DUMP=… SINCE=…` (the sequencing of §14.7, with
+> the dictionary reload and the pgTAP run after it), and
+> `supabase/tests/common/events_skeleton_test.sql` — a roster of the ten games
+> and seven assertions over the ones marked converted, which today is none. Each
+> game's phase flips its roster row, exactly as it edits the publication test's
+> expected pair. The guard was verified by planting a conformant
+> `psychicnum.events` (all seven green) and then breaking it one way at a time:
+> each plant failed the assertion it was aimed at and no other. The harness has
+> NOT yet been run end to end — that needs a fresh prod dump and a migration to
+> replay, which is psychicnum's phase.
+>
+> Two things the build turned up, both recorded where they belong:
+> `letterboxed.seeds` is excluded from `db-backup` like the dictionary bulk, but
+> `db-restore`'s closing message named only `all-words all-pangrams` — so a
+> restored database had no letterboxed board pool and nothing said so. Fixed in
+> the Makefile, and `g-letterboxed-seeds` is part of what `db-rehearse` reloads.
 
 **Phase 1 — psychicnum.** Joel: *"the first one we should do is psychicnum — it's
 the game i best understand and can read the code/schema for, and its our normal

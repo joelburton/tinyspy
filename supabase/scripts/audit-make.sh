@@ -151,6 +151,7 @@ check_refuses() { # target, ENV, description
 }
 check_refuses project-db-destroy local "would wipe prod from a local-looking command"
 check_refuses db-reset prod "would wipe the hosted DB expecting the local one"
+check_refuses db-rehearse prod "drops the database it runs against; must be the local one"
 # The deploy family reaches production whatever ENV says — `supabase functions
 # deploy` and `netlify deploy` read a link, not a connection string. `gmake
 # deploy` with the default ENV=local once wiped the LOCAL database (db-schema
@@ -182,7 +183,7 @@ check_refuses_no_env() { # target
 }
 for t in db-sql db-schema db-schema-sql db db-data all-words db-psql \
          g-stackdown-puzzles g-connections-puzzles all-pangrams db-reset deploy \
-         _stamps-clean db-backup db-restore db-drift db-add-user; do
+         _stamps-clean db-backup db-restore db-rehearse db-drift db-add-user; do
   check_refuses_no_env "$t"
 done
 

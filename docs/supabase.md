@@ -128,6 +128,19 @@ push with `--require-url`, which makes an unset `SUPABASE_DB_URL` a hard error
 rather than a silent re-apply to localhost. Each file runs in a single transaction, so a
 syntax error rolls the whole file back instead of leaving a half-updated schema.
 
+**Rehearsing a migration that moves data.** The normal loop never runs a
+backfill. `supabase db reset` builds the new shape on an empty database, so a
+migration's data statements run over zero rows, succeed, and prove nothing —
+production is then the first place they meet a row. `gmake db-rehearse
+ENV=local DUMP=backups/<f>.dump SINCE=<version>` stages what production will
+do: it holds back every migration from `SINCE` onward, resets to the shape
+production is at, restores a `db-backup` dump of production's rows, and only
+then applies the held-back migrations over them — reporting the row count of
+every table before and after, reloading the dictionary bulk the dump excludes,
+and finishing with the pgTAP suite. `SINCE` has no default on purpose: the cut
+is a fact about the hosted project, and `supabase migration list --linked` is
+what answers it.
+
 **What this trades away:** the migration table no longer records which version of
 a function was live on a given date — git does. That's the deliberate exchange
 for one readable file per game, which is the property

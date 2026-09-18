@@ -468,7 +468,7 @@ Two placement notes for a new guard:
   guard that reads the repo and imports nothing from `src/` can live there
   (today: `cssTokens`).
 
-Three of them in more detail:
+A few in more detail:
 
 - **`src/guards/schemaExposure.e2e.test.ts`** (Vitest) — every registered game schema is
   reachable through PostgREST (the `[api] schemas` exposure that a `db reset`
@@ -482,6 +482,16 @@ Three of them in more detail:
   (live updates die) and an extra one (replication overhead). **Update its
   `expected` list when a hook adds or drops a `postgres_changes` subscription**
   (re-derive with `grep -rn "table:" src`).
+- **`supabase/tests/common/events_skeleton_test.sql`** (pgTAP) — the shape every
+  game's log table shares: named `events`, keyed by a `bigint identity`, with
+  `game_id`, `user_id`, `kind`, `took_turn` and `created_at`, a `(game_id, id)`
+  read index, and a check-constrained, defaultless `kind`. Its roster names each
+  game's log table and whether that table has been brought to the skeleton; the
+  assertions apply to the converted ones, and are bidirectional, so a table
+  reshaped without flipping its roster row fails as loudly as the reverse. It
+  pairs with the publication test above: between them a log table cannot be
+  renamed without both files agreeing on what it is now called.
+
 - **`src/guards/docLinks.test.ts`** (Vitest) — every relative markdown link across
   `docs/`, `CLAUDE.md`, and `README.md` resolves: the file exists and a
   `#fragment` matches a real heading. The docs are the cross-linked half of this
