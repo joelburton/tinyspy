@@ -301,6 +301,11 @@ psychicnum, connections and scrabble did it.
 
 The "accepted, non-terminal" qualifier on `_advance_turn` is load-bearing: soft-reject paths (not-a-word, duplicate, out-of-budget) don't consume the shared budget, so they must **not** advance — the same player retries. And a move that *ends* the game skips the advance (a pointless UPDATE + a misleading pointer at terminal).
 
+**The rotation is not the record of whose go it was.** Every game logs that
+separately, on `<game>.events.took_turn` — including the games with no rotation
+at all, and including the terminal move this pointer deliberately doesn't
+advance. See [supabase.md → Every game's log](supabase.md#every-games-log-is-gameevents).
+
 **Two reserved setup keys** (a documented common convention — see [code-conventions.md](code-conventions.md#reserved-coop-turn-setup-keys)):
 
 - `setup.coop_style: 'turns' | 'free-for-all'` — the opt-in choice, stored in the same vocabulary the UI shows. Default `'free-for-all'`. Round-trips as a club default.

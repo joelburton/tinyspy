@@ -158,6 +158,89 @@ a function was live on a given date — git does. That's the deliberate exchange
 for one readable file per game, which is the property
 [CLAUDE.md](../CLAUDE.md)'s per-game-baseline decision exists to protect.
 
+## Every game's log is `<game>.events`
+
+Ten games keep a chronological log of what happened in a game, and they all keep
+it in one shape. (codenamesduet is out: its log is a table of TURNS, each holding
+a clue and the guesses under it, which is a different thing. The bee games'
+`found_words` is a set, not a log, and bananagrams and crosswords have no log at
+all.)
+
+```sql
+create table <game>.events (
+  id         bigint generated always as identity primary key,
+  game_id    uuid not null references <game>.games(id) on delete cascade,
+  user_id    uuid not null references common.profiles(user_id) on delete cascade,
+  kind       text not null check (kind in (…this game's kinds…)),
+  took_turn  boolean not null default false,
+  created_at timestamptz not null default now(),
+  -- …the game's own payload columns…
+);
+
+create index <game>_events_game_id_id_idx on <game>.events (game_id, id);
+```
+
+**Read `order by id`, never by the timestamp.** Two rows written in one
+transaction tie on `created_at`, and the log's whole meaning is its order. The
+index above is what an `order by id` read within one game wants.
+
+**`kind` is what the player DID; the payload says how it went.** A refused
+wordiply guess is `kind = 'guess'` with `valid = false`; strands' six `result`
+values all sit under `kind = 'guess'`. No game has a kind meaning "a bad move".
+`kind` carries no default anywhere — a column that is mandatory at every insert
+should not arrive by accident — and it is always knowable before the request:
+the player knew what they were asking for, so the frontend knows the kind before
+the call and no RPC picks one based on what it finds. That is what lets a game
+show its pill before the round trip. (An RPC may still choose the WORD or
+compute how it went — psychicnum's hint picks which clue, wordle computes the
+colors.)
+
+**`took_turn` answers "did this event use up one of the actor's goes?"** — in
+every game and every mode, whether or not a rotation is running
+([common.md → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games)
+is the rotation itself, and it is a different question). Joel's rule: *"all games
+have a 'turn'; this may not always be important except in compete ('claude won
+because he used fewer turns') or turn-by-turn coop, but we still track the
+'turn'."*
+
+- **It is the game's judgment, not the mechanism.** stackdown has no rotation at
+  all and still marks its words and spoilers `true`; scrabble compete rotates by
+  its own seat pointer rather than `common._advance_turn`; and the move that ENDS
+  a game advances nothing yet is still a turn. A column meaning "this called
+  `_advance_turn`" would be false in all three places.
+- **Which kinds are turns is per-game, and deliberately not constrained in the
+  schema.** stackdown spends a turn on a spoiler where psychicnum does not, and
+  Joel expects that to change ("we may change a game so that getting a hint is a
+  player's turn"). So there is no CHECK and no generated column: the RPC writes
+  the literal, and changing the rule is an edit to `supabase/sql/`.
+- **It cannot be derived.** wordiply is the proof: `too_short` and `missing_base`
+  rejects cost the player their go, `not_a_word` does not, and all three are
+  `kind='guess'` rows with `valid=false`. Unlike `kind`, it may not be knowable
+  up front — it is the server's verdict, written by the RPC and read back, never
+  predicted by the client.
+
+**Three numbers, and only one of them is a column.** The distinction the shape
+rests on:
+
+| | what it is | where it lives |
+|---|---|---|
+| **the ordinal** | "the 3rd row of what you are looking at" — the `#N` a log prints | computed in the frontend from the displayed list; filter-dependent, never stored |
+| **the metered number** | "your 3rd of 6 guesses", "cleared in 14 turns" | derived at read time — `count(*) where took_turn` where the meter counts goes, the game's own predicate where it counts something else (wordiply's five slots, connections' four mistakes, letterboxed's chain length) |
+| **`took_turn`** | the RPC's verdict on one event | stored, because no predicate over the row recovers it |
+
+A metered count is correct in every mode by construction, because it counts only
+the caller's own rows — which are the rows RLS always shows them. The per-player
+counters that exist anyway (`wordle.players.guesses_used`,
+`waffle.players.swaps_used`, psychicnum's `guesses_remaining`) stay the authority
+for what was actually spent.
+
+**Payload columns are each game's own.** `connections.events.mode`,
+`strands.events.path`, `setgame.events.board_after` and the rest have nothing to
+do with the skeleton. The frontend's side of the log — the `#N` handle, the
+"whose turns?" picker and the history viewer — is
+[playarea.md](playarea.md#event-log) and
+[src/common/event-log/doc.md](../src/common/event-log/doc.md).
+
 ## Query conventions
 
 ### Explicit columns, always

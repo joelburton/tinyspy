@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: ALL TEN GAMES CONVERTED (scrabble awaiting review). Next plan: scrabble-ai-players.md.** Agreed with Joel
+**Status: DONE — all ten games converted, and the durable half now lives in [docs/supabase.md](../docs/supabase.md#every-games-log-is-gameevents) (§11). The other two plans are built too; what is left for the sprint is event-log.md §D's verification.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -729,13 +729,14 @@ renames everything is readable on its own.
 - `src/types/db.ts` is generated: `npm run types:gen` (or `gmake dev-types`)
   after each phase.
 
-**What moves to `docs/` when this ships** (a plan's durable knowledge outlives
-it — CLAUDE.md → Plans): the skeleton and the two invariants in §2, the three
-numbers in §4, and the `took_turn` rule in §8. Their home is
-[docs/supabase.md](../docs/supabase.md) beside the other table conventions, with
-the turn rule cross-referenced from [docs/common.md](../docs/common.md) where the
-rotation primitive is documented. They are NOT written there now: `docs/`
-describes what is, and there is no `events` table yet.
+**What moved to `docs/` — DONE 2026-09-17.** The skeleton and the two invariants
+(§2), the three numbers (§4) and the `took_turn` rule (§8) are now
+[docs/supabase.md → Every game's log is
+`<game>.events`](../docs/supabase.md#every-games-log-is-gameevents), and
+[docs/common.md](../docs/common.md)'s turn-order section points at it from the
+rotation primitive, saying the rotation is not the record of whose go it was.
+This plan is no longer where any of that is read; what stays here is the sweep —
+the evidence, the per-game table, the phases and how each one went.
 
 ## 12. Out of scope
 
