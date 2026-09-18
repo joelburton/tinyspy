@@ -1,4 +1,4 @@
-// cs-met-terminal
+// cs-audited-terminal
 
 import type { GamePlayer } from '../members/member'
 
