@@ -50,7 +50,7 @@ insert into roster values
   ('psychicnum',  'events',      true),
   ('wordle',      'events',      true),
   ('connections', 'events',      true),
-  ('waffle',      'swaps',       false),
+  ('waffle',      'events',      true),
   ('wordiply',    'guesses',     false),
   ('stackdown',   'submissions', false),
   ('scrabble',    'plays',       false),

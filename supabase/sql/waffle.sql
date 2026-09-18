@@ -156,8 +156,8 @@ create policy players_select on waffle.players
 
 -- No hidden columns (coop board is shared), so the FE reads the table
 -- directly rather than through a security_invoker view.
-grant select on waffle.swaps to authenticated;
--- Swaps: mode-aware, mirroring the board's own visibility.
+grant select on waffle.events to authenticated;
+-- The swap log: mode-aware, mirroring the board's own visibility.
 --   coop    — one shared board, so the log is shared too.
 --   compete — DURING PLAY you see only your own; at terminal everyone's open.
 --
@@ -168,16 +168,16 @@ grant select on waffle.swaps to authenticated;
 -- A club-wide log would hand the answer to an honest player just reading it.
 -- Same reason `_board_visible` hides the board itself; these two must agree,
 -- or the weaker one decides.
-drop policy if exists swaps_select on waffle.swaps;
-create policy swaps_select on waffle.swaps
+drop policy if exists events_select on waffle.events;
+create policy events_select on waffle.events
   for select to authenticated
   using (
     exists (
       select 1 from waffle.games g
        join common.games cg on cg.id = g.id
-       where g.id = swaps.game_id
+       where g.id = events.game_id
          and common.is_club_member(g.club_handle)
-         and (g.mode = 'coop' or swaps.user_id = (select auth.uid()) or cg.is_terminal)
+         and (g.mode = 'coop' or events.user_id = (select auth.uid()) or cg.is_terminal)
     )
   );
 
@@ -686,7 +686,7 @@ begin
   -- Realtime touch: common.end_game writes only common.games, so wake the
   -- waffle.* subscription to load the terminal reveal (solution +
   -- opponents' boards). submit_swap's terminal already writes waffle.players
-  -- /swaps so it wakes on its own, but the concede path (waffle.concede →
+  -- /events so it wakes on its own, but the concede path (waffle.concede →
   -- here) writes nothing to the waffle schema — without this, the reveal
   -- never appears for anyone. Same trick as submit_timeout / end_game.
   update waffle.games set club_handle = club_handle where id = target_game;
@@ -819,14 +819,18 @@ begin
 
   -- Append to the move log, in BOTH modes (compete gained one 2026-08-02).
   -- The letters come from the PRE-swap board (p_board) so the entry is
-  -- self-contained, and `new_swaps` is the caller's own count — which is why
-  -- user_id is in the primary key. Compete's rows are RLS-private until the
-  -- game ends; see the swaps_select policy for why that's load-bearing.
-  insert into waffle.swaps
-    (game_id, user_id, seq, pos_a, pos_b, letter_a, letter_b)
+  -- self-contained. Compete's rows are RLS-private until the game ends; see
+  -- the events_select policy for why that's load-bearing.
+  --
+  -- A swap is the only move this game has and only an accepted one is written,
+  -- so `took_turn` is a literal — the solving swap and the last one included.
+  -- The caller's own count lives on waffle.players.swaps_used, which is what
+  -- the budget strip reads.
+  insert into waffle.events
+    (game_id, user_id, kind, pos_a, pos_b, letter_a, letter_b, took_turn)
   values
-    (target_game, caller_id, new_swaps, pos_a, pos_b,
-     substr(p_board, a1, 1), substr(p_board, b1, 1));
+    (target_game, caller_id, 'swap', pos_a, pos_b,
+     substr(p_board, a1, 1), substr(p_board, b1, 1), true);
 
   if g_row.mode = 'coop' then
     -- Lock-step: every player's row mirrors the shared board + count.
@@ -1207,7 +1211,7 @@ grant execute on function waffle.end_game(uuid) to authenticated;
 --
 -- No realtime touch needed (unlike end_game, which writes only
 -- common.games): the players update + swaps delete wake useGame
--- (subscribed to waffle.{games,players,swaps}), and reset_game's
+-- (subscribed to waffle.{games,players,events}), and reset_game's
 -- common.games write wakes useCommonGame — so the board, turn log,
 -- and terminal state all reset live for every player.
 drop function if exists waffle.replay_board(uuid);
@@ -1245,7 +1249,7 @@ begin
          solved_at = null
    where game_id = target_game;
 
-  delete from waffle.swaps where game_id = target_game;
+  delete from waffle.events where game_id = target_game;
 
   -- Turn-order coop: rewind to the original opener. Matches no row (so it's a
   -- no-op) in a free-for-all game, whose pointer is null.

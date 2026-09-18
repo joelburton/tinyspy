@@ -80,16 +80,17 @@ export function GameTurnLog({
     <TurnLog heading="Swaps" picker={turnLogPicker} shown={shown}>
       {shown.map((s, i) => {
         const swapper = playerFor(s.user_id)
-        // The "#N" handle replays that swap on the board viewer. Identified by
-        // POSITION in the log (mirrors stackdown's GameTurnLog), shown as seq.
+        // The "#N" handle replays that swap on the board viewer, and the
+        // number IS that position — the row's place in the list being shown,
+        // which is what the handle addresses.
         return (
-          <tr key={`${s.user_id}-${s.seq}`} className={gameTurnLog.divider}>
+          <tr key={s.id} className={gameTurnLog.divider}>
             <TurnLogOutcomeBar outcome="neutral" />
             {/* The "#N" handle replays that swap on the board — live only when
                 the rows shown ARE the board's (coop's shared game, or my own).
                 An opponent's log, or the All view, can't drive my board. */}
             <TurnLogNumber
-              n={s.seq}
+              n={i + 1}
               isOpenInHistory={historyId === i}
               onShowHistory={turnLogPicker.boardIsShown ? () => onShowHistory(i) : undefined}
             />

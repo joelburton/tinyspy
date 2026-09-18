@@ -14,7 +14,7 @@ import type { SwapRow } from '../hooks/useGame'
 
 const MY_BOARD = 'badcef.g.hijklmn.o.pqrstu'
 
-const swap = (over: Partial<SwapRow> & Pick<SwapRow, 'seq' | 'pos_a' | 'pos_b'>): SwapRow => ({
+const swap = (over: Partial<SwapRow> & Pick<SwapRow, 'id' | 'pos_a' | 'pos_b'>): SwapRow => ({
   user_id: 'u1', letter_a: 'a', letter_b: 'b', ...over,
 })
 
@@ -71,7 +71,7 @@ describe('buildWafflePrintModel — tracks', () => {
   it('coop is ONE shared track whose log names each swapper', () => {
     const m = buildWafflePrintModel({
       ...base, mode: 'coop',
-      swaps: [swap({ user_id: 'u2', seq: 1, pos_a: 0, pos_b: 1 })],
+      swaps: [swap({ user_id: 'u2', id: 1, pos_a: 0, pos_b: 1 })],
     })
     expect(m.tracks).toHaveLength(1)
     expect(m.tracks[0].who).toBe('Team')
@@ -86,9 +86,9 @@ describe('buildWafflePrintModel — tracks', () => {
     const m = buildWafflePrintModel({
       ...base, isTerminal: true,
       swaps: [
-        swap({ user_id: 'u1', seq: 1, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
-        swap({ user_id: 'u2', seq: 1, pos_a: 4, pos_b: 5, letter_a: 'e', letter_b: 'f' }),
-        swap({ user_id: 'u1', seq: 2, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
+        swap({ user_id: 'u1', id: 1, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
+        swap({ user_id: 'u2', id: 1, pos_a: 4, pos_b: 5, letter_a: 'e', letter_b: 'f' }),
+        swap({ user_id: 'u1', id: 2, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
       ],
     })
     expect(m.tracks.map((t) => t.who)).toEqual(['me (you)', 'moth'])

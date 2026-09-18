@@ -13,9 +13,8 @@
  * `computeColors` port (see lib/colors).
  *
  * **One player's swaps at a time.** Compete logs swaps too since 2026-08-02, so
- * `waffle.swaps` can hold several players' independent sequences — and each
- * player's `seq` counts from 1 (it's their own swap count, which is why user_id
- * is in the table's primary key). Applying a mixed list to the scramble would
+ * `waffle.events` can hold several players' independent sequences interleaved in
+ * one game-wide order. Applying a mixed list to the scramble would
  * produce a board nobody ever saw, so **callers pass an already-filtered list**:
  * coop's shared log, or one player's own. Given that, a swap's position in the
  * list IS its chronological order and we index it directly.
@@ -86,14 +85,19 @@ export function historySnapshot(
     board,
     colors: solution ? computeColors(board, solution) : null,
     historyLitTiles: swap ? new Set([swap.pos_a, swap.pos_b]) : new Set<number>(),
-    historyLabel: describe(swap),
+    historyLabel: describe(swap, index + 1),
   }
 }
 
-/** The swap label — "#N: A (A1) ↔ B (C2)", matching the log row's letters-and-coords. */
-function describe(swap: SwapRow | undefined): string {
+/**
+ * The swap label — "#N: A (A1) ↔ B (C2)", matching the log row's
+ * letters-and-coords. `n` is the row's position in the list being shown, which
+ * is the same number the log prints beside it: the caller passes the list and
+ * the index, so the two cannot disagree.
+ */
+function describe(swap: SwapRow | undefined, n: number): string {
   if (!swap) return 'This swap'
   const a = `${swap.letter_a.toUpperCase()} (${coord(swap.pos_a)})`
   const b = `${swap.letter_b.toUpperCase()} (${coord(swap.pos_b)})`
-  return `#${swap.seq}: ${a} ↔ ${b}`
+  return `#${n}: ${a} ↔ ${b}`
 }

@@ -14,14 +14,14 @@ const SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
 // Solution with cells 0↔1 and 2↔3 swapped → two swaps from solved.
 const SCRAMBLE = 'badcef.g.hijklmn.o.pqrstu'
 
-function swap(over: Partial<SwapRow> & Pick<SwapRow, 'seq' | 'pos_a' | 'pos_b'>): SwapRow {
+function swap(over: Partial<SwapRow> & Pick<SwapRow, 'id' | 'pos_a' | 'pos_b'>): SwapRow {
   return { user_id: 'u1', letter_a: '?', letter_b: '?', ...over }
 }
 
 // The solving sequence, in log order: fix cells 2↔3 first, then 0↔1.
 const SWAPS: SwapRow[] = [
-  swap({ seq: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
-  swap({ seq: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
+  swap({ id: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
+  swap({ id: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
 ]
 
 describe('historyBoardAfter — inclusive replay', () => {
@@ -72,7 +72,7 @@ describe('historySnapshot', () => {
 })
 
 /**
- * Compete logs swaps too since 2026-08-02, so `waffle.swaps` can hold several
+ * Compete logs swaps too since 2026-08-02, so `waffle.events` can hold several
  * players' independent sequences. Replaying a MIXED list against one scramble
  * would apply an opponent's transpositions to my board and produce a state
  * nobody ever saw — so callers filter first (PlayArea's `replaySwaps`). These
@@ -82,10 +82,10 @@ describe('compete: one player’s swaps at a time', () => {
   // Both players solve the same puzzle, so their logs interleave in the table
   // and each counts its OWN seq from 1.
   const MIXED: SwapRow[] = [
-    swap({ user_id: 'u1', seq: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
-    swap({ user_id: 'u2', seq: 1, pos_a: 4, pos_b: 5, letter_a: 'e', letter_b: 'f' }),
-    swap({ user_id: 'u1', seq: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
-    swap({ user_id: 'u2', seq: 2, pos_a: 9, pos_b: 10, letter_a: 'i', letter_b: 'j' }),
+    swap({ user_id: 'u1', id: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
+    swap({ user_id: 'u2', id: 1, pos_a: 4, pos_b: 5, letter_a: 'e', letter_b: 'f' }),
+    swap({ user_id: 'u1', id: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
+    swap({ user_id: 'u2', id: 2, pos_a: 9, pos_b: 10, letter_a: 'i', letter_b: 'j' }),
   ]
 
   it('replays MY two swaps to the solved board', () => {

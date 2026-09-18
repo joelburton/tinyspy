@@ -41,13 +41,17 @@ export type WaffleGame = {
 }
 
 /**
- * One entry in the coop move log (`waffle.swaps`). Only coop games
+ * One entry in the coop move log (`waffle.events`). Only coop games
  * write these, so the array is empty in compete. `letter_a`/`letter_b`
  * are the letters that sat on `pos_a`/`pos_b` before the swap.
  */
 export type SwapRow = {
   user_id: string
-  seq: number
+  /** The row's own id, and the order of play: the database hands them out in
+   *  the order the rows were written, which is what the read below orders by.
+   *  It replaced a per-swapper `seq`, whose live count is
+   *  `players.swaps_used`. */
+  id: number
   pos_a: number
   pos_b: number
   letter_a: string
@@ -82,7 +86,7 @@ export function useGame(gameId: string): {
     tables: [
       { schema: 'waffle', table: 'games', filter: `id=eq.${gameId}` },
       { schema: 'waffle', table: 'players', filter: `game_id=eq.${gameId}` },
-      { schema: 'waffle', table: 'swaps', filter: `game_id=eq.${gameId}` },
+      { schema: 'waffle', table: 'events', filter: `game_id=eq.${gameId}` },
     ],
     channelPrefix: 'waffle',
     id: gameId,
@@ -106,10 +110,10 @@ export function useGame(gameId: string): {
         // the base table — it has no gated columns.
         readRows(
           db
-            .from('swaps')
-            .select('user_id, seq, pos_a, pos_b, letter_a, letter_b')
+            .from('events')
+            .select('id, user_id, pos_a, pos_b, letter_a, letter_b')
             .eq('game_id', gameId)
-            .order('seq', { ascending: true }),
+            .order('id', { ascending: true }),
         ),
       ])
       if (!mounted()) return

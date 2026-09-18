@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: six of ten done (connections awaiting review); waffle and wordiply finish phase 4.** Agreed with Joel
+**Status: seven of ten done (waffle awaiting review); wordiply finishes phase 4.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -583,6 +583,27 @@ setgame (nothing but the skeleton), strands (uuid → bigint).
 > connections also hand-rolls its three `postgres_changes` handlers rather than
 > using the shared factory, so its table name lives in a different place from
 > every other game's.
+
+> **waffle built 2026-09-17** —
+> `supabase/migrations/20260917000006_waffle_events.sql`: the rename, the
+> composite key `(game_id, user_id, seq)` → a bigint identity, `created_at`, a
+> one-value `kind`, `took_turn` true on every row, and `seq` dropped. 759
+> production rows over 64 games, renumbered 1..759.
+>
+> **The one VISIBLE change of the sweep so far, and it is the §F.2 mismatch
+> closing.** waffle's log printed `n={s.seq}` — the swapper's own count — while
+> its `#N` handle opened `onShowHistory(i)`, the row's position in the list
+> being shown. In compete those two already disagreed. With `seq` gone the
+> number is `i + 1`, so the printed number and the row the handle opens are the
+> same thing by construction, which is what event-log.md §B.2 rules anyway. The
+> history banner's label took the same number, passed in rather than read off
+> the row.
+>
+> Two other readers `seq` had: `lib/history.ts`'s banner label (above), and the
+> compete read order — `.order('seq')` interleaved two players' independent
+> counts, where `.order('id')` is the order things actually happened. And the
+> e2e fixture §11 warned about, `seedWaffleSwapLog`, named the table and the
+> column; it writes `kind` and `took_turn` now.
 
 **Phase 5** — stackdown and scrabble. Last because scrabble carries the
 `leftovers` rename and is the game whose `user_id` cannot be `not null` until

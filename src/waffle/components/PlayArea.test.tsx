@@ -102,10 +102,10 @@ function swapped(board: string, a: number, b: number): string {
 
 /** A logged swap — what the server records for every accepted move, and the
  *  CAUSE the attention flash reads (a re-deal deletes these). */
-function swapRow(posA: number, posB: number, seq = 1, userId = 'u1'): SwapRow {
+function swapRow(posA: number, posB: number, id = 1, userId = 'u1'): SwapRow {
   return {
     user_id: userId,
-    seq,
+    id,
     pos_a: posA,
     pos_b: posB,
     letter_a: BOARD[posA],
@@ -559,12 +559,12 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
   const SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
   const SCRAMBLE = 'badcef.g.hijklmn.o.pqrstu' // cells 0,1 and 2,3 swapped
   const swapRow = (
-    over: Partial<SwapRow> & Pick<SwapRow, 'seq' | 'pos_a' | 'pos_b'>,
+    over: Partial<SwapRow> & Pick<SwapRow, 'id' | 'pos_a' | 'pos_b'>,
   ): SwapRow => ({ user_id: 'u2', letter_a: '?', letter_b: '?', ...over })
   // Solving sequence in log order: fix 2↔3 first, then 0↔1.
   const swaps = [
-    swapRow({ seq: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
-    swapRow({ seq: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
+    swapRow({ id: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
+    swapRow({ id: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
   ]
   // A coop game whose live board is the solved arrangement (cell 0 = 'a').
   const withHistory = (): GameHook =>

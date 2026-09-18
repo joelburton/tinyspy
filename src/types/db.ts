@@ -3392,6 +3392,60 @@ export type Database = {
   }
   waffle: {
     Tables: {
+      events: {
+        Row: {
+          created_at: string
+          game_id: string
+          id: number
+          kind: string
+          letter_a: string
+          letter_b: string
+          pos_a: number
+          pos_b: number
+          took_turn: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          id?: never
+          kind: string
+          letter_a: string
+          letter_b: string
+          pos_a: number
+          pos_b: number
+          took_turn?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          id?: never
+          kind?: string
+          letter_a?: string
+          letter_b?: string
+          pos_a?: number
+          pos_b?: number
+          took_turn?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           club_handle: string
@@ -3460,54 +3514,6 @@ export type Database = {
           },
           {
             foreignKeyName: "players_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games_state"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      swaps: {
-        Row: {
-          game_id: string
-          letter_a: string
-          letter_b: string
-          pos_a: number
-          pos_b: number
-          seq: number
-          swapped_at: string
-          user_id: string
-        }
-        Insert: {
-          game_id: string
-          letter_a: string
-          letter_b: string
-          pos_a: number
-          pos_b: number
-          seq: number
-          swapped_at?: string
-          user_id: string
-        }
-        Update: {
-          game_id?: string
-          letter_a?: string
-          letter_b?: string
-          pos_a?: number
-          pos_b?: number
-          seq?: number
-          swapped_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "swaps_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "swaps_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games_state"

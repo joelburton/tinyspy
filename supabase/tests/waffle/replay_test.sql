@@ -68,7 +68,7 @@ select is(
   (select (status->>'swaps_used')::int from common.games where id = (select id from g1)),
   0, 'coop: replay → status.swaps_used reset to 0');
 select is(
-  (select count(*) from waffle.swaps where game_id = (select id from g1)),
+  (select count(*) from waffle.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the swap log is cleared');
 select is(
   (select count(*) from waffle.players

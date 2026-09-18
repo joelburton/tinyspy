@@ -880,9 +880,9 @@ export function seedWaffleSwapLog(gameId: string, userId: string, count: number)
       process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
       '-v', 'ON_ERROR_STOP=1', '-q',
       '-c',
-      `insert into waffle.swaps (game_id, user_id, seq, pos_a, pos_b, letter_a, letter_b)
-         select '${gameId}', '${userId}', g, 2, 3, 'c', 'd'
-           from generate_series(1, ${Number(count)}) g`,
+      `insert into waffle.events (game_id, user_id, kind, pos_a, pos_b, letter_a, letter_b, took_turn)
+         select '${gameId}', '${userId}', 'swap', 2, 3, 'c', 'd', true
+           from generate_series(1, ${Number(count)})`,
     ],
     { stdio: 'ignore' },
   )

@@ -95,7 +95,7 @@ select set_eq(
       -- waffle
       ('waffle', 'games'),
       ('waffle', 'players'),
-      ('waffle', 'swaps'),
+      ('waffle', 'events'),
       -- wordle
       ('wordle', 'games'),
       ('wordle', 'players'),

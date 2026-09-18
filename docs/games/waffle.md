@@ -129,7 +129,7 @@ exactly how `connections` handles its coop counters. The only cost is storing th
 | `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (grant-hidden** — column-grant revoked; read only via
 `_solution_for`, which exposes it in coop always / compete post-terminal). The board (solution/scramble/par) is built on demand by the `waffle-build-board` edge function and stored here, so the game is self-contained. There is **no** `waffle.puzzles` table — boards aren't pre-generated. |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
-| `waffle.swaps` PK `(game_id, user_id, seq)` | The move log, **both modes** (compete gained one 2026-08-02): one row per swap — `user_id`, `seq`, `pos_a`/`pos_b`, `letter_a`/`letter_b` (the letters on those cells *before* the swap, so the entry is self-contained), `swapped_at`. `seq` is the **caller's own** swap count, not a game-wide ordinal — coop's rows move in lock-step so it happens to be game-wide there, but in compete each player counts from 1, which is why `user_id` is in the primary key. RLS is mode-aware: see [The compete swap log](#the-compete-swap-log-and-why-it-is-private) below. |
+| `waffle.events` PK `(id)`, a `bigint identity` | The move log, **both modes** (compete gained one 2026-08-02): one row per swap — `user_id`, `kind` ('swap' — the only one this game has), `pos_a`/`pos_b`, `letter_a`/`letter_b` (the letters on those cells *before* the swap, so the entry is self-contained), `took_turn` (true on every row: only an accepted swap is written, and a swap spends one of the budget), `created_at`. Read `order by id` — one game-wide order, which in compete interleaves two players' swaps by when they happened. The caller's own count is `players.swaps_used`. RLS is mode-aware: see [The compete swap log](#the-compete-swap-log-and-why-it-is-private) below. |
 
 ### Views (`security_invoker`)
 
@@ -205,7 +205,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   state, `require_game_player`, both positions filled (non-hole) and distinct,
   swaps remaining. Then:
   - **coop:** apply the swap to **all** players' rows (lock-step), `swaps_used++`,
-    and append a `waffle.swaps` log row (swapper, ordinal, positions, pre-swap
+    and append a `waffle.events` log row (swapper, positions, pre-swap
     letters).
   - **compete:** apply to the caller's row only (no log row).
   - Returns [an envelope](../envelopes.md) carrying `{ colors, swaps_used, solved,
@@ -242,7 +242,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
 - **`replay_board(game)`** — the **"Restart"** game-menu item (both modes,
   any state). Restarts the SAME board from scratch for everyone: resets every
   `waffle.players` row to the scramble (`swaps_used=0`, unsolved), clears the
-  coop `waffle.swaps` log, and hands the common-layer reset to the new
+  coop `waffle.events` log, and hands the common-layer reset to the new
   `common.reset_game` helper (the inverse of `end_game` — `play_state='playing'`,
   `is_terminal=false`, `ended_at=null`, fresh initial `status`, clears every
   `game_players.{result, conceded, conceded_at}`, and **zeroes the shared

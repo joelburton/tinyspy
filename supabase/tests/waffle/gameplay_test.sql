@@ -137,22 +137,23 @@ select is(
 -- ── Game 1: the move log ────────────────────────────────────
 -- Three swaps happened: ada (2,3), bea (2,3 undo), bea (0,1 solve).
 select is(
-  (select count(*) from waffle.swaps where game_id = (select id from g1)),
+  (select count(*) from waffle.events where game_id = (select id from g1)),
   3::bigint,
   'every coop swap is logged');
 -- First swap: ada exchanged cells 2,3, which held c,d in the scramble.
 select row_eq(
-  format($$ select user_id, seq, pos_a, pos_b, letter_a::text, letter_b::text
-              from waffle.swaps
-             where game_id = %L and seq = 1 $$, (select id from g1)),
-  row('ada11111-1111-1111-1111-111111111111'::uuid, 1, 2, 3, 'c'::text, 'd'::text),
-  'the log records swapper, ordinal, positions, and pre-swap letters');
+  format($$ select user_id, kind, pos_a, pos_b, letter_a::text, letter_b::text, took_turn
+              from waffle.events
+             where game_id = %L order by id limit 1 $$, (select id from g1)),
+  row('ada11111-1111-1111-1111-111111111111'::uuid, 'swap'::text, 2, 3,
+      'c'::text, 'd'::text, true),
+  'the log records swapper, kind, positions, pre-swap letters, and the turn spent');
 -- The solving swap (the third) was bea's.
 select is(
-  (select user_id from waffle.swaps
-    where game_id = (select id from g1) and seq = 3),
+  (select user_id from waffle.events
+    where game_id = (select id from g1) order by id desc limit 1),
   'bea22222-2222-2222-2222-222222222222'::uuid,
-  'the solving swap is attributed to the player who made it');
+  'the solving swap — the last row — is attributed to the player who made it');
 
 -- ── Game 2: lose on a tight budget ──────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

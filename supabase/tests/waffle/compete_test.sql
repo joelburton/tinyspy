@@ -95,11 +95,11 @@ select ok(
 -- are correct letter positions. A readable log would hand an honest player the
 -- answer, which is why swaps_select gates on it. ada sees her own swap only.
 select is(
-  (select count(*) from waffle.swaps where game_id = (select id from g)),
+  (select count(*) from waffle.events where game_id = (select id from g)),
   1::bigint,
   'mid-game: a player sees only their OWN swaps');
 select is(
-  (select count(distinct user_id) from waffle.swaps where game_id = (select id from g)),
+  (select count(distinct user_id) from waffle.events where game_id = (select id from g)),
   1::bigint,
   'mid-game: no opponent rows leak into the log');
 
@@ -150,12 +150,11 @@ select is(
   'post-terminal: the opponent board is revealed');
 
 -- ── The compete move log (added 2026-08-02) ─────────────────
--- Compete now logs swaps too. ada made 1, bea made 3 — four rows, and each
--- player's `seq` counts from 1 independently, which is exactly why user_id had
--- to join the primary key (without it bea's seq 1 would collide with ada's).
+-- Compete logs swaps too. ada made 1, bea made 3 — four rows in ONE game-wide
+-- order, since the key is the log's own id rather than a per-player count.
 reset role;
 select is(
-  (select count(*) from waffle.swaps where game_id = (select id from g)),
+  (select count(*) from waffle.events where game_id = (select id from g)),
   4::bigint,
   'compete logs every swap (ada 1 + bea 3)');
 
@@ -163,24 +162,24 @@ select is(
 -- safe because the boards themselves are revealed by then anyway.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(distinct user_id) from waffle.swaps where game_id = (select id from g)),
+  (select count(distinct user_id) from waffle.events where game_id = (select id from g)),
   2::bigint,
   'at terminal: a player sees BOTH logs');
 reset role;
 
+-- Four rows, four ids: two players' swaps share one sequence rather than each
+-- counting from 1, which is what makes the log a single chronological read.
 select is(
-  (select array_agg(seq order by seq) from waffle.swaps
-    where game_id = (select id from g)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  array[1, 2, 3],
-  'compete seq counts per PLAYER, not game-wide (the PK change)');
+  (select count(distinct id) from waffle.events where game_id = (select id from g)),
+  4::bigint,
+  'both players'' swaps are numbered in one game-wide sequence');
 
 select is(
-  (select count(*) from waffle.swaps
+  (select count(*) from waffle.events
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1::bigint,
-  'ada''s single swap is logged under her own seq 1');
+  'ada''s single swap is logged too');
 
 -- ── The terminal title must not spoil an unsolved race ──────
 -- common.games.title is readable club-wide. It used to read
