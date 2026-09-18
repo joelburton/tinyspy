@@ -17,7 +17,7 @@ describe('answerOf', () => {
     // The trap: a request row leaves `valid` null, which is falsy — asking
     // about the verdict first would read both of these as a word that lost.
     expect(answerOf({ kind: 'hint', valid: null })).toBe('hint')
-    expect(answerOf({ kind: 'reveal', valid: null })).toBe('reveal')
+    expect(answerOf({ kind: 'spoiler', valid: null })).toBe('spoiler')
   })
 
   it('splits a played word on its verdict', () => {
@@ -32,7 +32,7 @@ describe('ANSWER_OUTCOME', () => {
       accepted: 'won',
       invalid: 'lost',
       hint: 'warning',
-      reveal: 'lost',
+      spoiler: 'lost',
     })
   })
 })

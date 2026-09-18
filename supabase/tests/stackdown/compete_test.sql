@@ -33,7 +33,7 @@ select is(
 -- ── Mid-game visibility as bea ──────────────────────────────────────
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from stackdown.submissions
+  (select count(*) from stackdown.events
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   0::bigint,

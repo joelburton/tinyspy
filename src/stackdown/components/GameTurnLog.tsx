@@ -25,7 +25,7 @@ import styles from './GameTurnLog.module.css'
  *   - an **invalid** word → struck through + tagged "not a word";
  *   - a **cheat request**  → the muted "Hint: …" / "Spoiler: …" row.
  *
- * All three are durable rows in `stackdown.submissions` (this is just a
+ * All three are durable rows in `stackdown.events` (this is just a
  * projection of realtime). Every row is numbered #1, #2, … in order — including
  * the cheat requests, so asking for a hint reads as having "cost a turn" rather
  * than being free.
@@ -77,14 +77,14 @@ export function GameTurnLog({
   return (
     <TurnLog heading="Turns" picker={turnLogPicker} shown={shown}>
       {shown.map((s, i) => {
-        const isRequest = s.kind === 'hint' || s.kind === 'reveal'
+        const isRequest = s.kind === 'hint' || s.kind === 'spoiler'
         return (
           // Every submission is its own one-row "turn"; the divider draws the
           // between-rows line (:first-child suppresses it on the first row). The
           // "#N" handle opens that turn on the board viewer (words / misses /
           // cheats all viewable), keyed by log POSITION — stackdown's seq is
           // per-user (see lib/history).
-          <tr key={`${s.user_id}-${s.seq}`} className={gameTurnLog.divider}>
+          <tr key={s.id} className={gameTurnLog.divider}>
             <TurnLogOutcomeBar outcome={ANSWER_OUTCOME[answerOf(s)]} />
             {/* The "#N" handle opens that turn on the board viewer — live only
                 when the rows on show ARE the board's sequence. The viewer

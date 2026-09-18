@@ -69,10 +69,9 @@ export function InfoCol({
   foundCount: number
   /** Cheat tallies shown beneath the count. */
   hintCount: number
-  /** How many times a player took the "just tell me the next word" spoiler.
-   *  The submission rows still carry `kind='reveal'` server-side (renaming the
-   *  stored value would be a migration for a label); only the word the players
-   *  read changed, so "reveal" can mean the whole solution at game-over. */
+  /** How many times a player took the "just tell me the next word" spoiler —
+   *  a `kind = 'spoiler'` row. "Reveal" is the other thing: the whole solution
+   *  at game-over. */
   spoilerCount: number
 
   // ── Players (the OpponentStrip + the log's identity discs) ──

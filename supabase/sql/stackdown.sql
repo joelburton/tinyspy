@@ -42,20 +42,20 @@ create policy players_select on stackdown.players
     )
   );
 
-grant select on stackdown.submissions to authenticated;
+grant select on stackdown.events to authenticated;
 -- Coop: the whole log is club-readable (shared board). Compete: own rows
 -- only, until the game is terminal (then opponents' words reveal). Mirrors
 -- wordle.events' mode-aware policy.
-drop policy if exists submissions_select on stackdown.submissions;
-create policy submissions_select on stackdown.submissions
+drop policy if exists events_select on stackdown.events;
+create policy events_select on stackdown.events
   for select to authenticated
   using (
     exists (
       select 1 from stackdown.games sg
         join common.games cg on cg.id = sg.id
-       where sg.id = submissions.game_id
+       where sg.id = events.game_id
          and common.is_club_member(sg.club_handle)
-         and (sg.mode = 'coop' or submissions.user_id = (select auth.uid()) or cg.is_terminal)
+         and (sg.mode = 'coop' or events.user_id = (select auth.uid()) or cg.is_terminal)
     )
   );
 
@@ -260,8 +260,8 @@ grant execute on function stackdown.create_game(text, jsonb, uuid[], text) to au
 -- word"), a valid one removes the tiles and advances. The sixth valid word
 -- ends the game (coop: won; compete: the caller wins the race).
 --
--- The `for update` lock on the games row serializes concurrent coop
--- submits and keeps each submitter's `seq` collision-free.
+-- The `for update` lock on the games row serializes concurrent coop submits,
+-- so two players cannot both clear the same word off the stack.
 drop function if exists stackdown.submit_word(uuid, int[]);
 create or replace function stackdown.submit_word(target_game uuid, tile_ids int[])
 returns jsonb
@@ -279,7 +279,6 @@ declare
   w              text;
   cleared        int;
   is_word        boolean;
-  next_seq       int;
   new_found      int;
   team_found     int;
   out_terminal   boolean := false;
@@ -330,7 +329,7 @@ begin
   -- compete = this caller's own valid submissions.
   select coalesce(array_agg(t), '{}'::int[])
     into removed
-    from stackdown.submissions s, unnest(s.tile_ids) as t
+    from stackdown.events s, unnest(s.tile_ids) as t
    where s.game_id = target_game and s.valid
      and (g_row.mode = 'coop' or s.user_id = caller_id);
 
@@ -370,16 +369,15 @@ begin
   -- display); coalesce guards the (unreachable here) all-cleared NULL.
   w := lower(stackdown._word(g_row.tiles, tile_ids));
   select count(*) into cleared
-    from stackdown.submissions s
+    from stackdown.events s
    where s.game_id = target_game and s.valid
      and (g_row.mode = 'coop' or s.user_id = caller_id);
   is_word := coalesce(w = g_row.solution[cleared + 1], false);
 
-  -- Log the submission (valid or not).
-  select coalesce(max(seq), 0) + 1 into next_seq
-    from stackdown.submissions where game_id = target_game and user_id = caller_id;
-  insert into stackdown.submissions (game_id, user_id, seq, word, tile_ids, valid)
-  values (target_game, caller_id, next_seq, w, tile_ids, is_word);
+  -- Log the submission (valid or not) — and either way it spent a go: a good
+  -- word and a bad word both cost the submitter a turn here.
+  insert into stackdown.events (game_id, user_id, kind, word, tile_ids, valid, took_turn)
+  values (target_game, caller_id, 'word', w, tile_ids, is_word, true);
 
   if not is_word then
     -- `ok`: a game-rule refusal is the rules being applied, and nothing was
@@ -403,7 +401,7 @@ begin
 
   if g_row.mode = 'coop' then
     select count(*) into team_found
-      from stackdown.submissions where game_id = target_game and valid;
+      from stackdown.events where game_id = target_game and valid;
     -- Surface the cleared words as the club-list title. They're shared and
     -- already shown in the FoundWords panel, so this reveals nothing new.
     -- Runs on every valid coop word, including the sixth — leaving the
@@ -494,13 +492,12 @@ declare
   cur_state text;
   cleared   int;
   next_word text;
-  next_seq  int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
 
-  -- `for update` serializes the request-logging insert below (its `seq`)
-  -- against concurrent submits / reveals on this game.
+  -- `for update` serializes the request-logging insert below against
+  -- concurrent submits / spoilers on this game.
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
     raise exception 'That game no longer exists'
@@ -517,7 +514,7 @@ begin
   end if;
 
   select count(*) into cleared
-    from stackdown.submissions s
+    from stackdown.events s
    where s.game_id = target_game and s.valid
      and (g_row.mode = 'coop' or s.user_id = caller_id);
 
@@ -536,16 +533,15 @@ begin
   -- `word`, lowercase like every other word) so the log can show it — this is
   -- an explicit cheat, so leaking the word to the row's viewers (coop = all,
   -- compete = requester until terminal) is the intended behavior. Visibility
-  -- rides the submissions RLS.
+  -- rides the events RLS.
   if not exists (
-    select 1 from stackdown.submissions
+    select 1 from stackdown.events
      where game_id = target_game and user_id = caller_id
-       and kind = 'reveal' and for_word_index = cleared
+       and kind = 'spoiler' and for_word_index = cleared
   ) then
-    select coalesce(max(seq), 0) + 1 into next_seq
-      from stackdown.submissions where game_id = target_game and user_id = caller_id;
-    insert into stackdown.submissions (game_id, user_id, seq, kind, for_word_index, word)
-    values (target_game, caller_id, next_seq, 'reveal', cleared, next_word);
+    -- Being handed the word costs a go, the same as trying one.
+    insert into stackdown.events (game_id, user_id, kind, for_word_index, word, took_turn)
+    values (target_game, caller_id, 'spoiler', cleared, next_word, true);
   end if;
 
   -- A spoiler is RED. Its price is the whole hunt for this word — there is
@@ -599,7 +595,6 @@ declare
   cleared   int;
   next_word text;
   hint_text text;
-  next_seq  int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   caller_id := common.require_game_player(target_game);
@@ -622,7 +617,7 @@ begin
   end if;
 
   select count(*) into cleared
-    from stackdown.submissions s
+    from stackdown.events s
    where s.game_id = target_game and s.valid
      and (g_row.mode = 'coop' or s.user_id = caller_id);
 
@@ -651,16 +646,15 @@ begin
   -- Log a "Hint: <clue>" entry, once per (player, word). The hint TEXT is
   -- stored on the row (in `word`) so the log can show it — this leaks only the
   -- clue, never the word (the whole point of reveal_next_hint). Visibility
-  -- rides the submissions RLS (coop → all; compete → requester).
+  -- rides the events RLS (coop → all; compete → requester).
   if not exists (
-    select 1 from stackdown.submissions
+    select 1 from stackdown.events
      where game_id = target_game and user_id = caller_id
        and kind = 'hint' and for_word_index = cleared
   ) then
-    select coalesce(max(seq), 0) + 1 into next_seq
-      from stackdown.submissions where game_id = target_game and user_id = caller_id;
-    insert into stackdown.submissions (game_id, user_id, seq, kind, for_word_index, word)
-    values (target_game, caller_id, next_seq, 'hint', cleared, hint_text);
+    -- A hint nudges rather than moves: it spends no go.
+    insert into stackdown.events (game_id, user_id, kind, for_word_index, word, took_turn)
+    values (target_game, caller_id, 'hint', cleared, hint_text, false);
   end if;
 
   -- Amber: a hint is a nudge, neither good nor bad play (the spoiler beside it
@@ -911,7 +905,7 @@ begin
          solved_at = null
    where game_id = target_game;
 
-  delete from stackdown.submissions where game_id = target_game;
+  delete from stackdown.events where game_id = target_game;
 
   update common.games set title = 'New game' where id = target_game;
 

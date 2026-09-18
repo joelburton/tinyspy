@@ -293,8 +293,8 @@ describe('stackdown PlayArea — turn-history viewer', () => {
   // A valid word cleared tiles 1..5 (CLEAR), then a hint was requested. Coop, so
   // the log shows both, in submitted_at order (index 0 = the word, 1 = the hint).
   const submissions: SubmissionRow[] = [
-    { user_id: 'u2', seq: 1, kind: 'word', word: 'clear', tile_ids: [1, 2, 3, 4, 5], valid: true, submitted_at: '2026-01-01T00:00:01Z' },
-    { user_id: 'u1', seq: 1, kind: 'hint', word: 'a fruit', tile_ids: null, valid: null, submitted_at: '2026-01-01T00:00:02Z' },
+    { user_id: 'u2', id: 1, kind: 'word', word: 'clear', tile_ids: [1, 2, 3, 4, 5], valid: true, created_at: '2026-01-01T00:00:01Z' },
+    { user_id: 'u1', id: 1, kind: 'hint', word: 'a fruit', tile_ids: null, valid: null, created_at: '2026-01-01T00:00:02Z' },
   ]
 
   /** A loaded coop hook whose board is the 8-tile fixture with CLEAR's tiles
@@ -709,12 +709,12 @@ describe('stackdown PlayArea — a teammate’s word on the board', () => {
   ]
   const peerWord: SubmissionRow = {
     user_id: 'u2',
-    seq: 1,
+    id: 1,
     kind: 'word',
     word: 'clear',
     tile_ids: [1, 2, 3, 4, 5],
     valid: true,
-    submitted_at: '2026-01-01T00:00:01Z',
+    created_at: '2026-01-01T00:00:01Z',
   }
   const tileFor = (letter: string) => screen.getByText(letter).parentElement as HTMLElement
 
@@ -767,9 +767,9 @@ describe('stackdown PlayArea — a teammate’s refused word', () => {
       h.result = {
         ...loaded(loadedGame({ mode: 'coop', tiles: row }), twoRows),
         submissions: [{
-          user_id: 'u2', seq: 1, kind: 'word', word: 'clear',
+          user_id: 'u2', id: 1, kind: 'word', word: 'clear',
           tile_ids: [1, 2, 3, 4, 5], valid: false,
-          submitted_at: '2026-01-01T00:00:01Z',
+          created_at: '2026-01-01T00:00:01Z',
         }],
       }
       act(() => rerender(<PlayArea {...ctx} />))

@@ -32,7 +32,7 @@ create policy games_select on bananagrams.games
 -- the competitive visibility rule, enforced at the row level.
 --
 -- At terminal it opens, which is what every other compete game on the roster
--- does (stackdown.submissions, wordle.events, waffle: same `or is_terminal`
+-- does (stackdown.events, wordle.events, waffle: same `or is_terminal`
 -- clause). Nothing is left to protect once the game is over, and the finished
 -- boards are the interesting part — comparing grids is most of the fun of
 -- having raced. Without this the printout can only ever show ONE board, since

@@ -2839,6 +2839,60 @@ export type Database = {
         }
         Relationships: []
       }
+      events: {
+        Row: {
+          created_at: string
+          for_word_index: number | null
+          game_id: string
+          id: number
+          kind: string
+          tile_ids: number[] | null
+          took_turn: boolean
+          user_id: string
+          valid: boolean | null
+          word: string | null
+        }
+        Insert: {
+          created_at?: string
+          for_word_index?: number | null
+          game_id: string
+          id?: never
+          kind: string
+          tile_ids?: number[] | null
+          took_turn?: boolean
+          user_id: string
+          valid?: boolean | null
+          word?: string | null
+        }
+        Update: {
+          created_at?: string
+          for_word_index?: number | null
+          game_id?: string
+          id?: never
+          kind?: string
+          tile_ids?: number[] | null
+          took_turn?: boolean
+          user_id?: string
+          valid?: boolean | null
+          word?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games_state"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           band: number
@@ -2912,57 +2966,6 @@ export type Database = {
           },
           {
             foreignKeyName: "players_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games_state"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      submissions: {
-        Row: {
-          for_word_index: number | null
-          game_id: string
-          kind: string
-          seq: number
-          submitted_at: string
-          tile_ids: number[] | null
-          user_id: string
-          valid: boolean | null
-          word: string | null
-        }
-        Insert: {
-          for_word_index?: number | null
-          game_id: string
-          kind?: string
-          seq: number
-          submitted_at?: string
-          tile_ids?: number[] | null
-          user_id: string
-          valid?: boolean | null
-          word?: string | null
-        }
-        Update: {
-          for_word_index?: number | null
-          game_id?: string
-          kind?: string
-          seq?: number
-          submitted_at?: string
-          tile_ids?: number[] | null
-          user_id?: string
-          valid?: boolean | null
-          word?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "submissions_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "submissions_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games_state"

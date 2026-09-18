@@ -61,8 +61,8 @@ describe('historySnapshot — historyLabel (kind-aware)', () => {
   it('a hint shows its clue text', () => {
     expect(historySnapshot(log, 2).historyLabel).toBe('Hint: a citrus fruit')
   })
-  it('a reveal names the peeked word', () => {
-    const reveal: Submission[] = [{ kind: 'reveal', word: 'lemon', tile_ids: null, valid: null }]
+  it('a spoiler names the word it handed over', () => {
+    const reveal: Submission[] = [{ kind: 'spoiler', word: 'lemon', tile_ids: null, valid: null }]
     expect(historySnapshot(reveal, 0).historyLabel).toBe('Revealed LEMON')
   })
 })

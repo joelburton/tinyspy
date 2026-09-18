@@ -14,7 +14,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(14);
+select plan(15);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -57,31 +57,40 @@ select pg_temp.envelope_is(
 
 -- ── Requesting logs a persistent row (deduped per word) ─────────────
 -- Above, ada called reveal_next_word once + reveal_next_hint twice, all
--- for word 0 — so she should have exactly one 'reveal' and one 'hint'
+-- for word 0 — so she should have exactly one 'spoiler' and one 'hint'
 -- request row (the repeated hint call deduped).
 reset role;
 select is(
-  (select count(*)::int from stackdown.submissions
+  (select count(*)::int from stackdown.events
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'hint'),
   1, 'reveal_next_hint logs ONE "Requested hint" row (deduped on repeat clicks)');
 select is(
-  (select count(*)::int from stackdown.submissions
+  (select count(*)::int from stackdown.events
     where game_id = (select id from g)
-      and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'reveal'),
+      and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'spoiler'),
   1, 'reveal_next_word logs a "Requested word" row');
 select ok(
   (select word = (select hint from common.words where word = 'eagle')
       and valid is null and for_word_index = 0
-     from stackdown.submissions
+     from stackdown.events
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'hint'),
   'a hint request row stores the hint text (for the log), no valid, tagged with the word index');
 
+-- The two rungs differ on the one thing the code cannot be read for: being
+-- handed the word is a turn, being nudged toward it is not.
+select is(
+  (select array_agg(kind || ':' || took_turn order by kind)
+     from stackdown.events
+    where game_id = (select id from g) and kind in ('hint', 'spoiler')),
+  array['hint:false', 'spoiler:true'],
+  'a spoiler spends a turn; a hint does not');
+
 -- Coop: a peer can see the requesting player's request row (shown to all).
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*)::int from stackdown.submissions
+  (select count(*)::int from stackdown.events
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111' and kind = 'hint'),
   1, 'coop: a peer can see another player''s request row');

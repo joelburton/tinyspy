@@ -1,6 +1,6 @@
 # events — one shape for every game's log table
 
-**Status: phase 4 done (wordiply awaiting review); stackdown and scrabble are left.** Agreed with Joel
+**Status: nine of ten (stackdown awaiting review); scrabble is the last.** Agreed with Joel
 2026-09-17, in the conversation that began as `history-always-available` and
 turned out to be sitting on top of a schema question.
 
@@ -632,6 +632,34 @@ setgame (nothing but the skeleton), strands (uuid → bigint).
 `leftovers` rename and is the game whose `user_id` cannot be `not null` until
 [scrabble-ai-players.md](scrabble-ai-players.md) lands. Leave it nullable here;
 that plan tightens it as its closing proof.
+
+> **stackdown built 2026-09-17** —
+> `supabase/migrations/20260917000008_stackdown_events.sql`: the rename, the
+> composite key → a bigint identity, `created_at`, `reveal` → `spoiler`, the
+> `kind` default dropped, `took_turn`, and `seq` gone. 46 production rows — 40
+> words, 5 hints, 1 spoiler.
+>
+> **`took_turn` here could not be read out of the code**, because there is no
+> rotation to read: stackdown is the one shared-board game with no turn order at
+> all. Joel's rule — *"stackdown uses a turn on word and spoiler. a good or bad
+> word still uses a turn"* — is the whole source, and the column is true on 41
+> of 46 rows. **It matters now, not later** (Joel, 2026-09-17): the column is a
+> record of turns taken, which this game wants whether or not anything is
+> passing a pointer around. Every game has turns; only some rotate them.
+>
+> `seq` was a per-submitter counter that existed to keep the composite key
+> collision-free under concurrent submits, and nothing else read it: three
+> `select coalesce(max(seq), 0) + 1` lookups and their local went with it, so
+> each insert is now one statement rather than two.
+>
+> The `kind` DEFAULT was the one §2 said stackdown's word insert leaned on — it
+> named no kind at all. Both are gone: every insert names its own.
+>
+> **ASK JOEL, same question psychicnum raised:** the RPCs are still
+> `reveal_next_word` / `reveal_next_hint`, answering `{result: 'reveal'}`. The
+> row's kind is `spoiler` now, and psychicnum's `request_reveal` became
+> `request_spoiler` on exactly this argument. Left alone pending his word, since
+> `docs/naming.md` treats stackdown's `_next_` names as deliberate.
 
 **Each phase STOPS for Joel's review before its commit** (Joel, 2026-09-17:
 *"make sure you stop at end of each game, so i can review before i tell you to

@@ -18,21 +18,23 @@ export type PlayerRow = {
   solved_at: string | null
 }
 
-/** One row from `stackdown.submissions` — the durable word log, valid
+/** One row from `stackdown.events` — the durable word log, valid
  *  AND invalid. Coop RLS shows everyone's; compete RLS shows only the
  *  caller's (until the game is terminal). The right-column log and the
  *  removed-tile set both derive from this. */
 export type SubmissionRow = {
+  /** The row's own id, and the order of play: the database hands them out in
+   *  the order the rows were written, which is what the read below orders by. */
+  id: number
   user_id: string
-  seq: number
-  /** 'word' = a played word; 'hint' / 'reveal' = a logged cheat request. A
+  /** 'word' = a played word; 'hint' / 'spoiler' = a logged cheat request. A
    *  request carries no tiles, but DOES carry its revealed text in `word`: the
-   *  hint clue ('hint') or the revealed word ('reveal'), for the log to show. */
-  kind: 'word' | 'hint' | 'reveal'
+   *  hint clue ('hint') or the word itself ('spoiler'), for the log to show. */
+  kind: 'word' | 'hint' | 'spoiler'
   word: string | null
   tile_ids: number[] | null
   valid: boolean | null
-  submitted_at: string
+  created_at: string
 }
 
 export type StackdownGame = {
@@ -62,7 +64,7 @@ type StateRow = Pick<
  * selections are never broadcast, so teammates can try words
  * independently rather than taking turns on one shared word. What's
  * shared is the completed result — every submission (found word, bad
- * word, hint/word request) is a `stackdown.submissions` row that reaches
+ * word, hint/word request) is a `stackdown.events` row that reaches
  * peers via postgres-changes (the right-column history) and, for an
  * accepted word, removes its tiles from the shared coop board.
  *
@@ -174,7 +176,7 @@ export function useGame(gameId: string): {
     tables: [
       { schema: 'stackdown', table: 'games', filter: `id=eq.${gameId}` },
       { schema: 'stackdown', table: 'players', filter: `game_id=eq.${gameId}` },
-      { schema: 'stackdown', table: 'submissions', filter: `game_id=eq.${gameId}` },
+      { schema: 'stackdown', table: 'events', filter: `game_id=eq.${gameId}` },
     ],
     channelPrefix: 'stackdown',
     id: gameId,
@@ -196,10 +198,10 @@ export function useGame(gameId: string): {
         ),
         readRows(
           db
-            .from('submissions')
-            .select('user_id, seq, kind, word, tile_ids, valid, submitted_at')
+            .from('events')
+            .select('id, user_id, kind, word, tile_ids, valid, created_at')
             .eq('game_id', gameId)
-            .order('submitted_at', { ascending: true }),
+            .order('id', { ascending: true }),
         ),
       ])
       if (!mounted()) return

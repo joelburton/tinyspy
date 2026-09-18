@@ -55,7 +55,7 @@ export type StackdownPrintModel = PrintHeader & {
  */
 function turnText(s: SubmissionRow): string {
   if (s.kind === 'hint') return `Hint: ${s.word ?? '—'}`
-  if (s.kind === 'reveal') return `Spoiler: ${(s.word ?? '').toUpperCase()}`
+  if (s.kind === 'spoiler') return `Spoiler: ${(s.word ?? '').toUpperCase()}`
   const word = (s.word ?? '').toUpperCase()
   return s.valid ? word : `${word} — not a word`
 }

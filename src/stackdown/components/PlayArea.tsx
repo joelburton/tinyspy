@@ -591,14 +591,14 @@ export function PlayArea({
   usePeerFeedback({
     enabled: game?.mode === 'coop',
     items: submissions,
-    keyOf: (s) => `${s.user_id}:${s.seq}`,
+    keyOf: (s) => String(s.id),
     messageFor: (s) => {
       if (s.user_id === session.user.id) return null // own → the local slot / flash
       const member = players.find((p) => p.user_id === s.user_id)
       if (s.kind === 'hint')
         return FeedbackMessage.peer(member, ANSWER_OUTCOME.hint, 'revealed a hint')
-      if (s.kind === 'reveal')
-        return FeedbackMessage.peer(member, ANSWER_OUTCOME.reveal, 'took a spoiler')
+      if (s.kind === 'spoiler')
+        return FeedbackMessage.peer(member, ANSWER_OUTCOME.spoiler, 'took a spoiler')
       // kind === 'word': ALSO mark their tiles on the board (an ambient cue, not
       // the message). Safe to fire here — the hook calls messageFor exactly once
       // per NEW peer submission, mirroring the one message.
@@ -678,9 +678,7 @@ export function PlayArea({
   // coop = the shared team total, compete = the caller's own (RLS already scopes the
   // list), matching how foundCount reads per mode.
   const hintCount = submissions.filter((s) => s.kind === 'hint').length
-  // `kind='reveal'` is the stored value for a mid-game spoiler (renaming it
-  // would be a migration for a label); the READOUT says "spoilers".
-  const spoilerCount = submissions.filter((s) => s.kind === 'reveal').length
+  const spoilerCount = submissions.filter((s) => s.kind === 'spoiler').length
 
   // The submission log. Compete RLS opens every player's submissions once the game is
   // terminal, but the log should keep showing just the caller's own — the same list

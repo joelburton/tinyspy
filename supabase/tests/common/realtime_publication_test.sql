@@ -103,7 +103,7 @@ select set_eq(
       -- stackdown
       ('stackdown', 'games'),
       ('stackdown', 'players'),
-      ('stackdown', 'submissions'),
+      ('stackdown', 'events'),
       -- scrabble
       ('scrabble', 'games'),
       ('scrabble', 'players'),

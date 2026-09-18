@@ -80,7 +80,7 @@ select is(
   (select title from common.games where id = (select id from g1)),
   'New game', 'coop: replay → the title stops advertising the solution');
 select is(
-  (select count(*) from stackdown.submissions where game_id = (select id from g1)),
+  (select count(*) from stackdown.events where game_id = (select id from g1)),
   0::bigint, 'coop: replay → the submission log is cleared (words AND the hint)');
 select is(
   (select count(*) from stackdown.players

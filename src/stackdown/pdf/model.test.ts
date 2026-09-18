@@ -18,12 +18,12 @@ const tile = (id: number, x: number, y: number, z = 0, letter = 'A'): Tile => ({
 
 const sub = (over: Partial<SubmissionRow> = {}): SubmissionRow => ({
   user_id: 'u1',
-  seq: 1,
+  id: 1,
   kind: 'word',
   word: 'stack',
   tile_ids: [1, 2, 3, 4, 5],
   valid: true,
-  submitted_at: '2026-01-01T00:00:00Z',
+  created_at: '2026-01-01T00:00:00Z',
   ...over,
 })
 
@@ -78,9 +78,9 @@ describe('buildStackdownPrintModel — the log', () => {
       ...base,
       submissions: [
         sub({ word: 'stack' }),
-        sub({ seq: 2, word: 'qqqq', valid: false }),
-        sub({ seq: 3, kind: 'hint', word: 'a pile of things', tile_ids: null, valid: null }),
-        sub({ seq: 4, kind: 'reveal', word: 'crane', tile_ids: null, valid: null }),
+        sub({ id: 2, word: 'qqqq', valid: false }),
+        sub({ id: 3, kind: 'hint', word: 'a pile of things', tile_ids: null, valid: null }),
+        sub({ id: 4, kind: 'spoiler', word: 'crane', tile_ids: null, valid: null }),
       ],
     })
     expect(m.tracks[0].turns.map((t) => t.text)).toEqual([
@@ -94,7 +94,7 @@ describe('buildStackdownPrintModel — the log', () => {
   it("names the player on coop's shared log", () => {
     const m = buildStackdownPrintModel({
       ...base,
-      submissions: [sub(), sub({ seq: 2, user_id: 'u2' })],
+      submissions: [sub(), sub({ id: 2, user_id: 'u2' })],
     })
     expect(m.tracks[0].turns.map((t) => t.who)).toEqual(['me', 'moth'])
   })
@@ -102,8 +102,8 @@ describe('buildStackdownPrintModel — the log', () => {
 
 describe('buildStackdownPrintModel — one track per board', () => {
   const subs = [
-    sub({ seq: 1, user_id: 'u1', word: 'stack' }),
-    sub({ seq: 2, user_id: 'u2', word: 'crane' }),
+    sub({ id: 1, user_id: 'u1', word: 'stack' }),
+    sub({ id: 2, user_id: 'u2', word: 'crane' }),
   ]
 
   it('coop is ONE shared stack, however many players', () => {
@@ -136,7 +136,7 @@ describe('buildStackdownPrintModel — one track per board', () => {
       ...base,
       mode: 'compete',
       isTerminal: true,
-      submissions: [sub({ seq: 1, user_id: 'u1', tile_ids: [1, 2, 3, 4, 5] })],
+      submissions: [sub({ id: 1, user_id: 'u1', tile_ids: [1, 2, 3, 4, 5] })],
     })
     // u1 spent five of the six; u2 played nothing, so their stack is untouched.
     expect(m.tracks[0].tiles.map((t) => t.id)).toEqual([6])

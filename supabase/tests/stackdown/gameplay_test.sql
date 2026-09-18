@@ -14,7 +14,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(14);
+select plan(15);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -43,7 +43,7 @@ select pg_temp.envelope_is((select res from inv),
 
 reset role;
 select is(
-  (select count(*)::int from stackdown.submissions
+  (select count(*)::int from stackdown.events
     where game_id = (select id from g) and not valid),
   1, 'the invalid attempt is logged (valid = false)');
 select is(
@@ -51,6 +51,14 @@ select is(
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   0, 'an invalid attempt does not advance found_count');
+-- …but it DID spend a go. stackdown has no rotation to read this rule off, so
+-- the column is the only place it is written: a good word and a bad word both
+-- cost the submitter a turn, and the record of turns is wanted whether or not
+-- anything is passing a pointer around.
+select is(
+  (select took_turn from stackdown.events
+    where game_id = (select id from g) and not valid),
+  true, 'a refused word still spends a turn');
 
 -- ── First valid word ────────────────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

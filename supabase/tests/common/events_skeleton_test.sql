@@ -52,7 +52,7 @@ insert into roster values
   ('connections', 'events',      true),
   ('waffle',      'events',      true),
   ('wordiply',    'events',      true),
-  ('stackdown',   'submissions', false),
+  ('stackdown',   'events',      true),
   ('scrabble',    'plays',       false),
   ('strands',     'events',      true),
   ('letterboxed', 'events',      true),

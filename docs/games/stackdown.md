@@ -226,7 +226,7 @@ on a per-gametype `stackdown` schema. Migration: `supabase/migrations/2026062600
 | `stackdown.boards` | the pre-generated library: `tiles` jsonb, `words text[]` (the six, in clearing order), `band int` (word-difficulty 1..6; the pool `create_game` filters on) | **definer-only** — `words` is the full spoiler; no grant to `authenticated` |
 | `stackdown.games` | one row per game: `tiles` jsonb (PUBLIC), `solution text[]` (HIDDEN), `band`, `mode`, `board_id` (provenance) | `tiles` granted; `solution` **column-excluded** |
 | `stackdown.players` | `(game_id, user_id)` → `found_count` (public tally), `solved` / `solved_at` (compete winner) | club members |
-| `stackdown.submissions` | the durable game log, `(game_id, user_id, seq)`. `kind`: `'word'` (a played word → `word` / `tile_ids` / `valid`) or `'hint'` / `'reveal'` (a logged cheat request → `for_word_index`, plus the revealed text in `word`: the hint clue or the revealed word, for the log to show). | coop: all; compete: own (until terminal) |
+| `stackdown.events` | the durable game log, keyed by a `bigint identity` and read `order by id`. `kind`: `'word'` (a played word → `word` / `tile_ids` / `valid`) or `'hint'` / `'spoiler'` (a logged cheat request → `for_word_index`, plus the revealed text in `word`: the hint clue or the word itself, for the log to show). `took_turn` is true on a `word` — accepted or refused — and on a `spoiler`, false on a `hint`: stackdown has no rotation, and the column is the record of turns taken regardless. | coop: all; compete: own (until terminal) |
 
 The hidden-solution pattern is the standard [SECURITY DEFINER helper + security_invoker view](../code-conventions.md#security-definer-helper--security_invoker-view) shared with the other answer-hiding games (waffle, wordle): a column-grant excludes `solution`, and the `games_state` view exposes it via `_solution_for(id)`, which returns NULL until `common.games.is_terminal`. The FE reads `games_state`, never the base table.
 
@@ -293,7 +293,7 @@ creation, so it's self-contained; `board_id` is provenance only.
   is about what happened; see [ui.md → Button
   iconography](../ui.md#button-iconography)) in the info-column action row during play
   (writing its answer to the **local** below-board feedback slot — it's the
-  player's own request). It also **logs the request** — a `kind='reveal'`
+  player's own request). It also **logs the request** — a `kind='spoiler'`
   submission row storing the revealed word (shown in the log as "Spoiler:
   <WORD>"; the stored `kind` stays `'reveal'` — renaming it would be a migration
   for a label) so the ask persists in the game log; deduped

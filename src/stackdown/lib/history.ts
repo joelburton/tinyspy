@@ -40,10 +40,10 @@
  * The submission fields the replay needs — a structural subset of the hook's
  * `SubmissionRow` (kept local so this lib stays free of any React/hook import).
  * A `word` submission carries the `tile_ids` it cleared and a `valid` verdict; a
- * `hint` / `reveal` request carries neither (its `tile_ids` is null).
+ * `hint` / `spoiler` request carries neither (its `tile_ids` is null).
  */
 export interface Submission {
-  kind: 'word' | 'hint' | 'reveal'
+  kind: 'word' | 'hint' | 'spoiler'
   word: string | null
   tile_ids: number[] | null
   valid: boolean | null
@@ -93,14 +93,14 @@ export function historySnapshot(submissions: ReadonlyArray<Submission>, index: n
 /**
  * The kind-aware turn label. A valid word "cleared" its letters; a rejected word
  * was "entered … — not a word"; a hint / reveal names the text it surfaced (both
- * store their revealed text in `word` — the clue for a hint, the peeked word for
- * a reveal). Falls back gracefully if a row is missing its text.
+ * store their revealed text in `word` — the clue for a hint, the word itself for
+ * a spoiler). Falls back gracefully if a row is missing its text.
  */
 function describe(turn: Submission | undefined): string {
   if (!turn) return 'This turn'
   const word = turn.word?.toUpperCase()
   if (turn.kind === 'hint') return turn.word ? `Hint: ${turn.word}` : 'Requested a hint'
-  if (turn.kind === 'reveal') return word ? `Revealed ${word}` : 'Requested a word'
+  if (turn.kind === 'spoiler') return word ? `Revealed ${word}` : 'Requested a word'
   // kind === 'word'
   if (turn.valid) return word ? `Cleared ${word}` : 'Cleared a word'
   return word ? `Entered ${word} — not a word` : 'Not a word'

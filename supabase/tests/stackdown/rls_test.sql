@@ -65,10 +65,10 @@ insert into stackdown.players (game_id, user_id, found_count) values
   ((select id from coop_game), 'bea22222-2222-2222-2222-222222222222', 1),
   ((select id from coop_game), 'cade3333-3333-3333-3333-333333333333', 1);
 
-insert into stackdown.submissions (game_id, user_id, seq, kind, word, tile_ids, valid) values
-  ((select id from coop_game), 'ada11111-1111-1111-1111-111111111111', 1, 'word', 'EAGLE', array[19,11,15,24,10], true),
-  ((select id from coop_game), 'bea22222-2222-2222-2222-222222222222', 1, 'word', 'TABLE', array[6,20,5,2,0],   true),
-  ((select id from coop_game), 'cade3333-3333-3333-3333-333333333333', 1, 'word', 'PLANS', array[7,12,16,3,8],  true);
+insert into stackdown.events (game_id, user_id, kind, word, tile_ids, valid, took_turn) values
+  ((select id from coop_game), 'ada11111-1111-1111-1111-111111111111', 'word', 'EAGLE', array[19,11,15,24,10], true, true),
+  ((select id from coop_game), 'bea22222-2222-2222-2222-222222222222', 'word', 'TABLE', array[6,20,5,2,0], true, true),
+  ((select id from coop_game), 'cade3333-3333-3333-3333-333333333333', 'word', 'PLANS', array[7,12,16,3,8], true, true);
 
 -- ============================================================
 -- Coop mode: every club member sees the whole shared log (branch a)
@@ -76,7 +76,7 @@ insert into stackdown.submissions (game_id, user_id, seq, kind, word, tile_ids, 
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(*) from stackdown.submissions where game_id = (select id from coop_game)),
+  (select count(*) from stackdown.events where game_id = (select id from coop_game)),
   3::bigint,
   'coop / ada (member): sees all 3 submissions (branch a: shared board)'
 );
@@ -106,26 +106,26 @@ select is(
 );
 
 select is(
-  (select count(*) from stackdown.submissions where game_id = (select id from coop_game)),
+  (select count(*) from stackdown.events where game_id = (select id from coop_game)),
   0::bigint,
-  'dee (outsider): zero rows from stackdown.submissions'
+  'dee (outsider): zero rows from stackdown.events'
 );
 
 -- ============================================================
--- Direct INSERT into stackdown.submissions is blocked at the grant layer
+-- Direct INSERT into stackdown.events is blocked at the grant layer
 -- ============================================================
 -- No INSERT grant for authenticated; writes go through submit_word. Pins the
 -- boundary so a future migration doesn't widen it.
 
 select throws_ok(
   format(
-    $$ insert into stackdown.submissions (game_id, user_id, seq, kind, word, tile_ids, valid)
-       values (%L::uuid, 'dee44444-4444-4444-4444-444444444444', 9, 'word', 'SNEAK', array[0,1,2,3,4], true) $$,
+    $$ insert into stackdown.events (game_id, user_id, kind, word, tile_ids, valid, took_turn)
+       values (%L::uuid, 'dee44444-4444-4444-4444-444444444444', 'word', 'SNEAK', array[0,1,2,3,4], true, true) $$,
     (select id from coop_game)
   ),
   '42501',
-  'permission denied for table submissions',
-  'direct INSERT into stackdown.submissions is blocked for authenticated'
+  'permission denied for table events',
+  'direct INSERT into stackdown.events is blocked for authenticated'
 );
 
 -- ============================================================
@@ -156,27 +156,27 @@ values (
   '[]'::jsonb, array['eagle','table','plans','apple','juice','lemon'], 1
 );
 
-insert into stackdown.submissions (game_id, user_id, seq, kind, word, tile_ids, valid) values
-  ((select id from compete_game), 'ada11111-1111-1111-1111-111111111111', 1, 'word', 'EAGLE', array[19,11,15,24,10], true),
-  ((select id from compete_game), 'bea22222-2222-2222-2222-222222222222', 1, 'word', 'TABLE', array[6,20,5,2,0],   true),
-  ((select id from compete_game), 'cade3333-3333-3333-3333-333333333333', 1, 'word', 'PLANS', array[7,12,16,3,8],  true);
+insert into stackdown.events (game_id, user_id, kind, word, tile_ids, valid, took_turn) values
+  ((select id from compete_game), 'ada11111-1111-1111-1111-111111111111', 'word', 'EAGLE', array[19,11,15,24,10], true, true),
+  ((select id from compete_game), 'bea22222-2222-2222-2222-222222222222', 'word', 'TABLE', array[6,20,5,2,0], true, true),
+  ((select id from compete_game), 'cade3333-3333-3333-3333-333333333333', 'word', 'PLANS', array[7,12,16,3,8], true, true);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(*) from stackdown.submissions where game_id = (select id from compete_game)),
+  (select count(*) from stackdown.events where game_id = (select id from compete_game)),
   1::bigint,
   'compete mid-game / ada: sees only her own submission (branch b)'
 );
 
 select is(
-  (select user_id from stackdown.submissions where game_id = (select id from compete_game)),
+  (select user_id from stackdown.events where game_id = (select id from compete_game)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'compete mid-game / ada: the row she sees IS her own'
 );
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(
-  (select count(*) from stackdown.submissions where game_id = (select id from compete_game)),
+  (select count(*) from stackdown.events where game_id = (select id from compete_game)),
   1::bigint,
   'compete mid-game / bea: sees only her own submission'
 );
@@ -191,7 +191,7 @@ update common.games set is_terminal = true, play_state = 'won_compete'
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
-  (select count(*) from stackdown.submissions where game_id = (select id from compete_game)),
+  (select count(*) from stackdown.events where game_id = (select id from compete_game)),
   3::bigint,
   'compete post-terminal / ada: sees all 3 submissions (branch c: is_terminal)'
 );

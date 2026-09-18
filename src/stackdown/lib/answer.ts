@@ -3,14 +3,14 @@
 import type { Outcome } from '@/common/outcomes/outcomes'
 
 /**
- * What a turn was — the four things a `stackdown.submissions` row can record.
+ * What a turn was — the four things a `stackdown.events` row can record.
  *
  * The words are the server's own, in both the places it says them: `accepted` /
- * `invalid` are `submit_word`'s `result`, and `hint` / `reveal` are the row's
+ * `invalid` are `submit_word`'s `result`, and `hint` / `spoiler` are the row's
  * `kind` column. Reusing them means the row, the envelope and this table never
  * need a translation step between them.
  */
-export type Answer = 'accepted' | 'invalid' | 'hint' | 'reveal'
+export type Answer = 'accepted' | 'invalid' | 'hint' | 'spoiler'
 
 /**
  * The outcome of every answer, in one place.
@@ -36,7 +36,7 @@ export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
   accepted: 'won',
   invalid: 'lost',
   hint: 'warning',
-  reveal: 'lost',
+  spoiler: 'lost',
 }
 
 /**
@@ -45,7 +45,7 @@ export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
  * `kind` is read FIRST because a request row leaves `valid` null — asking about
  * the verdict before asking what the row is would read a hint as a refused word.
  */
-export function answerOf(row: { kind: 'word' | 'hint' | 'reveal'; valid: boolean | null }): Answer {
+export function answerOf(row: { kind: 'word' | 'hint' | 'spoiler'; valid: boolean | null }): Answer {
   if (row.kind !== 'word') return row.kind
   return row.valid ? 'accepted' : 'invalid'
 }
