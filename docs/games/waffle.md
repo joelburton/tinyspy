@@ -169,7 +169,7 @@ Two consequences worth knowing:
   board by applying swaps to the scramble; applying two players' transpositions
   to one board produces a state nobody ever saw. PlayArea filters to a single
   player's swaps before calling it, and the log offers a clickable `#N` only when
-  the rows shown are the board's own (the picker's `boardIsShown`).
+  the number counts the rows on show and the handle carries the row's own id.
 - **The log carries the shared "whose swaps?" picker** in compete — "All", plus
   each player — with an honest *"Hidden until game ends"* for an opponent
   mid-game rather than a misleading "no swaps yet".

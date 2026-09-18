@@ -9,12 +9,14 @@ export type FoundPath = { path: Coord[]; isSpangram: boolean }
  *  `EventRow` — a guess carries a word + verdict, a hint carries neither. */
 export type HistoryRow =
   | {
+    /** The row's own id — what the viewer addresses. */
+    id: number
     kind: 'guess'
     word: string
     path: Coord[]
     result: 'theme' | 'spangram' | 'hint_word' | 'duplicate' | 'too_short' | 'invalid'
   }
-  | { kind: 'hint'; word: null; path: Coord[]; result: null }
+  | { id: number; kind: 'hint'; word: null; path: Coord[]; result: null }
 
 export type HistorySnapshot = {
   /** The theme words found as of the viewed turn — feed to `<Board found>`. */
@@ -61,13 +63,15 @@ const BODY: Record<Exclude<HistoryRow['result'], null>, string> = {
  * exactly what you want to see when reviewing why it failed, and they'd be
  * invisible under an exclusive boundary.
  *
- * `rows` must be the SAME sequence the log is displaying, because the viewer
- * addresses a turn by POSITION. The caller guarantees that by only offering the
- * handle when the log's filter is a no-op (the shared picker's `boardIsShown`).
+ * Addressed by the ROW'S ID, resolved against `rows` — the board's own
+ * sequence. The number the log prints counts what the log is SHOWING, which a
+ * filter changes; `rows` does not, so the two are separate lookups. An id these
+ * rows do not hold replays nothing.
  */
-export function historySnapshot(rows: readonly HistoryRow[], index: number): HistorySnapshot {
-  const upTo = rows.slice(0, index + 1)
-  const viewed = rows[index]
+export function historySnapshot(rows: readonly HistoryRow[], id: number): HistorySnapshot {
+  const index = rows.findIndex((r) => r.id === id)
+  const upTo = index >= 0 ? rows.slice(0, index + 1) : []
+  const viewed = index >= 0 ? rows[index] : undefined
   const isHint = viewed?.kind === 'hint'
 
   return {

@@ -92,8 +92,8 @@ export function GameEventLog({
                 board's turn 3; there it degrades to a plain number. */}
             <EventLogNumber
               n={i + 1}
-              isOpenInHistory={historyId === i}
-              onShowHistory={eventLogPicker.boardIsShown ? () => onShowHistory(i) : undefined}
+              isOpenInHistory={historyId === s.id}
+              onShowHistory={() => onShowHistory(s.id)}
             />
             <td className={gameEventLog.main}>
               {isRequest ? (

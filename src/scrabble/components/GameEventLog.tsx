@@ -34,9 +34,9 @@ import styles from './GameEventLog.module.css'
  *     `game_players` row, so its plays carry its user_id and "how did ada-bot
  *     play?" is a filter like any other, with no second id space.
  *
- * It ignores the hook's `boardIsShown`: scrabble's `#N` handle addresses a play
- * by the row's `id`, not by log position, so filtering can't misaddress it (unlike the
- * position-indexed logs, where a filtered row 3 isn't the board's turn 3).
+ * The `#N` handle addresses a play by the row's `id`, and the number beside it
+ * counts the rows on show: two values, so filtering renumbers the log without
+ * changing which play a handle opens.
  */
 export function GameEventLog({
   plays,

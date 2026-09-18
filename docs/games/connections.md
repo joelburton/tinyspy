@@ -623,7 +623,7 @@ src/connections/
                           THIS turn's own 4 tiles are still shown (even a correct guess's — they
                           haven't collapsed into a band yet), ringed + tinted in the turn's
                           outcome color. The removal-style twin of stackdown (a correct guess
-                          "consumes" 4 tiles into a band); keyed by **log position** (guesses have
+                          "consumes" 4 tiles into a band); keyed by the **row's id** (guesses have
                           no per-turn ordinal). Clicking a `GameEventLog` `#N` opens that turn on
                           the board via the shared viewer. Compete's `guesses` are RLS-scoped to
                           the caller, so a compete viewer replays only their own board.

@@ -737,10 +737,10 @@ board rotation) — never shared, never persisted, doesn't pause.
   header carries the shared "whose moves?" picker (`useEventLogPlayerPicker`),
   bent twice for scrabble: it defaults to the aggregate in BOTH modes
   (`competeSharesOneGame` — even compete is one public board, so "All" is what
-  you're looking at), and **AI seats are pickable people**, keyed by the synthetic
-  `ai:<seat>` id since a bot's play has `user_id: null`. It ignores the hook's
-  `boardIsShown`: the `#N` handle addresses a play by `seq`, not log position, so
-  filtering can't misaddress it),
+  you're looking at), and **a bot is pickable like anyone**, since it holds a
+  profile and its plays carry its user_id. The `#N` handle addresses a play by
+  the row's `id` while the number counts the rows on show, so filtering
+  renumbers the log without changing what a handle opens),
   `BoardCol` (the turn machine — drag / cursor / keyboard staging, the live score
   preview, the optimistic just-played hold, and — the **documented exception** to
   the "PlayArea does the RPC" contract — the `play_word` / `exchange` RPCs

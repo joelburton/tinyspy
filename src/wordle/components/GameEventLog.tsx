@@ -38,9 +38,10 @@ type Props = {
  * guess as its five colored letter-squares, and the guesser's identity.
  *   - **outcome bar** — `neutral` for an ordinary guess (a non-winning guess is
  *     progress, not pass/fail), `won` (green) only on the guess that solves it.
- *   - **`#n`** — the log position. On the board being replayed (team / my own) it's
- *     the shared `<EventLogNumber>` handle — click it to open that turn on the board;
- *     on an opponent's read-only log (compete) it's a plain muted number.
+ *   - **`#n`** — the row's place in the list on show. The shared
+ *     `<EventLogNumber>` handle opens that row on the board, addressed by the
+ *     row's own id, so the number and the link are two different values and a
+ *     filter cannot make them disagree.
  *   - **the squares** — the guess + its g/y/x feedback; the row's headline, so it
  *     takes the slack-absorbing `gameEventLog.main` column (keeping the who column
  *     snug right).
@@ -87,7 +88,6 @@ export function GameEventLog({
   // position lines up 1:1 with the board row and clicking `#N` opens the right turn.
   // When an OPPONENT's board is picked (compete, at terminal), the main grid still
   // shows MY board, so their rows stay a plain, read-only `#N` (no replay).
-  const boardIsShown = eventLogPicker.boardIsShown
 
   return (
     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}>
@@ -98,8 +98,8 @@ export function GameEventLog({
           <EventLogOutcomeBar outcome={ANSWER_OUTCOME[g.is_correct ? 'correct' : 'incorrect']} />
           <EventLogNumber
             n={i + 1}
-            isOpenInHistory={historyId === i}
-            onShowHistory={boardIsShown ? () => onShowHistory(i) : undefined}
+            isOpenInHistory={historyId === g.id}
+            onShowHistory={() => onShowHistory(g.id)}
           />
           <td className={gameEventLog.main}>
             {/* The whole guess is one definable word — every wordle guess is a

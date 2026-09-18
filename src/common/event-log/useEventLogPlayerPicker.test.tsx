@@ -137,68 +137,6 @@ describe('useEventLogPlayerPicker — the default selection', () => {
   })
 })
 
-/**
- * `boardIsShown` gates whether a history viewer may make `#N` a live handle. It
- * is true only when the rows on show ARE the board's own sequence.
- */
-describe('useEventLogPlayerPicker — when #N may drive the board', () => {
-  it('co-op Team is the board’s own sequence', () => {
-    expect(setup({ mode: 'coop' }).result.current.boardIsShown).toBe(true)
-  })
-
-  it('a SOLO game always is — the filter is a no-op', () => {
-    // Regression: solo picks the one player's id, which is neither TEAM nor a
-    // compete-self match, so an id-only test killed the handle in every solo
-    // game (caught by psychicnum-history.e2e).
-    expect(setup({ mode: 'coop', players: [two[0]] }).result.current.boardIsShown).toBe(true)
-  })
-
-  it('a single player picked out of a shared co-op log is NOT', async () => {
-    function Probe() {
-      const picker = useEventLogPlayerPicker<Row>({
-        players: two, selfId: 'u1', mode: 'coop', isTerminal: false,
-      })
-      return (
-        <>
-          {picker.dropdown}
-          <p data-testid="rows">{picker.filter(rows).map((r) => r.word).join(',')}</p>
-          <p data-testid="board">{String(picker.boardIsShown)}</p>
-        </>
-      )
-    }
-    render(<Probe />)
-    expect(screen.getByTestId('rows')).toHaveTextContent('mine,theirs')
-
-    await pickFilter('moth')
-    expect(screen.getByTestId('rows')).toHaveTextContent('theirs')
-    // The viewer indexes the log by POSITION, so a filtered list's row 2 isn't
-    // the board's turn 2 — the handle has to go inert or #N replays the wrong turn.
-    expect(screen.getByTestId('board')).toHaveTextContent('false')
-  })
-
-  it('compete: my own board yes, an opponent’s and All no', async () => {
-    function Probe() {
-      const picker = useEventLogPlayerPicker<Row>({
-        players: two, selfId: 'u1', mode: 'compete', isTerminal: true,
-      })
-      return (<>{picker.dropdown}<p data-testid="board">{String(picker.boardIsShown)}</p></>)
-    }
-    render(<Probe />)
-    expect(screen.getByTestId('board')).toHaveTextContent('true')
-
-    await pickFilter('moth')
-    expect(screen.getByTestId('board')).toHaveTextContent('false')
-
-    // All is nobody's board in particular.
-    await pickFilter('All')
-    expect(screen.getByTestId('board')).toHaveTextContent('false')
-  })
-
-  it('a spectator’s compete view is never a board handle', () => {
-    expect(setup({ selfId: 'u9' }).result.current.boardIsShown).toBe(false)
-  })
-})
-
 describe('useEventLogPlayerPicker — the honest empty line', () => {
   function Probe({ isTerminal }: { isTerminal: boolean }) {
     const picker = useEventLogPlayerPicker<Row>({

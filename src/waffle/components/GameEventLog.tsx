@@ -86,13 +86,13 @@ export function GameEventLog({
         return (
           <tr key={s.id} className={gameEventLog.divider}>
             <EventLogOutcomeBar outcome="neutral" />
-            {/* The "#N" handle replays that swap on the board — live only when
-                the rows shown ARE the board's (coop's shared game, or my own).
-                An opponent's log, or the All view, can't drive my board. */}
+            {/* The number is the row's place in the list on show; the handle is
+                the row's own id, so filtering renumbers without ever changing
+                which swap is opened. */}
             <EventLogNumber
               n={i + 1}
-              isOpenInHistory={historyId === i}
-              onShowHistory={eventLogPicker.boardIsShown ? () => onShowHistory(i) : undefined}
+              isOpenInHistory={historyId === s.id}
+              onShowHistory={() => onShowHistory(s.id)}
             />
             <td className={gameEventLog.main}>
               <span className={styles.move}>

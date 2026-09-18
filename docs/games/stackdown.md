@@ -460,7 +460,7 @@ pill.
   **strictly before** it — so the viewed turn's own word is still ON the board (ringed
   green) and the stack is *fuller* than live — plus a kind-aware description ("entered
   EBATL — not a word", "requested hint", "revealed LEMON"). The removal-based twin of
-  scrabble's `historyBoard`; keyed by **log position** (the `#N` the log shows), not
+  scrabble's `historyBoard`; keyed by the **row's id** (the `#N` the log shows counts the rows on show), not
   `submissions.seq`, because the per-submitter `seq` is ambiguous and non-chronological
   across a shared coop log. Clicking a `GameEventLog` row's `#N` opens that turn on the
   board via the shared viewer (the same one scrabble/waffle use — frame + banner +

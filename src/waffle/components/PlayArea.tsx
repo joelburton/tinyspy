@@ -541,10 +541,9 @@ export function PlayArea({
   //
   // The log now carries EVERY player's swaps in compete (2026-08-02), and a
   // replay must apply only ONE player's — applying an opponent's transpositions
-  // to my scramble would produce a board nobody ever saw. Whose is never in
-  // doubt: the log makes `#N` clickable only when the rows on show are the
-  // board's own (coop's shared game, or my own rows — the picker's
-  // `boardIsShown`), so the replay list is exactly this.
+  // to my scramble would produce a board nobody ever saw. So this list is the
+  // board's own, and a handle from the log resolves its row id against it: a row
+  // that is not mine is not in it, and replays nothing.
   const replaySwaps = isCompete
     ? swaps.filter((sw) => sw.user_id === session.user.id)
     : swaps

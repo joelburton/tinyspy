@@ -48,8 +48,9 @@ type Props = {
  * clues did I give?", not "which words did I guess". That's the useful question,
  * since a duet turn is one clue and the guesses that answered it.
  *
- * It ignores the hook's `boardIsShown`: the `#N` handle addresses a turn by
- * `turn_number`, not by log position, so filtering can't misaddress it.
+ * The `#N` handle addresses a turn by `turn_number` — duet's log is a table of
+ * turns, not of rows — so filtering renumbers what is shown without changing
+ * which turn a handle opens.
  *
  * Stateless + presentational. codenamesduet *chooses* a **two-`<tr>`** turn (the
  * row anatomy is the game's — see EventLog.tsx) so the pieces sit in real table

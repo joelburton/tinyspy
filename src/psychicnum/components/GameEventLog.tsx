@@ -83,16 +83,15 @@ export function GameEventLog({
   // A guessed / revealed word is a real dictionary word, so it is definable; a
   // HINT row's `word` is a clue sentence, so it is not.
 
-  // The "#N" cell, shared by both row kinds. It's a LIVE handle (opens that turn
-  // on the board viewer) only when the rows on show ARE the board's sequence —
-  // the viewer indexes by log POSITION, so a filtered list's row 3 isn't turn 3.
-  // Otherwise it degrades to a plain read-only number rather than disappearing,
-  // which keeps the column's width and the row's shape identical either way.
-  const turnNumber = (i: number) => (
+  // The "#N" cell, shared by both row kinds. The NUMBER is the row's place in
+  // the list on show — it counts 1, 2, 3 under whatever filter is applied, which
+  // from the reader's seat is honest. The HANDLE is the row's own id, so the
+  // board opens the event the number is beside whatever the filter did.
+  const turnNumber = (row: EventRow, i: number) => (
     <EventLogNumber
       n={i + 1}
-      isOpenInHistory={historyId === i}
-      onShowHistory={eventLogPicker.boardIsShown ? () => onShowHistory(i) : undefined}
+      isOpenInHistory={historyId === row.id}
+      onShowHistory={() => onShowHistory(row.id)}
     />
   )
 
@@ -105,7 +104,7 @@ export function GameEventLog({
           return (
             <tr key={g.id} className={gameEventLog.divider}>
               <EventLogOutcomeBar outcome={ANSWER_OUTCOME.hint} />
-              {turnNumber(i)}
+              {turnNumber(g, i)}
               {/* The hint sentence spans the word+result columns; it's the row's
                   main column (absorbs the slack so `.who` stays snug). */}
               <td colSpan={2} className={cls(gameEventLog.main, styles.hint)}>
@@ -122,7 +121,7 @@ export function GameEventLog({
             {/* The bar's word is `lib/answer.ts`'s, so the log has none of its
                 own to disagree with the pill about the same turn. */}
             <EventLogOutcomeBar outcome={ANSWER_OUTCOME[answerOf(g)]} />
-            {turnNumber(i)}
+            {turnNumber(g, i)}
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result
                 stay clustered and `.who` sits snug at the right. */}

@@ -4,6 +4,8 @@ import type { Card } from './cards'
 
 /** The minimum a row needs for the replay. Mirrors `EventRow`. */
 export type HistoryRow = {
+  /** The row's own id — what the viewer addresses. */
+  id: number
   kind: 'claim' | 'hint'
   cards: Card[]
   /** The board as it stood immediately after this event. */
@@ -42,8 +44,12 @@ export type HistorySnapshot = {
  * slots they occupied being empty rather than around them. That is honest: it
  * shows the table the moment after, which is what `board_after` means.
  */
-export function historySnapshot(rows: readonly HistoryRow[], index: number): HistorySnapshot | null {
-  const row = rows[index]
+export function historySnapshot(rows: readonly HistoryRow[], id: number): HistorySnapshot | null {
+  // Addressed by the ROW'S ID. setgame's snapshot is the `board_after` stored on
+  // the row itself, so any row can be opened whoever played it — the position it
+  // happens to sit at in some filtered view names nothing.
+  const index = rows.findIndex((r) => r.id === id)
+  const row = index >= 0 ? rows[index] : undefined
   if (!row) return null
 
   return {

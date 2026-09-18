@@ -18,10 +18,12 @@ function swap(over: Partial<EventRow> & Pick<EventRow, 'id' | 'pos_a' | 'pos_b'>
   return { user_id: 'u1', letter_a: '?', letter_b: '?', ...over }
 }
 
-// The solving sequence, in log order: fix cells 2↔3 first, then 0↔1.
+// The solving sequence, in log order: fix cells 2↔3 first, then 0↔1. The ids
+// are what the viewer addresses, and are deliberately not 0,1 — a builder that
+// still indexed would pass by accident.
 const SWAPS: EventRow[] = [
-  swap({ id: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
-  swap({ id: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
+  swap({ id: 11, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
+  swap({ id: 12, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
 ]
 
 describe('historyBoardAfter — inclusive replay', () => {
@@ -35,7 +37,7 @@ describe('historyBoardAfter — inclusive replay', () => {
 
 describe('historySnapshot', () => {
   it('viewing the last swap shows the solved board, all green, with its cells ringed', () => {
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 1)
+    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 12)
     expect(snap.board).toBe(SOLUTION)
     // Solved → every filled cell green, holes '.'.
     expect(snap.colors).toBe(
@@ -46,7 +48,7 @@ describe('historySnapshot', () => {
   })
 
   it('viewing an earlier swap shows the board AS OF that swap, colored for that state', () => {
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 0)
+    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 11)
     // Board after only the 2↔3 swap: cells 0,1 still wrong.
     expect(snap.board).toBe('bacdef.g.hijklmn.o.pqrstu')
     // Cells 0,1 yellow (in-word, wrong spot), everything else green.
@@ -58,14 +60,16 @@ describe('historySnapshot', () => {
   })
 
   it('no solution → letters replay but colors are null (graceful)', () => {
-    const snap = historySnapshot(SCRAMBLE, null, SWAPS, 1)
+    const snap = historySnapshot(SCRAMBLE, null, SWAPS, 12)
     expect(snap.board).toBe(SOLUTION)
     expect(snap.colors).toBeNull()
   })
 
-  it('out-of-range index → clamps to all swaps applied, no historyLitTiles, neutral historyLabel', () => {
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 9)
-    expect(snap.board).toBe(SOLUTION) // past the end → every swap applied
+  it('an id this list does not hold replays nothing', () => {
+    // A compete opponent's swap, against your own board: none of it is here, so
+    // the scramble comes back untouched rather than fully solved.
+    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 99)
+    expect(snap.board).toBe(SCRAMBLE)
     expect(snap.historyLitTiles.size).toBe(0)
     expect(snap.historyLabel).toBe('This swap')
   })
@@ -81,11 +85,13 @@ describe('historySnapshot', () => {
 describe('compete: one player’s swaps at a time', () => {
   // Both players solve the same puzzle, so their logs interleave in the table
   // and each counts its OWN seq from 1.
+  // One game-wide sequence, two players interleaved in it — which is what ids
+  // are now, where a per-player count used to restart at 1 for each of them.
   const MIXED: EventRow[] = [
-    swap({ user_id: 'u1', id: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
-    swap({ user_id: 'u2', id: 1, pos_a: 4, pos_b: 5, letter_a: 'e', letter_b: 'f' }),
-    swap({ user_id: 'u1', id: 2, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
-    swap({ user_id: 'u2', id: 2, pos_a: 9, pos_b: 10, letter_a: 'i', letter_b: 'j' }),
+    swap({ user_id: 'u1', id: 21, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
+    swap({ user_id: 'u2', id: 22, pos_a: 4, pos_b: 5, letter_a: 'e', letter_b: 'f' }),
+    swap({ user_id: 'u1', id: 23, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
+    swap({ user_id: 'u2', id: 24, pos_a: 9, pos_b: 10, letter_a: 'i', letter_b: 'j' }),
   ]
 
   it('replays MY two swaps to the solved board', () => {
@@ -107,9 +113,9 @@ describe('compete: one player’s swaps at a time', () => {
     )
   })
 
-  it('historySnapshot indexes the FILTERED list, so #N lines up with the row', () => {
+  it('historySnapshot resolves the id against the FILTERED list', () => {
     const mine = MIXED.filter((s) => s.user_id === 'u1')
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, mine, 0)
+    const snap = historySnapshot(SCRAMBLE, SOLUTION, mine, 21)
     // My first swap is 2↔3 — NOT the opponent's 4↔5, which sits between them in
     // the unfiltered table.
     expect(snap.historyLitTiles).toEqual(new Set([2, 3]))

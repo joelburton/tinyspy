@@ -74,16 +74,13 @@ export function GameEventLog({
       picker={eventLogPicker}
       shown={shown}
     >
-      {shown.map((event) => {
-        // Numbered over the FULL log, not the filtered view: the number is the
-        // turn's identity, and a filter must not renumber the game.
-        //
-        // Every row offers the viewer, whatever the filter — unlike the games
-        // that gate it on `eventLogPicker.boardIsShown`. They have to, because their
-        // snapshot is a fold over one player's own sequence; ours is the
-        // `board_after` stored on the row itself, so any row can be opened
-        // without knowing whose board it belonged to.
-        const index = events.indexOf(event)
+      {shown.map((event, i) => {
+        // The NUMBER counts the rows on show — 1, 2, 3 under whatever filter is
+        // applied, which from the reader's seat is honest. The HANDLE is the
+        // row's own id. (This reverses a decision recorded here: the number used
+        // to be the position in the FULL log, on the grounds that a filter must
+        // not renumber the game. Under the shared rule it numbers the list you
+        // are looking at, and the id is what identifies a row.)
         return (
           <tr key={event.id} className={gameEventLog.divider}>
             {/* The bar's word is `lib/answer.ts`'s, and the row's `kind` is
@@ -91,9 +88,9 @@ export function GameEventLog({
                 with the pill or a teammate's line about the same turn. */}
             <EventLogOutcomeBar outcome={ANSWER_OUTCOME[event.kind]} />
             <EventLogNumber
-              n={index + 1}
-              isOpenInHistory={historyId === index}
-              onShowHistory={() => onShowHistory(index)}
+              n={i + 1}
+              isOpenInHistory={historyId === event.id}
+              onShowHistory={() => onShowHistory(event.id)}
             />
             <td className={styles.cards}>
               {event.kind === 'hint' && <span className={styles.hintTag}>Hint:</span>}

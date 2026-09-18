@@ -657,9 +657,9 @@ accumulates, it's a stack that can also shrink, so `historyChainAt` just runs th
 rules forward — `word` push, `undo` pop, `clear` empty, a hint or a spoiler nothing. The
 boundary is **inclusive** (viewing move N shows the chain *after* it — the only
 reading that makes an `undo` row show anything at all, since its whole content
-is the word no longer being there). `#N` is live only when the shown rows are
-the board's own sequence (`boardIsShown`); any key or click exits, per the
-shared viewer contract.
+is the word no longer being there). `#N` counts the rows on show and its handle carries
+the row's own id, resolved against the chain being folded; any key or click
+exits, per the shared viewer contract.
 
 **Info column**, canonical order: the `<StateLine>` (the game in two fractions —
 letters covered / 12, words used / cap **with par named in the label**, since

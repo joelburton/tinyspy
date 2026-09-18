@@ -529,10 +529,9 @@ cells that turn traced ringed in the history gold. That matters most for rows
 that changed nothing: a rejected word's route is exactly what you want when
 reviewing why it failed, and an exclusive boundary would hide it.
 
-`#N` is a live handle only when the shown rows ARE the board's own sequence —
-the shared picker's `boardIsShown`, true for coop's Team view and for your own
-in compete. Pick one player out of a shared coop log and position 3 isn't the
-board's turn 3, so the handle degrades to a plain number.
+`#N` counts the rows on show and the handle carries the row's own id, so every
+row is live whatever the filter. The builder folds the board being looked at and
+resolves the id against it — a row that list does not hold replays nothing.
 
 ### The data hook
 

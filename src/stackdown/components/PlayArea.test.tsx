@@ -291,10 +291,10 @@ describe('stackdown PlayArea — turn-history viewer', () => {
     { id: 8, x: 7, y: 0, z: 0, letter: 'T' },
   ]
   // A valid word cleared tiles 1..5 (CLEAR), then a hint was requested. Coop, so
-  // the log shows both, in submitted_at order (index 0 = the word, 1 = the hint).
+  // the log shows both, in id order (the word, then the hint).
   const submissions: EventRow[] = [
-    { user_id: 'u2', id: 1, kind: 'word', word: 'clear', tile_ids: [1, 2, 3, 4, 5], valid: true, created_at: '2026-01-01T00:00:01Z' },
-    { user_id: 'u1', id: 1, kind: 'hint', word: 'a fruit', tile_ids: null, valid: null, created_at: '2026-01-01T00:00:02Z' },
+    { user_id: 'u2', id: 2, kind: 'word', word: 'clear', tile_ids: [1, 2, 3, 4, 5], valid: true, created_at: '2026-01-01T00:00:01Z' },
+    { user_id: 'u1', id: 3, kind: 'hint', word: 'a fruit', tile_ids: null, valid: null, created_at: '2026-01-01T00:00:02Z' },
   ]
 
   /** A loaded coop hook whose board is the 8-tile fixture with CLEAR's tiles

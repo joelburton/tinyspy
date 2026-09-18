@@ -39,14 +39,22 @@ export interface HistorySnapshot {
 }
 
 /**
- * Reconstruct the results + lit word + historyLabel for the turn at `index`. Folds
- * every guess (kind `'guess'`) up to and including `index` into the results map
- * (INCLUSIVE), and picks that turn's own guessed word as the lit one.
+ * Reconstruct the results + lit word + historyLabel for the event with this
+ * `id`. Folds every guess (kind `'guess'`) up to and including it into the
+ * results map (INCLUSIVE), and picks that event's own guessed word as the lit
+ * one.
+ *
+ * Addressed by the ROW'S ID, resolved against the list being folded — not by a
+ * position in it. The number the log prints is the row's place in whatever the
+ * log is SHOWING, which a filter changes; the board replays the rows it is
+ * looking at, which a filter does not. They are different lists, so they cannot
+ * share an index.
  */
 export function historySnapshot(
   guesses: ReadonlyArray<EventRow>,
-  index: number,
+  id: number,
 ): HistorySnapshot {
+  const index = guesses.findIndex((g) => g.id === id)
   const results = new Map<string, boolean>()
   for (let i = 0; i <= index && i < guesses.length; i++) {
     const g = guesses[i]

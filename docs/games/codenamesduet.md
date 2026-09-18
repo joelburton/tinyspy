@@ -476,10 +476,10 @@ src/codenamesduet/
                           (useEventLogPlayerPicker — Team + both players; duet is
                           coop-only). A turn is filed under its CLUE-GIVER — the
                           person row 1's actor column already names — so picking
-                          someone answers "which clues did I give?". It ignores the
-                          hook's boardIsShown: the #n handle addresses a turn by
-                          turn_number, not log position, so filtering can't
-                          misaddress it.
+                          someone answers "which clues did I give?". The #n
+                          handle addresses a turn by turn_number — duet's log is
+                          a table of turns — so filtering renumbers what is
+                          shown without changing what a handle opens.
     GameEventLog.module.css
     GameEventLog.test.tsx
     SetupForm.tsx         The setup form mounted in the common SetupGameModal.

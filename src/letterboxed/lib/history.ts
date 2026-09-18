@@ -25,11 +25,13 @@ import type { EventRow } from '../hooks/useGame'
  *
  * **One player's moves at a time.** In compete each player builds a separate
  * chain from the same twelve letters, so folding a mixed list would produce a
- * chain nobody ever had. Callers pass an already-filtered list — which is
- * exactly the list the event log is displaying, so a row's position in it IS its
- * index here.
+ * chain nobody ever had. Callers pass an already-filtered list — one player's
+ * chain — and the row is named by its OWN id, resolved against that list. The
+ * number the log prints is a position in what is shown, which a filter moves;
+ * this is not.
  */
-export function historyChainAt(events: readonly EventRow[], index: number): string[] {
+export function historyChainAt(events: readonly EventRow[], id: number): string[] {
+  const index = events.findIndex((e) => e.id === id)
   const chain: string[] = []
   for (let i = 0; i <= index && i < events.length; i++) {
     const e = events[i]
@@ -41,8 +43,8 @@ export function historyChainAt(events: readonly EventRow[], index: number): stri
 }
 
 /** The one-line "what this move was" for the viewer's banner. */
-export function historyLabelAt(events: readonly EventRow[], index: number): string | null {
-  const e = events[index]
+export function historyLabelAt(events: readonly EventRow[], id: number): string | null {
+  const e = events.find((x) => x.id === id)
   if (!e) return null
   const word = e.word?.toUpperCase() ?? ''
   switch (e.kind) {

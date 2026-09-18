@@ -34,10 +34,12 @@ what it wears while you are looking at it is this folder's: a blue frame around
 the board, a matching ring on the open `#N`, and an opaque banner naming the turn
 over the game's input area.
 
-Between the two halves sits one question the picker answers: is the log you are
-looking at the same sequence the board would replay? A game that addresses a
-turn by its position in the log can only offer a live handle while that holds,
-and `boardIsShown` is how it knows.
+Between the two halves sits the distinction the whole thing rests on: **the
+number and the link are different values.** The number is the row's place in
+the list you are looking at — it counts 1, 2, 3 under whatever filter is
+applied, which from your seat is honest. The link is the row's own id, resolved
+by the builder against the list it is folding. Two lists, two lookups, and a
+filter can move one without touching the other.
 
 ## Details
 
@@ -57,18 +59,23 @@ codenamesduet by a turn number, everyone else by position in the log; and where
 the banner hangs,
 since the below-board region each game gives it is its own.
 
-**`boardIsShown` is false more often than it looks.** Picking a single player
-out of a shared multi-player coop game narrows the log, so the filtered list's
-row 3 is not the board's turn 3 — a handle there would replay the wrong turn.
-Coop's `Team` default keeps it live, which is the common case, and a solo game
-is always live because its filter is a no-op. A game that keys turns by a stable
-id cannot be misaddressed by filtering at all, so it ignores the flag and leaves
-every handle live.
+**Every handle is live, and that is new.** The log used to carry a
+`boardIsShown` flag: picking one player out of a shared coop log narrowed the
+rows, the filtered row 3 was not the board's turn 3, and the handle had to go
+inert rather than replay the wrong turn. Addressing a row by its id removes the
+question — a filtered log renumbers what it shows and still opens exactly the
+row the number sits beside — so the flag has no readers and is gone.
+
+**A builder resolves, and an id it does not hold replays nothing.** The list a
+game folds is the board being looked at; the list the log shows is the picker's.
+Ask for a row the folded list does not contain — a compete opponent's guess,
+against your own board — and what comes back is the empty board and a neutral
+label, not somebody else's game.
 
 **The picker hands back everything that travels with the choice**, because
 re-deriving any one of them per game is how the games drift apart: the control,
 its default selection, the aggregate's label (which differs by mode), the row
-filter, `boardIsShown`, and the empty-state wording. The last is the one
+filter, and the empty-state wording. The last is the one
 with a rule behind it — in compete, RLS hides an opponent's rows until the game
 ends, so an empty opponent log has to say "Hidden until game ends." rather than
 claim they have not played.

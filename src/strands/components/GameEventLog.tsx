@@ -117,11 +117,8 @@ export function GameEventLog({
   const shown = eventLogPicker.filter(events)
 
   // `#N` is a LIVE handle only when the rows on show ARE the board's own
-  // sequence — coop's Team view, or my own in compete. Pick a single player out
-  // of a shared coop log and position 3 of the filtered list isn't the board's
-  // turn 3, so the handle degrades to a plain number rather than replaying the
-  // wrong turn. The shared picker works this out; we just obey it.
-  const boardIsShown = eventLogPicker.boardIsShown
+  // The number counts the rows on show; the handle carries the row's own id, so
+  // filtering the log renumbers it without ever changing which event it opens.
 
   // Click-to-define. Only words the DICTIONARY accepted are looked up: a theme
   // word can be a phrase ("FATHERSDAY") and a reject isn't a word at all, so
@@ -146,8 +143,8 @@ export function GameEventLog({
           />
           <EventLogNumber
             n={i + 1}
-            isOpenInHistory={historyId === i}
-            onShowHistory={boardIsShown ? () => onShowHistory(i) : undefined}
+            isOpenInHistory={historyId === row.id}
+            onShowHistory={() => onShowHistory(row.id)}
           />
           <td className={gameEventLog.main}>
             {/* Fixed-width slot, so every word starts at the same x no

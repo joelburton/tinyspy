@@ -67,20 +67,22 @@ export function historyBoardAfter(
 }
 
 /**
- * Reconstruct the board + colors + historyLabel for the swap at `index` in a
- * single player's swap log (see the module note — never a mixed list). An out-of-range `index` (shouldn't happen — the caller passes a real
- * row's position) clamps naturally: past the end applies every swap (the final
- * board), and there's no `swaps[index]`, so no tile is lit and the
- * historyLabel neutral.
+ * Reconstruct the board + colors + historyLabel for the swap with this `id`, in
+ * a single player's swap log (see the module note — never a mixed list).
+ * Addressed by the ROW'S ID, resolved against that list: the number the log
+ * prints counts what the log is SHOWING, and a filter moves it.
  */
 export function historySnapshot(
   scramble: string,
   solution: string | null,
   swaps: ReadonlyArray<EventRow>,
-  index: number,
+  id: number,
 ): HistorySnapshot {
+  // -1 when the id names a row this list does not hold — a compete opponent's
+  // swap, against your own board. The scramble comes back untouched.
+  const index = swaps.findIndex((s) => s.id === id)
   const board = historyBoardAfter(scramble, swaps, index)
-  const swap = swaps[index]
+  const swap = index >= 0 ? swaps[index] : undefined
   return {
     board,
     colors: solution ? computeColors(board, solution) : null,

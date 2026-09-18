@@ -65,14 +65,10 @@ export function GameEventLog({
   })
   const shown = eventLogPicker.filter(events)
 
-  // The viewer indexes by POSITION in the displayed rows, and PlayArea derives
-  // the same list for itself (`boardRows`: coop = all events, compete = own).
-  // `boardIsShown` is what keeps the two honest — the `#N` handle is live ONLY
-  // while the picker's rows ARE the board's own sequence, so a selected index
-  // always means the same row on both sides. (An earlier version handed the
-  // rows up through a state-setting effect instead; the fresh array re-fired
-  // it every render and hit React's update-depth limit.)
-  const boardIsShown = eventLogPicker.boardIsShown
+  // The viewer addresses a row by its own id, and PlayArea folds the board it is
+  // looking at (`boardRows`: coop = all events, compete = own) resolving that id
+  // against it. The two lists need not match, which is why the handle no longer
+  // has to be gated on their matching.
 
   return (
     <EventLog heading="Moves" picker={eventLogPicker} shown={shown}>
@@ -84,8 +80,8 @@ export function GameEventLog({
               board. */}
           <EventLogNumber
             n={i + 1}
-            isOpenInHistory={historyId === i}
-            onShowHistory={boardIsShown ? () => onShowHistory(i) : undefined}
+            isOpenInHistory={historyId === e.id}
+            onShowHistory={() => onShowHistory(e.id)}
           />
           <td className={gameEventLog.main}>
             <Move event={e} />

@@ -101,8 +101,8 @@ export function GameEventLog({
                 number stays a plain read-only marker. */}
             <EventLogNumber
               n={i + 1}
-              isOpenInHistory={historyId === i}
-              onShowHistory={eventLogPicker.boardIsShown ? () => onShowHistory(i) : undefined}
+              isOpenInHistory={historyId === g.id}
+              onShowHistory={() => onShowHistory(g.id)}
             />
             <td className={gameEventLog.main}>{verdictLabel(g, nameByRank)}</td>
             <EventLogActor actor={memberById(players, g.user_id)} />

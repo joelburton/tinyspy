@@ -461,11 +461,12 @@ rather than rows. Two of the six need care:
   haven't played"*. At terminal their rows reveal and empty really is empty. Which
   is why the compete games' row policies all carry an `or cg.is_terminal` arm —
   psychicnum's was added when it got the picker.
-- **`boardIsShown` gates the `#N` handle**, and only matters for the games whose
-  turn-history viewer indexes the log by **position**: a filtered list's row 3
-  isn't the board's turn 3, so the handle degrades to a plain number rather than
-  replaying the wrong turn. scrabble and codenamesduet address a turn by `seq` /
-  `turn_number` instead, so filtering can't misaddress them and they ignore it.
+- **The number and the link are different values.** `#N` counts the rows on
+  show — under a filter it numbers what you are looking at, which from your seat
+  is honest — while the handle carries the row's own `id` (codenamesduet's a
+  `turn_number`, since its log is a table of turns). So every handle is live
+  whatever the filter, and a builder resolves the id against the list it folds:
+  ask for a row that list does not hold and it replays nothing.
 
 Some games bend the defaults, each documented at its call site:
 
@@ -577,7 +578,7 @@ the longest tracking the filter.
 **Two things it does differently from the event log's picker**, both deliberate: the
 hook is called **inside** `<WordList>` rather than by the game, since nothing
 outside the list consumes the selection (a word list isn't chronological — there's
-no history viewer to misaddress, hence no `boardIsShown` analogue), and keeping it
+no history viewer for it to address at all), and keeping it
 in there guarantees the **PDF prints the full list** no matter what's filtered on
 screen — the printers build their own rows from the same `buildDisplayRows` and
 never see this state.
@@ -837,7 +838,7 @@ stays per-game is **snapshot computation** (each game's `lib/history.ts`) and **
 identity** (a game-wide ordinal vs a log position). The variations that matter when
 adding a viewer to a new game:
 
-- **stackdown** — keyed by **log position**; **strictly-before** snapshot: the board
+- **stackdown** — keyed by the **row's id**; **strictly-before** snapshot: the board
   minus tiles cleared by valid submissions with `seq < N`, so turn N's own word tiles
   are still present and greened (the same green scrabble uses for a turn's placements).
   Invalid / hint / reveal turns carry no tiles → snapshot = removed-by-valid `< N`, no
@@ -846,39 +847,38 @@ adding a viewer to a new game:
   the snapshot is `historyBoard` in `lib/play.ts`. Its fat `BoardCol` runs `historyBoard`
   itself (the raw `plays` already live there for the live board) rather than being handed
   a ready board.
-- **connections** — keyed by **log position**; the first **mutating** board (a correct
+- **connections** — keyed by the **row's id**; the first **mutating** board (a correct
   guess collapses four tiles into a band), so **strictly-before** like stackdown: the
   viewed turn's four tiles stay on the grid, tinted by outcome + ringed. Needed a `#N`
   column added to its two-`<tr>` log.
-- **wordle** — keyed by **log position**; **inclusive / add-style**: the snapshot
+- **wordle** — keyed by the **row's id**; **inclusive / add-style**: the snapshot
   (`src/wordle/lib/history.ts`) is the first N guess rows, the last ringed in the
   history blue (`Board` gains `isViewingHistory` + `historyLitBoardRow`). Twist: the log has a
-  **"whose board" picker**, so the `#N` handle is a live control ONLY when the log shows
-  the board that replays (coop team / my own — the picker's `boardIsShown`); an
-  opponent's revealed log (compete terminal) keeps a plain read-only `#N`.
-- **psychicnum** — keyed by **log position**; add-style; the guessed tile shows its
+  **"whose board" picker**, so the number counts the rows on show while the
+  handle carries the row's own id — an opponent's revealed log (compete
+  terminal) numbers 1..N from their seat and opens their rows.
+- **psychicnum** — keyed by the **row's id**; add-style; the guessed tile shows its
   green/red outcome color + a ring in the history blue.
-- **strands** — keyed by **log position**; **inclusive** fold over the rows so far;
+- **strands** — keyed by the **row's id**; **inclusive** fold over the rows so far;
   `historyLitTiles` = the viewed word's tiles, ringed in the history blue.
 - **codenamesduet** — keyed by **`turn_number`** (game-wide ordinal, like scrabble's
   `seq`, not log position); the snapshot (`src/codenamesduet/lib/history.ts`) folds the
   guess log onto the fixed board (global `revealed_as` + per-seat `neutral_a/b`) and
   rings that turn's own cells. A two-input game — its `BoardCol` owns the **guess** RPC
   (the guess is a board click; `CluePanel` keeps the clue RPCs).
-- **waffle** — keyed by **log position**; `historyLitTiles` = a viewed swap's neutral cell ring.
-- **setgame** — keyed by **log position**, and the one viewer that is a pure
+- **waffle** — keyed by the **row's id**; `historyLitTiles` = a viewed swap's neutral cell ring.
+- **setgame** — keyed by the **row's id**, and the one viewer that is a pure
   **lookup**: the event row carries `board_after`, so `lib/history.ts` reads the
   board out rather than replaying anything. Deliberate — replaying setgame's
   deal rule on the FE would be a second implementation of the subtlest logic in
   that game, with nothing testing that the two agree. `historyLitCards` = the viewed
   event's own cards, which for a hint row is one, two or three of them.
-- **letterboxed** — keyed by **log position**; **inclusive** fold over the event
+- **letterboxed** — keyed by the **row's id**; **inclusive** fold over the event
   stream (`historyChainAt` in `lib/history.ts`: played pushes, undone pops, cleared
   empties, help rows change nothing) — the log records retreats precisely so this
   replay works, since a chain is a stack that can shrink, not a board that
-  accumulates. Like wordle, the log has a "whose board" picker in compete, so the
-  `#N` handle is live only while the shown log is the board that replays
-  (`boardIsShown`). **The only game whose frame wraps more than the board**: the
+  accumulates. Like wordle, the log has a "whose board" picker in compete; the number counts
+  the rows on show and the handle carries the row's own id. **The only game whose frame wraps more than the board**: the
   chain strip and the board are two views of one state (the strip lists the
   words, the board shows which letters they covered), so `BoardCol` groups them
   in a `.historyFramed` box and puts `.historyFrame` on that. Framing just the board left the

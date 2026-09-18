@@ -693,12 +693,11 @@ export function PlayArea(ctx: GamePageCtx) {
   if (!game) return <div className={styles.empty}>Game not found.</div>
 
   // The rows the BOARD's viewer replays: the shared chain's events in coop, my
-  // own in compete — the wordle shape. The log derives the same list for
-  // itself and makes `#N` a live handle ONLY while its picker shows exactly
-  // this list (`boardIsShown`), so a selected index is always an index here.
-  // (An earlier version had the log hand its rows UP through a state-setting
-  // effect; the fresh array re-fired it every render and hit React's
-  // update-depth limit.)
+  // own in compete — the wordle shape. The log shows whatever its picker is
+  // filtered to, and the two lists need not match: a handle carries the row's
+  // own id, which this list either holds or does not. (An earlier version had
+  // the log hand its rows UP through a state-setting effect; the fresh array
+  // re-fired it every render and hit React's update-depth limit.)
   const boardRows =
     game.mode === 'compete' ? events.filter((e) => e.user_id === session.user.id) : events
 

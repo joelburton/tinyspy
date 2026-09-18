@@ -22,10 +22,6 @@ export type EventLogPlayerPicker<R extends ActorRow> = {
   picked: string
   // True while an aggregate view (`Team` / `All`) is selected.
   showsEveryone: boolean
-  // True when the rows on show are the SAME sequence the board is replaying. A
-  // game that addresses a turn by log position makes `#N` a live handle only
-  // while this holds — doc.md → Details says why it can be false.
-  boardIsShown: boolean
   // The empty-state line, which has to stay HONEST: in compete an empty opponent
   // log mid-game means "hidden", not "they haven't played".
   emptyText: string
@@ -136,10 +132,6 @@ export function useEventLogPlayerPicker<R extends ActorRow>({
     filter: (rows) => (showsEveryone ? [...rows] : rows.filter((r) => r.user_id === picked)),
     picked,
     showsEveryone,
-    // Live only when the shown rows are the board's whole sequence: a solo game
-    // (the filter is a no-op — one player, one board), coop's shared Team view,
-    // or — in compete, where the board IS one player's — your own.
-    boardIsShown: solo || picked === TEAM || (mode === 'compete' && picked === selfId),
     emptyText:
       // Only a SINGLE opponent's log is honestly "hidden": an aggregate view
       // still carries my own rows mid-game, so an empty one really does mean

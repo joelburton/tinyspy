@@ -123,9 +123,10 @@ export function EventLogOutcomeBar({
  * opens that turn on the board; omit it and the same number draws plain. They
  * are the same thing, and a game does not hand-write the inert case.
  *
- * A game omits the handler when the log on show is not the sequence the board
- * replays — a filtered log's row 3 is not the board's turn 3 (the picker's
- * `boardIsShown`). doc.md → Details has the seam.
+ * A game omits the handler where a row has no board to open — codenamesduet's
+ * guess lines under a clue. Every row that has one offers it, whatever the
+ * filter: the number counts what is shown and the handler carries the row's own
+ * id, so the two cannot disagree. doc.md → Details has the seam.
  *
  * **Why the number, not the whole row.** Many games render a turn as SEVERAL `<tr>`s
  * (codenamesduet's clue + guess rows). A whole-row "viewing" outline then draws a

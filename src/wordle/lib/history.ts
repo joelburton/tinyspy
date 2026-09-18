@@ -42,20 +42,30 @@ export interface HistorySnapshot {
 }
 
 /**
- * Reconstruct the rows + lit board row + historyLabel for the turn at `index`. Takes the
- * first `index + 1` guesses (INCLUSIVE) as the board's rows and rings the last one.
+ * Reconstruct the rows + lit board row + historyLabel for the event with this
+ * `id`. Takes the guesses up to and including it (INCLUSIVE) as the board's
+ * rows and rings the last one.
+ *
+ * Addressed by the ROW'S ID, resolved against the list being folded. The number
+ * the log prints is the row's place in whatever the log is SHOWING, which a
+ * filter changes; the board replays the rows it is looking at, which a filter
+ * does not. Two lists, so no shared index.
  */
 export function historySnapshot(
   guesses: ReadonlyArray<EventRow>,
-  index: number,
+  id: number,
 ): HistorySnapshot {
+  // -1 when the id names a row this board does not hold — a compete opponent's
+  // guess against your own board. An empty board and no ring is the honest
+  // answer; there is nothing of theirs to replay here.
+  const index = guesses.findIndex((g) => g.id === id)
+  const turn = index >= 0 ? guesses[index] : undefined
   const rows = guesses
     .slice(0, index + 1)
     .map((g) => ({ guess: g.guess, colors: g.colors }))
-  const turn = guesses[index]
   return {
     rows,
     historyLitBoardRow: index,
-    historyLabel: turn ? `Guess ${index + 1}: ${turn.guess.toUpperCase()}` : `Guess ${index + 1}`,
+    historyLabel: turn ? `Guess ${index + 1}: ${turn.guess.toUpperCase()}` : 'This guess',
   }
 }

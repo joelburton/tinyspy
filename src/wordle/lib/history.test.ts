@@ -14,35 +14,40 @@ const g = (guess: string, colors: string, is_correct = false): EventRow => ({
 })
 
 describe('wordle historySnapshot', () => {
+  // Ids deliberately not 0,1,2: a builder that still indexed would pass these
+  // by accident.
   const guesses = [
-    g('slate', 'xxgyx'),
-    g('crane', 'yxxxg'),
-    g('point', 'ggggg', true),
+    { ...g('slate', 'xxgyx'), id: 11 },
+    { ...g('crane', 'yxxxg'), id: 12 },
+    { ...g('point', 'ggggg', true), id: 13 },
   ]
 
   it('includes the guess rows up to and including the viewed turn (inclusive)', () => {
-    // Turn 0 → just the first row.
-    expect(historySnapshot(guesses, 0).rows).toEqual([{ guess: 'slate', colors: 'xxgyx' }])
-    // Turn 1 → the first two rows.
-    expect(historySnapshot(guesses, 1).rows).toEqual([
+    // The first row → just it.
+    expect(historySnapshot(guesses, 11).rows).toEqual([{ guess: 'slate', colors: 'xxgyx' }])
+    // The second → the first two rows.
+    expect(historySnapshot(guesses, 12).rows).toEqual([
       { guess: 'slate', colors: 'xxgyx' },
       { guess: 'crane', colors: 'yxxxg' },
     ])
   })
 
   it('rings the viewed turn — the last included row', () => {
-    expect(historySnapshot(guesses, 0).historyLitBoardRow).toBe(0)
-    expect(historySnapshot(guesses, 2).historyLitBoardRow).toBe(2)
+    expect(historySnapshot(guesses, 11).historyLitBoardRow).toBe(0)
+    expect(historySnapshot(guesses, 13).historyLitBoardRow).toBe(2)
   })
 
   it('describes the turn by its 1-based number + upper-cased guess', () => {
-    expect(historySnapshot(guesses, 0).historyLabel).toBe('Guess 1: SLATE')
-    expect(historySnapshot(guesses, 2).historyLabel).toBe('Guess 3: POINT')
+    expect(historySnapshot(guesses, 11).historyLabel).toBe('Guess 1: SLATE')
+    expect(historySnapshot(guesses, 13).historyLabel).toBe('Guess 3: POINT')
   })
 
-  it('is defensive about an out-of-range index (no crash, empty label)', () => {
-    const snap = historySnapshot(guesses, 9)
-    expect(snap.rows).toHaveLength(3) // slice clamps to what exists
-    expect(snap.historyLabel).toBe('Guess 10')
+  it('an id this board does not hold replays nothing', () => {
+    // A compete opponent's guess, against your own board: there is nothing of
+    // theirs here to show, so the board comes back empty rather than full.
+    const snap = historySnapshot(guesses, 99)
+    expect(snap.rows).toHaveLength(0)
+    expect(snap.historyLitBoardRow).toBe(-1)
+    expect(snap.historyLabel).toBe('This guess')
   })
 })

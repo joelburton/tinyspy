@@ -19,33 +19,35 @@ function g(o: Partial<EventRow>): EventRow {
   }
 }
 
-// Turn 0: APPLE is a secret (correct). Turn 1: a hint. Turn 2: BERRY misses.
+// Row 1: APPLE is a secret (correct). Row 2: a hint. Row 3: BERRY misses.
+// The ids are what the viewer addresses, and they are deliberately NOT 0,1,2 —
+// a builder that still indexed would pass these tests by accident.
 const GUESSES: EventRow[] = [
-  g({ word: 'apple', is_correct: true, kind: 'guess' }),
-  g({ word: 'a fruit', kind: 'hint' }),
-  g({ word: 'berry', is_correct: false, kind: 'guess' }),
+  g({ id: 11, word: 'apple', is_correct: true, kind: 'guess' }),
+  g({ id: 12, word: 'a fruit', kind: 'hint' }),
+  g({ id: 13, word: 'berry', is_correct: false, kind: 'guess' }),
 ]
 
 describe('historySnapshot', () => {
   it('folds only guesses up to and including the viewed turn (inclusive)', () => {
-    // At turn 0 only APPLE is decided; BERRY (turn 2) is not yet on the board.
-    const s0 = historySnapshot(GUESSES, 0)
+    // At the first row only APPLE is decided; BERRY is not yet on the board.
+    const s0 = historySnapshot(GUESSES, 11)
     expect(s0.results.get('apple')).toBe(true)
     expect(s0.results.has('berry')).toBe(false)
-    // At turn 2 both guesses are folded (the hint at turn 1 adds nothing).
-    const s2 = historySnapshot(GUESSES, 2)
+    // At the last row both guesses are folded (the hint between adds nothing).
+    const s2 = historySnapshot(GUESSES, 13)
     expect(s2.results.get('apple')).toBe(true)
     expect(s2.results.get('berry')).toBe(false)
     expect(s2.results.size).toBe(2)
   })
 
   it('highlights exactly the word the viewed guess decided', () => {
-    expect(historySnapshot(GUESSES, 0).historyLitWord).toBe('apple')
-    expect(historySnapshot(GUESSES, 2).historyLitWord).toBe('berry')
+    expect(historySnapshot(GUESSES, 11).historyLitWord).toBe('apple')
+    expect(historySnapshot(GUESSES, 13).historyLitWord).toBe('berry')
   })
 
   it('marks no tile and highlights nothing for a hint / reveal turn', () => {
-    const s1 = historySnapshot(GUESSES, 1) // the hint
+    const s1 = historySnapshot(GUESSES, 12) // the hint
     expect(s1.historyLitWord).toBeNull()
     // The hint added nothing — only APPLE (from turn 0) is decided.
     expect(s1.results.size).toBe(1)
@@ -53,10 +55,19 @@ describe('historySnapshot', () => {
   })
 
   it('describes a guess by its outcome, a spoiler by its answer', () => {
-    expect(historySnapshot(GUESSES, 0).historyLabel).toBe('APPLE — a secret!')
-    expect(historySnapshot(GUESSES, 2).historyLabel).toBe('BERRY — not a secret')
-    expect(historySnapshot([g({ word: 'cherry', kind: 'spoiler' })], 0).historyLabel).toBe(
+    expect(historySnapshot(GUESSES, 11).historyLabel).toBe('APPLE — a secret!')
+    expect(historySnapshot(GUESSES, 13).historyLabel).toBe('BERRY — not a secret')
+    expect(historySnapshot([g({ id: 7, word: 'cherry', kind: 'spoiler' })], 7).historyLabel).toBe(
       'Revealed CHERRY',
     )
+  })
+
+  it('an id that is not in the list folds nothing', () => {
+    // The compete case, and the reason the builder resolves rather than
+    // indexes: a row the viewer cannot see is not a row it can replay.
+    const s = historySnapshot(GUESSES, 99)
+    expect(s.results.size).toBe(0)
+    expect(s.historyLitWord).toBeNull()
+    expect(s.historyLabel).toBe('This turn')
   })
 })

@@ -1,6 +1,6 @@
 # event-log — the frontend vocabulary, and turn history in compete
 
-**Status: phase A built, awaiting review; B and C are left.** Agreed with Joel
+**Status: A built; B's re-keying built, B.4 (compete history) not started; C left.** Agreed with Joel
 2026-09-17. The last of three; see [events.md](events.md) for the framing and
 the deploy rule. **Both phases here depend on every game's events table
 existing**, so this plan started when events.md finished.
@@ -232,6 +232,31 @@ Whether the right name is `canOpenHistory` (what the call sites ask) or
 `logMatchesBoard` (what the value is) depended on whether an unmatched log
 becomes openable — which B.2 answers: it does. Decide the name in this phase,
 with the seven call sites in front of you.
+
+> **B.2 / B.3 built 2026-09-17 — the re-keying.** Every game's `#N` is now two
+> values: the NUMBER is the row's place in the list on show, and the HANDLE is
+> the row's own `id`. Eight builders take an id and resolve it against the list
+> they fold (`findIndex`), so the log's filter and the board's sequence are two
+> lists that no longer have to agree. setgame's recorded decision is reversed in
+> place, with a comment saying so.
+>
+> **`boardIsShown` is DELETED, not renamed** — which is §B.5's question
+> answering itself. It existed to keep a position-addressed handle from opening
+> the wrong row; once a handle carries an id there is nothing for it to gate, and
+> after the re-keying it had no readers left. Neither `canOpenHistory` nor
+> `logMatchesBoard`: no flag. The picker, its test block, six call-site comments
+> and nine doc passages went with it.
+>
+> **An id the folded list does not hold replays nothing** — the empty board, no
+> ring, a neutral label. That is the compete case arriving early: asking for an
+> opponent's row against your own board is a question with no answer, and every
+> builder now says so the same way. Each game's history test pins it.
+>
+> The fixtures all use ids that are NOT 0, 1, 2 — a builder that still indexed
+> would have passed the old assertions unchanged.
+>
+> **B.4 is not started.** It needs §E.3 answered first: what the `<HistoryBanner>`
+> says when the board on screen is someone else's.
 
 ## C. wordiply gets a viewer
 

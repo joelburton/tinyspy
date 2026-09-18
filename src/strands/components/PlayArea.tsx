@@ -246,15 +246,13 @@ export function PlayArea(ctx: GamePageCtx) {
   const historyViewer = useHistoryViewer<number>()
 
   /**
-   * The rows the viewer indexes into — and they must be the SAME sequence the
-   * log is displaying, because a turn is addressed by POSITION.
+   * The rows the viewer folds — the board being looked at, which is not the same
+   * list as the log's (a filter moves that one). A handle carries the row's own
+   * id and it is resolved against THIS list.
    *
-   * That holds because the handle is only offered when the log's filter is a
-   * no-op (`boardIsShown`): coop's Team view, which is every row, or my own in
-   * compete. Mid-game compete RLS already scopes the rows to me, but at
-   * TERMINAL it opens up — so this filters explicitly rather than trusting the
-   * policy, or the indices would shift under the viewer the moment the game
-   * ended.
+   * Compete needs the filter kept explicitly: mid-game RLS already scopes the
+   * rows to me, but at TERMINAL it opens up, and folding everyone's traces into
+   * one board would draw a board nobody ever had.
    */
   const historyRows = useMemo(
     () => (isCompete ? events.filter((g) => g.user_id === selfId) : events),

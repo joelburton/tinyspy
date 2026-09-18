@@ -43,6 +43,9 @@
  * `hint` / `spoiler` request carries neither (its `tile_ids` is null).
  */
 export interface Submission {
+  /** The row's own id — what the viewer addresses, resolved against the list
+   *  being folded rather than indexed into it. */
+  id: number
   kind: 'word' | 'hint' | 'spoiler'
   word: string | null
   tile_ids: number[] | null
@@ -69,11 +72,12 @@ export interface HistorySnapshot {
  * submissions visible to the caller (the same chronological list the log shows —
  * coop = everyone's, compete = the caller's own, so the mode split is free).
  *
- * An out-of-range `index` (shouldn't happen — the caller only ever passes a real
- * row's position) yields an empty green set and a neutral historyLabel; the
- * `offBoard` is still well-defined (every valid word before it).
+ * An `id` this list does not hold — a compete opponent's word, against your own
+ * board — yields an empty green set and a neutral historyLabel, and an empty
+ * `offBoard`: there is nothing of theirs here to replay.
  */
-export function historySnapshot(submissions: ReadonlyArray<Submission>, index: number): HistorySnapshot {
+export function historySnapshot(submissions: ReadonlyArray<Submission>, id: number): HistorySnapshot {
+  const index = submissions.findIndex((s) => s.id === id)
   const offBoard = new Set<number>()
   for (let i = 0; i < index && i < submissions.length; i++) {
     const s = submissions[i]

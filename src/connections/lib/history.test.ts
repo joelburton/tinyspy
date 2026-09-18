@@ -34,40 +34,42 @@ function g(o: Partial<EventRow>): EventRow {
   }
 }
 
-// Turn 0: correct FRUIT (rank 0). Turn 1: a wrong guess. Turn 2: correct METALS (rank 1).
+// Row 11: correct FRUIT (rank 0). Row 12: a wrong guess. Row 13: correct METALS
+// (rank 1). The ids are what the viewer addresses, and are deliberately not
+// 0,1,2 — a builder that still indexed would pass by accident.
 const GUESSES: EventRow[] = [
-  g({ tiles: ['apple', 'pear', 'plum', 'lime'], outcome: 'won', result: 'correct', matched: true, matched_category_rank: 0 }),
-  g({ tiles: ['iron', 'gold', 'red', 'blue'], outcome: 'lost', result: 'wrong', matched: false }),
-  g({ tiles: ['iron', 'gold', 'lead', 'zinc'], outcome: 'won', result: 'correct', matched: true, matched_category_rank: 1 }),
+  g({ id: 11, tiles: ['apple', 'pear', 'plum', 'lime'], outcome: 'won', result: 'correct', matched: true, matched_category_rank: 0 }),
+  g({ id: 12, tiles: ['iron', 'gold', 'red', 'blue'], outcome: 'lost', result: 'wrong', matched: false }),
+  g({ id: 13, tiles: ['iron', 'gold', 'lead', 'zinc'], outcome: 'won', result: 'correct', matched: true, matched_category_rank: 1 }),
 ]
 
 describe('historySnapshot', () => {
   it('shows bands matched STRICTLY BEFORE the turn — the viewed turn stays on the grid', () => {
     // Turn 0 (the first correct): no earlier matches, so no bands — and FRUIT's tiles
     // are still on the grid (all 16), ready to be ringed.
-    const s0 = historySnapshot(GUESSES, BOARD, 0)
+    const s0 = historySnapshot(GUESSES, BOARD, 11)
     expect(s0.matched).toHaveLength(0)
     expect(s0.tiles).toHaveLength(16)
     expect(s0.tiles).toContain('apple')
 
     // Turn 2 (the second correct): FRUIT (turn 0) is banded, but METALS (this turn)
     // is NOT yet — its tiles are still on the grid.
-    const s2 = historySnapshot(GUESSES, BOARD, 2)
+    const s2 = historySnapshot(GUESSES, BOARD, 13)
     expect(s2.matched.map((m) => m.name)).toEqual(['FRUIT'])
     expect(s2.tiles).not.toContain('apple') // banded before this turn
     expect(s2.tiles).toContain('iron') // this turn's tile, still on the grid
   })
 
   it('highlights exactly the four tiles the viewed turn guessed', () => {
-    expect([...historySnapshot(GUESSES, BOARD, 1).historyLitTiles].sort()).toEqual(
+    expect([...historySnapshot(GUESSES, BOARD, 12).historyLitTiles].sort()).toEqual(
       ['blue', 'gold', 'iron', 'red'],
     )
-    expect(historySnapshot(GUESSES, BOARD, 1).result).toBe('wrong')
+    expect(historySnapshot(GUESSES, BOARD, 12).result).toBe('wrong')
   })
 
   it('describes a correct turn by its category, the others by the canonical copy', () => {
-    expect(historySnapshot(GUESSES, BOARD, 0).historyLabel).toBe('Matched FRUIT')
-    expect(historySnapshot(GUESSES, BOARD, 1).historyLabel).toBe('Not a match')
-    expect(historySnapshot([g({ outcome: 'near', result: 'oneAway', matched: false })], BOARD, 0).historyLabel).toBe('One away!')
+    expect(historySnapshot(GUESSES, BOARD, 11).historyLabel).toBe('Matched FRUIT')
+    expect(historySnapshot(GUESSES, BOARD, 12).historyLabel).toBe('Not a match')
+    expect(historySnapshot([g({ id: 7, outcome: 'near', result: 'oneAway', matched: false })], BOARD, 7).historyLabel).toBe('One away!')
   })
 })

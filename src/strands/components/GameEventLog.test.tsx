@@ -80,10 +80,13 @@ describe('GameEventLog — a spent hint', () => {
 
   it('is a live history handle, like every other turn', () => {
     // A hint turn is worth replaying — that is what its stored coords are FOR.
-    const { onShowHistory } = renderLog([guess('APPLE', 'theme'), hint()])
+    const rows_ = [guess('APPLE', 'theme'), hint()]
+    const { onShowHistory } = renderLog(rows_)
     const rows = screen.getAllByRole('row')
     within(rows[1]).getByText('#2').click()
-    expect(onShowHistory).toHaveBeenCalledWith(1)
+    // The NUMBER is the row's place in the list on show; the HANDLE is its own
+    // id. #2 is the hint, and what it opens is the hint's row.
+    expect(onShowHistory).toHaveBeenCalledWith(rows_[1].id)
   })
 
   it('still counts as a turn for the empty state', () => {

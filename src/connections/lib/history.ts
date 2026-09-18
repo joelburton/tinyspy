@@ -47,14 +47,20 @@ export interface HistorySnapshot {
 
 /**
  * Reconstruct the board + lit tiles + historyLabel for the turn at `index`. Folds
- * every CORRECT guess at a position `< index` into the matched bands (strictly
- * before), and marks this turn's own 4 tiles as the lit ones.
+ * every CORRECT guess strictly before it into the matched bands, and marks that
+ * event's own 4 tiles as the lit ones.
+ *
+ * Addressed by the ROW'S ID, resolved against the list being folded — the log's
+ * number is a position in what is SHOWN, and a filter moves it.
  */
 export function historySnapshot(
   guesses: ReadonlyArray<EventRow>,
   board: Board,
-  index: number,
+  id: number,
 ): HistorySnapshot {
+  // -1 when the id names a row this list does not hold — a compete opponent's
+  // guess against your own board. Nothing folds, and nothing is lit.
+  const index = guesses.findIndex((g) => g.id === id)
   const categoryByRank = new Map<number, Category>(board.categories.map((c) => [c.rank, c]))
   const matched: MatchedCategory[] = []
   const matchedTiles = new Set<string>()
