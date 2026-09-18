@@ -1,6 +1,6 @@
 /* cs-audited-word-entry */
 
-/* The capture-input display. A plain <div> — the game captures keystrokes off
+/* The capture-entry display. A plain <div> — the game captures keystrokes off
  * the window rather than into a focusable field. Deliberately CHROME-LESS: no
  * border / background / padding box, just large centered text with the simulated
  * caret, so the typed word reads as the focus rather than as a form field.

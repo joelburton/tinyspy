@@ -26,16 +26,10 @@ type Props = {
  *
  * This is the LAYOUT half of word entry, split out from `<WordEntryArea>` so the
  * games that can't use WordEntryArea's *keyboard* half can still be the same control.
- * The surfaces that render it are entering genuinely different things:
- *
- *   - **WordEntryArea** (every typing game) — a `<WordEntryInput>` over a text buffer,
- *     with `useCaptureKeys` + the history arrows layered on.
- *   - **stackdown** — five slots holding picked-up TILES. There's no text
- *     buffer at all: a letter names a tile, and a word is exactly five of them.
- *   - **strands** — a `<WordEntryInput>`, but its string is *derived from the traced
- *     path*, never typed into. A keystroke there resolves to a CELL (which one
- *     of the three `A`s?), so the string is an output, and WordEntryArea's
- *     string-in/string-out contract runs backwards.
+ * **Render `<WordEntryArea>` when a keystroke means "append this character", and
+ * this row directly when it doesn't** — the caller then brings its own keyboard
+ * and its own display of whatever is being entered. The games on each side, and
+ * what they enter: doc.md → Intro to area.
  *
  * **The two buttons ARE the two keys.** Each takes the bound action its key
  * fires, so "is there anything to delete?" and "may this submit?" are answered

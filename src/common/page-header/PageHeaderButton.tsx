@@ -34,7 +34,7 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
  * global class for the same reason — nothing can wear the look by sprinkling a
  * class name on; you render the component.
  *
- * It declines focus on mousedown, and that is not optional: the capture-input
+ * It declines focus on mousedown, and that is not optional: the capture-entry
  * games (spellingbee and its siblings) read keystrokes off the window, so a
  * clicked button must not take focus or the next letter typed goes nowhere.
  *

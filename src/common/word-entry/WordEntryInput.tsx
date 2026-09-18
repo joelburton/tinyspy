@@ -19,8 +19,8 @@ type Props = {
 }
 
 /**
- * The shared **capture-input display**: large centered text with a blinking
- * caret, and no `<input>` behind it. The capture-input games read keystrokes
+ * The shared **capture-entry display**: large centered text with a blinking
+ * caret, and no `<input>` behind it. The capture-entry games read keystrokes
  * off the window and feed the pending value here, so there is no focusable
  * field — clicking a board tile never blurs the entry and stops typing.
  *

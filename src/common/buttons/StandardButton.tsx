@@ -213,7 +213,7 @@ export function StandardButton({
       // from there.
       data-icon-only={iconOnly ? '' : undefined}
       data-tooltip={bubble}
-      // Suppress focus-steal on mouse click: the capture-input games
+      // Suppress focus-steal on mouse click: the capture-entry games
       // (spellingbee) read keystrokes off the window, so a clicked button must
       // not grab focus or the next typed letter goes nowhere. Harmless
       // everywhere else (onClick still fires). Before {...rest} so a caller can

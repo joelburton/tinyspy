@@ -225,8 +225,8 @@ entry for free.
 
 **The row is its own component** — **`<WordEntryRow>`** (`common/word-entry/WordEntryRow.tsx`):
 `⌫ | whatever you're entering | Submit`, the two icon-only buttons at the ends
-and the display flex-filling between them. Split out from `<WordEntryArea>` because
-two games need that exact control *without* the capture keyboard, since a
+and the display flex-filling between them. Split out from `<WordEntryArea>` for the
+games that need that exact control *without* the capture keyboard, because a
 keystroke there doesn't mean "append this character":
 
 | | what's being entered | why not `<WordEntryArea>` |

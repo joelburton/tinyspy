@@ -6,7 +6,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — all eleven findings worked 2026-09-18, all three components
 renamed, and the closing re-read done the same day: six more findings
-(F-word-entry-12 to 17), four worked, two waiting on a word.** Roster
+(F-word-entry-12 to 17), all worked.** Roster
 agreed and stamped 2026-09-18; taken OUT OF ORDER at Joel's ask (*"open
 word-entry area (it's not the next, but we're taking this one out of order)"*);
 §3's next in sequence is row 42, `word-list`. Ten files
@@ -615,7 +615,7 @@ The re-read's grep for the *phrasings* rather than the listed files:
   where the ⌫ and ↵ glyphs are placed. `WordEntryRow` places them, for
   stackdown and strands as much as for the typing games. Fixed.
 
-### F-word-entry-16 · `who-renders-the-row` · The docstring and `playarea.md` both list who renders `<WordEntryRow>`
+### F-word-entry-16 · `who-renders-the-row` · The docstring and `playarea.md` both list who renders `<WordEntryRow>` — WORKED as (b)
 
 F-2 deleted *"Three surfaces render it"* as a count and left the three-bullet
 list under it — **WordEntryArea** (every typing game) · **stackdown** ·
@@ -636,15 +636,21 @@ this character". And `doc.md`'s Intro already names both games as its examples.
   the hover, and twelve of its twenty-six lines are the list. `playarea.md`
   drops the number ("two games need") and keeps its table.
 
-Recommended (b). Waiting on Joel.
+Joel took (b). The docstring's twelve bullet lines are now two sentences — the
+rule, and a pointer to `doc.md → Intro to area` for the games on each side —
+and `playarea.md` says "for the games that need that exact control" above the
+same table.
 
-### F-word-entry-17 · `capture-input-vs-capture-entry` · Two adjectives for the one model
+### F-word-entry-17 · `capture-input-vs-capture-entry` · Two adjectives for the one model — WORKED as (b)
 
-The repo says **capture-input** in six places (`WordEntryInput.tsx` twice,
-`WordEntryInput.module.css`, `StandardButton.tsx`, `PageHeaderButton.tsx`,
-`daylight.css`'s caret token) and **capture-entry** in four (`WordEntryArea.tsx`'s
-lede, `useCaptureKeys.ts`'s lede — blessed — `docs/playarea.md`,
-`docs/games/psychicnum.md`), for the same thing: the games that read keys off
+The repo said **capture-input** in six places (`WordEntryInput.tsx` twice,
+`WordEntryInput.module.css`, `StandardButton.tsx`, `PageHeaderButton.tsx`, and
+the comment over `daylight.css`'s caret token — not the token) and
+**capture-entry** in five (`WordEntryArea.tsx`'s lede, `useCaptureKeys.ts`'s
+lede — blessed — `docs/playarea.md`, `docs/games/psychicnum.md`, and wordiply's
+`PlayArea.test.tsx`, which the re-read missed: the count above said four, and a
+grep at presentation time found the fifth). All eleven are comment or docstring
+text — no identifiers move. For the same thing: the games that read keys off
 the window instead of focusing a field. `docs/playarea.md`'s own name for it is
 **the capture model**. Two roster files sit on opposite sides.
 
@@ -657,7 +663,14 @@ the window instead of focusing a field. `docs/playarea.md`'s own name for it is
   lede already says it, `word-entry` is the folder, and "input" is the thing
   this model deliberately has none of. Six sites, none of them identifiers.
 
-Recommended (b). Waiting on Joel.
+**The argument against (b), which the re-read didn't note:** the display
+component is now named `WordEntryInput`, so *"the capture-input display"* agreed
+with its own name. The word only read oddly where it modified **games** —
+`StandardButton`, `PageHeaderButton`, `daylight.css`.
+
+Joel took (b). The six sites say `capture-entry` now; the blessed
+`useCaptureKeys` lede already did and didn't move. The noun that keeps "input"
+is the component name, not the model.
 
 ## Notes
 

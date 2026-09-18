@@ -739,7 +739,7 @@
 /* @@ */   --chrome-fault-color:          #b71c1c;
   /* CURSOR — where the keyboard is pointing in a list or a button set. */
 /* @@ */   --chrome-cursor-color:         #1976d2;
-  /* CARET — the simulated text cursor the capture-input games draw,
+  /* CARET — the simulated text cursor the capture-entry games draw,
      standing in for the blinking caret a real <input> would give. */
 /* @@ */   --chrome-caret-color:          #1976d2;
   /* LINK — an anchor, and `.link-button` (a <button> that looks like
