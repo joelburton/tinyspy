@@ -1058,6 +1058,42 @@ a compact strip in the info column. pgTAP: `ai_players_test.sql`; e2e:
 
 ## Deferred
 
+**Compete could drop scrabble's own turn pointer and use the common one**
+(raised 2026-09-17, by the work that made the bots real accounts). scrabble runs
+two rotations: coop uses `common.games.current_turn_user_id` +
+`game_players.turn_seat`, while compete keeps `scrabble.games.current_seat` +
+`scrabble._advance_seat`. The rotation had to be seat-shaped because it had to
+include players who were not users — the compete gate is by seat and says so,
+`_advance_seat` wraps over AI seats, and the common rotation walks
+`game_players.turn_seat`, which an AI seat had no row for. **That reason is
+gone**: a bot is an account with a `game_players` row like anyone.
+
+Retiring it would shed `current_seat`, `_advance_seat` and the mode branch in
+three move RPCs, and compete would GAIN what the shell already gives coop — the
+shared `<TurnStatusLine>` ("Waiting for ● ada-bot…") and the not-your-turn board
+dim. So it is a visible change, not purely internal, which is why it is a
+decision rather than a tidy.
+
+Three things to settle first:
+
+1. **Seating order.** `common._assign_turn_order` shuffles everyone after the
+   chosen first player; scrabble deliberately seats bots *after* the humans.
+   Either keep scrabble's seating and adopt only the pointer, or teach the
+   common seater an explicit order.
+2. **The AI driver is seat-shaped on both sides.** `scrabble.get_ai_context`
+   asks whether the seat at `current_seat` carries an `ai_level`, and
+   `PlayArea.tsx`'s poke effect asks the same of the current seat. Both must be
+   rewritten against `current_turn_user_id` and `profiles.ai_member` — miss the
+   frontend one and nothing pokes the edge function, so the bot never moves and
+   the table stalls with no error to explain it. The disarm path beside that
+   effect (a wedged poke ref "wedges the game permanently") has to survive the
+   rewrite.
+3. **`seat` itself stays.** It owns the rack and the display order, and
+   `(game_id, seat)` stays unique. Only the POINTER is retired.
+
+[common.md](../common.md) currently says unifying the two pointers is out of
+scope, and that sentence is what this would rewrite.
+
 **Passing is refused in turn-by-turn coop, and probably should not be** (raised
 2026-09-01, converting the area to envelopes). Scrabble supports the opt-in
 coop turn pointer — `create_game` seats it when `setup.coop_style = 'turns'`,

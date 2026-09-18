@@ -174,6 +174,15 @@
 
 ## Someday
 
+- **Compete could drop scrabble's own turn pointer and use the common one.**
+  The compete rotation is seat-shaped because it had to include players who
+  were not users, and the bots being real accounts removes that reason. It
+  would shed `current_seat`, `_advance_seat` and a mode branch in three move
+  RPCs, and compete would gain the shared whose-turn line and board dim — a
+  visible change, so a decision rather than a tidy. The three things to settle
+  first (seating order, the seat-shaped AI driver on both sides, and that
+  `seat` itself stays) are written up in `docs/games/scrabble.md` → Deferred.
+
 - **The AI suggest-a-move box is a `SelectionList` site that did not fit.**
   Five frameless text lines pinned to `5 × 1.35rem`, whose own comment says a
   growable height would shift the setup disclosure and the Moves log below
