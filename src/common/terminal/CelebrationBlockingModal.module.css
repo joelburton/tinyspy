@@ -29,7 +29,8 @@
   gap: 0.3rem;
   font-size: 2.4rem;
   line-height: 1;
-  margin-bottom: 0.4rem;
+  margin-bottom: 1rem;
+  margin-top: 1rem;
   /* Keeps tall emoji descenders from cropping the card padding. The jump
      rises ABOVE this box (no overflow clipping anywhere up the card). */
   height: 2.6rem;
@@ -57,20 +58,7 @@
   80%      { transform: translateY(0) rotate(-4deg); }
 }
 
-/* Size comes from the element: an h2 is 1.25rem like every other card's
-   heading. What is loud at this moment is the 2.4rem confetti above it. */
-/* @@ */ .title {
-  margin: 0.2rem 0 0.3rem;
-  color: var(--page-text-color);
-}
-
 /* @@ */ .subline {
-  margin: 0 0 1.4rem;
+  margin: 0;
   color: var(--page-text-muted-color);
 }
-
-/* THE CELEBRATION'S BUTTONS ARE JUST BUTTONS. They are `<StandardButton>`s in
-   `<BlockingModal>`'s `actions` slot, and this file styles none of them: a win
-   is not special enough to arrange or size its buttons differently from every
-   other card. If a chunkier button is ever wanted it becomes a prop on the
-   standard button, not a local rule here. */

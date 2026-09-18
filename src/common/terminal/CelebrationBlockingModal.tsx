@@ -105,6 +105,7 @@ export function CelebrationBlockingModal({
           <StandardButton
             show="label"
             label="Nice!"
+            fullWidth
             ref={primary ? undefined : focusRef}
             weight={primary ? 'secondary' : 'primary'}
             onClick={onClose}
@@ -124,7 +125,7 @@ export function CelebrationBlockingModal({
             </span>
           ))}
         </div>
-        <h2 className={styles.title}>{title}</h2>
+        <h1 className={styles.title}>{title}</h1>
         {body && <p className={styles.subline}>{body}</p>}
       </div>
     </BlockingModal>
