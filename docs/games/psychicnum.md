@@ -108,7 +108,7 @@ The shape that's the same in both modes:
 - The `psychicnum.players` table (one row per player; structurally identical).
 - The `psychicnum.events` table (rows look the same; RLS hides them differently).
 - The setup blob (`PsychicnumSetup` = `CoopTurnSetup & { guesses, word_count, difficulty, timer }` — see `lib/setup.ts`) — same fields, same defaults (`coop_style: 'free-for-all'`; the turn toggle only means something in coop).
-- The hidden-secrets mechanic — both modes unshield the three secrets post-terminal via `games_state`. The FE then rings them only when THIS viewer presses Reveal — never on its own, a win included: `replay_board` hunts the SAME three again, so a ringed board would leave Restart nothing to find (docs/ui.md → Terminal results). The reveal is local, per-player and reversible, so a teammate can go on eyeing the board while someone else looks, and `onRestarted` un-rings.
+- The hidden-secrets mechanic — both modes unshield the three secrets post-terminal via `games_state`. The FE then rings them only when THIS viewer presses Reveal, or when they found all three themselves (`impliedBy` — the secrets are already green on their board): `replay_board` hunts the SAME three again, so a ringed board handed to someone who did NOT find them would leave Restart nothing to find (docs/ui.md → Terminal results). The reveal is local, per-player and reversible, so a teammate can go on eyeing the board while someone else looks, and `onRestarted` un-rings.
 - `common.games.title` formula (the first three board words — see [Title formula](#title-formula)).
 - `common.game_players.result` shape (`{ won: bool }`).
 - `common.update_state` mid-game listing-label payload structure.

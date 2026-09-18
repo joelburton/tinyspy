@@ -4,7 +4,8 @@ The folders it reads: `reveal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18, ten findings, none worked.** Roster agreed
+**Status: OPEN — audited 2026-09-18; the prose pass done 2026-09-18 (F-1 to
+F-7); F-8 and F-9 await a decision, F-10 is ruled and unworked.** Roster agreed
 2026-09-18 (Joel: *"this is a tiny section, just do the audit"*) and the two
 code files stamped `cs-audited-reveal`. Taken in order after `terminal` (row
 44); this is row 45.
@@ -40,16 +41,17 @@ taxonomy; it was built three weeks before the row was written (F-7).
 <PlayArea>                              ten of sixteen games
 └── useSolutionReveal({ impliedBy? })    LOCAL, per-player, unpersisted: { revealed, toggle, hide, reset, impliedBySolve }
      ├── impliedBy: solvedByMe({ isCompete, playState, mine })   the six clear-win games
-     ├── act-reveal's describe()          impliedBySolve → disabled "Solution already shown"
-     │                                    revealed → "Hide …" + IconHideSolution
-     │                                    else → "Reveal …", disabled until isTerminal
-     └── onRestarted → reset()            a replay starts blind, and the win can speak again
+     └── act-reveal's describe()          impliedBySolve → disabled "Solution already shown"
+                                          revealed → "Hide …" + IconHideSolution
+                                          else → "Reveal …", disabled until isTerminal
 ```
+
+(`reset` and `hide` are on the interface and nothing calls either — F-10.)
 
 | game | passes `impliedBy` | its Reveal/Hide labels |
 |---|---|---|
-| connections · psychicnum · stackdown · strands · waffle · wordle | `solvedByMe(...)` — compete asks my own solved bit, coop asks `playState === 'won'` | stackdown: *solution*; the rest: *answer* |
-| codenamesduet · crosswords · letterboxed · wordiply | nothing — no clear win | crosswords, letterboxed: *solution*; codenamesduet, wordiply: (their own) |
+| connections · psychicnum · stackdown · strands · waffle · wordle | `solvedByMe(...)` — compete asks my own solved bit, coop asks `playState === 'won'` | stackdown: *solution*; strands, waffle, wordle: *answer*; connections: *categories*; psychicnum: *secrets* |
+| codenamesduet · crosswords · letterboxed · wordiply | nothing — no clear win | crosswords, letterboxed: *solution*; codenamesduet: *partner's key*; wordiply: *best word* |
 | boggle · spellingbee · wordwheel | — | no reveal control: the word list's found/missed filter is it |
 | bananagrams · scrabble · setgame | — | no answer to reveal |
 
@@ -65,7 +67,7 @@ mount still start shown. The folder's tests are green (1 file, 7 tests); the
 it has one; no status means OPEN. F-1 to F-6 are prose; F-7 is the plan's own
 row; F-8 and F-9 wait for a decision; F-10 is Joel's, a deletion.)*
 
-### F-reveal-1 · `interface-members-wear-docstrings` · `SolutionReveal`'s five members carry `/**`
+### F-reveal-1 · `interface-members-wear-docstrings` · `SolutionReveal`'s five members carry `/**` — WORKED
 
 `revealed`, `toggle`, `hide`, `reset`, `impliedBySolve` each open with `/**`.
 §4 → The docstring marker: the interface is one declaration, a note on one
@@ -79,7 +81,7 @@ solution"* — three games say *answer* (waffle, wordle, strands); the words are
 each game's (F-9), so the note says the binding wears two faces and names
 neither.
 
-### F-reveal-2 · `hook-docstring-is-the-design` · `useSolutionReveal`'s docstring is the folder's design, its history, two censuses and a link to a memory file
+### F-reveal-2 · `hook-docstring-is-the-design` · `useSolutionReveal`'s docstring is the folder's design, its history, two censuses and a link to a memory file — WORKED
 
 Fifty-two lines over nine of code. What is in it that is not for a caller:
 
@@ -108,7 +110,7 @@ why. The *"derived, never a `useState` initializer"* paragraph defends the
 `useState<boolean | null>` line and moves to it as `//` (which already carries
 half of it).
 
-### F-reveal-3 · `solvedByMe-narrates-the-ship` · `solvedByMe`'s docstring counts the games and dates a bug
+### F-reveal-3 · `solvedByMe-narrates-the-ship` · `solvedByMe`'s docstring counts the games and dates a bug — WORKED
 
 *"in the one shape all six clear-win games should use"* — a count with a
 "should" in it; *"which is exactly how three of these shipped broken on
@@ -118,7 +120,7 @@ stackdown writes `players.solved` only in compete, strands' coop branch never
 touches it, psychicnum counts per caller — are the REASON coop asks the game
 and stay, stated as what the games do rather than as how they broke.
 
-### F-reveal-4 · `test-headers-narrate` · Both test docstrings tell the shipping story
+### F-reveal-4 · `test-headers-narrate` · Both test docstrings tell the shipping story — WORKED
 
 `describe('solvedByMe')`: *"which is how this shipped broken"* and the same
 three-game story as F-3. `describe('useSolutionReveal')`: fine. The two `/**`
@@ -127,7 +129,7 @@ blessed tests use (`Menu.test.tsx`, `FilterSelect.test.tsx`) and stay; the
 first one's *"(the waffle loading-race lesson)"*-style aside is absent here,
 so only the `describe` header changes.
 
-### F-reveal-5 · `doc-md-one-line` · `doc.md` is one sentence
+### F-reveal-5 · `doc-md-one-line` · `doc.md` is one sentence — WORKED
 
 *"Showing the answer once a game has ended."* Owed: the lede, an `## Intro to
 area` (the reveal is a personal, temporary, unpersisted display choice; a game
@@ -137,7 +139,7 @@ answer), and a `## Details` with the caller table above and the per-game
 reasons F-2 moves out of the docstring. `common/reveal` then comes off
 `INTROS_OWED`.
 
-### F-reveal-6 · `docs-say-nothing-autoreveals` · Two docs say a win reveals nothing, one day before the clear-win default made six games start shown
+### F-reveal-6 · `docs-say-nothing-autoreveals` · Two docs say a win reveals nothing, one day before the clear-win default made six games start shown — WORKED, and it was in ten more places
 
 - `docs/common.md → Revealing the solution`: *"**Nothing autoreveals**, a win
   included."* Written 2026-08-15 (`72d48d94`); the clear-win default landed
@@ -151,7 +153,25 @@ reasons F-2 moves out of the docstring. `common/reveal` then comes off
 Both say what the code does: nothing reveals on a LOSS or a manual end, and a
 player who produced the answer starts with it shown.
 
-### F-reveal-7 · `plan-row-says-build-the-taxonomy` · Row 45 says the area "has to build" a taxonomy that shipped 2026-08-15, and links to a `deferred.md` section that does not exist
+**The same claim was in ten more places, every one of them false for its own
+game** — found by grepping `autoreveal|a win included|never on its own` once
+the two named docs were fixed. Six games say it, and each of the six passes
+`impliedBy`: `docs/games/waffle.md` ("Nothing autoreveals, a win included"),
+`docs/games/stackdown.md` ("never automatically, not even on a win"),
+`docs/games/wordle.md` ("hidden at every terminal until this viewer asks, a win
+included" + "Nothing autoreveals"), `docs/games/strands.md` ("nothing
+autorevealed"), `docs/games/connections.md` ("nothing autoreveals"),
+`docs/games/psychicnum.md` ("never on its own, a win included"), and four in
+code — `stackdown/InfoCol.tsx`, `stackdown/PlayArea.test.tsx`,
+`wordle/InfoCol.tsx`, `strands/InfoCol.tsx` — plus `strands/PlayArea.tsx`,
+which says "Never automatically, a win included" six lines above the paragraph
+explaining that a solver is the exception. All corrected here, as conformance
+edits on a rule this area owns; no game's area is opened by them.
+
+letterboxed's three and codenamesduet's one are TRUE and untouched — neither
+passes `impliedBy`, so for those two games nothing does autoreveal.
+
+### F-reveal-7 · `plan-row-says-build-the-taxonomy` · Row 45 says the area "has to build" a taxonomy that shipped 2026-08-15, and links to a `deferred.md` section that does not exist — WORKED at the audit
 
 Written 2026-09-04 (`77653b5c`), three weeks after the work. The only reveal
 item in `deferred.md` is struck through and points at `common.md`. The row is
@@ -190,12 +210,17 @@ no-clear-win games write the last two branches). What varies is the noun
   return. Recommended: the hook stays state, the words stay a function, and a
   game that wants a different face writes its own.
 
-### F-reveal-9 · `solution-or-answer` · The same control is "Reveal solution" in three games and "Reveal answer" in three others
+### F-reveal-9 · `solution-or-answer` · The same control is "Reveal solution" in three games, "Reveal answer" in three, and the thing's own name in four
 
 stackdown, crosswords, letterboxed: *solution*. waffle, wordle, strands:
-*answer*. (codenamesduet and wordiply: read at their areas.) One control, one
-action id, one icon pair, two nouns — the drift the UI-consistency prior is
+*answer*. And four name the THING instead: connections *categories*, psychicnum
+*secrets*, codenamesduet *partner's key*, wordiply *best word* — so the split is
+not two nouns but three habits, and the ten sites agree only on the verb. One
+control, one action id, one icon pair — the drift the UI-consistency prior is
 about, with no rule choosing. The registry's own label is the bare *Reveal*.
+(The inert face is *"Solution already shown"* in all six clear-win games,
+`categories` and `secrets` included, which is the one place the noun is already
+uniform — and in two of them it disagrees with the game's own live label.)
 
 **Decision:**
 
@@ -203,10 +228,19 @@ about, with no rule choosing. The registry's own label is the bare *Reveal*.
   the tooltip says "reveal", ui.md's section is "Revealing the solution"), or
   *answer* (what wordle and waffle call the thing they hide). Ten sites, each
   its own area; this area records the choice and each game's `todo.md` gets
-  the line.
-- **(b) each game's word** — a crossword has a solution, wordle has an answer;
+  the line. It costs the most at the four games that name the thing — "Reveal
+  solution" at connections is a worse label than "Reveal categories", which is
+  the argument against.
+- **(b) one word for the six that hide an ANSWER, the thing's name where the
+  game has one** — the drift that has no defense is stackdown vs wordle, both
+  hiding the same kind of thing under two words; connections naming its
+  categories is not drift. Six sites move, four stay.
+- **(c) each game's word** — a crossword has a solution, wordle has an answer;
   the noun is the game's, like the title of its celebration. Then F-8's
   helper takes the noun as an argument, and no doc claims one word.
+
+Whichever way it goes, the inert face has to follow it: "Solution already
+shown" is hard-coded in all six clear-win games and contradicts two of them.
 
 ### F-reveal-10 · `reset-and-hide-have-no-caller` · `reset` and `hide` are dead since the restart key, and the docstring argues a distinction nothing uses
 
@@ -236,6 +270,13 @@ sentence says a restart mounts a new surface and the reveal goes with it.
 
 - **psychicnum, handed on:** the *"No reveal-flag reset here"* comment (F-10)
   names a column that no longer exists. Its own area.
+- **`onRestarted` survives in five sentences and nothing else** — no such
+  callback exists anywhere in `src`. `docs/ui.md` ("what each game does still
+  owe is dropping the local reveal in its `onRestarted`"), `docs/games/wordle.md`
+  and `docs/games/psychicnum.md`, `wordle/PlayArea.tsx`'s restart comment and
+  `wordle/PlayArea.test.tsx`'s. Left standing on purpose: they are F-10's, and
+  F-10 is ruled but unworked. `docs/games/stackdown.md`'s went with the sentence
+  F-6 rewrote around it.
 - The `[[…]]` memory link in the hook (F-2) is the only one in `src/`;
   `grep -rn '\[\[' src` finds no other.
 - The six per-game `// impliedBy is the exception: …` comments beside the
@@ -255,7 +296,8 @@ sentence says a restart mounts a new surface and the reveal goes with it.
   outside the folder references either.
 - F-1 to F-7: none — prose, a plan row, and a guard list entry
   (`folderDocs.test.ts` `INTROS_OWED` loses `common/reveal`; the guard then
-  requires the intro F-5 writes).
+  requires the intro F-5 writes). Confirmed: `tsc -b` clean and the three games
+  the sweep touched green, 385 tests.
 - F-8 (b) or (c): the ten PlayArea tests that assert the labels
   (`'Reveal answer'`, `'Hide solution'`, `'Solution already shown'`) keep
   passing if the words do not change; F-9 (a) changes the words and so those
@@ -264,7 +306,7 @@ sentence says a restart mounts a new surface and the reveal goes with it.
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` written (lede + `## Intro to area` + `## Details`
-      with the caller table); its row off `INTROS_OWED`
+- [x] the folder's `doc.md` written (lede + `## Intro to area` + `## Details`
+      with the caller table); its row off `INTROS_OWED` — 2026-09-18
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

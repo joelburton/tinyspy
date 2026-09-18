@@ -289,7 +289,8 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   port), which is strictly better than the rewrite twice over: the players' own
   boards survive — so the turn-history viewer still replays real swaps against
   the board they actually played — and **Hide brings that board straight back**,
-  which a rewrite could never do. Nothing autoreveals, a win included. Offered
+  which a rewrite could never do. Nothing autoreveals but your own solve, which
+  puts the board you just made on screen anyway (`impliedBy`). Offered
   from the game menu AND the terminal action row, both the SAME bound action
   (`act-reveal`) wearing the same two faces — its words and its glyph move
   together, so a row and a button can't disagree about which face is on. pgTAP: `boards_untouched_test.sql`.

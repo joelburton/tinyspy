@@ -8,10 +8,10 @@ import { solvedByMe, useSolutionReveal } from './useSolutionReveal'
  * `solvedByMe` — "did I produce the solution?", the input to `impliedBy`.
  *
  * The coop half is not a convenience. Three of the six games don't write a
- * usable per-player solved bit in coop at all, each in its own way, which is how
- * this shipped broken: stackdown sets `players.solved` only in compete, strands'
- * coop branch ends the game without touching it, and psychicnum counts per
- * CALLER so two teammates finding 2 and 1 leaves neither at three.
+ * usable per-player solved bit in coop at all, each in its own way: stackdown
+ * sets `players.solved` only in compete, strands' coop branch ends the game
+ * without touching it, and psychicnum counts per CALLER, so two teammates
+ * finding 2 and 1 leaves neither at three.
  */
 describe('solvedByMe', () => {
   it('coop asks the GAME — one board, one outcome', () => {

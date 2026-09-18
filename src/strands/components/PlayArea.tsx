@@ -503,11 +503,12 @@ export function PlayArea(ctx: GamePageCtx) {
   })
 
   // ─── The answer shows only when I ask for it ──────────
-  // Never automatically, a win included (where the board you just consumed IS
-  // the answer). LOCAL and reversible (useSolutionReveal): a rival who is still
-  // tracing keeps their board untouched while I look, and Hide takes the
-  // unfound words back off mine. The solution reaches this client once the game
-  // is terminal (strands._solution_for), so this is purely what's drawn.
+  // Never automatically for a player who did not solve it (the one who did is
+  // covered by `impliedBy`, below). LOCAL and reversible (useSolutionReveal): a
+  // rival who is still tracing keeps their board untouched while I look, and
+  // Hide takes the unfound words back off mine. The solution reaches this
+  // client once the game is terminal (strands._solution_for), so this is purely
+  // what's drawn.
   //
   // `impliedBy` is the exception: strands' theme words TILE the board exactly,
   // so solving it consumes every cell — there are no unfound words left to draw

@@ -63,7 +63,7 @@ In scope today:
 - **No puzzle choice** (2026-08-13). The setup dialog shows one read-only line naming what Start will play — the earliest puzzle none of the *selected players* has played, in **any club**, from `connections.next_puzzle_for_club`. See [The puzzle you get](#the-puzzle-you-get)
 - Same rule drives **New game** in the PlayArea, because it is literally the same function
 - 4-mistake-lose, oneAway feedback, dup-guess-doesn't-hurt
-- Reveal-on-demand at terminal (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below). Local + reversible, like every game's ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)); nothing autoreveals
+- Reveal-on-demand at terminal (the FE reads `board.categories` directly — no separate RPC, see "FE-knows" below). Local + reversible, like every game's ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)); nothing autoreveals but a solve of your own, which has already banded all four
 - Compete OpponentStrip showing per-player mistake counts. **During play** that's the entire "what opponents know about you" surface — guesses + matched-categories stay private. **At terminal** (2026-08-02) everyone's guesses open up, and the event log's "whose guesses?" picker is how you compare lines afterwards — see [Event log](#event-log--whose-guesses)
 - Shared selection across connected players via Broadcast in coop; private per-player selection in compete (broadcast send suppressed)
 - Per-player local-shuffle button

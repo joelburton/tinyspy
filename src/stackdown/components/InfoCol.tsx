@@ -108,8 +108,9 @@ export function InfoCol({
   /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
   setupRows: SetupRow[]
   /** The six solution words — non-null ONLY while THIS viewer is looking at
-   *  them. Hidden by default at every terminal, a win included, so Restart
-   *  (same stack, same solution) stays a genuine second try. */
+   *  them. Hidden by default at a terminal this viewer did not solve, so Restart
+   *  (same stack, same solution) stays a genuine second try; a viewer who played
+   *  all six starts looking at them. */
   solution: string[] | null
   /** Show the words — or put them away again. A local display toggle shared with
    *  the menu twin; nothing is written and no peer is affected, and it carries

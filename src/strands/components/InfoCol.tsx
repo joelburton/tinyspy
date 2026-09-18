@@ -166,8 +166,8 @@ export function InfoCol({
         {/* ── Action row ── TERMINAL: the outcome line + Reveal / Restart /
             New game / back-to-club. Reveal is always PRESENT (it toggles rather
             than spends itself, so the row can't change shape under a click) and
-            nothing autoreveals — a finished board keeps its unfound words until
-            the players ask. PLAYING: End + back-to-club. */}
+            nothing autoreveals — a board with words left on it keeps them until
+            the player asks. PLAYING: End + back-to-club. */}
         {over ? (
           <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             <ActionButton action={actReveal} show="icon" />

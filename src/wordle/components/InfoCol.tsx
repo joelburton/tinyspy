@@ -119,8 +119,8 @@ export function InfoCol({
 
   // ── Terminal answer reveal ──
   /** The answer to DISPLAY, or null while it stays hidden — which is the
-   *  default at every terminal, win included: nothing shows until this viewer
-   *  presses Reveal, and pressing Hide takes it away again. Prop is `solution`
+   *  default at a terminal this viewer did not solve: nothing shows until they
+   *  press Reveal, and pressing Hide takes it away again. Prop is `solution`
    *  (the glossary term for the terminal-reveal slot, matching
    *  waffle/stackdown); the value comes from the DB-blessed `game.target`. */
   solution: string | null

@@ -643,10 +643,10 @@ board must stay as it ended.
 
 The six words are **terminal-only**, three times over: the server withholds
 `solution` until the row is terminal (`games_state` gates it), the FE holds it
-back further until THIS viewer presses Reveal — never automatically, not even on
-a win (docs/ui.md → Terminal results; `replay_board` re-runs this very stack, so
-an answer left on screen would make Restart theater, and `onRestarted` puts it
-away), and the print model refuses to emit it before then regardless — so neither a lost-game printout nor a future
+back further until THIS viewer presses Reveal — never automatically, unless they
+played all six words themselves (`impliedBy`, docs/ui.md → Terminal results;
+`replay_board` re-runs this very stack, so an answer left in front of a player
+who did NOT clear it would make Restart theater), and the print model refuses to emit it before then regardless — so neither a lost-game printout nor a future
 schema change can quietly put the answer on paper. The log prints all three submission kinds, with the
 valid/invalid/cheat distinction carried in **text** rather than color, since a
 mono printer flattens the outcome bar's green and red to one gray.

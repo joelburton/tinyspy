@@ -74,7 +74,8 @@ so the gate can't key on any per-player doneness (`compete_test.sql` pins both
 halves). Whether a player is *looking* at the answer is their own display choice
 in the FE ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
 a local, reversible reveal (`act-reveal`, one binding carrying both faces and
-placed in the terminal row AND the menu), nothing autorevealed, nothing shared. The
+placed in the terminal row AND the menu), nothing shared, and nothing autorevealed
+to a player who did not solve it. The
 reveal has **two halves, one toggle**: the unfound words draw as gray lines on
 the board, and the info column names them as text (`Words: <spangram> …`,
 spangram first, each click-to-define). The column half is not decoration — the

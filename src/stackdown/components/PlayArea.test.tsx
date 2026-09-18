@@ -379,9 +379,10 @@ describe('stackdown PlayArea — the game menu names the cheat glyphs', () => {
 
 /**
  * The terminal solution reveal — the six words, and the fact that seeing them
- * is a LOCAL, reversible choice (useSolutionReveal). Nothing autoreveals, a win
- * included: `replay_board` runs this very stack back with the same solution, so
- * an answer left on screen would make Restart theater.
+ * is a LOCAL, reversible choice (useSolutionReveal). Nothing autoreveals to a
+ * player who did not clear the stack: `replay_board` runs this very stack back
+ * with the same solution, so an answer left in front of them would make Restart
+ * theater. The player who DID clear it starts looking at the words.
  */
 describe('stackdown PlayArea — the terminal solution reveal', () => {
   /** A finished game whose six words have reached this client (the server
