@@ -4,14 +4,16 @@ The folders it reads: `terminal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18, fourteen findings, thirteen worked.** Roster
+**Status: OPEN — audited 2026-09-18, fourteen findings, ALL FOURTEEN worked.** Roster
 agreed and stamped 2026-09-18 (Joel: *"list is good"*); taken out of order
 after `word-entry`, so §3's next in sequence is still row 42, `word-list`.
 Seven files `cs-audited-terminal`. **The prose pass (F-1 to F-10) is done**
-(2026-09-18, Joel: *"do the prose pass"*), and **F-11, F-12 and F-13 all
-answered as (a)** — the celebration is a `modal-blocking` and the docs say so,
-the title takes h2's size, and `body` has no default. **F-14 is the one finding
-left**, plus the `title`-required rider recorded under F-13.
+(2026-09-18, Joel: *"do the prose pass"*), and **F-11 to F-14 all answered as
+(a)** — the celebration is a `modal-blocking` and the docs say so, the title
+takes h2's size, `body` has no default, and the verb's docstring stops claiming
+a form the call sites do not keep. **Every finding is worked.** What is left is
+the close: the whole-area re-read, and the blessing, which is Joel's. One thing
+recorded and not done: the `title`-required rider under F-13.
 
 ## The roster
 
@@ -349,7 +351,7 @@ callers pass a title, so its `'Congratulations!'` default is dead; whether the
 prop becomes required was raised alongside (a) and Joel answered the body
 question only.
 
-### F-terminal-14 · `scrabble-lowercases-the-verb` · The verb's docstring says the capitalized word is the only form; scrabble's strip prints it lowercased
+### F-terminal-14 · `scrabble-lowercases-the-verb` · The verb's docstring says the capitalized word is the only form; scrabble's strip prints it lowercased — WORKED as (a)
 
 `terminalOutcomeVerb.ts`: *"The capitalized word is the only form … the
 strip's word is computed once, here."* `scrabble/components/InfoCol.tsx`'s
@@ -367,6 +369,28 @@ wrong about it.
   siblings; a two-line edit in scrabble now, or a line in scrabble's `todo.md`
   for its area. Recommended as the `todo.md` line: the strip's format is
   scrabble's to decide with its files open.
+
+**Joel: *"a"* — and the audit's recommendation was the wrong one.** Reading
+scrabble's call site before presenting changed the answer: its format is not a
+slip but an argued decision, and its comment names the defect it fixes —
+`OpponentStrip` separates PLAYERS with `·` (`{i > 0 && <span
+className={styles.sep}>·</span>}`), so "Lost · 260" made "You: Lost · 260 · AI
+1: 333" run three separators doing two jobs. Score first, verb as a
+parenthetical annotation, lowercased because that is how an annotation after a
+number reads. (b) would have walked that back.
+
+So the docstring changed and no game did. It now says the capitalized word is
+the form it RETURNS, keeps the load-bearing half — there is no lowercase
+`'won' | 'quit' | 'lost'` intermediate, because that would look like the
+outcome vocabulary and is not it — and ends "a cell that wants another case
+makes it at the site". Its example lost the ` · ` shape, which the prose pass
+had written in from setgame and wordiply, in favor of ` at ` plus scrabble's
+annotation, and it now warns about the separator collision outright.
+
+**Left for those two games, deliberately:** setgame (`Won · 12`) and wordiply
+(`Won · 40%`) join with the mark the strip uses between players — the exact
+collision scrabble's comment describes. Changing a screen from here is not this
+area's call; their own areas have the files open.
 
 ## Notes
 
