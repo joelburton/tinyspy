@@ -6,19 +6,10 @@ import type { Outcome } from '@/common/outcomes/outcomes'
  * Everything that can be SAID about a move in this game, as a closed set — and
  * **read as a list, it is the whole roster of what this game tells anybody.**
  *
- * Two halves, and the `_peer` suffix is which: an answer is about MY move, or
- * about somebody else's. The same event gets one of each ALWAYS, even where the
- * words are identical today — what this type is for is being read top to bottom
- * and answering "who is told what" per line, and a pair collapsed to one entry
- * is a line that stops answering it. Where a pair does say the same thing,
- * `answerMessage` gives the two labels one case, so nothing is written twice
- * and nothing can drift.
+ * "_peer" versions are answers that come from subscriptions and are for peer
+ * feedback.
  */
 export type Answer =
-  // Each event and its peer twin, side by side: the `_peer` suffix says who
-  // sees it, so what is worth ordering by is the EVENT — which is also what
-  // puts an answer and its twin one line apart when they must agree.
-
   /** My correct guess. */
   | { answerType: 'hit'; word: string }
   /** A coop teammate's, on the board we share. */
