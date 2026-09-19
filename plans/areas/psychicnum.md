@@ -1407,6 +1407,15 @@ commands block's, so the shape rule does not reach them.
   class or a one-line pointer at `ANSWER_OUTCOME`.
 - `common/pdf` (row 47) is unblessed and psychicnum's printer builds on it.
   Joel: it's fine; the focus is the web-based parts.
+- **The `<ShuffleButton>` tab stop, worked from this game's `todo.md`**
+  (Joel, 2026-09-19, walking the todos: *"let's fix this; it's ok if this
+  changes code in other areas"*). The shared pill takes `tabIndex={-1}`; its
+  `:focus` / `:focus-visible` rules and the ⚠️ comment that argued with them
+  are gone; the docstring says why it never takes focus. `common/buttons` is
+  blessed and closed — closed is not locked — and its stamp does not move. The
+  item is deleted from `common/buttons/todo.md` and the seven games' pointers
+  to it (bananagrams, boggle, connections, psychicnum, scrabble, spellingbee,
+  wordwheel).
 - The area's opening deviated from §4 on purpose: the restructure runs before
   the prose pass (Joel, 2026-09-19), for the reason under *Three passes*.
 

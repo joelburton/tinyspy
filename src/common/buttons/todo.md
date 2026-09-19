@@ -19,10 +19,6 @@
   decisions. Picking one number is a `core-css` question; what belongs to a
   button is only that its tell is the missing hover, which every hover rule
   delivers by asking `:not(:disabled)`.
-- **`<ShuffleButton>` should never take focus at all** — game stuff doesn't.
-  Its `:focus { outline: none }` says a click leaves no ring, then
-  `:focus-visible` puts one back for a keyboard that has ⌥Z. The fix is
-  removing the tab stop, not restyling the ring.
 - **The plus in "+ New club" is a typed `+` character, not a glyph** — the
   last glyph-shaped affordance not in the icon registry. (Carried over from the
   small-buttons item, which is settled: see the folder's doc. A small BUTTON

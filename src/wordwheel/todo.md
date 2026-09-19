@@ -55,9 +55,6 @@
   default rng is `Math.random` and a copy comes back, so behavior is
   unchanged), and the edge function imports the util by relative path with an
   explicit `.ts`, the way `scrabble-ai-move` imports `mulberry32`.
-- `<ShuffleButton>` should never take focus at all — game stuff doesn't. The
-  fix is removing the tab stop, not restyling the ring
-  (`src/common/buttons/todo.md`).
 - **A race here has no way to stop the whole table.** Compete offers Concede
   alone, so a group that has lost interest can only close the game by every
   player conceding — one at a time, each taking a loss on their record for a

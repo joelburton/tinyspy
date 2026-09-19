@@ -98,9 +98,6 @@
   (`hooks/usePlayerBoard.ts`) or a one-line `shuffleString` kept as a wrapper
   over it — the wrapper reads better at the call site and keeps the two
   invariant tests in `lib/board.test.ts` where they are.
-- `<ShuffleButton>` should never take focus at all — game stuff doesn't. The
-  fix is removing the tab stop, not restyling the ring
-  (`src/common/buttons/todo.md`).
 
 ## Someday
 

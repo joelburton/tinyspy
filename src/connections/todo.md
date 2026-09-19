@@ -81,9 +81,6 @@
   Its three cases in `lib/localOrder.test.ts` (a permutation, the input
   untouched, an empty array) are pinned beside the util now and go with it;
   `reconcileLocalOrder` is untouched either way.
-- `<ShuffleButton>` should never take focus at all — game stuff doesn't. The
-  fix is removing the tab stop, not restyling the ring
-  (`src/common/buttons/todo.md`).
 - **A race here has no way to stop the whole table.** Compete offers Concede
   alone, so a group that has lost interest can only close the game by every
   player conceding — one at a time, each taking a loss on their record for a
