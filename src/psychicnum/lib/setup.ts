@@ -13,7 +13,7 @@ import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
  * The literal-union on `guesses` mirrors the SQL check; the
  * TypeScript narrowing here is advisory (a curious client could
  * always send something else). The server rejects anything that
- * doesn't match — see the migration's validation block.
+ * doesn't match — see `create_game` in `supabase/sql/psychicnum.sql`.
  *
  * Lives in `lib/` rather than inline in `manifest.ts` so the
  * Setup body component can import the same type without dragging
@@ -21,9 +21,8 @@ import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
  * would not split into its own chunk).
  */
 export type PsychicnumValues = CoopTurnSetup & {
-  // Starting guess budget — the shared pool every club member
-  // draws from. 7 is the historical default; 3/5/9 are the
-  // harder/easier alternatives the dialog offers.
+  // Starting guess budget — shared by the team in coop, each racer's own in
+  // compete. The dialog offers 3, 5, 7 or 9.
   guesses: 3 | 5 | 7 | 9
   // How many words sit on the board (5..20). Three of them are the
   // hidden secrets; a bigger board means more haystack around the
@@ -35,7 +34,7 @@ export type PsychicnumValues = CoopTurnSetup & {
   // non-slang filter). Validated server-side.
   difficulty: number
   // Browser-side timer mode. `none` and `countup` are
-  // informational; `countdown` flips the game to `lost` when the
+  // informational; `countdown` ends the game as a loss when the
   // clock hits 0 (via psychicnum.submit_timeout). Validated
   // server-side by `common.require_valid_timer`.
   timer: TimerMode

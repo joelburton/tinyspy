@@ -109,7 +109,8 @@ export function useGame(gameId: string): {
   guesses: EventRow[]
   loading: boolean
   // Set when a read FAILED, which is not the same as the game being absent.
-  // The surface renders this instead of "Game not found."
+  // The loader renders `<EnvelopeErrorPage>` for this, and `<NoSuchGamePage>`
+  // for a game that is absent.
   failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<PsychicnumGame | null>(null)

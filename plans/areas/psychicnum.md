@@ -28,8 +28,10 @@ carry a decision. **F-4 is RULED** (Joel, same day): every board is five-letter
 words plus one nine-letter word, and that is the design — the "TEMP" prose
 that called it a font-tuning aid is gone and the doc and the CSS say what the
 board is. The rest are prose — stale claims, the marker pass, a banned word —
-and two shape questions. Sixteen open. The earlier three findings (F-1 to F-3) shipped
-during the restructure.
+and two shape questions. **All seventeen are settled (2026-09-19)**, each one
+walked through and ruled by Joel, one commit apiece. What pass 2 still owes:
+the whole-area re-read in one sitting (Closing), then pass 3. The earlier
+three findings (F-1 to F-3) shipped during the restructure.
 
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
@@ -1255,7 +1257,13 @@ it, and the score line reads it instead of a hand-written 3.
   `SECRET_COUNT` in `PlayArea.tsx`, which the print model does not import.
   One home, or the builder takes it as an argument.
 
-### F-psychicnum-20 · `docstrings-that-name-what-is-not-there` · in `useGame`, `Help` and `setup`
+### SHIPPED · F-psychicnum-20 · `docstrings-that-name-what-is-not-there` · in `useGame`, `Help` and `setup`
+
+**Joel, 2026-09-19: "do it."** All five: `failure`'s note names the two
+pages the loader renders; `Help` implements `GameManifest.help` by name
+rather than by a stale copy of its shape; `setup.ts` points at `create_game`
+in the repeatable SQL, says the budget is per team or per racer, and says a
+countdown ends the game as a loss without naming one mode's state.
 
 - `hooks/useGame.ts` → the return type's `failure`: *"The surface renders this
   instead of "Game not found.""* — that `<p>` went at Step 2; it renders

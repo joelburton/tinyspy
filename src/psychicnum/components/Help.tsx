@@ -9,8 +9,7 @@ type Props = {
 
 /**
  * psychicnum's help / rules modal — opened from the "Help" item
- * in the GamePage menu. Implements the common
- * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
+ * in the GamePage menu. Implements `GameManifest.help`.
  *
  * The two assists are named apart here because they are the pair
  * this game is easiest to get wrong about: a hint gives the clue, a
