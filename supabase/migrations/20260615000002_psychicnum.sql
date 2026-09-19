@@ -17,7 +17,9 @@
 -- in 20260917000000_psychicnum_events.sql. Read "reveal" here as
 -- today's SPOILER — handing over one secret word. The app now uses
 -- "reveal" for a different thing entirely: the local, reversible
--- toggle that shows the whole solution at game over.
+-- toggle that shows the whole solution at game over. And the file
+-- this header cites as `src/common/lib/games.ts` is
+-- `src/common/manifest/gameManifest.ts`.
 --
 --   psychicnum_coop    — players share a single guess budget and
 --                        a single board, see each other's guesses

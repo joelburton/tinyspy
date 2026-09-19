@@ -1102,7 +1102,15 @@ status-label table is unchanged (`gameStatusLabels.test.ts` green). The two
   the word is written once. Only the trailing `'no winner'` differs.
 - Two of the banned word (F-psychicnum-17).
 
-### F-psychicnum-14 · `stale-prose-in-sql-and-tests` · sentences in the SQL and pgTAP that name something not there
+### SHIPPED · F-psychicnum-14 · `stale-prose-in-sql-and-tests` · sentences in the SQL and pgTAP that name something not there
+
+**Joel, 2026-09-19: "do it."** All ten sites, prose only: the SQL's seven
+(both "game is not active"s say "Game over"; the hint and spoiler headers say
+the header line's words; `submit_timeout`'s P0001 is the game-over race and
+its realtime-touch comment names Reveal solution rather than two strings that
+never existed; `end_game`'s "green" is "neutral"), the migration's dead path
+added to its header's "read this as" note, and the four test files. The SQL
+re-applied locally and the whole pgTAP suite re-run green.
 
 `supabase/sql/psychicnum.sql`:
 

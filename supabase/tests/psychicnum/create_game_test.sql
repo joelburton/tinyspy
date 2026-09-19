@@ -8,7 +8,7 @@
 --   1. Auth + membership gating (same in both modes)
 --   2. Mode validation: rejected when not in {coop, compete}
 --   3. Compete-mode player-count floor (>= 2 players)
---   4. Setup-shape validation: guesses + timer
+--   4. Setup-shape validation: guesses, word_count, difficulty, timer
 --   5. Happy path (coop): writes psychicnum_coop gametype,
 --      seeds per-player budget rows, mode='coop' on the row,
 --      word_count board words + three distinct secrets drawn from them
@@ -272,7 +272,7 @@ select is(
   'coop: every player_row starts with setup.guesses'
 );
 
--- (10) Target is a 1..10 int
+-- (10) The board and its secrets
 reset role;
 select ok(
   (select array_length(words, 1) = 8                       -- the word_count

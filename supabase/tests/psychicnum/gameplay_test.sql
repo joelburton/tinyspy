@@ -1,7 +1,7 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: psychicnum.submit_guess + request_hint/reveal + submit_timeout
+-- Test: psychicnum.submit_guess + request_hint / request_spoiler + submit_timeout
 -- ============================================================
 --
 -- The computer hides THREE secret WORDS among the board words;
@@ -214,7 +214,7 @@ select is(
   'coop: request_hint / request_spoiler do not decrement the budget'
 );
 
--- (10) bea finds zbravo, then zcharlie (the last) → team wins
+-- (12) bea finds zbravo, then zcharlie (the last) → team wins
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select psychicnum.submit_guess((select id from coop_g), 'zbravo');
 select pg_temp.envelope_is(
@@ -238,7 +238,7 @@ select is(
   'coop: every player gets game_players.result = {won: true} on team win'
 );
 
--- (11) submit_guess on a finished game is rejected
+-- (13) submit_guess on a finished game is rejected
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zecho'),

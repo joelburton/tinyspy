@@ -434,7 +434,7 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 -- Concurrency: SELECT FOR UPDATE on the game row serializes
 -- concurrent submits. Two simultaneous set-completing guesses in
 -- compete: first commits the winner; the second sees play_state
--- != 'playing' and raises 'game is not active'.
+-- != 'playing' and raises 'Game over'.
 
 drop function if exists psychicnum.submit_guess(uuid, text);
 create or replace function psychicnum.submit_guess(target_game uuid, guess text)
@@ -498,8 +498,8 @@ begin
   -- Turn-order gate (opt-in turn-by-turn coop). No-op for free-for-all
   -- games (pointer null) and solo; raises 'not your turn' when it's a
   -- turn game and someone guesses out of turn. Placed after the active
-  -- check so a finished game reads "game is not active" for everyone,
-  -- not "not your turn" for the non-current player.
+  -- check so a finished game reads "Game over" for everyone,
+  -- not "Not your turn" for the non-current player.
   perform common._require_turn(target_game, caller_id);
 
   -- A conceded player is out of the race — no more guesses. The FE gates
@@ -880,8 +880,8 @@ revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) fr
 -- Reveals one of the player's (compete) / team's (coop) unfound
 -- secret WORDS — the answer. Logged as a `kind = 'spoiler'` row so
 -- it flows into the event log over realtime (red), and so coop
--- teammates get a "X revealed a word" pill (in compete the events
--- RLS scopes the row to the caller — spoilers are private there).
+-- teammates get a "got spoiler" line in the header (in compete the
+-- events RLS scopes the row to the caller — spoilers are private there).
 -- Costs no budget and does NOT find the secret: it just shows it, so
 -- the player still has to guess (or doesn't bother — it's a cheat).
 --
@@ -978,7 +978,7 @@ grant execute on function psychicnum.request_spoiler(uuid) to authenticated;
 -- 5-letter common words), so a missing clue logs the literal
 -- "No hint available". The `kind = 'hint'` row carries the clue
 -- text (NOT the secret word — a hint never leaks the answer into
--- the row). Coop teammates get a "X asked for a hint" pill;
+-- the row). Coop teammates get a "got hint" line in the header;
 -- compete scopes it to the caller via RLS.
 --
 -- TWO `ok`s, because "here is a clue" and "this word has no clue" are
@@ -1085,8 +1085,9 @@ grant execute on function psychicnum.request_hint(uuid) to authenticated;
 -- show mode-appropriate copy.
 --
 -- Idempotency: the `play_state <> 'playing'` guard means a
--- second concurrent fire from another tab raises P0001; the
--- FE swallows.
+-- second concurrent fire from another tab is refused as the shared
+-- game-over race (`_raise_game_over`), which the frontend shows as
+-- a race pill.
 
 drop function if exists psychicnum.submit_timeout(uuid);
 
@@ -1152,8 +1153,7 @@ begin
   -- Realtime touch — same as end_game. common.end_game writes only
   -- common.games, so without this no-op self-set the psychicnum.games
   -- subscription never refetches and games_state.secrets stays null on
-  -- every client — BoardCol shows the fallback "Game over." instead of
-  -- the "The words were …" reveal.
+  -- every client — Reveal solution would have nothing to show.
   update psychicnum.games
      set club_handle = club_handle
    where id = target_game;
@@ -1188,8 +1188,8 @@ grant execute on function psychicnum.submit_timeout(uuid) to authenticated;
 -- simply agreed to stop. So this writes the UNIFORM terminal
 -- play_state 'ended' (the same value spellingbee/the other games use
 -- for their manual stops) with status.outcome='manual'. The FE
--- has explicit 'ended' branches that render this neutrally (green
--- "Game ended", not the red "you lost" treatment).
+-- has explicit 'ended' branches that render this neutrally (the
+-- neutral "Game ended", not the red "you lost" treatment).
 --
 -- Per-player result is the bare `{"won": false}` for everyone —
 -- psychicnum tracks no per-player score or rank, so there's

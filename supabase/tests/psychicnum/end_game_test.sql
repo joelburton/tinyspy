@@ -9,7 +9,7 @@
 -- loss), a manual stop is neutral: it writes the UNIFORM terminal
 -- play_state='ended' with status.outcome='manual' and everyone's
 -- result = {won: false}. We assert that shape for coop AND
--- compete, plus idempotency (a 2nd call raises P0001) and that a
+-- compete, plus idempotency (a 2nd call is refused as the game-over race) and that a
 -- non-player can't fire it.
 --
 -- Strategy mirrors gameplay_test.sql: build a club, create a
@@ -90,13 +90,13 @@ select is(
   'coop: every player gets result = {won: false} on manual end'
 );
 
--- (7) Idempotency — a 2nd end_game on a terminal game raises P0001
+-- (7) Idempotency — a 2nd end_game on a terminal game is refused as the game-over race
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   psychicnum.end_game((select id from coop_g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'coop: second end_game on terminal game raises P0001');
+  'coop: second end_game on terminal game is refused as the game-over race');
 
 -- ============================================================
 -- COMPETE block — same shape, mode echoed into status
@@ -150,7 +150,7 @@ select pg_temp.envelope_is(
   psychicnum.end_game((select id from comp_g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'compete: second end_game on terminal game raises P0001');
+  'compete: second end_game on terminal game is refused as the game-over race');
 
 -- ============================================================
 select * from finish();
