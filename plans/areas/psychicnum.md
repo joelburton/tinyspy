@@ -1035,7 +1035,15 @@ No decision; the rule is written. A read per file, not a sweep.
 
 No decision in any of these.
 
-### F-psychicnum-12 · `two-spellings-of-one-fact` · InfoCol re-derives two answers the context already carries
+### SHIPPED · F-psychicnum-12 · `two-spellings-of-one-fact` · InfoCol re-derives two answers the context already carries
+
+**Joel, 2026-09-19: "one answer each."** `InfoCol` takes `isMyTurn` (the
+shell's, the one `BoardCol` gates the entry on) and gates the help line on it;
+`myTurn` and its derivation are gone. `<TurnStatusLine>` reads the
+`isTerminal` prop the column already had rather than `terminalMessage !==
+null`. The existing turn-order specs cover the help line through
+`ctx.isMyTurn` — **verified by planting**: the gate dropped reds "on a
+teammate's turn" (1 red).
 
 - It takes `isTerminal` as a prop (for the log's picker) **and** derives
   `isTerminal={terminalMessage !== null}` for `<TurnStatusLine>` — the same

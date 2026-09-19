@@ -699,7 +699,9 @@ function PlayArea({
         terminalMessage={terminalMessage}
         isStillPlaying={isStillPlaying}
         myConceded={myConceded}
-        // ── Turn-order (null for free-for-all games → no TurnStatusLine) ──
+        // ── Turn-order: the shell's one answer (gates the help line), and the
+        //    holder's id (null for free-for-all games → no TurnStatusLine) ──
+        isMyTurn={isMyTurn}
         currentTurnUserId={currentTurnUserId}
         // ── State readout ──
         found={found}

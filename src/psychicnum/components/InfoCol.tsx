@@ -32,6 +32,7 @@ export function InfoCol({
   terminalMessage,
   isStillPlaying,
   myConceded,
+  isMyTurn,
   currentTurnUserId,
   found,
   secretCount,
@@ -64,6 +65,9 @@ export function InfoCol({
   /** I conceded a compete race (a real loss; the others keep racing) — picks the
    *  locally-done status wording. */
   myConceded: boolean
+  // Turn-order: may I act THIS moment? The shell's one answer, the same one
+  // BoardCol gates the entry on. Always true for free-for-all / solo.
+  isMyTurn: boolean
   /** Whose turn it is under turn-order, or null for a free-for-all game.
    *  Non-null ⇒ render the shared `<TurnStatusLine>` (this is a turn game);
    *  null ⇒ omit it entirely (the default free-for-all games). */
@@ -142,11 +146,6 @@ export function InfoCol({
       ? undefined
       : { text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
 
-  // Turn-order: is it my turn (or a free-for-all game, pointer null)? Only used
-  // to hide the "type a word" help while I'm waiting — the entry is inert then,
-  // so the prompt would misdirect. Hint/Reveal/End stay available while waiting.
-  const myTurn = currentTurnUserId === null || currentTurnUserId === selfId
-
   return (
     <div className={shared.infoCol}>
       {/* The non-log info column — the shared named readouts, in the canonical order
@@ -172,7 +171,7 @@ export function InfoCol({
             currentTurnUserId={currentTurnUserId}
             players={players}
             selfId={selfId}
-            isTerminal={terminalMessage !== null}
+            isTerminal={isTerminal}
           />
         )}
         {isCompete && (
@@ -228,11 +227,13 @@ export function InfoCol({
           />
         </InfoActionsRow>
 
-        {/* Help — shown ONLY while you can actually act on it (isStillPlaying). It never
-            silently swaps text: the "out of guesses, waiting" state is carried loudly
-            by the action row above (the terminal look), not by a quietly-changed help
-            line. Below the action row, per the InfoCol order. */}
-        {isStillPlaying && myTurn && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
+        {/* Help — shown ONLY while you can actually act on it: still playing, and
+            it is my move (the entry is inert while I wait, so the prompt would
+            misdirect; Hint / Reveal / End stay available). It never silently
+            swaps text: the "out of guesses, waiting" state is carried loudly by
+            the action row above (the terminal look), not by a quietly-changed
+            help line. Below the action row, per the InfoCol order. */}
+        {isStillPlaying && isMyTurn && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
 
         {/* Setup — shown in BOTH states, behind a disclosure, LAST before the event log
             (docs/playarea.md → Info-column readouts). Open, it grows (which we
