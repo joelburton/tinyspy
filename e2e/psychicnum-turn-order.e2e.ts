@@ -40,7 +40,7 @@ test.describe('psychicnum turn order (coop)', () => {
 
     // ── Alice's turn: she sees "Your turn"; Bob is told he's waiting on her. ──
     // (Bob also shows the gated "Waiting for others" action row — a separate
-    // element — so target the turn copy by Alice's username specifically.)
+    // element — so target the turn text by Alice's username specifically.)
     await expect(pageA.getByText('Your turn')).toBeVisible({ timeout: 15000 })
     // TWO elements carry it, and both matter: the info column's TurnStatusLine
     // (the desktop answer) and the below-board whose-turn message (the ONLY
@@ -71,7 +71,7 @@ test.describe('psychicnum turn order (coop)', () => {
       pageA.getByText(new RegExp(`Waiting for.*${bob.username}`)),
     ).toHaveCount(1, { timeout: 15000 })
     // …and dismissing the result — a tap is her next action — uncovers the
-    // waiting note that was live underneath it: the slot's copy, the second.
+    // waiting note that was live underneath it: the slot's line, the second.
     //
     // The trailing `: ` is what makes this the PILL and not the event log's
     // result cell, which says a bare "Correct" / "Wrong" in its own

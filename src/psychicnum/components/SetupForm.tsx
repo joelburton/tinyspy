@@ -75,7 +75,7 @@ export function SetupForm({
         }}
       />
       <SetupSection label={guessesLabel}>
-        {/* Copy is mode-neutral on purpose — the same SetupForm
+        {/* The text is mode-neutral on purpose — the same SetupForm
             backs both psychicnum_coop and psychicnum_compete
             manifests. In coop this is the shared pool (per-player
             value equals shared value because everyone decrements

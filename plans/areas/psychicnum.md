@@ -1204,7 +1204,11 @@ assertion changed.
   the token is `--outcomes-won-fill-color`. And one of the banned word
   (F-psychicnum-17).
 
-### F-psychicnum-17 · `banned-word-copy` · "copy" for a message's words, in five files
+### SHIPPED · F-psychicnum-17 · `banned-word-copy` · "copy" for a message's words, in five files
+
+**Joel, 2026-09-19: "do it."** Nine uses in six files, each now *text*,
+*label*, *message* or *line*. `doc.md`'s "desktop's copy" stays: that is a
+second instance of a component, not a message's words.
 
 `manifest.ts` (*"Start-button copy"*, *"terminal copy"*),
 `components/SetupForm.tsx` (*"Copy is mode-neutral on purpose"*),

@@ -27,13 +27,13 @@ import logoUrl from './logo.svg?url'
  * They differ on:
  *
  *   - `gametype` string, used as the URL segment + registry key.
- *   - `name` shown in titles and Start-button copy.
+ *   - `name` shown in titles and on the Start button.
  *   - `mode` declaration (the canonical axis for downstream
  *     code that wants to distinguish behavior — see
  *     GameManifest.mode in src/common/manifest/gameManifest.ts).
  *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
  *     requires an opposing player (`[2, 6]`).
- *   - `labelFor`: terminal copy reads differently per mode.
+ *   - `labelFor`: the terminal label reads differently per mode.
  *
  * Both share `baseGametype: 'psychicnum'` — the family key any
  * code wanting "treat these as siblings" reads.

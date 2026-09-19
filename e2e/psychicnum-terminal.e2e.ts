@@ -84,7 +84,7 @@ test('terminal: secrets stay hidden until Reveal, go green, then hide again', as
   await expect.poll(async () => (await greenTiles()).length, { timeout: 8000 }).toBe(0)
   await expect(reveal).toBeVisible()
 
-  // The below-board pill carries the verdict (the shared neutral end copy), not a
+  // The below-board pill carries the verdict (the shared neutral end text), not a
   // word list.
   await expect(page.getByText('Game ended', { exact: true })).toBeVisible()
 

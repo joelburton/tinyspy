@@ -1081,8 +1081,8 @@ grant execute on function psychicnum.request_hint(uuid) to authenticated;
 -- loss is the only honest outcome.
 --
 -- Terminal play_state is the per-mode value ('lost' for coop,
--- 'lost_compete' for compete) so the FE's terminal copy can
--- show mode-appropriate copy.
+-- 'lost_compete' for compete) so the frontend's terminal message
+-- can read per mode.
 --
 -- Idempotency: the `play_state <> 'playing'` guard means a
 -- second concurrent fire from another tab is refused as the shared
