@@ -1183,7 +1183,15 @@ fix in its doc:
 
 No decision, except the first.
 
-### F-psychicnum-16 · `e2e-prose` · the specs write screenshots into dead session folders, and three comments are stale
+### SHIPPED · F-psychicnum-16 · `e2e-prose` · the specs write screenshots into dead session folders, and three comments are stale
+
+**Joel, 2026-09-19: "drop them."** The two psychicnum specs' screenshot calls
+are gone, and so are the three siblings' with the same dead path
+(`wordle-history`, `codenamesduet-history`, `connections-history`) — the sweep
+this finding caused, no stamp moved. The gallery is the visual record. The
+history spec's "(still monolithic)" is gone and the terminal spec's token name
+has its `s`. The "end copy" waits for F-17. The e2e suite was not run: no
+assertion changed.
 
 - `psychicnum-history.e2e.ts` and `psychicnum-turn-order.e2e.ts` call
   `page.screenshot({ path: '/private/tmp/claude-501/…/<session>/scratchpad/…' })`

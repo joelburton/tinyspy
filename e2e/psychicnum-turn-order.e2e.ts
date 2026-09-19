@@ -51,16 +51,6 @@ test.describe('psychicnum turn order (coop)', () => {
       pageB.getByText(new RegExp(`Waiting for.*${alice.username}`)),
     ).toHaveCount(2, { timeout: 15000 })
 
-    // Capture the two-client turn state for the visual record.
-    await pageA.screenshot({
-      path: '/private/tmp/claude-501/-Users-joel-src-codenames/d9659abe-d158-4755-86b7-c17d10569fef/scratchpad/psychic-turn-alice.png',
-      fullPage: true,
-    })
-    await pageB.screenshot({
-      path: '/private/tmp/claude-501/-Users-joel-src-codenames/d9659abe-d158-4755-86b7-c17d10569fef/scratchpad/psychic-turn-bob.png',
-      fullPage: true,
-    })
-
     // Bob cannot act: the waiting pill has taken the entry slot (WordEntryArea's
     // designed pill swap — same height, controls replaced), so there's no Submit
     // to press at all. Crucially he is NOT shown the locally-terminal "out of

@@ -38,7 +38,7 @@ test('terminal: secrets stay hidden until Reveal, go green, then hide again', as
   await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
   // Mid-game: nothing is green (the secrets aren't even on the client yet).
-  // `--outcome-won-fill-color`, the green a decided-and-correct tile wears.
+  // `--outcomes-won-fill-color`, the green a decided-and-correct tile wears.
   const GREEN = 'rgb(102, 187, 106)'
   const greenTiles = () =>
     page.evaluate((green) =>

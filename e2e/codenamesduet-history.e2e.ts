@@ -80,14 +80,6 @@ test.describe('codenamesduet turn-history viewer', () => {
     const viewingHeight = await boardHeight(pageBob)
     expect(Math.abs(viewingHeight - liveHeight)).toBeLessThan(1)
 
-    // Visual capture — the full page, so the board frame (an outline OUTSIDE
-    // the board box), the ringed just-guessed cell, the banner, and the highlighted
-    // log row all show.
-    await pageBob.screenshot({
-      path: '/private/tmp/claude-501/-Users-joel-src-codenames/ed6e8ac1-4791-48ee-b2cd-8a67974e2f37/scratchpad/duet-history-viewing.png',
-      fullPage: true,
-    })
-
     // ── Exit path A — a keystroke returns to live. Space specifically: the handle is
     // a <span> (not a focusable button), so Space isn't captured as a re-click and
     // falls through to the viewer's any-key `act-exit-history`.

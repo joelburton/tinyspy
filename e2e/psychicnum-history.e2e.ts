@@ -5,8 +5,8 @@ import { createSoloClub, createGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * Turn-history viewer for psychicnum — the feature added on the (still monolithic)
- * PlayArea. Clicking an event-log #N replays that turn on the board: the tiles decided
+ * Turn-history viewer for psychicnum. Clicking an event-log #N replays that turn on
+ * the board: the tiles decided
  * up to that turn colored, that turn's guessed tile ringed in the history blue (over
  * its green/red outcome color), the board wearing the viewing frame, and a description
  * banner over the below-board slot. These are real layout/overlay properties jsdom
@@ -48,12 +48,6 @@ test.describe('psychicnum turn-history viewer', () => {
     const banner = page.locator('[data-history-banner]')
     await expect(banner).toBeVisible({ timeout: 10000 })
     await expect(Math.abs((await boardHeight(page)) - liveHeight)).toBeLessThan(1)
-
-    // Visual capture — the board frame, the ringed guessed tile, the banner.
-    await page.screenshot({
-      path: '/private/tmp/claude-501/-Users-joel-src-codenames/ed6e8ac1-4791-48ee-b2cd-8a67974e2f37/scratchpad/psychic-history-viewing.png',
-      fullPage: true,
-    })
 
     // ── Exit path A — a keystroke (the entry's capture is frozen while viewing).
     await page.keyboard.press('Space')

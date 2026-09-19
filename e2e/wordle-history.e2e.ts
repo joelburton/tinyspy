@@ -58,12 +58,6 @@ test.describe('wordle turn-history viewer', () => {
     await handles.first().click()
     await expect(banner).toContainText(`Guess 1: ${words[0]}`)
 
-    // Visual capture — the board frame, the ringed guess row, the banner.
-    await page.screenshot({
-      path: '/private/tmp/claude-501/-Users-joel-src-codenames/ed6e8ac1-4791-48ee-b2cd-8a67974e2f37/scratchpad/wordle-history-viewing.png',
-      fullPage: true,
-    })
-
     // ── Exit path A — a keystroke (the board's capture is frozen while viewing, so
     // the key returns to live instead of typing a letter).
     await page.keyboard.press('a')

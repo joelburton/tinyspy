@@ -55,13 +55,6 @@ test.describe('connections turn-history viewer', () => {
     await expect(banner).toContainText(/matched/i) // "Matched WORDS STARTING WITH A"
     await expect(Math.abs((await boardHeight(page)) - liveHeight)).toBeLessThan(1)
 
-    // Visual capture — the board frame, the 4 green-ringed A-word tiles (a
-    // band on the live board, tiles here), the banner.
-    await page.screenshot({
-      path: '/private/tmp/claude-501/-Users-joel-src-codenames/ed6e8ac1-4791-48ee-b2cd-8a67974e2f37/scratchpad/conn-history-viewing.png',
-      fullPage: true,
-    })
-
     // ── Exit path A — a keystroke.
     await page.keyboard.press('Space')
     await expect(banner).toBeHidden({ timeout: 10000 })
