@@ -150,8 +150,8 @@ export function PlayArea({
   }, [])
 
   // Mobile: below --mobile the board fills the screen and the info column slides in
-  // as an off-canvas sheet from a "Game info" menu item (the shared recipe —
-  // docs/mobile.md). Plain (not `wide`): the info column is a narrow 22rem readout
+  // as the off-canvas info page, reached by the header's page switch (the shared
+  // recipe — docs/mobile.md). The info column is a narrow 22rem readout
   // + event log, no multi-column word list. Desktop is untouched.
   const infoSheet = useInfoSheet()
 

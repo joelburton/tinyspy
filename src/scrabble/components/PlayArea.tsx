@@ -87,7 +87,7 @@ export function PlayArea({
 
   // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
   // board fills the screen and the info column moves into an off-canvas
-  // <InfoSheet>, opened from the hook's "Game info" menu item. Desktop is
+  // <InfoSheet>, reached by the header's page switch. Desktop is
   // unchanged. This is a LAYOUT for keyboard-attached devices (tablets), not a
   // touch-entry mode — the drag path gets no touch support; play is the
   // keyboard cursor (tap a square, type). Like crosswords, the window-level key

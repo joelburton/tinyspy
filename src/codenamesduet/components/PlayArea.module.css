@@ -8,7 +8,7 @@
  *
  * Mobile is the shared recipe (docs/mobile.md): `shared.mobileFill` on `.layout`
  * (board fills the width) + `<InfoSheet>` around the InfoCol (off-canvas sheet) +
- * `useInfoSheet` (the "Game info" menu item) — all in PlayArea.tsx. The clue-giver
+ * `useInfoSheet` (the open flag) — all in PlayArea.tsx. The clue-giver
  * keyboard is handled by NOT fighting it (the board stays full-size, the page
  * scrolls) — again nothing CSS-specific here. Nothing mobile-specific left. */
 

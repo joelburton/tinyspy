@@ -4,10 +4,12 @@ import { useCallback, useState } from 'react'
 import { useIsMobile } from '../mobile/useIsMobile'
 import { setInfoSheetOpen, useInfoSheetOpen } from './infoSheetStore'
 
+/** What a game gets from `useInfoSheet`: the flag to hand `<InfoSheet>`, and a
+ *  way back to the board. */
 export type InfoSheetApi = {
-  /** Whether the info page is showing instead of the board (mobile). */
+  // Whether the info page is showing instead of the board (mobile).
   isOpen: boolean
-  /** Return to the board. */
+  // Return to the board.
   close: () => void
 }
 
@@ -16,14 +18,11 @@ export type InfoSheetApi = {
  * recipe). Below the breakpoint a game's board fills the screen and its info
  * column becomes a second page you switch to.
  *
- * **The switching affordance is not here.** It used to be: this hook returned a
- * mobile-only "Game info" menu item, which was a placeholder — burying a
- * half-of-the-app navigation two taps deep inside a menu. The shell now renders
- * a **switch button pinned to the header's right edge**, present in the same
- * place on both pages, and the state it drives lives in `infoSheetStore` so the
- * header (in `<GamePage>`) and the sheet (in each game's PlayArea) can both
- * reach it. What's left for a game is what it always needed: the open flag to
- * hand `<InfoSheet>`, and a way to close.
+ * **The switching affordance is not here.** The shell's header renders the
+ * switch button, and the flag it drives lives in `infoSheetStore` so the header
+ * (in `<GamePage>`) and the sheet (in each game's PlayArea) can both reach it —
+ * doc.md → Intro to area. What a game gets is what a game needs: the open flag
+ * to hand `<InfoSheet>`, and a way to close.
  *
  * Pair it with:
  *   - `<InfoSheet open={sheet.isOpen} onClose={sheet.close}>` around the InfoCol

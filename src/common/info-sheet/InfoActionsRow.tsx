@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
 import type { Outcome } from '../outcomes/outcomes'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '../game-page/playArea.module.css'
 import styles from './InfoActionsRow.module.css'
 
 /**

@@ -1,32 +1,29 @@
 /* cs-audited-info-sheet */
 
 /* The info column's bordered panel — a small heading with an evident 2px-framed
- * box under it. Worn by the event log, the word list, and bananagrams's hand, all
- * of which sit in the info column and all of which had a private copy of these
- * same rules. bananagrams's even carried the comment "Matches the shared
- * WordList / EventLog chrome", which is the standing signal that a match kept by
- * memory should be kept by the stylesheet instead.
+ * box under it. Worn by every panel in the column that is a heading over a box:
+ * the event log, the word list, bananagrams's hand. Each of them had a private
+ * copy of these same rules, which is a match kept by memory rather than by the
+ * stylesheet.
  *
  * Compose with whatever the panel does INSIDE its frame:
  *   <h3 className={cls(infoPanel.heading, …)}>
  *   <div className={cls(infoPanel.box, styles.box)}>
  *
  * The heading row and its filter group (`.headerRow` / `.selectGroup`) are here
- * too, because the picker HOOKS render them — the event log's
- * `useEventLogPlayerPicker` and the word list's `useWordListFilter`. Keeping them
- * in a component's private module meant a hook importing that module, which is
- * how the two copies would drift. (The filter CONTROL is `<FilterSelect>`, which
- * carries its own styles.)
+ * too, for a simpler reason: a heading with a control beside it is worn by
+ * components in two different folders, so neither folder's private module can own
+ * it. (The filter CONTROL is `<FilterSelect>`, which carries its own styles.)
  *
- * The frame is all that's shared, deliberately. The three interiors have genuinely
+ * The frame is all that's shared, deliberately. The interiors have genuinely
  * different jobs — the event log scrolls vertically, the word list is a
  * horizontally-scrolling column-major grid, the hand is a padded flex column with
  * a dump zone — so each keeps its own `display` / `overflow` / padding locally.
  *
- * NOT used by stackdown's board `.canvas`, which draws the same 2px divider
- * border with `radius-lg`. That's a board frame, not an info panel: same
- * ingredient, different dish. Its comment already cross-references this chrome,
- * and that's the right amount of coupling for it.
+ * A board frame is not an info panel, even when it draws the same 2px divider
+ * border: stackdown's board `.canvas` is the case — same ingredient, different
+ * dish. Its comment cross-references this chrome, and that's the right amount of
+ * coupling for it.
  */
 
 /* The heading above the box — outside the frame, not inside it. */
@@ -39,10 +36,9 @@
 }
 
 /* The heading ROW — used when a panel puts a control beside its heading: the
- * heading left, the control(s) right. The event log's "whose turns?" picker
- * (`useEventLogPlayerPicker`) and the word list's kind/who pair
- * (`useWordListFilter`) both wear it. A panel with a bare <h3> renders the
- * heading alone and never touches this. */
+ * heading left, the control(s) right. `EventLog` wears it for its "whose turns?"
+ * picker and `WordList` for its kind/who pair. A panel with a bare <h3> renders
+ * the heading alone and never touches this. */
 /* @@ */ .headerRow {
   display: flex;
   align-items: center;
@@ -56,8 +52,8 @@
  * focus takes the keyboard away from the board. The small, understated look
  * these had is preserved there; see FilterSelect.tsx for why it isn't native. */
 
-/* Two filters side by side (the word list's KIND + WHO), as one group at the
- * right of the heading row. */
+/* Two filters side by side (the word list's KIND + WHO, rendered by
+ * `useWordListFilter`), as one group at the right of the heading row. */
 /* @@ */ .selectGroup {
   display: flex;
   align-items: center;

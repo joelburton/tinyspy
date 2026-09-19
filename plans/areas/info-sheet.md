@@ -4,10 +4,11 @@ The folders it reads: `info-sheet`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18, seventeen findings, none worked.** Roster
-agreed 2026-09-18 (Joel: *"this is the roster. do the audit"*); fifteen files
-stamped `cs-audited-info-sheet`. Taken in order after `reveal` (row 45); this is
-row 46.
+**Status: OPEN — audited 2026-09-18; the prose pass done 2026-09-18 (F-1 to
+F-6, F-8, F-9, F-10, F-17), so seven findings are left: the bug F-7 and the six
+that carry a decision.** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
+the audit"*); fifteen files stamped `cs-audited-info-sheet`. Taken in order after
+`reveal` (row 45); this is row 46.
 
 ## The roster
 
@@ -99,7 +100,7 @@ deleted 2026-08-25; the folder move `c2f9baf2` 2026-09-04; `TurnStatusLine` +
 `turnText` moved in `4f664af2` 2026-09-12; `InfoActionsRow` moved in and
 `playArea.module.css` lowercased 2026-09-14/15.)*
 
-### F-info-sheet-1 · `props-wear-docstrings` · Fourteen prop and member notes open with `/**`
+### F-info-sheet-1 · `props-wear-docstrings` · Fourteen prop and member notes open with `/**` — WORKED
 
 §4 → The docstring marker: a prop takes `//`; the docstring is the component's.
 `InfoSheet` (`open`, `children`), `InfoSwitchButton` (`open`),
@@ -109,7 +110,7 @@ itself has no docstring), `OpponentStrip` (`metricFor`, `metricLabel`,
 `game-page` last week, already has it right. The notes themselves are good and
 stay.
 
-### F-info-sheet-2 · `switch-docstring-says-24rem` · `InfoSwitchButton`'s docstring argues from a sheet width the same commit abolished
+### F-info-sheet-2 · `switch-docstring-says-24rem` · `InfoSwitchButton`'s docstring argues from a sheet width the same commit abolished — WORKED
 
 *"`<InfoSheet>` is `min(24rem, 100%)` wide, which is 384px against an iPhone's
 390"* — written in `6d93b8c3` (2026-08-04), the commit whose CSS made the sheet
@@ -123,7 +124,20 @@ class is `.wrap` and there is no ✕), the `<InfoSheet>` bullet (*"+ the ✕"*),
 the status-bar section (*"on a phone the ~24rem sheet covers the bar; on a
 tablet both are on screen"* — full-bleed covers it on both).
 
-### F-info-sheet-3 · `used-to-in-seven-files` · The folder narrates how it used to work, in code that should say what is
+**And twelve files outside the folder said it too**, found by sweeping the same
+two phrases at the pass. Eleven opened their mobile comment on the vanished menu
+item — eight game `PlayArea.tsx` (codenamesduet, connections, scrabble,
+spellingbee, stackdown, waffle, wordle, wordwheel) and three
+`PlayArea.module.css` (codenamesduet, psychicnum, wordle); the header's page
+switch replaced it. Five named the retired `wide` prop: spellingbee's and
+wordwheel's *"the sheet is `wide` (full device width)"*, waffle's and
+connections's *"Plain (not `wide`)"*, and crosswords's *"`wide`: the Across|Down
+columns want the full device width"* — crosswords being the twelfth file, with
+only that half. All fixed with the area, since this folder owns the fact. What
+STAYS is crosswords's *"the off-canvas 'Game info' sheet"*: that is the switch's
+own label, in `actions/registry.ts`.
+
+### F-info-sheet-3 · `used-to-in-seven-files` · The folder narrates how it used to work, in code that should say what is — WORKED
 
 CLAUDE.md: *"how it used to work" is not useful.* `InfoSheet.module.css` has
 three blocks of it (the sheet *"used to start at `top: 0`"*, *"used to be
@@ -145,7 +159,7 @@ goes. `infoSheetStore`'s and `useInfoSheet`'s design paragraphs (why a store,
 why the affordance is not here) move to `doc.md → Details` (F-8) and each
 docstring keeps its caller's ten lines.
 
-### F-info-sheet-4 · `censuses` · Rosters of consumers in five files and two docs, most of them wrong
+### F-info-sheet-4 · `censuses` · Rosters of consumers in five files and two docs, most of them wrong — WORKED
 
 `OpponentStrip.tsx`: *"Four games render exactly this shape … waffle,
 connections, spellingbee, psychicnum"* — thirteen InfoCols place it; *"Not
@@ -164,7 +178,7 @@ game with a per-player metric*, *a turn-order game*, *a game whose core state
 leaves the screen with the column* — and delete the roster; each doc keeps the
 one game it holds up as the worked example.
 
-### F-info-sheet-5 · `infopanel-credits-the-picker-hook` · `infoPanel.module.css` says the picker HOOKS render the heading row, and one of them does not
+### F-info-sheet-5 · `infopanel-credits-the-picker-hook` · `infoPanel.module.css` says the picker HOOKS render the heading row, and one of them does not — WORKED
 
 *"The heading row and its filter group (`.headerRow` / `.selectGroup`) are here
 too, because the picker HOOKS render them — the event log's
@@ -176,7 +190,7 @@ The reason the classes are here is simpler and true: a heading-with-a-control
 row is worn by two components in two folders, so neither folder's private
 module can own it. Say that.
 
-### F-info-sheet-6 · `turn-line-docstring-gates-on-coop_style` · `TurnStatusLine` says it is rendered for `setup.coop_style === 'turns'`; every caller gates on the pointer
+### F-info-sheet-6 · `turn-line-docstring-gates-on-coop_style` · `TurnStatusLine` says it is rendered for `setup.coop_style === 'turns'`; every caller gates on the pointer — WORKED
 
 *"Rendered by an InfoCol ONLY for a turn game (setup.coop_style === 'turns')"*
 — no InfoCol tests `coop_style`; all nine render it when
@@ -206,7 +220,7 @@ then asserts the paragraph's text IS a non-breaking space — the thing jsdom ca
 see that stands in for the height it cannot measure. No decision in it; waiting
 for the word.
 
-### F-info-sheet-8 · `doc-md-is-a-lede` · `doc.md` is one paragraph; the folder's design lives in two docstrings and `docs/mobile.md`
+### F-info-sheet-8 · `doc-md-is-a-lede` · `doc.md` is one paragraph; the folder's design lives in two docstrings and `docs/mobile.md` — WORKED
 
 Owed: the `## Intro to area` (what the info column is on desktop and on a
 phone, who mounts what, why the flag is a store) and a `## Details` with the
@@ -216,7 +230,17 @@ design paragraphs F-3 moves out of `infoSheetStore` and `useInfoSheet`, and
 the caller table (which games place which of the four pieces, by condition).
 `common/info-sheet` then comes off `INTROS_OWED`.
 
-### F-info-sheet-9 · `stale-doc-claims` · `docs/playarea.md` and `docs/mobile.md` describe the folder as it was
+**What it became:** a rewritten lede, a four-paragraph intro (the column and its
+four pieces of furniture · the mobile page and why a page and not a drawer ·
+`MobileStatusBar` as that design's cost paid back), and a `## Details` of four
+items — the render tree, a *placed when / what the game supplies* table keyed by
+condition rather than by game, the store argument harvested from F-17, and the
+turn line's fixed presence. What the doc does NOT say is that the terminal line
+holds its height: F-7 measured that it does not, and a doc describes today.
+`docs/mobile.md` keeps the mobile design; the doc cites it rather than restating
+it.
+
+### F-info-sheet-9 · `stale-doc-claims` · `docs/playarea.md` and `docs/mobile.md` describe the folder as it was — WORKED, except the folder-table row F-11 decides
 
 - `playarea.md`: *"Shared in `common/game-page/playArea.module.css` —
   `.infoState` / `.infoHelp` / `.infoActions` / `.terminalActions` /
@@ -235,7 +259,7 @@ the caller table (which games place which of the four pieces, by condition).
   true of `infoPanel`, false of the readout classes; F-11 decides which way it
   is fixed.
 
-### F-info-sheet-10 · `alias-inside-common` · `InfoActionsRow.tsx` imports another `common/` folder through `@/`
+### F-info-sheet-10 · `alias-inside-common` · `InfoActionsRow.tsx` imports another `common/` folder through `@/` — WORKED
 
 `import shared from '@/common/game-page/playArea.module.css'` — the rule
 (`docs/common-folders.md → Imports use the @/ alias when they leave their
@@ -361,7 +385,7 @@ is the two-filters case of the same. Convert the two readers (`EventLog.tsx`,
 notes the column steps headings down) and say so. A decision, small; the todo
 already leans convert.
 
-### F-info-sheet-17 · `store-docstring-is-the-design` · `infoSheetStore`'s file header is the folder's design, twenty lines above two functions
+### F-info-sheet-17 · `store-docstring-is-the-design` · `infoSheetStore`'s file header is the folder's design, twenty lines above two functions — WORKED
 
 *"Why a store and not component state"*, the one-game-at-a-time argument, the
 GamePage reset, the desktop no-op — all true, all design, none of it what a

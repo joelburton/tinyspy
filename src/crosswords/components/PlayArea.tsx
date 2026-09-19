@@ -125,8 +125,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // the main view (grid maximized; the bar is how you read the clue you're on),
   // and the clue lists + the check/reveal controls move into the off-canvas
   // "Game info" sheet. Keyboard-REQUIRED still holds — this is the layout for a
-  // tablet (or phone) WITH a keyboard, not a touch-entry mode. `wide`: the
-  // Across|Down columns want the full device width, like the WordList games.
+  // tablet (or phone) WITH a keyboard, not a touch-entry mode. The sheet is
+  // full-bleed, which the Across|Down columns need as the WordList games do.
   const infoSheet = useInfoSheet()
   // Stable alias for the callbacks below: `infoSheet.close` is a useCallback([])
   // (never changes), but the object identity does (isOpen flips), so depending

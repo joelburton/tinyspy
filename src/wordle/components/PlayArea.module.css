@@ -8,7 +8,7 @@
  *
  * Mobile is the shared recipe (docs/mobile.md): `shared.mobileFill` on `.layout`
  * (board fills the width) + `<InfoSheet>` around the InfoCol (off-canvas sheet) +
- * `useInfoSheet` (the "Game info" menu item) — all in PlayArea.tsx. wordle's one
+ * `useInfoSheet` (the open flag) — all in PlayArea.tsx. wordle's one
  * divergence, capping the board by the leftover height so the keyboard fits, is
  * in Board.module.css. Nothing mobile-specific left here. */
 

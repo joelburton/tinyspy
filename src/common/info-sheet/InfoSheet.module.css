@@ -1,8 +1,8 @@
 /* cs-audited-info-sheet */
 
 /* The mobile "info column as an off-canvas sheet" wrapper (docs/mobile.md → the
- * psychicnum recipe). Extracted from the per-game copies once three games shared
- * it byte-for-byte (psychicnum / wordle / codenamesduet). See InfoSheet.tsx. */
+ * psychicnum recipe) — one sheet every game's mobile pass composes, so none of
+ * them writes this again. See InfoSheet.tsx. */
 
 /* Desktop: `display: contents` — the wrapper generates no box, so the child (a
  * game's InfoCol) is the flex child of `.layout` exactly as before. */
@@ -18,26 +18,23 @@
 /* @@ */   .wrap {
     display: block;
     position: fixed;
-    /* BELOW the header, not over it. The sheet used to start at `top: 0` and
-     * cover the chrome outright, which meant switching to the info page took
-     * away the game menu, chat, pause and the timer — everything the header
-     * carries — and left the ✕ as the only way back. Now the header is a stable
-     * frame across both mobile pages and the switch button sits in the same
-     * place on each; see GamePage's header split. */
+    /* BELOW the header, not over it: the header is a stable frame across both
+     * mobile pages, so the game menu, chat, pause and the timer stay reachable
+     * from the info page and the switch button sits in the same place on each.
+     * A sheet starting at `top: 0` would cover all of it; see GamePage's header
+     * split. */
     top: var(--game-header-bottom);
     right: 0;
     bottom: 0;
     /* FULL-BLEED. Below the breakpoint this is a PAGE, not a drawer: the
      * header's switch button moves between the board and this, one at a time.
-     * It used to be `min(24rem, 100%)` — 384px, which on a phone is the whole
-     * screen anyway (390px) but on a portrait tablet left the board half-visible
-     * beside it, so the same component read as a page on one device and a drawer
-     * on another. Going full width picks one, and it's what retired the `wide`
-     * opt-out that five games needed to get this behavior anyway. */
+     * Any fixed width narrower than the viewport is the whole screen on a 390px
+     * phone and half a portrait tablet, so the same component would read as a
+     * page on one device and a drawer on the other (docs/mobile.md → The two
+     * mobile pages). Full width picks one. */
     width: 100%;
     z-index: var(--z-infocol);
     background: var(--default-bg-color);
-    /* No extra top padding now that the ✕ is gone from the corner. */
     padding: 1rem;
     /* A FLEX COLUMN, so the info column inside can be given the sheet's height
      * to divide up — that's what lets its event log / word list scroll INSIDE
@@ -45,7 +42,6 @@
      * scroll. (`.infoCol` is itself a flex column whose log is `flex: 1;
      * min-height: 0`, but that only bounds anything if the column has a
      * definite height to start from; as a plain block child it just grew.)
-     * The ✕ is `position: absolute`, out of flow, so it isn't a flex item.
      *
      * `overflow-y: auto` stays as the FALLBACK: content that genuinely can't
      * fit even after the log has shrunk (a long setup disclosure unfolded on a
@@ -80,14 +76,8 @@
     visibility: visible;
   }
 
-  /* There is no ✕. The header's switch button is the one way between the two
-   * pages, in one fixed place — a second dismiss in the sheet's corner is the
-   * two-affordances-in-two-places split that made this fussy to begin with.
-   *
-   * It used to be kept in the DOM, `display: none` in every state, "because the
-   * sheet still needs an in-panel close for any future context that has no
-   * header". DELETED 2026-08-25: that context does not exist, the button was
-   * unreachable in all of them, and it carried a SECOND close glyph (`✕`,
-   * U+2715) against the floating panels' `×` (U+00D7) — drift that nobody could
-   * see and therefore nobody would fix. Escape still closes the sheet. */
+  /* There is no ✕ in the sheet's corner, deliberately. The header's switch button
+   * is the one way between the two pages, in one fixed place, and a dismiss here
+   * as well is two affordances in two places — neither of them where you last
+   * used the other. Escape closes the sheet too (InfoSheet.tsx). */
 }

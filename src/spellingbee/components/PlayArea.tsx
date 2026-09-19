@@ -121,8 +121,8 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the hive
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
-  // opened from the hook's "Game info" menu item. The sheet is `wide` (full device
-  // width) so the WordList has room — the rem-width columns side-scroll. Desktop
+  // reached by the header's page switch. The sheet is full-bleed, so the WordList
+  // has room — the rem-width columns side-scroll. Desktop
   // is unchanged. No board divergence — input is letter taps (no keyboard).
   const infoSheet = useInfoSheet()
 

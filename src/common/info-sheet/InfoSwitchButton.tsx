@@ -7,34 +7,26 @@ import { IconInfoSheetClose, IconInfoSheetOpen } from '../icons/icons'
 import { setInfoSheetOpen } from './infoSheetStore'
 
 type Props = {
-  /** Is the info page currently showing? Decides both the glyph and the action. */
+  // Is the info page currently showing? Decides both the glyph and the action.
   open: boolean
 }
 
 /**
- * The mobile **page switch** — the single control that moves between the board
- * and the info column.
+ * The mobile **page switch** — the one control that moves between the board page
+ * and the info page, at the far RIGHT of the header on both of them.
  *
- * On a phone the two aren't a board plus a drawer, they're two full-screen
- * pages: `<InfoSheet>` is `min(24rem, 100%)` wide, which is 384px against an
- * iPhone's 390. So the affordance is page navigation, and it's ONE button whose
- * glyph flips rather than two controls in two places — which is what the old
- * "Game info" menu item and the sheet's own ✕ used to be.
- *
- * It lives at the far RIGHT of the header on both pages. That's the fixed
- * point and the one thing not to break: the two headers hold different things
- * (the board page carries chat + feedback; the info page carries the timer +
- * pause), so if this rode along inside either group it would shift between
- * pages and lose the muscle memory that justified consolidating it.
+ * On a phone the two aren't a board plus a drawer but two full-screen pages (the
+ * sheet is full-bleed below `--mobile`), so the affordance is page navigation:
+ * one button whose glyph and label flip, in the same place on each page. Why
+ * that rather than a control per page, and what the fixed position protects:
+ * docs/mobile.md → The two mobile pages.
  *
  * A `<PageHeaderButton>`, like its neighbor the pause button: a mark in the
- * header rather than a control being offered. GamePage renders it only on
+ * header rather than a control being offered. `GamePage` renders it only on
  * mobile — on desktop the info column is always on screen and there is nothing
- * to switch to.
- *
- * **It binds `act-toggle-info-sheet`** and keeps its own look. Switching pages
- * is a command like any other, so it belongs in the one table of them — and the
- * day it earns a key, that is a line in the registry rather than a listener.
+ * to switch to. It binds `act-toggle-info-sheet`, so switching pages is a
+ * command like any other and the day it earns a key that is a line in the
+ * registry, not a listener.
  */
 export function InfoSwitchButton({ open }: Props) {
   // The label names the DESTINATION, not the state — it's a navigation control,

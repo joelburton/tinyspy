@@ -9,21 +9,19 @@ import styles from './OpponentStrip.module.css'
 type Props = {
   players: Member[]
   selfId: string
-  /**
-   * The per-player metric cell — the one thing each game supplies. The
-   * `isSelf` flag lets a game read its own value from a live local
-   * computation (so "You" updates in lock step with the rest of the UI)
-   * while peers read from the realtime payload. Returns whatever the
-   * game wants to show: a number, a rank name, `<MistakeDots>`, etc.
-   */
+  // The per-player metric cell — the one thing each game supplies. The
+  // `isSelf` flag lets a game read its own value from a live local
+  // computation (so "You" updates in lock step with the rest of the UI)
+  // while peers read from the realtime payload. Returns whatever the
+  // game wants to show: a number, a rank name, `<MistakeDots>`, etc.
   metricFor: (player: Member, isSelf: boolean) => ReactNode
-  /** A short label naming WHAT the metric is — "Found", "Score", "Turns left" —
-   *  rendered as a prefix so the bare numbers aren't ambiguous. Every strip
-   *  should pass one; it's optional only so games not yet converted still
-   *  compile. */
+  // A short label naming WHAT the metric is — "Found", "Score", "Turns left" —
+  // rendered as a prefix so the bare numbers aren't ambiguous. Every strip
+  // should pass one; it's optional only so games not yet converted still
+  // compile.
   metricLabel?: string
-  /** Optional row rendered above the entries, e.g. spellingbee's
-   *  "target: Amazing". Omit when there's nothing to lead with. */
+  // Optional row rendered above the entries, e.g. spellingbee's
+  // "target: Amazing". Omit when there's nothing to lead with.
   leading?: ReactNode
 }
 
@@ -34,15 +32,15 @@ type Props = {
  * the disc, not the name — docs/ui.md → Player identity), the viewer first (via
  * `orderSelfFirst`), followed by a game-specific metric cell.
  *
- * Four games render exactly this shape and differ ONLY in the metric:
- * waffle (swaps + ✓/✗), connections (mistake dots), spellingbee (rank),
- * psychicnum (guess budget). They pass a `metricFor` and share
- * everything else — order, the disc + name label, the `·` separators,
- * the wrapper, the CSS.
+ * An InfoCol places it whenever its game has a per-player metric worth showing,
+ * and the metric cell is the ONLY thing those games differ in — waffle's swaps +
+ * ✓/✗, connections's mistake dots, a rank, a guess budget. Everything else is
+ * shared: the order, the disc + name label, the `·` separators, the wrapper, the
+ * CSS.
  *
- * Not used by bananagrams: its peer display is a vertical dot-list
- * sorted by who's closest to finishing — a different shape that belongs
- * to the `PageHeaderPlayersStrip` dot family, not this inline strip.
+ * A game whose peer display is a different SHAPE doesn't use it — bananagrams
+ * lists peers vertically, sorted by who's closest to finishing, which belongs to
+ * the `PageHeaderPlayersStrip` dot family rather than this inline strip.
  */
 export function OpponentStrip({ players, selfId, metricFor, metricLabel, leading }: Props) {
   const ordered = orderSelfFirst(players, selfId)

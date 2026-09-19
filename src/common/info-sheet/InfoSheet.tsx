@@ -6,11 +6,11 @@ import { cls } from '../utils/cls'
 import styles from './InfoSheet.module.css'
 
 type Props = {
-  /** Whether the sheet is slid in. Ignored on desktop, where the wrapper is
-   *  `display: contents` and the child is always the visible info column. */
+  // Whether the sheet is slid in. Ignored on desktop, where the wrapper is
+  // `display: contents` and the child is always the visible info column.
   open: boolean
   onClose: () => void
-  /** The game's `<InfoCol>`. */
+  // The game's `<InfoCol>`.
   children: ReactNode
 }
 
@@ -18,15 +18,13 @@ type Props = {
  * The mobile info-column sheet wrapper (docs/mobile.md → the psychicnum recipe).
  *
  * On desktop it's a `display: contents` no-op: the child (a game's InfoCol) is
- * the flex child of `.layout` exactly as before. Below `--mobile` it becomes a
- * fixed, FULL-WIDTH page slid in from the right by `open` — the second of the
- * two mobile pages, reached by the header's switch button. It used to be a
- * 24rem drawer with its own ✕; both went when it became a page (docs/mobile.md
- * → The two mobile pages).
+ * the flex child of `.layout`. Below `--mobile` it becomes a fixed, FULL-BLEED
+ * page slid in from the right by `open` — the second of the two mobile pages,
+ * reached by the header's switch button (docs/mobile.md → The two mobile pages).
  *
- * The presentational half of the recipe. Pair it with `useInfoSheet` (the
- * open/close state + the "Game info" menu item) and the shared `.mobileFill`
- * class on the game's `.layout` (which hands the board the full width).
+ * The presentational half of the recipe. Pair it with `useInfoSheet` (the open
+ * flag and a way to close) and the shared `.mobileFill` class on the game's
+ * `.layout` (which hands the board the full width).
  */
 export function InfoSheet({ open, onClose, children }: Props) {
   // Escape closes the open sheet — the keyboard-tablet expectation (a supported

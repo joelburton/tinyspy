@@ -123,9 +123,9 @@ export function PlayArea({
   const { historyId, historyN, isViewingHistory, showHistory, exitHistory } = useHistoryViewer()
 
   // Mobile: below --mobile the board fills the screen and the whole info column
-  // slides in as an off-canvas sheet from a "Game info" menu item (the shared
-  // recipe — docs/mobile.md). Plain (not `wide`): waffle's info column is a narrow
-  // 22rem readout + swap log, no multi-column word list. Desktop is untouched.
+  // becomes the off-canvas info page, reached by the header's page switch (the
+  // shared recipe — docs/mobile.md). waffle's info column is a narrow 22rem readout
+  // + swap log, no multi-column word list. Desktop is untouched.
   const infoSheet = useInfoSheet()
 
   // ─── Coop-win celebration ──────────────────────────────

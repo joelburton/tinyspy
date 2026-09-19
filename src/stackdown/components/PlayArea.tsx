@@ -467,7 +467,7 @@ export function PlayArea({
   // ─── Header menu ──────────────────────────────────────────────
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
-  // opened from the hook's "Game info" menu item. stackdown needs no board
+  // reached by the header's page switch. stackdown needs no board
   // divergence — its square board is min(--avail-w, --avail-h, 620px), so it
   // fits a phone on its own; the input is tile taps (no keyboard).
   const infoSheet = useInfoSheet()

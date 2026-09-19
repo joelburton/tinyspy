@@ -6,23 +6,13 @@ import { useSyncExternalStore } from 'react'
  * Which of the two mobile pages is showing: the board (false) or the info
  * column (true).
  *
- * **Why a store and not component state.** The two halves live in different
- * subtrees. The *sheet* is rendered by each game's PlayArea (it wraps that
- * game's `<InfoCol>`), but the *switch button* that flips it — and the header
- * contents that swap with it — belong to the shell's `<GamePage>` header, which
- * sits above PlayArea and re-renders independently of it. Threading a flag down
- * would mean adding it to `GamePageCtx` and touching every game; lifting the
- * sheet out of PlayArea isn't possible, because the InfoCol it wraps is the
- * game's.
- *
- * A module-level slot is safe here for the same structural reason the app has
- * one game at a time (`is_current_view` — see docs/common.md): only one
- * `<GamePage>` is ever mounted, and it's keyed by game id so a game→game
- * navigation remounts it. `GamePage` resets the flag on mount so a sheet left
- * open in one game never greets you already-open in the next.
- *
- * Desktop ignores this entirely — there the info column is always visible and
- * `<InfoSheet>` is a `display: contents` no-op.
+ * A module slot rather than component state, because the two halves live in
+ * different subtrees — the sheet is each game's PlayArea, the switch button is
+ * the shell's header — so neither can hold the flag for the other; doc.md →
+ * Intro to area has the argument, and why one slot is safe. `GamePage` resets it
+ * on mount, so a sheet left open in one game never greets you already-open in
+ * the next. Desktop ignores the flag entirely: there the info column is always
+ * visible and `<InfoSheet>` is a `display: contents` no-op.
  */
 
 let value = false

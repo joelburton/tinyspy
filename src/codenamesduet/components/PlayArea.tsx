@@ -240,7 +240,7 @@ export function PlayArea({
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
-  // opened from the hook's "Game info" menu item. The clue-giver's divergence —
+  // reached by the header's page switch. The clue-giver's divergence —
   // the below-board clue input raises the OS keyboard, and the giver needs the
   // board's key colors visible while composing — is handled by NOT fighting it:
   // the board stays full-size and the page scrolls (scroll up to read the board,

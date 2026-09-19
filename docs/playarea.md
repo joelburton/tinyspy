@@ -113,9 +113,9 @@ anything *else* to say:
 
 - **The line is only a turn indicator** → it goes **inert but keeps its height**
   — a blank height-holder, no wording. That's the shared
-  [`<TurnStatusLine>`](../src/common/info-sheet/TurnStatusLine.tsx), used by
-  connections / psychicnum / strands / waffle / wordiply / wordle / scrabble
-  coop, and pinned by its own test ("goes inert at terminal"). The height is held
+  [`<TurnStatusLine>`](../src/common/info-sheet/TurnStatusLine.tsx), which an
+  InfoCol places whenever its game has a turn pointer, and which is pinned by its
+  own test ("goes inert at terminal"). The height is held
   because dropping the element would reflow the column below on the
   play→terminal transition ([Layout stability](ui.md#layout-stability)).
 - **The line carries other live state too** → replace only the turn clause with
@@ -144,7 +144,7 @@ That dual placement is the rule, not redundancy to trim.
 | **`<SetupDisclosure>`** | the choices made at game *creation* (psychicnum: tiles / secrets / difficulty) | full text color; behind a `<details>` disclosure ("Setup options"), collapsed by default. A common COMPONENT with its own stylesheet, not a class a game applies — see below | **shown** (still useful in review) |
 | **`.infoState`** | the important *live* state (psychicnum: "0/3 found · 2/9 guesses used") | full text color, bold figures | **shown** |
 | **`.infoHelp`** | UI instructions ("Click or type a word and hit submit") | **muted** | **hidden** |
-| **`.infoActions`** | the action-button row | — | **swaps** (see below) |
+| **`.infoActions`** | the action-button row — the shared `<InfoActionsRow>` wears it, and every game places that component | — | **swaps** (see below) |
 | **`.terminalExtra`** | extra info shown **only at game over** (wordle: the answer reveal) | a content-height block **above the setup disclosure** | **terminal-only** (absent during play) |
 
 - **The rows come from `<game>/lib/setupSummary.ts`** — the same array the game's
@@ -163,8 +163,8 @@ That dual placement is the rule, not redundancy to trim.
   reshuffle?"). The test: changes game state/turn → action row; board-only view
   aid → on the board.
 - **Terminal swap.** Setup + state stay; help hides; the action row replaces the
-  play buttons with a **bold, outcome-colored result line** (won = green / lost =
-  red / manual-end = neutral, via the `--outcomes-*-ink-color` tones), any
+  play buttons with a **bold result line inked by its outcome** (won = green /
+  lost = red / manual-end = neutral, from `--outcomes-*-ink-color`), any
   per-game terminal actions (Restart / Reveal / New game), and a **compact**
   back-to-club button — the shared `<InfoActionsRow>`, icon-only in most games
   so four items survive a ~22rem column (see
@@ -184,7 +184,9 @@ That dual placement is the rule, not redundancy to trim.
   of the status readout.)
 
 Shared in `common/game-page/playArea.module.css` — `.infoState` / `.infoHelp` /
-`.infoActions` / `.terminalActions` / `.outcome_*` / `.terminalExtra`. **The
+`.infoActions` / `.terminalActions` / `.terminalExtra`. (The result line's
+`.outcome_*` inks are `<InfoActionsRow>`'s own module, beside the component that
+draws the line.) **The
 setup recap is the odd one and is not among them**: the rest are classes a
 game's own InfoCol puts on its own markup, while the recap is a common
 component every game mounts, so its three rules live beside it in

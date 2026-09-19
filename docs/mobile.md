@@ -553,10 +553,10 @@ resets it on mount so a sheet left open in one game doesn't greet you in the nex
 Each game's mobile pass follows the **psychicnum recipe**: below `--mobile` the
 board fills the screen and the whole info column becomes an off-canvas sheet
 reached by a **switch button pinned to the header's right edge**. The sheet is
-otherwise pure CSS — `.infoWrap` is `display: contents` on
-desktop (so InfoCol stays the flex child, byte-identical) and a fixed slide-in
-sheet on mobile, with a close ✕. The `--avail-w` override hands the board the
-full width.
+otherwise pure CSS — `<InfoSheet>`'s `.wrap` is `display: contents` on
+desktop (so InfoCol stays the flex child, byte-identical) and a fixed full-bleed
+page on mobile, with no close of its own. The `--avail-w` override hands the
+board the full width.
 
 This recipe is currently **copy-pasted per game on purpose** — we're doing two
 conversions before extracting a shared `useInfoSheet()` hook + sheet CSS (rule of
@@ -616,8 +616,8 @@ mobile pass is now composing them, not copy-paste:
   buried a half-of-the-app navigation two taps inside a menu. See
   [The two mobile pages](#the-two-mobile-pages) for what replaced it.
 - [`<InfoSheet>`](../src/common/info-sheet/InfoSheet.tsx) — the off-canvas
-  wrapper around the game's `<InfoCol>` (`display: contents` on desktop → fixed
-  slide-in sheet on mobile + the ✕), owning the sheet CSS. **Accessibility:** the
+  wrapper around the game's `<InfoCol>` (`display: contents` on desktop → a fixed
+  full-bleed page on mobile), owning the sheet CSS. **Accessibility:** the
   *closed* mobile sheet is `visibility: hidden` (not just slid off-canvas), so a
   keyboard user can't Tab into the invisible info column; the *open* one is a
   `role="dialog"` + `aria-modal` that **Escape** dismisses — the cheap half of
@@ -707,8 +707,8 @@ info column, so a desktop board shows the same column count it always did.
 **waffle** was a pure plain-recipe conversion (like stackdown) plus two touch
 tweaks. Its square board is `min(--avail-w, --avail-h, cap)`, so `mobileFill`'s
 full width fits it on a phone with no board divergence; the info column (a narrow
-22rem swap-state readout + swap log, no WordList) uses the **plain** 24rem sheet,
-not `wide`. Two input tweaks: (1) the move is already **tap-two-tiles-to-swap** —
+22rem swap-state readout + swap log, no WordList) needed nothing of the sheet
+beyond the recipe. Two input tweaks: (1) the move is already **tap-two-tiles-to-swap** —
 tap one tile to pick it up, a second to swap, the same again to cancel — so touch
 needs no new model; the *drag* path (HTML5 DnD, a desktop mouse affordance) is
 turned **off on a coarse pointer** (`draggable={!disabled && !coarse}`) so a phone
@@ -870,21 +870,19 @@ Two rules for a game adopting it:
   not in the layout); it took a screenshot.
 
 Opening the sheet doesn't take the status away: `InfoCol` still renders its own
-copy at the top, which is what you read while the sheet is up (on a phone the
-~24rem sheet covers the bar; on a tablet both are on screen). Guarded in
+copy at the top, which is what you read while the sheet is up (the sheet is
+full-bleed, so it covers the bar on every device). Guarded in
 [`codenamesduet-mobile.e2e.ts`](../e2e/codenamesduet-mobile.e2e.ts) — visible and
 above the board on a phone, hidden on desktop, still readable with the sheet open.
 
-**Adopted by:** codenamesduet, psychicnum ("1/3 found · 4/7 guesses used" — both
-numbers live only in the info column, and neither is readable off the board),
-spellingbee + wordwheel (the RankBar + Stats unit — a small BLOCK rather than a
-line, so it raises `--mobile-status-height`; see below), boggle (its 4-cell
-Req/Bonus × Words/Score grid, same block treatment), waffle ("Swaps 3/12 (9
-left) · Par 10"), and scrabble ("Your turn · 7 in bag" / "Turn: ● moth · 7 in
-bag" / coop's "Team score: 152 · 7 in bag").
-Adoption is a per-game judgment, not a default: a game only needs the bar if its
-core state is invisible once the info column slides away. **letterboxed is the
-rule's clearest non-adopter** (it shipped with the bar and dropped it
+**A game adopts the bar when its core state is invisible once the info column
+slides away** — that is the whole condition, and it is a per-game judgment, not a
+default. Most carry one LINE (psychicnum's "1/3 found · 4/7 guesses used": both
+numbers live only in the info column, and neither is readable off the board); a
+game whose readout is a small BLOCK instead raises `--mobile-status-height` and
+lays the block out itself (spellingbee's RankBar + Stats unit — see below).
+
+**letterboxed is the rule's clearest non-adopter** (it shipped with the bar and dropped it
 2026-08-05): the board itself is the letters readout — covered letters fill
 green — the chain strip above it is the words readout, and the one number
 neither shows (words left under the cap) is restated by the accepted-word
@@ -898,8 +896,8 @@ count them), and **mistakes** sit in the below-board row as `<StrikeMarks>`
 (labeled "Mistakes" on a phone, "Mistakes (lose at 4)" above it). A status bar
 would restate both and cost the board 1.75rem for nothing.
 
-**The companion answer — "whose turn is it?"** The eight opt-in turn-order coop
-games answer that in the info column too (`<TurnStatusLine>`), so it went
+**The companion answer — "whose turn is it?"** A turn-order game answers that in
+the info column too (`<TurnStatusLine>`), so it went
 off-canvas with the rest — and a waiting player on a phone had no cue at all
 (the shared `.tile:disabled` rule deliberately refuses to fade; taps silently
 did nothing). The shared **`FeedbackMessage.waiting()`** (its words from
