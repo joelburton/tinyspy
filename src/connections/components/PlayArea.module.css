@@ -95,6 +95,13 @@
 /* @@ */   --tile-font-min: 1rem;
 /* @@ */   --tile-font-factor: 0.94;
 /* @@ */   --tile-font-max: 1.95rem;
+  /* A long word CONDENSES before it shrinks (shared `.tileWord`). This game
+   * needs it most: a puzzle's sixteen words are whatever the category wanted,
+   * and one long one on a four-across board has nowhere to go. The floor is
+   * the axis's own — 25%, the narrowest Roboto Flex draws — so the size only
+   * falls for what the narrowing could not cover. */
+/* @@ */   --tile-wdth-len: 7;
+/* @@ */   --tile-wdth-min: 0.25;
 }
 
 /* A solved/revealed category is "one long tile", and it says so by WEARING the

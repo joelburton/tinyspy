@@ -773,13 +773,51 @@
   transition: transform 80ms ease, box-shadow 80ms ease;
 }
 
-/* The tile's label. Auto-fit to the tile WIDTH via one shared clamp formula;
- * each game tunes the three knobs by setting --tile-font-{min,factor,max} on
- * its grid (psychicnum's words run wider/larger; connections' tiles are
- * bigger). `--len` is the word's char count (set inline by the board), 100cqi
- * the tile's inner width, the factor ≈ width-per-char in em for bold
- * uppercase. See docs/ui.md → "Tile content: letter vs word". */
+/* The tile's label, auto-fit to the tile WIDTH. `--len` is the word's char
+ * count (set inline by the board), 100cqi the tile's inner width, and each game
+ * tunes the knobs on its grid. See docs/ui.md → "Tile content: letter vs word".
+ *
+ * A LONG WORD CONDENSES BEFORE IT SHRINKS. Roboto Flex carries a width axis
+ * (base.css ships it), so the first thing a word that does not fit gives up is
+ * glyph width, not size — a narrower LANTERN at full size reads better than a
+ * small one, and the tile is unchanged either way.
+ *
+ * `--tile-wdth` is that fraction, and it feeds BOTH dials, which is what orders
+ * them: a condensed word occupies `--tile-wdth` of its normal width, so the
+ * size formula divides by it and therefore holds its maximum further. Only once
+ * the width hits its floor does the size begin to fall — and then from a bigger
+ * number than it would have.
+ *
+ * All the arithmetic here is between NUMBERS, deliberately: CSS cannot portably
+ * divide a length by a length, so the only length in play is the single
+ * `100cqi` the size clamp starts from. */
 /* @@ */ .tileWord {
+  /* How wide the glyphs may be, 1 = the font's normal. Full width up to
+   * `--tile-wdth-len` characters, then narrowing as 1/len until the floor.
+   *
+   * A SINGLE LETTER CAN NEVER CONDENSE, by construction: `--tile-wdth-len` is
+   * at least 1, so the middle term is ≥ 1 and `clamp` returns its maximum.
+   * Every letter-tile game is therefore untouched without opting out. */
+/* @@ */   --tile-wdth: clamp(
+    max(0.25, var(--tile-wdth-min, 0.78)),
+    calc(var(--tile-wdth-len, 7) / var(--len)),
+    1
+  );
+  font-stretch: calc(var(--tile-wdth) * 100%);
+  /* What that width actually BUYS, which is not what it says. Roboto Flex's
+   * width axis is damped: measured on this subset, `font-stretch: 78%` renders
+   * a word at 91.4% of its normal width, 50% → 80.5%, 25% → 70.8%. The relation
+   * is linear at a slope of 0.39, exactly, from 25% to 100%. So a word set at
+   * `--tile-wdth` occupies this much, and the size formula divides by THIS
+   * rather than by the nominal fraction — dividing by the nominal claims a
+   * saving the font does not give, and the word overflows its tile.
+   *
+   * 25% is the axis FLOOR (base.css declares `font-stretch: 25% 151%`), which
+   * is why `--tile-wdth` is lower-bounded by it above. Below 25% the font stops
+   * narrowing while this formula would go on predicting that it had — the one
+   * way to make a word overflow, so it is closed in the clamp rather than in a
+   * warning. */
+/* @@ */   --tile-wdth-gain: calc(1 - (1 - var(--tile-wdth)) * 0.39);
   /* Above the attention flash. `.attentionFlash` draws its yellow as an
    * absolutely-positioned overlay, and one of those paints over in-flow text by
    * default — so without this the flash HIDES the word it is pointing at. (The
@@ -795,7 +833,7 @@
   overflow-wrap: anywhere;
   font-size: clamp(
     var(--tile-font-min, 0.95rem),
-    calc(100cqi / (var(--len) * var(--tile-font-factor, 0.9))),
+    calc(100cqi / (var(--len) * var(--tile-font-factor, 0.9) * var(--tile-wdth-gain))),
     var(--tile-font-max, 2.2rem)
   );
 }
