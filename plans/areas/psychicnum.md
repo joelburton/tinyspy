@@ -42,13 +42,16 @@ bugs; reduce CSS that duplicates common CSS or the play-surface scaffold.
 
 Listed 2026-09-19 (`src/psychicnum/`, its SQL, its doc):
 
-- **`src/psychicnum/` — 32 files.** components: `Board.tsx` + `.module.css`,
+- **`src/psychicnum/` — 31 files.** components: `Board.tsx` + `.module.css`,
   `BoardCol.tsx` + `.module.css`, `GameEventLog.tsx` + `.module.css`,
   `Help.tsx`, `InfoCol.tsx`, `PlayArea.tsx` + `.module.css` + `.test.tsx`,
   `SetupForm.tsx` + `.test.tsx`, `StateLine.tsx`. hooks: `useGame.ts`. lib:
   `answer.ts` + `.test.ts`, `capitalize.ts`, `history.ts` + `.test.ts`,
   `setup.ts`, `setupSummary.ts`, **`terminal.ts` + `.test.ts` (created by
-  Step 4, 2026-09-19)**. pdf: `model.ts` + `.test.ts`,
+  Step 4, 2026-09-19)**; `capitalize.ts` was on this list and is DELETED
+  (2026-09-19, Joel: *"is capitalize even used in psychicnum? … if not, delete
+  it"*) — zero references anywhere in the repo, and its own docstring named two
+  callers that do not exist. pdf: `model.ts` + `.test.ts`,
   `printPsychicnumPdf.ts`. root: `db.ts`, `manifest.ts`, `theme.css`,
   `logo.svg`, `todo.md`.
 - **SQL — 3 files** (the events migration is its own file):
@@ -126,8 +129,9 @@ Joel's ask. What was found:
 - `todo.md` already holds: the pre-load `+` bug (Step 2 closes it), the
   permanent-fill color derived twice (pass 3's), the hand-written shuffle
   (Step 3 converts it, since BoardCol is open), the `ShuffleButton` tab stop
-  (`common/buttons`'), the race with no whole-table stop (pass 2 decides), the
-  `<Loading>` swap (Step 2 closes it).
+  (`common/buttons`'), the race with no whole-table stop (handed to
+  `common/game-page` 2026-09-19 — see pass 2 below), the `<Loading>` swap
+  (Step 2 closes it).
 
 ### Step 2 — the loader / loaded split (readability 3.1) — DONE 2026-09-19
 
@@ -567,8 +571,16 @@ time. Already known to belong to it:
 - **The shared shapes** (Joel's goal): what this game's restructure settled is
   written into `docs/playarea.md` once, as the rule; the area file records
   only where psychicnum could not follow it.
-- **The race with no whole-table stop** (`todo.md`): a behavior decision, made
-  with the SQL open.
+- ~~**The race with no whole-table stop**~~ **HANDED ON 2026-09-19, and it was
+  never psychicnum's.** Reading it out to Joel turned up that fourteen of the
+  fifteen compete games have the same gap: End game exists and is hidden on the
+  compete side. bananagrams is the one exception because it is the only
+  compete-ONLY game — it had no coop half to inherit the button from, so it had
+  to opt in — which makes the opt-in the accident and the gap the rule. The
+  item now lives in `common/game-page/todo.md`, and psychicnum's copy is gone.
+  Joel settled the one thing it said to check first: `ended` is neutral in every
+  mode, compete included (*"it's just players deciding to stop — no one won, no
+  one lost"*), so no game's `labelFor` may say otherwise.
 
 ### Then pass 3 — tile-feedback, tf1 → tf2
 

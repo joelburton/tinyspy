@@ -20,8 +20,8 @@
 
 grant usage on schema psychicnum to authenticated;
 
--- Games: any club member sees the row. (`target` is additionally
--- column-hidden, regardless of policy.)
+-- Games: any club member sees the row. (`secrets` is additionally
+-- column-hidden, regardless of policy — see the games_state view.)
 drop policy if exists games_select on psychicnum.games;
 create policy games_select on psychicnum.games
   for select to authenticated

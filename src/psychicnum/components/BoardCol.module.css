@@ -15,7 +15,7 @@
   display: contents;
 }
 
-/* psychicnum's one deliberate entry tweak (kept from the old GuessForm): a bigger
+/* psychicnum's one deliberate entry tweak: a bigger
  * entry font — a single short guess word reads large. Applied to the shared
  * <WordEntryArea>'s row; the var cascades down to the WordEntryInput inside it. */
 /* @@ */ .bigEntry {

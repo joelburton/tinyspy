@@ -69,7 +69,7 @@ export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
   word_count: 10,
   difficulty: 3,
   timer: { kind: 'countdown', seconds: 15 },
-  // Coop pacing defaults to the historical free-for-all; the setup
+  // Coop pacing defaults to free-for-all; the setup
   // dialog's "Co-op" section (coop, 2+ players) offers turn-by-turn.
   // first_turn_user_id is omitted here — the field seeds it to a real
   // player once turns is picked (a member id can't live in a default).

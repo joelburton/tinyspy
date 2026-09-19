@@ -62,6 +62,44 @@
   test failure rather than a silently unstyled element (an earlier version of
   this item claimed otherwise).
 
+- **Every race should offer a whole-table stop, and fourteen of the fifteen do
+  not.** Joel, 2026-09-19, ruling on the question this item used to ask: *"yes,
+  every race should offer it."* So what is left is wiring.
+
+  A race the group has lost interest in can only be closed by every player
+  conceding, one at a time, each taking a real loss on their record for a game
+  nobody wanted to finish. Coop has End game for exactly this; compete hides it
+  —
+  `if (mode === 'compete' && !(offersEndForAll && myConceded)) return 'hidden'`.
+
+  **bananagrams is the exception, and not because its game is different**: it is
+  the only compete-ONLY game, so it had no coop half to inherit End game from
+  and had to opt in. Every other compete mode is one half of a coop/compete
+  pair, where the button exists and is simply hidden on this side. So the
+  opt-in is the accident and the gap is the rule, which is what makes this a
+  common item rather than any game's.
+
+  **The wiring is one argument** — `offersEndForAll` on a game's
+  `useStandardGameActions` call — and every schema already defines `end_game`.
+  It turns on two controls, not one, which is the part worth knowing before
+  reading the code: while you can still play, Concede's question offers ending
+  the table as its SECOND answer (the two acts are too easy to confuse for two
+  red buttons on a board); once you have conceded, your Concede is spent, so
+  End game comes back out as a control of its own and the question is gone with
+  it.
+
+  **`ended` is neutral in every mode, compete included** (Joel, same day) —
+  *"it's just players deciding to stop — no one won, no one lost. it's just
+  ended."* So there is no per-game reading to check first, and no game's
+  `labelFor` may say otherwise; a game whose prose or status line calls a
+  compete `ended` a loss is wrong today and is part of this work.
+
+  **Build it as one change, not fourteen.** Every game passing the same literal
+  is the shape that invites the fifteenth to forget — if every race offers it,
+  the hook can stop asking and `offersEndForAll` can go, with bananagrams'
+  opt-in going with it. What that turns on is whether any race ever should NOT
+  offer it, which is now answered: none.
+
 ## Someday
 
 ## Maybe

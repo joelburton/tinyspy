@@ -8,25 +8,20 @@ import { db } from '../db'
 import type { Member } from '@/common/members/member'
 
 /**
- * One player in a psychicnum game. Today psychicnum doesn't
- * add per-player state beyond what's on a Member, so the Player
- * type is a straight re-export — but every per-game folder
- * exposes a Player type so the cross-game vocabulary is
- * consistent (a reader scanning psychicnum code finds the same
- * Player parallel that exists in codenamesduet + connections).
+ * One player in a psychicnum game.
  */
 export type Player = Member
 
 /**
  * The FE-ready game state. Sourced from the
  * `psychicnum.games_state` view, which surfaces this game's
- * directly-readable columns plus the conditional `target`
+ * directly-readable columns plus the conditional `secrets`
  * reveal:
  *
  *   - While the game is non-terminal, the view returns
- *     `target = null`.
+ *     `secrets = null`.
  *   - Once `common.games.is_terminal` flips true, the view
- *     returns the real value.
+ *     returns the three words.
  *
  * `mode` is the gametype-level coop/compete declaration,
  * stored as a column on psychicnum.games so the FE can branch
@@ -40,7 +35,7 @@ export type PsychicnumGame = {
   id: string
   club_handle: string
   mode: 'coop' | 'compete'
-  /** The board: the 5..20 words shown as tiles (PUBLIC). Players click these
+  /** The board: the words shown as tiles (PUBLIC). Players click these
    *  to guess; three of them are the secrets. Lowercase. */
   words: string[]
   /** The three secret words (a subset of `words`). Null while non-terminal
@@ -77,10 +72,7 @@ export type PlayerRow = {
  * filtering is invisible to the FE.
  */
 export type EventRow = {
-  /** The row's own id, and the order of play: the database hands them out in
-   *  the order the rows were written, which is why the read below orders by
-   *  it rather than by the timestamp. Two rows written in one transaction tie
-   *  on `created_at`. */
+  /** The row's own id, and the order of play. */
   id: number
   user_id: string
   /** The text this row carries. For 'guess'/'spoiler' it's a board word
@@ -89,11 +81,7 @@ export type EventRow = {
   is_correct: boolean
   /** 'guess' = a real guess (colors the board, counts toward the win);
    *  'spoiler' = a secret word handed over (the answer);
-   *  'hint' = a clue for a secret.
-   *
-   *  What each is WORTH is `lib/answer.ts`'s to say — and `kind` has to be read
-   *  before `is_correct`, because a hint and a spoiler are both written
-   *  `is_correct = true`. */
+   *  'hint' = a clue for a secret. */
   kind: 'guess' | 'hint' | 'spoiler'
   created_at: string
 }
@@ -102,9 +90,9 @@ export type EventRow = {
  * Per-gametype data hook for psychicnum (both modes share it).
  *
  * Reads three tables:
- *   - `games_state` view (game row + conditional `target` reveal)
+ *   - `games_state` view (game row + conditional `secrets` reveal)
  *   - `players` (per-player budgets, club-wide visible)
- *   - `guesses` (history log; RLS scopes to caller in compete)
+ *   - `events` (the turn log; RLS scopes to caller in compete)
  *
  * Subscribes to all three for realtime refetch via
  * `useRealtimeRefetch`. The factory provides SUBSCRIBED-refetch
@@ -150,9 +138,7 @@ export function useGame(gameId: string): {
       if (!mounted()) return
 
       // A read can only fail as a FAULT — `readRows` never authors anything
-      // else, and it has already logged the failure and raised the modal. What
-      // is left is the sentence BEHIND it, plus a line naming which of the reads
-      // it was: "something didn't load" is not a fact anyone can act on.
+      // else, and it has already logged the failure and raised the modal.
       if (gameRes.type === 'not-ok') {
         setFailure(gameRes)
         setLoading(false)

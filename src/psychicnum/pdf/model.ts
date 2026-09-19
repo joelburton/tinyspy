@@ -6,14 +6,13 @@ import type { EventRow } from '../hooks/useGame'
 
 /**
  * Build the psychicnum print model — the pure half, away from jsPDF so the
- * judgment is testable without a renderer (the same split as wordle/stackdown).
+ * judgment is testable without a renderer.
  *
  * The judgment that lives here: **whose marks belong on whose board.** The
  * board WORDS are shared, but in compete every player races their own copy —
  * each with their own ✓/✗ marks, their own score and their own guess log — so
  * the printout is one track per player (`common/pdf/columns.ts`), not one
- * merged board that silently blends everyone's guesses (which is exactly what
- * the old single-board printer did at compete terminal).
+ * merged board that silently blends everyone's guesses.
  */
 
 export type PrintTile = { word: string; state: 'correct' | 'miss' | 'undecided' }

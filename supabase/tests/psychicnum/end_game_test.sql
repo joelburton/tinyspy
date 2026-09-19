@@ -13,7 +13,7 @@
 -- non-player can't fire it.
 --
 -- Strategy mirrors gameplay_test.sql: build a club, create a
--- game, pin the target with a postgres-role UPDATE (irrelevant to
+-- game, pin the secrets with a postgres-role UPDATE (irrelevant to
 -- end_game, but keeps the setup identical), then drive with
 -- as_user switching.
 

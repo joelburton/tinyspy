@@ -99,11 +99,11 @@ export function Board({
   // SHARED, so a teammate's guess colors a tile anywhere on it while you are
   // reading somewhere else: change in place, announcing nothing.
   //
-  // Gated on the CAUSE (the guess log) rather than on the board differing, because
-  // the board also changes when nothing was played — asking to see the answer
+  // Gated on the CAUSE (the event log) rather than on the board differing, because
+  // the board also changes when nothing was played — asking to see the solution
   // turns every unfound secret green at once, and a restart clears the lot. Both
   // would light up the board at the moment nothing happened. See
-  // `useMoveAttention`, and the same rule in waffle.
+  // `useMoveAttention`.
   const flashing = useMoveAttention({
     content: results,
     contentKey: [...results.keys()].sort().join(','),
@@ -178,8 +178,7 @@ export function Board({
               type="button"
               // A stable e2e hook: class names are hashed, and the floating
               // Shuffle control lives inside the board root, so "a button in the
-              // board" would also match it (connections has the same hook, for
-              // the same reason).
+              // board" would also match it.
               data-tile={word}
               className={cls(
                 shared.tileFace,
