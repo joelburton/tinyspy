@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-info-sheet
 
 import type { Member } from '../members/member'
 import { waitingForText } from './turnText'

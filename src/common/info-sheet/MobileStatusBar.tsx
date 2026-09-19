@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-info-sheet
 
 import type { ReactNode } from 'react'
 import styles from './MobileStatusBar.module.css'
