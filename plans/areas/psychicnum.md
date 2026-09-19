@@ -33,6 +33,13 @@ walked through and ruled by Joel, one commit apiece. What pass 2 still owes:
 the whole-area re-read in one sitting (Closing), then pass 3. The earlier
 three findings (F-1 to F-3) shipped during the restructure.
 
+**PAUSED pre-close, 2026-09-19.** Everything Claude owes the area is done —
+three passes, tf2, the closing re-read, the `doc.md` harvest, `todo.md` empty
+but for its Won't-dos — and the blessing is Joel's alone. He is holding it:
+this game's printer builds on `src/common/pdf/`, which no area has read, so
+`pdf` opens first and psychicnum closes after it. The note under *Notes* that
+recorded the opposite ruling is marked superseded there.
+
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
 
@@ -1405,8 +1412,10 @@ commands block's, so the shape rule does not reach them.
   That is a code-shape question about where a color is looked up, not a
   change to what the board shows; pass 3 decides whether it is worth a shared
   class or a one-line pointer at `ANSWER_OUTCOME`.
-- `common/pdf` (row 47) is unblessed and psychicnum's printer builds on it.
-  Joel: it's fine; the focus is the web-based parts.
+- ~~`common/pdf` is unblessed and psychicnum's printer builds on it. Joel:
+  it's fine; the focus is the web-based parts.~~ **SUPERSEDED 2026-09-19**:
+  Joel paused this area pre-close and opened the `pdf` area instead, so the
+  shared printer is read before psychicnum is blessed.
 - **The `<ShuffleButton>` tab stop, worked from this game's `todo.md`**
   (Joel, 2026-09-19, walking the todos: *"let's fix this; it's ok if this
   changes code in other areas"*). The shared pill takes `tabIndex={-1}`; its
