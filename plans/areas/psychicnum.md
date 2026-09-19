@@ -464,6 +464,12 @@ has one, no prefix means OPEN)*
 
 *(the spec names, written when the area starts changing things)*
 
+**The e2e ran clean for Steps 2 and 3 together** (2026-09-19, Joel's word,
+after both were committed): the geometry harness without `BASELINE=1` — every
+touched board at its Step 0 baseline — and the five psychicnum specs, 8 tests.
+Nothing predicted broke and nothing unpredicted did. pgTAP is still deliberately
+unrun: no SQL has moved.
+
 - Step 2: `PlayArea.test.tsx` imports change if Decision 1 lands on
   "precedent" (it mounts the loader); its `useGame` mock is unchanged.
   **Held**: the import and about twenty mount sites now name `PlayAreaLoader`,
