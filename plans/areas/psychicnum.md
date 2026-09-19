@@ -937,7 +937,15 @@ instead) · *"keep 15"* (then `doc.md` says why).
 **Recommendation: none.** A default is a decision, and this one reads as a
 value left over from testing the timeout path.
 
-### F-psychicnum-8 · `spoiler-called-three-things` · the spoiler and the miss each read differently on four surfaces
+### SHIPPED · F-psychicnum-8 · `spoiler-called-three-things` · the spoiler and the miss each read differently on four surfaces
+
+**Joel, 2026-09-19: "we can use 'spoiler' for all of these."** The log cell
+and the PDF line say *Spoiler*, the history banner says *Spoiler: CHERRY*, the
+teammate's line says *got spoiler* (the twin of *got hint*), and the banner's
+verdicts are *Correct* / *Wrong* like every other surface. Four code files,
+three test files, `GameEventLog`'s docstring (which still listed the kind as
+"a reveal") and the `doc.md` answer table. The only "revealed" left in the
+folder is the plain English verb in prose.
 
 The "Wrong throughout" pass (Closing, above) settled the miss on the pill,
 the log and the PDF. Two words are still spread:

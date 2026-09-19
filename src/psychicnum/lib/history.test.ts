@@ -5,7 +5,7 @@
  * DOM, no supabase. Covers:
  *   1. INCLUSIVE folding — viewing turn N reflects every guess with position ≤ N and
  *      NOT any later one.
- *   2. Hint / reveal turns mark no tile and highlight nothing.
+ *   2. Hint / spoiler turns mark no tile and highlight nothing.
  *   3. The highlight — exactly the word the viewed guess decided.
  */
 import { describe, expect, it } from 'vitest'
@@ -54,11 +54,13 @@ describe('historySnapshot', () => {
     expect(s1.historyLabel).toBe('Hint: a fruit')
   })
 
-  it('describes a guess by its outcome, a spoiler by its answer', () => {
-    expect(historySnapshot(GUESSES, 11).historyLabel).toBe('APPLE — a secret!')
-    expect(historySnapshot(GUESSES, 13).historyLabel).toBe('BERRY — not a secret')
+  // The verdict words are the game's — the same "Correct" / "Wrong" the pill
+  // and the log say — and the spoiler is called what its button is called.
+  it('describes a guess by its verdict, a spoiler by the word it handed over', () => {
+    expect(historySnapshot(GUESSES, 11).historyLabel).toBe('APPLE — Correct')
+    expect(historySnapshot(GUESSES, 13).historyLabel).toBe('BERRY — Wrong')
     expect(historySnapshot([g({ id: 7, word: 'cherry', kind: 'spoiler' })], 7).historyLabel).toBe(
-      'Revealed CHERRY',
+      'Spoiler: CHERRY',
     )
   })
 

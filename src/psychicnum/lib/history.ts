@@ -64,12 +64,14 @@ export function historySnapshot(
   return { results, historyLitWord, historyLabel: describe(turn) }
 }
 
-/** The kind-aware turn label. A guess reads as its outcome; a spoiler names the answer
- *  word; a hint carries its clue text in `word` (never the secret — no leak). */
+/** The kind-aware turn label, in the words every other surface of this game
+ *  uses for the same row (`lib/answer.ts`): a guess reads as its verdict, a
+ *  spoiler names the word handed over, a hint carries its clue text in `word`
+ *  (never the secret — no leak). */
 function describe(turn: EventRow | undefined): string {
   if (!turn) return 'This turn'
   const word = turn.word.toUpperCase()
   if (turn.kind === 'hint') return `Hint: ${turn.word}`
-  if (turn.kind === 'spoiler') return `Revealed ${word}`
-  return turn.is_correct ? `${word} — a secret!` : `${word} — not a secret`
+  if (turn.kind === 'spoiler') return `Spoiler: ${word}`
+  return turn.is_correct ? `${word} — Correct` : `${word} — Wrong`
 }

@@ -246,7 +246,7 @@ pill, the log and the header cannot disagree about one move.
 | `hint` | me | *(nothing)* | `warning` |
 | `hint_peer` | about a coop teammate | `got hint` | `warning` |
 | `spoiler` | me | *(nothing)* | `lost` |
-| `spoiler_peer` | about a coop teammate | `revealed word` | `lost` |
+| `spoiler_peer` | about a coop teammate | `got spoiler` | `lost` |
 | `found_peer` | about a compete opponent | `guessed a word` | `won` |
 | `not_on_board` | me | `Not on the board` | `lost` |
 | `already_guessed` | me | `Already guessed` | `warning` |

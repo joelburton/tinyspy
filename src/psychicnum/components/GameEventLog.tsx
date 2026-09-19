@@ -46,7 +46,7 @@ type Props = {
  * Three row kinds. The bar's color is `lib/answer.ts`'s in every one of them —
  * the log names no word of its own — and what differs here is the CELLS:
  *   - a **guess** → word + result ("Correct" / "Wrong").
- *   - a **reveal** (a revealed answer) → word + "Answer".
+ *   - a **spoiler** (a secret handed over) → word + "Spoiler".
  *   - a **hint** (a clue) → the word+result columns are **replaced by a single
  *     colspan** cell "Hint: <clue>" (the row carries the clue text, not a word).
  *
@@ -81,7 +81,7 @@ export function GameEventLog({
     <EventLogActor actor={memberById(players, userId)} />
   )
 
-  // A guessed / revealed word is a real dictionary word, so it is definable; a
+  // A guessed / spoiled word is a real dictionary word, so it is definable; a
   // HINT row's `word` is a clue sentence, so it is not.
 
   // The "#N" cell, shared by both row kinds. The NUMBER is the row's place in
@@ -134,7 +134,7 @@ export function GameEventLog({
             {/* The log writes its own words — a word and a verdict are two
                 columns here, not a sentence — but the VERDICT word is the
                 game's, and `lib/answer.ts` says it is "Wrong". */}
-            <td className={gameEventLog.main}>{isSpoiler ? 'Answer' : g.is_correct ? 'Correct' : 'Wrong'}</td>
+            <td className={gameEventLog.main}>{isSpoiler ? 'Spoiler' : g.is_correct ? 'Correct' : 'Wrong'}</td>
             {whoCell(g.user_id)}
           </tr>
         )

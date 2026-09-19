@@ -36,7 +36,7 @@ describe('answerMessage', () => {
     expect(answerMessage({ answerType: 'hint' }).text).toBe('')
     expect(answerMessage({ answerType: 'spoiler' }).text).toBe('')
     expect(answerMessage({ answerType: 'hint_peer' }).text).toBe('got hint')
-    expect(answerMessage({ answerType: 'spoiler_peer' }).text).toBe('revealed word')
+    expect(answerMessage({ answerType: 'spoiler_peer' }).text).toBe('got spoiler')
   })
 
   // The rule this game must not break: in compete you learn THAT an opponent
@@ -75,7 +75,7 @@ describe('answerMessage', () => {
     [{ answerType: 'hint' }, 'warning', ''],
     [{ answerType: 'hint_peer' }, 'warning', 'got hint'],
     [{ answerType: 'spoiler' }, 'lost', ''],
-    [{ answerType: 'spoiler_peer' }, 'lost', 'revealed word'],
+    [{ answerType: 'spoiler_peer' }, 'lost', 'got spoiler'],
     [{ answerType: 'found_peer' }, 'won', 'guessed a word'],
     [{ answerType: 'not_on_board' }, 'lost', 'Not on the board'],
     [{ answerType: 'already_guessed' }, 'warning', 'Already guessed'],
@@ -136,7 +136,7 @@ describe('peerAnswerMessage', () => {
     expect(peerAnswerMessage(row({ kind: 'hint', is_correct: true, word: 'a fruit' })))
       .toEqual({ outcome: 'warning', text: 'got hint' })
     expect(peerAnswerMessage(row({ kind: 'spoiler', is_correct: true, word: 'apple' })))
-      .toEqual({ outcome: 'lost', text: 'revealed word' })
+      .toEqual({ outcome: 'lost', text: 'got spoiler' })
   })
 
   it('never repeats a hint’s clue or a spoiler’s word', () => {

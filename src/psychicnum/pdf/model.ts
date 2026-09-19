@@ -53,7 +53,7 @@ function turnsOf(guesses: readonly EventRow[], whoOf: (g: EventRow) => string): 
       g.kind === 'hint'
         ? `Hint: ${g.word}`
         : g.kind === 'spoiler'
-          ? `${g.word.toUpperCase()} — Answer`
+          ? `${g.word.toUpperCase()} — Spoiler`
           : `${g.word.toUpperCase()} — ${g.is_correct ? 'Correct' : 'Wrong'}`,
   }))
 }

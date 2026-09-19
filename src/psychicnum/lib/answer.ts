@@ -71,7 +71,7 @@ export function answerMessage(answer: Answer): AnswerMessage {
     case 'spoiler':
       return { outcome: 'lost', text: '' }
     case 'spoiler_peer':
-      return { outcome: 'lost', text: 'revealed word' }
+      return { outcome: 'lost', text: 'got spoiler' }
 
     case 'found_peer':
       return { outcome: 'won', text: 'guessed a word' }
