@@ -17,6 +17,7 @@ import { Board } from './Board'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
+import { shuffle } from '@/common/utils/shuffle'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -27,16 +28,6 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *  arrives through a raise, and `common.raised_envelope` always builds
  *  `data: null`. That answer is named by its `dbcode` instead. */
 type GuessAnswer = { verdict: 'hit' | 'miss'; found_all: boolean } | null
-
-/** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
-function shuffled<T>(arr: readonly T[]): T[] {
-  const out = arr.slice()
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[out[i], out[j]] = [out[j], out[i]]
-  }
-  return out
-}
 
 /**
  * psychicnum's board column — the `Board` (with the floating Shuffle) plus the
@@ -167,7 +158,7 @@ export function BoardCol({
   const shuffledWords = useMemo(() => {
     if (wordsKey === '') return []
     void shuffleSeed
-    return shuffled(wordsKey.split('\n'))
+    return shuffle(wordsKey.split('\n'))
   }, [wordsKey, shuffleSeed])
   const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
 

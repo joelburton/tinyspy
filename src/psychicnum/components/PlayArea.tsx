@@ -1,7 +1,7 @@
 // cs-fixed-outcome-fix
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -237,18 +237,18 @@ function PlayArea({
     playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0
   const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
   const selfWon = mode === 'compete' ? selfSecretsFound >= SECRET_COUNT : true
-  const over = useMemo(
+  const terminalMessage = useMemo(
     () =>
       isTerminal && mode
-        ? buildOver({ mode, playState, timerExpired: timer.expired, selfWon, winnerName })
+        ? buildTerminalMessage({ mode, playState, timerExpired: timer.expired, selfWon, winnerName })
         : null,
     [isTerminal, mode, playState, timer.expired, selfWon, winnerName],
   )
   useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    if (!terminalMessage) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(terminalMessage))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  }, [localFeedbackSlot, terminalMessage])
 
   // Out of the race while the others play on: out of guesses, or conceded.
   // A standing state with the fill; the verdict outranks it when the game ends.
@@ -282,13 +282,6 @@ function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, waiting, turnHolderName, turnHolderColor])
 
-  // The Hint / Spoiler in-flight flags (their buttons live in InfoCol, their
-  // menu twins in the game menu; the RPCs stay here in the coordinator). Also up
-  // here so the menu effect can read them — the guess input + the board shuffle
-  // moved into BoardCol.
-  const [hinting, setHinting] = useState(false)
-  const [spoiling, setSpoiling] = useState(false)
-
   // ─── Terminal secrets reveal ─────────────────────────────────────
   // The three secrets are NOT ringed just because the game ended:
   // `replay_board` hunts the SAME board and the SAME three secrets again (see
@@ -317,50 +310,6 @@ function PlayArea({
   })
   // Per-opponent secrets-found count we've already announced (compete tension).
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
-
-  // ─── The hint and the spoiler ──────────────────────────
-  // Hint (a clue) and spoiler (the answer word itself) both land in the event log
-  // via realtime; coop teammates get a header message. Nothing to do with the
-  // return value here — those rows arrive over the subscription. "Reveal" on
-  // this page means one thing only: the whole solution at game-over, which is
-  // local FE state and no RPC at all.
-  const getHint = useCallback(async () => {
-    setHinting(true)
-    const res = await runRpc<HintAnswer>(db.rpc('request_hint', { target_game: gameId }))
-    setHinting(false)
-    if (res.type === 'not-ok') {
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'hint') {
-      // Nothing to show: the clue arrives as a `kind = 'hint'` row over the
-      // subscription and lands in the event log, where it stays. A pill would
-      // say the same thing twice and then vanish.
-      return
-    } else if (res.type === 'ok' && res.data.result === 'no-hint') {
-      return
-    } else {
-      reportUnhandled('request_hint', res)
-      return
-    }
-  }, [gameId, localFeedbackSlot])
-
-  const getSpoiler = useCallback(async () => {
-    setSpoiling(true)
-    const res = await runRpc<SpoilerAnswer>(db.rpc('request_spoiler', { target_game: gameId }))
-    setSpoiling(false)
-    if (res.type === 'not-ok') {
-      localFeedbackSlot.show(FeedbackMessage.notOk(res))
-      return
-    } else if (res.type === 'ok' && res.data.result === 'spoiler') {
-      // Same as the hint: the word arrives as a `kind = 'spoiler'` row and the
-      // event log is where it belongs — a spoiler you asked for should stay
-      // readable, not flash past.
-      return
-    } else {
-      reportUnhandled('request_spoiler', res)
-      return
-    }
-  }, [gameId, localFeedbackSlot])
 
   // ─── Coop peer events → the header ─────────────────────
   // A teammate's guess (green correct / red not), or their hint or spoiler, is
@@ -429,12 +378,20 @@ function PlayArea({
   // back doesn't also play on it.
   const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
 
-  // End / Concede / Restart come from the shared `useStandardGameActions` as
-  // bound actions — the menu row, the button and ⌥⌫ are all the same binding, so
-  // there is nothing to keep in step. psychicnum's own bits are which `db` they
-  // call and the post-replay cleanup (leave the turn-history view; a restart
-  // is the player's next action, so it dismisses a lingering result — the
-  // verdict itself leaves by its own effect when the terminal state ends).
+  // ─── The commands, bound ───────────────────────────────
+  // Every command this game offers, in one order that three readers keep: this
+  // block, the info column's prop list, and the menu's rows. A binding is what
+  // the button, the menu row and the key all read, so none of them can drift
+  // from another — and `pending` grays every surface of one for the length of
+  // its run, which is why no handler here carries an in-flight flag of its own.
+  // None of them is a `useCallback`: `useBoundAction` reads its live half
+  // through a ref it refreshes every render, and the bound value's identity
+  // turns on `pending` alone.
+
+  // The shared trio — End / Concede / Restart. psychicnum's own bits are which
+  // `db` they call and the post-replay cleanup (leave the turn-history view; a
+  // restart is the player's next action, so it dismisses a lingering result —
+  // the verdict itself leaves by its own effect when the terminal state ends).
   //
   // (Nothing un-rings the secrets here: a restart remounts the play surface, so
   //  the reveal goes with it and the same three are hunted blind again.)
@@ -447,13 +404,88 @@ function PlayArea({
     localFeedbackSlot,
   })
 
+  // Hint (a clue) and spoiler (the answer word itself) both land in the event
+  // log via realtime; coop teammates get a header message. Nothing to do with
+  // the return value here — those rows arrive over the subscription. "Reveal"
+  // on this page means one thing only: the whole solution at game-over, which
+  // is local FE state and no RPC at all.
+  async function getHint() {
+    const res = await runRpc<HintAnswer>(db.rpc('request_hint', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
+      return
+    } else if (res.type === 'ok' && res.data.result === 'hint') {
+      // Nothing to show: the clue arrives as a `kind = 'hint'` row over the
+      // subscription and lands in the event log, where it stays. A pill would
+      // say the same thing twice and then vanish.
+      return
+    } else if (res.type === 'ok' && res.data.result === 'no-hint') {
+      return
+    } else {
+      reportUnhandled('request_hint', res)
+      return
+    }
+  }
+
+  async function getSpoiler() {
+    const res = await runRpc<SpoilerAnswer>(db.rpc('request_spoiler', { target_game: gameId }))
+    if (res.type === 'not-ok') {
+      localFeedbackSlot.show(FeedbackMessage.notOk(res))
+      return
+    } else if (res.type === 'ok' && res.data.result === 'spoiler') {
+      // Same as the hint: the word arrives as a `kind = 'spoiler'` row and the
+      // event log is where it belongs — a spoiler you asked for should stay
+      // readable, not flash past.
+      return
+    } else {
+      reportUnhandled('request_spoiler', res)
+      return
+    }
+  }
+
+  // The hint and the spoiler. Grayed rather than dropped when you can't ask:
+  // the menu row is what NAMES those glyphs (docs/ui.md → the menu is the
+  // legend), so a disabled row still teaches the lightbulb and the bare eye.
+  const actHint = useBoundAction('act-hint', {
+    // Three states, not two: GONE once the game is over (there is no guess left
+    // to nudge), gray while the game is live and you are out of guesses, live
+    // otherwise. The in-flight beat is `pending`'s to gray, not this one's.
+    describe: () => (isTerminal ? 'hidden' : isStillPlaying ? 'active' : 'disabled'),
+    run: getHint,
+  })
+  const actSpoiler = useBoundAction('act-spoiler', {
+    // Same three states as the hint above.
+    describe: () => (isTerminal ? 'hidden' : isStillPlaying ? 'active' : 'disabled'),
+    run: getSpoiler,
+  })
+
+  // Ring the three secrets at game-over — or un-ring them. A LOCAL toggle: mine
+  // alone, nothing written, no peer affected, so a teammate can go on eyeing the
+  // board while I look. Its two faces are what `describe` is for — the words and
+  // the glyph move together, because on the icon-only button the glyph is the
+  // label. Inert mid-game: there is nothing to ring until the server unshields
+  // the secrets at terminal, and nothing to do once solving has shown them.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: (asker) => {
+      // No BUTTON while you are still hunting — the row's few slots belong to
+      // playing, and this is not a question you can ask yet. The menu row and
+      // the Help list keep it all game, grayed, because they NAME the glyph
+      // (docs/ui.md → the menu is the legend), which is what the hint and the
+      // spoiler above do too. It stays gray until EVERYONE is done, so a
+      // dropout cannot spoil a live race.
+      if (isStillPlaying && asker === 'button') return 'hidden'
+      return describeReveal({ noun: 'solution', revealed: secretsShown, impliedBySolve, isTerminal })
+    },
+    run: toggleSecrets,
+  })
+
   // New game — a FRESH game (new id, a new random board + secrets) with THIS
   // game's setup + roster + mode, in the same club. psychicnum's create_game
   // samples its board inline, so this is a direct RPC — no edge function.
   // Non-destructive (common.create_game un-currents this game into the club
   // list), so no confirm; the creator jumps in via ctx.goToGame, peers arrive
   // via the game-invitation toast.
-  const createNewGame = useCallback(async () => {
+  async function createNewGame() {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
@@ -479,11 +511,11 @@ function PlayArea({
       reportUnhandled('create_game', res)
       return
     }
-  }, [mode, clubHandle, setup, players, goToGame, localFeedbackSlot])
+  }
 
   // New game — its `+`, its menu row and its terminal button, from one binding.
   // The registry asks NEW_GAME_CONFIRM mid-play (an accidental `+` should not
-  // read as "I just lost my game" — the copy says shelved, not ended) and goes
+  // read as "I just lost my game" — the text says shelved, not ended) and goes
   // straight through at terminal, and the shared run's single flight is what
   // stops a second press dealing a second game.
   const actNewGame = useBoundAction('act-new-game', {
@@ -493,22 +525,6 @@ function PlayArea({
     // the end, where "deal another" is what you came to the row for.
     describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
     run: createNewGame,
-  })
-
-  // The hint and the spoiler. Grayed rather than dropped when you can't ask:
-  // the menu row is what NAMES those glyphs (docs/ui.md → the menu is the
-  // legend), so a disabled row still teaches the lightbulb and the bare eye.
-  const actHint = useBoundAction('act-hint', {
-    // Three states, not two: GONE once the game is over (there is no guess left
-    // to nudge), gray while the game is live and you are out of guesses or
-    // one is in flight, live otherwise.
-    describe: () => (isTerminal ? 'hidden' : isStillPlaying && !hinting ? 'active' : 'disabled'),
-    run: getHint,
-  })
-  const actSpoiler = useBoundAction('act-spoiler', {
-    // Same three states as the hint above.
-    describe: () => (isTerminal ? 'hidden' : isStillPlaying && !spoiling ? 'active' : 'disabled'),
-    run: getSpoiler,
   })
 
   // Print builds its model from the live state at CLICK time (RLS already
@@ -537,32 +553,18 @@ function PlayArea({
     },
   })
 
-  // Ring the three secrets at game-over — or un-ring them. A LOCAL toggle: mine
-  // alone, nothing written, no peer affected, so a teammate can go on eyeing the
-  // board while I look. Its two faces are what `describe` is for — the words and
-  // the glyph move together, because on the icon-only button the glyph is the
-  // label. Inert mid-game: there is nothing to ring until the server unshields
-  // the secrets at terminal, and nothing to do once solving has shown them.
-  const actReveal = useBoundAction('act-reveal', {
-    describe: (asker) => {
-      // No BUTTON while you are still hunting — the row's few slots belong to
-      // playing, and this is not a question you can ask yet. The menu row and
-      // the Help list keep it all game, grayed, because they NAME the glyph
-      // (docs/ui.md → the menu is the legend), which is what the hint and the
-      // spoiler above do too. It stays gray until EVERYONE is done, so a
-      // dropout cannot spoil a live race.
-      if (isStillPlaying && asker === 'button') return 'hidden'
-      return describeReveal({ noun: 'solution', revealed: secretsShown, impliedBySolve, isTerminal })
-    },
-    run: toggleSecrets,
-  })
-
+  // ─── The menu ──────────────────────────────────────────
   // The FULL psychicnum game menu. `buildGameMenu` supplies the framing (Help +
   // chat above, Back to club below); the middle is this game's own rows, each
   // one a binding it already made — so a row's words, glyph, key and
   // availability come from the action rather than being typed here a second
   // time. The effect re-runs only when the SHAPE changes, which is why every
   // dep is a stable value.
+  //
+  // **The rows read as the info column's action row does, divider for divider.**
+  // The two are views of the same bindings, so a player who learned the row
+  // finds the menu in the same order (docs/playarea.md). Print is the one row
+  // with no twin in the row, and sits after them.
   useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
@@ -573,24 +575,24 @@ function PlayArea({
         extra: [
           // The menu twins of the info column's hint and spoiler buttons.
           { items: [actHint, actSpoiler] },
-          { items: [actPrintBoard] },
           {
             items: [
-              // The same pair the terminal action row offers, reachable mid-game too.
-              actRestart,
-              actNewGame,
               // The menu twin of the terminal row's boxed-eye button — the same
               // binding, so a player who has scrolled past the row reaches the
               // identical toggle, wearing the identical face.
               actReveal,
+              // The same pair the terminal action row offers, reachable mid-game too.
+              actRestart,
+              actNewGame,
             ],
           },
+          { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actHint, actSpoiler, actPrintBoard,
-      actRestart, actNewGame, actReveal])
+  }, [menu, actConcede, actEndGame, actHint, actSpoiler, actReveal,
+      actRestart, actNewGame, actPrintBoard])
 
   // Concede lives on the common roster (ctx `players` = GamePlayer[]), NOT on
   // psychicnum.players (the budget rows). `concededIds` marks the players who've
@@ -695,9 +697,9 @@ function PlayArea({
         // ── The below-board slot: BoardCol shows results into it and draws it ──
         localFeedbackSlot={localFeedbackSlot}
         // ── Board-scope marks ──
-        // The finished board wears its verdict; `over` is the same terminal
-        // message the below-board slot shows, so the two can't disagree.
-        gameOver={over ? over.outcome : null}
+        // The finished board wears its verdict; it is the same terminal message
+        // the below-board slot shows, so the two can't disagree.
+        gameOver={terminalMessage ? terminalMessage.outcome : null}
         notMyTurn={waiting}
         myTurnJustStarted={turnFlash}
         // The CAUSE the attention flash reads: a board that changed while this
@@ -710,7 +712,7 @@ function PlayArea({
         <InfoCol
         // ── Mode + phase ──
         isCompete={mode === 'compete'}
-        over={over}
+        terminalMessage={terminalMessage}
         isStillPlaying={isStillPlaying}
         myConceded={myConceded}
         // ── Turn-order (null for free-for-all games → no TurnStatusLine) ──
@@ -725,14 +727,14 @@ function PlayArea({
         selfId={session.user.id}
         playerBudgets={playerBudgets}
         concededIds={concededIds}
-        // ── Action row — the same bindings the menu rows are ──
+        // ── Action row — the same bindings, in the order the menu lists them ──
         actHint={actHint}
         actSpoiler={actSpoiler}
         actReveal={actReveal}
-        actEndGame={actEndGame}
-        actConcede={actConcede}
         actRestart={actRestart}
         actNewGame={actNewGame}
+        actConcede={actConcede}
+        actEndGame={actEndGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setupRows={summaryRows}
@@ -769,7 +771,7 @@ function PlayArea({
  * them when the secret reveal moved onto the BOARD (ringed tiles); before that it
  * spent its width listing "The words were APPLE, RIVER, STONE".
  */
-function buildOver({
+function buildTerminalMessage({
   mode,
   playState,
   timerExpired,

@@ -13,8 +13,8 @@ the reading. Owed work lives in `src/psychicnum/todo.md`, not here.
 written and its four decisions are Joel's (2026-09-19): "precedent" names,
 "row order" for the menu, `lib/terminal.ts`, the section order as proposed.
 The two e2e baseline runs are permitted. No stamps written. **Step 0 (the
-baseline), Step 1 (the owed work gathered) and Step 2 (the loader / loaded
-split) are done; Step 3 is next.**
+baseline), Step 1 (the owed work gathered), Step 2 (the loader / loaded
+split) and Step 3 (the actions and the row) are done; Step 4 is next.**
 
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
@@ -247,7 +247,7 @@ it — see Closing.
   bound above the early returns …" (each binding says it where it is), and the
   pre-load clause inside `myConceded`'s note.
 
-### Step 3 — the actions and the row (readability 3.6, 3.7)
+### Step 3 — the actions and the row (readability 3.6, 3.7) — DONE 2026-09-19
 
 The row is already unconditional here (this is the template). What changes:
 
@@ -321,6 +321,32 @@ menu in the same order; it is also the order the InfoCol comment already
 argues for. Written once in `docs/playarea.md` beside the row's order; the
 builder's slots wait for the second game.
 
+**Shipped, and both premises were re-verified first.** `useBoundAction` sets
+`liveRef.current = live` DURING the render and the bound value's identity is
+memoized on `pending` alone — so `run` and `describe` need no stable identity,
+the three `useCallback`s are gone, and the menu effect's deps are as stable as
+before. `ActionButton` reads `state === 'disabled' || action.pending` and
+`menuModel.ts` reads the same pair, so deleting `hinting` / `spoiling` loses no
+gray: `describe` for Hint and Spoiler is now
+`isTerminal ? 'hidden' : isStillPlaying ? 'active' : 'disabled'`, and the
+in-flight beat is `pending`'s.
+
+**The InfoCol's action row was ALREADY drawing "row order"** — Hint · Spoiler |
+Reveal · Restart · New game | Concede · End | Back to club. What disagreed with
+it were its own destructure and prop-type list (End and Concede before Restart
+and New game) and the menu, which read Hint · Spoiler | Print | Restart · New
+game · Reveal. All three now read the same, and the menu's Print sits last,
+being the one row with no twin in the row.
+
+**`shuffled` is `shuffle()` from `common/utils`**, and the `todo.md` item is
+deleted. Behavior is unchanged: the same Fisher–Yates, the same `Math.random`
+default, a copy back.
+
+Also gone with the flags: `useState` and `useCallback` are no longer imported.
+`getHint`, `getSpoiler` and `createNewGame` are plain `async function`s
+declared in the bindings block, each one directly above the binding that runs
+it.
+
 ### Step 4 — `buildOver` leaves the component file (readability 3.4)
 
 The pure builder moves to `lib/`, with a test that walks every play state in
@@ -333,8 +359,27 @@ most that can be done about the two-home hazard without a shared vocabulary.
 **Decision 3 — the file name.** `lib/terminal.ts` (reads with
 `common/terminal/terminalMessage.ts`, whose type it returns) · `lib/over.ts`
 (named for the value every PlayArea calls `over`) · `lib/verdict.ts` (the
-word the pill uses). **Decided: `lib/terminal.ts`** (Joel, 2026-09-19), and
-the export keeps its name, `buildOver`, so the call site does not change.
+word the pill uses). **Decided: `lib/terminal.ts`** (Joel, 2026-09-19).
+
+**The export's name is SUPERSEDED.** This decision also said the export keeps
+`buildOver` so the call site would not change; Joel read the file after Step 2
+and ruled otherwise (2026-09-19): *"we generally use the word 'terminal' rather
+than 'over', so it would be helpful to make other variables based around that."*
+Done at that moment, ahead of the move: the builder is **`buildTerminalMessage`**
+— which is what it returns — the value it produces is `terminalMessage`, and
+InfoCol's `over` prop is `terminalMessage` too. `<Board gameOver>` is NOT
+renamed: it is a shared vocabulary, backed by `.gameOverFrame` /
+`.gameOverWon` / `.gameOverLost` in `game-page/playArea.module.css`, and
+renaming one game's prop would desync it from the class it draws. Ordinary
+English "over" in prose stays.
+
+**Five prose sites in `common/` still say `buildOver()`** —
+`terminal/terminalMessage.ts` (twice), `terminal/doc.md` (twice),
+`feedback/FeedbackMessage.tsx`, `info-sheet/InfoActionsRow.tsx` — and two of
+them say "every game's `buildOver()`", which is now fifteen of sixteen. Left
+alone deliberately: the other fifteen rename when the shape doc lands, and
+these sentences are corrected there rather than made awkward for one game.
+Listed under Closing.
 
 ### Step 5 — the section order (readability 3.2)
 
@@ -427,7 +472,9 @@ has one, no prefix means OPEN)*
   fixed a listed orphan — its allowlist entry had to go.
 - Step 3: the spec "the rows fire the same RPCs as the buttons, and gray once
   I have no guesses left" asserts the gray from `isStillPlaying`, not from
-  the flags, so it should hold; verified at the step.
+  the flags, so it should hold; verified at the step. **Held** — all 336 unit
+  tests pass, including the menu-order specs, which read rows by id rather
+  than by position.
 
 ## Closing
 
@@ -440,8 +487,14 @@ has one, no prefix means OPEN)*
       far:** the loader / loaded split and its names, the loader's three gates
       — `<Loading>`, `<EnvelopeErrorPage>`, `<NoSuchGamePage>` with a `detail`
       naming the empty read — the section order (Step 5), the menu's row order
-      (Step 3), and `lib/terminal.ts` (Step 4). Joel, 2026-09-19: the other
-      fifteen games are not filed anywhere; they conform when the doc exists
+      (Step 3), `lib/terminal.ts` + `buildTerminalMessage` (Step 4), and the
+      rule that the bindings block, the info column's prop list and the menu
+      rows all read in one order. Joel, 2026-09-19: the other fifteen games are
+      not filed anywhere; they conform when the doc exists. **The doc's rename
+      also owes five `common/` prose sites that still say `buildOver()`** —
+      `terminal/terminalMessage.ts` ×2, `terminal/doc.md` ×2,
+      `feedback/FeedbackMessage.tsx`, `info-sheet/InfoActionsRow.tsx` — two of
+      which claim "every game's"
 - [ ] the tile-feedback pass done, and the game's tf level updated there
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

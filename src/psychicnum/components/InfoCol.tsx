@@ -29,7 +29,7 @@ export function InfoCol({
   // block below name each group. Names are shared with the other games' columns for the
   // same idea — see docs/playarea.md.
   isCompete,
-  over,
+  terminalMessage,
   isStillPlaying,
   myConceded,
   currentTurnUserId,
@@ -44,10 +44,10 @@ export function InfoCol({
   actHint,
   actSpoiler,
   actReveal,
-  actEndGame,
-  actConcede,
   actRestart,
   actNewGame,
+  actConcede,
+  actEndGame,
   actBackToClub,
   setupRows,
   guesses,
@@ -58,7 +58,7 @@ export function InfoCol({
   // ── Mode + phase ──
   isCompete: boolean
   /** The terminal message when the game is over (drives the action row), else null. */
-  over: TerminalMessage | null
+  terminalMessage: TerminalMessage | null
   /** May I still guess? Gates the play action row + help (vs the locally-done look). */
   isStillPlaying: boolean
   /** I conceded a compete race (a real loss; the others keep racing) — picks the
@@ -84,7 +84,8 @@ export function InfoCol({
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
 
-  // ── Action row (Hint / Reveal + End/Concede, back-to-club at terminal) ──
+  // ── Action row — listed in the order the row draws them, which is the order
+  //    the game menu lists them too (docs/playarea.md) ──
   /** Ask for a clue. Grayed rather than gone when you can't ask — the glyph is
    *  worth teaching either way. */
   actHint: BoundAction
@@ -95,17 +96,17 @@ export function InfoCol({
    *  toggle shared with the menu twin; nothing is written, no peer affected. It
    *  carries its own two faces, so this column places one button either way. */
   actReveal: BoundAction
-  /** The whole table stops, with no result. Hidden in a race that doesn't
-   *  offer it — so the pair below can be placed unconditionally. */
-  actEndGame: BoundAction
-  /** Drop out of a race; the others keep going. Hidden outside one. */
-  actConcede: BoundAction
   /** Hunt the SAME board + secrets again from scratch. */
   actRestart: BoundAction
   /** Start a fresh follow-up game — same setup + roster, a new board + secrets.
    *  Disables itself while the create is in flight, so a slow network reads as
    *  "working" rather than "nothing happened". */
   actNewGame: BoundAction
+  /** Drop out of a race; the others keep going. Hidden outside one. */
+  actConcede: BoundAction
+  /** The whole table stops, with no result. Hidden in a race that doesn't
+   *  offer it — so the pair above can be placed unconditionally. */
+  actEndGame: BoundAction
   /** Leave for the club page — the shell's own action, off `ctx.menu`. */
   actBackToClub: BoundAction
 
@@ -135,8 +136,8 @@ export function InfoCol({
   // The row's line, and the only thing that varies between states: the verdict
   // once the game is over, a neutral "you are done, they are not" while a race
   // runs on without you, and nothing at all while you can still play.
-  const rowMessage: InfoActionsMessage | undefined = over
-    ? { text: over.infoColText, outcome: over.outcome }
+  const rowMessage: InfoActionsMessage | undefined = terminalMessage
+    ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
     : isStillPlaying
       ? undefined
       : { text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
@@ -171,7 +172,7 @@ export function InfoCol({
             currentTurnUserId={currentTurnUserId}
             players={players}
             selfId={selfId}
-            isTerminal={over !== null}
+            isTerminal={terminalMessage !== null}
           />
         )}
         {isCompete && (
@@ -235,7 +236,7 @@ export function InfoCol({
           <ActionButton
             action={actBackToClub}
             show="icon"
-            weight={over ? 'primary' : 'secondary'}
+            weight={terminalMessage ? 'primary' : 'secondary'}
           />
         </InfoActionsRow>
 
