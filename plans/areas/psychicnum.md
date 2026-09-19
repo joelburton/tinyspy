@@ -13,7 +13,8 @@ the reading. Owed work lives in `src/psychicnum/todo.md`, not here.
 written and its four decisions are Joel's (2026-09-19): "precedent" names,
 "row order" for the menu, `lib/terminal.ts`, the section order as proposed.
 The two e2e baseline runs are permitted. No stamps written. **Step 0 (the
-baseline) and Step 1 (the owed work gathered) are done; Step 2 is next.**
+baseline), Step 1 (the owed work gathered) and Step 2 (the loader / loaded
+split) are done; Step 3 is next.**
 
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
@@ -125,7 +126,7 @@ Joel's ask. What was found:
   (`common/buttons`'), the race with no whole-table stop (pass 2 decides), the
   `<Loading>` swap (Step 2 closes it).
 
-### Step 2 — the loader / loaded split (readability 3.1)
+### Step 2 — the loader / loaded split (readability 3.1) — DONE 2026-09-19
 
 The outer component owns `useGame` and the three gates; the inner receives a
 non-null game and starts with it in hand. What goes with it, all in this one
@@ -202,6 +203,49 @@ the twenty-line gate rather than the coordinator.
 per game, and the name that matches the shell's is the one the other fifteen
 will copy without asking. Both stay in one file: the loader is about twenty
 lines, and `PlayArea.tsx` stays the file every doc names.
+
+**Shipped as planned**, with `Omit<GamePageCtx, 'setup'>` letting the inner
+component take the narrowed `setup`; the cast happens once, in the loader's JSX.
+
+**The missing-game gate is `<NoSuchGamePage>`** (Joel, 2026-09-19, reading the
+step: *"shouldn't that be an error page or a 404 (and therefore also be logged
+to the console?)"*). It is — `common/game-page/NoSuchGamePage.tsx`, blessed, and
+its own docstring calls it *"the one 'no such game' page, for every way to have
+no game"*: the Not-Found card with no `k=v` line, plus a `console.debug` of a
+`detail` the page never shows. `GamePageLoader` answers this same gate with it
+ten lines from where psychicnum's loader was copied from.
+
+The first pass kept the old inline `<p>Game not found.</p>` on the claim that
+no such component existed — **a false absence**, from grepping the page's TEXT
+and a guessed name (`NoSuchGame`) and reading two misses as proof. The sixteen
+games that inline a `<p>` are a defect repeated sixteen times, not a precedent,
+and they are why that docstring's "the one" is untrue today. psychicnum's
+`detail` names the read that came back empty
+(`rows=0 view=psychicnum.games_state game=…`) rather than repeating the
+gametype the two gates above already logged.
+
+**The other fifteen are NOT filed** (Joel, same message): the shape every game
+should have gets written once when psychicnum's audit is done, and this goes in
+it — see Closing.
+
+**Three things beyond the list, each because the split made it visible:**
+
+- **The file docstring was on the wrong declaration** and the split moved it
+  further from its subject. `src/guards/orphanedDocstrings.test.ts` had
+  psychicnum on its shrinking allowlist for exactly this
+  (`PlayArea.tsx › HintAnswer`): the surface's docstring sat above the two RPC
+  answer types, so the editor lit it up as theirs and the component read as
+  undocumented. It now sits on `function PlayArea`, its words untouched — Step 6
+  rewrites those — and psychicnum's allowlist line is deleted, which is how that
+  guard is meant to shrink.
+- **`mode` and `game.mode` were two spellings of one value**, and converting
+  the two `game?.mode` reads would have left five of each. Every read is `mode`
+  now.
+- **Three comments went** rather than being reworded, each a second copy of
+  something the code or a nearer comment already says: "both are useCallbacks up
+  here …" (the bindings below are visibly what read them), "every command is
+  bound above the early returns …" (each binding says it where it is), and the
+  pre-load clause inside `myConceded`'s note.
 
 ### Step 3 — the actions and the row (readability 3.6, 3.7)
 
@@ -377,6 +421,10 @@ has one, no prefix means OPEN)*
 
 - Step 2: `PlayArea.test.tsx` imports change if Decision 1 lands on
   "precedent" (it mounts the loader); its `useGame` mock is unchanged.
+  **Held**: the import and about twenty mount sites now name `PlayAreaLoader`,
+  the mock is untouched, and all 336 unit tests pass. The one break not
+  predicted was `orphanedDocstrings.test.ts`, which failed BECAUSE the step
+  fixed a listed orphan — its allowlist entry had to go.
 - Step 3: the spec "the rows fire the same RPCs as the buttons, and gray once
   I have no guesses left" asserts the gray from `isStillPlaying`, not from
   the flags, so it should hold; verified at the step.
@@ -388,7 +436,12 @@ has one, no prefix means OPEN)*
       moved into the todo (Step 1), and the doc itself replaced by the game
       `doc.md` designed in pass 2
 - [ ] the shape this game settled written into `docs/playarea.md`, and
-      app-audit.md §3's game row says three passes
+      app-audit.md §3's game row says three passes. **What that doc owes, so
+      far:** the loader / loaded split and its names, the loader's three gates
+      — `<Loading>`, `<EnvelopeErrorPage>`, `<NoSuchGamePage>` with a `detail`
+      naming the empty read — the section order (Step 5), the menu's row order
+      (Step 3), and `lib/terminal.ts` (Step 4). Joel, 2026-09-19: the other
+      fifteen games are not filed anywhere; they conform when the doc exists
 - [ ] the tile-feedback pass done, and the game's tf level updated there
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

@@ -67,8 +67,6 @@ const KNOWN: string[] = [
   'e2e/gallery/index.ts › renderViewer',
   // → letterboxed
   'src/letterboxed/components/PlayArea.tsx › WordAnswer',
-  // → psychicnum
-  'src/psychicnum/components/PlayArea.tsx › HintAnswer',
   // → scrabble
   'src/scrabble/components/BoardCol.tsx › PlayAnswer',
   'src/scrabble/manifest.ts › labelFor',

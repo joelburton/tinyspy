@@ -26,7 +26,7 @@ import { memberById } from '@/common/members/memberList'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { db } from '../db'
-import { useGame } from '../hooks/useGame'
+import { useGame, type EventRow, type PlayerRow, type PsychicnumGame } from '../hooks/useGame'
 import { printPsychicnumPdf } from '../pdf/printPsychicnumPdf'
 import { buildPsychicnumPrintModel } from '../pdf/model'
 import { historySnapshot } from '../lib/history'
@@ -35,12 +35,78 @@ import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
 import shared from '@/common/game-page/playArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
+import { Loading } from '@/common/loading/Loading'
+import { NoSuchGamePage } from '@/common/game-page/NoSuchGamePage'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /** The computer hides this many secret words; players win by finding all. */
 const SECRET_COUNT = 3
+
+/**
+ * What `request_hint` answers. TWO `ok`s, because "here is a clue" and "this
+ * word has no clue" used to arrive as one string with a magic value in it —
+ * `hint` carries the row's text either way, and only `result` tells them apart.
+ */
+type HintAnswer = {
+  result: 'hint' | 'no-hint'
+  hint: string
+}
+
+/** What `request_spoiler` answers: one `ok`, carrying the secret handed over. */
+type SpoilerAnswer = {
+  result: 'spoiler'
+  word: string
+}
+
+/**
+ * The three gates in front of psychicnum's play surface: the read is out, the
+ * read failed, or there is no such game. Everything below starts with a game
+ * in hand, which is why the surface never writes `game?.`.
+ *
+ * The game's menu rows and its `+` arrive WITH the game, because the surface
+ * that binds them mounts with it — a row for a game not yet read could only
+ * gray itself or lie.
+ */
+export function PlayAreaLoader(ctx: GamePageCtx) {
+  const { game, players: playerBudgets, guesses, loading, failure } = useGame(ctx.gameId)
+
+  if (loading) return <Loading />
+  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // "there's no game here" about a dead connection is a confident wrong answer
+  // — this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  // Reaching this means the COMMON row exists — `GamePageGate` and
+  // `GamePageLoader` each checked — and the psychicnum one does not: a torn
+  // write, or a game deleted while somebody had the board open. Which read came
+  // back empty is the part worth having in the console, so `detail` names it
+  // rather than repeating the gametype the two gates above already logged.
+  if (!game) return <NoSuchGamePage detail={`rows=0 view=psychicnum.games_state game=${ctx.gameId}`} />
+
+  return (
+    <PlayArea
+      {...ctx}
+      game={game}
+      playerBudgets={playerBudgets}
+      guesses={guesses}
+      // The one place the setup blob is narrowed. `GamePageCtx` types it
+      // `Record<string, unknown>` for every game; below, it is this game's.
+      setup={ctx.setup as unknown as PsychicnumSetup}
+    />
+  )
+}
+
+type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
+  // The loaded game row. Non-null by construction — the loader holds the gates.
+  game: PsychicnumGame
+  // Per-player guess budgets (`psychicnum.players`), club-wide visible.
+  playerBudgets: PlayerRow[]
+  // This player's event log (`psychicnum.events`); RLS scopes it in compete.
+  guesses: EventRow[]
+  // This game's setup blob, narrowed once by the loader.
+  setup: PsychicnumSetup
+}
 
 /**
  * psychicnum's play surface, shared between coop and compete
@@ -63,23 +129,10 @@ const SECRET_COUNT = 3
  * lives in `<GamePage>` above this component. PlayArea unmounts
  * on pause — its local state goes with it.
  */
-/**
- * What `request_hint` answers. TWO `ok`s, because "here is a clue" and "this
- * word has no clue" used to arrive as one string with a magic value in it —
- * `hint` carries the row's text either way, and only `result` tells them apart.
- */
-type HintAnswer = {
-  result: 'hint' | 'no-hint'
-  hint: string
-}
-
-/** What `request_spoiler` answers: one `ok`, carrying the secret handed over. */
-type SpoilerAnswer = {
-  result: 'spoiler'
-  word: string
-}
-
-export function PlayArea({
+function PlayArea({
+  game,
+  playerBudgets,
+  guesses,
   session,
   gameId,
   players,
@@ -96,9 +149,8 @@ export function PlayArea({
   menu,
   brand,
   title,
-}: GamePageCtx) {
-  const { game, players: playerBudgets, guesses, loading, failure } = useGame(gameId)
-  const mode = game?.mode
+}: PlayAreaProps) {
+  const mode = game.mode
 
   // The guess is typed at the window rather than into an input, so nothing here
   // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
@@ -123,6 +175,7 @@ export function PlayArea({
   // per-player data from useGame that's empty until the fetch lands, so an
   // already-won race would flip false→true after load and pop confetti at
   // someone merely reviewing it. Same call connections + wordle + waffle made.
+
   // ─── The turn arriving (turn-order coop) ───────────────
   // The board frame flashes yellow the moment the move becomes mine. The dim is
   // what says "not yours"; its lifting is a removal, and you are by definition
@@ -137,28 +190,22 @@ export function PlayArea({
   // function": this is the game whose two hand-written lists had drifted into
   // reporting different facts on paper than on screen.
   const summaryRows = useMemo(
-    () => setupRows(setup as unknown as PsychicnumSetup, mode ?? 'coop', players),
+    () => setupRows(setup, mode, players),
     [setup, mode, players],
   )
 
   // I dropped out of a compete race (a real loss; the others keep racing). Read
-  // from the common roster (prop `players`, always present) so it's available
-  // here — above the early returns — for the game-menu effect. (The board/strip
-  // recompute it below where the other conceded-set derivations live.)
+  // from the common roster (prop `players`), not from `playerBudgets` — those
+  // are guess budgets. (`concededIds` below is the same fact for everyone.)
   const myConceded = players.find((p) => p.user_id === session.user.id)?.conceded ?? false
 
-  // My remaining guesses, and from it the "can I still act?" gate. Both live up
-  // here — above the early returns — for the same reason `myConceded` does: the
-  // game-menu effect below needs them to gray the Hint / Spoiler rows in step
-  // with the InfoCol buttons they name. `playerBudgets` is [] until the fetch
-  // lands, so a pre-load menu reads "no guesses left" and the pair is grayed;
-  // the row still shows its glyph, which is the point of it being there.
+  // My remaining guesses, and from it the "can I still act?" gate — read by the
+  // Hint / Spoiler bindings, so their menu rows and their InfoCol buttons gray
+  // together.
   const selfBudget =
     playerBudgets.find((p) => p.user_id === session.user.id)
       ?.guesses_remaining ?? 0
-  // Did I find all three? (Same row, read up here because the reveal below
-  // needs it — `playerBudgets` is [] until the fetch lands, which is exactly
-  // why the reveal derives rather than initializes from it.)
+  // Did I find all three? (The same row; the reveal below reads it.)
   const iFoundThemAll =
     (playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0)
     >= SECRET_COUNT
@@ -178,8 +225,7 @@ export function PlayArea({
 
   // ─── The three standing conditions of the local slot ───
   // Each is an effect on a primitive edge that shows on true and retracts in
-  // its cleanup — the slot draws whichever ranks highest. Above the early
-  // returns because effects must be.
+  // its cleanup — the slot draws whichever ranks highest.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // Per-status terminal message. Mode-aware so compete-mode winners get the
@@ -222,17 +268,19 @@ export function PlayArea({
   // `players` array on a re-render would look like a change.
   const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
   const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
-  const holderName = turnHolder?.username
-  const holderColor = turnHolder?.color
+  const turnHolderName = turnHolder?.username
+  const turnHolderColor = turnHolder?.color
   useEffect(function showWaiting() {
     if (!waiting) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
-        holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
+        turnHolderName === undefined
+            ? undefined
+            : { username: turnHolderName, color: turnHolderColor ?? '' },
       ),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, waiting, holderName, holderColor])
+  }, [localFeedbackSlot, waiting, turnHolderName, turnHolderColor])
 
   // The Hint / Spoiler in-flight flags (their buttons live in InfoCol, their
   // menu twins in the game menu; the RPCs stay here in the coordinator). Also up
@@ -276,10 +324,6 @@ export function PlayArea({
   // return value here — those rows arrive over the subscription. "Reveal" on
   // this page means one thing only: the whole solution at game-over, which is
   // local FE state and no RPC at all.
-  //
-  // Both are useCallbacks up here (not plain functions below the early returns)
-  // because the bindings below close over them, and a binding is what the
-  // button and its menu twin both read.
   const getHint = useCallback(async () => {
     setHinting(true)
     const res = await runRpc<HintAnswer>(db.rpc('request_hint', { target_game: gameId }))
@@ -398,7 +442,7 @@ export function PlayArea({
     db,
     gameId,
     isTerminal,
-    mode: mode ?? 'coop',
+    mode,
     myConceded,
     localFeedbackSlot,
   })
@@ -410,11 +454,10 @@ export function PlayArea({
   // list), so no confirm; the creator jumps in via ctx.goToGame, peers arrive
   // via the game-invitation toast.
   const createNewGame = useCallback(async () => {
-    if (!mode) return // menu exists pre-load, but there's no mode to copy yet
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
-        setup: setup as unknown as PsychicnumSetup,
+        setup,
         player_user_ids: players.map((p) => p.user_id),
         mode,
       }),
@@ -472,9 +515,8 @@ export function PlayArea({
   // scoped `guesses`/`results` to what I may see), so it works mid-game or at
   // the end — and so the menu needn't rebuild when the board changes.
   const actPrintBoard = useBoundAction('act-print-board', {
-    describe: () => (game ? 'active' : 'hidden'),
+    describe: () => 'active',
     run: () => {
-      if (!game) return
       // The board/turn/score judgment (whose marks belong on whose board — one
       // merged track in coop, one PER PLAYER at compete terminal) lives in the
       // pure builder; see pdf/model.ts.
@@ -483,7 +525,7 @@ export function PlayArea({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
-          mode: mode ?? 'coop',
+          mode,
           isTerminal,
           words: game.words,
           guesses,
@@ -550,17 +592,9 @@ export function PlayArea({
   }, [menu, actConcede, actEndGame, actHint, actSpoiler, actPrintBoard,
       actRestart, actNewGame, actReveal])
 
-  if (loading) return <p>Loading game…</p>
-  // A failed read is NOT a missing game. Both leave `game` null, and saying
-  // "Game not found." about a dead connection is a confident wrong answer —
-  // this is what remains once the fault modal is dismissed.
-  if (failure) return <EnvelopeErrorPage envelope={failure} />
-  if (!game) return <p>Game not found.</p>
-
   // Concede lives on the common roster (ctx `players` = GamePlayer[]), NOT on
-  // psychicnum.players (the budget rows). `myConceded` is derived above (the menu
-  // effect needs it before the early returns). `concededIds` marks the players
-  // who've bowed out, for the opponent strip's "out" cell.
+  // psychicnum.players (the budget rows). `concededIds` marks the players who've
+  // bowed out, for the opponent strip's "out" cell.
   const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
 
   // Guessed words → was-it-a-secret, for the board's permanent green/red.
@@ -600,7 +634,7 @@ export function PlayArea({
   // so the filter is a no-op there.
   const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
   const historyRows =
-    game?.mode === 'compete' && historyRow
+    mode === 'compete' && historyRow
       ? guesses.filter((g) => g.user_id === historyRow.user_id)
       : guesses
   const historySnap = historyId !== null ? historySnapshot(historyRows, historyId) : null
@@ -608,7 +642,7 @@ export function PlayArea({
   // compete can be. Coop is one shared board, so a teammate's row replays the
   // board you are already looking at and there is no "whose" to answer.
   const historyActor =
-    game?.mode === 'compete' && historyRow && historyRow.user_id !== session.user.id
+    mode === 'compete' && historyRow && historyRow.user_id !== session.user.id
       ? memberById(players, historyRow.user_id)
       : undefined
 
@@ -617,16 +651,11 @@ export function PlayArea({
   const teamFound = new Set(
     guesses.filter((g) => g.kind === 'guess' && g.is_correct).map((g) => g.word),
   ).size
-  const found = game.mode === 'coop' ? teamFound : selfSecretsFound
+  const found = mode === 'coop' ? teamFound : selfSecretsFound
 
   // ─── Info-column readouts (setup choices + live state) ──
-  const psychicnumSetup = setup as PsychicnumSetup
-  const totalGuesses = psychicnumSetup.guesses
+  const totalGuesses = setup.guesses
   const guessesUsed = totalGuesses - selfBudget
-
-  // (Every command this game offers is bound above the early returns, where the
-  // menu is assembled from those same bindings — so a row, a button and a key
-  // are one thing rather than three that have to agree.)
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -649,7 +678,7 @@ export function PlayArea({
         // one player on it (in a solo game every tile has the same one possible
         // author, so a dot per tile is a label that says "you" nine times). A
         // history snapshot carries the same rows, so it keeps its dots.
-        decidedBy={game.mode === 'coop' && players.length > 1 ? decidedBy : null}
+        decidedBy={mode === 'coop' && players.length > 1 ? decidedBy : null}
         historyLitWord={historySnap?.historyLitWord ?? null}
         // ── History viewer ──
         historyLabel={historySnap?.historyLabel ?? null}
@@ -680,7 +709,7 @@ export function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
-        isCompete={game.mode === 'compete'}
+        isCompete={mode === 'compete'}
         over={over}
         isStillPlaying={isStillPlaying}
         myConceded={myConceded}

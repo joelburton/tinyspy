@@ -30,7 +30,7 @@ import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { PsychicnumGame, PlayerRow } from '../hooks/useGame'
 import { db } from '../db'
-import { PlayArea } from './PlayArea'
+import { PlayAreaLoader } from './PlayArea'
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -106,9 +106,9 @@ const okEnvelope = (data: unknown) => ({
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
  *  Only the tests whose subject is a keystroke need it — a bare `render` binds
  *  the actions but has nothing feeding them keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+function WithKeys(props: React.ComponentProps<typeof PlayAreaLoader>) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** A keystroke as the app-root listener sees it: from the body, with nothing
@@ -147,7 +147,7 @@ describe('psychicnum PlayArea — concede', () => {
     h.result = loaded(competeGame, [me, moth])
     render(
       <>
-        <PlayArea {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')] })} />
+        <PlayAreaLoader {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')] })} />
         <ConfirmationHost />
       </>,
     )
@@ -164,7 +164,7 @@ describe('psychicnum PlayArea — concede', () => {
     h.result = loaded(coopGame)
     render(
       <>
-        <PlayArea {...makeCtx()} />
+        <PlayAreaLoader {...makeCtx()} />
         <ConfirmationHost />
       </>,
     )
@@ -183,7 +183,7 @@ describe('psychicnum PlayArea — concede', () => {
     // A regression this actually had: the tones live on the ACTION now (amber
     // for a hint, red for the whole solution, red for an exit), and an
     // action that forgot one came out action-blue like everything else.
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
     expect(screen.getByRole('button', { name: 'Hint' }).className).toMatch(/caution/)
     expect(screen.getByRole('button', { name: 'Spoiler' }).className).toMatch(/caution/)
     expect(screen.getByRole('button', { name: 'End game' }).className).toMatch(/destructive/)
@@ -192,7 +192,7 @@ describe('psychicnum PlayArea — concede', () => {
   it('marks a conceded opponent "out" in the strip', () => {
     h.result = loaded(competeGame, [me, moth])
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })],
         })}
@@ -204,7 +204,7 @@ describe('psychicnum PlayArea — concede', () => {
   it('shows the "You conceded" locally-terminal look after I concede', () => {
     h.result = loaded(competeGame, [me, moth])
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
         })}
@@ -222,7 +222,7 @@ describe('psychicnum PlayArea — turn order', () => {
   it('on a teammate’s turn: shows "Waiting for …" and gates the guess prompt', () => {
     h.result = loaded(coopGame, [me, moth])
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
           isMyTurn: false,
@@ -256,7 +256,7 @@ describe('psychicnum PlayArea — turn order', () => {
   it('on my turn: shows "Your turn", the guess prompt, and the play actions', () => {
     h.result = loaded(coopGame, [me, moth])
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
           isMyTurn: true,
@@ -272,7 +272,7 @@ describe('psychicnum PlayArea — turn order', () => {
   it('free-for-all (no pointer): renders no turn line', () => {
     h.result = loaded(coopGame, [me, moth])
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
           isMyTurn: true,
@@ -297,7 +297,7 @@ describe('psychicnum PlayArea — click-to-define (event log)', () => {
       ],
       loading: false,
     }
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
     // The guessed word is definable...
     const define = screen.getByTitle('Click to define')
     expect(define).toHaveTextContent('BRAVO')
@@ -325,7 +325,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
   // the legend). A row with no icon would teach nothing, hence the icon assert.
   it('offers Hint + Spoiler rows, each carrying its glyph', () => {
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     const items = menuItems(ctx)
     expect(items.get('act-hint')?.label).toBe('Hint')
     expect(items.get('act-hint')?.icon).toBeTruthy()
@@ -335,7 +335,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
 
   it('the rows fire the same RPCs as the buttons, and gray once I have no guesses left', () => {
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     menuItems(ctx).get('act-hint')?.run()
     expect(rpc).toHaveBeenCalledWith('request_hint', { target_game: 'g1' })
     menuItems(ctx).get('act-spoiler')?.run()
@@ -345,7 +345,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
     // glyph, which is why the pair is never dropped.
     h.result = loaded(coopGame, [{ ...me, guesses_remaining: 0 }])
     const spent = makeCtx()
-    render(<PlayArea {...spent} />)
+    render(<PlayAreaLoader {...spent} />)
     const items = menuItems(spent)
     expect(items.get('act-hint')?.disabled).toBe(true)
     expect(items.get('act-spoiler')?.disabled).toBe(true)
@@ -395,25 +395,25 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     // where teammates found 2 and 1 NEITHER row reads three, and a per-player
     // bit would leave the winners pressing Reveal.
     h.result = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
     expect(ringed()).toBe(3)
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
 
   it('draws the reveal in its own red — this uncovers more than one word', () => {
-    render(<PlayArea {...ended()} />)
+    render(<PlayAreaLoader {...ended()} />)
     expect(screen.getByRole('button', { name: 'Reveal solution' }).className).toMatch(/destructive/)
   })
 
   it('leaves the secrets hidden until this viewer asks', () => {
-    render(<PlayArea {...ended()} />)
+    render(<PlayAreaLoader {...ended()} />)
     expect(ringed()).toBe(0)
     expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
   it('Reveal greens the three for me alone — no RPC', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...ended()} />)
+    render(<PlayAreaLoader {...ended()} />)
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     expect(ringed()).toBe(3)
     // Local state: no teammate's board lit up.
@@ -422,7 +422,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
 
   it('the same button hides them again, restoring the board as it ended', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...ended()} />)
+    render(<PlayAreaLoader {...ended()} />)
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     await user.click(screen.getByRole('button', { name: 'Hide solution' }))
     expect(ringed()).toBe(0)
@@ -433,7 +433,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     // the label, and a row that kept the reveal eye while saying "Hide" would
     // teach the wrong glyph (docs/ui.md → the menu is the legend).
     const ctx = ended()
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
     const revealFace = menuItems(ctx).get('act-reveal')?.icon
     act(() => menuItems(ctx).get('act-reveal')!.run())
@@ -449,7 +449,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     // it. What the hunt costs it is the BUTTON: the action row's few slots
     // belong to playing.
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     // `menuItems` reads the rows the game PUSHED; `hidden` is what the menu
     // drops when it draws, so that is the flag to assert.
     const row = menuItems(ctx).get('act-reveal')
@@ -463,7 +463,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     // An inert row that fell through to the registry's bare "Reveal" would
     // rename itself as the game ended, which is why both branches name it.
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
   })
 })
@@ -486,7 +486,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
 
   it('bands the finished board in its outcome', () => {
     h.result = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    const { container } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
 
     expect(gridIn(container).className).toMatch(/gameOverFrame/)
     expect(gridIn(container).className).toMatch(/gameOverWon/)
@@ -494,7 +494,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
   })
 
   it('leaves a live board unmarked', () => {
-    const { container } = render(<PlayArea {...makeCtx()} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(gridIn(container).className).not.toMatch(/gameOver/)
     expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)
   })
@@ -502,14 +502,14 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
   it('dims the board while a teammate holds the move, and flashes when it arrives', () => {
     const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
     const { container, rerender } = render(
-      <PlayArea {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: two })} />,
+      <PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: two })} />,
     )
     expect(gridIn(container).className).toMatch(/dimNotYourTurn/)
     // An EVENT, so never on mount: opening a game on your own turn is not being
     // handed it.
     expect(gridIn(container).className).not.toMatch(/yourTurnFlash/)
 
-    rerender(<PlayArea {...makeCtx({ currentTurnUserId: 'u1', isMyTurn: true, players: two })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u1', isMyTurn: true, players: two })} />)
 
     expect(gridIn(container).className).toMatch(/yourTurnFlash/)
     expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)
@@ -521,7 +521,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
   it('says nothing when the answer is revealed', async () => {
     const user = userEvent.setup()
     h.result = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
-    const { container } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
 
@@ -658,7 +658,7 @@ describe('psychicnum PlayArea — the keys', () => {
       const user = userEvent.setup()
       render(
         <>
-          <PlayArea {...makeCtx()} />
+          <PlayAreaLoader {...makeCtx()} />
           <ConfirmationHost />
         </>,
       )
@@ -674,7 +674,7 @@ describe('psychicnum PlayArea — the keys', () => {
       const user = userEvent.setup()
       render(
         <>
-          <PlayArea {...makeCtx()} />
+          <PlayAreaLoader {...makeCtx()} />
           <ConfirmationHost />
         </>,
       )
@@ -686,7 +686,7 @@ describe('psychicnum PlayArea — the keys', () => {
 
     it('at terminal the button goes straight through', async () => {
       const user = userEvent.setup()
-      render(<PlayArea {...ended()} />)
+      render(<PlayAreaLoader {...ended()} />)
 
       await user.click(screen.getByRole('button', { name: 'Restart' }))
       // No <ConfirmationHost/> is mounted, so a question would have been
