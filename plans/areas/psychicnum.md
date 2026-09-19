@@ -1218,7 +1218,13 @@ neutral end copy"*), `e2e/psychicnum-turn-order.e2e.ts` (*"the turn copy"*,
 *"the slot's copy"*), `PlayArea.test.tsx` (*"the turn copy"*). The word is
 *text* (or *words*, *line*, *label*). No decision.
 
-### F-psychicnum-18 · `history-tile-comment` · thirty-four lines of comment on a two-declaration rule, with archaeology in them
+### SHIPPED · F-psychicnum-18 · `history-tile-comment` · thirty-four lines of comment on a two-declaration rule, with archaeology in them
+
+**Joel, 2026-09-19: "thin."** Eight lines now: outside the tile and why, 2px
+off and why, 3px and why, the edge-tile overlap with the frame and the two
+alternatives that were ruled out. Gone: the date, the two contrast ratios,
+the next-tile non-problem, the "only tile-level ring" count. The rule and its
+`@@` marker are untouched.
 
 `Board.module.css` → `.historyTile`: `outline: 3px solid var(--history-color);
 outline-offset: 2px;` under a comment that says the ring was inset *"until

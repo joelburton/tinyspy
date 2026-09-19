@@ -154,40 +154,14 @@
   z-index: 1;
 }
 
-/* The tile the VIEWED past turn guessed — the shared history BLUE
- * (`--history-color`), the same signal the board frame + viewed log #N wear.
- *
- * OUTSIDE the tile, like every other history ring in the app (the board `.historyFrame`
- * and the log's `#N` handle both use a positive offset). It was inset until
- * 2026-08-20, drawn over the tile's own fill — and this ring only ever lands on a
- * DECIDED tile, since a past turn's guess is by definition guessed. That put blue
- * on saturated green or red at 1.88:1 and 1.28:1, so the one mark whose whole job
- * is "this is the tile that turn played" was drawn on the surface where it read
- * worst. Outside, it sits on the board background and simply reads.
- *
- * It rides 2px OFF the tile, not flush against it. Flush (offset 0) technically
- * clears the fill but reads as a thicker border rather than as a ring — the gap
- * is what makes it a separate mark.
- *
- * 3px WEIGHT, and thinner will not do: a ring 2px off the tile is not backed by
- * the fill, so the offset costs it presence and the width has to make that up.
- *
- * Two neighbors to know about:
- *   - The next TILE is never a problem: the grid gap is 0.5rem (8px) and only one
- *     tile is ever `.historyTile`, so this ring stops 3px short of it.
- *   - The BOARD FRAME is. It is an outline on `.grid` at `outline-offset: 3px`,
- *     width 4px — the 3–7px band just outside the grid — and `.grid` has no
- *     padding, so edge tiles sit flush against it. This ring occupies 2–5px, so on
- *     an edge tile the two blues overlap. There is no way out at this scale: the
- *     frame starts 3px out, so any ring with a visible gap AND enough weight to
- *     read runs into it. Fixing it properly means moving the frame outward, which
- *     is shared chrome every game wears — deliberately not done for one game's sake.
- *     (Padding `.grid` while viewing would also buy room, and is ruled out: it
- *     resizes tiles on a state change — docs/ui.md → no reflow on state change.)
- *
- * (The only tile-level ring on this board: revealing a secret turns the tile
- * green rather than marking it, the reveal being a state change. See
- * PlayArea.) */
+/* The tile the VIEWED past turn guessed — the shared history BLUE, the same
+ * signal the board frame and the viewed log #N wear. OUTSIDE the tile like
+ * every history ring: it only ever lands on a DECIDED tile, and blue over
+ * saturated green or red reads badly. 2px off so it reads as a ring rather
+ * than a thicker border; 3px because an offset ring is not backed by the fill.
+ * On an EDGE tile it overlaps the board frame's outline by 2px — moving the
+ * frame outward is shared chrome, and padding the grid while viewing would
+ * resize tiles on a state change. */
 /* @@ */ .historyTile {
   outline: 3px solid var(--history-color);
   outline-offset: 2px;
