@@ -5,9 +5,10 @@ The folders it reads: `info-sheet`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18; the prose pass done the same day (F-1 to
-F-6, F-8, F-9, F-10, F-17), then F-11, F-12 and F-15 ruled and shipped, so four
-findings are left: the bug F-7, the two already-decided conversions F-13 and
-F-14, and F-16.** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
+F-6, F-8, F-9, F-10, F-17), then F-11, F-12, F-15 and F-16 ruled and shipped.
+NOTHING LEFT NEEDS A DECISION: what remains is the bug F-7 and the two
+conversions F-13 and F-14 that `docs/code-conventions.md` and the audit already
+settled.** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
 the audit"*); fifteen files stamped `cs-audited-info-sheet`. Taken in order after
 `reveal` (row 45); this is row 46.
 
@@ -490,7 +491,7 @@ same comment's *"against the info column's 0.95rem it is 1.18"* was wrong for th
 same reason. Both fixed here (a closed area is not locked for prose), and the
 useful consequence: this change resizes exactly three things and no control.
 
-### F-info-sheet-16 · `headerRow-is-the-heading-pattern` · `infoPanel.headerRow` is `.heading-with-controls` written by hand
+### F-info-sheet-16 · `headerRow-is-the-heading-pattern` · `infoPanel.headerRow` is `.heading-with-controls` written by hand — WORKED as (2), NO CHANGE to the CSS, ruled 2026-09-18
 
 The `todo.md` Someday. `core-css/patterns/heading.css` has the shared row
 (heading left, controls right, `min-width: 0` deciding who yields);
@@ -500,6 +501,37 @@ is the two-filters case of the same. Convert the two readers (`EventLog.tsx`,
 `.headerRow` as the info column's step-down (its heading is `0.95rem`, ui.md
 notes the column steps headings down) and say so. A decision, small; the todo
 already leans convert.
+
+**Two things re-verification changed before this was presented.** After F-15
+converted the gap the two rules are BYTE-IDENTICAL, not "three plus a gap" — the
+only difference left is the pattern's `> :first-child { min-width: 0 }`. And the
+"keep it for the step-down" reason is dead on its face: `heading.css` states
+outright that it does not touch the heading's size or margin, because the LEVEL
+owns those. So the option had to be re-argued from scratch, on whether a shared
+component should wear a global class at all.
+
+**Ruled (2) `leave-it`, 2026-09-18 — `.headerRow` stays and the CSS does not
+change.** The reason, now written on the rule itself: `.heading-with-controls` is
+a GLOBAL class, written as a string in `className`, and its readers are PAGES
+(`ClubPage` ×2, `HomePage`). `EventLog` and `WordList` are shared components, and
+a component in `common/` reaching for a global class couples its look to
+`core-css`'s cascade rather than to a module it imports, where a hashed name
+cannot be reached by anything that did not ask for it. Two copies of five
+declarations is the price, and it is the cheaper half: what the pattern adds
+beyond them is the `min-width: 0`, and neither heading needs it — the event log's
+is one word, and the word list's `.longest` is `nowrap` precisely *"so a narrow
+info column breaks BETWEEN tallies rather than inside one"*, which is wrapping
+wanted on purpose.
+
+**What DID change is prose, in two files that claimed these rows.**
+`patterns/heading.css` listed *"Turns [ Everyone ▾ ]"* and *"Words: 34 · Score:
+118 [ Kind ▾ ] [ Who ▾ ]"* among its examples, said *"this row is used in both"*
+(a page and a game's info column), and called the word list *"the tightest
+instance's answer"* — all three false, since its only readers are two pages.
+`docs/ui.md` carried the same three. Both now say the info column has the same
+shape and deliberately does not wear the class, and why. This is the pattern
+having been written FOR these two rows and never wired to them, which is also
+what made the finding look like an obvious convert.
 
 ### F-info-sheet-17 · `store-docstring-is-the-design` · `infoSheetStore`'s file header is the folder's design, twenty lines above two functions — WORKED
 

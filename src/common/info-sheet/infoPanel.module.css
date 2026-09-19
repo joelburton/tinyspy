@@ -38,7 +38,19 @@
 /* The heading ROW — used when a panel puts a control beside its heading: the
  * heading left, the control(s) right. `EventLog` wears it for its "whose turns?"
  * picker and `WordList` for its kind/who pair. A panel with a bare <h3> renders
- * the heading alone and never touches this. */
+ * the heading alone and never touches this.
+ *
+ * **It is deliberately NOT `core-css/patterns/heading.css`'s
+ * `.heading-with-controls`, which is the same five declarations.** The pattern is
+ * a GLOBAL class, written as a string in `className`, and its readers are pages —
+ * `ClubPage` and `HomePage`. These two are shared components, and a component in
+ * `common/` reaching for a global class couples its look to `core-css`'s cascade
+ * instead of to a module it imports, where a module's hashed name cannot be
+ * reached by anything it did not ask for. Two copies of five declarations is the
+ * price, and it is the cheaper half: what the pattern adds beyond them is
+ * `> :first-child { min-width: 0 }`, and neither of these headings needs it —
+ * `EventLog`'s is one word, and `WordList`'s wraps between its tallies on
+ * purpose (see its `.longest`). Ruled 2026-09-18. */
 /* @@ */ .headerRow {
   display: flex;
   align-items: center;

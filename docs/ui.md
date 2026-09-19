@@ -1716,8 +1716,6 @@ words for different things.
 Your clubs                          [ + New club ]
 Start a new game                    [ Co-op ▾ ]
 Your games (7)                      [ All games ▾ ]
-Turns                               [ Everyone ▾ ]
-Words: 34 · Score: 118               [ Kind ▾ ] [ Who ▾ ]
 ```
 
 - **The control acts on what's BELOW the heading**, never on the page — the
@@ -1728,13 +1726,22 @@ Words: 34 · Score: 118               [ Kind ▾ ] [ Who ▾ ]
   yourself into for an `<h3>` with nothing beside it.
 - **The gap is a minimum, not a spacing choice.** With `space-between` and two
   children the heading sits left and the control right whatever the gap is; it
-  only takes effect once the row is full. So the shared `0.5rem` costs nothing
-  on a wide screen — it's the tightest instance's answer (the word list, which
-  carries two selects).
+  only takes effect once the row is full. So the shared `--spacer-4` costs
+  nothing on a wide screen — it's the tightest case's answer, a narrow column
+  with two selects beside a heading of several tallies.
 - **It never touches the heading's size or margin** — the level owns those (see
   above). `h3` is one size on a page and a smaller one in a game's info column,
-  and this row is used in both, so zeroing the margin here would make the row
-  responsible for vertical rhythm it can't judge.
+  and a row like this is used in both, so zeroing the margin here would make the
+  row responsible for vertical rhythm it can't judge.
+- **The info column has the same shape and does NOT wear this class.** The event
+  log's `Turns [ Everyone ▾ ]` and the word list's
+  `Words: 34 · Score: 118 [ Kind ▾ ] [ Who ▾ ]` are `info-sheet/infoPanel`'s
+  `.headerRow`, the same five declarations in a module. Ruled 2026-09-18: this
+  pattern is a GLOBAL class written as a string, and its readers are pages, while
+  those two are shared components — a component in `common/` reaching for a
+  global class couples its look to the cascade instead of to a module it imports.
+  Neither of those headings needs the `min-width: 0` the pattern adds beyond the
+  five, which is what made the duplication the cheaper side.
 - **`min-width: 0` on the heading slot decides who gives** when the line runs
   out. Without it the heading refuses to shrink and shoves the control off the
   edge. It only makes yielding possible, though — the default is wrapping to a

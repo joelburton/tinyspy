@@ -17,8 +17,6 @@
      Your clubs                          [ + New club ]
      Start a new game                    [ Co-op ▾ ]
      Your games (7)                      [ All games ▾ ]
-     Turns                               [ Everyone ▾ ]
-     Words: 34 · Score: 118              [ Kind ▾ ] [ Who ▾ ]
 
    The control acts on the section under the heading, never on the page: the
    picker filters the log beneath it, "+ New club" adds to the list beneath it.
@@ -31,7 +29,14 @@
 
    `flex-shrink: 0` is about this row as an item of ITS parent: every instance
    sits in a height-bounded column above a scrolling box, and when that column
-   is squeezed the box gives, not the heading. */
+   is squeezed the box gives, not the heading.
+
+   THE INFO COLUMN HAS THE SAME SHAPE AND DOES NOT WEAR THIS CLASS. The event
+   log's "Turns [ Everyone ▾ ]" and the word list's
+   "Words: 34 · Score: 118 [ Kind ▾ ] [ Who ▾ ]" are `infoPanel.headerRow`, a
+   module class with the same five declarations, because this one is global and
+   they are shared components rather than pages — that file argues it. So the
+   readers here are pages, and a new page's section heading is what this is for. */
 /* @@ */ .heading-with-controls {
   display: flex;
   align-items: center;
@@ -46,8 +51,9 @@
 
    IT DOES NOT TOUCH THE HEADING'S SIZE OR MARGIN. The LEVEL owns those
    (base.css → the heading levels): h3 is one size on a page and a smaller one
-   in a game's info column, and this row is used in both. Zeroing the margin
-   here would have made the row responsible for vertical rhythm it can't judge.
+   in a game's info column, and a row like this is used in both. Zeroing the
+   margin here would have made the row responsible for vertical rhythm it can't
+   judge.
 
    `min-width: 0` decides WHO GIVES when the line runs out of room. Without it
    a heading refuses to shrink below its text and shoves the control off the
@@ -64,8 +70,9 @@
    Note the gap only ever bites here. With `space-between` and two children the
    heading sits left and the control sits right whatever the gap is; it is a
    MINIMUM separation that takes effect once the row is full, not a spacing
-   choice. So 0.5rem costs nothing on a wide screen and is simply the tightest
-   instance's answer (the word list, with two selects). */
+   choice. So `--spacer-4` costs nothing on a wide screen and is simply the
+   tightest case's answer — a narrow column with two selects beside a heading of
+   several tallies, which is the word list's shape. */
 /* @@ */ .heading-with-controls > :first-child {
   min-width: 0;
 }
