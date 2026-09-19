@@ -42,7 +42,7 @@ type Props = {
  * components: a game writes one element and varies the `message`.
  *
  * **The message is passed, never derived.** What a finished game says is its
- * own `buildOver()`'s to know — `terminal/terminalMessage.ts` puts the boundary
+ * own builder's to know — `terminal/terminalMessage.ts` puts the boundary
  * exactly there: the one outcome common code can write is "the friends agreed
  * to stop", *"because nothing about that outcome is game-specific"*. "Out of
  * guesses" and "Solved — waiting" need the game's own rules, so they arrive as

@@ -171,7 +171,7 @@ export class FeedbackMessage {
 
   // ── rank 20: the game is over ──
 
-  /** The below-board verdict, from a game's `buildOver`. */
+  /** The below-board verdict, from the game's terminal-message builder. */
   static terminalVerdict(over: TerminalMessage, overrides?: Overrides): FeedbackMessage {
     return new FeedbackMessage('terminalVerdict', over.pillText, over.actor, defaultsFor('terminalVerdict', over.outcome, overrides))
   }

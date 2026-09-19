@@ -16,7 +16,9 @@ import type { Actor } from '../members/member'
 export type TerminalOutcome = Extract<Outcome, 'won' | 'lost' | 'neutral'>
 
 /**
- * What a game says once it is over — every game's `buildOver()` returns one.
+ * What a game says once it is over. Each game builds its own, in a pure helper
+ * its PlayArea calls — `buildTerminalMessage` where a game has been converted
+ * to that name, `buildOver` in the games that have not.
  *
  * It is a MESSAGE (words plus how they read), not a feedback message: nothing
  * shows it directly. `FeedbackMessage.terminalVerdict(over)` turns it into
@@ -44,7 +46,7 @@ export type TerminalMessage = {
  * that outcome is game-specific, which is why it can live here at all.
  *
  * A game may still write its own — boggle does, spending the pill on the
- * tally (`Ended: 12 words, 34 points`) — so read the game's `buildOver`
+ * tally (`Ended: 12 words, 34 points`) — so read the game's own builder
  * before assuming.
  */
 export function gameEndedTerminalMessage(mode: 'coop' | 'compete'): TerminalMessage {

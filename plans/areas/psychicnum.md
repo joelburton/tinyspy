@@ -797,10 +797,13 @@ the trailing `: `, which is what separates the pill from the log.
       and the docstring says the spec measures a FILL rather than narrating the
       ring it once looked for. It also cited `psychicnum.games_view`, a view
       that has never existed under that name — the gate is `games_state`
-- [ ] the event log says `Incorrect` where every other surface now says
-      `Wrong` — a split the `answerMessage` work introduced. The log writing
-      its own words is Joel's ruling, so this is a TEXT decision rather than a
-      bug; it is also the thing the turn-order spec tripped over
+- [x] **"Wrong" throughout the game** (Joel, 2026-09-19), closing the split the
+      `answerMessage` work opened. The log keeps writing its own words — a word
+      and a verdict are two columns there, not a sentence — but the verdict WORD
+      is the game's, so the cell says Wrong. **The printed board said `Incorrect`
+      too**, which the split had hidden: `pdf/model.ts` builds its turn lines
+      from `is_correct` directly and so was never going through `answerMessage`
+      at all. Six sites in all, three of them comments
 - [ ] the whole area re-read in one sitting after the last group
 - [x] **`docs/games/psychicnum.md` is DELETED** (2026-09-19). Its Won't-do
       moved to `todo.md` at Step 1; the rest is in `src/psychicnum/doc.md`,
@@ -817,19 +820,22 @@ the trailing `: `, which is what separates the pill from the log.
       **`src/guards/docLinks.test.ts` caught four a grep had not** — relative
       links from inside `docs/games/` that name `psychicnum.md` with no
       directory (three in connections, one in spellingbee)
-- [ ] the shape this game settled written into `docs/playarea.md`, and
-      app-audit.md §3's game row says three passes. **What that doc owes, so
-      far:** the loader / loaded split and its names, the loader's three gates
-      — `<Loading>`, `<EnvelopeErrorPage>`, `<NoSuchGamePage>` with a `detail`
-      naming the empty read — the section order (Step 5), the menu's row order
-      (Step 3), `lib/terminal.ts` + `buildTerminalMessage` (Step 4), and the
-      rule that the bindings block, the info column's prop list and the menu
-      rows all read in one order. Joel, 2026-09-19: the other fifteen games are
-      not filed anywhere; they conform when the doc exists. **The doc's rename
-      also owes five `common/` prose sites that still say `buildOver()`** —
-      `terminal/terminalMessage.ts` ×2, `terminal/doc.md` ×2,
-      `feedback/FeedbackMessage.tsx`, `info-sheet/InfoActionsRow.tsx` — two of
-      which claim "every game's"
+- [x] **the shape this game settled is in `docs/playarea.md`** (2026-09-19),
+      as "The shape of a game's PlayArea.tsx", above the BoardCol / InfoCol
+      decomposition it precedes: the loader and the loaded component with the
+      three gates and why each is the shared one; the eight sections in order,
+      with the rule that a section header states the RULE rather than listing
+      its contents; the commands in one block with no `useCallback` and no
+      in-flight flag, and the one order the bindings block, the info column's
+      prop list and the menu rows keep; and `buildTerminalMessage` leaving for
+      `lib/terminal.ts`. The other fifteen conform as each area opens (Joel),
+      and where one cannot, its area file says why.
+      **The five `common/` prose sites are done too**, and two of them were
+      counting rather than naming a condition: "every game's `buildOver()`"
+      is now "each game builds its own… `buildTerminalMessage` where a game has
+      been converted, `buildOver` in the games that have not", which stays true
+      at every point of the rollout instead of being wrong at fifteen of them.
+- [ ] `plans/app-audit.md` §3's game row says three passes (it says two)
 - [ ] the tile-feedback pass done, and the game's tf level updated there
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

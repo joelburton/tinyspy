@@ -45,7 +45,7 @@ type Props = {
  *
  * Three row kinds. The bar's color is `lib/answer.ts`'s in every one of them —
  * the log names no word of its own — and what differs here is the CELLS:
- *   - a **guess** → word + result ("Correct" / "Incorrect").
+ *   - a **guess** → word + result ("Correct" / "Wrong").
  *   - a **reveal** (a revealed answer) → word + "Answer".
  *   - a **hint** (a clue) → the word+result columns are **replaced by a single
  *     colspan** cell "Hint: <clue>" (the row carries the clue text, not a word).
@@ -131,7 +131,10 @@ export function GameEventLog({
             <td className={cls(gameEventLog.other, gameEventLog.primary)}>
               <DefinableWord word={g.word} />
             </td>
-            <td className={gameEventLog.main}>{isSpoiler ? 'Answer' : g.is_correct ? 'Correct' : 'Incorrect'}</td>
+            {/* The log writes its own words — a word and a verdict are two
+                columns here, not a sentence — but the VERDICT word is the
+                game's, and `lib/answer.ts` says it is "Wrong". */}
+            <td className={gameEventLog.main}>{isSpoiler ? 'Answer' : g.is_correct ? 'Correct' : 'Wrong'}</td>
             {whoCell(g.user_id)}
           </tr>
         )

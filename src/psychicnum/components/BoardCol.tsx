@@ -99,7 +99,7 @@ export function BoardCol({
   // `isStillPlaying` so a non-current turn doesn't read as "out of guesses".
   isMyTurn: boolean
   // PlayArea's below-board slot. This column shows the guess results into it
-  // (Correct / Incorrect / a rejected guess) and the entry row draws its top.
+  // (Correct / Wrong / a rejected guess) and the entry row draws its top.
   localFeedbackSlot: FeedbackSlot
 
   // ── Board-scope marks (see `<Board>`) ──

@@ -84,7 +84,7 @@ test.describe('psychicnum turn order (coop)', () => {
     // waiting note that was live underneath it: the slot's copy, the second.
     //
     // The trailing `: ` is what makes this the PILL and not the event log's
-    // result cell, which says a bare "Correct" / "Incorrect" in its own
+    // result cell, which says a bare "Correct" / "Wrong" in its own
     // vocabulary. Matching the bare word instead found the log cell, clicked a
     // `<td>`, dismissed nothing, and failed two lines below on a count.
     await pageA.getByText(/^(Correct|Wrong): /).first().click()

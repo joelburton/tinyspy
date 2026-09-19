@@ -32,7 +32,7 @@ arrives a moment later looks exactly like a win arriving, and the confetti
 cannot tell the difference. Which flip counts is the game's own business — a
 coop solve, a compete win off its own row, both — but that one requirement is not.
 
-The words split the same way the surfaces do. A game's own `buildOver()` returns
+The words split the same way the surfaces do. A game's own builder returns
 a `TerminalMessage`, which is what the GAME says about how it ended, in two
 lengths because two surfaces of different width have to agree; `terminalMessage`
 holds that shape and the one message every game shares, the neutral "the friends
@@ -51,7 +51,7 @@ why the two live side by side here and neither is written in terms of the other.
 │                      ├── <div .content role="dialog" aria-label={title}>
 │                      │     └── confetti row · <h2 .title> at h1's size · sub-line
 │                      └── actions slot: "Nice!"
-├── buildOver() → TerminalMessage    the game's own words, written per game
+├── the game's builder → TerminalMessage   its own words, written per game
 │     ├── FeedbackMessage.terminalVerdict(over) → <FeedbackPill>   feedback/
 │     └── <InfoActionsRow message={{text, outcome}}>   info-sheet/
 └── <OpponentStrip metricFor>  info-sheet/ — a compete cell per player, whose

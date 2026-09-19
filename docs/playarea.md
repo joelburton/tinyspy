@@ -775,6 +775,101 @@ A-game letter) with the tile via `cqmin`/`cqi`; multi-char content auto-fits via
 
 ---
 
+## The shape of a game's PlayArea.tsx
+
+**Settled at psychicnum, 2026-09-19**, the first game area of the app audit, on
+the deliberately minimal game — so what it settles is the SHAPE rather than
+anything about guessing words. The other fifteen conform as each area opens;
+where one cannot, its area file says why.
+
+### The loader and the loaded component
+
+Two components in `PlayArea.tsx`, and the manifest lazy-loads the first:
+
+```tsx
+export function PlayAreaLoader(ctx: GamePageCtx) {
+  const { game, …, loading, failure } = useGame(ctx.gameId)
+
+  if (loading) return <Loading />
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  if (!game) return <NoSuchGamePage detail={`rows=0 view=<game>.games_state game=${ctx.gameId}`} />
+
+  return <PlayArea {...ctx} game={game} setup={ctx.setup as unknown as <Game>Setup} />
+}
+
+function PlayArea({ game, … }: PlayAreaProps) { … }
+```
+
+The names are `GamePageLoader` → `GamePage`'s, one layer down, so nobody has to
+learn a second convention. **The three gates are the whole point**: everything
+below starts with a game in hand, so the surface never writes `game?.`, never
+defaults a mode, and never guards a handler against data that has not arrived.
+
+- **`<Loading>`**, not a hand-written line. It is the word every page shows for
+  that moment.
+- **`<EnvelopeErrorPage>`**, because a failed read is not a missing game. Both
+  leave `game` null and only one of them means the game is gone.
+- **`<NoSuchGamePage>`**, not an inline `<p>`. The player gets the Not-Found
+  card; the console gets a line. Its `detail` names **the read that came back
+  empty** rather than repeating the gametype — `GamePageGate` and
+  `GamePageLoader` have already checked and logged that, so reaching this gate
+  means the common row exists and the game's own does not.
+- **The cast happens once**, in the loader's JSX, so the inner component takes
+  the game's own setup type via `Omit<GamePageCtx, 'setup'>`.
+
+One behavior follows and is intended: while the read is out, the header menu
+has no game rows and `+` does nothing. A menu row for a game not yet loaded can
+only gray itself or lie.
+
+### The eight sections, in this order
+
+```
+Page hooks        what the surface IS: the tab ring, the info sheet, the marks
+                  that fire at a moment (a win's celebration, a turn's flash)
+Derived           who I am in this game and what I may still do
+The local slot    …and its standing conditions: the verdict, out-of-race,
+                  whose turn. Messages about ME
+Narration         messages about somebody ELSE, into the header's global slot
+The turn-history viewer
+The commands, bound
+The menu
+Render            the render-time derivations, then the columns
+```
+
+A section header states the RULE the section follows, never a list of what is
+in it — a list rots the moment something joins.
+
+### The commands, and the one order three readers keep
+
+Every command in one block, each handler declared directly above the binding
+that runs it. **None of them is a `useCallback`**: `useBoundAction` refreshes
+its live half through a ref during render, and the bound value's identity turns
+on `pending` alone.
+
+**No handler carries an in-flight flag.** `pending` already grays the button
+(`ActionButton` ORs it in) and the menu row (`menuModel.ts` reads the same),
+so a `const [hinting, setHinting]` is a second source for one fact.
+
+And the bindings block, the info column's prop list, and the game menu's rows
+**read in one order**, because the row and the menu are two views of one set of
+bindings and a player who learned one should find the other. psychicnum's is:
+
+```
+Hint · Spoiler | Reveal · Restart · New game | Concede · End | Back to club
+```
+
+with the menu adding Print at the end, being the one row with no twin in the
+row. (A game menu is easy to re-order, so this is a starting order rather than
+a lock.)
+
+### What leaves the component file
+
+**The terminal message.** A pure `buildTerminalMessage(...)` returning a
+`TerminalMessage`, in `lib/terminal.ts` beside the game's other decisions about
+what a move meant. The `useMemo` on primitives that feeds the verdict effect
+stays in the component. Its test walks every terminal play state in every mode,
+which is a small closed space and worth exhausting.
+
 ## The BoardCol / InfoCol decomposition
 
 Every standard game is decomposed into `BoardCol` / `InfoCol` (bananagrams via its

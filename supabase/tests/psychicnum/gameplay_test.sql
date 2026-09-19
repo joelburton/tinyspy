@@ -298,7 +298,7 @@ select is(
 -- ── The budget-exhausting CORRECT guess ──
 -- The same loss, reached by a guess that DID find a secret. The envelope is
 -- the caller's own verdict, so it says `won` even though the game ends on it:
--- a loss word here would flash a red "Incorrect" for a beat before the
+-- a loss word here would flash a red "Wrong" for a beat before the
 -- terminal verdict landed. The game still ends: one of three found.
 -- (as_user BEFORE the create: a temp table is owned by whoever creates it, and
 -- the reads below run as ada — create it as postgres and they're denied.)

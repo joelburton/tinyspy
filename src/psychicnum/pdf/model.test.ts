@@ -58,7 +58,7 @@ describe('buildPsychicnumPrintModel — compete splits per player', () => {
     expect(theirs.result).toBe('1 of 3 secrets found · 2 guesses used')
     // And each log holds only that player's rows.
     expect(mine.turns.map((t) => t.text)).toEqual(['APPLE — Correct'])
-    expect(theirs.turns.map((t) => t.text)).toEqual(['BREAD — Incorrect', 'CROWN — Correct'])
+    expect(theirs.turns.map((t) => t.text)).toEqual(['BREAD — Wrong', 'CROWN — Correct'])
   })
 
   it('mid-game: only the viewer\'s track (rivals\' guesses are hidden)', () => {
