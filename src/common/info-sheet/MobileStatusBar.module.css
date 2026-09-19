@@ -31,7 +31,7 @@
     flex-shrink: 0;
     height: var(--mobile-status-height, 1.75rem);
     color: var(--page-text-color);
-    font-size: 0.95rem;
+    font-size: var(--font-size-packed);
     /* Never wrap: the height is fixed, so a wrapped line would be clipped rather
      * than push the board — and a status that needs two lines should raise
      * `--mobile-status-height` and lay itself out (spellingbee's block does). */

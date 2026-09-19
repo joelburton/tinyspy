@@ -5,8 +5,9 @@ The folders it reads: `info-sheet`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18; the prose pass done the same day (F-1 to
-F-6, F-8, F-9, F-10, F-17), then F-11 and F-12 ruled and shipped, so five
-findings are left: the bug F-7 and four carrying a decision (F-13 to F-16).** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
+F-6, F-8, F-9, F-10, F-17), then F-11, F-12 and F-15 ruled and shipped, so four
+findings are left: the bug F-7, the two already-decided conversions F-13 and
+F-14, and F-16.** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
 the audit"*); fifteen files stamped `cs-audited-info-sheet`. Taken in order after
 `reveal` (row 45); this is row 46.
 
@@ -424,7 +425,7 @@ still compile."* — the conversion finished. Required, the excuse gone, and the
 docstring's rule (*"so the bare numbers aren't ambiguous"*) becomes the type's.
 `leading?` stays optional (two of thirteen use it). No decision in it.
 
-### F-info-sheet-15 · `pending-literals` · Fourteen literals the vocabulary guard still excuses, most with a token waiting
+### F-info-sheet-15 · `pending-literals` · Fourteen literals the vocabulary guard still excuses, most with a token waiting — WORKED, ruled 2026-09-18
 
 From `vocabularies.test.ts`'s `pending` rows for this folder, judged against
 `base.css`:
@@ -443,6 +444,51 @@ From `vocabularies.test.ts`'s `pending` rows for this folder, judged against
 
 The `0.95rem` row is the only real decision; the rest are fits under the
 a/b/c rule. Each fit shortens the guard's `pending` row for the file.
+
+**One premise had moved by the time this was presented:** the audit listed the
+third `0.95rem` reader as game-page's `.infoState`, and F-11 had since brought it
+into this folder — so all three readers were info-sheet's, which is what made the
+question this area's to answer.
+
+**Ruled (a) `name-the-step`, 2026-09-18** — Joel first said to fit the three to
+`--font-size-1`, then *"actually, instead let's do name-the-step"*. So
+`base.css` gains **`--font-size-packed: 0.95rem`**, a role name beside the ramp
+rather than a step on it, on the `--letter-spacing-*` model (named for what the
+text IS). The role: text where vertical space is the scarce thing — the info
+column's state line, its panel headings, and the mobile status bar that stands in
+for the column on a phone. It is deliberately not a number between 1 and 2: the
+ramp's steps get quieter as they descend and this is body loudness in a tighter
+space, and inserting a number would renumber the two below it everywhere they are
+read.
+
+**The fits, all converted:** `OpponentStrip` — `0.85rem`/`0.75rem` →
+`--font-size-2`/`-3`, `opacity: 0.5` → `--opacity-2`, `letter-spacing: 0.04em` →
+`--letter-spacing-label`, the three `0.25rem` gaps/margins → `--spacer-5`;
+`infoPanel` — `gap: 0.5rem` → `--spacer-4`, `border: 2px` →
+`--border-width-line-thick`; `InfoSheet` — `160ms` →
+`--transition-duration-travel` (180ms, and ui.md's "slower for a reason" holds);
+`infoCol` — the exact fits that arrived with F-11's move, `gap: 1rem` (×2) →
+`--spacer-2`, `gap: 0.5rem` → `--spacer-4`, `border: 1px` →
+`--border-width-line`.
+
+**Left open, and still on the guard's `pending` rows:** `infoCol`'s `0.9rem` on
+`.infoHelp` (a near-miss to `--font-size-2` that nobody has judged — the muted
+help line one step under the state line), `infoPanel`'s `0.35rem`, and
+`OpponentStrip`'s `0.3rem` / `0.35rem` / `0.6rem` — the a/b/c question the table
+above already names, where two values are both "a little under `--spacer-4`" and
+one of them can go. `--dot-size` stays the `<Dot>`'s own knob.
+
+**Two guards moved with it.** `cssTokens.test.ts`'s `DECLARED_AHEAD` lost
+`--opacity-2`, `--transition-duration-travel` and `--letter-spacing-label`, which
+had been defined ahead of any reader and now have one — the guard failed by name
+until they were removed, which is the mirror arm working. And the conversion
+turned up a **false claim in a blessed folder**: `StandardButton.module.css`
+argued its `font-size: 1em` with *"an info-column button is 0.95rem because the
+column is"*, and the column has never set a font-size — nothing between `body`
+and the button does, so a button in the info column has always been 1rem. The
+same comment's *"against the info column's 0.95rem it is 1.18"* was wrong for the
+same reason. Both fixed here (a closed area is not locked for prose), and the
+useful consequence: this change resizes exactly three things and no control.
 
 ### F-info-sheet-16 · `headerRow-is-the-heading-pattern` · `infoPanel.headerRow` is `.heading-with-controls` written by hand
 
@@ -497,8 +543,10 @@ it is the harvest source rather than archaeology.
 - F-13: none — two call sites renamed together.
 - F-14: any InfoCol test rendering `<OpponentStrip>` without `metricLabel`
   fails to typecheck; thirteen pass it, so expect none.
-- F-15: `vocabularies.test.ts` — a fit that leaves a literal in `pending`
-  fails the guard's "still allowed" direction; trim the row with the fit.
+- F-15: as predicted, and one more. `vocabularies.test.ts` failed on six
+  vocabularies until every `pending` row was trimmed to what the file still
+  writes — and `cssTokens.test.ts` then failed too, because three tokens left
+  `DECLARED_AHEAD` the moment they gained a reader.
 
 ## Closing
 

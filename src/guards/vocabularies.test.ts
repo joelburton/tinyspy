@@ -287,7 +287,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/lists/FilterSelect.module.css': ['0.35rem'],
       'src/shared/bee-games/foundWordsPlayArea.module.css': ['1.5rem'],
       'src/common/game-page/GamePage.module.css': ['0.1rem'],
-      'src/common/info-sheet/infoPanel.module.css': ['0.5rem', '0.35rem'],
+      'src/common/info-sheet/infoPanel.module.css': ['0.35rem'],
       'src/common/members/ActorMention.module.css': ['0.4rem'],
       // Both values MOVED here rather than being chosen here: `0.6rem` was the
       // retired list.css pattern's row gap, and `0.85rem` was ClubPage's packed
@@ -298,10 +298,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/event-log/historyViewer.module.css': ['0.6rem'],
       'src/common/event-log/EventLog.module.css': ['0.5rem', '-1px', '-3px'],
       'src/common/word-list/WordList.module.css': ['0.5rem', '16px', '7px'],
-      'src/common/info-sheet/OpponentStrip.module.css': ['0.25rem', '0.3rem', '0.6rem', '0.35rem'],
+      'src/common/info-sheet/OpponentStrip.module.css': ['0.3rem', '0.6rem', '0.35rem'],
       'src/common/pause-suspend/PauseOverlay.module.css': ['0.5rem', '0.75rem', '0.4rem', '1rem'],
       'src/common/game-page/playArea.module.css': ['0.75rem'],
-      'src/common/info-sheet/infoCol.module.css': ['1rem', '0.5rem'],
       'src/common/setup-form/SetupDisclosure.module.css': ['0.3rem'],
       // The players strip's three spacings are BESPOKE by decision (Joel,
       // 2026-09-12), not unconverted: a row of identity marks, tuned by eye
@@ -365,15 +364,12 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.25rem'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],
       'src/common/lists/FilterSelect.module.css': ['0.8rem'],
-      'src/common/info-sheet/infoPanel.module.css': ['0.95rem'],
       'src/common/event-log/historyViewer.module.css': ['1rem'],
       'src/common/event-log/EventLog.module.css': ['0.9rem'],
       'src/common/event-log/gameEventLog.module.css': ['1rem'], //  `.primary`, the row's lead value
       'src/common/word-list/WordList.module.css': ['17px'],
-      'src/common/info-sheet/MobileStatusBar.module.css': ['0.95rem'],
-      'src/common/info-sheet/OpponentStrip.module.css': ['0.85rem', '0.75rem'],
       'src/common/pause-suspend/PauseOverlay.module.css': ['1.05rem'],
-      'src/common/info-sheet/infoCol.module.css': ['0.95rem', '0.9rem'],
+      'src/common/info-sheet/infoCol.module.css': ['0.9rem'],
       'src/common/setup-form/SetupDisclosure.module.css': ['0.85rem'],
       'src/shared/rank-ladder/RankBar.module.css': ['14px', '12px'],
       'src/shared/rank-ladder/Stats.module.css': ['11px', '18px', '13px'],
@@ -431,7 +427,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/buttons/ShuffleButton.module.css': ['0.45'],
       'src/common/setup-form/SetupTimerSection.module.css': ['0.5'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.6'],
-      'src/common/info-sheet/OpponentStrip.module.css': ['0.5'],
     },
     fix:
       'Use `--opacity-1` / `-2` — or say why this one is a ROLE rather than a ' +
@@ -450,7 +445,6 @@ const VOCABULARIES: Vocabulary[] = [
       // unconsidered: it is what makes typed letters read like tiles.
       'src/common/fields/ManualBoardField.module.css': ['0.2em'],
       'src/common/word-list/WordList.module.css': ['0.02em'],
-      'src/common/info-sheet/OpponentStrip.module.css': ['0.04em'],
       'src/common/game-page/playArea.module.css': ['0.03em'],
       'src/shared/rank-ladder/RankBar.module.css': ['0.04em'],
       'src/shared/rank-ladder/Stats.module.css': ['0.06em'],
@@ -480,7 +474,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/buttons/ShuffleButton.module.css': ['120ms'],
       'src/common/club/ClubGameDeleteButton.module.css': ['120ms', '160ms'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['80ms'],
-      'src/common/info-sheet/InfoSheet.module.css': ['160ms'],
       'src/common/game-page/playArea.module.css': ['80ms'],
       'src/shared/rank-ladder/RankBar.module.css': ['80ms'],
     },
@@ -518,11 +511,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/buttons/ShuffleButton.module.css': ['1px'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1px'],
       'src/shared/board-cursor/gridCursor.module.css': ['1px', '5px'],
-      'src/common/info-sheet/infoPanel.module.css': ['2px'],
       'src/common/event-log/historyViewer.module.css': ['2px'],
       'src/common/event-log/gameEventLog.module.css': ['1px'], //   `.divider`, the between-turns line
       'src/common/pause-suspend/PauseOverlay.module.css': ['1px'],
-      'src/common/info-sheet/infoCol.module.css': ['1px'],
       'src/shared/rank-ladder/RankBar.module.css': ['2px', '3px'],
       'src/shared/rank-ladder/Stats.module.css': ['1px'],
       'src/common/devtools/PalettePage.module.css': ['1px'],

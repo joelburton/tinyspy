@@ -992,12 +992,12 @@ sweep.
 | # | vocabulary | steps |
 |---|---|---|
 | 1 | `--spacer-1 … -5` | `1.5 · 1 · 0.75 · 0.5 · 0.25rem` |
-| 2 | `--font-size-1 … -3` | `1 · 0.85 · 0.75rem` |
+| 2 | `--font-size-1 … -3`, plus `--font-size-packed` | `1 · 0.85 · 0.75rem`, and `0.95rem` off the ramp — text where vertical space is the scarce thing (the info column and the mobile status bar), body loudness in a tighter space |
 | 3 | `--line-height-1 … -3` | `1.5 · 1.25 · 1` |
 | 4 | the text grays, ×4, **in the theme** | `--page-text-color` · `-muted-color` · `-label-color` · `-strong-color` |
 | 5 | `--opacity-1 … -2` | `0.7 · 0.5` — numbers as a holding position; opacity spans at least two KINDS (a disabled control, a separator) and wants role names once the spectrum is visible |
 | 6 | `--transition-duration-paint / -nudge / -travel` | `100 · 80 · 180ms` |
-| 7 | `--letter-spacing-label / -wide` | `0.03em · 0.2em` |
+| 7 | `--letter-spacing-label / -display / -wide` | `0.03em · 0.05em · 0.2em` |
 | 8 | `--border-width-line / -line-thick / -frame` | `1 · 2 · 4px` |
 
 **`font-weight` is deliberately not a ninth.** CSS already ships that
@@ -1697,8 +1697,8 @@ homepage and the club page, and left undeclared it is the UA's
 
 **These sizes are for non-game pages.** A game's info column is the packed
 surface, so it steps its headings down and drops the margin —
-`infoPanel.heading` is `0.95rem` at weight 600 with the gap coming from its
-parent's `gap`. Expect the same of `h2` and `h4` if a game ever needs them.
+`infoPanel.heading` is `--font-size-packed` at weight 600 with the gap coming
+from its parent's `gap`. Expect the same of `h2` and `h4` if a game ever needs them.
 That override is the point of declaring a default: it's a deliberate step down
 from a stated size rather than a second guess at the browser's.
 

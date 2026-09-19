@@ -1,10 +1,10 @@
 /* cs-audited-info-sheet */
 
-/* The info column's bordered panel — a small heading with an evident 2px-framed
- * box under it. Worn by every panel in the column that is a heading over a box:
- * the event log, the word list, bananagrams's hand. Each of them had a private
- * copy of these same rules, which is a match kept by memory rather than by the
- * stylesheet.
+/* The info column's bordered panel — a small heading with an evidently framed
+ * box under it, at the width that says "this box is a thing". Worn by every
+ * panel in the column that is a heading over a box: the event log, the word
+ * list, bananagrams's hand. Each of them had a private copy of these same rules,
+ * which is a match kept by memory rather than by the stylesheet.
  *
  * Compose with whatever the panel does INSIDE its frame:
  *   <h3 className={cls(infoPanel.heading, …)}>
@@ -20,8 +20,8 @@
  * horizontally-scrolling column-major grid, the hand is a padded flex column with
  * a dump zone — so each keeps its own `display` / `overflow` / padding locally.
  *
- * A board frame is not an info panel, even when it draws the same 2px divider
- * border: stackdown's board `.canvas` is the case — same ingredient, different
+ * A board frame is not an info panel, even when it draws the same divider
+ * border at the same width: stackdown's board `.canvas` is the case — same ingredient, different
  * dish. Its comment cross-references this chrome, and that's the right amount of
  * coupling for it.
  */
@@ -29,7 +29,7 @@
 /* The heading above the box — outside the frame, not inside it. */
 /* @@ */ .heading {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: var(--font-size-packed);
   font-weight: 600;
   color: var(--page-text-color);
   flex-shrink: 0;
@@ -43,7 +43,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: var(--spacer-4);
   flex-shrink: 0;
 }
 
@@ -65,10 +65,10 @@
 /* The frame itself: fills the space its parent column gives it (`flex: 1` +
  * `min-height: 0`, so the box shrinks rather than pushing the column taller and
  * the interior gets a definite height to scroll within), inside an evident
- * 2px border. */
+ * border — the thick line, which is what says "this box is a thing". */
 /* @@ */ .box {
   flex: 1;
   min-height: 0;
-  border: 2px solid var(--page-divider-color);
+  border: var(--border-width-line-thick) solid var(--page-divider-color);
   border-radius: var(--radius-md);
 }

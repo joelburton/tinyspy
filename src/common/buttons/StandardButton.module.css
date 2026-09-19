@@ -47,9 +47,9 @@
    instead of two treatments.
 
    `font-size: 1em` is a no-op declaration and is written anyway. It says out
-   loud that a standard button tracks its container's size — an info-column
-   button is 0.95rem because the column is — and it makes `.small`'s `0.85em`
-   below read as the same kind of statement rather than an exception. */
+   loud that a standard button tracks its container's size rather than setting
+   one, and it makes `.small`'s `0.85em` below read as the same kind of
+   statement rather than an exception. */
 /* @@ */ .standardButton {
   font-size: 1em;
   font-weight: 400;
@@ -81,8 +81,7 @@
    button that changes size — a small button would keep a full-size glyph — so
    `em` locks the ratio to the label at every size (Joel, 2026-08-25: *"I don't see that we'd want to move
    them independently... they should stay related"*), and 1.15em reproduces
-   today's proportions: 18px against 16px text is 1.125, and against the info
-   column's 0.95rem it is 1.18.
+   today's proportions: 18px against 16px text is 1.125.
 
    Per-glyph tuning survives as a MULTIPLIER (`iconScale`), because some Lucide
    glyphs read denser than others — and a multiplier is strictly better than

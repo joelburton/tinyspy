@@ -9,17 +9,17 @@
 /* @@ */ .strip {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  margin: 0.25rem 0;
+  gap: var(--spacer-5);
+  margin: var(--spacer-5) 0;
   color: var(--page-text-color);
-  font-size: 0.85rem;
+  font-size: var(--font-size-2);
 }
 
 /* Optional row above the entries (e.g. spellingbee's "target: Amazing"). */
 /* @@ */ .leading {
-  font-size: 0.75rem;
+  font-size: var(--font-size-3);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--letter-spacing-label);
 }
 
 /* @@ */ .entries {
@@ -46,8 +46,8 @@
 }
 
 /* @@ */ .sep {
-  opacity: 0.5;
-  margin-right: 0.25rem;
+  opacity: var(--opacity-2);
+  margin-right: var(--spacer-5);
 }
 
 /* The per-player metric (score, rank, …) — the MOST important data in this strip,

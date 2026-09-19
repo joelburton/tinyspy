@@ -160,6 +160,19 @@
   --font-size-2:  0.85rem;
   --font-size-3:  0.75rem;
 
+  /* And one step that is NOT on that ramp, named for what the text is
+     rather than for how quiet it is — the way the letter-spacing names
+     below work. `packed` is the size text takes where vertical space is
+     the scarce thing, which in this app means a game's info column: its
+     live state line, the headings on its panels, and the mobile status
+     bar that stands in for the column on a phone. A hair under body
+     size, so more of the column fits without the text reading as
+     secondary — the ramp's steps get QUIETER as they descend, and this
+     one is body text in a tighter space. Not a number between 1 and 2
+     for that reason, and because inserting one would renumber the two
+     below it everywhere they are read. */
+  --font-size-packed:  0.95rem;
+
   /* LINE HEIGHT — unitless, so it multiplies the element's own size
      rather than a size inherited from somewhere else. `-1` is prose,
      `-2` a tighter block, `-3` a single line that should occupy
@@ -762,8 +775,8 @@ body {
  *
  * THE SIZES ARE FOR NON-GAME PAGES. A game's info column is the packed
  * surface — vertical space there is the scarce thing — so it runs its
- * headings smaller and tighter (`infoPanel.heading`: 0.95rem, no margin,
- * the gap coming from its parent's `gap`). Expect the same of h2 and h4
+ * headings smaller and tighter (`infoPanel.heading`: `--font-size-packed`,
+ * no margin, the gap coming from its parent's `gap`). Expect the same of h2 and h4
  * if a game ever needs them. That override is the point of declaring a
  * default: it is now a deliberate step down from a stated size rather
  * than a second guess at the browser's. */

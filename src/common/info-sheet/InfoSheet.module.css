@@ -56,9 +56,11 @@
      * column and land on controls they can't see. `visibility: hidden` takes it
      * out of the tab order and the a11y tree. It transitions discretely: on the
      * way IN it flips visible immediately (so the slide shows); on the way OUT
-     * the 160ms keeps it visible for the whole slide-off, then hides. */
+     * the travel duration keeps it visible for the whole slide-off, then
+     * hides. */
     visibility: hidden;
-    transition: transform 160ms ease, visibility 160ms ease;
+    transition: transform var(--transition-duration-travel) ease,
+      visibility var(--transition-duration-travel) ease;
   }
 
   /* The in-flow child (the game's InfoCol) fills the sheet height and may shrink
