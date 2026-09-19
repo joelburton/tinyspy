@@ -160,16 +160,21 @@ function PlayArea({
   // reached by the header's InfoSwitchButton. Desktop is unchanged.
   const infoSheet = useInfoSheet()
 
-  // Confetti the moment the team finds the third secret, and never on mount —
-  // opening an already-won game stays quiet. It is the ONLY modal at terminal;
-  // the verdict itself rides the below-board pill.
+  // Confetti the moment the win is MINE — the coop team's third secret, or my
+  // own third in a race — and never on mount: opening an already-won game
+  // stays quiet. It is the ONLY modal at terminal; the verdict itself rides
+  // the below-board pill, and a racer who lost gets that and nothing more.
   //
-  // Gated on `playState` alone because that is true from the first render; see
-  // `useCelebration`, whose docstring is why a gate needing loaded data must
-  // not be used here. That rules COMPETE out: `won_compete` means SOMEONE won,
-  // and telling my win from my loss needs `playerBudgets`, which is empty until
-  // the fetch lands.
-  const celebration = useCelebration(playState === 'won')
+  // Both gates are correct on the first render, which is what `useCelebration`
+  // requires: `playState` comes with the page, and `playerBudgets` comes with
+  // the game — the loader holds this surface back until both are in hand.
+  // Did I find all three? (My budget row; the reveal below reads it too.)
+  const iFoundThemAll =
+    (playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0)
+    >= SECRET_COUNT
+  const celebration = useCelebration(
+    playState === 'won' || (playState === 'won_compete' && iFoundThemAll),
+  )
 
   // The board frame flashes yellow the moment the move becomes mine. The dim is
   // what says "not yours"; its lifting is a removal, and you are by definition
@@ -193,10 +198,6 @@ function PlayArea({
   const selfBudget =
     playerBudgets.find((p) => p.user_id === session.user.id)
       ?.guesses_remaining ?? 0
-  // Did I find all three? (The same row; the reveal below reads it.)
-  const iFoundThemAll =
-    (playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0)
-    >= SECRET_COUNT
   // Still in this game: it is live, I have guesses left, and I have not
   // conceded. Drives the terminal-vs-play LOOK in both columns.
   //
@@ -730,12 +731,12 @@ function PlayArea({
       </InfoSheet>
 
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
-          in-page by the below-board pill + the info-column outcome line, and a
-          coop win gets the celebration instead — once, when it happens. */}
+          in-page by the below-board pill + the info-column outcome line, and MY
+          win gets the celebration instead — once, when it happens. */}
       {celebration.show && (
         <CelebrationBlockingModal
           title="You win! 🎉"
-          body="All three secret words found."
+          body={mode === 'compete' ? 'You found all three first.' : 'All three secret words found.'}
           onClose={celebration.close}
         />
       )}

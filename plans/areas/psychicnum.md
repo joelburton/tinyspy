@@ -863,7 +863,21 @@ disagree.)
 **Recommendation: read the outcome.** It is the reason the column exists, and
 the manifest already trusts it.
 
-### F-psychicnum-6 · `compete-celebration-premise` · the reason compete gets no confetti stopped being true at Step 2
+### SHIPPED · F-psychicnum-6 · `compete-celebration-premise` · the reason compete gets no confetti stopped being true at Step 2
+
+**Joel, 2026-09-19: "celebrate the winner."** The gate is `playState ===
+'won' || (playState === 'won_compete' && iFoundThemAll)`; `iFoundThemAll`
+moved up into Page hooks beside the hook that reads it, and the modal's body
+says *You found all three first.* in a race. Four cases in `PlayArea.test.tsx`:
+the racer who completed the set (with the budget row landing a render after
+the play state, the order the two refetches can arrive in), the beaten racer,
+a reload of a race already won, and the coop team. **Verified by planting
+two faults**: the gate back to coop-only (1 red), and the gate reading
+`won_compete` alone, which is "SOMEONE won" (2 red). The first-render rule's
+two homes — `docs/ui.md` → Terminal results and `useCelebration`'s docstring
+— said a game's own rows are null on the first render; that was true before
+the loader split and this game is now the counterexample, so both carry the
+one clause: a game's own rows count where its loader awaited them.
 
 **Where:** `PlayArea.tsx` → Page hooks:
 

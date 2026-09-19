@@ -218,6 +218,55 @@ describe('psychicnum PlayArea — concede', () => {
   })
 })
 
+/**
+ * The celebration — confetti for the win that is MINE, and never on mount.
+ * Coop's gate is the play state; compete's adds my own budget row, which is
+ * safe only because the loader hands this surface both at once. The reload
+ * case is the one `useCelebration`'s first rule exists for.
+ */
+describe('psychicnum PlayArea — the celebration', () => {
+  const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+  const confetti = () => screen.queryByText(/You win!/)
+
+  it('pops for the racer who completed the set, even when the budget row lands a render late', () => {
+    h.result = loaded(competeGame, [{ ...me, found_secrets_count: 2 }, moth])
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: two })} />)
+    expect(confetti()).toBeNull()
+
+    // The winning guess reaches the client as two refetches: the common row
+    // (play state) and the game's own (my count). Either order is a
+    // false→true flip during the session, so the modal pops once.
+    rerender(<PlayAreaLoader {...makeCtx({ players: two, playState: 'won_compete', isTerminal: true })} />)
+    expect(confetti()).toBeNull()
+    h.result = loaded(competeGame, [{ ...me, found_secrets_count: 3 }, moth])
+    rerender(<PlayAreaLoader {...makeCtx({ players: two, playState: 'won_compete', isTerminal: true })} />)
+    expect(confetti()).toBeInTheDocument()
+    expect(screen.getByText('You found all three first.')).toBeInTheDocument()
+  })
+
+  it('stays quiet for the racer who was beaten', () => {
+    h.result = loaded(competeGame, [{ ...me, found_secrets_count: 1 }, moth])
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: two })} />)
+    h.result = loaded(competeGame, [{ ...me, found_secrets_count: 1 }, { ...moth, found_secrets_count: 3 }])
+    rerender(<PlayAreaLoader {...makeCtx({ players: two, playState: 'won_compete', isTerminal: true })} />)
+    expect(confetti()).toBeNull()
+  })
+
+  it('stays quiet on opening a race already won — reviewing is not winning', () => {
+    h.result = loaded(competeGame, [{ ...me, found_secrets_count: 3 }, moth])
+    render(<PlayAreaLoader {...makeCtx({ players: two, playState: 'won_compete', isTerminal: true })} />)
+    expect(confetti()).toBeNull()
+  })
+
+  it('pops for the coop team on the third secret, whoever guessed it', () => {
+    h.result = loaded(coopGame, [{ ...me, found_secrets_count: 1 }, { ...moth, found_secrets_count: 2 }])
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: two })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ players: two, playState: 'won', isTerminal: true })} />)
+    expect(confetti()).toBeInTheDocument()
+    expect(screen.getByText('All three secret words found.')).toBeInTheDocument()
+  })
+})
+
 describe('psychicnum PlayArea — turn order', () => {
   it('on a teammate’s turn: shows "Waiting for …" and gates the guess prompt', () => {
     h.result = loaded(coopGame, [me, moth])
