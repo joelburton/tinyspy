@@ -140,7 +140,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zalpha'),
-  '{"type":"ok","dbcode":"PA002","outcome":"warning",
+  '{"type":"not-ok","dbcode":"PN497","severity":"race",
     "message":"Already guessed"}'::jsonb,
   'coop: re-guessing a word another player took is refused'
 );

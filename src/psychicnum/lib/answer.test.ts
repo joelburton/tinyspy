@@ -34,6 +34,7 @@ describe('ANSWER_OUTCOME', () => {
       hint: 'warning',
       spoiler: 'lost',
       not_on_board: 'lost',
+      already_guessed: 'warning',
     })
   })
 })

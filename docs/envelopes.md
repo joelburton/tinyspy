@@ -116,9 +116,15 @@ caller's own row had not landed. Nothing is recorded, so it refuses, and it is a
 race by the test below: **boggle PN359, spellingbee PN360, wordwheel PN361,
 wordiply PN365** (Joel, 2026-09-01).
 
-psychicnum makes the same choice deliberately and documents it: its board does
-not check for a repeated guess, so "already guessed" is reached by ordinary
-typing and answers `PA002` — an `ok` in `warning`.
+**psychicnum joined them 2026-09-19**, and the reason is the rule read
+backwards. Its board refused a repeated TILE but not a repeated typed word, so
+the server's duplicate branch was reachable by ordinary play — which made it an
+`ok` in `warning` (`PA002`), correctly, for the code as it stood. Joel:
+*"given that the FE prevents resubmitting a word, the RPC getting an
+already-guessed word is either a bug or a race."* Making that premise true is
+what changed the classification: `BoardCol.submitGuess` now checks `results`
+before calling, and the server's branch is `PN497`, a `race`. The two routes say
+the same words, so which one caught it does not show.
 
 So the question is not "is this a rule of the game?" but **"was anything local
 consulted first?"** A rule the client also enforces produces a race when the

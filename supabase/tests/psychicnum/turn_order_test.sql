@@ -119,7 +119,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from turn_g), 'zdelta'),
-  '{"type":"ok","dbcode":"PA002","outcome":"warning",
+  '{"type":"not-ok","dbcode":"PN497","severity":"race",
     "message":"Already guessed"}'::jsonb,
   'turns: a duplicate guess is refused'
 );

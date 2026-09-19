@@ -538,6 +538,32 @@ time. Already known to belong to it:
   first game area — Schema / Tests / Rules sections — and absorbs what
   `docs/games/psychicnum.md` says that the code does not; what the code says,
   the doc stops repeating. The shape is the other fifteen's template.
+
+  **The skeleton exists as of 2026-09-19** (Joel: *"while we won't write the
+  full doc.md until later in this area, please make the skeleton doc.md file,
+  per the plan"*), with seven headings — Intro to area · Game rules · Schema ·
+  RPCs · FE submissions · Frontend · Tests — five of them marked owed. **Two
+  are written**, both at Joel's ask and both so he can see what the game does:
+
+  - **RPCs** — `create_game` and `submit_guess` at a few sentences each, with
+    the JSON passed and returned, and `submit_guess`'s four `ok` shapes as a
+    table (hit · completes the set · miss · the guess that spends the last
+    budget) plus PA002. The rest of the RPCs are named and owed to pass 2.
+  - **FE submissions** — what the frontend decides before a guess reaches the
+    server. "Not on the board" is one rule the FE applies itself; the
+    empty-entry gate belongs to `useCaptureKeys` rather than to this game; the
+    in-flight dim is derived from `results` rather than cleared. Writing it
+    turned up that **"already guessed" was NOT an FE check** — a guessed TILE
+    was unclickable but nothing stopped typing the word — which is what
+    F-psychicnum-1 below then fixed.
+
+  **A new file is invisible to the guards until it is `git add`ed.** A British
+  spelling went into this doc and `americanSpelling.test.ts` passed — it walks
+  `git ls-files`, and the file was untracked. Staged, it failed on exactly that
+  line. The same trap the stamp guard has. (And the note you are reading failed
+  the guard a second time, for quoting the word as evidence: CLAUDE.md means
+  that list absolutely, examples included — reach for `gaol` or `connexion` if
+  prose ever needs to show one.)
 - **The shared shapes** (Joel's goal): what this game's restructure settled is
   written into `docs/playarea.md` once, as the rule; the area file records
   only where psychicnum could not follow it.
@@ -552,6 +578,53 @@ See Notes.
 
 *(`F-psychicnum-1 · slug · title`, one heading each; a status prefix when it
 has one, no prefix means OPEN)*
+
+### SHIPPED · F-psychicnum-1 · already-guessed-race · a duplicate guess is a race, not a verdict
+
+**Joel's ruling** (2026-09-19, reading the new `doc.md`): *"given that the FE
+prevents resubmitting a word, the RPC getting an already-guessed word is either
+a bug or a race. We should reclassify this as a race and use a PN number."* And,
+scoping it: *"i don't know that all places that raise PA002 are races — but it
+certainly is for psychicnum."* (It was psychicnum's only PA raise; `common`'s
+PA001 / PA003 / PA004 are untouched.)
+
+**The premise was half true, and making it true is most of the change.** A
+guessed TILE was already unclickable, but nothing stopped typing the word — so
+the server's branch was reachable by ordinary play, which is why it had been an
+`ok` in `warning` (`PA002`). `docs/envelopes.md` states the test exactly: *"was
+anything local consulted first? A rule the client also enforces produces a race
+when the server sees it; a rule only the server knows produces a verdict."* So
+the classification could not change without the client check.
+
+**What shipped:**
+
+- `BoardCol.submitGuess` refuses a repeat before calling, beside the
+  "Not on the board" check it already had. Its scope needs no thought: `results`
+  is everyone's guesses in coop and the caller's own in compete, because RLS
+  never shows more — which is exactly the server's scope.
+- `lib/answer.ts` gains `already_guessed: 'warning'` — the same reading the four
+  word games give a repeat ("you have it, and now you know"), and the same word
+  the server used to send, so nothing the player sees changed.
+- The raise is `PN497`, `hint = 'race'`, text unchanged. Both routes say
+  "Already guessed", so which one caught it does not show.
+- `BoardCol`'s `dbcode === 'PA002'` branch is gone and `GuessAnswer` is no
+  longer nullable — the raise that made it so is a `not-ok` now, and
+  `FeedbackMessage.notOk` handles it like every other refusal.
+- Both pgTAP pins rewritten; the whole suite re-run green (179 files, 2511).
+- `docs/envelopes.md`'s paragraph naming psychicnum as the deliberate exception
+  now records the reversal instead — it is the canonical statement of the rule,
+  and it named this game by name.
+
+**A second thing the doc got wrong, caught by Joel in the same reading:** it
+said the frontend does not "decide whether a word is a secret … all four reach
+it as rows over the subscription." He asked *"doesn't the RPC return whether
+the word is a secret?"* — it does. The answer arrives TWICE and the two are
+different channels: the reply carries the caller's own verdict and the pill
+reads it immediately; the board's permanent green or red comes from the
+`events` row over the subscription, which is what every client sees and what a
+reload rebuilds from. That is the same fact the in-flight dim is built on. The
+section says so now, and the "never decides" claim is narrowed to what is true —
+the FE holds no secrets mid-game, so it cannot tell a hit from a miss itself.
 
 ## Notes
 

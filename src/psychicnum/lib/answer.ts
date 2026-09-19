@@ -3,15 +3,18 @@
 import type { Outcome } from '@/common/outcomes/outcomes'
 
 /**
- * What a turn was — the four things a `psychicnum.events` row can record, plus
- * the one refusal that never becomes a row.
+ * What a turn was — the things a `psychicnum.events` row can record, plus the
+ * refusals that never become one.
  *
  * The words are the server's own: `hit` / `miss` are `submit_guess`'s `verdict`,
- * and `hint` / `spoiler` are the row's `kind` column. `not_on_board` is the
- * frontend's — the board is face-up, so a word that is not on it is refused here
- * rather than round-tripped, and nothing is written down.
+ * and `hint` / `spoiler` are the row's `kind` column. The last two are the
+ * frontend's, both refused without a round-trip because the board is face-up and
+ * its results are already here: `not_on_board` for a word the board does not
+ * hold, `already_guessed` for one it has already decided. Neither writes
+ * anything down.
  */
-export type Answer = 'hit' | 'miss' | 'hint' | 'spoiler' | 'not_on_board'
+export type Answer =
+  'hit' | 'miss' | 'hint' | 'spoiler' | 'not_on_board' | 'already_guessed'
 
 /**
  * The outcome of every answer, in one place.
@@ -33,6 +36,9 @@ export type Answer = 'hit' | 'miss' | 'hint' | 'spoiler' | 'not_on_board'
  *     red.
  *   - a word that is not on the board costs the entry, not the budget. It is
  *     still the move going wrong, so it reads like one.
+ *   - a word already guessed costs nothing at all: the board has decided it and
+ *     you are looking at the answer. `warning`, the same reading the four word
+ *     games give a repeat.
  */
 export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
   hit: 'won',
@@ -40,6 +46,7 @@ export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
   hint: 'warning',
   spoiler: 'lost',
   not_on_board: 'lost',
+  already_guessed: 'warning',
 }
 
 /**

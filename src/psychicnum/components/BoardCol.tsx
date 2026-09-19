@@ -21,13 +21,10 @@ import { shuffle } from '@/common/utils/shuffle'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
-/** What `psychicnum.submit_guess` puts in `data` for a guess it TOOK — the
- *  caller's own verdict, plus whether that guess completed the set.
- *
- *  Nullable because the RPC's other `ok` — PA002, the word was already guessed —
- *  arrives through a raise, and `common.raised_envelope` always builds
- *  `data: null`. That answer is named by its `dbcode` instead. */
-type GuessAnswer = { verdict: 'hit' | 'miss'; found_all: boolean } | null
+/** What `psychicnum.submit_guess` puts in `data` — the caller's own verdict,
+ *  plus whether that guess completed the set. Every `ok` this RPC answers
+ *  carries one; its refusals are all `not-ok`. */
+type GuessAnswer = { verdict: 'hit' | 'miss'; found_all: boolean }
 
 /**
  * psychicnum's board column — the `Board` (with the floating Shuffle) plus the
@@ -182,10 +179,22 @@ export function BoardCol({
     // which is the case where recalling it is worth something.
     setLastGuess(pending)
     setPending('')
-    // Client-side board-word check for snappy feedback; the server re-validates.
+    // Two refusals the board can make itself, because it is face-up and its
+    // results are already here. Neither reaches the server; the server keeps
+    // both checks, and its answer to either is then a race or a fault rather
+    // than a verdict (docs/envelopes.md → "was anything local consulted
+    // first?"). The words are the server's, so the two routes read alike.
     if (!words.includes(guess)) {
       localFeedbackSlot.show(
         FeedbackMessage.result(ANSWER_OUTCOME.not_on_board, 'Not on the board'),
+      )
+      return
+    }
+    // `results` is scoped exactly as the server's check is — everyone's guesses
+    // in coop, the caller's own in compete, since RLS never shows more.
+    if (results.has(guess)) {
+      localFeedbackSlot.show(
+        FeedbackMessage.result(ANSWER_OUTCOME.already_guessed, 'Already guessed'),
       )
       return
     }
@@ -203,18 +212,6 @@ export function BoardCol({
     if (res.type === 'not-ok') {
       setSubmittedWord(null)
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
-    } else if (res.type === 'ok' && res.dbcode === 'PA002' && res.message !== null) {
-      // ALREADY GUESSED — an `ok`, because the rules were applied and nothing
-      // moved. psychicnum's FE deliberately does not check for duplicates, so
-      // this is reached by ordinary typing rather than by a bug. Named by its
-      // `dbcode` because it arrives through a raise, and a raise carries no
-      // `data`; the message assertion is the other half of what the case
-      // promises, and it is what makes `outcome` non-null here.
-      //
-      // No `setSubmittedWord(null)`: the word is refused BECAUSE it is already
-      // in the log, so it is already in `results` and the in-flight dim has
-      // released itself.
-      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, res.message))
     } else if (res.type === 'ok' && res.data?.verdict === 'hit' && res.outcome !== null) {
       // The server sends no sentence — "Correct" / "Incorrect" is this surface's
       // word for a verdict the player is already looking at on the board. What

@@ -412,9 +412,10 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 --   'found_all'  — true only on the guess that completes the set;
 --                  the caller (compete) / team (coop) wins.
 -- The outcome is `won` for a hit and `lost` for a miss (the reason
--- is beside the return). A word already in the log is refused as
--- PA002, `warning`. The terminal transition itself the FE observes
--- via realtime, not the envelope.
+-- is beside the return). A word already in the log is PN497, a
+-- `race` — the board refuses a repeat itself, so the server seeing
+-- one means the FE's map was stale. The terminal transition itself
+-- the FE observes via realtime, not the envelope.
 --
 -- The outcome is the CALLER's verdict, never the game's fate: a
 -- correct guess that happens to empty the budget still says `won`,
@@ -429,9 +430,8 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 -- A correct guess bumps the caller's players.found_secrets_count (the
 -- public per-player count that drives compete opponent tension).
 --
--- A word already guessed (in scope) is rejected — the FE disables
--- guessed tiles, this is the server guard. Hint rows don't count,
--- so a hinted word can still be guessed.
+-- A word already guessed (in scope) is rejected. Hint rows don't
+-- count, so a hinted word can still be guessed.
 --
 -- Concurrency: SELECT FOR UPDATE on the game row serializes
 -- concurrent submits. Two simultaneous set-completing guesses in
@@ -542,12 +542,16 @@ begin
      where game_id = target_game and kind = 'guess' and word = w
        and (g.mode = 'coop' or user_id = caller_id)
   ) then
-    -- An `ok`, raised: the PA branch. A game-rule refusal is the rules being
-    -- applied, and psychicnum's FE deliberately does not check for duplicates,
-    -- so this is reached by ordinary typing. Still a raise so the savepoint
-    -- rolls back anything above it, and so control flow here is untouched.
+    -- A RACE. The board refuses a repeat itself (`BoardCol.submitGuess` checks
+    -- `results` before calling), so reaching here means that map was stale — a
+    -- teammate took the word between the render and the submit, or the caller's
+    -- own row had not landed. The same test the four word games answer to
+    -- (docs/envelopes.md → "was anything local consulted first?").
+    --
+    -- The FE says the same words for the case it catches locally, so the two
+    -- routes cannot read differently.
     raise exception 'Already guessed'
-      using errcode = 'PA002', hint = 'warning', column = '_',
+      using errcode = 'PN497', hint = 'race', column = '_',
       detail = 'that word is already in the guess log';
   end if;
 
