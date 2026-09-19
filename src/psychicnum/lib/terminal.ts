@@ -6,7 +6,8 @@ import {
 } from '@/common/terminal/terminalMessage'
 
 /**
- * What psychicnum says once the game is over, for a play state and a mode.
+ * What psychicnum says once the game is over, for a play state, a mode and the
+ * server's reason.
  *
  * `pillText` + `outcome` are the below-board verdict; `infoColText` + `outcome`
  * are the short, bold, color-coded line in the info column (won = green,
@@ -21,16 +22,20 @@ import {
 export function buildTerminalMessage({
   mode,
   playState,
-  timerExpired,
+  reason,
   selfWon,
   winnerName,
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  timerExpired: boolean
-  /** Compete: did the caller complete the set? (Coop verdicts ignore it.) */
+  // WHY it ended — `common.games.status.outcome`, written by whichever RPC
+  // ended the game: `timeout` (submit_timeout), `conceded` (every racer
+  // dropped out), `exhausted` (the last budget spent). The club-list label
+  // reads the same column, so the two surfaces name one reason.
+  reason: string | undefined
+  // Compete: did the caller complete the set? (Coop verdicts ignore it.)
   selfWon: boolean
-  /** Compete: the winner's frozen username (for the "X won" message). */
+  // Compete: the winner's frozen username (for the "X won" message).
   winnerName: string
 }): TerminalMessage {
   // Manual end ('ended', written by psychicnum.end_game) is the uniform neutral
@@ -40,9 +45,10 @@ export function buildTerminalMessage({
     if (playState === 'won') {
       return { pillText: 'Won: all found', infoColText: 'You won!', outcome: 'won' }
     }
+    // lost: the clock, or the budget (coop cannot concede).
     return {
-      pillText: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
-      infoColText: timerExpired ? 'Timer elapsed' : 'Out of guesses',
+      pillText: reason === 'timeout' ? 'Lost: out of time' : 'Lost: out of guesses',
+      infoColText: reason === 'timeout' ? 'Timer elapsed' : 'Out of guesses',
       outcome: 'lost',
     }
   }
@@ -52,10 +58,16 @@ export function buildTerminalMessage({
       ? { pillText: 'Won: the race', infoColText: 'You won!', outcome: 'won' }
       : { pillText: 'Beaten to the punch', infoColText: `${winnerName} won`, outcome: 'lost' }
   }
-  // lost_compete (all exhausted OR timeout in compete)
+  // lost_compete: the clock, every racer conceded, or every budget spent.
   return {
-    pillText: timerExpired ? 'Out of time — no winner' : 'Out of guesses — no winner',
-    infoColText: timerExpired ? 'Timer elapsed' : 'Out of guesses',
+    pillText:
+      reason === 'timeout' ? 'Out of time — no winner'
+      : reason === 'conceded' ? 'All conceded — no winner'
+      : 'Out of guesses — no winner',
+    infoColText:
+      reason === 'timeout' ? 'Timer elapsed'
+      : reason === 'conceded' ? 'All conceded'
+      : 'Out of guesses',
     outcome: 'lost',
   }
 }

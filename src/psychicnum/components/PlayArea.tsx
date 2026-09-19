@@ -131,7 +131,6 @@ function PlayArea({
   players,
   playState,
   isTerminal,
-  timer,
   isMyTurn,
   currentTurnUserId,
   setup,
@@ -260,13 +259,17 @@ function PlayArea({
   const selfSecretsFound =
     playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0
   const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
+  // WHY it ended is the server's word (`status.outcome`), never the browser
+  // clock's: the RPC that ended the game wrote the reason, and the club-list
+  // label reads the same column.
+  const reason = status?.outcome as string | undefined
   const selfWon = mode === 'compete' ? selfSecretsFound >= SECRET_COUNT : true
   const terminalMessage = useMemo(
     () =>
-      isTerminal && mode
-        ? buildTerminalMessage({ mode, playState, timerExpired: timer.expired, selfWon, winnerName })
+      isTerminal
+        ? buildTerminalMessage({ mode, playState, reason, selfWon, winnerName })
         : null,
-    [isTerminal, mode, playState, timer.expired, selfWon, winnerName],
+    [isTerminal, mode, playState, reason, selfWon, winnerName],
   )
   useEffect(function showTerminalVerdict() {
     if (!terminalMessage) return

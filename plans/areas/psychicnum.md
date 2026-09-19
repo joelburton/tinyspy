@@ -818,7 +818,18 @@ difficulty band.
 waited on is in, and a deliberate texture would deserve to be designed rather
 than inherited from a tuning aid.
 
-### F-psychicnum-5 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, and cannot say "all conceded"
+### SHIPPED · F-psychicnum-5 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, and cannot say "all conceded"
+
+**Joel, 2026-09-19: "read the outcome."** `buildTerminalMessage` takes
+`reason` — `status.outcome`, the server's word — in place of `timerExpired`;
+`PlayArea` passes it and no longer reads `timer` at all. An all-conceded race
+now reads *All conceded — no winner* on the pill and *All conceded* in the
+info column, the club-list label's words. `terminal.test.ts` walks every
+reason the RPCs write (`solved` · `exhausted` · `timeout` · `conceded` ·
+`manual`, and absent) through every terminal state in both modes, and the
+compete loss case has its third row. **Verified by planting two faults**: the
+conceded arm dropped (1 red), and the coop loss reading `conceded` for the
+clock (1 red).
 
 **Where:** `lib/terminal.ts` takes `timerExpired` (from `timer.expired`, the
 browser-side clock in `GamePageCtx`) and branches the loss on it: out of time,

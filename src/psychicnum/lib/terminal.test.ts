@@ -5,22 +5,25 @@
  * no supabase.
  *
  * It walks EVERY play state a psychicnum game can finish in, in both modes,
- * with the timer expired and not — which is the whole input space, since the
- * builder reads nothing else. What that buys: the pill and the info-column line
- * are two texts for one outcome, and a table is the only way to see at a glance
- * that no cell says "won" beside an outcome of `lost`, or leaves a loss reading
- * as neutral.
+ * for every reason the server writes — which is the whole input space, since
+ * the builder reads nothing else. What that buys: the pill and the info-column
+ * line are two texts for one outcome, and a table is the only way to see at a
+ * glance that no cell says "won" beside an outcome of `lost`, or leaves a loss
+ * reading as neutral.
  */
 import { describe, expect, it } from 'vitest'
 import { buildTerminalMessage } from './terminal'
 
 /** The defaults every case overrides one field of. */
-const base = { timerExpired: false, selfWon: false, winnerName: 'Bea' }
+const base = { reason: 'exhausted' as string | undefined, selfWon: false, winnerName: 'Bea' }
+
+/** Every reason a terminal RPC writes into `status.outcome`, plus its absence. */
+const REASONS = ['solved', 'exhausted', 'timeout', 'conceded', 'manual', undefined] as const
 
 describe('coop', () => {
-  it('a win is the team win, whatever the clock says', () => {
-    for (const timerExpired of [false, true]) {
-      expect(buildTerminalMessage({ ...base, mode: 'coop', playState: 'won', timerExpired })).toEqual({
+  it('a win is the team win, whatever the reason says', () => {
+    for (const reason of REASONS) {
+      expect(buildTerminalMessage({ ...base, mode: 'coop', playState: 'won', reason })).toEqual({
         pillText: 'Won: all found',
         infoColText: 'You won!',
         outcome: 'won',
@@ -35,7 +38,7 @@ describe('coop', () => {
       outcome: 'lost',
     })
     expect(
-      buildTerminalMessage({ ...base, mode: 'coop', playState: 'lost', timerExpired: true }),
+      buildTerminalMessage({ ...base, mode: 'coop', playState: 'lost', reason: 'timeout' }),
     ).toEqual({
       pillText: 'Lost: out of time',
       infoColText: 'Timer elapsed',
@@ -60,18 +63,26 @@ describe('compete', () => {
   })
 
   // A race nobody finished: the pill says so, and does not congratulate the
-  // last player standing.
-  it('a race that ran out says no winner, by clock or by budget', () => {
+  // last player standing. Three ways to get there, and the server's reason
+  // is what tells them apart — the words are the club-list label's.
+  it('a race that ran out says no winner, by budget, by clock or by everyone conceding', () => {
     expect(buildTerminalMessage({ ...base, mode: 'compete', playState: 'lost_compete' })).toEqual({
       pillText: 'Out of guesses — no winner',
       infoColText: 'Out of guesses',
       outcome: 'lost',
     })
     expect(
-      buildTerminalMessage({ ...base, mode: 'compete', playState: 'lost_compete', timerExpired: true }),
+      buildTerminalMessage({ ...base, mode: 'compete', playState: 'lost_compete', reason: 'timeout' }),
     ).toEqual({
       pillText: 'Out of time — no winner',
       infoColText: 'Timer elapsed',
+      outcome: 'lost',
+    })
+    expect(
+      buildTerminalMessage({ ...base, mode: 'compete', playState: 'lost_compete', reason: 'conceded' }),
+    ).toEqual({
+      pillText: 'All conceded — no winner',
+      infoColText: 'All conceded',
       outcome: 'lost',
     })
   })
@@ -93,7 +104,7 @@ describe('compete', () => {
   })
 })
 
-describe('every terminal state, in both modes', () => {
+describe('every terminal state, in both modes, for every reason', () => {
   // The table is the point: one place to see that no cell pairs a winning
   // sentence with a losing outcome, and that nothing is left unnamed.
   const CASES = [
@@ -106,8 +117,8 @@ describe('every terminal state, in both modes', () => {
   ] as const
 
   it.each(CASES)('$mode/$playState reads $outcome, with both texts filled', (c) => {
-    for (const timerExpired of [false, true]) {
-      const msg = buildTerminalMessage({ ...base, mode: c.mode, playState: c.playState, timerExpired })
+    for (const reason of REASONS) {
+      const msg = buildTerminalMessage({ ...base, mode: c.mode, playState: c.playState, reason })
       expect(msg.outcome).toBe(c.outcome)
       expect(msg.pillText.length).toBeGreaterThan(0)
       expect(msg.infoColText.length).toBeGreaterThan(0)
