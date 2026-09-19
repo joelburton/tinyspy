@@ -10,7 +10,9 @@ of a game area rather than about the game. The process is
 the reading. Owed work lives in `src/psychicnum/todo.md`, not here.
 
 **Status: OPENED 2026-09-19.** Roster listed; the restructure plan below is
-written and waiting on Joel's answers to its decisions. No stamps written.
+written and its four decisions are Joel's (2026-09-19): "precedent" names,
+"row order" for the menu, `lib/terminal.ts`, the section order as proposed.
+The two e2e baseline runs are permitted. No stamps written.
 
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
@@ -176,10 +178,10 @@ Cost: the component a reader spends the file in is the one with the awkward
 name, and `docs/playarea.md`'s "PlayArea is the thin coordinator" would name
 the twenty-line gate rather than the coordinator.
 
-**Recommended: "precedent."** The manifest line is one edit per game, and the
-name that matches the shell's is the one the other fifteen will copy without
-asking. Both stay in one file: the loader is about twenty lines, and
-`PlayArea.tsx` stays the file every doc names.
+**Decided: "precedent"** (Joel, 2026-09-19). The manifest line is one edit
+per game, and the name that matches the shell's is the one the other fifteen
+will copy without asking. Both stay in one file: the loader is about twenty
+lines, and `PlayArea.tsx` stays the file every doc names.
 
 ### Step 3 — the actions and the row (readability 3.6, 3.7)
 
@@ -247,11 +249,13 @@ Print board (PDF)
 Concede · End game · Back to club
 ```
 
-**Recommended: "row order."** The row and the menu are two views of the same
-bindings, and a player who learned the row finds the menu in the same order;
-it is also the order the InfoCol comment already argues for. Written once in
-`docs/playarea.md` beside the row's order; the builder's slots wait for the
-second game.
+**Decided: "row order"** (Joel, 2026-09-19 — with the note that a game menu
+is now simple enough to read and edit that moving rows later is easy, so
+this is an order to start from rather than a lock). The row and the menu are
+two views of the same bindings, and a player who learned the row finds the
+menu in the same order; it is also the order the InfoCol comment already
+argues for. Written once in `docs/playarea.md` beside the row's order; the
+builder's slots wait for the second game.
 
 ### Step 4 — `buildOver` leaves the component file (readability 3.4)
 
@@ -265,8 +269,8 @@ most that can be done about the two-home hazard without a shared vocabulary.
 **Decision 3 — the file name.** `lib/terminal.ts` (reads with
 `common/terminal/terminalMessage.ts`, whose type it returns) · `lib/over.ts`
 (named for the value every PlayArea calls `over`) · `lib/verdict.ts` (the
-word the pill uses). **Recommended: `lib/terminal.ts`**, and the export keeps
-its name, `buildOver`, so the call site does not change.
+word the pill uses). **Decided: `lib/terminal.ts`** (Joel, 2026-09-19), and
+the export keeps its name, `buildOver`, so the call site does not change.
 
 ### Step 5 — the section order (readability 3.2)
 
@@ -284,8 +288,8 @@ gets the shared header words. For psychicnum that is:
 
 The reveal's `useSolutionReveal` sits with the derived values (it is state
 the Reveal binding reads), and `seenOpponentFoundRef` moves beside the effect
-that owns it. **Decision 4:** this order, or an amendment — it is Joel's call,
-and it goes into `docs/playarea.md` as the rule at the harvest.
+that owns it. **Decision 4: this order** (Joel, 2026-09-19); it goes into
+`docs/playarea.md` as the rule at the harvest.
 
 ### Step 6 — the comment pass (readability 3.5)
 
