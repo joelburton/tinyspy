@@ -699,8 +699,8 @@ describe('the z-index ladder has one home', () => {
 describe('the attention flash is not called a wash', () => {
   const ROOTS = [join(process.cwd(), 'src'), join(process.cwd(), 'docs'), join(process.cwd(), 'plans')]
   const PROSE = ['.ts', '.tsx', '.css', '.md']
-  /** The superseded first draft, which nobody may read or edit. */
-  const SKIP = ['plans/css-system-outdated-dont-read.md', 'src/guards/vocabularies.test.ts']
+  /** This file names the phrase in order to forbid it. */
+  const SKIP = ['src/guards/vocabularies.test.ts']
 
   const proseFiles = () =>
     ROOTS.flatMap((r) => walk(r, PROSE)).filter((f) => !SKIP.some((s) => rel(f).endsWith(s)))

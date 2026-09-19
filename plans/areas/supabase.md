@@ -269,9 +269,8 @@ stamps moving.
 
 **Resolved 2026-09-05 — renamed, Joel's ruling ("do it").** Every code
 mention, plus docs/envelopes.md (a type name is a claim about this folder's
-file) and plans/error-system.md (so a grep of the closed sprint's record still
-lands). The old spelling survives only in this file's findings, which record
-what was read. No stamps moved; `tsc -b` is the check.
+file) and the error sprint's plan (since deleted, 2026-09-19). The old
+spelling survives only in this file's findings, which record what was read. No stamps moved; `tsc -b` is the check.
 
 ### WORKED · F-supabase-14 · `plan-cited-from-code` · A spec cites "the plan"
 

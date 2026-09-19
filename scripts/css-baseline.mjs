@@ -6,10 +6,10 @@
  *
  *     node scripts/css-baseline.mjs
  *
- * Written for the css-system sprint (plans/css-system.md → §2 Acceptance tests),
- * whose whole premise is that the duplication is invisible from inside any one
- * file and only shows from a whole-tree vantage point. Re-run it after each
- * surface converts; the numbers in the plan's roster come from here.
+ * Written for the CSS sprint that became plans/app-audit.md, whose premise is
+ * that the duplication is invisible from inside any one file and only shows
+ * from a whole-tree vantage point. Re-run it after a surface converts to see
+ * whether module CSS actually shrank.
  *
  * NOT a second color census. `scripts/color-census.py` answers a different
  * question — which colors are perceptual lookalikes of each other (oklab
@@ -156,7 +156,7 @@ for (const r of rows) {
 for (const [name, s] of [...bySurface].sort((a, b) => b[1].lines - a[1].lines))
   console.log(`| ${name} | ${s.files} | ${s.lines} | ${s.rules} | ${s.decls} | ${s.tokenDefs} | ${s.hexes.size} |`)
 
-// ── Purpose classification (plans/css-system.md §4.1) ───────────────────────
+// ── Purpose classification (the buckets: docs/ui.md → The color system) ───────────────────────
 // The value-kind split above is mechanical. This is the one that took judgment:
 // what each token is FOR. Six buckets, not the four the plan first named.
 const GAMES = readdirSync(SRC).filter(

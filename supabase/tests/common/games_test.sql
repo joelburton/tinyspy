@@ -676,9 +676,9 @@ select is(
 -- an unknown game comes back as a not-ok/error envelope.
 --
 -- The non-member case still THROWS, and deliberately so: 42501 comes
--- from common.require_club_member, a shared helper that converts as its
--- own unit (plans/error-system.md → §6), so it fails delete_game's
--- ownership test and is re-raised untouched.
+-- from common.require_club_member, a shared helper with no handler of its
+-- own (docs/envelopes.md → Four things the roster conversion taught), so
+-- it fails delete_game's ownership test and is re-raised untouched.
 
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(

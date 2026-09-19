@@ -441,6 +441,13 @@ wrappers over three shared cores — `_commit_word`, `_commit_exchange`,
 delegates. Each wrapper carries its own catch block anyway, and must: its gate
 raises BEFORE it delegates, so the core's block never sees it.
 
+**The version gate is what classifies everything below it.** Any server state
+a later check could disagree with would have bumped `version` first, so a
+MATCHING version plus a disagreement means the client's own state is wrong —
+which is why every check after the gate is a fault. Only `play_state` escapes,
+living on `common.games` where no scrabble version tracks it, and that is why
+"Game over" is the other race.
+
 | | | |
 |---|---|---|
 | `PN437` / `PN447` / `PN456` "Board changed" | `race` | the version gate, one per core |

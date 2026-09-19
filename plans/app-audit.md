@@ -5,7 +5,9 @@ React, SQL and CSS together, locking down shared ideas to reduce difference and
 code. This file is the plan and the process; it is **not** a record of what
 shipped. Anything decided-built-done lives in `docs/` or the owning folder's
 `doc.md`, and anything owed to a folder lives in that folder's `todo.md`. The
-reasoning archive behind the CSS half is [css-philosophy.md](css-philosophy.md).
+CSS philosophy and the first CSS plan were deleted 2026-09-19, their rules
+having reached `docs/ui.md` and `docs/code-conventions.md`; what was still
+open in them went to `docs/deferred.md` and `plans/dark-mode.md`.
 
 **Trimmed to this shape on 2026-09-05**, when the sprint restarted for the
 second time (§4 → "The restarts"). Before that it held every decision the sprint
@@ -497,7 +499,7 @@ It began as CSS. Sixteen games share a great deal and should have little
 customized CSS; instead the app exploded into thousands of lines of module CSS
 against a few hundred of shared, and the same choice was made in many places
 while things with the same meaning were styled differently for no reason. The
-root cause (css-philosophy.md) was **unchecked CSS Modules**: containing CSS per
+root cause was **unchecked CSS Modules**: containing CSS per
 game or per component was almost always wrong, in an app where the games
 *should* look alike and the conventions *should* be shared.
 
@@ -547,7 +549,7 @@ organized by area.
 | 6c | the z- layers | **DONE 2026-08-25.** [docs/code-conventions.md → The z- layers](../docs/code-conventions.md#the-z--layers) and [docs/ui.md → Floating panels](../docs/ui.md#floating-panels--five-families-one-shell) |
 | 7 | **the areas** | All the remaining reading, run **area by area** — the process is §4, the order is §3. Each area's audit and working notes live in `plans/areas/<area>.md` while it is open. **Areas are named, never numbered** |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
-| 12 | fold + delete | the allowlists empty; **every `cs-` stamp comes out** (`cs-stamp.mjs unstamp`, then the script and its guard go); `plans/areas/` goes; the non-sprint plan this sprint leans on (`tile-feedback.md`; `feedback-system.md` went with the old system and `feedback-design.md` with the `feedback` area's close, both 2026-09-12) has folded into `docs/` or a `doc.md`; this doc goes. What `css-philosophy.md` becomes is Joel's call — he wants it kept |
+| 12 | fold + delete | the allowlists empty; **every `cs-` stamp comes out** (`cs-stamp.mjs unstamp`, then the script and its guard go); `plans/areas/` goes; the non-sprint plan this sprint leans on (`tile-feedback.md`; `feedback-system.md` went with the old system and `feedback-design.md` with the `feedback` area's close, both 2026-09-12) has folded into `docs/` or a `doc.md`; this doc goes |
 
 Steps 8, 9 and 10 were folded into 7 on 2026-08-22 and their numbers are
 retired rather than reused, so a stale "step 9" reads as stale.
@@ -917,10 +919,9 @@ What a durable file says instead:
 - **nothing**, when the cite was a handoff to an area that has not opened. A
   handoff is a `todo.md` item.
 
-The non-sprint plans — `tile-feedback.md`, `dark-mode.md`,
-`css-philosophy.md` — are the
-exception only until each folds into `docs/` or a `doc.md`; a cite to one of
-them is tolerated today and repointed the day it folds.
+The non-sprint plans — `tile-feedback.md`, `dark-mode.md` — are the exception
+only until each folds into `docs/` or a `doc.md`; a cite to one of them is
+tolerated today and repointed the day it folds.
 
 ### The docstring marker — a pass every area makes
 

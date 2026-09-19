@@ -448,10 +448,6 @@ conventions.md`, `common.md`, `ui.md` ("`<GamePage>` provides `goToClub` for the
 Back-to-Club button") and `games/psychicnum.md` twice — all corrected, and
 crosswords' comment about going around it no longer names it.
 
-Not touched: `plans/react-context.md` names `goToClub` twice. It is the GATED
-"ONLY A CONVERSATION" file, a record of what was said on 2026-09-07 rather than
-a description of today, so it keeps the vocabulary of its own moment.
-
 ### F-game-page-10 · `keyboard-hook-home` · `useGameHasKeyboard` is about document focus — MOVED to `common/keyboard/`
 
 **The evidence first recorded here was wrong** (corrected 2026-09-14 during the

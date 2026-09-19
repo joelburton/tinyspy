@@ -289,8 +289,9 @@ convention of prefixing its assets. The local binding went with it
 docstring's path sentence updated; its "the PNG *is* the master" paragraph is
 untouched, which is the part worth keeping. A whole-repo grep found the name
 nowhere else: three sites, all inside `PuzpuzpuzWordmark.tsx`, and two plan
-mentions left alone (`css-philosophy.md:1165`, which also carries a pre-reorg
-path, and the do-not-read draft).
+mentions left alone in the CSS philosophy archive and the do-not-read draft
+(both deleted 2026-09-19; what they held about the wordmark is
+`plans/dark-mode.md` → Brand).
 
 ### WORKED · F-branding-9 · `ui-md-describes-a-placeholder` · docs/ui.md still describes the mark as a placeholder at its pre-reorg path
 

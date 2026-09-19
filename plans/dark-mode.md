@@ -182,8 +182,20 @@ All of it is color work, not structural work.
   friendly. The tone loses gravity in the flip and no formula fixes it; it is a
   per-theme judgment.
 - **The tile ramp**, twelve values picked in one sitting and never eyeballed.
+- **The family questions that move pixels**, each measured 2026-08-20
+  ([`docs/ui.md` → What derives, measured](../docs/ui.md#what-derives-measured))
+  and each a conversation rather than a formula: `near` and `warning` fills sit
+  3.9° of hue apart, so the two names barely read as two; `warning` spans 21°
+  between its ink and its fill; `lost`'s and `near`'s washes are off-hue
+  Material 100s, and a wash frozen as a hex is the tier most likely to be wrong
+  on a dark page; the eight member borders were hand-tuned and a dark set is
+  eight fresh judgments, or a derivation off the dot that has yet to be found;
+  and whether the grid cursor's amber derives from anything (blue's does not
+  need to — it is the focus ring — and yellow's matches no operation the other
+  roles use).
 - **Assets**: 17 game logos carry baked color, and the wordmark and favicon carry
-  near-whites that fail on a dark page (app-audit step 11).
+  near-whites that fail on a dark page (app-audit step 11). What a theme may do
+  to each is §7 below.
 - **`<meta name="color-scheme">` in index.html** says light and would need to
   agree with whatever ships.
 
@@ -228,3 +240,93 @@ Two guards exist because of this spike and should outlive it either way: **the
 themes are in step** (every theme answers exactly the same roles, both
 directions) and **the tile ramp descends 1 → 5 in every theme**. Both were
 verified by planting the bug they exist to catch.
+
+## 7. Brand — what a theme may move, and the assets
+
+Design from the 2026-08 CSS conversations, kept here because a second theme is
+the first thing that needs it. Nothing below has been built.
+
+### The ladder
+
+Does a cupcake theme turn spellingbee's hexes pink? The answer is a ladder, and
+the rung is decided by **whether the color carries information the player
+brought with them**:
+
+| | example | may a theme move it? |
+|---|---|---|
+| **imported semantics** | wordle's green / yellow | no — the color IS the rule |
+| **recognition** | spellingbee's center yellow | hue locked, shade free |
+| **decoration** | letterboxed's green | freely |
+
+> **The test: would a returning player MISREAD the board, have to LOOK TWICE to
+> be sure they were in the right game, or merely NOTICE it looked different?**
+
+- **Level 1 is not brand at all.** wordle's green belongs with the outcome
+  colors: it is the semantic layer speaking a foreign vocabulary, and changing
+  it breaks comprehension, not recognition. That is why `wordle-*` sits in
+  `fixed.css`, exempt from theming, beside the member colors.
+- **A color can be locked by the game's NAME rather than by memory.** A bee is
+  yellow; spellingbee's center wants a gold even for a player who never saw the
+  NYT version. Expect this wherever a brand names an animal or an object.
+- **The rungs apply per DIMENSION, not per color.** letterboxed's hue is
+  arbitrary but its convention — filled = last letter, border = current —
+  carries the meaning, so it is decoration on hue and imported semantics on
+  which step gets which role. A theme may move the hue and must not touch the
+  assignments.
+- **"Same hue, tweak the shade" is not always enough.** wordle's gray IS "not
+  in the word", but on a dark page the absent tile and the page converge and
+  absent tiles stop reading as tiles. NYT makes them darker than the page plus
+  a border: the tile's relationship to the page inverts. What is locked is the
+  relationship, not the value.
+- **A bespoke per-theme brand color lives in the game's own file, one line per
+  theme** (`:root { --spellingbee-gold: <honey> }` /
+  `:root[data-theme="midnight"] { --spellingbee-gold: <bumblebee> }`), never
+  as a per-game line in every theme file — that would be common knowing about
+  spellingbee, and adding a game would mean editing every theme. Before
+  accepting that a color is bespoke, look once: spellingbee's accent was
+  byte-identical to a shared rank fill.
+
+### The assets
+
+**Some of the app's color is not in CSS at all**, and no guard can see it: 17
+game `logo.svg` files with baked color literals, plus the wordmark and the "P".
+Count DISTINCT colors before estimating any of them — `codenamesduet/logo.svg`
+has 754 literals and five colors, 749 of them one purple across 747 paths, so
+retheming it is one fill rule, not an art project.
+
+**The technical fact that decides feasibility per icon:** an SVG loaded through
+`<img>` or `background-image` cannot see the page's custom properties; only an
+inlined SVG can. So "the gold follows the theme" is a property of how a logo
+is MOUNTED, not of the file, and tokenizing one means inlining it. That sorts
+the work by rung rather than by file:
+
+| rung | example | fix |
+|---|---|---|
+| 1, locked | wordle's tiles | transparent background; `<img>` is fine, nothing to theme |
+| 2, hue-locked | spellingbee's gold | inline + a token fill |
+| 3, free | the arbitrary-hue brands | inline + a reference to the palette |
+
+A fourth option, cheapest where it fits: **a mark that survives both
+polarities** — avoid near-white and near-black and let shape carry the
+identity. It does not always fit; wordle's icon is tiles on white.
+
+**The wordmark** (`PuzpuzpuzWordmark`, a PNG whose ground is opaque near-white
+and whose docstring says the PNG is the master) looked like the hardest asset
+and is not: a decorative, singular hero lockup carrying no state is the one
+class of asset where **one version per theme is the right answer rather than a
+failure** — cupcake's exclamation marks as unicorn horns. "Themes change color,
+not structure" governs the system; a lockup is not part of the system. Leaning
+into the sticker, one wordmark reading as a sticker on a dark page, stays
+available as the cheap answer. The "P" (`favicon.svg` / `puzpuzpuz.svg`, the
+same 13 values) fails on a dark page at its two near-whites, not its purples.
+The six rasters in `public/` are out of scope: the OS renders them against a
+home screen we will never know, so they need to be robust, not themed.
+
+**A theme recipe is source, and the SVG is the build output.** For a rung-2
+logo, write down what the artwork IS in terms that outlive any theme —
+constraints, not the drawing: *"the bee is ink-on-transparent; the field takes
+the game's accent; the border must contrast with the page."* A recipe
+recording geometry goes stale the first time someone nudges a wing. It lives in
+that game's `doc.md`, and it pays off only for recognition assets; a pure
+decoration is a fresh creative act per theme and a recipe would constrain the
+fun.

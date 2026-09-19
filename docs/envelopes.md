@@ -13,11 +13,10 @@ the server", so a caller has one thing to read no matter what happened.
 This file is the canonical place for these decisions, and the only one:
 **the conversion finished on 2026-09-01** — every RPC, every read, every edge
 function. Its durable lessons are folded in below (→ [Four things the roster
-conversion taught](#four-things-the-roster-conversion-taught)).
-[`plans/error-system.md`](../plans/error-system.md) is still there and holds the
-sprint's own record — the per-area roster and how each conversion went. **This
-file outranks it** wherever they disagree: the plan describes the work, and this
-describes the result.
+conversion taught](#four-things-the-roster-conversion-taught)), and what each
+game's conversion settled is in that game's doc under `docs/games/`, in its
+answers table. The sprint's own plan was deleted 2026-09-19 once every lesson
+in it had a home.
 
 The vocabulary here is the vocabulary in the code: all four severities, `race`
 included, are spelled as written here in TypeScript, in SQL's hints, in the Deno

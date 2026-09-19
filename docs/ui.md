@@ -866,8 +866,8 @@ makes the theme lie about what it decided.
 > not a spec. Never change color methodology because an example used a
 > number — the methods are measured, and an offhand figure in prose does not
 > override one. The measurements themselves, and which variants derive
-> cleanly and which need a value per member, are in
-> [`plans/css-philosophy.md` → What actually derives](../plans/css-philosophy.md#appendix-what-actually-derives--measured-2026-08-20).
+> cleanly and which need a value per member, are
+> [What derives, measured](#what-derives-measured) below.
 
 **[`/palette`](../src/common/devtools/palette.ts) is how this holds.**
 It renders every family, members × variants, and it ships (unlinked, no session
@@ -897,6 +897,68 @@ collapses to a prefix in the scanner and stops guarding anything.
 saturation, so the decided color carries the same message as the game's other
 outcome signals. psychicnum once used the pale tier and it read as a weaker,
 different signal from its own guess outcomes.
+
+### What derives, measured
+
+Which variants a formula reproduces and which need a value per member,
+established 2026-08-20 by resolving each candidate in a real browser and
+comparing painted pixels rather than by reimplementing oklab, and verified
+identical under an sRGB and a display-p3 profile. This is the evidence behind
+"how a value gets picked": a variant that derives costs a theme nothing, and a
+variant that does not is one judgment per member, per theme.
+
+**Derives exactly:**
+
+- **`edge` is the fill × 0.84 on the gamma-encoded sRGB bytes** —
+  `color-mix(in srgb, <fill> 84%, black)`. Every consumer matched. An older
+  comment called this "16% toward black", right about the amount and wrong
+  about the space: in oklab the same 16% gives won `#4f9452` against the real
+  `#569d59`. The two spaces differ in step size, not character (sRGB −13%
+  chroma, oklab −16%).
+- **The four button tones reproduce all sixteen of their values from four
+  anchors**: hover is the anchor at oklab lightness −0.05, the outline's ink at
+  −0.115, the outline's hover at 8% over the card. This is the model working —
+  a family picked at one sitting by one formula — and it is what everything
+  else is measured against.
+- **`terminalFrame`** was first claimed as `oklch(0.45, 0.105, <family hue>)`
+  and that was wrong on two counts, corrected the same day in a browser: the
+  hue was the ink's, not base's (obvious in warning, whose ink sits 21.5° off
+  its own base because Material's ramps rotate), and Chrome's oklch lands 1–4
+  bytes off each recorded value, because the originals came from a different
+  oklab implementation. It now derives from BASE (Joel's call, a small shift
+  accepted), which moved won, lost and near by 1–3 bytes and warning by 10.
+  Won is lifted to 0.564 at the same chroma, because at the family's lightness
+  a green reads as black at normal zoom; neutral is achromatic.
+
+**Does not derive, and needs a value per member:**
+
+- **`ink`.** The step down from the fill runs 0.037 (near) to 0.305 (neutral):
+  0.115 in red, 0.117 in orange, 0.195 in green. Two families happen to match
+  the button step and three do not. This is where the gold problem lives: gold
+  cannot go dark without ceasing to be gold, so near's ink stopped short. The
+  midnight spike found the mirror image — gold cannot go light either — so the
+  family constrained at one end is constrained at the other by a different
+  amount ([`plans/dark-mode.md`](../plans/dark-mode.md)).
+- **`wash`.** Three of five reproduce as a mix with the card — won at 37%
+  oklab, warning at 35% sRGB, neutral at 15% oklab, already three recipes.
+  Lost and near reproduce as nothing: they are Material 100s, and Material's
+  ramps rotate, so they sit 14° and 18° off their own family's hue.
+- **Member borders.** The comment claimed they were seeded by formula (oklch
+  lightness clamped to `min(0.85 × fillL, 0.55)`); that reproduces one of the
+  eight. The rest were hand-tuned afterward, so there is no formula to invert
+  and a dark set is eight fresh judgments.
+- **The tile ramp.** Across all twelve values hue holds at 87–90° while
+  lightness falls 0.976 → 0.662 and chroma RISES 0.011 → 0.107 — one material
+  getting thicker, not a tint plus a darkening. A single-anchor mix with white
+  misses the deep end by 0.027 of lightness.
+
+**Two things the measurement says about the families as they stand**, neither
+fixed, both moving pixels when they are: `near` and `warning` fills sit 3.9° of
+hue apart, so two names that are meant to read differently barely do; and
+`warning` spans 21° between its own ink and fill, which is the family's shape
+under Material's rotation rather than a defect, but is the kind of thing a
+theme author has to know. Both are conversations for a color pass, recorded in
+[`plans/dark-mode.md` → What is left](../plans/dark-mode.md#4-what-is-left-if-we-build-it).
 
 ### Every color has a NAME
 
@@ -1011,6 +1073,22 @@ value with one reader belongs inside its class as a number.** Size and
 spacing are a soft goal: the consistency people want is a class guarantee
 ("every dialog's labels match"), delivered by there being one `Field` pattern,
 not by a ramp. Board geometry is excluded outright.
+
+**A numbered scale is honest when the number is the WHOLE meaning, and
+dishonest when it displaces a meaning that already exists** (Joel,
+2026-08-21). There is no fact about "2-ness" hiding inside `--font-size-2`:
+bigger and smaller genuinely is all there is. A `--red-1` would have a fact
+underneath it — *this is the losing-move ink* — and the number pushes it out
+of view, so every reader translates, and translation is where drift gets in.
+The swap test: can two members trade places and still be the same kind of
+thing, just more or less of it? Font sizes, yes. An ink and an edge, no —
+those are two jobs that happen to share a hue. **A vocabulary of degrees
+narrows a choice; a vocabulary of meanings makes one.** That is why the
+spacers, font sizes and line heights above are numbered and the durations,
+letter-spacings and border widths are named: every numbered one is pure
+degree, every named one is different kinds. It is also why the text grays are
+`-muted` / `-label` / `-strong` and not `--gray-1/-2`, and why `--opacity-1 /
+-2` is the row above that is on notice.
 
 ### What the words mean
 
@@ -1459,6 +1537,31 @@ inner padding): now that the tiles carry their own warm fill and depth, an outer
 frame is redundant, and connections' full-width bands want to sit edge-to-edge
 anyway. The grid fills its column edge-to-edge. (A tray remains available as a
 per-game option if a future board wants one.)
+
+**A game piece has no disabled state.** Unclickable is not disabled: *disabled*
+is a LOOK meaning "this isn't doing anything for you" — Submit with nothing to
+submit — and it belongs to controls. Pieces are unclickable constantly and
+disabled never, because a piece is unusable *because something happened to it,
+and the something is what gets shown* (measured across every game,
+2026-08-20):
+
+| game | the piece | what it wears |
+|---|---|---|
+| letterboxed | a used letter | a pale green wash — a state |
+| psychicnum | a decided tile | the saturated outcome color |
+| connections | a solved tile | its category color |
+| codenamesduet | a revealed card | agent / neutral / assassin |
+| waffle | a locked letter | green |
+| stackdown | a buried tile | further down the ramp |
+| scrabble | a rack tile now on the board | darker warm — "in use" |
+| setgame | every card, at every terminal | nothing — `opacity: 1`, overriding the global dim |
+
+Games actively fight the global rule to keep it that way: setgame overrides
+`button:disabled` and says why (dimming a card *"reads as a different card"*),
+and its `LastSet` is rendered as non-buttons purely to escape the same opacity.
+The mis-scope behind that is `button:disabled { opacity }` sitting on the bare
+ELEMENT, so it reaches pieces and paints "turned off" over a message. A
+disabled look on a board is a control's look on a piece, and a finding.
 
 ### The verdict mark's state is per game, on purpose
 

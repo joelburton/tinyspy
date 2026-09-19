@@ -146,7 +146,3 @@ comments. Most files would drop well under a third comment lines.
 - A typed `setup` from each game's `useGame`, ending the fifteen
   `setup as XSetup` casts.
 
-## 4. Related
-
-`react-context.md` (also ideas only) records the separate question of a
-context for the shell slice. It is not a prerequisite for anything here.
