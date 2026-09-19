@@ -155,7 +155,13 @@ export function BoardCol({
   // Picking a tile or typing both drive this one pending guess word. (A partial word
   // won't equal any board word, so the board only highlights once a tile is clicked
   // or the full word is typed.)
-  const selected = pending === '' ? null : pending
+  //
+  // Drawn only while I can still play: a selection means "the move I am
+  // building", and a finished board or a player out of the race builds
+  // nothing — so a tile picked just before that moment must not keep the
+  // border, since nothing else would ever take it off. Waiting my turn is not
+  // that: the word stays in the entry for when the turn comes back.
+  const selected = pending === '' || !isStillPlaying ? null : pending
 
   // A user-driven entry change — typing a letter, or clicking a board tile — is
   // the player's next action, so it dismisses a gesture-cleared result: route

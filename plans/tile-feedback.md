@@ -12,7 +12,7 @@ its findings are folded into each area's audit instead, while that area is
 already open and loaded in your head. So this file is the design target an
 audit checks a board against, not a queue waiting its turn.
 
-**Where we are: 0 of 16 games at tf2.** The sprint restarted after the color and
+**Where we are: 1 of 16 games at tf2** (psychicnum, 2026-09-19). The sprint restarted after the color and
 button mini-sprints changed the ground underneath it, so every game — including
 the four converted in the first round — needs a pass against the current
 framework. Games carry a **tf level**; see
@@ -715,7 +715,7 @@ color**, and both channels we have already exist:
 
 | token | in the shared theme |
 |---|---|
-| `--view-history-color` | documented as *"a neutral amber, NOT an outcome color"* |
+| `--history-color` | the history blue — a view-state color, NOT an outcome color |
 | `--mark-attention-tile-color` | a **translucent** warm-yellow overlay, composed as the first layer of `background` so it reads as *"itself, but lighter"* over any tile shade |
 
 `--mark-attention-tile-color` deserves note: it is exactly the translucent overlay this doc
@@ -957,6 +957,10 @@ row, so it cannot be contradicted — the model the race rule wants.
   already did — the roster row below claiming otherwise was stale and is
   corrected. It follows from the default above rather than from anything about
   psychicnum: the flash fires on every move, the actor's included.
+- **tf2, 2026-09-19.** Two things the re-pass changed: a pending selection no
+  longer survives the game ending or the player dropping out (the game-over
+  check), and the decided tile's fill is picked by the answer table's outcome
+  rather than by a second reading of the row's boolean. Nothing else moved.
 
 ### connections · shape 2
 
@@ -1274,7 +1278,7 @@ the background. Pick the next one up from the "forces" column.
 |---|---|---|---|
 | **wordle** | tf1 | 2026-08-16, board marks 08-17 | first through: the in-flight dim, the verdict ring in its pill's tone, hover-as-shadow, blue history, the keyboard as a control surface. Then the four board-scope marks + the keyboard withdrawn at terminal. It went first because it needed the fewest decisions — no selection, no hint, no cursor |
 | **waffle** | tf1 | 2026-08-17 | the framework INTO common: selection as a black border, the shared in-flight dim, the move shown optimistically with its verdict withheld, attention gated on the swap log, both turn marks, the game-over frame. No verdict mark and none needed — the only refused swap is one a teammate beat you to, and their swap arriving is what you want to see |
-| **psychicnum** | tf1 | 2026-08-17 | the **identity dot**, and reveal-as-state (which retired the answer-key channel). **Self-attention is ON** — the guesser sees the flash like everyone else, which is what the code has always done; the round-1 note here claimed the opposite and was never true. Ruled 2026-09-15 as the app-wide default (see "Yellow means LOOK HERE"). **Marked tf2 on 2026-08-20 and reset to tf1 the same day**: the pass fixed a real thing but stopped short of a re-conversion once css-system was chosen to go first, so it is owed a proper tf2 after its CSS pass. What that day settled stands. The ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
+| **psychicnum** | **tf2** | 2026-09-19 | **Passed 2026-09-19 as pass 3 of its app-audit area**, every mark checked against this doc: all conform, the identity dot's colors are the shared member palette, and the stylesheet is 7 rules / 33 declarations (the two are the font work's `wdth` knobs). One defect: a selection made just before the game ended, or before the player conceded, kept its border on a board nobody could act on — the game-over check by name; `selected` is drawn only while still playing. And the decided fill's second copy of hit→won / miss→lost is gone: `Board.tsx` asks `lib/answer.ts` what a decided row IS and wears `.decidedWon` / `.decidedLost`, named for outcomes. Round 1: the **identity dot**, and reveal-as-state (which retired the answer-key channel). **Self-attention is ON** — the guesser sees the flash like everyone else, which is what the code has always done; the round-1 note here claimed the opposite and was never true. Ruled 2026-09-15 as the app-wide default (see "Yellow means LOOK HERE"). **Marked tf2 on 2026-08-20 and reset to tf1 the same day**: the pass fixed a real thing but stopped short of a re-conversion once css-system was chosen to go first, so it is owed a proper tf2 after its CSS pass. What that day settled stands. The ring-around-a-TILE for the viewed turn moved OUTSIDE the tile — `outline-offset: -3px` → `+2px`, keeping its 3px weight. It only ever lands on a decided tile, so inset it had been drawing blue over saturated green/red at 1.88:1 / 1.28:1; outside it sits on the board background and simply reads. Two things the try-it-and-look loop settled: **flush (offset 0) is not enough** — it reads as a fat border, the gap is what makes it a ring — and **thinning it to 2px is not either**, since off the tile it loses the fill behind it and a hairline disappears. So: same weight, real gap. It overlaps the board frame on edge tiles (that frame starts 3px out and `.grid` has no padding); accepted, because separating them means moving shared chrome every game wears. Also: white-on-green blessed (see the floor's exception above), and seven dead token/color names cleared out of its prose |
 | **connections** | tf1 | 2026-08-17 | the **identity mark** as a named shared channel (`.peerRing`) — and, on the way, the rule that identity is drawn for EVERYONE on a shared board or for nobody, which the permanent dot already said and the ring contradicted. Also: the first verdict on the BACKGROUND (its tiles carry no state, so it was free), the first mark whose lifetime ends because someone ELSE acted, and the split that came out of it — a board mark dies when the board moves, its pill does not. Its bands are inert pieces wearing the shared tile face, and they flash for a teammate's solve |
 | codenamesduet | tf0 | — | the keycard's `.triPeer` / `.triMine` triangles (which are the game, not attribution), and a board where only one seat can act. **Chrome borrow to settle:** its tile outline is painted with the action BUTTON's blue (`Board.module.css:135`) |
 | setgame | tf0 | — | its own in-flight + arriving/leaving marks predate all of this and are the richest set anywhere; `--setgame-*` tokens want folding into the shared ones. Selection is a `box-shadow` ring and must become a border |
@@ -1324,7 +1328,7 @@ Cross-cutting, not owned by any one game:
 
 | | departure |
 |---|---|
-| history viewer | DONE — the shared frame was yellow; it is now the blue `--view-history-color`, so yellow means only "attention" |
+| history viewer | DONE — the shared frame was yellow; it is now the blue `--history-color`, so yellow means only "attention" |
 | in-flight marks | was "missing in all but three games"; now shared (`.dimInFlight`) and worn by the four tf1 games. Still absent from all twelve tf0 boards |
 | identity, transient | DONE as a CHANNEL, local as an implementation — connections draws `.peerPick`, an inset border in the picker's color held clear of the selection edge. It lived in common until the palette sweep and moved into connections: one user, and crosswords' peer cursor will differ in inset and thickness, so promote on evidence |
 | the shared tile | see the next section — nine boards still roll their own |
@@ -1344,7 +1348,8 @@ them — and their re-pass is mostly a color check, which makes that a real gap
 rather than a tidy omission. Ask the question fresh, with the game on screen, at
 each tf1 → tf2 pass; the census's own rule applies (a hex match is not certainty).
 Two things are already known to be worth looking at there: psychicnum and
-connections both gained identity marks in player colors, and wordle's keyboard is
+connections both gained identity marks in player colors (psychicnum's answered
+2026-09-19 — the shared member palette, through `<Dot>`), and wordle's keyboard is
 chrome carrying game state — the one surface the "chrome fades, game pieces don't"
 rule splits down the middle.
 

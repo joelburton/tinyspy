@@ -71,9 +71,10 @@
 /* @@ */   --tile-wdth-min: 0.6;
 }
 
-/* A guessed tile is "decided": it colors PERMANENTLY by result — green if the
- * word was a secret, red if not — by re-setting the shared tile's --tile-*
- * tokens (so the fill wins regardless of stylesheet order). It uses the
+/* A guessed tile is "decided": it colors PERMANENTLY in its OUTCOME — the one
+ * `lib/answer.ts` rules for the row, which Board.tsx asks it for, so these two
+ * classes are named for outcomes and not for verdicts — by re-setting the shared
+ * tile's --tile-* tokens (so the fill wins regardless of stylesheet order). It uses the
  * SATURATED outcome fills (`--outcomes-*-fill-color`, the same green/red the
  * EventLog outcome bars use), NOT the washed-out pastel `-bg` — so a decided
  * tile obviously carries the same green=good / red=bad message as a guess
@@ -98,13 +99,13 @@
  * attention, the in-flight dim — extend over the border box, so the edge never
  * peeks through them; a second of a hidden edge costs nothing, since it will be
  * back. */
-/* @@ */ .correct {
+/* @@ */ .decidedWon {
 /* @@ */   --tile-slot-fill-color: var(--outcomes-won-fill-color);
 /* @@ */   --tile-slot-edge-color: var(--outcomes-won-edge-color);
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
-/* @@ */ .incorrect {
+/* @@ */ .decidedLost {
 /* @@ */   --tile-slot-fill-color: var(--outcomes-lost-fill-color);
 /* @@ */   --tile-slot-edge-color: var(--outcomes-lost-edge-color);
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);

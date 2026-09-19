@@ -414,7 +414,7 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
  * for the guesser's identity dot, which a revealed tile has no reason to
  * carry.
  *
- * Asserted through the tile's `correct` class — vitest runs with `css: false`, so
+ * Asserted through the tile's `decidedWon` class — vitest runs with `css: false`, so
  * CSS-module keys come through unscoped (see vitest.config.ts).
  */
 describe('psychicnum PlayArea — the terminal secrets reveal', () => {
@@ -429,7 +429,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
   /** How many board tiles currently read as secrets (green). With no guesses in
    *  these fixtures, that is exactly the revealed ones. */
   const greenTiles = () =>
-    screen.getAllByRole('button').filter((b) => b.className.includes('correct')).length
+    screen.getAllByRole('button').filter((b) => b.className.includes('decidedWon')).length
 
   /** A finished game whose secrets have reached this client (the server sends
    *  them once the game is terminal). */
@@ -564,6 +564,40 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)
   })
 
+  // A selection is "the move I am building". A finished board is a record and
+  // a player out of the race builds nothing, so a tile picked just before either
+  // moment must not keep the selection border (plans/tile-feedback.md → what a
+  // game over does to a mark).
+  it('drops a pending selection once the game ends, and once I am out of the race', async () => {
+    const user = userEvent.setup()
+    const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+    h.result = loaded(competeGame, [me, moth])
+    const { container, rerender } = render(<PlayAreaLoader {...makeCtx({ players: two })} />)
+    const tile = () => within(gridIn(container)).getByRole('button', { name: 'alpha' })
+
+    await user.click(tile())
+    expect(tile().className).toMatch(/selected/)
+
+    // A rival's guess ends the race while my pick is still pending.
+    h.result = loaded({ ...competeGame, secrets: ['alpha', 'charlie', 'echo'] }, [me, { ...moth, found_secrets_count: 3 }])
+    rerender(<PlayAreaLoader {...makeCtx({ players: two, playState: 'won_compete', isTerminal: true })} />)
+    expect(tile().className).not.toMatch(/selected/)
+  })
+
+  it('drops a pending selection when I concede', async () => {
+    const user = userEvent.setup()
+    const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+    h.result = loaded(competeGame, [me, moth])
+    const { container, rerender } = render(<PlayAreaLoader {...makeCtx({ players: two })} />)
+    const tile = () => within(gridIn(container)).getByRole('button', { name: 'alpha' })
+
+    await user.click(tile())
+    expect(tile().className).toMatch(/selected/)
+
+    rerender(<PlayAreaLoader {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true }), two[1]] })} />)
+    expect(tile().className).not.toMatch(/selected/)
+  })
+
   // The attention flash reads the event log, not the board — so the one board
   // change nobody played into stays silent. Revealing turns three tiles green at
   // once, which a diff would call three simultaneous moves.
@@ -576,7 +610,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
 
     const tiles = within(gridIn(container)).getAllByRole('button')
     // The three secrets went green…
-    expect(tiles.filter((t) => t.className.includes('correct'))).toHaveLength(3)
+    expect(tiles.filter((t) => t.className.includes('decidedWon'))).toHaveLength(3)
     // …and not one of them flashed.
     expect(tiles.some((t) => /attentionFlash/.test(t.className))).toBe(false)
   })

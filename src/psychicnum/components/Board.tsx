@@ -10,6 +10,7 @@ import { useFlash } from '@/common/board-marks/useFlash'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
+import { eventToOutcome } from '../lib/answer'
 import styles from './Board.module.css'
 
 type Props = {
@@ -168,6 +169,12 @@ export function Board({
         {words.map((word) => {
           const guessed = results.has(word)
           const correct = results.get(word)
+          // What a decided tile's permanent fill SAYS is the answer table's
+          // ruling on the row (`lib/answer.ts`), the same one the pill and the
+          // log read — so the board cannot color a miss differently from them.
+          const decided = guessed
+            ? eventToOutcome({ kind: 'guess', is_correct: correct === true, word })
+            : null
           // `undefined` = draw no dot: either this game shows none (compete), or
           // nobody decided this tile (unguessed, or a revealed secret). A dot
           // whose member has left resolves to the neutral disc, not to nothing.
@@ -184,7 +191,8 @@ export function Board({
                 shared.tileFace,
                 shared.tile,
                 styles.tile,
-                guessed && (correct ? styles.correct : styles.incorrect),
+                decided === 'won' && styles.decidedWon,
+                decided === 'lost' && styles.decidedLost,
                 selected === word && shared.selected,
                 word === inFlightWord && shared.dimInFlight,
                 flashing.has(word) && shared.attentionFlash,

@@ -633,7 +633,53 @@ time. Already known to belong to it:
 
 ### Then pass 3 — tile-feedback, tf1 → tf2
 
-See Notes.
+See Notes. **Run 2026-09-19** (Joel: *"do it"*), against
+[tile-feedback.md](../tile-feedback.md) as it stands — the channels table, the
+rules, the colors, the identity rule, the per-game shared-tile check, the
+restart/game-over check, and the floor's blessed exceptions.
+
+**Every mark this board wears, checked:**
+
+| channel | psychicnum's | verdict |
+|---|---|---|
+| background = state | `.correct` / `.incorrect` re-set `--tile-slot-fill/edge/ink` to the outcome won/lost fill and edge, white ink | conforms: state re-sets tokens; a decided (inert) tile may wear its own edge; white on `--outcomes-won-fill-color` is the blessed 2.36:1 |
+| attention flash | shared `.attentionFlash`, gated on `moveCount` (the log), quiet while viewing history | conforms: read the cause, never the diff; a reveal and a restart flash nothing |
+| shake (NO) | shared `.verdictShake` on the words that came back wrong, after the flash | conforms: one shake, after attention, never on a good verdict |
+| selected | shared `.selected` (border width) | **one defect, fixed below** |
+| in-flight dim | shared `.dimInFlight`, derived from `results` rather than cleared | conforms: released by the server's row; restart remounts |
+| identity dot | shared `<Dot>` on a decided tile, bottom-right, `onColor` ring; coop with more than one player; none on a revealed secret | conforms to all four identity rules, and the colors are the shared member palette (`--member-<name>-fill-color` via `colorVarFor`) — the census question, answered |
+| reveal | folds into `results` as hits; the tiles go green, no mark of their own | conforms: reveal is a state change |
+| history | `.historyTile`, the shared `--history-color`, outside the tile | conforms (the plan calls the token `--view-history-color`; the code's name is `--history-color`, and the code is right — the plan's name is corrected below) |
+| board frame / dims | shared `.gameOverFrame` + won/lost, `.dimNotYourTurn`, `.yourTurnFlash`, the viewer's `.historyFrame` | conforms |
+| hover, cursor, peer ring, hint outline | the shared hover; no keyboard cursor, no peer selection broadcast, no tile hint in this game | nothing to check |
+
+**The sanity check:** `Board.module.css` is 7 rules / 33 declarations against
+tf1's 7 / 31 — the two declarations are the `wdth` knobs the font work added,
+traceable and not a special case.
+
+**The one defect: a selection outlived the board it was on.** `BoardCol`
+drew `selected` off `pending` alone, so a tile picked just before a rival's
+guess ended the race — or before I conceded, or ran out — kept the thick
+selection border on a board nobody can act on, and nothing would ever take it
+off. Exactly the case the plan's restart/game-over check names. Now `selected`
+is null unless `isStillPlaying`; waiting my turn keeps it, since the word stays
+in the entry for when the turn comes back. Two cases in `PlayArea.test.tsx`
+(the race ending under a pending pick; conceding with one), both red before
+the fix.
+
+**The decision the pass owned — ruled "read the table"** (Joel, 2026-09-19):
+the `todo.md` Soon item, a decided tile's permanent fill picking `.correct` /
+`.incorrect` off the row's boolean — the hit→won, miss→lost mapping
+`lib/answer.ts` makes, written a second time. `Board.tsx` now asks
+`eventToOutcome` what the decided row IS and wears `.decidedWon` /
+`.decidedLost`, named for outcomes; the CSS stays this game's (one user; a
+shared set is the second game's lift). The todo item is deleted. **Verified by
+planting** the two classes swapped: the reveal and attention cases red (4).
+
+**psychicnum is tf2** — the roster row in tile-feedback.md says so, with the
+date and what the re-pass changed; the "where we are" line reads 1 of 16; the
+plan's `--view-history-color` is corrected to the code's `--history-color`; and
+the census paragraph records the identity-dot answer.
 
 ## Findings
 
@@ -1447,7 +1493,8 @@ the trailing `: `, which is what separates the pill from the log.
 - [x] `plans/app-audit.md` §3's row 53 says THREE passes (2026-09-19), with the
       reason the restructure goes first, and points at `docs/playarea.md` for
       the shape this game settled
-- [ ] the tile-feedback pass done, and the game's tf level updated there
+- [x] the tile-feedback pass done, and the game's tf level updated there
+      (2026-09-19 — tf2; see *Then pass 3* above)
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
       — **the harvest check, 2026-09-19.** Walked every section above for what
       outlives the sprint and where it lives. Already home: the shape
