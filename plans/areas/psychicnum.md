@@ -534,10 +534,38 @@ for the order instead.
 The area's ordinary process from here: the prose pass, then findings one at a
 time. Already known to belong to it:
 
-- **CSS** (Joel's goal): `Board.module.css` at 196 lines against the shared
-  tile chrome in `game-page/playArea.module.css`; `PlayArea.module.css` is one
-  class (`.layout`); `theme.css` has zero non-comment lines and exists "for
-  structural parity" — whether an empty file earns its place is a finding.
+- ~~**CSS** (Joel's goal)~~ **DONE 2026-09-19, and the premise was wrong.**
+  The note said "`Board.module.css` at 196 lines against the shared tile
+  chrome", which reads as duplication. Measured: 186 lines of which **~38 are
+  CSS**, and it duplicates nothing. The only name it shares with the shared
+  sheet is `.tile`, and both are worn by the same element on purpose — the
+  shared one carries the cursor and the touch behavior, this one adds
+  `position: relative` for the identity dot. `.correct` / `.incorrect` do not
+  restate the chrome either: they set `--tile-slot-fill/edge/ink`, feeding the
+  shared tile through its token seam.
+
+  The rest measured clean too: no class is defined and unworn; one raw value in
+  four files (`outline-offset: 2px` on `.historyTile`, argued at length against
+  the board frame's 3px and worse as a token); `BoardCol.module.css` is three
+  rules that feed shared components through their own tokens;
+  `GameEventLog.module.css` is one (`white-space: normal`, because a clue is a
+  sentence and the shared log's cells do not wrap); `PlayArea.module.css` is one
+  declaration. **So the goal — reduce CSS that duplicates common CSS or the
+  play-surface scaffold — was met before this area opened, and there is nothing
+  to remove.**
+
+  `theme.css` STAYS (Joel, 2026-09-19), the one game file with zero non-comment
+  lines — the other fourteen have one to fourteen. Its comment carried three
+  false claims and now does not: the game was "on the chopping block post-beta"
+  (it is the audit's control on a complete roster), the file existed for parity
+  "across all three" games (sixteen), and it named
+  `--outcomes-near-bar-color` — an outcome this game never produces.
+
+  **Left alone, as a judgment call rather than a defect:** `Board.module.css`
+  runs about 4:1 comment to rule. Some of that is geometry a reader cannot
+  recover from the code; some is the design-argument kind Joel spent 2026-09-19
+  cutting out of the TypeScript. Thinning it is a different act from fixing a
+  false claim.
 - **The doc** (Joel's goal): `src/psychicnum/doc.md` is designed here, the
   first game area — Schema / Tests / Rules sections — and absorbs what
   `docs/games/psychicnum.md` says that the code does not; what the code says,
