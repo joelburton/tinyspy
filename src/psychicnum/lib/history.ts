@@ -1,17 +1,17 @@
 // cs-unmet
 
 /**
- * psychicnum — the turn-history replay. Given the guess log and the position of a
+ * psychicnum — the turn-history replay. Given the event log and the position of a
  * turn within it, reconstruct what the board looked like at that turn (which tiles
  * had been decided, and as what) plus which tile that turn decided — so PlayArea can
  * hand `<Board>` a historical `results` map the same way it hands it the live one.
  *
- * ADD-style replay (like scrabble/waffle/codenamesduet, unlike stackdown's removal):
- * a guess only ever ADDS a permanent green/red mark, so a past board is the guesses
- * up to that turn folded into the same `word → is_correct` map the live board uses.
- * A word is guessable only once (the server rejects re-guesses), so the fold never
- * overwrites. Hint / spoiler turns mark no tile (they decide nothing), so they leave
- * the map unchanged and light nothing.
+ * **A past board is a FOLD, because a guess only ever ADDS.** Every mark this game
+ * makes is permanent, so replaying a turn is the events up to it folded into the
+ * same `word → is_correct` map the live board uses — no undoing, and nothing to
+ * put back. A word is guessable only once (the server refuses a repeat), so the
+ * fold never overwrites. Hint and spoiler turns decide no tile, so they leave the
+ * map unchanged and light nothing.
  *
  * **Addressed by the row's own id**, resolved against the list being folded. The
  * `#N` the log prints is that row's place in whatever the log is SHOWING, which a
@@ -19,10 +19,10 @@
  *
  * **The boundary is INCLUSIVE**: viewing a turn shows the board AFTER
  * that turn's guess, with the guessed tile ringed — "this is the tile this turn
- * decided" (the natural way to review it; the reveal IS the event). Matches
- * waffle/scrabble/codenamesduet.
+ * decided". The reveal IS the event, so a board that stopped just before it would
+ * be showing the moment nothing had happened yet.
  *
- * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
+ * Pure: no React, no supabase.
  */
 import type { EventRow } from '../hooks/useGame'
 

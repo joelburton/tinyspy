@@ -10,7 +10,7 @@ import type { EventRow } from '../hooks/useGame'
  *
  * The judgment that lives here: **whose marks belong on whose board.** The
  * board WORDS are shared, but in compete every player races their own copy —
- * each with their own ✓/✗ marks, their own score and their own guess log — so
+ * each with their own ✓/✗ marks, their own score and their own event log — so
  * the printout is one track per player (`common/pdf/columns.ts`), not one
  * merged board that silently blends everyone's guesses.
  */

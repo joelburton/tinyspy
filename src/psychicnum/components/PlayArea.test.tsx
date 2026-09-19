@@ -515,7 +515,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)
   })
 
-  // The attention flash reads the guess log, not the board — so the one board
+  // The attention flash reads the event log, not the board — so the one board
   // change nobody played into stays silent. Revealing turns three tiles green at
   // once, which a diff would call three simultaneous moves.
   it('says nothing when the answer is revealed', async () => {

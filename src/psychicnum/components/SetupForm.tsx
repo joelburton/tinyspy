@@ -16,31 +16,20 @@ import {
 } from '../lib/setup'
 
 /**
- * psychicnum's per-game setup form, rendered inside the common
- * `SetupGameModal`. Choices for the players:
+ * psychicnum's per-game setup body, rendered inside the common
+ * `SetupGameModal`. What it asks, in the order it asks it:
  *
- *   - **Guesses** — guess budget, one of {3, 5, 7, 9}.
- *   - **Words on the board** — how many words (5..20); three are secret.
- *   - **Word difficulty** — the dictionary band the board is drawn from
- *     (the shared `<DictBandField>`).
+ *   - **Who is playing** — the shared `<PlayersSection>`.
+ *   - **Coop pacing** — free-for-all or turn-by-turn, and who goes first
+ *     (`<SetupCoopStyleSection>`, which shows nothing outside coop).
+ *   - **Guesses** — the budget, one of {3, 5, 7, 9}.
+ *   - **Words on the board** — three of them are the secrets.
+ *   - **Word difficulty** — the dictionary band the board is drawn from.
  *   - **Timer** — the shared `<SetupTimerSection>`.
  *
- * No member-aware UI (every guess is interchangeable; no seats),
- * no auto-seeding logic — the manifest's defaults already cover
- * a usable initial state.
- *
- * Controlled component pattern, same as the codenamesduet form: state
- * lives in the wrapper; we render from `value` and signal via
- * `onChange`. The single `value as PsychicnumSetup` cast at
- * the top is the boundary between the manifest's `unknown` setup
- * type and psychicnum's narrow shape.
- *
- * Component name `SetupForm` matches the file + the
- * `manifest.setupForm` field — this is the *form definition*,
- * distinct from `PsychicnumSetup` (the *data shape* the form
- * produces, stored on `common.games.setup`). The folder path
- * (`psychicnum/components/SetupForm.tsx`) disambiguates from the
- * other games' SetupForm components.
+ * State lives in the wrapper: render from `values`, signal through `set`. The
+ * two casts at the top are the boundary between the manifest's game-agnostic
+ * shape and this game's, and they are the file's only ones.
  */
 export function SetupForm({
   mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
@@ -55,9 +44,8 @@ export function SetupForm({
   // who'll play, not the whole club.
   const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
-  // Disclosure summaries carry the current values so each section reads without
-  // opening (the boggle/scrabble/spellingbee pattern). Singular "Dictionary" —
-  // psychicnum has ONE band.
+  // Disclosure summaries carry the current values, so a section reads without
+  // being opened. Singular "Dictionary": this game draws from one band.
   const guessesLabel = `Guesses: ${s.guesses}`
   const wordsLabel = `Words on board: ${s.word_count}`
   const dictLabel = `Dictionary: ${difficultyValue(s.difficulty)}`
