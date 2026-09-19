@@ -1240,7 +1240,12 @@ frame on edge tiles.
 **Options:** *"thin to the four"* · *"leave"* (Joel read it 2026-09-19 and
 left it).
 
-### F-psychicnum-19 · `pdf-prose` · a count that is wrong and a number written twice
+### SHIPPED · F-psychicnum-19 · `pdf-prose` · a count that is wrong and a number written twice
+
+**Joel, 2026-09-19: "do it."** `drawGuessList`'s docstring gives the true
+reason the list never paginates. `SECRET_COUNT` lives in `lib/setup.ts` beside
+the game's other fixed numbers; `PlayArea.tsx` and `pdf/model.ts` both import
+it, and the score line reads it instead of a hand-written 3.
 
 - `pdf/printPsychicnumPdf.ts` → `drawGuessList`: *"psychicnum's budget is
   seven guesses, so a track's list never paginates"* — the budget is 3 to 9,

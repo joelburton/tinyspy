@@ -79,3 +79,7 @@ export const WORD_COUNT_OPTIONS = Array.from(
   { length: WORD_COUNT_MAX - WORD_COUNT_MIN + 1 },
   (_, i) => WORD_COUNT_MIN + i,
 )
+
+/** How many secrets a board hides — `create_game` samples this many, and
+ *  players win by finding them all. The screen and the printout both read it. */
+export const SECRET_COUNT = 3

@@ -7,7 +7,7 @@ import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { answerMessage, peerAnswerMessage } from '../lib/answer'
-import type { PsychicnumSetup } from '../lib/setup'
+import { SECRET_COUNT, type PsychicnumSetup } from '../lib/setup'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
@@ -40,9 +40,6 @@ import { NoSuchGamePage } from '@/common/game-page/NoSuchGamePage'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // psychicnum-specific tokens (empty today, see file)
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-
-/** The computer hides this many secret words; players win by finding all. */
-const SECRET_COUNT = 3
 
 /**
  * What `request_hint` answers. TWO `ok`s: `hint` carries the row's text whether

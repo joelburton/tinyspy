@@ -3,6 +3,7 @@
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import type { EventRow } from '../hooks/useGame'
+import { SECRET_COUNT } from '../lib/setup'
 
 /**
  * Build the psychicnum print model — the pure half, away from jsPDF so the
@@ -82,7 +83,7 @@ export function buildPsychicnumPrintModel(o: {
       who,
       board,
       turns: turnsOf(guesses, whoOf),
-      result: `${found} of 3 secrets found · ${used} guess${used === 1 ? '' : 'es'} used`,
+      result: `${found} of ${SECRET_COUNT} secrets found · ${used} guess${used === 1 ? '' : 'es'} used`,
     }
   }
 

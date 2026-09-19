@@ -132,8 +132,9 @@ function drawBoard(
   return Math.ceil(board.length / cols) * cellH
 }
 
-/** A track's own guess list — the same compact shape wordle's tracks use.
- *  psychicnum's budget is seven guesses, so a track's list never paginates. */
+/** A track's own guess list — the same compact shape wordle's tracks use. It
+ *  never paginates: a budget of at most nine, plus a few hint and spoiler
+ *  rows, fits one column. */
 function drawGuessList(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
   doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
   doc.text('Guesses', track.x, y)
