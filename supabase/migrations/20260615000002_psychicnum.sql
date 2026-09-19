@@ -11,21 +11,30 @@
 -- affordances: "reveal" shows an unfound secret WORD (the answer);
 -- "hint" shows its CLUE (common.words.hint). Two modes:
 --
+-- TWO NAMES BELOW WERE RENAMED LATER, and are left as they are
+-- because this file is what it created: `psychicnum.guesses` became
+-- `psychicnum.events`, and the `reveal` kind became `spoiler`, both
+-- in 20260917000000_psychicnum_events.sql. Read "reveal" here as
+-- today's SPOILER — handing over one secret word. The app now uses
+-- "reveal" for a different thing entirely: the local, reversible
+-- toggle that shows the whole solution at game over.
+--
 --   psychicnum_coop    — players share a single guess budget and
 --                        a single board, see each other's guesses
 --                        live, win OR lose together. Find all
 --                        three (as a team) = team wins. Budget
 --                        exhausted first = team loses.
 --
---   psychicnum_compete — players each have their own guess
---                        budget + private board, and race to find
---                        all three themselves. Opponents see each
---                        other's remaining budget AND a count of
---                        how many secrets each has found (for
---                        tension) — but NOT the guesses, results,
---                        or which words. First to all three
---                        wins; everyone else loses. All-exhausted
---                        or timer-expired = everyone loses.
+--   psychicnum_compete — the same board of words, but each player
+--                        has their own guess budget and their own
+--                        private guesses, racing to find all three
+--                        themselves. Opponents see each other's
+--                        remaining budget AND a count of how many
+--                        secrets each has found (for tension) — but
+--                        NOT the guesses, results, or which words.
+--                        First to all three wins; everyone else
+--                        loses. All-exhausted or timer-expired =
+--                        everyone loses.
 --
 -- Both modes share this one schema. The mode is denormalized onto
 -- psychicnum.games.mode so RLS can branch without joining to
@@ -143,9 +152,9 @@ create table psychicnum.players (
   guesses_remaining int not null
     check (guesses_remaining between 0 and 9),
   -- How many distinct secrets THIS player has found (0..3). Public to the
-  -- club (like guesses_remaining) — it's the count, never the numbers. In
+  -- club (like guesses_remaining) — it's the count, never the words. In
   -- compete it's what powers opponent tension: the FE watches an opponent's
-  -- count tick up and announces "X guessed a secret number" without leaking
+  -- count tick up and announces that they guessed a word without leaking
   -- which one. (In coop it's incidental — coop shows the actual guesses.)
   found_secrets_count int not null default 0
     check (found_secrets_count between 0 and 3),

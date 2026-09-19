@@ -396,10 +396,9 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 -- ============================================================
 -- psychicnum.submit_guess — the only mid-game guess action
 -- ============================================================
--- There are THREE secret WORDS (hidden among the board words);
--- players win by finding all three. So a correct guess no longer
--- ends the game by itself — only the guess that completes the set
--- does.
+-- There are THREE secret WORDS hidden among the board words, and
+-- players win by finding all three — so a correct guess does not
+-- end the game by itself; only the one that completes the set does.
 --
 -- The guess must be one of the board words (the player clicks a
 -- tile or types a word that's on the board). Compared case-folded.
@@ -474,9 +473,8 @@ begin
       detail = 'no psychicnum.games row for target_game';
   end if;
 
-  -- Normalize and require the guess to be one of the board words (the player
-  -- can only meaningfully guess a word that's shown — the words analogue of
-  -- the old 1..max range check).
+  -- Normalize, and require the guess to be one of the board words: the board
+  -- is face-up, so a word not on it is not a guess anyone could mean.
   w := lower(trim(coalesce(guess, '')));
   if not (w = any(g.words)) then
     raise exception 'BUG: guess that is not on the board'
@@ -639,9 +637,8 @@ begin
       ),
       player_results
     );
-    -- `found_all` is the second fact the old `'won'` packed in beside the
-    -- first: this guess hit, AND it was the last secret. Two facts, two
-    -- fields, so neither has to be decoded out of the other.
+    -- Two facts, two fields, so neither has to be decoded out of the other:
+    -- this guess hit, AND it was the last secret.
     return common.ok_envelope(
       jsonb_build_object('verdict', 'hit', 'found_all', true));
   end if;
@@ -899,9 +896,9 @@ revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) fr
 -- became jsonb. `if exists` because this file is re-applied in full on every
 -- deploy, so the drop has to be a no-op the second time.
 drop function if exists psychicnum.request_spoiler(uuid);
--- The name this RPC had until the row it writes became a `spoiler`. It stays
--- here for good: this file is the whole definition, and a database that has
--- the old function has nothing else that would ever remove it.
+-- A name this RPC once had. The drop stays here for good: this file is the
+-- whole definition of what psychicnum's schema contains, so a database that
+-- still carries that function has nothing else that would ever remove it.
 drop function if exists psychicnum.request_reveal(uuid);
 
 create or replace function psychicnum.request_spoiler(target_game uuid)
@@ -986,10 +983,10 @@ grant execute on function psychicnum.request_spoiler(uuid) to authenticated;
 -- the row). Coop teammates get a "X asked for a hint" pill;
 -- compete scopes it to the caller via RLS.
 --
--- TWO `ok`s, because "here is a clue" and "this word has no clue" are two
--- different answers that used to arrive as one string. Both log a row and both
--- carry that row's text in `hint`; only `result` tells them apart, which is
--- what keeps a call site from having to match on the prose.
+-- TWO `ok`s, because "here is a clue" and "this word has no clue" are
+-- different answers. Both log a row and both carry that row's text in `hint`,
+-- so only `result` tells them apart — which is what keeps a call site from
+-- having to match on the prose.
 --
 -- No outcome and no message on either: how a hint reads is the
 -- frontend's, in src/psychicnum/lib/answer.ts. stackdown.reveal_next_hint is
