@@ -359,11 +359,11 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
  * this same board and these same three secrets again, so a pre-revealed board
  * would leave Restart nothing to find.
  *
- * Green rather than a ring of its own (which is what this used to be) because
- * revealing is a STATE change, not a mark: green means "this word is a secret",
- * and asking to see is what makes me know it. Found-vs-peeked stays readable two
- * ways — toggle the reveal off, or look for the guesser's identity dot, which a
- * revealed tile has no reason to carry.
+ * Green rather than a mark of its own, because revealing is a STATE change:
+ * green means "this word is a secret", and asking to see is what makes me know
+ * it. Found-vs-peeked stays readable two ways — toggle the reveal off, or look
+ * for the guesser's identity dot, which a revealed tile has no reason to
+ * carry.
  *
  * Asserted through the tile's `correct` class — vitest runs with `css: false`, so
  * CSS-module keys come through unscoped (see vitest.config.ts).

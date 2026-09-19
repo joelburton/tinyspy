@@ -47,8 +47,8 @@
  * space left beside the info column. The board column hugs this width (see
  * PlayArea.module.css .boardCol), so the board+info pair centers instead of the
  * board floating in a full-width column. With no width cap, the cap term goes
- * huge and the grid simply fills --avail-w (the old "fill" look — hug of the
- * full width). --avail-w (the width left beside the info column) is the shared
+ * huge and the grid simply fills --avail-w, which is hugging the full width.
+ * --avail-w (the width left beside the info column) is the shared
  * scaffold token, set on .layout in common/game-page/playArea.module.css — every
  * hug game reads the same one. --cols is set inline. */
 /* @@ */ .grid {
@@ -161,9 +161,8 @@
  * clears the fill but reads as a thicker border rather than as a ring — the gap
  * is what makes it a separate mark.
  *
- * It keeps its original 3px WEIGHT. Thinner reads as a hairline once the ring is
- * off the tile and no longer backed by the fill — the offset costs it presence,
- * so the width has to hold.
+ * 3px WEIGHT, and thinner will not do: a ring 2px off the tile is not backed by
+ * the fill, so the offset costs it presence and the width has to make that up.
  *
  * Two neighbors to know about:
  *   - The next TILE is never a problem: the grid gap is 0.5rem (8px) and only one
@@ -178,9 +177,9 @@
  *     (Padding `.grid` while viewing would also buy room, and is ruled out: it
  *     resizes tiles on a state change — docs/ui.md → no reflow on state change.)
  *
- * (This is the board's only tile-level ring now. The terminal answer key used to
- * add a second one in a neon green of its own; revealing a secret simply turns it
- * green today — the reveal is a state change, not a mark. See PlayArea.) */
+ * (The only tile-level ring on this board: revealing a secret turns the tile
+ * green rather than marking it, the reveal being a state change. See
+ * PlayArea.) */
 /* @@ */ .historyTile {
   outline: 3px solid var(--history-color);
   outline-offset: 2px;

@@ -26,9 +26,9 @@ import type { PrintTile, PrintTrack, PsychicnumPrintModel } from './model'
  *     shares one.
  *   - **compete** — one **track per player** (`common/pdf/columns.ts`, up to
  *     three per page): their own copy of the board with their own ✓/✗ marks,
- *     their own score line, their own guess log. A single merged board is a
- *     lie in compete — every player races their own — and that's what this
- *     printer used to produce at terminal.
+ *     their own score line, their own guess log. A single merged board would
+ *     be a lie in compete: every player races their own, so one player's miss
+ *     would print as a mark on everyone's.
  *
  * **Success/fail must survive B&W.** psychicnum's tiles carry meaning only in
  * color (green = a secret found, red = a miss). Printed in black-and-white both

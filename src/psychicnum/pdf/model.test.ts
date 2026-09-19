@@ -4,12 +4,11 @@
  * Tests for the psychicnum print model.
  *
  * The thing pinned: **whose marks belong on whose board.** In compete every
- * player races their own copy of the shared words, so the printout must split
- * into one track per player at terminal (own ✓/✗, own score, own log) — never
- * the merged single board the old printer produced, where one player's miss
- * printed as a mark on everyone's board. Mid-game compete prints only the
- * viewer's track (RLS hides rivals' guesses, and empty rival tracks would read
- * as "they haven't guessed").
+ * player races their own copy of the shared words, so the printout splits into
+ * one track per player at terminal — own ✓/✗, own score, own log. Merge them
+ * onto a single board and one player's miss prints as a mark on everyone's.
+ * Mid-game compete prints only the viewer's track: RLS hides rivals' guesses,
+ * and empty rival tracks would read as "they haven't guessed".
  */
 import { describe, expect, it } from 'vitest'
 import { buildPsychicnumPrintModel } from './model'
@@ -95,7 +94,7 @@ describe('buildPsychicnumPrintModel — coop stays one shared track', () => {
     expect(t.who).toBe('Team')
     expect(t.board.map((x) => x.state)).toEqual(['correct', 'miss', 'undecided', 'undecided'])
     expect(t.turns.map((x) => x.who)).toEqual(['me', 'moth'])
-    // The coop header carries the team score, as the old single-board page did.
+    // The coop header carries the TEAM score: one board, one tally.
     expect(m.summary).toBe('Co-op · 1 of 3 secrets found · 2 guesses used')
   })
 })

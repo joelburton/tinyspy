@@ -9,8 +9,8 @@ import { supabase } from '@/common/supabase/supabase'
  *
  *     import { db } from '../db'
  *
- *     const { data } = await db.from('games').select('id,status')...
- *     await db.rpc('submit_guess', { target_game: id, guess: 7 })
+ *     const { data } = await db.from('games_state').select('words,secrets')...
+ *     await db.rpc('submit_guess', { target_game: id, guess: 'lantern' })
  *
  * Same pattern as `src/codenamesduet/db.ts` — game schemas are
  * deliberately omitted from PostgREST's `extra_search_path`

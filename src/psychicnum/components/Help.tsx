@@ -12,14 +12,8 @@ type Props = {
  * in the GamePage menu. Implements the common
  * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
  *
- * **Placeholder content.** psychicnum is a deliberately minimal
- * toy whose job is to exercise the multi-game architecture (see
- * docs/psychicnum.md). The rules fit in three sentences; we
- * keep the modal small to match.
- *
- * codenamesduet's `Help.tsx` is the visual model when richer copy is
- * useful here (unlikely — psychicnum is on the chopping block
- * post-beta).
+ * The rules fit in two paragraphs, and the modal is sized to match
+ * rather than to the shared default.
  */
 export function Help({ onClose, brand }: Props) {
   return (

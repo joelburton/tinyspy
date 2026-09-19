@@ -676,6 +676,32 @@ line already said, so my own move and a teammate's now read alike.
 whole file's uncommitted work with it. The `||` fallback never ran, because the
 first command had not failed. Redone from scratch; nothing else was lost.
 
+### F-psychicnum-3 · help-text-wrong · the Help modal tells players three things that are not true
+
+**Found in the prose pass, 2026-09-19**, and it is the player-facing text
+rather than a comment — which is why it is a finding and not a fix. Three
+errors, all of them the number-guessing game showing through:
+
+1. *"**Get a hint** to reveal one of the secret words"* — **a hint does not
+   reveal a word.** It logs the dictionary CLUE for an unfound secret; the
+   thing that hands over the word is the SPOILER, which the modal never
+   mentions. This is the one distinction this game's vocabulary is most careful
+   about, said backwards to the player.
+2. *"the **numbers** are revealed"* — words. psychicnum was guess-the-number
+   until 2026-06-28.
+3. *"…are revealed and the game ends"* — **nothing is revealed automatically.**
+   The reveal is a local, reversible toggle nobody has to press, and it is
+   deliberately not automatic: `replay_board` hunts the same board and the same
+   three secrets again, so a pre-revealed board would leave Restart nothing to
+   find.
+
+It also never mentions the spoiler, the per-player budget in compete, or that
+the board is shared in coop but raced separately in compete — which the second
+paragraph half-says and half-contradicts ("everyone races on their own board").
+
+**Not rewritten: this is text, and text is Joel's.** A proposal is in the
+conversation of 2026-09-19.
+
 ## Notes
 
 - **tile-feedback, as Joel sees it** (2026-09-19): *"i believe we've
