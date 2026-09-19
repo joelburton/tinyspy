@@ -971,7 +971,9 @@ the banner's miss and hit say *Wrong* / *Correct* like everywhere else ·
 *"banner stays prose"* — the banner is a sentence and may phrase; only
 "Revealed" changes.
 
-### F-psychicnum-9 · `todo-stale` · two shipped items and a non-item are still in `todo.md`
+### SHIPPED · F-psychicnum-9 · `todo-stale` · two shipped items and a non-item are still in `todo.md`
+
+**Joel, 2026-09-19: "fix."** The three bullets are deleted; Bugs is empty.
 
 - **Bugs:** *"`act-new-game` answers `active` before the game row has
   loaded…"* — Step 2 closed it: the bindings mount with the game.
