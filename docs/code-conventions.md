@@ -750,9 +750,6 @@ something back — `usePhone()` reads as "give me a phone" rather than "am I on 
 phone". It also flattens the difference between a hook that ANSWERS something
 and one that DOES something, which are otherwise spelled identically.
 
-One folder still spells it the other way — `useInfoSheetOpen`. It converts when
-that folder is next worked on rather than in a sweep, so both spellings are in
-the tree meanwhile. A new hook takes the rule.
 
 #### Other casing rules
 

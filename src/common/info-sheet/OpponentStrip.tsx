@@ -16,10 +16,9 @@ type Props = {
   // game wants to show: a number, a rank name, `<MistakeDots>`, etc.
   metricFor: (player: Member, isSelf: boolean) => ReactNode
   // A short label naming WHAT the metric is — "Found", "Score", "Turns left" —
-  // rendered as a prefix so the bare numbers aren't ambiguous. Every strip
-  // should pass one; it's optional only so games not yet converted still
-  // compile.
-  metricLabel?: string
+  // rendered as a prefix. Required, because a row of bare figures does not say
+  // what it is counting.
+  metricLabel: string
   // Optional row rendered above the entries, e.g. spellingbee's
   // "target: Amazing". Omit when there's nothing to lead with.
   leading?: ReactNode
@@ -48,7 +47,7 @@ export function OpponentStrip({ players, selfId, metricFor, metricLabel, leading
     <div className={styles.strip}>
       {leading && <div className={styles.leading}>{leading}</div>}
       <div className={styles.entries}>
-        {metricLabel && <span className={styles.metricLabel}>{metricLabel}:</span>}
+        <span className={styles.metricLabel}>{metricLabel}:</span>
         {ordered.map((p, i) => {
           const isSelf = p.user_id === selfId
           return (

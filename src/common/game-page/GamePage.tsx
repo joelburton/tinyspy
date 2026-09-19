@@ -7,7 +7,7 @@ import type { MenuApi } from '../menu/menuModel'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
 import { useAppAction, useBoundAction } from '../actions/useBoundAction'
 import { useIsMobile } from '../mobile/useIsMobile'
-import { setInfoSheetOpen, useInfoSheetOpen } from '../info-sheet/infoSheetStore'
+import { setInfoSheetOpen, useIsInfoSheetOpen } from '../info-sheet/infoSheetStore'
 import { useClubPresence } from '../realtime/useClubPresence'
 import { useClubSetupPresence } from '../realtime/useClubSetupPresence'
 import type { CommonGame } from './useCommonGame'
@@ -157,7 +157,7 @@ export function GamePage({
   // Which mobile page is showing (see infoSheetStore for why it's a store and
   // not state). Both are false-y on desktop, where the info column is inline.
   const isMobile = useIsMobile()
-  const infoOpen = useInfoSheetOpen()
+  const infoOpen = useIsInfoSheetOpen()
 
   // The store outlives any one game (module-level), so a game→game navigation
   // would otherwise land you on the info page because that's where you left the

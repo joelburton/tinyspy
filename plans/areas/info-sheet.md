@@ -6,9 +6,10 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18; the prose pass done the same day (F-1 to
 F-6, F-8, F-9, F-10, F-17), then F-11, F-12, F-15 and F-16 ruled and shipped, and
-F-7 WITHDRAWN as a false premise — there was no bug. What remains is the two
-conversions F-13 and F-14, which `docs/code-conventions.md` and the audit already
-settled; nothing needs a decision.** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
+F-7 WITHDRAWN as a false premise — there was no bug. **ALL SEVENTEEN FINDINGS
+ARE NOW WORKED, RULED OR WITHDRAWN.** What is left is the area's last two steps —
+the closing re-read in one sitting, and the `doc.md` harvest — and then the
+blessing, which is Joel's alone.** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
 the audit"*); fifteen files stamped `cs-audited-info-sheet`. Taken in order after
 `reveal` (row 45); this is row 46.
 
@@ -441,7 +442,7 @@ all seven, and only the row admitted six.
 `docs/outcomes.md`'s "other narrowing is an open question" paragraph is answered
 in place, and `todo.md`'s Bugs section is empty.
 
-### F-info-sheet-13 · `useInfoSheetOpen-is-the-holdout` · The boolean hook is named for the thing, not the question — ruled already
+### F-info-sheet-13 · `useInfoSheetOpen-is-the-holdout` · The boolean hook is named for the thing, not the question — ruled already — WORKED
 
 `docs/code-conventions.md`: *"A hook returning `boolean` is named for the
 question it answers … One folder still spells it the other way —
@@ -450,12 +451,35 @@ in a sweep."* That is this folder, now. `useIsInfoSheetOpen`; two callers
 (`GamePage.tsx`, `useInfoSheet.ts`); the doc's sentence goes. No decision left
 in it — the doc made it.
 
-### F-info-sheet-14 · `metricLabel-optional-for-nobody` · `OpponentStrip.metricLabel` is optional "so games not yet converted still compile"; all thirteen pass one
+**Worked 2026-09-18.** The declaration in `infoSheetStore.ts`, the two call sites,
+and the name in `doc.md`'s render tree; `docs/code-conventions.md`'s *"One folder
+still spells it the other way"* paragraph is deleted, because once nothing spells
+it that way a sentence saying something does is simply false. Both call sites were
+already assigning it to an `is`-shaped local (`infoOpen`, `isOpen`), which is the
+tell that the hook's own name was the odd one out.
+
+Two things deliberately untouched: `setInfoSheetOpen` keeps its name, being an
+action rather than a predicate, and `useInfoSheet()` keeps its own — it returns an
+object, so it answers no yes/no question.
+
+### F-info-sheet-14 · `metricLabel-optional-for-nobody` · `OpponentStrip.metricLabel` is optional "so games not yet converted still compile"; all thirteen pass one — WORKED
 
 *"Every strip should pass one; it's optional only so games not yet converted
 still compile."* — the conversion finished. Required, the excuse gone, and the
 docstring's rule (*"so the bare numbers aren't ambiguous"*) becomes the type's.
 `leading?` stays optional (two of thirteen use it). No decision in it.
+
+**Worked 2026-09-18.** `metricLabel: string`, and the note now gives the reason
+rather than the excuse. All thirteen callers already passed one, verified before
+the change and confirmed by `tsc -b` after it, so nothing else moved; `leading?`
+is untouched.
+
+The one judgment in it, taken rather than asked: the render's
+`{metricLabel && <span …>}` guard is **gone**. With the prop required the only
+value it still defends against is `''`, which is a caller bug and not a case to
+draw; leaving it would have put the component back in the position this finding
+objected to, its code hedging about something its type had settled. The label
+`<span>` is now unconditional, like the dot and the name beside it.
 
 ### F-info-sheet-15 · `pending-literals` · Fourteen literals the vocabulary guard still excuses, most with a token waiting — WORKED, ruled 2026-09-18
 
@@ -605,9 +629,9 @@ it is the harvest source rather than archaeology.
   caught a missed call site.
 - F-12 (a): as predicted — `InfoActionsRow.test.tsx`'s loop adds `error`, and
   nothing else moved. No caller needed changing, since the type only widened.
-- F-13: none — two call sites renamed together.
-- F-14: any InfoCol test rendering `<OpponentStrip>` without `metricLabel`
-  fails to typecheck; thirteen pass it, so expect none.
+- F-13: none, as predicted — the declaration and its two call sites renamed together.
+- F-14: none, as predicted — every caller already passed one, and nothing but
+  the thirteen InfoCols and the component mentions the prop.
 - F-15: as predicted, and one more. `vocabularies.test.ts` failed on six
   vocabularies until every `pending` row was trimmed to what the file still
   writes — and `cssTokens.test.ts` then failed too, because three tokens left

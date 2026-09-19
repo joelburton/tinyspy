@@ -37,6 +37,6 @@ export function setInfoSheetOpen(next: boolean): void {
 }
 
 /** Subscribe to which page is showing. */
-export function useInfoSheetOpen(): boolean {
+export function useIsInfoSheetOpen(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot)
 }

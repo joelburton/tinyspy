@@ -54,7 +54,7 @@ sheet, and the game's own `InfoCol` places the readouts:
 
 ```
 GamePage (shell)                      ── mobile only ──▶  <InfoSwitchButton open>
-  │  useInfoSheetOpen()                                     binds act-toggle-info-sheet
+  │  useIsInfoSheetOpen()                                   binds act-toggle-info-sheet
   │  setInfoSheetOpen(false) in a mount effect, keyed by gameId
   │
   └── <game>/PlayArea                                            ← the game's
