@@ -74,17 +74,20 @@ test.describe('psychicnum turn order (coop)', () => {
 
     // ── The turn flips over realtime: Bob is now up, Alice waits for Bob. ──
     await expect(pageB.getByText('Your turn')).toBeVisible({ timeout: 15000 })
-    // Alice's own result ("Correct" / "Incorrect") ranks OVER the whose-turn
-    // note in her slot (docs/ui.md → Feedback pill: a result is rank 40, a
-    // standing note 60), so for now only her turn line names Bob…
+    // Alice's own result ("Correct: WORD" / "Wrong: WORD") ranks OVER the
+    // whose-turn note in her slot (docs/ui.md → Feedback pill: a result is rank
+    // 40, a standing note 60), so for now only her turn line names Bob…
     await expect(
       pageA.getByText(new RegExp(`Waiting for.*${bob.username}`)),
     ).toHaveCount(1, { timeout: 15000 })
     // …and dismissing the result — a tap is her next action — uncovers the
     // waiting note that was live underneath it: the slot's copy, the second.
-    // The event log repeats the word in a cell; the pill is the first match,
-    // since the board column precedes the info column.
-    await pageA.getByText(/^(Correct|Incorrect)$/).first().click()
+    //
+    // The trailing `: ` is what makes this the PILL and not the event log's
+    // result cell, which says a bare "Correct" / "Incorrect" in its own
+    // vocabulary. Matching the bare word instead found the log cell, clicked a
+    // `<td>`, dismissed nothing, and failed two lines below on a count.
+    await pageA.getByText(/^(Correct|Wrong): /).first().click()
     await expect(
       pageA.getByText(new RegExp(`Waiting for.*${bob.username}`)),
     ).toHaveCount(2)

@@ -704,8 +704,19 @@ first command had not failed. Redone from scratch; nothing else was lost.
 **The e2e ran clean for Steps 2 and 3 together** (2026-09-19, Joel's word,
 after both were committed): the geometry harness without `BASELINE=1` — every
 touched board at its Step 0 baseline — and the five psychicnum specs, 8 tests.
-Nothing predicted broke and nothing unpredicted did. pgTAP is still deliberately
-unrun: no SQL has moved.
+Nothing predicted broke and nothing unpredicted did.
+
+**The second run covered nine commits** (2026-09-19, `80394e51..e74e45ce`):
+Steps 4–6, BoardCol's sections, the doc, PN497 + the FE dedup, and the answer
+machinery. Geometry green again. **One spec red, predicted before the run and
+worse than a plain break**: `psychicnum-turn-order` dismisses the result pill
+with `getByText(/^(Correct|Incorrect)$/)`, and the pill now says
+`Correct: APPLE`. The anchored regex did not stop matching — the event log's
+result cell says a bare `Correct` — so `.first()` resolved to a `<td>`, the
+click dismissed nothing, and the failure surfaced two lines later as a count.
+**A spec that clicks the wrong element fails somewhere else**, which is the
+whole argument for reading a red rather than re-anchoring it. Fixed by matching
+the trailing `: `, which is what separates the pill from the log.
 
 - Step 2: `PlayArea.test.tsx` imports change if Decision 1 lands on
   "precedent" (it mounts the loader); its `useGame` mock is unchanged.
@@ -724,6 +735,10 @@ unrun: no SQL has moved.
 - [ ] `e2e/psychicnum-terminal.e2e.ts` renamed to what it asserts: its title
       says "ring the tiles" and its helper is `ringed`, but the reveal has no
       ring — the spec checks the green FILL, and its assertions are right
+- [ ] the event log says `Incorrect` where every other surface now says
+      `Wrong` — a split the `answerMessage` work introduced. The log writing
+      its own words is Joel's ruling, so this is a TEXT decision rather than a
+      bug; it is also the thing the turn-order spec tripped over
 - [ ] the whole area re-read in one sitting after the last group
 - [ ] `docs/games/psychicnum.md` reconciled with `todo.md`: its Won't-do
       moved into the todo (Step 1), and the doc itself replaced by the game
