@@ -230,6 +230,13 @@ report `SUBSCRIBED` and never deliver anything, in which case a longer timeout o
 fails slower. [realtime-lost-events.md](realtime-lost-events.md) has the deterministic
 reproduction and a four-step diagnosis.
 
+**A spec that clicks the wrong element fails somewhere else.** A locator that
+still matches after a wording change — an event-log `<td>` where the pill used
+to be the only match — clicks the wrong thing, dismisses nothing, and the
+failure surfaces lines later as a count. Read a red for what the locator FOUND
+before re-anchoring it: `psychicnum-turn-order` matched a bare `Correct`
+against the log cell and reported a wrong count two lines down.
+
 **Reach for e2e EARLY when triaging an integration bug — not only as a regression guard after the fix.** When a bug lives in the live-stack layer (realtime, or the auth/session boot that depends on a real JWT in localStorage + `onAuthStateChange` + a real `getUser()` round-trip), a throwaway e2e that drives the *real* flow tells you what's actually broken faster than reasoning about it or reproducing in Node — where you're guessing at supabase-js internals and error shapes. Concretely: the "stuck on the username gate" bug ate an afternoon of Node repro scripts that kept showing the code *should* work; a 30-second e2e (sign in → delete the user → reload) would have shown immediately that the deleted-user path recovers fine, redirecting to the real cause (a valid session on the gate with no escape hatch). The fixtures already exist, so the cost of standing one up is low and the signal is the real thing, not a mock. Mocked unit tests are complementary — they can pin error shapes the real backend won't produce — but they're where a *clean* mock can quietly hide the messy reality (see `useSession.test.ts`).
 
 **How it works.** No magic-link flow: `e2e/helpers/fixtures.ts` creates confirmed users + claims usernames + builds clubs/games through the admin API and the same RPCs the app uses, then `e2e/helpers/session.ts` seeds each user's Supabase session into `localStorage` (key `sb-127-auth-token`, the local-URL default) *before* the app boots, so it loads already signed in. Two `browser.newContext()`s = two independent users in one test. `e2e/helpers/actions.ts` locates a command by WHICH command it is: `actionButton` / `actionRow` match `data-action="act-…"` while keeping the role, so a spec survives a game rewording its button.
@@ -424,7 +431,13 @@ folder-of-folders look like a folder-of-loose-files.
 A guard reads the repo off disk (`process.cwd()`-relative, so the CWD is the
 repo root, not the test's folder) and/or imports the game registry, so a new
 game is covered automatically — or forces a one-line update — instead of each
-game needing its own copy. The full set:
+game needing its own copy.
+
+**A guard sees what git tracks.** The sweeps walk `git ls-files`, so a NEW
+file is invisible to them until it is `git add`ed: a British spelling sat in
+an untracked `doc.md` through a green spelling run and failed the moment the
+file was staged, and the stamp guard has the same blind spot. Stage a new file
+before trusting a green run. The full set:
 
 | guard | what it sweeps |
 |---|---|

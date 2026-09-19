@@ -867,8 +867,27 @@ a lock.)
 **The terminal message.** A pure `buildTerminalMessage(...)` returning a
 `TerminalMessage`, in `lib/terminal.ts` beside the game's other decisions about
 what a move meant. The `useMemo` on primitives that feeds the verdict effect
-stays in the component. Its test walks every terminal play state in every mode,
-which is a small closed space and worth exhausting.
+stays in the component. Its test walks every terminal play state in every mode
+for every reason the server writes, which is a small closed space and worth
+exhausting.
+
+### The BoardCol's sections
+
+The same treatment, one layer down. `BoardCol.tsx` reads in five sections, and
+they are the jobs its docstring names:
+
+```
+Which board is on screen   live, or a past turn's snapshot — and everything that
+                           would WRITE to the board answers to it
+The pending guess          the state this column owns, and everything that reads it
+Committing a guess         the move RPC, kept beside the entry it commits
+The board's display order  the shuffle — purely visual, touches nothing else
+Render
+```
+
+The rule is the same as the PlayArea's: a header states what the section is
+about, and a piece of state sits with the section that owns it rather than
+where it was first needed.
 
 ## The BoardCol / InfoCol decomposition
 

@@ -51,7 +51,9 @@ a row that lands in the event log rather than a pill:
   still have to guess it.
 
 Neither is **Reveal solution**, which is a third thing: the whole answer key at
-game over, local to one player, reversible, and no RPC at all.
+game over, local to one player, reversible, and no RPC at all. It turns each
+secret's tile green — the same green a found one wears, and a found tile keeps 
+its guesser's dot where a revealed one has none.
 
 ### Coop
 
@@ -95,6 +97,12 @@ tell which was played without joining anything:
 Plus `playing`, and `ended` when somebody stopped it. **`ended` is neutral in
 every mode**: nobody won and nobody lost, which is not the same as everyone
 losing.
+
+**WHY it ended is the server's word too**: whichever RPC ends the game writes
+the reason into `common.games.status.outcome` — `solved`, `exhausted` (the
+last budget spent), `timeout`, `conceded` (every racer dropped out), or
+`manual`. The club-list label and the terminal pill both read that column, so
+neither works the reason out from the clock or the roster.
 
 ## Schema
 
@@ -143,7 +151,8 @@ their sentence.)
 ### `psychicnum.create_game(target_club, setup, player_user_ids, mode)`
 
 Deals a game. It samples `word_count` distinct words from `common.words` under
-a clean + American + difficulty-band filter, picks three of them as the
+a clean + American + difficulty-band filter (five-letter words plus one
+nine-letter word — see Game rules), picks three of them as the
 secrets, writes the `common.games` row and a per-player budget row, and seeds
 the club-list readout. `mode` decides both the gametype string
 (`psychicnum_coop` / `psychicnum_compete`) and how the budget behaves — shared

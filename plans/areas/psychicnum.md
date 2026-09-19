@@ -1448,5 +1448,18 @@ the trailing `: `, which is what separates the pill from the log.
       reason the restructure goes first, and points at `docs/playarea.md` for
       the shape this game settled
 - [ ] the tile-feedback pass done, and the game's tf level updated there
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — **the harvest check, 2026-09-19.** Walked every section above for what
+      outlives the sprint and where it lives. Already home: the shape
+      (docs/playarea.md), the board design (doc.md, the SQL, the CSS), the
+      answer machinery and the race classification (doc.md → FE submissions),
+      the first-render rule's widening (ui.md, `useCelebration`), the timer
+      default and the secret count (`lib/setup.ts`). **Moved now:** the
+      reveal's look (green, no ring) and the server-written reason
+      (`status.outcome`) into doc.md's rules; the board's lengths into doc.md's
+      `create_game` entry; BoardCol's five sections into docs/playarea.md's
+      shape section; the git-index trap and the wrong-element e2e lesson into
+      docs/testing.md; the offered length assertion into `todo.md` → Maybe.
+      Nothing else here is durable: the rest is the reading, the rulings and
+      the archaeology, which is what this file is for
 - [ ] every file on the roster blessed, or its stamp says why not

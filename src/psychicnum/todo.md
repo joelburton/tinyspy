@@ -43,6 +43,13 @@
 
 ## Maybe
 
+- **Pin the board's word lengths in pgTAP.** `create_game` deals five-letter
+  words plus exactly one nine-letter word, and that is the design (2026-09-19)
+  — but `create_game_test.sql` asserts the count, the three secrets and the
+  subset property, never a length, which is how a "TEMP" comment survived on
+  it for twelve weeks. One assertion that a dealt board holds exactly one
+  nine-letter word would keep the design from drifting silently.
+
 ## Won't do
 
 - **Anti-spam on guessing** (2026-06-14). The audience is friends (CLAUDE.md →
