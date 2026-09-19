@@ -14,7 +14,8 @@ written and its four decisions are Joel's (2026-09-19): "precedent" names,
 "row order" for the menu, `lib/terminal.ts`, the section order as proposed.
 The two e2e baseline runs are permitted. No stamps written. **Step 0 (the
 baseline), Step 1 (the owed work gathered), Step 2 (the loader / loaded
-split) and Step 3 (the actions and the row) are done; Step 4 is next.**
+split), Step 3 (the actions and the row) and Step 4 (the builder to `lib/`)
+are done; Step 5 is next.**
 
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
@@ -40,12 +41,13 @@ bugs; reduce CSS that duplicates common CSS or the play-surface scaffold.
 
 Listed 2026-09-19 (`src/psychicnum/`, its SQL, its doc):
 
-- **`src/psychicnum/` — 30 files.** components: `Board.tsx` + `.module.css`,
+- **`src/psychicnum/` — 32 files.** components: `Board.tsx` + `.module.css`,
   `BoardCol.tsx` + `.module.css`, `GameEventLog.tsx` + `.module.css`,
   `Help.tsx`, `InfoCol.tsx`, `PlayArea.tsx` + `.module.css` + `.test.tsx`,
   `SetupForm.tsx` + `.test.tsx`, `StateLine.tsx`. hooks: `useGame.ts`. lib:
   `answer.ts` + `.test.ts`, `capitalize.ts`, `history.ts` + `.test.ts`,
-  `setup.ts`, `setupSummary.ts`. pdf: `model.ts` + `.test.ts`,
+  `setup.ts`, `setupSummary.ts`, **`terminal.ts` + `.test.ts` (created by
+  Step 4, 2026-09-19)**. pdf: `model.ts` + `.test.ts`,
   `printPsychicnumPdf.ts`. root: `db.ts`, `manifest.ts`, `theme.css`,
   `logo.svg`, `todo.md`.
 - **SQL — 3 files** (the events migration is its own file):
@@ -347,7 +349,7 @@ Also gone with the flags: `useState` and `useCallback` are no longer imported.
 declared in the bindings block, each one directly above the binding that runs
 it.
 
-### Step 4 — `buildOver` leaves the component file (readability 3.4)
+### Step 4 — the builder leaves the component file (readability 3.4) — DONE 2026-09-19
 
 The pure builder moves to `lib/`, with a test that walks every play state in
 both modes (won · lost · ended · won_compete · lost_compete, with and without
@@ -360,6 +362,21 @@ most that can be done about the two-home hazard without a shared vocabulary.
 `common/terminal/terminalMessage.ts`, whose type it returns) · `lib/over.ts`
 (named for the value every PlayArea calls `over`) · `lib/verdict.ts` (the
 word the pill uses). **Decided: `lib/terminal.ts`** (Joel, 2026-09-19).
+
+**Shipped.** `lib/terminal.ts` holds `buildTerminalMessage`; `PlayArea.tsx`
+imports it and no longer imports `gameEndedTerminalMessage` or the
+`TerminalMessage` type at all. The `useMemo` on primitives that feeds the
+verdict effect stays in the PlayArea, as planned.
+
+`lib/terminal.test.ts` walks the whole input space — every terminal play state
+(`won` · `lost` · `ended` · `won_compete` · `lost_compete`) in both modes, with
+the timer expired and not — because the builder reads nothing else. Thirteen
+cases, and the last is a TABLE: one place to see that no cell pairs a winning
+sentence with a losing outcome, that both texts are filled, and that neither is
+punctuated (the pill is a label). **Verified by planting six faults**, each of
+which reds it: a coop win typed `lost` (2), the compete `selfWon` branch
+inverted (2), the manual-end branch made unreachable (4), a punctuated pill (1),
+the coop timer branch dropped (1), and coop made to read `selfWon` (3).
 
 **The export's name is SUPERSEDED.** This decision also said the export keeps
 `buildOver` so the call site would not change; Joel read the file after Step 2
