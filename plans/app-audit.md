@@ -772,8 +772,10 @@ Adding an area or reordering the list touches §3 and nothing else.
 **Where a note goes — one of three places:**
 
 - **the folder's `todo.md`** — work OWED to that folder, whenever it turns up
-  and whoever finds it. Four sections, always all four, in a ramp of certainty:
-  Bugs · Soon · Someday · Maybe
+  and whoever finds it. Five sections, always all five: the ramp of certainty
+  Bugs · Soon · Someday · Maybe, then Won't do, which is not a queue — an item
+  there was ruled against and is written down only so a review does not propose
+  it again
   ([docs/common-folders.md](../docs/common-folders.md#every-folder-carries-a-docmd-and-a-todomd)).
   This is the durable home, and it is where an area starts reading when it
   opens.

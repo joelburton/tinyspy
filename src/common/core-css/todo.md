@@ -89,3 +89,5 @@
 - **`--border-width-frame-thick`** — the hypothetical fourth width, a heavier
   frame if your-move should ever read lighter than you-lost. Self-explains the
   day it is needed; nothing to rename.
+
+## Won't do

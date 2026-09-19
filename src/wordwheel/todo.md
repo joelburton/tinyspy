@@ -84,3 +84,5 @@
   the doubt that started it, is in `spellingbee/todo.md`.
 
 ## Maybe
+
+## Won't do

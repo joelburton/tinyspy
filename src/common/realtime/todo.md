@@ -16,3 +16,5 @@
   above the imports; `realtimeDiag.test.ts` and `useRealtimeReconnect.test.ts`
   put it below. Cosmetic — worth doing only if the folder is being made
   uniform for another reason.
+
+## Won't do

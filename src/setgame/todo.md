@@ -47,7 +47,6 @@
   that sweep, since it names a mark with two causes and `hint` is reserved for
   the priced hint itself.
 
-
 - **The below-board reserve is a hand-tuned constant.**
   `components/Board.module.css`'s `--avail-h` sizes the board as `100svh -
   var(--game-chrome-height) - 5rem`, where that last term stands for
@@ -133,3 +132,5 @@
 ## Someday
 
 ## Maybe
+
+## Won't do

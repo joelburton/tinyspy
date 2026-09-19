@@ -28,16 +28,18 @@
 
 ## Someday
 
-- ~~**`infoPanel.headerRow` is `.heading-with-controls` written by hand.**~~
-  **Closed 2026-09-18: it stays.** The two are the same five declarations, but
-  the pattern is a GLOBAL class written as a string and its readers are pages
-  (`ClubPage`, `HomePage`), while the event log and the word list are shared
-  components — and a component in `common/` reaching for a global class couples
-  its look to `core-css`'s cascade instead of to a module it imports. What the
-  pattern adds beyond the five is `> :first-child { min-width: 0 }`, which
-  neither of these headings needs: the event log's is one word, and the word
-  list's wraps between its tallies on purpose. The reason now lives on
-  `.headerRow` itself, and `patterns/heading.css` plus `docs/ui.md` no longer
-  claim these two rows as instances of the pattern — they did, and were wrong.
-
 ## Maybe
+
+## Won't do
+
+- **`infoPanel.headerRow` should be `.heading-with-controls`** (2026-09-18). It
+  stays hand-written. The two are the same five declarations, but the pattern is
+  a GLOBAL class written as a string and its readers are pages (`ClubPage`,
+  `HomePage`), while the event log and the word list are shared components — and
+  a component in `common/` reaching for a global class couples its look to
+  `core-css`'s cascade instead of to a module it imports. What the pattern adds
+  beyond the five is `> :first-child { min-width: 0 }`, which neither of these
+  headings needs: the event log's is one word, and the word list's wraps between
+  its tallies on purpose. The reason now lives on `.headerRow` itself, and
+  `patterns/heading.css` plus `docs/ui.md` no longer claim these two rows as
+  instances of the pattern — they did, and were wrong.

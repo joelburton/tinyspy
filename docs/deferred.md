@@ -8,6 +8,8 @@ Things we've chosen not to do *yet*, with a reminder of what + why. This isn't a
 
 **A deferral that lives inside one game lives in that game's doc**, under a `## Deferred` heading. Work tends to happen game-by-game, so the item should be in the file you already have open. The sorting key is **which file you'd edit to do the work**, not which game surfaces it: the `WordList` marker ideas below are filed here, not under spellingbee/boggle, because the code is in `common/`.
 
+**A game whose area has been audited keeps its register in `src/<game>/todo.md`** instead — both kinds, since that file carries the same two-way split in its own sections (`Bugs` · `Soon` · `Someday` · `Maybe` are the queue; `Won't do` is not) — and the row below links there. The two get reconciled game by game as each area opens, not in a sweep ([common-folders.md → Every folder carries a `doc.md` and a `todo.md`](common-folders.md#every-folder-carries-a-docmd-and-a-todomd)).
+
 Two headings, and the distinction matters:
 
 | heading | meaning |
@@ -50,7 +52,7 @@ Only these games have open items today; the rest have none.
 | [connections](games/connections.md#deferred) | per-tile match animations · a `data[0]` cast standing in for a compiler flag |
 | [crosswords](games/crosswords.md#9-deferred) | the fullest register — ⌥M, `fetch-nyt-range`, NYT dedup, the library picker bound before the bulk import, standing schema flags, unpinned tests |
 | [letterboxed](games/letterboxed.md#deferred) | rare-letter seed weighting · won't-do: trimming the seed table (measured — 55 MB against a 500 MB tier) |
-| [psychicnum](games/psychicnum.md#wont-do) | won't-do only: anti-spam, a livelier `.infoState` |
+| [psychicnum](../src/psychicnum/todo.md) | the register lives in the game folder's `todo.md`, won't-dos included — it has a `## Won't do` section of its own |
 | [setgame](games/setgame.md#deferred) | a coop `target_sets` · an `undefined` lost into a `\| null` slot · won't-do: calling "no set", a wrong-claim penalty |
 | [stackdown](games/stackdown.md#7-deferred) | `tile-gone` should be a pill · a `data[0]` cast standing in for a compiler flag |
 | [wordwheel](games/wordwheel.md#deferred) | the `Letters`/`Wheel` CSS fold (owns the spellingbee pair's ledger) · `s`-heavy seeds |

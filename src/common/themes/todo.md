@@ -38,3 +38,5 @@
 - **Which cursor colors?** The board cursor is amber for a recorded reason
   (scrabble's premium squares are red and blue); the chrome cursor is blue.
   Whether they should relate is open.
+
+## Won't do

@@ -62,12 +62,17 @@
   test failure rather than a silently unstyled element (an earlier version of
   this item claimed otherwise).
 
-- ~~**The info column's action box does not reserve its height.**~~ **Closed
-  2026-09-15: it will not.** Joel: *"while we have a general principle of
-  'don't shrink/grow things in the infoCol', we do that at the item level (ie,
-  we make it so that the action buttons are always one line, if the
-  opponentstrip would grow based on your last move, we'd reserve 2 lines for
-  it, etc)."* So the don't-move rule is kept row by row, and a height on the
+## Someday
+
+## Maybe
+
+## Won't do
+
+- **The info column's action box should reserve its height** (2026-09-15). It
+  will not. Joel: *"while we have a general principle of 'don't shrink/grow
+  things in the infoCol', we do that at the item level (ie, we make it so that
+  the action buttons are always one line, if the opponentstrip would grow based
+  on your last move, we'd reserve 2 lines for it, etc)."* So the don't-move rule is kept row by row, and a height on the
   stack is the container-level reservation it refuses. The `min-height: 6rem`
   that was doing that is gone.
 
@@ -86,31 +91,28 @@
   column gap; it does not — its `0.3rem` sits between the summary and the list
   INSIDE the disclosure.)
 
-- ~~**A contract-slot guard, per MOUNT POINT.**~~ **Closed 2026-09-15, no
-  change.** The shared `.hugRectWidth` reads `--cols` / `--max-tile-width` /
-  `--grid-gap` and no `common/` file sets them, so a game that wears the class
-  and forgets one gets an invalid `width` that the browser drops — the board
-  then sizes itself. Joel: *"wouldn't it break the layout in any obvious
+- **A contract-slot guard, per MOUNT POINT** (2026-09-15). No guard. The shared
+  `.hugRectWidth` reads `--cols` / `--max-tile-width` / `--grid-gap` and no
+  `common/` file sets them, so a game that wears the class and forgets one gets
+  an invalid `width` that the browser drops — the board then sizes itself. Joel: *"wouldn't it break the layout in any obvious
   way?"* It would, immediately, in the board being edited, and only when a new
   board first wears the class. The rule already names what a game owes it
   ("Each game supplies --cols / --max-tile-width / --grid-gap"). A guard would
   also be unsound: psychicnum fills `--cols` from an inline `style` on the
   parent element, so a CSS-only check reports it broken on day one.
 
-
-## Someday
-
-- ~~The global feedback slot `GamePage.tsx` holds inline is `feedback`'s
-  concern.~~ **Closed 2026-09-15: the redesign happened and left it here.**
-  That area closed blessed on 2026-09-12 and its `todo.md` is empty, so there
-  is nothing left to wait on — and `useFeedbackSlot`'s docstring now states
+- **The global feedback slot `GamePage.tsx` holds inline is `feedback`'s
+  concern** (2026-09-15). The redesign happened and left it here. That area
+  closed blessed on 2026-09-12 and its `todo.md` is empty, so there is nothing
+  left to wait on — and `useFeedbackSlot`'s docstring now states
   this arrangement as the rule: "a page calls `useFeedbackSlot('global')` for
   the one in its header and hands it down as `ctx.globalFeedbackSlot`."
   `ClubPage` does the identical thing, so `GamePage` is one of two pages
   following it rather than an exception to anything.
-- ~~**The game page is the one page not wearing `.pageHeaderAndMainArea`.**~~
-  **Closed 2026-09-15: it keeps its own wrapper (`.pageHeaderAndPlaySurface`,
-  which was `.frame` until Joel renamed it the same day), on measurement.** It is
+
+- **The game page is the one page not wearing `.pageHeaderAndMainArea`**
+  (2026-09-15). It keeps its own wrapper (`.pageHeaderAndPlaySurface`, which
+  was `.frame` until Joel renamed it the same day), on measurement. It is
   still the one page without the shared pattern — home, login, claim-handle
   and club all wear it — but the argument the item made for adopting it is
   gone: "a header or padding change moves both numbers by hand" stopped being
@@ -138,5 +140,3 @@
   in each game's own `todo.md`). They are where the hand-maintained height
   arithmetic still lives, and a change there is the moment to ask again
   whether a board should measure the viewport at all or be handed a box.
-
-## Maybe

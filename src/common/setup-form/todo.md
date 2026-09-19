@@ -23,3 +23,5 @@
   a gate and are not one. Memoizing both in the forms that mount it is the
   change. It touches every such game's form for no behavior, so it waits for
   those games' areas.
+
+## Won't do

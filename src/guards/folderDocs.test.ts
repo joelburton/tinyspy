@@ -16,8 +16,8 @@ import { describe, expect, it } from 'vitest'
  *
  * What is mechanical, and all this checks:
  *
- *   - a `todo.md` exists, and carries the four fixed headings in their fixed
- *     order — **all four, empty or not.** The skeleton is the point: adding the
+ *   - a `todo.md` exists, and carries the five fixed headings in their fixed
+ *     order — **all five, empty or not.** The skeleton is the point: adding the
  *     first item to a folder should be one line, not a guess at the structure;
  *   - a `doc.md` exists, opens with its folder's name, and spends one to three
  *     sentences before the first heading;
@@ -31,7 +31,7 @@ import { describe, expect, it } from 'vitest'
  *
  * What is NOT mechanical and is nobody's guard: whether the lede is any good,
  * whether the intro explains the area, and whether an item is in the right one
- * of the four sections. Those are read, not tested.
+ * of the five sections. Those are read, not tested.
  *
  * `common/devtools` is not a feature folder for any purpose here — `/palette`
  * and `/font` are excluded from the audit, and giving them a folder did not
@@ -40,10 +40,11 @@ import { describe, expect, it } from 'vitest'
 
 const CWD = process.cwd()
 
-/** The four, in the one order they may appear. A ramp of certainty: an item
- *  that firms up moves UP the file, which is the whole re-classification
- *  mechanism. */
-const TODO_SECTIONS = ['Bugs', 'Soon', 'Someday', 'Maybe']
+/** The five, in the one order they may appear. The first four are a ramp of
+ *  certainty — an item that firms up moves UP the file, which is the whole
+ *  re-classification mechanism — and `Won't do` is the floor: ruled against,
+ *  kept only so a review does not propose it again. */
+const TODO_SECTIONS = ['Bugs', 'Soon', 'Someday', 'Maybe', "Won't do"]
 
 const SKIP = new Set(['devtools'])
 
@@ -148,7 +149,7 @@ describe('every feature folder', () => {
     expect(missing, 'feature folders with no todo.md — write the skeleton').toEqual([])
   })
 
-  it('has a todo.md carrying the four sections, in order', () => {
+  it('has a todo.md carrying the five sections, in order', () => {
     const wrong: string[] = []
     for (const f of featureFolders()) {
       const path = join(f.dir, 'todo.md')
@@ -165,8 +166,8 @@ describe('every feature folder', () => {
     }
     expect(
       wrong,
-      'A todo.md whose skeleton has drifted. All four sections are always ' +
-        'present, empty or not, in the order Bugs · Soon · Someday · Maybe — ' +
+      'A todo.md whose skeleton has drifted. All five sections are always ' +
+        "present, empty or not, in the order Bugs · Soon · Someday · Maybe · Won't do — " +
         'so that adding the first item is one line, not a guess at the ' +
         'structure.\n\n' + wrong.join('\n'),
     ).toEqual([])

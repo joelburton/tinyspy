@@ -34,3 +34,5 @@
   start list and `EditClubModal`'s enrollment list each sort the registry with
   the same two-clause comparator. A shared `byBrandThenMode` is where that goes
   if a third caller appears; for two, a file is more than the duplication.
+
+## Won't do

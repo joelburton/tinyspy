@@ -20,3 +20,5 @@
   has no snapshot on join. Neither can corrupt the row, and both clear within
   seconds; fixing either means a lock snapshot or a server-side claim, which
   the friends-only trust model has not needed.
+
+## Won't do

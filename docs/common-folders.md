@@ -197,7 +197,7 @@ wants rewriting the day someone finally explains the folder.
 - **No restating a canonical doc** — cite it. Where `docs/mobile.md` owns the
   subject, the lede says so and the folder's doc stays short.
 
-### `todo.md` — four fixed sections, in a ramp of certainty
+### `todo.md` — five fixed sections, a ramp of certainty and its floor
 
 ```markdown
 # chat — todo
@@ -209,6 +209,8 @@ wants rewriting the day someone finally explains the folder.
 ## Someday
 
 ## Maybe
+
+## Won't do
 ```
 
 The reason `docs/deferred.md` became a sink is that an item's kind was a matter
@@ -221,13 +223,22 @@ and re-classifying is a move up the file:
 | `Soon` | should change, and nothing is blocking it |
 | `Someday` | deliberately not now. Probably yes, eventually |
 | `Maybe` | an idea. May never happen |
-| `board-marks` | the marks a board wears for a beat: a move's attention flash, the your-turn frame, a hot set or a single mark a game raises for its own reasons, and every mark's lifetime |
+| `Won't do` | **decided against.** Kept only so a review doesn't re-propose it |
 
-- **All four headings are always present, empty or not.** The skeleton exists
+- **All five headings are always present, empty or not.** The skeleton exists
   so that adding the first item is one line rather than a guess at the
   structure — which is how ad-hoc files drift apart in the first place.
-- **The order is a ramp of certainty**, so an item that firms up moves *up* the
-  file. That is the whole re-classification mechanism.
+- **The first four are a ramp of certainty**, so an item that firms up moves
+  *up* the file. That is the whole re-classification mechanism.
+- **`Won't do` is the floor of the ramp, and the one section that is not a
+  queue.** It is for the change an audit *would* recommend, ruled against so
+  that it is not recommended again (Joel, 2026-09-19). So the bullet **names
+  the proposal, not the outcome** — "the action box should reserve its height",
+  then the ruling, the date, and why — in the same shape
+  [`docs/deferred.md`](deferred.md#where-an-item-goes) uses for the
+  cross-cutting ones. Two things it is not: an item that is merely unlikely is
+  a `Maybe` (the difference is whether somebody ruled), and **an item that got
+  DONE never lands here** — that one is deleted.
 - **`Bugs`, not `Broken`** — deliberately. The app audit gives "broken" a
   specific meaning while it runs (a compile break, a test break and a behavior
   break each have their own rule), and reusing it here would blur the one word
@@ -236,7 +247,8 @@ and re-classifying is a move up the file:
   states its own reason and **never cites a finding id or an area file**: area
   files are deleted when the sprint ends and their numbering restarts per
   area, so an id would dangle or, worse, come to name something else.
-- **A done item is deleted**, not struck through.
+- **A done item is deleted**, not struck through. A ruled-against one is
+  neither: it moves to `Won't do` and keeps its reason.
 
 **`docs/deferred.md` narrows rather than migrates.** It keeps what crosses
 folders; a folder-scoped item moves to that folder's `todo.md` when the folder's
@@ -250,6 +262,7 @@ area is audited. No sweep.
 | `actions` | what a command IS: the registry, `useBoundAction`, the dispatcher, `ActionButton`, `actionSurface`, `KeyList` |
 | `anagram-finder` | the anagram dialog |
 | `auth` | the pre-app screens — sign in, claim a handle |
+| `board-marks` | the marks a board wears for a beat: a move's attention flash, the your-turn frame, a hot set or a single mark a game raises for its own reasons, and every mark's lifetime |
 | `boot` | what `main.tsx` runs before React mounts (`panic`, `reloadOnStaleChunk`) |
 | `branding` | the app and per-game logos |
 | `buttons` | every purpose button and the `StandardButton` base |

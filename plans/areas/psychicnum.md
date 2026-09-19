@@ -12,7 +12,8 @@ the reading. Owed work lives in `src/psychicnum/todo.md`, not here.
 **Status: OPENED 2026-09-19.** Roster listed; the restructure plan below is
 written and its four decisions are Joel's (2026-09-19): "precedent" names,
 "row order" for the menu, `lib/terminal.ts`, the section order as proposed.
-The two e2e baseline runs are permitted. No stamps written.
+The two e2e baseline runs are permitted. No stamps written. **Step 0 (the
+baseline) and Step 1 (the owed work gathered) are done; Step 2 is next.**
 
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
@@ -80,17 +81,36 @@ green on the untouched tree so a later red is the step's. **Both e2e runs are
 asked for first** — the ask is Joel's rule, no exemption. Predicted breaks
 recorded below as each step starts.
 
-### Step 1 — gather this game's owed work into `todo.md`
+### Step 1 — gather this game's owed work into `todo.md` — DONE 2026-09-19
 
 Joel's ask. What was found:
 
 - `docs/games/psychicnum.md` → *Deferred* says "Nothing outstanding"; *Won't
   do* carries two rulings (anti-spam on guessing; a livelier `.infoState`).
-  **Proposal:** the two won't-dos move to `todo.md` → Maybe, struck through
-  with the ruling (the repo's convention for a no-change ruling), and
+  **Proposal:** the two won't-dos move to `todo.md`, and
   `docs/deferred.md`'s per-game row for psychicnum points at `todo.md`
   instead of the doc. The doc's *Deferred* section then has nothing to say
   and goes when the doc is rewritten in pass 2.
+
+  **Shipped, and it grew a fifth `todo.md` section on Joel's call**
+  (2026-09-19): *"don't add wont-dos to maybe; we should add a section to todo
+  files for wont-do."* So `## Won't do` is now part of the skeleton — last,
+  below the ramp, and the one section that is not a queue — in
+  `docs/common-folders.md`, in `folderDocs.test.ts`'s `TODO_SECTIONS`, in
+  app-audit.md §4's *Where a note goes*, and as an empty heading in all 76
+  `todo.md` files. psychicnum's two went there as plain bullets: the
+  strikethrough was the workaround for having nowhere to put them.
+
+  Three things the proposal did not say. The doc's *Deferred* could not simply
+  be left: with the register moved it would have gone on claiming "Nothing
+  outstanding" while `todo.md` held the bug and the Soons, so its body is now a
+  pointer at `todo.md` (the heading itself still goes in pass 2). And
+  `deferred.md`'s *Where an item goes* gained the sentence the repointed row
+  implies — a game whose area has been audited keeps its register in
+  `src/<game>/todo.md`, reconciled game by game rather than in a sweep —
+  because otherwise the one row contradicts the rule above it. Anti-spam's
+  won't-do also stopped saying "the 7-guess cap": 7 is the default, and the SQL
+  check is `guesses_remaining between 0 and 9`.
 - `plans/tile-feedback.md` names psychicnum three times as open: the roster
   row (tf1 → tf2 is "a color and button check"), the census note that
   psychicnum "gained identity marks in player colors" and the question should

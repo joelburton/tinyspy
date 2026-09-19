@@ -32,3 +32,5 @@
   typed by hand at every site, so a rename is a silent break at the readers.
   The cheapest guard is a test that greps the setter and the readers for the
   same literal, the way the sprint's other vocabularies are held.
+
+## Won't do
