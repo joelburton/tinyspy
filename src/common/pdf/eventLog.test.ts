@@ -10,32 +10,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { jsPDF } from 'jspdf'
-import type { PrintDoc } from './frame'
+import { fakePd } from './fakeJsPdf'
 import { drawEventLog, twoColGeom, type TurnRow } from './eventLog'
-
-function fakeDoc() {
-  const calls: Array<{ m: string; args: unknown[] }> = []
-  const doc: unknown = new Proxy(
-    {},
-    {
-      get(_t, prop: string) {
-        if (prop === 'getTextWidth') return (s: unknown) => (s == null ? 0 : String(s).length)
-        return (...args: unknown[]) => {
-          calls.push({ m: prop, args })
-          return doc
-        }
-      },
-    },
-  )
-  return { doc: doc as jsPDF, calls }
-}
-
-function fakePd(over: Partial<PrintDoc> = {}) {
-  const { doc, calls } = fakeDoc()
-  const pd: PrintDoc = { doc, pageW: 612, pageH: 792, margin: 28, pageBottom: 764, contentTop: 72, ...over }
-  return { pd, calls }
-}
 
 describe('twoColGeom', () => {
   it('splits the content width into two gutter-separated columns', () => {

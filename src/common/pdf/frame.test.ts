@@ -3,62 +3,16 @@
 /**
  * Tests for the shared print frame (doc.md) — the primitives every game's
  * printer composes, so a regression here degrades every printout at once.
- * Rather than render real PDFs, we drive the helpers with a fake jsPDF that
- * records its calls and models text width as one point per character; that keeps the
- * assertions on the pure assembly (returned cursors, the filename slug, the fit
- * truncation) the way crosswords/pdf/layout.test.ts pins pure geometry.
+ * Rather than render real PDFs, we drive the helpers with the folder's fake
+ * jsPDF (`fakeJsPdf.ts`), which records its calls and models text width as
+ * one point per character; that keeps the assertions on the pure assembly
+ * (returned cursors, the filename slug, the fit truncation) the way
+ * crosswords/pdf/layout.test.ts pins pure geometry.
  */
 
 import { describe, expect, it } from 'vitest'
-import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, drawSetupBelow, fit, savePrint, setupBlockHeight, setupLineCount, type PrintDoc } from './frame'
-
-/** A chainable jsPDF stand-in: every method is a no-op that records its call and
- *  returns the doc (for `.setFont(...).setFontSize(...)` chaining); getTextWidth is
- *  a deterministic 1pt/char so `fit` is exactly predictable. */
-function fakeDoc() {
-  const calls: Array<{ m: string; args: unknown[] }> = []
-  const doc: unknown = new Proxy(
-    {},
-    {
-      get(_t, prop: string) {
-        if (prop === 'getTextWidth') return (s: unknown) => (s == null ? 0 : String(s).length)
-        if (prop === 'internal') return { pageSize: { getWidth: () => 612, getHeight: () => 792 } }
-        // MODELED, not recorded: drawSetup wraps with this, and the recording
-        // no-op below returns the doc where the caller needs a string[]. Greedy
-        // word wrap, like jsPDF's own — and with width = 1pt/char (above), a
-        // "line" is just `w` characters, so the expected split is countable by
-        // hand in a test.
-        if (prop === 'splitTextToSize') {
-          return (s: unknown, w: number) => {
-            const lines: string[] = []
-            for (const word of String(s).split(' ')) {
-              const last = lines[lines.length - 1]
-              if (last !== undefined && `${last} ${word}`.length <= w) {
-                lines[lines.length - 1] = `${last} ${word}`
-              } else {
-                lines.push(word)
-              }
-            }
-            return lines.length ? lines : ['']
-          }
-        }
-        return (...args: unknown[]) => {
-          calls.push({ m: prop, args })
-          return doc
-        }
-      },
-    },
-  )
-  return { doc: doc as jsPDF, calls }
-}
-
-/** A PrintDoc around a fake doc, with the Letter geometry the helpers expect. */
-function fakePd(over: Partial<PrintDoc> = {}) {
-  const { doc, calls } = fakeDoc()
-  const pd: PrintDoc = { doc, pageW: 612, pageH: 792, margin: 28, pageBottom: 764, contentTop: 72, ...over }
-  return { pd, calls }
-}
+import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, drawSetupBelow, fit, savePrint, setupBlockHeight, setupLineCount } from './frame'
+import { fakeDoc, fakePd, type Call } from './fakeJsPdf'
 
 describe('shade palette', () => {
   it('is the three-shade grayscale from doc.md', () => {
@@ -143,7 +97,7 @@ describe('drawSetup', () => {
       { key: 'letters', label: 'Letters', value: 'CATSER AREANT TILESO NESTAR PLANES TRACES' },
     ]
     /** Every `text()` call drawn at the VALUE's x (past the label), in order. */
-    const valueLines = (calls: Array<{ m: string; args: unknown[] }>) =>
+    const valueLines = (calls: Call[]) =>
       calls.filter((c) => c.m === 'text' && (c.args[1] as number) > 40)
 
     it('wraps, hanging under the value rather than the label', () => {

@@ -44,7 +44,8 @@ Agreed 2026-09-19. Eleven stamped files, three unstamped markdown files.
 - **`src/common/pdf/` — ten files**, all `cs-unmet` at the opening and now
   `cs-met-pdf`: `frame.ts` + `.test.ts`, `columns.ts`, `wordColumns.ts` +
   `.test.ts`, `wordSections.ts`, `wordListBody.ts`, `eventLog.ts` + `.test.ts`,
-  `marks.ts`.
+  `marks.ts`. **Plus `fakeJsPdf.ts`, created by F-16 (2026-09-19)** — a
+  created file joins the roster.
 - **`src/shared/wordle-style/pdfTiles.ts`**, `cs-unmet` at the opening and now
   `cs-met-pdf`. It lives in a shared family's folder and is read HERE (Joel,
   2026-09-19: *"add"*), because what it does is print. `shared/wordle-style`
@@ -544,7 +545,16 @@ before paginating. Obvious fix: if the heading plus one row will not fit,
 `addPage` and start at the margin; the test pins it with a `pageBottom` just
 past a first section. Waiting; no decision in it.
 
-### F-pdf-16 · `three-fake-jspdfs` · the same fake is written three times, and two copies lack the method the third had to model
+### SHIPPED · F-pdf-16 · `three-fake-jspdfs` · the same fake is written three times, and two copies lack the method the third had to model
+
+**Ruled and shipped 2026-09-19** (Joel: *"i'll take your rec"*).
+`src/common/pdf/fakeJsPdf.ts` exports `fakeDoc`, `fakePd` and `Call`; the
+three specs import them and their hand-rolled copies are gone. The fake
+models the methods the helpers READ (`getTextWidth`, `getLineWidth`,
+`internal`, `splitTextToSize`) and records the rest. The word-list body
+spec gained the case the thin fake let slip: the Setup value is drawn to the
+board's right. **The helper joins the roster at `cs-audited-pdf`** (twelve
+stamped files now), staged so the stamp guard sees it.
 
 `frame.test.ts`, `wordColumns.test.ts` and `eventLog.test.ts` each hand-roll
 `fakeDoc` + `fakePd`. Only `frame.test.ts` models `splitTextToSize` — with a

@@ -11,34 +11,11 @@
  */
 
 import { describe, expect, it, vi } from 'vitest'
-import type { jsPDF } from 'jspdf'
-import type { PrintDoc, PrintHeader } from './frame'
+import type { PrintHeader } from './frame'
+import { fakePd } from './fakeJsPdf'
 import { drawWordColumns, type WordRow } from './wordColumns'
 import { drawWordListBody } from './wordListBody'
 import { buildWordSections, type WordSection } from './wordSections'
-
-function fakeDoc() {
-  const calls: Array<{ m: string; args: unknown[] }> = []
-  const doc: unknown = new Proxy(
-    {},
-    {
-      get(_t, prop: string) {
-        if (prop === 'getTextWidth') return (s: unknown) => (s == null ? 0 : String(s).length)
-        return (...args: unknown[]) => {
-          calls.push({ m: prop, args })
-          return doc
-        }
-      },
-    },
-  )
-  return { doc: doc as jsPDF, calls }
-}
-
-function fakePd(over: Partial<PrintDoc> = {}) {
-  const { doc, calls } = fakeDoc()
-  const pd: PrintDoc = { doc, pageW: 612, pageH: 792, margin: 28, pageBottom: 764, contentTop: 72, ...over }
-  return { pd, calls }
-}
 
 const wordRows = (n: number): WordRow[] =>
   Array.from({ length: n }, (_, i) => ({ word: `w${i}`, found: { points: i, who: 'ada' } }))
@@ -105,6 +82,18 @@ describe('drawWordListBody', () => {
     drawWordListBody(pd, header, drawBoard, { cols: 6 })
     expect(drawBoard).toHaveBeenCalledTimes(1)
     expect(calls.some((c) => c.m === 'text' && c.args[0] === 'Words')).toBe(true)
+  })
+
+  // Pinned because a thinner fake once let this pass with the value never
+  // drawn: drawSetup wraps through splitTextToSize, and a fake that returned
+  // the doc there made the row's lines vanish silently.
+  it('draws the Setup to the board\'s right', () => {
+    const { pd, calls } = fakePd()
+    drawWordListBody(pd, header, () => ({ w: 100, h: 80 }))
+    // setupX = margin + w + 26 = 154; the value hangs past its label.
+    const value = calls.find((c) => c.m === 'text' && c.args[0] === 'Hard')
+    expect(value).toBeDefined()
+    expect(value!.args[1] as number).toBeGreaterThan(154)
   })
 })
 
