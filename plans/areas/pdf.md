@@ -236,7 +236,13 @@ stories are one clause each under the rule they illustrate, or nothing.
 - **The `docs/deferred.md` section** "Printing to PDF — which games get it"
   exists to say nothing is deferred.
 
-### F-pdf-4 · `good-bad-gloss` · the printed ✓ and ✗ are glossed "good" and "bad"
+### SHIPPED · F-pdf-4 · `good-bad-gloss` · the printed ✓ and ✗ are glossed "good" and "bad"
+
+**Ruled and shipped 2026-09-19** (Joel: *"do it"* — a find and a miss). The
+two bullets in `doc.md` → Color is for meaning now name what the mark IS on
+a tile (a find: correct, an agent, a solved word; a miss: a wrong guess, the
+assassin, an unfound word) with the hue as the bonus. No outcome word is
+spent on a per-tile mark.
 
 Handed on by `outcomes` (2026-09-05): `common/pdf/doc.md` → "Color is for
 meaning" (carried verbatim from `docs/pdf.md` by F-1) says *"✓ good — a correct/success mark, green. ✗ bad — a wrong/miss mark,

@@ -138,8 +138,9 @@ and none defines its own.
 A hue is reserved for things that communicate, and even then it must not be
 the only signal, because the page may print in black-and-white:
 
-- ✓ **good** — a correct/success mark, green.
-- ✗ **bad** — a wrong/miss mark, red.
+- ✓ — a find: the tile was correct, an agent, a solved word. Green on a
+  color printer.
+- ✗ — a miss: a wrong guess, the assassin, an unfound word. Red.
 
 A mono printer flattens green and red to the same gray, so the meaning is
 also carried by shape or text — a drawn ✓ against a drawn ✗, a letter A–D
