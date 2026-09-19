@@ -1,6 +1,6 @@
 // cs-audited-pdf
 
-import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, setupBlockHeight, type PrintDoc } from './frame'
+import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, setupBlockHeight, setupLineCount, type PrintDoc } from './frame'
 import type { SetupRow } from '../setup-form/setupRows'
 
 // Column x-offsets from a column's left edge. The <move> column is the important one,
@@ -98,14 +98,14 @@ export function drawEventLog(
   // Setup — appended after the turns in the same flow. Kept together: if the block
   // won't fit in the rest of the column, move it whole to the next column.
   if (o.setup.length) {
-    const blockH = 22 + setupBlockHeight(o.setup.length)
+    const blockH = 22 + setupBlockHeight(setupLineCount(doc, o.setup, colW))
     if (cy + blockH > pageBottom) {
       nextColumn()
       cy = columnTop()
     } else {
       cy += 22 // space before the Setup section
     }
-    drawSetup(doc, o.setup, colX(), cy, o.mode)
+    drawSetup(doc, o.setup, colX(), cy, o.mode, colW)
   }
 }
 

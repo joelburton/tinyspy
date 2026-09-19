@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, drawSetupBelow, fit, savePrint, setupBlockHeight, type PrintDoc } from './frame'
+import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, drawSetupBelow, fit, savePrint, setupBlockHeight, setupLineCount, type PrintDoc } from './frame'
 
 /** A chainable jsPDF stand-in: every method is a no-op that records its call and
  *  returns the doc (for `.setFont(...).setFontSize(...)` chaining); getTextWidth is
@@ -97,19 +97,22 @@ describe('drawSetup', () => {
       { key: 'mode', label: 'Mode', value: 'Co-op' },
     ]
     // cy starts at y+13, then +13 per item.
-    expect(drawSetup(pd.doc, items, 40, 100, 'coop')).toBe(100 + 13 + items.length * 13)
+    expect(drawSetup(pd.doc, items, 40, 100, 'coop', 400)).toBe(100 + 13 + items.length * 13)
   })
 
-  // The event-log body asks this before drawing, to decide whether the block
-  // fits its column; it has to agree with what drawSetup then draws.
-  it('takes the height setupBlockHeight promised', () => {
+  // The event-log body and drawSetupBelow ask this before drawing, to decide
+  // whether the block fits; it has to agree with what drawSetup then draws —
+  // wrapped lines included.
+  it('takes the height setupLineCount + setupBlockHeight promised', () => {
     const { pd } = fakePd()
     const items = [
       { key: 'a', label: 'A', value: '1' },
-      { key: 'b', label: 'B', value: '2' },
+      { key: 'letters', label: 'Letters', value: 'CATSER AREANT TILESO NESTAR PLANES TRACES' },
       { key: 'c', label: 'C', value: '3' },
     ]
-    expect(drawSetup(pd.doc, items, 40, 100, 'coop') - 100).toBe(setupBlockHeight(items.length))
+    const lines = setupLineCount(pd.doc, items, 30) // 1 + 1 + 2 (the wrap) + 1
+    expect(lines).toBe(5)
+    expect(drawSetup(pd.doc, items, 40, 100, 'coop', 30) - 100).toBe(setupBlockHeight(lines))
   })
 
   // The heading carries the MODE (`Setup: Co-op`) rather than spending a row on
@@ -119,21 +122,21 @@ describe('drawSetup', () => {
   // chrome, so this heading is the only place the paper says which game it was.
   it('draws the "Setup" sub-heading, qualified by mode', () => {
     const { pd, calls } = fakePd()
-    drawSetup(pd.doc, [], 40, 100, 'coop')
+    drawSetup(pd.doc, [], 40, 100, 'coop', 400)
     expect(calls.some((c) => c.m === 'text' && c.args[0] === 'Setup: Co-op')).toBe(true)
   })
 
   it('says Compete for a race', () => {
     const { pd, calls } = fakePd()
-    drawSetup(pd.doc, [], 40, 100, 'compete')
+    drawSetup(pd.doc, [], 40, 100, 'compete', 400)
     expect(calls.some((c) => c.m === 'text' && c.args[0] === 'Setup: Compete')).toBe(true)
   })
 
-  // Wrapping (the optional `maxW`). Worth pinning because the failure it
-  // prevents is invisible in review and easy to miss on paper: an over-long
-  // value doesn't clip or error, it draws past the right edge and off the
-  // sheet. Two rows have no natural length bound — boggle's `Letters` prints
-  // a whole 6×6 board, the roster prints every username.
+  // Wrapping. Worth pinning because the failure it prevents is invisible in
+  // review and easy to miss on paper: an over-long value doesn't clip or
+  // error, it draws past the right edge and off the sheet. Two rows have no
+  // natural length bound — boggle's `Letters` prints a whole 6×6 board, the
+  // roster prints every username.
   describe('a value too wide for the space', () => {
     // 41 characters = 41pt under the fake's 1pt/char.
     const LETTERS = [
@@ -164,12 +167,6 @@ describe('drawSetup', () => {
     it('is left alone when it fits', () => {
       const { pd, calls } = fakePd()
       drawSetup(pd.doc, LETTERS, 40, 100, 'coop', 400)
-      expect(valueLines(calls)).toHaveLength(1)
-    })
-
-    it('is left alone when no width is given (the event-log caller)', () => {
-      const { pd, calls } = fakePd()
-      drawSetup(pd.doc, LETTERS, 40, 100, 'coop')
       expect(valueLines(calls)).toHaveLength(1)
     })
   })

@@ -469,7 +469,16 @@ switch to it; *(c)* leave. Recommendation: (b) — one guard, no change to
 what any page shows unless it was already off the sheet — and `Track` gains
 `bottom` so a track's own drawer can stop or spill.
 
-### F-pdf-12 · `eventlog-setup-runs-on` · the event-log family's recap does not wrap
+### SHIPPED · F-pdf-12 · `eventlog-setup-runs-on` · the event-log family's recap does not wrap
+
+**Ruled and shipped 2026-09-19** (Joel: *"i'll take your rec"*). `drawSetup`
+takes a required `maxW` — no caller wanted the run-on once the event-log
+family stopped needing it — and `setupLineCount(doc, items, maxW)` wraps
+with the same fonts through a shared private `setupRowLines`, so the count
+and the drawing cannot disagree; `setupBlockHeight` takes lines.
+`drawEventLog` measures and draws with `colW`; `drawSetupBelow` with the
+page width. The F-9 test now pins a wrapped row (five lines for three rows);
+the "no width" test is gone with the behavior.
 
 `drawEventLog` passes no `maxW` to `drawSetup`, and `frame.ts` calls that
 "the historical behavior, kept for eventLog's caller, whose column layout

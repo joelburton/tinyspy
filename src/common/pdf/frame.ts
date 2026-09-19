@@ -65,10 +65,26 @@ export function newPrintDoc(): PrintDoc {
   return { doc, pageW, pageH, margin: MARGIN, pageBottom: pageH - MARGIN, contentTop: MARGIN + HEADER_H }
 }
 
-/** The height `drawSetup` will take for `rows` unwrapped rows — for a caller
- *  that has to know whether the block fits before drawing it. */
-export function setupBlockHeight(rows: number): number {
-  return SETUP_LINE_H * (1 + rows)
+/** The height `drawSetup` takes for `lines` lines (see `setupLineCount`) —
+ *  for a caller that has to know whether the block fits before drawing it. */
+export function setupBlockHeight(lines: number): number {
+  return SETUP_LINE_H * lines
+}
+
+/** The lines `drawSetup` will draw for `items` in `maxW`: the heading, then
+ *  each row's wrapped lines. Measures with the fonts `drawSetup` draws with. */
+export function setupLineCount(doc: jsPDF, items: SetupRow[], maxW: number): number {
+  return 1 + items.reduce((n, it) => n + setupRowLines(doc, it, maxW).length, 0)
+}
+
+// One row's value, wrapped to the space left of its label. Sets the label's
+// font to measure it and leaves the value's font set, ready to draw.
+function setupRowLines(doc: jsPDF, it: SetupRow, maxW: number): string[] {
+  doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
+  const labelW = doc.getTextWidth(`${it.label}: `)
+  doc.setFont('helvetica', 'normal').setTextColor(BLACK)
+  const valueW = maxW - labelW
+  return valueW > 0 ? (doc.splitTextToSize(it.value, valueW) as string[]) : [it.value]
 }
 
 /** Draw the shared header: `Brand: title` (bold, truncated to clear the date), the
@@ -86,14 +102,11 @@ export function drawHeader(pd: PrintDoc, m: PrintHeader): void {
 }
 
 /**
- * Draw the `Setup: <mode>` sub-heading and its `label: value` lines at (x, y).
- * Returns the y just below the block, so the caller can flow content after it.
- *
- * `maxW` is the width the block has to live in: given one, a value too long
- * for the space wraps onto further lines, hanging under the value. Without it
- * a long value runs on — `drawEventLog` passes none, because its column
- * layout pre-computes the block's height as one line per row. Why a value
- * wraps rather than truncates: doc.md → Details.
+ * Draw the `Setup: <mode>` sub-heading and its `label: value` lines at (x, y),
+ * inside `maxW`: a value too long for the space wraps onto further lines,
+ * hanging under the value. Returns the y just below the block, so the caller
+ * can flow content after it; `setupLineCount` says beforehand how tall that
+ * will be. Why a value wraps rather than truncates: doc.md → Details.
  */
 export function drawSetup(
   doc: jsPDF,
@@ -101,7 +114,7 @@ export function drawSetup(
   x: number,
   y: number,
   mode: 'coop' | 'compete',
-  maxW?: number,
+  maxW: number,
 ): number {
   doc.setFont('helvetica', 'bold').setFontSize(10).setTextColor(BLACK) // smaller sub-heading
   // The mode rides the heading rather than a row — see PrintHeader.mode. The
@@ -111,15 +124,13 @@ export function drawSetup(
   doc.text(`Setup: ${mode === 'coop' ? 'Co-op' : 'Compete'}`, x, y)
   let cy = y + SETUP_LINE_H
   items.forEach((it) => {
-    doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
+    const lines = setupRowLines(doc, it, maxW) // leaves the value's font set
+    doc.setFont('helvetica', 'bold')
     doc.text(`${it.label}: `, x, cy)
     const labelW = doc.getTextWidth(`${it.label}: `)
-    doc.setFont('helvetica', 'normal').setTextColor(BLACK)
+    doc.setFont('helvetica', 'normal')
     // Values hang off the label, and wrapped lines hang under the value rather
     // than under the label — so a two-line row still reads as one fact.
-    const valueW = maxW === undefined ? 0 : maxW - labelW
-    const lines: string[] =
-      valueW > 0 ? (doc.splitTextToSize(it.value, valueW) as string[]) : [it.value]
     lines.forEach((line) => {
       doc.text(line, x + labelW, cy)
       cy += SETUP_LINE_H
@@ -136,11 +147,12 @@ export function drawSetup(
  */
 export function drawSetupBelow(pd: PrintDoc, m: PrintHeader, y: number): void {
   if (!m.setup.length) return
-  if (y + setupBlockHeight(m.setup.length) > pd.pageBottom) {
+  const width = pd.pageW - 2 * pd.margin
+  if (y + setupBlockHeight(setupLineCount(pd.doc, m.setup, width)) > pd.pageBottom) {
     pd.doc.addPage()
     y = pd.margin
   }
-  drawSetup(pd.doc, m.setup, pd.margin, y, m.mode, pd.pageW - 2 * pd.margin)
+  drawSetup(pd.doc, m.setup, pd.margin, y, m.mode, width)
 }
 
 /** Save the doc as `<brand>-<title>.pdf`, handing it to the browser as a download.
