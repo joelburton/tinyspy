@@ -40,8 +40,15 @@ export function TurnStatusLine({
   selfId,
   isTerminal,
 }: Props) {
-  // Terminal: hold the line's height with a non-breaking space rather
-  // than nagging about whose turn it "is" in a finished game.
+  // Terminal: hold the line's height rather than nagging about whose turn it
+  // "is" in a finished game.
+  //
+  // THE CHARACTER BELOW IS A LITERAL U+00A0, NOT A SPACE. It looks like one in
+  // every view of this file, and the difference is the whole mechanism: a plain
+  // space collapses, leaving the paragraph with no line box and no height, while
+  // this one gives it 17px — the same as "Your turn". Read it as a space and this
+  // line reads as a bug that isn't there. Written as the character because
+  // `&nbsp;` in JSX renders as those six letters.
   if (isTerminal) {
     return <p className={shared.infoState}>{' '}</p>
   }

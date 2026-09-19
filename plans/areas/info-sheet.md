@@ -5,10 +5,10 @@ The folders it reads: `info-sheet`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18; the prose pass done the same day (F-1 to
-F-6, F-8, F-9, F-10, F-17), then F-11, F-12, F-15 and F-16 ruled and shipped.
-NOTHING LEFT NEEDS A DECISION: what remains is the bug F-7 and the two
-conversions F-13 and F-14 that `docs/code-conventions.md` and the audit already
-settled.** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
+F-6, F-8, F-9, F-10, F-17), then F-11, F-12, F-15 and F-16 ruled and shipped, and
+F-7 WITHDRAWN as a false premise — there was no bug. What remains is the two
+conversions F-13 and F-14, which `docs/code-conventions.md` and the audit already
+settled; nothing needs a decision.** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
 the audit"*); fifteen files stamped `cs-audited-info-sheet`. Taken in order after
 `reveal` (row 45); this is row 46.
 
@@ -90,10 +90,10 @@ GamePage (shell)                         ── mobile only ──▶ <InfoSwitc
 useHistoryViewer.showHistory() → setInfoSheetOpen(false)   opening a turn leaves the info page
 ```
 
-The folder's tests are green (3 files, 10 tests). What the reading measured:
-the terminal branch of `TurnStatusLine` renders `<p>{' '}</p>`, a plain space,
-and a paragraph holding one plain space is **0px tall** in Chromium against
-17px for `&nbsp;` and 17px for "Your turn" (F-7).
+The folder's tests are green (3 files, 10 tests). What the reading THOUGHT it
+measured — a 0px-tall terminal turn line — was the audit's own scaffold and not
+this folder's code: the character in the source is a literal U+00A0 and the line
+is 17px. F-7 is withdrawn and carries the whole story.
 
 ## Findings
 
@@ -206,7 +206,7 @@ because the pointer is null for the whole game or for none of it; the condition
 just has to be the real one. Same file: *"the shared `.infoState` type register"*
 is game-page's class (F-11), and the *"non-breaking space"* comment is F-7.
 
-### F-info-sheet-7 · `terminal-turn-line-collapses` · At terminal the whose-turn line renders a plain space and is 0px tall, so the column reflows by a line — BUG
+### F-info-sheet-7 · `terminal-turn-line-collapses` · At terminal the whose-turn line renders a plain space and is 0px tall, so the column reflows by a line — **WITHDRAWN 2026-09-18: THE PREMISE IS FALSE.** There is no bug
 
 `if (isTerminal) return <p className={shared.infoState}>{' '}</p>` — `' '` is
 U+0020, collapsible whitespace, and a block holding only that has no line box.
@@ -226,6 +226,35 @@ then asserts the paragraph's text IS a non-breaking space — the thing jsdom ca
 see that stands in for the height it cannot measure. No decision in it; waiting
 for the word.
 
+**WITHDRAWN — the character was never U+0020.** The source holds a LITERAL
+U+00A0, written as the character itself: the bytes on that line are
+`7b 27 c2 a0 27 7d`, i.e. `{'` + U+00A0 + `'}`. (The quotation two paragraphs up
+carries the same literal, which is the trap in miniature.) Measured with the
+character read out of the shipped file rather than retyped: **17px**, the same as
+`<strong>Your turn</strong>` beside it. So the line holds its height, the comment
+saying *"hold the line's height with a non-breaking space"* is accurate, and
+`docs/playarea.md`, the component docstring, the prop note and the test's name
+were all telling the truth. Nothing was broken.
+
+**How the audit got it wrong, and that is the generalisable part.** U+00A0 renders
+identically to U+0020 in every view of a source file — editor, `sed`, `grep`, and
+this file quoting it. The audit read `{' '}`, wrote "U+0020, collapsible
+whitespace", and the measurement script then reproduced 0px because its scaffold
+was typed by hand with a plain space. The measurement was real; it was not
+measuring the app. **A claim about a character is a claim about bytes**, and
+`od` / `codePointAt` is the check. It surfaced only because a find-and-replace of
+that exact line failed to match. A literal U+00A0 appears nowhere else in `src`,
+`e2e`, `docs`, `supabase` or `scripts`; that line now carries a comment saying
+what the character is and why the difference matters.
+
+**Joel's ruling, which stands on its own:** *"it's ok for the whose-turn line to
+disappear at terminal. changing things at terminal is ok."* So dropping the line
+is permitted — which makes it a choice about appearance rather than a repair, and
+the code keeps the blank row because that is what four places document and what
+ships. Asked whether the ruling should become a general rule in
+`docs/ui.md → Layout stability` (which grants terminal exceptions one at a time,
+by name), he chose to keep it local: nothing in `ui.md` changes.
+
 ### F-info-sheet-8 · `doc-md-is-a-lede` · `doc.md` is one paragraph; the folder's design lives in two docstrings and `docs/mobile.md` — WORKED
 
 Owed: the `## Intro to area` (what the info column is on desktop and on a
@@ -241,8 +270,10 @@ four pieces of furniture · the mobile page and why a page and not a drawer ·
 `MobileStatusBar` as that design's cost paid back), and a `## Details` of four
 items — the render tree, a *placed when / what the game supplies* table keyed by
 condition rather than by game, the store argument harvested from F-17, and the
-turn line's fixed presence. What the doc does NOT say is that the terminal line
-holds its height: F-7 measured that it does not, and a doc describes today.
+turn line's fixed presence. It leaves the terminal line's HEIGHT to
+`docs/playarea.md`, which owns the terminal-readout rule — one home per decision.
+(It was written that way because F-7 claimed the height was not held; that claim
+turned out to be false, and the split is still right.)
 `docs/mobile.md` keeps the mobile design; the doc cites it rather than restating
 it.
 
@@ -563,7 +594,9 @@ it is the harvest source rather than archaeology.
 
 ## Predicted test breaks
 
-- F-7: `TurnStatusLine.test.tsx` — no break; a new assertion.
+- F-7: moot — withdrawn. (The assertion it wanted, that the paragraph's text IS
+  U+00A0, is still the only thing that would pin the character against a future
+  reader "fixing" it. Offered, not built.)
 - F-11 (b): **as predicted.** No runtime break; `vocabularies.test.ts` went red
   on three vocabularies until the `pending` rows followed the literals to the new
   path — and one stale entry had to go with them, since `0.5rem`'s only remaining
