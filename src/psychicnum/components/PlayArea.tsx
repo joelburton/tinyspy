@@ -45,9 +45,9 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 const SECRET_COUNT = 3
 
 /**
- * What `request_hint` answers. TWO `ok`s, because "here is a clue" and "this
- * word has no clue" used to arrive as one string with a magic value in it —
- * `hint` carries the row's text either way, and only `result` tells them apart.
+ * What `request_hint` answers. TWO `ok`s: `hint` carries the row's text whether
+ * or not there was a clue to give, so `result` is the only thing that tells a
+ * real clue from "this word has none".
  */
 type HintAnswer = {
   result: 'hint' | 'no-hint'
@@ -79,9 +79,8 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   // Reaching this means the COMMON row exists — `GamePageGate` and
   // `GamePageLoader` each checked — and the psychicnum one does not: a torn
-  // write, or a game deleted while somebody had the board open. Which read came
-  // back empty is the part worth having in the console, so `detail` names it
-  // rather than repeating the gametype the two gates above already logged.
+  // write, or a game deleted while somebody had the board open. `detail` goes
+  // to the console, never to the page.
   if (!game) return <NoSuchGamePage detail={`rows=0 view=psychicnum.games_state game=${ctx.gameId}`} />
 
   return (
@@ -109,25 +108,19 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
 }
 
 /**
- * psychicnum's play surface, shared between coop and compete
- * manifests. The mode is read from `game.mode` (set at create-
- * game time and never changes); rendering branches on it for:
+ * psychicnum's play surface — the coordinator. It holds no board and draws no
+ * control of its own: `<BoardCol>` takes the board and the guess entry,
+ * `<InfoCol>` the readouts and the action row, and this component decides what
+ * each of them is handed.
  *
- *   - Header copy + progress: coop shows the team's "found X of 3";
- *     compete shows the caller's own progress + opponents' budgets.
- *   - GameEventLog: coop shows everyone's guesses (and hints);
- *     compete is RLS-scoped to the caller.
- *   - Feedback: coop narrates teammates' guesses (green/red) and
- *     hint requests (amber) in the header; compete narrates an
- *     opponent finding a secret in GREEN — never which one. Green
- *     means "they found a word" in BOTH modes, so the player keeps
- *     one color-meaning rather than learning a compete-only one.
- *   - Terminal copy: coop is a team verdict; compete distinguishes
- *     "you won the race" vs "<name> won".
+ * Both manifests mount it, and `mode` (`game.mode`, fixed at create-game time)
+ * is what differs — who a narration names, whose progress a readout counts,
+ * and which verdict `lib/terminal.ts` builds. The rule it keeps across that
+ * split: green means "a secret was found" in both modes, so nothing here
+ * teaches a compete-only color.
  *
- * Cross-cutting state (members, timer, play_state, paused, chat)
- * lives in `<GamePage>` above this component. PlayArea unmounts
- * on pause — its local state goes with it.
+ * Above it, `<GamePage>` owns members, the timer, play_state, pause and chat,
+ * and unmounts this surface on pause — every piece of state below goes with it.
  */
 function PlayArea({
   game,
@@ -168,18 +161,15 @@ function PlayArea({
   // reached by the header's InfoSwitchButton. Desktop is unchanged.
   const infoSheet = useInfoSheet()
 
-  // Confetti at the MOMENT the team finds the third secret (the winning guess
-  // flips playState to 'won' on every connected client via realtime, so the
-  // whole group celebrates together); opening an already-won game stays quiet
-  // (useCelebration never pops on mount). It's the ONLY modal at terminal — the
-  // verdict itself rides the below-board pill (docs/ui.md → Terminal results).
+  // Confetti the moment the team finds the third secret, and never on mount —
+  // opening an already-won game stays quiet. It is the ONLY modal at terminal;
+  // the verdict itself rides the below-board pill.
   //
-  // Gated on `playState` ALONE, which is available from the very first render —
-  // the waffle loading-race lesson. That's also why COMPETE doesn't celebrate:
-  // 'won_compete' means SOMEONE won, and telling my own win from a loss needs
-  // per-player data from useGame that's empty until the fetch lands, so an
-  // already-won race would flip false→true after load and pop confetti at
-  // someone merely reviewing it. Same call connections + wordle + waffle made.
+  // Gated on `playState` alone because that is true from the first render; see
+  // `useCelebration`, whose docstring is why a gate needing loaded data must
+  // not be used here. That rules COMPETE out: `won_compete` means SOMEONE won,
+  // and telling my win from my loss needs `playerBudgets`, which is empty until
+  // the fetch lands.
   const celebration = useCelebration(playState === 'won')
 
   // The board frame flashes yellow the moment the move becomes mine. The dim is
@@ -214,12 +204,9 @@ function PlayArea({
   // NOT about whose turn it is — waiting your turn is still playing, and
   // `isMyTurn` (passed to BoardCol) is what gates the actual input.
   //
-  // Two people read false here through `selfBudget`'s `?? 0` rather than
-  // through a test of their own, which is worth knowing before that default
-  // changes: a club member WATCHING has no budget row, and a real player
-  // before the fetch lands has none yet. Both get the not-playing treatment,
-  // and both are right to — but give `selfBudget` a non-zero placeholder and a
-  // watcher silently becomes a player.
+  // A club member WATCHING reads false here through `selfBudget`'s `?? 0`
+  // rather than through a test of their own — so give that default a non-zero
+  // placeholder and a watcher silently becomes a player.
   const isStillPlaying = !isTerminal && selfBudget > 0 && !myConceded
 
   // The setup recap, built ONCE and handed to both consumers — the info column
@@ -261,8 +248,8 @@ function PlayArea({
 
   // ─── The local slot, and its three standing conditions ─
   // Each condition is an effect on a primitive edge that shows on true and
-  // retracts in its cleanup — the slot draws whichever ranks highest. They are
-  // about ME, which is what puts them here rather than in the header slot.
+  // retracts in its cleanup — the slot draws whichever ranks highest. The local
+  // slot is the one for messages about ME; a peer's go in the header's.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // Per-status terminal message. Mode-aware so compete-mode winners get the
@@ -472,20 +459,16 @@ function PlayArea({
     run: getSpoiler,
   })
 
-  // Ring the three secrets at game-over — or un-ring them. A LOCAL toggle: mine
-  // alone, nothing written, no peer affected, so a teammate can go on eyeing the
-  // board while I look. Its two faces are what `describe` is for — the words and
-  // the glyph move together, because on the icon-only button the glyph is the
-  // label. Inert mid-game: there is nothing to ring until the server unshields
-  // the secrets at terminal, and nothing to do once solving has shown them.
+  // Show the three secrets, or hide them again — a LOCAL toggle: nothing is
+  // written and no peer is affected, so a teammate can go on hunting while I
+  // look. Both faces come from `describeReveal`, which is where the rule for
+  // every game's reveal lives.
   const actReveal = useBoundAction('act-reveal', {
     describe: (asker) => {
-      // No BUTTON while you are still hunting — the row's few slots belong to
-      // playing, and this is not a question you can ask yet. The menu row and
-      // the Help list keep it all game, grayed, because they NAME the glyph
-      // (docs/ui.md → the menu is the legend), which is what the hint and the
-      // spoiler above do too. It stays gray until EVERYONE is done, so a
-      // dropout cannot spoil a live race.
+      // The one narrowing this game adds: no BUTTON until EVERYONE is done, so
+      // a player who dropped out cannot spoil a race that is still running. The
+      // menu row and the Help list keep it all game, grayed, because they NAME
+      // the glyph (docs/ui.md → the menu is the legend).
       if (isStillPlaying && asker === 'button') return 'hidden'
       return describeReveal({ noun: 'solution', revealed: secretsShown, impliedBySolve, isTerminal })
     },
@@ -508,13 +491,9 @@ function PlayArea({
       }),
     )
     if (res.type === 'not-ok') {
-      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
-      // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the slot as it reads, over
-      // the verdict, until its × is pressed. Shown even for a fault whose
-      // modal has already fired centrally — the modal escalates, it does not
-      // replace (docs/envelopes.md), so dismissing it must not leave the board
-      // silent about why the game didn't start.
+      // Shown even for a fault whose modal has already fired: a modal escalates
+      // rather than replaces, so the board must not go silent when it is
+      // dismissed. See docs/envelopes.md.
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
@@ -629,16 +608,10 @@ function PlayArea({
     guessed.map((g) => [g.word, players.find((m) => m.user_id === g.user_id)]),
   )
 
-  // Revealing the answer is a STATE CHANGE, not a mark: a secret I've asked to
-  // see simply goes green, exactly as a found one is green, because green means
-  // "this word is a secret" and the reveal is what makes me know it. It used to be
-  // a bright ring around every secret — a channel of its own, a hue outside the
-  // palette, and a thing every solution-game would have had to invent separately.
-  //
-  // Nothing is lost by dropping it. The reveal is personal and reversible now
-  // (useSolutionReveal), so "did we find this or am I peeking?" is one toggle
-  // away — and in coop it doesn't even need the toggle: a found secret carries its
-  // guesser's dot and a revealed one has none.
+  // A revealed secret joins `results` as a HIT rather than getting a mark of its
+  // own: green means "this word is a secret", and the reveal is what makes me
+  // know it. Found-versus-peeked stays answerable — the toggle un-reveals, and in
+  // coop a found secret carries its guesser's dot while a revealed one has none.
   const shown = new Map(results)
   if (secretsShown) for (const w of game.secrets ?? []) if (!shown.has(w)) shown.set(w, true)
 

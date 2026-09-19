@@ -13,9 +13,10 @@ the reading. Owed work lives in `src/psychicnum/todo.md`, not here.
 written and its four decisions are Joel's (2026-09-19): "precedent" names,
 "row order" for the menu, `lib/terminal.ts`, the section order as proposed.
 The two e2e baseline runs are permitted. No stamps written. **Step 0 (the
-baseline), Steps 1-5 are done — the owed work gathered, the loader / loaded
-split, the actions and the row, the builder to `lib/`, the section order; Step
-6 (the comment pass) is next, and is the last of the restructure.**
+baseline) and Steps 1-6 are ALL DONE — the owed work gathered, the loader /
+loaded split, the actions and the row, the builder to `lib/`, the section
+order, the comment pass. **The restructure (pass 1) is COMPLETE; pass 2, the
+audit, is next.**
 
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
@@ -456,7 +457,7 @@ What the reorder showed: `selected` and `handleEntryChange` both belong to the
 pending guess and both sat on the far side of the shuffle block, so the one
 piece of state this column owns was told in three places.
 
-### Step 6 — the comment pass (readability 3.5)
+### Step 6 — the comment pass (readability 3.5) — DONE 2026-09-19
 
 **Three rules Joel gave while reading BoardCol's `act-shuffle` comment**
 (2026-09-19), and they govern this step:
@@ -490,6 +491,39 @@ archaeology deleted ("It used to be a bright ring", "moved into BoardCol",
 describes a pre-decomposition surface today ("GameEventLog: coop shows
 everyone's guesses", "Header copy"). InfoCol's and BoardCol's comments get
 the same pass since both files are open by then.
+
+**Shipped: 123 comment lines out, 74 in, across four files** — `Board.tsx`
+joined, being psychicnum's and carrying the worst of what the pass found.
+
+**All three call sites went to a sentence and a pointer**, and both pointers
+were READ before being cited: `useCelebration`'s docstring carries the
+first-render rule in full, and `describeReveal`'s already names this game's own
+narrowing ("psychicnum hides the BUTTON while you are still hunting") — so the
+call site now adds only the narrowing and stops re-arguing the rule. The
+envelope paragraph is three lines pointing at `docs/envelopes.md`.
+
+**One comment was not archaeology but a FALSEHOOD.** `Board.tsx`'s docstring
+said the terminal reveal rings every secret's tile via a `secretWords` prop.
+There is no such prop, there is no ring, and `--psychicnum-secret-ring` appears
+nowhere in the repo — the reveal folds into `results` as a hit and the tile
+simply goes green. Found by sweeping for "used to", which is exactly how a
+sentence true before a change gets left behind asserting something that was
+never true after it.
+
+**The file docstring is rewritten around the decomposition** — PlayArea holds
+no board and draws no control; BoardCol and InfoCol do, and this component
+decides what each is handed. The four-bullet mode table went: three of its
+bullets described surfaces that have moved out, and what survives is the one
+rule worth stating — green means "a secret was found" in BOTH modes, so
+nothing here teaches a compete-only color.
+
+**Joel's three rules did most of the cutting.** Beyond BoardCol's four: the
+back-to-club paragraph defending a filled button at terminal (rule 3), the
+mobile status bar's "deliberate trade" (3), the `detail`-choice argument at
+the no-such-game gate (3), "which is what puts them here rather than in the
+header slot" (2), and the info column's "the order is the one the old terminal
+branch argued for" (archaeology + 3), which now points at `docs/playarea.md`
+for the order instead.
 
 ### After the restructure — pass 2, the audit
 
@@ -564,6 +598,9 @@ unrun: no SQL has moved.
 
 ## Closing
 
+- [ ] `e2e/psychicnum-terminal.e2e.ts` renamed to what it asserts: its title
+      says "ring the tiles" and its helper is `ringed`, but the reveal has no
+      ring — the spec checks the green FILL, and its assertions are right
 - [ ] the whole area re-read in one sitting after the last group
 - [ ] `docs/games/psychicnum.md` reconciled with `todo.md`: its Won't-do
       moved into the todo (Step 1), and the doc itself replaced by the game

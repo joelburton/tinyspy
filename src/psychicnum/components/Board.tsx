@@ -55,9 +55,9 @@ type Props = {
   // played into.
   moveCount: number
   // A control floated over the board's top-right (the Shuffle button). Rendered
-  // INSIDE the board root — the root is the `position: relative` anchor — so it
-  // hugs the VISUAL board. Anchoring to the column instead would strand it at the
-  // column's top, which the vertically-centered board no longer touches.
+  // INSIDE the board root, which is the `position: relative` anchor — so it
+  // hugs the VISUAL board rather than the column, whose top the board does not
+  // reach.
   floatingControl?: ReactNode
 }
 
@@ -74,12 +74,11 @@ type Props = {
  * been found and ruled out. In compete mode RLS scopes `results` to the caller,
  * so it reflects only the viewer's own attempts.
  *
- * At TERMINAL the board doubles as the answer key: `secretWords` arrives (the
- * server reveals the secrets once the game is over) and every secret's tile is
- * ringed bright green — over its existing background, so a found secret still
- * reads as found and a missed one as missed. That reveal used to be a text list
- * in the below-board pill ("The words were APPLE, RIVER, STONE"), which had no
- * room on a phone and made the player map words back to tiles by eye.
+ * At TERMINAL the board doubles as the answer key, and it does so through
+ * `results` like everything else: the PlayArea folds the revealed secrets in as
+ * hits, so they go green exactly as a found one does. Which is which is still
+ * answerable — `decidedBy` names a guesser for a found tile and nobody for a
+ * revealed one.
  */
 export function Board({
   words,

@@ -191,15 +191,10 @@ export function InfoCol({
         )}
 
         {/* ONE row, one order, every action listed once. Which of them is on
-            screen right now is each action's own answer — `<ActionButton>`
-            draws nothing for an action that says it is hidden — so there is no
-            branch here that can disagree with what the menu shows or what a key
-            does, and no state that can quietly lose a button (back to club used
-            to go missing while you waited out a race).
-
-            The order is the one the old terminal branch argued for: what acts on
-            THIS board first, then the two ways to move on, then the exits, and
-            leaving last. */}
+            screen right now is each action's own answer — `<ActionButton>` draws
+            nothing for an action that says it is hidden — so no branch here can
+            disagree with what the menu shows. The game menu lists the same
+            bindings in this same order (docs/playarea.md). */}
         <InfoActionsRow message={rowMessage}>
           {/* Hint = a clue (common.words.hint); Spoiler = the answer word
               itself. Both log to the event log, cost nothing — and both wear the
@@ -223,16 +218,9 @@ export function InfoCol({
               itself in the mode that isn't its own. */}
           <ActionButton action={actConcede} show="icon" />
           <ActionButton action={actEndGame} show="icon" />
-          {/* Leaving, last. The chevron draws a shade smaller than an object
-              glyph, which the button reads off `buttons/iconScale.ts` rather
-              than being told.
-
-              FILLED only once the game is over, where leaving is the obvious
-              next thing and the row has no other live action competing for the
-              eye. Mid-game it is an outline: going to the club is available,
-              not recommended, and a filled button there would out-shout the
-              game. `weight` is the placement's to choose (docs/ui.md → Back to
-              club), which is why this is a condition here and not a state. */}
+          {/* Leaving, last. Filled at terminal, outline while the game runs:
+              `weight` is the placement's to choose rather than the action's,
+              which is why it is a condition here (docs/ui.md → Back to club). */}
           <ActionButton
             action={actBackToClub}
             show="icon"

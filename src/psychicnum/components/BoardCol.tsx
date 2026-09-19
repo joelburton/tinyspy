@@ -138,27 +138,20 @@ export function BoardCol({
   // The last submitted guess, handed to the entry as its `recall`.
   const [lastGuess, setLastGuess] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  /** The word currently with the server. Its tile takes the shared in-flight dim
-   *  — clicking a tile used to leave the board saying nothing at all until the
-   *  answer arrived. Held until the RESULT lands rather than until the RPC
-   *  resolves: the reply and the colored row are two separate events, and
-   *  un-dimming at the first would flash an undecided tile back to normal. */
+  // The word currently with the server; its tile takes the shared in-flight dim.
+  // Held until the RESULT lands rather than until the RPC resolves: the reply and
+  // the colored row are two separate events, and un-dimming at the first would
+  // flash an undecided tile back to normal.
   const [submittedWord, setSubmittedWord] = useState<string | null>(null)
-  /** …and the SERVER'S answer is what ends it: once the word is in `results` it is
-   *  decided, so it stops being in flight whatever this component still remembers.
-   *  Derived rather than cleared, so there is no path that can leave a dim stuck on
-   *  a tile forever (which is exactly what the first version did — the error branch
-   *  cleared it and the success branch never did).
-   *
-   *  `results` is the board being DISPLAYED, which while viewing a past turn is a
-   *  snapshot that cannot contain a word guessed after it — so this reads as "in
-   *  flight" for a decided word, and the gate at the `<Board>` call below is what
-   *  keeps that off a historical board.
-   *
-   *  A RESTART would strand it the same way — the word is not in the new, empty
-   *  results — but nothing here handles that: the page unmounts this whole
-   *  surface when the run changes, so there is no memory left to strand
-   *  (common/game-page/doc.md). */
+  // …and the SERVER'S answer is what ends it: once the word is in `results` it is
+  // decided, whatever this component still remembers. DERIVED rather than cleared,
+  // so no branch can leave a dim stuck on a tile forever.
+  //
+  // Two cases where the derivation reads "in flight" for a word that is not:
+  // a past turn's snapshot cannot contain a word guessed after it, which the
+  // `<Board>` call below gates on `isViewingHistory`; and a restart empties
+  // `results` entirely, which needs no gate because the page unmounts this whole
+  // surface when the run changes (common/game-page/doc.md).
   const inFlightWord = submittedWord !== null && !results.has(submittedWord) ? submittedWord : null
 
   // Picking a tile or typing both drive this one pending guess word. (A partial word
@@ -263,10 +256,8 @@ export function BoardCol({
 
   return (
     <div className={shared.boardCol}>
-      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
-          the live found/guesses readout, above the board. It's a fixed-height
-          row, so on a phone the board is that much shorter — the deliberate
-          trade for keeping the core state on the play surface. */}
+      {/* Mobile only, CSS-hidden on desktop where the info column carries it.
+          A fixed-height row, so the board below it is that much shorter. */}
       <MobileStatusBar>{mobileStatus}</MobileStatusBar>
       <Board
         words={shuffledWords}
