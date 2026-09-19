@@ -31,7 +31,8 @@ game area has, not anything about guessing words.
 
 **The board is one board.** N words (5–20, chosen at setup) sampled from
 `common.words` under a clean + American + non-slang + difficulty-band filter,
-the same N for everyone in the game. **Three of them are secret**, the same
+the same N for everyone in the game: five-letter words, plus exactly one
+nine-letter word for texture. **Three of them are secret**, the same
 three for everyone, and hidden server-side — a client cannot tell which, even
 with devtools open (see Schema). Win by finding all three.
 

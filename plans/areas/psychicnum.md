@@ -15,8 +15,21 @@ written and its four decisions are Joel's (2026-09-19): "precedent" names,
 The two e2e baseline runs are permitted. No stamps written. **Step 0 (the
 baseline) and Steps 1-6 are ALL DONE — the owed work gathered, the loader /
 loaded split, the actions and the row, the builder to `lib/`, the section
-order, the comment pass. **The restructure (pass 1) is COMPLETE; pass 2, the
-audit, is next.**
+order, the comment pass. **The restructure (pass 1) is COMPLETE.**
+
+**Pass 2, the audit: the READ is DONE (2026-09-19)** — Joel: *"this area never
+got a true audit, though. do the audit."* Every roster file read end to end:
+the thirty-one in `src/psychicnum/`, the three SQL files, the seven pgTAP
+files, and the net (the five e2e specs, the gallery script, every sentence in
+`docs/` that names the game). Baseline at the read: `tsc -b` clean, lint
+clean, 82 of 82 unit tests green. **Seventeen findings, F-psychicnum-4 to
+F-psychicnum-20; nothing in the code moved at the read.** The first four
+carry a decision. **F-4 is RULED** (Joel, same day): every board is five-letter
+words plus one nine-letter word, and that is the design — the "TEMP" prose
+that called it a font-tuning aid is gone and the doc and the CSS say what the
+board is. The rest are prose — stale claims, the marker pass, a banned word —
+and two shape questions. Sixteen open. The earlier three findings (F-1 to F-3) shipped
+during the restructure.
 
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
@@ -58,7 +71,13 @@ Listed 2026-09-19 (`src/psychicnum/`, its SQL, its doc):
   `supabase/migrations/20260615000002_psychicnum.sql`,
   `supabase/migrations/20260917000000_psychicnum_events.sql`,
   `supabase/sql/psychicnum.sql`.
-- **Doc — 1 file**: `docs/games/psychicnum.md` (600 lines).
+- **Doc — 1 file**: `docs/games/psychicnum.md` (600 lines). **DELETED
+  2026-09-19**; the doc is `src/psychicnum/doc.md` now, and `todo.md` beside it
+  — both on the roster, neither stamped (a `.md` carries no stamp).
+- **The pgTAP suite — 7 files**, `supabase/tests/psychicnum/` (`concede`,
+  `create_game`, `end_game`, `gameplay`, `replay`, `rls`, `turn_order`), all
+  `cs-unmet`. Listed at the audit (2026-09-19): they are this game's own files
+  and the stamp scope covers `supabase/`, so they are roster, not net.
 
 Stamps at the opening: ten files `cs-fixed-outcome-fix`, eighteen `cs-unmet`,
 `logo.svg` and `todo.md` none.
@@ -735,6 +754,431 @@ including what a racer CAN see of a rival (their found count and their budget,
 never their words); and the ending, where the secrets are not shown unless you
 ask. The modal grew from 420×280 — the smallest of the sixteen by a wide
 margin — to 460×400, which puts it among its siblings.
+
+### The audit's findings — 2026-09-19
+
+Ordered by what they cost, not by file. The first three carry a decision; the
+rest are prose and shape, and most have one obvious fix.
+
+### RULED · F-psychicnum-4 · `board-sampling-hack` · every board is five-letter words plus one nine-letter word, and the comment says it is temporary
+
+**Joel, 2026-09-19: keep the one longer word** — *"it's useful; remove
+comments that claim it's a temporary fix."* So the board is a design, not a
+leftover: the sample comment in `create_game` and the RPC header now describe
+five-letter words plus one nine-letter word as the board's texture; the
+`Board.module.css` knob comment says the knobs are set for that pair rather
+than for a three-to-twelve spread; `doc.md`'s rules say it. No test pins the
+lengths — offered, not built.
+
+**Where:** `supabase/sql/psychicnum.sql` → `create_game`, the board sample.
+The query is two branches unioned: `word_count - 1` words with `len = 5`, then
+exactly one with `len = 9`. Above it:
+
+```
+-- TEMP (texture for font-sizing): all 5-letter words EXCEPT one 9-letter
+-- word, so the board shows differing word widths while we tune the font.
+-- Revert to the plain length-agnostic sample (just the 5-letter branch's
+-- filter, no `len` clause, limit s_word_count) once the font work is done.
+```
+
+**The font work is done** — "tiles condense before they shrink" shipped
+2026-09-19 across three games (`0504dce7`, `0a3272ec`, `c0ea43a4`). The hack
+has been in since the game was written as a word game (`2bb7f894`,
+2026-06-28) and rode the SQL split (`e67f0956`) into the repeatable half, which
+is re-applied on every deploy — so **prod deals this board today**: every
+psychicnum game is N−1 five-letter words and one nine-letter word, at any
+difficulty band.
+
+**Three things say otherwise, and none of them is pinned:**
+
+- `Board.module.css` → `.grid`, on the two `wdth` knobs: *"This game draws
+  from the dictionary, so its words run from three letters to a dozen on the
+  same board — the widest spread of any tile game, which is why the two knobs
+  are set here."* Under the hack the spread is exactly 5 and 9. The knobs were
+  tuned against that board.
+- `doc.md` → Game rules: *"N words sampled from `common.words` under a clean +
+  American + non-slang + difficulty-band filter."* No length clause.
+- `create_game_test.sql` pins the count, the three secrets and the subset
+  property — never a length. Which is how a TEMP survived twelve weeks.
+
+**Options:**
+
+- *"revert"* — what the comment itself instructs: one branch, the clean +
+  american + non-slang + band filter, `limit s_word_count`, no `len`. The tile
+  knobs then need a look with real boards (pass 3's business, since it is the
+  board's look). A pgTAP assertion that a dealt board's lengths are not all
+  one value would be cheap and would have caught this.
+- *"keep, as a design"* — a board with one long word is a texture the game
+  wants. Then the comment stops saying TEMP, `doc.md`'s rules say it, the CSS
+  comment stops claiming a three-to-twelve spread, and a test pins it.
+- *"a real mix"* — sample across lengths deliberately (say 4–9) rather than
+  the accidental 5+one-9. A design decision, and `doc.md` would carry it.
+
+**Recommendation: revert.** The comment records the intent, the font work it
+waited on is in, and a deliberate texture would deserve to be designed rather
+than inherited from a tuning aid.
+
+### F-psychicnum-5 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, and cannot say "all conceded"
+
+**Where:** `lib/terminal.ts` takes `timerExpired` (from `timer.expired`, the
+browser-side clock in `GamePageCtx`) and branches the loss on it: out of time,
+else out of guesses. **The server already wrote the reason** —
+`status.outcome` is `'exhausted' | 'timeout' | 'conceded' | 'manual' |
+'solved'`, written by `submit_guess`, `submit_timeout`, `_maybe_finish_compete`
+and `end_game` — and the manifest's `labelFor` reads exactly that (`LOSS`).
+So the club page and the play surface answer "why did it end" from two
+different sources.
+
+**What it gets wrong today:** `_maybe_finish_compete` ends a race in
+`lost_compete` with `outcome = 'conceded'` when every player has conceded.
+The club page says *Lost (all conceded)*; the pill says *Out of guesses — no
+winner* and the info column says *Out of guesses*. Every player in that game
+has a full or partial budget and conceded on purpose. (`concede_test.sql`
+pins the play state and not the outcome, and `terminal.test.ts` walks
+`timerExpired` in both values, so both suites are green while the surfaces
+disagree.)
+
+**Options:**
+
+- *"read the outcome"* — the builder takes `reason: status.outcome` instead
+  of `timerExpired`: `timeout` → out of time, `conceded` → all conceded,
+  anything else → out of guesses. One source, the server's, and the
+  `terminal.test.ts` table gains a row per reason. `timer.expired` stays what
+  it is for the clock's own display.
+- *"add the arm, keep the clock"* — pass `allConceded` beside `timerExpired`.
+  Fixes the words, keeps two sources.
+- *"leave"* — an all-conceded race is rare among friends.
+
+**Recommendation: read the outcome.** It is the reason the column exists, and
+the manifest already trusts it.
+
+### F-psychicnum-6 · `compete-celebration-premise` · the reason compete gets no confetti stopped being true at Step 2
+
+**Where:** `PlayArea.tsx` → Page hooks:
+
+```
+// That rules COMPETE out: `won_compete` means SOMEONE won, and telling my
+// win from my loss needs `playerBudgets`, which is empty until the fetch
+// lands.
+const celebration = useCelebration(playState === 'won')
+```
+
+`useCelebration`'s rule 1 is *gate only on values correct on the FIRST
+render*. Before the loader split, `playerBudgets` was `[]` on the first
+render and filled later, so `iFoundThemAll` would have flipped false→true on
+a reload of a finished race and popped confetti at a reviewer. **After the
+split, `PlayArea` mounts with `playerBudgets` in hand** — `useGame` sets the
+game, the budgets and the guesses in one load, and the loader holds the gate
+until then. So `playState === 'won_compete' && iFoundThemAll` is correct on
+the first render: a reload seeds `prevWon` true and stays quiet; a live win
+flips it and pops. The premise the comment rests on is gone.
+
+**Options:**
+
+- *"celebrate the winner"* — `useCelebration(playState === 'won' ||
+  (playState === 'won_compete' && iFoundThemAll))`, with the title and body
+  reading for a race ("You win the race!"). The loser gets nothing, which is
+  right. `PlayArea.test.tsx` gains a compete win case and a reload case.
+- *"keep coop-only, fix the comment"* — if there is a reason a race winner
+  should not get the modal (one modal at terminal is a rule the comment
+  already cites; the winner's pill says *Won: the race*), the comment says
+  that reason and drops the one that is false.
+
+**Recommendation: celebrate the winner.** The coop team gets confetti for the
+same three words; a racer who beat the table to them has done more.
+
+### F-psychicnum-7 · `default-timer-fifteen-seconds` · the default setup is a fifteen-second countdown, and ui.md says none
+
+**Where:** `lib/setup.ts` → `DEFAULT_PSYCHICNUM_SETUP.timer` is
+`{ kind: 'countdown', seconds: 15 }`, with the docstring *"the timer defaults
+to a count-down — a 'casual game with stakes'"*. Fifteen seconds is the whole
+game. Ten other games' defaults are `{ kind: 'none' }`, and
+`docs/ui.md` → the setup-choice list says *"psychicnum and codenamesduet
+default to none"* — true of codenamesduet, false of this file since
+`d29ba2ce` (2026-06-20). The club-saved default overrides it after the first
+game, which is why nobody has met it lately; a fresh club meets it on its
+first psychicnum game.
+
+**Options:** *"none"* (what ui.md says and the roster does) · *"a real
+countdown"* (5:00, if a casual-stakes clock is the design — then ui.md changes
+instead) · *"keep 15"* (then `doc.md` says why).
+
+**Recommendation: none.** A default is a decision, and this one reads as a
+value left over from testing the timeout path.
+
+### F-psychicnum-8 · `spoiler-called-three-things` · the spoiler and the miss each read differently on four surfaces
+
+The "Wrong throughout" pass (Closing, above) settled the miss on the pill,
+the log and the PDF. Two words are still spread:
+
+| surface | a spoiler row | a miss | a hit |
+|---|---|---|---|
+| the button and the menu | Spoiler | — | — |
+| the event log (`GameEventLog.tsx`) | **Answer** | Wrong | Correct |
+| the PDF (`pdf/model.ts`) | **— Answer** | — Wrong | — Correct |
+| the history banner (`lib/history.ts` → `describe`) | **Revealed CHERRY** | **BERRY — not a secret** | **APPLE — a secret!** |
+| a teammate's header line (`lib/answer.ts`) | **revealed word** | Wrong: BERRY | Correct: APPLE |
+
+"Revealed" is the one that costs something: the reveal-solution vocabulary
+reserves *reveal* for the whole-solution toggle, and the 20260917 migration
+renamed the kind from `reveal` to `spoiler` for exactly that reason — so the
+banner and the peer line say the word the schema gave up. `GameEventLog`'s
+docstring also still lists the row kind as *"a **reveal** (a revealed
+answer)"*.
+
+**Options:** *"one word"* — the spoiler row says *Spoiler* on the log, the
+PDF and the banner, and the peer line says *got spoiler* to match *got hint*;
+the banner's miss and hit say *Wrong* / *Correct* like everywhere else ·
+*"banner stays prose"* — the banner is a sentence and may phrase; only
+"Revealed" changes.
+
+### F-psychicnum-9 · `todo-stale` · two shipped items and a non-item are still in `todo.md`
+
+- **Bugs:** *"`act-new-game` answers `active` before the game row has
+  loaded…"* — Step 2 closed it: the bindings mount with the game.
+- **Someday:** *"`PlayArea.tsx` returns its own `<p>Loading game…</p>`…"* —
+  Step 2 closed it: the loader returns `<Loading>`.
+- **Soon:** *"This is the control game for the app audit…"* — not work owed
+  to anyone; the area file and `doc.md` both say it.
+
+No decision: delete the three. The tile-fill item in Soon is pass 3's and
+stays.
+
+### F-psychicnum-10 · `docstring-marker-pass` · a field note written `/**` in nine files
+
+The pass every area makes (app-audit.md §4). `Board.tsx` and `PlayArea.tsx`
+have it right (`//` on every prop); these do not:
+
+- `InfoCol.tsx` — the whole props block, twenty-odd `/**` on members.
+- `GameEventLog.tsx` — `Props`: `guesses`, `isTerminal`, `historyId`,
+  `onShowHistory`.
+- `StateLine.tsx` — three of the four props.
+- `BoardCol.tsx` — one: `historyActor` (the rest are `//`).
+- `hooks/useGame.ts` — `PsychicnumGame.words` / `.secrets`,
+  `PlayerRow.found_secrets_count`, three `EventRow` fields, the return type's
+  `failure`.
+- `lib/setup.ts` — every field of `PsychicnumValues`.
+- `lib/answer.ts` — each arm of the `Answer` union, and `AnswerMessage.text`.
+- `lib/history.ts` — the three `HistorySnapshot` fields.
+- `lib/terminal.ts` — `selfWon`, `winnerName`.
+- `pdf/model.ts` — `PrintTrack.result`, the two `PsychicnumPrintModel`
+  fields, `words` and `guesses` in the builder's parameter.
+
+No decision; the rule is written. A read per file, not a sweep.
+
+### F-psychicnum-11 · `comments-on-the-wrong-line` · orphaned, misattached and false comments the restructure left
+
+- `InfoCol.tsx` → props type: `/** The number of board tiles (setup echo). */`
+  sits above nothing — the prop it described is gone.
+- `InfoCol.tsx` → above `rowMessage`: *"The exit — error-toned (red), and
+  BOTH are placed: compete's CONCEDE … and coop's neutral "End" … Icon-only …
+  the styled tooltip carries the label and the key."* That describes the
+  Concede / End buttons forty lines below; the comment that belongs to
+  `rowMessage` starts on the next line.
+- `GameEventLog.tsx`: *"A guessed / revealed word is a real dictionary word,
+  so it is definable; a HINT row's `word` is a clue sentence, so it is not."*
+  — followed by a blank line and `turnNumber`. It belongs beside
+  `<DefinableWord>` in the row. The next comment says the `#N` cell is *"shared
+  by both row kinds"*; there are three.
+- `BoardCol.tsx` docstring: *"PlayArea hands it the board to render … +
+  `isViewingHistory`"* — the flag is derived in this file from `historyLabel`,
+  and the section header under it says so.
+- `PlayArea.tsx` → Narration: *"an opponent's public found_secrets_count count
+  ticks up"*.
+- `PlayArea.tsx` → the verdict memo: `isTerminal && mode ? … : null` — `mode`
+  is `game.mode`, never falsy since the split; a leftover of `mode ?? 'coop'`.
+- `PlayArea.tsx`: `selfSecretsFound` is computed in the local-slot section,
+  and `iFoundThemAll` in Derived is the same row's same column against
+  `SECRET_COUNT` — three `playerBudgets.find(me)` calls for one row, and
+  `selfWon` is `mode === 'compete' ? iFoundThemAll : true` written a second
+  way. One `mine = playerBudgets.find(me)` in Derived, then `selfBudget`,
+  `selfSecretsFound` and `iFoundThemAll` off it.
+
+No decision in any of these.
+
+### F-psychicnum-12 · `two-spellings-of-one-fact` · InfoCol re-derives two answers the context already carries
+
+- It takes `isTerminal` as a prop (for the log's picker) **and** derives
+  `isTerminal={terminalMessage !== null}` for `<TurnStatusLine>` — the same
+  fact by two routes, one of which depends on the memo never returning null
+  for a terminal game.
+- It takes `currentTurnUserId` and re-derives `myTurn = currentTurnUserId ===
+  null || currentTurnUserId === selfId` to gate the help line, while
+  `GamePageCtx.isMyTurn` is the shell's answer and `BoardCol` reads that one.
+  The Derived section's rule is that the columns must not answer the same
+  question differently.
+
+**Options:** pass `isMyTurn` and use the `isTerminal` prop · leave, since the
+two derivations happen to agree today.
+
+### F-psychicnum-13 · `manifest-prose` · the manifest's comments describe a different file
+
+- On `playAreaLoader`: *"branches on `manifest.mode` (or, at runtime, on
+  `common.games.gametype` to derive mode)"* — it reads `game.mode`, the column
+  `useGame`'s docstring says exists so nobody parses the gametype string.
+- The file docstring: *"Today the registry filters by gametype string;
+  tomorrow, ClubPage may render baseGametype siblings as a single grouped
+  block"* — a plan in a docstring (docs are current state).
+- On `setupFormLoader`: *"mode is locked at gametype level now, not a setup
+  choice"* — archaeology.
+- The `labelFor` block comment lists the status blob as `{ guesses_remaining }`
+  / `{ outcome, guesses_used, winner_username }` and omits
+  `found_secrets_count` / `required_secrets_count`, which `StatusBlob` and
+  `create_game`'s seed both carry.
+- `psychicnumCompeteGame.labelFor` → `lost_compete`: the ternary's first arm
+  hand-writes `'all conceded'`, which is `LOSS.conceded` — the table exists so
+  the word is written once. Only the trailing `'no winner'` differs.
+- Two of the banned word (F-psychicnum-17).
+
+### F-psychicnum-14 · `stale-prose-in-sql-and-tests` · sentences in the SQL and pgTAP that name something not there
+
+`supabase/sql/psychicnum.sql`:
+
+- `end_game` header: *"(green "Game ended", not the red "you lost")"* —
+  `ended` is neutral, and neutral is not green (docs/outcomes.md).
+- `submit_timeout` header: *"a second concurrent fire … raises P0001; the FE
+  swallows"* — it is `_raise_game_over`'s `PN486`, a race the FE shows as a
+  pill. And the realtime-touch comment: *"BoardCol shows the fallback "Game
+  over." instead of the "The words were …" reveal"* — neither string exists.
+- `request_hint` / `request_spoiler` headers: *"X asked for a hint"* / *"X
+  revealed a word"* — the peer line says *got hint* / *revealed word*
+  (`lib/answer.ts`; F-psychicnum-8 may change the second).
+- `submit_guess` header: *"raises 'game is not active'"* — the text is *Game
+  over*.
+- The migration `20260615000002` cites `src/common/lib/games.ts`, a path that
+  does not exist (`src/common/manifest/gameManifest.ts`). The file is frozen,
+  but its header already carries a post-hoc "read this as" note, which is
+  where a second line would go.
+
+`supabase/tests/psychicnum/`:
+
+- `end_game_test.sql`: *"raises P0001"* four times, beside assertions of
+  `PN486`.
+- `gameplay_test.sql` header: *"request_hint/reveal"*; two assertion numbers
+  used twice (`(10)`, `(11)`).
+- `create_game_test.sql`: *"(10) Target is a 1..10 int"* — the number game;
+  the header says setup validation covers *"guesses + timer"* and the file
+  covers word_count and difficulty too.
+- `replay_test.sql`: *"42501 = common.require_game_player's 'not-a-player|'"*
+  beside an assertion of `PN253`.
+
+No decision in any of these.
+
+### F-psychicnum-15 · `stale-claims-in-docs` · eleven sentences in `docs/` about this game that are no longer true
+
+All outside the roster; a closed area is not locked, and each is a one-line
+fix in its doc:
+
+- `docs/ui.md` → setup choices: *"psychicnum and codenamesduet default to
+  none"* — see F-psychicnum-7, whichever way it goes.
+- `docs/ui.md` → Help: *"connections and psychicnum carry placeholder content
+  until they earn real copy"* — psychicnum's Help was rewritten
+  (F-psychicnum-3).
+- `docs/ui.md` → Terminal results: *"psychicnum's ringed secrets"* — they go
+  green; nothing is ringed (`Board.tsx`'s docstring).
+- `docs/ui.md` → game-end vocabulary: *"psychicnum and codenamesduet each
+  render their game-end screens differently today"* — both use the shared
+  terminal row and pill.
+- `docs/common.md` → global shortcuts: *"psychicnum's guess field — opted in
+  with `data-game-input`"* — no such attribute anywhere in `src/psychicnum`;
+  the entry is a display `<div>` and keys are read off the window.
+- `docs/code-conventions.md` → realtime: *"psychicnum's useGame subscribes to
+  `games` AND `guesses`"* — three tables, and the third is `events`.
+- `docs/code-conventions.md` → PlayArea: *"just a text input (psychicnum)"* —
+  it has a grid of tiles.
+- `docs/playarea.md` → the info-column table: *"(psychicnum: tiles / secrets
+  / difficulty)"* — the recap is roster, pacing, guesses, words on board,
+  dictionary, timer (`lib/setupSummary.ts`).
+- `docs/states.md`: *"the simplest is psychicnum coop (`playing` / `won` /
+  `lost`)"* — plus `ended`.
+- `docs/win-lose.md` → the hint table's paragraph: *"psychicnum's compete
+  reveal … the revealed word"* — the spoiler.
+- `docs/testing.md`: *"psychicnum's only helper is inline target-pinning"* —
+  the number game's word; it pins a board and three secrets.
+
+No decision, except the first.
+
+### F-psychicnum-16 · `e2e-prose` · the specs write screenshots into dead session folders, and three comments are stale
+
+- `psychicnum-history.e2e.ts` and `psychicnum-turn-order.e2e.ts` call
+  `page.screenshot({ path: '/private/tmp/claude-501/…/<session>/scratchpad/…' })`
+  — two different sessions' scratchpad paths, committed. Playwright creates
+  the directory, so the run does not fail; the files land in a folder nothing
+  reads. Drop the screenshots, or point them at `e2e/.artifacts/`.
+- `psychicnum-history.e2e.ts` docstring: *"the feature added on the (still
+  monolithic) PlayArea"* — archaeology, and untrue since the decomposition.
+- `psychicnum-terminal.e2e.ts`: the comment names `--outcome-won-fill-color`;
+  the token is `--outcomes-won-fill-color`. And one of the banned word
+  (F-psychicnum-17).
+
+### F-psychicnum-17 · `banned-word-copy` · "copy" for a message's words, in five files
+
+`manifest.ts` (*"Start-button copy"*, *"terminal copy"*),
+`components/SetupForm.tsx` (*"Copy is mode-neutral on purpose"*),
+`supabase/sql/psychicnum.sql` → `submit_timeout` (*"the FE's terminal copy can
+show mode-appropriate copy"*), `e2e/psychicnum-terminal.e2e.ts` (*"the shared
+neutral end copy"*), `e2e/psychicnum-turn-order.e2e.ts` (*"the turn copy"*,
+*"the slot's copy"*), `PlayArea.test.tsx` (*"the turn copy"*). The word is
+*text* (or *words*, *line*, *label*). No decision.
+
+### F-psychicnum-18 · `history-tile-comment` · thirty-four lines of comment on a two-declaration rule, with archaeology in them
+
+`Board.module.css` → `.historyTile`: `outline: 3px solid var(--history-color);
+outline-offset: 2px;` under a comment that says the ring was inset *"until
+2026-08-20"*, gives the contrast ratios that decision was made on, argues the
+2px and the 3px, and maps the overlap with the board frame on edge tiles. The
+CSS check (above) left the file's comment ratio as a judgment call; this one
+comment is the bulk of it, and the dated sentence is archaeology by the
+repo's own rule. What a reader needs is four lines: outside the tile like
+every history ring, 2px off so it reads as a ring rather than a border, 3px
+because an offset ring is not backed by a fill, and the known overlap with the
+frame on edge tiles.
+
+**Options:** *"thin to the four"* · *"leave"* (Joel read it 2026-09-19 and
+left it).
+
+### F-psychicnum-19 · `pdf-prose` · a count that is wrong and a number written twice
+
+- `pdf/printPsychicnumPdf.ts` → `drawGuessList`: *"psychicnum's budget is
+  seven guesses, so a track's list never paginates"* — the budget is 3 to 9,
+  and hint and spoiler rows are in the list too. The list does not paginate;
+  the reason given is not why.
+- `pdf/model.ts` → `track`: `` `${found} of 3 secrets found` `` — the 3 is
+  `SECRET_COUNT` in `PlayArea.tsx`, which the print model does not import.
+  One home, or the builder takes it as an argument.
+
+### F-psychicnum-20 · `docstrings-that-name-what-is-not-there` · in `useGame`, `Help` and `setup`
+
+- `hooks/useGame.ts` → the return type's `failure`: *"The surface renders this
+  instead of "Game not found.""* — that `<p>` went at Step 2; it renders
+  `<EnvelopeErrorPage>`, against `<NoSuchGamePage>` for the other case.
+- `components/Help.tsx` docstring: *"Implements the common `help:
+  ComponentType<{ onClose }>` contract"* — the contract is `{ onClose, brand }`
+  and the component takes both.
+- `lib/setup.ts` → `guesses`: *"the shared pool every club member draws
+  from. 7 is the historical default"* — per player in compete; "historical"
+  is archaeology. → `timer`: *"`countdown` flips the game to `lost`"* —
+  `lost_compete` in a race. The type docstring: *"see the migration's
+  validation block"* — the validation is in `supabase/sql/psychicnum.sql` →
+  `create_game`, not the migration.
+
+No decision in any of these.
+
+### What checked out
+
+Read and found sound, so the next sitting need not re-derive it: the three
+gates and the split; the eight sections and the one order the bindings, the
+prop list and the menu keep; `submit_guess`'s scope rules (coop = anyone's
+row, compete = the caller's) matching `BoardCol`'s local checks exactly;
+`events_select`'s three arms and the column grant on `secrets`; the realtime
+touch after every terminal write that skips `psychicnum.games`; the empty
+entry never submitting (`useCaptureKeys` disables Submit on `''`, so
+`BoardCol` needs no gate); `historySnapshot` resolving by id against the
+filtered list; the print model's per-player tracks; the Answer union carrying
+the no-word rule for `found_peer`; the status-label doc's psychicnum rows
+against `labelFor`; the `events` table in the publication after the rename
+(`events_skeleton_test.sql`). `BoardCol`'s two `useCallback`s are not the
+commands block's, so the shape rule does not reach them.
 
 ## Notes
 

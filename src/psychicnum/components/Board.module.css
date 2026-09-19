@@ -61,12 +61,12 @@
 /* @@ */   --tile-font-min: 0.85rem;
 /* @@ */   --tile-font-factor: 0.9;
 /* @@ */   --tile-font-max: 2.6rem;
-  /* A long word CONDENSES before it shrinks (shared `.tileWord`). This game
-   * draws from the dictionary, so its words run from three letters to a dozen
-   * on the same board — the widest spread of any tile game, which is why the
-   * two knobs are set here rather than left at the shared defaults. Up to
-   * seven characters nothing narrows; past that the glyphs give, as far as
-   * 60%, and the size falls only for what the narrowing cannot cover. */
+  /* A long word CONDENSES before it shrinks (shared `.tileWord`). Every board
+   * is five-letter words plus one nine-letter word (create_game deals it so),
+   * so the two knobs are set for that pair rather than left at the shared
+   * defaults: up to seven characters nothing narrows, so the five-letter tiles
+   * never condense; past that the glyphs give, as far as 60%, and the size
+   * falls only for what the narrowing cannot cover. */
 /* @@ */   --tile-wdth-len: 7;
 /* @@ */   --tile-wdth-min: 0.6;
 }

@@ -151,8 +151,8 @@ revoke insert, update, delete on psychicnum.games_state from authenticated;
 --             |  { "kind": "countdown", "seconds": 1..3600 } }
 --
 -- The board is `word_count` distinct words sampled from common.words under a
--- clean + american + difficulty-≤-band filter; three of them become the
--- hidden secrets.
+-- clean + american + difficulty-≤-band filter — five-letter words and one
+-- nine-letter word; three of them become the hidden secrets.
 --
 -- guesses meaning:
 --   - coop: shared budget (every player row gets the same
@@ -256,11 +256,9 @@ begin
   perform common.require_valid_timer(setup->'timer');
 
   -- The board: `word_count` distinct words sampled from the dictionary under a
-  -- clean (no crude/slur), american, non-slang, difficulty-≤-band filter.
-  -- TEMP (texture for font-sizing): all 5-letter words EXCEPT one 9-letter
-  -- word, so the board shows differing word widths while we tune the font.
-  -- Revert to the plain length-agnostic sample (just the 5-letter branch's
-  -- filter, no `len` clause, limit s_word_count) once the font work is done.
+  -- clean (no crude/slur), american, non-slang, difficulty-≤-band filter —
+  -- five-letter words, plus exactly ONE nine-letter word. The odd one out is
+  -- the board's texture: one tile whose word is visibly longer than the rest.
   select array_agg(word order by random()) into s_words
     from (
       (select word from common.words
