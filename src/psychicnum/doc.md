@@ -39,9 +39,14 @@ the first would flash an undecided tile back to normal.
 ## RPCs
 
 Everything the player does reaches the server through one of these, and every
-one answers [the envelope](../../docs/envelopes.md). The examples below show
-the fields that carry the answer — `data`, `outcome`, `message` — and leave out
-the envelope keys that are null in every one of them.
+one answers [the envelope](../../docs/envelopes.md).
+
+**An `ok` from this game carries a FACT and nothing else** — `data` only, with
+`outcome` and `message` both null. What a fact reads as is the frontend's, in
+one place: [`lib/answer.ts`](lib/answer.ts). So the examples below are all
+`data`; the rest of the envelope is null. (A `not-ok` is unaffected — a race, a
+bug and a service outage are not game logic, and they keep their severity and
+their sentence.)
 
 ### `psychicnum.create_game(target_club, setup, player_user_ids, mode)`
 
@@ -72,7 +77,7 @@ one to six.
 **Returned** — one answer, and `result` names it:
 
 ```json
-{ "data": { "result": "created", "id": "3f2a…" }, "outcome": null, "message": null }
+{ "result": "created", "id": "3f2a…" }
 ```
 
 ### `psychicnum.submit_guess(target_game, guess)`
@@ -86,16 +91,12 @@ completes the set.
 
 **Passed:** `{ "target_game": "3f2a…", "guess": "lantern" }`
 
-**Returned — kind: `guess`.** Three shapes, and `message` is null in all of
-them: "Correct" and "Incorrect" are the frontend's words, and the outcome is
-what it colors them with.
+**Returned — kind: `guess`.** Three shapes. `verdict` is the fact; the words
+and the color come from `answerMessage({ answerType: 'hit' | 'miss', word })`.
 
-- hit a secret —
-  `{ "data": { "verdict": "hit", "found_all": false }, "outcome": "won", "message": null }`
-- **completed the set** (the win) —
-  `{ "data": { "verdict": "hit", "found_all": true }, "outcome": "won", "message": null }`
-- missed —
-  `{ "data": { "verdict": "miss", "found_all": false }, "outcome": "lost", "message": null }`
+- hit a secret — `{ "verdict": "hit", "found_all": false }`
+- **completed the set** (the win) — `{ "verdict": "hit", "found_all": true }`
+- missed — `{ "verdict": "miss", "found_all": false }`
 
 The guess that spends the last of the budget without completing the set is not
 a fourth shape: it is whichever of the first and third it was, unchanged. The
@@ -112,13 +113,11 @@ teammates an "asked for a hint" line.
 
 **Passed:** `{ "target_game": "3f2a…" }`
 
-**Returned — kind: `hint`.** `warning` either way: a hint is neither good nor
-bad play.
+**Returned — kind: `hint`.** Two shapes; `result` is what tells them apart, so
+no call site has to recognize the fallback by its prose.
 
-- the secret has a clue —
-  `{ "data": { "result": "hint", "hint": "a light you carry" }, "outcome": "warning", "message": null }`
-- it has none —
-  `{ "data": { "result": "no-hint", "hint": "No hint available" }, "outcome": "warning", "message": null }`
+- the secret has a clue — `{ "result": "hint", "hint": "a light you carry" }`
+- it has none — `{ "result": "no-hint", "hint": "No hint available" }`
 
 ### `psychicnum.request_spoiler(target_game)`
 
@@ -129,11 +128,9 @@ which one.
 
 **Passed:** `{ "target_game": "3f2a…" }`
 
-**Returned — kind: `spoiler`.** One answer, and its outcome is `lost`: a
-spoiler ends the hunt for that secret, which is why it wears red where a hint
-wears amber.
+**Returned — kind: `spoiler`.** One shape.
 
-- `{ "data": { "result": "spoiler", "word": "lantern" }, "outcome": "lost", "message": null }`
+- `{ "result": "spoiler", "word": "lantern" }`
 
 ### The rest
 
@@ -142,26 +139,44 @@ shape every game has, doing here what they do everywhere.
 
 ## FE submissions
 
-Two refusals never reach the server: the board is face-up and its results are
-already here, so the frontend answers them itself and writes nothing down. Both
-show in the local feedback slot, and both read their outcome from
-[`lib/answer.ts`](lib/answer.ts), where every one of this game's answers is
-given its word once.
+**Every answer this game gives is named, and `lib/answer.ts` says what it
+reads as.** A call site never picks a color, and only the event log writes words
+of its own. Holding a server fact or its own adjudication, a surface names an
+`answerType` and calls `answerMessage()`; holding a logged row, it calls
+`eventToOutcome(row)` for the log's colored bar, or `peerAnswerMessage(row)`
+for a teammate's header line. One function underneath all of them, so the below-board
+pill, the log and the header cannot disagree about one move.
 
-| the frontend refuses | message | outcome |
-|---|---|---|
-| a word the board does not hold | `Not on the board` | `lost` — the move went wrong, though it cost no budget |
-| a word already decided | `Already guessed` | `warning` — nothing happened; you are looking at the answer |
+| answerType | said to | text | outcome |
+|---|---|---|---|
+| `hit` / `hit_peer` | me / about a coop teammate | `Correct: APPLE` | `won` |
+| `miss` / `miss_peer` | me / about a coop teammate | `Wrong: BERRY` | `lost` |
+| `hint` | me | *(nothing)* | `warning` |
+| `hint_peer` | about a coop teammate | `got hint` | `warning` |
+| `spoiler` | me | *(nothing)* | `lost` |
+| `spoiler_peer` | about a coop teammate | `revealed word` | `lost` |
+| `found_peer` | about a compete opponent | `guessed a word` | `won` |
+| `not_on_board` | me | `Not on the board` | `lost` |
+| `already_guessed` | me | `Already guessed` | `warning` |
 
-The server keeps both checks, and that is what makes its own answers to them
-mean something sharper: a word not on the board is a `fault` (the frontend let
-it through), and a duplicate is a `race` — the frontend's results map was stale
-because a teammate took the word between the render and the submit. The server
-says the same words for the duplicate, so which side caught it never shows.
+**An answer is mine or somebody else's, and the `_peer` suffix is which.** The
+pair always agrees about the outcome — one event is one color whoever is
+looking — and differs only in the words, so a game reading this list can see at
+a glance who is told what. Two things it makes visible: asking for a hint or a
+spoiler shows ME nothing (the clue and the word are rows, and the event log is
+where they belong), and `found_peer` carries no word at all.
 
-The third thing the frontend supplies is the WORDS for a verdict it did not
-make: `submit_guess` sends no message, and "Correct" / "Incorrect" are written
-here, colored by the outcome the server sent.
+**Two of them never reach the server**: the board is face-up and its results
+are already here, so `not_on_board` and `already_guessed` are answered locally
+and write nothing down. The server keeps both checks, which is what makes *its*
+answers to them mean something sharper — a word not on the board is a `fault`
+(the frontend let it through), and a duplicate is a `race`.
+
+**Where the secrecy rule lives is in the type, not in anybody's memory.** A
+racer may learn *that* an opponent found a secret and never *which*, so
+`found_peer` has no `word` field — the leak is unrepresentable rather than
+merely avoided. `spoiler_peer` is the same shape: the row holds the secret, the
+answer does not.
 
 ## Frontend
 

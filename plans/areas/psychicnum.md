@@ -626,6 +626,44 @@ reload rebuilds from. That is the same fact the in-flight dim is built on. The
 section says so now, and the "never decides" claim is narrowed to what is true —
 the FE holds no secrets mid-game, so it cannot tell a hit from a miss itself.
 
+### SHIPPED · F-psychicnum-2 · answer-message · the outcome and the text move to one function
+
+**Joel's design** (2026-09-19), after reading the doc: *"i've discovered it's
+unpleasant to spread this between rpc + fe."* An `ok` RPC returns the FACT and
+nothing else; the call site names an `answerType`; one function in `answer.ts`
+turns that into the outcome and the text. *"this replaces the static FE-table
+approach we use now."* `docs/envelopes.md` is NOT amended for now, on his word —
+its rule 2 ("where the RPC can write the sentence, it does") still stands in the
+doc while this game does the opposite.
+
+**What it was fixing, measured here:** one event had two sources and three
+hand-written sentences. The pill took its color from `res.outcome`; the
+event-log bar and the peer line took theirs from `ANSWER_OUTCOME` — the same
+table written twice, once in SQL and once in TS, pinned by two tests that each
+assert a literal and never compare each other.
+
+**The union turned out to carry a RULE, not just a payload.** A hit is narrated
+three ways, and the compete one is load-bearing: a racer may learn *that* an
+opponent found a secret and never which. So `opponent_found` is its own
+answerType with no `word` field at all — the leak is now unrepresentable rather
+than merely avoided. `spoiler` is the same shape one layer down.
+
+**What shipped:** `Answer` is a discriminated union on `answerType` (Joel's
+name — `kind` collides with the events column, and `type` with `res.type` at
+the very call site where both appear); `answerFromEvent` replaces `answerOf`;
+`answerMessage(answer)` replaces `ANSWER_OUTCOME` and returns `{ outcome, text }`.
+Five `ok_envelope` calls dropped their outcome argument, and sixteen pgTAP pins
+now assert **`"outcome":null`** rather than dropping the key — the envelope
+always carries it, so asserting the null is what makes its reappearance fail.
+Verified by planting an outcome back: two gameplay pins red. `Correct` /
+`Incorrect` became `Correct: APPLE` / `Wrong: BERRY`, which is what the peer
+line already said, so my own move and a teammate's now read alike.
+
+**Mid-task mistake worth keeping:** reverting that plant with
+`git checkout -- <file>` succeeded where I expected it to fail, and took the
+whole file's uncommitted work with it. The `||` fallback never ran, because the
+first command had not failed. Redone from scratch; nothing else was lost.
+
 ## Notes
 
 - **tile-feedback, as Joel sees it** (2026-09-19): *"i believe we've

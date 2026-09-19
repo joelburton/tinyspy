@@ -19,21 +19,22 @@
 -- so zdelta..zhotel are guessable-but-wrong, and a word NOT on the
 -- board (e.g. 'zzulu') exercises the board-word guard.
 --
--- Every envelope's `outcome` is asserted here, and its twin is the frontend's
--- src/psychicnum/lib/answer.ts, where ANSWER_OUTCOME says the same word for
--- the row the same event writes. Both halves move together.
+-- Every envelope is asserted to carry NO outcome, which is half of one rule:
+-- an RPC answers with the FACT (`verdict`, `result`) and the frontend decides
+-- what a fact reads as, in one place (src/psychicnum/lib/answer.ts). The other
+-- half is that file's own test. An outcome reappearing here is the rule
+-- breaking, which is why the null is asserted rather than the key ignored.
 --
 -- Coop assertions:
 --   - a word not on the board is rejected
---   - wrong guess decrements EVERYONE's budget, verdict 'miss', outcome `lost`
---   - finding a secret (not the last) is verdict 'hit', outcome `won`, with
+--   - wrong guess decrements EVERYONE's budget, verdict 'miss'
+--   - finding a secret (not the last) is verdict 'hit', with
 --     `found_all` false — the game continues, and it bumps the caller's
 --     players.found_secrets_count
 --   - re-guessing a taken word (game-wide) is rejected
 --   - request_hint logs a kind='hint' row with the secret's CLUE (or the
---     "No hint available" fallback), outcome `warning`; request_spoiler logs a
---     kind='spoiler' row with the answer WORD, outcome `lost`; neither spends
---     budget or finds the secret
+--     "No hint available" fallback); request_spoiler logs a kind='spoiler' row
+--     with the answer WORD; neither spends budget or finds the secret
 --   - finding the LAST secret carries `found_all` true, play_state='won', team won
 --   - the last-budget wrong guess → play_state='lost'
 --   - submit_timeout flips to 'lost'
@@ -98,9 +99,9 @@ select pg_temp.envelope_is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zdelta'),
-  '{"type":"ok","outcome":"lost",
+  '{"type":"ok","outcome":null,
     "data":{"verdict":"miss","found_all":false}}'::jsonb,
-  'coop: a wrong guess is verdict miss, outcome lost'
+  'coop: a wrong guess is verdict miss, and carries no outcome'
 );
 
 reset role;
@@ -115,7 +116,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zalpha'),
-  '{"type":"ok","outcome":"won",
+  '{"type":"ok","outcome":null,
     "data":{"verdict":"hit","found_all":false}}'::jsonb,
   'coop: finding a secret (not the last) is a hit, found_all false'
 );
@@ -152,7 +153,7 @@ select pg_temp.envelope_is(
 -- its own block below.)
 select pg_temp.envelope_is(
   psychicnum.request_hint((select id from coop_g)),
-  '{"type":"ok","outcome":"warning",
+  '{"type":"ok","outcome":null,
     "data":{"result":"no-hint","hint":"No hint available"}}'::jsonb,
   'coop: request_hint answers no-hint for a word with no clue'
 );
@@ -170,7 +171,7 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.request_spoiler((select id from coop_g)),
-  '{"type":"ok","outcome":"lost","data":{"result":"spoiler"}}'::jsonb,
+  '{"type":"ok","outcome":null,"data":{"result":"spoiler"}}'::jsonb,
   'coop: request_spoiler answers ok/spoiler'
 );
 -- The WORD it spoiled is one of the two still unfound — asserted separately,
@@ -218,7 +219,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select psychicnum.submit_guess((select id from coop_g), 'zbravo');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zcharlie'),
-  '{"type":"ok","outcome":"won",
+  '{"type":"ok","outcome":null,
     "data":{"verdict":"hit","found_all":true}}'::jsonb,
   'coop: finding the last secret returns won'
 );
@@ -282,7 +283,7 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_loss), 'zfoxtrot'),
-  '{"type":"ok","outcome":"lost",
+  '{"type":"ok","outcome":null,
     "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'coop: the budget-exhausting wrong guess is still a miss'
 );
@@ -321,7 +322,7 @@ select psychicnum.submit_guess((select id from coop_loss_hit), 'zdelta');
 select psychicnum.submit_guess((select id from coop_loss_hit), 'zecho');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_loss_hit), 'zalpha'),
-  '{"type":"ok","outcome":"won",
+  '{"type":"ok","outcome":null,
     "data":{"verdict":"hit","found_all":false}}'::jsonb,
   'coop: the budget-exhausting CORRECT guess still says won, not a loss value'
 );
@@ -378,14 +379,14 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_g), 'zalpha'),
-  '{"type":"ok","outcome":"won",
+  '{"type":"ok","outcome":null,
     "data":{"verdict":"hit","found_all":false}}'::jsonb,
   'compete: finding a secret (not the last) is a hit, found_all false'
 );
 select psychicnum.submit_guess((select id from comp_g), 'zbravo');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_g), 'zcharlie'),
-  '{"type":"ok","outcome":"won",
+  '{"type":"ok","outcome":null,
     "data":{"verdict":"hit","found_all":true}}'::jsonb,
   'compete: finding the last secret returns won'
 );
@@ -470,7 +471,7 @@ select psychicnum.submit_guess((select id from comp_loss), 'zdelta');
 select psychicnum.submit_guess((select id from comp_loss), 'zecho');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_loss), 'zgolf'),
-  '{"type":"ok","outcome":"lost",
+  '{"type":"ok","outcome":null,
     "data":{"verdict":"miss","found_all":false}}'::jsonb,
   'compete: the all-exhausting wrong guess is still a miss'
 );
@@ -528,7 +529,7 @@ select ok(
 -- fallback above: same shape, different `result`.
 select pg_temp.envelope_is(
   psychicnum.request_hint((select id from hint_g)),
-  '{"type":"ok","outcome":"warning","data":{"result":"hint"}}'::jsonb,
+  '{"type":"ok","outcome":null,"data":{"result":"hint"}}'::jsonb,
   'request_hint answers ok/hint when the word has a clue'
 );
 

@@ -411,16 +411,17 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 --   'verdict'    — 'hit' or 'miss'.
 --   'found_all'  — true only on the guess that completes the set;
 --                  the caller (compete) / team (coop) wins.
--- The outcome is `won` for a hit and `lost` for a miss (the reason
--- is beside the return). A word already in the log is PN497, a
--- `race` — the board refuses a repeat itself, so the server seeing
--- one means the FE's map was stale. The terminal transition itself
--- the FE observes via realtime, not the envelope.
+-- The envelope carries NO outcome and NO message: `verdict` is the
+-- fact, and how a fact reads is the frontend's, in one place
+-- (src/psychicnum/lib/answer.ts). A word already in the log is
+-- PN497, a `race` — the board refuses a repeat itself, so the
+-- server seeing one means the FE's map was stale. The terminal
+-- transition the FE observes via realtime, not the envelope.
 --
--- The outcome is the CALLER's verdict, never the game's fate: a
--- correct guess that happens to empty the budget still says `won`,
--- and the loss reaches the FE over realtime like every other way
--- this game ends (timeout, concede, a compete opponent finishing).
+-- `verdict` is the CALLER's, never the game's fate: a correct guess
+-- that happens to empty the budget still says `hit`, and the loss
+-- reaches the FE over realtime like every other way this game ends
+-- (timeout, concede, a compete opponent finishing).
 --
 -- "Found all three" is scoped per mode:
 --   coop    — the TEAM's distinct correct guesses (everyone's).
@@ -642,7 +643,7 @@ begin
     -- first: this guess hit, AND it was the last secret. Two facts, two
     -- fields, so neither has to be decoded out of the other.
     return common.ok_envelope(
-      jsonb_build_object('verdict', 'hit', 'found_all', true), 'won');
+      jsonb_build_object('verdict', 'hit', 'found_all', true));
   end if;
 
   -- ─── Budget exhausted before completing the set = loss ───
@@ -689,14 +690,9 @@ begin
     -- realtime (end_game above). A correct guess that empties the budget is
     -- still a correct guess to the person who made it.
     --
-    -- A miss is `lost`: the budget is what you spend to play, and a wrong guess
-    -- spends some of it for nothing — `neutral`, news rather than a verdict, is
-    -- not what the pill, the log and a teammate's line all say about it. The
-    -- frontend's lib/answer.ts says the same word for the row this wrote.
     return common.ok_envelope(
       jsonb_build_object('verdict', case when is_correct then 'hit' else 'miss' end,
-                         'found_all', false),
-      case when is_correct then 'won' else 'lost' end);
+                         'found_all', false));
   end if;
 
   -- ─── Game continues ──────────────────────────────────────
@@ -728,11 +724,9 @@ begin
               else '{}'::jsonb
          end
   );
-  -- A miss is `lost` — the reason is on the terminal arm above.
   return common.ok_envelope(
     jsonb_build_object('verdict', case when is_correct then 'hit' else 'miss' end,
-                       'found_all', false),
-    case when is_correct then 'won' else 'lost' end);
+                       'found_all', false));
 
 exception when others then
   get stacked diagnostics
@@ -896,11 +890,10 @@ revoke execute on function psychicnum._unfound_secret(psychicnum.games, uuid) fr
 -- Costs no budget and does NOT find the secret: it just shows it, so
 -- the player still has to guess (or doesn't bother — it's a cheat).
 --
--- ONE `ok`, carrying the revealed word, and its outcome is `lost`: a spoiler
--- hands over the secret itself, which ends the hunt for it (docs/outcomes.md →
--- One event, one outcome, and the frontend's lib/answer.ts says the same word
--- for the row). Its twin is stackdown.reveal_next_word, which answers the same
--- way down to the outcome.
+-- ONE `ok`, carrying the revealed word. No outcome and no message: how a
+-- spoiler reads is the frontend's, in src/psychicnum/lib/answer.ts, which is
+-- also what colors the row this writes. Its twin is
+-- stackdown.reveal_next_word.
 
 -- `create or replace` cannot change a function's return type, and this one
 -- became jsonb. `if exists` because this file is re-applied in full on every
@@ -962,10 +955,8 @@ begin
   insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
   values (target_game, caller_id, secret_word, true, 'spoiler', false);
 
-  -- A spoiler is RED. Its price is the whole hunt for that secret — there is
-  -- nothing left to find — so it does not wear the amber a hint does. The frontend's lib/answer.ts says the same word for this row.
   return common.ok_envelope(
-    jsonb_build_object('result', 'spoiler', 'word', secret_word), 'lost');
+    jsonb_build_object('result', 'spoiler', 'word', secret_word));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
@@ -1000,9 +991,9 @@ grant execute on function psychicnum.request_spoiler(uuid) to authenticated;
 -- carry that row's text in `hint`; only `result` tells them apart, which is
 -- what keeps a call site from having to match on the prose.
 --
--- Its outcome is `warning` in both cases: a hint is neither good
--- nor bad play (docs/outcomes.md), and stackdown.reveal_next_hint — the same
--- feature in another game — answers the same way.
+-- No outcome and no message on either: how a hint reads is the
+-- frontend's, in src/psychicnum/lib/answer.ts. stackdown.reveal_next_hint is
+-- the same feature in another game.
 
 -- `create or replace` cannot change a function's return type, and this one
 -- became jsonb. `if exists` because this file is re-applied in full on every
@@ -1068,8 +1059,7 @@ begin
   return common.ok_envelope(
     jsonb_build_object(
       'result', case when dict_hint is null then 'no-hint' else 'hint' end,
-      'hint', clue_text),
-    'warning');
+      'hint', clue_text));
 
 -- One block, and it has never heard of any specific condition: it reads the
 -- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry

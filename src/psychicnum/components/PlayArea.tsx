@@ -6,7 +6,7 @@ import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { ANSWER_OUTCOME, answerOf } from '../lib/answer'
+import { answerMessage, peerAnswerMessage } from '../lib/answer'
 import type { PsychicnumSetup } from '../lib/setup'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -325,23 +325,11 @@ function PlayArea({
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → local
       const member = memberById(players, g.user_id)
-      // A hint, or a spoiler. (A reveal logs the answer word, but we narrate it without
-      // naming the word — "revealed a word", not which one.)
-      if (g.kind === 'hint' || g.kind === 'spoiler') {
-        return FeedbackMessage.peer(
-          member,
-          ANSWER_OUTCOME[g.kind],
-          g.kind === 'hint' ? 'got hint' : 'revealed word',
-        )
-      }
-      // "Correct: WORD" / "Wrong: WORD" — the label carries the outcome (with
-      // the color), leaving the header's ~26 phone characters for the word
-      // itself rather than a sentence around it.
-      return FeedbackMessage.peer(
-        member,
-        ANSWER_OUTCOME[answerOf(g)],
-        `${g.is_correct ? 'Correct: ' : 'Wrong: '}${g.word.toUpperCase()}`,
-      )
+      // The row is somebody else's — the line above returned for my own — so
+      // every answer here is a `_peer` one, which is what gives a spoiler words
+      // that do not name the word.
+      const { outcome, text } = peerAnswerMessage(g)
+      return FeedbackMessage.peer(member, outcome, text)
     },
     globalFeedbackSlot,
   })
@@ -363,9 +351,11 @@ function PlayArea({
       if (prev === undefined) continue  // first sighting — seed, don't announce
       if (p.found_secrets_count <= prev) continue
       const member = memberById(players, p.user_id)
-      globalFeedbackSlot.show(
-        FeedbackMessage.peer(member, ANSWER_OUTCOME.hit, 'guessed a word'),
-      )
+      // `found_peer`, not `hit_peer`: in compete a racer may learn THAT an
+      // opponent found a secret and never which, so the answer that names a
+      // word is not reachable from here.
+      const { outcome, text } = answerMessage({ answerType: 'found_peer' })
+      globalFeedbackSlot.show(FeedbackMessage.peer(member, outcome, text))
     }
   }, [playerBudgets, mode, players, session.user.id, globalFeedbackSlot])
 

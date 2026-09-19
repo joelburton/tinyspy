@@ -12,7 +12,7 @@ import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { db } from '../db'
-import { ANSWER_OUTCOME } from '../lib/answer'
+import { answerMessage, type Answer } from '../lib/answer'
 import { Board } from './Board'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
@@ -174,6 +174,13 @@ export function BoardCol({
   // so feedback always lands in the entry's already-claimed space, never a new line
   // that would reflow the board.
   const submitGuess = async () => {
+    // Every answer this function has reaches the player the same way: one
+    // `Answer` in, its words and its color out of `lib/answer.ts`.
+    function show(answer: Answer) {
+      const { outcome, text } = answerMessage(answer);
+      localFeedbackSlot.show(FeedbackMessage.result(outcome, text));
+    }
+
     const guess = pending.trim().toLowerCase()
     // Remembered for the entry's recall — including a guess the server refuses,
     // which is the case where recalling it is worth something.
@@ -185,17 +192,13 @@ export function BoardCol({
     // than a verdict (docs/envelopes.md → "was anything local consulted
     // first?"). The words are the server's, so the two routes read alike.
     if (!words.includes(guess)) {
-      localFeedbackSlot.show(
-        FeedbackMessage.result(ANSWER_OUTCOME.not_on_board, 'Not on the board'),
-      )
+      show({ answerType: 'not_on_board' })
       return
     }
     // `results` is scoped exactly as the server's check is — everyone's guesses
     // in coop, the caller's own in compete, since RLS never shows more.
     if (results.has(guess)) {
-      localFeedbackSlot.show(
-        FeedbackMessage.result(ANSWER_OUTCOME.already_guessed, 'Already guessed'),
-      )
+      show({ answerType: 'already_guessed' })
       return
     }
     setSubmitting(true)
@@ -212,14 +215,10 @@ export function BoardCol({
     if (res.type === 'not-ok') {
       setSubmittedWord(null)
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
-    } else if (res.type === 'ok' && res.data?.verdict === 'hit' && res.outcome !== null) {
-      // The server sends no sentence — "Correct" / "Incorrect" is this surface's
-      // word for a verdict the player is already looking at on the board. What
-      // it does send is how that reads, so the outcome is the other half of each
-      // case's promise and the branch asserts it.
-      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, 'Correct'))
-    } else if (res.type === 'ok' && res.data?.verdict === 'miss' && res.outcome !== null) {
-      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, 'Incorrect'))
+    } else if (res.type === 'ok' && res.data.verdict === 'hit') {
+      show({ answerType: 'hit', word: guess })
+    } else if (res.type === 'ok' && res.data.verdict === 'miss') {
+      show({ answerType: 'miss', word: guess })
     } else {
       // Nothing named this answer, so the tile must not keep claiming to be in
       // flight — there is no result coming that would release it.

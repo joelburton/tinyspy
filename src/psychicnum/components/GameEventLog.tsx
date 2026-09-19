@@ -6,7 +6,7 @@ import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
-import { ANSWER_OUTCOME, answerOf } from '../lib/answer'
+import { eventToOutcome } from '../lib/answer'
 import type { Player, EventRow } from '../hooks/useGame'
 import styles from './GameEventLog.module.css'
 
@@ -104,7 +104,7 @@ export function GameEventLog({
         if (g.kind === 'hint') {
           return (
             <tr key={g.id} className={gameEventLog.divider}>
-              <EventLogOutcomeBar outcome={ANSWER_OUTCOME.hint} />
+              <EventLogOutcomeBar outcome={eventToOutcome(g)} />
               {turnNumber(g, i)}
               {/* The hint sentence spans the word+result columns; it's the row's
                   main column (absorbs the slack so `.who` stays snug). */}
@@ -119,9 +119,11 @@ export function GameEventLog({
         const isSpoiler = g.kind === 'spoiler'
         return (
           <tr key={g.id} className={gameEventLog.divider}>
-            {/* The bar's word is `lib/answer.ts`'s, so the log has none of its
-                own to disagree with the pill about the same turn. */}
-            <EventLogOutcomeBar outcome={ANSWER_OUTCOME[answerOf(g)]} />
+            {/* The color is `lib/answer.ts`'s, so the log has none of its own
+                to disagree with the pill about the same turn. The row's WORDS
+                are the log's — the word and the verdict are two columns here,
+                not a sentence. */}
+            <EventLogOutcomeBar outcome={eventToOutcome(g)} />
             {turnNumber(g, i)}
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result
