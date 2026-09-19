@@ -21,7 +21,7 @@ begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(32);
+select plan(33);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -281,6 +281,18 @@ select ok(
         and secrets <@ words                               -- secrets ⊆ board
      from psychicnum.games where id = (select id from coop_game)),
   'coop: 8 board words, three distinct secrets drawn from them'
+);
+
+-- (10b) The board's LENGTHS are the design, not an accident: five-letter words
+-- plus exactly one nine-letter word (the one long tile is the board's texture).
+-- Nothing else pins this, and a "TEMP" comment sat on it for twelve weeks
+-- because nothing did.
+select is(
+  (select array_agg(length(w) order by length(w))
+     from psychicnum.games, unnest(words) as w
+    where id = (select id from coop_game)),
+  array[5, 5, 5, 5, 5, 5, 5, 9],
+  'coop: the board is five-letter words plus exactly one nine-letter word'
 );
 
 -- (11) secrets is not visible to authenticated SELECT (words IS — it's the

@@ -1423,6 +1423,10 @@ commands block's, so the shape rule does not reach them.
   `feedback/doc.md` says why it lives there and not in a game. psychicnum's
   `lib/answer.ts` imports it; the `Answer` union and `answerMessage()` stay
   the game's. The Someday item is deleted.
+- **The board's lengths are pinned in pgTAP** (Joel, 2026-09-19, the last
+  todo): `create_game_test.sql` (10b) asserts a dealt board's lengths are
+  seven fives and one nine — the assertion F-4 offered. The Maybe item is
+  deleted, which leaves `todo.md` holding only the two Won't-dos.
 - The area's opening deviated from §4 on purpose: the restructure runs before
   the prose pass (Joel, 2026-09-19), for the reason under *Three passes*.
 
