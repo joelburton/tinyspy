@@ -2,7 +2,7 @@
 
 import type { Member } from '../members/member'
 import { waitingForText } from './turnText'
-import shared from '../game-page/playArea.module.css'
+import shared from './infoCol.module.css'
 
 type Props = {
   // The common turn pointer (commonGame.current_turn_user_id). In a

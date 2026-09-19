@@ -1,8 +1,8 @@
 /* cs-unmet */
 
-/* codenamesduet's info-column bits. The scaffold (.infoCol / .noShrinkRow /
- * .infoState / .infoActions / .infoHelp) is the shared common/components/
- * PlayArea.module.css; only the three codenamesduet-specific readouts live here —
+/* codenamesduet's info-column bits. The shared classes (.infoCol / .noShrinkRow /
+ * .infoState / .infoActions / .infoHelp) are
+ * common/info-sheet/infoCol.module.css; only the three codenamesduet-specific readouts live here —
  * the two finished-player banners and the red "SUDDEN DEATH:" help lead-in. */
 
 /* The red "SUDDEN DEATH:" lead-in on the otherwise-muted info-column help, so a

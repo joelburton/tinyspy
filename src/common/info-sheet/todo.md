@@ -21,9 +21,8 @@
   that order "enforced on every standard game", which today means documented and
   obeyed by hand — and it records codenamesduet having drifted out of it once. A
   shared component would make the order structural and, more to the point here,
-  would give the info column a real matched stylesheet: today its shared classes
-  live in `game-page/playArea.module.css` (see that folder's todo), which is the
-  wrong file for them.
+  would build on the column's own stylesheet, `infoCol.module.css`, which landed
+  2026-09-18.
 
   Joel's steer, 2026-09-14: a game extending the shared look should do it
   through CSS Modules' `composes:`, so the game's own module names what it takes
@@ -33,24 +32,9 @@
   today; see [docs/deferred.md](../../../docs/deferred.md) → Common /
   architecture.
 
-  Bigger than the CSS split and shouldn't block it: it needs the slots named and
+  The CSS split is done and did not need this; this needs the slots named and
   decided first (what is a slot, what is free-form, what a game that wants none
   of one does).
-
-- **`TurnStatusLine` takes `.infoState` from another folder's stylesheet** —
-  `game-page/playArea.module.css`, one of the four info-column readout kinds.
-  Raised from setup-form's audit (Joel, 2026-09-14): *"it feels wrong for
-  someone else to import CSS that is named for one component."* The file is not
-  in fact component-named — there is no `common/game-page/PlayArea.tsx` — but
-  this folder should argue its own case when it opens, and it has the sharpest
-  version of the question: `docs/common-folders.md`'s folder table already gives
-  info-sheet *"the chrome its panels share"*, while the readout kinds
-  (`.infoState` / `.infoHelp` / `.infoActions`) live in
-  `game-page`. Either the table's claim is wrong or the family is in the wrong
-  folder. (`word-entry` answered its own half of this: it wears that sheet's
-  `.localFeedback` on purpose, a lowercase stylesheet name being the repo's
-  mark for one meant to be read by others. `terminal` imports no stylesheet but
-  its own.)
 
 ## Someday
 

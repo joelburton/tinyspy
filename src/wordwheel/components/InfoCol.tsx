@@ -14,7 +14,7 @@ import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { WordwheelSetup } from '../lib/setup'
 import { RankBar } from '@/shared/rank-ladder/RankBar'
 import { Stats } from '@/shared/rank-ladder/Stats'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 
 /**
  * wordwheel's info column — near-zero state, an arrangement of the shared scaffold

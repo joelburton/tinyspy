@@ -15,7 +15,7 @@ import { BOARD_SIZE } from '../lib/board'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
 import type { EventRow } from '../hooks/useGame'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './PlayArea.module.css'
 
 /**

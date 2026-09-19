@@ -2,7 +2,7 @@
 
 /* scrabble InfoCol — the coop suggest-a-move results box (docs/scrabble-ai.md
  * S5; the Suggest button itself sits in the shared action row). Everything
- * else in the column comes from the shared PlayArea.module.css. */
+ * else in the column comes from common/info-sheet/infoCol.module.css. */
 
 /* The box is only in the tree once it has content (loading / results / error);
  * when idle it renders nothing and claims no space (InfoCol gates it — a

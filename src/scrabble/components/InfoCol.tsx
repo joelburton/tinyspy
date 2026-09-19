@@ -15,7 +15,7 @@ import type { RankedMove } from '../lib/rank'
 import type { PlayerRow, EventRow } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './InfoCol.module.css'
 
 /** The AI suggest-a-move box's state (owned by PlayArea, rendered here).

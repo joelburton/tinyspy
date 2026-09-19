@@ -66,7 +66,7 @@ GamePage (shell)                      ── mobile only ──▶  <InfoSwitchB
         └── <InfoSheet open onClose>             display: contents on desktop;
               │                                  a fixed full-bleed page below --mobile
               └── <game>/InfoCol                                 ← the game's
-                    │   .infoCol → .noShrinkRow → …    ← game-page/playArea.module.css
+                    │   .infoCol → .noShrinkRow → …    ← infoCol.module.css, here
                     ├── <p .infoState>                 the game's own readout
                     ├── <TurnStatusLine>               root class .infoState
                     ├── <OpponentStrip metricFor metricLabel leading?>
@@ -80,9 +80,18 @@ common/event-log: useHistoryViewer.showHistory() → setInfoSheetOpen(false)
                   opening a turn leaves the info page for the board it replays
 ```
 
-The two components that wear a class from `game-page/playArea.module.css` do so
-because a game composes those same classes directly on its own markup; only the
-action row's outcome inks are local, beside the component that draws the line.
+**Two stylesheets, and the line between them is which element wears the class.**
+`infoCol.module.css` here holds the column's box and every row in it — the eight
+classes above, worn by a game's `InfoCol` on its own markup and by
+`TurnStatusLine` and `InfoActionsRow` as their root class.
+`game-page/playArea.module.css` keeps what the PlayArea ROOT DIV wears: `.layout`,
+`.mobileFill`, and `.responsiveInfoCol` — the clamp that decides how much width
+the column takes from the board, which stays with the shell because it is a
+negotiation between the two columns rather than a rule about either. `.infoCol`
+reads the `--info-col-width` that clamp sets, the way `MobileStatusBar` reads the
+`--mobile-status-height` a game raises on its board column: a variable crossing a
+folder line is a contract, not a misfiling. The action row's outcome inks are
+`InfoActionsRow.module.css`'s, beside the component that draws the line.
 
 **What an InfoCol places, and when.** The condition, not a list of games — a game
 that grows a per-player metric grows a strip the same day.
@@ -120,3 +129,11 @@ appears or disappears under the reader. What it may say once the game is over is
 `docs/playarea.md` → Info-column readouts: a finished game has nobody's turn, and
 the two shapes a turn readout may take at terminal are its rule, not this
 folder's.
+
+**The don't-move rule is kept row by row, not by the column.** `.noShrinkRow`
+wraps every row of the column except the log, so the log is the one thing
+squeezed when the column runs short — flex shrinking is negotiated between
+siblings, so the wrapper is what makes "the log gives" structural. It reserves no
+height. Each row keeps its own shape instead: the action row is always one line,
+an opponent strip reserves the lines it can grow to. A `min-height` on the stack
+would be exactly the container-level reservation the rule refuses.

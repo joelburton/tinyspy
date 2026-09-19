@@ -158,23 +158,19 @@ A message already showing stays readable, and the menu stays openable, because
 a paused game is not a broken one and the way out runs through both.
 
 **What a game wears from here besides the page.** `playArea.module.css` is the
-two-column scaffold every play surface composes — the board column that hugs
-its board, the info column with its no-shrink rows above a scrolling log, the
-shared tile and the board-wide feedback marks; a game imports it directly and
-adds a thin module of its own. (The info column's action row, `InfoActionsRow`,
-is `info-sheet`'s; the row classes it composes are this sheet's, because a game
-can compose them directly too.) `useStandardGameActions` binds End, Concede and
+two-column scaffold every play surface composes — the row that holds both
+columns, the board column that hugs its board, the shared tile and the
+board-wide feedback marks; a game imports it directly and adds a thin module of
+its own. The INFO column is not here: its box and its rows are
+`info-sheet/infoCol.module.css`, the folder that owns the column, and the line
+between the two sheets is which element wears the class — a game's PlayArea root
+div wears the scaffold's `.layout` / `.mobileFill` / `.responsiveInfoCol`,
+including the clamp that decides how much width the column takes from the board,
+because that is a negotiation between the two columns.
+`useStandardGameActions` binds End, Concede and
 Restart once per game; the
 actions say when they apply, so End is hidden in a race unless the game opts
 in, Concede is hidden outside one, and both are hidden at terminal because
 there is no ending an ended game. `DeviceBlockNotice` is the card a game
 renders in place of its board on a device it cannot be played on, and its exit
 is the same Back to club as everywhere else.
-
-**The don't-move rule is kept row by row, not by the column.** `.noShrinkRow`
-wraps every info-column row except the log so the log is the one thing squeezed
-when the column runs short — flex shrinking is negotiated between siblings, so
-the wrapper is what makes "the log gives" structural. It reserves no height.
-Each row keeps its own shape instead: the action row is always one line, an
-opponent strip reserves the lines it can grow to. A `min-height` on the stack
-would be exactly the container-level reservation the rule refuses.

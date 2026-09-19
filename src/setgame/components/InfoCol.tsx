@@ -15,7 +15,7 @@ import { Counts } from './Counts'
 import { countsFor } from '../lib/readouts'
 import { GameEventLog } from './GameEventLog'
 import { LastSet } from './LastSet'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 
 type Props = {
   // ── Mode + phase ──

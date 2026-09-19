@@ -4,9 +4,9 @@ The folders it reads: `info-sheet`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18; the prose pass done 2026-09-18 (F-1 to
-F-6, F-8, F-9, F-10, F-17), so seven findings are left: the bug F-7 and the six
-that carry a decision.** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
+**Status: OPEN — audited 2026-09-18; the prose pass done the same day (F-1 to
+F-6, F-8, F-9, F-10, F-17) and F-11 ruled and shipped after it, so six findings
+are left: the bug F-7 and five carrying a decision (F-12 to F-16).** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
 the audit"*); fifteen files stamped `cs-audited-info-sheet`. Taken in order after
 `reveal` (row 45); this is row 46.
 
@@ -21,6 +21,8 @@ stamped):
 - `InfoSwitchButton.tsx` — the header's page switch
 - `infoSheetStore.ts` + `useInfoSheet.ts` — which mobile page is showing
 - `infoPanel.module.css` — the bordered panel (heading + 2px frame)
+- `infoCol.module.css` — the column box and its rows; CREATED by F-11, moved out
+  of `game-page/playArea.module.css` 2026-09-18, and on the roster from that day
 - `MobileStatusBar.tsx` + `MobileStatusBar.module.css`
 - `OpponentStrip.tsx` + `OpponentStrip.module.css`
 - `TurnStatusLine.tsx` + `TurnStatusLine.test.tsx` — moved in from `turn-log`
@@ -33,8 +35,10 @@ stamped):
 `cs-blessed-feedback` (`feedback` owns the words; the row says so), the way
 `terminal` treated `terminalMessage.ts`. The fourteen game `InfoCol.tsx` files,
 eight `BoardCol.tsx` files and `GamePage.tsx` that place these are consumers,
-each its own area. `game-page/playArea.module.css` is read because two roster
-components take their root class from it (F-11). `docs/playarea.md → Info-column
+each its own area. `game-page/playArea.module.css` began as evidence — two roster
+components took their root class from it — and F-11 then edited it, moving the
+column's eight classes out; it is not stamped for this area, since what it keeps
+is the shell's. `docs/playarea.md → Info-column
 readouts`, `docs/mobile.md → The two mobile pages` / `the info-sheet recipe` /
 `The mobile status bar`, `docs/ui.md → Terminal results` and
 `docs/common-folders.md`'s folder table are read as evidence and fixed where
@@ -256,18 +260,20 @@ it.
 - `mobile.md`: the three sentences in F-2, and *"the ~24rem sheet"* again in the
   status-bar section.
 - `docs/common-folders.md`'s folder table: *"the chrome its panels share"* —
-  true of `infoPanel`, false of the readout classes; F-11 decides which way it
-  is fixed.
+  true of `infoPanel`, false of the readout classes. Left for F-11 at the prose
+  pass and fixed by it: the classes moved here, so the row now names the sheet
+  as well as the panel frame.
 
 ### F-info-sheet-10 · `alias-inside-common` · `InfoActionsRow.tsx` imports another `common/` folder through `@/` — WORKED
 
 `import shared from '@/common/game-page/playArea.module.css'` — the rule
 (`docs/common-folders.md → Imports use the @/ alias when they leave their
 folder`) is relative within a top-level folder: `TurnStatusLine.tsx` next to it
-writes `'../game-page/playArea.module.css'`. Moot if F-11 (b) moves the classes
-here; one line otherwise.
+writes `'../game-page/playArea.module.css'`. Fixed to the relative form at the
+prose pass; F-11 (b) then made both of them `'./infoCol.module.css'`, their own
+folder's sheet, which is what the rule wanted in the first place.
 
-### F-info-sheet-11 · `readouts-live-in-game-page` · The folder table gives info-sheet the info column's shared chrome, and the info column's shared classes live in `game-page`
+### F-info-sheet-11 · `readouts-live-in-game-page` · The folder table gives info-sheet the info column's shared chrome, and the info column's shared classes live in `game-page` — WORKED as (b), ruled 2026-09-18
 
 `docs/common-folders.md` says `info-sheet` is *"the info column: its mobile
 sheet, its switch, the chrome its panels share"*. What the folder holds is the
@@ -309,6 +315,54 @@ READOUTS"*, a family distinct from *"the two-column SHELL"* it also holds.
   first (what is a slot, what is free-form, a game that wants none of one), and
   `composes` is used nowhere in the repo yet. Record it as the direction (b)
   enables, and open it as its own piece of work.
+
+**Ruled (b), 2026-09-18** — Joel: *"i think would should move the
+info-sheet/info-col classes to here. we can consider the 'composes' stuff later,
+after we've audited a game or two, and we'll have a better sense of how much
+individual styling games need over the shared infocol classes."*
+
+The audit had recommended (b) and I argued for (a), on the strength of a standing
+ruling: 2026-09-14 (`8bf5c549`), *"let's do 1 now, and continue to have an issue
+to subdivide it later. once we're at the point of being able to audit our first
+game, we'll be a in a better place."* Two things put that aside. **The move and
+`composes:` are separable** — one is where declarations live, the other is how a
+game extends them, and the second genuinely cannot be decided until a game has
+been audited, which is the same reason the whole subdivision was deferred. And
+**the risk the todo cited is guarded**: `src/guards/cssClasses.test.ts` fails on a
+`styles.x` whose module no longer defines it, so a missed call site is a named
+test failure, not a silently unstyled element. What shipped is one concern of the
+five, the one whose home `docs/common-folders.md` already claimed.
+
+**The line drawn, which is the reusable part: WHICH ELEMENT WEARS THE CLASS.**
+A game's PlayArea root div wears `.layout`, `.mobileFill` and
+`.responsiveInfoCol`, so those stayed — `.responsiveInfoCol` in particular, which
+is the clamp deciding how much width the column takes from the board, a
+negotiation between the two columns and not a rule about either. Everything worn
+by the column or a row inside it moved: `.infoCol` (+ its `--mobile` override),
+`.noShrinkRow` (+ `.noShrinkRow p`), `.infoState`, `.infoHelp`, `.infoActions`,
+`.terminalActions`, `.actionsDivider` (+ its two sibling rules), `.terminalExtra`.
+That test also settled the sub-question the option had left open ("`.infoCol`'s
+column geometry stays with the shell since `.layout` sizes it — or moves too"):
+it moves, and `--info-col-width` crossing the folder line is a contract, the way
+`MobileStatusBar` reads the `--mobile-status-height` a game raises on its board
+column.
+
+**What it cost:** eighteen code files repointed one import (fourteen game
+`InfoCol.tsx`, bananagrams's `PlayArea.tsx` and `PlayerBoard.tsx`, and this
+folder's `TurnStatusLine` + `InfoActionsRow`). Seventeen of them wear only moved
+classes, so the identifier stays `shared` and the diff is the import line alone;
+`bananagrams/PlayerBoard.tsx` is the one file wearing both sheets, and its
+game-page import is now `shell`. No class was renamed and no pixel moved. The
+two e2e selectors that match on the hashed name (`[class*="infoCol"]`,
+`[class*="infoState"]`) still match, since the hash carries the source file's
+name and the new file is `infoCol`.
+
+**Docs that moved with it:** the folder-table row (now true), `docs/playarea.md`'s
+"Shared in …", `docs/deferred.md`'s offender bullet, `game-page/doc.md` (the
+don't-move-row-by-row item came here, and "what a game wears" names the line),
+`game-page/todo.md` (four concerns, and its "not a build error" claim corrected),
+`info-sheet/todo.md` (the `.infoState` Soon item is answered and deleted) and
+`vocabularies.test.ts`'s `pending` rows, which are keyed by path.
 
 ### F-info-sheet-12 · `exclude-error-on-the-row` · `InfoActionsMessage.outcome` is `Exclude<Outcome, 'error'>` for a reason `docs/outcomes.md` now calls false
 
@@ -416,8 +470,12 @@ it is the harvest source rather than archaeology.
 ## Predicted test breaks
 
 - F-7: `TurnStatusLine.test.tsx` — no break; a new assertion.
-- F-11 (b): none at runtime; `vocabularies.test.ts`'s `pending` rows keyed by
-  file path move with the literals; the css-class guard sees the same names.
+- F-11 (b): **as predicted.** No runtime break; `vocabularies.test.ts` went red
+  on three vocabularies until the `pending` rows followed the literals to the new
+  path — and one stale entry had to go with them, since `0.5rem`'s only remaining
+  home in `playArea.module.css` is a `padding`, which that vocabulary parks. The
+  css-class guard stayed green throughout, which is also the proof it would have
+  caught a missed call site.
 - F-12 (a): `InfoActionsRow.test.tsx`'s loop adds `error`.
 - F-13: none — two call sites renamed together.
 - F-14: any InfoCol test rendering `<OpponentStrip>` without `metricLabel`

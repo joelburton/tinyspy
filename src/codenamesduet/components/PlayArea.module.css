@@ -1,9 +1,9 @@
 /* cs-unmet */
 
 /* codenamesduet play surface (the thin coordinator). The two-column SHELL
- * (.layout / .boardCol / .infoCol), the info-column readouts, and the tile chrome
- * all come from the shared common/game-page/playArea.module.css (imported as
- * `shared`). The only class left here is the layout var; the column-specific bits
+ * (.layout / .boardCol) and the tile chrome come from the shared
+ * common/game-page/playArea.module.css, the info column (.infoCol and its rows)
+ * from common/info-sheet/infoCol.module.css (imported as `shared`). The only class left here is the layout var; the column-specific bits
  * live with their columns (BoardCol.module.css / InfoCol.module.css).
  *
  * Mobile is the shared recipe (docs/mobile.md): `shared.mobileFill` on `.layout`

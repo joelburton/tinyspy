@@ -11,18 +11,17 @@
  * by every game and there is no `PlayArea` component in this folder for it to
  * belong to. docs/deferred.md → Common / architecture states the rule.
  *
- * Five concerns live here, and only the first is the file's namesake:
- *   1. the two-column SHELL (.layout / .boardCol / .infoCol / .mobileFill /
+ * Four concerns live here, and only the first is the file's namesake:
+ *   1. the two-column SHELL (.layout / .boardCol / .mobileFill /
  *      .responsiveInfoCol / .hugRectWidth / .floatingShuffle);
- *   2. the info-column READOUTS (.noShrinkRow / .infoState / .infoHelp /
- *      .infoActions / .actionsDivider) + the terminal swap (.terminalActions /
- *      .terminalExtra);
- *   3. the below-board feedback slot (.localFeedback /
+ *   2. the below-board feedback slot (.localFeedback /
  *      .moveAreaOrLocalFeedback);
- *   4. the shared TILE chrome (.tile / .tileFace / .tileWord + states);
- *   5. the board-wide state MARKS (.dimInFlight … .yourTurnFlash + keyframes),
+ *   3. the shared TILE chrome (.tile / .tileFace / .tileWord + states);
+ *   4. the board-wide state MARKS (.dimInFlight … .yourTurnFlash + keyframes),
  *      which are plans/tile-feedback.md's subject.
- * Splitting them is the folder's todo.md.
+ * Splitting the rest is the folder's todo.md. The info column's own classes have
+ * already gone: the column box and its rows are info-sheet/infoCol.module.css,
+ * the folder that owns the column.
  *
  * What stays PER-GAME (see each game's module): the board GRID (one game grows
  * tiles to fill, another fixes their height so bands can collapse in — same
@@ -112,9 +111,10 @@
  *
  * ─── How ─────────────────────────────────────────────────────────────────────
  * Redefine `--info-col-width` as a clamp instead of a constant. Because the
- * scaffold's `--avail-w` math AND `.infoCol { flex: 0 0 var(--info-col-width) }`
- * both read this one token, the board and the column stay consistent from a
- * single knob — nothing else in the scaffold changes.
+ * scaffold's `--avail-w` math AND the column's own `flex: 0 0
+ * var(--info-col-width)` (info-sheet/infoCol.module.css) both read this one
+ * token, the board and the column stay consistent from a single knob — nothing
+ * else in the scaffold changes.
  *
  *   - floor 22rem — the column never shrinks below a readable width (the
  *     info-column readouts + ~1–2 word columns; the WordList side-scrolls the
@@ -295,183 +295,6 @@
   right: 0.5rem;
   z-index: 2;
   box-shadow: var(--shadow-boardFloat);
-}
-
-/* Info column: a fixed column — `flex: 0 0` means it never grows or shrinks (the
- * board is the one that flexes). Its WIDTH is GAME-SPECIFIC: each game sets
- * `--info-col-width` on its own `.layout` (see that game's PlayArea.module.css),
- * since the right column's needs differ (psychicnum's words want a narrow column,
- * spellingbee's word list a wide one). NO shared default on purpose, so a game
- * using this scaffold must declare the var (the value is a rem, never a pixel
- * lock). The no-shrink rows at the top, scrolling log below. The thin left border IS the
- * divider between the columns; padding-left keeps content off it. `min-height: 0`
- * is essential — without it the column grows to fit content and the log's
- * `overflow-y: auto` never engages. */
-/* @@ */ .infoCol {
-  /* THE ONE SATELLITE HOST in the app (docs/code-conventions.md → The z-
-     layers). A dropdown
-     sits just above whatever CONTAINS it, and `<FilterSelect>` — the word-list
-     filter and the event-log player picker — opens in here. Declaring the column
-     as the host puts those dropdowns at 1301, clear of the local layering the
-     column legitimately uses (the history viewer's 5, RankBar's 2).
-
-     A CUSTOM PROPERTY ONLY: no `z-index`, no `position` — and the two have
-     DIFFERENT consequences, which is worth keeping straight. A `position` would
-     make the column a containing block and move where the dropdown anchors; a
-     `z-index` would make it a stacking context and confine the dropdown inside
-     it. Neither is wanted, and neither is needed: on desktop the column is a
-     flex sibling of the board and overlaps nothing, so it competes for no layer.
-     This line declares a rank for the dropdown to read and moves nothing. */
-  --z-host: var(--z-infocol);
-
-  flex: 0 0 var(--info-col-width);
-  display: flex;
-  flex-direction: column;
-  /* Space between the no-shrink rows and the event log / word list below them. */
-  gap: 1rem;
-  min-width: 0;
-  min-height: 0;
-  border-left: 1px solid var(--page-divider-color);
-  padding-left: 1.5rem;
-}
-
-/* …but that divider is COLUMN furniture, and on mobile there is no second
- * column to divide from: the info column is the whole page. Left in, it drew a
- * rule down the page's left edge and spent 1.5rem indenting everything away
- * from it. The sheet's own 1rem padding is the page margin here, matching the
- * board page's. */
-@media (--mobile) {
-/* @@ */   .infoCol {
-    border-left: none;
-    padding-left: 0;
-  }
-}
-
-/* Every row of the info column EXCEPT the event log / word list: the state line,
- * the opponent strip, the action row, the help line, a terminal extra, the setup
- * disclosure. What they have in common is the only thing this says — **none of
- * them is squeezed when the column runs short; the log below absorbs it.**
- * Their CONTENT changes all the time; what does not is that they are never the
- * ones made smaller to fit.
- *
- * It is a wrapper because flex shrinking is negotiated between SIBLINGS. With
- * it, `.infoCol` has two children — this, which does not shrink, and the log,
- * which is `flex: 1` — so "the log gives" is structurally true. Without it the
- * column would have seven-odd children and the rule would be
- * `.infoCol > * { flex-shrink: 0 }` against `EventLog.module.css`'s `flex: 1` at
- * equal specificity, decided by module import order.
- *
- * **No height is reserved here, deliberately** (Joel, 2026-09-15): the
- * don't-move principle is kept row by row — the action row is always one line,
- * an opponent strip reserves the lines it can grow to — not by pinning the
- * stack. A `min-height` here would be exactly the container-level reservation
- * that rule refuses.
- *
- * The gap matches `.infoCol`'s own, so every row of the column is evenly spaced
- * whichever side of this wrapper it falls.
- *
- * Singular because that is what it is to the column above: ONE flex item, the
- * one that does not shrink, beside the one that does. */
-/* @@ */ .noShrinkRow {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  flex-shrink: 0;
-}
-
-/* @@ */ .noShrinkRow p {
-  margin: 0;
-}
-
-/* ─── Info-column readouts ───────────────────────────────────────────────
- * Three recurring kinds of info, each a named class (not raw `muted`) so they
- * read the same across games — see docs/playarea.md → "Info-column readouts".
- * A game's own InfoCol applies these to its own markup, which is what makes
- * them shared. STATE (the live state) is important → full text color; HELP (UI
- * instructions) is muted; ACTIONS is the button row.
- *
- * The setup recap that sits in the same column is NOT one of these: it is a
- * common component (`setup-form/SetupDisclosure`) a game mounts, and it brings
- * its own stylesheet. */
-
-/* @@ */ .infoState {
-  color: var(--page-text-color);
-  font-size: 0.95rem;
-}
-
-/* @@ */ .infoHelp {
-  color: var(--page-text-muted-color);
-  font-size: 0.9rem;
-}
-
-/* The action row — `<InfoActionsRow>`: turn/game-altering buttons only (Hint /
- * Reveal / End; a board-visual control like Shuffle floats over the board
- * instead). The buttons share the row and wrap as needed. With a line beside
- * them (.terminalActions — a verdict at terminal, "You conceded" while the
- * others race) the row stops wrapping, so the buttons stay on the line's row. */
-/* @@ */ .infoActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* @@ */ .terminalActions {
-  flex-wrap: nowrap;
-}
-
-/* The break in the action row between what you do WHILE PLAYING — ask for a
- * hint, take a spoiler — and what you do ABOUT THE END of the game: reveal the
- * answer, restart, deal a new one, concede, end it, leave. Both sides can be
- * chosen mid-game, which is why "can I press it now" does not divide them and a
- * bar is needed to say where the meaning changes.
- *
- * **It draws only when a button sits immediately before it.** A hidden
- * `<ActionButton>` renders no node at all, so "immediately before" means
- * "actually on screen" — a row whose during-play actions have all gone quiet
- * (every game, once it ends) simply has no bar rather than opening with one.
- * `:first-child` cannot express that: the outcome line is a real element and
- * takes the first slot whenever there is one.
- *
- * And never trailing, for the row that has during-play buttons and nothing
- * after them — `:last-child` outweighs the sibling rule on specificity
- * (0,2,0 against 0,1,1), so the two need no ordering trick. */
-/* @@ */ .actionsDivider {
-  display: none;
-  align-self: stretch;
-  /* The MUTED TEXT gray, not the surface-border gray: this is a mark a player
-     has to see — it is the only thing saying the buttons either side of it mean
-     different kinds of thing — where a surface border only has to separate two
-     panels that already look different. */
-  border-left: var(--border-width-line) solid var(--page-text-muted-color);
-}
-
-/* @@ */ button + .actionsDivider {
-  display: block;
-}
-
-/* @@ */ .actionsDivider:last-child {
-  display: none;
-}
-
-/* The line beside the buttons is `<InfoActionsRow>`'s own
- * (`info-sheet/InfoActionsRow.module.css`); the row stays here because a game
- * can compose `.infoActions` directly. */
-
-/* Terminal-only EXTRA info in the info column — content shown ONLY at game over
- * (e.g. wordle's answer reveal: words too tall for the below-board slot, which
- * would overflow the viewport and scroll the page — a hard no). It sits INSIDE
- * `.noShrinkRow`, ABOVE the setup disclosure (Joel's rule, 2026-08-05: the
- * reveal is the payoff, the setup recap is bookkeeping — the recap must never
- * push the answer down). It is allowed to APPEAR on the play→terminal
- * transition — a DELIBERATE exception to the layout-stability rule (docs/ui.md
- * → "Layout stability") — because by then the play surface is done and the
- * INFO column absorbs it: the board doesn't move, and the scrolling event log
- * below gives way so the page itself never scrolls. `flex-shrink: 0` keeps its
- * content height wherever it sits (the wrapper already refuses to shrink; the
- * log — flex: 1, min-height: 0 — makes room). */
-/* @@ */ .terminalExtra {
-  flex-shrink: 0;
 }
 
 /* ─── The feedback marks ─────────────────────────────────────────────────

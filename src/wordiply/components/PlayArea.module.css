@@ -1,7 +1,8 @@
 /* cs-unmet */
 
-/* wordiply's own layout bits — the two-column scaffold (.layout, .boardCol,
- * .infoCol, .noShrinkRow, …) lives in the shared game/PlayArea.module.css;
+/* wordiply's own layout bits — the two-column scaffold (.layout, .boardCol) lives
+ * in common/game-page/playArea.module.css and the info column (.infoCol,
+ * .noShrinkRow, the readout classes) in common/info-sheet/infoCol.module.css;
  * this module holds the base heading, the fixed entry area, the state
  * readout, and the terminal reveal. */
 

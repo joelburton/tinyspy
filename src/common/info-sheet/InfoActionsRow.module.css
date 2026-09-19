@@ -1,9 +1,9 @@
 /* cs-audited-info-sheet */
 
 /* The line `<InfoActionsRow>` draws beside its buttons. Only the line's rules
- * live here — the row itself (`.infoActions` / `.terminalActions`) is the
- * play-surface scaffold's, in `game-page/playArea.module.css`, because a game
- * can compose those directly. */
+ * live here, because only this component draws it — the row itself
+ * (`.infoActions` / `.terminalActions`) is in `infoCol.module.css` beside the
+ * column's other rows, since a game composes those directly. */
 
 /* Bold, inked by its outcome; grows so the buttons sit at the right edge. */
 /* @@ */ .outcome {

@@ -9,9 +9,11 @@ modals, mode pills, iconography), see [ui.md](ui.md).
 ## PlayArea layout
 
 The shape every game's play surface takes — **all sixteen games** are on it. The
-scaffold + readout classes live in
+scaffold lives in
 [`common/game-page/playArea.module.css`](../src/common/game-page/playArea.module.css)
-(a CSS-only module imported the way `historyViewer.module.css` is, composed with a thin
+and the info column's own classes in
+[`common/info-sheet/infoCol.module.css`](../src/common/info-sheet/infoCol.module.css)
+(CSS-only modules imported the way `historyViewer.module.css` is, composed with a thin
 per-game module via `cls()`). It was validated on **psychicnum**, then **connections**,
 then stress-tested on **codenamesduet** — the structural odd-one-out (turn-based, one
 clue then several guesses, per-viewer keycard overlays, a real free-text `<input>`
@@ -59,9 +61,12 @@ divider, **event log** (`<EventLog>` — chronological, outcome-bar entries) vs
 [a colored disc](ui.md#player-identity--a-colored-disc); feedback splits
 [local vs group](deferred.md#feedback-channels-local-vs-group).
 
-**Shared vs per-game:** the shell + readout classes now live in the shared
-`common/game-page/playArea.module.css` (a CSS-only scaffold, like
-`historyViewer.module.css` — no behavior, so a stylesheet rather than a component).
+**Shared vs per-game:** the shell lives in the shared
+`common/game-page/playArea.module.css` and the info column's readouts in
+`common/info-sheet/infoCol.module.css` (CSS-only scaffolds, like
+`historyViewer.module.css` — no behavior, so stylesheets rather than components).
+The dividing line is which element wears the class: the PlayArea root div's are
+the scaffold's, the column's and its rows' are the column's.
 What stays in each game's own module: the board **grid** (psychicnum grows tiles
 to fill; connections fixes their height — same purpose, different behavior), any
 result/semantic tile fills, the board tray frame, and game-specific readout
@@ -183,10 +188,12 @@ That dual placement is the rule, not redundancy to trim.
   answer reveal is NOT one of these — it's progressive and shows all game, part
   of the status readout.)
 
-Shared in `common/game-page/playArea.module.css` — `.infoState` / `.infoHelp` /
-`.infoActions` / `.terminalActions` / `.terminalExtra`. (The result line's
-`.outcome_*` inks are `<InfoActionsRow>`'s own module, beside the component that
-draws the line.) **The
+Shared in `common/info-sheet/infoCol.module.css` — `.infoState` / `.infoHelp` /
+`.infoActions` / `.terminalActions` / `.terminalExtra`, alongside the column
+itself (`.infoCol`, `.noShrinkRow`). The play-surface scaffold
+(`common/game-page/playArea.module.css`) keeps what the PlayArea root div wears,
+the column-width clamp included. (The result line's `.outcome_*` inks are
+`<InfoActionsRow>`'s own module, beside the component that draws the line.) **The
 setup recap is the odd one and is not among them**: the rest are classes a
 game's own InfoCol puts on its own markup, while the recap is a common
 component every game mounts, so its three rules live beside it in

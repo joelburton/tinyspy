@@ -8,7 +8,8 @@ import { cls } from '@/common/utils/cls'
 import { usePlayerBoard, LETTER_SCALE, type BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { BoardArena } from './BoardArena'
 import { HandCard } from './HandCard'
-import shared from '@/common/game-page/playArea.module.css'
+import shell from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 import dragGhost from '@/shared/grid-and-drag/dragGhost.module.css'
 import styles from './PlayerBoard.module.css'
 
@@ -109,9 +110,9 @@ export function PlayerBoard({
   })
 
   return (
-    <div className={cls(shared.layout, styles.layout)}>
+    <div className={cls(shell.layout, styles.layout)}>
       {/* The board column is game-specific (a FILL scroll arena, not the shared hug
-          board), so it does NOT compose shared.boardCol — styles.boardCol is
+          board), so it does NOT compose shell.boardCol — styles.boardCol is
           self-sufficient, avoiding a flex hug-vs-fill override fight. */}
       <div className={styles.boardCol}>
         <BoardArena
@@ -134,7 +135,7 @@ export function PlayerBoard({
             pill appears/clears. */}
         <div className={styles.belowBoard}>
           <div className={styles.moveArea} />
-          <div className={shared.localFeedback}>
+          <div className={shell.localFeedback}>
             <FeedbackPill slot={localFeedbackSlot} />
           </div>
         </div>

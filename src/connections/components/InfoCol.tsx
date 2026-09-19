@@ -13,7 +13,7 @@ import type { EventRow, Player } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
 import { HintList } from './HintList'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 
 
 /**

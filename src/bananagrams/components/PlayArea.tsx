@@ -29,7 +29,7 @@ import type { BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { PeersStrip } from './PeersStrip'
 import { setupRows } from '../lib/setupSummary'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import '../theme.css' // bananagrams tokens + the global drag-cursor rule
 import { useTabRing } from '@/common/keyboard/useTabRing'

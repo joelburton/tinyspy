@@ -14,7 +14,7 @@ import type { WordlePlayerState, EventRow } from '../hooks/useGame'
 import type { WordleSetup } from '../lib/setup'
 import { GameEventLog } from './GameEventLog'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './InfoCol.module.css'
 
 /**

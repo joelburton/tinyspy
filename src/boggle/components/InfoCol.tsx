@@ -12,7 +12,7 @@ import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { WordList, type WordListRow } from '@/common/word-list/WordList'
 import { Stats, type BoggleStats } from './Stats'
 import type { BoggleSetup } from '../lib/setup'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 
 /**
  * boggle's info column — near-zero state, an arrangement of the shared scaffold

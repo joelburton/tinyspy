@@ -23,42 +23,44 @@
 
 ## Soon
 
-- **`game-page/playArea.module.css` is five concerns in one file.** Renamed to
+- **`game-page/playArea.module.css` is four concerns in one file.** Renamed to
   lowercase 2026-09-14 (docs/deferred.md → Common / architecture: a sheet read
-  by others is not a component's), which was the half of this that was provably
-  right — **subdividing it is still open.** 45 rules: the two-column shell (`.layout`,
-  `.boardCol`, `.infoCol`, `.mobileFill`, `.responsiveInfoCol`, `.hugRectWidth`,
-  `.floatingShuffle`) — which is the file's real subject; the info-column
-  readouts (`.noShrinkRow`, `.infoState`, `.infoHelp`, `.infoActions`,
-  `.terminalActions`, `.terminalExtra`; the outcome line's rules went to
-  `info-sheet/InfoActionsRow.module.css` with the component, 2026-09-15); the
-  below-board feedback
-  slot (`.localFeedback`, `.moveAreaOrLocalFeedback`); the tile chrome (`.tile`,
+  by others is not a component's), and the info column's concern left 2026-09-18
+  — **subdividing the rest is still open.** What remains: the two-column shell
+  (`.layout`, `.boardCol`, `.mobileFill`, `.responsiveInfoCol`, `.hugRectWidth`,
+  `.floatingShuffle`) — the file's real subject; the below-board feedback slot
+  (`.localFeedback`, `.moveAreaOrLocalFeedback`); the tile chrome (`.tile`,
   `.tileFace`, `.tileWord` + states); and the board-wide state marks
   (`.dimInFlight`, `.dimNotYourTurn`, `.gameOverFrame`,
   `.verdict*`, `.attentionFlash`, `.yourTurnFlash` + keyframes), which are
-  [plans/tile-feedback.md](../../../plans/tile-feedback.md)'s subject. Joel,
-  2026-09-14: *"it's also wrong for stuff about info-col shared css to be in
-  PlayArea.module.css, it would be much better in a shared InfoCol.module.css."*
+  [plans/tile-feedback.md](../../../plans/tile-feedback.md)'s subject.
   A concern that had its own file would have made setup-form's `.infoSetup`
   misfiling (F-setup-form-10) impossible to write. There is no
   `common/game-page/PlayArea.tsx` — the sheet was named for the play surface,
   not for a component here, which is what made it a magnet; the rename removed
   that invitation without moving a rule.
 
-  **The cost to weigh when this is picked up**, which the item used to
-  understate by claiming the split "needs no component to change": every game
-  writes `shared.infoCol` off one import, so moving a class to another sheet is
-  a rename at each call site — **19 `.tsx` files** for the info-column classes
-  alone — and a missed one is an unstyled element, not a build error.
-  `composes:` would let the declarations split while consumers keep one import;
-  the repo uses it nowhere yet, which is the open decision in docs/deferred.md's
-  third bullet under the same heading.
+  **What the info column's departure settled, and what it did not.** Joel,
+  2026-09-14: *"it's also wrong for stuff about info-col shared css to be in
+  PlayArea.module.css, it would be much better in a shared InfoCol.module.css."*
+  Done: `info-sheet/infoCol.module.css` holds the column box and its rows, and
+  the dividing line drawn there is **which element wears the class** — the
+  PlayArea root div's classes stayed, the column's and its rows' went. That line
+  is the one to reuse for the remaining three, and it already answers the
+  below-board slot (`.localFeedback` is worn inside the board column, not by the
+  row).
 
-  Joel, 2026-09-14: *"let's do 1 now, and continue to have an issue to subdivide
-  it later. once we're at the point of being able to audit our first game, we'll
-  be a in a better place."* The consumers ARE the games, so the split wants a
-  game's own CSS pass open beside it.
+  What it did NOT settle is `composes:`. Every game still writes `shared.X` off
+  one import, so moving a class is a rename at each call site — the info-column
+  move cost eighteen files — and `composes:` would let declarations move while a
+  consumer keeps one import. The repo uses it nowhere yet; it is the open
+  decision in docs/deferred.md's third bullet under the same heading, and Joel's
+  steer 2026-09-18 is to take it up after a game or two has been audited, when
+  there is a real sense of how much per-game styling the column needs. The
+  rename risk is not the argument for it: `src/guards/cssClasses.test.ts` fails
+  on a `styles.x` the module no longer defines, so a missed call site is a named
+  test failure rather than a silently unstyled element (an earlier version of
+  this item claimed otherwise).
 
 - ~~**The info column's action box does not reserve its height.**~~ **Closed
   2026-09-15: it will not.** Joel: *"while we have a general principle of

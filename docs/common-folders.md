@@ -267,7 +267,7 @@ area is audited. No sweep.
 | `game-page` | the live game's page and what it hands down |
 | `home` | the landing page |
 | `icons` | every glyph, under the name of what it means |
-| `info-sheet` | the info column: its mobile sheet, its switch, the chrome its panels share |
+| `info-sheet` | the info column: its own stylesheet, its readouts, the panel frame, its mobile sheet and the switch |
 | `invitations` | game invitations |
 | `keyboard` | who owns a keystroke, tab rings, backtick standing in for Escape |
 | `lists` | pick-one and scrolling lists |

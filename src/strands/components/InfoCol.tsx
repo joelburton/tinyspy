@@ -15,7 +15,7 @@ import type { EventRow } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { cls } from '@/common/utils/cls'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './PlayArea.module.css'
 
 type Props = {

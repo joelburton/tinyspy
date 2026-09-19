@@ -17,7 +17,7 @@ import { GameEventLog } from './GameEventLog'
 import { OpponentReveal, type OpponentReveals } from './OpponentReveal'
 import type { EventRow } from '../hooks/useGame'
 import type { WordiplySetup } from '../lib/setup'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './PlayArea.module.css'
 
 /**

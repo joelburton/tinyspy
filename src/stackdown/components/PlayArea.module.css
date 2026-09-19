@@ -1,7 +1,8 @@
 /* cs-unmet */
 
 /* stackdown play surface, on the shared two-column scaffold
- * (common/game-page/playArea.module.css, imported as `shared`) — the same
+ * (common/game-page/playArea.module.css) and the shared info column
+ * (common/info-sheet/infoCol.module.css, imported as `shared`) — the same
  * .layout / .boardCol / .infoCol / .noShrinkRow the other converged games use.
  * PlayArea holds only the layout-root vars here; the board column's own styles
  * live in BoardCol.module.css and the terminal reveal in InfoCol.module.css. */

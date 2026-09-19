@@ -12,7 +12,7 @@ import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { StackdownSetup } from '../lib/setup'
 import type { PlayerRow, EventRow } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
-import shared from '@/common/game-page/playArea.module.css'
+import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './InfoCol.module.css'
 
 /**
