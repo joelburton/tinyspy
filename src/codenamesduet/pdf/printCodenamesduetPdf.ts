@@ -69,6 +69,7 @@ export function printCodenamesduetPdf(m: DuetPrintModel): void {
 
   drawEventLog(pd, {
     startY: y,
+    heading: 'Clues',
     // A duet turn IS a clue plus what it got, so the column is "Clue".
     moveLabel: 'Clue',
     // A duet turn has TWO actors — one gives the clue, the other guesses — so a

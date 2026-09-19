@@ -59,6 +59,7 @@ export function printPsychicnumPdf(m: PsychicnumPrintModel): void {
     const boardH = drawBoard(doc, t.board, m.cols, leftX, colTop, colW)
     drawEventLog(pd, {
       startY: colTop + boardH + 26,
+      heading: 'Turns',
       moveLabel: 'Guess',
       rows: t.turns,
       setup: m.setup,

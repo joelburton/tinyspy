@@ -184,7 +184,8 @@ and live in scrabble's own renderer, so the exception cannot leak.
 ## The body families
 
 **Event log** (`eventLog.ts`). The board sits at the top of the left column;
-the log flows down under it as a `#` / `Player` / <what happened> table with a
+the log flows down under it, headed by the word the game's on-screen event
+log wears, as a `#` / `Player` / <what happened> table with a
 thin rule between rows, continues at the top of the right column, then onto
 further pages — a hand-managed cursor, since a PDF paginates by page and not by
 column. The Setup recap is appended at the end of the flow and moved whole to

@@ -84,6 +84,7 @@ export function printConnectionsPdf(m: ConnectionsPrintModel): void {
     const y = drawBoard(doc, t, leftX, colTop, colW)
     drawEventLog(pd, {
       startY: y + 14,
+      heading: 'Guesses',
       moveLabel: 'Guess',
       rows: t.turns,
       setup: m.setup,

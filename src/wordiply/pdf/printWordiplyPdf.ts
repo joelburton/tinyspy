@@ -53,6 +53,7 @@ export function printWordiplyPdf(m: WordiplyPrintModel): void {
 
   drawEventLog(pd, {
     startY: y,
+    heading: 'Guesses',
     // The third column's header. "Guess" (not "Move") — wordiply's turn IS a
     // guess, matching the on-screen log's heading.
     moveLabel: 'Guess',

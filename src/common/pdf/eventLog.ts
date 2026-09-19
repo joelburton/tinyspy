@@ -24,7 +24,7 @@ export function twoColGeom(pd: PrintDoc) {
 }
 
 /**
- * The newspaper-flow body family: a "Turns" heading at `startY` in the left
+ * The newspaper-flow body family: the log's heading at `startY` in the left
  * column, then a `# / <who> / <move>` table that fills the left column,
  * continues at the top of the right one, then onto further pages — a
  * hand-managed cursor, since a PDF paginates by page and not by column. The
@@ -35,9 +35,12 @@ export function twoColGeom(pd: PrintDoc) {
 export function drawEventLog(
   pd: PrintDoc,
   o: {
-    // Where the "Turns" heading sits — below the board, or at `colTop` for a
-    // game with no board to print.
+    // Where the heading sits — below the board, or at `colTop` for a game
+    // with no board to print.
     startY: number
+    // The log's heading — the same word the game's on-screen event log wears
+    // ("Turns", "Guesses", "Clues"). Required: a default is a word nobody chose.
+    heading: string
     // The move column's header: "Move", "Guess", "Clue".
     moveLabel: string
     // The actor column's header. Defaults to "Player"; a game whose turn has
@@ -55,7 +58,7 @@ export function drawEventLog(
   const { leftX, rightX, colW, colTop } = twoColGeom(pd)
 
   doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(BLACK)
-  doc.text('Turns', leftX, o.startY)
+  doc.text(o.heading, leftX, o.startY)
   const ly = o.startY + 6
 
   // Normalize to display rows (seq as text); an empty log shows one placeholder row.

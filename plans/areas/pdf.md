@@ -509,7 +509,13 @@ paths. A helper that mutates shared state and leaves it either restores it
 in its docstring. Recommendation: restore, and drop psychicnum's warning
 comment when its area next opens.
 
-### F-pdf-14 · `printed-heading-is-turns` · the printed log is headed "Turns" whatever the screen calls it
+### SHIPPED · F-pdf-14 · `printed-heading-is-turns` · the printed log is headed "Turns" whatever the screen calls it
+
+**Ruled and shipped 2026-09-19** (Joel: *"i'll take your rec"*).
+`drawEventLog` takes a required `heading`; the five printers pass the word
+their screen passes (scrabble and psychicnum "Turns", connections and
+wordiply "Guesses", codenamesduet "Clues") — a sweep, stamps unmoved. The
+tests pass "Turns".
 
 `drawEventLog` writes "Turns" for every caller; on screen the same log is
 headed by a `heading` the game passes — codenamesduet says "Clues",
