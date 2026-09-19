@@ -69,6 +69,11 @@
 /* @@ */   --tile-font-min: 0.8rem;
 /* @@ */   --tile-font-factor: 0.9;
 /* @@ */   --tile-font-max: 1.6rem;
+  /* A long word CONDENSES before it shrinks (shared `.tileWord`). These are
+   * codename words — mostly short, so most tiles never narrow at all; it is
+   * the nine-and-up ones this is for. Same floor as the other word boards. */
+/* @@ */   --tile-wdth-len: 7;
+/* @@ */   --tile-wdth-min: 0.6;
 }
 
 /* codenamesduet tiles carry corner OVERLAYS (keycard squares, neutral triangles,
