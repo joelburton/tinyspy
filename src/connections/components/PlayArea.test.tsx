@@ -171,7 +171,7 @@ async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
 }
 
 /** The Reveal control, by WHICH command it is: its words move with the toggle
- *  ("Reveal categories" / "Hide categories"), so they are the wrong handle
+ *  ("Reveal solution" / "Hide solution"), so they are the wrong handle
  *  wherever the words are not the subject. Keeps the role — a menu row would
  *  carry the same id. */
 const revealButton = () =>

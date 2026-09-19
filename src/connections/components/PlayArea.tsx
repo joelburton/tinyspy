@@ -2,7 +2,6 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
@@ -27,6 +26,7 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
+import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { db } from '../db'
 import type { CategoryRank } from '../lib/board'
@@ -407,13 +407,8 @@ export function PlayArea({
   // board draws, writes nothing, and affects no peer. Terminal-only, so a player
   // who dropped out can't spoil a race still running.
   const actReveal = useBoundAction('act-reveal', {
-    describe: () => {
-      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
-      if (solutionShown) return { state: 'active', label: 'Hide categories', icon: IconHideSolution }
-      // Named in the inert case too: the registry's bare "Reveal" would make the
-      // row change its words as the game ended, which is not what it says.
-      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal categories' }
-    },
+    describe: () =>
+      describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal }),
     run: toggleSolution,
   })
 

@@ -477,7 +477,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   refused swap during play, the "waiting" state when the player is locally
   terminal, whose turn it is, or the filled verdict at game-over. (The
   `SolutionReveal` answer list is NOT here — it lives in the info column's status
-  section.) There's no special "reveal" board mode: the **"Reveal answer"** menu
+  section.) There's no special "reveal" board mode: the **"Reveal solution"** menu
   action ENDS the game and overwrites every board with the solution server-side
   (see `reveal_answer` below), so the caller's own board simply *becomes* the
   answer — the grid renders it all-green for free, with zero FE branching.

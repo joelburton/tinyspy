@@ -1,7 +1,6 @@
 // cs-unmet
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconHideSolution } from '@/common/icons/icons'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -13,6 +12,7 @@ import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { useFeedbackSlot, useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
+import { describeReveal } from '@/common/reveal/describeReveal'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
@@ -744,14 +744,7 @@ type Explained =
   // row, wearing the same two faces, so a player who dismissed one can reach the
   // other. Inert until terminal: the server only unshields the solution then.
   const actReveal = useBoundAction('act-reveal', {
-    describe: () => {
-      if (solutionShown) return { state: 'active', label: 'Hide solution', icon: IconHideSolution }
-      // Named in the inert case too — the registry's bare "Reveal" would make
-      // the row change its words as the game ended.
-      return isTerminal
-        ? { state: 'active', label: 'Reveal solution' }
-        : { state: 'disabled', label: 'Reveal solution', tooltip: "Can't reveal until all end" }
-    },
+    describe: () => describeReveal({ noun: 'solution', revealed: solutionShown, isTerminal }),
     run: toggleSolution,
   })
 

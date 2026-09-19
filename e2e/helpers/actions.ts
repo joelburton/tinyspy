@@ -6,8 +6,9 @@ import type { Locator, Page } from '@playwright/test'
  * Find a command by WHICH COMMAND IT IS, not by what it currently says.
  *
  * An action's words are the half that moves: `describe()` varies them per game
- * and per state, so one action reads "Reveal answer", "Reveal secrets", "Hide
- * solution" and "Solution already shown" depending on where and when you look.
+ * and per state, so one action reads "Reveal solution", "Hide solution",
+ * "Solution already shown" and, in codenamesduet, "Reveal key cards" —
+ * depending on where and when you look.
  * A spec keyed to the wording breaks the first time a game says it better — and
  * silently, since nobody runs every spec. Both surfaces write the id instead:
  * `<ActionButton>` and `<Menu>`'s rows each carry `data-action="act-…"`.

@@ -104,7 +104,7 @@ function labelFor(mode: 'coop' | 'compete') {
           ? outcome('Lost', 'all conceded')
           : statusLine(outcome('Lost', COMPETE_LOSS[s.outcome ?? ''] ?? null), 'no winner')
       case 'ended':
-        // Manual end / "Reveal answer" — both neutral, but they're different
+        // Manual end / "Reveal solution" — both neutral, but they're different
         // stories: one is "we stopped", the other "we gave up and looked".
         // No 'answer revealed' variant: the mid-game give-up that wrote
         // outcome='revealed' is gone (2026-08-03). Revealing is now a display

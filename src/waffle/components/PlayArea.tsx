@@ -1,7 +1,6 @@
 // cs-fixed-outcome-fix
 
 import { useCallback, useEffect, useRef, useMemo, useState } from 'react'
-import { IconHideSolution } from '@/common/icons/icons'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { cls } from '@/common/utils/cls'
@@ -22,6 +21,7 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
+import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { db } from '../db'
@@ -279,7 +279,7 @@ export function PlayArea({
   // The byte-identical shared handlers (useStandardGameActions); waffle's own
   // bits are the replay sentence and the post-replay cleanup (leave the
   // history view, dismiss the last result, re-hide a locally-revealed
-  // answer). New game + Reveal answer stay below.
+  // answer). New game + Reveal solution stay below.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -377,19 +377,12 @@ export function PlayArea({
   // the solution doesn't reach a compete client before then, so a player who
   // conceded can't peek at a race still running.
   const actReveal = useBoundAction('act-reveal', {
-    describe: () => {
-      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
-      if (answerShown) return { state: 'active', label: 'Hide answer', icon: IconHideSolution }
-      // Named in the inert case too: the registry's bare "Reveal" would make the
-      // row change its words as the game ended, which is not what it says.
-      return isTerminal
-        ? { state: 'active', label: 'Reveal answer' }
-        : { state: 'disabled', label: 'Reveal answer', tooltip: "Can't reveal until all end" }
-    },
+    describe: () =>
+      describeReveal({ noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal }),
     run: toggleAnswer,
   })
 
-  // Reveal answer — TERMINAL ONLY, like every other game (docs/ui.md →
+  // Reveal solution — TERMINAL ONLY, like every other game (docs/ui.md →
   // Terminal results). There used to be a mid-game shape as well: a give-up
   // that rewrote every `waffle.players.board` to the solution and ended the
   // game in one confirmed click. It's gone, so the order is the same
@@ -571,7 +564,7 @@ export function PlayArea({
       : undefined
 
   // The grid shows the caller's own board + live colors (including at game-over) — OR,
-  // while viewing, the historical snapshot. After the MID-GAME "Reveal answer" the
+  // while viewing, the historical snapshot. After the MID-GAME "Reveal solution" the
   // caller's own board IS the solution (the RPC overwrote it), so that needs no
   // special case. The TERMINAL reveal is display-only: this viewer's own toggle
   // swaps the shown board for the (post-terminal, unshielded) solution, colored

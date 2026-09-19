@@ -2,7 +2,6 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -15,6 +14,7 @@ import { setupRows } from '../lib/setupSummary'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
+import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
@@ -406,15 +406,8 @@ export function PlayArea({
   // reach it. Inert mid-game: there is nothing to reveal until the server
   // unshields, and nothing left to show once solving has put them all up.
   const actReveal = useBoundAction('act-reveal', {
-    describe: () => {
-      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
-      if (solutionShown) return { state: 'active', label: 'Hide solution', icon: IconHideSolution }
-      // Named in the inert case too: the registry's bare "Reveal" would make the
-      // row change its words as the game ended, which is not what it says.
-      return isTerminal
-        ? { state: 'active', label: 'Reveal solution' }
-        : { state: 'disabled', label: 'Reveal solution', tooltip: "Can't reveal until all end" }
-    },
+    describe: () =>
+      describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal }),
     run: toggleSolution,
   })
 

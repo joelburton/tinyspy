@@ -65,9 +65,9 @@ async function restart(page: Page) {
  * `isEnabled()`/`click()` auto-wait to the timeout.
  *
  * By id, which is what makes one helper serve nine games: every one of them
- * calls this control something different ("Reveal answer", "Reveal secrets",
- * "Reveal solution", "Solution already shown"), and the id is the half that
- * holds still. It also drops a board-tile exclusion the name needed —
+ * says something different at each moment ("Reveal solution", "Hide
+ * solution", "Solution already shown" — and "Reveal key cards" in
+ * codenamesduet), and the id is the half that holds still. It also drops a board-tile exclusion the name needed —
  * psychicnum's and connections' tiles are buttons named for the word on them,
  * so a board that rolled "revealed" used to match too.
  */

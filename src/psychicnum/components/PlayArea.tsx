@@ -2,7 +2,6 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -19,6 +18,7 @@ import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
+import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { setupRows } from '../lib/setupSummary'
@@ -502,18 +502,15 @@ export function PlayArea({
   // label. Inert mid-game: there is nothing to ring until the server unshields
   // the secrets at terminal, and nothing to do once solving has shown them.
   const actReveal = useBoundAction('act-reveal', {
-    describe: () => {
-      // Not a question you can ask while you are still hunting: HIDDEN until
-      // you are done, whether that is the game ending or you conceding. It is
-      // then gray until EVERYONE is done, so a dropout cannot spoil a live race.
-      if (isStillPlaying) return 'hidden'
-      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
-      if (secretsShown) return { state: 'active', label: 'Hide secrets', icon: IconHideSolution }
-      // Named in the inert case too: the registry's bare "Reveal" would make the
-      // row change its words as the game ended, which is not what it says.
-      return isTerminal
-        ? { state: 'active', label: 'Reveal secrets' }
-        : { state: 'disabled', label: 'Reveal secrets', tooltip: "Can't reveal until all end" }
+    describe: (asker) => {
+      // No BUTTON while you are still hunting — the row's few slots belong to
+      // playing, and this is not a question you can ask yet. The menu row and
+      // the Help list keep it all game, grayed, because they NAME the glyph
+      // (docs/ui.md → the menu is the legend), which is what the hint and the
+      // spoiler above do too. It stays gray until EVERYONE is done, so a
+      // dropout cannot spoil a live race.
+      if (isStillPlaying && asker === 'button') return 'hidden'
+      return describeReveal({ noun: 'solution', revealed: secretsShown, impliedBySolve, isTerminal })
     },
     run: toggleSecrets,
   })

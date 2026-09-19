@@ -211,12 +211,12 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
     const user = userEvent.setup()
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
-    await user.click(screen.getByRole('button', { name: "Reveal partner's key" }))
+    await user.click(screen.getByRole('button', { name: "Reveal key cards" }))
     expect(lastPeerKeyArg()).toBe(true)
     // Local state: no RPC, so the partner's own card stays covered.
     expect(rpc).not.toHaveBeenCalled()
 
-    await user.click(screen.getByRole('button', { name: "Hide partner's key" }))
+    await user.click(screen.getByRole('button', { name: "Hide key cards" }))
     expect(lastPeerKeyArg()).toBe(false)
   })
 
@@ -229,10 +229,10 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
 
     const done = makeCtx({ isTerminal: true, playState: 'lost' })
     render(<PlayArea {...done} />)
-    expect(menuItems(done).get('act-reveal')?.label).toBe("Reveal partner's key")
+    expect(menuItems(done).get('act-reveal')?.label).toBe("Reveal key cards")
     act(() => menuItems(done).get('act-reveal')!.run())
     expect(lastPeerKeyArg()).toBe(true)
-    await waitFor(() => expect(menuItems(done).get('act-reveal')?.label).toBe("Hide partner's key"))
+    await waitFor(() => expect(menuItems(done).get('act-reveal')?.label).toBe("Hide key cards"))
   })
 })
 

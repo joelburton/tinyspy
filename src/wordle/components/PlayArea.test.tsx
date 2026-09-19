@@ -209,14 +209,14 @@ describe('wordle PlayArea — icon-only action rows', () => {
     expect(ctx.menu.actBackToClub.run).toHaveBeenCalled()
   })
 
-  it('terminal "Reveal answer" shows the word for ME, with no RPC and no confirm', async () => {
+  it('terminal "Reveal solution" shows the word for ME, with no RPC and no confirm', async () => {
     commonRpc.mockClear()
     const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     // Local state, full stop: the word is on screen immediately, nothing was
     // written, and no peer's board opened. The absent RPCs are the assertion.
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
@@ -229,11 +229,11 @@ describe('wordle PlayArea — icon-only action rows', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
-    await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     // It wears its other face now — same button, EyeOff glyph, Hide label.
-    await user.click(screen.getByRole('button', { name: 'Hide answer' }))
+    await user.click(screen.getByRole('button', { name: 'Hide solution' }))
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
   it('SOLVING shows the answer unasked, and the control says it has nothing to do', () => {
@@ -257,7 +257,7 @@ describe('wordle PlayArea — icon-only action rows', () => {
     ])
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won_compete' })} />)
     expect(screen.queryByText(/CRANE/)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
   it('terminal "New game" button starts a fresh game with this setup/roster/mode', async () => {
@@ -325,12 +325,12 @@ describe('wordle PlayArea — terminal flow', () => {
 
     const reveal = menuItems(ctx).find((i) => i.id === 'act-reveal')!
     expect(reveal.disabled).toBeFalsy() // terminal → offered
-    expect(reveal.label).toBe('Reveal answer')
+    expect(reveal.label).toBe('Reveal solution')
     act(() => reveal.run())
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
     // The menu is rebuilt on the state flip, so the item now offers the way back.
     await waitFor(() =>
-      expect(menuItems(ctx).find((i) => i.id === 'act-reveal')!.label).toBe('Hide answer'),
+      expect(menuItems(ctx).find((i) => i.id === 'act-reveal')!.label).toBe('Hide solution'),
     )
     // No RPC: this is local display state, not a game move.
     expect(commonRpc).not.toHaveBeenCalled()
@@ -352,7 +352,7 @@ describe('wordle PlayArea — terminal flow', () => {
     h.result = loaded(game)
     const { rerender } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
-    await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     expect(screen.getAllByText(/CRANE/).length).toBeGreaterThan(0)
 
     await user.click(screen.getByRole('button', { name: 'Restart' }))

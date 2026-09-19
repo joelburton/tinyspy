@@ -98,7 +98,7 @@ guess row). The two aggregate readouts — **length score %** and **letter count
 ("that's 78% of the best") lands at terminal.
 
 The **longest possible word** goes one step further: even at terminal it waits for the
-**Reveal best word** button (`act-reveal`, one bound action carrying both faces — the action row and the menu twin place the SAME one — see [ui.md → Terminal
+**Reveal best solution** button (`act-reveal`, one bound action carrying both faces — the action row and the menu twin place the SAME one — see [ui.md → Terminal
 results](../ui.md#terminal-results--the-moment-vs-the-record)). The score says how
 well you did *without naming the answer*, so a table that wants to keep guessing at
 `_ _ _ _ _ _ _` can. The reveal is local and reversible — mine alone, and the same button

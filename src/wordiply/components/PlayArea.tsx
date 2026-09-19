@@ -1,7 +1,6 @@
 // cs-fixed-outcome-fix
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -32,6 +31,7 @@ import { buildWordiplyPrintModel } from '../pdf/model'
 import { printWordiplyPdf } from '../pdf/printWordiplyPdf'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
+import { describeReveal } from '@/common/reveal/describeReveal'
 import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import shared from '@/common/game-page/playArea.module.css'
@@ -334,12 +334,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // me alone, writes nothing, and affects no peer. Inert until the game is over
   // for everyone, so a player who conceded can't spoil a race.
   const actReveal = useBoundAction('act-reveal', {
-    describe: () => {
-      if (solutionShown) return { state: 'active', label: 'Hide best word', icon: IconHideSolution }
-      // Named in the inert case too: the registry's bare "Reveal" would make the
-      // row change its words as the game ended, which is not what it says.
-      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal best word' }
-    },
+    // "best solution" rather than the bare default: what this shows is the best
+    // word that existed, which a winner never has to have found.
+    describe: () => describeReveal({ noun: 'best solution', revealed: solutionShown, isTerminal }),
     run: toggleSolution,
   })
 

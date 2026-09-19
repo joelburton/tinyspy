@@ -247,7 +247,7 @@ describe('wordiply PlayArea — terminal reveal', () => {
     const user = userEvent.setup()
     render(<PlayArea {...ended()} />)
 
-    await user.click(screen.getByRole('button', { name: 'Reveal best word' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal best solution' }))
     // The reveal names the longest possible word (label carries the length)…
     expect(screen.getByText(/Best possible word/)).toBeInTheDocument()
     // …and it's click-to-define, selected by `data-word` — the handle every
@@ -261,8 +261,8 @@ describe('wordiply PlayArea — terminal reveal', () => {
     const user = userEvent.setup()
     render(<PlayArea {...ended()} />)
 
-    await user.click(screen.getByRole('button', { name: 'Reveal best word' }))
-    await user.click(screen.getByRole('button', { name: 'Hide best word' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal best solution' }))
+    await user.click(screen.getByRole('button', { name: 'Hide best solution' }))
     expect(screen.queryByText(/Best possible word/)).not.toBeInTheDocument()
   })
 
@@ -665,7 +665,7 @@ describe('wordiply PlayArea — the menu', () => {
     // Reveal is inert mid-game, and keeps its words rather than falling back to
     // the registry's bare "Reveal".
     expect(rows.get('act-reveal')?.disabled).toBe(true)
-    expect(rows.get('act-reveal')?.label).toBe('Reveal best word')
+    expect(rows.get('act-reveal')?.label).toBe('Reveal best solution')
   })
 
   it('a race lists Concede as the exit, not End game', () => {

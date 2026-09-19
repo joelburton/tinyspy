@@ -402,19 +402,19 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
 
   it('draws the reveal in its own red — this uncovers more than one word', () => {
     render(<PlayArea {...ended()} />)
-    expect(screen.getByRole('button', { name: 'Reveal secrets' }).className).toMatch(/destructive/)
+    expect(screen.getByRole('button', { name: 'Reveal solution' }).className).toMatch(/destructive/)
   })
 
   it('leaves the secrets hidden until this viewer asks', () => {
     render(<PlayArea {...ended()} />)
     expect(ringed()).toBe(0)
-    expect(screen.getByRole('button', { name: 'Reveal secrets' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
   it('Reveal greens the three for me alone — no RPC', async () => {
     const user = userEvent.setup()
     render(<PlayArea {...ended()} />)
-    await user.click(screen.getByRole('button', { name: 'Reveal secrets' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     expect(ringed()).toBe(3)
     // Local state: no teammate's board lit up.
     expect(rpc).not.toHaveBeenCalled()
@@ -423,8 +423,8 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
   it('the same button hides them again, restoring the board as it ended', async () => {
     const user = userEvent.setup()
     render(<PlayArea {...ended()} />)
-    await user.click(screen.getByRole('button', { name: 'Reveal secrets' }))
-    await user.click(screen.getByRole('button', { name: 'Hide secrets' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
+    await user.click(screen.getByRole('button', { name: 'Hide solution' }))
     expect(ringed()).toBe(0)
   })
 
@@ -434,22 +434,29 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     // teach the wrong glyph (docs/ui.md → the menu is the legend).
     const ctx = ended()
     render(<PlayArea {...ctx} />)
-    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal secrets')
+    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
     const revealFace = menuItems(ctx).get('act-reveal')?.icon
     act(() => menuItems(ctx).get('act-reveal')!.run())
     expect(ringed()).toBe(3)
-    await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide secrets'))
+    await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide solution'))
     expect(menuItems(ctx).get('act-reveal')?.icon).not.toBe(revealFace)
   })
 
-  it('is not offered at all while the board is still yours to hunt', () => {
-    // Revealing is not a question you can ask mid-hunt, so it is HIDDEN rather
-    // than gray — and hidden to every surface alike, the menu included.
+  it('keeps a gray menu row while the board is still yours to hunt, and no button', () => {
+    // Revealing is not a question you can ask mid-hunt, so the row is GRAY —
+    // but it is there, because the menu is what names the glyph (docs/ui.md →
+    // the menu is the legend), exactly as act-hint and act-spoiler are beside
+    // it. What the hunt costs it is the BUTTON: the action row's few slots
+    // belong to playing.
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     // `menuItems` reads the rows the game PUSHED; `hidden` is what the menu
     // drops when it draws, so that is the flag to assert.
-    expect(menuItems(ctx).get('act-reveal')?.hidden).toBe(true)
+    const row = menuItems(ctx).get('act-reveal')
+    expect(row?.hidden).toBe(false)
+    expect(row?.disabled).toBe(true)
+    expect(row?.label).toBe('Reveal solution')
+    expect(screen.queryByRole('button', { name: 'Reveal solution' })).toBeNull()
   })
 
   it('is named in the menu once it appears', () => {
@@ -457,7 +464,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     // rename itself as the game ended, which is why both branches name it.
     const ctx = makeCtx({ isTerminal: true, playState: 'lost' })
     render(<PlayArea {...ctx} />)
-    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal secrets')
+    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
   })
 })
 
@@ -516,7 +523,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     h.result = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
     const { container } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
-    await user.click(screen.getByRole('button', { name: 'Reveal secrets' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
 
     const tiles = within(gridIn(container)).getAllByRole('button')
     // The three secrets went green…

@@ -62,7 +62,7 @@ must be one the key calls active, or the control works and its chord does not.
 The wrapper asserts that in development.
 
 **How an action looks now is separate from what it is.** A toggle has two
-faces — "Reveal secrets" with the boxed eye, "Hide secrets" with the
+faces — "Reveal solution" with the boxed eye, "Hide solution" with the
 crossed-out one — and both halves move together, because on an icon-only
 control the glyph is the label and letting the words move alone would have the
 two saying different things. What never moves is the action's name, its keys,
@@ -172,8 +172,8 @@ bespoke look is not a reason to write a command down twice.
 `<ActionButton>`, on an `actionSurface` control, and on a menu row. It is the
 escape hatch for styling one command in particular, and the handle a test wants:
 what a control is CALLED is `describe()`'s to vary per game and per state, so
-one action reads "Reveal answer", "Reveal secrets", "Hide solution" and
-"Solution already shown" — and a spec keyed to the wording breaks the first time
+one action reads "Reveal solution", "Hide solution", "Solution already
+shown" and, where the thing is not a solution, "Reveal key cards" — and a spec keyed to the wording breaks the first time
 a game says it better. `e2e/helpers/actions.ts` wraps it. An attribute rather
 than a global class, matching every other marker the app leaves for a
 stylesheet to read.

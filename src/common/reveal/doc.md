@@ -69,20 +69,30 @@ filter already IS the control, mount none of this.
            else           → "Reveal …", disabled until isTerminal
 ```
 
-| game | its puzzle-solution | a board-solution reaches it | `impliedBy` | what its control says |
+| game | its puzzle-solution | a board-solution reaches it | `impliedBy` | its `noun` |
 |---|---|---|---|---|
-| connections | the four categories | yes — each match resolves into a band | `solvedByMe` | Reveal / Hide categories |
-| psychicnum | the three secrets | yes — finding all three IS the win | `solvedByMe` | Reveal / Hide secrets |
-| stackdown | the six words, in order | yes — you played every one | `solvedByMe` | Reveal / Hide solution |
-| strands | the theme words + spangram | yes — they tile the board exactly | `solvedByMe` | Reveal / Hide answer |
-| waffle | the solved grid | yes — by definition | `solvedByMe` | Reveal / Hide answer |
-| wordle | the target word | yes — you can only finish by typing it | `solvedByMe` | Reveal / Hide answer |
-| codenamesduet | the partner's key card | **no** — a win contacts all fifteen agents and still never names your bystanders | — | Reveal / Hide partner's key |
-| crosswords | the author's grid | **no** — rebuses and quantum clues | — | Reveal / Hide solution |
-| letterboxed | the seeded pair | **no** — any covering chain wins | — | Reveal / Hide solution |
-| wordiply | the best possible word | **no** — you beat an opponent, not the best word | — | Reveal / Hide best word |
+| connections | the four categories | yes — each match resolves into a band | `solvedByMe` | solution |
+| psychicnum | the three secrets | yes — finding all three IS the win | `solvedByMe` | solution |
+| stackdown | the six words, in order | yes — you played every one | `solvedByMe` | solution |
+| strands | the theme words + spangram | yes — they tile the board exactly | `solvedByMe` | solution |
+| waffle | the solved grid | yes — by definition | `solvedByMe` | solution |
+| wordle | the target word | yes — you can only finish by typing it | `solvedByMe` | solution |
+| codenamesduet | the partner's key card | **no** — a win contacts all fifteen agents and still never names your bystanders | — | **key cards** |
+| crosswords | the author's grid | **no** — rebuses and quantum clues | — | solution |
+| letterboxed | the seeded pair | **no** — any covering chain wins | — | solution |
+| wordiply | the best possible word | **no** — you beat an opponent, not the best word | — | **best solution** |
 | boggle · spellingbee · wordwheel | the full word list | — | — | no control: the list's found/missed filter is it |
 | bananagrams · scrabble · setgame | none | — | — | no answer to show |
+
+**One `describe()` serves all ten**, `describeReveal({ noun, revealed,
+impliedBySolve?, isTerminal })`, so the three states cannot drift: inert with
+"Solution already shown", live as "Hide <noun>" wearing `IconHideSolution`, and
+"Reveal <noun>" — gray until the game is over for EVERYONE, tooltipped *"Can't
+reveal until all end"*. `noun` is **solution** unless the thing shown genuinely
+is not one, which is true in exactly two games. A game with a state of its own
+puts it in FRONT of the call rather than inside: psychicnum hides the BUTTON
+while you are still hunting (`asker === 'button'`) and keeps the menu row and
+the Help list, which is where the glyph is named.
 
 **Where the two are the same thing, the reveal is mostly a convenience**, and
 for three games it is a real one: stackdown's six words, strands' `Words:` line

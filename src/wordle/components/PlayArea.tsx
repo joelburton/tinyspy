@@ -2,7 +2,6 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useMemo } from 'react'
-import { IconHideSolution } from '@/common/icons/icons'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
@@ -21,6 +20,7 @@ import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
+import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
@@ -294,7 +294,7 @@ export function PlayArea({
   // The byte-identical shared handlers (useStandardGameActions); wordle's own
   // bits are the replay sentence and the post-replay cleanup (leave the
   // history view, dismiss a lingering result — a restart is the player's next
-  // action; the verdict leaves by its own effect). New game + Reveal answer
+  // action; the verdict leaves by its own effect). New game + Reveal solution
   // stay below — their paths diverge (new game is a direct create_game).
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
@@ -314,15 +314,8 @@ export function PlayArea({
   // (wordle._target_for), so a player who dropped out early can't peek at a
   // live race; inert too once solving has already put the word on screen.
   const actReveal = useBoundAction('act-reveal', {
-    describe: () => {
-      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
-      if (answerShown) return { state: 'active', label: 'Hide answer', icon: IconHideSolution }
-      // Named in the inert case too: the registry's bare "Reveal" would make the
-      // row change its words as the game ended, which is not what it says.
-      return isTerminal
-        ? { state: 'active', label: 'Reveal answer' }
-        : { state: 'disabled', label: 'Reveal answer', tooltip: "Can't reveal until all end" }
-    },
+    describe: () =>
+      describeReveal({ noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal }),
     run: toggleAnswer,
   })
 
@@ -386,7 +379,7 @@ export function PlayArea({
     run: createNewGame,
   })
 
-  // Reveal answer — TERMINAL ONLY, like every other game (docs/ui.md →
+  // Reveal solution — TERMINAL ONLY, like every other game (docs/ui.md →
   // Terminal results): the order is the same everywhere — End the game (which
   // ends it for everyone), then Reveal. No irreversible thing sits behind a
   // menu item that reads like a display toggle, and no path can reveal while

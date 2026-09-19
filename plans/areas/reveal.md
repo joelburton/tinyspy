@@ -4,8 +4,8 @@ The folders it reads: `reveal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18; the prose pass and F-10 done 2026-09-18.
-Eight of ten findings worked; F-8 and F-9 await a decision.** Roster agreed
+**Status: OPEN — audited 2026-09-18; every finding worked the same day (F-1 to
+F-11). Left: the closing re-read, `todo.md`, and the blessing.** Roster agreed
 2026-09-18 (Joel: *"this is a tiny section, just do the audit"*) and the two
 code files stamped `cs-audited-reveal`. Taken in order after `terminal` (row
 44); this is row 45.
@@ -19,6 +19,8 @@ scope is files with a first-line comment):
 - `useSolutionReveal.ts` — the hook, and `solvedByMe`, the predicate for its
   one option
 - `useSolutionReveal.test.ts`
+- `describeReveal.ts` + `describeReveal.test.ts` — WRITTEN BY THIS AREA (F-8),
+  stamped `cs-audited-reveal` like their siblings
 - `doc.md` · `todo.md`
 
 **Left off the roster on purpose:** the ten PlayAreas that call the hook are
@@ -65,8 +67,9 @@ mount still start shown. The folder's tests are green (1 file, 7 tests); the
 ## Findings
 
 *(`F-reveal-1 · slug · title`, one heading each, with its status after it when
-it has one; no status means OPEN. F-1 to F-6 are prose; F-7 is the plan's own
-row; F-8 and F-9 wait for a decision; F-10 is Joel's, a deletion.)*
+it has one; no status means OPEN. F-1 to F-6 were prose; F-7 the plan's own
+row; F-8 and F-9 Joel's decisions, taken together; F-10 his deletion; F-11 came
+out of presenting F-8.)*
 
 ### F-reveal-1 · `interface-members-wear-docstrings` · `SolutionReveal`'s five members carry `/**` — WORKED
 
@@ -178,7 +181,7 @@ Written 2026-09-04 (`77653b5c`), three weeks after the work. The only reveal
 item in `deferred.md` is struck through and points at `common.md`. The row is
 the plan's, not durable: it now says what the area is.
 
-### F-reveal-8 · `six-copies-of-describe` · The six clear-win games each write the same `describe()` for `act-reveal`
+### F-reveal-8 · `six-copies-of-describe` · The six clear-win games each write the same `describe()` for `act-reveal` — WORKED as `describe-helper`
 
 Every one:
 
@@ -192,9 +195,23 @@ return isTerminal
   : { state: 'disabled', label: 'Reveal solution', tooltip: "Can't reveal until all end" }
 ```
 
-Same three branches, same comment, same tooltip, in six files (and the four
-no-clear-win games write the last two branches). What varies is the noun
-(F-9) and the guard's name.
+**Re-verified 2026-09-18 before presenting, and the census above is wrong.**
+All TEN games share the skeleton, not six, and it has already drifted past the
+noun:
+
+| what varies | where | verdict |
+|---|---|---|
+| the noun | six different words | F-9 |
+| the `impliedBySolve` branch | the six that pass `impliedBy` | correct by design |
+| **the `"Can't reveal until all end"` tooltip** | present: psychicnum, stackdown, waffle, wordle, crosswords · **absent: connections, strands, letterboxed, codenamesduet, wordiply** | nobody decided this |
+| a `hidden` branch while playing | psychicnum only | its own pattern — F-11 |
+
+The tooltip is the half that matters: `docs/ui.md` states it as the rule
+(*"keeps the control visible but disabled, tooltipped 'Can't reveal until all
+end'"*), and five games do not pass one, so a grayed Reveal explains itself in
+wordle and says nothing in strands. Every one of the ten gates its live state
+on `isTerminal`, so there is no game where the tooltip would be wrong. No test
+asserts a reveal tooltip today.
 
 **Decision:**
 
@@ -211,7 +228,25 @@ no-clear-win games write the last two branches). What varies is the noun
   return. Recommended: the hook stays state, the words stay a function, and a
   game that wants a different face writes its own.
 
-### F-reveal-9 · `solution-or-answer` · The same control is "Reveal solution" in three games, "Reveal answer" in three, and the thing's own name in four
+**WORKED 2026-09-18 as `describe-helper`** (Joel: *"yes to describe-helper"*),
+together with F-9's nouns, since the two land in the same line of code.
+`describeReveal({ noun, revealed, impliedBySolve?, isTerminal })` lives beside
+the hook with its own test; ten `describe()` bodies became one line each, and
+`IconHideSolution` left ten import lists. `impliedBySolve` is optional, so the
+four games that never imply say so by omission. psychicnum's own state stays
+its own, in FRONT of the call. Five games gained the tooltip; seven changed
+their words; 3244 unit tests green.
+
+What the sweep touched beyond the ten PlayAreas: the label assertions in seven
+games' tests (waffle, wordle, strands, psychicnum, wordiply, codenamesduet,
+connections), `e2e/waffle.e2e.ts`'s four literals, and the prose that QUOTED a
+label — `docs/ui.md`, `docs/games/{waffle,wordle,wordiply}.md`, waffle's
+manifest and two PlayArea comments, plus `common/actions/doc.md` and two e2e
+header comments whose examples of "labels vary" were the old nouns. The
+codenamesduet prose about the partner's key CARD is untouched: that names the
+thing, not the control.
+
+### F-reveal-9 · `solution-or-answer` · The same control is "Reveal solution" in three games, "Reveal answer" in three, and the thing's own name in four — WORKED as `solution` + two exceptions
 
 stackdown, crosswords, letterboxed: *solution*. waffle, wordle, strands:
 *answer*. And four name the THING instead: connections *categories*, psychicnum
@@ -242,6 +277,20 @@ uniform — and in two of them it disagrees with the game's own live label.)
 
 Whichever way it goes, the inert face has to follow it: "Solution already
 shown" is hard-coded in all six clear-win games and contradicts two of them.
+
+**RULED 2026-09-18, Joel: `solution` is the default noun, with two games
+keeping their own** (*"i agree with 'solution' as the default noun; for
+wordiply, we can use 'best solution' and for codenames, 'key cards'"*). So the
+rule is sayable — **say "solution" unless the thing is not one** — and the
+inert "Solution already shown" is then the same word everywhere. Eight games
+say *Reveal solution* / *Hide solution*; wordiply says *best solution*;
+codenamesduet says *key cards*. Six games' words change: connections
+(*categories*), psychicnum (*secrets*), strands, waffle, wordle (*answer*), and
+wordiply and codenamesduet reword. stackdown, crosswords and letterboxed
+already say it.
+
+**And RULED the same day: all ten carry the tooltip** (*"they should all show
+the tooltip"*), which settles F-8's real defect whatever shape the code takes.
 
 ### F-reveal-10 · `reset-and-hide-have-no-caller` · `reset` and `hide` are dead since the restart key, and the docstring argues a distinction nothing uses — WORKED
 
@@ -287,6 +336,34 @@ callback did not reach: psychicnum's *"No reveal-flag reset here"* comment (the
 Notes item below, fixed here rather than handed on — it names a column dropped
 2026-08-15 and would have read as live code) and `e2e/terminal-reveal.e2e.ts`,
 which credited "the game's own onRestarted" for a re-hide the remount does.
+
+### F-reveal-11 · `psychicnum-reveal-ignores-the-asker` · psychicnum's Reveal hides itself from the MENU and Help, where nine games and its own siblings stay — WORKED as ruled
+
+Found while presenting F-8. psychicnum is the only game whose reveal returns
+`'hidden'`, and Joel's context is that this is the MODERN shape, not a
+deviation: psychicnum has one unconditional `<InfoActionsRow>` holding every
+button and lets each `describe()` decide, where the other nine branch in render
+(*"this is a change we expect to roll out to the other games, which currently
+often have logic-in-render about which buttons show"*). For the row the two
+produce the same screen.
+
+The defect is narrower: `describe` is handed an ASKER, and psychicnum's
+neighbors use it — `act-new-game` is `(asker) => (asker === 'button' &&
+!isTerminal ? 'hidden' : 'active')`, and the hint and spoiler carry a comment
+saying they gray rather than drop because *"the menu row is what NAMES those
+glyphs"*. `act-reveal` ignored it, so mid-hunt it left the menu row and the
+Help list as well as the button, and `menuRow` drops a hidden row before the
+menu draws. Nine games gray that row all game (letterboxed's test: *"Present-
+but-disabled, not absent: a grayed row still teaches its glyph"*).
+
+Joel, 2026-09-18: *"we should change this to showing in help; 'reveal solution'
+makes no sense until the game is ended"* — so the row is present and GRAY. One
+line: `if (isStillPlaying && asker === 'button') return 'hidden'`, after which
+the mid-hunt case falls through to the same disabled branch every other game
+uses, tooltip included. `useBoundAction`'s dev check is satisfied — a placement
+may narrow what `key` says, and `key` now draws where it used to be hidden.
+`PlayArea.test.tsx`'s *"is not offered at all while the board is still yours to
+hunt"* pinned the old behavior and now pins the new one.
 
 ## Notes
 

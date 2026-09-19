@@ -2,7 +2,6 @@
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { IconHideSolution } from '@/common/icons/icons'
 import { cls } from '@/common/utils/cls'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import { setupRows } from '../lib/setupSummary'
@@ -20,6 +19,7 @@ import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/board-marks/feedbackTiming'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
+import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { buildPrintModel } from '../pdf/model'
@@ -536,13 +536,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // them until the game is over for everyone, so a rival who solved early or
   // conceded can't pull them while the others are still tracing.
   const actReveal = useBoundAction('act-reveal', {
-    describe: () => {
-      if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
-      if (solutionShown) return { state: 'active', label: 'Hide answer', icon: IconHideSolution }
-      // Named in the inert case too: the registry's bare "Reveal" would make the
-      // row change its words as the game ended, which is not what it says.
-      return { state: isTerminal ? 'active' : 'disabled', label: 'Reveal answer' }
-    },
+    describe: () =>
+      describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal }),
     run: toggleSolution,
   })
 

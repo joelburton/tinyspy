@@ -2100,7 +2100,7 @@ path there outright, because a tap's synthetic hover leaves a stuck bubble. So
 the glyphs had no legend on the surface with the least room for words. The fix
 is the menu row's glyph — the registry's own for an action, and
 [`MenuSubmenu.icon`](../src/common/menu/menuModel.ts) for a submenu parent: the game menu already spells
-these actions out (Restart, New game, Reveal answer, Hint, Spoiler, End game,
+these actions out (Restart, New game, Reveal solution, Hint, Spoiler, End game,
 Concede, Back to club, Print), so each row shows its glyph beside its name.
 A button whose glyph isn't in the menu yet gets a row **added** — that's how
 hint + spoiler reached letterboxed, psychicnum and stackdown, and how

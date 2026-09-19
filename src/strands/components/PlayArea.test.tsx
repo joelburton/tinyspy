@@ -234,13 +234,13 @@ describe('strands PlayArea — the terminal reveal', () => {
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
 
-    await user.click(screen.getByRole('button', { name: 'Reveal answer' }))
+    await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     // Spangram FIRST — it's the word that names the theme.
     const line = screen.getByText('Words:').closest('p')!
     expect(line.textContent).toMatch(/Words:\s*SPANGRAM\s*ALPHA\s*BRAVO/)
 
     // …and the same button takes it back off.
-    await user.click(screen.getByRole('button', { name: 'Hide answer' }))
+    await user.click(screen.getByRole('button', { name: 'Hide solution' }))
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
   })
 
@@ -263,7 +263,7 @@ describe('strands PlayArea — the terminal reveal', () => {
     finished({ game: loadedGame({ mode: 'compete', solution: SOLUTION }), me, players: [me] })
     render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won_compete' })} />)
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Reveal answer' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
   it('compete: solving but LOSING on hints still counts as my solve', () => {
@@ -280,10 +280,10 @@ describe('strands PlayArea — the terminal reveal', () => {
     const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
     finished()
     render(<PlayArea {...ctx} />)
-    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal answer')
+    expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
 
     act(() => menuItems(ctx).get('act-reveal')!.run())
-    await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide answer'))
+    await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide solution'))
   })
 })
 
