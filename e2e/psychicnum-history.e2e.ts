@@ -6,12 +6,12 @@ import { signIn } from './helpers/session'
 
 /**
  * Turn-history viewer for psychicnum. Clicking an event-log #N replays that turn on
- * the board: the tiles decided
- * up to that turn colored, that turn's guessed tile ringed in the history blue (over
- * its green/red outcome color), the board wearing the viewing frame, and a description
- * banner over the below-board slot. These are real layout/overlay properties jsdom
- * can't see, so this is a browser check — and it pins the shared exit paths
- * (keystroke / a board click / any click) + the no-reflow invariant.
+ * the board: the tiles decided up to that turn colored, that turn's guessed tile
+ * ringed in the history blue (over its green/red outcome color), the board wearing
+ * the viewing frame, and a description banner over the below-board slot. These
+ * are real layout/overlay properties jsdom can't see, so this is a browser check
+ * — and it pins the shared exit paths (keystroke / a board click / any click) +
+ * the no-reflow invariant.
  *
  * A SOLO coop game (one player) so there's no presence-pause to manage.
  */

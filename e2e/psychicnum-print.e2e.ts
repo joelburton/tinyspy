@@ -10,7 +10,7 @@ import { signIn } from './helpers/session'
  * real PDF. jsPDF's runtime is unreachable by the mocked component tests, so this
  * drives the real path in a browser (solo game so it doesn't presence-pause) — open
  * the GamePage menu, click Print, and assert a `*.pdf` download starting with `%PDF-`.
- * The board renders even with no guesses ("No guesses yet."), so no gameplay needed.
+ * The board renders even with no turns ("No turns yet."), so no gameplay needed.
  */
 test.describe('psychicnum — print board', () => {
   test('the Print menu item downloads a non-empty PDF', async ({ browser }) => {

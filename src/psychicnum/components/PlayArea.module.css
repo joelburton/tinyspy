@@ -2,10 +2,9 @@
 
 /* psychicnum play surface (the thin coordinator). The two-column SHELL and the
  * tile chrome come from the shared common/game-page/playArea.module.css, the
- * info column and its rows from common/info-sheet/infoCol.module.css (imported as
- * `shared`). The only class left
- * here is the layout var; the column-specific bits live with their columns
- * (BoardCol.module.css). See docs/ui.md → "PlayArea layout".
+ * info column and its rows from common/info-sheet/infoCol.module.css (InfoCol's
+ * `shared`). The only class left here is the layout var; the column-specific
+ * bits live with their columns (BoardCol.module.css). See docs/playarea.md.
  *
  * Mobile is the shared recipe (docs/mobile.md): `shared.mobileFill` on `.layout`
  * (board fills the width) + `<InfoSheet>` around the InfoCol (off-canvas sheet) +

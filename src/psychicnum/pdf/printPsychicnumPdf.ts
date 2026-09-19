@@ -122,7 +122,7 @@ function drawBoard(
     // Word a hair below center so it clears the top-corner mark.
     doc.text(tile.word, px + cellW / 2, py + cellH / 2 + size * 0.35 + 2, { align: 'center' })
     // Top-right corner of the cell — psychicnum's own placement; the shared
-    // marks take a center, so the corner math lives here now.
+    // marks take a center, so the corner math lives here.
     const markSize = Math.min(cellW, cellH) * 0.22
     const mark = { cx: px + cellW - markSize, cy: py + markSize, size: markSize }
     if (tile.state === 'correct') drawCheck({ ...mark, color: MARK_CORRECT }, doc)

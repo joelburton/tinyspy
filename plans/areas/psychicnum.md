@@ -57,7 +57,7 @@ bugs; reduce CSS that duplicates common CSS or the play-surface scaffold.
 
 Listed 2026-09-19 (`src/psychicnum/`, its SQL, its doc):
 
-- **`src/psychicnum/` — 31 files.** components: `Board.tsx` + `.module.css`,
+- **`src/psychicnum/` — 31 files** (32 with `doc.md`, written 2026-09-19). components: `Board.tsx` + `.module.css`,
   `BoardCol.tsx` + `.module.css`, `GameEventLog.tsx` + `.module.css`,
   `Help.tsx`, `InfoCol.tsx`, `PlayArea.tsx` + `.module.css` + `.test.tsx`,
   `SetupForm.tsx` + `.test.tsx`, `StateLine.tsx`. hooks: `useGame.ts`. lib:
@@ -1280,6 +1280,53 @@ countdown ends the game as a loss without naming one mode's state.
 
 No decision in any of these.
 
+### The closing re-read — 2026-09-19
+
+Every roster file again in one sitting after F-20, checking each claim against
+the tree as the day left it. Sixteen things, none a finding with a decision in
+it, all worked in the sitting. **Half were the day's own prose, and the rest
+were one fault class the audit had fixed in one place and missed in its
+siblings** — which is the argument for this step.
+
+- **The reveal "rings" nothing, and three files still said it did.** Step 6
+  cut the false ring from `Board.tsx`'s docstring and F-15 cut it from
+  ui.md; the same words stood in `PlayArea.tsx`'s reveal comment ("NOT
+  ringed", "un-rings", "which tiles get rung", "the rings add nothing"),
+  in `InfoCol.tsx`'s `actReveal` note ("Ring the three secrets — or un-ring
+  them"), and in `PlayArea.test.tsx`, whose green-counting helper was named
+  `ringed`. All say green now; the helper is `greenTiles`. **The eye missed a
+  fourth** ("Nothing un-rings the secrets here", on the restart note); the
+  grep for the fault class caught it — read every file, then grep the class.
+- **Today's own comment block ran into its neighbor.** F-6 put `myBudgetRow`
+  under the celebration's comment with no blank line, so the celebration's
+  paragraph read as the row's. Reordered: the row and its note first, then the
+  celebration's paragraph above the hook it explains.
+- **A stale claim under the history viewer**: "Keyed by log position (guesses
+  have no per-turn ordinal)" — it is keyed by the row's id, which is
+  `lib/history.ts`'s whole argument. Says so.
+- **"Hint rows are excluded (a hint reveals…)"** — spoiler rows are excluded
+  too, and a hint gives a clue. "Hint and spoiler rows are excluded — neither
+  marks a tile."
+- **`InfoCol`'s order sentence skipped the whose-turn line** in the docstring
+  and the render comment; the `actSpoiler` note said "the answer word for one
+  board word".
+- **`PlayArea.test.tsx` said the identity dot's rule was "still being
+  decided"** — it is decided (`decidedBy` is coop with more than one player).
+- **`PlayArea.module.css` cited a heading ui.md does not have** ("PlayArea
+  layout"); the doc is playarea.md. Its "imported as `shared`" also named the
+  wrong file's alias.
+- **`Board.module.css` had a bare blank line inside the `.correct` block
+  comment**; `printPsychicnumPdf.ts` had a "now".
+- **The e2e docstring F-16 trimmed was left with a broken line**, and
+  `psychicnum-print.e2e.ts` quoted "No guesses yet." where the shared PDF says
+  "No turns yet."
+- **`history.test.ts` spoke in indexes** ("position ≤ N", "turn 0") about a
+  builder whose point is that it resolves by id.
+- **`doc.md`**: the hint RPC's teammate line still said "asked for a hint"
+  (F-14 fixed the SQL's twin), the spoiler's said "a word was revealed", and
+  the Tests section counted "five Playwright specs".
+- **This file**: the roster said 31 files; `doc.md` made it 32.
+
 ### What checked out
 
 Read and found sound, so the next sitting need not re-derive it: the three
@@ -1364,7 +1411,9 @@ the trailing `: `, which is what separates the pill from the log.
       too**, which the split had hidden: `pdf/model.ts` builds its turn lines
       from `is_correct` directly and so was never going through `answerMessage`
       at all. Six sites in all, three of them comments
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group
+      (2026-09-19, after F-20) — sixteen more things, recorded under *The
+      closing re-read* below and all worked in the same sitting
 - [x] **`docs/games/psychicnum.md` is DELETED** (2026-09-19). Its Won't-do
       moved to `todo.md` at Step 1; the rest is in `src/psychicnum/doc.md`,
       which is 313 lines against its 593 — the shape Joel set for a game doc

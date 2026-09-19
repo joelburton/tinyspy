@@ -90,7 +90,7 @@
  * definition waffle and wordle give their colored tiles.
  *
  * The fill is `-fill`, the 400 tone.
-
+ *
  * Which channel is this borrowing? Border color is spoken for by verdicts and by
  * peer selection, but neither can land on a DECIDED tile: it is inert, so nobody
  * can select it and nothing can be refused on it. The edge is free here precisely

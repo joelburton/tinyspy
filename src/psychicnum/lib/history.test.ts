@@ -3,8 +3,8 @@
 /**
  * Unit test for the psychicnum turn-history snapshot (lib/history.ts). Pure — no
  * DOM, no supabase. Covers:
- *   1. INCLUSIVE folding — viewing turn N reflects every guess with position ≤ N and
- *      NOT any later one.
+ *   1. INCLUSIVE folding — viewing a turn reflects every guess up to and including
+ *      it, and NOT any later one.
  *   2. Hint / spoiler turns mark no tile and highlight nothing.
  *   3. The highlight — exactly the word the viewed guess decided.
  */
@@ -49,7 +49,7 @@ describe('historySnapshot', () => {
   it('marks no tile and highlights nothing for a hint / spoiler turn', () => {
     const s1 = historySnapshot(GUESSES, 12) // the hint
     expect(s1.historyLitWord).toBeNull()
-    // The hint added nothing — only APPLE (from turn 0) is decided.
+    // The hint added nothing — only APPLE (from the first row) is decided.
     expect(s1.results.size).toBe(1)
     expect(s1.historyLabel).toBe('Hint: a fruit')
   })

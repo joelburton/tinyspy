@@ -201,7 +201,7 @@ Picks one of the caller's (compete) or team's (coop) unfound secrets and logs
 its dictionary CLUE — never the word. Costs no budget. Many words have no clue,
 which is an answer rather than a failure, so `result` says which. Both log a
 `kind = 'hint'` row that reaches the event log over realtime, and in coop gives
-teammates an "asked for a hint" line.
+teammates a "got hint" line.
 
 **Passed:** `{ "target_game": "3f2a…" }`
 
@@ -215,8 +215,8 @@ no call site has to recognize the fallback by its prose.
 
 The same pick, but it hands over the secret WORD itself. Costs no budget and
 does not find the secret — you still have to guess it, or not bother. Logs a
-`kind = 'spoiler'` row; in coop teammates see that a word was revealed, never
-which one.
+`kind = 'spoiler'` row; in coop teammates see that a spoiler was taken, never
+which word.
 
 **Passed:** `{ "target_game": "3f2a…" }`
 
@@ -304,7 +304,7 @@ language is [docs/pdf.md](../../docs/pdf.md).
 
 ## Tests
 
-pgTAP in `supabase/tests/psychicnum/`, vitest beside each `lib/` module, five
+pgTAP in `supabase/tests/psychicnum/`, vitest beside each `lib/` module, the
 Playwright specs named `psychicnum-*`. Each file's own header says what it
 covers; [docs/testing.md](../../docs/testing.md) has the conventions.
 

@@ -16,7 +16,8 @@ import shared from '@/common/info-sheet/infoCol.module.css'
 /**
  * psychicnum's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
- * OpponentStrip (compete) → action row → help → setup disclosure → event log. Every
+ * whose-turn line (turn-order) → OpponentStrip (compete) → action row → help →
+ * setup disclosure → event log. Every
  * command is a BOUND ACTION the PlayArea handed down (`actHint`, `actEndGame`, …),
  * so this column places buttons and decides nothing about them — an action that
  * does not apply here draws nothing, which is how one row serves coop and compete.
@@ -93,12 +94,13 @@ export function InfoCol({
   // Ask for a clue. Grayed rather than gone when you can't ask — the glyph is
   // worth teaching either way.
   actHint: BoundAction
-  // Mid-game cheat: hand over the answer word for one board word (the amber
-  // bare-eye glyph). Logs to the event log like a hint does.
+  // Mid-game cheat: hand over one unfound secret word (the amber bare-eye
+  // glyph). Logs to the event log like a hint does.
   actSpoiler: BoundAction
-  // Ring the three secrets at game-over — or un-ring them. A local display
-  // toggle shared with the menu twin; nothing is written, no peer affected. It
-  // carries its own two faces, so this column places one button either way.
+  // Show the three secrets at game-over (their tiles go green) — or hide them
+  // again. A local display toggle shared with the menu twin; nothing is
+  // written, no peer affected. It carries its own two faces, so this column
+  // places one button either way.
   actReveal: BoundAction
   // Hunt the SAME board + secrets again from scratch.
   actRestart: BoundAction
@@ -142,8 +144,9 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       {/* The non-log info column — the shared named readouts, in the canonical order
-          (docs/playarea.md → Info-column readouts): STATE → OpponentStrip (compete) →
-          ACTIONS → HELP → SETUP disclosure, then the event log below. */}
+          (docs/playarea.md → Info-column readouts): STATE → whose-turn line
+          (turn-order) → OpponentStrip (compete) → ACTIONS → HELP → SETUP
+          disclosure, then the event log below. */}
       <div className={shared.noShrinkRow}>
         {/* State — shown in both play and terminal. The same `<StateLine>` the
             mobile status bar renders above the board (BoardCol), so the two

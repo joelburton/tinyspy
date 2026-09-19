@@ -428,7 +428,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
 
   /** How many board tiles currently read as secrets (green). With no guesses in
    *  these fixtures, that is exactly the revealed ones. */
-  const ringed = () =>
+  const greenTiles = () =>
     screen.getAllByRole('button').filter((b) => b.className.includes('correct')).length
 
   /** A finished game whose secrets have reached this client (the server sends
@@ -445,7 +445,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     // bit would leave the winners pressing Reveal.
     h.result = loaded({ ...coopGame, secrets: ['alpha', 'charlie', 'echo'] })
     render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
-    expect(ringed()).toBe(3)
+    expect(greenTiles()).toBe(3)
     expect(screen.getByRole('button', { name: 'Solution already shown' })).toBeDisabled()
   })
 
@@ -456,7 +456,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
 
   it('leaves the secrets hidden until this viewer asks', () => {
     render(<PlayAreaLoader {...ended()} />)
-    expect(ringed()).toBe(0)
+    expect(greenTiles()).toBe(0)
     expect(screen.getByRole('button', { name: 'Reveal solution' })).toBeEnabled()
   })
 
@@ -464,7 +464,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     const user = userEvent.setup()
     render(<PlayAreaLoader {...ended()} />)
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
-    expect(ringed()).toBe(3)
+    expect(greenTiles()).toBe(3)
     // Local state: no teammate's board lit up.
     expect(rpc).not.toHaveBeenCalled()
   })
@@ -474,7 +474,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     render(<PlayAreaLoader {...ended()} />)
     await user.click(screen.getByRole('button', { name: 'Reveal solution' }))
     await user.click(screen.getByRole('button', { name: 'Hide solution' }))
-    expect(ringed()).toBe(0)
+    expect(greenTiles()).toBe(0)
   })
 
   it('the menu twin is the same toggle, and flips its label AND its glyph', async () => {
@@ -486,7 +486,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
     expect(menuItems(ctx).get('act-reveal')?.label).toBe('Reveal solution')
     const revealFace = menuItems(ctx).get('act-reveal')?.icon
     act(() => menuItems(ctx).get('act-reveal')!.run())
-    expect(ringed()).toBe(3)
+    expect(greenTiles()).toBe(3)
     await waitFor(() => expect(menuItems(ctx).get('act-reveal')?.label).toBe('Hide solution'))
     expect(menuItems(ctx).get('act-reveal')?.icon).not.toBe(revealFace)
   })
@@ -520,9 +520,9 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
 /**
  * The board-scope marks (plans/tile-feedback.md). None of this is game logic, and
  * none of it is visible to a type check: a mark that stops being applied looks
- * exactly like a mark nobody asked for. The identity dot is deliberately NOT
- * pinned yet — its audience rule is still being decided (coop-only today, 2+
- * players eventually).
+ * exactly like a mark nobody asked for. The identity dot is not pinned here:
+ * its rule (a shared board with more than one player on it) is the PlayArea's
+ * `decidedBy` condition, read rather than asserted.
  *
  * The board is reached through `[data-board]` rather than a role: psychicnum's grid
  * carries no ARIA role, and adding one to make testing easier would be extending

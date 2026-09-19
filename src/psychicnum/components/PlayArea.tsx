@@ -157,6 +157,12 @@ function PlayArea({
   // reached by the header's InfoSwitchButton. Desktop is unchanged.
   const infoSheet = useInfoSheet()
 
+  // My budget row (`psychicnum.players`) — looked up once; Derived reads the
+  // budget off it, and the reveal and the verdict read the count.
+  const myBudgetRow = playerBudgets.find((p) => p.user_id === session.user.id)
+  const selfSecretsFound = myBudgetRow?.found_secrets_count ?? 0
+  const iFoundThemAll = selfSecretsFound >= SECRET_COUNT
+
   // Confetti the moment the win is MINE — the coop team's third secret, or my
   // own third in a race — and never on mount: opening an already-won game
   // stays quiet. It is the ONLY modal at terminal; the verdict itself rides
@@ -165,11 +171,6 @@ function PlayArea({
   // Both gates are correct on the first render, which is what `useCelebration`
   // requires: `playState` comes with the page, and `playerBudgets` comes with
   // the game — the loader holds this surface back until both are in hand.
-  // My budget row (`psychicnum.players`) — looked up once; Derived reads the
-  // budget off it, and the reveal and the verdict read the count.
-  const myBudgetRow = playerBudgets.find((p) => p.user_id === session.user.id)
-  const selfSecretsFound = myBudgetRow?.found_secrets_count ?? 0
-  const iFoundThemAll = selfSecretsFound >= SECRET_COUNT
   const celebration = useCelebration(
     playState === 'won' || (playState === 'won_compete' && iFoundThemAll),
   )
@@ -216,20 +217,20 @@ function PlayArea({
   )
 
   // The terminal secrets reveal — derived state, because the Reveal binding
-  // below reads it. The three secrets are NOT ringed just because the game ended:
+  // below reads it. The three secrets are NOT shown just because the game ended:
   // `replay_board` hunts the SAME board and the SAME three secrets again (see
   // its RPC comment), so auto-revealing on a loss would leave Restart with
   // nothing to find.
   //
   // The ask is LOCAL and reversible (useSolutionReveal): mine alone, so a
   // teammate can go on eyeing the board for the three while I look, and the
-  // same control un-rings them. The secrets themselves are on every client once
-  // the game is terminal, so this is purely which tiles get rung.
+  // same control hides them again. The secrets themselves are on every client
+  // once the game is terminal, so this is purely which tiles go green.
   //
   // `impliedBy: iFoundThemAll` is the exception: finding all three IS the win
   // here, and a found secret's tile is already green — so a solver is looking
-  // at the answer key and the rings add nothing to it. MY three, not the
-  // game's verdict: compete's loser found fewer.
+  // at the answer key and showing it adds nothing. MY three, not the game's
+  // verdict: compete's loser found fewer.
   const {
     revealed: secretsShown,
     toggle: toggleSecrets,
@@ -359,8 +360,9 @@ function PlayArea({
 
   // ─── The turn-history viewer ───────────────────────────
   // Click an event-log #N to replay that turn's board (the tiles decided up to that
-  // turn, with that turn's guessed tile ringed history-blue). Keyed by log
-  // position (guesses have no per-turn ordinal). Exit is intrinsic to the hook (a
+  // turn, with that turn's guessed tile ringed history-blue). Keyed by the row's
+  // own id, resolved against the rows the board replays (`lib/history.ts` says
+  // why not by position). Exit is intrinsic to the hook (a
   // click anywhere / the banner ✕) and so is the keystroke exit: the viewer binds
   // an any-key action that CONSUMES the press, so the key that brings the board
   // back doesn't also play on it.
@@ -381,8 +383,8 @@ function PlayArea({
   // restart is the player's next action, so it dismisses a lingering result —
   // the verdict itself leaves by its own effect when the terminal state ends).
   //
-  // (Nothing un-rings the secrets here: a restart remounts the play surface, so
-  //  the reveal goes with it and the same three are hunted blind again.)
+  // (Nothing hides the secrets again here: a restart remounts the play surface,
+  //  so the reveal goes with it and the same three are hunted blind again.)
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -584,7 +586,7 @@ function PlayArea({
   const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
 
   // Guessed words → was-it-a-secret, for the board's permanent green/red.
-  // Hint rows are excluded (a hint reveals but doesn't mark a tile). In compete
+  // Hint and spoiler rows are excluded — neither marks a tile. In compete
   // RLS scopes `guesses` to the caller, so this is the viewer's own board.
   const guessed = guesses.filter((g) => g.kind === 'guess')
   const results = new Map(guessed.map((g) => [g.word, g.is_correct]))
