@@ -52,6 +52,9 @@ describe('answerMessage', () => {
   // in words alone — and what lets `eventToOutcome` skip the viewer entirely.
   // Green also means "a secret was found" in BOTH modes, so a player carries
   // one color-meaning rather than a compete-only one.
+  // `hit`/`hit_peer` and `miss`/`miss_peer` share a case, so those two pairs
+  // cannot drift; `hint` and `spoiler` do not, and theirs is the agreement
+  // worth asserting.
   it('gives every pair, and the compete find, one color', () => {
     const same = (a: Answer, b: Answer) =>
       expect(answerMessage(a).outcome).toBe(answerMessage(b).outcome)
