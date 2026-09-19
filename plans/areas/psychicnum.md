@@ -792,9 +792,11 @@ the trailing `: `, which is what separates the pill from the log.
 
 ## Closing
 
-- [ ] `e2e/psychicnum-terminal.e2e.ts` renamed to what it asserts: its title
-      says "ring the tiles" and its helper is `ringed`, but the reveal has no
-      ring — the spec checks the green FILL, and its assertions are right
+- [x] `e2e/psychicnum-terminal.e2e.ts` renamed to what it asserts (2026-09-19):
+      the title is "…go green, then hide again", the helper is `greenTiles`,
+      and the docstring says the spec measures a FILL rather than narrating the
+      ring it once looked for. It also cited `psychicnum.games_view`, a view
+      that has never existed under that name — the gate is `games_state`
 - [ ] the event log says `Incorrect` where every other surface now says
       `Wrong` — a split the `answerMessage` work introduced. The log writing
       its own words is Joel's ruling, so this is a TEXT decision rather than a
