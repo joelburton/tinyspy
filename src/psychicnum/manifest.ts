@@ -36,9 +36,7 @@ import logoUrl from './logo.svg?url'
  *   - `labelFor`: terminal copy reads differently per mode.
  *
  * Both share `baseGametype: 'psychicnum'` — the family key any
- * code wanting "treat these as siblings" reads. Today the
- * registry filters by gametype string; tomorrow, ClubPage may
- * render baseGametype siblings as a single grouped block.
+ * code wanting "treat these as siblings" reads.
  *
  * The single shared `startGameInClub` builds the RPC payload
  * with the per-manifest mode injected — `psychicnum.create_game`
@@ -51,15 +49,13 @@ const helpLoader = lazy(() =>
   import('./components/Help').then((m) => ({ default: m.Help })),
 )
 
-// PlayArea is shared — branches on `manifest.mode` (or, at
-// runtime, on `common.games.gametype` to derive mode) when
-// rendering history + budget strip.
+// PlayArea is shared; it reads `game.mode` off the row for what differs.
 const playAreaLoader = lazy(() =>
   import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
 
-// SetupForm is shared — guesses + timer, no mode picker (mode
-// is locked at gametype level now, not a setup choice).
+// SetupForm is shared; mode is the manifest's, not a setup choice, so it has
+// no mode picker.
 const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
 )
@@ -83,9 +79,12 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 // Shared per-row label for the ClubPage games list. Pure,
 // synchronous — everything comes off the row.
 //
-// Mid-game `status` carries `{ guesses_remaining }`. Terminal-
-// on-win carries `{ outcome, guesses_used, winner_username }`.
-// Terminal-on-loss carries `{ outcome, guesses_used }`.
+// What `status` carries, as the SQL writes it (create_game seeds it,
+// submit_guess and the terminal RPCs maintain it):
+//   coop, mid-game:    { guesses_remaining, found_secrets_count, required_secrets_count }
+//   compete, mid-game: { guesses_remaining }   — the SUM across racers
+//   a win adds  { outcome, winner_username }; a loss adds { outcome, guesses_used },
+//   and coop's loss restates the found tally too.
 //
 // play_state vocabulary:
 //   coop:    'playing' / 'won' / 'lost'
@@ -215,9 +214,12 @@ export const psychicnumCompeteGame: GameManifest = {
       case 'won_compete':
         return wonBy(s.winner_username)
       case 'lost_compete':
-        return s.outcome === 'conceded'
-          ? outcome('Lost', 'all conceded')
-          : statusLine(outcome('Lost', LOSS[s.outcome ?? ''] ?? null), 'no winner')
+        return statusLine(
+          outcome('Lost', LOSS[s.outcome ?? ''] ?? null),
+          // "no winner" is what every-budget-spent and the clock need said;
+          // all conceded says it already.
+          s.outcome === 'conceded' ? null : 'no winner',
+        )
       // 'ended' is the neutral manual-stop terminal (end_game).
       case 'ended':
         return outcome('Ended')

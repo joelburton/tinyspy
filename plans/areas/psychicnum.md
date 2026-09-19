@@ -1075,7 +1075,15 @@ teammate's turn" (1 red).
 **Options:** pass `isMyTurn` and use the `isTerminal` prop · leave, since the
 two derivations happen to agree today.
 
-### F-psychicnum-13 · `manifest-prose` · the manifest's comments describe a different file
+### SHIPPED · F-psychicnum-13 · `manifest-prose` · the manifest's comments describe a different file
+
+**Joel, 2026-09-19: "do it."** The loader comment says the PlayArea reads
+`game.mode`; the ClubPage plan is gone; the setup-form comment lost its "now"
+and its short field list; the status-blob comment lists the shape per mode
+as the SQL writes it; and `lost_compete` reads `LOSS` for every reason, with
+the ternary deciding only whether "no winner" follows. The generated
+status-label table is unchanged (`gameStatusLabels.test.ts` green). The two
+"copy"s wait for F-17.
 
 - On `playAreaLoader`: *"branches on `manifest.mode` (or, at runtime, on
   `common.games.gametype` to derive mode)"* — it reads `game.mode`, the column
