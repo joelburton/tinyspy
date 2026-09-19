@@ -14,7 +14,9 @@
 /* One rule per member of the outcome vocabulary (docs/outcomes.md), because
  * the class is indexed into and must answer for every value the type admits.
  * `won` / `lost` / `neutral` are the verdicts; `near`, `warning` and `noted`
- * judge a MOVE, so they appear only while a game is still being played. */
+ * judge a MOVE, so they appear only while a game is still being played; `error`
+ * is a game reporting that something broke, which a game may answer with like
+ * any other word. */
 /* @@ */ .outcome_won {
   color: var(--outcomes-won-ink-color);
 }
@@ -37,4 +39,8 @@
 
 /* @@ */ .outcome_noted {
   color: var(--outcomes-noted-ink-color);
+}
+
+/* @@ */ .outcome_error {
+  color: var(--outcomes-error-ink-color);
 }

@@ -5,8 +5,8 @@ The folders it reads: `info-sheet`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — audited 2026-09-18; the prose pass done the same day (F-1 to
-F-6, F-8, F-9, F-10, F-17) and F-11 ruled and shipped after it, so six findings
-are left: the bug F-7 and five carrying a decision (F-12 to F-16).** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
+F-6, F-8, F-9, F-10, F-17), then F-11 and F-12 ruled and shipped, so five
+findings are left: the bug F-7 and four carrying a decision (F-13 to F-16).** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
 the audit"*); fifteen files stamped `cs-audited-info-sheet`. Taken in order after
 `reveal` (row 45); this is row 46.
 
@@ -364,7 +364,7 @@ don't-move-row-by-row item came here, and "what a game wears" names the line),
 `info-sheet/todo.md` (the `.infoState` Soon item is answered and deleted) and
 `vocabularies.test.ts`'s `pending` rows, which are keyed by path.
 
-### F-info-sheet-12 · `exclude-error-on-the-row` · `InfoActionsMessage.outcome` is `Exclude<Outcome, 'error'>` for a reason `docs/outcomes.md` now calls false
+### F-info-sheet-12 · `exclude-error-on-the-row` · `InfoActionsMessage.outcome` is `Exclude<Outcome, 'error'>` for a reason `docs/outcomes.md` now calls false — WORKED as (a), ruled 2026-09-18
 
 The `todo.md` Bug. The type's docstring: *"`error` is the one member left out:
 it is a fault's word, and docs/outcomes.md is explicit that it is never an
@@ -391,6 +391,22 @@ six members *"for every member the type admits"*; the stylesheet has six
   has the fault modal. Then the docstring says that, and stops citing
   outcomes.md for the opposite. Against: outcomes.md has already ruled that
   "no caller passes it today" is not a reason.
+
+**Ruled (a), 2026-09-18.** `outcome: Outcome`, an `.outcome_error` rule inked
+from `--outcomes-error-ink-color` (which both themes already carried), and the
+test's loop takes the seventh word — its header already said *"for every member
+the type admits"*, so the loop had been narrower than its own claim. What decided
+it against (b), which had a real structural argument: `outcomes.md` owns this
+vocabulary, and the narrowing that survives there earned it with a reason about
+the WORLD — a finished game has no more moves, so `near` and `warning` cannot
+apply — while this one was a reason about plumbing. Keeping it left the three
+surfaces that show an outcome disagreeing: the pill and the event log's bar admit
+all seven, and only the row admitted six.
+
+`Exclude<Outcome, …>` now appears nowhere in the repo; `TerminalOutcome`'s
+`Extract` is the one subset left, which is what `outcomes.md` says it should be.
+`docs/outcomes.md`'s "other narrowing is an open question" paragraph is answered
+in place, and `todo.md`'s Bugs section is empty.
 
 ### F-info-sheet-13 · `useInfoSheetOpen-is-the-holdout` · The boolean hook is named for the thing, not the question — ruled already
 
@@ -476,7 +492,8 @@ it is the harvest source rather than archaeology.
   home in `playArea.module.css` is a `padding`, which that vocabulary parks. The
   css-class guard stayed green throughout, which is also the proof it would have
   caught a missed call site.
-- F-12 (a): `InfoActionsRow.test.tsx`'s loop adds `error`.
+- F-12 (a): as predicted — `InfoActionsRow.test.tsx`'s loop adds `error`, and
+  nothing else moved. No caller needed changing, since the type only widened.
 - F-13: none — two call sites renamed together.
 - F-14: any InfoCol test rendering `<OpponentStrip>` without `metricLabel`
   fails to typecheck; thirteen pass it, so expect none.

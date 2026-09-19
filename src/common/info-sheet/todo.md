@@ -2,15 +2,6 @@
 
 ## Bugs
 
-- **Judge `Exclude<Outcome, 'error'>` on the action row's outcome.** Ruled
-  2026-09-15: any outcome is a valid outcome, and `error` is a full member of
-  the list — a game may answer with it, and if one did it would take an error
-  pill and an error bar in the event log like any other word. So excluding it
-  here needs a reason of its own, and the one written down (that `error` is not
-  an outcome at all) is not true. Either the row has a reason no game can hand
-  it that word, and it says so, or the exclusion goes.
-  ([docs/outcomes.md](../../../docs/outcomes.md) → A narrower Outcome type.)
-
 ## Soon
 
 - **Emerge a shared `<InfoCol>` component.** Every game has its own

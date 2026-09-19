@@ -277,12 +277,14 @@ been won, been lost, or was stopped with neither happening. `near` and `warning`
 judge a MOVE, and once the game is over there are no more moves. The terminal
 section is where it gets its full hearing.
 
-The other narrowing is an **open question**, filed in the folder that has to
-answer it: the info action row's `Exclude<Outcome, 'error'>`. It was written
-down here with the reason "error is never an outcome", which contradicts this
-file two screens up:
-`error` is a full member, a game may answer with it, and if one did it would
-take an error pill and an error bar in the log like any other word.
+**The info action row was the other narrowing, and it is gone** (2026-09-18). It
+had excluded `error` with the reason "error is never an outcome", which
+contradicted this file two screens up, and nothing else was holding the exclusion
+up: every caller happens to pass a `TerminalOutcome` or a literal `neutral`
+today, which is the census this rule forbids as an argument. So
+`InfoActionsMessage.outcome` is now `Outcome`, the stylesheet inks all seven, and
+the three surfaces that show an outcome — the pill, the event log's bar, the
+action row's line — agree about the vocabulary.
 
 `Extract`/`Exclude` rather than a hand-written union, always: a subset spelled
 out by hand is a second vocabulary that drifts, where a derived one breaks

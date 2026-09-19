@@ -42,7 +42,7 @@ describe('InfoActionsRow', () => {
   it('takes its ink from the outcome, for every member the type admits', () => {
     // The class is indexed into, so a member with no rule would render unstyled
     // rather than fail — which is why each is asserted rather than sampled.
-    for (const outcome of ['won', 'lost', 'near', 'warning', 'neutral', 'noted'] as const) {
+    for (const outcome of ['won', 'lost', 'near', 'warning', 'neutral', 'noted', 'error'] as const) {
       const { container, unmount } = render(
         <InfoActionsRow message={{ text: outcome, outcome }} />,
       )

@@ -13,13 +13,13 @@ import styles from './InfoActionsRow.module.css'
  * finished game's "You won!" and a live game's "Two left" are the same kind of
  * statement said in different colors, rather than two mechanisms.
  *
- * `error` is the one member left out: it is a fault's word, and
- * docs/outcomes.md is explicit that it is never an outcome. A row with
- * something broken to report has the fault modal for it.
+ * The whole vocabulary, not a subset: any outcome is a valid outcome, so a game
+ * that answers with a word gets that word's ink here the way it gets that word's
+ * pill and its bar in the event log.
  */
 export type InfoActionsMessage = {
   text: ReactNode
-  outcome: Exclude<Outcome, 'error'>
+  outcome: Outcome
 }
 
 type Props = {
