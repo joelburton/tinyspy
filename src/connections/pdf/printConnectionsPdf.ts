@@ -5,7 +5,7 @@ import {
   BLACK,
   DARK_GRAY,
   drawHeader,
-  drawSetup,
+  drawSetupBelow,
   fit,
   newPrintDoc,
   savePrint,
@@ -92,10 +92,10 @@ export function printConnectionsPdf(m: ConnectionsPrintModel): void {
     })
   } else {
     // ── Compete: one track per player — bands, tiles, score, own log ──
-    const { bottom, left } = drawInTracks(pd, m.tracks, (t, track) =>
+    const { bottom } = drawInTracks(pd, m.tracks, (t, track) =>
       drawCompeteTrack(doc, t, track),
     )
-    if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18, m.mode)
+    drawSetupBelow(pd, m, bottom + 18)
   }
 
   savePrint(pd, m, 'connections')

@@ -1,7 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, drawSetupBelow, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
 import { drawInTracks, type Track } from '@/common/pdf/columns'
 import { drawTile, drawTileLegend } from '@/shared/wordle-style/pdfTiles'
 import type { TileColor } from '@/shared/wordle-style/tileColor'
@@ -34,13 +34,13 @@ export function printWordlePdf(m: WordlePrintModel): void {
 
   drawHeader(pd, m)
 
-  const { bottom, left } = drawInTracks(pd, m.tracks, (t, track) =>
+  const { bottom } = drawInTracks(pd, m.tracks, (t, track) =>
     drawTrack(doc, t, track, m),
   )
 
   // Setup, once per document under the tracks — the same block every other
   // printer ends with, so a reader finds the game's options where they expect.
-  if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18, m.mode)
+  drawSetupBelow(pd, m, bottom + 18)
 
   savePrint(pd, m, 'wordle')
 }

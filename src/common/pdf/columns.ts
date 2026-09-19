@@ -16,6 +16,8 @@ export type Track = {
   width: number
   // Top edge — the same for every track on a page.
   top: number
+  // The y past which this track's content is off the sheet (`pd.pageBottom`).
+  bottom: number
 }
 
 /**
@@ -52,7 +54,7 @@ export function drawInTracks<T>(
       pd.doc.addPage()
       bottom = top
     }
-    const end = draw(item, { x: pd.margin + slot * (width + GUTTER), width, top })
+    const end = draw(item, { x: pd.margin + slot * (width + GUTTER), width, top, bottom: pd.pageBottom })
     bottom = Math.max(bottom, end)
   })
   return { bottom, left: pd.margin, width: usable }

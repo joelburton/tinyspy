@@ -441,7 +441,16 @@ Recommendation: delete all six; the legend's size becomes the 7 both callers
 chose. Any one Joel wants kept as API is kept with its docstring saying who
 is expected to vary it.
 
-### F-pdf-11 · `page-wide-setup-unguarded` · the track family ends with the same unguarded line, eight times
+### SHIPPED · F-pdf-11 · `page-wide-setup-unguarded` · the track family ends with the same unguarded line, eight times
+
+**Ruled and shipped 2026-09-19** (Joel: *"i'll take your rec"*).
+`drawSetupBelow(pd, m, y)` in `frame.ts` draws the recap at `y` or at the top
+of a new page when `setupBlockHeight` says it will not fit, and gives it the
+page's width so a long value wraps; three cases in `frame.test.ts`. The
+eight track-family printers call it (a sweep by exact string; `left` dropped
+from seven destructures; stamps unmoved) — stackdown keeps its solution
+between the tracks and the recap. `Track` gains `bottom` (`pd.pageBottom`),
+read by no caller yet.
 
 Seven printers end `if (m.setup.length) drawSetup(doc, m.setup, left,
 bottom + 18, m.mode)` verbatim and stackdown a variant (its solution first).

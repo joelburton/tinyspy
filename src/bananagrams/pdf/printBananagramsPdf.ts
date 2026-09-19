@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint, type PrintHeader, type SetupRow } from '@/common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, drawSetupBelow, fit, newPrintDoc, savePrint, type PrintHeader, type SetupRow } from '@/common/pdf/frame'
 import { drawInTracks, type Track } from '@/common/pdf/columns'
 
 /**
@@ -53,11 +53,11 @@ export function printBananagramsPdf(m: BananagramsPrintModel): void {
   const { doc } = pd
 
   drawHeader(pd, m)
-  const { bottom, left } = drawInTracks(pd, m.tracks, (t, track) => drawTrack(doc, t, track), TRACKS)
+  const { bottom } = drawInTracks(pd, m.tracks, (t, track) => drawTrack(doc, t, track), TRACKS)
 
   // Setup once per document, under the columns — it describes the GAME, so
   // repeating it per player would say the same thing twice.
-  if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18, m.mode)
+  drawSetupBelow(pd, m, bottom + 18)
 
   savePrint(pd, m, 'bananagrams')
 }

@@ -56,8 +56,9 @@ and must carry its own framing. Which controls earn a row is
 length bound: a letter game's `Letters` row prints the whole board, and the
 roster prints every username. The `Letters` row exists to be copied off the
 paper into the next game's dialog, and half a board is worse than a wrapped
-one. The word-list body passes `drawSetup` its width and wraps; the event-log
-family pre-computes the block's height as one line per row and does not.
+one. The word-list body and the track family (`drawSetupBelow`) give
+`drawSetup` a width and wrap; the event-log family pre-computes the block's
+height as one line per row and does not.
 
 **Three tracks per page.** Compete allows six players, and six tracks on a
 letter page are about 88pt each — a wordle keyboard needs ten keys across,

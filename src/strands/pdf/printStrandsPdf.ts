@@ -6,7 +6,7 @@ import {
   DARK_GRAY,
   MEDIUM_GRAY,
   drawHeader,
-  drawSetup,
+  drawSetupBelow,
   fit,
   newPrintDoc,
   savePrint,
@@ -64,9 +64,9 @@ export function printStrandsPdf(m: StrandsPrintModel): void {
   // summary, which sits only 20pt above where the tracks begin.
   drawHeader(pd, m)
 
-  const { bottom, left } = drawInTracks(pd, m.tracks, (t, track) => drawTrack(doc, m, t, track))
+  const { bottom } = drawInTracks(pd, m.tracks, (t, track) => drawTrack(doc, m, t, track))
 
-  if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18, m.mode)
+  drawSetupBelow(pd, m, bottom + 18)
 
   savePrint(pd, m, 'strands')
 }

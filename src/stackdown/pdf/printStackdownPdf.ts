@@ -1,7 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
+import { BLACK, DARK_GRAY, drawHeader, drawSetupBelow, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
 import { drawInTracks, type Track } from '@/common/pdf/columns'
 import { letterCorner, type Tile } from '../lib/board'
 import type { PrintTrack, StackdownPrintModel } from './model'
@@ -55,7 +55,7 @@ export function printStackdownPdf(m: StackdownPrintModel): void {
   // say the same thing three times.
   let y = bottom + 18
   if (m.solution) y = drawSolution(doc, m.solution, left, y, width) + 14
-  if (m.setup.length) drawSetup(doc, m.setup, left, y, m.mode)
+  drawSetupBelow(pd, m, y)
 
   savePrint(pd, m, 'stackdown')
 }

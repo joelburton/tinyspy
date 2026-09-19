@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, savePrint, setupBlockHeight, type PrintDoc } from './frame'
+import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, drawSetupBelow, fit, savePrint, setupBlockHeight, type PrintDoc } from './frame'
 
 /** A chainable jsPDF stand-in: every method is a no-op that records its call and
  *  returns the doc (for `.setFont(...).setFontSize(...)` chaining); getTextWidth is
@@ -172,6 +172,33 @@ describe('drawSetup', () => {
       drawSetup(pd.doc, LETTERS, 40, 100, 'coop')
       expect(valueLines(calls)).toHaveLength(1)
     })
+  })
+})
+
+describe('drawSetupBelow', () => {
+  const m = {
+    brand: '', gameTitle: '', date: '', summary: '', mode: 'coop' as const,
+    setup: [{ key: 'a', label: 'A', value: '1' }, { key: 'b', label: 'B', value: '2' }],
+  }
+
+  it('draws at y when the block fits', () => {
+    const { pd, calls } = fakePd()
+    drawSetupBelow(pd, m, 500)
+    expect(calls.filter((c) => c.m === 'addPage')).toHaveLength(0)
+    expect(calls.some((c) => c.m === 'text' && c.args[0] === 'Setup: Co-op' && c.args[2] === 500)).toBe(true)
+  })
+
+  it('starts a new page when the block would run off the sheet', () => {
+    const { pd, calls } = fakePd()
+    drawSetupBelow(pd, m, 764 - 20) // three lines of 13 do not fit in 20pt
+    expect(calls.filter((c) => c.m === 'addPage')).toHaveLength(1)
+    expect(calls.some((c) => c.m === 'text' && c.args[0] === 'Setup: Co-op' && c.args[2] === 28)).toBe(true)
+  })
+
+  it('draws nothing for a game with no rows', () => {
+    const { pd, calls } = fakePd()
+    drawSetupBelow(pd, { ...m, setup: [] }, 500)
+    expect(calls).toHaveLength(0)
   })
 })
 

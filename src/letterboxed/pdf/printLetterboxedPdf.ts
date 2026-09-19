@@ -6,7 +6,7 @@ import {
   DARK_GRAY,
   MEDIUM_GRAY,
   drawHeader,
-  drawSetup,
+  drawSetupBelow,
   fit,
   newPrintDoc,
   savePrint,
@@ -42,13 +42,13 @@ export function printLetterboxedPdf(m: LetterboxedPrintModel): void {
 
   drawHeader(pd, m)
 
-  const { bottom, left } = drawInTracks(pd, m.tracks, (t, track) =>
+  const { bottom } = drawInTracks(pd, m.tracks, (t, track) =>
     drawTrack(doc, t, track, m),
   )
 
   // Setup, once per document under the tracks — the same block every other
   // printer ends with, so a reader finds the game's options where they expect.
-  if (m.setup.length) drawSetup(doc, m.setup, left, bottom + 18, m.mode)
+  drawSetupBelow(pd, m, bottom + 18)
 
   savePrint(pd, m, 'letterboxed')
 }

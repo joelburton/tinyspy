@@ -128,6 +128,21 @@ export function drawSetup(
   return cy
 }
 
+/**
+ * Draw the Setup recap as a page-wide block at `y` — under the tracks, in the
+ * track family — or at the top of a new page when it will not fit above
+ * `pageBottom`. Nothing is drawn for a game with no rows. The block gets the
+ * page's width, so a long value wraps.
+ */
+export function drawSetupBelow(pd: PrintDoc, m: PrintHeader, y: number): void {
+  if (!m.setup.length) return
+  if (y + setupBlockHeight(m.setup.length) > pd.pageBottom) {
+    pd.doc.addPage()
+    y = pd.margin
+  }
+  drawSetup(pd.doc, m.setup, pd.margin, y, m.mode, pd.pageW - 2 * pd.margin)
+}
+
 /** Save the doc as `<brand>-<title>.pdf`, handing it to the browser as a download.
  *  `fallback` names the file if the title has no filename-safe characters. */
 export function savePrint(pd: PrintDoc, m: PrintHeader, fallback: string): void {
