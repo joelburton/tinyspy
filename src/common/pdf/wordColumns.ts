@@ -22,9 +22,9 @@ export type WordRow = {
  * an optional `subheading` tally line ("12 words · 34 pts") under it, then the
  * rows in `cols` column-major, balanced columns — ⌈n / cols⌉ rows each, so the
  * words form a compact block rather than one tall column — capped and spilled
- * onto further pages only when even the balanced height overflows. `emptyText`
- * (or "No words yet.") stands in for an empty list. Returns the y below the
- * block, so a caller stacking several lists knows where the next one starts.
+ * onto further pages only when even the balanced height overflows. An empty
+ * list prints "No words yet." Returns the y below the block, so a caller
+ * stacking several lists knows where the next one starts.
  */
 export function drawWordColumns(
   pd: PrintDoc,
@@ -34,7 +34,6 @@ export function drawWordColumns(
     rows: WordRow[]
     heading?: string
     subheading?: string
-    emptyText?: string
   },
 ): number {
   const { doc, pageW, margin, pageBottom } = pd
@@ -54,7 +53,7 @@ export function drawWordColumns(
   let bottom = top
   if (!remaining.length) {
     doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)
-    doc.text(o.emptyText ?? 'No words yet.', margin, top + 4)
+    doc.text('No words yet.', margin, top + 4)
     bottom = top + 8
   }
   while (remaining.length) {

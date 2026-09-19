@@ -404,7 +404,21 @@ lock*. Recommendation: `contentTop` and the exported height. setgame's 46 is
 a call site with a decision in it (deliberate air, or a copy of the number
 gone wrong) — a line for `src/setgame/todo.md`.
 
-### F-pdf-10 · `knobs-nobody-turns` · parameters and defaults no caller uses
+### SHIPPED · F-pdf-10 · `knobs-nobody-turns` · parameters and defaults no caller uses
+
+**Ruled 2026-09-19** (Joel: *"delete all but keep cols"*) **and shipped,
+with one correction.** Gone: `newPrintDoc`'s margin parameter (`MARGIN`
+inside), `WordListOpts.emptyText` and `drawWordColumns`'s `emptyText` (the
+test for it too), `drawTileLegend`'s size parameter (`LEGEND_TILE = 7`, the
+value both callers chose — wordle and waffle drop the argument, stamps
+unmoved), `MarkOpts.weight`, `drawInTracks`'s `index`. `cols` stays.
+
+**The correction: `export type { SetupRow }` is NOT deleted, because the
+finding's premise was wrong.** The read said "one reader (bananagrams)"; the
+re-export has ELEVEN — bananagrams' printer and ten games' `pdf/model.ts`,
+each importing `PrintHeader` and `SetupRow` together from `frame`. That is a
+print model's natural import, not a stray. Left as is; Joel decides whether
+it goes anyway (an eleven-file sweep).
 
 A default is a decision, and a knob with no reader is a claim of variation
 that is not there:

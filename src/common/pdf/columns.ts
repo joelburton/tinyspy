@@ -35,7 +35,7 @@ export function drawInTracks<T>(
   pd: PrintDoc,
   items: readonly T[],
   // Draw one track; return the y its content ended at.
-  draw: (item: T, track: Track, index: number) => number,
+  draw: (item: T, track: Track) => number,
   // Tracks per page. A game whose board is wide passes fewer (bananagrams: two).
   maxTracks: number = MAX_TRACKS,
 ): { bottom: number; left: number; width: number } {
@@ -52,7 +52,7 @@ export function drawInTracks<T>(
       pd.doc.addPage()
       bottom = top
     }
-    const end = draw(item, { x: pd.margin + slot * (width + GUTTER), width, top }, i)
+    const end = draw(item, { x: pd.margin + slot * (width + GUTTER), width, top })
     bottom = Math.max(bottom, end)
   })
   return { bottom, left: pd.margin, width: usable }

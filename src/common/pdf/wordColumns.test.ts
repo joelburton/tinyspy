@@ -50,12 +50,6 @@ describe('drawWordColumns', () => {
     expect(calls.some((c) => c.m === 'text' && c.args[0] === 'No words yet.')).toBe(true)
   })
 
-  it('uses a custom empty message when given one', () => {
-    const { pd, calls } = fakePd()
-    drawWordColumns(pd, { startY: 100, cols: 6, rows: [], emptyText: 'Empty grid.' })
-    expect(calls.some((c) => c.m === 'text' && c.args[0] === 'Empty grid.')).toBe(true)
-  })
-
   it('draws the heading and every word without paginating when they fit', () => {
     const { pd, calls } = fakePd()
     drawWordColumns(pd, { startY: 100, cols: 4, rows: wordRows(8), heading: 'Finds' })

@@ -31,6 +31,9 @@ export type TileBox = {
 const YELLOW_FILL = 205
 const GREEN_FILL = 105
 
+// The legend's swatch side: small, since it sits in a track under the board.
+const LEGEND_TILE = 7
+
 /**
  * Draw one tile; the caller lays out the grid. The four states, read as an
  * intensity ordering with darkest = best:
@@ -76,12 +79,8 @@ export function drawTile(doc: jsPDF, t: TileBox): void {
  * border/fill ordering is legible once you know it, and guessable-but-not-certain
  * before that.
  */
-export function drawTileLegend(
-  doc: jsPDF,
-  x: number,
-  y: number,
-  size = 9,
-): number {
+export function drawTileLegend(doc: jsPDF, x: number, y: number): number {
+  const size = LEGEND_TILE
   const items: [TileColor, string][] = [
     ['wordleGray', 'not in word'],
     ['wordleYellow', 'wrong place'],

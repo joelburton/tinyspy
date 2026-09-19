@@ -88,7 +88,7 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WordlePrintModel)
     y += 12
   }
 
-  y = drawTileLegend(doc, track.x, y, 7) + 8
+  y = drawTileLegend(doc, track.x, y) + 8
   return drawGuessList(doc, t, track, y)
 }
 

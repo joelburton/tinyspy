@@ -68,7 +68,7 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WafflePrintModel)
   doc.text(fit(doc, t.result, track.width), track.x, y)
   y += 12
 
-  y = drawTileLegend(doc, track.x, y, 7) + 10
+  y = drawTileLegend(doc, track.x, y) + 10
 
   // The answer words, repeated per column so a column stands alone if pages get
   // separated. Terminal only — the model won't emit them earlier.

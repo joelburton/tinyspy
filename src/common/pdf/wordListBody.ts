@@ -4,12 +4,10 @@ import { drawSetup, type PrintDoc, type PrintHeader } from './frame'
 import { drawWordColumns } from './wordColumns'
 import type { WordSection } from './wordSections'
 
-/** The knobs a word-list printer may vary; the layout itself is shared. */
+/** The one knob a word-list printer may vary; the layout itself is shared. */
 type WordListOpts = {
   // Column count for the word list. Default 4.
   cols?: number
-  // Placeholder for a section with no rows. Default "No words yet."
-  emptyText?: string
 }
 
 /**
@@ -50,7 +48,6 @@ export function drawWordListBody(
         rows: section.words,
         ...(section.who ? { heading: section.who } : {}),
         ...(section.tally ? { subheading: section.tally } : {}),
-        ...(opts.emptyText ? { emptyText: opts.emptyText } : {}),
       }) + 20
   })
 }

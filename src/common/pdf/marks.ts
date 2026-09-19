@@ -16,15 +16,15 @@ export type MarkOpts = {
   size: number
   // Stroke color. The meaning must survive without it — the shape carries it.
   color: [number, number, number]
-  // Stroke weight; defaults to a size-proportional value that stays visible
-  // at the ~6pt sizes a keycard inset uses.
-  weight?: number
 }
 
+// The stroke weight follows the size, floored so a mark stays visible at the
+// ~6pt sizes a keycard inset uses.
+
 /** A checkmark — "an agent", "correct". */
-export function drawCheck({ cx, cy, size, color, weight }: MarkOpts, doc: jsPDF): void {
+export function drawCheck({ cx, cy, size, color }: MarkOpts, doc: jsPDF): void {
   const s = size
-  doc.setDrawColor(...color).setLineWidth(weight ?? Math.max(0.5, s * 0.16))
+  doc.setDrawColor(...color).setLineWidth(Math.max(0.5, s * 0.16))
   // Down-right into the V, then up-right to the tip. Started left-of-center and
   // slightly high so the finished tick sits optically centered in its box.
   doc.lines(
@@ -40,17 +40,17 @@ export function drawCheck({ cx, cy, size, color, weight }: MarkOpts, doc: jsPDF)
 }
 
 /** A cross — "the assassin", "a miss". */
-export function drawCross({ cx, cy, size, color, weight }: MarkOpts, doc: jsPDF): void {
+export function drawCross({ cx, cy, size, color }: MarkOpts, doc: jsPDF): void {
   const h = size / 2
-  doc.setDrawColor(...color).setLineWidth(weight ?? Math.max(0.5, size * 0.18))
+  doc.setDrawColor(...color).setLineWidth(Math.max(0.5, size * 0.18))
   doc.line(cx - h, cy - h, cx + h, cy + h)
   doc.line(cx + h, cy - h, cx - h, cy + h)
 }
 
 /** A dash — "a neutral / bystander". Deliberately the plainest of the three:
  *  it's the absence of a result, and reads that way against ✓ and ✗. */
-export function drawDash({ cx, cy, size, color, weight }: MarkOpts, doc: jsPDF): void {
+export function drawDash({ cx, cy, size, color }: MarkOpts, doc: jsPDF): void {
   const h = size / 2
-  doc.setDrawColor(...color).setLineWidth(weight ?? Math.max(0.5, size * 0.18))
+  doc.setDrawColor(...color).setLineWidth(Math.max(0.5, size * 0.18))
   doc.line(cx - h, cy, cx + h, cy)
 }

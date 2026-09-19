@@ -40,7 +40,6 @@ export type PrintDoc = {
   doc: jsPDF
   pageW: number
   pageH: number
-  // Page margin — tight, so content uses more of the paper, inside a printer-safe edge.
   margin: number
   // The y past which content must wrap to the next column or page (`pageH - margin`).
   pageBottom: number
@@ -55,12 +54,15 @@ const HEADER_H = 44
 // The Setup recap's line height — the heading, then one line per (wrapped) row.
 const SETUP_LINE_H = 13
 
+// The page margin — tight, so content uses more of the paper, inside a printer-safe edge.
+const MARGIN = 28
+
 /** Create a Letter-size, points-unit document and cache its geometry. */
-export function newPrintDoc(margin = 28): PrintDoc {
+export function newPrintDoc(): PrintDoc {
   const doc = new jsPDF({ unit: 'pt', format: 'letter' })
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
-  return { doc, pageW, pageH, margin, pageBottom: pageH - margin, contentTop: margin + HEADER_H }
+  return { doc, pageW, pageH, margin: MARGIN, pageBottom: pageH - MARGIN, contentTop: MARGIN + HEADER_H }
 }
 
 /** The height `drawSetup` will take for `rows` unwrapped rows — for a caller
