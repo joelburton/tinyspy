@@ -209,7 +209,7 @@ Game-end UI splits along one line: **the moment** (a win worth marking, which ha
 
 **`<InfoActionsRow>`** (`common/info-sheet/`) is the shared info-column action row, in EVERY state: `children` are whatever the game offers right now, and an optional `message` — `{ text, outcome }` — is a bold line to their left. At terminal it takes two fields of the `TerminalMessage` (`over.infoColText`, `over.outcome`); *locally* terminal states — a compete player who conceded or ran out while the others race on — pass a `neutral` line, so dropping out reads as loudly as a real ending without claiming the game is over; while playing there is no line and the row is the buttons alone, in the same place. Back-to-club goes last and every game places it as an icon-only `<ActionButton>`, so the row survives a ~22rem column (Restart + Reveal + New game + Back to club is four items in a `nowrap` row — see [Button iconography](#button-iconography)).
 
-Neither replaces the page: it stays in *review mode* (the final board, connections' revealed categories, and — once asked for — codenamesduet's partner key card or psychicnum's ringed secrets; see [Don't reveal the solution on a loss](#terminal-results--the-moment-vs-the-record) below). And per [Layout stability](#layout-stability), the terminal row **rotates into a reserved slot** — it never adds or removes a flow element, which would let the `flex: 1` board grow.
+Neither replaces the page: it stays in *review mode* (the final board, connections' revealed categories, and — once asked for — codenamesduet's partner key card or psychicnum's secrets gone green; see [Don't reveal the solution on a loss](#terminal-results--the-moment-vs-the-record) below). And per [Layout stability](#layout-stability), the terminal row **rotates into a reserved slot** — it never adds or removes a flow element, which would let the `flex: 1` board grow.
 
 **Back-to-club skips suspend-confirm.** Terminal game = no progress to lose. Rows place `<ActionButton action={menu.actBackToClub}>` — the same binding as the menu row, whose terminal branch is direct navigation.
 
@@ -1237,8 +1237,6 @@ Concepts about the *frame*, not the game. These earn global tokens / classes bec
 
 A "you won" banner in codenamesduet should be visually indistinguishable from a "you won" banner in Boggle. That's the *point*.
 
-Most of these don't exist yet — psychicnum and codenamesduet each render their game-end screens differently today, which is one of the things to fix as global UI-state tokens / classes emerge.
-
 ### Game vocabulary — per-game
 
 Concepts that belong to the game's rules and ontology:
@@ -1277,7 +1275,7 @@ These aren't optional capabilities a gametype opts into — they're part of the 
 - **Chat.** Every `<GamePage>` mounts `<Chat>`. The chat is per-club and persists across games; a new gametype gets it for free by mounting inside the common shell.
 - **Pause.** Presence-pause + manual-pause are uniform via `useCommonGame` + `<PauseBoundary>`. No per-game wiring.
 - **Timed / untimed setup choice.** Every game's setup form has a `<SetupTimerSection>` (None / Up / Down / MM:SS). Per-gametype default may differ (connections defaults to countdown 10:00; psychicnum and codenamesduet default to none), but the *option* is universal.
-- **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void; brand: string }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. codenamesduet's `Help.tsx` is the model; connections and psychicnum carry placeholder content until they earn real copy.
+- **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void; brand: string }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. codenamesduet's `Help.tsx` is the model; connections carries placeholder content until it earns real text.
 - **GamePage menu.** Click the logo to open a dropdown with common items (Help, Back to club) plus per-game items the PlayArea pushes via `ctx.menu`. See [GamePage menu](#gamepage-menu) below.
 - **Back-to-club + suspend-confirm.** Opened from the "Back to club" item in the GamePage menu (or browser back). Asks first only when there are peers to surprise — the three shapes are under [Confirm modals](#confirm-modals--never-windowconfirm). Owned by `<GamePage>`.
 

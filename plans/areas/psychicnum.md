@@ -1144,7 +1144,12 @@ re-applied locally and the whole pgTAP suite re-run green.
 
 No decision in any of these.
 
-### F-psychicnum-15 · `stale-claims-in-docs` · eleven sentences in `docs/` about this game that are no longer true
+### SHIPPED · F-psychicnum-15 · `stale-claims-in-docs` · eleven sentences in `docs/` about this game that are no longer true
+
+**Joel, 2026-09-19: "do it."** Ten sentences changed across seven docs; the
+eleventh (ui.md's timer default) came true with F-7 and needed nothing. The
+game-end-screens paragraph in ui.md was deleted outright — both games use the
+shared row and pill. Link and spelling guards green.
 
 All outside the roster; a closed area is not locked, and each is a one-line
 fix in its doc:

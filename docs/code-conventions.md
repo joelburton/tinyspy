@@ -229,7 +229,7 @@ useRealtimeRefetch({
 })
 ```
 
-The `tables` field accepts one subscription or an array — psychicnum's useGame subscribes to `games` AND `guesses` with the same `load()`; codenamesduet splits across three hooks (`useGame`, `useBoard`, `useClues`) each with its own factory call. Either shape is fine; the deciding question is whether the PlayArea component splits the data the same way.
+The `tables` field accepts one subscription or an array — psychicnum's useGame subscribes to `games`, `players` AND `events` with the same `load()`; codenamesduet splits across three hooks (`useGame`, `useBoard`, `useClues`) each with its own factory call. Either shape is fine; the deciding question is whether the PlayArea component splits the data the same way.
 
 The channel name is UUID-suffixed (`<prefix>:<id>:<uuid>`) — every peer's tab gets its own room. That's safe because there's no peer-coordination state on this channel.
 
@@ -308,7 +308,7 @@ Roles, not implementations:
 | Reused chat surface | `Chat` | shared, mounted once by `GamePage` |
 | Auth gate | `LoginScreen` | shared |
 
-A game's main screen is `PlayArea.tsx` whether it has a literal grid (codenamesduet) or just a text input (psychicnum). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
+A game's main screen is `PlayArea.tsx` whether it has a literal grid (codenamesduet, psychicnum) or a single word entry (spellingbee). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
 
 **One component per file — with one exception, and its shape is specific.** A component that stands on its own gets its own file, always: `PlayArea`, `BoardCol` and `InfoCol` are the clear case, and they are separate everywhere because they are large and complex and a reader goes looking for one of them by name. The exception is a set of **subparts that exist only inside one component, and are individually small and straightforward** — then packaging them together is better, because they are one vocabulary and a caller reaches for them together.
 

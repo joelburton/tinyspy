@@ -146,7 +146,7 @@ That dual placement is the rule, not redundancy to trim.
 
 | class | what it is | style | terminal? |
 |---|---|---|---|
-| **`<SetupDisclosure>`** | the choices made at game *creation* (psychicnum: tiles / secrets / difficulty) | full text color; behind a `<details>` disclosure ("Setup options"), collapsed by default. A common COMPONENT with its own stylesheet, not a class a game applies — see below | **shown** (still useful in review) |
+| **`<SetupDisclosure>`** | the choices made at game *creation* (psychicnum: players, pacing, guesses, words on board, dictionary, timer) | full text color; behind a `<details>` disclosure ("Setup options"), collapsed by default. A common COMPONENT with its own stylesheet, not a class a game applies — see below | **shown** (still useful in review) |
 | **`.infoState`** | the important *live* state (psychicnum: "0/3 found · 2/9 guesses used") | full text color, bold figures | **shown** |
 | **`.infoHelp`** | UI instructions ("Click or type a word and hit submit") | **muted** | **hidden** |
 | **`.infoActions`** | the action-button row — the shared `<InfoActionsRow>` wears it, and every game places that component | — | **swaps** (see below) |

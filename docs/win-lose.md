@@ -231,7 +231,7 @@ The principle the deliberate rows share: **a hint in compete must be priced** â€
 **banned**, **earned**, **scored** into the ranking, or free only when
 **self-informative** (it can tell you you're wrong; it can't hand you
 progress). A free *generative* hint in a race is the one indefensible square,
-and psychicnum's compete reveal sits in it: the revealed word is still
+and psychicnum's compete spoiler sits in it: the spoiled word is still
 guessable, so ask-then-guess is a legal shortcut toward the win. Harmless
 among friends, but it's the roster's one undecided cell â€” decide it, don't
 inherit it. Pricing also composes with the styles: a **scored** hint fits

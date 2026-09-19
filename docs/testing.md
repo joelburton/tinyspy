@@ -176,7 +176,7 @@ We import both explicitly, rather than chaining the shared include from inside t
 
 **Don't pre-emptively create per-gametype setup files.** Wait until the duplication is real and the helpers have stabilized — extracting too early invites a mini-framework whose shape doesn't match what the next game actually needs.
 
-Example: **codenamesduet**'s per-gametype `setup.psql` carries three helpers (`find_position`, `find_position_set`, `codenamesduet_setup`). At the other end, **psychicnum**'s only helper is inline target-pinning at one site — still below the promotion threshold, which is why it (and bananagrams) has no file.
+Example: **codenamesduet**'s per-gametype `setup.psql` carries three helpers (`find_position`, `find_position_set`, `codenamesduet_setup`). At the other end, **psychicnum**'s only helper is inline board-and-secrets pinning — still below the promotion threshold, which is why it (and bananagrams) has no file.
 
 ## Frontend testing
 
