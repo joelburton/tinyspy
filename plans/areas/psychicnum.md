@@ -985,7 +985,13 @@ the banner's miss and hit say *Wrong* / *Correct* like everywhere else ·
 No decision: delete the three. The tile-fill item in Soon is pass 3's and
 stays.
 
-### F-psychicnum-10 · `docstring-marker-pass` · a field note written `/**` in nine files
+### SHIPPED · F-psychicnum-10 · `docstring-marker-pass` · a field note written `/**` in nine files
+
+**Joel, 2026-09-19: "do it."** Every indented `/**` in the nine files is a
+`//` now, words untouched; no column-0 docstring moved. `lib/terminal.ts` was
+already right by then (its two notes were written `//` with F-5). The test
+files keep their `/**` on helper functions — those are declarations of their
+own, not members.
 
 The pass every area makes (app-audit.md §4). `Board.tsx` and `PlayArea.tsx`
 have it right (`//` on every prop); these do not:

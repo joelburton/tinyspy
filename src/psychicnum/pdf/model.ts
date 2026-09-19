@@ -22,15 +22,15 @@ export type PrintTrack = {
   who: string
   board: PrintTile[]
   turns: TurnRow[]
-  /** Their own score line ("2 of 3 secrets found · 4 guesses used"). */
+  // Their own score line ("2 of 3 secrets found · 4 guesses used").
   result: string
 }
 
 export type PsychicnumPrintModel = PrintHeader & {
-  /** Grid columns (rows derive from `board.length`). */
+  // Grid columns (rows derive from `board.length`).
   cols: number
-  /** Coop is a single shared track; compete is one per player at terminal,
-   *  or just yours during play (RLS hides rivals' guesses until then). */
+  // Coop is a single shared track; compete is one per player at terminal,
+  // or just yours during play (RLS hides rivals' guesses until then).
   tracks: PrintTrack[]
 }
 
@@ -64,9 +64,9 @@ export function buildPsychicnumPrintModel(o: {
   date: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
-  /** The shared board words (lowercase, as the row stores them). */
+  // The shared board words (lowercase, as the row stores them).
   words: readonly string[]
-  /** Every guess the viewer can see. Compete mid-game: only their own. */
+  // Every guess the viewer can see. Compete mid-game: only their own.
   guesses: EventRow[]
   players: { user_id: string; username: string }[]
   selfId: string

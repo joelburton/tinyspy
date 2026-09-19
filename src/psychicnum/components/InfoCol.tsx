@@ -58,19 +58,19 @@ export function InfoCol({
 }: {
   // ── Mode + phase ──
   isCompete: boolean
-  /** The terminal message when the game is over (drives the action row), else null. */
+  // The terminal message when the game is over (drives the action row), else null.
   terminalMessage: TerminalMessage | null
-  /** May I still guess? Gates the play action row + help (vs the locally-done look). */
+  // May I still guess? Gates the play action row + help (vs the locally-done look).
   isStillPlaying: boolean
-  /** I conceded a compete race (a real loss; the others keep racing) — picks the
-   *  locally-done status wording. */
+  // I conceded a compete race (a real loss; the others keep racing) — picks the
+  // locally-done status wording.
   myConceded: boolean
   // Turn-order: may I act THIS moment? The shell's one answer, the same one
   // BoardCol gates the entry on. Always true for free-for-all / solo.
   isMyTurn: boolean
-  /** Whose turn it is under turn-order, or null for a free-for-all game.
-   *  Non-null ⇒ render the shared `<TurnStatusLine>` (this is a turn game);
-   *  null ⇒ omit it entirely (the default free-for-all games). */
+  // Whose turn it is under turn-order, or null for a free-for-all game.
+  // Non-null ⇒ render the shared `<TurnStatusLine>` (this is a turn game);
+  // null ⇒ omit it entirely (the default free-for-all games).
   currentTurnUserId: string | null
 
   // ── State readout (secrets found + the guess counter) ──
@@ -80,54 +80,54 @@ export function InfoCol({
   totalGuesses: number
 
   // ── Players (the OpponentStrip — compete) ──
-  /** The roster (identity + per-player concede flags). */
+  // The roster (identity + per-player concede flags).
   players: Player[]
   selfId: string
-  /** Per-player budget rows — read for the strip's public `found_secrets_count` count. */
+  // Per-player budget rows — read for the strip's public `found_secrets_count` count.
   playerBudgets: PlayerRow[]
-  /** Who has conceded (drives the OpponentStrip "out" mid-game). */
+  // Who has conceded (drives the OpponentStrip "out" mid-game).
   concededIds: Set<string>
 
   // ── Action row — listed in the order the row draws them, which is the order
   //    the game menu lists them too (docs/playarea.md) ──
-  /** Ask for a clue. Grayed rather than gone when you can't ask — the glyph is
-   *  worth teaching either way. */
+  // Ask for a clue. Grayed rather than gone when you can't ask — the glyph is
+  // worth teaching either way.
   actHint: BoundAction
-  /** Mid-game cheat: hand over the answer word for one board word (the amber
-   *  bare-eye glyph). Logs to the event log like a hint does. */
+  // Mid-game cheat: hand over the answer word for one board word (the amber
+  // bare-eye glyph). Logs to the event log like a hint does.
   actSpoiler: BoundAction
-  /** Ring the three secrets at game-over — or un-ring them. A local display
-   *  toggle shared with the menu twin; nothing is written, no peer affected. It
-   *  carries its own two faces, so this column places one button either way. */
+  // Ring the three secrets at game-over — or un-ring them. A local display
+  // toggle shared with the menu twin; nothing is written, no peer affected. It
+  // carries its own two faces, so this column places one button either way.
   actReveal: BoundAction
-  /** Hunt the SAME board + secrets again from scratch. */
+  // Hunt the SAME board + secrets again from scratch.
   actRestart: BoundAction
-  /** Start a fresh follow-up game — same setup + roster, a new board + secrets.
-   *  Disables itself while the create is in flight, so a slow network reads as
-   *  "working" rather than "nothing happened". */
+  // Start a fresh follow-up game — same setup + roster, a new board + secrets.
+  // Disables itself while the create is in flight, so a slow network reads as
+  // "working" rather than "nothing happened".
   actNewGame: BoundAction
-  /** Drop out of a race; the others keep going. Hidden outside one. */
+  // Drop out of a race; the others keep going. Hidden outside one.
   actConcede: BoundAction
-  /** The whole table stops, with no result. Hidden in a race that doesn't
-   *  offer it — so the pair above can be placed unconditionally. */
+  // The whole table stops, with no result. Hidden in a race that doesn't
+  // offer it — so the pair above can be placed unconditionally.
   actEndGame: BoundAction
-  /** Leave for the club page — the shell's own action, off `ctx.menu`. */
+  // Leave for the club page — the shell's own action, off `ctx.menu`.
   actBackToClub: BoundAction
 
   // ── Setup disclosure ──
-  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
   setupRows: SetupRow[]
-  /** The number of board tiles (setup echo). */
+  // The number of board tiles (setup echo).
 
   // ── Turn-history log (GameEventLog) ──
   guesses: EventRow[]
-  /** Terminal yet? The log's player picker uses it to distinguish an opponent's
-   *  RLS-hidden rows (during play) from a genuinely empty log (at terminal). */
+  // Terminal yet? The log's player picker uses it to distinguish an opponent's
+  // RLS-hidden rows (during play) from a genuinely empty log (at terminal).
   isTerminal: boolean
-  /** The turn currently open in the board viewer, or null. */
+  // The turn currently open in the board viewer, or null.
   historyId: number | null
-  /** Straight through to the log: opening a `#N` hands up the row's id and the
-   *  number the log printed beside it. */
+  // Straight through to the log: opening a `#N` hands up the row's id and the
+  // number the log printed beside it.
   onShowHistory: (id: number, n: number) => void
 }) {
 

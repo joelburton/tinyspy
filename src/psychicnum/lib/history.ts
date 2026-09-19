@@ -27,13 +27,13 @@
 import type { EventRow } from '../hooks/useGame'
 
 export interface HistorySnapshot {
-  /** Guessed words → was-it-a-secret, as of the END of the viewed turn — feed
-   *  straight to `<Board results>`. */
+  // Guessed words → was-it-a-secret, as of the END of the viewed turn — feed
+  // straight to `<Board results>`.
   results: Map<string, boolean>
-  /** The board word this turn's guess decided — ring it history-blue (it already
-   *  wears its green/red outcome color). Null for a hint / spoiler turn (no tile). */
+  // The board word this turn's guess decided — ring it history-blue (it already
+  // wears its green/red outcome color). Null for a hint / spoiler turn (no tile).
   historyLitWord: string | null
-  /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
+  // A short, name-free turn label for the viewer banner (the log row shows *who*).
   historyLabel: string
 }
 

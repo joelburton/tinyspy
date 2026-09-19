@@ -10,43 +10,43 @@ import type { Outcome } from '@/common/outcomes/outcomes'
  * feedback.
  */
 export type Answer =
-  /** My correct guess. */
+  // My correct guess.
   | { answerType: 'hit'; word: string }
-  /** A coop teammate's, on the board we share. */
+  // A coop teammate's, on the board we share.
   | { answerType: 'hit_peer'; word: string }
 
-  /** My wrong guess. */
+  // My wrong guess.
   | { answerType: 'miss'; word: string }
-  /** A coop teammate's. */
+  // A coop teammate's.
   | { answerType: 'miss_peer'; word: string }
 
-  /** I asked for a clue. */
+  // I asked for a clue.
   | { answerType: 'hint' }
-  /** A coop teammate asked for one. */
+  // A coop teammate asked for one.
   | { answerType: 'hint_peer' }
 
-  /** I asked for a secret word. */
+  // I asked for a secret word.
   | { answerType: 'spoiler' }
-  /** A coop teammate had one handed to them. */
+  // A coop teammate had one handed to them.
   | { answerType: 'spoiler_peer' }
 
-  /** A compete opponent's secrets-found count ticked up. It has no twin of
-   *  mine: this is not a row (RLS shows one racer nothing of another's) but a
-   *  public count. */
+  // A compete opponent's secrets-found count ticked up. It has no twin of
+  // mine: this is not a row (RLS shows one racer nothing of another's) but a
+  // public count.
   | { answerType: 'found_peer' }
 
-  /** Refused here: the board does not hold that word. */
+  // Refused here: the board does not hold that word.
   | { answerType: 'not_on_board' }
-  /** Refused here: this board has already decided that word. */
+  // Refused here: this board has already decided that word.
   | { answerType: 'already_guessed' }
 
 /** What an answer READS AS: the color it wears, and the words it says. */
 export type AnswerMessage = {
   outcome: Outcome
-  /** The sentence. A pill shows it alone; a peer line puts a player's name and
-   *  color in front of it ("● moth Wrong: BERRY"). **Empty means nothing is
-   *  shown** — the answer's only job is its outcome, which the event log draws
-   *  as the row's bar. */
+  // The sentence. A pill shows it alone; a peer line puts a player's name and
+  // color in front of it ("● moth Wrong: BERRY"). **Empty means nothing is
+  // shown** — the answer's only job is its outcome, which the event log draws
+  // as the row's bar.
   text: string
 }
 

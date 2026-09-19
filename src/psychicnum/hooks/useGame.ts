@@ -35,11 +35,11 @@ export type PsychicnumGame = {
   id: string
   club_handle: string
   mode: 'coop' | 'compete'
-  /** The board: the words shown as tiles (PUBLIC). Players click these
-   *  to guess; three of them are the secrets. Lowercase. */
+  // The board: the words shown as tiles (PUBLIC). Players click these
+  // to guess; three of them are the secrets. Lowercase.
   words: string[]
-  /** The three secret words (a subset of `words`). Null while non-terminal
-   *  (gated by the view's helper); the real array once terminal (the reveal). */
+  // The three secret words (a subset of `words`). Null while non-terminal
+  // (gated by the view's helper); the real array once terminal (the reveal).
   secrets: string[] | null
   created_at: string
 }
@@ -59,8 +59,8 @@ export type PsychicnumGame = {
 export type PlayerRow = {
   user_id: string
   guesses_remaining: number
-  /** How many distinct secrets this player has found (0..3). Public to the
-   *  club; drives the compete opponent-progress feedback. */
+  // How many distinct secrets this player has found (0..3). Public to the
+  // club; drives the compete opponent-progress feedback.
   found_secrets_count: number
 }
 
@@ -72,16 +72,16 @@ export type PlayerRow = {
  * filtering is invisible to the FE.
  */
 export type EventRow = {
-  /** The row's own id, and the order of play. */
+  // The row's own id, and the order of play.
   id: number
   user_id: string
-  /** The text this row carries. For 'guess'/'spoiler' it's a board word
-   *  (lowercase); for 'hint' it's the CLUE text (or "No hint available"). */
+  // The text this row carries. For 'guess'/'spoiler' it's a board word
+  // (lowercase); for 'hint' it's the CLUE text (or "No hint available").
   word: string
   is_correct: boolean
-  /** 'guess' = a real guess (colors the board, counts toward the win);
-   *  'spoiler' = a secret word handed over (the answer);
-   *  'hint' = a clue for a secret. */
+  // 'guess' = a real guess (colors the board, counts toward the win);
+  // 'spoiler' = a secret word handed over (the answer);
+  // 'hint' = a clue for a secret.
   kind: 'guess' | 'hint' | 'spoiler'
   created_at: string
 }
@@ -108,8 +108,8 @@ export function useGame(gameId: string): {
   players: PlayerRow[]
   guesses: EventRow[]
   loading: boolean
-  /** Set when a read FAILED, which is not the same as the game being absent.
-   *  The surface renders this instead of "Game not found." */
+  // Set when a read FAILED, which is not the same as the game being absent.
+  // The surface renders this instead of "Game not found."
   failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<PsychicnumGame | null>(null)

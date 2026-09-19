@@ -11,19 +11,19 @@ import type { Player, EventRow } from '../hooks/useGame'
 import styles from './GameEventLog.module.css'
 
 type Props = {
-  /** Every turn the viewer can see. Coop: the whole shared game. Compete: the
-   *  viewer's own during play, and (once terminal, when RLS opens) everyone's. */
+  // Every turn the viewer can see. Coop: the whole shared game. Compete: the
+  // viewer's own during play, and (once terminal, when RLS opens) everyone's.
   guesses: EventRow[]
   players: Player[]
   selfId: string
   mode: 'coop' | 'compete'
-  /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
+  // Distinguishes an opponent's RLS-hidden log from a genuinely empty one.
   isTerminal: boolean
-  /** The turn currently open in the board viewer — the row's own id — or null
-   *  when live. Its `#N` handle wears the shared history-blue ring. */
+  // The turn currently open in the board viewer — the row's own id — or null
+  // when live. Its `#N` handle wears the shared history-blue ring.
   historyId: number | null
-  /** Open a turn in the board viewer (click its `#N`) — the row's id, and the
-   *  `#N` this log printed beside it, which is what the banner shows back. */
+  // Open a turn in the board viewer (click its `#N`) — the row's id, and the
+  // `#N` this log printed beside it, which is what the banner shows back.
   onShowHistory: (id: number, n: number) => void
 }
 

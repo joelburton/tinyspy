@@ -82,8 +82,8 @@ export function BoardCol({
   // The viewed turn's description while inspecting history (drives the banner), or
   // null when live.
   historyLabel: string | null
-  /** Whose board is on screen, when it is not the viewer's own — a compete log
-   *  at terminal can open an opponent's row. */
+  // Whose board is on screen, when it is not the viewer's own — a compete log
+  // at terminal can open an opponent's row.
   historyActor?: Actor | null
   // Return to the live board (the banner click / ✕).
   onExitHistory: () => void

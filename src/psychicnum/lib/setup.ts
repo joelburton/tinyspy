@@ -21,35 +21,27 @@ import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
  * would not split into its own chunk).
  */
 export type PsychicnumValues = CoopTurnSetup & {
-  /**
-   * Starting guess budget — the shared pool every club member
-   * draws from. 7 is the historical default; 3/5/9 are the
-   * harder/easier alternatives the dialog offers.
-   */
+  // Starting guess budget — the shared pool every club member
+  // draws from. 7 is the historical default; 3/5/9 are the
+  // harder/easier alternatives the dialog offers.
   guesses: 3 | 5 | 7 | 9
-  /**
-   * How many words sit on the board (5..20). Three of them are the
-   * hidden secrets; a bigger board means more haystack around the
-   * three needles. Validated server-side by `psychicnum.create_game`.
-   */
+  // How many words sit on the board (5..20). Three of them are the
+  // hidden secrets; a bigger board means more haystack around the
+  // three needles. Validated server-side by `psychicnum.create_game`.
   word_count: number
-  /**
-   * Dictionary difficulty band (1..6 = Universal..Expert), a
-   * `common.words.difficulty` value. The board words are sampled from
-   * the dictionary at `difficulty ≤ this` (plus a clean + american +
-   * non-slang filter). Validated server-side.
-   */
+  // Dictionary difficulty band (1..6 = Universal..Expert), a
+  // `common.words.difficulty` value. The board words are sampled from
+  // the dictionary at `difficulty ≤ this` (plus a clean + american +
+  // non-slang filter). Validated server-side.
   difficulty: number
-  /**
-   * Browser-side timer mode. `none` and `countup` are
-   * informational; `countdown` flips the game to `lost` when the
-   * clock hits 0 (via psychicnum.submit_timeout). Validated
-   * server-side by `common.require_valid_timer`.
-   */
+  // Browser-side timer mode. `none` and `countup` are
+  // informational; `countdown` flips the game to `lost` when the
+  // clock hits 0 (via psychicnum.submit_timeout). Validated
+  // server-side by `common.require_valid_timer`.
   timer: TimerMode
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
+  // WHO IS PLAYING — a field like any other, and the only one that is not
+  // part of the setup blob: `create_game` takes it as its own argument and
+  // writes `common.game_players` rows from it.
   player_user_ids: Set<string>
 }
 

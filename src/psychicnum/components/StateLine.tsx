@@ -19,11 +19,11 @@ export function StateLine({
   guessesUsed,
   totalGuesses,
 }: {
-  /** Secrets found (mine in compete, the team's in coop). */
+  // Secrets found (mine in compete, the team's in coop).
   found: number
-  /** How many secrets the board hides. */
+  // How many secrets the board hides.
   secretCount: number
-  /** Guesses spent out of the budget. */
+  // Guesses spent out of the budget.
   guessesUsed: number
   totalGuesses: number
 }) {
