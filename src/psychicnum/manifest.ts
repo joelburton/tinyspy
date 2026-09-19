@@ -22,7 +22,7 @@ import logoUrl from './logo.svg?url'
  *     supabase/migrations/20260615000002_psychicnum.sql)
  *   - the folder `src/psychicnum/` (PlayArea, SetupForm, Help,
  *     useGame, theme.css, logo.svg)
- *   - the docs file `docs/games/psychicnum.md`
+ *   - the doc `src/psychicnum/doc.md`
  *
  * They differ on:
  *

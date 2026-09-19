@@ -36,7 +36,7 @@ import logoUrl from './logo.svg?url'
  * routes accordingly. The edge function passes mode through.
  *
  * The sibling-manifest pattern's canonical write-up is in
- * [`docs/games/psychicnum.md`](../../docs/games/psychicnum.md);
+ * [`docs/common.md`](../../docs/common.md#the-sibling-manifest-pattern);
  * wordwheel follows it line-for-line.
  *
  * Differences between the two manifests:

@@ -30,7 +30,7 @@ import logoUrl from './logo.svg?url'
  * Both manifests share the same `PlayArea`, `SetupForm`, `Help`, `useGame` and
  * CSS. The mode branches at render time on `game.mode` (read from
  * `setgame.games_state.mode`). The sibling-manifest pattern's canonical
- * write-up is in [`docs/games/psychicnum.md`](../../docs/games/psychicnum.md).
+ * write-up is in [`docs/common.md`](../../docs/common.md#the-sibling-manifest-pattern).
  */
 
 const helpLoader = lazy(() =>

@@ -47,7 +47,7 @@ Each game doc carries that game's rules, schema, RPCs, FE shape, and tests; the 
 | file | what's distinctive |
 |---|---|
 | [docs/games/codenamesduet.md](docs/games/codenamesduet.md) | Codenames Duet: the AI clue-suggester edge function |
-| [docs/games/psychicnum.md](docs/games/psychicnum.md) | The deliberately minimal toy game; the hidden-secrets pattern |
+| [src/psychicnum/doc.md](src/psychicnum/doc.md) | The deliberately minimal toy game; the hidden-secrets pattern. **The first game whose doc lives in its own folder** — `docs/games/psychicnum.md` is gone, absorbed by its area audit |
 | [docs/games/connections.md](docs/games/connections.md) | The FE-knows decision, pause-on-disconnect, peer selection via Broadcast |
 | [docs/games/spellingbee.md](docs/games/spellingbee.md) | Required + bonus word lists, trusting-commit local scoring, the rank ladder |
 | [docs/games/bananagrams.md](docs/games/bananagrams.md) | The FE-owned board / server-owned tiles split, per-player concede, the desktop-only layout exception |

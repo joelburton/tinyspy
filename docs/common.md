@@ -74,7 +74,7 @@ Each manifest declares two fields connecting these pieces:
 
 **Removing a family.** Drop the folder, drop **all** the manifest's lines in `src/gametypes.ts`, drop the schema. The removability invariant still holds — siblings are removed together.
 
-psychicnum is the canonical reference today — see [`docs/games/psychicnum.md`](games/psychicnum.md). When connections and spellingbee pick up their compete-mode variants, they'll follow the same shape.
+psychicnum is the worked example this section is written from; its own folder doc is [`src/psychicnum/doc.md`](../src/psychicnum/doc.md).
 
 ## Library-puzzle games: provenance, not dependency
 

@@ -22,19 +22,110 @@ Everything else a move sets off — the terminal state, a teammate's progress,
 the turn moving on — travels the same way, as rows, which is why the reply can
 be about one player and nothing else.
 
-That split is why a guessed tile holds its in-flight dim until the ROW lands
-rather than until the reply does: the two are separate events, and releasing at
-the first would flash an undecided tile back to normal.
-
-*The rest of the intro is owed — pass 2 of this area's audit.*
+**And it is the control.** psychicnum is the deliberately minimal game — the
+smallest amount of game logic that still exercises the whole multi-game shell —
+which is why the app audit opened here. What this folder settles is the SHAPE a
+game area has, not anything about guessing words.
 
 ## Game rules
 
-*Owed — pass 2. Absorbs what [`docs/games/psychicnum.md`](../../docs/games/psychicnum.md) says that the code does not.*
+**The board is one board.** N words (5–20, chosen at setup) sampled from
+`common.words` under a clean + American + non-slang + difficulty-band filter,
+the same N for everyone in the game. **Three of them are secret**, the same
+three for everyone, and hidden server-side — a client cannot tell which, even
+with devtools open (see Schema). Win by finding all three.
+
+A guess must be a board word. Click a tile or type it; a hit turns the tile
+green and a miss red, **permanently**, so the board is the record of what has
+been ruled out. Every guess costs one from a budget of 3, 5, 7 or 9.
+
+**Two assists, and the difference between them is the thing this game is
+easiest to get wrong.** Both are free, neither finds the secret, and both write
+a row that lands in the event log rather than a pill:
+
+- a **hint** logs the *clue* for an unfound secret (`common.words.hint`, or the
+  literal "No hint available" for a word that has none). The clue is what is
+  logged, so a hint never leaks the answer into the row.
+- a **spoiler** logs the *word* itself — one unfound secret, handed over. You
+  still have to guess it.
+
+Neither is **Reveal solution**, which is a third thing: the whole answer key at
+game over, local to one player, reversible, and no RPC at all.
+
+### Coop
+
+One board, one budget, every guess and assist visible to everyone. A guess
+decrements every player's row in lock-step, so the budgets are always equal.
+The team wins by finding all three together, and loses on the guess that takes
+the budget to zero first — or when a countdown timer expires.
+
+**Turn order is opt-in.** The setup dialog offers free-for-all (the default) or
+turn-by-turn, and in the second the server holds `current_turn_user_id` and
+advances it after each accepted guess. A player waiting their turn keeps the
+board but the entry is inert.
+
+### Compete
+
+**The same board of words, raced separately.** Each player has their own budget
+and their own guesses; what differs is not the words but who can see what. A
+racer sees their own guesses and assists, every rival's **remaining budget**,
+and a count of how many secrets each rival has found — never which words, and
+never a rival's rows, which RLS withholds until the game ends.
+
+First to all three wins and the game ends for everyone. If every budget reaches
+zero with nobody finished, everyone loses; a countdown expiring does the same.
+There is no way to stop a race for the whole table — see
+`common/game-page/todo.md`.
+
+Compete needs an opposing **player**, which is why its manifest takes 2–6 where
+coop takes 1–6: a solo club is offered coop only. A countdown timer does not
+make a game compete.
+
+### The play states
+
+Each mode writes its own pair, so a reader of `common.games.play_state` can
+tell which was played without joining anything:
+
+| | coop | compete |
+|---|---|---|
+| all three found | `won` | `won_compete` |
+| budget gone, or the clock | `lost` | `lost_compete` |
+
+Plus `playing`, and `ended` when somebody stopped it. **`ended` is neutral in
+every mode**: nobody won and nobody lost, which is not the same as everyone
+losing.
 
 ## Schema
 
-*Owed — pass 2.*
+Three tables and a view, in `supabase/migrations/20260615000002_psychicnum.sql`
+(shape) and `supabase/sql/psychicnum.sql` (behavior).
+
+| | |
+|---|---|
+| `psychicnum.games` | one row per game — the board `words`, the three `secrets`, the `mode`. Keyed to `common.games` |
+| `psychicnum.players` | one row per player: `guesses_remaining` and `found_secrets_count`. **Club-wide readable in both modes** — the budget strip and compete's opponent tension are built on it |
+| `psychicnum.events` | the turn log, append-only. `kind` is `guess`, `hint` or `spoiler`; `word` holds the guessed word, the clue, or the spoiled word depending on which |
+| `psychicnum.games_state` | the view the frontend reads. Every readable column of `games`, plus `secrets` through `_secrets_for()` |
+
+**The club page's "guesses left" is a SUM in compete.** `common.games.status`
+carries one number for the listing, and a race has no single budget to report —
+so coop writes the shared value and compete writes every player's added
+together. A number larger than any setup offers is that, not a bug.
+
+### Two things worth knowing before reading the SQL
+
+**The secrets are hidden by a column GRANT, not by a policy** — a client
+asking `psychicnum.games` for `secrets` gets SQLSTATE 42501 whatever any policy
+says, and the view hands them over only once the game is terminal. So the
+frontend never holds the answer key during play: not in a prop, not in a store,
+not there at all. `docs/code-conventions.md` points here as the repo's worked
+example; the mechanism is commented at `_secrets_for` and the `games_select`
+policy.
+
+**`events` is the only mode-aware RLS in this game**, and its third arm carries
+three rules at once: coop shows everyone every row, compete shows a racer only
+their own — and **terminal opens everybody's**, which is what lets the event
+log's player picker read a finished race back. Commented at `events_select`.
 
 ## RPCs
 
@@ -180,8 +271,43 @@ answer does not.
 
 ## Frontend
 
-*Owed — pass 2.*
+```
+<PlayAreaLoader {...GamePageCtx}>        useGame, and the three gates
+  └── PlayArea                           the coordinator: draws no board, no control
+        ├── BoardCol                     the board column — and submit_guess
+        │     ├── MobileStatusBar ←      phone only; holds the StateLine below
+        │     │     └── StateLine        "1/3 found · 4/7 guesses used"
+        │     ├── Board                  the grid of word tiles
+        │     │     ├── Dot ←            who decided a tile (coop, >1 player)
+        │     │     └── ShuffleButton ←  floats on the board, not in the action row
+        │     └── WordEntryArea ←        the typed guess; no <input>, keys off the window
+        │           └── HistoryBanner ←  overlays it while a past turn is open
+        └── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
+              └── InfoCol                the readouts and the action row
+                    ├── StateLine        the same one, desktop's copy
+                    ├── TurnStatusLine ← turn-order coop only
+                    ├── OpponentStrip ←  compete only: each rival's budget and finds
+                    ├── InfoActionsRow ← one row, every action, in the menu's order
+                    ├── SetupDisclosure ←
+                    └── GameEventLog     the turn log's psychicnum rows
+
+  ← belongs to common/ ; everything else is this folder's
+```
+
+`GamePage` mounts the loader and owns everything above it — members, the timer,
+play_state, pause, chat — and unmounts this whole surface on pause.
+
+Off the tree: `pdf/` builds the printable board from the live state at click
+time, so it works mid-game as well as at the end; the shared printable design
+language is [docs/pdf.md](../../docs/pdf.md).
 
 ## Tests
 
-*Owed — pass 2.*
+pgTAP in `supabase/tests/psychicnum/`, vitest beside each `lib/` module, five
+Playwright specs named `psychicnum-*`. Each file's own header says what it
+covers; [docs/testing.md](../../docs/testing.md) has the conventions.
+
+**The one thing worth knowing before writing one:** the board words and the
+secrets are sampled at creation, so a test that needs a known answer overwrites
+**both** with a postgres-role `UPDATE`. A guess must be a board word, so the
+two have to move together.

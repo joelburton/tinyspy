@@ -2,7 +2,7 @@
 
 How we write code in this repo. The cross-cutting rules that aren't tied to any one gametype. Read this before writing or reviewing code in `src/` or `supabase/`.
 
-For terminology and the architectural backdrop see [`naming.md`](naming.md). For feature-specific conventions see [`codenamesduet.md`](games/codenamesduet.md), [`psychicnum.md`](games/psychicnum.md), [`common.md`](common.md), and [`testing.md`](testing.md).
+For terminology and the architectural backdrop see [`naming.md`](naming.md). For feature-specific conventions see [`codenamesduet.md`](games/codenamesduet.md), [`common.md`](common.md), and [`testing.md`](testing.md); a game's own conventions live in its folder's `doc.md`.
 
 ## Code clarity & docstrings
 
@@ -84,7 +84,7 @@ When you need to expose a column the calling role can't see directly, gated on r
 3. Define a view `with (security_invoker = true)` that calls the helper for the gated column. The `security_invoker` flag means RLS on the base table still gates row visibility *as the caller* — so unauthorized rows stay hidden.
 4. Point the FE at the view, not the base table.
 
-Canonical example: `psychicnum.games_state` + `psychicnum._secrets_for(uuid)` — see [`psychicnum.md` → The hidden-secrets mechanic](games/psychicnum.md#the-hidden-secrets-mechanic).
+Canonical example: `psychicnum.games_state` + `psychicnum._secrets_for(uuid)` — see [`src/psychicnum/doc.md` → Schema](../src/psychicnum/doc.md#schema).
 
 ### Every function gets an explicit revoke
 

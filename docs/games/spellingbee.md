@@ -4,7 +4,7 @@ A NYT-Spelling-Bee-style word-finding game, ported from the standalone `~/spelli
 
 "spellingbee" is the codename. The user-facing **brand** is **FreeBee** — the manifest's `BRAND` const, surfaced as both siblings' `name` (see [manifest.ts](../../src/spellingbee/manifest.ts)); folder / schema / RPC names are all `spellingbee`.
 
-For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`codenamesduet.md`](codenamesduet.md), [`psychicnum.md`](psychicnum.md), and [`connections.md`](connections.md).
+For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`codenamesduet.md`](codenamesduet.md) and [`connections.md`](connections.md).
 
 **Manifest declarations.** Two-manifest family (sibling-pattern) — `spellingbeeCoopGame` (`gametype: 'spellingbee_coop'`, `mode: 'coop'`, `numberOfPlayers: [1, 6]`) and `spellingbeeCompeteGame` (`gametype: 'spellingbee_compete'`, `mode: 'compete'`, `numberOfPlayers: [2, 6]`). Both share `baseGametype: 'spellingbee'`, one schema, and one PlayArea / SetupForm / Help / useGame; the mode branches at render time on `game.mode` (denormalized from the gametype string at create_game time). See [Compete mode](#compete-mode) below for the per-mode behavior and [`common.md → The sibling-manifest pattern`](../common.md#the-sibling-manifest-pattern) for the canonical pattern write-up.
 

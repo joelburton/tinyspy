@@ -802,9 +802,21 @@ the trailing `: `, which is what separates the pill from the log.
       its own words is Joel's ruling, so this is a TEXT decision rather than a
       bug; it is also the thing the turn-order spec tripped over
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] `docs/games/psychicnum.md` reconciled with `todo.md`: its Won't-do
-      moved into the todo (Step 1), and the doc itself replaced by the game
-      `doc.md` designed in pass 2
+- [x] **`docs/games/psychicnum.md` is DELETED** (2026-09-19). Its Won't-do
+      moved to `todo.md` at Step 1; the rest is in `src/psychicnum/doc.md`,
+      which is 313 lines against its 593 — the shape Joel set for a game doc
+      (a first-thing-to-read, the rules, API-like RPC/FE-submission sections,
+      a component diagram, and nothing the code or a shared doc already says).
+      **Twelve inbound links repointed, and six of them were wrong before the
+      move**: `wordiply`, `wordwheel`, `letterboxed`, `spellingbee`, `setgame`
+      and `connections` all cited psychicnum's doc for "the sibling-manifest
+      pattern's canonical write-up", which that doc itself said lives in
+      `docs/common.md`. They point one hop further now, at the real home.
+      `docs/code-conventions.md` ×2, `docs/common.md`, `docs/testing.md`,
+      `CLAUDE.md` and `psychicnum/manifest.ts` took the new path.
+      **`src/guards/docLinks.test.ts` caught four a grep had not** — relative
+      links from inside `docs/games/` that name `psychicnum.md` with no
+      directory (three in connections, one in spellingbee)
 - [ ] the shape this game settled written into `docs/playarea.md`, and
       app-audit.md §3's game row says three passes. **What that doc owes, so
       far:** the loader / loaded split and its names, the loader's three gates

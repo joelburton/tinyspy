@@ -21,7 +21,7 @@ import logoUrl from './logo.svg?url'
  * row in `common.gametypes` ('connections_coop', 'connections_compete')
  * and a separate Start button on the club page. Same sibling-
  * manifest pattern psychicnum introduced — see
- * [`docs/games/psychicnum.md`](../../docs/games/psychicnum.md) for
+ * [`docs/common.md`](../../docs/common.md#the-sibling-manifest-pattern) for
  * the canonical write-up and `src/psychicnum/manifest.ts` for the
  * structural twin.
  *

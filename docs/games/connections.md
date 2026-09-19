@@ -4,7 +4,7 @@ A NYT-Connections-style word-grouping puzzle. The third gametype family in this 
 
 "connections" is the codename (analogous to how "codenamesduet" is the codename for Codenames Duet). The user-facing **brand** is **WordKnit** — the manifest's `BRAND` const, surfaced as both siblings' `name` (see [manifest.ts](../../src/connections/manifest.ts)); folder / schema / RPC names are all `connections`.
 
-For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`codenamesduet.md`](codenamesduet.md) and [`psychicnum.md`](psychicnum.md).
+For the shared layer (clubs, profiles, routing, the registry) see [`common.md`](../common.md). For testing conventions + persona shapes see [`testing.md`](../testing.md). For per-gametype comparisons see [`codenamesduet.md`](codenamesduet.md); psychicnum's is [`src/psychicnum/doc.md`](../../src/psychicnum/doc.md).
 
 **Manifest declarations.** Two-manifest family (sibling-pattern). See [The sibling-manifest pattern](#the-sibling-manifest-pattern) below.
 
@@ -80,7 +80,7 @@ Deliberately deferred:
 
 Unlike codenamesduet and psychicnum — where the server holds a secret and validates moves against it — connections's board (categories + tile order) is **publicly readable** by every club member, in both coop and compete modes. The FE has the answer key. The `submit_guess` RPC trusts the FE's verdict (correct / oneAway / wrong + `matched_category_rank`) and just records it, applying atomicity for the shared state (per-player `mistake_count` on `connections.players`, mode-aware one-correct-per-rank idempotency via partial unique indexes on `guesses`).
 
-**Why:** the evaluator is a small pure function (`evaluateGuess` in [`src/connections/lib/evaluate.ts`](../../src/connections/lib/evaluate.ts) — ~15 lines), nothing on the board is genuinely secret in this codebase's deployment, and the friends-only audience per [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't justify column-grant + PL/pgSQL evaluation infrastructure. Psychic-num's column-grant pattern is documented as the canonical "true server-side secret" example; reading [that file's "hidden-secrets mechanic" section](psychicnum.md#the-hidden-secrets-mechanic) is enough — repeating the pattern here for a non-secret game would be educational noise. Compete mode introduces a cheating *incentive* coop didn't have (a player could read `board.categories` in devtools and pick the right 4 tiles instantly), but the trust model says we're not the gatekeeper of that — we're friends.
+**Why:** the evaluator is a small pure function (`evaluateGuess` in [`src/connections/lib/evaluate.ts`](../../src/connections/lib/evaluate.ts) — ~15 lines), nothing on the board is genuinely secret in this codebase's deployment, and the friends-only audience per [CLAUDE.md → Trust model](../../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat) doesn't justify column-grant + PL/pgSQL evaluation infrastructure. Psychic-num's column-grant pattern is documented as the canonical "true server-side secret" example; reading [its Schema section](../../src/psychicnum/doc.md#schema) is enough — repeating the pattern here for a non-secret game would be educational noise. Compete mode introduces a cheating *incentive* coop didn't have (a player could read `board.categories` in devtools and pick the right 4 tiles instantly), but the trust model says we're not the gatekeeper of that — we're friends.
 
 ### The one outcome decision (`lib/answer.ts`)
 
@@ -157,7 +157,7 @@ The whole board is publicly readable. The FE reads `board.categories` to evaluat
 
 ### Data differences between coop and compete — at a glance
 
-Anything not listed here is identical across modes. The shape mirrors [`psychicnum.md → Data differences`](psychicnum.md#data-differences-between-coop-and-compete--at-a-glance).
+Anything not listed here is identical across modes.
 
 | dimension                                  | coop                                                        | compete                                                              |
 |--------------------------------------------|-------------------------------------------------------------|----------------------------------------------------------------------|

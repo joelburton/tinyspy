@@ -27,7 +27,7 @@ import logoUrl from './logo.svg?url'
  * Both manifests share the same `PlayArea`, `SetupForm`, `Help`, `useGame` and
  * CSS. The mode branches at render time on `game.mode` (read from
  * `letterboxed.games_state.mode`). The sibling-manifest pattern's canonical
- * write-up is in [`docs/games/psychicnum.md`](../../docs/games/psychicnum.md).
+ * write-up is in [`docs/common.md`](../../docs/common.md#the-sibling-manifest-pattern).
  *
  * Differences between the two: the `gametype` string, the `mode` declaration,
  * `numberOfPlayers` (coop solo-friendly `[1,6]` vs compete `[2,6]`), and the

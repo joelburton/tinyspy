@@ -1,6 +1,6 @@
 # Testing
 
-How we test this codebase. Read this before writing or extending a test. Gametype-specific testing notes live in [`codenamesduet.md`](games/codenamesduet.md), [`psychicnum.md`](games/psychicnum.md), etc.; this file is the cross-cutting layer.
+How we test this codebase. Read this before writing or extending a test. Gametype-specific testing notes live with the game — in `docs/games/<game>.md`, or in `src/<game>/doc.md` for a game whose area has been audited; this file is the cross-cutting layer.
 
 Audience: human contributors and AI assistants. Per the [CLAUDE.md](../CLAUDE.md) prior on alpha software, we're not aiming for production-grade test coverage — we're aiming for tests that catch real regressions and that document behavior clearly enough that a reader can predict it.
 
