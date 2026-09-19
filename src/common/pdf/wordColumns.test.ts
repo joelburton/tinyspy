@@ -61,10 +61,24 @@ describe('drawWordColumns', () => {
   })
 
   it('spills onto new pages when the balanced height overflows', () => {
-    // A tiny page bottom → one row per column → 4 words per page → 20 words spill.
-    const { pd, calls } = fakePd({ pageBottom: 20 })
+    // A short page → three rows per column → 12 words per page → 20 words spill.
+    const { pd, calls } = fakePd({ pageBottom: 60 })
     drawWordColumns(pd, { startY: 0, cols: 4, rows: wordRows(20) })
     expect(calls.filter((c) => c.m === 'addPage').length).toBeGreaterThanOrEqual(1)
+  })
+
+  // A stacked section (compete's one per player) can arrive with no room left:
+  // without the check, its heading lands at the bottom and one row per column
+  // is drawn BELOW the sheet before the page break.
+  it('starts a new page when the heading and a row will not fit', () => {
+    const { pd, calls } = fakePd()
+    drawWordColumns(pd, { startY: 760, cols: 4, rows: wordRows(8), heading: 'moth' })
+    const texts = calls.filter((c) => c.m === 'text')
+    expect(calls.filter((c) => c.m === 'addPage')).toHaveLength(1)
+    // The heading is the first thing drawn on the new page, at the margin.
+    expect(texts[0]).toMatchObject({ args: ['moth', 28, 28] })
+    // And nothing is drawn below the page's bottom.
+    expect(texts.every((c) => (c.args[2] as number) <= pd.pageBottom)).toBe(true)
   })
 })
 

@@ -37,10 +37,19 @@ export function drawWordColumns(
   },
 ): number {
   const { doc, pageW, margin, pageBottom } = pd
+  // A section that arrives at the bottom of a page (compete stacks one per
+  // player) starts on a new one — the heading and at least one row together,
+  // never a heading with its rows below the sheet.
+  let startY = o.startY
+  const headH = (o.subheading ? 12 : 0) + 12
+  if (startY + headH + ROW_H > pageBottom) {
+    doc.addPage()
+    startY = margin
+  }
   doc.setFont('helvetica', 'bold').setFontSize(12).setTextColor(BLACK)
-  doc.text(o.heading ?? 'Words', margin, o.startY)
+  doc.text(o.heading ?? 'Words', margin, startY)
 
-  let headBottom = o.startY
+  let headBottom = startY
   if (o.subheading) {
     headBottom += 12
     doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)

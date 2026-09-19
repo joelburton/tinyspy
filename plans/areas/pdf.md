@@ -528,7 +528,13 @@ passes); *keep "Turns"* on paper as the one word. Recommendation: the option
 — the paper and the screen are the same log and should say the same thing.
 Small; a decision, so it waits.
 
-### F-pdf-15 · `section-heading-off-page` · a word-list section can start below the page's bottom
+### SHIPPED · F-pdf-15 · `section-heading-off-page` · a word-list section can start below the page's bottom
+
+**Shipped 2026-09-19** (Joel: *"i'll take your rec"*). `drawWordColumns`
+starts a new page when its heading (and subheading) plus one row will not
+fit above `pageBottom`; a test pins that the heading is the first thing on
+the new page and nothing is drawn below the sheet. The spill test's page
+bottom moved from 20 to 60 so its scenario stays above the margin.
 
 `drawWordColumns` draws its heading at `startY` with no room check. Stacked
 sections (compete: one per player, then "Not found") arrive at whatever `y`
