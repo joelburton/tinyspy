@@ -441,7 +441,46 @@ says the sections below share these answers and must not disagree; Narration
 says both effects are about somebody else, which is what puts them in the
 global slot rather than the local one.
 
+**`BoardCol.tsx` took the same treatment** (Joel, 2026-09-19: *"can you do a
+similar section-ordering for BoardCol? … it would benefit from that same kind
+of organization"*). Five sections, and they are the jobs its own docstring
+already names: **Which board is on screen** (`isViewingHistory`, the one thing
+derived from a prop, and what every writer to the board answers to) · **The
+pending guess** (the state this column owns, plus `selected` and
+`handleEntryChange`, which had been separated from it by the shuffle) ·
+**Committing a guess** (`submitGuess`) · **The board's display order** (the
+shuffle, moved to last because it is the one job that touches nothing else) ·
+**Render**. Pure moves again, and a stray double blank line went with them.
+
+What the reorder showed: `selected` and `handleEntryChange` both belong to the
+pending guess and both sat on the far side of the shuffle block, so the one
+piece of state this column owns was told in three places.
+
 ### Step 6 — the comment pass (readability 3.5)
+
+**Three rules Joel gave while reading BoardCol's `act-shuffle` comment**
+(2026-09-19), and they govern this step:
+
+1. **A comment does not name a keystroke.** *"this shouldn't mention the
+   keystroke, that will become stale (& isn't needed)."* The chord lives in the
+   action registry, and the recall key lives in `common/word-entry` — a comment
+   that repeats either is a second copy that nothing updates.
+2. **"Why this lives here" is not worth a comment.** *"notes about why this
+   here isn't helpful; it's obvious."* A reader looking at the line is already
+   looking at where it lives.
+3. **"Why Joel decided this" is not a comment.** *"explanations of why is
+   active at terminal isn't useful for code understanding; it's more about 'why
+   joel decided this', and not useful for comments."* A product ruling belongs
+   in a doc, if anywhere.
+
+All three landed on that one comment at once — eleven lines that named ⌥Z,
+argued that the binding belongs in this column rather than the PlayArea, and
+defended staying live on a finished board. `describe: () => 'active'` says the
+last of those already, so the whole comment is gone. Three more in the same
+file went with it: the two naming ArrowUp for the entry's recall (rule 1), and
+the *Committing a guess* header's "the RPC lives here rather than in the
+PlayArea because…" (rule 2) — and the clause I had just written into the
+shuffle section's lede was rule 3 again.
 
 With the code settled: the call-site rule (a sentence and a pointer where a
 shared mechanism is explained — the envelope paragraph in `createNewGame`,

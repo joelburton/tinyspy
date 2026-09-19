@@ -117,12 +117,25 @@ export function BoardCol({
   // Guesses the server has recorded — the CAUSE the attention flash reads.
   moveCount: number
 }) {
+  // ─── Which board is on screen ──────────────────────────
+  // Live, or a past turn's snapshot. PlayArea has already picked which `results`
+  // to hand down, so this column only needs to know WHICH it got — and then
+  // everything that would WRITE to the board answers to it: the tiles go inert,
+  // the selection and the in-flight dim are dropped, the entry is disabled, and
+  // the banner overlays the slot.
+
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
   // conventions: one prop says so, and the flag is derived, never passed).
   const isViewingHistory = historyLabel !== null
+
+  // ─── The pending guess ─────────────────────────────────
+  // The word being assembled, and everything that reads it. A board tile click
+  // and a typed letter are the same gesture as far as this column is concerned:
+  // both set `pending`, and both go through `handleEntryChange`.
+
   // The pending guess, shared by the board tiles and the entry below the board.
   const [pending, setPending] = useState('')
-  // The last submitted guess, kept so ArrowUp can recall it into the entry.
+  // The last submitted guess, handed to the entry as its `recall`.
   const [lastGuess, setLastGuess] = useState('')
   const [submitting, setSubmitting] = useState(false)
   /** The word currently with the server. Its tile takes the shared in-flight dim
@@ -148,35 +161,10 @@ export function BoardCol({
    *  (common/game-page/doc.md). */
   const inFlightWord = submittedWord !== null && !results.has(submittedWord) ? submittedWord : null
 
-
-  // ─── Board shuffle (a fresh visual scan, local only) ────
-  // A counter the Shuffle button bumps; the display order is derived from it. Keyed
-  // on the words STRING (not the array — useGame returns a fresh array on every
-  // realtime refetch, which would re-shuffle on every guess).
-  const [shuffleSeed, setShuffleSeed] = useState(0)
-  const wordsKey = words.join('\n') // '\n' never appears inside a dictionary word
-  const shuffledWords = useMemo(() => {
-    if (wordsKey === '') return []
-    void shuffleSeed
-    return shuffle(wordsKey.split('\n'))
-  }, [wordsKey, shuffleSeed])
-  const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
-
-  // ⌥Z shuffles — a fresh visual scan of the SAME words, never a move. Bound
-  // HERE rather than in the PlayArea because this column owns the display
-  // order, and bound at all (rather than hung off the entry) because the
-  // <WordEntryArea> is UNMOUNTED once you can't guess — at terminal, while viewing
-  // history, on someone else's turn — and shuffling is worth having in every one
-  // of those states. Hence plainly active, always: the round pill below is this
-  // same binding, and it is documented as live even on a finished board.
-  //
-  // While a past turn is open the keystroke never gets here — the viewer's
-  // `act-exit-history` consumes it, which is what "a key in the viewer means back
-  // to live" is. The BUTTON still shuffles there.
-  const actShuffle = useBoundAction('act-shuffle', {
-    describe: () => 'active',
-    run: handleShuffle,
-  })
+  // Picking a tile or typing both drive this one pending guess word. (A partial word
+  // won't equal any board word, so the board only highlights once a tile is clicked
+  // or the full word is typed.)
+  const selected = pending === '' ? null : pending
 
   // A user-driven entry change — typing a letter, or clicking a board tile — is
   // the player's next action, so it dismisses a gesture-cleared result: route
@@ -190,13 +178,15 @@ export function BoardCol({
     [localFeedbackSlot],
   )
 
+  // ─── Committing a guess ────────────────────────────────
+
   // Every submit clears the entry and shows a flash IN the box (success or error) —
   // so feedback always lands in the entry's already-claimed space, never a new line
   // that would reflow the board.
   const submitGuess = async () => {
     const guess = pending.trim().toLowerCase()
-    // Remember the submitted entry so ArrowUp can recall it (covers a rejected guess
-    // too — recalling lets the player fix it).
+    // Remembered for the entry's recall — including a guess the server refuses,
+    // which is the case where recalling it is worth something.
     setLastGuess(pending)
     setPending('')
     // Client-side board-word check for snappy feedback; the server re-validates.
@@ -248,10 +238,28 @@ export function BoardCol({
     }
   }
 
-  // Picking a tile or typing both drive this one pending guess word. (A partial word
-  // won't equal any board word, so the board only highlights once a tile is clicked
-  // or the full word is typed.)
-  const selected = pending === '' ? null : pending
+  // ─── The board's display order ─────────────────────────
+  // Purely visual and purely local: the same words in a fresh arrangement,
+  // never a move and never sent anywhere.
+
+  // A counter the Shuffle button bumps; the display order is derived from it. Keyed
+  // on the words STRING (not the array — useGame returns a fresh array on every
+  // realtime refetch, which would re-shuffle on every guess).
+  const [shuffleSeed, setShuffleSeed] = useState(0)
+  const wordsKey = words.join('\n') // '\n' never appears inside a dictionary word
+  const shuffledWords = useMemo(() => {
+    if (wordsKey === '') return []
+    void shuffleSeed
+    return shuffle(wordsKey.split('\n'))
+  }, [wordsKey, shuffleSeed])
+  const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
+
+  const actShuffle = useBoundAction('act-shuffle', {
+    describe: () => 'active',
+    run: handleShuffle,
+  })
+
+  // ─── Render ────────────────────────────────────────────
 
   return (
     <div className={shared.boardCol}>
