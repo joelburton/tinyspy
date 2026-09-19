@@ -818,6 +818,20 @@
    * way to make a word overflow, so it is closed in the clamp rather than in a
    * warning. */
 /* @@ */   --tile-wdth-gain: calc(1 - (1 - var(--tile-wdth)) * 0.39);
+  /* INK BACK, WITHOUT WIDTH. Narrowing thins the stems, so a long word reads
+   * gray beside a short one on the same board. `GRAD` is the axis for exactly
+   * that — it adds weight and moves no glyph, which is measured and not
+   * assumed: at any grade, a word occupies the identical width, at full size
+   * and condensed alike. So this can ride along without touching the fit math
+   * above, and nothing it does can make a word overflow.
+   *
+   * Scaled by how far the word narrowed, so a word at full width gets none —
+   * which is every word short enough not to condense, and every letter tile.
+   * `font-variation-settings` sets only the axis it names; `font-stretch` and
+   * `font-weight` still drive theirs (measured: the width is unchanged with
+   * this present). Override `--tile-grad` per game to take a different view. */
+/* @@ */   --tile-grad: calc((1 - var(--tile-wdth)) * 100);
+  font-variation-settings: 'GRAD' var(--tile-grad);
   /* Above the attention flash. `.attentionFlash` draws its yellow as an
    * absolutely-positioned overlay, and one of those paints over in-flow text by
    * default — so without this the flash HIDES the word it is pointing at. (The

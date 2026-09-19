@@ -66,9 +66,9 @@
    * on the same board — the widest spread of any tile game, which is why the
    * two knobs are set here rather than left at the shared defaults. Up to
    * seven characters nothing narrows; past that the glyphs give, as far as
-   * 65%, and the size falls only for what the narrowing cannot cover. */
+   * 60%, and the size falls only for what the narrowing cannot cover. */
 /* @@ */   --tile-wdth-len: 7;
-/* @@ */   --tile-wdth-min: 0.65;
+/* @@ */   --tile-wdth-min: 0.6;
 }
 
 /* A guessed tile is "decided": it colors PERMANENTLY by result — green if the
