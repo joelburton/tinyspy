@@ -31,7 +31,7 @@ export function drawWordListBody(
   const { doc, margin } = pd
 
   // ── Board (top-left), Setup to its right ──
-  const boardTop = margin + 44
+  const boardTop = pd.contentTop
   const { w, h } = drawBoard(margin, boardTop)
   const boardBottom = boardTop + h
   // Setup sits right of the board and runs to the right margin — pass that

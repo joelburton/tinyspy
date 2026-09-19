@@ -41,7 +41,7 @@ export function drawInTracks<T>(
 ): { bottom: number; left: number; width: number } {
   const usable = pd.pageW - 2 * pd.margin
   const width = (usable - GUTTER * (maxTracks - 1)) / maxTracks
-  const top = pd.margin + 44 // clears the header, matching twoColGeom's colTop
+  const top = pd.contentTop
 
   // Track the tallest column ON THE LAST PAGE — a page break resets it, since
   // the earlier pages' heights say nothing about where this one's content ends.

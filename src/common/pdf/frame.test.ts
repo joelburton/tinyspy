@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type { jsPDF } from 'jspdf'
-import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, savePrint, type PrintDoc } from './frame'
+import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, savePrint, setupBlockHeight, type PrintDoc } from './frame'
 
 /** A chainable jsPDF stand-in: every method is a no-op that records its call and
  *  returns the doc (for `.setFont(...).setFontSize(...)` chaining); getTextWidth is
@@ -56,7 +56,7 @@ function fakeDoc() {
 /** A PrintDoc around a fake doc, with the Letter geometry the helpers expect. */
 function fakePd(over: Partial<PrintDoc> = {}) {
   const { doc, calls } = fakeDoc()
-  const pd: PrintDoc = { doc, pageW: 612, pageH: 792, margin: 28, pageBottom: 764, ...over }
+  const pd: PrintDoc = { doc, pageW: 612, pageH: 792, margin: 28, pageBottom: 764, contentTop: 72, ...over }
   return { pd, calls }
 }
 
@@ -98,6 +98,18 @@ describe('drawSetup', () => {
     ]
     // cy starts at y+13, then +13 per item.
     expect(drawSetup(pd.doc, items, 40, 100, 'coop')).toBe(100 + 13 + items.length * 13)
+  })
+
+  // The event-log body asks this before drawing, to decide whether the block
+  // fits its column; it has to agree with what drawSetup then draws.
+  it('takes the height setupBlockHeight promised', () => {
+    const { pd } = fakePd()
+    const items = [
+      { key: 'a', label: 'A', value: '1' },
+      { key: 'b', label: 'B', value: '2' },
+      { key: 'c', label: 'C', value: '3' },
+    ]
+    expect(drawSetup(pd.doc, items, 40, 100, 'coop') - 100).toBe(setupBlockHeight(items.length))
   })
 
   // The heading carries the MODE (`Setup: Co-op`) rather than spending a row on

@@ -44,14 +44,29 @@ export type PrintDoc = {
   margin: number
   // The y past which content must wrap to the next column or page (`pageH - margin`).
   pageBottom: number
+  // The y where a body starts: below the header `drawHeader` draws (`margin + HEADER_H`).
+  contentTop: number
 }
+
+// The header's height: its summary line sits at +24, and the body starts a
+// little under it. Every body family reads it through `PrintDoc.contentTop`.
+const HEADER_H = 44
+
+// The Setup recap's line height — the heading, then one line per (wrapped) row.
+const SETUP_LINE_H = 13
 
 /** Create a Letter-size, points-unit document and cache its geometry. */
 export function newPrintDoc(margin = 28): PrintDoc {
   const doc = new jsPDF({ unit: 'pt', format: 'letter' })
   const pageW = doc.internal.pageSize.getWidth()
   const pageH = doc.internal.pageSize.getHeight()
-  return { doc, pageW, pageH, margin, pageBottom: pageH - margin }
+  return { doc, pageW, pageH, margin, pageBottom: pageH - margin, contentTop: margin + HEADER_H }
+}
+
+/** The height `drawSetup` will take for `rows` unwrapped rows — for a caller
+ *  that has to know whether the block fits before drawing it. */
+export function setupBlockHeight(rows: number): number {
+  return SETUP_LINE_H * (1 + rows)
 }
 
 /** Draw the shared header: `Brand: title` (bold, truncated to clear the date), the
@@ -92,7 +107,7 @@ export function drawSetup(
   // spelling, and the hyphen in "Co-op" is plain ASCII (an en-dash would not
   // survive WinAnsi).
   doc.text(`Setup: ${mode === 'coop' ? 'Co-op' : 'Compete'}`, x, y)
-  let cy = y + 13
+  let cy = y + SETUP_LINE_H
   items.forEach((it) => {
     doc.setFont('helvetica', 'bold').setFontSize(9).setTextColor(BLACK)
     doc.text(`${it.label}: `, x, cy)
@@ -105,7 +120,7 @@ export function drawSetup(
       valueW > 0 ? (doc.splitTextToSize(it.value, valueW) as string[]) : [it.value]
     lines.forEach((line) => {
       doc.text(line, x + labelW, cy)
-      cy += 13
+      cy += SETUP_LINE_H
     })
   })
   return cy

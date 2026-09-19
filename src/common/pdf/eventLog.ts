@@ -1,6 +1,6 @@
 // cs-audited-pdf
 
-import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, type PrintDoc } from './frame'
+import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, setupBlockHeight, type PrintDoc } from './frame'
 import type { SetupRow } from '../setup-form/setupRows'
 
 // Column x-offsets from a column's left edge. The <move> column is the important one,
@@ -20,7 +20,7 @@ export type TurnRow = { seq: number; who: string; text: string }
 export function twoColGeom(pd: PrintDoc) {
   const gutter = 22
   const colW = (pd.pageW - 2 * pd.margin - gutter) / 2
-  return { gutter, colW, leftX: pd.margin, rightX: pd.margin + colW + gutter, colTop: pd.margin + 44 }
+  return { gutter, colW, leftX: pd.margin, rightX: pd.margin + colW + gutter, colTop: pd.contentTop }
 }
 
 /**
@@ -98,7 +98,7 @@ export function drawEventLog(
   // Setup — appended after the turns in the same flow. Kept together: if the block
   // won't fit in the rest of the column, move it whole to the next column.
   if (o.setup.length) {
-    const blockH = 22 + 13 + o.setup.length * 13
+    const blockH = 22 + setupBlockHeight(o.setup.length)
     if (cy + blockH > pageBottom) {
       nextColumn()
       cy = columnTop()

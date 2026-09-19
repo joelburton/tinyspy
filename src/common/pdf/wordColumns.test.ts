@@ -36,7 +36,7 @@ function fakeDoc() {
 
 function fakePd(over: Partial<PrintDoc> = {}) {
   const { doc, calls } = fakeDoc()
-  const pd: PrintDoc = { doc, pageW: 612, pageH: 792, margin: 28, pageBottom: 764, ...over }
+  const pd: PrintDoc = { doc, pageW: 612, pageH: 792, margin: 28, pageBottom: 764, contentTop: 72, ...over }
   return { pd, calls }
 }
 
@@ -87,7 +87,7 @@ describe('drawWordListBody', () => {
     const { pd } = fakePd()
     const drawBoard = vi.fn(() => ({ w: 100, h: 80 }))
     drawWordListBody(pd, header, drawBoard)
-    // boardTop = margin + 44 = 72; drawn at (margin, boardTop).
+    // boardTop = contentTop = 72; drawn at (margin, contentTop).
     expect(drawBoard).toHaveBeenCalledWith(28, 72)
   })
 

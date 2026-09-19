@@ -33,7 +33,7 @@ function fakeDoc() {
 
 function fakePd(over: Partial<PrintDoc> = {}) {
   const { doc, calls } = fakeDoc()
-  const pd: PrintDoc = { doc, pageW: 612, pageH: 792, margin: 28, pageBottom: 764, ...over }
+  const pd: PrintDoc = { doc, pageW: 612, pageH: 792, margin: 28, pageBottom: 764, contentTop: 72, ...over }
   return { pd, calls }
 }
 
@@ -45,7 +45,7 @@ describe('twoColGeom', () => {
     expect(g.colW).toBe(267)
     expect(g.leftX).toBe(28)
     expect(g.rightX).toBe(28 + 267 + 22) // leftX + colW + gutter
-    expect(g.colTop).toBe(28 + 44)
+    expect(g.colTop).toBe(72) // the page's contentTop
   })
 })
 

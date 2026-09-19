@@ -376,7 +376,16 @@ and `wordListBody.ts` (the `setupX` comment); `freebee`, `MooseWheel` and
 `PrintHeader.brand`'s "RackAttack", "MothCubes" are the field's VALUES and
 stay — that member is the brand.
 
-### F-pdf-9 · `header-height-written-thrice` · the header's height is a number three files agree on by hand
+### SHIPPED · F-pdf-9 · `header-height-written-thrice` · the header's height is a number three files agree on by hand
+
+**Ruled and shipped 2026-09-19** (Joel: *"i'll take your rec. do it."*).
+`PrintDoc.contentTop` is cached by `newPrintDoc` from a `HEADER_H` stated
+once in `frame.ts`; `columns.ts`, `twoColGeom` and `wordListBody.ts` read
+it. `setupBlockHeight(rows)` is exported beside `drawSetup`, which draws with
+the same `SETUP_LINE_H`; `drawEventLog`'s fit check reads it, and a new
+`frame.test.ts` case pins that the promise and the drawing agree. The three
+fakes carry `contentTop: 72`. setgame's `margin + 46` is a Soon item in
+`src/setgame/todo.md`.
 
 `margin + 44` is the top of the body in `columns.ts` ("clears the header,
 matching twoColGeom's colTop"), in `eventLog.ts` (`twoColGeom`'s `colTop`)

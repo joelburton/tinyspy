@@ -13,6 +13,12 @@
 
 ## Soon
 
+- **The printer starts its body at `margin + 46`, two points under every
+  other printout.** The shared printers read `pd.contentTop` (`margin + 44`,
+  stated once in `common/pdf/frame.ts`); `printSetgamePdf` writes its own
+  number. Either read `contentTop` like the rest, or keep the two points and
+  say why beside it.
+
 - **The live hint's ring is GREEN, and a hint is amber everywhere else.**
   `--setgame-hint-ring` is `#16a34a` — a saturated green, and green is this
   app's success color. The same hint's log bar is amber (`warning`, the word
