@@ -835,7 +835,9 @@ the trailing `: `, which is what separates the pill from the log.
       is now "each game builds its own… `buildTerminalMessage` where a game has
       been converted, `buildOver` in the games that have not", which stays true
       at every point of the rollout instead of being wrong at fifteen of them.
-- [ ] `plans/app-audit.md` §3's game row says three passes (it says two)
+- [x] `plans/app-audit.md` §3's row 53 says THREE passes (2026-09-19), with the
+      reason the restructure goes first, and points at `docs/playarea.md` for
+      the shape this game settled
 - [ ] the tile-feedback pass done, and the game's tf level updated there
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
