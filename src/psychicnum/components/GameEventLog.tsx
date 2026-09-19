@@ -81,10 +81,7 @@ export function GameEventLog({
     <EventLogActor actor={memberById(players, userId)} />
   )
 
-  // A guessed / spoiled word is a real dictionary word, so it is definable; a
-  // HINT row's `word` is a clue sentence, so it is not.
-
-  // The "#N" cell, shared by both row kinds. The NUMBER is the row's place in
+  // The "#N" cell, shared by every row kind. The NUMBER is the row's place in
   // the list on show — it counts 1, 2, 3 under whatever filter is applied, which
   // from the reader's seat is honest. The HANDLE is the row's own id, so the
   // board opens the event the number is beside whatever the filter did.
@@ -127,7 +124,9 @@ export function GameEventLog({
             {turnNumber(g, i)}
             {/* word = sized-to-fit (`.other`) + the bold lead look (`.primary`);
                 result = the main column, absorbing the slack so the word + result
-                stay clustered and `.who` sits snug at the right. */}
+                stay clustered and `.who` sits snug at the right. A guessed or
+                spoiled word is a real dictionary word, so it is definable; a
+                HINT row's `word` is a clue sentence, so its cell above is not. */}
             <td className={cls(gameEventLog.other, gameEventLog.primary)}>
               <DefinableWord word={g.word} />
             </td>

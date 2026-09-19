@@ -117,7 +117,6 @@ export function InfoCol({
   // ── Setup disclosure ──
   // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
   setupRows: SetupRow[]
-  // The number of board tiles (setup echo).
 
   // ── Turn-history log (GameEventLog) ──
   guesses: EventRow[]
@@ -131,12 +130,6 @@ export function InfoCol({
   onShowHistory: (id: number, n: number) => void
 }) {
 
-  // The exit — error-toned (red), and BOTH are placed: compete's CONCEDE (drop
-  // out of the race → psychicnum.concede) and coop's neutral "End" (a mutual
-  // "we're done" → end_game) are semantically distinct acts, and each hides
-  // itself in the mode that isn't its own. Shared by the "playing" and the "out
-  // of guesses / conceded" rows. Icon-only (the canonical action-row
-  // treatment): the styled tooltip carries the label and the key.
   // The row's line, and the only thing that varies between states: the verdict
   // once the game is over, a neutral "you are done, they are not" while a race
   // runs on without you, and nothing at all while you can still play.

@@ -37,8 +37,9 @@ type GuessAnswer = { verdict: 'hit' | 'miss'; found_all: boolean }
  * gesture with its result arriving via realtime (no deep entangled state) — the
  * `submit_guess` RPC itself, kept beside the entry it commits. Like the other games'
  * BoardCol it does NOT own the game state: PlayArea hands it **the board to render**
- * (the live `results` OR a historical snapshot) + `isViewingHistory`, which is what makes the
- * turn-history viewer a drop-in. The local feedback slot is PlayArea's (its
+ * (the live `results` OR a historical snapshot) and the viewed turn's label, from
+ * which it derives `isViewingHistory` — which is what makes the turn-history
+ * viewer a drop-in. The local feedback slot is PlayArea's (its
  * standing conditions and InfoCol's Hint / Spoiler / End also show into it);
  * this column shows the guess results and draws it. See docs/playarea.md.
  */

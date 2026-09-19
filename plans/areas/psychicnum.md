@@ -1013,7 +1013,16 @@ have it right (`//` on every prop); these do not:
 
 No decision; the rule is written. A read per file, not a sweep.
 
-### F-psychicnum-11 · `comments-on-the-wrong-line` · orphaned, misattached and false comments the restructure left
+### SHIPPED · F-psychicnum-11 · `comments-on-the-wrong-line` · orphaned, misattached and false comments the restructure left
+
+**Joel, 2026-09-19: "do it."** The orphan and the misattached comment in
+`InfoCol` deleted; the stray definable-word comment in `GameEventLog` moved
+onto the `<DefinableWord>` cell and "both row kinds" is "every row kind";
+`BoardCol`'s docstring says it derives `isViewingHistory` from the label;
+"count count" fixed; and the budget row is looked up ONCE (`myBudgetRow`, in
+Page hooks where its first reader is), with `selfSecretsFound`,
+`iFoundThemAll`, `selfBudget` and `selfWon` all read off it. Two of the seven
+items had already gone with F-5 (`isTerminal && mode`) and F-6.
 
 - `InfoCol.tsx` → props type: `/** The number of board tiles (setup echo). */`
   sits above nothing — the prop it described is gone.

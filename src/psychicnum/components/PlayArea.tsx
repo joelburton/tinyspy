@@ -168,10 +168,11 @@ function PlayArea({
   // Both gates are correct on the first render, which is what `useCelebration`
   // requires: `playState` comes with the page, and `playerBudgets` comes with
   // the game — the loader holds this surface back until both are in hand.
-  // Did I find all three? (My budget row; the reveal below reads it too.)
-  const iFoundThemAll =
-    (playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0)
-    >= SECRET_COUNT
+  // My budget row (`psychicnum.players`) — looked up once; Derived reads the
+  // budget off it, and the reveal and the verdict read the count.
+  const myBudgetRow = playerBudgets.find((p) => p.user_id === session.user.id)
+  const selfSecretsFound = myBudgetRow?.found_secrets_count ?? 0
+  const iFoundThemAll = selfSecretsFound >= SECRET_COUNT
   const celebration = useCelebration(
     playState === 'won' || (playState === 'won_compete' && iFoundThemAll),
   )
@@ -195,9 +196,7 @@ function PlayArea({
   // My remaining guesses, and from it the "can I still act?" gate — read by the
   // Hint / Spoiler bindings, so their menu rows and their InfoCol buttons gray
   // together.
-  const selfBudget =
-    playerBudgets.find((p) => p.user_id === session.user.id)
-      ?.guesses_remaining ?? 0
+  const selfBudget = myBudgetRow?.guesses_remaining ?? 0
   // Still in this game: it is live, I have guesses left, and I have not
   // conceded. Drives the terminal-vs-play LOOK in both columns.
   //
@@ -257,14 +256,12 @@ function PlayArea({
   // simple team verdict. In compete the winner is the one who completed the
   // set (their found_secrets_count hit 3). Memoized on its inputs so the
   // verdict effect below sees one object per outcome, not one per render.
-  const selfSecretsFound =
-    playerBudgets.find((p) => p.user_id === session.user.id)?.found_secrets_count ?? 0
   const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
   // WHY it ended is the server's word (`status.outcome`), never the browser
   // clock's: the RPC that ended the game wrote the reason, and the club-list
   // label reads the same column.
   const reason = status?.outcome as string | undefined
-  const selfWon = mode === 'compete' ? selfSecretsFound >= SECRET_COUNT : true
+  const selfWon = mode === 'compete' ? iFoundThemAll : true
   const terminalMessage = useMemo(
     () =>
       isTerminal
@@ -338,7 +335,7 @@ function PlayArea({
     globalFeedbackSlot,
   })
 
-  // When an opponent's public found_secrets_count count ticks up, narrate "X guessed a
+  // When an opponent's public found_secrets_count ticks up, narrate "X guessed a
   // secret word" — the COUNT, never which word (that stays private). It reads as
   // the HIT it is, the same as coop's line for a peer's correct guess: green
   // means "they found a word" in both modes, so the player doesn't maintain a
