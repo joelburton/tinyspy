@@ -1,4 +1,4 @@
-/* cs-audited-info-sheet */
+/* cs-blessed-info-sheet */
 
 /* The line `<InfoActionsRow>` draws beside its buttons. Only the line's rules
  * live here, because only this component draws it — the row itself
@@ -13,10 +13,11 @@
 
 /* One rule per member of the outcome vocabulary (docs/outcomes.md), because
  * the class is indexed into and must answer for every value the type admits.
- * `won` / `lost` / `neutral` are the verdicts; `near`, `warning` and `noted`
- * judge a MOVE, so they appear only while a game is still being played; `error`
- * is a game reporting that something broke, which a game may answer with like
- * any other word. */
+ * `won` / `lost` / `neutral` are the verdicts a finished game can carry; `near`
+ * and `warning` judge a MOVE and `noted` is news rather than a result, so those
+ * three appear only while a game is still being played; `error` is a game
+ * reporting that something broke, which a game may answer with like any other
+ * word. */
 /* @@ */ .outcome_won {
   color: var(--outcomes-won-ink-color);
 }

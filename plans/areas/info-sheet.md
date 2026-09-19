@@ -4,14 +4,15 @@ The folders it reads: `info-sheet`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18; the prose pass done the same day (F-1 to
-F-6, F-8, F-9, F-10, F-17), then F-11, F-12, F-15 and F-16 ruled and shipped, and
-F-7 WITHDRAWN as a false premise — there was no bug. **ALL SEVENTEEN FINDINGS
-ARE NOW WORKED, RULED OR WITHDRAWN.** What is left is the area's last two steps —
-the closing re-read in one sitting, and the `doc.md` harvest — and then the
-blessing, which is Joel's alone.** Roster agreed 2026-09-18 (Joel: *"this is the roster. do
-the audit"*); fifteen files stamped `cs-audited-info-sheet`. Taken in order after
-`reveal` (row 45); this is row 46.
+**Status: CLOSED 2026-09-19, blessed** — Joel: *"bless the files in this area,
+close the area, and commit"*; sixteen files `cs-blessed-info-sheet`. Audited
+2026-09-18; the prose pass done the same day (F-1 to F-6, F-8, F-9, F-10, F-17),
+then F-11, F-12, F-15 and F-16 ruled and shipped, F-7 WITHDRAWN as a false
+premise — there was no bug — F-13 and F-14 worked, and the closing re-read
+(F-18 to F-26) and the `doc.md` harvest check done 2026-09-18. Twenty-six
+findings, all worked, ruled or withdrawn. Roster agreed 2026-09-18 (Joel: *"this
+is the roster. do the audit"*). Taken in order after `reveal` (row 45); this is
+row 46.
 
 ## The roster
 
@@ -237,7 +238,7 @@ saying *"hold the line's height with a non-breaking space"* is accurate, and
 `docs/playarea.md`, the component docstring, the prop note and the test's name
 were all telling the truth. Nothing was broken.
 
-**How the audit got it wrong, and that is the generalisable part.** U+00A0 renders
+**How the audit got it wrong, and that is the generalizable part.** U+00A0 renders
 identically to U+0020 in every view of a source file — editor, `sed`, `grep`, and
 this file quoting it. The audit read `{' '}`, wrote "U+0020, collapsible
 whitespace", and the measurement script then reproduced 0px because its scaffold
@@ -598,6 +599,107 @@ half (*"The switching affordance is not here"*). Both move to `doc.md → Intro`
 it per game, and a pointer. Prose, no decision; listed apart from F-3 because
 it is the harvest source rather than archaeology.
 
+## The closing re-read — 2026-09-18, one sitting, F-18 to F-26
+
+Every roster file, `doc.md`, `todo.md`, the two docs sections read as evidence
+(`playarea.md → Info-column readouts`, `mobile.md → The two mobile pages` / `The
+mobile status bar`) and every out-of-folder line the area's seven commits wrote,
+read end to end; then, for each worked finding, the one-line grep that would find
+its defect anywhere else, run over the roster, the docs and `e2e/`. Every pointer
+a roster file makes was resolved to its target (the doc headings, `GamePage`'s
+header-split comment, `StateLine`, `PageHeaderPlayersStrip`, the history viewer's
+`z-index: 5` and `RankBar`'s `2`, `--z-infocol` at 1300). Every date in the
+folder and in the docs touched is `2026-09-18` or earlier and matches `git log`.
+The docstring-marker pass: every prop note is `//`, every `/**` sits on a whole
+declaration, and the one paragraph that argues an implementation
+(`useInfoSheet`'s render-phase reset) is on the line it defends. The guards and
+the folder's tests are green after the fixes.
+
+**Eight of the nine were the area's own work next door, eighth area running.**
+Three were written BY the day's fixes (F-18 by F-8/F-17's harvest, F-19 stranded
+by F-11's move, F-20 by F-12's rewrite), four were a worked finding's defect
+standing in a sibling file (F-21 is F-3's, F-25 is F-4's, F-26 is F-2's — in
+sixteen sites the sweep had counted as two — and F-23 is F-11's own line stated
+one-sidedly in two files), and F-22 and F-24 were words nothing had read.
+
+### F-info-sheet-18 · `intro-pointer-to-details` · Two docstrings send the reader to `doc.md → Intro to area` for an argument that is in `## Details` — WORKED
+
+`infoSheetStore.ts` and `useInfoSheet.ts` both point at the intro for "why a
+store, and why one slot is safe"; F-8 put that paragraph under `## Details` (*"The
+open flag is a module slot, not component state"*), and F-17's pointer was
+written before the doc was. Both now say `Details`.
+
+### F-info-sheet-19 · `scaffold-claim-in-row-comment` · `InfoActionsRow`'s render comment still calls its classes the play-surface scaffold's — WORKED
+
+*"The row's own classes are the play-surface scaffold's, because a game can
+compose them directly"* — F-11 moved `.infoActions` / `.terminalActions` into
+this folder's `infoCol.module.css`, and the import on line 6 already said so.
+The comment now names the column's sheet.
+
+### F-info-sheet-20 · `noted-is-not-a-move` · `InfoActionsRow.module.css` says `noted` judges a move — WORKED
+
+Written by F-12: *"`near`, `warning` and `noted` judge a MOVE, so they appear only
+while a game is still being played."* `docs/outcomes.md`: `noted` *"is news rather
+than a result"*. The conclusion (none of the three is a finished game's word) was
+right; the reason given for `noted` was the wrong one. Now: `near` and `warning`
+judge a move and `noted` is news.
+
+### F-info-sheet-21 · `archaeology-next-door` · F-3's "used to" in two more files — WORKED
+
+`infoPanel.module.css`: *"Each of them had a private copy of these same rules,
+which is a match kept by memory rather than by the stylesheet"* — the reason
+(one sheet so the match is structural) stays in the present tense.
+`InfoSheet.module.css`: *"the flex child of `.layout` exactly as before"* — as if
+nothing wrapped it. Also a double blank line in `infoPanel.module.css`.
+
+### F-info-sheet-22 · `status-copy` · The banned word, in `MobileStatusBar.module.css` — WORKED
+
+*"games that compose this keep their status copy short"* — the words of a
+readout are its TEXT ([copy is banned]). One site; `docs/mobile.md`'s *"renders
+its own copy at the top"* and the component's *"a re-worded copy"* are the
+duplicate sense and stay.
+
+### F-info-sheet-23 · `width-set-two-ways` · `infoCol.module.css` and `doc.md` each tell half of who sets `--info-col-width` — WORKED
+
+The stylesheet: *"each game sets `--info-col-width` on its own `.layout`"*; the
+doc: *"`.infoCol` reads the `--info-col-width` that clamp sets"*. Thirteen games
+set a rem of their own and three (spellingbee, wordwheel, boggle) wear the shell's
+`.responsiveInfoCol`, whose clamp sets it. Both files now say a game sets it on
+its `.layout` one way or the other, and the "no shared default" rule holds for
+both. In the same block, *"THE ONE SATELLITE HOST in the app"* — a count that
+rots ([no pointless counts]) with its line wrapping broken mid-word by an earlier
+edit; now *"A SATELLITE HOST"*, rewrapped. (It IS the only `--z-host` declaration
+today; the sentence no longer depends on that.)
+
+### F-info-sheet-24 · `eight-classes-above` · `doc.md` says "the eight classes above" under a tree that names five — WORKED
+
+*"the eight classes it declares."*
+
+### F-info-sheet-25 · `tallies` · F-4's defect one section down, and in the todo — WORKED
+
+`docs/playarea.md`'s `.terminalExtra` bullet: *"Users today: wordle, stackdown,
+letterboxed"* — the same roster shape F-4 deleted from the turn line and the
+status bar a screen above; wordle's answer is kept as the worked example.
+`todo.md`'s Soon item: *"fourteen of them, 196-348 lines"* — a tally in a durable
+file.
+
+### F-info-sheet-26 · `menu-item-in-e2e` · F-2's vanished menu item and ✕, in sixteen e2e sites the sweep had counted as two — WORKED
+
+The Notes below recorded *"the two info-sheet e2e headers"* quoting a `GamePage`
+comment (*"consolidating the old Game info menu item and the sheet's ✕ into one
+control"*) that no longer exists, and left them as out of the roster. The grep
+finds sixteen sites in fourteen mobile e2e files (crosswords and strands twice,
+waffle three times), and beside them twelve file headers and per-test comments
+saying the sheet *"slides in from the menu"* and *"back out on the ✕"* — while
+every one of those tests clicks *Game info* and *Back to board*, the switch's two
+labels. `scrabble-mobile`'s header carried a half-edit from an earlier sweep
+(*"reached from the header's switch menu item"*), and `docs/mobile.md` said the
+readout *"costs a menu tap mid-game"*. This folder owns the fact and there is no
+decision in a stale citation, so all of it ships with the area: the block now
+says there is no menu item and the header's switch (`InfoSwitchButton`) is the
+one way between the two pages, keeping the race that the comment exists to
+explain. Comments only; no test changed and none was run.
+
 ## Notes
 
 - `InfoSwitchButton` writes `icon={icon ?? IconInfoSheetOpen}` though its
@@ -609,7 +711,8 @@ it is the harvest source rather than archaeology.
 - The two info-sheet e2e headers (`infosheet-dialog`, `infosheet-resize`)
   quote a GamePage comment about *"consolidating the old Game info menu item
   and the sheet's ✕"* that no longer exists in `GamePage.tsx`; e2e is out of
-  the roster, noted for whoever reads them next.
+  the roster, noted for whoever reads them next. **Superseded by F-26**: there
+  were sixteen such sites, and they are fixed.
 - `MobileStatusBar`'s docstring is long but every paragraph is for the caller
   (render it first in `boardCol`; feed it the same node; fixed height); kept
   as is.
@@ -639,7 +742,19 @@ it is the harvest source rather than archaeology.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Intro + Details written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group — 2026-09-18,
+  F-18 to F-26
+- [x] the folder's `doc.md` Intro + Details written; its row off `INTROS_OWED` —
+  written at the prose pass (F-8); the harvest re-checked at the re-read: F-11's
+  line is `doc.md → Details` and `infoCol.module.css`'s header, F-12 is the
+  `InfoActionsMessage` docstring and `docs/outcomes.md`, F-13 is the code,
+  F-14 the prop note, F-15 `base.css`'s token comment and `docs/ui.md`'s ramp
+  table, F-16 the `.headerRow` rule and the struck todo, F-7's character the
+  comment on the line, and Joel's terminal ruling `docs/playarea.md`'s two
+  shapes (kept local, so `ui.md` is untouched)
+- [x] `todo.md` holds everything still owed; nothing durable left in this file —
+  one Soon item (the shared `<InfoCol>`, which waits on a game or two), one
+  struck Someday
+- [x] every file on the roster blessed, or its stamp says why not — 2026-09-19,
+  Joel: *"bless the files in this area, close the area, and commit"*; sixteen
+  files `cs-blessed-info-sheet`, none `cs-audited-info-sheet` left

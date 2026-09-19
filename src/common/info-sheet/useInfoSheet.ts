@@ -1,4 +1,4 @@
-// cs-audited-info-sheet
+// cs-blessed-info-sheet
 
 import { useCallback, useState } from 'react'
 import { useIsMobile } from '../mobile/useIsMobile'
@@ -21,7 +21,7 @@ export type InfoSheetApi = {
  * **The switching affordance is not here.** The shell's header renders the
  * switch button, and the flag it drives lives in `infoSheetStore` so the header
  * (in `<GamePage>`) and the sheet (in each game's PlayArea) can both reach it —
- * doc.md → Intro to area. What a game gets is what a game needs: the open flag
+ * doc.md → Details. What a game gets is what a game needs: the open flag
  * to hand `<InfoSheet>`, and a way to close.
  *
  * Pair it with:

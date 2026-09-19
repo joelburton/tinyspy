@@ -1,4 +1,4 @@
-/* cs-audited-info-sheet */
+/* cs-blessed-info-sheet */
 
 /* The info column's own stylesheet: the column box, and every row inside it. A
  * game's `InfoCol.tsx` puts these on its own markup; `TurnStatusLine` and
@@ -20,22 +20,23 @@
  * and its rows; that one is what sits in them. */
 
 /* Info column: a fixed column — `flex: 0 0` means it never grows or shrinks (the
- * board is the one that flexes). Its WIDTH is GAME-SPECIFIC: each game sets
- * `--info-col-width` on its own `.layout` (see that game's PlayArea.module.css),
- * since the right column's needs differ (psychicnum's words want a narrow column,
- * spellingbee's word list a wide one). NO shared default on purpose, so a game
- * wearing this class must declare the var (the value is a rem, never a pixel
- * lock). The no-shrink rows at the top, scrolling log below. The thin left border IS the
- * divider between the columns; padding-left keeps content off it. `min-height: 0`
- * is essential — without it the column grows to fit content and the log's
- * `overflow-y: auto` never engages. */
+ * board is the one that flexes). Its WIDTH is GAME-SPECIFIC: a game sets
+ * `--info-col-width` on its own `.layout`, either as a rem of its own (see that
+ * game's PlayArea.module.css) or by wearing the shell's `.responsiveInfoCol`,
+ * whose clamp trades width against the board — the right column's needs differ
+ * (psychicnum's words want a narrow column, spellingbee's word list a wide one).
+ * NO shared default on purpose, so a game wearing this class must declare the
+ * var one way or the other (a rem, never a pixel lock). The no-shrink rows at
+ * the top, scrolling log below. The thin left border IS the divider between the
+ * columns; padding-left keeps content off it. `min-height: 0` is essential —
+ * without it the column grows to fit content and the log's `overflow-y: auto`
+ * never engages. */
 /* @@ */ .infoCol {
-  /* THE ONE SATELLITE HOST in the app (docs/code-conventions.md → The z-
-     layers). A dropdown
-     sits just above whatever CONTAINS it, and `<FilterSelect>` — the word-list
-     filter and the event-log player picker — opens in here. Declaring the column
-     as the host puts those dropdowns at 1301, clear of the local layering the
-     column legitimately uses (the history viewer's 5, RankBar's 2).
+  /* A SATELLITE HOST (docs/code-conventions.md → The z- layers). A dropdown sits
+     just above whatever CONTAINS it, and `<FilterSelect>` — the word-list filter
+     and the event-log player picker — opens in here. Declaring the column as the
+     host puts those dropdowns at 1301, clear of the local layering the column
+     legitimately uses (the history viewer's 5, RankBar's 2).
 
      A CUSTOM PROPERTY ONLY: no `z-index`, no `position` — and the two have
      DIFFERENT consequences, which is worth keeping straight. A `position` would

@@ -1,11 +1,11 @@
-/* cs-audited-info-sheet */
+/* cs-blessed-info-sheet */
 
 /* The mobile "info column as an off-canvas sheet" wrapper (docs/mobile.md → the
  * psychicnum recipe) — one sheet every game's mobile pass composes, so none of
  * them writes this again. See InfoSheet.tsx. */
 
 /* Desktop: `display: contents` — the wrapper generates no box, so the child (a
- * game's InfoCol) is the flex child of `.layout` exactly as before. */
+ * game's InfoCol) is the flex child of `.layout` as if nothing wrapped it. */
 /* @@ */ .wrap {
   display: contents;
 }

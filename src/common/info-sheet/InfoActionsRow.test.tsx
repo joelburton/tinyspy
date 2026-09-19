@@ -1,4 +1,4 @@
-// cs-audited-info-sheet
+// cs-blessed-info-sheet
 
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'

@@ -1,4 +1,4 @@
-/* cs-audited-info-sheet */
+/* cs-blessed-info-sheet */
 
 /* The mobile-only status strip above the board (docs/mobile.md → the status
  * bar). See MobileStatusBar.tsx for what goes in it. */
@@ -16,7 +16,7 @@
    * FIXED height, `flex-shrink: 0`, `nowrap`: it's a `.boardCol` child sitting
    * above a `flex: 1` board, so any growth here would push the board (and any
    * wrap would move it mid-game). The default is ONE line — games that compose
-   * this keep their status copy short enough to fit a phone (docs/ui.md → Layout
+   * this keep their status text short enough to fit a phone (docs/ui.md → Layout
    * stability) — but a game whose readout is a small BLOCK rather than a line
    * (spellingbee's rank bar + score/words) raises `--mobile-status-height` on its
    * board column. Either way the height is fixed, never content-driven. The board

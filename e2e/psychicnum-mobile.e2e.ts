@@ -14,7 +14,7 @@ import { signIn } from './helpers/session'
  * Input is tap-a-tile (touch-native): tapping a word tile picks it, and Submit
  * commits — no keyboard. We check, at a tall AND a short viewport, the invariants
  * jsdom can't: the board fills, the page never scrolls, the info sheet slides in
- * from the menu and back, and a touch-only guess (`.tap()`, no keystroke) locks
+ * from the header's switch and back, and a touch-only guess (`.tap()`, no keystroke) locks
  * the tapped tile. That last step is the "psychicnum tap-tile → Submit locks the
  * tile" claim mobile.md makes.
  */
@@ -56,16 +56,17 @@ test.describe('psychicnum mobile', () => {
       const boardBox = (await page.locator('[data-board]').boundingBox())!
       expect(barBox.y + barBox.height).toBeLessThanOrEqual(boardBox.y + 1)
 
-      // Info sheet: collapsed off the right edge → slides in from the menu → back
-      // out on the ✕.
+      // Info sheet: collapsed off the right edge → slides in from the header's
+
+      // switch → back out on the same switch.
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
       // Straight to the header's page-switch button — no game-menu detour.
-      // "Game info" used to be a MENU ITEM and was folded into this one header
-      // control (GamePage: "consolidating the old Game info menu item and the
-      // sheet's ✕ into one control"), so opening the menu first only laid its
-      // popover BACKDROP over the button this line wants. A race that bit under
-      // full-suite load — waffle-mobile lost it on 2026-08-16.
+      // There is no "Game info" menu item: the header's switch button
+      // (InfoSwitchButton) is the one way between the two mobile pages, so opening
+      // the menu first only laid its popover BACKDROP over the button this line
+      // wants. A race that bit under full-suite load — waffle-mobile lost it on
+      // 2026-08-16.
       await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300)
       const xOpen = (await wrap.boundingBox())!.x

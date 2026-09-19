@@ -1,4 +1,4 @@
-// cs-audited-info-sheet
+// cs-blessed-info-sheet
 
 import type { ReactNode } from 'react'
 import type { Member } from '../members/member'

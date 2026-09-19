@@ -1,4 +1,4 @@
-// cs-audited-info-sheet
+// cs-blessed-info-sheet
 
 import { PageHeaderButton } from '../page-header/PageHeaderButton'
 import { useBoundAction } from '../actions/useBoundAction'

@@ -82,15 +82,16 @@ common/event-log: useHistoryViewer.showHistory() → setInfoSheetOpen(false)
 
 **Two stylesheets, and the line between them is which element wears the class.**
 `infoCol.module.css` here holds the column's box and every row in it — the eight
-classes above, worn by a game's `InfoCol` on its own markup and by
+classes it declares, worn by a game's `InfoCol` on its own markup and by
 `TurnStatusLine` and `InfoActionsRow` as their root class.
 `game-page/playArea.module.css` keeps what the PlayArea ROOT DIV wears: `.layout`,
 `.mobileFill`, and `.responsiveInfoCol` — the clamp that decides how much width
 the column takes from the board, which stays with the shell because it is a
 negotiation between the two columns rather than a rule about either. `.infoCol`
-reads the `--info-col-width` that clamp sets, the way `MobileStatusBar` reads the
-`--mobile-status-height` a game raises on its board column: a variable crossing a
-folder line is a contract, not a misfiling. The action row's outcome inks are
+reads the `--info-col-width` a game sets on its `.layout`, as a rem of its own or
+through that clamp, the way `MobileStatusBar` reads the `--mobile-status-height`
+a game raises on its board column: a variable crossing a folder line is a
+contract, not a misfiling. The action row's outcome inks are
 `InfoActionsRow.module.css`'s, beside the component that draws the line.
 
 **What an InfoCol places, and when.** The condition, not a list of games — a game

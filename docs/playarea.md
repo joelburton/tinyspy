@@ -182,9 +182,9 @@ That dual placement is the rule, not redundancy to trim.
   the game ends: a deliberate exception to [Layout stability](ui.md#layout-stability),
   allowed because the play surface is done, the **board doesn't move**, and the
   scrolling event log below gives way so the *page* never scrolls (`flex-shrink: 0`
-  on it; the log's `flex: 1` + `min-height: 0` absorbs it). Users today: wordle,
-  stackdown, letterboxed (its revealed "Solvable in two" pair); reuse it when a
-  game needs an end-of-game readout that doesn't fit below the board. (waffle's
+  on it; the log's `flex: 1` + `min-height: 0` absorbs it). Wordle's answer is
+  the worked example; reuse it when a game needs an end-of-game readout that
+  doesn't fit below the board. (waffle's
   answer reveal is NOT one of these — it's progressive and shows all game, part
   of the status readout.)
 

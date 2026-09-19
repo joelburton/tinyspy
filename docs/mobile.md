@@ -815,7 +815,7 @@ covers whose-turn in turn-coop, since the `TurnStatusLine` is off-canvas.
 
 The info-sheet recipe has a cost: the moment the info column goes off-canvas, the
 game's **live state readout** ("3/15 agents · 4/9 turns") goes with it, so
-answering "how many agents left?" costs a menu tap mid-game.
+answering "how many agents left?" costs a page switch mid-game.
 [`<MobileStatusBar>`](../src/common/info-sheet/MobileStatusBar.tsx) puts that
 one line back on the play surface — rendered as the **first child of
 `shared.boardCol`**, above the board, and hidden by pure CSS (`display: none`)

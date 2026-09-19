@@ -14,7 +14,7 @@ import { signIn } from './helpers/session'
  * other v3 game stacks a keyboard under the board), so the board must cap its
  * height or it pushes the keyboard off-screen. We assert at a tall AND a short
  * viewport that (a) the page never scrolls and (b) the whole keyboard stays on
- * screen, plus that the info sheet slides in from the menu and back out on close.
+ * screen, plus that the info sheet slides in from the header's switch and back out on close.
  */
 test.describe('wordle mobile', () => {
   for (const [w, h, tag] of [
@@ -53,16 +53,16 @@ test.describe('wordle mobile', () => {
       const kbBox = (await kb.boundingBox())!
       expect(kbBox.y + kbBox.height).toBeLessThanOrEqual(m.ih + 1)
 
-      // Info sheet: closed = off the right edge; opening from the menu slides it
-      // in; the X slides it back off.
+      // Info sheet: closed = off the right edge; the header's switch slides it
+      // in and back off.
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
       // Straight to the header's page-switch button — no game-menu detour.
-      // "Game info" used to be a MENU ITEM and was folded into this one header
-      // control (GamePage: "consolidating the old Game info menu item and the
-      // sheet's ✕ into one control"), so opening the menu first only laid its
-      // popover BACKDROP over the button this line wants. A race that bit under
-      // full-suite load — waffle-mobile lost it on 2026-08-16.
+      // There is no "Game info" menu item: the header's switch button
+      // (InfoSwitchButton) is the one way between the two mobile pages, so opening
+      // the menu first only laid its popover BACKDROP over the button this line
+      // wants. A race that bit under full-suite load — waffle-mobile lost it on
+      // 2026-08-16.
       await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300) // the 160ms slide-in
       const xOpen = (await wrap.boundingBox())!.x

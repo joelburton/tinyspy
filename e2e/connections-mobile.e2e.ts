@@ -48,16 +48,17 @@ test.describe('connections mobile', () => {
       const board = (await page.locator('[data-board]').boundingBox())!
       expect(board.width).toBeGreaterThan(w * 0.9)
 
-      // Info sheet: collapsed off the right edge → slides in from the menu → back
-      // out on the ✕.
+      // Info sheet: collapsed off the right edge → slides in from the header's
+
+      // switch → back out on the same switch.
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
       // Straight to the header's page-switch button — no game-menu detour.
-      // "Game info" used to be a MENU ITEM and was folded into this one header
-      // control (GamePage: "consolidating the old Game info menu item and the
-      // sheet's ✕ into one control"), so opening the menu first only laid its
-      // popover BACKDROP over the button this line wants. A race that bit under
-      // full-suite load — waffle-mobile lost it on 2026-08-16.
+      // There is no "Game info" menu item: the header's switch button
+      // (InfoSwitchButton) is the one way between the two mobile pages, so opening
+      // the menu first only laid its popover BACKDROP over the button this line
+      // wants. A race that bit under full-suite load — waffle-mobile lost it on
+      // 2026-08-16.
       await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300)
       const xOpen = (await wrap.boundingBox())!.x

@@ -10,7 +10,7 @@ import { signIn } from './helpers/session'
  * board divergence — the square board is min(--avail-w, --avail-h, 620px), so it
  * fits a phone on its own, and the input is tile taps (no keyboard). We check the
  * layout invariants jsdom can't at a tall AND a short viewport: board fills, page
- * never scrolls, and the info sheet slides in from the menu and back out.
+ * never scrolls, and the info sheet slides in from the header's switch and back out.
  */
 test.describe('stackdown mobile', () => {
   for (const [w, h, tag] of [
@@ -40,16 +40,17 @@ test.describe('stackdown mobile', () => {
       expect(m.sw).toBeLessThanOrEqual(m.iw + 1)
       expect(m.sh).toBeLessThanOrEqual(m.ih + 1)
 
-      // Info sheet: collapsed off the right edge → slides in from the menu → back
-      // out on the ✕.
+      // Info sheet: collapsed off the right edge → slides in from the header's
+
+      // switch → back out on the same switch.
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
       // Straight to the header's page-switch button — no game-menu detour.
-      // "Game info" used to be a MENU ITEM and was folded into this one header
-      // control (GamePage: "consolidating the old Game info menu item and the
-      // sheet's ✕ into one control"), so opening the menu first only laid its
-      // popover BACKDROP over the button this line wants. A race that bit under
-      // full-suite load — waffle-mobile lost it on 2026-08-16.
+      // There is no "Game info" menu item: the header's switch button
+      // (InfoSwitchButton) is the one way between the two mobile pages, so opening
+      // the menu first only laid its popover BACKDROP over the button this line
+      // wants. A race that bit under full-suite load — waffle-mobile lost it on
+      // 2026-08-16.
       await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300)
       const xOpen = (await wrap.boundingBox())!.x

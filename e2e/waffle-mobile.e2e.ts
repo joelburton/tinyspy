@@ -11,7 +11,7 @@ import { signIn } from './helpers/session'
  * fits a phone on its own. Input is tap-two-tiles-to-swap; drag (a desktop mouse
  * affordance) is OFF on touch. We check the invariants jsdom can't at a tall AND a
  * short viewport: board fills, page never scrolls, drag disabled, tap-swap works,
- * and the info sheet slides in from the menu and back out.
+ * and the info sheet slides in from the header's switch and back out.
  */
 test.describe('waffle mobile', () => {
   for (const [w, h, tag] of [
@@ -56,16 +56,17 @@ test.describe('waffle mobile', () => {
       const barBox = (await statusBar.boundingBox())!
       expect(barBox.y + barBox.height).toBeLessThanOrEqual(grid.y + 1)
 
-      // Info sheet: collapsed off the right edge → slides in from the menu → back
-      // out on the ✕.
+      // Info sheet: collapsed off the right edge → slides in from the header's
+
+      // switch → back out on the same switch.
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
       // Straight to the header's page-switch button — no game-menu detour.
-      // "Game info" used to be a MENU ITEM and was folded into this one header
-      // control (GamePage: "consolidating the old Game info menu item and the
-      // sheet's ✕ into one control"), so opening the menu first only laid its
-      // popover BACKDROP over the button this line wants. A race that bit under
-      // full-suite load — waffle-mobile lost it on 2026-08-16.
+      // There is no "Game info" menu item: the header's switch button
+      // (InfoSwitchButton) is the one way between the two mobile pages, so opening
+      // the menu first only laid its popover BACKDROP over the button this line
+      // wants. A race that bit under full-suite load — waffle-mobile lost it on
+      // 2026-08-16.
       await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300)
       const xOpen = (await wrap.boundingBox())!.x
@@ -102,12 +103,11 @@ test.describe('waffle mobile', () => {
     // The swap committed: open the info sheet and confirm the swap log is no
     // longer empty (the readout lives in the off-canvas sheet on mobile).
     //
-    // Straight to the header's page-switch button. This used to open the GAME
-    // MENU first, from when "Game info" was a menu item — it was folded into
-    // this one header control (GamePage: "consolidating the old Game info menu
-    // item and the sheet's ✕ into one control"), so the menu click only ever
-    // laid the popover's BACKDROP over the button the next line wants. It won
-    // that race about one run in three under full-suite load.
+    // Straight to the header's page-switch button. There is no "Game info" menu
+    // item: the switch button (InfoSwitchButton) is the one way between the two
+    // mobile pages, and opening the menu first only ever laid the popover's
+    // BACKDROP over the button the next line wants. It won that race about one
+    // run in three under full-suite load.
     await page.getByRole('button', { name: 'Game info' }).click()
     await expect(page.getByText('No swaps yet.')).toBeHidden({ timeout: 10000 })
 
@@ -149,11 +149,11 @@ test('a long event log scrolls inside its box, not the sheet', async ({ browser 
   await expect(page.locator('[role="grid"]')).toBeVisible({ timeout: 20000 })
 
   // Straight to the header's page-switch button — no game-menu detour.
-  // "Game info" used to be a MENU ITEM and was folded into this one header
-  // control (GamePage: "consolidating the old Game info menu item and the
-  // sheet's ✕ into one control"), so opening the menu first only laid its
-  // popover BACKDROP over the button this line wants. A race that bit under
-  // full-suite load — waffle-mobile lost it on 2026-08-16.
+  // There is no "Game info" menu item: the header's switch button
+  // (InfoSwitchButton) is the one way between the two mobile pages, so opening
+  // the menu first only laid its popover BACKDROP over the button this line
+  // wants. A race that bit under full-suite load — waffle-mobile lost it on
+  // 2026-08-16.
   await page.getByRole('button', { name: 'Game info' }).click()
   await page.waitForTimeout(300)
 

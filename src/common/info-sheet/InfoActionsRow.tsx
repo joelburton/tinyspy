@@ -1,4 +1,4 @@
-// cs-audited-info-sheet
+// cs-blessed-info-sheet
 
 import type { ReactNode } from 'react'
 import { cls } from '../utils/cls'
@@ -57,9 +57,10 @@ type Props = {
  */
 export function InfoActionsRow({ message, children }: Props) {
   return (
-    // The row's own classes are the play-surface scaffold's, because a game can
-    // compose them directly; `.terminalActions` stops the row wrapping, which
-    // is only wanted when there is a line for the buttons to stay beside.
+    // The row's own classes are the column's (`infoCol.module.css`), because a
+    // game can compose them directly on its own markup; `.terminalActions` stops
+    // the row wrapping, which is only wanted when there is a line for the
+    // buttons to stay beside.
     <div className={cls(shared.infoActions, message && shared.terminalActions)}>
       {message && (
         <span className={cls(styles.outcome, styles[`outcome_${message.outcome}`])}>

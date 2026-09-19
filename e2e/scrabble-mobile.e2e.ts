@@ -7,8 +7,8 @@ import { signIn } from './helpers/session'
 /**
  * scrabble's mobile layout (docs/mobile.md → the psychicnum recipe, crosswords'
  * keyboard-required flavor): below the breakpoint the board fills the width and
- * the info column moves into an off-canvas sheet reached from the header's switch
- * menu item. There is NO touch-entry mode — play stays on the keyboard cursor
+ * the info column moves into an off-canvas sheet reached from the header's
+ * switch. There is NO touch-entry mode — play stays on the keyboard cursor
  * (tap a square, type), so this is a layout for keyboard-attached devices.
  *
  * A browser test because the invariants are layout ones jsdom can't see. The
@@ -75,16 +75,16 @@ test.describe('scrabble mobile', () => {
       const submitBox = (await submit.boundingBox())!
       expect(submitBox.y + submitBox.height).toBeLessThanOrEqual(m.ih + 1)
 
-      // Info sheet: closed = off the right edge; opening from the menu slides it
-      // in; the X slides it back off.
+      // Info sheet: closed = off the right edge; the header's switch slides it
+      // in and back off.
       const wrap = page.locator('[data-info-sheet]')
       const xClosed = (await wrap.boundingBox())!.x
       // Straight to the header's page-switch button — no game-menu detour.
-      // "Game info" used to be a MENU ITEM and was folded into this one header
-      // control (GamePage: "consolidating the old Game info menu item and the
-      // sheet's ✕ into one control"), so opening the menu first only laid its
-      // popover BACKDROP over the button this line wants. A race that bit under
-      // full-suite load — waffle-mobile lost it on 2026-08-16.
+      // There is no "Game info" menu item: the header's switch button
+      // (InfoSwitchButton) is the one way between the two mobile pages, so opening
+      // the menu first only laid its popover BACKDROP over the button this line
+      // wants. A race that bit under full-suite load — waffle-mobile lost it on
+      // 2026-08-16.
       await page.getByRole('button', { name: 'Game info' }).click()
       await page.waitForTimeout(300) // the 160ms slide-in
       const xOpen = (await wrap.boundingBox())!.x

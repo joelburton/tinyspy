@@ -1,4 +1,4 @@
-// cs-audited-info-sheet
+// cs-blessed-info-sheet
 
 import { useSyncExternalStore } from 'react'
 
@@ -9,7 +9,7 @@ import { useSyncExternalStore } from 'react'
  * A module slot rather than component state, because the two halves live in
  * different subtrees — the sheet is each game's PlayArea, the switch button is
  * the shell's header — so neither can hold the flag for the other; doc.md →
- * Intro to area has the argument, and why one slot is safe. `GamePage` resets it
+ * Details has the argument, and why one slot is safe. `GamePage` resets it
  * on mount, so a sheet left open in one game never greets you already-open in
  * the next. Desktop ignores the flag entirely: there the info column is always
  * visible and `<InfoSheet>` is a `display: contents` no-op.

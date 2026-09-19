@@ -1,10 +1,10 @@
-/* cs-audited-info-sheet */
+/* cs-blessed-info-sheet */
 
 /* The info column's bordered panel — a small heading with an evidently framed
  * box under it, at the width that says "this box is a thing". Worn by every
  * panel in the column that is a heading over a box: the event log, the word
- * list, bananagrams's hand. Each of them had a private copy of these same rules,
- * which is a match kept by memory rather than by the stylesheet.
+ * list, bananagrams's hand. One sheet rather than a private set of the same rules
+ * in each, so that they match by the stylesheet rather than by memory.
  *
  * Compose with whatever the panel does INSIDE its frame:
  *   <h3 className={cls(infoPanel.heading, …)}>
@@ -72,7 +72,6 @@
   gap: 0.35rem;
   min-width: 0;
 }
-
 
 /* The frame itself: fills the space its parent column gives it (`flex: 1` +
  * `min-height: 0`, so the box shrinks rather than pushing the column taller and
