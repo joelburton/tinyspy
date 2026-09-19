@@ -699,8 +699,14 @@ It also never mentions the spoiler, the per-player budget in compete, or that
 the board is shared in coop but raced separately in compete — which the second
 paragraph half-says and half-contradicts ("everyone races on their own board").
 
-**Not rewritten: this is text, and text is Joel's.** A proposal is in the
-conversation of 2026-09-19.
+**SHIPPED 2026-09-19** on Joel's word, as proposed. Four paragraphs now: the
+board and the budget; the two assists named apart, with the sentence the old
+text got backwards (*a hint gives the dictionary clue — not the word; a spoiler
+hands you the word, though you still have to guess it*); coop versus compete
+including what a racer CAN see of a rival (their found count and their budget,
+never their words); and the ending, where the secrets are not shown unless you
+ask. The modal grew from 420×280 — the smallest of the sixteen by a wide
+margin — to 460×400, which puts it among its siblings.
 
 ## Notes
 
