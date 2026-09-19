@@ -13,9 +13,9 @@ the reading. Owed work lives in `src/psychicnum/todo.md`, not here.
 written and its four decisions are Joel's (2026-09-19): "precedent" names,
 "row order" for the menu, `lib/terminal.ts`, the section order as proposed.
 The two e2e baseline runs are permitted. No stamps written. **Step 0 (the
-baseline), Step 1 (the owed work gathered), Step 2 (the loader / loaded
-split), Step 3 (the actions and the row) and Step 4 (the builder to `lib/`)
-are done; Step 5 is next.**
+baseline), Steps 1-5 are done — the owed work gathered, the loader / loaded
+split, the actions and the row, the builder to `lib/`, the section order; Step
+6 (the comment pass) is next, and is the last of the restructure.**
 
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
@@ -398,7 +398,7 @@ alone deliberately: the other fifteen rename when the shape doc lands, and
 these sentences are corrected there rather than made awkward for one game.
 Listed under Closing.
 
-### Step 5 — the section order (readability 3.2)
+### Step 5 — the section order (readability 3.2) — DONE 2026-09-19
 
 The file is reordered to the readability plan's proposal and each section
 gets the shared header words. For psychicnum that is:
@@ -416,6 +416,30 @@ The reveal's `useSolutionReveal` sits with the derived values (it is state
 the Reveal binding reads), and `seenOpponentFoundRef` moves beside the effect
 that owns it. **Decision 4: this order** (Joel, 2026-09-19); it goes into
 `docs/playarea.md` as the rule at the harvest.
+
+**Shipped, and every code line in the diff is a pure move** — nothing was
+rewritten, which is what makes the step's no-op claim checkable by reading the
+diff. The eight headers now read: Page hooks · Derived · The local slot, and
+its three standing conditions · Narration — what a PEER did, in the header
+slot · The turn-history viewer · The commands, bound · The menu · Render.
+
+**The celebration was the one real defect, not a gap.** Its fourteen lines of
+prose sat ABOVE the turn-flash header while `useCelebration` sat BELOW it, so
+two sections were interleaved and the argument for gating on `playState` alone
+read as an argument about the frame flash. Prose and call are together now,
+under Page hooks.
+
+**Two headers were demoted rather than kept.** "Terminal secrets reveal" is a
+sub-comment inside Derived, since that is where the plan puts the state and a
+section rule there would make nine sections out of eight; "Info-column readouts
+(setup choices + live state)" became a plain sentence inside Render, where its
+two lines sit.
+
+**Two header sentences state the RULE the section follows**, rather than
+listing what is in it — a list would rot the moment something joined. Derived
+says the sections below share these answers and must not disagree; Narration
+says both effects are about somebody else, which is what puts them in the
+global slot rather than the local one.
 
 ### Step 6 — the comment pass (readability 3.5)
 

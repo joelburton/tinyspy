@@ -152,6 +152,12 @@ function PlayArea({
 }: PlayAreaProps) {
   const mode = game.mode
 
+  // ─── Page hooks ────────────────────────────────────────
+  // What this surface IS, before anything this game knows: where Tab may go,
+  // where the info column sits on a phone, and the two things that fire at a
+  // moment rather than describing a state — the win's confetti and the frame's
+  // flash when the turn becomes mine.
+
   // The guess is typed at the window rather than into an input, so nothing here
   // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
   // out to the browser.
@@ -162,7 +168,6 @@ function PlayArea({
   // reached by the header's InfoSwitchButton. Desktop is unchanged.
   const infoSheet = useInfoSheet()
 
-  // ─── Coop-win celebration ──────────────────────────────
   // Confetti at the MOMENT the team finds the third secret (the winning guess
   // flips playState to 'won' on every connected client via realtime, so the
   // whole group celebrates together); opening an already-won game stays quiet
@@ -175,24 +180,18 @@ function PlayArea({
   // per-player data from useGame that's empty until the fetch lands, so an
   // already-won race would flip false→true after load and pop confetti at
   // someone merely reviewing it. Same call connections + wordle + waffle made.
+  const celebration = useCelebration(playState === 'won')
 
-  // ─── The turn arriving (turn-order coop) ───────────────
   // The board frame flashes yellow the moment the move becomes mine. The dim is
   // what says "not yours"; its lifting is a removal, and you are by definition
   // looking elsewhere when it happens. Never fires in a free-for-all game.
   const turnFlash = useTurnStartFlash(isMyTurn)
 
-  const celebration = useCelebration(playState === 'won')
-
-  // The setup recap, built ONCE and handed to both consumers — the info column
-  // renders it as <li>s, the print model prints the same array (docs/pdf.md →
-  // Setup rows). Literally the same object, which beats "both call the same
-  // function": this is the game whose two hand-written lists had drifted into
-  // reporting different facts on paper than on screen.
-  const summaryRows = useMemo(
-    () => setupRows(setup, mode, players),
-    [setup, mode, players],
-  )
+  // ─── Derived ───────────────────────────────────────────
+  // Who I am in this game and what I may still do, read off the props and
+  // `playerBudgets`. Named here because the sections below share them: the
+  // standing conditions, the bindings' `describe`s, and both columns all ask
+  // the same questions, and they must not answer them differently.
 
   // I dropped out of a compete race (a real loss; the others keep racing). Read
   // from the common roster (prop `players`), not from `playerBudgets` — those
@@ -223,9 +222,47 @@ function PlayArea({
   // watcher silently becomes a player.
   const isStillPlaying = !isTerminal && selfBudget > 0 && !myConceded
 
-  // ─── The three standing conditions of the local slot ───
-  // Each is an effect on a primitive edge that shows on true and retracts in
-  // its cleanup — the slot draws whichever ranks highest.
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array (docs/pdf.md →
+  // Setup rows). Literally the same object, which beats "both call the same
+  // function": this is the game whose two hand-written lists had drifted into
+  // reporting different facts on paper than on screen.
+  const summaryRows = useMemo(
+    () => setupRows(setup, mode, players),
+    [setup, mode, players],
+  )
+
+  // The terminal secrets reveal — derived state, because the Reveal binding
+  // below reads it. The three secrets are NOT ringed just because the game ended:
+  // `replay_board` hunts the SAME board and the SAME three secrets again (see
+  // its RPC comment), so auto-revealing on a loss would leave Restart with
+  // nothing to find.
+  //
+  // The ask is LOCAL and reversible (useSolutionReveal): mine alone, so a
+  // teammate can go on eyeing the board for the three while I look, and the
+  // same control un-rings them. The secrets themselves are on every client once
+  // the game is terminal, so this is purely which tiles get rung.
+  //
+  // `impliedBy: iFoundThemAll` is the exception: finding all three IS the win
+  // here, and a found secret's tile is already green — so a solver is looking
+  // at the answer key and the rings add nothing to it. MY three, not the
+  // game's verdict: compete's loser found fewer.
+  const {
+    revealed: secretsShown,
+    toggle: toggleSecrets,
+    impliedBySolve,
+  } = useSolutionReveal({
+    impliedBy: solvedByMe({
+      isCompete: mode === 'compete',
+      playState,
+      mine: iFoundThemAll,
+    }),
+  })
+
+  // ─── The local slot, and its three standing conditions ─
+  // Each condition is an effect on a primitive edge that shows on true and
+  // retracts in its cleanup — the slot draws whichever ranks highest. They are
+  // about ME, which is what puts them here rather than in the header slot.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // Per-status terminal message. Mode-aware so compete-mode winners get the
@@ -282,36 +319,11 @@ function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, waiting, turnHolderName, turnHolderColor])
 
-  // ─── Terminal secrets reveal ─────────────────────────────────────
-  // The three secrets are NOT ringed just because the game ended:
-  // `replay_board` hunts the SAME board and the SAME three secrets again (see
-  // its RPC comment), so auto-revealing on a loss would leave Restart with
-  // nothing to find.
-  //
-  // The ask is LOCAL and reversible (useSolutionReveal): mine alone, so a
-  // teammate can go on eyeing the board for the three while I look, and the
-  // same control un-rings them. The secrets themselves are on every client once
-  // the game is terminal, so this is purely which tiles get rung.
-  //
-  // `impliedBy: iFoundThemAll` is the exception: finding all three IS the win
-  // here, and a found secret's tile is already green — so a solver is looking
-  // at the answer key and the rings add nothing to it. MY three, not the
-  // game's verdict: compete's loser found fewer.
-  const {
-    revealed: secretsShown,
-    toggle: toggleSecrets,
-    impliedBySolve,
-  } = useSolutionReveal({
-    impliedBy: solvedByMe({
-      isCompete: mode === 'compete',
-      playState,
-      mine: iFoundThemAll,
-    }),
-  })
-  // Per-opponent secrets-found count we've already announced (compete tension).
-  const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
+  // ─── Narration — what a PEER did, in the header slot ───
+  // Both of these are about somebody else, which is what puts them in the
+  // global slot rather than the local one (docs/ui.md → the two feedback
+  // slots). Each mode reaches exactly one of them.
 
-  // ─── Coop peer events → the header ─────────────────────
   // A teammate's guess (green correct / red not), or their hint or spoiler, is
   // narrated in the header. My own events are excluded — my guesses get the
   // local slot, my hint shows in my own event log. Compete never reaches here:
@@ -347,13 +359,14 @@ function PlayArea({
     globalFeedbackSlot,
   })
 
-  // ─── Compete opponent progress (group feedback) ────────
   // When an opponent's public found_secrets_count count ticks up, narrate "X guessed a
   // secret word" — the COUNT, never which word (that stays private). It reads as
   // the HIT it is, the same as coop's line for a peer's correct guess: green
   // means "they found a word" in both modes, so the player doesn't maintain a
   // compete-only color-meaning. Watches the players rows; the ref seeds silently
   // on first load so history isn't replayed.
+  // Per-opponent secrets-found count we've already announced (compete tension).
+  const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
   useEffect(function announceOpponentProgress() {
     if (mode !== 'compete') return
     for (const p of playerBudgets) {
@@ -369,7 +382,7 @@ function PlayArea({
     }
   }, [playerBudgets, mode, players, session.user.id, globalFeedbackSlot])
 
-  // ─── Turn-history viewer ───────────────────────────────
+  // ─── The turn-history viewer ───────────────────────────
   // Click an event-log #N to replay that turn's board (the tiles decided up to that
   // turn, with that turn's guessed tile ringed history-blue). Keyed by log
   // position (guesses have no per-turn ordinal). Exit is intrinsic to the hook (a
@@ -594,6 +607,10 @@ function PlayArea({
   }, [menu, actConcede, actEndGame, actHint, actSpoiler, actReveal,
       actRestart, actNewGame, actPrintBoard])
 
+  // ─── Render ────────────────────────────────────────────
+  // Everything below is derived fresh each render and read only by the JSX —
+  // nothing here is a hook, which is why it may sit after the menu effect.
+
   // Concede lives on the common roster (ctx `players` = GamePlayer[]), NOT on
   // psychicnum.players (the budget rows). `concededIds` marks the players who've
   // bowed out, for the opponent strip's "out" cell.
@@ -655,7 +672,7 @@ function PlayArea({
   ).size
   const found = mode === 'coop' ? teamFound : selfSecretsFound
 
-  // ─── Info-column readouts (setup choices + live state) ──
+  // The info column's numbers.
   const totalGuesses = setup.guesses
   const guessesUsed = totalGuesses - selfBudget
 
