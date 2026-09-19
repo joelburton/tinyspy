@@ -1,4 +1,4 @@
-// cs-met-pdf
+// cs-audited-pdf
 
 /**
  * Tests for the shared word-list PDF body (boggle, spellingbee, wordwheel).

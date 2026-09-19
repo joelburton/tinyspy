@@ -1,4 +1,4 @@
-// cs-met-pdf
+// cs-audited-pdf
 
 /**
  * Tests for the shared event-log PDF body (scrabble, psychicnum). twoColGeom is

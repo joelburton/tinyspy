@@ -1,4 +1,4 @@
-// cs-met-pdf
+// cs-audited-pdf
 
 /**
  * Tests for the shared print frame (docs/pdf.md) — the à-la-carte primitives EVERY

@@ -1,4 +1,4 @@
-// cs-met-pdf
+// cs-audited-pdf
 
 import type { jsPDF } from 'jspdf'
 import type { TileColor } from './tileColor'
