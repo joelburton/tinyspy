@@ -85,7 +85,7 @@ export function PlayArea({
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
-  // (docs/pdf.md → Setup rows).
+  // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
     () => setupRows(setup as unknown as WordleSetup, game?.mode ?? 'coop', members),
     [setup, game, members],
@@ -389,7 +389,7 @@ export function PlayArea({
   // local state flip. No RPC, so no failure to classify, and no `async` — the
   // button and the menu item both call it directly.
 
-  // Print the board — a snapshot at CLICK time (docs/pdf.md). RLS already scopes
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). RLS already scopes
   // `guesses` to what the viewer may see (own only in compete until terminal),
   // and the model refuses to print the target before terminal, so neither the
   // boards nor the answer can leak onto paper early.

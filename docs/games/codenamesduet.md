@@ -647,7 +647,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 ## Printing the board (PDF)
 
 `src/codenamesduet/pdf/` — a **"Print board (PDF)"** GamePage menu item, the
-eleventh and last game to print (docs/pdf.md). Event-log family: the 5×5 board in
+eleventh and last game to print (common/pdf/doc.md). Event-log family: the 5×5 board in
 the left column, the clue log beneath.
 
 **It exists to be thought about away from a screen**, which drives the one place

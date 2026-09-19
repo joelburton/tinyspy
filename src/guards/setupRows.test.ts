@@ -6,7 +6,7 @@ import { ROSTER_KEY, type SetupRow } from '@/common/setup-form/setupRows'
 import type { Member } from '@/common/members/member'
 
 /**
- * The roster-wide guard on setup recaps (docs/pdf.md → Setup rows).
+ * The roster-wide guard on setup recaps (common/setup-form/doc.md → Setup rows).
  *
  * Each game exports `setupRows()` from `<game>/lib/setupSummary.ts`, and BOTH
  * its info column and its PDF render that one array. Before it, the two lists

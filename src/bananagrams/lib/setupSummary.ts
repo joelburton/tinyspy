@@ -7,7 +7,7 @@ import { WORD_CHECK_OPTIONS, type BananagramsSetup } from './setup'
 
 /**
  * bananagrams's setup recap — ONE array, rendered by the info column and the
- * PDF alike (docs/pdf.md → Setup rows). Order and words mirror
+ * PDF alike (common/setup-form/doc.md → Setup rows). Order and words mirror
  * `components/SetupForm.tsx`: the recap is the dialog read back.
  *
  * The disclosure lives in `components/PlayArea.tsx` rather than an `InfoCol`,

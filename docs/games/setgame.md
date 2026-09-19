@@ -570,10 +570,37 @@ nothing is live on paper, so that reason doesn't apply.
 
 The printer draws its own two-column flow rather than composing the shared
 `drawEventLog`, whose row is `{ seq, who, text }`. The column *geometry* is still
-shared (`twoColGeom`), so the page lines up with every other printout. How the
-cards themselves survive the trip — the clipped hatch, the card size, and two
-geometry mistakes worth not repeating — is in
-[pdf.md → Shading on paper](../pdf.md#shading-on-paper--setgames-hatch-and-why-the-shortcuts-failed).
+shared (`twoColGeom`), so the page lines up with every other printout.
+
+**Shading on paper — the hatch, and why the shortcuts failed.** setgame is the
+one printer that has to reproduce a texture. On screen a striped card is an SVG
+`<pattern>` of horizontal lines inside the symbol; on paper it has to be the
+same third thing, distinct from solid and from open, because shading is one of
+the game's four attributes and losing it collapses three of its nine looks into
+one. Two cheaper approximations were tried first and both failed *when looked
+at*:
+
+1. **A light tint** instead of stripes. Legible in a diff, wrong on paper: at
+   62% toward white it reads as a *muted solid*, so the striped card looks like
+   a faded version of the solid one rather than a different thing.
+2. **Real lines, but too fine.** At the first card size (15 × 17pt) a symbol
+   fits two or three hatch lines, which is once again a muted solid.
+
+What ships is **real hatching, clipped to the symbol** — jsPDF has `clip()` /
+`discardPath()`: build the path with a `null` style, clip, rule horizontal
+lines across the bounding box, restore, then stroke the outline back on so the
+edge stays crisp. The card size and the hatch pitch were chosen **together** by
+rendering the full 3 shapes × 3 shadings × {1, 3} pips grid at several sizes
+and looking at it: a symbol about 16pt tall with a 3pt pitch. The bar is arm's
+length — a printout is looked at, not zoomed. Only the card's WIDTH is set in
+the printer; its height and its symbols' height are derived from
+`lib/shapes.ts`, so a reshape on screen reaches paper without anyone having to
+remember it. Cards print in the palette the game was played with; the
+colorblind one's L\* 46 / 61 / 70 is close enough to the print doc's three-shade
+ramp to survive a mono printer. The squiggle is a mechanical rewrite of the
+board's own path, and the oval is drawn narrower than its slot — the two
+lessons that generalize are in
+[common/pdf/doc.md → Details](../../src/common/pdf/doc.md#details).
 
 
 ## 8. RPCs

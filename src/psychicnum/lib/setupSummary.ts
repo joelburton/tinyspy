@@ -12,7 +12,7 @@ import type { PsychicnumSetup } from './setup'
 
 /**
  * psychicnum's setup recap — ONE array, rendered by the info column and the PDF
- * alike (docs/pdf.md → Setup rows).
+ * alike (common/setup-form/doc.md → Setup rows).
  *
  * Order mirrors `components/SetupForm.tsx`: roster (the dialog's own player
  * picker, above the per-game body), co-op pacing, guesses, words on board,

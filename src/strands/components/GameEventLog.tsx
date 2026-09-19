@@ -36,7 +36,7 @@ type Props = {
  *
  * Two jobs. It makes a row scannable — an eye running down the log sorts finds
  * from misses without reading a word — and it is the NON-COLOR encoding of the
- * same fact, which the PDF printer will need: docs/pdf.md prints in three
+ * same fact, which the PDF printer will need: common/pdf/doc.md prints in three
  * shades of gray, where purple and gold are the same ink.
  *
  * Ranked on purpose (trophy > star > check), so the accepted marks read as a

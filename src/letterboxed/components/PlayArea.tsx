@@ -114,7 +114,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array. Literally the
   // same object, which is a stronger guarantee than "both call the same
-  // function" (docs/pdf.md → Setup rows). Empty until the game row lands; the
+  // function" (common/setup-form/doc.md → Setup rows). Empty until the game row lands; the
   // print effect below is guarded on `game` anyway, and the info column doesn't
   // render until after the loading return.
   const summaryRows = useMemo(
@@ -520,7 +520,7 @@ export function PlayArea(ctx: GamePageCtx) {
     run: toggleSolution,
   })
 
-  // Print the board — a snapshot at CLICK time (docs/pdf.md). What it may SHOW
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). What it may SHOW
   // is decided in pdf/model.ts — notably that the solution prints only once the
   // players have revealed it on screen, which has to hold on paper too.
   const actPrintBoard = useBoundAction('act-print-board', {

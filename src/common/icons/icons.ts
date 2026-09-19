@@ -143,7 +143,7 @@ export {
   // word game's log can reuse the same four.
   //
   // They exist because color alone can't carry this everywhere it needs to go:
-  // the log is printed to PDF in three shades of gray (docs/pdf.md), where a
+  // the log is printed to PDF in three shades of gray (common/pdf/doc.md), where a
   // purple word and a gold word are the same ink. A glyph survives that, and it
   // gives the row a fixed left column so the words still line up.
   //

@@ -611,7 +611,7 @@ see the table as it stood when that word was tried.
 ## 7c. Printing the log (PDF)
 
 `src/wordiply/pdf/` — a **"Print board (PDF)"** GamePage menu item, the eighth game
-to print (docs/pdf.md). wordiply is the **event-log body family**, and the first
+to print (common/pdf/doc.md). wordiply is the **event-log body family**, and the first
 printer with **no board**: its five guess lines carry no state of their own, so the
 page *is* the log and `drawEventLog` starts straight under the header.
 

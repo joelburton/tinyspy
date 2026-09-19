@@ -168,7 +168,7 @@ Two OPTIONAL setup fields let a player hand-pick the board instead of getting a 
 - **The ≥30 gate relaxes to ≥1.** The random builder targets ≥30 required words for a rich puzzle; a custom board is whatever the player's letters yield, so `create_game` requires only **≥1 required word** (else the rank ladder is degenerate — Genius at 0 points). If the letters yield zero required words *at the chosen `setup.required` band*, both the edge function (400) and `create_game` (P0001) reject with a "pick different letters or a lower required band" message. The random path keeps the full ≥30 gate — the relaxation keys off `setup.custom_letters` being present.
 - **One-off, not a new default.** `create_game` strips `custom_letters` + `custom_center` from the setup it saves as the club's `clubs_gametypes.default_setup`, so the NEXT game's dialog opens with the custom fields blank (a random board) rather than silently re-pinning the hand-picked letters.
 - **No overlap cap.** The previous-board overlap cap is a diversity heuristic for random boards; a custom board is an explicit choice, so it's skipped.
-- **The letters are always readable back.** The setup recap's `Letters` row prints this board's center + others (alphabetized, so one board always reads one way — matching the game's own title) as `A-CHIORT` — the shape these two fields take back — **for every board, random or hand-picked**, on screen and on the PDF alike (`lib/setupSummary.ts`; the board-identity exception in [pdf.md → Setup rows](../pdf.md#setup-rows)). That's what makes "here, try these letters" a copy rather than a transcription, and it's the same row MooseWheel prints (shared `centerLettersRow`) and MothCubes prints for its grid.
+- **The letters are always readable back.** The setup recap's `Letters` row prints this board's center + others (alphabetized, so one board always reads one way — matching the game's own title) as `A-CHIORT` — the shape these two fields take back — **for every board, random or hand-picked**, on screen and on the PDF alike (`lib/setupSummary.ts`; the board-identity exception in [setup-form/doc.md → Setup rows](../../src/common/setup-form/doc.md#setup-rows)). That's what makes "here, try these letters" a copy rather than a transcription, and it's the same row MooseWheel prints (shared `centerLettersRow`) and MothCubes prints for its grid.
 
 ### Play states
 
@@ -661,7 +661,7 @@ spellingbee joins the printable games — a **"Print board (PDF)"** GamePage men
 hands you a paper record of the puzzle. It shows the 7-hex honeycomb (the flower) above the
 found-words list (pangrams bold, bonus finds dotted; missed required words fold in at
 terminal) — `src/spellingbee/pdf/printSpellingbeePdf.ts`. The shared clean-printable design
-language + helpers live in [docs/pdf.md](../pdf.md).
+language + helpers live in [common/pdf/doc.md](../../src/common/pdf/doc.md).
 
 ## Deferred
 

@@ -9,7 +9,7 @@ const SEQ_X = 3
 const WHO_X = 19
 const MOVE_X = 66
 const ROW_H = 15
-const RULE_W = 0.4 // the thin between-rows divider (no zebra shading — docs/pdf.md)
+const RULE_W = 0.4 // the thin between-rows divider (no zebra shading — doc.md)
 
 /** One turn: its number, who took it, and a one-line description. */
 export type TurnRow = { seq: number; who: string; text: string }

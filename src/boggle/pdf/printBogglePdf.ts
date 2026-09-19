@@ -6,7 +6,7 @@ import { drawWordListBody } from '@/common/pdf/wordListBody'
 import type { jsPDF } from 'jspdf'
 
 /**
- * boggle's print-to-PDF, composed from the shared `common/pdf` helpers (docs/pdf.md):
+ * boggle's print-to-PDF, composed from the shared `common/pdf` helpers (common/pdf/doc.md):
  * the frame (header / Setup / save) + `wordColumns` (the found-words list). All that's
  * boggle-specific is the board — a FIXED-size tile grid (a 6×6 prints bigger than a
  * 4×4; it isn't scaled to a column) with the Setup to its right, and the word list

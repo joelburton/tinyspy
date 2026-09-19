@@ -28,7 +28,7 @@ import type { PrintTrack, PrintTurn, StrandsPrintModel } from './model'
  * ─── Printing a board whose meaning is COLOR ──────────────
  * On screen a found word is a purple disc-and-line and the spangram is gold. On
  * a mono printer those are one gray, so the encoding moves to **shape**
- * (docs/pdf.md — color only for meaning, and never as the only carrier):
+ * (common/pdf/doc.md — color only for meaning, and never as the only carrier):
  *
  *   found theme word   a solid gray line through the letters
  *   the spangram       the same line, drawn HEAVIER — one word, one emphasis

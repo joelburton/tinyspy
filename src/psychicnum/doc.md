@@ -309,7 +309,7 @@ play_state, pause, chat — and unmounts this whole surface on pause.
 
 Off the tree: `pdf/` builds the printable board from the live state at click
 time, so it works mid-game as well as at the end; the shared printable design
-language is [docs/pdf.md](../../docs/pdf.md).
+language is [common/pdf/doc.md](../common/pdf/doc.md).
 
 ## Tests
 

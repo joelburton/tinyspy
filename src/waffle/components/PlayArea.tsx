@@ -101,7 +101,7 @@ export function PlayArea({
   const { game, players: playerStates, swaps, loading, failure } = useGame(gameId)
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
-  // (docs/pdf.md → Setup rows).
+  // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
     () => setupRows(setup as unknown as WaffleSetup, game?.mode ?? 'coop', players, game?.par_swaps ?? 0),
     [setup, game, players],
@@ -393,7 +393,7 @@ export function PlayArea({
   // No handler of its own: showing the answer is `toggleAnswer`, a local state
   // flip that swaps the DISPLAYED board. No RPC, so no failure to classify.
 
-  // Print the board — a snapshot at CLICK time (docs/pdf.md), so the menu needn't
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md), so the menu needn't
   // rebuild as the board moves. The server already withholds a compete
   // opponent's board AND their swaps until the game ends, so what the viewer may
   // see is what prints; the model refuses the solution before terminal on top of

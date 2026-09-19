@@ -154,7 +154,7 @@ That dual placement is the rule, not redundancy to trim.
 
 - **The rows come from `<game>/lib/setupSummary.ts`** — the same array the game's
   PDF prints, so the panel and the paper can't drift apart. See
-  [pdf.md → Setup rows](pdf.md#setup-rows) for the rules that shape it (the recap is
+  [setup-form/doc.md → Setup rows](../src/common/setup-form/doc.md#setup-rows) for the rules that shape it (the recap is
   the setup dialog read back; the roster leads; values are plain strings).
 - **Setup is the one allowed growth-during-play.** It's a closable `<details>`,
   so opening it grows the column but it *reclaims* the space — the rationale

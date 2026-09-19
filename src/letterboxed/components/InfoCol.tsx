@@ -233,7 +233,7 @@ export function InfoCol({
             disclosure. Closed by default so it doesn't crowd the state above.
             Rendered from the shared rows rather than hand-written <li>s: the
             PDF prints this exact array, and when the two were written
-            separately they drifted (docs/pdf.md → Setup rows). */}
+            separately they drifted (common/setup-form/doc.md → Setup rows). */}
         <SetupDisclosure>
           {setupRows.map((r) => (
             <li key={r.key}>

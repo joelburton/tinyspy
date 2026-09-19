@@ -24,7 +24,7 @@ function boundsValue(min: number | undefined, max: number | undefined): string |
 
 /**
  * boggle's setup recap — ONE array, rendered by the info column and the PDF
- * alike (docs/pdf.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
+ * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  *
  * The labels used to differ between the two consumers ("Board" vs "Dice",
  * "Min word length" vs "Min length", "Dictionary (required)" vs "Required

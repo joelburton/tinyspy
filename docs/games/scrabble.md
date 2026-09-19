@@ -811,7 +811,7 @@ scrabble joins the printable games — a **"Print board (PDF)"** GamePage menu i
 hands you a paper record of the game. It shows the 15×15 board (premium squares in faint
 pastels), the rack, and the move log flowing newspaper-style down two columns
 (`src/scrabble/pdf/printScrabblePdf.ts`). The shared clean-printable design language +
-helpers live in [docs/pdf.md](../pdf.md).
+helpers live in [common/pdf/doc.md](../../src/common/pdf/doc.md).
 
 ---
 

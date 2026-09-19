@@ -207,7 +207,7 @@ function PlayArea({
   const isStillPlaying = !isTerminal && selfBudget > 0 && !myConceded
 
   // The setup recap, built ONCE and handed to both consumers — the info column
-  // renders it as <li>s, the print model prints the same array (docs/pdf.md →
+  // renders it as <li>s, the print model prints the same array (common/setup-form/doc.md →
   // Setup rows). Literally the same object, which beats "both call the same
   // function": this is the game whose two hand-written lists had drifted into
   // reporting different facts on paper than on screen.

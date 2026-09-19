@@ -549,14 +549,14 @@ nice-to-have, not shipped.
 
 ## Printing the board (PDF)
 
-`src/waffle/pdf/` — a **"Print board (PDF)"** GamePage menu item (docs/pdf.md).
+`src/waffle/pdf/` — a **"Print board (PDF)"** GamePage menu item (common/pdf/doc.md).
 The **track family**: one page column per BOARD, its 5×5 grid, then that board's swaps.
 
 The tiles use the shared 4-state encoding — **border and fill weight, not
 color**. That's what makes waffle printable at all: its feedback is entirely
 green/yellow/gray, which a mono printer flattens to a single gray, and waffle
 without its feedback is a grid of unrelated letters. See
-[`pdf.md` → Backgrounds are white](../pdf.md#backgrounds-are-white) for the rule
+[`common/pdf/doc.md` → Backgrounds are white](../../src/common/pdf/doc.md#backgrounds-are-white) for the rule
 this is the agreed exception to, and why grays rather than hues keep it honest.
 
 **Coop is one track** (a single shared board). **Compete is one per player at

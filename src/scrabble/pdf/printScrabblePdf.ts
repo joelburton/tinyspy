@@ -14,7 +14,7 @@ import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader 
 import { drawEventLog, twoColGeom, type TurnRow } from '@/common/pdf/eventLog'
 
 /**
- * scrabble's print-to-PDF, composed from the shared `common/pdf` helpers (docs/pdf.md):
+ * scrabble's print-to-PDF, composed from the shared `common/pdf` helpers (common/pdf/doc.md):
  * the frame (header / save) + `eventLog` (the newspaper 2-column move flow). All that's
  * scrabble-specific is the board + rack. It reuses the pure board logic (premiumAt /
  * LETTER_VALUES / …) but draws its own print-tuned board rather than the on-screen
@@ -38,7 +38,7 @@ export type ScrabblePrintModel = PrintHeader & {
 }
 
 /** Premium square → its label + print fill (RGB). Light pastel tones — the meaningful
- *  board-color exception in docs/pdf.md, kept faint so the ink reads clean. */
+ *  board-color exception in common/pdf/doc.md, kept faint so the ink reads clean. */
 const PREMIUM_STYLE: Record<PremiumType, { label: string; fill: [number, number, number] }> = {
   TW: { label: 'TW', fill: [240, 188, 180] }, // triple word — light red
   DW: { label: 'DW', fill: [249, 219, 216] }, // double word — light pink
@@ -54,7 +54,7 @@ const TILE_FILL: [number, number, number] = [250, 247, 239]
 const LETTER_RATIO = 0.58
 const VALUE_RATIO = 0.36
 // Board line weights. (scrabble's premium-square + tile fills are the agreed
-// board-color exception in docs/pdf.md — they carry board meaning, not decoration.)
+// board-color exception in common/pdf/doc.md — they carry board meaning, not decoration.)
 const BORDER_W = 0.6 // empty-cell grid weight (a "normal" line — matches psychicnum's board)
 const TILE_BORDER_W = 1 // placed tiles get a thicker frame so they stand out from empty cells
 

@@ -169,7 +169,7 @@ both a fitting word *and* an over-demanding word come back).
   this wheel" is a copy rather than a transcription. Sorting is lossless — the
   wheel is a center plus a multiset, so a duplicate just sorts beside its twin. Shared with freebee as `centerLettersRow`; the
   board-identity exception is documented in
-  [pdf.md → Setup rows](../pdf.md#setup-rows).
+  [setup-form/doc.md → Setup rows](../../src/common/setup-form/doc.md#setup-rows).
 - **Board constraint — "unique letters only"** (`setup.unique_letters`, a
   "Board constraints" disclosure in `SetupForm`): when on, the edge function
   samples only seeds whose nine letters are all distinct (`new Set(letters).size
@@ -520,7 +520,7 @@ entry's `is_pangram` was already the authority everywhere.)
 + word-list columns) with a wordwheel-specific board callback that draws the nine-circle
 wheel from the same `lib/wheel.ts` geometry. On the grayscale printable page the center
 tile is distinguished the two ways that survive grayscale: it's larger and has a thicker
-border. See [docs/pdf.md](../pdf.md).
+border. See [common/pdf/doc.md](../../src/common/pdf/doc.md).
 
 ## File locations
 

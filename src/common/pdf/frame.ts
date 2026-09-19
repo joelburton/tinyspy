@@ -11,7 +11,7 @@ export type { SetupRow }
 // families (see doc.md).
 
 // ── The print shade system. 0 = black … 255 = white (jsPDF's single-arg gray).
-//    Everything not EXPLICITLY colored is one of these three. See docs/pdf.md. ──
+//    Everything not EXPLICITLY colored is one of these three. See doc.md → Shades. ──
 export const BLACK = 0 // all text / data / headings — the default
 export const DARK_GRAY = 70 // real-but-secondary marks — board grids + column-header labels
 export const MEDIUM_GRAY = 180 // minor lines only — turn-row dividers + a table's header rule
@@ -56,7 +56,7 @@ export function newPrintDoc(margin = 28): PrintDoc {
 
 /** Draw the shared header: `Brand: title` (bold, truncated to clear the date), the
  *  date top-right, and the summary line below. Small ≠ unimportant — the date is
- *  black, not gray (docs/pdf.md). */
+ *  black, not gray (doc.md). */
 export function drawHeader(pd: PrintDoc, m: PrintHeader): void {
   const { doc, pageW, margin } = pd
   doc.setFont('helvetica', 'normal').setFontSize(9).setTextColor(BLACK)

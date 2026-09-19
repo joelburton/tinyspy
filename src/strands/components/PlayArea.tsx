@@ -223,7 +223,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
-  // (docs/pdf.md → Setup rows).
+  // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
     () => setupRows(strandsSetup, game?.mode ?? 'coop', players),
     [strandsSetup, game, players],
@@ -669,7 +669,7 @@ export function PlayArea(ctx: GamePageCtx) {
     run: startNewGame,
   })
 
-  // Print the board — a snapshot at CLICK time (docs/pdf.md). Nothing has to be
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). Nothing has to be
   // re-shielded here: `events` is already whatever RLS let through (own only, in
   // compete, until terminal) and `game.solution` is null until the reveal, so
   // the model simply has nothing early to leak.

@@ -502,8 +502,8 @@ board), swapped in for spellingbee's hex flower.
   back-to-club button at terminal), a **help line**,
   the **setup disclosure**, and the **`WordList`** filling the rest.
   - **The `Letters` row** leads the setup disclosure, under the roster, and the PDF
-    prints the identical row (one `setupRows()` feeds both — [pdf.md → Setup
-    rows](../pdf.md#setup-rows)). It names the board this game was played on —
+    prints the identical row (one `setupRows()` feeds both — [setup-form/doc.md → Setup
+    rows](../../src/common/setup-form/doc.md#setup-rows)). It names the board this game was played on —
     `Letters: ABCD EFGH IJKL MNOP` — **rolled or typed alike**, in the written form
     the setup dialog's custom-board field takes back
     ([§4 → Custom board](#custom-board-player-typed-tiles)). Printing it for a
@@ -581,7 +581,7 @@ boggle joins the printable games — a **"Print board (PDF)"** GamePage menu ite
 you a paper record of the game: the fixed-size letter grid (a 6×6 prints bigger than a 4×4)
 with the Setup to its right, above the found-words list in columns (missed required words
 fold in at terminal) — `src/boggle/pdf/printBogglePdf.ts`. The shared clean-printable design
-language + helpers live in [docs/pdf.md](../pdf.md).
+language + helpers live in [common/pdf/doc.md](../../src/common/pdf/doc.md).
 
 ---
 

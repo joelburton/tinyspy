@@ -7,7 +7,7 @@ import type { WaffleSetup } from './setup'
 
 /**
  * waffle's setup recap — ONE array, rendered by the info column and the PDF
- * alike (docs/pdf.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
+ * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  *
  * Swaps are quoted against PAR the way the form asks for them — a bare cap says
  * nothing on its own, while "par 10 + 3 extra" says exactly how much slack there

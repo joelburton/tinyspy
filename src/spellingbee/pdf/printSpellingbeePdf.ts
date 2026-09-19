@@ -7,7 +7,7 @@ import { drawWordListBody } from '@/common/pdf/wordListBody'
 import { BOX_H, BOX_W, HEX_H, HEX_POSITIONS, HEX_SHRINK, HEX_VERTS, HEX_W } from '../lib/honeycomb'
 
 /**
- * spellingbee's print-to-PDF, composed from the shared `common/pdf` helpers (docs/pdf.md):
+ * spellingbee's print-to-PDF, composed from the shared `common/pdf` helpers (common/pdf/doc.md):
  * the frame (header / Setup / save) + `wordColumns` (the found-words list). It's boggle's
  * shape with a different board: all that's spellingbee-specific is the **honeycomb** — the
  * 7-hex flower drawn from the same `lib/honeycomb.ts` geometry the on-screen board uses.

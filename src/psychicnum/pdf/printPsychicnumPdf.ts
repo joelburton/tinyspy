@@ -17,7 +17,7 @@ import type { PrintTile, PrintTrack, PsychicnumPrintModel } from './model'
 
 /**
  * psychicnum's print-to-PDF, composed from the shared `common/pdf` helpers
- * (docs/pdf.md). The model (see ./model.ts) decides whose guesses belong
+ * (common/pdf/doc.md). The model (see ./model.ts) decides whose guesses belong
  * where; this file only draws.
  *
  * Two layouts, one per mode:

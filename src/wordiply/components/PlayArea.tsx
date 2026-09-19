@@ -95,7 +95,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
-  // (docs/pdf.md → Setup rows).
+  // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
     () => setupRows(wordiplySetup, game?.mode ?? 'coop', players),
     [wordiplySetup, game, players],
@@ -391,7 +391,7 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   // ─── GamePage menu ─────────────────────────────────────
-  // Print the board — a snapshot at CLICK time (docs/pdf.md). What it may show is
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). What it may show is
   // decided in pdf/model.ts — notably wordiply's terminal-only reveal, which has
   // to hold on paper too. RLS already scopes `guesses` to what I may see, so a
   // mid-game compete print carries only my own rows without needing a filter.

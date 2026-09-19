@@ -115,7 +115,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
-  // (docs/pdf.md → Setup rows).
+  // (common/setup-form/doc.md → Setup rows).
   // The board itself rides along as the recap's `Letters` row — the raw face
   // string, which `setupRows` writes out the way the setup dialog takes it back.
   const summaryRows = useMemo(
@@ -291,7 +291,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // already scoped `foundWords` to what I may see — coop = the team's, compete =
   // my own) and handed to the jsPDF renderer. Built inside `run`, so it is a
   // snapshot at CLICK time and the menu needn't rebuild as words are found.
-  // Works mid-game or at the end. See docs/pdf.md.
+  // Works mid-game or at the end. See common/pdf/doc.md.
   const actPrintBoard = useBoundAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {

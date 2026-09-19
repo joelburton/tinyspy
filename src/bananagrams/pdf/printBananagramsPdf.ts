@@ -5,7 +5,7 @@ import { BLACK, DARK_GRAY, drawHeader, drawSetup, fit, newPrintDoc, savePrint, t
 import { drawInTracks, type Track } from '@/common/pdf/columns'
 
 /**
- * bananagrams's print-to-PDF — the **track family** (docs/pdf.md; see
+ * bananagrams's print-to-PDF — the **track family** (common/pdf/doc.md; see
  * `common/pdf/columns.ts`): one column per player, each with that player's
  * board and the words on it.
  *
@@ -83,7 +83,7 @@ function drawTrack(doc: jsPDF, t: BananagramsTrack, track: Track): number {
  * Bananagrams crossword is a ragged shape floating in space, so without a frame
  * its edge is wherever the last tile happens to be and the eye can't tell where
  * one player's grid stops and the next begins. It's a structural line, which is
- * what `pdf.md` reserves rules for.
+ * what `common/pdf/doc.md` reserves rules for.
  *
  * Tile size is driven by the column: as large as fits the width, capped so a
  * very tall board still fits down the page rather than running off it.

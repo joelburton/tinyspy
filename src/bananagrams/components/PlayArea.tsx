@@ -85,7 +85,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const peerBoards = usePeerBoards(ctx.gameId, ctx.isTerminal)
   // The setup recap, built ONCE and handed to both consumers — the disclosure
   // below renders it as <li>s, the print model prints the same array object
-  // (docs/pdf.md → Setup rows). bananagrams keeps its disclosure in this file
+  // (common/setup-form/doc.md → Setup rows). bananagrams keeps its disclosure in this file
   // rather than an InfoCol, being the v3 layout exception.
   const summaryRows = useMemo(
     () => setupRows(ctx.setup as unknown as BananagramsSetup, 'compete', ctx.players),
@@ -330,7 +330,7 @@ export function PlayArea(ctx: GamePageCtx) {
   })
 
   // ─── "Print board (PDF)" ────────────────────────────────────────────────
-  // A COLUMN PER PLAYER (docs/pdf.md → track family), built at CLICK time. The
+  // A COLUMN PER PLAYER (common/pdf/doc.md → Tracks), built at CLICK time. The
   // caller's own board is read from `boardRef` then (not baked in here) so it is
   // always current; the others come from `peerBoards`, which only has rows once
   // the game is terminal — `player_boards` is owner-only while the race is on,

@@ -609,10 +609,10 @@ trip, tiles bounced back, pill) without depending on which letters are on top.
 ## 6. Printing the board (PDF)
 
 `src/stackdown/pdf/` — a **"Print board (PDF)"** GamePage menu item, the tenth
-game to print (docs/pdf.md). Event-log family: the stack in the left column, the
+game to print (common/pdf/doc.md). Event-log family: the stack in the left column, the
 word log beneath.
 
-**The stack prints almost for free**, because `pdf.md`'s "every surface is white"
+**The stack prints almost for free**, because `common/pdf/doc.md`'s "every surface is white"
 rule is exactly what a mahjong board needs. Occlusion is what makes the stack
 legible — a raised tile hides what's under it — and a white-filled tile painted
 over a lower one occludes it the same way the screen does. So the renderer just
@@ -623,7 +623,7 @@ quadrant on paper as on screen — sharing that function is what stops the two
 drifting. The screen's warm depth ramp is deliberately NOT carried over: the
 overlap already says what's on top, so a shade would be decoration.
 
-**One column per board** ([pdf.md → body family 3](../pdf.md)): coop prints the
+**One column per board** ([common/pdf/doc.md → Tracks](../../src/common/pdf/doc.md#the-body-families)): coop prints the
 single shared stack as "Team" with a log that names who played each word;
 **compete prints a board per player**, each with its own words and its own
 "n/6 cleared" line, three across a page — one board under a merged log would
@@ -636,7 +636,7 @@ cleared nothing" rather than "not visible yet").
 Which tiles print follows the screen exactly, and by construction rather than by
 hand: `lib/board.ts` exports `offBoardIds`, and the screen, the printout and each
 per-player track all call it, so the surfaces cannot drift apart — the same
-reason the [setup rows](../pdf.md#setup-rows) are shared. While playing, tiles spent on accepted words (and the
+reason the [setup rows](../../src/common/setup-form/doc.md#setup-rows) are shared. While playing, tiles spent on accepted words (and the
 ones picked into the word being built) are hidden; **at terminal the board comes
 back only if it was cleared** — see the `Board` note above for why an uncleared
 board must stay as it ended.

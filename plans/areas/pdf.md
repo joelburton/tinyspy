@@ -28,8 +28,14 @@ dissolved onto their exports or into `//`, the rationale moved to the new
 `doc.md` (lede, `## Intro to area`, `## Details`; `common/pdf` off
 `INTROS_OWED`), the caller claims replaced by conditions, the three brands
 replaced by codenames. `tsc -b` clean, lint clean, 44 of 44 green (the folder
-plus the four guards). Open: F-1 to F-4 (the collapse, waiting on its
-decisions), F-9 to F-14 (decisions), F-15 (a bug, waiting), F-16 and F-17.
+plus the four guards). Committed (`c30d52b7`).
+
+**The collapse is DONE (2026-09-19, uncommitted):** F-1 to F-3 shipped on
+Joel's three rulings — `docs/pdf.md` deleted, the folder's `doc.md` carries
+the design language, the Setup rows went to `setup-form/doc.md`, the setgame
+hatch story to `docs/games/setgame.md`, seventy-odd cites repointed. Open:
+F-4 (the gloss, carried verbatim), F-9 to F-14 (decisions), F-15 (a bug,
+waiting), F-16 and F-17.
 
 ## The roster
 
@@ -84,7 +90,28 @@ families are genuinely different shapes. What has drifted is every sentence
 ABOUT the callers — the folder was written for five games and now serves
 fifteen, and its prose still names the five.
 
-### F-pdf-1 · `doc-collapse` · `docs/pdf.md` collapses into `doc.md`, and the doc's own structure is broken
+### SHIPPED · F-pdf-1 · `doc-collapse` · `docs/pdf.md` collapses into `doc.md`, and the doc's own structure is broken
+
+**Ruled and shipped 2026-09-19** (Joel: *"1. ok, but very brief: any details
+will be in the games' docstrings or doc.md (if needed) 2. split 3.
+setup-form"*). `docs/pdf.md` is deleted. `src/common/pdf/doc.md` carries the
+design language in named sections after the intro and Details — Shades,
+Color is for meaning, Backgrounds are white, The frame, The body families
+(event log · tracks · word list · the crosswords exception, in that order),
+Which games print (a `game · family` roster, one clause each), Characters,
+Plumbing. The setgame hatch story moved to `docs/games/setgame.md` → Print to
+PDF, and the two lessons that generalize stayed under Details. The Setup rows
+section moved to `src/common/setup-form/doc.md` → Setup rows (a closed area,
+edited — closed is not locked), with the archaeology and the stale bananagrams
+claim dropped and its three brands made codenames; that folder's Details
+bullet points at it. `docs/deferred.md`'s print section is gone, the
+CLAUDE.md docs-table row points at the folder, the plan's row says so.
+Seventy-odd cites repointed by exact-string replacement — a sweep, no stamps
+moved. `docLinks`, `americanSpelling`, `folderDocs`, `csStamps`,
+`setupRows` green; `tsc -b` and lint clean.
+
+**Carried verbatim, on purpose:** the "✓ good / ✗ bad" sentence now sits in
+`doc.md` → Color is for meaning, unchanged, because F-4 is its own decision.
 
 The agreed work. What the read found in the 438 lines that the collapse has
 to resolve rather than carry:
@@ -143,7 +170,9 @@ to resolve rather than carry:
    carries the reason, just goes. `docLinks.test.ts` catches a dead path and a
    dead anchor; the prose cites need the grep.
 
-### F-pdf-2 · `stale-claims-in-the-doc` · sentences in `docs/pdf.md` that are no longer true
+### SHIPPED · F-pdf-2 · `stale-claims-in-the-doc` · sentences in `docs/pdf.md` that are no longer true
+
+**Shipped 2026-09-19 with F-1**: none of the twelve survived the rewrite.
 
 Each checked against the tree at the read:
 
@@ -186,7 +215,10 @@ Each checked against the tree at the read:
   is a bound action's `run`, built at click time; every printer's PlayArea
   says "a snapshot at CLICK time".
 
-### F-pdf-3 · `archaeology-and-other-owners` · what the doc carries that a `doc.md` bans
+### SHIPPED · F-pdf-3 · `archaeology-and-other-owners` · what the doc carries that a `doc.md` bans
+
+**Shipped 2026-09-19 with F-1**: the six passages are gone; the games'
+stories are one clause each under the rule they illustrate, or nothing.
 
 - **Archaeology**, six passages: the waffle/wordle exclusion and "What changed
   for waffle and wordle" (two copies); "This reverses an earlier rule that
@@ -206,8 +238,8 @@ Each checked against the tree at the read:
 
 ### F-pdf-4 · `good-bad-gloss` · the printed ✓ and ✗ are glossed "good" and "bad"
 
-Handed on by `outcomes` (2026-09-05): `docs/pdf.md` → "Color is for meaning"
-says *"✓ good — a correct/success mark, green. ✗ bad — a wrong/miss mark,
+Handed on by `outcomes` (2026-09-05): `common/pdf/doc.md` → "Color is for
+meaning" (carried verbatim from `docs/pdf.md` by F-1) says *"✓ good — a correct/success mark, green. ✗ bad — a wrong/miss mark,
 red."* No code symbol is called either word; `marks.ts` glosses its three as
 "an agent / correct", "the assassin / a miss", "a neutral / bystander". The
 question is what the collapsed doc calls them. Options: *"a find and a miss"*
@@ -328,8 +360,9 @@ A "who uses this" rots; each of these has:
 
 ### SHIPPED · F-pdf-8 · `brand-in-prose` · brands where prose says the codename
 
-**Shipped 2026-09-19** in the three code files (boggle). `docs/pdf.md`'s
-three wait for F-1, which rewrites the section they sit in.
+**Shipped 2026-09-19** in the three code files (boggle), and the doc's three
+with F-1 (they moved to `setup-form/doc.md` as spellingbee, wordwheel,
+boggle).
 
 `MothCubes` in `frame.ts` (`drawSetup`), `frame.test.ts` (the wrap describe)
 and `wordListBody.ts` (the `setupX` comment); `freebee`, `MooseWheel` and

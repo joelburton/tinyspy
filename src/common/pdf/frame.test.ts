@@ -1,7 +1,7 @@
 // cs-audited-pdf
 
 /**
- * Tests for the shared print frame (docs/pdf.md) — the primitives every game's
+ * Tests for the shared print frame (doc.md) — the primitives every game's
  * printer composes, so a regression here degrades every printout at once.
  * Rather than render real PDFs, we drive the helpers with a fake jsPDF that
  * records its calls and models text width as one point per character; that keeps the
@@ -61,7 +61,7 @@ function fakePd(over: Partial<PrintDoc> = {}) {
 }
 
 describe('shade palette', () => {
-  it('is the three-shade grayscale from docs/pdf.md', () => {
+  it('is the three-shade grayscale from doc.md', () => {
     expect([BLACK, DARK_GRAY, MEDIUM_GRAY]).toEqual([0, 70, 180])
   })
 })
@@ -102,7 +102,7 @@ describe('drawSetup', () => {
 
   // The heading carries the MODE (`Setup: Co-op`) rather than spending a row on
   // it — mode is locked at the gametype level, never a control on the setup
-  // form, so it frames the block instead of sitting in it (docs/pdf.md → Setup
+  // form, so it frames the block instead of sitting in it (common/setup-form/doc.md → Setup
   // rows). Both spellings are pinned: a PDF is a standalone artifact with no app
   // chrome, so this heading is the only place the paper says which game it was.
   it('draws the "Setup" sub-heading, qualified by mode', () => {

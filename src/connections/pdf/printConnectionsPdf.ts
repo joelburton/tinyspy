@@ -20,7 +20,7 @@ import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
  * belong on whose board; this file only draws.
  *
  * Two layouts, one per mode:
- *   - **coop** — the event-log body family (docs/pdf.md): the shared board in
+ *   - **coop** — the event-log body family (common/pdf/doc.md): the shared board in
  *     the left column, `drawEventLog` beneath it.
  *   - **compete** — one **track per player** (`common/pdf/columns.ts`, up to
  *     three per page): their own bands, their own leftover tiles, their own
@@ -33,10 +33,10 @@ import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
  *
  *  1. **A thick colored border, not a fill.** A band's color is a full-bleed
  *     background on screen. Four of those is an enormous amount of ink for a
- *     home printer, and `pdf.md`'s "backgrounds are white" rule already says
+ *     home printer, and `common/pdf/doc.md`'s "backgrounds are white" rule already says
  *     don't. The border carries the same hue at a fraction of the cost.
  *  2. **A letter A–D in the top-left.** Color alone can't be the signal —
- *     mono flattens all four ranks to one gray — and `pdf.md` requires a shape
+ *     mono flattens all four ranks to one gray — and `common/pdf/doc.md` requires a shape
  *     or text carrying the same meaning. See `model.ts` for why A–D is a
  *     faithful stand-in rather than an arbitrary tag.
  */

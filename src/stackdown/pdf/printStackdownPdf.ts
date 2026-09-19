@@ -7,7 +7,7 @@ import { letterCorner, type Tile } from '../lib/board'
 import type { PrintTrack, StackdownPrintModel } from './model'
 
 /**
- * stackdown's print-to-PDF — the **track family** (docs/pdf.md; see
+ * stackdown's print-to-PDF — the **track family** (common/pdf/doc.md; see
  * `common/pdf/columns.ts`): one column per board, each with the word log that
  * belongs to it.
  *
@@ -27,7 +27,7 @@ import type { PrintTrack, StackdownPrintModel } from './model'
  *
  * The one thing NOT carried over is the screen's depth ramp (deeper tiles get a
  * warmer shade). That's decoration in print terms — the overlap already says
- * what's on top — and `pdf.md` reserves shades for structure.
+ * what's on top — and `common/pdf/doc.md` reserves shades for structure.
  *
  * Letters use the same `letterCorner` the board component does, so a partly
  * covered tile tucks its letter into the same visible quadrant on paper as on

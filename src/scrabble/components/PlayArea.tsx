@@ -79,7 +79,7 @@ export function PlayArea({
   const { game, players: playerStates, plays, loading, failure } = useGame(gameId)
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
-  // (docs/pdf.md → Setup rows).
+  // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
     () => setupRows(setup as unknown as ScrabbleSetup, game?.mode ?? 'coop', players),
     [setup, game, players],
@@ -431,7 +431,7 @@ type Suggested =
     run: createNewGame,
   })
 
-  // Print the board — a snapshot at CLICK time (docs/pdf.md). RLS already scoped
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). RLS already scoped
   // the state to what I may see (my own rack, my visible moves), so what prints
   // is what the page in front of me shows.
   const actPrintBoard = useBoundAction('act-print-board', {

@@ -8,7 +8,7 @@ import type { SpellingbeeSetup } from './setup'
 
 /**
  * spellingbee's setup recap — ONE array, rendered by the info column and the
- * PDF alike (docs/pdf.md → Setup rows). Order mirrors
+ * PDF alike (common/setup-form/doc.md → Setup rows). Order mirrors
  * `components/SetupForm.tsx`.
  *
  * Target rank appears only when one was chosen — a control that didn't apply

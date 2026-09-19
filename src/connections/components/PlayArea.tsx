@@ -131,7 +131,7 @@ export function PlayArea({
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
-  // (docs/pdf.md → Setup rows).
+  // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
     () => setupRows(connectionsSetup, game?.mode ?? 'coop', players, game?.puzzleDate ?? null),
     [connectionsSetup, game, players],
@@ -439,7 +439,7 @@ export function PlayArea({
     }
   }, [game, isEliminated, myConceded, solutionShown, matchedCategories])
 
-  // Print the board — a snapshot at CLICK time (docs/pdf.md). The bands, the
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). The bands, the
   // remaining tiles and the log all come from what the VIEWER may see, so RLS
   // scoping carries onto paper for free. Built inside `run` rather than in the
   // menu effect, so the menu needn't rebuild as the board moves.

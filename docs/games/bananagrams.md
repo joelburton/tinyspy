@@ -266,7 +266,7 @@ collide at ~1-in-16M, which a club of friends will never reach.
 
 ### Printing the board (PDF)
 
-bananagrams joins the printable games (see [docs/pdf.md](../pdf.md)) — a "Print board
+bananagrams joins the printable games (see [common/pdf/doc.md](../../src/common/pdf/doc.md)) — a "Print board
 (PDF)" GamePage menu item that hands you a paper record of your crossword. It's the
 word-list body family (board top-left, Setup to its right, words below), with two
 bananagrams-specific pieces:

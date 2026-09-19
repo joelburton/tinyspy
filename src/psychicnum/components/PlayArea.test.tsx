@@ -287,7 +287,7 @@ describe('psychicnum PlayArea — turn order', () => {
     // event log's player picker also lists every player by handle — so exclude
     // its <option> to keep this counting the turn text alone.
     // Exclude the event log's player-picker <option>s AND the setup recap's
-    // <li>s: the recap now opens with a "Players: …" roster row (docs/pdf.md →
+    // <li>s: the recap now opens with a "Players: …" roster row (common/setup-form/doc.md →
     // Setup rows), which names everyone too. This counts the TURN TEXT alone.
     const named = screen
       .getAllByText(/moth/)

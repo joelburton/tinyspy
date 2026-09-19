@@ -239,17 +239,6 @@ Carried over from the 2026-07-10 mobile-FE review (that review doc has since bee
   - **`viewport-fit=cover` safe-area regression sweep.** [`index.html`](../index.html) now sets `viewport-fit=cover` so `env(safe-area-inset-*)` resolves non-zero (FloatingPanel's phone-sheet notch insets were previously inert). With `cover` the browser stops letterboxing, so **every** full-bleed surface owns its own safe-area padding — verify on a notched phone that the game header, club page, toasts, and celebration dialog don't slip under the notch or the home indicator.
   - **`touch-action: manipulation` zoom suppression.** Added to every tap-heavy surface (shared `.tile`, keyboard keys, stackdown tiles, boggle path-tracing, spellingbee hive) to defeat iOS double-tap-to-zoom + the ~300ms tap delay. Confirm on a real iOS device that rapid taps no longer zoom — Playwright's touch synthesis can't reproduce Safari's gesture heuristics.
 
-## Printing to PDF — which games get it
-
-The per-game table (all sixteen, ✅/❌) now leads [`pdf.md`](pdf.md#which-games-print) —
-that's the one place to check or update. What's a *decision* rather than a status:
-
-**Nothing outstanding — all sixteen games print.**
- waffle and wordle were a
-permanent exclusion until 2026-08-02; the 4-state tile encoding
-([`pdf.md`](pdf.md#backgrounds-are-white)) removed what actually blocked them, which
-was their green/yellow/gray feedback flattening to one gray in mono.
-
 ## To discuss
 
 - **A disconnected player is the one person who is not told** (raised

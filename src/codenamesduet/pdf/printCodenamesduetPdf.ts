@@ -7,7 +7,7 @@ import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
 import type { DuetPrintModel, Mark, PrintCell } from './model'
 
 /**
- * codenamesduet's print-to-PDF — the **event-log body family** (docs/pdf.md): the
+ * codenamesduet's print-to-PDF — the **event-log body family** (common/pdf/doc.md): the
  * 5×5 board in the left column, the clue log beneath.
  *
  * The point of the printout is **thinking about clues away from a screen**, so

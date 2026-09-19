@@ -19,7 +19,7 @@ function formatPuzzleDate(d: string | null): string {
 
 /**
  * connections's setup recap — ONE array, rendered by the info column and the
- * PDF alike (docs/pdf.md → Setup rows). Order mirrors
+ * PDF alike (common/setup-form/doc.md → Setup rows). Order mirrors
  * `components/SetupForm.tsx`.
  *
  * "Words: 16", "Categories: 4" and "Mistakes allowed: 4" have gone. All three

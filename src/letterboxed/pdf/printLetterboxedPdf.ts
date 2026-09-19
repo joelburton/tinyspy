@@ -29,7 +29,7 @@ import type { LetterboxedPrintModel, PrintTrack } from './model'
  * same gray as everything else, so the encoding moves onto WEIGHT: a covered
  * letter gets a heavy black ring and a bold glyph, an untouched one a thin gray
  * ring and normal weight. That survives a photocopier, which is the test
- * docs/pdf.md sets.
+ * common/pdf/doc.md sets.
  */
 
 /** Where along a side the three letters sit — mirrors the on-screen layout. */
@@ -79,7 +79,7 @@ function drawTrack(
     doc.setFont('helvetica', 'bold').setFontSize(8.5).setTextColor(BLACK)
     doc.text(
       // '->' not '→': jsPDF's core fonts are WinAnsi and print the arrow as
-      // mojibake (docs/pdf.md → the character note).
+      // mojibake (common/pdf/doc.md → Characters).
       fit(doc, `Solvable in two: ${m.solution.map((w) => w.toUpperCase()).join(' -> ')}`, track.width),
       track.x,
       y,
@@ -153,7 +153,7 @@ function drawChain(doc: jsPDF, t: PrintTrack, track: Track, y: number): number {
   t.chain.forEach((w, i) => {
     // Numbered rather than arrowed: the order is the point, and a printed list
     // already reads top-to-bottom. (An arrow would also need to be '->' here —
-    // core fonts are WinAnsi; see docs/pdf.md.)
+    // core fonts are WinAnsi; see common/pdf/doc.md.)
     doc.setTextColor(DARK_GRAY)
     doc.text(String(i + 1), track.x, cy)
     doc.setTextColor(BLACK)

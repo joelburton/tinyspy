@@ -307,7 +307,7 @@ fixpoint — and a second implementation of that on the FE would eventually show
 board that never existed.)
 
 ## Print to PDF
-All sixteen games print (docs/pdf.md has the per-game table + body families).
+All sixteen games print (common/pdf/doc.md has the per-game table + body families).
 HT prints THE LOG and nothing else — per-player totals, then every claim and
 hint as PICTURES of the cards. It is the one game with no print-and-play value
 at all: its board is a shuffle that turns over every few seconds, so a printed

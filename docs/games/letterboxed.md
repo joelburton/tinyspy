@@ -706,7 +706,7 @@ worth keeping.
 
 A covered letter moves its encoding from color to **weight**: a heavy black
 ring + bold glyph vs a thin gray ring — it survives a photocopier, which is the
-test [pdf.md](../pdf.md) sets. The solution prints **only if the players
+test [common/pdf/doc.md](../../src/common/pdf/doc.md) sets. The solution prints **only if the players
 revealed it on screen** (`pdf/model.ts` pins this) — printing it regardless
 would route around the Reveal gate and hand the answer to someone still
 playing. `->` not `→` (WinAnsi).

@@ -34,7 +34,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/mobile.md](docs/mobile.md) | The mobile-appearance pass: the single desktop→mobile breakpoint, what's mobile-ready so far, recorded TODOs |
 | [docs/playarea.md](docs/playarea.md) | The play surface: PlayArea's two columns, info-column readouts, text entry, the event log + history viewer, board sizing |
 | [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md) | Every key the app listens for: dispatch routing, the global shell shortcuts, per-game board keys |
-| [docs/pdf.md](docs/pdf.md) | Printing boards to PDF: the printable design language + the shared `common/pdf/` helpers |
+| [src/common/pdf/doc.md](src/common/pdf/doc.md) | Printing boards to PDF: the printable design language + the shared helpers. **Lives in its folder** — `docs/pdf.md` is gone, absorbed by its area audit; which controls earn a recap row is [src/common/setup-form/doc.md → Setup rows](src/common/setup-form/doc.md#setup-rows) |
 | [docs/features.md](docs/features.md) | Games categorized by feature: dimensions (every game has exactly one value) vs tags |
 | [docs/win-lose.md](docs/win-lose.md) | The finish/defeat taxonomy: finish lines, race vs best, timeout adjudications, clock fairness, the priced-hint rule |
 | [docs/game-status-labels.md](docs/game-status-labels.md) | Every game's title + club-page status line, per play state |

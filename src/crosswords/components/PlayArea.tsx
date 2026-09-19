@@ -721,7 +721,7 @@ type Explained =
     run: handleDownloadIpuz,
   })
 
-  // Print the puzzle — a snapshot at CLICK time (docs/pdf.md), which is what
+  // Print the puzzle — a snapshot at CLICK time (common/pdf/doc.md), which is what
   // `printStateRef` holds.
   const actPrintBoard = useBoundAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),

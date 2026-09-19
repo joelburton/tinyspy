@@ -8,7 +8,7 @@ import type { WordwheelSetup } from './setup'
 
 /**
  * wordwheel's setup recap — ONE array, rendered by the info column and the PDF
- * alike (docs/pdf.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
+ * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  *
  * Two conditional controls: the target rank (only when one was chosen) and the
  * unique-letters constraint (only when it's on). Both omit rather than print a

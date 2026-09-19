@@ -113,8 +113,58 @@ the game's InfoCol ──> SetupDisclosure ──> the rows setupRows.ts builds 
   would make "we have not asked yet" read as an error for the instant between
   typing a date and the answer arriving.
 
-- **What earns a recap row is [docs/pdf.md](../../../docs/pdf.md) → Setup
-  rows**, not this folder. The short version: the recap is the dialog read
-  back, so a control that did not apply produces no row — and the board a game
-  built out of letters is the standing exception, because those dialogs can
-  take the letters back as input.
+- **What earns a recap row is [Setup rows](#setup-rows), below.** The short
+  version: the recap is the dialog read back, so a control that did not apply
+  produces no row — and the board a game built out of letters is the standing
+  exception, because those dialogs can take the letters back as input.
+
+## Setup rows
+
+One source per game feeds both the info column and the paper. A game exports
+`setupRows(setup, mode, players, …) => SetupRow[]` from
+`<game>/lib/setupSummary.ts`; `<SetupDisclosure>` renders it as `<li>`s and the
+print model passes the identical array to the printer's `drawSetup`. Sharing
+the array is what makes the two surfaces agree — two hand-maintained lists of
+the same facts will not stay in step.
+
+Three rules hold the shape:
+
+- **The recap is the setup dialog, read back.** Every control the dialog
+  showed produces exactly one row, in the dialog's order. A control that did
+  not apply produces **no row** — omit rather than print "n/a", since a record
+  must not assert a choice nobody made (`coop_style` exists only for 2+ coop,
+  `first_turn_user_id` only with turns). The **roster is the first row**: who
+  played is chosen in the create-game dialog too, so it follows the rule rather
+  than being an exception, and it is the most useful fact on a record you
+  keep.
+- **Values are plain strings.** The PDF is WinAnsi and cannot render a React
+  node or an `→`, so it is the lower bound — which is the right way round.
+  Screen-only richness lives outside the shared rows. A long value wraps on
+  paper rather than running off the sheet; two rows have no natural length
+  bound — boggle's `Letters` prints a whole 6×6 board, the roster prints every
+  username — and truncating them would be wrong, because the `Letters` row
+  exists to be copied off the paper.
+- **The board's own letters are the one allowed non-control row.** The three
+  letter games that build a board out of letters — spellingbee, wordwheel,
+  boggle — each lead with a `Letters` row naming the board itself, printed
+  whether the letters were hand-picked in the dialog or generated. It earns the
+  exception twice over: all three dialogs can TAKE those letters as input, so
+  the row is the round trip (read a board you liked off the screen or off the
+  paper, paste it into the next game's dialog to hand a friend the same
+  puzzle — a row that appeared only on hand-picked boards would be exactly the
+  half nobody needs to copy), and like the roster it is the most useful line on
+  a record you keep, since nothing else says WHICH board this was. The key is
+  the shared `BOARD_KEY`; the label and the value are each game's own
+  (`A-CHIROT` for a center-plus-outer board, `ABCD EFGH IJKL MNOP` for a grid).
+  Derived numbers still belong in Help — this is an exception, not a loophole.
+
+**Every row carries the setup `key` it describes**, which nothing renders.
+`src/guards/setupRows.test.ts` uses it to assert that every key in a game's
+default setup produces a row, with an explicit opt-out list for keys that are
+not player choices — so adding a setup field forces a decision about whether
+players see it recorded, rather than leaving two lists to agree by convention.
+
+**A game with no recap on either surface has no rows to unify**, and the guard
+names it: crosswords has no `setupSummary.ts`, no `<SetupDisclosure>`, and its
+PDF is the ported printer with no Setup block. Adding one would be new UI, not
+the unification this rule is about.

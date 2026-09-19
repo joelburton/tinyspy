@@ -24,7 +24,7 @@
  *
  * A happy second property of the safe trio: its grayscale lightnesses are
  * roughly evenly spaced (L* 46 / 61 / 70), close to the three-shade ramp
- * docs/pdf.md already uses — so a mono print of that board stays readable.
+ * common/pdf/doc.md already uses — so a mono print of that board stays readable.
  * Color is MEANING here and cannot be moved onto shape or line weight the way
  * strands' and letterboxed's could, because those channels are already
  * attributes. */

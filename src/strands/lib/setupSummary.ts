@@ -7,7 +7,7 @@ import type { StrandsSetup } from './setup'
 
 /**
  * strands's setup recap — ONE array, rendered by the info column and the PDF
- * alike (docs/pdf.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
+ * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  */
 export function setupRows(
   setup: StrandsSetup,

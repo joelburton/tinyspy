@@ -13,7 +13,7 @@ import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
 import type { WordiplyPrintModel } from './model'
 
 /**
- * wordiply's print-to-PDF — the **event-log body family** (docs/pdf.md), composed
+ * wordiply's print-to-PDF — the **event-log body family** (common/pdf/doc.md), composed
  * from the shared helpers: the frame (header / setup / save) plus `drawEventLog`'s
  * newspaper two-column flow.
  *

@@ -130,7 +130,7 @@ export function PlayArea({
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
-  // (docs/pdf.md → Setup rows).
+  // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
     () => setupRows(stackdownSetup, game?.mode ?? 'coop', players),
     [stackdownSetup, game, players],
@@ -520,7 +520,7 @@ export function PlayArea({
   // Feeds the print model only; `game?.mode` is null until loaded.
   const menuMode = game?.mode === 'compete' ? 'compete' : 'coop'
 
-  // Print the board — a snapshot at CLICK time (docs/pdf.md). RLS already scopes
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). RLS already scopes
   // the submissions to what the viewer may see, the SERVER withholds `solution`
   // until terminal, and `solutionShown` withholds it until this viewer asks — so
   // a printout carries the answer only if the page in front of them does, and

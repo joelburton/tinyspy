@@ -442,7 +442,7 @@ export function PlayArea(ctx: GamePageCtx) {
   }, [rows])
 
   // ─── GamePage menu ─────────────────────────────────────
-  // Print the board — a snapshot at CLICK time (docs/pdf.md), so the menu needn't
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md), so the menu needn't
   // rebuild as cards are claimed.
   const actPrintBoard = useBoundAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),

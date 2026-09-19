@@ -755,11 +755,11 @@ The broadcast / presence *behavior* itself (selection events merging across peer
 ## Printing the board (PDF)
 
 `src/connections/pdf/` — a **"Print board (PDF)"** GamePage menu item, the ninth
-game to print (docs/pdf.md). Event-log family: the board in the left column, the
+game to print (common/pdf/doc.md). Event-log family: the board in the left column, the
 guess log beneath.
 
 Two deliberate changes from the screen, both required by
-[`pdf.md`](../pdf.md)'s existing rules rather than invented here:
+[`common/pdf/doc.md`](../../src/common/pdf/doc.md)'s existing rules rather than invented here:
 
 - **Bands are a thick colored border, not a fill.** Four full-width fills is an
   enormous amount of ink, and "backgrounds are white" already says don't. The

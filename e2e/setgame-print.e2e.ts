@@ -20,7 +20,7 @@ closeContextsAfterEach()
  * every other print smoke in this suite it asserts a real PDF comes out, not
  * what is on it — the drawing is geometry, and pinning geometry from here would
  * cost more than it caught. What the cards actually look like on paper was
- * settled by rendering them and looking (`docs/pdf.md`).
+ * settled by rendering them and looking (`docs/games/setgame.md`).
  *
  * A set is claimed first so the totals have a number in them and the log has a
  * row, rather than only their empty states.

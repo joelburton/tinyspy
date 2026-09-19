@@ -232,7 +232,7 @@ export function PlayArea({
   useTabRing([])
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
-  // (docs/pdf.md → Setup rows).
+  // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
     () => setupRows(codenamesduetSetup, 'coop' as const, players),
     [codenamesduetSetup, players],
@@ -427,7 +427,7 @@ export function PlayArea({
   const peer = players.find((p) => p.user_id !== session.user.id)
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
 
-  // Print the board — a snapshot at CLICK time (docs/pdf.md). The peer's key is
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). The peer's key is
   // a secret mid-game; `useBoard` only hands it over post-game and the model
   // refuses it before terminal regardless, so it can't reach paper early.
   const actPrintBoard = useBoundAction('act-print-board', {

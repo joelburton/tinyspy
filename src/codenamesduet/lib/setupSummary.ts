@@ -6,7 +6,7 @@ import type { CodenamesduetSetup } from './setup'
 
 /**
  * codenamesduet's setup recap — ONE array, rendered by the info column and the
- * PDF alike (docs/pdf.md → Setup rows). Order mirrors
+ * PDF alike (common/setup-form/doc.md → Setup rows). Order mirrors
  * `components/SetupForm.tsx`.
  *
  * The first-clue SEAT is a control (the dialog picks who opens), so it earns a

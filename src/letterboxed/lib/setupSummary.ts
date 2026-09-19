@@ -15,7 +15,7 @@ import type { LetterboxedSetup } from './setup'
 
 /**
  * letterboxed's setup recap — ONE array, rendered by the info column and the
- * PDF alike (docs/pdf.md → Setup rows).
+ * PDF alike (common/setup-form/doc.md → Setup rows).
  *
  * The order mirrors `components/SetupForm.tsx` exactly, because the recap is
  * that dialog read back: roster (the dialog's own player picker, above the

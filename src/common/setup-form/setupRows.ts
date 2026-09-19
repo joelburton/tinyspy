@@ -12,7 +12,7 @@ import { timerLabel } from '../timer/timerLabel'
  * array, which is what makes the screen and the paper agree.
  *
  * **The rules that shape a game's rows live in
- * [docs/pdf.md → Setup rows](../../../docs/pdf.md#setup-rows)** — what earns a
+ * [common/setup-form/doc.md → Setup rows](../../../common/pdf/doc.md#setup-rows)** — what earns a
  * row, why the mode isn't one, and why a board's letters are printed even when
  * nobody typed them. Read that before writing a game's `setupRows`.
  *
@@ -42,7 +42,7 @@ export type SetupRow = {
 export const ROSTER_KEY = 'players'
 
 /**
- * The board's own letters — the exception in docs/pdf.md → Setup rows: printed
+ * The board's own letters — the exception in common/setup-form/doc.md → Setup rows: printed
  * even when nobody typed them.
  *
  * **The KEY is what's shared; the label and the value are each game's own.** A

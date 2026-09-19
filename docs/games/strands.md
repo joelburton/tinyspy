@@ -448,7 +448,7 @@ word), check (valid word), X (rejected) — from the shared icon registry, named
 for the verdict rather than for this game so another word game's log can reuse
 them. Two jobs: an eye running down the log sorts finds from misses without
 reading a word, and it is the NON-COLOR encoding of the same fact, which the
-PDF printer will need — [pdf.md](../pdf.md) prints in three shades of gray,
+PDF printer will need — [common/pdf/doc.md](../../src/common/pdf/doc.md) prints in three shades of gray,
 where purple and gold are the same ink. The glyph sits in a FIXED-width slot, so
 words start at the same x whichever mark precedes them, and it tints with its
 word so the two can never disagree about a row.
@@ -489,7 +489,7 @@ file one player's words under another's grid. Same reasoning wordle and waffle
 print by.
 
 Printing a board whose meaning is COLOR needs the encoding to move to **shape**
-(pdf.md — color only for meaning, never as the only carrier):
+(common/pdf/doc.md — color only for meaning, never as the only carrier):
 
 | on screen | on paper |
 |---|---|
