@@ -1,6 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { Outcome } from '@/common/outcomes/outcomes'
+import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
 
 /**
  * Everything that can be SAID about a move in this game, as a closed set — and
@@ -40,18 +41,10 @@ export type Answer =
   // Refused here: this board has already decided that word.
   | { answerType: 'already_guessed' }
 
-/** What an answer READS AS: the color it wears, and the words it says. */
-export type AnswerMessage = {
-  outcome: Outcome
-  // The sentence. A pill shows it alone; a peer line puts a player's name and
-  // color in front of it ("● moth Wrong: BERRY"). **Empty means nothing is
-  // shown** — the answer's only job is its outcome, which the event log draws
-  // as the row's bar.
-  text: string
-}
-
 /**
- * How an answer reads — **the one place this game decides that.**
+ * How an answer reads — **the one place this game decides that.** An empty
+ * `text` means nothing is shown: the answer's only job is its outcome, which
+ * the event log draws as the row's bar.
  */
 export function answerMessage(answer: Answer): AnswerMessage {
   switch (answer.answerType) {

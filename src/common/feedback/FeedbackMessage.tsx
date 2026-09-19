@@ -16,6 +16,18 @@ import { waitingForText } from '../info-sheet/turnText'
  * is the one to read first).
  */
 
+/**
+ * What a game's answer READS AS: the color it wears, and the words it says —
+ * the pair `FeedbackMessage.result(outcome, text)` takes. A game's answer
+ * table (`lib/answer.ts`) returns one per answer, so its pill, its event-log
+ * bar and its peer line read one function instead of each choosing a color.
+ * Empty `text` means nothing is shown: the answer's only job is its outcome.
+ */
+export type AnswerMessage = {
+  outcome: Outcome
+  text: string
+}
+
 /** How a message leaves its slot. */
 export type LeavesBy =
   | 'gesture' // the player's next action: any key, a tile click, a tap on the pill

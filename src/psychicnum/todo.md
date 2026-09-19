@@ -4,15 +4,7 @@
 
 ## Soon
 
-
 ## Someday
-
-- **`AnswerMessage` belongs in `common/`.** Joel, 2026-09-19: *"i can't think
-  of a reason this wouldn't be the same for every game."* It is `{ outcome,
-  text }` — already the argument pair `FeedbackMessage.result(outcome, text)`
-  takes, so common has the shape implicitly and only lacks the name. Kept here
-  while one game has it; the move is the second game's moment, with the
-  `answerMessage` pattern itself (this game's `Answer` union stays this game's).
 
 ## Maybe
 

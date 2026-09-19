@@ -1416,6 +1416,13 @@ commands block's, so the shape rule does not reach them.
   item is deleted from `common/buttons/todo.md` and the seven games' pointers
   to it (bananagrams, boggle, connections, psychicnum, scrabble, spellingbee,
   wordwheel).
+- **`AnswerMessage` moved to `common/feedback`** (Joel, 2026-09-19, walking
+  the todos: *"move the name now; we're definitely going to use this in other
+  places, so give it its final home now"*). The type sits in
+  `FeedbackMessage.tsx` beside the vocabulary whose `result()` takes the pair;
+  `feedback/doc.md` says why it lives there and not in a game. psychicnum's
+  `lib/answer.ts` imports it; the `Answer` union and `answerMessage()` stay
+  the game's. The Someday item is deleted.
 - The area's opening deviated from §4 on purpose: the restructure runs before
   the prose pass (Joel, 2026-09-19), for the reason under *Three passes*.
 
