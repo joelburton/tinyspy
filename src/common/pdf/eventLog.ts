@@ -3,17 +3,6 @@
 import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, type PrintDoc } from './frame'
 import type { SetupRow } from '../setup-form/setupRows'
 
-/**
- * The newspaper-flow event log — shared by the turn-based printable games (scrabble,
- * psychicnum). A "Turns" heading, then a `# / Player / <what-happened>` table that
- * fills the LEFT column, continues at the top of the RIGHT column, then onto further
- * pages (PDF libs paginate by page, not column, so the two-column flow is a
- * hand-managed cursor). The game's own board/rack is drawn above `startY` in the left
- * column — hence `twoColGeom`, so the board and the log agree on the column width.
- *
- * The only per-game difference is the third column's header label ("Move" / "Guess").
- */
-
 // Column x-offsets from a column's left edge. The <move> column is the important one,
 // so it gets the most room; Player is narrow and truncates (a cut name is still legible).
 const SEQ_X = 3
@@ -25,33 +14,40 @@ const RULE_W = 0.4 // the thin between-rows divider (no zebra shading — docs/p
 /** One turn: its number, who took it, and a one-line description. */
 export type TurnRow = { seq: number; who: string; text: string }
 
-/** The two-column newspaper geometry, derived from the page. The board/rack renderer
- *  and the event log both use `colW` / `colTop` / `leftX` so they line up. */
+/** The two-column newspaper geometry, derived from the page. A board drawn
+ *  above the log and the log itself both read `colW` / `colTop` / `leftX`, so
+ *  they line up. */
 export function twoColGeom(pd: PrintDoc) {
   const gutter = 22
   const colW = (pd.pageW - 2 * pd.margin - gutter) / 2
   return { gutter, colW, leftX: pd.margin, rightX: pd.margin + colW + gutter, colTop: pd.margin + 44 }
 }
 
-/** Draw the "Turns" heading + the turn table (+ the Setup block, kept together at the
- *  end of the flow) starting at `startY` in the left column. */
+/**
+ * The newspaper-flow body family: a "Turns" heading at `startY` in the left
+ * column, then a `# / <who> / <move>` table that fills the left column,
+ * continues at the top of the right one, then onto further pages — a
+ * hand-managed cursor, since a PDF paginates by page and not by column. The
+ * Setup recap is appended at the end of the flow, moved whole to the next
+ * column when it will not fit. A game draws its own board above `startY`,
+ * using `twoColGeom` for the column width.
+ */
 export function drawEventLog(
   pd: PrintDoc,
   o: {
-    /** Where the "Turns" heading sits (below the board/rack in the left column). */
+    // Where the "Turns" heading sits — below the board, or at `colTop` for a
+    // game with no board to print.
     startY: number
-    /** The third column's header ("Move" for scrabble, "Guess" for psychicnum). */
+    // The move column's header: "Move", "Guess", "Clue".
     moveLabel: string
-    /** The actor column's header. Defaults to "Player", which is right wherever
-     *  a turn has one actor. codenamesduet overrides it because its turn has
-     *  TWO — one player gives the clue, the other guesses — so a bare "Player"
-     *  would be ambiguous about which one the column names. */
+    // The actor column's header. Defaults to "Player"; a game whose turn has
+    // two actors (codenamesduet: a giver and a guesser) names the one shown.
     whoLabel?: string
     rows: TurnRow[]
     setup: SetupRow[]
-  /** Co-op or compete — the Setup heading carries it (see PrintHeader.mode). */
-  mode: 'coop' | 'compete'
-    /** Shown as the sole row when there are no turns yet. */
+    // Carried by the Setup heading — see PrintHeader.mode.
+    mode: 'coop' | 'compete'
+    // Shown as the sole row when there are no turns yet. Default "No turns yet."
     emptyText?: string
   },
 ): void {

@@ -20,8 +20,16 @@ lint clean, 30 of 30 unit tests green in the folder, every roster stamp now
 code moved at the read.** Four are the agreed collapse of `docs/pdf.md` and
 what it turned up (F-1 to F-4); five are prose in the code (F-5 to F-9); five
 are shape or behavior with a decision in them (F-10 to F-14); one is a bug
-with an obvious fix (F-15); two are tests (F-16, F-17). The prose pass comes
-first, on Joel's word.
+with an obvious fix (F-15); two are tests (F-16, F-17). The audit is committed (`0612f17f`).
+
+**The prose pass is DONE (2026-09-19, uncommitted):** F-5 to F-8 shipped in
+one sitting — the marker pass over every member, the six module blocks
+dissolved onto their exports or into `//`, the rationale moved to the new
+`doc.md` (lede, `## Intro to area`, `## Details`; `common/pdf` off
+`INTROS_OWED`), the caller claims replaced by conditions, the three brands
+replaced by codenames. `tsc -b` clean, lint clean, 44 of 44 green (the folder
+plus the four guards). Open: F-1 to F-4 (the collapse, waiting on its
+decisions), F-9 to F-14 (decisions), F-15 (a bug, waiting), F-16 and F-17.
 
 ## The roster
 
@@ -211,7 +219,14 @@ words). Recommendation: a find and a miss — a printed mark is per TILE, and
 the outcome vocabulary is about a game or a turn, so "won" on a tile would be
 a new spend of the word.
 
-### F-pdf-5 · `docstring-marker-pass` · `/**` on a member, in every source file
+### SHIPPED · F-pdf-5 · `docstring-marker-pass` · `/**` on a member, in every source file
+
+**Shipped 2026-09-19.** Every member listed below is `//`; the inline
+parameter notes too. The six module blocks are gone: `frame.ts`, `marks.ts`
+and `pdfTiles.ts` open with a short `//` note pointing at `doc.md`, and
+`columns.ts`, `wordColumns.ts` and `eventLog.ts` put the caller-facing
+sentences on `drawInTracks`, `drawWordColumns` and `drawEventLog`. The
+mis-indented `mode` note is aligned.
 
 The rule (app-audit §4 → the docstring marker): a `/**` sits on a whole
 declaration; a note on one member takes `//`. Candidates, all read, all
@@ -237,7 +252,19 @@ put the module's story above a `const` or an `import`, and the exported
 function beneath gets a one-liner. The block's caller-facing sentences move
 onto the export; the rest is F-6.
 
-### F-pdf-6 · `rationale-in-docstrings` · why-paragraphs that belong in `doc.md`
+### SHIPPED · F-pdf-6 · `rationale-in-docstrings` · why-paragraphs that belong in `doc.md`
+
+**Shipped 2026-09-19.** `doc.md` is written: the lede, a 27-line `## Intro
+to area` (what a printout is for, ink on white, the frame and the three
+families), and `## Details` holding what the docstrings gave up — the
+toolkit decision, the recap prints every option and why the mode is
+required, wrap-never-truncate, three tracks per page and width from the cap,
+a section per player, drawn marks, the Wordle-tile fill, and the
+set-before-you-draw convention. The archaeology (the extraction from
+psychicnum, "exactly the old behavior", "reverses an earlier rule") is
+deleted. Each docstring keeps its contract and points at `doc.md → Details`
+in a clause. `docs/pdf.md` stays canonical for shades, color and the Setup
+rows until F-1 absorbs it; those pointers are untouched.
 
 The tell is "rather than" / "because" (fifteen hits across the six source
 files with a module block); read, these are design or archaeology, not "who
@@ -268,7 +295,13 @@ calls this and how":
   page height — hence the callback gets `y`" — a reason whose caller left the
   family (F-7).
 
-### F-pdf-7 · `stale-caller-claims-in-code` · sentences in the folder that name callers wrongly
+### SHIPPED · F-pdf-7 · `stale-caller-claims-in-code` · sentences in the folder that name callers wrongly
+
+**Shipped 2026-09-19.** Every sentence below names a condition or nothing:
+the flags say what they draw, `emptyText` says its default, the families are
+three, "every game but crosswords" and "all five" are gone. `whoLabel`'s note
+keeps codenamesduet as the example of a two-actor turn, since the example is
+the contract.
 
 A "who uses this" rots; each of these has:
 
@@ -293,7 +326,10 @@ A "who uses this" rots; each of these has:
 - `frame.test.ts`: "a regression here degrades all five print outputs at
   once" — fifteen.
 
-### F-pdf-8 · `brand-in-prose` · brands where prose says the codename
+### SHIPPED · F-pdf-8 · `brand-in-prose` · brands where prose says the codename
+
+**Shipped 2026-09-19** in the three code files (boggle). `docs/pdf.md`'s
+three wait for F-1, which rewrites the section they sit in.
 
 `MothCubes` in `frame.ts` (`drawSetup`), `frame.test.ts` (the wrap describe)
 and `wordListBody.ts` (the `setupX` comment); `freebee`, `MooseWheel` and
@@ -482,6 +518,6 @@ and can stay untested. Recommendation: specs for `columns.ts` and
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
+- [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (2026-09-19)
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

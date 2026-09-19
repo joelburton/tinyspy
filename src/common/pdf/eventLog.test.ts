@@ -1,7 +1,7 @@
 // cs-audited-pdf
 
 /**
- * Tests for the shared event-log PDF body (scrabble, psychicnum). twoColGeom is
+ * Tests for the shared event-log PDF body. twoColGeom is
  * pure page geometry — the board renderer and the log both derive their column
  * width from it, so it must stay exact. drawEventLog owns the hand-managed
  * two-column-then-paginate cursor (PDF libs paginate by page, not column); we

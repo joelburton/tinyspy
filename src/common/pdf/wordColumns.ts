@@ -2,41 +2,29 @@
 
 import { BLACK, fit, type PrintDoc } from './frame'
 
-/**
- * The multi-column word list — shared by the word-hunt printable games (boggle, and
- * spellingbee next). A "Words" heading, then the words in N column-major, alphabetical
- * columns, each row `word (·bonus dot) … +score  finder`. The words are BALANCED
- * across the columns (⌈n / cols⌉ rows) so they form a compact block rather than one
- * tall column; only when even the balanced height overflows the page do we cap + spill.
- *
- * Per-game emphasis rides on the row flags, so each game opts in without a fork:
- *   - `bonus`   → a filled dot after the word (boggle's bonus-band words)
- *   - `pangram` → the word in bold (spellingbee's pangrams)
- * A `found: null` row is a word shown WITHOUT a score/finder (boggle's terminal reveal
- * of required-but-missed words) — the bare word is the "unfound" signal.
- */
-
 const ROW_H = 11
 const COL_GUTTER = 12 // gap between columns, so a finder never touches the next column's word
 
-/** One word-list entry. */
+/** One word-list entry: `word (· bonus dot) … +score  finder`. */
 export type WordRow = {
   word: string
-  /** A found word's score + finder; `null` = shown as the bare word (no score/finder). */
+  // A found word's score and finder; `null` draws the bare word alone — the
+  // "nobody found this" signal, and what a player's own section uses.
   found: { points: number; who: string } | null
-  /** boggle: mark the word with a trailing dot (a bonus-band find). */
+  // A trailing filled dot — a bonus-band find.
   bonus?: boolean
-  /** spellingbee: render the word in bold (a pangram). */
+  // The word in bold — a pangram.
   pangram?: boolean
 }
 
 /**
- * Draw the "Words" heading at (margin, startY) + the balanced N-column word list
- * below. Returns the y BELOW the block, so a caller stacking several lists (a
- * compete printout's section per player) knows where the next one starts.
- *
- * `subheading` is that section's own tally line ("12 words · 34 pts"), sitting
- * between the heading and the columns.
+ * Draw a word list: the heading (`heading`, or "Words") at (margin, startY),
+ * an optional `subheading` tally line ("12 words · 34 pts") under it, then the
+ * rows in `cols` column-major, balanced columns — ⌈n / cols⌉ rows each, so the
+ * words form a compact block rather than one tall column — capped and spilled
+ * onto further pages only when even the balanced height overflows. `emptyText`
+ * (or "No words yet.") stands in for an empty list. Returns the y below the
+ * block, so a caller stacking several lists knows where the next one starts.
  */
 export function drawWordColumns(
   pd: PrintDoc,

@@ -2,59 +2,41 @@
 
 import type { PrintDoc } from './frame'
 
-/**
- * Lay a page out as **N side-by-side player tracks**, each getting its own
- * board and its own log.
- *
- * Why this exists rather than reusing `eventLog.ts`'s two-column newspaper flow:
- * that flow is ONE stream wrapping from column to column, which is right when a
- * log is just long. It's wrong for compete in wordle and waffle, where each
- * player has a **separate board** and a log that belongs to it — a wrapped
- * stream would put one player's guesses under another player's grid.
- *
- * **Capped at three per page by default** (see `MAX_TRACKS`). Compete allows up
- * to six players, and six tracks on a letter page is ~88pt each: a wordle
- * keyboard needs ten keys across, which lands under 9pt per key and stops being
- * readable. Three keeps a two- or three-player game — the realistic case — on
- * one sheet, and spills the rest onto further pages rather than shrinking past
- * legibility.
- *
- * A game whose board is WIDE can ask for fewer (`maxTracks`). bananagrams is
- * the case: its crossword sprawls across a 25×25 arena, so a third of a page
- * shrinks the tiles past reading — it takes two.
- */
-
-/** Tracks per page. Three is a legibility floor, not a layout preference. */
+/** Tracks per page. Three is a legibility floor, not a layout preference —
+ *  doc.md → Details says why. */
 export const MAX_TRACKS = 3
 
 const GUTTER = 18
 
+/** Where one track sits on the page. The caller owns everything inside it. */
 export type Track = {
-  /** Left edge, in points. */
+  // Left edge, in points.
   x: number
-  /** Usable width for this track's content. */
+  // Usable width for this track's content.
   width: number
-  /** Top edge — the same for every track on a page. */
+  // Top edge — the same for every track on a page.
   top: number
 }
 
 /**
- * Run `draw` once per item, laying them out in tracks and adding pages as
- * needed. The caller owns everything inside a track; this only decides where
- * each one starts and how wide it is.
+ * Lay a page out as side-by-side tracks, one per board — the body family for
+ * a game where each player has a board of their own and a log that belongs
+ * to it. Runs `draw` once per item, adding pages as needed; the caller draws
+ * everything inside a track, this only decides where each one starts and how
+ * wide it is. Returns the y the tallest track on the LAST page ended at, and
+ * the page-wide left edge and width, so a block that describes the whole game
+ * (the Setup recap) can sit under the columns.
  *
- * Width is computed from the CAP, **not** from how many items this page
- * happens to hold — so a 4-player game's second page (one lone track) draws its
- * board at the same size as the first page's three, rather than one giant grid
- * beside two normal ones.
+ * Width is computed from the cap, not from how many items this page happens
+ * to hold — a four-player game's second page draws its lone track at the same
+ * size as the first page's three.
  */
 export function drawInTracks<T>(
   pd: PrintDoc,
   items: readonly T[],
-  /** Draw one track; return the y its content ended at, so a page-wide block
-   *  (the Setup summary) can sit below the tallest column. */
+  // Draw one track; return the y its content ended at.
   draw: (item: T, track: Track, index: number) => number,
-  /** Columns per page. Defaults to `MAX_TRACKS`; a wide-board game passes fewer. */
+  // Tracks per page. A game whose board is wide passes fewer (bananagrams: two).
   maxTracks: number = MAX_TRACKS,
 ): { bottom: number; left: number; width: number } {
   const usable = pd.pageW - 2 * pd.margin

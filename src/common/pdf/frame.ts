@@ -5,18 +5,10 @@ import type { SetupRow } from '../setup-form/setupRows'
 
 export type { SetupRow }
 
-/**
- * The shared frame for every game's print-to-PDF (see docs/pdf.md). These are the
- * à-la-carte primitives common to ALL printable games — the shade palette, the
- * document + page geometry, the `Brand: title` header, the "Setup" block, text
- * fitting, and the save. A game's `print<Game>Pdf` composes these with its OWN board
- * renderer + body (an event log via `eventLog.ts`, or a word list via `wordColumns.ts`).
- *
- * Deliberately a toolkit, not a template: the games' body layouts differ too much
- * (a 2-column newspaper turn flow vs. a board + side-setup + word columns) to share a
- * single render() with callbacks — so the frame owns only the truly-common atoms and
- * each game stays in control of composition.
- */
+// The frame every printer opens with: the shade palette, the document and its
+// geometry, the `Brand: title` header, the Setup recap, text fitting, the save.
+// A printer composes these with its own board renderer and one of the body
+// families (see doc.md).
 
 // ── The print shade system. 0 = black … 255 = white (jsPDF's single-arg gray).
 //    Everything not EXPLICITLY colored is one of these three. See docs/pdf.md. ──
@@ -24,31 +16,22 @@ export const BLACK = 0 // all text / data / headings — the default
 export const DARK_GRAY = 70 // real-but-secondary marks — board grids + column-header labels
 export const MEDIUM_GRAY = 180 // minor lines only — turn-row dividers + a table's header rule
 
-/** The header/footer fields every print model carries (each game's model extends this). */
+/** The header fields every print model carries; each game's model extends this. */
 export type PrintHeader = {
-  /** The gametype BRAND ("RackAttack", "MothCubes") — never the code-name. */
+  // The gametype BRAND ("RackAttack", "MothCubes") — never the codename.
   brand: string
-  /** This game instance's title (`common.games.title`, via `GamePageCtx.title`). */
+  // This game instance's title (`common.games.title`, via `GamePageCtx.title`).
   gameTitle: string
-  /** Formatted date, shown small at the top-right. */
+  // Formatted date, shown small at the top-right.
   date: string
-  /** One-line game-state summary under the title (matches the on-screen status). */
+  // One-line game-state summary under the title (matches the on-screen status).
   summary: string
-  /** EVERY setup option (label + value), timer included — a printout is a record, and
-   *  one that omits the constraints misreports the achievement (docs/pdf.md → Setup
-   *  rows). This reverses an earlier rule that printed "the relevant options only".
-   *
-   *  Comes from the game's `lib/setupSummary.ts`, the SAME array its info column
-   *  renders, so paper and screen can't drift. Every game has one except crosswords,
-   *  which has no Setup block on either surface (docs/pdf.md → Setup rows). */
+  // Every setup option, timer included — the same array the game's info column
+  // renders (`lib/setupSummary.ts`), so paper and screen agree. Why every
+  // option: doc.md → Details.
   setup: SetupRow[]
-  /** Co-op or compete, which the Setup heading carries (`Setup: Co-op`) rather than
-   *  spending a row on — mode is locked at the GAMETYPE level (`manifest.mode`) and is
-   *  never a control on the setup form, so it frames the block instead of sitting in
-   *  it. REQUIRED, deliberately: as an optional argument the fifteenth game forgets it
-   *  and quietly prints a bare "Setup" that looks perfectly fine. The screen doesn't
-   *  repeat the mode (its header and the club listing already say it); a PDF has no
-   *  chrome, so it must carry its own framing. */
+  // Carried by the Setup heading (`Setup: Co-op`), not by a row. Required so
+  // that no printer forgets it — a bare "Setup" looks fine and says nothing.
   mode: 'coop' | 'compete'
 }
 
@@ -57,9 +40,9 @@ export type PrintDoc = {
   doc: jsPDF
   pageW: number
   pageH: number
-  /** Page margin (tight-ish so content uses more of the paper, safe for print). */
+  // Page margin — tight, so content uses more of the paper, inside a printer-safe edge.
   margin: number
-  /** The y past which content must wrap to the next column/page (`pageH - margin`). */
+  // The y past which content must wrap to the next column or page (`pageH - margin`).
   pageBottom: number
 }
 
@@ -86,21 +69,14 @@ export function drawHeader(pd: PrintDoc, m: PrintHeader): void {
 }
 
 /**
- * Draw a "Setup" sub-heading + its `label: value` lines at (x, y). Returns the y
- * just below the block, so the caller can flow content after it (or measure its
- * height).
+ * Draw the `Setup: <mode>` sub-heading and its `label: value` lines at (x, y).
+ * Returns the y just below the block, so the caller can flow content after it.
  *
- * `maxW` (optional) is the width the block has to live in. Given one, a value
- * too long for the space WRAPS onto further lines, indented under the value so
- * the row still reads as one row. Without it, a long value runs on — which is
- * the historical behavior, kept for `eventLog`'s caller, whose column layout
- * pre-computes the block's height as one line per row.
- *
- * Wrapping isn't hypothetical tidiness: MothCubes' `Letters` row prints the
- * whole board (up to 36 tiles), and the roster row prints every username, so
- * both can outgrow a column. Truncating them was the alternative and it's the
- * wrong one here — the Letters row exists to be copied off the paper into the
- * next game's dialog, and half a board is worse than a wrapped one.
+ * `maxW` is the width the block has to live in: given one, a value too long
+ * for the space wraps onto further lines, hanging under the value. Without it
+ * a long value runs on — `drawEventLog` passes none, because its column
+ * layout pre-computes the block's height as one line per row. Why a value
+ * wraps rather than truncates: doc.md → Details.
  */
 export function drawSetup(
   doc: jsPDF,

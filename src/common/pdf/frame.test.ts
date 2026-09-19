@@ -1,9 +1,9 @@
 // cs-audited-pdf
 
 /**
- * Tests for the shared print frame (docs/pdf.md) — the à-la-carte primitives EVERY
- * game's printer composes, so a regression here degrades all five print outputs at
- * once. Rather than render real PDFs, we drive the helpers with a fake jsPDF that
+ * Tests for the shared print frame (docs/pdf.md) — the primitives every game's
+ * printer composes, so a regression here degrades every printout at once.
+ * Rather than render real PDFs, we drive the helpers with a fake jsPDF that
  * records its calls and models text width as one point per character; that keeps the
  * assertions on the pure assembly (returned cursors, the filename slug, the fit
  * truncation) the way crosswords/pdf/layout.test.ts pins pure geometry.
@@ -120,7 +120,7 @@ describe('drawSetup', () => {
   // Wrapping (the optional `maxW`). Worth pinning because the failure it
   // prevents is invisible in review and easy to miss on paper: an over-long
   // value doesn't clip or error, it draws past the right edge and off the
-  // sheet. Two rows have no natural length bound — MothCubes' `Letters` prints
+  // sheet. Two rows have no natural length bound — boggle's `Letters` prints
   // a whole 6×6 board, the roster prints every username.
   describe('a value too wide for the space', () => {
     // 41 characters = 41pt under the fake's 1pt/char.

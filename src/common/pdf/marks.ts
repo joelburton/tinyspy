@@ -2,36 +2,22 @@
 
 import type { jsPDF } from 'jspdf'
 
-/**
- * The drawn outcome marks — ✓ and ✗ — plus the neutral dash.
- *
- * **Why drawn rather than typed:** Helvetica has no ✓ or ✗ glyph, and jsPDF's
- * core fonts are WinAnsi, so the characters simply don't exist to print. Each
- * mark is therefore a couple of line segments.
- *
- * **Why they exist at all:** [`pdf.md`](../../../docs/pdf.md) forbids color
- * being the only signal, because a mono printer flattens green and red to the
- * same gray. A mark carries the meaning by SHAPE, and color is then a bonus on
- * a color printer rather than the thing you depend on.
- *
- * Extracted from psychicnum's printer when codenamesduet became the second
- * consumer. The signature changed in the move: psychicnum drew "in this cell's
- * top-right corner", but codenamesduet needs a mark inside a small keycard
- * inset, so these take an explicit **center and size** and let the caller decide
- * where that is. One mark vocabulary, positioned by whoever owns the layout.
- */
+// The three marks a printed tile can carry — ✓, ✗ and the neutral dash —
+// drawn from line segments, because jsPDF's core fonts are WinAnsi and have
+// no such glyphs. Why a mark rather than a hue: doc.md → Details.
 
-/** Every mark is drawn inside a `size`-square box centered on (cx, cy). */
+/** Where a mark goes: inside a `size`-square box centered on (cx, cy). The
+ *  caller owns placement — a cell's corner, a keycard inset. */
 export type MarkOpts = {
-  /** Center of the mark, in points. */
+  // Center of the mark, in points.
   cx: number
   cy: number
-  /** Box side, in points. The mark fills most of it. */
+  // Box side, in points. The mark fills most of it.
   size: number
-  /** Stroke color. Meaning must survive without it — see above. */
+  // Stroke color. The meaning must survive without it — the shape carries it.
   color: [number, number, number]
-  /** Stroke weight; defaults to a size-proportional value that stays visible
-   *  at the ~6pt sizes a keycard inset uses. */
+  // Stroke weight; defaults to a size-proportional value that stays visible
+  // at the ~6pt sizes a keycard inset uses.
   weight?: number
 }
 
