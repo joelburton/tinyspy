@@ -390,7 +390,7 @@ describe('psychicnum PlayArea — the terminal secrets reveal', () => {
   }
 
   it('a coop WIN shows them unasked — the team found all three', () => {
-    // The coop half of `solvedByMe`, and a case this shipped broken:
+    // The coop half of `solvedByMe`, and a case a per-player bit gets wrong:
     // psychicnum bumps `found_secrets_count` per CALLER, so in a coop game
     // where teammates found 2 and 1 NEITHER row reads three, and a per-player
     // bit would leave the winners pressing Reveal.

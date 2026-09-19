@@ -25,34 +25,27 @@ finished with, marks and wrong letters and all.
 Two different things get called the answer here, and telling them apart is what
 the folder turns on. The **puzzle-solution** is the one the puzzle itself has:
 fixed when the board was generated, the same for everybody, and what the control
-shows — wordle's target word, crosswords' author grid, psychicnum's three
-secrets, letterboxed's seeded pair, wordiply's best possible word,
-codenamesduet's partner key card. A **board-solution** is what one player's own
-finished board amounts to: the grid they filled, the words they traced, the
-chain they played. It belongs to that player and that run, and a player who
-never solved has none at all.
+shows — wordle's target word, crosswords' author grid. A **board-solution** is
+what one player's own finished board amounts to: the grid they filled, the words
+they traced, the chain they played. It belongs to that player and that run, and
+a player who never solved has none at all.
 
-In six of the ten games a board-solution IS the puzzle-solution. wordle can only
-be finished by typing the target; waffle's solved grid is the solution grid by
-definition; connections, stackdown, strands and psychicnum are the same. Their
-solver is looking at the answer already, and asking them to press Reveal would
-be asking them to uncover what is in front of them — so those games pass
-`impliedBy`, the answer starts shown, and the control goes inert rather than
-absent.
-
-In the other four the two never meet, however well the game went. A correct
-crossword fill is not the author's grid (rebuses, quantum clues); letterboxed is
-won by any covering chain and not by the seeded pair; wordiply's winner played
-better than their opponent, not better than the best word that exists; and
-contacting all fifteen agents in codenamesduet still never says which of your
-own tiles your partner saw as bystanders. Those four pass nothing — no result
-could have shown them the puzzle-solution already.
+Where a board-solution IS the puzzle-solution — wordle can only be finished by
+typing the target — the solver is looking at the answer already, and asking them
+to press Reveal would be asking them to uncover what is in front of them. Those
+games pass `impliedBy`, the answer starts shown, and the control goes inert
+rather than absent. Where the two never meet however well the game went — a
+correct crossword fill is not the author's grid — the game passes nothing: no
+result could have shown the player the puzzle-solution already.
 
 So `impliedBy` is one sentence over the two terms: **this player's
 board-solution IS the puzzle-solution.** It is asked per player and per run,
 never "was it won" — a race ends with a winner who may not be me, and a player
 who lost made no board-solution to begin with. `solvedByMe` is how each mode
-asks whether they made one.
+asks whether they made one. Which games answer which way, and why each does, is
+[docs/ui.md → Terminal
+results](../../../docs/ui.md#terminal-results--the-moment-vs-the-record); the
+table below says what each passes.
 
 The games with no answer to show, and the three word games whose found/missed
 filter already IS the control, mount none of this.
@@ -63,10 +56,10 @@ filter already IS the control, mount none of this.
 <PlayArea>                              ten of the sixteen games
 └── useSolutionReveal({ impliedBy? })    local, per-player, unpersisted
      ├── impliedBy: solvedByMe({ isCompete, playState, mine })   the six where a board-solution IS the puzzle-solution
-     └── revealed · impliedBySolve → the game's own act-reveal describe()
+     └── revealed · impliedBySolve → describeReveal({ noun, … }), placed as the game's act-reveal
            impliedBySolve → disabled, "Solution already shown"
-           revealed       → "Hide …" + IconHideSolution
-           else           → "Reveal …", disabled until isTerminal
+           revealed       → "Hide <noun>" + IconHideSolution
+           else           → "Reveal <noun>", disabled until isTerminal with "Can't reveal until all end"
 ```
 
 | game | its puzzle-solution | a board-solution reaches it | `impliedBy` | its `noun` |
@@ -89,34 +82,14 @@ impliedBySolve?, isTerminal })`, so the three states cannot drift: inert with
 "Solution already shown", live as "Hide <noun>" wearing `IconHideSolution`, and
 "Reveal <noun>" — gray until the game is over for EVERYONE, tooltipped *"Can't
 reveal until all end"*. `noun` is **solution** unless the thing shown genuinely
-is not one, which is true in exactly two games. A game with a state of its own
+is not one. A game with a state of its own
 puts it in FRONT of the call rather than inside: psychicnum hides the BUTTON
 while you are still hunting (`asker === 'button'`) and keeps the menu row and
 the Help list, which is where the glyph is named.
 
-**Where the two are the same thing, the reveal is mostly a convenience**, and
-for three games it is a real one: stackdown's six words, strands' `Words:` line
-and wordle's answer line gather the same answer as click-to-define text, which
-the board itself doesn't give you. For waffle, connections and psychicnum the
-only visible change is the control going quiet.
-
-**Where they differ, the control always has something to give**, and crosswords
-is the case worth understanding: its puzzle-solution is the AUTHOR's grid, a
-distinct artifact from a correct fill, and the reveal grays his letters in over
-the player's — so it reads as a diff as much as a reveal, and Hide brings their
-own fill back, marks and all. None of the four is a candidate for `impliedBy`:
-there is no state a player could reach in which the puzzle-solution has already
-been shown to them.
-
-**Coop asks the game rather than the player, and no per-player row could stand
-in for it.** The games that keep a `players.solved` keep it as COMPETE's finish
-line — stackdown writes it only in compete, and strands' coop branch ends the
-game without touching it — and psychicnum's `found_secrets_count` is a faithful
-per-player count that is not a team total, so two teammates finding 2 and 1
-leaves neither at three. wordle and waffle do mirror a bit lock-step across the
-coop rows, and connections reads the shared matched set, but a rule that works
-in half the games isn't a rule. It is the truer question anyway: one board, one
-outcome, and if the table solved it everyone is looking at the solution.
+**What the reveal adds where the two are the same thing, why crosswords keeps
+its reveal, and why coop asks the game rather than the player** are ui.md's
+(the section linked above); this file does not repeat them.
 
 **A restart needs nothing from a game.** `GamePage` keys the play surface on
 `common.games.restarts`, so a replayed board mounts a fresh hook and starts

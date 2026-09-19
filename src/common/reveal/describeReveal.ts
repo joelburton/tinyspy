@@ -1,4 +1,4 @@
-// cs-audited-reveal
+// cs-blessed-reveal
 
 import { IconHideSolution } from '@/common/icons/icons'
 import type { Described } from '@/common/actions/useBoundAction'

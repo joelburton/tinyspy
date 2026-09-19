@@ -9,10 +9,11 @@ import { actionButton } from './helpers/actions'
  * psychicnum's terminal reveal: the board becomes the answer key — but only when
  * asked, and only for the asker. The server exposes `secrets` at game over (the
  * `psychicnum.games_view` terminal gate), and the FE holds them back until this
- * viewer presses Reveal — never on its own, a win included, because
- * `replay_board` hunts the SAME three secrets again (docs/ui.md → Terminal
- * results). Pressing Reveal turns every secret's tile GREEN — the same green a
- * found one wears — and pressing Hide turns them back.
+ * viewer presses Reveal — never on its own for a player who did not find all
+ * three, because `replay_board` hunts the SAME three secrets again (docs/ui.md
+ * → Terminal results; the finder's case is solved-reveal.e2e.ts). Pressing
+ * Reveal turns every secret's tile GREEN — the same green a found one wears —
+ * and pressing Hide turns them back.
  *
  * REVEALING IS A STATE CHANGE, NOT A MARK (plans/tile-feedback.md). This spec used
  * to look for a neon-green ring in a token of its own, which is what psychicnum

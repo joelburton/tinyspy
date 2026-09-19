@@ -9,10 +9,11 @@ import { actionButton } from './helpers/actions'
 /**
  * **A game you SOLVED starts with its answer on screen.**
  *
- * Six games have a clear win — you can only finish them by producing the answer
- * (strands, psychicnum, stackdown, waffle, connections, wordle) — so asking the
- * solver to press Reveal is asking them to uncover what they're looking at. The
- * control goes inert and says "Solution already shown" instead.
+ * In the games where a player's own finished board IS the puzzle's solution
+ * (strands, psychicnum, stackdown, waffle, connections, wordle —
+ * `common/reveal/doc.md`), asking the solver to press Reveal is asking them to
+ * uncover what they're looking at. The control goes inert and says "Solution
+ * already shown" instead.
  *
  * wordle stands in for the family: it's the one whose answer is a single word a
  * test can type, and whose reveal adds a visible artifact (the click-to-define

@@ -249,14 +249,15 @@ export function PlayArea({
   // its own picks AND its picture of everyone else's. Nothing replays them
   // either: selections are fire-and-forget Broadcast with no presence sync.
   // ─── The categories show only when I ask for them ─────
-  // Never automatically. connections used to be one of the two games registered
-  // hides_solution = false, so a loss (or, in compete, being eliminated) put the
-  // answer on screen unasked — and, because the board swaps loose tiles for
-  // full-width bands, it did that by DELETING the tiles the players were still
-  // looking at. Now the ended board is what they actually left: their solved
-  // bands plus the tiles they never cracked, frozen. Reveal swaps in the four
-  // bands; Hide swaps back. Local, so one impatient player can't end everyone's
-  // thinking.
+  // Never automatically for a player who did not solve it (the one who did is
+  // covered by `impliedBy`, below). connections used to be one of the two games
+  // registered hides_solution = false, so a loss (or, in compete, being
+  // eliminated) put the answer on screen unasked — and, because the board swaps
+  // loose tiles for full-width bands, it did that by DELETING the tiles the
+  // players were still looking at. Now the ended board is what they actually
+  // left: their solved bands plus the tiles they never cracked, frozen. Reveal
+  // swaps in the four bands; Hide swaps back. Local, so one impatient player
+  // can't end everyone's thinking.
   //
   // `impliedBy` is the exception: matching all four IS the win, and each match
   // resolves into a full-width band — so a solver's board already carries every

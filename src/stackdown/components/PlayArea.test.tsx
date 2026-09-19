@@ -400,7 +400,7 @@ describe('stackdown PlayArea — the terminal solution reveal', () => {
   })
 
   it('a coop WIN shows them unasked — the stack was cleared, so you saw all six', () => {
-    // The coop half of `solvedByMe`, and the case this shipped broken:
+    // The coop half of `solvedByMe`, and the case a per-player bit gets wrong:
     // stackdown writes `players.solved` only in COMPETE, so a per-player bit
     // would read false here and leave the solver pressing Reveal for words
     // they'd just played.

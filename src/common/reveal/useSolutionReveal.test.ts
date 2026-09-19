@@ -1,4 +1,4 @@
-// cs-audited-reveal
+// cs-blessed-reveal
 
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
@@ -7,11 +7,11 @@ import { solvedByMe, useSolutionReveal } from './useSolutionReveal'
 /**
  * `solvedByMe` — "did I produce the solution?", the input to `impliedBy`.
  *
- * The coop half is not a convenience. Three of the six games don't write a
- * usable per-player solved bit in coop at all, each in its own way: stackdown
- * sets `players.solved` only in compete, strands' coop branch ends the game
- * without touching it, and psychicnum counts per CALLER, so two teammates
- * finding 2 and 1 leaves neither at three.
+ * The coop half is not a convenience. The per-player solved bit is unreliable
+ * in coop, differently in each game: stackdown sets `players.solved` only in
+ * compete, strands' coop branch ends the game without touching it, and
+ * psychicnum counts per CALLER, so two teammates finding 2 and 1 leaves
+ * neither at three.
  */
 describe('solvedByMe', () => {
   it('coop asks the GAME — one board, one outcome', () => {
@@ -33,9 +33,10 @@ describe('solvedByMe', () => {
 })
 
 /**
- * The reveal's two halves: the player's own choice, and the default a CLEAR WIN
- * implies. Everything here is about how those two interact, because that's
- * where the bugs live — a frozen initializer above all.
+ * The reveal's two halves: the player's own choice, and the default implied
+ * when their board-solution IS the puzzle-solution (`doc.md`). Everything here
+ * is about how those two interact, because that's where the bugs live — a
+ * frozen initializer above all.
  *
  * A restart is not one of them: `GamePage` keys the play surface on
  * `common.games.restarts`, so the replayed run mounts a fresh hook with no

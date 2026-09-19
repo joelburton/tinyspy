@@ -253,8 +253,8 @@ export function PlayArea({
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
 
   // ─── The answer shows only when I ask for it ──────────
-  // Never automatically — not even on a win, where the board in front of you
-  // already IS the solution. LOCAL and reversible (useSolutionReveal): my
+  // Never automatically for a player who did not solve it (the one who did is
+  // covered by `impliedBy`, below). LOCAL and reversible (useSolutionReveal): my
   // looking doesn't swap the board out from under a partner who's still
   // studying where they got stuck, and hiding brings THEIR board back rather
   // than needing a Restart. The solution itself is on every client at terminal

@@ -1,12 +1,12 @@
-// cs-audited-reveal
+// cs-blessed-reveal
 
 import { describe, expect, it } from 'vitest'
 import { describeReveal } from './describeReveal'
 
 /**
- * The three faces of every game's `act-reveal`, in one place because they used
- * to be ten hand-written copies — which is how five games ended up without the
- * tooltip while `docs/ui.md` stated it as the rule.
+ * The three faces of every game's `act-reveal`, from one function so that no
+ * game can drift from the rule in `docs/ui.md` — the tooltip on the gray face
+ * is the part a hand-written copy drops first.
  */
 describe('describeReveal', () => {
   it('names the noun in both live faces, and wears the crossed eye only to hide', () => {

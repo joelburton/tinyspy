@@ -150,10 +150,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // The answer grid — shielded mid-game; the server unshields it at terminal
   // (games_state.solution) but the FE does NOT fetch it automatically. The
   // blanks stay blank until someone asks, so ending a game doesn't spoil a
-  // puzzle the group may want to keep chewing on. Crosswords is the one game
-  // that never auto-shows on a win either: rebuses and quantum clues mean the
-  // players' grid can legitimately differ from the author's, so their fill
-  // stays on screen until they ask to see his.
+  // puzzle the group may want to keep chewing on. Not on a win either: rebuses
+  // and quantum clues mean the players' grid can legitimately differ from the
+  // author's, so their fill stays on screen until they ask to see his.
   //
   // The ask is MINE (useSolutionReveal): my looking doesn't fill a partner's
   // grid while they're still working out what they got wrong, and the same

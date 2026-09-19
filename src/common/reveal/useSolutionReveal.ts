@@ -1,12 +1,12 @@
-// cs-audited-reveal
+// cs-blessed-reveal
 
 import { useCallback, useState } from 'react'
 
 /** What `useSolutionReveal` hands back — see the hook. */
 export interface SolutionReveal {
   // Is the solution on screen for ME, right now? Gates whatever this game draws
-  // as its answer, and picks which of the two faces the game's `act-reveal`
-  // binding wears — each game names the thing in its own words.
+  // as its answer, and picks which of the two faces its `act-reveal` wears
+  // (`describeReveal`).
   revealed: boolean
   // The button's onClick — show it, or put it away again.
   toggle: () => void
@@ -33,7 +33,7 @@ export interface SolutionReveal {
  * **Coop ignores `mine` and asks the game**, because one board means one
  * answer: if the table solved it, every player is looking at the solution. Pass
  * whatever the game has; it is not read. (Why a per-player row can't stand in
- * for the game here: `common/reveal/doc.md`.)
+ * for the game here: docs/ui.md → Terminal results.)
  *
  * `playState === 'won'` is the coop win in the shared vocabulary (docs/states.md);
  * 'ended' and 'lost' are terminals nobody solved.
@@ -57,7 +57,7 @@ export function solvedByMe({
  * and my looking opens nothing on anybody else's screen. `toggle` goes both
  * ways, so a game whose reveal rewrites the board can always put back the one
  * the players finished with.
- *  
+ *
  * `impliedBy` says this player is looking at the answer already, so the control
  * has nothing left to do. It means one thing: **their own board-solution IS the
  * puzzle-solution** — wordle's typed target, waffle's solved grid. Those games

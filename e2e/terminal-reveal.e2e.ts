@@ -11,13 +11,14 @@ import { actionButton, actionRow } from './helpers/actions'
 
 /**
  * The terminal solution reveal (docs/ui.md → Terminal results): **local to each
- * player, reversible, and never automatic**.
+ * player, reversible, and never automatic for a player who did not solve it**
+ * (the solver's case is solved-reveal.e2e.ts).
  *
- * A finished game keeps its answer covered until someone asks — a win included,
- * and here especially, since `replay_board` re-runs the very same board and an
- * answer left on screen would make Restart theater. Reveal is offered twice (the
- * terminal action row and the game menu), both wearing the same two faces, and
- * pressing Hide puts it away again.
+ * A finished game keeps its answer covered until someone asks — a loss and a
+ * manual end alike, and here especially, since `replay_board` re-runs the very
+ * same board and an answer left on screen would make Restart theater. Reveal is
+ * offered twice (the terminal action row and the game menu), both wearing the
+ * same two faces, and pressing Hide puts it away again.
  *
  * stackdown stands in for the family (psychicnum's tile-ring half is covered by
  * psychicnum-terminal.e2e.ts): its six words are a text region, so "is the

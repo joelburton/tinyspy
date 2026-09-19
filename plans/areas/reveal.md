@@ -4,23 +4,26 @@ The folders it reads: `reveal`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — audited 2026-09-18; every finding worked the same day (F-1 to
-F-11). Left: the closing re-read, `todo.md`, and the blessing.** Roster agreed
-2026-09-18 (Joel: *"this is a tiny section, just do the audit"*) and the two
-code files stamped `cs-audited-reveal`. Taken in order after `terminal` (row
-44); this is row 45.
+**Status: CLOSED 2026-09-18, blessed** (Joel: *"first, bless the files in this
+area. then: close the area and commit"*). Four files `cs-blessed-reveal`.
+Audited 2026-09-18, every finding worked the same day (F-1 to F-11), the
+closing re-read done the same evening (F-12 to F-19, all worked; F-19 ruled
+(c)), `todo.md` empty. Roster agreed 2026-09-18 (Joel: *"this is a tiny
+section, just do the audit"*) and the two code files stamped
+`cs-audited-reveal`; the two the area wrote carried the same stamp until the
+blessing. Taken in order after `terminal` (row 44); this is row 45.
 
 ## The roster
 
-`src/common/reveal/` — showing the answer once a game has ended. Two files
-`cs-audited-reveal`, plus the folder's own two docs (not stamped; the script's
-scope is files with a first-line comment):
+`src/common/reveal/` — showing the answer once a game has ended. Four files
+`cs-blessed-reveal` (two of them written by the area), plus the folder's own
+two docs (not stamped; the script's scope is files with a first-line comment):
 
 - `useSolutionReveal.ts` — the hook, and `solvedByMe`, the predicate for its
   one option
 - `useSolutionReveal.test.ts`
 - `describeReveal.ts` + `describeReveal.test.ts` — WRITTEN BY THIS AREA (F-8),
-  stamped `cs-audited-reveal` like their siblings
+  stamped like their siblings
 - `doc.md` · `todo.md`
 
 **Left off the roster on purpose:** the ten PlayAreas that call the hook are
@@ -365,6 +368,140 @@ may narrow what `key` says, and `key` now draws where it used to be hidden.
 `PlayArea.test.tsx`'s *"is not offered at all while the board is still yours to
 hunt"* pinned the old behavior and now pins the new one.
 
+## The closing re-read — 2026-09-18
+
+*(One sitting over the six files of the folder, the two docs read as evidence,
+the ten call sites, the three reveal e2e headers, and the game tests the sweep
+touched. The method from the earlier re-reads: take each worked finding and
+grep its defect across the siblings — the rejected namings, "used to" and
+"shipped broken", "never automatically" and "a win included", `onRestarted`,
+`reset()` / `hide()`, the old nouns, the old path, the `[[` link, the day's
+dates. Eight findings; seven were the day's own work standing next door, and
+the eighth is a decision.)*
+
+What checked out: no `[[` link in `src`; no `onRestarted` outside this file
+and two other area files; no caller of `reset()` or `hide()`; no "Reveal
+answer" / "Reveal categories" / "Reveal secrets" / "partner's key" / "best
+word" label in `src`, `docs` or `e2e` (the one "Reveal secrets" left is a
+fixture label in `useBoundAction.test.ts`, `actions`' and not a game's —
+Notes); the old `common/hooks/game/` path gone; all ten call sites place
+`describeReveal`, six with `impliedBySolve`; `GamePage.tsx` keys the surface
+on `commonGame.restarts`; `common/reveal` off `INTROS_OWED`; no date later
+than today anywhere in `src`, `docs`, `plans` or `e2e`; `docs/common.md`'s
+section right in every claim checked (`EyeOff`, `_x_for()`, the strands pgTAP
+file, the `'revealed'` outcome word still in the guard's roster).
+
+### F-reveal-12 · `clear-win-in-two-headers` · The rejected naming stands in the hook's test header and an e2e header — WORKED
+
+Notes records "clear win" as tried, rejected and gone from the reveal's docs.
+`useSolutionReveal.test.ts`'s `describe` header still said *"the default a
+CLEAR WIN implies"*, and `e2e/solved-reveal.e2e.ts` opened with *"Six games
+have a clear win"*. Both now say it in the area's terms — the default implied
+when a board-solution IS the puzzle-solution — and point at `doc.md`.
+
+### F-reveal-13 · `new-test-header-narrates` · `describeReveal.test.ts`'s header, written by F-8, tells the shipping story F-4 cut from its sibling the same day — WORKED
+
+*"in one place because they used to be ten hand-written copies — which is how
+five games ended up without the tooltip"* — a "used to" and a tally, in a
+header written the same day F-4 removed *"which is how this shipped broken"*
+from the test next to it. Present tense now: one function so no game can drift
+from ui.md's rule, and the tooltip is the part a hand-written copy drops first.
+
+### F-reveal-14 · `f-8-outran-the-tree` · `doc.md`'s tree and the interface's `revealed` note were written before F-8 and F-9 and say what those changed — WORKED
+
+The `## Details` tree (F-5) sent `revealed · impliedBySolve` to *"the game's
+own act-reveal describe()"* with *"Hide …"* faces, one screen above the
+paragraph saying one `describe()` serves all ten; and
+`SolutionReveal.revealed`'s note (F-1) ended *"each game names the thing in
+its own words"*, which F-9 made false later the same day. The tree names
+`describeReveal({ noun, … })`, the faces carry `<noun>` and the tooltip, and
+the note points at `describeReveal`. A trailing-space line in the hook's
+docstring went with it.
+
+### F-reveal-15 · `tallies-in-the-days-prose` · Two counts and a pronoun in prose the area wrote — WORKED
+
+`doc.md`: *"unless the thing shown genuinely is not one, which is true in
+exactly two games"* — a tally beside the table that lists them. The hook's
+test header (F-4's rewrite): *"Three of the six games don't write a usable
+per-player solved bit"* — the count next to the list of three. Both tails cut;
+the condition and the list stay. And the crossword's author was *"his"* in
+`doc.md` and in the `ui.md` sentence F-10 rewrote — *"the author's"* now;
+crosswords' own comments keep their voice, for their area.
+
+### F-reveal-16 · `shipped-broken-in-ui-md` · The sentence F-3 cut from `solvedByMe`'s docstring stands in `ui.md`, with the date F-3 called wrong — WORKED
+
+`docs/ui.md → Terminal results`, the coop bullet: *"which is how three of the
+six shipped broken on 2026-08-16"* — the same archaeology, the same wrong date
+(the fix's, not the shipping's), in the doc the area read as evidence and
+edited twice. Cut; the three present-tense facts stay. The same phrase in
+stackdown's and psychicnum's `PlayArea.test.tsx` (*"the case this shipped
+broken"*) is now *"the case a per-player bit gets wrong"* — a phrase swap on a
+rule this area applied, so done here rather than handed on.
+
+### F-reveal-17 · `never-automatically-in-five-more` · F-6's false claim in two more PlayAreas, a count in a third, and two e2e headers — WORKED
+
+F-6 grepped `autoreveal|a win included|never on its own` and fixed strands'
+*"Never automatically"* by reading it. The same shape — *"Never
+automatically"* on the line above the `impliedBy` paragraph that contradicts
+it — stood in `waffle/PlayArea.tsx` (*"not even on a win, where the board in
+front of you already IS the solution"*) and `connections/PlayArea.tsx`, both
+games that imply. Both now read as strands does: never for a player who did
+not solve it, the one who did is `impliedBy`'s. `crosswords/PlayArea.tsx`
+said *"Crosswords is the one game that never auto-shows on a win"* — a count,
+and wrong by three (letterboxed, wordiply, codenamesduet). And two e2e headers
+carried it: `terminal-reveal.e2e.ts` (*"never automatic … a win included"*, in
+a spec whose game, stackdown, implies) and `psychicnum-terminal.e2e.ts`
+(*"never on its own, a win included"*). Each now excepts the solver and names
+`solved-reveal.e2e.ts` as that case's spec.
+
+### F-reveal-18 · `plan-row-stops-at-f-10` · Row 45 says ten findings, two files, and nothing after F-10 — WORKED
+
+The row was last written with F-10 and never learned F-8, F-9 or F-11 — the
+helper, the noun, psychicnum's asker — nor the vocabulary, and counted two
+stamped files where there are four. Rewritten to what the area is.
+
+### F-reveal-19 · `two-copies-of-the-reasons` · `ui.md → Terminal results` and `doc.md` now carry the same design twice — WORKED as (c)
+
+`ui.md`'s section has held the per-game reasons since 2026-08-16
+(`2695afc3`) — the six that imply with a clause each, the four that never do
+with a clause each, the coop mechanics (stackdown's compete-only bit, strands'
+coop branch, psychicnum's per-caller count), the derived-not-initializer note,
+the `solvedByMe` split. F-2 moved those same reasons out of the hook's
+docstring and F-5 wrote them into `doc.md`, where they now sit in the intro
+AND in the caller table; and F-10 rewrote ui.md's lede in the two terms
+besides. So the design has two full homes with no tiebreak — the shape the
+`icons` close ruled on (Joel, 2026-09-04: *"given that we have a doc file in
+this area, ui.md shouldn't need a lot of detail, and just a pointer to the
+area doc file"*). `docs/common.md`'s section is already the other shape: a
+summary and a pointer.
+
+**Decision:**
+
+- **(a) leave both** — ui.md is where the UX rationale for the whole terminal
+  reads as one story, and the reveal's paragraphs are part of it.
+- **(b) ui.md keeps its decisions and points at `doc.md` for the rest** —
+  the three properties, "a game you solved starts revealed", the inert face
+  keeping the View eye, terminal-only, offered twice, the whole answer, the
+  club-list title, codenamesduet's reason; the per-game reasons, the coop
+  mechanics and the initializer note leave, replaced by one sentence naming
+  the two terms and a link. Recommended — it is the icons ruling applied, and
+  `doc.md` is the copy beside the code.
+- **(c) `doc.md` defers to ui.md** — the intro keeps the two terms and drops
+  the per-game clauses; the table stays. Against: `doc.md` is the folder's
+  design by the process, and this is the one part of it that IS design.
+
+**RULED (c), Joel, 2026-09-18, and worked.** The intro keeps the two terms with
+one example each (wordle's target, crosswords' author grid), says what a game
+does on either side of the sentence, and sends the reader to ui.md for which
+games are which and why; the caller table stays, its reason column being the
+one-clause version. The three `## Details` paragraphs that were full copies of
+ui.md's — the click-to-define convenience, crosswords as the case worth
+understanding, coop asking the game — went too, replaced by one sentence
+naming ui.md as their home; that is past the option's letter (which named the
+intro) and is the same ruling applied to the same duplication one section
+down, so it is done here and the diff shows it. The hook's `solvedByMe`
+docstring pointed at `doc.md` for the coop reason and now points at ui.md.
+
 ## Notes
 
 - **crosswords keeps its reveal, and it is not an `impliedBy` candidate** —
@@ -407,6 +544,11 @@ hunt"* pinned the old behavior and now pins the new one.
   test comment that had a different explanation available.
 - The `[[…]]` memory link in the hook (F-2) is the only one in `src/`;
   `grep -rn '\[\[' src` finds no other.
+- `useBoundAction.test.ts` builds a fixture whose label is *"Reveal secrets"*
+  — a made-up binding in `actions`' own test, not psychicnum's control, so
+  the noun ruling does not reach it. Left.
+- crosswords' PlayArea comments call the puzzle's author *"his"*; that is the
+  game's voice and its area's to keep or change.
 - The six per-game `// impliedBy is the exception: …` comments beside the
   hook calls (stackdown, waffle, wordle, connections, strands, psychicnum) each
   restate why that game has a clear win — the same reasons the hook's docstring
@@ -434,8 +576,11 @@ hunt"* pinned the old behavior and now pins the new one.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group — 2026-09-18,
+      F-12 to F-19
 - [x] the folder's `doc.md` written (lede + `## Intro to area` + `## Details`
       with the caller table); its row off `INTROS_OWED` — 2026-09-18
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — confirmed 2026-09-18: `todo.md` is empty and stays so; the handoffs
+      under Notes carry no decision and so file no item
+- [x] every file on the roster blessed — four `cs-blessed-reveal`, 2026-09-18
