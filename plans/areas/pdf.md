@@ -490,7 +490,14 @@ holds here. Options: *wrap* (measure, then draw) or *leave* (six-player
 event-log games are rare; psychicnum coop is the case). Recommendation:
 wrap; it is the defect the wrap was added for, one family over.
 
-### F-pdf-13 · `marks-leave-line-width` · every mark changes the document's line width and leaves it
+### SHIPPED · F-pdf-13 · `marks-leave-line-width` · every mark changes the document's line width and leaves it
+
+**Ruled and shipped 2026-09-19** (Joel: *"i'll take your rec"*). Each of the
+three marks reads the line width before it draws and sets it back after;
+the module note and `doc.md` → Details say so. The draw color is left set,
+as every drawer in the folder leaves its own. psychicnum's now-untrue
+warning comment is a Soon item in `src/psychicnum/todo.md` (that area is
+paused pre-close; its printer's stamp does not move here).
 
 `drawCheck`, `drawCross` and `drawDash` each call `setLineWidth` and return
 without restoring it. The callers pay: psychicnum's board sets the border

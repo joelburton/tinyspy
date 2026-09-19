@@ -111,8 +111,9 @@ one narrower than its slot.
 
 **Every drawer sets what it needs before it draws.** Font, size, text color and
 draw color are document state in jsPDF, so each row and each cell sets its own
-rather than trusting what the previous call left. Line width is the one a
-caller has to watch: the marks change it and do not restore it.
+rather than trusting what the previous call left. Line width is the exception:
+a mark sets its own and restores what it found, so a board's cell borders
+keep their weight after a marked cell.
 
 ## Shades
 

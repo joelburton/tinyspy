@@ -4,6 +4,13 @@
 
 ## Soon
 
+- **The printer's "set the border weight on EVERY rect" comment is no longer
+  true.** `pdf/printPsychicnumPdf.ts` → `drawBoard` sets the line width on
+  every cell because "the marks bump the line width"; the shared marks
+  restore it now (`common/pdf/marks.ts`). The comment goes, and the per-cell
+  `setLineWidth` can move outside the loop with the saved-and-restored `lw0`
+  around it, or stay as a cheap habit — say which.
+
 ## Someday
 
 ## Maybe

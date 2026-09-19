@@ -19,11 +19,13 @@ export type MarkOpts = {
 }
 
 // The stroke weight follows the size, floored so a mark stays visible at the
-// ~6pt sizes a keycard inset uses.
+// ~6pt sizes a keycard inset uses. Each mark restores the line width it found,
+// so a caller's cell borders keep their own weight after a marked cell.
 
 /** A checkmark — "an agent", "correct". */
 export function drawCheck({ cx, cy, size, color }: MarkOpts, doc: jsPDF): void {
   const s = size
+  const lw = doc.getLineWidth()
   doc.setDrawColor(...color).setLineWidth(Math.max(0.5, s * 0.16))
   // Down-right into the V, then up-right to the tip. Started left-of-center and
   // slightly high so the finished tick sits optically centered in its box.
@@ -37,20 +39,25 @@ export function drawCheck({ cx, cy, size, color }: MarkOpts, doc: jsPDF): void {
     [1, 1],
     'S',
   )
+  doc.setLineWidth(lw)
 }
 
 /** A cross — "the assassin", "a miss". */
 export function drawCross({ cx, cy, size, color }: MarkOpts, doc: jsPDF): void {
   const h = size / 2
+  const lw = doc.getLineWidth()
   doc.setDrawColor(...color).setLineWidth(Math.max(0.5, size * 0.18))
   doc.line(cx - h, cy - h, cx + h, cy + h)
   doc.line(cx + h, cy - h, cx - h, cy + h)
+  doc.setLineWidth(lw)
 }
 
 /** A dash — "a neutral / bystander". Deliberately the plainest of the three:
  *  it's the absence of a result, and reads that way against ✓ and ✗. */
 export function drawDash({ cx, cy, size, color }: MarkOpts, doc: jsPDF): void {
   const h = size / 2
+  const lw = doc.getLineWidth()
   doc.setDrawColor(...color).setLineWidth(Math.max(0.5, size * 0.18))
   doc.line(cx - h, cy, cx + h, cy)
+  doc.setLineWidth(lw)
 }
