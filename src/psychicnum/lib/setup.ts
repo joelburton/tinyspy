@@ -61,14 +61,13 @@ export type PsychicnumSetup = SetupOf<PsychicnumValues>
 /**
  * Initial setup the manifest hands the SetupGameModal wrapper
  * as `defaults`. A 10-word board at the Familiar band (3) is a
- * gentle baseline; the timer defaults to a count-down — a "casual
- * game with stakes" the players can dial up or down (or off).
+ * gentle baseline, with no clock.
  */
 export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
   guesses: 7,
   word_count: 10,
   difficulty: 3,
-  timer: { kind: 'countdown', seconds: 15 },
+  timer: { kind: 'none' },
   // Coop pacing defaults to free-for-all; the setup
   // dialog's "Co-op" section (coop, 2+ players) offers turn-by-turn.
   // first_turn_user_id is omitted here — the field seeds it to a real

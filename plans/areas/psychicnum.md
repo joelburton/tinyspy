@@ -912,7 +912,13 @@ flips it and pops. The premise the comment rests on is gone.
 **Recommendation: celebrate the winner.** The coop team gets confetti for the
 same three words; a racer who beat the table to them has done more.
 
-### F-psychicnum-7 · `default-timer-fifteen-seconds` · the default setup is a fifteen-second countdown, and ui.md says none
+### SHIPPED · F-psychicnum-7 · `default-timer-fifteen-seconds` · the default setup is a fifteen-second countdown, and ui.md says none
+
+**Joel, 2026-09-19: "set it to none."** `DEFAULT_PSYCHICNUM_SETUP.timer` is
+`{ kind: 'none' }`, the docstring's "casual game with stakes" sentence is gone,
+and `docs/ui.md`'s sentence is true again without changing. The
+`SetupForm.test.tsx` draw uses the default, so its timer field still renders
+(the section is always present; only the picked kind changed).
 
 **Where:** `lib/setup.ts` → `DEFAULT_PSYCHICNUM_SETUP.timer` is
 `{ kind: 'countdown', seconds: 15 }`, with the docstring *"the timer defaults
