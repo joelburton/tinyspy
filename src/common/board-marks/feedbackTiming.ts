@@ -45,7 +45,7 @@ export const VERDICT_SHAKE_MS = 400
  *
  *  Longer than the marks that only point at something, because this one is read:
  *  the player checks the word as well as the color. */
-export const WORD_ANSWER_MS = 1500
+export const WORD_ANSWER_MS = 600
 
 /** "Several of these match what you typed — click the one you meant." The mark
  *  that says it is a ring on the candidates, and this is how long it stays.
@@ -56,7 +56,7 @@ export const WORD_ANSWER_MS = 1500
  *
  *  Not published to CSS — the mark is a border and a ring with nothing to
  *  animate, so this timer is the only clock it has. */
-export const AMBIGUOUS_PICK_FLASH_MS = 1000
+export const AMBIGUOUS_PICK_FLASH_MS = 800
 
 /** How long a mark's class outlives the animation it started. Enough that an
  *  ordinary timer cannot fire early and clip the fade, small enough that a mark
