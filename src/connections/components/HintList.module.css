@@ -5,7 +5,7 @@
  * a distinct region below the action row. */
 
 /* @@ */ .panel {
-  border: 1px solid var(--page-surface-border-color);
+  border: var(--border-width-line) solid var(--page-surface-border-color);
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
 }
@@ -34,7 +34,7 @@
   height: 1.5rem;
   border-radius: var(--radius-sm);
   flex-shrink: 0;
-  border: 1px solid var(--page-surface-border-color);
+  border: var(--border-width-line) solid var(--page-surface-border-color);
 }
 
 /* @@ */ .revealButton {
