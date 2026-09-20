@@ -22,8 +22,7 @@ const NO_TILES: ReadonlySet<string> = new Set()
 export type BoardVerdict = {
   tiles: ReadonlySet<string>
   // ANY outcome, because the mark wears its PILL's outcome — the two are one
-  // message — and the pill speaks the full vocabulary. `VERDICT_TONE` is total
-  // over it, so a new one is a compile error rather than a tile painted wrong.
+  // message — and the pill speaks the full vocabulary.
   outcome: Outcome
   // Bumped per verdict. The shake is a CSS animation, which only restarts on a
   // NEW element, so the tiles are keyed on this: submitting the same four tiles
@@ -32,8 +31,7 @@ export type BoardVerdict = {
 }
 
 type Props = {
-  // Categories resolved by a correct guess — full-width colored bands at the
-  // top, sorted by rank.
+  // Categories resolved by a correct guess.
   matched: MatchedCategory[]
   // Categories revealed at game-end (loss / elimination); `[]` during play.
   unmatched: Category[]

@@ -170,9 +170,7 @@ export function BoardCol({
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
   // conventions: one prop says so, and the flag is derived, never passed).
   const isViewingHistory = historySnap !== null
-  // On a phone the below-board commit row is tight: the Clear/Submit buttons go
-  // icon-only and the mistakes label shortens to "Mistakes" (the marks already
-  // carry "lose at 4"). Desktop keeps the full labels.
+  // On a phone the below-board commit row is tight.
   const phone = useIsPhone()
 
   // ─── The marks this column owns ────────────────────────
