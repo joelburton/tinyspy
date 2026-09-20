@@ -46,7 +46,7 @@ const GUESSES: EventRow[] = [
 describe('historySnapshot', () => {
   it('shows bands matched STRICTLY BEFORE the turn — the viewed turn stays on the grid', () => {
     // Turn 0 (the first correct): no earlier matches, so no bands — and FRUIT's tiles
-    // are still on the grid (all 16), ready to be ringed.
+    // are still on the grid (all 16), ready to be lit.
     const s0 = historySnapshot(GUESSES, BOARD, 11)
     expect(s0.matched).toHaveLength(0)
     expect(s0.tiles).toHaveLength(16)

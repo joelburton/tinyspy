@@ -45,7 +45,7 @@ export type EventRow = {
   user_id: string
   tiles: string[]
   /** How this guess READS — the shared vocabulary, from `lib/answer.ts`, the
-   *  one place that decides it. Never the wire word: a tile ring, a log row and
+   *  one place that decides it. Never the wire word: a tile fill, a log row and
    *  a PDF cell all want the same colors the rest of the app uses. */
   outcome: Outcome
   /** What this guess WAS — the three-value wire word the column stores. Carried

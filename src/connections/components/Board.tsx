@@ -25,11 +25,12 @@ const HISTORY_LIT_TINT: Record<GuessResult, string> = {
   wrong: styles.historyTile_lost,
 }
 
-/** Empty lit-tile set — a stable reference so a live render never rings a tile. */
+/** Empty lit-tile set — a stable reference so a live render never lights a tile. */
 const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
- * The verdict's class, keyed by the outcome its PILL wore.
+ * The verdict's class, keyed by the outcome its PILL wore — the fill the four
+ * tiles take.
  *
  * TOTAL over `Outcome`, which is the point: the mark never picks its own color,
  * it wears the pill's, because the two are one message
@@ -42,7 +43,7 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * `won: null` is a real entry, not a gap: a correct guess's four tiles collapse
  * into a band on the same render, so there is nothing left to mark.
  */
-const VERDICT_TONE: Record<Outcome, string | null> = {
+const VERDICT_CLASS: Record<Outcome, string | null> = {
   won: null,
   lost: shared.verdictLost,
   warning: shared.verdictWarning,
@@ -56,7 +57,7 @@ const VERDICT_TONE: Record<Outcome, string | null> = {
 export type BoardVerdict = {
   tiles: ReadonlySet<string>
   // ANY outcome, because the mark wears its pill's outcome and the pill speaks
-  // the full vocabulary. `VERDICT_TONE` above is total over it.
+  // the full vocabulary. `VERDICT_CLASS` above is total over it.
   outcome: Outcome
   // Bumped per verdict. The shake is a CSS animation, which only restarts on a
   // NEW element, so the tiles are keyed on this: submitting the same four tiles
@@ -85,8 +86,9 @@ type Props = {
   // The tiles of a guess that is OUT — sent, waiting on the server. They wear
   // the shared in-flight dim until the answer lands.
   inFlightTiles?: ReadonlySet<string>
-  // The verdict on my last guess, ringed in its pill's outcome (BoardCol sets it,
-  // and clears it on the next tile click). Null while nothing is being judged.
+  // The verdict on my last guess, filling its tiles in its pill's outcome
+  // (BoardCol sets it, and clears it on the next tile click). Null while
+  // nothing is being judged.
   verdict?: BoardVerdict | null
   // Tiles taking the attention flash — the beat that says an answer landed here.
   // Raised for every verdict, my own included.
@@ -120,8 +122,8 @@ type Props = {
   // Render read-only under the shared viewer frame (a past turn's board). Off
   // during live play.
   isViewingHistory?: boolean
-  // The four tiles the viewed turn guessed — ringed and tinted by `historyLitResult`.
-  // Empty / omitted when live.
+  // The four tiles the viewed turn guessed — tinted by `historyLitResult`, under
+  // the viewer's outline. Empty / omitted when live.
   historyLitTiles?: ReadonlySet<string>
   // The viewed turn's verdict — the tint for `historyLitTiles`.
   historyLitResult?: GuessResult
@@ -177,9 +179,17 @@ export function Board({
   historyLitResult = 'wrong',
   floatingControl,
 }: Props) {
+  // ─── The rows ──────────────────────────────────────────
+  // What is on the grid: the solved bands in rank order, the revealed ones,
+  // and the loose tiles — and how many rows that makes, which is what sizes it.
   const sortedMatched = [...matched].sort((a, b) => a.rank - b.rank)
+  // Total rows = one per band + the tile rows. Always 4 for a standard
+  // 16-tile / 4×4 board, but computed so the cap math stays correct if a
+  // category ever isn't exactly four tiles.
+  const rows = sortedMatched.length + unmatched.length + Math.ceil(tiles.length / COLS)
 
-  // ─── ATTENTION: a category resolved while you were reading another corner ───
+  // ─── Attention ─────────────────────────────────────────
+  // ATTENTION: a category resolved while you were reading another corner
   //
   // The one change on this board that doesn't announce itself. A correct guess
   // collapses four tiles into a full-width band and reflows everything below it
@@ -202,7 +212,7 @@ export function Board({
     content: sortedMatched,
     contentKey: rankKey,
     moveCount,
-    // Quiet only while viewing a past turn — the ringed tiles there are already
+    // Quiet only while viewing a past turn — the lit tiles there are already
     // the mark, and a live band landing behind the viewer is not something to
     // point at on a board nobody is reading. The band a player's OWN guess
     // produced is marked like anyone else's: it arrives somewhere they were not
@@ -214,11 +224,9 @@ export function Board({
       return new Set(now.map((m) => m.rank).filter((r) => !had.has(r)))
     },
   })
-  // Total rows = one per band + the tile rows. Always 4 for a standard
-  // 16-tile / 4×4 board, but computed so the cap math stays correct if a
-  // category ever isn't exactly four tiles.
-  const rows = sortedMatched.length + unmatched.length + Math.ceil(tiles.length / COLS)
 
+  // ─── A band ────────────────────────────────────────────
+  // One long tile: a solved or revealed category drawn across the row.
   // `revealed` no longer changes how a band LOOKS — a category you solved and
   // one the game handed you at the end print and render identically, on purpose
   // (2026-08-02). It survives only to namespace the React keys across the two
@@ -251,6 +259,7 @@ export function Board({
     </div>
   )
 
+  // ─── Render ────────────────────────────────────────────
   return (
     // The .board wrapper carries NO border/background today — the inter-tile
     // gaps show the column behind, matching psychicnum. The wrapper + class
@@ -295,12 +304,12 @@ export function Board({
           const inFlight = inFlightTiles.has(tile)
           const isVerdict = verdict?.tiles.has(tile) ?? false
           // One of the four tiles the viewed turn guessed — tinted the outcome
-          // color and ringed in the history blue.
+          // color and outlined in the history blue.
           const isHistoryLit = historyLitTiles.has(tile)
           return (
             <button
               // Keyed on the verdict's nonce while it is wearing one, so that
-              // submitting the same four tiles again REMOUNTS them and the ring's
+              // submitting the same four tiles again REMOUNTS them and the verdict's
               // shake replays — a CSS animation only restarts on a new element.
               // Just these four: the other twelve keep their identity.
               key={isVerdict && verdict ? `${tile}#${verdict.nonce}` : tile}
@@ -329,7 +338,7 @@ export function Board({
                 // no state color — a decided one stops being a tile at all and
                 // becomes part of a band.
                 isVerdict && shared.verdictFill,
-                isVerdict && verdict && VERDICT_TONE[verdict.outcome],
+                isVerdict && verdict && VERDICT_CLASS[verdict.outcome],
                 isHistoryLit && HISTORY_LIT_TINT[historyLitResult],
                 isHistoryLit && styles.historyTile,
               )}

@@ -361,10 +361,79 @@ SQL open.
 Verified: `tsc -b` clean, lint clean, 394 unit tests green (the game's and
 the guards). The e2e specs have not run for Steps 2–6.
 
-### Steps 7–8 — the section order · the comment pass
+### Step 7 — the section order (readability 3.2) — DONE 2026-09-19
 
-psychicnum's Steps 5–6, in that order, each a commit Joel reads; recorded
-here as each lands.
+psychicnum's Step 5, copied: `PlayArea.tsx` reordered into the eight
+sections in the one order (Page hooks · Derived · The local slot, and its
+three standing conditions · Narration — what a PEER did, in the header slot
+· The turn-history viewer · The commands, bound · The menu · Render), each
+header stating the rule its section follows; `BoardCol.tsx` into five (Which
+board is on screen · The marks this column owns · Committing a guess · The
+board's display order · Render). For connections that is:
+
+1. Page hooks — `useTabRing`, `useInfoSheet`, `hintsOpen`, `useAcknowledge`,
+   `useCelebration`, `useTurnStartFlash`
+2. Derived — `myConceded`, `locallyDone`, `showInput`, `iMatchedThemAll` and
+   the reveal, `summaryRows`, `boardView`
+3. The local slot — the slot and its any-key dismiss, the terminal message,
+   out-of-race, waiting
+4. Narration — the coop peer effect
+5. The turn-history viewer
+6. The commands — the shared trio, Hint, Reveal, New game, Print
+7. The menu
+8. Render — `concededIds`, `remainingTiles`, the snapshot and its actor,
+   `ownerByTile`, `colorByUserId`, `found`, then the columns
+
+**Every code line in the diff is a pure move, checked by diff** — each side
+of the diff was counted, and the only line removed without being re-added is
+the render-time `unmatched` (with its `matchedRanks`), which Step 2 had
+reserved for this step: `boardView` already derives it, and the render reads
+`boardView.unmatched` now. Nine of this file's old `// ───` sub-headers are
+demoted to plain comments inside the section they fall in (the celebration,
+the turn flash, the local slot, the viewer, the peer events, the shared
+three, the reveal, New game) so the file has eight headers and not
+seventeen; `BoardCol`'s two ("When the verdict mark expires", "The board's
+three commands") the same. The old standing-conditions header's two rule
+lines became the section header's.
+
+**What the reorder showed:** the shared-three comment block (End / Concede /
+Replay) sat above the reveal, twelve lines from the `useStandardGameActions`
+call it describes; they are together now. `BoardCol`'s `submitting` state
+sat at the top of the file with the history flag, and its shuffle state was
+split from the shuffle across a hundred lines; each is with its section. Two
+orphan comments after the menu ("Hints + End are buttons…", "the guess
+dispatch … moved into BoardCol") are stale and left for Step 8, which is the
+comment pass.
+
+**`Board.tsx` took the same treatment** (Joel, 2026-09-19: *"do a similar
+organizing pass over Board component"*). Four sections: **The rows** (the
+sorted bands and the row count, which had sat on the far side of the
+attention block) · **Attention** · **A band** (the renderer) · **Render**.
+Pure moves, checked by diff the same way.
+
+**And the verdict is a FILL, not a ring** (Joel, same message: *"i noticed
+some comments suggests there was a ring around outcomes, but i think that's
+outdated now — rings are just for selection and selecting-member-color"*).
+Confirmed against the stylesheets: this game's verdict class is
+`.verdictFill` (a pale tier of the pill's outcome on the tile's free
+background); the shared `.verdictRing` exists for boards whose background is
+not free, and connections never wears it. The two rings that do exist are
+the `.selected` border and `.peerPick`, the inset band in the picker's
+color; the history viewer's `.historyTile` is also an outline, the shared
+viewer blue, and its mentions stay. Every "ring" written about the verdict —
+seventeen sites across `Board.tsx`, `BoardCol.tsx`, `PlayArea.tsx`,
+`lib/history.ts` and its test, `useGame.ts` — now says fill, mark or lit.
+`BoardCol`'s `ringShown` is `verdictShown`, since the name carried the
+falsehood. One more name went with it, by the standing rule that an outcome
+is never a tone: `Board.tsx`'s `VERDICT_TONE`, the class map keyed by
+`Outcome`, is `VERDICT_CLASS`.
+
+Verified: `tsc -b` clean, lint clean, 394 unit tests green (the game's and
+the guards). The e2e specs have not run for Steps 2–7.
+
+### Step 8 — the comment pass
+
+psychicnum's Step 6, a commit Joel reads; recorded here when it lands.
 
 ### After the restructure — pass 2, the audit
 

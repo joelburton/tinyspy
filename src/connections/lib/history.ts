@@ -14,7 +14,7 @@
  * bands matched by correct guesses strictly before it, and every other tile
  * still on the grid. That leaves THIS turn's own 4 tiles on the board (even a
  * correct guess's — they haven't collapsed yet), which is exactly what we want,
- * because we then ring + tint those 4 in the turn's outcome color ("this is the
+ * because we then light those 4 in the turn's outcome color ("this is the
  * group this turn guessed, and here's how it went").
  *
  * **Addressed by the row's own id**, resolved against the list being folded. The
@@ -35,7 +35,7 @@ export interface HistorySnapshot {
   /** The tiles on the grid at this turn — `board.tileOrder` minus the strictly-before
    *  matched tiles. Feed straight to `<Board tiles>`. */
   tiles: string[]
-  /** The four tiles this turn guessed — ring + tint them by what it was. */
+  /** The four tiles this turn guessed — light them by what it was. */
   historyLitTiles: Set<string>
   /** This turn's verdict, as the three-value wire word — which is what the lit
    *  tiles' tint keys on, there being exactly three of those and seven
