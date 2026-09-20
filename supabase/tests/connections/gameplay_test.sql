@@ -20,9 +20,9 @@
 --   - 4 matched categories flips play_state to 'won', clears
 --     is_current_view flipped via common.end_game
 --
--- Every envelope's `outcome` is asserted here, and its twin is the frontend's
--- src/connections/lib/answer.ts, where ANSWER_OUTCOME says the same word for
--- the row the same guess writes. Both halves move together.
+-- Every envelope is asserted to carry NO outcome, which is half of one rule:
+-- an ok from this game is the FACT, and what it is worth is decided once, in
+-- src/connections/lib/answer.ts (its test pins the other half).
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP / auth-
 -- simulation primer.
@@ -118,8 +118,8 @@ select pg_temp.envelope_is(
   connections.submit_guess((select id from g),
                            array['ALPHA','BANANA','CASTLE','DAGGER']::text[],
                            'wrong', null),
-  '{"type": "ok", "outcome": "lost", "data": {"result": "wrong"}}'::jsonb,
-  'submit_guess: a wrong guess names its case and carries its outcome'
+  '{"type": "ok", "outcome": null, "data": {"result": "wrong"}}'::jsonb,
+  'submit_guess: a wrong guess names its case and carries no outcome'
 );
 
 reset role;
@@ -153,8 +153,8 @@ select pg_temp.envelope_is(
   connections.submit_guess((select id from g),
                            array['ALPHA','ANGEL','APPLE','BANANA']::text[],
                            'oneAway', null),
-  '{"type": "ok", "outcome": "near", "data": {"result": "oneAway"}}'::jsonb,
-  'submit_guess: a one-away guess names its case and carries its outcome'
+  '{"type": "ok", "outcome": null, "data": {"result": "oneAway"}}'::jsonb,
+  'submit_guess: a one-away guess names its case and carries no outcome'
 );
 reset role;
 select is(
@@ -184,8 +184,8 @@ select pg_temp.envelope_is(
     'correct',
     0
   ),
-  '{"type": "ok", "outcome": "won", "data": {"result": "correct"}}'::jsonb,
-  'submit_guess: a correct guess names its case and carries its outcome'
+  '{"type": "ok", "outcome": null, "data": {"result": "correct"}}'::jsonb,
+  'submit_guess: a correct guess names its case and carries no outcome'
 );
 
 reset role;

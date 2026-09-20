@@ -21,7 +21,7 @@ import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { db } from '../db'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
-import type { Answer } from '../lib/answer'
+import { answerMessage, type GuessResult } from '../lib/answer'
 import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
 import type { ConnectionsGame, EventRow, MatchedCategory } from '../hooks/useGame'
 import type { Category } from '../lib/board'
@@ -70,7 +70,7 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * its own answer. A guess that wrote NOTHING is not here at all: it comes back
  * as PN300 or PN301, both races.
  */
-type GuessAnswer = { result: Answer }
+type GuessAnswer = { result: GuessResult }
 
 export function BoardCol({
   // ── Board to render (live OR a historical snapshot — PlayArea picks via `snap`) ──
@@ -316,7 +316,8 @@ export function BoardCol({
     // verdict whose pill I might not be looking at: my eyes are on the board,
     // having just clicked four tiles there.
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
-      showWithVerdict(sent, FeedbackMessage.result('warning', 'You already tried that'))
+      const { outcome, text } = answerMessage({ answerType: 'already_tried' })
+      showWithVerdict(sent, FeedbackMessage.result(outcome, text))
       // Cleared like any other answered guess. The refusal never reached the
       // server, so this one could have kept its selection for tweaking — but
       // then one of the three answers would leave the board in a different state
@@ -375,19 +376,22 @@ export function BoardCol({
     // The FE computed these three itself and sent the answer up — but reading
     // its own value back to pick a branch would be choosing an `ok` case by
     // something the envelope did not say, so the RPC names each one.
-    } else if (res.type === 'ok' && res.data.result === 'correct' && res.outcome !== null) {
+    } else if (res.type === 'ok' && res.data.result === 'correct') {
       // A correct guess that wrote NOTHING comes back as PN300, so reaching
       // here means the match is durably recorded. No mark: these four collapse
       // into a band on this very render, leaving nothing to ring.
-      localFeedbackSlot.show(FeedbackMessage.result(res.outcome, 'Correct'))
+      const { outcome, text } = answerMessage({ answerType: 'correct' })
+      localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
       sendClear()
       return
-    } else if (res.type === 'ok' && res.data.result === 'oneAway' && res.outcome !== null) {
-      showWithVerdict(sent, FeedbackMessage.result(res.outcome, 'One away!'))
+    } else if (res.type === 'ok' && res.data.result === 'oneAway') {
+      const { outcome, text } = answerMessage({ answerType: 'one_away' })
+      showWithVerdict(sent, FeedbackMessage.result(outcome, text))
       sendClear()
       return
-    } else if (res.type === 'ok' && res.data.result === 'wrong' && res.outcome !== null) {
-      showWithVerdict(sent, FeedbackMessage.result(res.outcome, 'Incorrect'))
+    } else if (res.type === 'ok' && res.data.result === 'wrong') {
+      const { outcome, text } = answerMessage({ answerType: 'wrong' })
+      showWithVerdict(sent, FeedbackMessage.result(outcome, text))
       sendClear()
       return
     } else {

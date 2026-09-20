@@ -4,7 +4,7 @@ import { type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Category } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
-import type { Answer } from '../lib/answer'
+import type { GuessResult } from '../lib/answer'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { RANK_TOKEN } from '../lib/rankColors'
@@ -19,7 +19,7 @@ const COLS = 4
  *  three-value answer rather than by the outcome, because those three are all a
  *  guess can be, where the outcome vocabulary has seven and four of them could
  *  never land here. The classes themselves are built from `--outcomes-*`. */
-const HISTORY_LIT_TINT: Record<Answer, string> = {
+const HISTORY_LIT_TINT: Record<GuessResult, string> = {
   correct: styles.historyTile_won,
   oneAway: styles.historyTile_near,
   wrong: styles.historyTile_lost,
@@ -124,7 +124,7 @@ type Props = {
   // Empty / omitted when live.
   historyLitTiles?: ReadonlySet<string>
   // The viewed turn's verdict — the tint for `historyLitTiles`.
-  historyLitResult?: Answer
+  historyLitResult?: GuessResult
   // A control floated over the board's top-right (the Shuffle button). Rendered
   // INSIDE the board root — the root is the `position: relative` anchor — so it
   // hugs the VISUAL board. Anchoring to the column instead would strand it at the

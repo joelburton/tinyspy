@@ -117,9 +117,8 @@ hands the turn on.
   "result": "correct", "matched_category_rank": 2 }
 ```
 
-**Returned — kind: `guess`.** Three shapes, one per verdict recorded, and
-today each carries its outcome in the envelope beside the fact (`won` ·
-`near` · `lost`):
+**Returned — kind: `guess`.** Three shapes, one per verdict recorded; the
+fact only, and what each is worth is the frontend's (`lib/answer.ts`):
 
 - correct — `{ "result": "correct" }`
 - one away — `{ "result": "oneAway" }`
@@ -181,26 +180,29 @@ mean something sharper: a race that slipped past this one.
 and `BoardCol` sends it up; the reply names the verdict it recorded and the
 call site branches on that, never on the value it just sent.
 
-**Where the words are today.** `lib/answer.ts` holds the three wire words and
-what each is worth — `correct` is `won`, `oneAway` is `near`, `wrong` is
-`lost` — and the log bar and the PDF read that table. The words a player
-reads are written at the call sites:
+**Every answer this game gives is named, and `lib/answer.ts` says what it
+reads as.** A call site never picks a color, and only the log, the history
+banner and the printer write words of their own. Holding a recorded verdict
+or its own refusal, a surface names an `answerType` and calls
+`answerMessage()`; holding a logged row, it calls `eventToOutcome(row)` for
+the log's colored bar, or `peerAnswerMessage(row)` for a teammate's header
+line. One function underneath all of them, so the below-board pill, the log
+and the header cannot disagree about one move.
 
-| answer | said to | text | outcome | written in |
-|---|---|---|---|---|
-| correct | me | `Correct` | `won` | `BoardCol` |
-| one away | me | `One away!` | `near` | `BoardCol` |
-| wrong | me | `Incorrect` | `lost` | `BoardCol` |
-| already tried | me | `You already tried that` | `warning` | `BoardCol` |
-| a teammate's correct | about a coop teammate | `found category` | `won` | `PlayArea` |
-| a teammate's one away | about a coop teammate | `was one away` | `near` | `PlayArea` |
-| a teammate's wrong | about a coop teammate | `guessed wrong` | `lost` | `PlayArea` |
+| answerType | said to | text | outcome |
+|---|---|---|---|
+| `correct` / `correct_peer` | me / about a coop teammate | `Correct` | `won` |
+| `one_away` / `one_away_peer` | me / about a coop teammate | `One away!` | `near` |
+| `wrong` / `wrong_peer` | me / about a coop teammate | `Wrong` | `lost` |
+| `already_tried` | me | `You already tried that` | `warning` |
 
-The peer line for a match deliberately does not name the category: a NYT
-category can run past twenty-five characters and the header ellipsizes near
-that on a phone, and the solved band lands on the reader's own board at the
-same moment. Compete has no peer lines — the guess log is scoped to the
-caller, so no foreign rows arrive.
+**A pair shares its words.** A teammate's line is their name and then the
+same text, so my move and theirs read alike; neither names the category — a
+NYT category can run past what the header fits on a phone, and the solved
+band lands on the reader's own board at the same moment. The log's row does
+name it, and the history banner says `Matched FISH`; those two write their own
+words and take only the color. Compete has no peer lines — the guess log is
+scoped to the caller, so no foreign rows arrive.
 
 **New game asks first.** Before creating, the play surface asks
 `next_puzzle_for_club` so that a spent archive is an acknowledged notice

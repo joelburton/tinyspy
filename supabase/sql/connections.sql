@@ -987,7 +987,7 @@ begin
     -- split every other RPC on the roster uses. It used to put the outcome word
     -- in `result` and leave `outcome` null, which made the one field do both
     -- jobs and left the field built for the word empty.
-    return common.ok_envelope(jsonb_build_object('result', 'correct'), 'won');
+    return common.ok_envelope(jsonb_build_object('result', 'correct'));
   end if;
 
   -- ─── Wrong / oneAway: cost a mistake ─────────────────────
@@ -1113,9 +1113,7 @@ begin
   --
   -- `result` is the case, `outcome` is the word — and the frontend's
   -- lib/answer.ts says the same word for the row this wrote.
-  return common.ok_envelope(
-    jsonb_build_object('result', result),
-    case when result = 'oneAway' then 'near' else 'lost' end);
+  return common.ok_envelope(jsonb_build_object('result', result));
 
 exception when others then
   get stacked diagnostics

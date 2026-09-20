@@ -53,13 +53,13 @@ const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
  *  out of `data` now, so a mock resolving `{ error: null }` alone hands it a
  *  body it can't read and the call site sees a fault.
  *
- *  `data.result` NAMES THE CASE, in the wire words the column stores, and
- *  `outcome` says what it is worth — the split every move RPC uses. These tests
- *  submit a wrong guess the server recorded; an answer that wrote nothing comes
- *  back as a RACE (PN300 / PN301), not as an `ok`. */
+ *  `data.result` NAMES THE CASE, in the wire words the column stores, and the
+ *  envelope carries no outcome — what a case is worth is `lib/answer.ts`'s.
+ *  These tests submit a wrong guess the server recorded; an answer that wrote
+ *  nothing comes back as a RACE (PN300 / PN301), not as an `ok`. */
 const okEnvelope = {
   data: {
-    type: 'ok', data: { result: 'wrong' }, outcome: 'lost', severity: null,
+    type: 'ok', data: { result: 'wrong' }, outcome: null, severity: null,
     message: null, field: null, meta: null, dbcode: null, detail: null,
   },
   error: null,
@@ -476,11 +476,11 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
     answer(okEnvelope)
 
     // The answer arrives: the dim lifts and the verdict fills the same four
-    // tiles in the outcome its pill wears — "Incorrect" is `lost` in both places.
+    // tiles in the outcome its pill wears — "Wrong" is `lost` in both places.
     await waitFor(() => expect(tile('a').className).toMatch(/verdictFill/))
     expect(tile('a').className).toMatch(/verdictLost/)
     expect(tile('a').className).not.toMatch(/dimInFlight/)
-    expect(screen.getByText('Incorrect')).toBeInTheDocument()
+    expect(screen.getByText('Wrong')).toBeInTheDocument()
   })
 
   it('fills a refused guess in the outcome its pill takes, without asking the server', async () => {

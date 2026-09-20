@@ -225,20 +225,56 @@ three verdicts and its refusal, `PlayArea`'s three peer lines) with
 lists all seven with where each is written, which is the inventory Step 4
 starts from.
 
-### Step 4 — the `AnswerMessage` conversion
+### Step 4 — the `AnswerMessage` conversion — DONE 2026-09-19
 
 Joel, 2026-09-19: *"this definitely part of the audits we'll do for games"*,
 *"not a 'Soon' item"*, and it comes here, before the actions and the prose
-passes. As psychicnum's `a5ff4ca4` and the two trims after it: an `ok` RPC
-returns the FACT and nothing else; a call site names an `answerType`; one
-function in `lib/answer.ts` turns that into the outcome and the text, with a
-`_peer` twin per answer, so the pill, the log bar and the peer line read one
-table. Today `lib/answer.ts` holds the three wire words and `ANSWER_OUTCOME`;
-the peer lines ("found category", "was one away", "guessed wrong") are hand-
-written in `PlayArea.tsx`, and the pill's words come from the envelope. The
-decision in it — which answers this game has and what each says — is
-presented with options before it is built. app-audit.md §3's game row
-carries the conversion for every game.
+passes. psychicnum's shape (`a5ff4ca4` and the two trims after it), copied:
+an `ok` RPC returns the FACT and nothing else; a call site names an
+`answerType`; one function in `lib/answer.ts` turns that into the outcome and
+the text, with a `_peer` twin per answer, so the pill, the log bar and the
+peer line read one table.
+
+**The three word decisions, Joel's (2026-09-19):**
+
+1. The word for a wrong guess was three words on my own surfaces — the pill
+   `Incorrect`, the log and the history banner `Not a match`, the printer
+   `miss`. Ruled: *"pill='Wrong', history-banner='Not a match'"*. The log's
+   own row keeps `Not a match` too, since it writes its own words.
+2. A pair shares its wording (*"make similar"*): `Correct` / `Correct`,
+   `One away!` / `One away!`, `Wrong` / `Wrong`. The peer lines `found
+   category`, `was one away`, `guessed wrong` are gone.
+3. The local pill stays `Correct` and never names the category (Joel: *"the
+   category wouldn't fit in the pill"*). I had argued for it from a band
+   "under the pill"; the band is on the board ABOVE the pill — corrected when
+   he asked.
+
+**What shipped.** `lib/answer.ts`: the wire word is `GuessResult` now (its
+five readers renamed — `evaluate` produces one, `BoardCol` sends and reads
+it, `useGame` reads it off a row, `history.ts` off a turn, `Board.tsx` for
+the tint), `Answer` is the seven-member union, `answerMessage()`,
+`eventToOutcome(row)` and `peerAnswerMessage(row)` replace `ANSWER_OUTCOME`.
+`useGame`'s seam reads `eventToOutcome`; `BoardCol`'s three ok branches and
+its refusal call `answerMessage` and the `res.outcome !== null` guards are
+gone; `PlayArea`'s peer lines call `peerAnswerMessage`. The log, the history
+banner and the printer keep their own words and take the color only. The
+two `ok_envelope` calls in `submit_guess` dropped their outcome argument, and
+the three gameplay pins assert `"outcome": null` — **verified by planting**
+one outcome back: the correct-guess pin went red and named itself, restored
+green. `answer.test.ts` rewritten to walk the union; `doc.md`'s FE
+submissions and the `submit_guess` entry say the new state; the render
+test's pin says `Wrong` and its mock envelope carries no outcome.
+
+**Not changed, on purpose:** `docs/outcomes.md` → How a game does it still
+describes the `ANSWER_OUTCOME` table and "the pill reads the envelope",
+which psychicnum's conversion left standing and this one leaves too — two
+games now do the opposite of what it says, and that paragraph is a
+`common` doc's to rewrite. `EventRow.matched` stays; its todo Bug is pass
+2's.
+
+Verified: `tsc -b` clean, lint clean, 381 unit tests green (the game's and
+the guards), the whole pgTAP suite green (179 files, 2512 tests). The e2e
+specs have not run for Steps 2–4.
 
 ### Steps 5–8 — the actions and the row · the builder to `lib/` · the section order · the comment pass
 

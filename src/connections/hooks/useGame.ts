@@ -8,7 +8,7 @@ import { onPostgresAttached } from '@/common/realtime/postgresAttached'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import { ANSWER_OUTCOME, type Answer } from '../lib/answer'
+import { eventToOutcome, type GuessResult } from '../lib/answer'
 import { db } from '../db'
 import type { Database } from '@/types/db'
 import type { Member } from '@/common/members/member'
@@ -44,16 +44,15 @@ export type EventRow = {
   id: number
   user_id: string
   tiles: string[]
-  /** How this guess READS — the shared vocabulary, from `lib/answer.ts`, which
-   *  is also the word `submit_guess` sent back in its envelope. Never the wire
-   *  word: a tile ring, a log row and a PDF cell all want the same colors the
-   *  rest of the app uses. */
+  /** How this guess READS — the shared vocabulary, from `lib/answer.ts`, the
+   *  one place that decides it. Never the wire word: a tile ring, a log row and
+   *  a PDF cell all want the same colors the rest of the app uses. */
   outcome: Outcome
   /** What this guess WAS — the three-value wire word the column stores. Carried
    *  beside the outcome because some readers need the FACT rather than the
    *  color: the history viewer's tint has exactly three classes, and a
    *  seven-value vocabulary cannot key them. */
-  result: Answer
+  result: GuessResult
   /** Whether this guess MATCHED a category — the rule, kept separate from the
    *  look. `outcome === 'won'` happens to mean the same thing today, but that
    *  is a color answering a question about the rules, which is exactly the
@@ -311,12 +310,12 @@ export function useGame(
       // rule has to ask a color whether a category was found.
       setGuesses(
         guessesRes.data.map((g) => {
-          const result = g.result as Answer
+          const result = g.result as GuessResult
           return {
             id: g.id,
             user_id: g.user_id,
             tiles: g.tiles,
-            outcome: ANSWER_OUTCOME[result],
+            outcome: eventToOutcome({ result }),
             result,
             matched: result === 'correct',
             matched_category_rank: g.matched_category_rank,

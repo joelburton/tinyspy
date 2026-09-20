@@ -32,6 +32,7 @@ import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { db } from '../db'
 import type { CategoryRank } from '../lib/board'
+import { peerAnswerMessage } from '../lib/answer'
 import { useGame, type ConnectionsGame, type EventRow, type MatchedCategory, type SelectionMap } from '../hooks/useGame'
 import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
 import { historySnapshot } from '../lib/history'
@@ -296,14 +297,12 @@ function PlayArea({
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → the local slot
       const member = memberById(players, g.user_id)
-      if (g.matched) {
-        // NOT the category's name: it's puzzle data of unbounded length (a NYT
-        // category can run 25+ chars), and the header fits ~26 on a phone
-        // before it ellipsises. The solved band appears on the reader's own
-        // board at the same moment, so naming it here says nothing new.
-        return FeedbackMessage.peer(member, g.outcome, 'found category')
-      }
-      return FeedbackMessage.peer(member, g.outcome, g.outcome === 'near' ? 'was one away' : 'guessed wrong')
+      // The row is somebody else's — the line above returned for my own — so
+      // its answer is the `_peer` one. It never names the category: a NYT
+      // category can run past what the header fits on a phone, and the solved
+      // band lands on the reader's own board at the same moment.
+      const { outcome, text } = peerAnswerMessage(g)
+      return FeedbackMessage.peer(member, outcome, text)
     },
     globalFeedbackSlot,
   })

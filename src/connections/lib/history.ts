@@ -26,7 +26,7 @@
  */
 import type { Board, Category } from './board'
 import type { EventRow, MatchedCategory } from '../hooks/useGame'
-import type { Answer } from './answer'
+import type { GuessResult } from './answer'
 
 export interface HistorySnapshot {
   /** Bands matched by correct guesses STRICTLY BEFORE this turn (so this turn's own
@@ -40,7 +40,7 @@ export interface HistorySnapshot {
   /** This turn's verdict, as the three-value wire word — which is what the lit
    *  tiles' tint keys on, there being exactly three of those and seven
    *  outcomes. What it is WORTH is `lib/answer.ts`'s. */
-  result: Answer
+  result: GuessResult
   /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
   historyLabel: string
 }
