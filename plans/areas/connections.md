@@ -276,9 +276,61 @@ Verified: `tsc -b` clean, lint clean, 381 unit tests green (the game's and
 the guards), the whole pgTAP suite green (179 files, 2512 tests). The e2e
 specs have not run for Steps 2–4.
 
-### Steps 5–8 — the actions and the row · the builder to `lib/` · the section order · the comment pass
+### Step 5 — the actions and the row (readability 3.6, 3.7) — DONE 2026-09-19
 
-psychicnum's Steps 3–6, in that order, each a commit Joel reads; recorded
+psychicnum's Step 3, copied. **The row is one `<InfoActionsRow>` now**, in the
+order `docs/playarea.md` states: Hints | Reveal · Restart · New game ·
+Concede · End | Back to club, the divider after Hints, Back to club filled
+only at terminal. The three-way fork (`over ? … : !showInput ? … : …`) is
+gone; the only thing that varies is the row's line — the verdict, "You
+conceded" / "You're out" while a race runs on without you, nothing while you
+can play. The InfoCol's destructure, its prop-type block and the PlayArea's
+prop list read in that same order, and so does the menu.
+
+**The conventions, per binding:** Hints answers `hidden` — row and button —
+once you can no longer submit (the todo Bug); Reveal takes the button guard
+in front of the shared `describeReveal` (`showInput && asker === 'button'` →
+hidden, a grayed menu row all game, since the menu names the glyph); New
+game is a button only at terminal, `(asker) => asker === 'button' &&
+!isTerminal ? 'hidden' : 'active'`, a menu row and `+` all game; Restart's
+was already the shared hook's. `createNewGame` is a plain `async function`.
+No in-flight flag existed to remove. The bindings gather in one order: the
+shared trio, Hint, Reveal, New game, Print — with `boardView` still sitting
+between New game and Print because Print reads it (Step 7's to move).
+
+**Two gates hoisted beside `myConceded`**, since the Hint and Reveal
+bindings read them: `locallyDone` (was declared twice — in `boardView` and
+the standing conditions) and `showInput` (was in the render section). Each
+is declared once now.
+
+**`revealedHints` moved back into `<HintList>`** (the todo Soon; the column
+was open): the list owns its revealed set, PlayArea's `useState` +
+`useCallback` and InfoCol's `revealed` / `onReveal` pair are gone, and the
+list folds with the Hints button (`open={hintsOpen && showInput}`).
+`shuffleTiles` is `shuffle()` from `common/utils` (the todo Soon; `BoardCol`
+was open); `lib/localOrder.ts` keeps `reconcileLocalOrder` alone, its three
+shuffle cases gone with the function.
+
+**Two behavior changes, stated now.** *Reveal joins the game menu* — today
+it was a terminal-row button with no menu twin; the row's order puts it
+beside Restart and New game, grayed until the game is over. *An out-of-race
+compete player sees a grayed Reveal button* where before they saw none:
+the state rule's "possible here, not right now" with the tooltip, as
+psychicnum's already does; the test that pinned its absence now pins the
+gray. Everything else the collapse could destroy was watched: Back to club
+keeps `weight={over ? 'primary' : 'secondary'}`, and the divider is there.
+
+**Four todo items are deleted**: the Hints row, the action-row collapse,
+`shuffleTiles`, `revealedHints`. Two new render cases pin the conventions
+(the three end-of-game actions are menu rows all game and buttons only at
+the end; Hints goes with the input, and the grayed Reveal takes its place).
+
+Verified: `tsc -b` clean, lint clean, 380 unit tests green (the game's and
+the guards). The e2e specs have not run for Steps 2–5.
+
+### Steps 6–8 — the builder to `lib/` · the section order · the comment pass
+
+psychicnum's Steps 4–6, in that order, each a commit Joel reads; recorded
 here as each lands.
 
 ### After the restructure — pass 2, the audit

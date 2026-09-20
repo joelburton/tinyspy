@@ -1,7 +1,7 @@
 // cs-met-connections
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import { Loading } from '@/common/loading/Loading'
@@ -31,7 +31,6 @@ import { useBoundAction } from '@/common/actions/useBoundAction'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { db } from '../db'
-import type { CategoryRank } from '../lib/board'
 import { peerAnswerMessage } from '../lib/answer'
 import { useGame, type ConnectionsGame, type EventRow, type MatchedCategory, type SelectionMap } from '../hooks/useGame'
 import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
@@ -220,13 +219,6 @@ function PlayArea({
   // not a window over the board). (The guess dispatch, the local tile shuffle, and
   // the wrong-guess shake all live in BoardCol.)
   const [hintsOpen, setHintsOpen] = useState(false)
-  // Which hint categories are revealed. Owned HERE rather than in <HintList>,
-  // which was for a restart handler that no longer exists — a restart unmounts
-  // the surface now. The state could move back down; connections' todo has it.
-  const [revealedHints, setRevealedHints] = useState<ReadonlySet<CategoryRank>>(() => new Set())
-  const revealHint = useCallback((rank: CategoryRank) => {
-    setRevealedHints((prev) => (prev.has(rank) ? prev : new Set(prev).add(rank)))
-  }, [])
 
   // Mobile: below --mobile the board fills the screen and the info column slides in
   // as the off-canvas info page, reached by the header's page switch (the shared
@@ -312,6 +304,12 @@ function PlayArea({
   // branch below (same treatment as a 4-mistake elimination).
   const myConceded =
     players.find((p) => p.user_id === session.user.id)?.conceded ?? false
+  // Locally terminal (compete, not game-over): out of the race — eliminated on
+  // a fourth mistake, or conceded — while the game continues for the survivors.
+  const locallyDone = isEliminated || myConceded
+  // May I still submit? Gates the tiles, the hint list and the help line; read
+  // by the Hint and Reveal bindings, so their buttons and menu rows agree.
+  const showInput = !isTerminal && !locallyDone
 
   // ─── End / Concede / Replay — the shared three ─────────
   // End is coop's stop, hidden in compete: it terminates with everyone
@@ -363,6 +361,31 @@ function PlayArea({
       localFeedbackSlot,
     })
 
+  // Hints — the inline per-player reveal list, unfolded under the action row.
+  // A toggle, so its words move with it; the list itself is InfoCol's. Gone,
+  // row and button, once you can no longer submit: there is nothing left to
+  // be nudged toward.
+  const actHint = useBoundAction('act-hint', {
+    describe: () =>
+      showInput ? { state: 'active', label: hintsOpen ? 'Hide hints' : 'Hints' } : 'hidden',
+    run: () => setHintsOpen((o) => !o),
+  })
+
+  // Reveal the categories nobody got — a LOCAL display toggle: it swaps what the
+  // board draws, writes nothing, and affects no peer. Both faces come from
+  // `describeReveal`, which is where the rule for every game's reveal lives.
+  const actReveal = useBoundAction('act-reveal', {
+    describe: (asker) => {
+      // The one narrowing this game adds: no BUTTON while you can still play,
+      // so a player who dropped out cannot spoil a race still running. The
+      // menu row keeps it all game, grayed, because it NAMES the glyph
+      // (docs/ui.md → the menu is the legend).
+      if (showInput && asker === 'button') return 'hidden'
+      return describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal })
+    },
+    run: toggleSolution,
+  })
+
   // ─── New game — the NEXT unplayed puzzle ───────────────
   // connections's boards are a dated ARCHIVE rather than something generated
   // per game, so "New game" can't just re-roll — it has to move on to a
@@ -383,7 +406,7 @@ function PlayArea({
   // A plain function, rebuilt every render: the binding below reads it at click
   // time, so the values it closes over are whatever the last realtime refetch
   // left, and the action's own identity doesn't move when they do.
-  const createNewGame = async () => {
+  async function createNewGame() {
     // Ask what we'd get, purely so running out can be a NOTICE rather than a
     // not-ok: "there is no next puzzle" is a fact about the archive, not a
     // failure of this click. Same shape strands uses. The answer is advisory —
@@ -467,35 +490,20 @@ function PlayArea({
   // second press taking two puzzles out of the archive.
   const actNewGame = useBoundAction('act-new-game', {
     terminal: isTerminal,
-    describe: () => 'active',
+    // Reachable all game from the menu and `+` — NEW_GAME_CONFIRM is written
+    // for that ("will be shelved, not lost", "Keep playing"). A BUTTON only at
+    // the end, where "the next puzzle" is what you came to the row for.
+    describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
     run: createNewGame,
-  })
-
-  // Hints — the inline per-player reveal list, unfolded under the action row.
-  // A toggle, so its words move with it; the list itself is InfoCol's.
-  const actHint = useBoundAction('act-hint', {
-    describe: () => ({ state: 'active', label: hintsOpen ? 'Hide hints' : 'Hints' }),
-    run: () => setHintsOpen((o) => !o),
-  })
-
-  // Reveal the categories nobody got — a LOCAL display toggle: it swaps what the
-  // board draws, writes nothing, and affects no peer. Terminal-only, so a player
-  // who dropped out can't spoil a race still running.
-  const actReveal = useBoundAction('act-reveal', {
-    describe: () =>
-      describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal }),
-    run: toggleSolution,
   })
 
   // Board derivations the print model and the render both read — the same
   // values, rather than a second copy that could drift.
   const boardView = useMemo(() => {
-    const locallyDone = isEliminated || myConceded
     const matchedTiles = new Set<string>()
     for (const mc of matchedCategories) for (const t of mc.tiles) matchedTiles.add(t)
     const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
     return {
-      locallyDone,
       matchedTiles,
       remainingTiles: game.board.tileOrder.filter((t) => !matchedTiles.has(t)),
       // The categories nobody got — ONLY while this viewer is asking for them.
@@ -507,7 +515,7 @@ function PlayArea({
         ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
         : [],
     }
-  }, [game, isEliminated, myConceded, solutionShown, matchedCategories])
+  }, [game, solutionShown, matchedCategories])
 
   // Print the board — a snapshot at CLICK time (common/pdf/doc.md). The bands, the
   // remaining tiles and the log all come from what the VIEWER may see, so RLS
@@ -554,13 +562,17 @@ function PlayArea({
         // its own, so this list is the same in coop and compete.
         exits: [actConcede, actEndGame],
         extra: [
-          { items: [actHint, actRestart, actNewGame] },
+          // The menu twin of the info column's Hints button.
+          { items: [actHint] },
+          // The same three the terminal action row offers, reachable mid-game
+          // too — Reveal grayed until the game is over.
+          { items: [actReveal, actRestart, actNewGame] },
           { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actHint, actRestart, actNewGame, actPrintBoard])
+  }, [menu, actConcede, actEndGame, actHint, actReveal, actRestart, actNewGame, actPrintBoard])
 
   // Hints + End are buttons in the info-column action row AND menu rows, each
   // from one binding — see the .infoActions block below. Hints toggles the
@@ -601,7 +613,6 @@ function PlayArea({
   // open the answer, which waits for the game to be over for everyone (see the
   // reveal below). Sitting out with the puzzle unspoiled is the better version
   // of spectating, and it's the same rule every other game follows.
-  const locallyDone = isEliminated || myConceded
   useEffect(function showOutOfRace() {
     if (!locallyDone || isTerminal) return
     const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(myConceded))
@@ -667,8 +678,6 @@ function PlayArea({
   }
 
   const colorByUserId = colorByUserIdMap(players)
-
-  const showInput = !isTerminal && !locallyDone
 
   const matchedRanks = new Set(matchedCategories.map((m) => m.rank))
   const unmatched = solutionShown
@@ -739,18 +748,17 @@ function PlayArea({
         selfId={session.user.id}
         metricByUser={opponentFound}
         concededIds={concededIds}
-        // ── Action row ──
+        // ── Action row — the same bindings, in the order the menu lists them ──
+        actHint={actHint}
+        actReveal={actReveal}
+        actRestart={actRestart}
+        actNewGame={actNewGame}
+        actConcede={actConcede}
+        actEndGame={actEndGame}
+        actBackToClub={menu.actBackToClub}
+        // ── The hint list ──
         categories={game.board.categories}
         hintsOpen={hintsOpen}
-        revealedHints={revealedHints}
-        onRevealHint={revealHint}
-        actHint={actHint}
-        actEndGame={actEndGame}
-        actConcede={actConcede}
-        actRestart={actRestart}
-        actReveal={actReveal}
-        actNewGame={actNewGame}
-        actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setup={setup}
         setupRows={summaryRows}

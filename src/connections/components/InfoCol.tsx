@@ -1,14 +1,14 @@
 // cs-met-connections
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
+import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { ConnectionsSetup } from '../lib/setup'
-import type { Board, CategoryRank } from '../lib/board'
+import type { Board } from '../lib/board'
 import type { EventRow, Player } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
 import { HintList } from './HintList'
@@ -19,13 +19,13 @@ import shared from '@/common/info-sheet/infoCol.module.css'
 /**
  * connections's info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
- * OpponentStrip (compete) → action row → help → setup disclosure → event log. Shared
- * between coop and compete: `isCompete` picks the OpponentStrip, and the two exits
- * hide themselves. Every command arrives as a bound action this column simply
- * places — what it does, whether it applies right now and which key also fires it
- * are the action's own business; the plain callbacks left (`onShowHistory`,
- * `onRevealHint`) are coordination rather than commands. Prop names match the
- * other games' columns for the same idea (docs/playarea.md).
+ * whose-turn line (turn-order) → OpponentStrip (compete) → action row → the hint
+ * list → help → setup disclosure → event log. Every command is a BOUND ACTION the
+ * PlayArea handed down (`actHint`, `actEndGame`, …), so this column places buttons
+ * and decides nothing about them — an action that does not apply here draws
+ * nothing, which is how one row serves coop and compete. What is a callback is
+ * what isn't a command: the history-viewer selection. Prop names match the other
+ * games' columns for the same idea (docs/playarea.md).
  */
 export function InfoCol({
   // Props are grouped by the region they drive (mirroring the render order below), so
@@ -45,17 +45,15 @@ export function InfoCol({
   selfId,
   metricByUser,
   concededIds,
+  actHint,
+  actReveal,
+  actRestart,
+  actNewGame,
+  actConcede,
+  actEndGame,
+  actBackToClub,
   categories,
   hintsOpen,
-  revealedHints,
-  onRevealHint,
-  actHint,
-  actEndGame,
-  actConcede,
-  actRestart,
-  actReveal,
-  actNewGame,
-  actBackToClub,
   setupRows,
   guesses,
   historyId,
@@ -65,7 +63,7 @@ export function InfoCol({
   isCompete: boolean
   /** Terminal copy when the game is over (drives the action row), else null. */
   over: TerminalMessage | null
-  /** May I still submit? Gates the play action row + help (vs the locally-done look). */
+  /** May I still submit? Gates the hint list + help (vs the locally-done look). */
   showInput: boolean
   /** I conceded / was eliminated in a compete race — picks the locally-done wording. */
   myConceded: boolean
@@ -88,33 +86,32 @@ export function InfoCol({
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
 
-  // ── Action row (Hints + End/Concede, back-to-club at terminal) ──
-  /** The board's 4 categories — feeds the inline HintList (first-tile reveals). */
-  categories: Board['categories']
-  /** Is the inline hint list unfolded? The Hints button toggles this (PlayArea owns it). */
-  hintsOpen: boolean
-  /** Revealed hint categories + the reveal callback — owned by PlayArea so a
-   *  Restart can clear them (see <HintList>'s `revealed` prop). */
-  revealedHints: ReadonlySet<CategoryRank>
-  onRevealHint: (rank: CategoryRank) => void
+  // ── Action row — listed in the order the row draws them, which is the order
+  //    the game menu lists them too (docs/playarea.md) ──
   /** Unfold / fold the inline hint list. Carries its own two faces. */
   actHint: BoundAction
-  /** End the game for the whole table — coop's exit; it hides itself in a race. */
-  actEndGame: BoundAction
-  /** Drop out of a race while the others play on — hidden outside compete. */
-  actConcede: BoundAction
-  /** Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle. */
-  actRestart: BoundAction
   /** Show the categories nobody solved — or put them away, bringing back the
    *  board as the game ended. A local display toggle; nothing is written, and it
    *  carries its own two faces (see PlayArea's useSolutionReveal). */
   actReveal: BoundAction
+  /** Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle. */
+  actRestart: BoundAction
   /** Start the NEXT unplayed daily puzzle — connections' archive is dated, so
    *  this walks forward rather than re-rolling a board. Disables itself while
    *  the create is in flight, so a slow network reads as "working". */
   actNewGame: BoundAction
+  /** Drop out of a race while the others play on — hidden outside compete. */
+  actConcede: BoundAction
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
   /** Leave for the club — the shell's own action, off `ctx.menu`. */
   actBackToClub: BoundAction
+
+  // ── The hint list ──
+  /** The board's 4 categories — feeds the inline HintList (first-tile reveals). */
+  categories: Board['categories']
+  /** Is the inline hint list unfolded? The Hints button toggles this (PlayArea owns it). */
+  hintsOpen: boolean
 
   // ── Setup disclosure ──
   setup: ConnectionsSetup
@@ -133,16 +130,14 @@ export function InfoCol({
    *  number the log printed beside it. */
   onShowHistory: (id: number, n: number) => void
 }) {
-  // Both exits are placed and each hides itself in the mode that isn't its own
-  // (compete CONCEDES — drop out of the race; coop ENDS — a mutual "we're done"),
-  // so this row asks nothing. Shared by the playing and locally-terminal rows.
-  // Icon-only (the canonical action-row treatment): the tooltip carries the label.
-  const endButton = (
-    <>
-      <ActionButton action={actConcede} show="icon" />
-      <ActionButton action={actEndGame} show="icon" />
-    </>
-  )
+  // The row's line, and the only thing that varies between states: the verdict
+  // once the game is over, a neutral "you are done, they are not" while a race
+  // runs on without you, and nothing at all while you can still play.
+  const rowMessage: InfoActionsMessage | undefined = over
+    ? { text: over.infoColText, outcome: over.outcome }
+    : showInput
+      ? undefined
+      : { text: myConceded ? 'You conceded' : 'You’re out', outcome: 'neutral' }
 
   return (
     <div className={shared.infoCol}>
@@ -190,46 +185,43 @@ export function InfoCol({
           />
         )}
 
-        {/* Action row — three states. Playing: Hints + End/Concede. Locally terminal
-            (out of mistakes OR conceded, the rest race on): the terminal LOOK, a bold
-            status ("You're out" / "You conceded") + Concede. Terminal: the outcome
-            line + Reveal / Restart / New game / Club. */}
-        {over ? (
-          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
-            {/* Stay-here options left of the leave option (Club): see the
-                categories you didn't get, run this puzzle back, or move on to
-                the next unplayed date. */}
-            <ActionButton action={actReveal} show="icon" />
-            <ActionButton action={actRestart} show="icon" />
-            <ActionButton action={actNewGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </InfoActionsRow>
-        ) : !showInput ? (
-          <InfoActionsRow message={{ text: myConceded ? 'You conceded' : 'You’re out', outcome: 'neutral' }}>
-            {endButton}
-          </InfoActionsRow>
-        ) : (
-          <>
-            <InfoActionsRow>
-              {/* Hints toggles the inline HintList below (warning-toned, amber);
-                  aria-pressed reflects whether the list is currently unfolded. */}
-              <ActionButton
-                action={actHint}
-                show="icon"
-                aria-pressed={hintsOpen}
-              />
-              {endButton}
-            </InfoActionsRow>
-            {/* The per-player hint reveals — unfolds right under the action row when
-                Hints is on; stays mounted (so revealed tiles persist across toggles). */}
-            <HintList
-              categories={categories}
-              open={hintsOpen}
-              revealed={revealedHints}
-              onReveal={onRevealHint}
-            />
-          </>
-        )}
+        {/* ONE row, one order, every action listed once. Which of them is on
+            screen right now is each action's own answer — `<ActionButton>` draws
+            nothing for an action that says it is hidden — so no branch here can
+            disagree with what the menu shows. The game menu lists the same
+            bindings in this same order (docs/playarea.md). */}
+        <InfoActionsRow message={rowMessage}>
+          {/* Hints toggles the inline HintList below (warning-toned, amber);
+              aria-pressed reflects whether the list is currently unfolded. */}
+          <ActionButton action={actHint} show="icon" aria-pressed={hintsOpen} />
+          {/* Everything right of here is about the END of the game rather than
+              about playing it. Both sides are pressable mid-game, so the bar is
+              what says where the meaning changes; it hides itself when nothing
+              is left on its left. */}
+          <span className={shared.actionsDivider} />
+          <ActionButton action={actReveal} show="icon" />
+          {/* Both say `hidden` to a button until the game is over, while their
+              menu rows and keys stay live all game — the row's few slots belong
+              to playing, and moving on is a thing you go looking for. */}
+          <ActionButton action={actRestart} show="icon" />
+          <ActionButton action={actNewGame} show="icon" />
+          {/* Compete's Concede and coop's End are distinct acts, and each hides
+              itself in the mode that isn't its own. */}
+          <ActionButton action={actConcede} show="icon" />
+          <ActionButton action={actEndGame} show="icon" />
+          {/* Leaving, last. Filled at terminal, outline while the game runs:
+              `weight` is the placement's to choose rather than the action's,
+              which is why it is a condition here (docs/ui.md → Back to club). */}
+          <ActionButton
+            action={actBackToClub}
+            show="icon"
+            weight={over ? 'primary' : 'secondary'}
+          />
+        </InfoActionsRow>
+        {/* The per-player hint reveals — unfolds right under the action row when
+            Hints is on; stays mounted (so revealed tiles persist across toggles),
+            and folds with the Hints button once you can no longer submit. */}
+        <HintList categories={categories} open={hintsOpen && showInput} />
 
         {/* Help — shown only while you can act on it (never silently swaps); the
             eliminated state is carried loudly by the action row above. */}

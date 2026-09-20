@@ -1,24 +1,16 @@
 // cs-met-connections
 
+import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Board, CategoryRank } from '../lib/board'
 import { RANK_TOKEN } from '../lib/rankColors'
 import styles from './HintList.module.css'
 
 type Props = {
-  /** The 4 categories from the active game's board. */
+  // The 4 categories from the active game's board.
   categories: Board['categories']
-  /** Whether the list is showing — the Hints button toggles this in the info column. */
+  // Whether the list is showing — the Hints button toggles this in the info column.
   open: boolean
-  /** Which categories have been revealed. OWNED BY PlayArea, not held here: a
-   *  Restart replays the SAME board, so a hint that outlived the reset would
-   *  hand back a category name the player had already paid for — the rule
-   *  `common.reset_game` states outright ("the same board, hunted blind
-   *  again"). That is no longer why the set is lifted, though: a restart
-   *  unmounts the whole play surface (common/game-page/doc.md), so local state
-   *  goes with it wherever it lives. */
-  revealed: ReadonlySet<CategoryRank>
-  onReveal: (rank: CategoryRank) => void
 }
 
 /**
@@ -33,19 +25,17 @@ type Props = {
  * persist to the DB, and doesn't show up in any game history. Each player can
  * independently consult their own hints.
  *
- * State lives in PlayArea: a Set of ranks the player has revealed. Because
- * `open` is a prop and this component stays mounted while it's play (InfoCol keeps
- * it in the action slot), the revealed set survives hide/show — closing the list
- * with yellow already revealed and reopening it keeps yellow shown. It clears on
- * unmount (pause, navigating away) AND on Restart, which replays the same board
- * and so must not carry a spent hint into the second attempt — see the
- * `revealed` prop.
- *
- * This used to be a draggable `<FloatingPanel>` modal rendered over the board; it
- * now lives in the info column so a hint reads as one more info-column readout,
- * not a window to manage.
+ * The revealed set is this component's own. `open` is a prop and the list stays
+ * mounted while it is closed, so closing it with yellow already revealed and
+ * reopening it keeps yellow shown; a Restart unmounts the whole play surface
+ * (common/game-page/doc.md), so the same board hunted again starts with no
+ * hint spent.
  */
-export function HintList({ categories, open, revealed, onReveal }: Props) {
+export function HintList({ categories, open }: Props) {
+  const [revealed, setRevealed] = useState<ReadonlySet<CategoryRank>>(() => new Set())
+  const reveal = (rank: CategoryRank) =>
+    setRevealed((prev) => (prev.has(rank) ? prev : new Set(prev).add(rank)))
+
   if (!open) return null
 
   // Sort the categories by rank so the rows appear in NYT's conventional
@@ -70,7 +60,7 @@ export function HintList({ categories, open, revealed, onReveal }: Props) {
                 <button
                   type="button"
                   className={cls('link-button', styles.revealButton)}
-                  onClick={() => onReveal(c.rank)}
+                  onClick={() => reveal(c.rank)}
                 >
                   Reveal
                 </button>

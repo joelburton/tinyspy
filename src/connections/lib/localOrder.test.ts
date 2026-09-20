@@ -1,41 +1,17 @@
 // cs-met-connections
 
 import { describe, expect, it } from 'vitest'
-import { reconcileLocalOrder, shuffleTiles } from './localOrder'
+import { reconcileLocalOrder } from './localOrder'
 
 /**
- * Tests for the per-player local-shuffle helpers. `shuffleTiles`
- * is non-deterministic by design (calls `Math.random`); we test
- * its invariants (same length, same element set, returns a copy)
- * rather than a specific output. `reconcileLocalOrder` is pure
- * and deterministic — we exercise its three scenarios:
+ * Tests for the local-order reconciler — pure and deterministic, so its three
+ * scenarios are exercised outright:
  *
  *   - tile removed upstream → drop it, keep others' positions
  *   - tile added upstream (defensive, connections doesn't do this) →
  *     append at the end
  *   - upstream identical to local → no-op
  */
-
-describe('shuffleTiles', () => {
-  it('returns a new array (does not mutate the input)', () => {
-    const input = ['A', 'B', 'C', 'D']
-    const out = shuffleTiles(input)
-    expect(out).not.toBe(input)
-    // Input untouched.
-    expect(input).toEqual(['A', 'B', 'C', 'D'])
-  })
-
-  it('preserves length and element set', () => {
-    const input = ['ALPHA', 'BANANA', 'CASTLE', 'DAGGER']
-    const out = shuffleTiles(input)
-    expect(out).toHaveLength(input.length)
-    expect([...out].sort()).toEqual([...input].sort())
-  })
-
-  it('returns an empty array for an empty input', () => {
-    expect(shuffleTiles([])).toEqual([])
-  })
-})
 
 describe('reconcileLocalOrder', () => {
   it('drops tiles that disappeared from remaining', () => {

@@ -22,7 +22,8 @@ import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { db } from '../db'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { answerMessage, type GuessResult } from '../lib/answer'
-import { reconcileLocalOrder, shuffleTiles } from '../lib/localOrder'
+import { reconcileLocalOrder } from '../lib/localOrder'
+import { shuffle } from '@/common/utils/shuffle'
 import type { ConnectionsGame, EventRow, MatchedCategory } from '../hooks/useGame'
 import type { Category } from '../lib/board'
 import type { HistorySnapshot } from '../lib/history'
@@ -301,7 +302,7 @@ export function BoardCol({
 
   // One shuffle behind both triggers (the floating pill and ⌥Z), so they can't
   // drift into rearranging different things — they are one binding now.
-  const handleShuffle = () => setLocalOrder(shuffleTiles(displayedTiles))
+  const handleShuffle = () => setLocalOrder(shuffle(displayedTiles))
 
   async function handleSubmit() {
     if (submitting || unionTiles.length !== 4) return

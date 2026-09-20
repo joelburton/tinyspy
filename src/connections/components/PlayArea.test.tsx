@@ -314,8 +314,9 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
     expect(screen.getByText('You’re out')).toBeInTheDocument()
     expect(screen.queryByText('PURPLE')).not.toBeInTheDocument()
     expect(tileNames()).toHaveLength(16)
-    // No Reveal either: it waits for the game to end for everyone.
-    expect(revealButton()).toBeUndefined()
+    // Reveal is offered but gray — possible here, not right now — and its
+    // tooltip says why: it waits for the game to end for everyone.
+    expect(revealButton()).toBeDisabled()
   })
 
   it('a frozen board ignores tile clicks', async () => {
@@ -829,6 +830,28 @@ describe('connections PlayArea — the keys', () => {
     render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
     expect(bound('act-submit').describe('button').state).toBe('hidden')
     expect(bound('act-clear-selection').describe('button').state).toBe('hidden')
+  })
+
+  // The row is one list, every action listed once; which buttons are on screen
+  // is each action's own answer, and the menu asks the same bindings.
+  describe('the action row answers per asker', () => {
+    it('Restart, New game and Reveal are menu rows all game, and buttons only at the end', () => {
+      h.result = loaded()
+      render(<WithKeys {...makeCtx()} />)
+      for (const id of ['act-restart', 'act-new-game', 'act-reveal'] as const) {
+        expect(bound(id).describe('button').state).toBe('hidden')
+        expect(bound(id).describe('menu').state).not.toBe('hidden')
+      }
+    })
+
+    it('Hints is gone, row and button, once I can no longer submit', () => {
+      h.result = loaded({ isEliminated: true })
+      render(<WithKeys {...makeCtx()} />)
+      expect(bound('act-hint').describe('button').state).toBe('hidden')
+      expect(bound('act-hint').describe('menu').state).toBe('hidden')
+      // …and the Reveal button appears in its place, grayed until everyone is done.
+      expect(bound('act-reveal').describe('button').state).toBe('disabled')
+    })
   })
 
   it('+ at terminal starts the next game with no question', async () => {
