@@ -1091,7 +1091,7 @@ function buildPrintCells(meta: PuzzleTemplate, cells: CellsMap): Cell[][] {
  * `outcome` + `infoColText` the short info-column outcome line.
  *
  * Verdicts lead with the outcome word (`Won:` / `Lost:`) and carry no trailing
- * period: the pill is a one-line, ellipsising row (~48 chars on a phone), so
+ * period: the pill is a one-line, ellipsizing row (~48 chars on a phone), so
  * it's a LABEL, not prose.
  *
  * The compete loser's verdict names WHO beat them: the winner rides as

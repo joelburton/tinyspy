@@ -231,6 +231,8 @@ export function useGame(gameId: string): {
       // every realtime event, so an outage that ends should take its sentence
       // with it rather than leaving the surface behind a stale explanation.
       setFailure(null)
+      // `data[0]` types as present, so the cast is what gives the check below
+      // something to narrow (code-conventions.md → known gotchas).
       const row = gameRes.data[0] as StateRow | undefined
       // ZERO ROWS is the caller's to read, and this hook's answer is the one it
       // already gave: leave `game` null and let the surface say "not found".

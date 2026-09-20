@@ -122,7 +122,7 @@ describe('every terminal state, in both modes, for every reason', () => {
       expect(msg.outcome).toBe(c.outcome)
       expect(msg.pillText.length).toBeGreaterThan(0)
       expect(msg.infoColText.length).toBeGreaterThan(0)
-      // A pill LABEL, never a sentence — it ellipsises at about 48 characters
+      // A pill LABEL, never a sentence — it ellipsizes at about 48 characters
       // on a phone, and nothing in this vocabulary is punctuated.
       expect(msg.pillText.endsWith('.')).toBe(false)
       expect(msg.infoColText.endsWith('.')).toBe(false)

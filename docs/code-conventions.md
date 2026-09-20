@@ -1039,6 +1039,19 @@ If a query genuinely needs server-side joining of cross-schema data (e.g. a comp
 
 This limitation has implications for table design: cross-game features that want PostgREST embeds need their referenced tables in the same schema as the queries. It's another argument for the "shared UI, per-game data" pattern — keep tables co-located with the queries that join them.
 
+### `data[0]` is typed as present, so a zero-rows check needs a cast
+
+`readRows` hands back `Row[]`. Indexing it gives `Row`, not `Row | undefined` — TypeScript only adds that under `noUncheckedIndexedAccess`, which is **off** — so without a cast the `if (!row)` beneath reads as a dead branch to the compiler, while at runtime it is the ordinary "no such game" case:
+
+```ts
+const row = gameRes.data[0] as GameRow | undefined
+if (!row) { setGame(null); setLoading(false); return }
+```
+
+The cast **widens**, so it admits nothing unsafe; what it is doing is putting back the `undefined` the flag would have supplied. Write it at any `data[0]` whose zero-rows case the code then checks (connections' and stackdown's `useGame` both do), with a one-line comment pointing here.
+
+The flag is not the fix. Measured 2026-08-29 during the envelope sprint: turning `noUncheckedIndexedAccess` on costs **930 errors repo-wide**, almost all of them safe grid indexing in the solvers and PDF models — and exactly one real defect, setgame's `useGame.ts:163`, filed in [its game doc](games/setgame.md). Revisit only if that ratio changes.
+
 ### Cross-schema TypeScript types
 
 `supabase gen types` produces a `Database` type with a top-level key per exposed schema. `supabase.schema('codenamesduet').from('words')` is fully typed against `Database['codenamesduet']['Tables']['words']`. Same for RPCs.

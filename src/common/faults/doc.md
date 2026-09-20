@@ -54,7 +54,7 @@ carries, built once. docs/ui.md → Faults lays out the three lines.
   routed through the wrapper always has one. A fault raised by hand from words
   the server already wrote has no transport facts to put underneath, and the
   modal is two lines.
-- **The message wraps freely and never ellipsises.** A raw Postgres sentence is
+- **The message wraps freely and never ellipsizes.** A raw Postgres sentence is
   exactly the case that needs the room, and half of one is no use to whoever is
   reading it aloud to a friend.
 - **The red "Error" is an `<h3>` drawn in the body.** The modal hands the shell

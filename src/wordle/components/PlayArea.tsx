@@ -488,7 +488,7 @@ export function PlayArea({
   const wordleSetup = setup as WordleSetup
 
   // The verdict in the slot is the terse verdict ALONE. The answer is NOT
-  // folded in — the pill is a one-line, ellipsising row (~48 chars on a phone)
+  // folded in — the pill is a one-line, ellipsizing row (~48 chars on a phone)
   // and the word has its own home in the info column's terminalExtra ("The
   // answer was CRANE", click-to-define), so duplicating it there only crowded
   // out the verdict.

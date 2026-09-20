@@ -231,7 +231,7 @@ export function InfoCol({
             setup disclosure per the canonical order (the reveal is the payoff; the
             recap is bookkeeping).
             The ONLY place the word shows: the below-board terminal pill carries the
-            verdict alone (a one-line, ellipsising row), so the answer lives here
+            verdict alone (a one-line, ellipsizing row), so the answer lives here
             where it has room to be a sentence and a click-to-define target. */}
         {over && solution && (
           <div className={shared.terminalExtra}>

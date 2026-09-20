@@ -653,17 +653,12 @@ mono printer flattens the outcome bar's green and red to one gray.
 
 ## 7. Deferred
 
-- **`useGame.ts:208`'s `as StateRow | undefined` is a cast standing in for a
-  compiler flag.** `readRows` hands back `Row[]`, and `data[0]` types as present
-  because `noUncheckedIndexedAccess` is off — so this file writes the
-  `| undefined` by hand to make its own `if (!row)` check mean something. It
-  lies in the SAFE direction and the code is correct; what is wrong is that a
-  cast is doing a type-checker's job, and a reader can't tell it from a cast
-  that is papering over something. Connections does the same thing
-  ([`src/connections/todo.md`](../../src/connections/todo.md)) for the same reason.
-  Measured during the envelope sprint (2026-08-29): turning the flag on costs
-  930 errors repo-wide, almost all safe grid indexing in solvers and PDF models,
-  so the flag is not the answer — revisit if it ever becomes affordable.
+- **`useGame.ts`'s `as StateRow | undefined`** is the repo convention, not this
+  game's workaround: `data[0]` types as present because
+  `noUncheckedIndexedAccess` is off, so the cast is what makes the `if (!row)`
+  beneath it mean something. Written up once, with the 930-error measurement
+  that says why the flag is not the fix, in
+  [code-conventions.md → known gotchas](../code-conventions.md#data0-is-typed-as-present-so-a-zero-rows-check-needs-a-cast).
 
 - **DONE 2026-09-01.** `tile-gone` showed the FAULT modal and should have been
   a pill — seen live 2026-08-24, Joel and moth clearing the same word at the

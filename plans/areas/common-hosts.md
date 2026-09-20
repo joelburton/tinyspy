@@ -306,7 +306,7 @@ which was three faults in one line: "copy" for a message's words is banned, and
 `fe-error-key` and the classifier both went with the error sprint. The trailing
 "the modal exists because the pill slot couldn't afford that" was the before.
 It now says the line is the envelope's own `message`, whoever wrote it, wrapping
-freely and never ellipsising — a raw Postgres sentence is the case that needs
+freely and never ellipsizing — a raw Postgres sentence is the case that needs
 the room, and half of one is no use to whoever reads it aloud.
 
 ## F-common-hosts-14 · `docstring-marker-pass` · `/**` on members — WORKED

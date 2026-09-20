@@ -15,7 +15,7 @@ import {
  * surfaces cannot disagree.
  *
  * Verdicts are terse and unpunctuated ("Lost: out of guesses"), the shared
- * sweep vocabulary — the pill is a fixed-height, ellipsising row that has to
+ * sweep vocabulary — the pill is a fixed-height, ellipsizing row that has to
  * fit a phone (docs/mobile.md → feedback text). Call it only when the game IS
  * terminal; it has no answer for a live one.
  */

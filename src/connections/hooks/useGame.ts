@@ -260,7 +260,9 @@ export function useGame(
       // with it rather than leaving the board behind a stale explanation.
       setFailure(null)
       // ZERO ROWS is the caller's to read, and here it means what it says: no
-      // game with that id, or one this club can't see.
+      // game with that id, or one this club can't see. `data[0]` types as
+      // present, so the cast is what gives the check below something to narrow
+      // (code-conventions.md → known gotchas).
       const row = gameRes.data[0] as GameRow | undefined
       if (!row) {
         setGame(null)

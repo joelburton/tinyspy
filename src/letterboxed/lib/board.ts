@@ -78,7 +78,7 @@ export function tailLetter(chain: string[]): string | null {
  * more actionable than "Not a word", because it tells you what to do instead.
  *
  * Each one is SHORT and starts with a capital: these land in the below-board
- * pill, which is a one-line ellipsising label at phone width, so it is a
+ * pill, which is a one-line ellipsizing label at phone width, so it is a
  * caption rather than a sentence (docs/ui.md → the feedback pill).
  *
  * `playable` is the board's shipped word list, which already folds together

@@ -1004,6 +1004,24 @@ printer's A–D. Then the doc is deleted, its inbound links repointed
 
 ### SHIPPED · F-connections-20 · `todo-stale` · what `todo.md` says that this pass settles
 
+**Second pass, 2026-09-19, after Joel: "why in the world would we do a closing
+re-read when there are todos?"** — right, and the two closed areas are the
+proof: psychicnum's and pdf's `todo.md` are empty but for `Won't do` rulings.
+So the list is emptied BEFORE the re-read, not after. Two more items went:
+
+- **next puzzle → `Won't do`**, with the ruling and what the code does.
+- **`as GameRow | undefined` → deleted, and the fact given one home.** It was
+  never a todo: nothing is going to be done, and the reason is a repo-wide
+  convention filed in a GAME doc (stackdown's Deferred) plus a Maybe here.
+  `docs/code-conventions.md` → known gotchas now carries it once — why the
+  cast is needed, that it widens rather than narrows, and the 930-error
+  measurement that says the flag is not the fix — and the two cast sites
+  (connections' and stackdown's `useGame`) carry one line pointing there.
+  stackdown's Deferred entry is now a pointer. setgame's entry stays as it is:
+  that one is a real defect of the same family, not the convention.
+
+What is left on the list is the match animation, which is pass 3's.
+
 The Bug (`matched`) left with F-4 and the Soon (the eliminated racer) with
 F-5, both deleted as shipped. The "next puzzle" Maybe went to Joel and came
 back a NO-CHANGE, so it is struck through rather than deleted (the
@@ -1020,24 +1038,28 @@ The Bug (`matched`) and the Soon (the eliminated racer) are F-4 and F-5 and
 leave the todo with their rulings; the "next puzzle" Maybe is a question for
 Joel this pass can ask; the animation Maybe is pass 3's.
 
-### F-connections-21 · `ellipsising` · a British spelling the guard's list does not carry, in nine places
+### SHIPPED · F-connections-21 · `ellipsize` · the `-ise` spelling of it, in fifteen places
 
-Found while reading psychicnum's `lib/terminal.ts` beside connections' (F-2's
-verification): its docstring says the pill is a "fixed-height, **ellipsising**
-row". Connections' own says *ellipsizing* and is right. `-ise` where American
-writes `-ize` is the CLAUDE.md rule, and `americanSpelling.test.ts` says in
-its own words that the list "grows when one gets through". This one got
-through nine times: `psychicnum/lib/terminal.ts`, `wordiply`, `crosswords`,
-`stackdown` and `wordle`'s PlayAreas, `wordle/components/InfoCol.tsx`,
-`letterboxed/lib/board.ts`, `docs/ui.md` → the pill, and
-`plans/areas/common-hosts.md`. Every one is the same sentence about the pill,
-copied outward from whichever wrote it first.
+**Joel, 2026-09-19: "do it"** — fix and guard. Found while reading
+psychicnum's `lib/terminal.ts` beside connections' (F-2's verification): its
+docstring called the pill a "fixed-height, `-ise`-spelled" row, where
+connections' own says *ellipsizing* and is right. Every one is the same
+sentence about the feedback pill, copied outward from whichever game wrote it
+first — seven games, `docs/ui.md`, a faults stylesheet and its `doc.md`, and
+`plans/areas/common-hosts.md`.
 
-**Options:** *fix and guard* — the nine lines to `ellipsizing`, and
-`ellipsising → ellipsizing` joins the guard's map so it cannot come back — or
-*fix only*, leaving the word off the list. Recommendation: fix and guard;
-the guard's docstring asks for exactly this, and a word this sentence keeps
-copying is the kind that returns.
+**The guard found six the grep did not.** Nine came back for the `-ing`/`-ed`
+forms; adding the pair to `americanSpelling.test.ts` turned up the `-es`
+inflection too (`src/common/faults/FaultModal.module.css` and its doc,
+spellingbee, stackdown, wordwheel, and psychicnum's `terminal.test.ts`) —
+which is the lesson its own map already carries in a comment: `\b` ends a
+match at the stem, so a listed stem never matches its inflections. All four
+forms are listed now.
+
+**This finding cannot spell the word either**, which is the guard working as
+designed: it has no prose exemptions, and its header sends a doc that needs to
+SHOW a British spelling to a rarity the list omits (`gaol`, `connexion`). So
+the evidence above names the form instead of writing it.
 
 ### SHIPPED · F-connections-22 · `status-outcome-is-a-reason` · the status blob's key spent the outcome vocabulary's word on a cause
 

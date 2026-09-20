@@ -689,7 +689,7 @@ export function PlayArea(ctx: GamePageCtx) {
  *
  * Verdicts lead with the OUTCOME WORD — "Won:" / "Lost:" / "Ended:" — so the
  * result reads before the detail does, and they stay short enough for the
- * below-board pill on a phone (~44 characters; it ellipsises rather than wraps).
+ * below-board pill on a phone (~44 characters; it ellipsizes rather than wraps).
  * A rank in a verdict is quoted (`"Genius"`), the one place we still use
  * `rankLabel`'s longer `rank "Genius"` form being the info-column line.
  *

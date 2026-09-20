@@ -20,7 +20,7 @@
 }
 
 /* Line 2: the envelope's own `message`, whoever wrote it. Wraps freely and
-   never ellipsises — a raw Postgres sentence is the case that needs the room,
+   never ellipsizes — a raw Postgres sentence is the case that needs the room,
    and half of one is no use to whoever reads it aloud. */
 /* @@ */ .message {
   margin: 0;

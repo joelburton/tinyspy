@@ -600,7 +600,7 @@ export function PlayArea({
       const answer = answerOf(s)
       markPeerWord(s.tile_ids ?? [], answer)
       // "tried X" (not "tried X — not a word"): the header fits ~26 chars on a
-      // phone and ellipsises silently, and the outcome already says it failed.
+      // phone and ellipsizes silently, and the outcome already says it failed.
       return FeedbackMessage.peer(
         member,
         ANSWER_OUTCOME[answer],
@@ -785,7 +785,7 @@ export function PlayArea({
  *  end).
  *
  *  Verdicts lead with the outcome word (`Won:` / `Lost:`) and carry no trailing
- *  period: the pill is a one-line, ellipsising row (~48 chars on a phone), so
+ *  period: the pill is a one-line, ellipsizing row (~48 chars on a phone), so
  *  it's a LABEL, not prose. */
 function buildOver({
   mode,

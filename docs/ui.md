@@ -203,7 +203,7 @@ Game-end UI splits along one line: **the moment** (a win worth marking, which ha
 
 **The record — two surfaces, one message.** Every game's `buildOver()` returns a [`TerminalMessage`](../src/common/terminal/terminalMessage.ts) — `{ pillText, infoColText, outcome, actor? }` — so the two surfaces can't drift:
 
-- `pillText` → the **below-board verdict**, shown into the local feedback slot as a `terminalVerdict` and occupying the slot the input/action UI used during play. Terse, leading with the outcome word, no trailing period: it's a one-line ellipsising LABEL (~48 chars on a phone), not prose. "Won: fewest guesses" / "Lost: out of time" / "Game ended". A verdict that names a person carries them as `actor`, and the pill draws the mention ("● moth won").
+- `pillText` → the **below-board verdict**, shown into the local feedback slot as a `terminalVerdict` and occupying the slot the input/action UI used during play. Terse, leading with the outcome word, no trailing period: it's a one-line ellipsizing LABEL (~48 chars on a phone), not prose. "Won: fewest guesses" / "Lost: out of time" / "Game ended". A verdict that names a person carries them as `actor`, and the pill draws the mention ("● moth won").
 - `infoColText` → the **info-column outcome line**, which `<InfoActionsRow>` draws beside the buttons. Shorter still: "You won!" / "Out of guesses" / "Game over".
 - `outcome` (`won` / `lost` / `neutral`) colors both. The neutral manual-end message is shared outright (`gameEndedTerminalMessage()`) — the friends agreed to stop, so nobody won and nobody lost.
 

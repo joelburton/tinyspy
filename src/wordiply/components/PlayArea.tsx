@@ -647,7 +647,7 @@ export function PlayArea(ctx: GamePageCtx) {
  * below-board verdict, `outcome` + `infoColText` the short info-column line.
  *
  * Verdicts lead with the outcome word (`Won:` / `Lost:` / `Ended:`) and carry
- * no trailing period — the pill is a one-line, ellipsising row (~48 chars on a
+ * no trailing period — the pill is a one-line, ellipsizing row (~48 chars on a
  * phone), so it's a LABEL, not prose. A compete loss names WHO beat you: a
  * sole winner rides as `actor`, so the pill draws the mention the way every
  * other message names someone. A CO-win has 2+ winners, so it stays a plain

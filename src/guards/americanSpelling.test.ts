@@ -126,6 +126,10 @@ const PAIRS: Record<string, string> = {
   maximises: 'maximizes', maximising: 'maximizing',
   optimises: 'optimizes', optimising: 'optimizing',
   prioritises: 'prioritizes', prioritising: 'prioritizing',
+  // This one reached seven files before it was noticed, in one sentence about
+  // the feedback pill that each game copied from the last.
+  ellipsise: 'ellipsize', ellipsised: 'ellipsized', ellipsises: 'ellipsizes',
+  ellipsising: 'ellipsizing',
   licences: 'licenses', defences: 'defenses', offences: 'offenses',
   // -ce → -se
   licence: 'license', defence: 'defense', offence: 'offense', pretence: 'pretense',
