@@ -8,14 +8,13 @@
 
 ## Maybe
 
-- **Per-tile rise-and-fade animations on a category match.** A rejected guess
-  shakes (the shared verdict mark); the match-resolved animation does not
-  exist — the arriving band's attention flash is the nearest thing, and it is
-  deliberately for the OTHER players. Pass 3 (tile-feedback) is where this is
-  weighed.
-
 ## Won't do
 
+- **Per-tile rise-and-fade animations on a category match** (ruled 2026-09-19
+  at the tile-feedback pass, Joel: *"close the todo"*). Four tiles collapsing
+  into a band already carries the attention flash, which says where to look;
+  an arrival animation would say what happened, and the band — a full-width
+  row naming the category — says that itself.
 - **"Next puzzle" giving the next date we HAVE a puzzle for** (Joel,
   2026-08-25; ruled 2026-09-19): *"if the user chooses a specific date, we
   either load that exact date puzzle or show a validation error — which sounds

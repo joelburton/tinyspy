@@ -1211,11 +1211,44 @@ the no-ops they claimed to be.
   otherwise: 372 green. Nothing else predicted; no column moved, so the
   geometry harness has no reason to.
 
+## Pass 3 — tile-feedback, 2026-09-19
+
+**Confirmed rather than converted**, because the audit before it had already
+done the board work. Every channel this board wears is shared, and the read
+against the framework found four things to propose; **Joel ruled three of them
+no** — no dashed hint mark (this game's hint is an info-column fact), no
+in-flight dim shown to the rest of a coop table (a second broadcast event, and
+the footgun it would close — pulling a tile out of a guess already with the
+server — is accepted), and no arrival animation for a band. The fourth, the
+strike meter ticking unmarked, was **withdrawn on re-reading the peer path**:
+the mistake is already marked twice, by the peer's four tiles filling and
+shaking and by a peer pill naming them.
+
+Checked and clean: the rank palette beside the outcome palette (two
+vocabularies, ruled fine), the Shuffle button (the shared control in the
+shared slot), and what a **restart** does to every mark — structural, not
+lucky: `GamePage` keys the surface on `commonGame.restarts`, and
+`useMoveAttention` needs the move marker to ADVANCE, which a replay drops.
+
+What the pass CHANGED was color rather than channel, and most of it landed in
+common: `.verdictFill` now carries `--verdict-edge`, so a verdict-filled tile
+stops wearing a beige border around a saturated face; connections' two local
+outcome→class maps became `VERDICT_TONE` (one of them keyed on the three-value
+wire word — the narrowing that map exists to prevent); `Board`'s nine dead
+prop defaults went; and the stylesheets were read end to end — 296 → 250
+lines, plus the hint list's two literal `1px` borders taking
+`--border-width-line`. `plans/tile-feedback.md` records connections at **tf2**.
+
 ## Closing
 
+- [x] the tile-feedback pass done, and the game's tf level updated there
+      (2026-09-19, above)
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — it is empty but for two `Won't do` rulings, the shape psychicnum and
+      pdf closed in
+- [x] `docs/games/connections.md` reconciled — **satisfied differently**: F-19
+      deleted that file into `src/connections/doc.md` and its Deferred items
+      went to `todo.md`, so there is no standing register left to reconcile
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] `docs/games/connections.md` reconciled with `todo.md`: its Deferred
-      section moved into the todo, or deliberately kept as the standing register
-- [ ] the tile-feedback pass done, and the game's tf level updated there
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [ ] every file on the roster blessed, or its stamp says why not — 55 files
+      read `cs-met-connections` today; the blessing is Joel's
