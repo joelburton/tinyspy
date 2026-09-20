@@ -414,17 +414,22 @@
 /* @@ */ .tileFace.verdictFill {
 /* @@ */   --tile-slot-fill-color: var(--verdict-fill);
 /* @@ */   --tile-slot-ink-color: var(--verdict-ink);
+/* @@ */   --tile-slot-edge-color: var(--verdict-edge);
 }
 
-/* Each tone carries both forms: `--verdict-tone` for a ring around a group (the
- * legible-on-white 800 tier, since a ring is a thin line on the page), and
- * `--verdict-fill` for a piece — the 400 tier, WHICH IS THE COLOR THAT ANSWER'S
- * EVENT-LOG BAR ALREADY WEARS. That is the point of it: a wrong guess is one red,
- * whether you meet it on the board now or in the log a minute later, and neither
- * place is free to pick its own shade. Same family, two tiers, one meaning. */
+/* Each tone carries three forms: `--verdict-tone` for a ring around a group (the
+ * legible-on-white 800 tier, since a ring is a thin line on the page),
+ * `--verdict-edge` for the piece's own border (the fill stepped toward black —
+ * quiet definition of the same hue, never the 800 tier, which is a line meant
+ * for white), and `--verdict-fill` for the piece — the 400 tier, WHICH IS THE
+ * COLOR THAT ANSWER'S EVENT-LOG BAR ALREADY WEARS. That is the point of it: a
+ * wrong guess is one red, whether you meet it on the board now or in the log a
+ * minute later, and neither place is free to pick its own shade. Same family,
+ * three tiers, one meaning. */
 /* @@ */ .verdictLost {
 /* @@ */   --verdict-tone: var(--outcomes-lost-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-lost-fill-color);
+/* @@ */   --verdict-edge: var(--outcomes-lost-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
@@ -437,6 +442,7 @@
 /* @@ */ .verdictWarning {
 /* @@ */   --verdict-tone: var(--outcomes-warning-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-warning-fill-color);
+/* @@ */   --verdict-edge: var(--outcomes-warning-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
@@ -449,6 +455,7 @@
 /* @@ */ .verdictNear {
 /* @@ */   --verdict-tone: var(--outcomes-near-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-near-fill-color);
+/* @@ */   --verdict-edge: var(--outcomes-near-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
@@ -468,24 +475,28 @@
 /* @@ */ .verdictWon {
 /* @@ */   --verdict-tone: var(--outcomes-won-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-won-fill-color);
+/* @@ */   --verdict-edge: var(--outcomes-won-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
 /* @@ */ .verdictError {
 /* @@ */   --verdict-tone: var(--outcomes-error-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-error-fill-color);
+/* @@ */   --verdict-edge: var(--outcomes-error-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
 /* @@ */ .verdictNeutral {
 /* @@ */   --verdict-tone: var(--outcomes-neutral-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-neutral-fill-color);
+/* @@ */   --verdict-edge: var(--outcomes-neutral-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
 /* @@ */ .verdictNoted {
 /* @@ */   --verdict-tone: var(--outcomes-noted-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-noted-fill-color);
+/* @@ */   --verdict-edge: var(--outcomes-noted-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 

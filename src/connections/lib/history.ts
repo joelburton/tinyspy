@@ -20,7 +20,7 @@
  */
 import type { Board, Category } from './board'
 import type { EventRow, MatchedCategory } from '../hooks/useGame'
-import type { GuessResult } from './answer'
+import type { Outcome } from '@/common/outcomes/outcomes'
 
 export interface HistorySnapshot {
   // Bands matched by correct guesses STRICTLY BEFORE this turn (so this turn's
@@ -32,10 +32,9 @@ export interface HistorySnapshot {
   tiles: string[]
   // The four tiles this turn guessed — light them by what it was.
   historyLitTiles: Set<string>
-  // This turn's verdict, as the three-value wire word — which is what the lit
-  // tiles' tint keys on, there being exactly three of those and seven
-  // outcomes. What it is WORTH is `lib/answer.ts`'s.
-  result: GuessResult
+  // What this turn was WORTH (`lib/answer.ts`'s answer, off the row) — the tint
+  // the lit tiles take, in the same shared verdict color a live answer wears.
+  outcome: Outcome
   // A short, name-free turn label for the viewer banner (the log row shows
   // *who*).
   historyLabel: string
@@ -72,7 +71,7 @@ export function historySnapshot(
     matched,
     tiles,
     historyLitTiles: new Set(turn?.tiles ?? []),
-    result: turn?.result ?? 'wrong',
+    outcome: turn?.outcome ?? 'lost',
     historyLabel: describe(turn, board),
   }
 }

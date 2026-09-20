@@ -7,9 +7,10 @@ import shared from './playArea.module.css'
  * The class a piece wears to show an outcome — one per word, and TOTAL over the
  * vocabulary.
  *
- * Each class carries nothing but `--verdict-fill` and `--verdict-ink`, so the
- * piece wearing it need not be a `.tileFace`: stackdown's entry slot and
- * wordiply's guess row read those two properties themselves.
+ * Each class carries only tokens — `--verdict-fill`, `--verdict-ink` and
+ * `--verdict-edge` — so the piece wearing it need not be a `.tileFace`:
+ * stackdown's entry slot and wordiply's guess row read them themselves. On a
+ * tile, pair it with `.verdictFill`, which maps all three onto the face.
  *
  * Total is the point. A call site that spells out the three outcomes its game
  * produces today hands everything else to whichever branch it ends on — which

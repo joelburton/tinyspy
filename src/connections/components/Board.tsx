@@ -4,54 +4,26 @@ import { type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Category } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
-import type { GuessResult } from '../lib/answer'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
+import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './PlayArea.module.css'
 
 const COLS = 4
 
-/** A history-lit tile's tint class, by what the viewed guess WAS. Keyed by the
- *  three-value answer rather than by the outcome, because those three are all a
- *  guess can be, where the outcome vocabulary has seven and four of them could
- *  never land here. The classes themselves are built from `--outcomes-*`. */
-const HISTORY_LIT_TINT: Record<GuessResult, string> = {
-  correct: styles.historyTile_won,
-  oneAway: styles.historyTile_near,
-  wrong: styles.historyTile_lost,
-}
-
 /** Empty lit-tile set — a stable reference so a live render never lights a tile. */
 const NO_TILES: ReadonlySet<string> = new Set()
-
-/**
- * The verdict's class, keyed by the outcome its PILL wore — the fill the four
- * tiles take. TOTAL over `Outcome`: the mark never picks its own color, it
- * wears the pill's, because the two are one message, and a new outcome is a
- * compile error here rather than a tile painted the wrong color.
- *
- * `won: null` is a real entry, not a gap: a correct guess's four tiles collapse
- * into a band on the same render, so there is nothing left to mark.
- */
-const VERDICT_CLASS: Record<Outcome, string | null> = {
-  won: null,
-  lost: shared.verdictLost,
-  warning: shared.verdictWarning,
-  near: shared.verdictNear,
-  error: shared.verdictError,
-  neutral: shared.verdictNeutral,
-  noted: shared.verdictNoted,
-}
 
 /** The answer to my last guess, worn by the tiles it covered. */
 export type BoardVerdict = {
   tiles: ReadonlySet<string>
-  // ANY outcome, because the mark wears its pill's outcome and the pill speaks
-  // the full vocabulary. `VERDICT_CLASS` above is total over it.
+  // ANY outcome, because the mark wears its PILL's outcome — the two are one
+  // message — and the pill speaks the full vocabulary. `VERDICT_TONE` is total
+  // over it, so a new one is a compile error rather than a tile painted wrong.
   outcome: Outcome
   // Bumped per verdict. The shake is a CSS animation, which only restarts on a
   // NEW element, so the tiles are keyed on this: submitting the same four tiles
@@ -79,17 +51,17 @@ type Props = {
   onToggle: (tile: string) => void
   // The tiles of a guess that is OUT — sent, waiting on the server. They wear
   // the shared in-flight dim until the answer lands.
-  inFlightTiles?: ReadonlySet<string>
+  inFlightTiles: ReadonlySet<string>
   // The verdict on my last guess, filling its tiles in its pill's outcome
   // (BoardCol sets it, and clears it on the next tile click). Null while
   // nothing is being judged.
-  verdict?: BoardVerdict | null
+  verdict: BoardVerdict | null
   // Tiles taking the attention flash — the beat that says an answer landed here.
   // Raised for every verdict, my own included.
-  attentionTiles?: ReadonlySet<string>
+  attentionTiles: ReadonlySet<string>
   // Tiles taking the head-shake, which starts once the flash has faded and the
   // verdict color underneath is visible.
-  shakenTiles?: ReadonlySet<string>
+  shakenTiles: ReadonlySet<string>
   // user_id → resolved color var, for the identity ring.
   colorByUserId: ReadonlyMap<string, string>
   // Is this board SHARED — a coop game with somebody else in it? Identity is
@@ -98,16 +70,16 @@ type Props = {
   // but me, so the same applies. When it IS shared, everyone's picks are ringed
   // INCLUDING MINE: a board where only some picks carry a color reads as missing
   // data rather than as "the unmarked ones are yours".
-  sharedBoard?: boolean
+  sharedBoard: boolean
   // Turn-order (coop, opt-in): a teammate holds the move, so the whole board
   // is inactive — the board-scope dim.
-  notMyTurn?: boolean
+  notMyTurn: boolean
   // True for a beat as the turn becomes mine (useTurnStartFlash).
-  myTurnJustStarted?: boolean
+  myTurnJustStarted: boolean
   // The game's outcome once it is over — the board wears the frame in it.
   // `'neutral'` also covers a player who is out of a compete race while
   // the others play on: their board is inert even though the game isn't.
-  gameOver?: TerminalOutcome | null
+  gameOver: TerminalOutcome | null
   // ATTENTION's cause, the server's move marker: the guess log's length. A band
   // arriving is only news when a MOVE put it there — `replay_board` deletes the
   // guesses, so a restart drops this instead of advancing it and the re-dealt
@@ -115,12 +87,14 @@ type Props = {
   moveCount: number
   // Render read-only under the shared viewer frame (a past turn's board). Off
   // during live play.
-  isViewingHistory?: boolean
-  // The four tiles the viewed turn guessed — tinted by `historyLitResult`, under
-  // the viewer's outline. Empty / omitted when live.
+  isViewingHistory: boolean
+  // The four tiles the viewed turn guessed, tinted by `historyLitOutcome` and
+  // under the viewer's outline. The only two optional props here: the caller
+  // reads both off the open snapshot (`historySnap?.…`), so they arrive
+  // undefined whenever no past turn is open — which is most of the time.
   historyLitTiles?: ReadonlySet<string>
-  // The viewed turn's verdict — the tint for `historyLitTiles`.
-  historyLitResult?: GuessResult
+  // The viewed turn's outcome — the tint for `historyLitTiles`.
+  historyLitOutcome?: Outcome
   // A control floated over the board's top-right (the Shuffle button). Rendered
   // INSIDE the board root, the `position: relative` anchor, so it hugs the
   // VISUAL board rather than the column's top.
@@ -154,19 +128,19 @@ export function Board({
   interactive,
   ownerByTile,
   onToggle,
-  inFlightTiles = NO_TILES,
-  verdict = null,
+  inFlightTiles,
+  verdict,
   colorByUserId,
-  sharedBoard = false,
-  notMyTurn = false,
-  myTurnJustStarted = false,
-  gameOver = null,
+  sharedBoard,
+  notMyTurn,
+  myTurnJustStarted,
+  gameOver,
   moveCount,
-  attentionTiles = NO_TILES,
-  shakenTiles = NO_TILES,
-  isViewingHistory = false,
+  attentionTiles,
+  shakenTiles,
+  isViewingHistory,
   historyLitTiles = NO_TILES,
-  historyLitResult = 'wrong',
+  historyLitOutcome = 'lost',
   floatingControl,
 }: Props) {
   // ─── The rows ──────────────────────────────────────────
@@ -322,8 +296,9 @@ export function Board({
                 // no state color — a decided one stops being a tile at all and
                 // becomes part of a band.
                 isVerdict && shared.verdictFill,
-                isVerdict && verdict && VERDICT_CLASS[verdict.outcome],
-                isHistoryLit && HISTORY_LIT_TINT[historyLitResult],
+                isVerdict && verdict && VERDICT_TONE[verdict.outcome],
+                isHistoryLit && shared.verdictFill,
+                isHistoryLit && VERDICT_TONE[historyLitOutcome],
                 isHistoryLit && styles.historyTile,
               )}
               style={ownerColor ? { ['--peer-color' as string]: ownerColor } : undefined}

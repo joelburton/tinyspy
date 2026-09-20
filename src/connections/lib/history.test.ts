@@ -64,7 +64,7 @@ describe('historySnapshot', () => {
     expect([...historySnapshot(GUESSES, BOARD, 12).historyLitTiles].sort()).toEqual(
       ['blue', 'gold', 'iron', 'red'],
     )
-    expect(historySnapshot(GUESSES, BOARD, 12).result).toBe('wrong')
+    expect(historySnapshot(GUESSES, BOARD, 12).outcome).toBe('lost')
   })
 
   it('describes a correct turn by its category, the others by the canonical text', () => {

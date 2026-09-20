@@ -468,7 +468,7 @@ export function BoardCol({
         moveCount={guesses.length}
         isViewingHistory={isViewingHistory}
         historyLitTiles={historySnap?.historyLitTiles}
-        historyLitResult={historySnap?.result}
+        historyLitOutcome={historySnap?.outcome}
         // Shuffle floats over the board's top-right, only while the grid is
         // shown; Board anchors it to the visual board.
         floatingControl={

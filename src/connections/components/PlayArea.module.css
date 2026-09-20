@@ -1,35 +1,17 @@
 /* cs-met-connections */
 
-/* connections board surface. The two-column SHELL and the TILE chrome come from
- * the shared common/game-page/playArea.module.css, the info-column READOUTS from
- * common/info-sheet/infoCol.module.css (imported as `shared`); only what's
- * specific to connections lives here:
- *   - .board      — the board wrapper that fills the column. NO border/
- *                   background today (the gaps show the column behind, matching
- *                   psychicnum); the shared shape both games carry so a future
- *                   game frames its board here in one place.
- *   - .grid       — the one board grid: 4 columns, fills the .board (the same
- *                   flex-fill layout psychicnum's Board uses; the tile-size caps
- *                   are set on .board). Holds BOTH the tiles and
- *                   the solved-category bands (see Board.tsx + docs/ui.md →
- *                   "Board sizing").
- *   - .band*      — a solved/revealed category as a FULL-WIDTH grid row, the
- *                   same height as a tile row and sharing the one grid gap. It
- *                   wears the shared `.tileFace`; only the span + the two lines
- *                   are here.
- *   - .historyTile* — the turn-history highlight (outcome tint + the viewer ring).
- *   - .moveArea / .inputButton / .mistakesInline — the commit controls below the
- *     board (the mistakes readout + Clear/Submit, right-justified; they live in
- *     the shared `.moveAreaOrLocalFeedback` swap box). See docs/code-conventions.md
- *     → below-board structure.
+/* connections board surface. The two-column shell and the tile chrome are the
+ * shared common/game-page/playArea.module.css; the info-column readouts are
+ * common/info-sheet/infoCol.module.css. Both arrive as `shared`.
  *
- * Every FEEDBACK mark is shared and none of it is here: hover and press, the
- * `.selected` border on a tile in the guess being built, `.peerPick` for whose
- * pick it was, `.dimInFlight` while the guess is with the server,
- * `.verdictFill` when the answer lands, `.attentionFlash` on a band that landed
- * under a teammate's hands, and the three board-scope marks (the not-your-turn
- * dim, the your-turn flash, the game-over frame) — all in the shared
- * common/game-page/playArea.module.css.
+ * Here: the board wrapper and its one grid, which holds the tiles AND the
+ * solved-category bands (Board.tsx; docs/ui.md → Board sizing); the band, which
+ * wears the shared tile face and adds only its full-width span and two lines;
+ * the turn-history highlight; the commit controls below the board
+ * (docs/code-conventions.md → below-board structure); and `.peerPick`, whose
+ * geometry is this game's.
+ *
+ * No feedback mark is here — every one of them is shared.
  */
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
@@ -156,40 +138,18 @@
   z-index: 1;
 }
 
-/* Turn-history: the four tiles the VIEWED past turn guessed. Two parts, composed:
- *   - a TINT by the turn's outcome (green correct / gold one-away / red wrong) —
- *     the same saturated outcome tones the event-log bars use, set on the shared
- *     tile's --tile-* tokens so the fill wins (like psychicnum's decided tiles).
- *     A live verdict fills the tile too, and these deliberately sit in the same
- *     family: both are "what that guess turned out to be". They can't be confused
- *     because they can't co-occur — the viewer is read-only and holds no live
- *     answer — and in here the tile isn't being judged, it's being described:
- *     that turn's outcome IS the state of this snapshot;
- *   - a ring in the shared viewer blue, drawn OUTSIDE the tile so it reads as the
- *     same mark as the board frame at tile scale — an outline, outside, in the
- *     history color. Offset 0 is forced by the grid: 3px of ring on each of two
- *     neighbors takes 6px of the 0.5rem gap, and any positive offset would have
- *     two ringed tiles collide.
- * A guessed tile stays on the grid in the strictly-before snapshot even for a
- * correct guess (it hasn't collapsed into its band yet) — that's what we ring. */
+/* Turn-history: the ring on the four tiles the VIEWED past turn guessed. Their
+ * FILL is the shared verdict pair (`.verdictFill` + the turn's outcome class),
+ * composed in Board.tsx — the same color a live answer wears, because both say
+ * what that guess turned out to be, and the two can never co-occur (the viewer
+ * is read-only and holds no live answer).
+ *
+ * The ring is the shared viewer blue, outside the tile, so it reads as the board
+ * frame's mark at tile scale. Offset 0 is forced by the grid: 3px of ring on two
+ * neighbors would take 6px of the 0.5rem gap and collide. */
 /* @@ */ .historyTile {
   outline: 3px solid var(--history-color);
   outline-offset: 0;
-}
-/* @@ */ .historyTile_won {
-/* @@ */   --tile-slot-fill-color: var(--outcomes-won-fill-color);
-/* @@ */   --tile-slot-edge-color: var(--outcomes-won-ink-color);
-/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
-}
-/* @@ */ .historyTile_near {
-/* @@ */   --tile-slot-fill-color: var(--outcomes-near-fill-color);
-/* @@ */   --tile-slot-edge-color: var(--outcomes-near-ink-color);
-/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
-}
-/* @@ */ .historyTile_lost {
-/* @@ */   --tile-slot-fill-color: var(--outcomes-lost-fill-color);
-/* @@ */   --tile-slot-edge-color: var(--outcomes-lost-ink-color);
-/* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
 /* Coop "Mistakes remaining ●●●○" — left-justified on the input row below the
@@ -224,12 +184,6 @@
   justify-content: flex-end;
   gap: 0.5rem;
 }
-
-/* Own-result feedback + the terminal/eliminated message both render as the shared
- * <FeedbackPill> (centered via the shared `.localFeedback`) in the same swap box
- * as the controls. It reserves no height of its own: the shared
- * `.moveAreaOrLocalFeedback`'s min-height keeps the slot stable whether it holds
- * the `.moveArea` (Clear/Submit buttons), the result pill, or the terminal pill. */
 
 /* A button in the input row (`.inputButton` — the shared name psychicnum uses
  * for its Submit too). The icon+label look is the global `.icon-button` class
