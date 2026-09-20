@@ -263,7 +263,7 @@ solo-club games are invisible to you under RLS and still have to count.
 
 **Returned:** `{ "result": "found", "puzzle": { "id": "9c41…",
 "puzzle_date": "2026-06-15", "label": "2026-06-15: BASS, FLOUNDER" } }`.
-Everyone having played everything is a refusal, not an empty answer.
+Everyone having played everything is a not-ok, not an empty answer.
 
 ### `connections.puzzle_for_date(target_date)`
 
@@ -337,7 +337,7 @@ taking that puzzle in the gap costs nothing.
 
 The play surface is the shape [`docs/playarea.md`](../../docs/playarea.md)
 describes — a loader that gates on the three ways a game can fail to load,
-then `PlayArea` in the eight sections. What is connections's own:
+then `PlayArea` in the eight sections. What is connections' own:
 
 - **The board is one grid.** A solved category is a full-width row wearing
   the shared tile face in its rank's color; the tiles are the rest, in this
@@ -392,7 +392,7 @@ fixture puzzle whose date and source id are alien to the real archive:
 | `concede_test` | a conceder counts as not alive; the last one out ends the race as `conceded` |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, a fresh guess advances, a race does not |
 | `end_game_test` · `replay_test` · `rls_test` | the neutral stop and its realtime touch; Restart un-matches by deleting the log; an outsider sees nothing and can change nothing |
-| `next_puzzle_test` | the queue is per player and across clubs; a spent archive and an empty date are refusals on `puzzle_id`; the override filters nothing |
+| `next_puzzle_test` | the queue is per player and across clubs; a spent archive and an empty date are not-oks naming `puzzle_id`; the override filters nothing |
 | `club_game_status_test` | the view's five columns and its RLS |
 
 Vitest, beside the code:

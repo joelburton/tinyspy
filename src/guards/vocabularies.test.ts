@@ -312,7 +312,7 @@ const VOCABULARIES: Vocabulary[] = [
       // StrikeMarks was here with ['0.3rem', '0.4rem'] until the restructure
       // moved it into `src/connections/` — its only importer. A game's file is
       // a tuned surface and out of this vocabulary's scope, so the row cannot
-      // stay; the two literals are connections's to keep or convert.
+      // stay; the two literals are connections' to keep or convert.
       'src/common/devtools/PalettePage.module.css': ['1rem', '0.75rem', '2.5rem', '0.25rem', '0.5rem', '0.35rem', '0.15rem'],
       // DECIDED and staying: the trigger's logo-to-chevron gap and the credit
       // line's leading are both "these two are one thing", which the ramp's

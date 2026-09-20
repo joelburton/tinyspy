@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 
 /**
  * Turn-history viewer for connections — the feature added on the (still monolithic)
- * PlayArea. connections's board MUTATES (a correct guess collapses 4 tiles into a
+ * PlayArea. connections' board MUTATES (a correct guess collapses 4 tiles into a
  * colored band), so the viewer uses the strictly-before boundary (like stackdown):
  * clicking an event-log #N replays the board with the bands matched BEFORE that turn,
  * every other tile still on the grid, and that turn's 4 guessed tiles ringed in their

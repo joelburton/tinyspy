@@ -206,7 +206,7 @@ select pg_temp.envelope_is(
 -- Timer-shape validation (via common.require_valid_timer)
 -- ============================================================
 -- The shared validator's full case grid is exercised in
--- connections's create_game_test. Here we only spot-check that this
+-- connections' create_game_test. Here we only spot-check that this
 -- gametype's create_game actually wires the helper up — one
 -- missing-timer, one bad-kind, one missing-seconds, one
 -- countup-accepted. Point: "the call is hooked up," not "re-test

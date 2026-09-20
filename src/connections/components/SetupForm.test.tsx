@@ -1,13 +1,13 @@
 // cs-met-connections
 
 /**
- * connections' setup form — and the first game whose refusals are mostly
+ * connections' setup form — and the first game whose not-oks are mostly
  * things the form CANNOT know.
  *
  * Every other converted game offers a closed set of radios and selects, so
  * nearly all its raises are faults. Here the server DERIVES the puzzle — it
  * hands out the earliest one none of the selected players has seen — and two
- * of its refusals are real answers a player can act on:
+ * of its not-oks are real answers a player can act on:
  *
  *   PN062  the archive is spent for THESE players   → uncheck someone
  *   PN065  the puzzle behind that date is retired   → clear the date
@@ -84,13 +84,13 @@ describe('connections setup — what it offers', () => {
   it('names the puzzle field for the SETTING, not the control', () => {
     // You type a date; what is sent is `puzzle_id`. One string through the
     // form, the setup blob and the raise's COLUMN — which is the only way a
-    // refusal about the puzzle can reach the box you would change.
+    // not-ok about the puzzle can reach the box you would change.
     const { container } = draw()
     expect(container.querySelector('[name="puzzle_id"]')).toHaveAttribute('type', 'date')
   })
 })
 
-describe('connections setup — where a refusal lands', () => {
+describe('connections setup — where a not-ok lands', () => {
   it('puts a spent archive under the PICKER, because unchecking is the fix', () => {
     const message = 'Everyone here has played every puzzle'
     draw({ errors: { player_user_ids: message } })

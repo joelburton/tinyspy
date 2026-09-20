@@ -31,7 +31,7 @@ them "everybody has this".
   `*.test.tsx` live beside it; treat the pair or triple as one unit.
 - **Per-game code is NOT here.** Each game's `PlayArea` / `BoardCol` / `InfoCol`
   / `useGame` lives under `src/<game>/`. A file with exactly one game importing
-  it belongs to that game, not to `shared/` — `StrikeMarks` is connections's.
+  it belongs to that game, not to `shared/` — `StrikeMarks` is connections'.
   The deliberate exception is `common/buttons/`, which holds every purpose
   button whoever uses it, because a button is a look (an icon, a default name,
   a tone) and not logic.

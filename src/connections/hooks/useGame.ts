@@ -109,7 +109,7 @@ type SelectionEvent =
 export type SelectionMap = ReadonlyMap<string, string[]>
 
 /**
- * connections's per-game data hook: the game row, the guess log, the player
+ * connections' per-game data hook: the game row, the guess log, the player
  * rows and, in coop, the shared selection — one Realtime room per game.
  *
  * Broadcast-coupled (docs/code-conventions.md → Realtime data hooks): the

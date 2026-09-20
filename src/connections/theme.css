@@ -1,6 +1,6 @@
 /* cs-met-connections */
 
-/* connections's color tokens. Loaded with this game's chunk (imported from
+/* connections' color tokens. Loaded with this game's chunk (imported from
  * components/PlayArea.tsx) so they only ship when connections is being played.
  *
  * Just the rank palette now: the tile chrome (resting beige, dark hover ring,
@@ -11,7 +11,7 @@
  *
  * The rank palette matches the NYT Connections convention: yellow / green /
  * blue / purple, mapped to category rank 0..3, slightly darkened so the bands
- * read on a light surface. Semantic names tied to connections's vocabulary
+ * read on a light surface. Semantic names tied to connections' vocabulary
  * (`rank-0`, not `yellow`) per docs/ui.md → "Two vocabularies". */
 /* @@ */ :root {
 /* @@ */   --connections-rank-0:    #f9df6d;  /* yellow — easiest */
@@ -30,7 +30,7 @@
    * be mistaken for the selection black.
    *
    * These are this game's rather than common's: the mark's geometry is
-   * connections's own (crosswords' peer cursor is not inset and has its own
+   * connections' own (crosswords' peer cursor is not inset and has its own
    * thickness), so there is nothing shared to name. */
 /* @@ */   --connections-peer-inner-border-width: 4px;
 /* @@ */   --connections-peer-inner-border-inset: 2px;

@@ -102,7 +102,7 @@ type Props = {
 }
 
 /**
- * connections's board: a SINGLE grid holding both the solved-category bands and
+ * connections' board: a SINGLE grid holding both the solved-category bands and
  * the remaining tiles. A solved category becomes a full-width band row
  * (`grid-column: 1 / -1`) in place of the tile row it replaced — a band is
  * "one long tile" spanning the row instead of four, the same height, padding

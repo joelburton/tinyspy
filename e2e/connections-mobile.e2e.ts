@@ -5,7 +5,7 @@ import { createSoloClub, createConnectionsGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * connections's mobile layout (docs/mobile.md → the shared info-sheet recipe): the
+ * connections' mobile layout (docs/mobile.md → the shared info-sheet recipe): the
  * board fills the screen and the info column moves into an off-canvas sheet. Input
  * is tap-a-tile (touch-native); no keyboard, no drag. The one below-board control
  * row (mistakes readout + Clear/Submit) goes phone-tight: icon-only buttons + a

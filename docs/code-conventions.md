@@ -714,7 +714,7 @@ Why every game declares one — even the pure-alias case:
 
 1. **Cross-game pattern parallel.** A reader scanning per-game folders sees the same `Player` symbol everywhere. They don't have to remember "codenamesduet uses Player but connections uses Member" — every game's vocabulary is the same.
 2. **Future-proofing.** When connections grows per-player game state (a "tile-rate-of-correct" stat, a "you're it" turn marker), the type is already named. No cascade rename from `Member` → `Player` across call sites.
-3. **Semantic signal at the import.** `import type { Player } from '../hooks/useGame'` in a connections subcomponent says "this is connections's notion of a player" — even if the body is just `= Member`.
+3. **Semantic signal at the import.** `import type { Player } from '../hooks/useGame'` in a connections subcomponent says "this is connections' notion of a player" — even if the body is just `= Member`.
 
 Where to use which:
 

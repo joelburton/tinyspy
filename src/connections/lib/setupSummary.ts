@@ -18,7 +18,7 @@ function formatPuzzleDate(d: string | null): string {
 }
 
 /**
- * connections's setup recap — ONE array, rendered by the info column and the
+ * connections' setup recap — ONE array, rendered by the info column and the
  * PDF alike (common/setup-form/doc.md → Setup rows). Order mirrors
  * `components/SetupForm.tsx`.
  *

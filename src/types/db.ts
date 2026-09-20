@@ -237,7 +237,7 @@ export type Database = {
     }
     Functions: {
       _finish: {
-        Args: { outcome: string; target_game: string; winner_user_id?: string }
+        Args: { reason: string; target_game: string; winner_user_id?: string }
         Returns: undefined
       }
       _refresh_status: { Args: { target_game: string }; Returns: undefined }
@@ -2325,7 +2325,7 @@ export type Database = {
         Returns: Json
       }
       _finish: {
-        Args: { g_id: string; going_out_seat: number; outcome: string }
+        Args: { g_id: string; going_out_seat: number; reason: string }
         Returns: undefined
       }
       _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
@@ -2582,7 +2582,7 @@ export type Database = {
         Returns: number[]
       }
       _finish: {
-        Args: { outcome: string; target_game: string }
+        Args: { reason: string; target_game: string }
         Returns: undefined
       }
       _is_set: { Args: { a: number; b: number; c: number }; Returns: boolean }
@@ -3800,15 +3800,11 @@ export type Database = {
     }
     Functions: {
       _finish_compete: {
-        Args: {
-          outcome_label: string
-          pick_winner: boolean
-          target_game: string
-        }
+        Args: { pick_winner: boolean; reason: string; target_game: string }
         Returns: undefined
       }
       _finish_coop: {
-        Args: { outcome_label: string; target_game: string }
+        Args: { reason: string; target_game: string }
         Returns: undefined
       }
       _length_score: {

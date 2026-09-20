@@ -45,7 +45,7 @@ Why this matters here:
 
 ### The deliberate exception
 
-In-grid **game-mechanic animations** that change the partition between game regions are allowed and expected. connections's category bands growing into the tile-grid space is the game's central dopamine; hiding that behind a fixed partition would be wrong. The rule is about *UI-state reflow* (a status banner changing height, a result banner appearing mid-page), not about *game-content reflow* (a board area transitioning between game states).
+In-grid **game-mechanic animations** that change the partition between game regions are allowed and expected. connections' category bands growing into the tile-grid space is the game's central dopamine; hiding that behind a fixed partition would be wrong. The rule is about *UI-state reflow* (a status banner changing height, a result banner appearing mid-page), not about *game-content reflow* (a board area transitioning between game states).
 
 The distinction in one line: **if it's a side effect of state changing, fix the layout; if it's the state change you're celebrating, let it happen.**
 
@@ -1301,7 +1301,7 @@ A layout-static row that every game shares. Same shape, same affordances, same p
 - **`<PauseButton />`** — **one button with two faces**: two bars while playing (press to pause, `sendManualPause`), a green play triangle while paused (press to resume, `sendManualUnpause`). A control that only pauses leaves the header saying "press to pause" about a game that is already stopped; one that changes face says both what the game is doing and what you can do about it, in the place the eye already goes. Resume needs no permission check — any connected player may resume, the same rule `<PauseOverlay>` follows. **A presence pause is not clearable here**: the triangle shows, because that is the state of the game, but it is dimmed and inert — the player we are waiting on has to come back. **Always present while play is live**, timer or no timer, because manual pause is the "moth is making tea" affordance; **absent once the game is over**, where `paused` is forced false and the button could only look live and do nothing.
 - **Timer** — `{ displaySeconds, expired }` from `useCommonGame`. `font-variant-numeric: tabular-nums` so digits don't shift the right edge as values change. **A stopped clock is red** (`--timer-stopped-color`) — paused or terminal, since red says "these digits are not moving", which is a fact about the clock rather than a judgment about why. **A count-up outlives the game and a countdown does not**: a countdown is a budget and can only read 0:00 once it is over, while a count-up answers "how long did that take?", which is exactly what you want when you are done (`useGameTimer` stops at `is_terminal`, so it freezes on the final figure).
 
-**What's gone:** the game title. Identifying the game is the logo's job; the per-instance title (e.g. connections's puzzle date) still lives in the club-page listing where it has room to breathe.
+**What's gone:** the game title. Identifying the game is the logo's job; the per-instance title (e.g. connections' puzzle date) still lives in the club-page listing where it has room to breathe.
 
 **Why this lives in the common shell:** the consistency goal — a player switching from codenamesduet to connections shouldn't have to relearn the chrome. The header is implemented in `<GamePage>` (along with the chat + pause + suspend-confirm machinery it already owns); per-game `<PlayArea>` components render below it and don't see the header at all.
 
@@ -1497,7 +1497,7 @@ Two rules keep the signal clean:
 
 ## Interactive tile states
 
-Board tiles a player can act on (psychicnum's word tiles, connections's category
+Board tiles a player can act on (psychicnum's word tiles, connections' category
 tiles; the pattern every game's tiles share) converge on **one look**, driven
 entirely by the `--tile-*` tokens in [`common/themes/daylight.css`](../src/common/themes/daylight.css)
 and the shared `.tile` / `.tileWord` classes in

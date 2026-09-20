@@ -1301,7 +1301,7 @@ begin
     ),
     player_results);
 
-  -- Realtime touch — REQUIRED here, and the one place connections's
+  -- Realtime touch — REQUIRED here, and the one place connections'
   -- termination path differs from submit_guess/submit_timeout.
   --
   -- submit_guess and submit_timeout each also write a connections

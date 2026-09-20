@@ -434,7 +434,7 @@ consistent without imposing structure:
 
 psychicnum, connections, and codenamesduet each render their own rows:
 psychicnum's is a single `<tr>` (number / word / result / who columns);
-connections's is a **two-`<tr>`** turn — row 1 `verdict | who` columns, row 2 the
+connections' is a **two-`<tr>`** turn — row 1 `verdict | who` columns, row 2 the
 four guessed tiles spanning beneath; **codenamesduet's is the multi-guess case**
 the "item, not guess" vocabulary was named for — a **two-`<tr>`** turn (the bar
 `rowSpan`s both) with real `# | clue | clue-giver` columns on row 1 and the turn's

@@ -8,7 +8,7 @@ type Props = {
 }
 
 /**
- * connections's help modal — the rules, opened from the GamePage menu's Help
+ * connections' help modal — the rules, opened from the GamePage menu's Help
  * item (the manifest's `help` contract).
  *
  * The two modes are named apart here because the sharing rule is the thing
@@ -19,7 +19,7 @@ export function Help({ onClose, brand }: Props) {
   return (
     <GameHelpCompanion brand={brand} onClose={onClose} size={{ width: 460, height: 440 }}>
       <p>
-        <strong>Find four hidden groups of four.</strong> The 16 tiles on
+        <strong>Find four hidden categories of four.</strong> The 16 tiles on
         the board belong to four secret categories. Pick four tiles you
         think share a category and Submit. Same puzzles as NYT
         Connections.

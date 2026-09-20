@@ -1239,6 +1239,103 @@ prop defaults went; and the stylesheets were read end to end — 296 → 250
 lines, plus the hint list's two literal `1px` borders taking
 `--border-width-line`. `plans/tile-feedback.md` records connections at **tf2**.
 
+## The closing re-read — 2026-09-19
+
+Every roster file again in one sitting after pass 3, plus the mechanical
+sweeps for the fault classes the area's own findings named (archaeology,
+banned words, counts, dates, plan cites, the docstring marker). Eighteen
+things. Five had a decision in them and Joel ruled on all five; thirteen are
+prose, and are OPEN — listed below so they outlive this reading.
+
+**What shipped, with the rulings:**
+
+- **F-23 · `groups-vs-categories`** (*"one noun"*) — the club-page label said
+  "2/4 groups", Help said "four hidden groups of four", and the info column's
+  help line said "share a connection", while `doc.md`'s Vocabulary says the
+  word is **category** (NYT's "group", renamed because "group" already means
+  people here). All of them say category now; `docs/game-status-labels.md`
+  regenerated from the manifests (`npm run report:labels`), four rows changed,
+  and the gallery script's cell notes went with them. The four "group"s left in
+  the folder are other words — a prop group, a flex group, a group of friends,
+  and the Vocabulary row that records the rename.
+- **F-24 · `refusal-for-a-not-ok`** (*"yes, we should call it a not-ok"*) —
+  seven sites called a not-ok a refusal (`lib/setup.ts`, `doc.md` ×2,
+  `next_puzzle_test.sql` ×2, `gameplay_test.sql`, `SetupForm.test.tsx` ×4,
+  including a describe's name). The three left in the folder are the GAME-RULE
+  refusal, which is an `ok` and keeps the word.
+- **F-25 · `infocol-dead-props`** (*"drop all three"*) — `InfoCol` declared and
+  documented `setup`, `puzzleDate` and `tileCount`; `PlayArea` passed all three;
+  none was destructured or read. They went dead when `setupRows` took over the
+  recap, and Step 8's marker pass re-punctuated their comments without noticing
+  nothing reads them. Gone, with the call site's three lines and the now-unused
+  `ConnectionsSetup` import.
+- **F-26 · `stale-generated-types`** (*"regenerate"*) — **the finding's premise
+  was WRONG**: the `club_game_status` entries in `src/types/db.ts` are
+  strands' live view, not connections' dropped one, which the generated types
+  never carried. The regeneration earned its place anyway — it caught four
+  `_finish` signatures still spelling the parameter `outcome` (boggle,
+  scrabble, setgame, wordiply), which F-22's rename had left behind. Note for
+  the next area that runs it: `supabase gen types` rewrites the whole file and
+  strips the `cs-na` stamp, which has to be put back by hand.
+- **F-27 · `possessive-split`** (*"pick one"*) — `connections's` 37 times
+  against `connections'` 63, both inside one file twice over; the other
+  s-ending game settled it 67:1 as `connections'`. Swept to `connections'`
+  everywhere but the two frozen migrations, whose comments stay.
+
+**Still open — thirteen, all prose, none with a decision in it:**
+
+1. `view-outlived-its-drop` — `doc.md` still counts "Four tables and a view",
+   gives the view a Schema row and lists `club_game_status_test` in Tests;
+   `supabase/sql/crosswords.sql` still argues from connections answering the
+   same question with a view.
+2. `status-outcome-leftovers` — F-22's rename left `status.outcome` in four
+   comments of `connections.sql` (one of them citing a `docs/states.md`
+   anchor that is now `status.reason`), in `compete_test.sql`'s header, and in
+   `end_game_test.sql`'s header — which writes `{outcome:'manual'}` and
+   `status.reason='manual'` eight lines apart. `psychicnum.sql` has the same
+   leftover once, in a closed area.
+3. `coop-only-celebration` — `PlayArea.tsx`'s render comment still says "a coop
+   solve gets the celebration instead", after F-1 gave the race winner one.
+4. `boardcol-docstring-orphaned` — Step 4 moved `GuessAnswer` above `BoardCol`,
+   so the component's docstring now sits on the type and the component has none.
+5. `four-false-onlys` — `Board.tsx`'s "the only two optional props here" (there
+   are three), `lib/answer.ts`'s "the only place in the frontend that names
+   them" (four other files do), `answer.test.ts`'s "the only place the outcome
+   lives" (`terminal.ts` decides one too), `next_puzzle_test.sql`'s "the FIRST
+   RPCs in the roster that answer a question".
+6. `mistakes-readout-prose` — `PlayArea.module.css` quotes a label that does not
+   exist ("Mistakes remaining ●●●○"; it reads "Mistakes (lose at 4)", in squares
+   deliberately not dots) and says compete shows the strip "instead", where both
+   modes draw the row; `doc.md` puts `<StrikeMarks>` in the info column and
+   calls it coop-only, where it is `BoardCol`'s, below the board, in both.
+7. `presence-test-claim` — `doc.md` says the pause on a disconnect has no test,
+   citing a `docs/testing.md` section that lists three gaps and not this one;
+   F-5 wrote `e2e/presence-pause.e2e.ts` hours after that paragraph.
+8. `playarea-test-lede` — `PlayArea.test.tsx`'s docstring still says "render +
+   concede tests … deliberately shallow", above eleven describes, and
+   contradicts `doc.md`'s row for the same file.
+9. `replay-menu-item-name` — `replay_test.sql` still says 'The "Replay board"
+   menu item' after F-12 corrected its twin in the SQL to Restart.
+10. `dated-asides-left` — `pdf/model.test.ts`'s "Before 2026-08-06 …" (F-11 cut
+    the same two asides from `model.ts`), and "(2026-08-02)" in
+    `connections.sql` and `rls_test.sql`.
+11. `divergence-register-row` — `docs/supabase.md`'s register still lists
+    find-or-create for connections' `startGameInClub`, under a heading promising
+    every row is commented at its site; F-11 deleted that comment as untrue.
+12. `manifest-fours` — `manifest.ts` spells the category count and the mistake
+    budget as bare `4`s, in the one file F-14 did not open.
+13. `setup-psql-unstamped` — `supabase/tests/connections/setup.psql` reads
+    `cs-unmet`. The roster above says ".psql carries no stamp"; it carries one,
+    and it is the one roster file not at `cs-met-connections`.
+
+Two nits recorded and not worth a number: `lib/board.ts` has one docstring over
+three constants, so hovering the second or third shows nothing; the
+`replay_board` header's first line is a rewrap artifact.
+
+**Verified:** `tsc -b` and eslint clean; 41 files / 399 tests green
+(`src/connections` + `src/guards`); `gmake db-sql ENV=local` then
+`npm run test:db` — 179 files, 2523 tests, PASS.
+
 ## Closing
 
 - [x] the tile-feedback pass done, and the game's tf level updated there
@@ -1249,6 +1346,10 @@ lines, plus the hint list's two literal `1px` borders taking
 - [x] `docs/games/connections.md` reconciled — **satisfied differently**: F-19
       deleted that file into `src/connections/doc.md` and its Deferred items
       went to `todo.md`, so there is no standing register left to reconcile
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] every file on the roster blessed, or its stamp says why not — 55 files
-      read `cs-met-connections` today; the blessing is Joel's
+- [ ] the whole area re-read in one sitting after the last group — the READING
+      is done (2026-09-19, above); five of its eighteen findings shipped and
+      thirteen are still open
+- [ ] every file on the roster blessed, or its stamp says why not — 51 files
+      read `cs-met-connections`, `setup.psql` still reads `cs-unmet` (the
+      re-read's last finding) and `doc.md` / `todo.md` / `logo.svg` carry none;
+      the blessing is Joel's

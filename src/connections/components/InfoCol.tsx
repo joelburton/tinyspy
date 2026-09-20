@@ -7,7 +7,6 @@ import type { BoundAction } from '@/common/actions/useBoundAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
-import type { ConnectionsSetup } from '../lib/setup'
 import type { Board } from '../lib/board'
 import type { EventRow, Player } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
@@ -17,7 +16,7 @@ import shared from '@/common/info-sheet/infoCol.module.css'
 
 
 /**
- * connections's info column — near-zero state, an arrangement of the shared scaffold
+ * connections' info column — near-zero state, an arrangement of the shared scaffold
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): state readout →
  * whose-turn line (turn-order) → OpponentStrip (compete) → action row → the hint
  * list → help → setup disclosure → event log. Every command is a BOUND ACTION the
@@ -114,13 +113,8 @@ export function InfoCol({
   hintsOpen: boolean
 
   // ── Setup disclosure ──
-  setup: ConnectionsSetup
   // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
   setupRows: SetupRow[]
-  // The puzzle's NYT date (setup echo), or null for a custom puzzle.
-  puzzleDate: string | null
-  // The number of board tiles (setup echo).
-  tileCount: number
 
   // ── Turn-history log (GameEventLog) ──
   guesses: EventRow[]
@@ -226,7 +220,7 @@ export function InfoCol({
         {/* Help — shown only while you can act on it (never silently swaps); the
             eliminated state is carried loudly by the action row above. */}
         {showInput && (
-          <p className={shared.infoHelp}>Pick 4 tiles that share a connection, then Submit.</p>
+          <p className={shared.infoHelp}>Pick 4 tiles that share a category, then Submit.</p>
         )}
 
         {/* Setup — last, behind a disclosure (closed by default so it doesn't claim

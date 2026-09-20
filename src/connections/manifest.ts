@@ -10,7 +10,7 @@ import { DEFAULT_CONNECTIONS_SETUP, type ConnectionsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * connections's registration with the shell — two manifests, one schema, one
+ * connections' registration with the shell — two manifests, one schema, one
  * folder. "connections" is the codename; the brand is `BRAND` below.
  *
  * Coop and compete are each a row in `common.gametypes` (`connections_coop`,
@@ -25,7 +25,7 @@ import logoUrl from './logo.svg?url'
  */
 
 // Help loader is shared — both modes link to the same rules modal.
-// Lazy so the prose ships in connections's chunk.
+// Lazy so the prose ships in connections' chunk.
 const helpLoader = lazy(() =>
   import('./components/Help').then((m) => ({ default: m.Help })),
 )
@@ -117,20 +117,20 @@ export const connectionsCoopGame: GameManifest = {
     const s = (row.status ?? {}) as StatusBlob
     const matched = (s.matched_count as number | undefined) ?? 0
     const mistakes = (s.mistake_count as number | undefined) ?? 0
-    // "groups", one noun throughout the label.
-    const groups = tally(matched, 4, 'groups')
+    // "categories", the game's own noun (doc.md → Vocabulary), throughout.
+    const categories = tally(matched, 4, 'categories')
     switch (row.play_state) {
       case 'playing':
-        return statusLine(verdict('Playing'), groups, tally(mistakes, 4, 'mistakes'))
+        return statusLine(verdict('Playing'), categories, tally(mistakes, 4, 'mistakes'))
       case 'won':
         // Solving means 4/4, so the mistakes are the story.
         return statusLine(verdict('Won'), count(mistakes, 'mistake'))
       case 'lost':
         return statusLine(
-          verdict('Lost', s.reason === 'timeout' ? 'out of time' : '4 mistakes'), groups)
+          verdict('Lost', s.reason === 'timeout' ? 'out of time' : '4 mistakes'), categories)
       // Manual end (connections.end_game) — neutral, no win/loss framing.
       case 'ended':
-        return statusLine(verdict('Ended'), groups)
+        return statusLine(verdict('Ended'), categories)
       default:
         return row.play_state
     }

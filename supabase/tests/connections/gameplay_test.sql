@@ -58,7 +58,7 @@ select (connections.create_game(
 -- (1) Wrong tile count is rejected
 -- ============================================================
 
--- A converted RPC does not THROW its own refusals — it catches them and answers
+-- A converted RPC does not THROW its own not-oks — it catches them and answers
 -- with an envelope, so these read the answer instead of catching an exception.
 select pg_temp.envelope_is(
   connections.submit_guess((select id from g),

@@ -5,7 +5,7 @@ import type { SetupOf } from '@/common/setup-form/setupForm'
 import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
 
 /**
- * connections's per-game setup — what the start-game dialog collects,
+ * connections' per-game setup — what the start-game dialog collects,
  * persisted to `common.games.setup` and validated in `connections.create_game`.
  *
  * `puzzle_id` is OPTIONAL, and absent is the normal case: that is how
@@ -49,7 +49,7 @@ export const DEFAULT_CONNECTIONS_SETUP: ConnectionsSetup = {
  * `puzzle_for_date`, which answer in the same shape so the shared
  * `<SetupNextPuzzleSection>` can take either.
  *
- * ONE answer: there is a puzzle. Not finding one is a refusal, not a quieter
+ * ONE answer: there is a puzzle. Not finding one is a not-ok, not a quieter
  * success — PN302 for a spent archive, PN303 for a date with nothing on it —
  * because it blocks starting a game and the thing that fixes it is a control on
  * the form.

@@ -33,7 +33,7 @@ type Props = {
  *
  * An InfoCol places it whenever its game has a per-player metric worth showing,
  * and the metric cell is the ONLY thing those games differ in — waffle's swaps +
- * ✓/✗, connections's mistake dots, a rank, a guess budget. Everything else is
+ * ✓/✗, connections' mistake dots, a rank, a guess budget. Everything else is
  * shared: the order, the disc + name label, the `·` separators, the wrapper, the
  * CSS.
  *

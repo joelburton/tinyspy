@@ -250,14 +250,14 @@ ring: 100% standard everywhere *including* inside the most-tuned board. The
 three levels answer "how much may this vary"; the vocabulary answers "what may
 never vary".
 
-The cross-cutting terms above apply everywhere. Each game also has its own small lexicon for domain-specific things — connections's `category` / `tile` / `matched`, spellingbee's `pangram` / `bonus word` / `letter mask` / `outcome`, etc. Those lexicons live in the per-game doc's `## Vocabulary` section so the words sit next to the code that uses them:
+The cross-cutting terms above apply everywhere. Each game also has its own small lexicon for domain-specific things — connections' `category` / `tile` / `matched`, spellingbee's `pangram` / `bonus word` / `letter mask` / `outcome`, etc. Those lexicons live in the per-game doc's `## Vocabulary` section so the words sit next to the code that uses them:
 
 - [`src/connections/doc.md → Vocabulary`](../src/connections/doc.md#vocabulary)
 - [`spellingbee.md → Vocabulary`](games/spellingbee.md#vocabulary)
 
 codenamesduet and psychicnum use the cross-cutting lexicon plus their domain-obvious words (`clue`, `target`) and don't have separate vocabulary sections.
 
-When two games use the same word for genuinely different concepts (connections's `rank` = per-category difficulty 0..3; spellingbee's `rank` = per-player progress 0..6), the per-game `## Vocabulary` entry should call that collision out so a cross-game reader doesn't get confused.
+When two games use the same word for genuinely different concepts (connections' `rank` = per-category difficulty 0..3; spellingbee's `rank` = per-player progress 0..6), the per-game `## Vocabulary` entry should call that collision out so a cross-game reader doesn't get confused.
 
 ## Naming principles
 

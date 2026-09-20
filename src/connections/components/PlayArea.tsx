@@ -123,7 +123,7 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
 }
 
 /**
- * connections's play surface — the coordinator. It holds no board and draws no
+ * connections' play surface — the coordinator. It holds no board and draws no
  * control of its own: `<BoardCol>` takes the grid and the commit row,
  * `<InfoCol>` the readouts and the action row, and this component decides what
  * each of them is handed.
@@ -670,10 +670,7 @@ function PlayArea({
         categories={game.board.categories}
         hintsOpen={hintsOpen}
         // ── Setup disclosure ──
-        setup={setup}
         setupRows={summaryRows}
-        puzzleDate={puzzleDate}
-        tileCount={game.board.tileOrder.length}
         // ── Turn-history log ──
         guesses={guesses}
         historyId={historyId}

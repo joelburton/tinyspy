@@ -18,7 +18,7 @@ type Props = {
  * nudge push "Hints" (InfoCol's action row) to unfold this list; each of the four
  * rows starts as a colored rank swatch + a "Reveal" link, and clicking Reveal
  * surfaces the first tile in that category — just enough to point them in a
- * direction without giving the whole group away. Pushing "Hints" again hides the
+ * direction without giving the whole category away. Pushing "Hints" again hides the
  * list.
  *
  * **Purely client-side.** Revealing a hint doesn't broadcast to peers, doesn't

@@ -13,7 +13,7 @@ import type { Cell, GameGallery } from '../types'
  * board sends.
  *
  * The fixture's puzzle is four alphabetical categories (A/B/C/D words), so the
- * groups are constants rather than something to look up.
+ * categories are constants rather than something to look up.
  */
 const CATEGORIES: string[][] = [
   ['ALPHA', 'ANGEL', 'APPLE', 'ARROW'],
@@ -56,12 +56,12 @@ export const connectionsGallery: GameGallery = {
   members: 2,
   cells: [
     { mode: 'coop', phase: 'fresh' },
-    { mode: 'coop', phase: 'mid', note: 'one group found' },
-    { mode: 'coop', phase: 'won', note: 'all four groups' },
+    { mode: 'coop', phase: 'mid', note: 'one category found' },
+    { mode: 'coop', phase: 'won', note: 'all four categories' },
     { mode: 'coop', phase: 'lost', note: 'four mistakes' },
     { mode: 'compete', phase: 'fresh' },
-    { mode: 'compete', phase: 'mid', note: 'one group found' },
-    { mode: 'compete', phase: 'won', note: 'all four groups' },
+    { mode: 'compete', phase: 'mid', note: 'one category found' },
+    { mode: 'compete', phase: 'won', note: 'all four categories' },
     { mode: 'compete', phase: 'lost', note: 'four mistakes' },
     { mode: 'compete', phase: 'ended', note: 'stopped by agreement' },
     { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },

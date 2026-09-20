@@ -10,7 +10,7 @@
 --
 --   1. `data` is ONE puzzle, not an array — the single answer the question
 --      actually has.
---   2. **Empty is a REFUSAL**, a form validation naming `puzzle_id`: a spent
+--   2. **Empty is a NOT-OK**, a form validation naming `puzzle_id`: a spent
 --      archive (PN302), or a date with nothing on it (PN303). Running out
 --      blocks Start, and the thing that fixes it is a control on this form.
 --   3. The label is the server's — the date, then two tiles — and the
@@ -70,7 +70,7 @@ select is(
 -- ============================================================
 -- Play it, and there is nothing left for ada. The walk excludes a puzzle any
 -- SEATED player has done, which is why unchecking someone can bring one back —
--- and why the refusal is a VALIDATION on `puzzle_id`: unchecking a player, or
+-- and why the not-ok is a VALIDATION on `puzzle_id`: unchecking a player, or
 -- typing a date, is what fixes it, and both are controls on this form.
 
 select (connections.create_game(

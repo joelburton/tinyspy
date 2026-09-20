@@ -59,7 +59,7 @@ export type SetupBodyProps = {
   members: Member[]
   // This gametype's user-facing brand name (the manifest's `name`), forwarded
   // by SetupGameModal so a setup form's own sentences read the brand from the
-  // single branding source rather than hardcoding it (e.g. connections's "Pick
+  // single branding source rather than hardcoding it (e.g. connections' "Pick
   // a <brand> puzzle"). Most forms ignore it.
   brand: string
   // Club the game would start in. Per-game setup forms that
@@ -67,7 +67,7 @@ export type SetupBodyProps = {
   clubHandle: string
   // The manifest's `mode` — `'coop'` or `'compete'`. Forwarded
   // so sibling-pair setup forms (connections, psychicnum) that
-  // query mode-aware club state (e.g. connections's per-date
+  // query mode-aware club state (e.g. connections' per-date
   // calendar overlay) can scope their reads to the right mode.
   // Setup forms for single-mode games can ignore it.
   mode: 'coop' | 'compete'

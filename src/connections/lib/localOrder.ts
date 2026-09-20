@@ -24,7 +24,7 @@ export function reconcileLocalOrder(
   // Keep tiles still present, in their current local positions.
   const stillThere = local.filter((t) => remainingSet.has(t))
   // Defensive: if remaining has tiles missing from local (a
-  // never-yet-seen case in connections's tile-only-removed model),
+  // never-yet-seen case in connections' tile-only-removed model),
   // append them at the end so they don't get dropped.
   const localSet = new Set(local)
   const newTiles = remaining.filter((t) => !localSet.has(t))

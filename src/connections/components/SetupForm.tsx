@@ -14,7 +14,7 @@ import type { ConnectionsValues, PuzzleAnswer } from '../lib/setup'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
- * connections's per-game setup form: the players, the shared coop-pacing
+ * connections' per-game setup form: the players, the shared coop-pacing
  * field, the puzzle, and the timer.
  *
  * The puzzle is a read-only line naming what Start will play — the server

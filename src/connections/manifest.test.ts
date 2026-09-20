@@ -1,7 +1,7 @@
 // cs-met-connections
 
 /**
- * connections's `startGameInClub`: starting a game passes the setup through
+ * connections' `startGameInClub`: starting a game passes the setup through
  * untouched — `puzzle_id` included when one IS supplied (the fixtures rely on
  * that) and absent when it isn't, which is how the server is told to choose —
  * and a create_game failure comes back as the not-ok envelope.

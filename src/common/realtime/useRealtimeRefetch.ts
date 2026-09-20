@@ -98,7 +98,7 @@ type Config = {
  *     heavy load that's a real perf win over refetch-always.
  *     The hand-rolled shape stays where it is; this factory is
  *     for "game state changed, reload the picture."
- *   - **Broadcast-coupled channels.** connections's `useGame` runs
+ *   - **Broadcast-coupled channels.** connections' `useGame` runs
  *     postgres-changes AND a shared-selection broadcast on the
  *     same stable-name channel (the broadcast needs the shared
  *     room across peers, the postgres-changes happen to ride

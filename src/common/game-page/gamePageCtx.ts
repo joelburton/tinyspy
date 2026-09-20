@@ -36,7 +36,7 @@ export type GamePageCtx = {
   brand: string
   // This game instance's human title from `common.games.title` — the
   // per-gametype title-builder's output (scrabble's first three words,
-  // connections's puzzle date, …), the same string GamePage shows in the
+  // connections' puzzle date, …), the same string GamePage shows in the
   // header and the club list. Threaded through so a PlayArea can name the
   // specific game (e.g. on a printout).
   title: string

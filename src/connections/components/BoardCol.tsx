@@ -42,7 +42,7 @@ const NO_OWNERS: ReadonlyMap<string, string> = new Map()
 const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
- * connections's board column: the `<Board>` with its floating Shuffle, and the
+ * connections' board column: the `<Board>` with its floating Shuffle, and the
  * fixed-height slot below it — the commit row with the inline mistakes, or the
  * local slot's top message, or the history banner while a past turn is open.
  *

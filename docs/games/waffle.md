@@ -317,7 +317,7 @@ as-is; being mid-solve at the buzzer just means you're not in the running.
 
 ## Board generation: `waffle-build-board` (edge function)
 
-**No external corpus** (unlike connections's found Connections collection) and **no
+**No external corpus** (unlike connections' found Connections collection) and **no
 pre-generated library** — a board is built fresh at game-start by the
 `waffle-build-board` edge function, the same on-demand pattern as
 `spellingbee-build-board`.
@@ -544,7 +544,7 @@ is the generator's minimum, so under-par can't happen) — rather than a generic
 verdict carries the score.
 
 Presence-pause is inherited free via `<GamePage>` + `useCommonGame`. Live
-drag-preview via Broadcast (connections's peer-selection trick) is a deferred
+drag-preview via Broadcast (connections' peer-selection trick) is a deferred
 nice-to-have, not shipped.
 
 ## Printing the board (PDF)

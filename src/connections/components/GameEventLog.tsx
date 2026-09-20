@@ -34,7 +34,7 @@ type Props = {
 }
 
 /**
- * connections's event log — the guesses, in the shared `<EventLog>` table.
+ * connections' event log — the guesses, in the shared `<EventLog>` table.
  *
  * Each turn is two `<tr>`s (the row anatomy is the game's — see EventLog.tsx):
  * row 1 is `[bar ⇣rowSpan 2] | #N | verdict | actor` in real `<td>` columns,
