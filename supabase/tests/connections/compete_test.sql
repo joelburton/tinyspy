@@ -354,7 +354,7 @@ select is(
 );
 
 select is(
-  (select (status->>'outcome') from common.games where id = (select id from g2)),
+  (select (status->>'reason') from common.games where id = (select id from g2)),
   'mistakes',
   'submit_guess (compete): collective loss outcome = mistakes (the cause)'
 );
@@ -392,7 +392,7 @@ select is(
 );
 
 select is(
-  (select (status->>'outcome') from common.games where id = (select id from g3)),
+  (select (status->>'reason') from common.games where id = (select id from g3)),
   'timeout',
   'submit_timeout (compete): outcome = timeout (the cause)'
 );

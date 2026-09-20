@@ -52,7 +52,7 @@ select is(
   'coop: the clock is a loss — the board had a reachable end'
 );
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g_coop)),
+  (select status->>'reason' from common.games where id = (select id from g_coop)),
   'timeout',
   '…whose outcome names the clock'
 );
@@ -134,7 +134,7 @@ select is(
   'compete: timing out with no solver is a collective loss'
 );
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g_lost)),
+  (select status->>'reason' from common.games where id = (select id from g_lost)),
   'timeout',
   '…whose outcome names the clock, not "unsolved" or "conceded"'
 );

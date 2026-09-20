@@ -45,7 +45,7 @@ select stackdown.concede((select id from g));
 reset role;
 select set_config('request.jwt.claims', '', true);
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g)),
+  (select status->>'reason' from common.games where id = (select id from g)),
   'conceded', 'the last concede ends the game as a collective loss');
 
 -- (3) coop concede rejected.

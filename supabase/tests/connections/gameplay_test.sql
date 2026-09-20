@@ -333,7 +333,7 @@ select is(
 -- ============================================================
 -- The FE fires this when the count-down timer hits 0. Sets
 -- play_state='lost' just like a 4-mistakes-loss (the timeout
--- distinction lives in status->>'outcome'). Idempotent: a
+-- distinction lives in status->>'reason'). Idempotent: a
 -- second concurrent call from a racing client answers the
 -- game-over race.
 

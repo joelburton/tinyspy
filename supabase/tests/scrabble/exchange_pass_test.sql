@@ -100,7 +100,7 @@ create temp table rp2 on commit drop as
 reset role;
 select is((select res -> 'data' ->> 'terminal' from rp2), 'true',
   'a full round of passes ends the game');
-select is((select status->>'outcome' from common.games where id = (select id from gcp)),
+select is((select status->>'reason' from common.games where id = (select id from gcp)),
   'blocked', 'the all-passed end is stamped outcome=blocked');
 
 -- ─── An exchange CLEARS the streak ───────────────────────

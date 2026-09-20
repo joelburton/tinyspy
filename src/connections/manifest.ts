@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_CONNECTIONS_SETUP, type ConnectionsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -121,16 +121,16 @@ export const connectionsCoopGame: GameManifest = {
     const groups = tally(matched, 4, 'groups')
     switch (row.play_state) {
       case 'playing':
-        return statusLine(outcome('Playing'), groups, tally(mistakes, 4, 'mistakes'))
+        return statusLine(verdict('Playing'), groups, tally(mistakes, 4, 'mistakes'))
       case 'won':
         // Solving means 4/4, so the mistakes are the story.
-        return statusLine(outcome('Won'), count(mistakes, 'mistake'))
+        return statusLine(verdict('Won'), count(mistakes, 'mistake'))
       case 'lost':
         return statusLine(
-          outcome('Lost', s.outcome === 'timeout' ? 'out of time' : '4 mistakes'), groups)
+          verdict('Lost', s.reason === 'timeout' ? 'out of time' : '4 mistakes'), groups)
       // Manual end (connections.end_game) — neutral, no win/loss framing.
       case 'ended':
-        return statusLine(outcome('Ended'), groups)
+        return statusLine(verdict('Ended'), groups)
       default:
         return row.play_state
     }
@@ -175,16 +175,16 @@ export const connectionsCompeteGame: GameManifest = {
     const s = (row.status ?? {}) as StatusBlob
     switch (row.play_state) {
       case 'playing':
-        return outcome('Playing')
+        return verdict('Playing')
       case 'won_compete':
         return wonBy(s.winner_username as string | undefined)
       case 'lost_compete':
-        return (s.outcome as string) === 'conceded'
-          ? outcome('Lost', 'all conceded')
-          : statusLine(outcome('Lost', COMPETE_LOSS[(s.outcome as string) ?? ''] ?? null), 'no winner')
+        return (s.reason as string) === 'conceded'
+          ? verdict('Lost', 'all conceded')
+          : statusLine(verdict('Lost', COMPETE_LOSS[(s.reason as string) ?? ''] ?? null), 'no winner')
       // Manual end (connections.end_game) — neutral, no winner.
       case 'ended':
-        return outcome('Ended')
+        return verdict('Ended')
       default:
         return row.play_state
     }

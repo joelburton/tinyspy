@@ -49,15 +49,19 @@ export function statusLine(...parts: (string | null | undefined | false)[]): str
 }
 
 /**
- * An outcome word with an optional parenthesized reason:
+ * The status line's leading verdict, with an optional parenthesized reason:
  * `Lost` / `Lost (out of time)`. The reason is the *why*, phrased in the
- * game's own noun — "out of guesses", "out of swaps", "4 mistakes".
+ * game's own noun — "out of guesses", "out of swaps", "4 mistakes" — and it is
+ * usually `status.reason` run through the game's own words.
+ *
+ * NOT `outcome`: that word names the six-value appearance vocabulary
+ * (docs/outcomes.md), and none of these four is one of them.
  */
-export function outcome(word: 'Playing' | 'Won' | 'Lost' | 'Ended', reason?: string | null): string {
+export function verdict(word: 'Playing' | 'Won' | 'Lost' | 'Ended', reason?: string | null): string {
   return reason ? `${word} (${reason})` : word
 }
 
-/** `Won by alice` — the winner is extra info about the outcome, so no parens. */
+/** `Won by alice` — the winner is extra info about the verdict, so no parens. */
 export function wonBy(username: string | null | undefined): string {
   return username ? `Won by ${username}` : 'Won'
 }

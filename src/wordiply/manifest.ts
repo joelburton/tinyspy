@@ -3,7 +3,7 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
@@ -93,7 +93,7 @@ const BRAND = 'WordWire'
 function coopLabel(row: { play_state: string; status?: unknown }): string {
   const s = (row.status ?? {}) as StatusBlob
   if (row.play_state === 'playing') {
-    return statusLine(outcome('Playing'), `${(s.guesses_used as number | undefined) ?? 0}/5 guesses`)
+    return statusLine(verdict('Playing'), `${(s.guesses_used as number | undefined) ?? 0}/5 guesses`)
   }
   const ls = `${(s.length_score as number | undefined) ?? 0}%`
   const lc = count(s.letter_count as number | undefined, 'letter')
@@ -101,9 +101,9 @@ function coopLabel(row: { play_state: string; status?: unknown }): string {
   // purpose ('manual') are both a neutral score report. The clock is the one
   // loss: the team set a timer and didn't finish inside it.
   if (row.play_state === 'lost') {
-    return statusLine(outcome('Lost', 'out of time'), ls, lc)
+    return statusLine(verdict('Lost', 'out of time'), ls, lc)
   }
-  return statusLine(outcome('Ended', COOP_END[(s.outcome as string) ?? ''] ?? null), ls, lc)
+  return statusLine(verdict('Ended', COOP_END[(s.reason as string) ?? ''] ?? null), ls, lc)
 }
 
 /** How a coop game stopped, when it's worth naming (wordiply._finish_coop).
@@ -115,8 +115,8 @@ const COOP_END: Record<string, string> = {
 function competeLabel(row: { play_state: string; status?: unknown }): string {
   const s = (row.status ?? {}) as StatusBlob
   const leaderboard = (s.leaderboard as LeaderRow[] | undefined) ?? []
-  if (row.play_state === 'playing') return outcome('Playing')
-  if ((s.outcome as string) === 'conceded') return outcome('Lost', 'all conceded')
+  if (row.play_state === 'playing') return verdict('Playing')
+  if ((s.reason as string) === 'conceded') return verdict('Lost', 'all conceded')
   if (row.play_state === 'won_compete') {
     // Ties leave every tied player flagged won (winner_user_id is null), so
     // count the winners rather than name one — they share the same score.
@@ -124,7 +124,7 @@ function competeLabel(row: { play_state: string; status?: unknown }): string {
     const ls = `${winners[0]?.length_score ?? 0}%`
     const name = s.winner_username as string | undefined
     return winners.length > 1
-      ? statusLine(outcome('Won', 'co-winners'), ls)
+      ? statusLine(verdict('Won', 'co-winners'), ls)
       : statusLine(wonBy(name), ls)
   }
   // NOBODY on the board: no score to crown, so the race is a collective loss
@@ -133,11 +133,11 @@ function competeLabel(row: { play_state: string; status?: unknown }): string {
   // guesses scoreless ('complete').
   if (row.play_state === 'lost_compete') {
     return statusLine(
-      outcome('Lost', (s.outcome as string) === 'timeout' ? 'out of time' : 'out of guesses'),
+      verdict('Lost', (s.reason as string) === 'timeout' ? 'out of time' : 'out of guesses'),
       'nobody scored')
   }
   // 'ended' is only the manual stop (_finish_compete's pick_winner=false path).
-  return statusLine(outcome('Ended'), 'no winner')
+  return statusLine(verdict('Ended'), 'no winner')
 }
 
 export const wordiplyCoopGame: GameManifest = {

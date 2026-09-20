@@ -5,7 +5,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { count, outcome, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import {
   bunchSizeError,
   DEFAULT_BANANAGRAMS_SETUP,
@@ -87,23 +87,23 @@ export const bananagramsGame: GameManifest = {
   // player goes out — that terminal is detected inside `peel`, not by
   // a dedicated RPC. play_state 'lost' covers the two no-winner
   // terminals — a countdown timeout and an all-conceded race — told
-  // apart by status.outcome.
+  // apart by status.reason.
   labelFor: (row) => {
-    const s = (row.status ?? {}) as { winner_username?: string; outcome?: string; bunch_remaining?: number }
+    const s = (row.status ?? {}) as { winner_username?: string; reason?: string; bunch_remaining?: number }
     switch (row.play_state) {
       case 'playing':
         // The bunch is the race's clock — it's what everyone is drawing down.
-        return statusLine(outcome('Playing'), count(s.bunch_remaining, 'tile in the bunch', 'tiles in the bunch'))
+        return statusLine(verdict('Playing'), count(s.bunch_remaining, 'tile in the bunch', 'tiles in the bunch'))
       case 'won':
         return wonBy(s.winner_username)
       // No-winner terminals (submit_timeout / everyone conceded), both
-      // play_state 'lost'. status.outcome distinguishes them.
+      // play_state 'lost'. status.reason distinguishes them.
       case 'lost':
-        return s.outcome === 'conceded'
-          ? outcome('Lost', 'all conceded')
-          : statusLine(outcome('Lost', 'out of time'), 'nobody finished')
+        return s.reason === 'conceded'
+          ? verdict('Lost', 'all conceded')
+          : statusLine(verdict('Lost', 'out of time'), 'nobody finished')
       case 'ended':
-        return outcome('Ended')
+        return verdict('Ended')
       default:
         return row.play_state
     }

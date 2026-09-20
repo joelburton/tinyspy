@@ -28,8 +28,8 @@ select is(
   (select play_state from common.games where id = (select id from g1)),
   'lost', 'coop timeout → lost');
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g1)),
-  'timeout', 'status.outcome = timeout');
+  (select status->>'reason' from common.games where id = (select id from g1)),
+  'timeout', 'status.reason = timeout');
 -- Idempotent: a second call raises P0001 (the FE swallows it).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
@@ -54,8 +54,8 @@ select is(
   (select play_state from common.games where id = (select id from g2)),
   'ended', 'end_game → play_state ended');
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g2)),
-  'manual', 'status.outcome = manual');
+  (select status->>'reason' from common.games where id = (select id from g2)),
+  'manual', 'status.reason = manual');
 select is(
   (select count(*) from common.game_players
     where game_id = (select id from g2) and (result->>'won')::boolean),

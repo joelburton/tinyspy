@@ -6,7 +6,7 @@ import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/mani
 import { deckSize } from './lib/cards'
 import { CLAIM_SIZE } from './lib/selection'
 import { db } from './db'
-import { count, outcome, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import {
   DEFAULT_SETGAME_SETUP_COMPETE,
@@ -92,22 +92,22 @@ function coopLabel(row: CommonGameListRow): string {
   const perfectClear = sets * CLAIM_SIZE === deckSize(setup.deck ?? 'full')
 
   if (row.play_state === 'playing') {
-    return statusLine(outcome('Playing'), count(sets, 'set'), `${left} in the deck`)
+    return statusLine(verdict('Playing'), count(sets, 'set'), `${left} in the deck`)
   }
   if (row.play_state === 'won') {
     // No count of the cards left behind — see buildOver in components/PlayArea.
     // A full clear is genuinely rare (~2% of games) and worth naming; every
     // other win is the normal one and says only what was found.
     return statusLine(
-      outcome('Won'),
+      verdict('Won'),
       count(sets, 'set'),
       perfectClear ? 'perfect clear' : null,
     )
   }
   if (row.play_state === 'lost') {
-    return statusLine(outcome('Lost', 'out of time'), count(sets, 'set'))
+    return statusLine(verdict('Lost', 'out of time'), count(sets, 'set'))
   }
-  return statusLine(outcome('Ended'), count(sets, 'set'))
+  return statusLine(verdict('Ended'), count(sets, 'set'))
 }
 
 /**
@@ -122,7 +122,7 @@ function competeLabel(row: CommonGameListRow): string {
 
   if (row.play_state === 'playing') {
     const left = (s.deck_left as number | undefined) ?? 0
-    return statusLine(outcome('Playing'), count(sets, 'set'), `${left} in the deck`)
+    return statusLine(verdict('Playing'), count(sets, 'set'), `${left} in the deck`)
   }
   if (row.play_state === 'won_compete') {
     const winners = leaderboard.filter((e) => e.won)
@@ -131,7 +131,7 @@ function competeLabel(row: CommonGameListRow): string {
       // No speed tiebreak exists here, so ties are real and get their own
       // sentence rather than an arbitrarily-picked name.
       return statusLine(
-        outcome('Won', 'tied'),
+        verdict('Won', 'tied'),
         winners.map((w) => w.username ?? 'someone').join(' & '),
         count(top, 'set'),
       )
@@ -140,11 +140,11 @@ function competeLabel(row: CommonGameListRow): string {
   }
   if (row.play_state === 'lost_compete') {
     return statusLine(
-      outcome('Lost', s.outcome === 'conceded' ? 'all conceded' : null),
+      verdict('Lost', s.reason === 'conceded' ? 'all conceded' : null),
       'nobody scored',
     )
   }
-  return statusLine(outcome('Ended'), count(sets, 'set'))
+  return statusLine(verdict('Ended'), count(sets, 'set'))
 }
 
 export const setgameCoopGame: GameManifest = {

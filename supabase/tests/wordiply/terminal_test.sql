@@ -61,9 +61,9 @@ select is(
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from end_g)),
+  (select status->>'reason' from common.games where id = (select id from end_g)),
   'manual',
-  'coop end_game: status.outcome = "manual"'
+  'coop end_game: status.reason = "manual"'
 );
 
 select is(
@@ -117,9 +117,9 @@ select is(
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from to_g)),
+  (select status->>'reason' from common.games where id = (select id from to_g)),
   'timeout',
-  'coop submit_timeout: status.outcome = "timeout"'
+  'coop submit_timeout: status.reason = "timeout"'
 );
 
 -- ============================================================

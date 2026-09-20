@@ -416,7 +416,7 @@ begin
       perform common.end_game(
         target_game, 'won',
         jsonb_build_object('mode', 'coop', 'solved', true, 'found_words_count', team_found,
-                           'outcome', 'cleared'),
+                           'reason', 'cleared'),
         player_results
       );
     else
@@ -715,7 +715,7 @@ begin
       into player_results from common.game_players where game_id = target_game;
     perform common.end_game(
       target_game, 'lost',
-      jsonb_build_object('mode', 'coop', 'outcome', 'timeout'),
+      jsonb_build_object('mode', 'coop', 'reason', 'timeout'),
       player_results
     );
   else
@@ -724,7 +724,7 @@ begin
       into player_results from stackdown.players where game_id = target_game;
     perform common.end_game(
       target_game, 'lost_compete',
-      jsonb_build_object('mode', 'compete', 'outcome', 'timeout'),
+      jsonb_build_object('mode', 'compete', 'reason', 'timeout'),
       player_results
     );
   end if;
@@ -785,7 +785,7 @@ begin
 
   perform common.end_game(
     target_game, 'ended',
-    jsonb_build_object('outcome', 'manual', 'mode', g_row.mode),
+    jsonb_build_object('reason', 'manual', 'mode', g_row.mode),
     player_results
   );
 

@@ -60,8 +60,8 @@ select is(
   (select play_state from common.games where id = (select id from g)),
   'lost_compete', 'everyone conceding ends the game as a collective loss');
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g)),
-  'conceded', 'status.outcome is conceded');
+  (select status->>'reason' from common.games where id = (select id from g)),
+  'conceded', 'status.reason is conceded');
 
 -- ─── (3) concede is rejected in coop ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

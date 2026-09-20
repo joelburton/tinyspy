@@ -46,8 +46,8 @@ select is((select play_state from common.games where id = (select id from gm)),
   'ended', 'coop manual end runs final scoring but stays neutral (play_state ended)');
 select ok((select is_terminal from common.games where id = (select id from gm)),
   'the game is terminal');
-select is((select status->>'outcome' from common.games where id = (select id from gm)),
-  'manual', 'status.outcome is manual');
+select is((select status->>'reason' from common.games where id = (select id from gm)),
+  'manual', 'status.reason is manual');
 select is((select team_score from scrabble.games where id = (select id from gm)),
   -6, 'leftover tiles (Q+A = 11) are forfeited: 5 − 11 = −6');
 select is((select kind || ':' || score || ':' || took_turn from scrabble.events
@@ -94,8 +94,8 @@ select is((select (result->>'won')::boolean from common.game_players
             where game_id = (select id from gt)
               and user_id = 'ada11111-1111-1111-1111-111111111111'),
   false, 'coop timeout records every player as not-won');
-select is((select status->>'outcome' from common.games where id = (select id from gt)),
-  'timeout', 'status.outcome is timeout');
+select is((select status->>'reason' from common.games where id = (select id from gt)),
+  'timeout', 'status.reason is timeout');
 select is((select team_score from scrabble.games where id = (select id from gt)), 2,
   'leftover tiles (Q = 10) are subtracted: 12 − 10 = 2');
 

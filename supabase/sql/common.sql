@@ -1694,7 +1694,7 @@ begin
 
   perform common.end_game(
     target_game, lost_state,
-    jsonb_build_object('outcome', 'conceded'),
+    jsonb_build_object('reason', 'conceded'),
     player_results
   );
 

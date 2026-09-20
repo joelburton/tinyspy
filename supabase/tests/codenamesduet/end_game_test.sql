@@ -7,13 +7,13 @@
 -- The friends' explicit "we're done here" button. Any current game
 -- player can fire it from any active state (playing / sudden_death);
 -- it writes a NEUTRAL terminal (play_state='ended',
--- status.outcome='manual') with every player {won:false} — stopping
+-- status.reason='manual') with every player {won:false} — stopping
 -- on purpose is a valid outcome, not a loss. Same lock / auth /
 -- active-state gate / Realtime-touch shape as submit_timeout.
 --
 -- Coverage:
 --   - happy path from playing: play_state → ended, is_terminal=true,
---     status.outcome='manual', both players' result = {won:false}
+--     status.reason='manual', both players' result = {won:false}
 --   - idempotency: a second call on the now-terminal game is rejected
 --   - require_game_player: a non-player is rejected
 --
@@ -72,10 +72,10 @@ select is(
 
 -- Status outcome carried through to common.games.
 select is(
-  (select status->>'outcome' from common.games
+  (select status->>'reason' from common.games
     where id = (select id from g)),
   'manual',
-  'end_game: status.outcome = manual'
+  'end_game: status.reason = manual'
 );
 
 -- Cooperative game: nobody wins a manually-stopped game. Both

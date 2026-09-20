@@ -77,8 +77,8 @@ select is((select play_state from common.games where id = :'gc_id'), 'lost',
   'coop timeout → play_state lost');
 select is((select is_terminal from common.games where id = :'gc_id'), true,
   'coop timeout → is_terminal');
-select is((select status->>'outcome' from common.games where id = :'gc_id'), 'timeout',
-  'coop timeout → status.outcome = timeout');
+select is((select status->>'reason' from common.games where id = :'gc_id'), 'timeout',
+  'coop timeout → status.reason = timeout');
 select is((select status->>'mode' from common.games where id = :'gc_id'), 'coop',
   'coop timeout → status.mode = coop');
 select is(
@@ -109,8 +109,8 @@ select lives_ok(
 reset role;
 select is((select play_state from common.games where id = :'gp_id'), 'lost_compete',
   'compete timeout → play_state lost_compete');
-select is((select status->>'outcome' from common.games where id = :'gp_id'), 'timeout',
-  'compete timeout → status.outcome = timeout');
+select is((select status->>'reason' from common.games where id = :'gp_id'), 'timeout',
+  'compete timeout → status.reason = timeout');
 select is((select status->>'mode' from common.games where id = :'gp_id'), 'compete',
   'compete timeout → status.mode = compete');
 select is(

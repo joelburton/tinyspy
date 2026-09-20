@@ -5,7 +5,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { count, outcome, statusLine, tally } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, tally } from '@/common/manifest/statusLabel'
 import { DEFAULT_CODENAMESDUET_SETUP, type CodenamesduetSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -118,7 +118,7 @@ export const codenamesduetGame: GameManifest = {
   // Called by common's GamePage when its countdown timer hits 0.
   // submit_timeout flips play_state to 'lost_timeout' (distinct from
   // 'lost_clock', the Duet rulebook's turns-exhausted ending) + writes
-  // common.games.status.outcome='timeout' — the play_state carries the verdict,
+  // common.games.status.reason='timeout' — the play_state carries the verdict,
   // the outcome names the cause. Idempotent, so peers racing to
   // fire it is fine. end_game is the irreversible in-game "End game" button.
   // Both are the shared one-arg dispatchers (see common/manifest/manifestRpcs).
@@ -129,15 +129,15 @@ export const codenamesduetGame: GameManifest = {
 // Per-play-state display strings codenamesduet owns — the common
 // ClubPage renders these verbatim. Other games define their own.
 const STATUS_LABEL: Record<string, string> = {
-  playing: outcome('Playing'),
+  playing: verdict('Playing'),
   sudden_death: 'Sudden death',
-  won: outcome('Won'),
-  lost_assassin: outcome('Lost', 'assassin'),
+  won: verdict('Won'),
+  lost_assassin: verdict('Lost', 'assassin'),
   // "turns", not "tokens": the rulebook's physical timer-tokens are just
   // the turn budget, and "tokens" doesn't help a player who never holds one.
-  lost_clock: outcome('Lost', 'out of turns'),
-  lost_timeout: outcome('Lost', 'out of time'),
+  lost_clock: verdict('Lost', 'out of turns'),
+  lost_timeout: verdict('Lost', 'out of time'),
   // Manual end (codenamesduet.end_game): the friends stopped on purpose.
   // Neutral phrasing — not a loss.
-  ended: outcome('Ended'),
+  ended: verdict('Ended'),
 }

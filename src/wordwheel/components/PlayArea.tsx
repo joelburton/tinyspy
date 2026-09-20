@@ -523,7 +523,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const winner = players.find((p) => p.user_id === winnerId)
   const winnerName = winner?.username
   const winnerColor = winner?.color
-  const statusOutcome = (status?.outcome as string | undefined) ?? 'ended'
+  const statusOutcome = (status?.reason as string | undefined) ?? 'ended'
   const requiredWordsScore = game?.required_words_score ?? 0
   const over = useMemo(
     () =>
@@ -721,7 +721,7 @@ function buildOver({
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  /** `status.outcome`, or 'ended' when the status carries none. */
+  /** `status.reason`, or 'ended' when the status carries none. */
   statusOutcome: string
   /** `status.winner_user_id`, or null. */
   winnerId: string | null

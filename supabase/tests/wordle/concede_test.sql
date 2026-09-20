@@ -93,7 +93,7 @@ select is(
 -- on the row (both wrote lost_compete with NO outcome key), so the club list
 -- couldn't tell "everyone burned their guesses" from "everyone walked away".
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g2)),
+  (select status->>'reason' from common.games where id = (select id from g2)),
   'conceded', 'an all-conceded race is labeled conceded, not exhausted');
 
 -- ─── (4) concede is rejected in coop ───

@@ -7,7 +7,7 @@
 -- end_game is the explicit "we're done, stop the game" action,
 -- available in BOTH modes. Unlike submit_timeout (a genuine
 -- loss), a manual stop is neutral: it writes the UNIFORM terminal
--- play_state='ended' with status.outcome='manual' and everyone's
+-- play_state='ended' with status.reason='manual' and everyone's
 -- result = {won: false}. We assert that shape for coop AND
 -- compete, plus idempotency (a 2nd call is refused as the game-over race) and that a
 -- non-player can't fire it.
@@ -75,11 +75,11 @@ select is(
   'coop: end_game marks game terminal'
 );
 
--- (5) status.outcome = 'manual'
+-- (5) status.reason = 'manual'
 select is(
-  (select status->>'outcome' from common.games where id = (select id from coop_g)),
+  (select status->>'reason' from common.games where id = (select id from coop_g)),
   'manual',
-  'coop: end_game writes status.outcome = manual'
+  'coop: end_game writes status.reason = manual'
 );
 
 -- (6) every player's result = {won: false}

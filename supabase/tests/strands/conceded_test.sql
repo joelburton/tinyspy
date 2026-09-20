@@ -176,7 +176,7 @@ select is(
   'the last concede ends the game as a collective loss'
 );
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g_all)),
+  (select status->>'reason' from common.games where id = (select id from g_all)),
   'conceded',
   '…whose outcome says everyone gave up (not "unsolved" — nobody played it out)'
 );

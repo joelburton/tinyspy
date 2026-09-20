@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { dictLabel, outcome, setupNum, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { dictLabel, verdict, setupNum, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_STACKDOWN_SETUP, type StackdownSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -71,28 +71,28 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
     const s = (row.status ?? {}) as {
-      winner_username?: string; outcome?: string
+      winner_username?: string; reason?: string
       found_words_count?: number; required_words_count?: number
     }
     const dict = dictLabel(setupNum(row.setup, 'band'))
     const found = mode === 'coop' ? tally(s.found_words_count, s.required_words_count, 'words') : null
     switch (row.play_state) {
       case 'playing':
-        return statusLine(outcome('Playing'), found, dict)
+        return statusLine(verdict('Playing'), found, dict)
       case 'won':
-        return statusLine(outcome('Won'), dict)
+        return statusLine(verdict('Won'), dict)
       case 'won_compete':
         return statusLine(wonBy(s.winner_username), dict)
       case 'lost':
         // Coop only — the clock beat a team that hadn't cleared the stack.
-        return statusLine(outcome('Lost', 'out of time'), found, dict)
+        return statusLine(verdict('Lost', 'out of time'), found, dict)
       case 'lost_compete':
         // The clock, or the last racer conceding (common.concede).
-        return s.outcome === 'conceded'
-          ? outcome('Lost', 'all conceded')
-          : statusLine(outcome('Lost', 'out of time'), 'no winner')
+        return s.reason === 'conceded'
+          ? verdict('Lost', 'all conceded')
+          : statusLine(verdict('Lost', 'out of time'), 'no winner')
       case 'ended':
-        return statusLine(outcome('Ended'), found, dict)
+        return statusLine(verdict('Ended'), found, dict)
       default:
         return row.play_state
     }

@@ -293,9 +293,9 @@ select is(
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from term_g)),
+  (select status->>'reason' from common.games where id = (select id from term_g)),
   'complete',
-  'coop 5th guess: status.outcome = "complete"'
+  'coop 5th guess: status.reason = "complete"'
 );
 
 select is(

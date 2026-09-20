@@ -255,10 +255,10 @@ function PlayArea({
   // set (their found_secrets_count hit 3). Memoized on its inputs so the
   // verdict effect below sees one object per outcome, not one per render.
   const winnerName = (status?.winner_username as string | undefined) ?? 'Someone'
-  // WHY it ended is the server's word (`status.outcome`), never the browser
+  // WHY it ended is the server's word (`status.reason`), never the browser
   // clock's: the RPC that ended the game wrote the reason, and the club-list
   // label reads the same column.
-  const reason = status?.outcome as string | undefined
+  const reason = status?.reason as string | undefined
   const selfWon = mode === 'compete' ? iFoundThemAll : true
   const terminalMessage = useMemo(
     () =>

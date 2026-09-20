@@ -99,7 +99,7 @@ every mode**: nobody won and nobody lost, which is not the same as everyone
 losing.
 
 **WHY it ended is the server's word too**: whichever RPC ends the game writes
-the reason into `common.games.status.outcome` — `solved`, `exhausted` (the
+the reason into `common.games.status.reason` — `solved`, `exhausted` (the
 last budget spent), `timeout`, `conceded` (every racer dropped out), or
 `manual`. The club-list label and the terminal pill both read that column, so
 neither works the reason out from the clock or the roster.

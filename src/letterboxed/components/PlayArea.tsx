@@ -619,7 +619,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // one object per outcome. `leaderboard` is already memoized on the status.
   const isCompete = game?.mode === 'compete'
   const timedOut = status?.timed_out === true
-  const statusOutcome = (status?.outcome as string | undefined) ?? null
+  const statusOutcome = (status?.reason as string | undefined) ?? null
   const winnerId = (status?.winner_id as string | undefined) ?? null
   const over = useMemo(
     () =>
@@ -827,7 +827,7 @@ function buildOver({
   playState: string
   /** `status.timed_out` — the clock ended it. */
   timedOut: boolean
-  /** `status.outcome`, or null when the status carries none. */
+  /** `status.reason`, or null when the status carries none. */
   statusOutcome: string | null
   /** `status.winner_id` — the solve-path winner, or null. */
   winnerId: string | null

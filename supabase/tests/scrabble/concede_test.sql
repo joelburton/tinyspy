@@ -71,8 +71,8 @@ select is(
   (select play_state from common.games where id = (select id from g)),
   'lost_compete', 'the hand-rolled path lands the roster-wide terminal');
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g)),
-  'conceded', 'status.outcome names the cause');
+  (select status->>'reason' from common.games where id = (select id from g)),
+  'conceded', 'status.reason names the cause');
 
 -- ── (4) The last HUMAN conceding ends it, even against a bot ──
 -- A bot holds a common.game_players row now, and a bot never concedes. The

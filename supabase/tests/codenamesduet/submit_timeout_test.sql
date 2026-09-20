@@ -78,10 +78,10 @@ select is(
 
 -- Status outcome carried through to common.games.
 select is(
-  (select status->>'outcome' from common.games
+  (select status->>'reason' from common.games
     where id = (select id from g)),
   'timeout',
-  'submit_timeout: status.outcome names the CAUSE, not the play_state'
+  'submit_timeout: status.reason names the CAUSE, not the play_state'
 );
 
 -- ============================================================

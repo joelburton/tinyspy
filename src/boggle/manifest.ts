@@ -3,7 +3,7 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, setupNum, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
@@ -72,14 +72,14 @@ function coopLabel(row: { play_state: string; status: StatusBlob | null; setup: 
   const pct = setupNum(row.setup, 'win_percent')
   switch (row.play_state) {
     case 'playing':
-      return statusLine(outcome('Playing'), words, pts)
+      return statusLine(verdict('Playing'), words, pts)
     case 'won':
-      return statusLine(outcome('Won', pct != null ? `reached ${pct}%` : null), words, pts)
+      return statusLine(verdict('Won', pct != null ? `reached ${pct}%` : null), words, pts)
     case 'lost':
-      return statusLine(outcome('Lost', 'out of time'), words, pts)
+      return statusLine(verdict('Lost', 'out of time'), words, pts)
     case 'ended':
       return statusLine(
-        outcome('Ended', (s.outcome as string) === 'timeout' ? 'out of time' : null), words, pts)
+        verdict('Ended', (s.reason as string) === 'timeout' ? 'out of time' : null), words, pts)
     default:
       return row.play_state
   }
@@ -98,24 +98,24 @@ function competeLabel(row: { play_state: string; status: StatusBlob | null; setu
   const top = s.top_score != null ? `${s.top_score as number} pts` : null
   switch (row.play_state) {
     case 'playing':
-      return statusLine(outcome('Playing'), pct != null ? `race to ${pct}%` : null)
+      return statusLine(verdict('Playing'), pct != null ? `race to ${pct}%` : null)
     case 'won_compete': {
       // A tie leaves winner_username null — they share the top score.
-      const who = s.winner_username ? wonBy(s.winner_username as string) : outcome('Won', 'co-winners')
+      const who = s.winner_username ? wonBy(s.winner_username as string) : verdict('Won', 'co-winners')
       // A target win reads "Won by alice at 65%" — one phrase. A score race
       // has no bar to name, so the winning score goes in the facts slot.
-      return (s.outcome as string) === 'target' && pct != null
+      return (s.reason as string) === 'target' && pct != null
         ? `${who} at ${pct}%`
         : statusLine(who, top)
     }
     // Two collective losses share this state — the clock, and the last racer
-    // conceding (common.concede) — told apart by status.outcome.
+    // conceding (common.concede) — told apart by status.reason.
     case 'lost_compete':
-      return (s.outcome as string) === 'conceded'
-        ? outcome('Lost', 'all conceded')
-        : statusLine(outcome('Lost', 'out of time'), 'no winner')
+      return (s.reason as string) === 'conceded'
+        ? verdict('Lost', 'all conceded')
+        : statusLine(verdict('Lost', 'out of time'), 'no winner')
     case 'ended':
-      return statusLine(outcome('Ended'), 'no winner')
+      return statusLine(verdict('Ended'), 'no winner')
     default:
       return row.play_state
   }

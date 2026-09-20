@@ -994,6 +994,50 @@ copied outward from whichever wrote it first.
 the guard's docstring asks for exactly this, and a word this sentence keeps
 copying is the kind that returns.
 
+### SHIPPED · F-connections-22 · `status-outcome-is-a-reason` · the status blob's key spent the outcome vocabulary's word on a cause
+
+**Joel, 2026-09-19**, reading F-15's quoted `labelFor`: *"'conceded' is not an
+outcome. that property name is completely wrong and needs to be fixed now"* —
+and, at the same call site, *"there a local name, 'outcome', which is a
+function, which is also wrong and needs a new name."* Two renames, one sweep,
+`reason` chosen by him from three.
+
+**`common.games.status.outcome` → `status.reason`.** The key held `solved` ·
+`mistakes` · `timeout` · `conceded` · `manual` · `exhausted` · `assassin` ·
+`target` · `cleared` · `complete` · `blocked`, none of which is an outcome —
+that word names the six-value appearance vocabulary (`docs/outcomes.md`), the
+envelope's own `outcome` field holds exactly those, and the blob MERGES, so an
+inherited key read as data. `docs/states.md` had already been calling it the
+other thing for months: its table header reads "the cause it names" and the
+paragraph under it asks for "a reason noun". 63 writer lines across every
+game's SQL, every `labelFor`, the terminal builders, 40 pgTAP files, 13 docs.
+
+**The FE's `outcome(word, reason)` label helper → `verdict(word, reason)`**,
+in `common/manifest/statusLabel.ts` and its 113 call sites: it builds
+`Lost (out of time)` for the club-list line, and `Playing`/`Won`/`Lost`/`Ended`
+are verdicts, not outcomes. `verdict` is the repo's own word for that
+(`FeedbackMessage.terminalVerdict`), so it is not a new synonym.
+
+**Five SQL parameters and locals came with it**, since they hold the reason:
+`boggle._finish`, `scrabble._finish`, `setgame._finish` and wordiply's two
+`_finish_*` took an `outcome text` / `outcome_label text` parameter — renamed
+behind a `drop function`, because `create or replace` cannot rename an input
+parameter — and `terminal_outcome` / `v_outcome` became `terminal_reason` /
+`v_reason`. What KEPT the word: `common.ok_envelope` and
+`common.raised_envelope`, whose `outcome` is the real one.
+
+**Prod data**: `supabase/migrations/20260919000002_status_outcome_to_reason.sql`
+rewrites the key in stored rows — `(status - 'outcome') || jsonb_build_object('reason', status -> 'outcome')`
+where the old key is present. Every finished game in prod carries it, and the
+readers ship in the same change.
+
+**Verified**: the whole local database rebuilt from the migration chain, pgTAP
+2523 PASS, 3390 unit tests, tsc + eslint clean — and `docs/game-status-labels.md`
+regenerates **byte-identical**, which is the proof that not one player-visible
+string moved. The guard caught the one thing a grep would have missed on its
+own: its CASES fixtures still built `{ outcome: … }` blobs, so the generated
+table briefly lost every reason.
+
 ### The prose pass — shipped 2026-09-19, one sitting
 
 Everything above with no decision in it, in the working tree for Joel's

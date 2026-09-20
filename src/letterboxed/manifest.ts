@@ -3,7 +3,7 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
@@ -97,17 +97,17 @@ function coopLabel(row: { play_state: string; status?: unknown }): string {
   const progress = `${covered}/${BOARD_SIZE} letters`
 
   if (row.play_state === 'playing') {
-    return statusLine(outcome('Playing'), progress, `${used}/${max} words`)
+    return statusLine(verdict('Playing'), progress, `${used}/${max} words`)
   }
   if (row.play_state === 'won') {
-    return statusLine(outcome('Won'), count(used, 'word'))
+    return statusLine(verdict('Won'), count(used, 'word'))
   }
   // The clock and the group calling it are the two coop losses; the status
   // blob's `timed_out` says which.
   if (row.play_state === 'lost') {
-    return statusLine(outcome('Lost', s.timed_out === true ? 'out of time' : null), progress)
+    return statusLine(verdict('Lost', s.timed_out === true ? 'out of time' : null), progress)
   }
-  return statusLine(outcome('Ended'), progress)
+  return statusLine(verdict('Ended'), progress)
 }
 
 /**
@@ -123,7 +123,7 @@ function competeLabel(row: { play_state: string; status?: unknown }): string {
   if (row.play_state === 'playing') {
     const best = leaderboard[0]
     return statusLine(
-      outcome('Playing'),
+      verdict('Playing'),
       best ? `best ${best.letters_covered ?? 0}/${BOARD_SIZE}` : `0/${BOARD_SIZE}`,
     )
   }
@@ -140,11 +140,11 @@ function competeLabel(row: { play_state: string; status?: unknown }): string {
   }
   if (row.play_state === 'lost_compete') {
     return statusLine(
-      outcome('Lost', s.outcome === 'conceded' ? 'all conceded' : null),
+      verdict('Lost', s.reason === 'conceded' ? 'all conceded' : null),
       'nobody finished',
     )
   }
-  return statusLine(outcome('Ended'), 'no winner')
+  return statusLine(verdict('Ended'), 'no winner')
 }
 
 export const letterboxedCoopGame: GameManifest = {

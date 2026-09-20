@@ -3,7 +3,7 @@
 import { lazy } from 'react'
 import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, dictLabel, outcome, setupNum, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, dictLabel, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { DEFAULT_WAFFLE_SETUP, type WaffleSetup } from './lib/setup'
@@ -76,7 +76,7 @@ const endGame = makeRpcDispatcher(db, 'end_game')
 function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
     const s = (row.status ?? {}) as {
-      winner_username?: string; outcome?: string
+      winner_username?: string; reason?: string
       // Coop only — compete never updates these (a live count leaks a racer's
       // progress), so they're absent there rather than a permanent 0.
       swaps_used?: number; max_swaps?: number
@@ -90,19 +90,19 @@ function labelFor(mode: 'coop' | 'compete') {
         : null
     switch (row.play_state) {
       case 'playing':
-        return statusLine(outcome('Playing'), left, dict)
+        return statusLine(verdict('Playing'), left, dict)
       case 'won':
-        return statusLine(outcome('Won'), left, dict)
+        return statusLine(verdict('Won'), left, dict)
       case 'won_compete':
         return statusLine(wonBy(s.winner_username), count(s.winner_swaps, 'swap', 'swaps'), dict)
       case 'lost':
         // Coop: the shared board ran out of swaps, or the clock beat it.
-        return statusLine(outcome('Lost', s.outcome === 'timeout' ? 'out of time' : 'out of swaps'), dict)
+        return statusLine(verdict('Lost', s.reason === 'timeout' ? 'out of time' : 'out of swaps'), dict)
       case 'lost_compete':
         // "all conceded" already says nobody won; the others need spelling out.
-        return s.outcome === 'conceded'
-          ? outcome('Lost', 'all conceded')
-          : statusLine(outcome('Lost', COMPETE_LOSS[s.outcome ?? ''] ?? null), 'no winner')
+        return s.reason === 'conceded'
+          ? verdict('Lost', 'all conceded')
+          : statusLine(verdict('Lost', COMPETE_LOSS[s.reason ?? ''] ?? null), 'no winner')
       case 'ended':
         // Manual end / "Reveal solution" — both neutral, but they're different
         // stories: one is "we stopped", the other "we gave up and looked".
@@ -110,7 +110,7 @@ function labelFor(mode: 'coop' | 'compete') {
         // outcome='revealed' is gone (2026-08-03). Revealing is now a display
         // decision on an already-ended game, and the club list describes the
         // ENDING, not what the players have since looked at.
-        return statusLine(outcome('Ended', null), dict)
+        return statusLine(verdict('Ended', null), dict)
       default:
         return row.play_state
     }

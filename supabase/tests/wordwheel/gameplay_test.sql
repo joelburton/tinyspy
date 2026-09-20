@@ -377,9 +377,9 @@ select is(
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from timeout_g)),
+  (select status->>'reason' from common.games where id = (select id from timeout_g)),
   'timeout',
-  'submit_timeout: status.outcome=timeout'
+  'submit_timeout: status.reason=timeout'
 );
 
 -- Idempotency: a second call raises P0001 (peers racing the countdown).
@@ -436,9 +436,9 @@ select is(
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from end_g)),
+  (select status->>'reason' from common.games where id = (select id from end_g)),
   'manual',
-  'end_game: status.outcome=manual (distinguishes from timeout)'
+  'end_game: status.reason=manual (distinguishes from timeout)'
 );
 
 select is(

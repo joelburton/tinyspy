@@ -418,7 +418,12 @@ grant execute on function setgame.create_game(text, jsonb, uuid[], text) to auth
 --
 -- Conceded players are ranked out: they can't win, but they keep the sets they
 -- took (the roster-wide "no survival wins" rule, from the other direction).
-create or replace function setgame._finish(target_game uuid, outcome text)
+-- `outcome` was the parameter's name, which is the appearance vocabulary's
+-- word (docs/outcomes.md) rather than what it holds — WHY the game ended. The
+-- drop is what lets the rename land: `create or replace` cannot rename an
+-- input parameter.
+drop function if exists setgame._finish(uuid, text);
+create or replace function setgame._finish(target_game uuid, reason text)
 returns void
 language plpgsql
 security definer
@@ -442,17 +447,17 @@ begin
     -- number while the game runs, and who found what once it is over.
     select jsonb_object_agg(
              p.user_id::text,
-             jsonb_build_object('won', outcome <> 'timeout', 'sets_found', p.sets_found))
+             jsonb_build_object('won', reason <> 'timeout', 'sets_found', p.sets_found))
       into player_results
       from setgame.players p
      where p.game_id = target_game;
 
     perform common.end_game(
       target_game,
-      case when outcome = 'timeout' then 'lost' else 'won' end,
+      case when reason = 'timeout' then 'lost' else 'won' end,
       jsonb_build_object(
         'mode', 'coop',
-        'outcome', outcome,
+        'reason', reason,
         'sets_found', team_found
       ),
       player_results
@@ -512,7 +517,7 @@ begin
       case when best > 0 then 'won_compete' else 'lost_compete' end,
       jsonb_build_object(
         'mode', 'compete',
-        'outcome', outcome,
+        'reason', reason,
         'sets_found', team_found,
         'winner_user_id', winner_uid,
         'winner_username', (select username from common.profiles where user_id = winner_uid),
@@ -977,7 +982,7 @@ begin
     target_game, 'ended',
     jsonb_build_object(
       'mode', g_row.mode,
-      'outcome', 'manual',
+      'reason', 'manual',
       'sets_found', (select count(*) from setgame.events
         where game_id = target_game and kind = 'claim')
     ),

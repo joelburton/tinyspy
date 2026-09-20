@@ -446,7 +446,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // everyone lost). The no-winner cases are checked FIRST — with no
   // winner_username the peel-win branch would fall through to "someone went
   // out — Bananas!" and show everyone a loss for the wrong reason.
-  const statusOutcome = (ctx.status?.outcome as string | undefined) ?? null
+  const statusOutcome = (ctx.status?.reason as string | undefined) ?? null
   const over = useMemo((): TerminalMessage | null => {
     if (!isTerminal) return null
     if (statusOutcome === 'timeout') {

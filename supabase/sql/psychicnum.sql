@@ -457,7 +457,7 @@ declare
   player_results jsonb;
   winner_name text;
   terminal_state text;
-  terminal_outcome text;
+  terminal_reason text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Lock the gametype row for serialization of concurrent submits. We read it
@@ -618,7 +618,7 @@ begin
         from common.game_players
        where game_id = target_game;
       terminal_state := 'won';
-      terminal_outcome := 'solved';
+      terminal_reason := 'solved';
     else
       -- Compete: the caller who completed the set wins; everyone else loses.
       select jsonb_object_agg(
@@ -631,14 +631,14 @@ begin
         from common.game_players
        where game_id = target_game;
       terminal_state := 'won_compete';
-      terminal_outcome := 'solved';
+      terminal_reason := 'solved';
     end if;
 
     perform common.end_game(
       target_game,
       terminal_state,
       jsonb_build_object(
-        'outcome', terminal_outcome,
+        'reason', terminal_reason,
         'winner_username', winner_name
       ),
       player_results
@@ -661,21 +661,21 @@ begin
       terminal_state := 'lost';
       -- The budget ran out. Named for what happened, not for the state it
       -- lands in — the label distinguishes it from the timeout loss.
-      terminal_outcome := 'exhausted';
+      terminal_reason := 'exhausted';
     else
       select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
         into player_results
         from common.game_players
        where game_id = target_game;
       terminal_state := 'lost_compete';
-      terminal_outcome := 'exhausted';
+      terminal_reason := 'exhausted';
     end if;
 
     perform common.end_game(
       target_game,
       terminal_state,
       jsonb_build_object(
-        'outcome', terminal_outcome,
+        'reason', terminal_reason,
         'guesses_used', initial_guesses
       )
       -- Restate the team's tally: this guess may itself have found a secret
@@ -783,7 +783,7 @@ begin
     from common.game_players where game_id = target_game;
   perform common.end_game(
     target_game, 'lost_compete',
-    jsonb_build_object('outcome',
+    jsonb_build_object('reason',
       case when not exists (select 1 from common.game_players gp
                              where gp.game_id = target_game and not gp.conceded)
            then 'conceded' else 'exhausted' end),
@@ -1112,7 +1112,7 @@ declare
   initial_guesses int;
   player_results jsonb;
   terminal_state text;
-  terminal_outcome text;
+  terminal_reason text;
 begin
   select * into g from psychicnum.games
    where psychicnum.games.id = target_game
@@ -1138,17 +1138,17 @@ begin
 
   if g.mode = 'coop' then
     terminal_state := 'lost';
-    terminal_outcome := 'timeout';
+    terminal_reason := 'timeout';
   else
     terminal_state := 'lost_compete';
-    terminal_outcome := 'timeout';
+    terminal_reason := 'timeout';
   end if;
 
   perform common.end_game(
     target_game,
     terminal_state,
     jsonb_build_object(
-      'outcome', terminal_outcome,
+      'reason', terminal_reason,
       'guesses_used', initial_guesses - (
         select coalesce(sum(guesses_remaining), 0)::int / greatest(
           (select count(*)::int from psychicnum.players where game_id = target_game),
@@ -1256,7 +1256,7 @@ begin
   perform common.end_game(
     target_game,
     'ended',
-    jsonb_build_object('outcome', 'manual', 'mode', g_row.mode),
+    jsonb_build_object('reason', 'manual', 'mode', g_row.mode),
     player_results
   );
 

@@ -206,9 +206,9 @@ select is(
 );
 
 select is(
-  (select (status->>'outcome') from common.games where id = (select id from g_timeout)),
+  (select (status->>'reason') from common.games where id = (select id from g_timeout)),
   'timeout',
-  'compete submit_timeout: status.outcome = timeout'
+  'compete submit_timeout: status.reason = timeout'
 );
 
 select is(
@@ -255,9 +255,9 @@ select spellingbee.end_game((select id from g_end));
 
 reset role;
 select is(
-  (select (status->>'outcome') from common.games where id = (select id from g_end)),
+  (select (status->>'reason') from common.games where id = (select id from g_end)),
   'manual',
-  'compete end_game: status.outcome = manual'
+  'compete end_game: status.reason = manual'
 );
 
 select is(

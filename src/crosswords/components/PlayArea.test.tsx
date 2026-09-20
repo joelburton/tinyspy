@@ -216,7 +216,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
 
   /**
    * The compete collective losses both land on play_state `lost_compete` and
-   * are told apart only by `status.outcome` — the two-places trap's third
+   * are told apart only by `status.reason` — the two-places trap's third
    * surface (labelFor asserts the club card; nothing else asserts the in-game
    * verdict). These pin buildOver to the terminals the server actually writes:
    * common.concede → 'lost_compete' + outcome 'conceded',
@@ -224,8 +224,8 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
    * 'lost' + 'timeout' (coop).
    */
   describe('terminal loss verdicts', () => {
-    const terminalCtx = (playState: string, outcome: string) =>
-      makeCtx({ isTerminal: true, playState, status: { outcome } })
+    const terminalCtx = (playState: string, reason: string) =>
+      makeCtx({ isTerminal: true, playState, status: { reason } })
 
     it('compete all-conceded (lost_compete + outcome conceded) says so', () => {
       h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }

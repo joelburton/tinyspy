@@ -3,7 +3,7 @@
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { outcome, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import {
@@ -145,17 +145,17 @@ export const spellingbeeCoopGame: GameManifest = {
     const rank = RANKS[(s.target_rank as number | undefined) ?? 6]
     switch (row.play_state) {
       case 'playing':
-        return statusLine(outcome('Playing'), pts, words)
+        return statusLine(verdict('Playing'), pts, words)
       case 'won':
         // "Won at …" is one phrase, not two facts — no separator inside it.
-        return statusLine(`${outcome('Won')} at "${rank}"`, pts)
+        return statusLine(`${verdict('Won')} at "${rank}"`, pts)
       // Ran out WITH a target to hit. (Ran out with nothing to fail at is
       // 'ended' below — the neutral close of an open hunt.)
       case 'lost':
-        return statusLine(outcome('Lost', 'out of time'), pts, words)
+        return statusLine(verdict('Lost', 'out of time'), pts, words)
       case 'ended':
         return statusLine(
-          outcome('Ended', (s.outcome as string) === 'timeout' ? 'out of time' : null), pts, words)
+          verdict('Ended', (s.reason as string) === 'timeout' ? 'out of time' : null), pts, words)
       default:
         return row.play_state
     }
@@ -204,24 +204,24 @@ export const spellingbeeCompeteGame: GameManifest = {
     const rank = RANKS[(s.target_rank as number | undefined) ?? 0] ?? '?'
 
     // The all-conceded terminal comes through common.concede as
-    // play_state='lost_compete' + status {outcome:'conceded'} with NO
+    // play_state='lost_compete' + status {reason:'conceded'} with NO
     // target_rank, so it must be caught BEFORE anything that prints the rank —
     // otherwise the rank falls back to 0 and the label reads the wrong
     // "…at Start". (Keyed on the outcome, not the state, so it also sits ahead
     // of the lost_compete arm below, which is the CLOCK's version of the loss.)
-    if ((s.outcome as string) === 'conceded') return outcome('Lost', 'all conceded')
+    if ((s.reason as string) === 'conceded') return verdict('Lost', 'all conceded')
 
     switch (row.play_state) {
       case 'playing':
-        return statusLine(outcome('Playing'), `race to "${rank}"`)
+        return statusLine(verdict('Playing'), `race to "${rank}"`)
       case 'won_compete':
         return `${wonBy(s.winner_username as string | undefined)} at "${rank}"`
       // The clock beat everyone to the rank — a real loss for the table.
       case 'lost_compete':
-        return statusLine(outcome('Lost', 'out of time'), `nobody reached "${rank}"`)
+        return statusLine(verdict('Lost', 'out of time'), `nobody reached "${rank}"`)
       case 'ended':
         return statusLine(
-          outcome('Ended', (s.outcome as string) === 'timeout' ? 'out of time' : null),
+          verdict('Ended', (s.reason as string) === 'timeout' ? 'out of time' : null),
           `nobody reached "${rank}"`)
       default:
         return row.play_state

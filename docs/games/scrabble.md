@@ -203,7 +203,7 @@ Two natural end triggers, plus the universal manual / timeout paths:
   **The clock is the one exception, and the one way a coop table loses**
   (`play_state='lost'`): failing to finish in time is a real failure to finish,
   which is how every other game on the roster reads it. The play surface is
-  finer-grained than the state — it reads `status.outcome` to say `Completed:`
+  finer-grained than the state — it reads `status.reason` to say `Completed:`
   for a natural finish vs a plain `Ended:` for a manual stop.
   **Manual end is NOT neutral in coop**:
   ending with tiles still in hand forfeits their value from the team score

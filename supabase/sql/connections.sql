@@ -622,7 +622,7 @@ begin
   -- did play it out.
   perform common.end_game(
     target_game, 'lost_compete',
-    jsonb_build_object('outcome',
+    jsonb_build_object('reason',
       case when not exists (select 1 from common.game_players gp
                              where gp.game_id = target_game and not gp.conceded)
            then 'conceded' else 'mistakes' end),
@@ -848,7 +848,7 @@ begin
           target_game,
           'won',
           jsonb_build_object(
-            'outcome', 'solved',
+            'reason', 'solved',
             'mistake_count', caller_mistakes,
             'matched_count', 4
           ),
@@ -891,7 +891,7 @@ begin
           target_game,
           'won_compete',
           jsonb_build_object(
-            'outcome', 'solved',
+            'reason', 'solved',
             'winner_username', winner_name
           ),
           player_results);
@@ -985,7 +985,7 @@ begin
         target_game,
         'lost',
         jsonb_build_object(
-          'outcome', 'mistakes',
+          'reason', 'mistakes',
           'mistake_count', caller_mistakes,
           'matched_count', matched_count
         ),
@@ -1136,7 +1136,7 @@ declare
   current_play_state text;
   player_results jsonb;
   terminal_state text;
-  terminal_outcome text;
+  terminal_reason text;
   matched_count int;
   caller_mistakes int;
 begin
@@ -1164,7 +1164,7 @@ begin
 
   if g_row.mode = 'coop' then
     terminal_state := 'lost';
-    terminal_outcome := 'timeout';
+    terminal_reason := 'timeout';
 
     -- Coop final snapshot: mistake_count + matched_count for the
     -- listing label.
@@ -1180,20 +1180,20 @@ begin
       target_game,
       terminal_state,
       jsonb_build_object(
-        'outcome', terminal_outcome,
+        'reason', terminal_reason,
         'mistake_count', caller_mistakes,
         'matched_count', matched_count
       ),
       player_results);
   else
     terminal_state := 'lost_compete';
-    terminal_outcome := 'timeout';
+    terminal_reason := 'timeout';
 
     perform common.end_game(
       target_game,
       terminal_state,
       jsonb_build_object(
-        'outcome', terminal_outcome
+        'reason', terminal_reason
       ),
       player_results);
   end if;
@@ -1296,7 +1296,7 @@ begin
     target_game,
     'ended',
     jsonb_build_object(
-      'outcome', 'manual',
+      'reason', 'manual',
       'mode', g_row.mode
     ),
     player_results);

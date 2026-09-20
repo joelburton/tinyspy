@@ -491,7 +491,12 @@ grant execute on function wordiply.create_game(text, jsonb, uuid[], text, jsonb)
 -- the shared guesses and ends the game with the given outcome label
 -- ('complete' | 'timeout' | 'manual'; only 'timeout' is a LOSS). This is where the terminal scores
 -- (hidden until now on the FE) are finally written to status.
-create or replace function wordiply._finish_coop(target_game uuid, outcome_label text)
+-- `outcome_label` was this parameter's name; it holds a REASON the game ended,
+-- and `outcome` is the appearance vocabulary's word (docs/outcomes.md). The
+-- drop is what lets the rename land: `create or replace` cannot rename an
+-- input parameter.
+drop function if exists wordiply._finish_coop(uuid, text);
+create or replace function wordiply._finish_coop(target_game uuid, reason text)
 returns void
 language plpgsql
 security definer
@@ -525,12 +530,12 @@ begin
   -- stopping on purpose, are just finishing: neutral 'ended'.
   perform common.end_game(
     target_game,
-    case when outcome_label = 'timeout' then 'lost' else 'ended' end,
+    case when reason = 'timeout' then 'lost' else 'ended' end,
     jsonb_build_object(
       'mode', 'coop',
       'base', g_row.base,
       'max_word_length', g_row.max_word_length,
-      'outcome', outcome_label,
+      'reason', reason,
       'length_score', ls,
       'letter_count', team_letters,
       'longest', team_longest,
@@ -556,9 +561,10 @@ revoke execute on function wordiply._finish_coop(uuid, text) from public;
 -- pick_winner=false is the "players agreed to stop" path (manual compete
 -- end_game): everyone marked won=false, terminal_state 'ended', no winner.
 -- The FE's compareCompetitors in lib/scoring.ts MUST match this order.
+drop function if exists wordiply._finish_compete(uuid, text, boolean);
 create or replace function wordiply._finish_compete(
   target_game uuid,
-  outcome_label text,
+  reason text,
   pick_winner boolean
 )
 returns void
@@ -667,7 +673,7 @@ begin
       'mode', 'compete',
       'base', g_row.base,
       'max_word_length', g_row.max_word_length,
-      'outcome', outcome_label,
+      'reason', reason,
       'winner_user_id', winner_uid,
       -- Named too: the club-list label is a pure function of this one row, so
       -- it can't resolve a uuid, and the leaderboard it would otherwise scan

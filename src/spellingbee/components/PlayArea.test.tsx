@@ -205,7 +205,7 @@ describe('spellingbee PlayArea — render smoke', () => {
 
 /**
  * The compete collective losses both land on play_state `lost_compete` and are
- * told apart only by `status.outcome` — the two-places trap's third surface
+ * told apart only by `status.reason` — the two-places trap's third surface
  * (labelFor and the report fixtures assert the club card; nothing else asserts
  * the in-game verdict). These pin buildOver to the terminals the server
  * actually writes: common.concede → 'lost_compete' + outcome 'conceded',
@@ -244,12 +244,12 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
 })
 
 describe('spellingbee PlayArea — compete terminal verdicts', () => {
-  const competeCtx = (playState: string, outcome: string) =>
+  const competeCtx = (playState: string, reason: string) =>
     makeCtx({
       players: twoMembers,
       isTerminal: true,
       playState,
-      status: { outcome },
+      status: { reason },
       setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } },
     })
 

@@ -391,7 +391,7 @@ declare
   winner_id      uuid;
   player_results jsonb;
   term_state     text;
-  v_outcome      text;
+  v_reason      text;
   v_max          int;
 begin
   select max_guesses into v_max from wordle.games where id = target_game;
@@ -445,11 +445,11 @@ begin
              then 'conceded'
            else 'exhausted'
          end
-    into v_outcome;
+    into v_reason;
 
   perform common.end_game(
     target_game, term_state,
-    jsonb_build_object('mode', 'compete', 'outcome', v_outcome,
+    jsonb_build_object('mode', 'compete', 'reason', v_reason,
                        'winner_user_id', winner_id,
                        'winner_username', (select username from common.profiles where user_id = winner_id),
                        -- The WINNER's own count. `guesses_used` in a compete
@@ -664,7 +664,7 @@ begin
       perform common.end_game(
         target_game, term_state,
         jsonb_build_object('mode', 'coop', 'solved', did_solve,
-                           'outcome', case when did_solve then 'solved' else 'exhausted' end,
+                           'reason', case when did_solve then 'solved' else 'exhausted' end,
                            'guesses_used', new_used, 'max_guesses', g_row.max_guesses),
         player_results
       );
@@ -841,7 +841,7 @@ begin
      where game_id = target_game;
     perform common.end_game(
       target_game, 'lost',
-      jsonb_build_object('mode', 'coop', 'solved', false, 'outcome', 'timeout'),
+      jsonb_build_object('mode', 'coop', 'solved', false, 'reason', 'timeout'),
       player_results
     );
   else
@@ -868,7 +868,7 @@ begin
                        then 'won_compete' else 'lost_compete' end;
     perform common.end_game(
       target_game, term_state,
-      jsonb_build_object('mode', 'compete', 'outcome', 'timeout',
+      jsonb_build_object('mode', 'compete', 'reason', 'timeout',
                          'winner_user_id', winner_id, 'winner_username', (select username from common.profiles where user_id = winner_id)),
       player_results
     );
@@ -936,7 +936,7 @@ begin
    where game_id = target_game;
   perform common.end_game(
     target_game, 'ended',
-    jsonb_build_object('outcome', 'manual'),
+    jsonb_build_object('reason', 'manual'),
     player_results
   );
 

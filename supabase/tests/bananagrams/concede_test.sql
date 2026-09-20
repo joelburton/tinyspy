@@ -13,7 +13,7 @@
 --   3. The conceder is recorded {"won": false} when the game ends
 --      (here: the remaining player peels out and wins)
 --   4. Last active player conceding ends the game as a COLLECTIVE
---      loss (play_state 'lost', status.outcome 'conceded', no winner)
+--      loss (play_state 'lost', status.reason 'conceded', no winner)
 --   5. Solo (N = 1) concede ends the game as a loss immediately
 --   6. Non-players rejected; conceding a finished game rejected
 -- ============================================================
@@ -131,9 +131,9 @@ select is(
   'the last concede ends the game as a collective loss'
 );
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g2)),
+  (select status->>'reason' from common.games where id = (select id from g2)),
   'conceded',
-  'status.outcome is conceded (distinct from timeout / a win)'
+  'status.reason is conceded (distinct from timeout / a win)'
 );
 select is(
   (select status->>'winner_username' from common.games where id = (select id from g2)),

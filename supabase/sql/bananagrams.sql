@@ -734,7 +734,7 @@ begin
     perform common.end_game(
       target_game,
       'won',
-      jsonb_build_object('outcome', 'complete', 'winner_username', winner_name,
+      jsonb_build_object('reason', 'complete', 'winner_username', winner_name,
                          'bunch_remaining', length(s_bunch)),
       player_results
     );
@@ -1143,7 +1143,7 @@ begin
 
   perform common.end_game(
     target_game, 'lost',
-    jsonb_build_object('outcome', 'timeout'),
+    jsonb_build_object('reason', 'timeout'),
     player_results
   );
 
@@ -1372,7 +1372,7 @@ begin
 
   perform common.end_game(
     target_game, 'ended',
-    jsonb_build_object('outcome', 'manual'),
+    jsonb_build_object('reason', 'manual'),
     player_results
   );
 

@@ -423,7 +423,7 @@ sizing).
   `common.concede` names the collective loss — and reads "Lost: out of the
   race"; a countdown expiring reads "Lost: out of time" in coop and "Out of
   time — no winner" in compete, the roster's shared phrasing, keyed off
-  `status.outcome === 'timeout'`). A **coop solve** pops the shared
+  `status.reason === 'timeout'`). A **coop solve** pops the shared
   `<CelebrationBlockingModal>` via `useCelebration(playState === 'won')` — coop-only by
   the states vocabulary (compete writes `won_compete`), at the moment of the
   flip, never on opening an already-solved game. The board is **not**

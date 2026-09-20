@@ -777,7 +777,7 @@ begin
         'won',
         jsonb_build_object(
           'mode', 'coop',
-          'outcome', 'target',
+          'reason', 'target',
           'found_words_score', team_score,
           'required_words_score', g_row.required_words_score,
           'rank_idx', team_rank_idx,
@@ -854,7 +854,7 @@ begin
       perform common.end_game(
         target_game, 'won_compete',
         jsonb_build_object(
-          'outcome', 'target',
+          'reason', 'target',
           'mode', 'compete',
           'winner_user_id', caller_id,
           -- Named, not just id'd: the club-list label can't resolve a uuid
@@ -1038,7 +1038,7 @@ begin
       target_game,
       case when current_target_rank is not null then 'lost' else 'ended' end,
       jsonb_build_object(
-        'outcome', 'timeout',
+        'reason', 'timeout',
         'mode', 'coop',
         'found_words_score', team_score,
         'required_words_score', g_row.required_words_score,
@@ -1086,7 +1086,7 @@ begin
       target_game,
       case when current_target_rank is not null then 'lost_compete' else 'ended' end,
       jsonb_build_object(
-        'outcome', 'timeout',
+        'reason', 'timeout',
         'mode', 'compete',
         'target_rank', current_target_rank,
         'leaderboard', status_leaderboard
@@ -1220,7 +1220,7 @@ begin
     perform common.end_game(
       target_game, 'ended',
       jsonb_build_object(
-        'outcome', 'manual',
+        'reason', 'manual',
         'mode', 'coop',
         'found_words_score', team_score,
         'required_words_score', g_row.required_words_score,
@@ -1261,7 +1261,7 @@ begin
     perform common.end_game(
       target_game, 'ended',
       jsonb_build_object(
-        'outcome', 'manual',
+        'reason', 'manual',
         'mode', 'compete',
         'target_rank', current_target_rank,
         'leaderboard', status_leaderboard

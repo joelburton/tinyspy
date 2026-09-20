@@ -69,9 +69,9 @@ select is(
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from game)),
+  (select status->>'reason' from common.games where id = (select id from game)),
   'solved',
-  'status.outcome carries strands'' own word for the cause'
+  'status.reason carries strands'' own word for the cause'
 );
 
 -- The other half of the tiling identity: counting words was a proxy for
@@ -121,7 +121,7 @@ select is(
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from game2)),
+  (select status->>'reason' from common.games where id = (select id from game2)),
   'manual',
   'and says so'
 );

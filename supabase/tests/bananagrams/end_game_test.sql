@@ -14,7 +14,7 @@
 --
 -- Covers:
 --   1. Any player may end a live game → play_state 'ended', terminal,
---      status.outcome 'manual', EVERY player {"won": false}
+--      status.reason 'manual', EVERY player {"won": false}
 --   2. A player who had already conceded stays conceded (their own quit is
 --      still theirs) but is likewise recorded not-won
 --   3. Idempotency: ending an already-terminal game raises P0001
@@ -57,8 +57,8 @@ select is(
   (select is_terminal from common.games where id = (select id from g1)),
   true, 'the game is terminal');
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g1)),
-  'manual', 'status.outcome is manual');
+  (select status->>'reason' from common.games where id = (select id from g1)),
+  'manual', 'status.reason is manual');
 -- Nobody wins a manual end — not even the player with the fullest board.
 select is(
   (select count(*) from common.game_players

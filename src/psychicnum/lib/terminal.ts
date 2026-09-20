@@ -28,7 +28,7 @@ export function buildTerminalMessage({
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  // WHY it ended — `common.games.status.outcome`, written by whichever RPC
+  // WHY it ended — `common.games.status.reason`, written by whichever RPC
   // ended the game: `timeout` (submit_timeout), `conceded` (every racer
   // dropped out), `exhausted` (the last budget spent). The club-list label
   // reads the same column, so the two surfaces name one reason.

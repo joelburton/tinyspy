@@ -492,7 +492,7 @@ type Suggested =
   // — bot or person, one roster, one lookup — reduced to name + color for the
   // identity dot. Undefined on a tie / all-conceded / coop, where nobody is
   // named. `winner_username` covers the roster arriving a beat late.
-  const statusOutcome = (status?.outcome as string | undefined) ?? null
+  const statusOutcome = (status?.reason as string | undefined) ?? null
   const winnerId = (status?.winner_user_id as string | undefined) ?? null
   const winnerMember = players.find((m: Member) => m.user_id === winnerId)
   const winnerName =
@@ -708,7 +708,7 @@ function buildOver({
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  /** `status.outcome`, or null when the status carries none. */
+  /** `status.reason`, or null when the status carries none. */
   statusOutcome: string | null
   teamScore: number | null
   selfWon: boolean

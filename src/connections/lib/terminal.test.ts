@@ -15,10 +15,10 @@ import { describe, expect, it } from 'vitest'
 import { buildTerminalMessage } from './terminal'
 
 /** The defaults every case overrides one field of. `reason` is
- *  `status.outcome` — the word the RPC that ended the game wrote. */
+ *  `status.reason` — the word the RPC that ended the game wrote. */
 const base = { reason: 'mistakes', selfWon: false, selfEliminated: false }
 
-/** Every word `common.games.status.outcome` can hold when connections is over,
+/** Every word `common.games.status.reason` can hold when connections is over,
  *  plus the undefined a game whose status never carried one hands us. */
 const REASONS = ['mistakes', 'timeout', 'conceded', 'solved', 'manual', undefined]
 

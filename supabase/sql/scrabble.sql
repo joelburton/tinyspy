@@ -370,7 +370,12 @@ revoke execute on function scrabble._advance_seat(uuid) from public;
 --         → no win), except the clock, which is 'lost'.
 --   Compete: each score -= own leftover; the out-player += everyone's
 --         leftovers; highest score wins ('won_compete'), ties → co-winners.
-create or replace function scrabble._finish(g_id uuid, outcome text, going_out_seat int)
+-- `outcome` was the parameter's name, which is the appearance vocabulary's
+-- word (docs/outcomes.md) rather than what it holds — WHY the game ended. The
+-- drop is what lets the rename land: `create or replace` cannot rename an
+-- input parameter.
+drop function if exists scrabble._finish(uuid, text, int);
+create or replace function scrabble._finish(g_id uuid, reason text, going_out_seat int)
 returns void
 language plpgsql
 security definer
@@ -415,11 +420,11 @@ begin
       into player_results
       from common.game_players where game_id = g_id;
 
-    v_status := jsonb_build_object('mode', 'coop', 'outcome', outcome,
+    v_status := jsonb_build_object('mode', 'coop', 'reason', reason,
                                    'team_score', v_team_final);
     perform common.end_game(
       g_id,
-      case when outcome = 'timeout' then 'lost' else 'ended' end,
+      case when reason = 'timeout' then 'lost' else 'ended' end,
       v_status, player_results);
   else
     -- Subtract each player's own leftover tiles.
@@ -488,7 +493,7 @@ begin
     end if;
 
     v_status := jsonb_build_object(
-      'mode', 'compete', 'outcome', outcome,
+      'mode', 'compete', 'reason', reason,
       'winner_user_id', v_winner_user,        -- the winner's uuid, bot or person; null on a tie
       'winner_seat', v_winner_seat,   -- the winning seat (human or AI); null on tie
       'winner_username', v_winner_name,
@@ -1701,7 +1706,7 @@ begin
       into player_results
       from common.game_players where game_id = target_game;
     perform common.end_game(
-      target_game, 'ended', jsonb_build_object('outcome', 'manual'), player_results);
+      target_game, 'ended', jsonb_build_object('reason', 'manual'), player_results);
   end if;
 
   -- Realtime touch (see submit_timeout) — wakes the games subscription so the

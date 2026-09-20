@@ -51,7 +51,7 @@ Sibling-manifest pairs that include a compete variant (see [`common.md` → The 
 
 The distinct names matter because the per-player outcome differs: coop's `'won'` means "every player won together"; compete's `'won_compete'` means "one player won, the others lost." Per-player outcome detail goes on `common.game_players.result` jsonb (`{ "won": bool }` shape today); `play_state` carries the **game-level** terminal answer that the listing label needs to render without joining game_players.
 
-spellingbee's compete variant follows the same suffix convention (its schema declares `'won_compete'` as a play_state). **Every gametype with a win now uses `won` / `won_compete`** — connections was the last holdout (`solved` / `solved_compete` until 2026-08-01). Its puzzle vocabulary didn't disappear, it moved to where it's true: the play_state carries the verdict in the roster's words, `status.outcome = 'solved'` carries the cause in connections'. The old pair was never self-consistent anyway — the loss side was already plain `lost` / `lost_compete`, not `unsolved`.
+spellingbee's compete variant follows the same suffix convention (its schema declares `'won_compete'` as a play_state). **Every gametype with a win now uses `won` / `won_compete`** — connections was the last holdout (`solved` / `solved_compete` until 2026-08-01). Its puzzle vocabulary didn't disappear, it moved to where it's true: the play_state carries the verdict in the roster's words, `status.reason = 'solved'` carries the cause in connections'. The old pair was never self-consistent anyway — the loss side was already plain `lost` / `lost_compete`, not `unsolved`.
 
 **The convention is load-bearing, not just cosmetic:** `common.concede` reads the `_compete` suffix off `common.games.gametype` to decide whether an all-conceded table ends `lost_compete` or plain `lost` (2026-08-01 — before that it hardcoded `lost`, so half the roster ended a concede in one vocabulary and half in another). A **single-mode** gametype has no `_compete` half and keeps plain `lost`: bananagrams is the only one today. So a new compete sibling gets the right terminal for free, and a new single-mode game must not be registered with a `_compete` suffix unless it really means the compete vocabulary.
 
@@ -93,7 +93,7 @@ target is the exception that proves it — there the bar, not the leader, is wha
 the clock beat, so it's `lost_compete`.) strands compete has its own flavor: the
 race is fewest hints *among solvers*, so the clock crowns a player who has
 already solved (`won_compete`); with no solver there's nobody to crown and it's
-`lost_compete` (outcome `timeout`).
+`lost_compete` (reason `timeout`).
 
 **Unless there's no leader to crown.** The win test in a score race is "your
 score is the best score", which is true for *everyone* when every score is 0 —
@@ -103,19 +103,26 @@ with a score means `lost_compete`, nobody `won`. Ratified 2026-08-01, after a
 probe found boggle's club label reading `Won (co-winners)` off exactly that row
 while its own play surface said "no words found".
 
-### `status.outcome` names the CAUSE, never the verdict
+### `status.reason` names the CAUSE, never the verdict
 
 `play_state` answers *what happened to the game* (won / lost / ended, per mode).
-`status.outcome` answers *why it stopped* — and the two must not say the same
+`status.reason` answers *why it stopped* — and the two must not say the same
 thing twice. A terminal write states both: `play_state = 'lost_compete'` with
-`outcome = 'timeout'`, not `outcome = 'lost_compete_timeout'`.
+`reason = 'timeout'`, not `reason = 'lost_compete_timeout'`.
 
-The rule, checkable at a glance: **no `outcome` value may also be a `play_state`
+**The key is `reason`, and it is not an `outcome`.** It was called that until
+2026-09-19, which put a cause where the app's six-value appearance vocabulary
+(`won` · `lost` · `near` · `warning` · `neutral` · `noted` —
+[outcomes.md](outcomes.md)) spends the same word, and an envelope's own
+`outcome` field holds exactly those. Nothing below changed but the key:
+`20260919000002_status_outcome_to_reason.sql` renamed it in the stored rows.
+
+The rule, checkable at a glance: **no `reason` value may also be a `play_state`
 value.** Pinned by the vocabulary-disjointness test in
 `src/guards/gameStatusLabels.test.ts` (which sweeps this table against the reachable
 play_states in its CASES matrix). The whole roster's vocabulary today:
 
-| outcome | the cause it names |
+| reason | the cause it names |
 |---|---|
 | `timeout` | the countdown reached 0 |
 | `manual` | a player fired the End-game action |
@@ -131,7 +138,7 @@ play_states in its CASES matrix). The whole roster's vocabulary today:
 | ~~`revealed`~~ | *dead since 2026-08-03.* Was "this game ended because a player asked to see the answer" — waffle's and wordle's combined mid-game give-ups, both removed. Revealing ends nothing now; it's a local display toggle |
 
 Converged 2026-08-01. Before that, connections / psychicnum / codenamesduet
-echoed their play_state into the outcome (`lost_timeout`,
+echoed their play_state into the reason (`lost_timeout`,
 `lost_compete_conceded`, …), spellingbee / wordwheel wrote `won_compete` where
 their own coop sibling already said `target`, bananagrams wrote `won`, and
 crosswords wrote `finished` for what everyone else calls `manual`. The status-line

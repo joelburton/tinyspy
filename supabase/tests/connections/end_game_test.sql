@@ -17,7 +17,7 @@
 --
 -- Coverage (both modes):
 --   - end_game → play_state 'ended', is_terminal true
---   - status.outcome='manual', status.mode echoes g_row.mode
+--   - status.reason='manual', status.mode echoes g_row.mode
 --   - every player gets {"won": false}
 --   - idempotency: a second call is the game-over race
 --   - auth: a club outsider is rejected with 42501 via
@@ -84,9 +84,9 @@ select is(
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g_coop)),
+  (select status->>'reason' from common.games where id = (select id from g_coop)),
   'manual',
-  'coop end_game: status.outcome=manual (distinguishes from timeout/solve)'
+  'coop end_game: status.reason=manual (distinguishes from timeout/solve)'
 );
 
 select is(
@@ -133,9 +133,9 @@ select is(
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g_compete)),
+  (select status->>'reason' from common.games where id = (select id from g_compete)),
   'manual',
-  'compete end_game: status.outcome=manual'
+  'compete end_game: status.reason=manual'
 );
 
 select is(

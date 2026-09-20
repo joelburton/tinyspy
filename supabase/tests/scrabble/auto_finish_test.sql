@@ -47,8 +47,8 @@ select is((select play_state from common.games where id = (select id from gco)),
   'ended', 'coop completion is a neutral "ended" — coop has no win');
 select is((select team_score from scrabble.games where id = (select id from gco)), 2,
   'team_score = score earned − leftover (0 here)');
-select is((select status->>'outcome' from common.games where id = (select id from gco)),
-  'complete', 'status.outcome is complete');
+select is((select status->>'reason' from common.games where id = (select id from gco)),
+  'complete', 'status.reason is complete');
 -- No coop win means no winners either: the ending is a score report, so the
 -- per-player flag stays false even on the best possible finish.
 select ok((select bool_and((result->>'won')::boolean is false) from common.game_players
@@ -113,8 +113,8 @@ reset role;
 select is((select res -> 'data' ->> 'terminal' from rbl), 'true', 'the last seat passing ends the game (blocked)');
 select is((select play_state from common.games where id = (select id from gbl)),
   'won_compete', 'blocked compete still crowns the leader');
-select is((select status->>'outcome' from common.games where id = (select id from gbl)),
-  'blocked', 'status.outcome is blocked');
+select is((select status->>'reason' from common.games where id = (select id from gbl)),
+  'blocked', 'status.reason is blocked');
 select is((select result->>'won' from common.game_players
            where game_id = (select id from gbl) and user_id = 'ada11111-1111-1111-1111-111111111111'),
   'true', 'no going-out bonus: 10−1=9 beats 3−10=−7, ada wins');

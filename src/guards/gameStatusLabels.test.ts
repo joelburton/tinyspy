@@ -83,81 +83,81 @@ const CASES: Record<string, Family> = {
     // club-readable blob announcing "this board holds 6 words" would leak part
     // of a deliberately shielded puzzle.
     playing: { words_found: 2 },
-    shared: [['ended', { outcome: 'manual', words_found: 2 }, 'manual end']],
+    shared: [['ended', { reason: 'manual', words_found: 2 }, 'manual end']],
     coop: [
-      ['won', { outcome: 'solved', words_found: 6 }, 'found them all'],
-      ['lost', { outcome: 'timeout', words_found: 2 }, 'timeout'],
+      ['won', { reason: 'solved', words_found: 6 }, 'found them all'],
+      ['lost', { reason: 'timeout', words_found: 2 }, 'timeout'],
     ],
     // Compete publishes NOTHING mid-race — `status` is club-readable, so a
     // count there would leak what the guesses RLS protects, and the
     // fewest-hints winner isn't known until everyone stops. The terminal
     // labels name the MARGIN rather than the finish order.
     compete: [
-      ['won_compete', { outcome: 'solved', best_hints: 0 }, 'won on 0 hints'],
-      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
-      ['lost_compete', { outcome: 'unsolved' }, 'nobody solved it'],
+      ['won_compete', { reason: 'solved', best_hints: 0 }, 'won on 0 hints'],
+      ['lost_compete', { reason: 'timeout' }, 'timeout'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'unsolved' }, 'nobody solved it'],
     ],
   },
   psychicnum: {
     playing: { guesses_remaining: 5, found_secrets_count: 2, required_secrets_count: 3 },
-    shared: [['ended', { outcome: 'manual', found_secrets_count: 2, required_secrets_count: 3 }, 'manual end']],
+    shared: [['ended', { reason: 'manual', found_secrets_count: 2, required_secrets_count: 3 }, 'manual end']],
     coop: [
       ['won', W, 'found it'],
-      ['lost', { outcome: 'exhausted', found_secrets_count: 2, required_secrets_count: 3 }, 'out of guesses'],
-      ['lost', { outcome: 'timeout', found_secrets_count: 2, required_secrets_count: 3 }, 'timeout'],
+      ['lost', { reason: 'exhausted', found_secrets_count: 2, required_secrets_count: 3 }, 'out of guesses'],
+      ['lost', { reason: 'timeout', found_secrets_count: 2, required_secrets_count: 3 }, 'timeout'],
     ],
     compete: [
       ['won_compete', W, 'won the race'],
-      ['lost_compete', { outcome: 'exhausted' }, 'budgets exhausted'],
-      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'exhausted' }, 'budgets exhausted'],
+      ['lost_compete', { reason: 'timeout' }, 'timeout'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
   connections: {
     playing: { matched_count: 2, mistake_count: 1 },
-    shared: [['ended', { outcome: 'manual', matched_count: 2 }, 'manual end']],
+    shared: [['ended', { reason: 'manual', matched_count: 2 }, 'manual end']],
     coop: [
       ['won', { matched_count: 4, mistake_count: 1 }, 'solved'],
-      ['lost', { outcome: 'mistakes', matched_count: 2 }, 'four mistakes'],
-      ['lost', { outcome: 'timeout', matched_count: 2 }, 'timeout'],
+      ['lost', { reason: 'mistakes', matched_count: 2 }, 'four mistakes'],
+      ['lost', { reason: 'timeout', matched_count: 2 }, 'timeout'],
     ],
     compete: [
       ['won_compete', W, 'won the race'],
-      ['lost_compete', { outcome: 'mistakes' }, 'everyone hit four mistakes'],
-      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'mistakes' }, 'everyone hit four mistakes'],
+      ['lost_compete', { reason: 'timeout' }, 'timeout'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
   spellingbee: {
     playing: { found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30, target_rank: 6 },
     coop: [
-      ['won', { outcome: 'target', target_rank: 6, found_words_score: 47, required_words_score: 50 }, 'reached target'],
-      ['lost', { outcome: 'timeout', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, target set'],
-      ['ended', { outcome: 'timeout', target_rank: null, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, no target'],
-      ['ended', { outcome: 'manual', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'manual end'],
+      ['won', { reason: 'target', target_rank: 6, found_words_score: 47, required_words_score: 50 }, 'reached target'],
+      ['lost', { reason: 'timeout', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, target set'],
+      ['ended', { reason: 'timeout', target_rank: null, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, no target'],
+      ['ended', { reason: 'manual', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'manual end'],
     ],
     compete: [
       ['won_compete', { target_rank: 6, ...W }, 'someone hit the target'],
       // end_game re-emits target_rank precisely so this doesn't read "at Start".
-      ['lost_compete', { outcome: 'timeout', target_rank: 6 }, 'timeout'],
-      ['ended', { outcome: 'manual', target_rank: 6 }, 'manual end'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'timeout', target_rank: 6 }, 'timeout'],
+      ['ended', { reason: 'manual', target_rank: 6 }, 'manual end'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
   wordwheel: {
     playing: { found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30, target_rank: 6 },
     coop: [
-      ['won', { outcome: 'target', target_rank: 6, found_words_score: 47, required_words_score: 50 }, 'reached target'],
-      ['lost', { outcome: 'timeout', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, target set'],
-      ['ended', { outcome: 'timeout', target_rank: null, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, no target'],
-      ['ended', { outcome: 'manual', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'manual end'],
+      ['won', { reason: 'target', target_rank: 6, found_words_score: 47, required_words_score: 50 }, 'reached target'],
+      ['lost', { reason: 'timeout', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, target set'],
+      ['ended', { reason: 'timeout', target_rank: null, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'timeout, no target'],
+      ['ended', { reason: 'manual', target_rank: 6, found_words_score: 21, required_words_score: 50, found_words_count: 7, required_words_count: 30 }, 'manual end'],
     ],
     compete: [
       ['won_compete', { target_rank: 6, ...W }, 'someone hit the target'],
-      ['lost_compete', { outcome: 'timeout', target_rank: 6 }, 'timeout'],
-      ['ended', { outcome: 'manual', target_rank: 6 }, 'manual end'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'timeout', target_rank: 6 }, 'timeout'],
+      ['ended', { reason: 'manual', target_rank: 6 }, 'manual end'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
   // boggle's terminal state now depends on whether a TARGET was set —
@@ -166,28 +166,28 @@ const CASES: Record<string, Family> = {
     playing: { found_words_count: 7, found_words_score: 21, leaderboard: [{}, {}] },
     setup: { win_percent: 65 },
     coop: [
-      ['won', { outcome: 'target', found_words_count: 30, found_words_score: 90 }, 'reached target'],
-      ['lost', { outcome: 'timeout', found_words_count: 7, found_words_score: 21 }, 'timeout, target set'],
-      ['ended', { outcome: 'timeout', found_words_count: 7, found_words_score: 21 }, 'timeout, no target'],
-      ['ended', { outcome: 'manual', found_words_count: 7, found_words_score: 21 }, 'manual end'],
+      ['won', { reason: 'target', found_words_count: 30, found_words_score: 90 }, 'reached target'],
+      ['lost', { reason: 'timeout', found_words_count: 7, found_words_score: 21 }, 'timeout, target set'],
+      ['ended', { reason: 'timeout', found_words_count: 7, found_words_score: 21 }, 'timeout, no target'],
+      ['ended', { reason: 'manual', found_words_count: 7, found_words_score: 21 }, 'manual end'],
     ],
     compete: [
-      ['won_compete', { outcome: 'target', ...W }, 'reached target'],
-      ['won_compete', { outcome: 'timeout', top_score: 90, ...W }, 'top score at the buzzer (no target)'],
-      ['won_compete', { outcome: 'timeout', top_score: 90 }, 'tied top score (no target)'],
-      ['lost_compete', { outcome: 'timeout' }, 'timeout, target set'],
-      ['lost_compete', { outcome: 'timeout', leaderboard: [] }, 'timeout, nobody scored'],
-      ['ended', { outcome: 'manual' }, 'manual end'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['won_compete', { reason: 'target', ...W }, 'reached target'],
+      ['won_compete', { reason: 'timeout', top_score: 90, ...W }, 'top score at the buzzer (no target)'],
+      ['won_compete', { reason: 'timeout', top_score: 90 }, 'tied top score (no target)'],
+      ['lost_compete', { reason: 'timeout' }, 'timeout, target set'],
+      ['lost_compete', { reason: 'timeout', leaderboard: [] }, 'timeout, nobody scored'],
+      ['ended', { reason: 'manual' }, 'manual end'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
   bananagrams: {
     playing: { bunch_remaining: 12 },
     shared: [
       ['won', W, 'someone went out'],
-      ['lost', { outcome: 'timeout' }, 'timeout'],
-      ['lost', { outcome: 'conceded' }, 'all conceded'],
-      ['ended', { outcome: 'manual' }, 'manual end'],
+      ['lost', { reason: 'timeout' }, 'timeout'],
+      ['lost', { reason: 'conceded' }, 'all conceded'],
+      ['ended', { reason: 'manual' }, 'manual end'],
     ],
   },
   waffle: {
@@ -196,19 +196,19 @@ const CASES: Record<string, Family> = {
     shared: [
       // No 'revealed' case: the mid-game give-up that wrote it is gone
       // (2026-08-03) — revealing is a display decision on an already-ended
-      // game now, so the only outcome a manual end can carry is 'manual'.
-      ['ended', { outcome: 'manual' }, 'manual end'],
+      // game now, so the only reason a manual end can carry is 'manual'.
+      ['ended', { reason: 'manual' }, 'manual end'],
     ],
     coop: [
       ['won', { swaps_used: 9, max_swaps: 12 }, 'solved'],
-      ['lost', { outcome: 'exhausted' }, 'out of swaps'],
-      ['lost', { outcome: 'timeout' }, 'timeout'],
+      ['lost', { reason: 'exhausted' }, 'out of swaps'],
+      ['lost', { reason: 'timeout' }, 'timeout'],
     ],
     compete: [
-      ['won_compete', { outcome: 'solved', winner_swaps: 8, ...W }, 'someone won'],
-      ['lost_compete', { outcome: 'exhausted' }, 'everyone out of swaps'],
-      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['won_compete', { reason: 'solved', winner_swaps: 8, ...W }, 'someone won'],
+      ['lost_compete', { reason: 'exhausted' }, 'everyone out of swaps'],
+      ['lost_compete', { reason: 'timeout' }, 'timeout'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
   wordle: {
@@ -217,61 +217,61 @@ const CASES: Record<string, Family> = {
     shared: [
       // No 'revealed' case: the mid-game give-up that wrote it is gone
       // (2026-08-03) — revealing is a display decision on an already-ended
-      // game now, so the only outcome a manual end can carry is 'manual'.
-      ['ended', { outcome: 'manual' }, 'manual end'],
+      // game now, so the only reason a manual end can carry is 'manual'.
+      ['ended', { reason: 'manual' }, 'manual end'],
     ],
     coop: [
-      ['won', { outcome: 'solved', guesses_used: 4, max_guesses: 6 }, 'solved'],
-      ['lost', { outcome: 'exhausted', guesses_used: 6, max_guesses: 6 }, 'out of guesses'],
-      ['lost', { outcome: 'timeout', guesses_used: 3, max_guesses: 6 }, 'timeout'],
+      ['won', { reason: 'solved', guesses_used: 4, max_guesses: 6 }, 'solved'],
+      ['lost', { reason: 'exhausted', guesses_used: 6, max_guesses: 6 }, 'out of guesses'],
+      ['lost', { reason: 'timeout', guesses_used: 3, max_guesses: 6 }, 'timeout'],
     ],
     compete: [
-      ['won_compete', { outcome: 'solved', winner_guesses: 4, ...W }, 'someone won'],
-      ['lost_compete', { outcome: 'exhausted' }, 'everyone out of guesses'],
-      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['won_compete', { reason: 'solved', winner_guesses: 4, ...W }, 'someone won'],
+      ['lost_compete', { reason: 'exhausted' }, 'everyone out of guesses'],
+      ['lost_compete', { reason: 'timeout' }, 'timeout'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
   stackdown: {
     playing: { found_words_count: 3, required_words_count: 6 },
     setup: { band: 3 },
-    shared: [['ended', { outcome: 'manual', found_words_count: 3, required_words_count: 6 }, 'manual end']],
+    shared: [['ended', { reason: 'manual', found_words_count: 3, required_words_count: 6 }, 'manual end']],
     coop: [
-      ['won', { outcome: 'cleared', found_words_count: 6, required_words_count: 6 }, 'cleared'],
+      ['won', { reason: 'cleared', found_words_count: 6, required_words_count: 6 }, 'cleared'],
       // The clock is stackdown's ONLY loss — no move budget, and every board
       // is guaranteed clearable.
-      ['lost', { outcome: 'timeout', found_words_count: 3, required_words_count: 6 }, 'timeout'],
+      ['lost', { reason: 'timeout', found_words_count: 3, required_words_count: 6 }, 'timeout'],
     ],
     compete: [
       ['won_compete', W, 'someone won'],
-      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'timeout' }, 'timeout'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
   scrabble: {
     playing: { team_score: 152, bag_count: 7 },
-    shared: [['ended', { outcome: 'manual', team_score: 152 }, 'manual end']],
+    shared: [['ended', { reason: 'manual', team_score: 152 }, 'manual end']],
     coop: [
       // No coop win state: every finish is `ended`, only the clock loses.
-      ['ended', { outcome: 'complete', team_score: 152 }, 'bag empty'],
-      ['lost', { outcome: 'timeout', team_score: 152 }, 'timeout'],
+      ['ended', { reason: 'complete', team_score: 152 }, 'bag empty'],
+      ['lost', { reason: 'timeout', team_score: 152 }, 'timeout'],
     ],
     compete: [
       ['won_compete', { winner_score: 312, ...W }, 'highest score'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
   crosswords: {
     playing: { title: 'Sun 2026-07-04' },
-    shared: [['ended', { outcome: 'manual' }, 'manual end']],
+    shared: [['ended', { reason: 'manual' }, 'manual end']],
     coop: [
       ['won', {}, 'solved'],
-      ['lost', { outcome: 'timeout' }, 'timeout'],
+      ['lost', { reason: 'timeout' }, 'timeout'],
     ],
     compete: [
       ['won_compete', W, 'first to finish'],
-      ['lost_compete', { outcome: 'timeout' }, 'timeout'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'timeout' }, 'timeout'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
     ],
   },
   // letterboxed's compete race ENDS on the first solve (the bar is "cover the
@@ -283,23 +283,23 @@ const CASES: Record<string, Family> = {
   // nothing withheld mid-game. The interesting labels are the two endings the
   // rest of the roster doesn't have: a coop win that STRANDS cards (the normal
   // ending; a full clear is ~2% of games and says so), and a compete tie, which
-  // is a real outcome here because the ranking has no speed tiebreak.
+  // is a real reason here because the ranking has no speed tiebreak.
   setgame: {
     // The deck is a SETUP fact, and the label needs it: "perfect clear" is
     // `sets * 3 === deck size`, derived rather than stored.
     setup: { deck: 'full' },
     playing: { sets_found: 6, deck_left: 45 },
     coop: [
-      ['won', { outcome: 'cleared', sets_found: 24 }, 'deck cleared'],
-      ['won', { outcome: 'cleared', sets_found: 27 }, 'perfect clear'],
-      ['lost', { outcome: 'timeout', sets_found: 9 }, 'timeout'],
-      ['ended', { outcome: 'manual', sets_found: 9 }, 'manual end'],
+      ['won', { reason: 'cleared', sets_found: 24 }, 'deck cleared'],
+      ['won', { reason: 'cleared', sets_found: 27 }, 'perfect clear'],
+      ['lost', { reason: 'timeout', sets_found: 9 }, 'timeout'],
+      ['ended', { reason: 'manual', sets_found: 9 }, 'manual end'],
     ],
     compete: [
       [
         'won_compete',
         {
-          outcome: 'cleared',
+          reason: 'cleared',
           sets_found: 24,
           winner_username: 'alice',
           leaderboard: [
@@ -312,7 +312,7 @@ const CASES: Record<string, Family> = {
       [
         'won_compete',
         {
-          outcome: 'timeout',
+          reason: 'timeout',
           sets_found: 24,
           winner_user_id: null,
           leaderboard: [
@@ -322,9 +322,9 @@ const CASES: Record<string, Family> = {
         },
         'tied — co-winners',
       ],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
-      ['lost_compete', { outcome: 'timeout' }, 'nobody scored'],
-      ['ended', { outcome: 'manual', sets_found: 9 }, 'manual end'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'timeout' }, 'nobody scored'],
+      ['ended', { reason: 'manual', sets_found: 9 }, 'manual end'],
     ],
   },
   letterboxed: {
@@ -354,7 +354,7 @@ const CASES: Record<string, Family> = {
         },
         'timeout, most letters',
       ],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
       ['ended', { solved: false, stopped: true }, 'manual end'],
     ],
   },
@@ -362,17 +362,17 @@ const CASES: Record<string, Family> = {
   wordiply: {
     playing: { guesses_used: 2, leaderboard: [{ guesses_used: 2 }, { guesses_used: 3 }] },
     coop: [
-      ['ended', { length_score: 60, letter_count: 14, outcome: 'complete' }, 'guesses used'],
-      ['lost', { length_score: 60, letter_count: 14, outcome: 'timeout' }, 'timeout'],
-      ['ended', { length_score: 60, letter_count: 14, outcome: 'manual' }, 'manual end'],
+      ['ended', { length_score: 60, letter_count: 14, reason: 'complete' }, 'guesses used'],
+      ['lost', { length_score: 60, letter_count: 14, reason: 'timeout' }, 'timeout'],
+      ['ended', { length_score: 60, letter_count: 14, reason: 'manual' }, 'manual end'],
     ],
     compete: [
       ['won_compete', { leaderboard: [{ won: true, length_score: 60 }], ...W }, 'one winner'],
       ['won_compete', { leaderboard: [{ won: true, length_score: 60 }, { won: true, length_score: 60 }] }, 'co-winners'],
-      ['lost_compete', { outcome: 'conceded' }, 'all conceded'],
-      ['lost_compete', { outcome: 'timeout', leaderboard: [] }, 'timeout, nobody scored'],
-      ['lost_compete', { outcome: 'complete', leaderboard: [] }, 'out of guesses, nobody scored'],
-      ['ended', { outcome: 'manual' }, 'manual end'],
+      ['lost_compete', { reason: 'conceded' }, 'all conceded'],
+      ['lost_compete', { reason: 'timeout', leaderboard: [] }, 'timeout, nobody scored'],
+      ['lost_compete', { reason: 'complete', leaderboard: [] }, 'out of guesses, nobody scored'],
+      ['ended', { reason: 'manual' }, 'manual end'],
     ],
   },
 }
@@ -477,34 +477,34 @@ describe('game status labels', () => {
 
   /**
    * states.md's vocabulary invariant: `play_state` names the VERDICT,
-   * `status.outcome` names the CAUSE, and no string may serve both jobs. The
+   * `status.reason` names the CAUSE, and no string may serve both jobs. The
    * split is load-bearing, not stylistic — status-blob merges mean an
-   * inherited `outcome` key reads as data, so a value that could be either
+   * inherited `reason` key reads as data, so a value that could be either
    * side would be genuinely ambiguous in a stored row.
    *
    * The play_states come from this file's CASES matrix (whose charter is
-   * "every reachable state, per game"); the outcomes are the roster table in
-   * docs/states.md §"status.outcome names the CAUSE" plus every outcome a
-   * fixture row carries — so an outcome first introduced in CASES is checked
+   * "every reachable state, per game"); the reasons are the roster table in
+   * docs/states.md §"status.reason names the CAUSE" plus every reason a
+   * fixture row carries — so a reason first introduced in CASES is checked
    * even before someone remembers to add it to the transcribed list.
    */
-  const ROSTER_OUTCOMES = [
+  const ROSTER_REASONS = [
     'timeout', 'manual', 'conceded', 'exhausted', 'mistakes', 'assassin',
     'solved', 'target', 'cleared', 'complete', 'blocked', 'revealed',
   ]
 
-  it('no outcome value doubles as a play_state value (states.md)', () => {
+  it('no reason value doubles as a play_state value (states.md)', () => {
     const playStates = new Set(['playing'])
-    const outcomes = new Set(ROSTER_OUTCOMES)
+    const reasons = new Set(ROSTER_REASONS)
     for (const fam of Object.values(CASES)) {
       for (const [state, status] of [...(fam.shared ?? []), ...(fam.coop ?? []), ...(fam.compete ?? [])]) {
         playStates.add(state)
-        if (typeof status.outcome === 'string') outcomes.add(status.outcome)
+        if (typeof status.reason === 'string') reasons.add(status.reason)
       }
     }
     expect(
-      [...outcomes].filter((o) => playStates.has(o)),
-      'These strings are used as BOTH a play_state and an outcome — states.md forbids ' +
+      [...reasons].filter((r) => playStates.has(r)),
+      'These strings are used as BOTH a play_state and a reason — states.md forbids ' +
         'the overlap (the verdict and the cause are different questions):',
     ).toEqual([])
   })

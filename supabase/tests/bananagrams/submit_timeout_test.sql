@@ -9,7 +9,7 @@
 -- ends the in-progress game). Covers:
 --   1. ANY player can fire it (bea, who didn't create the game)
 --   2. Terminal shape: play_state 'lost', is_terminal,
---      status.outcome 'timeout', NO winner_username
+--      status.reason 'timeout', NO winner_username
 --   3. Every player's result is {"won": false} — everyone lost
 --   4. Idempotency: a second call (or a click racing a peel-win) → P0001
 --   5. Non-players rejected
@@ -61,9 +61,9 @@ select is(
   'the game is terminal'
 );
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g1)),
+  (select status->>'reason' from common.games where id = (select id from g1)),
   'timeout',
-  'status.outcome is timeout'
+  'status.reason is timeout'
 );
 
 -- (3) Every player's result is {"won": false} — nobody went out in time.

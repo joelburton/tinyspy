@@ -829,7 +829,7 @@ begin
 
     perform common.end_game(
       target_game, 'won_compete',
-      jsonb_build_object('outcome', 'solved', 'best_hints', best_hints),
+      jsonb_build_object('reason', 'solved', 'best_hints', best_hints),
       player_results);
   else
     select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
@@ -839,7 +839,7 @@ begin
     perform common.end_game(
       target_game, 'lost_compete',
       jsonb_build_object(
-        'outcome',
+        'reason',
         case
           when timed_out then 'timeout'
           when not exists (select 1 from common.game_players gp
@@ -1169,7 +1169,7 @@ begin
 
     perform common.end_game(
       target_game, 'won',
-      jsonb_build_object('outcome', 'solved', 'words_found', v_found),
+      jsonb_build_object('reason', 'solved', 'words_found', v_found),
       player_results);
     did_end := true;
 
@@ -1470,7 +1470,7 @@ begin
   -- reward stopping at the right moment.
   perform common.end_game(
     target_game, 'ended',
-    jsonb_build_object('outcome', 'manual', 'words_found', v_found),
+    jsonb_build_object('reason', 'manual', 'words_found', v_found),
     player_results);
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
@@ -1684,7 +1684,7 @@ begin
 
   perform common.end_game(
     target_game, 'lost',
-    jsonb_build_object('outcome', 'timeout', 'words_found', v_found),
+    jsonb_build_object('reason', 'timeout', 'words_found', v_found),
     player_results);
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 

@@ -92,7 +92,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Coop-target celebration ───────────────────────────
   // boggle's only unambiguous win: a COOP team crossing the score target
-  // (`setup.win_percent`, `status.outcome='target'`). Confetti at the moment it
+  // (`setup.win_percent`, `status.reason='target'`). Confetti at the moment it
   // happens — the crossing word ends the game on every connected client via
   // realtime — and never on mount, so opening a finished game is quiet review
   // (`useCelebration`). Both inputs come off the SAME common.games row that
@@ -105,7 +105,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // watching.
   const celebration = useCelebration(
     (status?.mode as string | undefined) === 'coop' &&
-      (status?.outcome as string | undefined) === 'target',
+      (status?.reason as string | undefined) === 'target',
   )
   const myId = session.user.id
 
@@ -475,7 +475,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // can name — a target crosser, or the top scorer among the non-conceded —
   // are resolved here to name + color for the same reason.
   const isCompete = game?.mode === 'compete'
-  const statusOutcome = (status?.outcome as string | undefined) ?? null
+  const statusOutcome = (status?.reason as string | undefined) ?? null
   const winnerId = (status?.winner_user_id as string | undefined) ?? null
   const winner = players.find((p) => p.user_id === winnerId)
   const winnerName = winner?.username ?? (status?.winner_username as string | undefined)
@@ -660,7 +660,7 @@ export function PlayArea(ctx: GamePageCtx) {
 type LeaderRow = { user_id: string; found_words_count: number; found_words_score: number }
 
 /**
- * The per-status terminal message. A game ends three ways (`status.outcome`):
+ * The per-status terminal message. A game ends three ways (`status.reason`):
  * a player hitting End (`'manual'`), the timer expiring (`'timeout'`), or a
  * score TARGET being reached (`'target'`, when setup.win_percent is set — a
  * real win). Coop is otherwise a neutral shared hunt (no win/loss); compete
@@ -689,7 +689,7 @@ function buildOver({
   /** The terminal play_state — coop distinguishes a missed TARGET (`lost`)
    *  from the neutral end of a no-target hunt (`ended`) by it. */
   playState: string
-  /** `status.outcome`, or null when the status carries none. */
+  /** `status.reason`, or null when the status carries none. */
   statusOutcome: string | null
   myCount: number
   myScore: number

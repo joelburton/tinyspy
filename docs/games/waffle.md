@@ -583,7 +583,7 @@ The **six answer words are terminal-only**, twice over: the server gates
   `gameplay_test` (coop lock-step + compete independence),
   `compete_test` (fewest-swaps winner + `solved_at` tie-break + all-fail),
   `timeout_test`, `end_game_test` (manual neutral end → `'ended'`, both modes:
-  `is_terminal`, `status.outcome='manual'`, all players `{"won":false}`,
+  `is_terminal`, `status.reason='manual'`, all players `{"won":false}`,
   idempotency, non-player rejected), `concede_test` (elimination-game concede: a
   drop-out keeps the race going but forfeits any win; everyone conceding is a
   collective loss; coop rejected), `replay_test` (replay_board resets both modes

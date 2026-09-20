@@ -421,7 +421,7 @@ begin
 
   perform common.end_game(
     target_game, 'won',
-    jsonb_build_object('mode', 'coop', 'outcome', 'solved'),
+    jsonb_build_object('mode', 'coop', 'reason', 'solved'),
     v_results
   );
 end;
@@ -1328,7 +1328,7 @@ begin
 
   perform common.end_game(
     target_game, 'ended',
-    jsonb_build_object('mode', v_mode, 'outcome', 'manual'),
+    jsonb_build_object('mode', v_mode, 'reason', 'manual'),
     v_results
   );
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
@@ -1415,7 +1415,7 @@ begin
   perform common.end_game(
     target_game,
     case when v_mode = 'coop' then 'lost' else 'lost_compete' end,
-    jsonb_build_object('mode', v_mode, 'outcome', 'timeout'),
+    jsonb_build_object('mode', v_mode, 'reason', 'timeout'),
     v_results
   );
   return common.ok_envelope(jsonb_build_object('result', 'ended'));

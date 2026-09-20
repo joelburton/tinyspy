@@ -6,7 +6,7 @@ import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { db } from './db'
-import { outcome, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { CROSSWORDS_DEFAULTS, type CrosswordsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
@@ -123,14 +123,14 @@ type StatusBlob = Record<string, unknown>
 function coopLabel(row: { play_state: string; status: StatusBlob | null }): string {
   switch (row.play_state) {
     case 'playing':
-      return outcome('Playing')
+      return verdict('Playing')
     case 'won':
-      return outcome('Won')
+      return verdict('Won')
     // The clock beating an unfinished grid is a real loss (submit_timeout).
     case 'lost':
-      return outcome('Lost', 'out of time')
+      return verdict('Lost', 'out of time')
     case 'ended':
-      return outcome('Ended')
+      return verdict('Ended')
     default:
       return row.play_state
   }
@@ -141,17 +141,17 @@ function competeLabel(row: { play_state: string; status: StatusBlob | null }): s
   const s = row.status ?? {}
   switch (row.play_state) {
     case 'playing':
-      return outcome('Playing')
+      return verdict('Playing')
     case 'won_compete':
       return wonBy(s.winner_username as string | undefined)
     // Two collective losses share this state — the clock, and a racer's own
     // quit ending the table once the last one goes (common.concede).
     case 'lost_compete':
-      return (s.outcome as string) === 'conceded'
-        ? outcome('Lost', 'all conceded')
-        : statusLine(outcome('Lost', 'out of time'), 'no winner')
+      return (s.reason as string) === 'conceded'
+        ? verdict('Lost', 'all conceded')
+        : statusLine(verdict('Lost', 'out of time'), 'no winner')
     case 'ended':
-      return outcome('Ended')
+      return verdict('Ended')
     default:
       return row.play_state
   }

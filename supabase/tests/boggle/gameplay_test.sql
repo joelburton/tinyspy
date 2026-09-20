@@ -75,7 +75,7 @@ select is((select is_terminal from common.games where id = (select id from g)), 
   'end_game sets common.games.is_terminal');
 select is((select play_state from common.games where id = (select id from g)), 'ended',
   'end_game sets play_state ended');
-select is((select status->>'outcome' from common.games where id = (select id from g)), 'manual',
+select is((select status->>'reason' from common.games where id = (select id from g)), 'manual',
   'end_game records outcome manual');
 
 -- ── (5) submit after terminal → gameOver ──────────────────
@@ -128,7 +128,7 @@ select (boggle.create_game(
   'coop', pg_temp.boggle_board())->'data'->>'id')::uuid as id;
 select lives_ok($$ select boggle.submit_timeout((select id from tg)) $$, 'submit_timeout ends the game');
 reset role; select set_config('request.jwt.claims', '', true);
-select is((select status->>'outcome' from common.games where id = (select id from tg)), 'timeout',
+select is((select status->>'reason' from common.games where id = (select id from tg)), 'timeout',
   'submit_timeout records outcome timeout');
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select lives_ok($$ select boggle.submit_timeout((select id from tg)) $$,

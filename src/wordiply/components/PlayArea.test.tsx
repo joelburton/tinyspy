@@ -227,7 +227,7 @@ describe('wordiply PlayArea — terminal reveal', () => {
     return makeCtx({
       isTerminal: true,
       playState: 'ended',
-      status: { outcome: 'complete', length_score: 71, letter_count: 8 },
+      status: { reason: 'complete', length_score: 71, letter_count: 8 },
     })
   }
 
@@ -304,7 +304,7 @@ describe('wordiply PlayArea — terminal reveal', () => {
 
 /**
  * The compete collective losses all land on play_state `lost_compete` and are
- * told apart only by `status.outcome` — the two-places trap's third surface
+ * told apart only by `status.reason` — the two-places trap's third surface
  * (labelFor and the report fixtures assert the club card; nothing else asserts
  * the in-game verdict). These pin buildOver to the terminals the server
  * actually writes: common.concede → 'lost_compete' + outcome 'conceded',
@@ -312,12 +312,12 @@ describe('wordiply PlayArea — terminal reveal', () => {
  * (the clock) or 'complete' (all guesses spent, nobody scored).
  */
 describe('wordiply PlayArea — compete terminal verdicts', () => {
-  const competeCtx = (outcome: string) =>
+  const competeCtx = (reason: string) =>
     makeCtx({
       players: twoMembers,
       isTerminal: true,
       playState: 'lost_compete',
-      status: { outcome, leaderboard: [] },
+      status: { reason, leaderboard: [] },
     })
 
   beforeEach(() => {
@@ -347,7 +347,7 @@ describe('wordiply PlayArea — compete terminal verdicts', () => {
           players: twoMembers,
           isTerminal: true,
           playState: 'ended',
-          status: { outcome: 'manual', leaderboard: [] },
+          status: { reason: 'manual', leaderboard: [] },
         })}
       />,
     )
@@ -443,7 +443,7 @@ describe('wordiply PlayArea — event log', () => {
           players: twoMembers,
           isTerminal: true,
           playState: 'lost_compete',
-          status: { outcome: 'complete', leaderboard: [] },
+          status: { reason: 'complete', leaderboard: [] },
         })}
       />,
     )
@@ -543,7 +543,7 @@ describe('wordiply PlayArea — the entry keys', () => {
   // teaches a game's keys rather than mirroring what is pressable this instant,
   // so the row stays in the list after the game ends. What it cannot do is act.
   it('a finished game takes no letters, and still lists the key', async () => {
-    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended', status: { outcome: 'complete' } })} />)
+    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended', status: { reason: 'complete' } })} />)
     expect(stateOf('act-type-letter')).toBe('disabled')
     await press({ key: 'b' })
     expect(typedLength()).toBe('')
@@ -561,7 +561,7 @@ describe('wordiply PlayArea — new game, end, concede and restart', () => {
 
   it('+ at terminal starts the follow-up game with no question', async () => {
     edgeFn.mockResolvedValue(created)
-    const ctx = makeCtx({ isTerminal: true, playState: 'ended', status: { outcome: 'complete' } })
+    const ctx = makeCtx({ isTerminal: true, playState: 'ended', status: { reason: 'complete' } })
     render(<WithKeys {...ctx} />)
     await press({ key: '+' })
     // No <ConfirmationHost/> is mounted, so a question would have been answered
@@ -643,7 +643,7 @@ describe('wordiply PlayArea — new game, end, concede and restart', () => {
     expect(rpc).not.toHaveBeenCalled()
     unmount()
 
-    const done = makeCtx({ isTerminal: true, playState: 'ended', status: { outcome: 'complete' } })
+    const done = makeCtx({ isTerminal: true, playState: 'ended', status: { reason: 'complete' } })
     render(<PlayArea {...done} />)
     // No host this time: the RPC firing proves no question was asked.
     await user.click(document.querySelector('button[data-action="act-restart"]')!)

@@ -36,8 +36,8 @@ select is(
     where game_id = (select id from g1) and not (result->>'won')::boolean),
   2::bigint, 'manual end: nobody won');
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g1)),
-  'manual', 'status.outcome = manual');
+  (select status->>'reason' from common.games where id = (select id from g1)),
+  'manual', 'status.reason = manual');
 
 -- Idempotency: a second end is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -61,8 +61,8 @@ select is(
   (select play_state from common.games where id = (select id from g2)),
   'lost', 'coop timeout → play_state lost');
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g2)),
-  'timeout', 'status.outcome = timeout');
+  (select status->>'reason' from common.games where id = (select id from g2)),
+  'timeout', 'status.reason = timeout');
 
 select * from finish();
 rollback;

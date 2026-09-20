@@ -813,7 +813,7 @@ begin
         -- it must not just repeat it (docs/states.md → the outcome vocabulary).
         -- 'exhausted' is the roster's noun for a spent budget — here the Duet
         -- turn counter, the same shape as psychicnum/wordle/waffle's guesses.
-        'outcome', case end_state
+        'reason', case end_state
                      when 'lost_assassin' then 'assassin'
                      when 'lost_clock'    then 'exhausted'
                      else 'solved'
@@ -980,7 +980,7 @@ begin
     target_game,
     'lost_timeout',
     jsonb_build_object(
-      'outcome', 'timeout',
+      'reason', 'timeout',
       'turns_used',
         (select (setup->>'turns')::int
            from common.games where id = target_game)
@@ -1158,7 +1158,7 @@ begin
   perform common.end_game(
     target_game,
     'ended',
-    jsonb_build_object('outcome', 'manual'),
+    jsonb_build_object('reason', 'manual'),
     player_results
   );
 

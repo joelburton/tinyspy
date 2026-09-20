@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -97,7 +97,7 @@ type StatusBlob = {
   found_secrets_count?: number
   required_secrets_count?: number
   winner_username?: string
-  outcome?: string
+  reason?: string
 }
 
 /**
@@ -109,7 +109,7 @@ type StatusBlob = {
  */
 function labelMidGame(s: StatusBlob) {
   return statusLine(
-    outcome('Playing'),
+    verdict('Playing'),
     tally(s.found_secrets_count, s.required_secrets_count, 'found'),
     count(s.guesses_remaining, 'guess left', 'guesses left'),
   )
@@ -164,12 +164,12 @@ export const psychicnumCoopGame: GameManifest = {
         return labelMidGame(s)
       case 'won':
         // A team win, but naming who landed the third secret is the fun bit.
-        return statusLine(outcome('Won'), s.winner_username && `${s.winner_username} guessed it`)
+        return statusLine(verdict('Won'), s.winner_username && `${s.winner_username} guessed it`)
       case 'lost':
-        return statusLine(outcome('Lost', LOSS[s.outcome ?? ''] ?? null), found)
+        return statusLine(verdict('Lost', LOSS[s.reason ?? ''] ?? null), found)
       // 'ended' is the neutral manual-stop terminal (end_game).
       case 'ended':
-        return statusLine(outcome('Ended'), found)
+        return statusLine(verdict('Ended'), found)
       default:
         return row.play_state
     }
@@ -210,19 +210,19 @@ export const psychicnumCompeteGame: GameManifest = {
       // No progress: every racer's budget and finds are their own (see
       // labelMidGame), and this line is readable by the whole club.
       case 'playing':
-        return outcome('Playing')
+        return verdict('Playing')
       case 'won_compete':
         return wonBy(s.winner_username)
       case 'lost_compete':
         return statusLine(
-          outcome('Lost', LOSS[s.outcome ?? ''] ?? null),
+          verdict('Lost', LOSS[s.reason ?? ''] ?? null),
           // "no winner" is what every-budget-spent and the clock need said;
           // all conceded says it already.
-          s.outcome === 'conceded' ? null : 'no winner',
+          s.reason === 'conceded' ? null : 'no winner',
         )
       // 'ended' is the neutral manual-stop terminal (end_game).
       case 'ended':
-        return outcome('Ended')
+        return verdict('Ended')
       default:
         return row.play_state
     }

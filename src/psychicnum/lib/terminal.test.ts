@@ -17,7 +17,7 @@ import { buildTerminalMessage } from './terminal'
 /** The defaults every case overrides one field of. */
 const base = { reason: 'exhausted' as string | undefined, selfWon: false, winnerName: 'Bea' }
 
-/** Every reason a terminal RPC writes into `status.outcome`, plus its absence. */
+/** Every reason a terminal RPC writes into `status.reason`, plus its absence. */
 const REASONS = ['solved', 'exhausted', 'timeout', 'conceded', 'manual', undefined] as const
 
 describe('coop', () => {

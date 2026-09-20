@@ -7,7 +7,7 @@
 -- Unlike submit_swap / submit_timeout, end_game is a NEUTRAL terminal:
 -- it writes the uniform play_state='ended' (not waffle's intrinsic
 -- won/lost verdicts), records every player {"won": false}, and stamps
--- status.outcome='manual'. is_terminal flips true (so the FE reveals
+-- status.reason='manual'. is_terminal flips true (so the FE reveals
 -- the solution). Idempotent on the play_state check (a second click
 -- raises P0001). Non-players are rejected by common.require_game_player.
 
@@ -46,9 +46,9 @@ select is(
   true,
   'coop: manual end → is_terminal=true (reveals the solution)');
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g1)),
+  (select status->>'reason' from common.games where id = (select id from g1)),
   'manual',
-  'coop: status.outcome=manual');
+  'coop: status.reason=manual');
 select is(
   (select count(*) from common.game_players
     where game_id = (select id from g1)
@@ -89,9 +89,9 @@ select is(
   true,
   'compete: manual end → is_terminal=true');
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g2)),
+  (select status->>'reason' from common.games where id = (select id from g2)),
   'manual',
-  'compete: status.outcome=manual');
+  'compete: status.reason=manual');
 select is(
   (select count(*) from common.game_players
     where game_id = (select id from g2)

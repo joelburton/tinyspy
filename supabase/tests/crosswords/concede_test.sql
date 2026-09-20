@@ -46,7 +46,7 @@ select crosswords.concede(:'gp_id');
 reset role;
 select is((select play_state from common.games where id = :'gp_id'), 'lost_compete',
   'compete: the last conceder → collective loss');
-select is((select status ->> 'outcome' from common.games where id = :'gp_id'), 'conceded',
+select is((select status ->> 'reason' from common.games where id = :'gp_id'), 'conceded',
   'compete: collective loss has outcome = conceded');
 
 -- Concede is compete-only.
@@ -64,7 +64,7 @@ select crosswords.end_game(:'gc_id');
 reset role;
 select is((select play_state from common.games where id = :'gc_id'), 'ended',
   'coop give-up → play_state ended (neutral, not lost)');
-select is((select status ->> 'outcome' from common.games where id = :'gc_id'), 'manual',
+select is((select status ->> 'reason' from common.games where id = :'gc_id'), 'manual',
   'coop give-up → outcome manual (the roster''s word for a player-fired stop)');
 select is(
   (select result -> 'won' from common.game_players
@@ -91,7 +91,7 @@ select crosswords.end_game(:'gp2_id');
 reset role;
 select is((select play_state from common.games where id = :'gp2_id'), 'ended',
   'compete give-up → play_state ended (neutral, not lost_compete)');
-select is((select status ->> 'outcome' from common.games where id = :'gp2_id'), 'manual',
+select is((select status ->> 'reason' from common.games where id = :'gp2_id'), 'manual',
   'compete give-up → outcome manual, the same word coop''s end writes');
 select is((select status ->> 'mode' from common.games where id = :'gp2_id'), 'compete',
   'compete give-up → the status blob says which mode ended');

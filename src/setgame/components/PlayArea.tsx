@@ -540,7 +540,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The terminal message, memoized on primitives so the verdict effect sees
   // one object per outcome. The compete names are reduced to strings here.
-  const statusOutcome = (status?.outcome as string | undefined) ?? null
+  const statusOutcome = (status?.reason as string | undefined) ?? null
   const winnerId = (status?.winner_user_id as string | undefined) ?? null
   const winners = useMemo(() => leaderboard.filter((e) => e.won), [leaderboard])
   const iWon = winnerId === selfId || (winnerId === null && winners.some((e) => e.user_id === selfId))
@@ -698,7 +698,7 @@ function buildOver({
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  /** `status.outcome`, or null when the status carries none. */
+  /** `status.reason`, or null when the status carries none. */
   statusOutcome: string | null
   teamFound: number
   stranded: number

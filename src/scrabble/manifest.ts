@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, statusLine, wonBy } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_SCRABBLE_SETUP, validateScrabbleSetup, type ScrabbleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -60,7 +60,7 @@ const endGame = makeRpcDispatcher(db, 'end_game')
  *
  * Coop has NO win state (see scrabble._finish): one shared rack, no opponent,
  * so playing the bag out and stopping early are both just `ended` — the score
- * is the point, not a verdict. Only the clock loses. `status.outcome` still
+ * is the point, not a verdict. Only the clock loses. `status.reason` still
  * carries HOW it ended, but no coop ending is worth naming: 'complete' (bag
  * played out) and 'manual' are both the ordinary way a coop table finishes,
  * and 'blocked' is compete-only (it counts passes; coop has no turns to pass).
@@ -69,27 +69,27 @@ function labelFor(mode: 'coop' | 'compete') {
   return (row: CommonGameListRow): string => {
     const s = (row.status ?? {}) as {
       team_score?: number; bag_count?: number
-      winner_username?: string | null; winner_score?: number; outcome?: string
+      winner_username?: string | null; winner_score?: number; reason?: string
     }
     const score = s.team_score != null ? `${s.team_score} pts` : null
     switch (row.play_state) {
       case 'playing':
         return statusLine(
-          outcome('Playing'), mode === 'coop' ? score : null,
+          verdict('Playing'), mode === 'coop' ? score : null,
           count(s.bag_count, 'tile left', 'tiles left'))
       case 'won_compete':
         return statusLine(wonBy(s.winner_username),
                           s.winner_score != null ? `${s.winner_score} pts` : null)
       case 'lost':
         // Coop's clock — the one way a coop table loses.
-        return statusLine(outcome('Lost', 'out of time'), score)
+        return statusLine(verdict('Lost', 'out of time'), score)
       case 'lost_compete':
         // Everyone conceded: final scoring ran, but nobody was eligible to win.
-        return outcome('Lost', 'all conceded')
+        return verdict('Lost', 'all conceded')
       case 'ended':
         // Every coop finish, and compete's whole-table stop. Coop shows the
         // team score (the score IS the point in coop).
-        return mode === 'coop' ? statusLine(outcome('Ended'), score) : outcome('Ended')
+        return mode === 'coop' ? statusLine(verdict('Ended'), score) : verdict('Ended')
       default:
         return row.play_state
     }

@@ -470,14 +470,18 @@ grant execute on function boggle.submit_word(uuid, text, int, boolean) to authen
 -- ============================================================
 -- _finish / end_game / submit_timeout — terminal transitions.
 -- ============================================================
--- A game ends three ways: a player hits End (`outcome = 'manual'`), the timer
+-- A game ends three ways: a player hits End (`reason = 'manual'`), the timer
 -- expires (`'timeout'`), or a score TARGET is reached (`'target'`, see
 -- submit_word — only when setup.win_percent is set). Coop has no individual
 -- winner (the team's total is the score); compete without a target ranks by
 -- score (ties share the win). A `'target'` compete win passes `winner_user_id` — the
 -- player who crossed the bar first — and THEY win outright (others lose
 -- regardless of their private banked score).
-create or replace function boggle._finish(target_game uuid, outcome text, winner_user_id uuid default null)
+-- The parameter was named `outcome`, which is the appearance vocabulary's word
+-- (docs/outcomes.md) and not what this holds — a REASON the game ended. A
+-- rename needs the drop: `create or replace` cannot rename an input parameter.
+drop function if exists boggle._finish(uuid, text, uuid);
+create or replace function boggle._finish(target_game uuid, reason text, winner_user_id uuid default null)
 returns void
 language plpgsql
 security definer
@@ -509,7 +513,7 @@ begin
     select count(*), coalesce(sum(points), 0) into fc, fs
       from boggle.found_words where game_id = target_game;
     final_status := jsonb_build_object(
-      'mode', 'coop', 'outcome', outcome,
+      'mode', 'coop', 'reason', reason,
       'found_words_count', fc, 'found_words_score', fs,
       'required_words_count', g_req_count, 'required_words_score', g_req_score
     );
@@ -521,8 +525,8 @@ begin
     -- there's nothing to fail, so any ending is the neutral 'ended'. A manual
     -- stop is always neutral, target or not: the friends chose to stop.
     term_state := case
-      when outcome = 'target' then 'won'
-      when outcome = 'timeout' and g_win_pct is not null then 'lost'
+      when reason = 'target' then 'won'
+      when reason = 'timeout' and g_win_pct is not null then 'lost'
       else 'ended'
     end;
   else
@@ -562,10 +566,10 @@ begin
     --   'manual'                  → the friends chose to stop; neutral, no
     --                               winner, like every other game's End → ended
     term_state := case
-      when outcome = 'target' then 'won_compete'
-      when outcome = 'timeout' and g_win_pct is not null then 'lost_compete'
-      when outcome = 'timeout' and max_score = 0 then 'lost_compete'
-      when outcome = 'timeout' then 'won_compete'
+      when reason = 'target' then 'won_compete'
+      when reason = 'timeout' and g_win_pct is not null then 'lost_compete'
+      when reason = 'timeout' and max_score = 0 then 'lost_compete'
+      when reason = 'timeout' then 'won_compete'
       else 'ended'
     end;
 
@@ -592,7 +596,7 @@ begin
     end if;
 
     final_status := jsonb_build_object(
-      'mode', 'compete', 'outcome', outcome, 'leaderboard', lb,
+      'mode', 'compete', 'reason', reason, 'leaderboard', lb,
       'top_score', max_score,
       'required_words_count', g_req_count, 'required_words_score', g_req_score
     );

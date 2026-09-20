@@ -676,7 +676,7 @@ right moment.
 
 ### Terminal vocabulary
 
-`won_compete` / `lost_compete` (nobody solved — `status.outcome` names which of
+`won_compete` / `lost_compete` (nobody solved — `status.reason` names which of
 timeout / all-conceded / unsolved) / `ended`. The `_compete` suffix is
 load-bearing rather than cosmetic: `common.concede` reads it off the gametype
 string to decide how an all-conceded table ends.

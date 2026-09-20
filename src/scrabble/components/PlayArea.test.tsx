@@ -221,7 +221,7 @@ describe('scrabble PlayArea — render smoke', () => {
   })
 
   it('renders the terminal state without crashing', () => {
-    render(<PlayArea {...makeCtx({ isTerminal: true, status: { outcome: 'manual' } })} />)
+    render(<PlayArea {...makeCtx({ isTerminal: true, status: { reason: 'manual' } })} />)
     // The neutral coop terminal: "0 pts" in the action row AND the permanent
     // verdict pill below the board (both places, by rule).
     expect(screen.getAllByText('0 pts').length).toBeGreaterThan(0)
@@ -329,7 +329,7 @@ describe('scrabble PlayArea — concede', () => {
     // the bag clause (which is still true) behind the same bullet separator.
     // Two copies: the info column's and the mobile status bar's.
     h.result = loadedCompete()
-    render(<PlayArea {...makeCtx({ players: twoMembers, isTerminal: true, status: { outcome: 'compete' } })} />)
+    render(<PlayArea {...makeCtx({ players: twoMembers, isTerminal: true, status: { reason: 'compete' } })} />)
     expect(screen.queryByText(/Your turn/)).not.toBeInTheDocument()
     expect(screen.getAllByText(/Ended · 86 in bag/)).toHaveLength(2)
   })
@@ -348,7 +348,7 @@ describe('scrabble PlayArea — concede', () => {
         {...makeCtx({
           isTerminal: true,
           playState: 'ended',
-          status: { outcome: 'compete' },
+          status: { reason: 'compete' },
           players: [
             gp('u1', 'me', 'red', { result: { won: false } }),
             gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }),
@@ -498,7 +498,7 @@ describe('scrabble PlayArea — + and ⌥⌫ through the dispatcher', () => {
         ? Promise.resolve(okEnvelope({ result: 'created', id: 'next-game-id' }))
         : Promise.resolve({ error: null }),
     )
-    const ctx = makeCtx({ isTerminal: true, status: { outcome: 'manual' } })
+    const ctx = makeCtx({ isTerminal: true, status: { reason: 'manual' } })
     render(<WithKeys {...ctx} />)
     await press({ key: '+' })
     // No <ConfirmationHost/> is mounted, so a question would have been answered
@@ -580,7 +580,7 @@ describe('scrabble PlayArea — + and ⌥⌫ through the dispatcher', () => {
     unmount()
 
     // No host this time: the RPC firing proves no question was asked.
-    const done = makeCtx({ isTerminal: true, status: { outcome: 'manual' } })
+    const done = makeCtx({ isTerminal: true, status: { reason: 'manual' } })
     render(<PlayArea {...done} />)
     act(() => menuItems(done).get('act-restart')!.run())
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))

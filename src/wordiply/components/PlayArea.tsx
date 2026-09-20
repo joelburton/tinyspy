@@ -481,7 +481,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // one object per outcome. The one person it can name — a sole compete
   // winner — is resolved here to name + color; a tie is a string of names.
   const isCompete = game?.mode === 'compete'
-  const statusOutcome = (status?.outcome as string | undefined) ?? null
+  const statusOutcome = (status?.reason as string | undefined) ?? null
   const winnerId = (status?.winner_user_id as string | undefined) ?? null
   const winners = useMemo(() => leaderboard.filter((e) => e.won), [leaderboard])
   const soleWinner = players.find((p) => p.user_id === (winners[0]?.user_id ?? winnerId))
@@ -676,7 +676,7 @@ function buildOver({
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  /** `status.outcome`, or null when the status carries none. */
+  /** `status.reason`, or null when the status carries none. */
   statusOutcome: string | null
   longest: number
   letters: number

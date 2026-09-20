@@ -262,12 +262,12 @@ describe('connections PlayArea — concede', () => {
           ],
           isTerminal: true,
           playState: 'lost_compete',
-          status: { outcome: 'conceded' },
+          status: { reason: 'conceded' },
         })}
       />,
     )
     // The clock never ran out here, and it is not what decides: `concede`
-    // wrote 'conceded' into `status.outcome` and the pill reads that. The
+    // wrote 'conceded' into `status.reason` and the pill reads that. The
     // sentences themselves are `lib/terminal.test.ts`'s; this is the WIRE.
     expect(screen.getByText('All conceded — no winner')).toBeInTheDocument()
   })

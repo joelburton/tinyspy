@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, outcome, statusLine } from '@/common/manifest/statusLabel'
+import { count, verdict, statusLine } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import {
   DEFAULT_STRANDS_SETUP_COMPETE,
@@ -84,12 +84,12 @@ function coopLabel(row: { play_state: string; status?: unknown }): string {
   // without saying how far there was to go.
   const progress = count((s.words_found as number | undefined) ?? 0, 'word')
 
-  if (row.play_state === 'playing') return statusLine(outcome('Playing'), progress)
-  if (row.play_state === 'won') return statusLine(outcome('Won'), progress)
+  if (row.play_state === 'playing') return statusLine(verdict('Playing'), progress)
+  if (row.play_state === 'won') return statusLine(verdict('Won'), progress)
   // The clock is the only loss strands has: the team set a timer on a puzzle
   // with a reachable end and didn't reach it (docs/states.md).
-  if (row.play_state === 'lost') return statusLine(outcome('Lost', 'out of time'), progress)
-  return statusLine(outcome('Ended'), progress)
+  if (row.play_state === 'lost') return statusLine(verdict('Lost', 'out of time'), progress)
+  return statusLine(verdict('Ended'), progress)
 }
 
 /**
@@ -102,19 +102,19 @@ function coopLabel(row: { play_state: string; status?: unknown }): string {
  */
 function competeLabel(row: { play_state: string; status?: unknown }): string {
   const s = (row.status ?? {}) as StatusBlob
-  if (row.play_state === 'playing') return outcome('Playing')
+  if (row.play_state === 'playing') return verdict('Playing')
   if (row.play_state === 'won_compete') {
     const best = s.best_hints as number | undefined
     // The margin, not the finish order: "won on 0 hints" is the actual contest.
-    return statusLine(outcome('Won'), best === undefined ? null : count(best, 'hint'))
+    return statusLine(verdict('Won'), best === undefined ? null : count(best, 'hint'))
   }
   if (row.play_state === 'lost_compete') {
-    const why = s.outcome as string | undefined
+    const why = s.reason as string | undefined
     return statusLine(
-      outcome('Lost', why === 'timeout' ? 'out of time' : why === 'conceded' ? 'all conceded' : 'nobody solved it'),
+      verdict('Lost', why === 'timeout' ? 'out of time' : why === 'conceded' ? 'all conceded' : 'nobody solved it'),
     )
   }
-  return statusLine(outcome('Ended'), 'no winner')
+  return statusLine(verdict('Ended'), 'no winner')
 }
 
 export const strandsCoopGame: GameManifest = {

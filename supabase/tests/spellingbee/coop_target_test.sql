@@ -92,9 +92,9 @@ select is(
 );
 
 select is(
-  (select status->>'outcome' from common.games where id = (select id from g)),
+  (select status->>'reason' from common.games where id = (select id from g)),
   'target',
-  'coop: status.outcome = target (distinguishes it from timeout / manual)'
+  'coop: status.reason = target (distinguishes it from timeout / manual)'
 );
 
 select is(

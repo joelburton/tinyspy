@@ -54,7 +54,7 @@ minimum length.
   scores (`submit_word` decides it; see [§7](#7-rpcs-all-security-definer)).
 - **Ending.** With no win target, you hunt until the timer expires, a player
   hits **End game**, or (compete) everyone's done — a neutral end. With a target
-  set, reaching it ends the game as a win (`status.outcome = 'target'`). Either
+  set, reaching it ends the game as a win (`status.reason = 'target'`). Either
   way the end-of-game reveal lists the **required** words nobody found.
 
 ### Modes (sibling-manifest pair)
@@ -532,9 +532,9 @@ carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--t
 — it would duplicate the pill). Without a win
 target, coop is a neutral shared hunt and compete picks the highest score;
 **with** one (`setup.win_percent`), reaching the score bar is a real win
-(`status.outcome === 'target'`) — and a **coop** target win pops the shared
+(`status.reason === 'target'`) — and a **coop** target win pops the shared
 `<CelebrationBlockingModal>` ("Target reached! 🎉"), once, at the moment it happens.
-That gate reads `status.mode` + `status.outcome`, both off the common row GamePage
+That gate reads `status.mode` + `status.reason`, both off the common row GamePage
 waits for — deliberately not boggle's own `game.mode`, which arrives later and
 would pop confetti at someone opening a finished game.
 

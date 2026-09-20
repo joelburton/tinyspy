@@ -41,7 +41,7 @@ select is(
   (select play_state from common.games where id = (select id from gc)),
   'lost', 'coop loses on the clock — the deck was still full of sets');
 select is(
-  (select status->>'outcome' from common.games where id = (select id from gc)),
+  (select status->>'reason' from common.games where id = (select id from gc)),
   'timeout', 'the outcome says what stopped it');
 select is(
   (select (status->>'sets_found')::int from common.games where id = (select id from gc)),

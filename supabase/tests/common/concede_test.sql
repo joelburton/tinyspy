@@ -13,7 +13,7 @@
 --   2. Idempotency: a second concede by the same player raises P0001
 --   3. A middle concede keeps the game going (one racer left)
 --   4. The LAST active player conceding ends the game as a COLLECTIVE
---      loss (is_terminal, status.outcome 'conceded', every result
+--      loss (is_terminal, status.reason 'conceded', every result
 --      {"won": false}, no winner) — named 'lost_compete' for a
 --      `*_compete` gametype, plain 'lost' for a single-mode one
 --   5. Non-players rejected; conceding a finished game rejected
@@ -140,9 +140,9 @@ select is(
   'a *_compete gametype ends lost_compete (collective loss)'
 );
 select is(
-  (select status->>'outcome' from common.games where id = current_setting('test.game_id')::uuid),
+  (select status->>'reason' from common.games where id = current_setting('test.game_id')::uuid),
   'conceded',
-  'status.outcome is conceded (distinct from a win / timeout)'
+  'status.reason is conceded (distinct from a win / timeout)'
 );
 select is(
   (select count(*) from common.game_players

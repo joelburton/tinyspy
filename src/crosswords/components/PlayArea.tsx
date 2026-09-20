@@ -849,7 +849,7 @@ type Explained =
   const winnerRow = players.find((p) => p.user_id === winnerId)
   const winnerName = winnerRow?.username ?? (status?.winner_username as string | undefined)
   const winnerColor = winnerRow?.color
-  const timedOut = status?.outcome === 'timeout'
+  const timedOut = status?.reason === 'timeout'
   const over = useMemo(
     () =>
       isTerminal
@@ -1107,7 +1107,7 @@ function buildOver({
 }: {
   playState: string
   mode: 'coop' | 'compete'
-  /** `submit_timeout` stamps `status.outcome = 'timeout'`. Of the two `lost*`
+  /** `submit_timeout` stamps `status.reason = 'timeout'`. Of the two `lost*`
    *  states only `lost_compete` has a second way in (all-conceded, via
    *  common.concede); coop's `lost` is clock-only — coop has no concede. */
   timedOut: boolean

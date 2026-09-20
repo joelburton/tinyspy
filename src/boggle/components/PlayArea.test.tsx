@@ -232,7 +232,7 @@ describe('boggle PlayArea — render smoke', () => {
 
   it('coop: reaching the score target reads as a win, not a neutral end', () => {
     h.result = loaded(loadedGame())
-    render(<PlayArea {...makeCtx({ isTerminal: true, status: { mode: 'coop', outcome: 'target' } })} />)
+    render(<PlayArea {...makeCtx({ isTerminal: true, status: { mode: 'coop', reason: 'target' } })} />)
     expect(screen.getAllByText(/Target reached/).length).toBeGreaterThan(0)
   })
 
@@ -244,7 +244,7 @@ describe('boggle PlayArea — render smoke', () => {
           isTerminal: true,
           players: twoMembers,
           // self is 'u1' (session.user.id); the server named u1 the crosser.
-          status: { mode: 'compete', outcome: 'target', winner_user_id: 'u1', winner_username: 'me', leaderboard: [] },
+          status: { mode: 'compete', reason: 'target', winner_user_id: 'u1', winner_username: 'me', leaderboard: [] },
         })}
       />,
     )
@@ -259,7 +259,7 @@ describe('boggle PlayArea — render smoke', () => {
           isTerminal: true,
           players: twoMembers,
           // u2 (moth) crossed; self (u1) lost.
-          status: { mode: 'compete', outcome: 'target', winner_user_id: 'u2', winner_username: 'moth', leaderboard: [] },
+          status: { mode: 'compete', reason: 'target', winner_user_id: 'u2', winner_username: 'moth', leaderboard: [] },
         })}
       />,
     )

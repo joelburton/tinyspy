@@ -79,7 +79,7 @@ select boggle.submit_word((select id from gc), 'scare', 2, false);
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select is_terminal from common.games where id = (select id from gc)), true,
   'coop: reaching the target ends the game');
-select is((select status->>'outcome' from common.games where id = (select id from gc)), 'target',
+select is((select status->>'reason' from common.games where id = (select id from gc)), 'target',
   'coop: the terminal outcome is target');
 -- boggle used to land every ending on the neutral 'ended'. A game with a
 -- TARGET can now be won or lost against it, like spellingbee's rank target.
@@ -106,7 +106,7 @@ reset role; select set_config('request.jwt.claims', '', true);
 
 select is((select is_terminal from common.games where id = (select id from gp)), true,
   'compete: a player reaching the target ends the game');
-select is((select status->>'outcome' from common.games where id = (select id from gp)), 'target',
+select is((select status->>'reason' from common.games where id = (select id from gp)), 'target',
   'compete: the terminal outcome is target');
 select is((select status->>'winner_user_id' from common.games where id = (select id from gp)),
   'ada11111-1111-1111-1111-111111111111', 'compete: the crosser is named as the winner');
