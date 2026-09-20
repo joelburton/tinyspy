@@ -22,6 +22,18 @@ the **tile-feedback pass** against [tile-feedback.md](../tile-feedback.md).
 The restructure goes first because the audit's prose pass would otherwise
 polish comments the split and the comment pass rewrite or delete.
 
+**The order, corrected 2026-09-19 from psychicnum's COMMIT history** (Joel:
+*"make sure you've read what did in that game and the history of its commits
+since the section opened"*). psychicnum's area file lists Steps 0–6 and then
+pass 2; its log shows what came between: the `doc.md` skeleton with the RPC
+and FE-submission sections written (`ba44e3d9`), then the `AnswerMessage`
+conversion (`a5ff4ca4`, `b02d8dbd`, `1ceafbc3`), then an e2e run, then pass
+2. For this game Joel moved both EARLIER — right after the loader split,
+before the actions, the section order and the comment pass — so the steps
+here are: 0 baseline · 1 owed work · 2 loader split · **3 the doc's RPC and
+FE-submission sections · 4 AnswerMessage** · 5 actions and the row · 6 the
+builder to `lib/` · 7 the section order · 8 the comment pass. Then pass 2.
+
 **This is the SECOND game, which changes one thing about the restructure.**
 psychicnum cut nothing shared — *"a shared hook is a rule-of-three cut, and
 one game cannot prove sameness"* — so the readability plan's slots (3.3), its
@@ -46,10 +58,11 @@ markdown and the logo none.
   `history.ts` + `.test.ts`, `localOrder.ts` + `.test.ts`, `rankColors.ts`,
   `setup.ts`, `setupSummary.ts`. pdf: `model.ts` + `.test.ts`,
   `printConnectionsPdf.ts`. root: `db.ts`, `manifest.ts` + `.test.ts`,
-  `theme.css`, `logo.svg`, `todo.md`. **No `doc.md` yet** — pass 2 writes it
-  in psychicnum's shape (Intro to area · Game rules · Schema · RPCs · FE
-  submissions · Frontend · Tests) and `docs/games/connections.md` (820 lines)
-  is deleted into it.
+  `theme.css`, `logo.svg`, `todo.md`, and **`doc.md`, written at Step 3**
+  (2026-09-19) in psychicnum's shape (Intro to area · Game rules · Schema ·
+  RPCs · FE submissions · Frontend · Tests), the RPC and FE-submission
+  sections filled and the rest owed to pass 2, which also deletes
+  `docs/games/connections.md` (820 lines) into it.
 - **SQL — 3 files**: `supabase/migrations/20260615000003_connections.sql`,
   `supabase/migrations/20260917000005_connections_events.sql`,
   `supabase/sql/connections.sql` (1,520 lines).
@@ -132,9 +145,9 @@ went:
 | item | closed by |
 |---|---|
 | `act-new-game` live before the row loads (Bugs) | Step 2, the loader split |
-| the Hints row live when the list is not drawn (Bugs) | Step 3, the actions |
-| collapse the action row's branches (Soon) | Step 3, the row |
-| `shuffleTiles` hand-written (Soon) | Step 3, since `BoardCol` is open there — as psychicnum's was |
+| the Hints row live when the list is not drawn (Bugs) | Step 5, the actions |
+| collapse the action row's branches (Soon) | Step 5, the row |
+| `shuffleTiles` hand-written (Soon) | Step 5, since `BoardCol` is open there — as psychicnum's was |
 | `revealedHints` back into `<HintList>` (Soon) | a restructure step with the column open, or pass 2 |
 | `matched` derivable on `EventRow` (Bugs) | pass 2 — a decision |
 | an eliminated racer pauses the survivors (Soon) | pass 2, with the SQL open — a decision |
@@ -172,33 +185,71 @@ where before the rows were published pre-load and `+` asked the new-game
 question and then could not act. That was the `act-new-game` Bug in
 `todo.md`, closed by this step and deleted there.
 
-**Not this step's, and left for Step 5 and Step 6:** `boardView` still
+**Not this step's, and left for Step 7 and Step 8:** `boardView` still
 computes `locallyDone` and `unmatched` that the render section computes a
 second time — the memo existed for the early return and no longer needs to
 be one, but where those derivations sit is the section order's question. The
-surface's docstring still describes the pre-split file; Step 6 rewrites it.
+surface's docstring still describes the pre-split file; Step 8 rewrites it.
 
 Verified: `tsc -b` clean, lint clean, 372 unit tests green (the game's and
 the guards). The e2e specs have not run for this step.
+
+### Step 3 — the `doc.md` skeleton, with the RPCs and FE submissions written — DONE 2026-09-19
+
+As psychicnum's `ba44e3d9`: `src/connections/doc.md`, seven headings, with
+the lede, a short intro (three things that are high-level about this game:
+the frontend knows the answer, a coop guess is picked together over
+Broadcast, the archive is a queue), the RPCs and the FE submissions written
+from the SQL and the call sites — not from the old doc — and Game rules,
+Schema, Frontend and Tests marked owed to pass 2. The guards are green with
+the file staged.
+
+**Written against the code, and where the old doc disagreed:** the old RPC
+section says a duplicate guess is "an `ok` with nothing to say" and that a
+racing correct guess is "silently no-op'd"; the SQL raises PN301 and PN300,
+both races, and the doc says so in a clause. It also spells the setup key
+`puzzleId`; the key is `puzzle_id`. Both are the old doc's to lose when pass
+2 deletes it.
+
+**Corrected the same day** (Joel: *"i specifically told you during psychicnum
+that listing PN codes/not-ok responses is useless clutter in the RPC
+section"*): the first draft listed the refusals per RPC with their codes.
+The section is the `ok` answers only; a not-ok that is part of the game's
+story is a clause without a code.
+
+**Two things the doc records as they are TODAY, which Step 4 changes:** the
+`submit_guess` reply carries its outcome in the envelope beside the fact,
+and the words a player reads are written at three call sites (`BoardCol`'s
+three verdicts and its refusal, `PlayArea`'s three peer lines) with
+`lib/answer.ts` holding only the outcome table. The FE-submissions table
+lists all seven with where each is written, which is the inventory Step 4
+starts from.
+
+### Step 4 — the `AnswerMessage` conversion
+
+Joel, 2026-09-19: *"this definitely part of the audits we'll do for games"*,
+*"not a 'Soon' item"*, and it comes here, before the actions and the prose
+passes. As psychicnum's `a5ff4ca4` and the two trims after it: an `ok` RPC
+returns the FACT and nothing else; a call site names an `answerType`; one
+function in `lib/answer.ts` turns that into the outcome and the text, with a
+`_peer` twin per answer, so the pill, the log bar and the peer line read one
+table. Today `lib/answer.ts` holds the three wire words and `ANSWER_OUTCOME`;
+the peer lines ("found category", "was one away", "guessed wrong") are hand-
+written in `PlayArea.tsx`, and the pill's words come from the envelope. The
+decision in it — which answers this game has and what each says — is
+presented with options before it is built. app-audit.md §3's game row
+carries the conversion for every game.
+
+### Steps 5–8 — the actions and the row · the builder to `lib/` · the section order · the comment pass
+
+psychicnum's Steps 3–6, in that order, each a commit Joel reads; recorded
+here as each lands.
 
 ### After the restructure — pass 2, the audit
 
 The area's ordinary process from here: the prose pass, then findings one at a
 time. Already known to belong to it:
 
-- **The answers move to the `AnswerMessage` shape** (Joel, 2026-09-19: *"this
-  definitely part of the audits we'll do for games"*, and *"not a 'Soon'
-  item. it will be part of this audit"* — so it is written here and not in
-  `todo.md`). `lib/answer.ts` holds only the three wire words and
-  `ANSWER_OUTCOME`; the peer lines ("found category", "was one away",
-  "guessed wrong") are written by hand in `PlayArea.tsx`, and the pill's words
-  come from the envelope. The rule (`common/feedback/doc.md`) is that a game's
-  own answers are built in its `lib/answer.ts` as the `{ outcome, text }`
-  pair, so the pill, the log bar and the peer line read one table;
-  psychicnum's `answerMessage()` and `peerAnswerMessage()` are the shape. A
-  finding with a decision in it — which answers this game has and what each
-  says — as psychicnum's F-2 was. app-audit.md §3's game row carries it for
-  every game.
 - **The doc**: `src/connections/doc.md` in psychicnum's shape, absorbing what
   `docs/games/connections.md` says that the code does not; the doc is then
   deleted.
