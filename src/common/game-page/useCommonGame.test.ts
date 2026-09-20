@@ -154,33 +154,53 @@ const GAME_ROW = {
   ended_at: null,
 }
 
-// ada = self, bea = a live peer, cara = a peer who has conceded, zed-bot = an
-// AI opponent. cara exercises the concede/result merge AND the concede-aware
-// presence-pause filter (a missing conceder must not pause the game); zed-bot
-// exercises the other filter on the same roster — a bot never opens a tab, so
-// counting it would pause every game it sits in, forever.
+// ada = self, bea = a live peer, cara = a peer who has conceded, dai = a racer
+// who is DONE (finished, eliminated, out of budget — the game is not waiting
+// for them), zed-bot = an AI opponent. Each of the last three exercises one
+// exclusion from the presence-pause roster, and they are three different
+// reasons: cara quit, dai has nothing left to do, and zed-bot is never going
+// to open a tab at all.
 const PLAYER_ROWS = [
-  { user_id: 'ada', conceded: false, conceded_at: null, result: null },
-  { user_id: 'bea', conceded: false, conceded_at: null, result: null },
-  { user_id: 'cara', conceded: true, conceded_at: '2026-01-01T00:00:00Z', result: null },
-  { user_id: 'zed-bot', conceded: false, conceded_at: null, result: null },
+  { user_id: 'ada', conceded: false, conceded_at: null, locally_terminal: false, result: null },
+  { user_id: 'bea', conceded: false, conceded_at: null, locally_terminal: false, result: null },
+  {
+    user_id: 'cara',
+    conceded: true,
+    conceded_at: '2026-01-01T00:00:00Z',
+    locally_terminal: false,
+    result: null,
+  },
+  { user_id: 'dai', conceded: false, conceded_at: null, locally_terminal: true, result: null },
+  { user_id: 'zed-bot', conceded: false, conceded_at: null, locally_terminal: false, result: null },
 ]
 const PROFILES = [
   { user_id: 'ada', username: 'ada', color: 'red', ai_member: false },
   { user_id: 'bea', username: 'bea', color: 'blue', ai_member: false },
   { user_id: 'cara', username: 'cara', color: 'green', ai_member: false },
+  { user_id: 'dai', username: 'dai', color: 'purple', ai_member: false },
   { user_id: 'zed-bot', username: 'zed-bot', color: 'brown', ai_member: true },
 ]
-// The hook merges the game_players concede/result bits onto each profile.
+// The hook merges the game_players per-player bits onto each profile.
 const GAME_PLAYERS = [
-  { user_id: 'ada', username: 'ada', color: 'red', conceded: false, conceded_at: null, result: null, ai_member: false },
-  { user_id: 'bea', username: 'bea', color: 'blue', conceded: false, conceded_at: null, result: null, ai_member: false },
+  { user_id: 'ada', username: 'ada', color: 'red', conceded: false, conceded_at: null, locally_terminal: false, result: null, ai_member: false },
+  { user_id: 'bea', username: 'bea', color: 'blue', conceded: false, conceded_at: null, locally_terminal: false, result: null, ai_member: false },
   {
     user_id: 'cara',
     username: 'cara',
     color: 'green',
     conceded: true,
     conceded_at: '2026-01-01T00:00:00Z',
+    locally_terminal: false,
+    result: null,
+    ai_member: false,
+  },
+  {
+    user_id: 'dai',
+    username: 'dai',
+    color: 'purple',
+    conceded: false,
+    conceded_at: null,
+    locally_terminal: true,
     result: null,
     ai_member: false,
   },
@@ -190,6 +210,7 @@ const GAME_PLAYERS = [
     color: 'brown',
     conceded: false,
     conceded_at: null,
+    locally_terminal: false,
     result: null,
     ai_member: true,
   },
@@ -363,9 +384,34 @@ describe('useCommonGame — paused unification', () => {
 
     expect(result.current.paused).toBe(false)
     // The roster the pause watches is where cara's absence stops mattering:
-    // she is off it, so nobody is waiting on her. zed-bot is off it too, for
-    // the other reason — it is never going to arrive.
+    // she is off it, so nobody is waiting on her. dai and zed-bot are off it
+    // too, for the other two reasons — nothing is left for dai to do, and
+    // zed-bot is never going to arrive.
     expect(result.current.activePlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
+  })
+
+  it('paused stays false when the only missing player is done playing', async () => {
+    // dai is locally terminal — solved their board in a best-style race,
+    // spent their budget, or was eliminated — and then closed the tab. The
+    // game is not waiting for them, so the players still going must not be
+    // parked behind the pause overlay. dai did NOT concede: in wordle, waffle
+    // and strands the first player to go locally terminal is the one who
+    // SOLVED, and may be the winner.
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    presenceStateRecord = {
+      ada: [{ user_id: 'ada' }],
+      bea: [{ user_id: 'bea' }],
+      cara: [{ user_id: 'cara' }],
+    }
+    act(() => firePresenceSync())
+
+    expect(result.current.paused).toBe(false)
+    expect(result.current.activePlayers.map((p) => p.user_id)).toEqual(['ada', 'bea'])
+    // …and they are still a player of the game everywhere participation
+    // counts — the strip, the standings, the end-of-game results.
+    expect(result.current.players.map((p) => p.user_id)).toContain('dai')
   })
 
   it('a bot never pauses the game, and never draws an absent dot', async () => {

@@ -16,8 +16,8 @@ import type { Member } from '../members/member'
  * feature itself.
  *
  * `useCommonGame` owns the harder half and it is not tested here: which people
- * count as expected (this game's players, minus anyone who conceded) and how
- * presence arrives. What this file defends is that, given those two inputs, the
+ * count as expected (this game's players, minus anyone who conceded, is done
+ * playing, or is a bot) and how presence arrives. What this file defends is that, given those two inputs, the
  * answer is right.
  */
 

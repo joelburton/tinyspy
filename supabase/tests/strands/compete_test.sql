@@ -22,7 +22,7 @@ begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(21);
+select plan(23);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -159,6 +159,24 @@ select is(
   (select play_state from common.games where id = (select id from game)),
   'playing',
   'but the GAME is still playing — bea could still beat her on hints'
+);
+
+-- Locally terminal is exactly what the common roster needs: ada's closed tab
+-- must not pause the game for bea, who is still tracing. Not `conceded` — ada
+-- has solved and may yet win on hints.
+select is(
+  (select array[locally_terminal, conceded] from common.game_players
+    where game_id = (select id from game)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
+  array[true, false],
+  'a solve sets locally_terminal, not conceded'
+);
+select is(
+  (select locally_terminal from common.game_players
+    where game_id = (select id from game)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
+  false,
+  'a player still tracing is not locally terminal'
 );
 
 -- A race: your own solve arrives by subscription while the hint button is

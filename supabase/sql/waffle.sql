@@ -892,6 +892,15 @@ begin
            solved_at  = case when did_solve then now() else solved_at end
      where game_id = target_game and user_id = caller_id;
 
+    -- Solved, or out of swaps: either way this racer is done while the others
+    -- play their boards out, so the common roster has to hear about it — a
+    -- player nothing is waiting for must not hold the presence-pause open (see
+    -- the flag's migration). The SOLVER is the common case here, and
+    -- `conceded` could never have carried it: a drop-out forfeits the win.
+    if did_solve or new_swaps >= g_row.max_swaps then
+      perform common._set_locally_terminal(target_game, caller_id);
+    end if;
+
     -- The game ends when EVERY player is done — solved, out of swaps,
     -- or conceded. Shared with waffle.concede (a drop-out can be the
     -- move that empties the racing set). Returns true when it ended.

@@ -1175,6 +1175,14 @@ begin
     update strands.players
        set solved = true, solved_at = now()
      where game_id = target_game and user_id = caller_id;
+
+    -- Locally terminal is exactly what the common roster needs to know: a
+    -- solver nothing is waiting for must not hold the presence-pause open for
+    -- the players still tracing (see the flag's migration). `conceded` could
+    -- never have carried it — a drop-out forfeits the win, and this player may
+    -- well be about to win.
+    perform common._set_locally_terminal(target_game, caller_id);
+
     did_end := strands._maybe_finish_compete(target_game);
 
   else

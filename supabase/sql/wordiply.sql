@@ -911,6 +911,15 @@ begin
             from common.game_players gp where gp.game_id = target_game
         )));
 
+    -- The fifth guess ends this player's session while the others keep
+    -- theirs, so the common roster has to hear about it: a player nothing is
+    -- waiting for must not hold the presence-pause open (see the flag's
+    -- migration). `track_count` is the caller's spent count before this
+    -- guess, which the insert above has now made one more.
+    if track_count + 1 >= 5 then
+      perform common._set_locally_terminal(target_game, caller_id);
+    end if;
+
     -- Terminal when every ACTIVE (non-conceded) player has spent 5.
     select bool_and(used >= 5) into all_done from (
       select (select count(*) from wordiply.events gg

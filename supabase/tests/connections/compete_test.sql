@@ -20,8 +20,9 @@
 --     opponents' result {won: false}; surviving players can no
 --     longer submit
 --   - elimination + collective loss: each player's 4 mistakes
---     eliminates them; once all are eliminated, play_state flips
---     to lost_compete
+--     eliminates them (and sets common.game_players.locally_terminal,
+--     so the presence-pause stops waiting on them); once all are
+--     eliminated, play_state flips to lost_compete
 --   - eliminated-player submit answered as a race
 --   - submit_timeout writes the compete-mode terminal state
 --     (lost_compete, outcome timeout)
@@ -32,7 +33,7 @@ begin;
 
 set search_path = connections, common, public, extensions;
 
-select plan(27);
+select plan(29);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -304,6 +305,24 @@ select is(
   (select play_state from common.games where id = (select id from g2)),
   'playing',
   'submit_guess (compete): one eliminated player leaves game playing'
+);
+
+-- …and the common roster hears about it, which is what keeps bea's closed tab
+-- from pausing the game for ada. Not `conceded`: bea did not walk away.
+select is(
+  (select array[locally_terminal, conceded] from common.game_players
+    where game_id = (select id from g2)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
+  array[true, false],
+  'submit_guess (compete): elimination sets locally_terminal, not conceded'
+);
+
+select is(
+  (select locally_terminal from common.game_players
+    where game_id = (select id from g2)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
+  false,
+  'submit_guess (compete): a racer still going is not locally terminal'
 );
 
 -- Eliminated bea tries to submit → rejected.

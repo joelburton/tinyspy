@@ -1054,6 +1054,13 @@ begin
       from connections.players
      where game_id = target_game and user_id = caller_id;
 
+    -- The fourth mistake puts this racer out while the others keep going, so
+    -- the common roster has to hear about it: a player nothing is waiting for
+    -- must not hold the presence-pause open (see the flag's migration).
+    if caller_mistakes >= 4 then
+      perform common._set_locally_terminal(target_game, caller_id);
+    end if;
+
     -- Collective-loss check: nobody alive (every player is eliminated
     -- — mistake_count >= 4 — or conceded) and nobody won ⇒ lost_compete.
     -- Shared with connections.concede (a drop-out can be the move that

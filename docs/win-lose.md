@@ -307,7 +307,7 @@ keys; retire ad-hoc synonyms on contact.
 | **race** / **best** | the two compete styles: first finisher ends it vs everyone plays out and a ranking decides (proposed setup key: `compete_style`) |
 | **first past the post** | the race mechanism — instant end, lock-serialized, ties impossible |
 | **play out** | best-style property: the game waits for every racer |
-| **locally terminal** | a finished racer's state while others play on (existing term — [playarea.md](playarea.md)) |
+| **locally terminal** | a finished racer's state while others play on (existing term — [playarea.md](playarea.md)); `common.game_players.locally_terminal` is the flag the gametype sets, and the presence-pause roster reads |
 | **standings** | partial progress read as a ranking |
 | **all lose** / **rank the finishers** / **rank the standings** | the three timeout adjudications |
 | **the reachable-end rule** | timeout is a loss iff an end was reachable and unreached ([states.md](states.md)) |

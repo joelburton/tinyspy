@@ -693,6 +693,15 @@ begin
            solved_at    = case when did_solve then now() else solved_at end
      where game_id = target_game and user_id = caller_id;
 
+    -- Solved, or out of guesses: either way this racer is done while the
+    -- others play their boards out, so the common roster has to hear about it
+    -- — a player nothing is waiting for must not hold the presence-pause open
+    -- (see the flag's migration). The SOLVER is the common case here, and
+    -- `conceded` could never have carried it: a drop-out forfeits the win.
+    if did_solve or new_used >= g_row.max_guesses then
+      perform common._set_locally_terminal(target_game, caller_id);
+    end if;
+
     -- The game ends when EVERY player is done — solved, out of
     -- guesses, or conceded (each player plays their board out even
     -- once they can't win). Shared with wordle.concede, which also

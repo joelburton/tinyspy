@@ -15,7 +15,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(16);
+select plan(18);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -48,6 +48,26 @@ select is((select (res->'data'->>'result') from a_solve), 'correct',
   'ada solves on her first guess');
 select is((select (res->'data'->>'terminal')::boolean from a_solve), false,
   'game is NOT terminal yet — bea is still playing');
+
+-- The solver is DONE while bea plays her board out, and the common roster has
+-- to hear it: ada's closed tab must not pause the game for bea. Not
+-- `conceded` — ada may be about to win this race.
+reset role;
+select is(
+  (select array[locally_terminal, conceded] from common.game_players
+    where game_id = (select id from g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
+  array[true, false],
+  'compete: a solve sets locally_terminal, not conceded'
+);
+select is(
+  (select locally_terminal from common.game_players
+    where game_id = (select id from g)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
+  false,
+  'compete: a racer still guessing is not locally terminal'
+);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 -- ada guesses again, having already solved. A FAULT, not a race: the race is
 -- still live (bea is playing), so the play_state guard doesn't catch her — and

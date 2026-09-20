@@ -44,13 +44,15 @@
 --   - finding all three (caller's own) carries `found_all` true,
 --     play_state='won_compete'
 --   - game ends for everyone on the win, even those with budget left
---   - all-exhausted → play_state='lost_compete'
+--   - all-exhausted → play_state='lost_compete', and a spent budget
+--     sets common.game_players.locally_terminal so the presence-pause
+--     stops waiting on that racer
 
 begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(40);
+select plan(42);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -463,6 +465,24 @@ select is(
   (select play_state from common.games where id = (select id from comp_loss)),
   'playing',
   'compete: game still playing while opponents have budget'
+);
+
+-- …and the common roster hears that ada is done, which is what keeps ada's
+-- closed tab from pausing the game for bea. Not `conceded`: ada played it out.
+select is(
+  (select array[locally_terminal, conceded] from common.game_players
+    where game_id = (select id from comp_loss)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
+  array[true, false],
+  'compete: a spent budget sets locally_terminal, not conceded'
+);
+
+select is(
+  (select locally_terminal from common.game_players
+    where game_id = (select id from comp_loss)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
+  false,
+  'compete: a racer with budget left is not locally terminal'
 );
 
 -- bea exhausts too. The last wrong guess (total_remaining → 0) ends it.

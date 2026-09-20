@@ -19,6 +19,7 @@ const player = (over: Partial<GamePlayer> = {}): GamePlayer => ({
   color: 'red',
   conceded: false,
   conceded_at: null,
+  locally_terminal: false,
   result: null,
   ai_member: false,
   ...over,

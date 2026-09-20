@@ -68,6 +68,16 @@ export type Actor = Pick<Member, 'username' | 'color'>
  *   - `conceded_at`  — when they quit, or null. Written with the flag
  *                      and cleared with it, so a true `conceded`
  *                      always carries one.
+ *   - `locally_terminal`
+ *                    — this player is DONE while the game plays on:
+ *                      eliminated, out of budget, or finished ahead
+ *                      of the others in a best-style race
+ *                      (docs/win-lose.md). NOT a second `conceded` —
+ *                      a conceder forfeits any win and this player
+ *                      may be the winner. What reads it is presence:
+ *                      nothing is waiting for them, so their closed
+ *                      tab must not pause the game for everyone
+ *                      still playing.
  *   - `result`       — the per-player end-state jsonb from
  *                      common.game_players.result; null until the
  *                      game ends.
@@ -85,6 +95,7 @@ export type Actor = Pick<Member, 'username' | 'color'>
 export type GamePlayer = Member & {
   conceded: boolean
   conceded_at: string | null
+  locally_terminal: boolean
   result: Record<string, unknown> | null
   ai_member: boolean
 }

@@ -1498,7 +1498,8 @@ begin
   update common.game_players
      set result = null,
          conceded = false,
-         conceded_at = null
+         conceded_at = null,
+         locally_terminal = false
    where game_id = target_game;
 
   -- Fresh start ⇒ fresh clock (see the header comment). last_tick renews so
@@ -1587,6 +1588,39 @@ $$;
 -- No grant to authenticated; internal helper (reached via the
 -- concede RPCs).
 revoke execute on function common._set_conceded(uuid) from public;
+
+-- ─── common._set_locally_terminal ──────────────────────────
+-- Mark one player DONE while the game plays on — the flag's one
+-- writer. What put them there is the gametype's own business
+-- (connections' fourth mistake, psychicnum's spent budget, a solve
+-- in the best-style races), which is why the fact has to be told to
+-- `common` rather than derived here.
+--
+-- The roster that presence-pause watches is `not conceded and not
+-- locally_terminal`: a finished player's closed tab must not stop
+-- the game for everyone still playing. The column's migration
+-- carries the full reasoning, including why this is not a second
+-- spelling of `conceded`.
+--
+-- NO GUARDS, deliberately. Every caller is a gametype RPC that has
+-- already locked the game, checked membership and decided the local
+-- terminal; a second membership check here would be a second answer
+-- to a question already settled. Idempotent, so the branch that
+-- calls it does not have to ask whether it already did.
+create or replace function common._set_locally_terminal(target_game uuid, p_user_id uuid)
+returns void
+language sql
+security definer
+set search_path = common, public, extensions
+as $$
+  update common.game_players
+     set locally_terminal = true
+   where game_id = target_game and user_id = p_user_id;
+$$;
+
+-- No grant to authenticated; internal helper (reached from the
+-- gametype RPCs, which are themselves definers).
+revoke execute on function common._set_locally_terminal(uuid, uuid) from public;
 
 -- ─── common.concede ────────────────────────────────────────
 -- The player-drops-out action for compete games whose game-over

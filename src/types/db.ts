@@ -576,6 +576,7 @@ export type Database = {
           conceded_at: string | null
           game_id: string
           joined_at: string
+          locally_terminal: boolean
           result: Json | null
           turn_seat: number | null
           user_id: string
@@ -585,6 +586,7 @@ export type Database = {
           conceded_at?: string | null
           game_id: string
           joined_at?: string
+          locally_terminal?: boolean
           result?: Json | null
           turn_seat?: number | null
           user_id: string
@@ -594,6 +596,7 @@ export type Database = {
           conceded_at?: string | null
           game_id?: string
           joined_at?: string
+          locally_terminal?: boolean
           result?: Json | null
           turn_seat?: number | null
           user_id?: string
@@ -974,6 +977,10 @@ export type Database = {
         }[]
       }
       _set_conceded: { Args: { target_game: string }; Returns: string }
+      _set_locally_terminal: {
+        Args: { p_user_id: string; target_game: string }
+        Returns: undefined
+      }
       _validate_word_fields: { Args: { fields: Json }; Returns: undefined }
       add_word: {
         Args: { fields: Json; new_word: string; note?: string }

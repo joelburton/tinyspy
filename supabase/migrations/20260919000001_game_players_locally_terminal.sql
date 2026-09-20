@@ -1,0 +1,37 @@
+-- cs-met-connections
+
+-- ============================================================
+-- common.game_players.locally_terminal — this player is done, the
+-- game is not
+-- ============================================================
+-- The presence-pause roster is "everyone who hasn't conceded", and that is
+-- not the same set as "everyone the game is still waiting for". A racer can
+-- stop racing without conceding: connections eliminates on a fourth mistake,
+-- psychicnum's budget runs out, and in the *best*-style races
+-- (docs/win-lose.md) the player it happens to first is the one who SOLVED —
+-- wordle, waffle and strands all keep the table open so a ranking can decide.
+-- Every one of them left a finished player in the pause roster, so closing
+-- that tab stopped the game for everyone still playing, with the finisher's
+-- dot drawn hollow as though they had walked out.
+--
+-- `locally_terminal` is the repo's own term for that state
+-- (docs/win-lose.md → the vocabulary: "a finished racer's state while others
+-- play on"), and a COLUMN because `common` cannot see the game-specific fact
+-- that produced it — a mistake count, a spent budget, a solved grid all live
+-- in the gametype's own schema.
+--
+-- It is NOT a second spelling of `conceded`. A conceder walked away and
+-- forfeits any win; a locally terminal player may well be the winner, which
+-- is exactly why marking a solver "conceded" instead was not an option. The
+-- two are read together and mean different things:
+--
+--     still playing := not conceded and not locally_terminal
+--
+-- Written by `common._set_locally_terminal` from inside the gametype RPC that
+-- detects the local terminal, and cleared by `common.reset_game` along with
+-- `conceded`, so a restart puts everyone back in.
+--
+-- ADD COLUMN, which appends — the frozen baseline is not edited, so the
+-- column order `db-drift` compares takes care of itself.
+alter table common.game_players
+  add column locally_terminal boolean not null default false;

@@ -566,6 +566,14 @@ begin
     update psychicnum.players
        set guesses_remaining = guesses_remaining - 1
      where game_id = target_game and user_id = caller_id;
+
+    -- A racer whose budget is gone is done while the others play on, so the
+    -- common roster has to hear about it: a player nothing is waiting for must
+    -- not hold the presence-pause open (see the flag's migration).
+    if (select guesses_remaining from psychicnum.players
+         where game_id = target_game and user_id = caller_id) <= 0 then
+      perform common._set_locally_terminal(target_game, caller_id);
+    end if;
   end if;
 
   -- A correct guess found a new secret (the already-guessed guard above means

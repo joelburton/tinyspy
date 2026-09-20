@@ -78,6 +78,12 @@ markdown and the logo none.
   roster by Joel's ruling at the opening.
 - **Doc — 1 file**: `docs/games/connections.md`, roster and unstamped, deleted
   at the harvest the way psychicnum's was.
+- **Created here but NOT this game's** (F-5, 2026-09-19, which fixed a
+  `common` defect from this area):
+  `supabase/migrations/20260919000001_game_players_locally_terminal.sql` and
+  `supabase/tests/common/locally_terminal_test.sql`. Both stamped
+  `cs-met-connections` because this pass wrote them; they belong to whichever
+  common area covers the pause roster.
 
 **Not the roster, and why:**
 
@@ -641,7 +647,38 @@ readers ask, spelled once at the seam so no reader tests a wire word — or
 *drop it* and have the six ask `result === 'correct'`. Recommendation: keep
 it; the field is what makes the seam a seam.
 
-### F-connections-5 · `eliminated-racer-pauses-survivors` · an eliminated racer still pauses the game for the survivors
+### SHIPPED · F-connections-5 · `eliminated-racer-pauses-survivors` · an eliminated racer still pauses the game for the survivors
+
+**Joel, 2026-09-19: "do all now."** Option (b), and it is a `common` fix:
+`common.game_players.locally_terminal` (a new migration), written by
+`common._set_locally_terminal` and cleared by `common.reset_game` with
+`conceded`; the roster is now `not conceded and not locally_terminal and not
+ai_member`.
+
+**It was never a connections bug.** Asked whether the other games have it, the
+survey found five more, and the taxonomy in `docs/win-lose.md` says the same
+thing from the other end: every game with a PER-PLAYER finish line or
+per-player elimination. connections' 4th mistake · psychicnum's spent budget ·
+wordle's solve or last guess · waffle's solve or last swap · strands' solve ·
+wordiply's 5th guess. The other ten are safe — either the first solve ends the
+game (crosswords, letterboxed), or the active set really is "not conceded",
+which each of those games' `concede` header states outright.
+
+**That also killed option (a).** In wordle, waffle and strands the first
+player to go locally terminal is the one who SOLVED, and `conceded` forfeits
+the win — so the cheap overload would have cost the winner their win. Recorded
+here because the finding recommended (a) before the sibling check was done.
+
+**Tests**: a new `supabase/tests/common/locally_terminal_test.sql` (the helper
+marks one player and leaves `conceded` alone, idempotent, cleared by
+`reset_game`), two assertions in each of the six games' own compete tests, and
+a case in `useCommonGame.test.ts` where the missing player is done rather than
+conceded. **Verified by planting three faults**: the FE filter back to
+`!conceded && !ai_member` (6 red), strands' write removed (1 red), and
+`reset_game` not clearing it (1 red). Prose: `docs/common.md` gained a "Done,
+but not out" section, `docs/win-lose.md`'s glossary row names the column,
+`src/common/pause-suspend/doc.md`'s roster sentence is rewritten, and
+`connections/todo.md` → Soon loses the item.
 
 From `todo.md` → Soon, with the SQL open now. The presence-pause roster is
 the game's players minus conceders (`common.game_players.conceded`), and a

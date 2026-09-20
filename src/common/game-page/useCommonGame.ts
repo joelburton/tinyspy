@@ -127,9 +127,11 @@ export function useCommonGame(
   commonGame: CommonGame | null
   // common.game_players ⨯ their profiles: everyone in the game.
   players: GamePlayer[]
-  // The presence-pause roster: `players` minus anyone who conceded. This is the
-  // exact set the pause machinery watches — conceded players are excluded
-  // because they've willfully quit, so their absence must not wedge the game.
+  // The presence-pause roster: `players` minus everyone the game is no longer
+  // waiting for. This is the exact set the pause machinery watches — a player
+  // who quit or who is DONE (eliminated, out of budget, or finished while the
+  // others play out) is excluded, because their absence must not wedge the
+  // game for the people still playing.
   // The pause overlay lists these members (present ones filled, absent ones a
   // hollow ring).
   activePlayers: GamePlayer[]
@@ -268,7 +270,7 @@ export function useCommonGame(
         readRows(
           commonDb
             .from('game_players')
-            .select('user_id, conceded, conceded_at, result')
+            .select('user_id, conceded, conceded_at, locally_terminal, result')
             .eq('game_id', gameId),
         ),
       ])
@@ -323,7 +325,8 @@ export function useCommonGame(
         }
         const profileData = profilesRes.data
         // Merge the profile (username/color) with the per-player
-        // game_players bits (conceded/result) into one GamePlayer.
+        // game_players bits (conceded/locally_terminal/result) into one
+        // GamePlayer.
         const byId = new Map(
           (playerRows ?? []).map((r) => [r.user_id, r]),
         )
@@ -334,6 +337,7 @@ export function useCommonGame(
             ...(member as Member),
             conceded: gp?.conceded ?? false,
             conceded_at: gp?.conceded_at ?? null,
+            locally_terminal: gp?.locally_terminal ?? false,
             result: (gp?.result as GamePlayer['result']) ?? null,
             ai_member,
           }
@@ -646,7 +650,9 @@ export function useCommonGame(
   // overlay forever. Filtered HERE rather than inside computePause because
   // `activePlayers` is also what the overlay draws its present/absent dots
   // from — patching the flag alone would leave a permanently hollow bot ring.
-  const activePlayers = players.filter((p) => !p.conceded && !p.ai_member)
+  const activePlayers = players.filter(
+    (p) => !p.conceded && !p.locally_terminal && !p.ai_member,
+  )
   const presencePaused = computePause(presentUserIds, activePlayers)
   const manuallyPausedBy: Member | null = manuallyPausedById
     ? players.find((m) => m.user_id === manuallyPausedById) ??

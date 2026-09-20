@@ -19,7 +19,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(27);
+select plan(29);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -52,6 +52,24 @@ select is(
   (select solved from waffle.players
     where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),
   false, 'bea is not solved');
+
+-- The solver is DONE while bea plays her board out, and the common roster has
+-- to hear it: ada's closed tab must not pause the game for bea. Not
+-- `conceded` — ada is in fact about to win this one.
+select is(
+  (select array[locally_terminal, conceded] from common.game_players
+    where game_id = (select id from g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
+  array[true, false],
+  'compete: a solve sets locally_terminal, not conceded'
+);
+select is(
+  (select locally_terminal from common.game_players
+    where game_id = (select id from g)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
+  false,
+  'compete: a racer still swapping is not locally terminal'
+);
 select is(
   (select swaps_used from waffle.players
     where game_id = (select id from g) and user_id = 'bea22222-2222-2222-2222-222222222222'),

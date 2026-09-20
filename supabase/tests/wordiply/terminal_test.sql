@@ -23,7 +23,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(19);
+select plan(21);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -235,6 +235,24 @@ select is(
   (select play_state from common.games where id = (select id from done_g)),
   'playing',
   'concede-after-finish: game still playing while bea is active with < 5 guesses'
+);
+
+-- ada's session is over while bea's continues, and the common roster has to
+-- hear it: ada's closed tab must not pause the game for bea. Not `conceded` —
+-- ada played all five out, and goes on to win this one.
+select is(
+  (select array[locally_terminal, conceded] from common.game_players
+    where game_id = (select id from done_g)
+      and user_id = 'ada11111-1111-1111-1111-111111111111'::uuid),
+  array[true, false],
+  'a spent fifth guess sets locally_terminal, not conceded'
+);
+select is(
+  (select locally_terminal from common.game_players
+    where game_id = (select id from done_g)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'::uuid),
+  false,
+  'a player with guesses left is not locally terminal'
 );
 
 -- bea concedes → not the last active player, but ada (active) is out of
