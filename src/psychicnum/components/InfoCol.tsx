@@ -234,13 +234,7 @@ export function InfoCol({
         {/* Setup — shown in BOTH states, behind a disclosure, LAST before the event log
             (docs/playarea.md → Info-column readouts). Open, it grows (which we
             normally avoid), but it's closable so it reclaims the space. */}
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       <GameEventLog

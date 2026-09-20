@@ -252,13 +252,7 @@ export function InfoCol({
         )}
 
         {/* Setup — LAST before the log, behind a disclosure (closed by default). */}
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       {/* The swap log — BOTH modes since 2026-08-02 (compete used to write none).

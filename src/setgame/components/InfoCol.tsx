@@ -175,13 +175,7 @@ export function InfoCol({
           </InfoActionsRow>
         )}
 
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       {/* The log — LAST, per the canonical info-column order (docs/playarea.md).

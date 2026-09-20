@@ -219,13 +219,7 @@ export function InfoCol({
         )}
 
         {/* ── Setup ── LAST before the log, behind a disclosure. */}
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       <GameEventLog

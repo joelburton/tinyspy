@@ -547,13 +547,7 @@ export function PlayArea(ctx: GamePageCtx) {
       )}
 
       {/* Setup — behind a disclosure (closed by default). */}
-      <SetupDisclosure>
-        {summaryRows.map((r) => (
-          <li key={r.key}>
-            {r.label}: {r.value}
-          </li>
-        ))}
-      </SetupDisclosure>
+      <SetupDisclosure rows={summaryRows} />
     </>
   )
 

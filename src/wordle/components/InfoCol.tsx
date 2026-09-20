@@ -242,13 +242,7 @@ export function InfoCol({
         )}
 
         {/* Setup — last, behind a disclosure (closed by default). */}
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       {/* Bottom region: the event log. It takes the RAW `guesses` (not the viewer's own)

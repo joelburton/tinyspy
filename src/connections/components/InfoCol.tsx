@@ -224,13 +224,7 @@ export function InfoCol({
 
         {/* Setup — last, behind a disclosure (closed by default so it doesn't claim
             space). */}
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       {/* Event log. Coop shows the whole shared game; compete gets the shared

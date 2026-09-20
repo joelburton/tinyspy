@@ -182,13 +182,7 @@ export function InfoCol({
 
         {/* Setup options — what was picked at create time, behind the shared
             disclosure. Closed by default so it doesn't crowd the status above. */}
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       {/* The required-words answer key ships from game start, so the missed-words

@@ -201,13 +201,7 @@ export function InfoCol({
         {/* Setup — a disclosure, LAST before the event log (closed by default so it
             doesn't claim space; opening it grows the slot, the one allowed exception
             since it's closable). */}
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       <GameEventLog

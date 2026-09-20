@@ -234,13 +234,7 @@ export function InfoCol({
             Rendered from the shared rows rather than hand-written <li>s: the
             PDF prints this exact array, and when the two were written
             separately they drifted (common/setup-form/doc.md → Setup rows). */}
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       <GameEventLog

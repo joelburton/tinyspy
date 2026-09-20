@@ -216,13 +216,7 @@ export function InfoCol({
         )}
 
         {/* Setup — what was picked at create time. */}
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       {/* The reveal — the longest possible word, shown only while this viewer

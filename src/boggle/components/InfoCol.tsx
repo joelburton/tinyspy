@@ -172,13 +172,7 @@ export function InfoCol({
         )}
 
         {/* Setup — LAST before the list, behind a disclosure (closed by default). */}
-        <SetupDisclosure>
-          {setupRows.map((r) => (
-            <li key={r.key}>
-              {r.label}: {r.value}
-            </li>
-          ))}
-        </SetupDisclosure>
+        <SetupDisclosure rows={setupRows} />
       </div>
 
       <WordList
