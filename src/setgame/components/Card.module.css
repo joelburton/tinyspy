@@ -5,8 +5,8 @@
  * The card is a <button> so a click is a click and a disabled board is
  * genuinely inert, but it carries none of the shared `.tile` styling: a tile is
  * a warm game piece with a letter on it, and a playing card is a white card.
- * The one thing borrowed is the SELECTED vocabulary — the dark ring — so
- * "I picked this" reads the same as it does everywhere else. */
+ * The one thing borrowed is the SELECTED vocabulary — the thick black edge —
+ * so "I picked this" reads the same as it does everywhere else. */
 
 /* @@ */ .card {
   /* Sized entirely by the board's --card-w. The ratio matches CARD_BOX in
@@ -59,26 +59,33 @@
   cursor: default;
 }
 
-/* Selected: a ring around the card, never a fill. A fill would bury the
- * symbols, and the symbols are the entire content of the card. The small lift
- * is inside the card's own box (transform, not layout), so it cannot nudge a
- * neighbor. */
+/* Selected: the card's EDGE thickens and goes black, which is the shared
+ * "this piece is part of the move I'm building" mark — the same two tokens
+ * `.tile.selected` sets in common/game-page/playArea.module.css, restated here
+ * because a card is not a `.tile`. Never a fill: a fill would bury the symbols,
+ * and the symbols are the entire content of the card. Universal
+ * `box-sizing: border-box` means the thicker edge eats INWARD, so the card does
+ * not grow and the board does not move.
+ *
+ * A border rather than an outline, and that is load-bearing: a card can be
+ * selected and hinted at once, the hint owns `outline` (below), and an element
+ * gets exactly one of those.
+ *
+ * The small lift is inside the card's own box (transform, not layout), so it
+ * cannot nudge a neighbor. */
 /* @@ */ .selected {
-  box-shadow: 0 0 0 3px var(--setgame-card-selected), var(--setgame-card-lift-shadow);
+  border-width: var(--tile-selected-edge-width);
+  border-color: var(--tile-selected-edge-color);
   transform: translateY(-2px);
-  outline: solid 2px black;
-}
-
-/* A selected card keeps its ring under the pointer; only the fill moves. */
-/* @@ */ button.selected:hover:not(:disabled) {
-  box-shadow: 0 0 0 3px var(--setgame-card-selected), var(--setgame-card-lift-shadow);
+  box-shadow: var(--setgame-card-lift-shadow);
 }
 
 /* The ring, worn by TWO things: a live coop hint, and the cards a viewed past
  * turn touched (PlayArea feeds this one prop from either). Dashed and neutral so
  * it reads as "look here", not as an outcome — the hint never says which set,
- * only that one runs through this card. Drawn as an outline rather than a
- * box-shadow ring so it is visibly a DIFFERENT kind of mark from selection.
+ * only that one runs through this card. Drawn OUTSIDE the card's edge, where
+ * selection is the edge itself, so a card can wear both at once and each stays
+ * a distinct kind of mark.
  *
  * Note it is the HINT's color in both cases, where every other game rings a
  * viewed turn in the shared `--history-color` — see todo.md. */

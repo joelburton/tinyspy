@@ -40,8 +40,8 @@
    * tile read as a game piece. A playing card reads as one already. */
 /* @@ */   --setgame-card-bg: #ffffff;
   /* Hover: the card GRAYS, rather than growing a ring. A ring on hover competes
-   * with the ring that means "selected" — the one mark on this board that has
-   * to be unmistakable — and a border that thickens under the pointer also
+   * with the thick edge that means "selected" — the one mark on this board that
+   * has to be unmistakable — and a border that thickens under the pointer also
    * nudges the eye toward the edges of a card whose content is its middle. */
 /* @@ */   --setgame-card-hover-bg: #ededed;
   /* A plain mid-gray, dark enough to actually draw the card's edge. Two
@@ -51,16 +51,24 @@
    * rather than as a card. */
 /* @@ */   --setgame-card-border: rgb(128 128 128);
 
-  /* Selection: a dark ring, the same "I picked this" vocabulary as the shared
-   * tile's selected state, but drawn AROUND the card rather than filling it —
-   * a fill would bury the symbols, which are the entire point of the card. */
-/* @@ */   --setgame-card-selected: var(--page-text-color);
+  /* The card's depth: a hairline at rest, and a deeper one under a card that
+   * is lifted (Card.module.css `.selected`). Here rather than in the
+   * colorblind block below because depth is not one of the card's four
+   * attributes — and because a token defined only in that block is UNDEFINED
+   * on the default palette, where a `var()` that resolves to nothing voids the
+   * entire declaration reading it rather than just its own term. */
+/* @@ */   --setgame-card-shadow:      0 1px 2px rgb(0 0 0 / 10%);
+/* @@ */   --setgame-card-lift-shadow: 0 2px 6px rgb(0 0 0 / 18%);
+
+  /* The keyboard address under each card (Board.module.css `.letter`). True
+   * black, and palette-independent for the same reason as the shadows. */
+/* @@ */   --setgame-symbol-outline-color: #000000;
 
   /* A live hint's ring: saturated green, and thick. It started neutral gray on
    * the theory that a hint is not an outcome — but a hint you have to hunt for
    * is not a hint, and a thin gray dash on a white card next to eleven other
    * white cards was genuinely easy to miss. It stays DASHED, which is what
-   * keeps it distinct from the solid ring of a selected card. */
+   * keeps it distinct from the solid edge of a selected card. */
 /* @@ */   --setgame-hint-ring: #16a34a;
 
   /* ── The claim flash (lib/flash.ts) ─────────────────────────────────────
@@ -102,11 +110,4 @@
 /* @@ */   --setgame-red: #0072b2;      /* blue */
 /* @@ */   --setgame-green: #e69f00;    /* orange */
 /* @@ */   --setgame-purple: #cc79a7;   /* magenta */
-
-  /* ── Card chrome, named during the palette sweep ──────────────────────────
-   * Values unchanged; setgame's in-flight + arriving/leaving marks predate the
-   * feedback vocabulary and fold in at its conversion. */
-/* @@ */   --setgame-card-shadow:          0 1px 2px rgb(0 0 0 / 10%);
-/* @@ */   --setgame-card-lift-shadow:     0 2px 6px rgb(0 0 0 / 18%);
-/* @@ */   --setgame-symbol-outline-color: #000000;
 }
