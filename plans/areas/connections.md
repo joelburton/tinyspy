@@ -81,7 +81,8 @@ markdown and the logo none.
 - **Created here but NOT this game's** (F-5, 2026-09-19, which fixed a
   `common` defect from this area):
   `supabase/migrations/20260919000001_game_players_locally_terminal.sql` and
-  `supabase/tests/common/locally_terminal_test.sql`. Both stamped
+  `supabase/tests/common/locally_terminal_test.sql`, and
+  `e2e/presence-pause.e2e.ts`. All stamped
   `cs-met-connections` because this pass wrote them; they belong to whichever
   common area covers the pause roster.
 
@@ -668,6 +669,20 @@ which each of those games' `concede` header states outright.
 player to go locally terminal is the one who SOLVED, and `conceded` forfeits
 the win — so the cheap overload would have cost the winner their win. Recorded
 here because the finding recommended (a) before the sibling check was done.
+
+**The e2e that was missing** (Joel, 2026-09-19, after asking what covered this
+kind of ending): `e2e/presence-pause.e2e.ts`, two tests on a wordle compete
+game. Presence-pause had never been driven in a browser — every other spec
+meets it only by avoiding it ("solo club so the game doesn't presence-pause")
+— and it is the only level that can: the roster is decided from live presence,
+which pgTAP cannot see and the hook test mocks. Test 1 takes a player away
+MID-game and waits for the overlay, which is what gives test 2's negative its
+meaning; test 2 takes away one who has FINISHED and proves the same window
+passes quietly, with the survivor's board still taking a move. **Verified by
+planting the pre-fix filter**: test 2 red, test 1 still green. Two corrections
+came out of writing it — a compete solver sees *Waiting for others*, not the
+coop verdict *Solved it!*, and `e2e/` is outside both tsconfig projects, so
+nothing type-checks it.
 
 **Tests**: a new `supabase/tests/common/locally_terminal_test.sql` (the helper
 marks one player and leaves `conceded` alone, idempotent, cleared by
