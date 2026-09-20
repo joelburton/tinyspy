@@ -51,9 +51,9 @@
  * INSERT into `connections.puzzles`, which has no INSERT grant to
  * `authenticated`.
  *
- * For v1 this is run manually ("a little annoying" but
- * acceptable). It graduates to a scheduled Edge Function /
- * GitHub Action when that annoyance compounds.
+ * Runs daily from `.github/workflows/connections-import.yml` against the
+ * hosted project; the `gmake` entry is for a local database, or a catch-up
+ * by hand.
  */
 
 import { createClient } from '@supabase/supabase-js'

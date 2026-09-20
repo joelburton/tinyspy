@@ -8,18 +8,13 @@
 -- FIRST RPCs in the roster that answer a question rather than change anything.
 -- That is what these tests are about:
 --
---   1. `data` is ONE puzzle, not an array. They used to `return table(...)`,
---      so every caller wrote `data?.[0] ?? null` to get back to the single
---      answer the question actually has.
---   2. **Empty is `ok` with `outcome: 'warning'`.** Nothing failed and nobody
---      erred — these players have simply done them all, or nothing was
---      published that day. `warning` says so without claiming a fault, and
---      `data: null` is a VALUE the function chose rather than an absence a
---      caller has to infer. (It could not be one until the envelope stopped
---      stripping its nulls.)
---   3. The callers keep their own words. Neither RPC writes a `message`,
---      because "none left" reads differently in the setup dialog than it does
---      on the new-game path, where it comes with somewhere to go next.
+--   1. `data` is ONE puzzle, not an array — the single answer the question
+--      actually has.
+--   2. **Empty is a REFUSAL**, a form validation naming `puzzle_id`: a spent
+--      archive (PN302), or a date with nothing on it (PN303). Running out
+--      blocks Start, and the thing that fixes it is a control on this form.
+--   3. The label is the server's — the date, then two tiles — and the
+--      override builds the same one as the walk.
 -- ============================================================
 
 begin;

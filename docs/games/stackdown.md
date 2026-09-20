@@ -660,7 +660,7 @@ mono printer flattens the outcome bar's green and red to one gray.
   lies in the SAFE direction and the code is correct; what is wrong is that a
   cast is doing a type-checker's job, and a reader can't tell it from a cast
   that is papering over something. Connections does the same thing
-  ([connections.md](connections.md#deferred)) and they are the only two.
+  ([`src/connections/todo.md`](../../src/connections/todo.md)) for the same reason.
   Measured during the envelope sprint (2026-08-29): turning the flag on costs
   930 errors repo-wide, almost all safe grid indexing in solvers and PDF models,
   so the flag is not the answer — revisit if it ever becomes affordable.

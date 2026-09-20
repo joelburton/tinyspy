@@ -8,18 +8,8 @@ type Props = {
 }
 
 /**
- * connections's help / rules modal — opened from the "Help" item in
- * the GamePage menu. Implements the common
- * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
- *
- * **Placeholder content.** connections's gameplay is the NYT
- * Connections puzzle (find the four hidden groups of four words),
- * which most players already know. Real rules copy is deferred
- * until we have a unified visual register for help across games
- * — for now, a brief reminder + a pointer is enough for the
- * friends who actually play.
- *
- * codenamesduet's `Help.tsx` is the visual model when richer copy lands.
+ * connections's help modal — the rules, opened from the GamePage menu's Help
+ * item (the manifest's `help` contract).
  */
 export function Help({ onClose, brand }: Props) {
   return (

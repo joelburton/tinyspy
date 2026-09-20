@@ -254,15 +254,10 @@ describe('connections PlayArea — concede', () => {
 /**
  * The ended board, and the terminal reveal.
  *
- * connections used to be one of the two games that opened its answer unasked —
- * and the way it did it was destructive: the board swaps loose tiles for
- * full-width category bands, so revealing DELETED the tiles the players were
- * still staring at. A lost game showed four bands and nothing else, with no
- * record of how far anyone had got.
- *
- * Now the ended board is what they actually left (their bands plus the tiles
- * they never cracked, frozen), Reveal swaps in the unsolved categories, and
- * Hide swaps back.
+ * The ended board is what the players left — their bands plus the tiles they
+ * never cracked, frozen — and Reveal swaps in the unsolved categories, Hide
+ * swaps back. Nothing autoreveals: the board swaps loose tiles for full-width
+ * bands, so an unasked reveal would delete the record of how far anyone got.
  */
 describe('connections PlayArea — the ended board + the terminal reveal', () => {
   /** The loose tiles currently on the board (bands are divs; the floating
@@ -332,7 +327,7 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
 })
 
 /**
- * The feedback vocabulary (plans/tile-feedback.md), as connections wears it.
+ * The feedback vocabulary (docs/ui.md → Interactive tile states), as connections wears it.
  *
  * All of it is shared code — these tests prove the WIRING: that each mark lands
  * on the right element, for the right person, at the right moment. The marks
@@ -541,8 +536,8 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
   /**
    * The mark's OTHER two endings, both read off the guess log rather than off
    * anything this client did — because both can happen on somebody else's
-   * machine. See plans/tile-feedback.md → "A board mark dies when the board
-   * moves" and "Check what a RESTART does to a mark".
+   * machine: a teammate's guess can take those tiles off the board, and a
+   * restart re-deals under it.
    */
   describe('the mark dies when the board moves under it', () => {
     const wrongGuess = (id: number, userId: string) => ({
@@ -647,8 +642,8 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
 
 describe('connections PlayArea — a failed load is not a missing game', () => {
   it('shows the server\'s own sentence, not "Game not found."', () => {
-    // The two used to be one `null`, so an outage told the player their game
-    // did not exist. The fault modal has already been dismissed by the time
+    // `failure` is separate from `game === null`: an outage must not read as
+    // a missing game. The fault modal has already been dismissed by the time
     // this renders — this IS what they are left looking at.
     // The hook holds the ENVELOPE, exactly as `readRows` built it — no second
     // shape in between. `detail` is where the failed call's name rides.

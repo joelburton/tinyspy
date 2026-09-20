@@ -9,8 +9,8 @@
  *                   psychicnum); the shared shape both games carry so a future
  *                   game frames its board here in one place.
  *   - .grid       — the one board grid: 4 columns, fills the .board (the same
- *                   flex-fill layout psychicnum's WordBoard uses, minus the max
- *                   tile-height cap — none here yet). Holds BOTH the tiles and
+ *                   flex-fill layout psychicnum's Board uses; the tile-size caps
+ *                   are set on .board). Holds BOTH the tiles and
  *                   the solved-category bands (see Board.tsx + docs/ui.md →
  *                   "Board sizing").
  *   - .band*      — a solved/revealed category as a FULL-WIDTH grid row, the
@@ -28,7 +28,8 @@
  * pick it was, `.dimInFlight` while the guess is with the server,
  * `.verdictFill` when the answer lands, `.attentionFlash` on a band that landed
  * under a teammate's hands, and the three board-scope marks (the not-your-turn
- * dim, the your-turn flash, the game-over frame). See plans/tile-feedback.md.
+ * dim, the your-turn flash, the game-over frame) — all in the shared
+ * common/game-page/playArea.module.css.
  */
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
@@ -42,7 +43,7 @@
 /* The board wrapper. Visually empty TODAY — no border, no background, no padding
  * — so it reads identically to psychicnum's board (gaps show the column behind).
  * It's the deliberate single place a future game adds a framed look; the twin
- * lives in psychicnum's WordBoard.module.css (`.board`).
+ * lives in psychicnum's Board.module.css (`.board`).
  *
  * ─── Tile size caps — TINKER HERE ────────────────────────────────────────────
  * The board grows to fill the space, but a tile never exceeds these. Relative
@@ -192,8 +193,7 @@
 }
 
 /* Coop "Mistakes remaining ●●●○" — left-justified on the input row below the
- * board (margin-right:auto pushes the Clear/Submit buttons to the right). The
- * old NYT-style placement: the mistake dots on the same line as the buttons.
+ * board (margin-right:auto pushes the Clear/Submit buttons to the right).
  * (Compete shows the per-player OpponentStrip in its own row instead; the
  * textual N/4 count lives in the info column.) */
 /* @@ */ .mistakesInline {
@@ -248,10 +248,10 @@
   }
 
   /* Narrow phone tiles: a long word (DIAMOND, BANANA) can't shrink past the shared
-   * tileWord font floor (0.95rem) and wraps mid-word. connections is the only game
-   * with multi-letter WORD tiles (the others are single letters / numbers), so lower
-   * the floor HERE — that lets the auto-fit middle term win and the word fits on one
-   * line. Set on the grid; the token cascades into every `.tileWord` below it. */
+   * tileWord font floor (0.95rem) and wraps mid-word. A Connections tile is a whole
+   * word, often a long one, so the floor is lower HERE — that lets the auto-fit
+   * middle term win and the word fits on one line. Set on the grid; the token
+   * cascades into every `.tileWord` below it. */
 /* @@ */   .grid {
 /* @@ */     --tile-font-min: 0.7rem;
   }
@@ -260,13 +260,7 @@
 /* WHOSE pick this is — a border drawn INSIDE the tile's own border, in that
  * player's color, which arrives as an inline `--peer-color`. Drawn for every
  * pick on a shared board including my own; solo and in compete, for none (see
- * Board.tsx, and plans/tile-feedback.md → Identity).
- *
- * It lived in common until the palette sweep, on the theory that identity is a
- * shared channel. The channel is; this GEOMETRY isn't — connections is the only
- * user and crosswords' peer cursor will differ in both inset and thickness, so
- * our own promotion rule (two users, and it would be wrong for them to differ)
- * says keep it local. "Ring" went with it: this is a square mark.
+ * Board.tsx). This game's own geometry, with its widths in theme.css.
  *
  * ── Why two inset layers ─────────────────────────────────────────────────────
  * The first is a SPACER. An inset `box-shadow` always starts at the piece's inner

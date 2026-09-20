@@ -14,30 +14,16 @@ import type { ConnectionsValues, PuzzleAnswer } from '../lib/setup'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
- * connections's per-game setup form. Two choices — and the puzzle is no
- * longer one of them:
+ * connections's per-game setup form: the players, the shared coop-pacing
+ * field, the puzzle, and the timer.
  *
- *   - **Puzzle** — a read-only line naming what Start will play. The server
- *     picks it (`connections.next_puzzle_for_club`): the earliest puzzle none
- *     of the selected players has played, in any club. There is no picker
- *     because the date never meant anything here — the archive is a queue,
- *     and the only question the old calendar was asked was "one we haven't
- *     done." Crosswords keeps its calendar, where the date genuinely matters.
- *   - **Timer** — the shared `<SetupTimerSection>` (None / Up / Down with MM:SS).
- *
- * Plus the shared coop-pacing field.
- *
- * What this replaced, and why none of it is missed: a `<input type="date">`
- * and a month-grid `<Calendar>` colored from `connections.club_game_status`,
- * plus `resolveDefaultPuzzle` — a pure helper that seeded the dialog with the
- * club's saved default and stepped one day forward if they'd finished it.
- * The server's derivation subsumes all of it, and `setup.puzzle_id` is no
- * longer sent at all (create_game strips it from the club's saved default
- * too, so an older client's remembered pick can't override the derivation).
- *
- * `startGameInClub`'s find-or-create branch still exists and now simply never
- * fires from here: the dialog can't offer a puzzle that already has a game.
- * Resuming a half-finished game is the club page's job.
+ * The puzzle is a read-only line naming what Start will play — the server
+ * picks it (`connections.next_puzzle_for_club`: the earliest puzzle none of
+ * the selected players has played, in any club) — with a date field beside
+ * it for the times that is not what you want (`puzzle_for_date`, which
+ * filters nothing). There is no picker because the date carries no meaning
+ * here: the archive is a queue. `setup.puzzle_id` is sent only when a date
+ * was typed.
  */
 export function SetupForm({
   brand, mode, members, selfId, numberOfPlayers, values, set: setValue, errors, setError,
@@ -75,27 +61,18 @@ export function SetupForm({
         errors={errors}
         brand={brand}
         seenBy={players.map((p) => p.user_id)}
-        // Both RPCs answer two ways — a puzzle, or none — and each says which,
-        // so neither is read as "whatever `data` happens to be". The section has
-        // its own words for the empty case (the archive is spent / no puzzle
-        // that day), which is why the server's `warning` outcome is not read
-        // here: the caller already knows which question it asked.
-        //
-        // A failure still returns null — the section has no third state — but
-        // it no longer passes for an empty archive: the message goes under
-        // `puzzle_id`, where the section already draws a field error, and stays
-        // there after the modal is dismissed.
+        // Both RPCs answer one way — a puzzle — and not finding one is a
+        // not-ok (the archive is spent; no puzzle that day). The section has
+        // no third state, so a not-ok returns null, and its message goes where
+        // the server said it belongs: a spent archive names `puzzle_id` and
+        // lands red under the puzzle field, a fault says `_` and lands on the
+        // form's line. Either stays after the modal is dismissed, which is
+        // why the modal is not the only place a fault is said.
         load={async (seenBy) => {
           const res = await runRpc<PuzzleAnswer>(
             db.rpc('next_puzzle_for_club', { seen_by: seenBy }),
           )
           if (res.type === 'not-ok') {
-            // EVERY severity, where the server said it belongs: PN302 (the
-            // archive is spent) names `puzzle_id` and lands red under the
-            // puzzle field, a fault says `_` and lands on the form's line. The
-            // modal is dismissable, so it cannot be the only place a fault is
-            // said; and the spent archive never had a modal at all, only a gray
-            // line it did not deserve (Joel, 2026-08-29).
             setError(res.field ?? FORM_ERROR_KEYNAME, res.message)
             return null
           } else if (res.type === 'ok' && res.data.result === 'found') {
@@ -112,9 +89,9 @@ export function SetupForm({
         loadByDate={async (date) => {
           const res = await runRpc<PuzzleAnswer>(db.rpc('puzzle_for_date', { target_date: date }))
           if (res.type === 'not-ok') {
-            // PN303 names `puzzle_id`, the box the date was typed into — the
-            // most direct case of a message landing where the question was
-            // asked. A fault says `_` and takes the form's line.
+            // The server names `puzzle_id`, the box the date was typed into —
+            // the most direct case of a message landing where the question
+            // was asked. A fault says `_` and takes the form's line.
             setError(res.field ?? FORM_ERROR_KEYNAME, res.message)
             return null
           } else if (res.type === 'ok' && res.data.result === 'found') {

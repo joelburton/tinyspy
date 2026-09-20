@@ -94,9 +94,8 @@ select pg_temp.envelope_is(
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
--- A MISSING puzzle_id is no longer an error — it is the normal case. The setup
--- dialog lost its date picker, so the server derives the next puzzle none of
--- the players being seated has played (connections.next_puzzle_for_club). An
+-- A MISSING puzzle_id is the normal case: the server derives the next puzzle
+-- none of the players being seated has played (connections.next_puzzle_for_club). An
 -- explicit id still wins, which is what every other test in this file relies
 -- on. See tests/strands/next_puzzle_test.sql for the derivation's own rules.
 select lives_ok(
@@ -213,10 +212,9 @@ select connections.create_game(
 create temp table created on commit drop as
 select (env->'data'->>'id')::uuid as id from created_env;
 
--- The happy path used to reach straight for `data.id` and never look at the
--- envelope, which is how this shipped without `result` while every sibling had
--- it: SetupGameModal branches on `data.result === 'created'`, so the game was
--- created and the player got the chain's scream.
+-- The envelope names its case: SetupGameModal branches on
+-- `data.result === 'created'`, so an `ok` without it would create the game
+-- and still leave the player with the chain's scream.
 select pg_temp.envelope_is(
   (select env from created_env),
   '{"type":"ok","data":{"result":"created"}}'::jsonb,
@@ -292,12 +290,11 @@ select is(
 -- Saved-defaults auto-save in clubs_gametypes
 -- ============================================================
 -- connections saves the knobs that ARE per-club preferences (the timer), and
--- deliberately not `puzzle_id`. It used to save it, as the anchor for a
--- planned "play the next puzzle in chronological order" UX;
--- connections.next_puzzle_for_club is that UX and derives the answer fresh
--- every time, so a remembered id would only re-pin an already-played puzzle
--- over the derivation. Stripped in create_game rather than trusted to the
--- dialog, so an older client's saved value can't ride back in.
+-- deliberately not `puzzle_id`: connections.next_puzzle_for_club derives the
+-- answer fresh every time, so a remembered id would only re-pin an
+-- already-played puzzle over the derivation. Stripped in create_game rather
+-- than trusted to the dialog, so an older client's saved value can't ride
+-- back in.
 
 select is(
   (select default_setup->>'puzzle_id' from common.clubs_gametypes
@@ -374,7 +371,7 @@ select is(
 );
 
 -- ============================================================
--- Player-count upper bound: 7+ entries rejected with P0001
+-- Player-count upper bound: 7+ entries rejected
 -- ============================================================
 -- Mirrors the [1, 6] cap declared on src/connections/manifest.ts.
 -- We don't need real members to test the boundary — the count

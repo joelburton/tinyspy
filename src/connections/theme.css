@@ -6,8 +6,8 @@
  * Just the rank palette now: the tile chrome (resting beige, dark hover ring,
  * dark selected fill) is the SHARED tile system — see the --tile-* tokens in
  * common/themes/daylight.css and the `.tile` class in common/game-page/playArea.module.css.
- * connections keeps only what's game-specific: the four NYT category colors, and
- * (in CSS, not here) the peer-selection identity frame + the wrong-guess shake.
+ * connections keeps only what's game-specific: the four NYT category colors,
+ * and the two widths of the peer-pick mark.
  *
  * The rank palette matches the NYT Connections convention: yellow / green /
  * blue / purple, mapped to category rank 0..3, slightly darkened so the bands
@@ -29,10 +29,9 @@
    * fill between them. It matters most when a player's color is dark enough to
    * be mistaken for the selection black.
    *
-   * These live HERE rather than in common because connections is the only user
-   * and crosswords' peer cursor will legitimately differ (not inset, its own
-   * thickness) — promote on evidence, and demoting later is the hard direction.
-   * The CONCEPT is shared and documented in plans/tile-feedback.md → Identity. */
+   * These are this game's rather than common's: the mark's geometry is
+   * connections's own (crosswords' peer cursor is not inset and has its own
+   * thickness), so there is nothing shared to name. */
 /* @@ */   --connections-peer-inner-border-width: 4px;
 /* @@ */   --connections-peer-inner-border-inset: 2px;
 }

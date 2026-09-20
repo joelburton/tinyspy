@@ -19,8 +19,7 @@
 --   - end_game → play_state 'ended', is_terminal true
 --   - status.outcome='manual', status.mode echoes g_row.mode
 --   - every player gets {"won": false}
---   - idempotency: a second call raises P0001 'game is not in
---     progress' (the FE swallows it on the End-game-twice race)
+--   - idempotency: a second call is the game-over race
 --   - auth: a club outsider is rejected with 42501 via
 --     require_game_player
 --
@@ -107,17 +106,17 @@ select is(
 );
 
 -- ============================================================
--- (6) coop idempotency: a second call raises P0001
+-- (6) coop idempotency: a second call is the game-over race
 -- ============================================================
--- Clicking "End game" twice in quick succession (or racing a
--- solve / timeout) is harmless — the FE swallows P0001.
+-- Ending twice in quick succession (or racing a solve / timeout) is
+-- harmless.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   connections.end_game((select id from g_coop)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'coop end_game: second call raises P0001 (idempotent at the FE-swallow layer)');
+  'coop end_game: second call is the game-over race');
 
 -- ============================================================
 -- (7)–(10) compete end_game: same neutral terminal, no winner

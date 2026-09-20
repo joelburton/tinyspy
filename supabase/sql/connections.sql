@@ -20,9 +20,8 @@
 
 grant usage on schema connections to authenticated;
 
--- Public knowledge — puzzles aren't sensitive. The setup-form
--- date picker reads this list to render available dates; the
--- create_game RPC reads `categories` to build the board.
+-- Public knowledge — puzzles aren't sensitive. The setup dialog's two lookups
+-- read them, and create_game reads `categories` to build the board.
 grant select on connections.puzzles to authenticated;
 
 -- RLS is enabled on this table (20260813000000_rls_seed_tables.sql) so it can't
@@ -47,7 +46,7 @@ create policy games_select on connections.games
   for select to authenticated
   using (common.is_club_member(club_handle));
 
--- Guesses: mode-aware visibility, mirroring wordle.
+-- Events: mode-aware visibility, mirroring wordle.
 --   coop    — every club member sees every guess.
 --   compete — DURING PLAY each player sees only their own; opponents'
 --             tile picks + verdicts are private, so you can't
@@ -82,9 +81,9 @@ create policy events_select on connections.events
     )
   );
 
--- Players: club-wide visible in BOTH modes. This is what gives
--- compete players the "see opponents' mistake counts" property —
--- the column is intentionally public to the club. Same shape as
+-- Players: club-wide visible in BOTH modes. Compete's Found strip reads every
+-- racer's matched_count from it — the two counts are intentionally public to
+-- the club; what stays private is the guesses. Same shape as
 -- psychicnum.players's RLS policy.
 drop policy if exists players_select on connections.players;
 create policy players_select on connections.players
@@ -152,47 +151,29 @@ grant select on connections.club_game_status to authenticated;
 -- ============================================================
 -- connections.next_puzzle_for_club — the only puzzle choice there is
 -- ============================================================
--- The dialog used to be a calendar: 2,300 dates, and the easy mistake was
--- starting one the club had already played. For connections the DATE means
--- nothing — the archive is a queue, not a catalogue — so the picker is gone
--- and this answers the only question that was ever being asked: give us one
--- nobody here has seen.
+-- The archive is a queue (src/connections/doc.md → Game rules): the earliest
+-- `puzzle_date` that no player in `seen_by` has a game on, in ANY club.
+-- `seen_by` is the people about to be seated — create_game's
+-- `player_user_ids`, and the same array the setup dialog passes for its
+-- preview — so a puzzle one of them played alone elsewhere is out, and one
+-- played by four OTHER people in a big club is not.
 --
--- "NOBODY HERE" IS PER-PLAYER, NOT PER-CLUB. `seen_by` is the set of people
--- about to be seated (create_game's `player_user_ids`, and the same array the
--- setup dialog passes for its preview). A puzzle is out if ANY of them has
--- ever been a player on a game of it, in ANY club. The story that drives it:
--- Joel plays #100 in his solo club, then opens a Joel+Moth game — offering
--- #100 there is no fun for him and wrecks the race. Membership would be the
--- cruder proxy (exclude anything played in any club sharing a member); using
--- game_players instead means a puzzle played by four OTHER people in a big
--- club stays available to the two of you who weren't in it.
---
--- SECURITY DEFINER, and that is the whole point rather than an oversight:
--- Moth's solo-club games are invisible to Joel under RLS, and they are
--- exactly what has to be excluded. So this reads past the caller's
--- visibility on purpose. What escapes is a puzzle id — never a club, a game
--- or a name — though a determined reader could infer roughly how far a
--- club-mate has got on their own from which puzzles they are not offered.
--- Friends, not adversaries (CLAUDE.md's trust model); it is recorded here
--- rather than pretended away.
+-- SECURITY DEFINER on purpose: another player's solo-club games are invisible
+-- to the caller under RLS, and they are exactly what has to be excluded. What
+-- escapes is a puzzle id — never a club, a game or a name — though a reader
+-- could infer roughly how far a club-mate has got from which puzzles they are
+-- not offered. Friends, not adversaries (CLAUDE.md's trust model).
 --
 -- Matching is on `puzzle_date`, NOT `puzzle_id`: the FK is soft
--- (`on delete set null`, the library-puzzle provenance rule), so a
--- re-import can orphan it, while the denormalized date on the game row is
--- the durable identity. Ascending, so a club works forward through the
--- archive in publication order.
+-- (`on delete set null`, the library-puzzle provenance rule), so a re-import
+-- can orphan it, while the denormalized date on the game row is the durable
+-- identity. Ascending, so a club works forward through the archive in
+-- publication order.
 --
--- **Returns the envelope, and `data` is ONE puzzle.** It used to be
--- `returns table(...)` and every caller wrote `data?.[0] ?? null` to get back to
--- the same thing — a shape that says "some rows" for a function that answers a
--- question with one answer.
---
--- The empty case — everyone here has played everything — is PN302, a
--- form-validation not-ok, and the reasoning for that is at the raise below.
--- So there is no `ok` arm carrying an outcome for it, and the handler at the
--- bottom is what turns the raise into an envelope. A raw Postgres error still
--- reaches `runRpc` as an error and becomes a fault there.
+-- `data` is ONE puzzle. The empty case — everyone here has played everything
+-- — is a form-validation not-ok (the raise below says why), so there is no
+-- `ok` arm for it; the handler at the bottom turns the raise into an
+-- envelope, and a raw Postgres error still reaches `runRpc` as a fault.
 drop function if exists connections.next_puzzle_for_club(uuid[]);
 
 -- `plpgsql`, not `sql`, because the empty case RAISES (PN302 below) and a raise
@@ -241,33 +222,24 @@ begin
       ) as found
     ) s;
 
-  -- PN302 — a VALIDATION, not an empty success (Joel, 2026-08-29). Running out
-  -- of puzzles is not a quieter kind of yes: it BLOCKS Start, and what fixes it
-  -- is an input on this very form — uncheck a player who has played them all,
-  -- or type a date and play one again. That is the shape of a validation, and
-  -- it belongs on the form, in red, rather than in a passing line.
-  --
-  -- It used to be `ok` with `outcome: 'warning'` and no message, which left the
-  -- section to infer the situation from an empty payload and say so in a quiet
-  -- gray line — a blocking condition mentioned in passing.
+  -- PN302 — a VALIDATION, not an empty success. Running out of puzzles is not
+  -- a quieter kind of yes: it BLOCKS Start, and what fixes it is an input on
+  -- this very form — uncheck a player who has played them all, or type a date
+  -- and play one again. That is the shape of a validation, and it belongs on
+  -- the form, in red, rather than in a passing line.
   --
   -- `column = 'puzzle_id'` — the PUZZLE field, not the form line. Two controls
-  -- can technically fix this (uncheck a player who has played them all, or type
-  -- a date), but nobody setting up a game thinks "remove a player to get a
-  -- puzzle" (Joel, 2026-08-29). The answer belongs where the question was
-  -- asked.
-  --
+  -- can technically fix this, but nobody setting up a game thinks "remove a
+  -- player to get a puzzle"; the answer belongs where the question was asked.
   -- `serverErrorKeys.test.ts` has a justified entry for it: a LOADER's
   -- parameters are the question (which players?), never the field its answer
   -- lands in, so the usual "name one of your own arguments" rule cannot apply.
   --
   -- The sentence NAMES THE REMEDY, which is what makes the red date field make
   -- sense rather than look like an accusation: the field it lights up is the
-  -- way out of the condition it is reporting (Joel, 2026-08-29).
-  --
-  -- It carries no brand: `Connections` is the manifest's, not the schema's
-  -- (docs/naming.md → codename vs brand), and the dialog is already titled
-  -- with it.
+  -- way out of the condition it is reporting. It carries no brand:
+  -- `Connections` is the manifest's, not the schema's (docs/naming.md →
+  -- codename vs brand), and the dialog is already titled with it.
   if found is null then
     raise exception 'Everyone here has played every puzzle. You can open one already played by its date.'
       using errcode = 'PN302', hint = 'form-validation', column = 'puzzle_id',
@@ -306,14 +278,12 @@ grant execute on function connections.next_puzzle_for_club(uuid[]) to authentica
 -- exclude): this reads only connections.puzzles, which is public reference
 -- data with a plain select grant. Nothing about anyone's history is involved.
 --
--- Same return shape as next_puzzle_for_club so the shared setup field can
--- render either without caring which it asked. Zero rows = no puzzle that
--- day, which the dialog says out loud rather than silently ignoring.
--- The override's twin of the above, and the same shape for the same reasons.
--- `puzzle_date` is unique, so this is one puzzle or none; empty means no puzzle
--- was published that day — PN303, a VALIDATION, for the same reason PN302 is
--- one: it blocks Start, and the thing that fixes it is the box you just typed
--- in. Here `column = 'puzzle_id'` is the field literally being edited.
+-- Same return shape as next_puzzle_for_club, so the shared setup section can
+-- render either without caring which it asked. `puzzle_date` is unique, so
+-- this is one puzzle or none; none means nothing was published that day —
+-- PN303, a VALIDATION for the same reason PN302 is one: it blocks Start, and
+-- the thing that fixes it is the box you just typed in. Here
+-- `column = 'puzzle_id'` is the field literally being edited.
 drop function if exists connections.puzzle_for_date(date);
 
 -- `plpgsql`, not `sql`, because the empty case RAISES and a raise needs a
@@ -404,12 +374,14 @@ grant execute on function connections.puzzle_for_date(date) to authenticated;
 --
 -- Setup shape:
 --   {
---     "puzzle_id": "<uuid>",         -- references connections.puzzles(id)
+--     "puzzle_id": "<uuid>",         -- OPTIONAL; absent means "you choose"
 --     "timer": (
 --         { "kind": "none" }
 --       | { "kind": "countup" }
 --       | { "kind": "countdown", "seconds": <int 1..3600> }
---     )
+--     ),
+--     "coop_style": "free-for-all" | "turns",
+--     "first_turn_user_id": "<uuid>"  -- with "turns" only
 --   }
 --
 -- Title formula: "<puzzle_date>: <TILE1>-<TILE2>" where TILE1/TILE2
@@ -564,18 +536,13 @@ begin
   -- setup) + game_players, returns the canonical id we'll use
   -- below.
   --
-  -- Saved-default arg. `puzzle_id` used to ride along, as the anchor for a
-  -- "play the next puzzle in chronological order" UX that hadn't been built
-  -- yet. next_puzzle_for_club IS that UX, and it derives the answer fresh
-  -- every time — so a remembered puzzle is now worse than useless: it would
-  -- re-pin a specific (already-played) puzzle over the derivation. Stripped
-  -- explicitly rather than left to the dialog no longer sending one, so a
-  -- stale default saved by an older client can't ride back in.
+  -- Saved-default arg: `puzzle_id` is stripped so a remembered puzzle can
+  -- never re-pin an already-played one over the derivation, and
+  -- `first_turn_user_id` because it is a per-game "who goes first" pick, not
+  -- a per-club preference. The coop_style toggle rides.
   new_id := common.create_game(
     target_club, effective_gametype, player_user_ids, game_title,
     setup,
-    -- Also strips first_turn_user_id (a per-game "who goes first" pick, not
-    -- a per-club preference; the coop_style toggle rides).
     setup - 'first_turn_user_id' - 'puzzle_id'
   );
 
@@ -688,10 +655,9 @@ begin
     from common.game_players where game_id = target_game;
 
   -- Two ways to reach here and they read very differently in the club list:
-  -- every racer hit four mistakes, or everyone walked away. This used to write
-  -- 'lost_compete_mistakes' unconditionally, which told a player who quit that
-  -- they'd lost on mistakes they never made. 'conceded' only when EVERY player
-  -- conceded — a mixed table is 'mistakes', because somebody did play it out.
+  -- every racer hit four mistakes, or everyone walked away. 'conceded' only
+  -- when EVERY player conceded — a mixed table is 'mistakes', because somebody
+  -- did play it out.
   perform common.end_game(
     target_game, 'lost_compete',
     jsonb_build_object('outcome',
@@ -708,34 +674,34 @@ revoke execute on function connections._maybe_finish_compete(uuid) from public;
 -- ============================================================
 -- connections.submit_guess — record a submission (mode-aware)
 -- ============================================================
--- The FE-knows model: the caller has already evaluated the guess
--- (using the public `board.categories`) and tells us the result
--- and, when result='correct', the matched category's rank. We
--- validate auth + payload shape + game state, then record + branch
--- on mode.
+-- The frontend knows the answer: the caller has already evaluated the guess
+-- against the public `board.categories` and sends the result and, when
+-- result='correct', the matched category's rank. This validates auth, the
+-- payload shape and the game state, then records and branches on mode.
 --
 -- Coop branch:
---   - correct → insert events row (mode=coop, partial unique
---     catches dup-race); count(*) of correct rows; 4 → won.
---   - wrong/oneAway → insert row; UPDATE every players row
---     mistake_count++; if mistake_count >= 4 → lost.
+--   - correct → insert the events row (the coop partial unique index makes a
+--     rank already matched a race); count correct rows; 4 → won.
+--   - wrong/oneAway → a repeat of a tile set anyone already tried is a race;
+--     otherwise insert the row and mistake_count++ on EVERY players row;
+--     4 → lost.
 --
 -- Compete branch:
---   - reject if caller's mistake_count >= 4 (eliminated).
---   - correct → insert row (mode=compete, partial unique on
---     (game_id, user_id, rank) catches per-player dup); count
---     caller's correct rows; 4 → won_compete, caller wins,
---     others lose. Race-end: opponents with remaining lives
---     don't get to keep trying.
---   - wrong/oneAway → insert row; UPDATE caller's players row
---     mistake_count++; if MIN(mistake_count) across all players
---     >= 4 → lost_compete, everyone loses.
+--   - a caller with mistake_count >= 4 is out: a race.
+--   - correct → insert the row (the compete index is per player, so only the
+--     caller's own repeat is a race); count the caller's correct rows;
+--     4 → won_compete — the caller wins, the race ends for everyone.
+--   - wrong/oneAway → a repeat of the caller's own tile set is a race;
+--     otherwise insert the row and mistake_count++ on the caller's row only.
+--     Then _maybe_finish_compete: nobody alive → lost_compete.
 --
--- Concurrency: SELECT FOR UPDATE on connections.games serializes
--- concurrent submits across both modes. Two compete players
--- racing the same correct guess: first commits with that player
--- as winner; second sees play_state != 'playing' on its read
--- and raises 'game is not in progress'.
+-- Turn-order coop advances the turn on every recorded guess; a race records
+-- nothing and advances nothing.
+--
+-- Concurrency: SELECT FOR UPDATE on connections.games serializes concurrent
+-- submits across both modes. Two racers submitting the same correct guess:
+-- the first commits as the winner, the second sees play_state != 'playing'
+-- on its read and answers the game-over race.
 
 drop function if exists connections.submit_guess(uuid, text[], text, int);
 create or replace function connections.submit_guess(
@@ -805,7 +771,7 @@ begin
   -- (pointer null) and compete; raises 'not your turn' otherwise. The
   -- turn ADVANCES only on the two coop non-terminal continue paths below
   -- (a fresh correct-but-not-won guess, a fresh wrong-but-not-lost guess)
-  -- — never on the duplicate no-op `return`s, which exit before them.
+  -- — a duplicate raises before either.
   perform common._require_turn(target_game, caller_id);
 
   -- ─── Light payload validation (mode-independent) ─────────
@@ -862,9 +828,10 @@ begin
 
   -- ─── Correct guess ───────────────────────────────────────
   if result = 'correct' then
-    -- Insert. The mode-aware partial unique indexes catch dup
-    -- races: in coop a peer beat us to this rank; in compete the
-    -- same player double-submitted. Either way, no-op.
+    -- Insert. The mode-aware partial unique indexes catch dup races: in coop
+    -- a peer beat us to this rank; in compete the same player
+    -- double-submitted. Either way the insert raises, and the handler makes
+    -- it the race below.
     begin
       insert into connections.events
         (game_id, user_id, kind, tiles, result, matched_category_rank, mode, took_turn)
@@ -872,7 +839,7 @@ begin
         (target_game, caller_id, 'guess', tiles, result, matched_category_rank,
          g_row.mode, true);
     exception when unique_violation then
-      -- PN300 — a RACE, and the textbook one (Joel, 2026-08-29). The rank was
+      -- PN300 — a RACE, and the textbook one. The rank was
       -- taken between this caller's read and their insert: in coop by a peer
       -- who matched the same category, in compete by this player twice. Nothing
       -- was written, so the guess did not happen — which is exactly what `race`
@@ -913,10 +880,8 @@ begin
          where game_id = target_game;
 
         -- The verdict is the roster's `won`; connections' own word for HOW it
-        -- ended rides in `outcome`. Until 2026-08-01 the play_state was
-        -- 'solved' too — one bit of information spelled twice, and the only
-        -- place on the roster where an outcome value doubled as a play_state
-        -- (docs/states.md → status.outcome names the CAUSE).
+        -- ended rides in `outcome` (docs/states.md → status.outcome names the
+        -- CAUSE).
         perform common.end_game(
           target_game,
           'won',
@@ -929,8 +894,8 @@ begin
       else
         -- Turn-order: an accepted, non-terminal coop guess (a fresh correct
         -- group that doesn't yet complete the puzzle) hands the turn on
-        -- (no-op for free-for-all). Fires only here — the duplicate `return`
-        -- above and the terminal win branch don't reach it.
+        -- (no-op for free-for-all). Fires only here — a duplicate raised
+        -- above, and the terminal win branch doesn't reach it.
         perform common._advance_turn(target_game);
         perform common.update_state(
           target_game,
@@ -969,11 +934,9 @@ begin
           ),
           player_results);
       else
-        -- Mid-game compete listing-label payload is intentionally
-        -- minimal — "compete · in progress" doesn't need per-
-        -- player numbers, and leaking per-opponent matched_count
-        -- via the listing snapshot would violate the "mistakes
-        -- only" visibility decision.
+        -- Mid-game compete status stays EMPTY: each racer's counts are their
+        -- own, and this column is club-wide readable, so the listing carries
+        -- no per-player numbers (create_game seeds it the same way).
         perform common.update_state(
           target_game,
           'playing',
@@ -982,11 +945,9 @@ begin
       end if;
     end if;
 
-    -- The match is written. `result` NAMES THE CASE, in the wire words the
-    -- column stores, and the envelope's `outcome` says what it is WORTH — the
-    -- split every other RPC on the roster uses. It used to put the outcome word
-    -- in `result` and leave `outcome` null, which made the one field do both
-    -- jobs and left the field built for the word empty.
+    -- The match is written. `result` NAMES THE CASE, in the wire word the
+    -- column stores; what it is worth is the frontend's (lib/answer.ts), so
+    -- no outcome rides here.
     return common.ok_envelope(jsonb_build_object('result', 'correct'));
   end if;
 
@@ -1010,8 +971,8 @@ begin
        and gu.tiles @> submit_guess.tiles and gu.tiles <@ submit_guess.tiles
   ) then
     -- PN301 — the same race as PN300 above, one branch earlier in the guess's
-    -- life (Joel, 2026-08-29). Nothing was written and no mistake was counted,
-    -- so the guess did not happen.
+    -- life. Nothing was written and no mistake was counted, so the guess did
+    -- not happen.
     --
     -- Legitimate in BOTH modes by the test in docs/envelopes.md → What makes a
     -- race legitimate. Coop: a peer's identical guess landed in the gap between
@@ -1070,8 +1031,8 @@ begin
     else
       -- Turn-order: an accepted, non-terminal coop guess (a fresh wrong/
       -- oneAway that costs a mistake but doesn't hit the 4th) hands the turn
-      -- on (no-op for free-for-all). The duplicate `return` above and the
-      -- terminal lost branch don't reach it.
+      -- on (no-op for free-for-all). A duplicate raised above, and the
+      -- terminal lost branch doesn't reach it.
       perform common._advance_turn(target_game);
       perform common.update_state(
         target_game,
@@ -1097,22 +1058,17 @@ begin
     -- — mistake_count >= 4 — or conceded) and nobody won ⇒ lost_compete.
     -- Shared with connections.concede (a drop-out can be the move that
     -- leaves nobody alive). If someone's still alive the game continues;
-    -- the just-eliminated caller's FE renders the spectator-with-own-
-    -- reveal view from their own row.
+    -- the just-eliminated caller's FE reads that they are out from their own
+    -- row.
     if not connections._maybe_finish_compete(target_game) then
       perform common.update_state(target_game, 'playing', '{}'::jsonb);
     end if;
   end if;
 
-  -- The mistake is counted, and the answer distinguishes the two verdicts that
-  -- reach here. The FE computed the difference and sent it up, but the call
-  -- site may not read it back off its own local value: an `ok` branch is chosen
-  -- by `data` (docs/envelopes.md → Choosing which `ok` branch), so the RPC
-  -- returns the two answers separately rather than one the caller must
-  -- disambiguate itself (Joel, 2026-08-29).
-  --
-  -- `result` is the case, `outcome` is the word — and the frontend's
-  -- lib/answer.ts says the same word for the row this wrote.
+  -- The mistake is counted, and the answer says which of the two verdicts it
+  -- recorded: an `ok` branch is chosen by `data` (docs/envelopes.md →
+  -- Choosing which `ok` branch), never by the value the caller sent. No
+  -- outcome rides — what a verdict is worth is lib/answer.ts's.
   return common.ok_envelope(jsonb_build_object('result', result));
 
 exception when others then
@@ -1182,21 +1138,16 @@ grant execute on function connections.concede(uuid) to authenticated;
 -- compete the race ended with nobody having all-4'd, which we
 -- treat as a collective loss (psychicnum-compete does the same).
 --
--- Terminal play_state values: 'lost' (coop) / 'lost_compete'
--- (compete) so the FE can render mode-appropriate copy. In coop,
--- 'lost' is the same terminal status as 4-mistakes-losing — the
--- cause doesn't change the outcome shape, just the copy in the
--- loss banner; the FE can distinguish by looking at the mistakes
--- count vs. the absence of mistakes.
+-- Terminal play_state values: 'lost' (coop) / 'lost_compete' (compete). In
+-- coop, 'lost' is the same terminal as a 4-mistakes loss; the CAUSE rides in
+-- status.outcome ('timeout'), which the club-list label reads.
 --
--- Concurrency: multiple clients may fire submit_timeout at the
--- same instant because each client's local timer hits 0 around
--- the same wall-clock moment. The `SELECT ... FOR UPDATE` lock
--- serializes them; whichever transaction commits first flips
--- play_state to terminal; subsequent calls see play_state !=
--- 'playing' and raise P0001. The FE swallows that "already lost"
--- rejection silently — it just means a peer beat us to the punch,
--- and realtime will propagate the loss to all clients.
+-- Concurrency: multiple clients may fire submit_timeout at the same instant
+-- because each client's local timer hits 0 around the same wall-clock moment.
+-- The `SELECT ... FOR UPDATE` lock serializes them; whichever transaction
+-- commits first flips play_state to terminal, and the rest see play_state !=
+-- 'playing' and answer the game-over race — a peer beat them to it, and
+-- realtime carries the loss to every client.
 --
 -- common.end_game handles the cross-cutting termination work
 -- (play_state + is_terminal + status + per-player results).
@@ -1295,23 +1246,20 @@ grant execute on function connections.submit_timeout(uuid) to authenticated;
 -- connections.end_game — manual stop
 -- ============================================================
 --
--- The intrinsic connections terminals are all "decided" outcomes:
--- coop solves/loses (4 matches / 4 mistakes / timeout), compete
--- has a winner (first to 4 matches) or a no-winner timeout. There
--- is no built-in "the friends just want to quit" path — so this
--- RPC is that explicit stop, fired from the per-game menu's "End
--- game" item.
+-- The intrinsic connections terminals are all "decided" outcomes: coop
+-- solves/loses (4 matches / 4 mistakes / timeout), compete has a winner
+-- (first to 4 matches) or a no-winner loss. There is no built-in "the friends
+-- just want to quit" path — so this RPC is that explicit stop, the End
+-- action.
 --
--- Unlike submit_timeout (which writes a "you lost" terminal),
--- end_game is deliberately NEUTRAL: nobody won, nobody lost — the
--- group agreed to stop. We encode that as:
---   - play_state = 'ended' (a terminal state the FE/labelFor learn
---     to render in green, distinct from coop's 'lost' /
---     compete's 'lost_compete')
+-- Unlike submit_timeout (which writes a "you lost" terminal), end_game is
+-- deliberately NEUTRAL: nobody won, nobody lost — the group agreed to stop.
+-- We encode that as:
+--   - play_state = 'ended' (a terminal the FE and labelFor render as
+--     neutral, distinct from coop's 'lost' / compete's 'lost_compete')
 --   - status = {outcome:'manual', mode:<coop|compete>}
---   - every player's result = {"won": false}  (no winner — but the
---     FE shows the green "Game ended" modal regardless, because
---     "ended" is a neutral terminal, not a defeat)
+--   - every player's result = {"won": false}  (no winner — and the FE's
+--     "Game ended" pill is neutral, because "ended" is not a defeat)
 --
 -- Distinct from suspend (which leaves play_state='playing' and is
 -- the "back to club, start something else later" path): end_game
@@ -1367,7 +1315,7 @@ begin
   -- and compete — manual end has no winner in either mode. The
   -- neutral-vs-loss distinction lives entirely in play_state
   -- ('ended', not 'lost'/'lost_compete') + status.outcome
-  -- ('manual'), which is what the FE branches on for the green
+  -- ('manual'), which is what the FE branches on for the neutral
   -- terminal.
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
     into player_results
@@ -1397,8 +1345,7 @@ begin
   -- The self-set (club_handle = club_handle, a real not-null
   -- column on connections.games) is a semantic no-op but produces a
   -- WAL entry on connections.games that Realtime delivers to the
-  -- games-table subscription. Same trick spellingbee.end_game /
-  -- spellingbee.submit_timeout use; see those for the bug history.
+  -- games-table subscription. Same trick spellingbee.end_game uses.
   update connections.games
      set club_handle = club_handle
    where id = target_game;
@@ -1417,24 +1364,10 @@ $$;
 revoke execute on function connections.end_game(uuid) from public;
 grant execute on function connections.end_game(uuid) to authenticated;
 
--- Terminal-transition cleanup happens inline: submit_guess and
--- submit_timeout call common.end_game explicitly at the moment
--- the game is decided over. Single write path keeps all the
--- termination coordination (ended_at, play_state, is_terminal,
--- status, player_results) in one place.
-
--- ============================================================
--- Register connections with common.gametypes
--- ============================================================
--- Two rows — the coop/compete pair (sibling-manifest pattern).
--- create_club's RPC adds clubs_gametypes rows for both modes to
--- every new club automatically.
-
 -- ============================================================
 -- connections.replay_board — restart this puzzle from scratch
 -- ============================================================
--- The "Replay board" menu item / terminal-row Restart: reset the working
--- state on the SAME game row. The frozen puzzle (`board` — the categories
+-- The Restart action: reset the working state on the SAME game row. The frozen puzzle (`board` — the categories
 -- AND this game's shuffled tileOrder — plus `puzzle_date` / `mode`) stays,
 -- so it's the same sixteen tiles in the same arrangement, solved again;
 -- everything the players did is wiped. Any game player may call it, from a

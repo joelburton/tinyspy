@@ -252,7 +252,7 @@ never vary".
 
 The cross-cutting terms above apply everywhere. Each game also has its own small lexicon for domain-specific things — connections's `category` / `tile` / `matched`, spellingbee's `pangram` / `bonus word` / `letter mask` / `outcome`, etc. Those lexicons live in the per-game doc's `## Vocabulary` section so the words sit next to the code that uses them:
 
-- [`connections.md → Vocabulary`](games/connections.md#vocabulary)
+- [`src/connections/doc.md → Vocabulary`](../src/connections/doc.md#vocabulary)
 - [`spellingbee.md → Vocabulary`](games/spellingbee.md#vocabulary)
 
 codenamesduet and psychicnum use the cross-cutting lexicon plus their domain-obvious words (`clue`, `target`) and don't have separate vocabulary sections.

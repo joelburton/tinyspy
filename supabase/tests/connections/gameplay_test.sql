@@ -10,11 +10,10 @@
 --   - phase rejections (unauth, non-member, finished game)
 --   - wrong path: mistake_count++, play_state stays playing
 --   - oneAway path: also counts as mistake
---   - correct path: a guesses row with result='correct' lands
+--   - correct path: an events row with result='correct' lands
 --   - the partial unique index on (game_id,
---     matched_category_rank) where result='correct' provides
---     race idempotency: a second 'correct' for the same rank is
---     a silent no-op
+--     matched_category_rank) where result='correct' makes a
+--     second 'correct' for the same rank a race: nothing written
 --   - 4 mistakes flips play_state to 'lost', clears
 --     is_current_view flipped via common.end_game
 --   - 4 matched categories flips play_state to 'won', clears
@@ -132,8 +131,8 @@ select is(
   'submit_guess: wrong guess increments mistake_count to 1'
 );
 
--- (7b) A repeat of the same wrong tile set (any order) is a silent no-op — it
--- must NOT cost a second mistake. Guards the coop shared-selection double-
+-- (7b) A repeat of the same wrong tile set (any order) is a race — nothing
+-- written, and it must NOT cost a second mistake. Guards the coop shared-selection double-
 -- submit (two players Submit the identical 4 tiles at once); resubmitting in a
 -- DIFFERENT order also pins the order-insensitive comparison.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -210,8 +209,8 @@ select is(
 );
 
 -- ============================================================
--- (9) Race idempotency: a second 'correct' for the same rank
---     silently no-ops (partial-unique-index conflict caught)
+-- (9) A second 'correct' for the same rank is a race — the
+--     partial unique index catches it, and nothing is written
 -- ============================================================
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -335,8 +334,8 @@ select is(
 -- The FE fires this when the count-down timer hits 0. Sets
 -- play_state='lost' just like a 4-mistakes-loss (the timeout
 -- distinction lives in status->>'outcome'). Idempotent: a
--- second concurrent call from a racing client raises a clean
--- P0001 "game is not in progress" which the FE swallows.
+-- second concurrent call from a racing client answers the
+-- game-over race.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
@@ -369,8 +368,7 @@ select is(
 );
 
 -- Idempotency: a second call from any caller on the already-
--- lost game raises P0001. The FE catches and ignores so a
--- racing peer's call is silent.
+-- lost game is the game-over race.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   connections.submit_timeout((select id from g3)),

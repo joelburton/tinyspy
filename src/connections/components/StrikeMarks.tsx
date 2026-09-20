@@ -4,9 +4,9 @@ import { IconStrikeUsed, IconStrikeOpen } from '@/common/icons/icons'
 import styles from './StrikeMarks.module.css'
 
 type Props = {
-  /** How many of the budget are used — 0..total. */
+  // How many of the budget are used — 0..total.
   used: number
-  /** Total slots (the limit). */
+  // Total slots (the limit).
   total: number
 }
 
@@ -17,9 +17,8 @@ type Props = {
  * text count.
  *
  * Deliberately **squares, not dots** — circles are reserved for the
- * player-identity disc (docs/ui.md → Player identity = a colored disc). First
- * used by connections for its mistakes ("Mistakes (lose at 4)"); reusable for any
- * limited-attempts / strikes / penalties counter. The marks size in `em` so they
+ * player-identity disc (docs/ui.md → Player identity = a colored disc). Here it
+ * is the mistakes meter ("Mistakes (lose at 4)"). The marks size in `em` so they
  * read at the surrounding text scale. Stateless, no interaction.
  */
 export function StrikeMarks({ used, total }: Props) {

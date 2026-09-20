@@ -10,47 +10,18 @@ import { DEFAULT_CONNECTIONS_SETUP, type ConnectionsSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
- * connections's registration with the shell — **two manifests,
- * one schema, one folder.**
+ * connections's registration with the shell — two manifests, one schema, one
+ * folder. "connections" is the codename; the brand is `BRAND` below.
  *
- * "connections" is the codename for our Connections-style word-
- * grouping game. The user-facing copy reads however we like;
- * gametype / schema / folder are all `connections`.
- *
- * connections exists in coop and compete modes, each a separate
- * row in `common.gametypes` ('connections_coop', 'connections_compete')
- * and a separate Start button on the club page. Same sibling-
- * manifest pattern psychicnum introduced — see
- * [`docs/common.md`](../../docs/common.md#the-sibling-manifest-pattern) for
- * the canonical write-up and `src/psychicnum/manifest.ts` for the
- * structural twin.
- *
- * Both share:
- *   - the `connections` schema (tables, RPCs, RLS — see
- *     supabase/migrations/20260615000003_connections.sql)
- *   - the folder `src/connections/` (PlayArea, SetupForm, Help,
- *     useGame, theme.css, logo.svg)
- *   - the docs file `docs/games/connections.md`
- *
- * They differ on:
- *   - `gametype` string, used as the URL segment + registry key.
- *   - `name` shown in titles and Start-button copy.
- *   - `mode` declaration (the canonical axis for downstream
- *     code that wants to distinguish behavior — see
- *     GameManifest.mode in src/common/manifest/gameManifest.ts).
- *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
- *     requires an opposing player (`[2, 6]`).
- *   - `labelFor`: terminal copy reads differently per mode.
- *
- * Both share `baseGametype: 'connections'` — the family key any
- * code wanting "treat these as siblings" reads.
- *
- * The single shared `startGameInClub` factory builds the RPC
- * payload with the per-manifest mode injected — `connections.create_game`
- * routes on it server-side. See docs/games/connections.md for the rules,
- * architectural decisions (FE-knows-the-answer, Presence +
- * Broadcast for shared selection, pause-on-disconnect), and the
- * deferred features list.
+ * Coop and compete are each a row in `common.gametypes` (`connections_coop`,
+ * `connections_compete`) and a Start button on the club page — the
+ * sibling-manifest pattern, written up at
+ * [`docs/common.md`](../../docs/common.md#the-sibling-manifest-pattern). The
+ * two share the schema, every loader below and `baseGametype: 'connections'`;
+ * they differ on `gametype`, `mode`, `numberOfPlayers` (coop plays solo,
+ * compete needs an opponent) and `labelFor`. The one `startGameInClub`
+ * factory injects the mode, and `connections.create_game` routes on it. The
+ * rules and the design are `doc.md`'s.
  */
 
 // Help loader is shared — both modes link to the same rules modal.
@@ -66,40 +37,22 @@ const playAreaLoader = lazy(() =>
   import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
 
-// SetupForm is shared — puzzle picker + timer-mode field, mode-
-// independent. The mode is locked at the gametype level, not a
-// setup choice; clicking the coop vs compete Start button is what
-// picks the mode.
+// SetupForm is shared — the next-puzzle line, the date override and the
+// timer, mode-independent. The mode is the Start button clicked, not a
+// setup choice.
 const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
 )
 
 // Shared start-game caller. `mode` is the per-manifest constant — the RPC
-// routes on it to write the right gametype string + the per-mode terminal
-// vocabulary.
-//
-// There is no find-or-create any more, and no roster-mismatch error with it.
-// Both existed to handle "this club already has a game on the picked puzzle",
-// which the setup dialog can no longer produce: it has no picker, and the
-// server hands out the earliest puzzle none of the selected players has
-// played. Resuming a half-finished game is the club page's job.
-//
+// routes on it. `setup` rides through untouched: with no `puzzle_id` in it,
+// create_game derives the puzzle (doc.md → RPCs).
 function startGameInClubFactory(mode: 'coop' | 'compete') {
   return async (
     clubHandle: string,
     setup: unknown,
     playerUserIds: string[],
   ) => {
-    // Plain create — no find-or-create. The dialog can't offer a puzzle that
-    // already has a game (the server hands out the earliest one none of the
-    // selected players has played), so the "reopen the existing game for this
-    // puzzle" branch that used to live here had nothing left to match. It also
-    // carried the roster-mismatch error, whose whole job was refusing to drop
-    // you into an existing game's player list; resuming a half-finished game
-    // is the club page's job now.
-    //
-    // `setup` rides through untouched, and its `puzzle_id` is ABSENT — that is
-    // how create_game is told to derive the puzzle.
     // No `.single()`: the RPC returns the envelope itself, one jsonb value.
     return runRpc<CreatedGame>(
       db.rpc('create_game', {
@@ -118,9 +71,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 
-// Shared listing-label helper for coop's familiar
-// "{matched}/4 categories · {mistakes}/4 mistakes" mid-game shape.
-// Coop terminal labels are also derived from the same status keys.
+// The club-list `status` blob, read by both `labelFor`s.
 type StatusBlob = Record<string, unknown>
 
 /** Why a compete race ended with nobody solving it (connections' terminals). */
@@ -166,8 +117,7 @@ export const connectionsCoopGame: GameManifest = {
     const s = (row.status ?? {}) as StatusBlob
     const matched = (s.matched_count as number | undefined) ?? 0
     const mistakes = (s.mistake_count as number | undefined) ?? 0
-    // "groups", one noun throughout — the label used to say categories,
-    // matched and found in three different rows for the same thing.
+    // "groups", one noun throughout the label.
     const groups = tally(matched, 4, 'groups')
     switch (row.play_state) {
       case 'playing':
@@ -216,18 +166,14 @@ export const connectionsCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  // Compete listing labels are intentionally numeric-free — the
-  // "opponents see mistakes only" decision means we don't surface
-  // per-player matched_count anywhere in the club view either.
-  // Terminal copy carries the winner's name (frozen onto status
-  // at submit_guess time) so post-game review reads as
-  // "ada won the race." Mode itself is shown by the card's <ModeBadge>.
+  // Compete's labels carry no counts: each racer's are their own, and this
+  // line is readable by the whole club (the RPC writes an empty mid-game
+  // status in compete for the same reason). The terminal line names the
+  // winner, frozen onto status by submit_guess, so review reads "ada won the
+  // race." Mode itself is the card's <ModeBadge>.
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
     switch (row.play_state) {
-      // No progress: each racer's matched/mistake counts are their own, and
-      // this line is readable by the whole club (the RPC deliberately writes
-      // an empty mid-game status in compete for the same reason).
       case 'playing':
         return outcome('Playing')
       case 'won_compete':

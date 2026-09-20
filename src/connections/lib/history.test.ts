@@ -7,7 +7,7 @@
  *      the viewed turn, so a viewed correct turn's own tiles are still on the grid.
  *   2. The highlight — exactly the four tiles the viewed turn guessed.
  *   3. The historyLabel — a correct turn names its category; the others carry the
- *      canonical copy.
+ *      canonical text.
  */
 import { describe, expect, it } from 'vitest'
 import { historySnapshot } from './history'

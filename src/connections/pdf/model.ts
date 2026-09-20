@@ -36,7 +36,7 @@ export const RANK_LETTER: Record<CategoryRank, string> = { 0: 'A', 1: 'B', 2: 'C
 /** One solved (or end-of-game revealed) category, as printed. */
 export type PrintBand = {
   rank: CategoryRank
-  /** A–D. The B&W-safe stand-in for the band color. */
+  // A–D. The B&W-safe stand-in for the band color.
   letter: string
   name: string
   tiles: string[]
@@ -45,18 +45,18 @@ export type PrintBand = {
 /** One player's page-column: their bands, their leftover tiles, their log. */
 export type PrintTrack = {
   who: string
-  /** Bands to draw, in rank order. */
+  // Bands to draw, in rank order.
   bands: PrintBand[]
-  /** Tiles not in any of THIS track's bands — `[]` once all four are shown. */
+  // Tiles not in any of THIS track's bands — `[]` once all four are shown.
   remainingTiles: string[]
   turns: TurnRow[]
-  /** Their own readout ("2/4 categories found · 3/4 mistakes"). */
+  // Their own readout ("2/4 categories found · 3/4 mistakes").
   result: string
 }
 
 export type ConnectionsPrintModel = PrintHeader & {
-  /** Coop is a single shared track; compete is one per player at terminal,
-   *  or just yours during play (RLS hides rivals' guesses until then). */
+  // Coop is a single shared track; compete is one per player at terminal,
+  // or just yours during play (RLS hides rivals' guesses until then).
   tracks: PrintTrack[]
 }
 
@@ -92,13 +92,13 @@ export function buildConnectionsPrintModel(o: {
   brand: string
   gameTitle: string
   date: string
-  /** All four categories (public in both modes). */
+  // All four categories (public in both modes).
   categories: Category[]
-  /** The viewer's solved categories. */
+  // The viewer's solved categories.
   matched: MatchedCategory[]
-  /** Revealed at game-end; `[]` during play. */
+  // Revealed at game-end; `[]` during play.
   unmatched: Category[]
-  /** Tiles still on the viewer's board, in display order. */
+  // Tiles still on the viewer's board, in display order.
   remainingTiles: string[]
   guesses: EventRow[]
   players: { user_id: string; username: string }[]
@@ -121,10 +121,8 @@ export function buildConnectionsPrintModel(o: {
 
   // The viewer's own track. Solved and end-of-game-revealed bands print
   // IDENTICALLY — a category you worked out and one the game handed you look
-  // the same, matching the screen (the revealed-band darkening was dropped
-  // 2026-08-02 as imperceptible). The leftover grid excludes banded tiles:
-  // before 2026-08-06 the terminal reveal printed every unsolved tile TWICE,
-  // once in its revealed band and again below as a leftover.
+  // the same, matching the screen. The leftover grid excludes banded tiles, so
+  // a revealed category's words print once.
   const viewerTrack = (who: string, guesses: EventRow[], whoOf: (g: EventRow) => string): PrintTrack => {
     const bands = [...o.matched, ...o.unmatched].map(toBand).sort((a, b) => a.rank - b.rank)
     const banded = new Set(bands.flatMap((b) => b.tiles))

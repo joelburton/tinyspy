@@ -484,8 +484,8 @@ should get the confetti too**, as psychicnum's does since its F-6, is pass
 2's finding.
 
 Verified: `tsc -b` clean, lint clean, 394 unit tests green (the game's and
-the guards). **The restructure is complete.** The e2e specs have not run for
-Steps 2–8.
+the guards). **The restructure is complete**, and the e2e ran clean for
+Steps 2–8 (see Predicted test breaks).
 
 ### After the restructure — pass 2, the audit
 
@@ -503,6 +503,389 @@ time. Already known to belong to it:
 
 *(`F-connections-1 · slug · title`, one heading each; a status prefix when it
 has one, no prefix means OPEN)*
+
+### The audit's findings — 2026-09-19
+
+**The READ is DONE.** Every roster file the restructure had not opened, end to
+end: `useGame.ts` + its test, the eight `lib/` files, `pdf/model.ts` + test and
+the printer, `manifest.ts` + test, `db.ts`, `theme.css`, `GameEventLog.tsx` +
+css, `Help.tsx`, `HintList.module.css`, `PlayArea.module.css`, `StrikeMarks.tsx`
++ css, `SetupForm.tsx` + test, the rest of `PlayArea.test.tsx`, the SQL file's
+every comment, both migrations, the eleven pgTAP files, the importer, and the
+old doc. And the checks beside them: what reads `club_game_status` (nothing in
+`src/`, only the generated types), whether the daily-import workflow exists
+(it does), what `next_puzzle_test` actually asserts (PN302, not the `warning`
+its header claims), and what the stylesheets draw.
+
+What the game IS, for the record: the code held up. The evaluator, the seam,
+the projection, the printer's A–D and the pgTAP suite are right; the
+restructure left a surface in the shape psychicnum settled. What has
+drifted is the prose — an unusual amount of it, because this game was the
+FIRST to do several things (Broadcast, the archive, the calendar it later
+lost, the events rename, the race codes) and each change left its previous
+explanation standing next door. Twenty findings: six with a decision in them
+(F-1 to F-6), one about a shared doc (F-7), and the rest prose, tests and
+small shapes.
+
+### F-connections-1 · `race-winner-celebration` · the race's winner gets no confetti, and the stated reason is gone
+
+`useCelebration(playState === 'won')` — coop only. The comment's reason (cut
+at Step 8, since it was false) was that "did I win the race?" needs a count
+from `useGame` that is 0 until the fetch lands, so a won race opened fresh
+would pop confetti at a reviewer. Since Step 2 the loader holds the surface
+back until the rows are in hand, so both gates are correct on the first
+render, which is exactly what `useCelebration` requires. psychicnum's F-6
+found the same dead reason and gave its race winner the celebration
+(`playState === 'won_compete' && iFoundThemAll`). Options: *the same here* —
+`playState === 'won' || (playState === 'won_compete' && iMatchedThemAll)`,
+with the modal's body reading per mode — or *keep coop-only* as a design
+choice with a comment that says it is one. Recommendation: the same here; a
+race's winner has more to celebrate than a team, and the pill alone says
+"Won: the race" in the corner.
+
+### F-connections-2 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, and cannot say "all conceded"
+
+`buildTerminalMessage` takes `timerExpired` off `timer.expired` — the
+browser's clock — where the RPC that ended the game wrote WHY into
+`common.games.status.outcome` (`solved` · `mistakes` · `timeout` · `conceded`
+· `manual`), which the club-list label already reads. Two consequences: a
+`lost_compete` because everyone conceded reads "Everyone eliminated", and a
+timeout that lands while the local clock still shows a second reads as a
+mistakes loss. psychicnum's F-5 fixed the same: the builder takes `reason`
+from `status.outcome`. Options: *read `status.outcome`*, the builder's inputs
+becoming `mode · playState · reason · selfWon · selfEliminated`, with "All
+conceded — no winner" as the third `lost_compete` sentence — or *leave the
+clock*. Recommendation: read the server's word.
+
+### F-connections-3 · `help-text-wrong` · the Help modal tells players three things that are not true
+
+Player-facing text, so a finding rather than a fix:
+
+- *"Wrong — costs one mistake."* — a one-away costs one too (the SQL charges
+  both, and the Help's own line above it does not say so).
+- *"Four mistakes and the game ends with the categories revealed."* — nothing
+  autoreveals; the ended board is the bands plus the tiles never cracked, and
+  Reveal is a button (the `reveal` area's rule, and this game's own since
+  2026-08-02).
+- *"Selections are shared across everyone in the game — when a peer clicks a
+  tile, you see it framed in their color."* — coop only; compete keeps every
+  pick local.
+
+And its docstring calls the whole thing "placeholder content … deferred until
+we have a unified visual register", with "copy" twice. Joel's words for the
+three lines; the docstring loses the placeholder claim either way.
+
+### F-connections-4 · `matched-derivable` · `EventRow.matched` is `result === 'correct'`
+
+From `todo.md` → Bugs. The seam derives both from one column; the docstring
+defends `matched` as "the rule, kept separate from the look", which argued
+against asking a COLOR — an argument that ended when `result` joined the row
+on 2026-09-17. Six readers ask `g.matched` (the projection, the log, the
+history builder, the printer twice, BoardCol's "a teammate's guess that did
+not win"). Options: *keep the field, rewrite its note* — it is the fact
+readers ask, spelled once at the seam so no reader tests a wire word — or
+*drop it* and have the six ask `result === 'correct'`. Recommendation: keep
+it; the field is what makes the seam a seam.
+
+### F-connections-5 · `eliminated-racer-pauses-survivors` · an eliminated racer still pauses the game for the survivors
+
+From `todo.md` → Soon, with the SQL open now. The presence-pause roster is
+the game's players minus conceders (`common.game_players.conceded`), and a
+fourth mistake eliminates in `connections.players.mistake_count`, which
+`common` cannot see — so closing an eliminated tab pauses everyone still
+racing. Three ways out: *(a) elimination also sets `conceded`* in
+`submit_guess` at the fourth mistake, so the shared roster rule sees it —
+and `_maybe_finish_compete`'s outcome word is then computed from mistake
+counts (every player at four → `mistakes`, otherwise `conceded`) so the
+club-list label stays true; *(b) a second exclusion in the roster rule*,
+which needs the eliminated fact exposed to `common`; *(c) accept it* and
+write the caveat as a rule in `doc.md`. Recommendation: (a) — one flag
+meaning "out of the race", however you got there, and the pgTAP concede and
+compete suites pin the words.
+
+### F-connections-6 · `unread-view` · `club_game_status` has no reader, and its comments describe a calendar that is gone
+
+The view (`supabase/sql/connections.sql`), its thirty lines of comment ("the
+setup-form calendar asks … colors each calendar square"), its pgTAP file
+(`club_game_status_test.sql`, "powers the calendar widget"), and the puzzles
+grant's "the setup-form date picker reads this list" all describe the picker
+deleted 2026-08-13. Nothing in `src/` reads the view; only the generated
+types name it. The old doc kept it "as the club-history read any future
+surface would want, and crosswords' `club_nyt_status` is modeled on it".
+Options: *drop it* — the view, the test, the comments; a `drop view if
+exists` at the top of the repeatable file removes it from every database,
+and `npm run types:gen` follows — or *keep it and rewrite the comments* to say
+what it is for today, which is nothing. Recommendation: drop; a reader that
+wants it can write it, and the file it is modeled on is crosswords' own.
+
+### F-connections-7 · `outcomes-doc-describes-the-old-shape` · `docs/outcomes.md` → How a game does it is the `ANSWER_OUTCOME` table
+
+The shared doc says "each game has a `lib/answer.ts`" with a static table
+from answer words to outcomes, that "the PILL reads the RPC's envelope", and
+that a game pins its SQL half "with an `outcome` assertion in pgTAP".
+psychicnum's conversion and this one do the opposite on every point — an `ok`
+carries no outcome, the pill reads `answerMessage`, and the pgTAP pins assert
+the null — and app-audit.md's game row now makes that every game's audit
+work. Options: *rewrite the section to the new shape now*, naming the
+rollout (two of sixteen; the others convert as their areas open) — or *leave
+it until the games conform*, as psychicnum's `a5ff4ca4` chose for
+`envelopes.md`'s rule 2. Recommendation: rewrite now; a doc that describes
+what the next fourteen areas will remove is a doc that misleads each of them
+at its opening.
+
+### F-connections-8 · `stale-table-name` · `connections.guesses` in prose the rename left behind
+
+The table is `events` (2026-09-17). `useGame.ts`'s docstring says
+`connections.{games, guesses, players}` three times; `GameEventLog` and the
+old doc say "the guesses log". The frozen migration's comments say `guesses`
+throughout and stay as they are — an applied migration is never edited, and
+its comments were true on the day (docs/supabase.md → Schema vs code). The
+2026-09-17 migration is the record of the rename.
+
+### F-connections-9 · `docstring-marker-pass` · `/**` on a member, in eight files
+
+A note on one member of a declaration takes `//` (app-audit.md §4 → the
+docstring marker). Candidates, all read, all members: `useGame.ts` —
+`EventRow`'s five, `PlayerRow`'s one, and `failure` in the return type;
+`lib/history.ts` — `HistorySnapshot`'s five; `pdf/model.ts` — `PrintBand`,
+`PrintTrack` (three), `ConnectionsPrintModel`, and the four on the options
+object; `lib/setup.ts` — `player_user_ids`; `StrikeMarks.tsx` — both props;
+`GameEventLog.tsx` — three props. `InfoCol` and `Board` are done (Steps 8
+and 7).
+
+### F-connections-10 · `banned-word-copy` · "copy" for a message's words, in six files
+
+`manifest.ts` (three: "Start-button copy", "terminal copy", "Terminal copy
+carries the winner's name"), `GameEventLog.tsx` (two), `Help.tsx` (two),
+`lib/history.test.ts` ("the canonical copy"), `supabase/sql/connections.sql`
+(two, in `submit_timeout`'s header). A message's words are its TEXT.
+
+### F-connections-11 · `archaeology` · "used to", dated asides, and what was replaced
+
+Each a paragraph about a previous shape, deleted or cut to what is true
+today: `manifest.ts` — the find-or-create story told twice ("There is no
+find-or-create any more … the branch that used to live here") and "the label
+used to say categories, matched and found"; `manifest.test.ts`'s header (the
+same story, fourteen lines); `SetupForm.tsx` — "What this replaced, and why
+none of it is missed" (eight lines), and the FALSE "`startGameInClub`'s
+find-or-create branch still exists and now simply never fires";
+`lib/setup.ts` — "It used to be `''`", and the old raise text
+`bad-puzzle-id|`; `lib/setupSummary.ts` — "have gone. All three were on the
+old info-column list"; `pdf/model.ts` — two dated asides (2026-08-02,
+2026-08-06); `HintList.module.css` — "carries over unchanged from when this
+was a floating modal"; `PlayArea.module.css` — `.mistakesInline`'s "The old
+NYT-style placement", `.peerPick`'s "It lived in common until the palette
+sweep …" (six lines); `PlayArea.test.tsx` — "connections used to be one of
+the two games that opened its answer unasked" (a describe's header) and "The
+two used to be one `null`"; the SQL — `next_puzzle_for_club`'s "It used to be
+`returns table(...)`" and "The dialog used to be a calendar", `create_game`'s
+"`puzzle_id` used to ride along …" (seven lines), `submit_guess`'s "Until
+2026-08-01 the play_state was 'solved' too" and "It used to put the outcome
+word in `result`", `_maybe_finish_compete`'s "This used to write
+'lost_compete_mistakes'", `end_game`'s "see those for the bug history";
+`next_puzzle_test.sql`'s "They used to `return table(...)`".
+
+### F-connections-12 · `stale-claims-in-code` · sentences in the folder that are no longer true
+
+Each checked against the tree:
+
+- `useGame.ts` → `isEliminated`: "lines up with how PlayArea gates its 'you're
+  out' branch on `mode === 'compete'`" — PlayArea gates on `locallyDone`.
+- `useGame.ts` → `toggleTile`: "see docs/games/connections.md → 'Peer
+  selection'" — the doc is deleted at the harvest; `doc.md` is the home.
+- `useGame.test.ts`: "tears the old one down via `removeChannel`" — the hook
+  calls `releaseChannel`.
+- `lib/board.ts`, `lib/evaluate.ts`: "the BoardScreen" (×2, no such
+  component); "in the v1 deployment".
+- `lib/evaluate.ts` → `sameTileSet`: "the server doesn't enforce this — we
+  trust the FE to not submit duplicates. A race … would count as two
+  mistakes" — the server raises PN301 and counts nothing.
+- `lib/rankColors.ts`: "the matched-category strips above the tile grid" —
+  the bands are rows IN the grid; and a consumer census.
+- `lib/setup.ts`: "Two fields today" — four (`coop_style`,
+  `first_turn_user_id`, `puzzle_id`, `timer`); "Future fields … land
+  alongside" is a plan.
+- `lib/history.ts`: the opening sentence still says "the position of a turn
+  within the log" two paragraphs above "addressed by the row's own id".
+- `SetupForm.tsx`: "the server's `warning` outcome is not read here" — the
+  spent archive is PN302, a not-ok, and has been since 2026-08-29.
+- `manifest.ts`: "tables, RPCs, RLS — see supabase/migrations/…" — the RPCs
+  and RLS are `supabase/sql/`'s; "the docs file docs/games/connections.md";
+  the compete label's "the 'opponents see mistakes only' decision" — see
+  F-13.
+- `theme.css`: "(in CSS, not here) the peer-selection identity frame + the
+  wrong-guess shake" — the shake is the shared `.verdictShake`; "documented
+  in plans/tile-feedback.md → Identity" cites the plan.
+- `PlayArea.module.css`: "minus the max tile-height cap — none here yet" —
+  `.board` sets `--max-tile-height: 9rem`; "psychicnum's WordBoard" (×2; it
+  is `Board`); "connections is the only game with multi-letter WORD tiles"
+  (psychicnum's are words); two `plans/tile-feedback.md` cites.
+- `GameEventLog.tsx`: the docstring's `"Matched: Colors"` — `verdictLabel`
+  writes the bare name, and its own note says so.
+- `printConnectionsPdf.ts`: the four screen hex values copied into a comment,
+  with "keep in step" — cite `theme.css` instead of duplicating it.
+- The SQL — `submit_guess`'s header: "partial unique catches dup-race … no-op"
+  (PN300), "if MIN(mistake_count) across all players >= 4 → lost_compete"
+  (`_maybe_finish_compete`: nobody alive, conceders included), "raises 'game
+  is not in progress'" (PN245 "Game over"); "never on the duplicate no-op
+  `return`s" and "the duplicate `return` above" (×3 — they raise); "Either
+  way, no-op"; two paragraphs saying the envelope's `outcome` "says what it is
+  WORTH" — Step 4's own leftover, since the `ok` carries none now;
+  `submit_timeout`'s "the FE can distinguish by looking at the mistakes count
+  vs. the absence of mistakes"; `end_game`'s "the FE shows the green 'Game
+  ended' modal" (a pill, and `neutral` is not green) and "render in green";
+  `replay_board`'s "The 'Replay board' menu item" (the row says Restart);
+  `create_game`'s "Setup shape" listing two keys of four.
+- The pgTAP headers: `gameplay_test` — "a second 'correct' for the same rank
+  is a silent no-op" and "(7b) A repeat … is a silent no-op" above an
+  assertion of PN301, and "silently no-ops (partial-unique-index conflict
+  caught)" above one of PN300; `turn_order_test` — "a race no-op `return`"
+  and "a duplicate (soft no-op)"; `compete_test` — "the 20260620
+  connections_compete migration" (no such file), "per-player mistake
+  decrement" (increment), "rejected with P0001" (PN251), "(lost_compete +
+  lost_compete_timeout)"; `next_puzzle_test` — "Empty is `ok` with
+  `outcome: 'warning'`" in a file whose own pins assert PN302 and PN303.
+
+### F-connections-13 · `compete-visibility-claim` · "opponents see mistakes only" is stated in five places, and the strip shows FOUND
+
+`connections.players.matched_count` is public — the migration added it so the
+compete strip could show race progress, and the strip's `metricLabel` is
+"Found". The prose never caught up: `manifest.ts` ("the 'opponents see
+mistakes only' decision means we don't surface per-player matched_count"),
+the SQL's players RLS comment ("the 'see opponents' mistake counts'
+property"), `submit_guess`'s compete `{}` status comment ("leaking
+per-opponent matched_count … would violate the 'mistakes only' visibility
+decision"), the frozen migration's header and publication comment
+("opponent-mistakes strip"), and the old doc's table row ("OpponentStrip
+showing per-player mistake counts"). The design is the shipped one: the
+strip shows found counts; guesses and which categories stay private during
+play. The prose says that; the migration's comments stay (F-8's rule) and
+the SQL file's are corrected.
+
+### F-connections-14 · `constants-have-two-homes` · four and four, written in the component file and again as `>= 4`
+
+`CATEGORY_COUNT` and `MISTAKE_BUDGET` live in `PlayArea.tsx`, which is why
+`lib/terminal.ts` had to take `selfWon` rather than a count (Step 6);
+`useGame.ts` writes the budget as `mistakeCount >= 4` for `isEliminated`,
+with "4-mistake" in three comments. psychicnum's F-19 gave `SECRET_COUNT` one
+home in `lib/setup.ts`. The same here: both constants beside the wire types
+in `lib/board.ts` (they are facts about a Connections board), `useGame`,
+`PlayArea` and the printer's `maxMistakes` reading them.
+
+### F-connections-15 · `compete-label-shape` · the compete "all conceded" label is a second branch for a word the table already has
+
+`labelFor` for `lost_compete`: `conceded ? outcome('Lost', 'all conceded') :
+statusLine(outcome('Lost', COMPETE_LOSS[…]), 'no winner')` — `COMPETE_LOSS`
+already maps `conceded` to "all conceded", so the branch exists only to drop
+"no winner" from that one case. A decision about the label's words (Joel's):
+*one line, every cause with "no winner"* — or *keep the branch* because a
+table that all walked away from has no winner to mention. Small.
+
+### F-connections-16 · `importer-runs-daily` · the importer's docstring says it is run by hand
+
+"For v1 this is run manually … It graduates to a scheduled Edge Function /
+GitHub Action when that annoyance compounds" — and
+`.github/workflows/connections-import.yml` has run it daily since the doc's
+Puzzles section was written, which says so two paragraphs before repeating
+the manual-run sentence itself. The docstring says what runs it. (Its
+`SUPABASE_SERVICE_ROLE_KEY` default is the well-known local demo key; the
+comment beside it says so, and that is fine.)
+
+### F-connections-17 · `test-prose` · what the tests say about themselves
+
+`PlayArea.test.tsx` names a keystroke in a describe ("⌥Z shuffles the tiles")
+and carries the two archaeology headers under F-11; `manifest.test.ts`'s
+header is the find-or-create story; `useGame.test.ts`'s is F-12's
+`removeChannel`; `localOrder.test.ts`'s is done (Step 5). The pgTAP headers
+are F-12's. `next_puzzle_test`'s header contradicts its own pins, which is
+the worst kind — a reader trusts the header.
+
+### F-connections-18 · `sql-prose-pass` · the repeatable file's comments, as a set
+
+Beyond the specific claims above: the file opens every function with a
+ten-to-forty-line essay, most of it design rationale and history ("Why a
+view rather than two FE queries", "the reasoning for that is at the raise
+below", "(Joel, 2026-08-29)" ×3). psychicnum's F-14 took the same pass over
+its SQL: the contract stays on the function, the rationale goes to `doc.md`
+→ Schema and RPCs, the dated rulings and the history go. This is the pass
+that also lands F-8, F-10, F-11, F-12 and F-13's SQL halves.
+
+### F-connections-19 · `doc-harvest` · `doc.md`'s four owed sections, and the old doc's deletion
+
+Game rules, Schema, Frontend and Tests are owed to pass 2 (Step 3). What
+`docs/games/connections.md` says that the code does not, to carry across
+and nothing more: the vocabulary (category · rank · tile · matched ·
+mistake_count and why each word), the two modes' rules and the compete
+visibility rule, why there is no `tiles` table and no matched-categories
+table, the two realtime channels and why each is stable-named, the coop
+selection semantics (the union; clear on a correct guess only), the mobile
+no-status-bar decision, the event-log picker's compete behavior, the
+printer's A–D. Then the doc is deleted, its inbound links repointed
+(`docLinks.test.ts` catches the anchors; the prose cites need the grep).
+
+### F-connections-20 · `todo-stale` · what `todo.md` says that this pass settles
+
+The Bug (`matched`) and the Soon (the eliminated racer) are F-4 and F-5 and
+leave the todo with their rulings; the "next puzzle" Maybe is a question for
+Joel this pass can ask; the animation Maybe is pass 3's.
+
+### The prose pass — shipped 2026-09-19, one sitting
+
+Everything above with no decision in it, in the working tree for Joel's
+read: **F-8** (`events` in `useGame`'s docstring and effect comment, the
+log's docstring), **F-9** (the marker pass in the eight files), **F-10**
+("copy" out of six files), **F-11** (every "used to" and dated aside listed,
+plus three more the sweep caught in `create_game_test.sql`), **F-12** (every
+claim listed — but one WITHDRAWN: `useGame.test.ts`'s "via `removeChannel`"
+is true, `releaseChannel` calls it, and the test's mock counts that call),
+**F-13**'s prose halves (the manifest, the players policy, the compete
+status comment; the frozen migration's stay), **F-16** (the importer says
+what runs it), **F-17** (the test headers, and `end_game_test.sql`'s four
+`P0001`s the read had not listed; the keystroke describes stay, as
+psychicnum's did — blessed there), **F-18** (the SQL's essays cut to the
+contract: `next_puzzle_for_club`'s header from forty lines to twenty-three,
+`submit_guess`'s header rewritten to what the function does today, the
+orphaned "Register with common.gametypes" and "Terminal-transition cleanup"
+paragraphs deleted, since the rows are the migration's and the sentence is
+`doc.md`'s), and **F-19** — `doc.md` has its Intro's last paragraph, Game
+rules (with a Vocabulary table, Coop, Compete, The play states), Schema,
+Frontend and Tests; `docs/games/connections.md` is deleted; CLAUDE.md's row,
+`naming.md`'s vocabulary link, `code-conventions.md`'s pause link (now
+`states.md → paused`), four sibling game docs' links and the todo's cite
+are repointed. `PlayArea.test.tsx` also stopped citing the plan twice
+(`docs/ui.md → Interactive tile states`, and the two endings said in a
+sentence), and `stackdown.md`'s "they are the only two" became a condition.
+
+Left for their rulings, on purpose: F-3's three Help sentences (the
+docstring is done); F-4's `matched` note keeps its text under `//`; F-6's
+view, its thirty lines of calendar comment and its test; F-14's `>= 4`;
+F-15's branch; F-20's todo items; and the SQL's `_maybe_finish_compete`
+comment, which F-5 may rewrite.
+
+**Verified:** `tsc -b` and eslint clean; 394 unit tests green
+(`src/connections` + `src/guards` — `docLinks` caught the four sibling-doc
+links on the first run and passed once they were repointed); `gmake db-sql
+ENV=local` then `npm run test:db` — 179 files, 2512 tests, PASS, with the
+three renamed pgTAP assertions in it.
+
+### What checked out
+
+- **The evaluator** — every boundary in `evaluate.test.ts` (1-, 2-, 3-,
+  4-overlap, ties, order, a defensive copy) is what the code does.
+- **The seam** — `eventToOutcome` and `matched` at one place in `useGame`;
+  the history builder folds strictly-before by id; the projection is one
+  band per rank.
+- **`_maybe_finish_compete`** — alive is not conceded and under four
+  mistakes; the outcome word is `conceded` only when every player conceded.
+- **The printer** — A–D as the mono-safe signal, the viewer's track carrying
+  the full answer once, a rival's only what they earned; every character
+  WinAnsi; the coop heading "Guesses" is the screen's word.
+- **`next_puzzle_for_club`** — per player, across clubs, by date, as its
+  eight pins say; `puzzle_for_date` filters nothing.
+- **The importer** — the upstream shape validated on the first record, rank
+  from the array index, an idempotent upsert on `source_id`.
+- **`setup.psql`** — the fixture puzzle's alien date and source id keep the
+  suite clear of the imported archive.
 
 ## Notes
 
@@ -537,6 +920,13 @@ has one, no prefix means OPEN)*
 ## Predicted test breaks
 
 *(the spec names, written when the area starts changing things)*
+
+**The e2e ran clean for Steps 2–8 together** (2026-09-19, Joel's word, after
+Step 8 was committed): the geometry harness without `BASELINE=1` — every
+touched board at its Step 0 baseline — and the five connections specs, 9
+tests, green in twenty seconds. Nothing predicted broke and nothing
+unpredicted did; the split, the row, the reorder and the moved builder are
+the no-ops they claimed to be.
 
 - Step 2: `PlayArea.test.tsx` imports and mounts `PlayAreaLoader` (the same
   tree, `useGame` mocked as before); its "still says Game not found" case

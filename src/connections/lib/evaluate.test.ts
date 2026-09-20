@@ -60,8 +60,8 @@ describe('evaluateGuess', () => {
   })
 
   it('returns wrong when the guess has fewer than 4 tiles', () => {
-    // Should never happen in practice (the BoardScreen guards submit
-    // on selection size), but the function shouldn't false-positive
+    // Should never happen in practice (`BoardCol` offers Submit only at
+    // four tiles), but the function shouldn't false-positive
     // a "correct" if it does — short input means no category can have
     // 4 overlap.
     const result = evaluateGuess(['ALPHA', 'ANGEL', 'APPLE'], CATEGORIES)

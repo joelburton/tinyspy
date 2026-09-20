@@ -14,18 +14,8 @@ import type { Database } from '@/types/db'
 import type { Member } from '@/common/members/member'
 import type { Board, CategoryRank } from '../lib/board'
 
-/**
- * One player in a connections game. Today connections doesn't add any
- * per-player game state beyond what's on a Member (no seats, no
- * personal scores), so the Player type is a straight re-export.
- *
- * Why we expose it anyway: cross-game vocabulary consistency.
- * Every game's hook file exposes a Player type — codenamesduet's adds
- * `seat: 'A' | 'B'`; psychicnum's is a re-export like this.
- * A reader scanning per-game folders sees the same parallel
- * everywhere, and a future "per-player tile-rate" stat (or
- * similar) has a named home to land in without a cascade rename.
- */
+/** One player in a connections game — a `Member` as-is. What this game keeps
+ *  per player lives on `connections.players` (`PlayerRow`), not on the person. */
 export type Player = Member
 
 // Narrower than Database[...]['Row']. The board jsonb column is
@@ -39,24 +29,24 @@ type GameRow = Pick<
 >
 
 export type EventRow = {
-  /** The row's own id, and the order of play: the database hands them out in
-   *  the order the rows were written, which is what the read below orders by. */
+  // The row's own id, and the order of play: the database hands them out in
+  // the order the rows were written, which is what the read below orders by.
   id: number
   user_id: string
   tiles: string[]
-  /** How this guess READS — the shared vocabulary, from `lib/answer.ts`, the
-   *  one place that decides it. Never the wire word: a tile fill, a log row and
-   *  a PDF cell all want the same colors the rest of the app uses. */
+  // How this guess READS — the shared vocabulary, from `lib/answer.ts`, the
+  // one place that decides it. Never the wire word: a tile fill, a log row and
+  // a PDF cell all want the same colors the rest of the app uses.
   outcome: Outcome
-  /** What this guess WAS — the three-value wire word the column stores. Carried
-   *  beside the outcome because some readers need the FACT rather than the
-   *  color: the history viewer's tint has exactly three classes, and a
-   *  seven-value vocabulary cannot key them. */
+  // What this guess WAS — the three-value wire word the column stores. Carried
+  // beside the outcome because some readers need the FACT rather than the
+  // color: the history viewer's tint has exactly three classes, and a
+  // seven-value vocabulary cannot key them.
   result: GuessResult
-  /** Whether this guess MATCHED a category — the rule, kept separate from the
-   *  look. `outcome === 'won'` happens to mean the same thing today, but that
-   *  is a color answering a question about the rules, which is exactly the
-   *  confusion the seam exists to end. */
+  // Whether this guess MATCHED a category — the rule, kept separate from the
+  // look. `outcome === 'won'` happens to mean the same thing today, but that
+  // is a color answering a question about the rules, which is exactly the
+  // confusion the seam exists to end.
   matched: boolean
   matched_category_rank: number | null
   created_at: string
@@ -67,8 +57,8 @@ export type EventRow = {
 export type PlayerRow = {
   user_id: string
   mistake_count: number
-  /** The player's own categories-found count (public; drives the compete
-   *  "Found" opponent strip). See connections.players.matched_count. */
+  // The player's own categories-found count (public; drives the compete
+  // "Found" opponent strip). See connections.players.matched_count.
   matched_count: number
 }
 
@@ -93,11 +83,11 @@ export type ConnectionsGame = {
   club_handle: string
   mode: 'coop' | 'compete'
   board: Board
-  /** The puzzle's NYT date (`YYYY-MM-DD`), or null for a non-NYT puzzle. The
-   *  most identifying setup choice — *which* daily puzzle this game is. */
+  // The puzzle's NYT date (`YYYY-MM-DD`), or null for a non-NYT puzzle. The
+  // most identifying setup choice — *which* daily puzzle this game is.
   puzzleDate: string | null
-  /** Server-stamped game-start timestamp, ISO. Mirrored from the
-   *  per-gametype row (which carries its own created_at). */
+  // Server-stamped game-start timestamp, ISO. Mirrored from the
+  // per-gametype row (which carries its own created_at).
   created_at: string
 }
 
@@ -113,44 +103,20 @@ type SelectionEvent =
 export type SelectionMap = ReadonlyMap<string, string[]>
 
 /**
- * connections's per-gametype data hook.
+ * connections's per-game data hook: the game row, the guess log, the player
+ * rows and, in coop, the shared selection — one Realtime room per game.
  *
- * Follows the **broadcast-coupled** realtime pattern documented in
- * `docs/code-conventions.md` → "Realtime data hooks" — broadcast
- * needs a stable-name channel so peers merge into the same room,
- * and postgres-changes ride along on that same channel rather
- * than opening a second UUID-suffixed one via `useRealtimeRefetch`.
+ * Broadcast-coupled (docs/code-conventions.md → Realtime data hooks): the
+ * room is the stable `connections:${gameId}` so peers share it for the
+ * selection Broadcast, and the postgres-changes on
+ * `connections.{games, events, players}` ride the same channel. Compete keeps
+ * every pick local — `broadcast()` applies and never sends.
  *
- * Two responsibilities split across two channels (one per hook):
- *   1. **This hook** owns the gametype-specific channel. It
- *      subscribes to postgres-changes on `connections.{games,
- *      guesses, players}` AND (coop only) carries the shared-
- *      selection Broadcast events. Compete keeps selections local
- *      — each player's tile picks are private to them, so the
- *      Broadcast send is suppressed.
- *   2. **useCommonGame** (mounted by `<GamePage>`) owns the
- *      common-side channel — presence, manual-pause Broadcast,
- *      common.games row changes, the timer.
- *
- * Mode-aware projections (compete only meaningful in compete mode;
- * coop falls back to lock-step shared values):
- *   - `mistakeCount` — caller's row's mistake_count. In coop,
- *     equals every other row's; in compete, the caller's own.
- *   - `opponentFound` — Map<user_id, categories-found> excluding
- *     caller. Drives the compete "Found" OpponentStrip; empty in coop.
- *   - `isEliminated` — caller's mistake_count >= 4. Compete-only
- *     meaningful (in coop the whole game would already be terminal
- *     once mistakes hit 4); always false in coop pre-game-over.
- *
- * Returns:
- *   - game / guesses / matchedCategories — postgres-derived state.
- *   - mistakeCount / opponentFound / isEliminated — see above.
- *   - selections / unionTiles — shared peer-selection state
- *     (coop only; compete's map only ever contains caller's own).
- *   - toggleTile / sendClear — emit selection events.
- *   - loading — false once initial fetch completes.
- *
- * Pause/timer/members/presence are NOT here — see useCommonGame.
+ * What it projects: `matchedCategories` from the correct rows joined to the
+ * board; `mistakeCount` from the caller's own row (equal across rows in
+ * coop); `opponentFound` for compete's Found strip, empty in coop;
+ * `isEliminated` for a racer who has spent the budget. Pause, timer, members
+ * and presence are `useCommonGame`'s.
  */
 export function useGame(
   session: Session,
@@ -167,16 +133,14 @@ export function useGame(
   toggleTile: (tile: string) => void
   sendClear: () => void
   loading: boolean
-  /**
-   * Why the board cannot be shown, when it cannot — the sentence and the
-   * diagnostics line, both built at the moment the load failed.
-   *
-   * SEPARATE FROM `game === null`, which means the game does not exist. A failed
-   * read knows nothing about whether it exists, and saying "Game not found."
-   * about a dead connection is a confident wrong answer (docs/envelopes.md →
-   * the modal is an escalation, not a replacement: this is what remains once
-   * the fault modal is dismissed).
-   */
+  // Why the board cannot be shown, when it cannot — the sentence and the
+  // diagnostics line, both built at the moment the load failed.
+  //
+  // SEPARATE FROM `game === null`, which means the game does not exist. A
+  // failed read knows nothing about whether it exists, and saying "Game not
+  // found." about a dead connection is a confident wrong answer
+  // (docs/envelopes.md → the modal is an escalation, not a replacement: this
+  // is what remains once the fault modal is dismissed).
   failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<ConnectionsGame | null>(null)
@@ -228,8 +192,8 @@ export function useGame(
   }, [])
 
   // Join this game's connections-specific Realtime room: load the
-  // game row + guesses + players, attach postgres-changes on
-  // connections.{games, guesses, players}, attach the shared-selection
+  // game row + events + players, attach postgres-changes on
+  // connections.{games, events, players}, attach the shared-selection
   // Broadcast handler (coop semantics — compete senders short-
   // circuit in `broadcast()` below, so foreign events shouldn't
   // arrive in compete; the handler is registered unconditionally
@@ -329,12 +293,11 @@ export function useGame(
     }
 
     // Stable channel name — selection Broadcast (coop) needs a shared room
-    // across peers, so a UUID-suffix would defeat the purpose. That means a
-    // remount inside the previous mount's leave round-trip (StrictMode's
-    // double-mount; fast re-entry) must WAIT rather than re-create, or
-    // supabase-js hands back the dying channel. See useGame for
-    // codenamesduet/psychicnum's UUID-suffixed approach when broadcast
-    // isn't in play.
+    // across peers, so a UUID suffix (what `useRealtimeRefetch` adds when no
+    // broadcast is in play) would defeat the purpose. That means a remount
+    // inside the previous mount's leave round-trip (StrictMode's double-mount;
+    // fast re-entry) must WAIT rather than re-create, or supabase-js hands
+    // back the dying channel.
     const room = `connections:${gameId}`
     let canceled = false
 
@@ -374,11 +337,9 @@ export function useGame(
       ch.subscribe((status) => {
         if (status === 'SUBSCRIBED') load()
       })
-      // Still a sync setState from an effect on the fast path (join() runs
-      // inline when no teardown is pending) — deliberate, the channel IS the
-      // external system being synced into state. The react-hooks rule can no
-      // longer SEE it through this function, so the disable it used to need is
-      // gone; the intent is here instead.
+      // A sync setState from an effect on the fast path (join() runs inline
+      // when no teardown is pending) — deliberate: the channel IS the external
+      // system being synced into state.
       setChannel(ch)
       channelRef.current = ch
     }
@@ -420,7 +381,9 @@ export function useGame(
     [applySelection, channel, game?.mode],
   )
 
-  // Toggle handler — see docs/games/connections.md → "Peer selection".
+  // The click rule for a shared board (doc.md → Coop): a tile already in the
+  // union comes out whoever put it in; an unselected one joins MY picks, up
+  // to four across everyone.
   const toggleTile = useCallback(
     (tile: string) => {
       let alreadySelected = false
@@ -494,11 +457,8 @@ export function useGame(
     }
   }
 
-  // Eliminated in compete: caller's 4-mistake limit reached.
-  // (Coop hits this threshold only on the game-ending guess, so
-  // the play_state guard upstream catches it — keeping this
-  // false in coop until terminal lines up with how PlayArea
-  // gates its "you're out" branch on mode === 'compete'.)
+  // Eliminated in compete: the caller has spent the budget. Coop reaches four
+  // only on the game-ending guess, so this stays false there.
   const isEliminated = game?.mode === 'compete' && mistakeCount >= 4
 
   return {

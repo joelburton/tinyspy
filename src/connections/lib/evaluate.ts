@@ -23,11 +23,8 @@ export type Evaluation =
   | { result: 'wrong' }
 
 /**
- * The canonical connections evaluator. It lives in TS because the connections
- * board is publicly readable (the "FE-knows-the-answer" decision, in the
- * migration header): `submit_guess` trusts the verdict this produces, which is
- * the trade the friends-only audience model buys us in exchange for the
- * column-grant trick and ~50 lines of PL/pgSQL.
+ * The connections evaluator. It lives in TS because the board is public
+ * (doc.md → Intro to area): `submit_guess` records the verdict this produces.
  *
  * Pure — no I/O, no global state. `evaluate.test.ts` pins the boundary cases
  * (1-, 2-, 3-, 4-overlap and multi-category ties).
@@ -36,9 +33,9 @@ export function evaluateGuess(
   tiles: string[],
   categories: Category[],
 ): Evaluation {
-  // Defensive: the BoardScreen guards submit on selection size,
-  // but a short input shouldn't false-positive as 'oneAway' just
-  // because all 3 happen to be in the same category.
+  // Defensive: `BoardCol` offers Submit only at four tiles, but a short
+  // input shouldn't false-positive as 'oneAway' just because all 3 happen
+  // to be in the same category.
   if (tiles.length !== 4) return { result: 'wrong' }
 
   // Find the category with the largest overlap to the guessed
@@ -68,15 +65,10 @@ export function evaluateGuess(
 }
 
 /**
- * Equality on 4-tile guess sets, order-insensitive. Used by the
- * BoardScreen to detect duplicate guesses (you already tried
- * this exact set — show a banner, don't fire submit_guess).
- *
- * Per the FE-knows model the server doesn't enforce this —
- * we trust the FE to not submit duplicates. A race where two
- * clients both submit the same set within milliseconds would
- * count as two mistakes; for a friends-coop game where you
- * coordinate verbally, that's not a real concern.
+ * Equality on tile sets, order-insensitive. `BoardCol` uses it to refuse a
+ * repeat locally ("You already tried that") before anything is sent;
+ * `submit_guess` keeps the same check, and answers a repeat that slips past
+ * this one as a race — nothing written, no mistake charged.
  */
 export function sameTileSet(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false

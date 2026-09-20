@@ -3,15 +3,10 @@
 /**
  * Wire types for the connections `board` jsonb column.
  *
- * The whole board (categories answer key + shuffled tile order)
- * is publicly readable in the v1 deployment — see the
- * "FE-knows-the-answer" note in
- * supabase/migrations/20260615000003_connections.sql and
- * docs/games/connections.md for the architectural rationale.
- *
- * Lives in lib/ so both the evaluator and the manifest /
- * components can import it without dragging in the wider
- * board screen code.
+ * The whole board — the categories answer key and the shuffled tile order —
+ * is readable by every club member in both modes: the frontend knows the
+ * answer (doc.md → Intro to area). Lives in lib/ so the evaluator and the
+ * components import it alike.
  */
 
 /** Difficulty rank of a category. 0..3 maps to NYT Connections'
@@ -30,8 +25,8 @@ export type Category = {
   tiles: string[]
 }
 
-/** The full board as persisted on `connections.games.board`. The
- *  evaluator and the BoardScreen both read from this shape. */
+/** The full board as persisted on `connections.games.board` — what the
+ *  evaluator and `Board` read. */
 export type Board = {
   categories: Category[]
   /** The 16 tiles in their shuffled display order. The FE renders

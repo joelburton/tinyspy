@@ -19,7 +19,7 @@
   sets `conceded` too (then `_maybe_finish_compete` and the club-list outcome
   words need re-reading, since "conceded" currently means walked away), or the
   roster rule grows a second exclusion, or the caveat is accepted and written
-  as a rule in `docs/games/connections.md`.
+  as a rule in `doc.md`.
 
 ## Someday
 

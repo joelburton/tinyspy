@@ -4,15 +4,13 @@
 -- Test: connections compete mode
 -- ============================================================
 --
--- Coverage for the mode-aware schema + RPC behavior added in the
--- 20260620 connections_compete migration. The shared
--- coop-mode contract is exercised by create_game_test.sql,
--- gameplay_test.sql, rls_test.sql — this file focuses on the
--- compete delta:
+-- The compete delta. The shared coop-mode contract is exercised by
+-- create_game_test.sql, gameplay_test.sql and rls_test.sql; this
+-- file covers:
 --
 --   - create_game `mode` param: invalid rejected, compete-with-
 --     <2-players rejected, happy compete path
---   - per-player mistake decrement: caller's row only, opponents
+--   - per-player mistake increment: caller's row only, opponents
 --     untouched
 --   - per-player partial unique index: same rank can be matched
 --     once per player (ada and bea both match rank 0 → both rows
@@ -24,9 +22,9 @@
 --   - elimination + collective loss: each player's 4 mistakes
 --     eliminates them; once all are eliminated, play_state flips
 --     to lost_compete
---   - eliminated-player submit rejected with P0001
+--   - eliminated-player submit answered as a race
 --   - submit_timeout writes the compete-mode terminal state
---     (lost_compete + lost_compete_timeout)
+--     (lost_compete, outcome timeout)
 --
 -- See create_game_test.sql for the pgTAP / auth-simulation primer.
 
@@ -130,7 +128,7 @@ select is(
 );
 
 -- ============================================================
--- (6) Per-player mistake decrement (caller's row only)
+-- (6) Per-player mistake increment (caller's row only)
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -191,7 +189,7 @@ select is(
 );
 
 -- ============================================================
--- (8) Same player double-matching a rank: still no-op
+-- (8) Same player double-matching a rank: still a race
 -- ============================================================
 -- The compete index does include user_id, so ada trying to
 -- re-submit rank-1 (her own already-matched category) is caught
@@ -380,13 +378,13 @@ select is(
   'submit_timeout (compete): outcome = timeout (the cause)'
 );
 
--- Idempotency: a second concurrent fire raises P0001.
+-- Idempotency: a second concurrent fire is the game-over race.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   connections.submit_timeout((select id from g3)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'submit_timeout (compete): second call on already-terminal game raises P0001');
+  'submit_timeout (compete): second call on already-terminal game is the game-over race');
 
 -- ============================================================
 -- (17)–(20) RLS sanity for compete

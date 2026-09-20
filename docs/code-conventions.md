@@ -270,7 +270,7 @@ useEffect(function joinRoom() {
 }, [id])
 ```
 
-Reconnect semantics for the broadcast side fall out naturally: broadcasts during a disconnect are lost, but the project's pause-on-disconnect pattern (see [`docs/connections.md → Pause`](games/connections.md#pause-presence-driven--manual)) freezes the game while anyone's missing — no broadcast traffic happens while disconnected, so nothing's missed. Postgres-changes on the same channel still get the SUBSCRIBED-refetch recovery via the `.subscribe()` callback.
+Reconnect semantics for the broadcast side fall out naturally: broadcasts during a disconnect are lost, but the project's pause-on-disconnect pattern (see [`states.md → paused`](states.md#paused)) freezes the game while anyone's missing — no broadcast traffic happens while disconnected, so nothing's missed. Postgres-changes on the same channel still get the SUBSCRIBED-refetch recovery via the `.subscribe()` callback.
 
 #### Choosing between A and B
 

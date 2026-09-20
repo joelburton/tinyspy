@@ -376,7 +376,7 @@ PN302.
 The rules, the `security definer` reason, the per-player-not-per-club
 exclusion, the override's deliberate asymmetry and the exhausted state are
 written up once in
-[connections.md → The puzzle you get](connections.md#the-puzzle-you-get); the
+[`src/connections/doc.md` → RPCs](../../src/connections/doc.md#rpcs); the
 two games' functions are twins. `tests/strands/next_puzzle_test.sql` is where
 both are pinned.
 

@@ -1,25 +1,10 @@
 // cs-met-connections
 
 /**
- * Tests for connections's `startGameInClub`.
- *
- * This file used to guard the find-or-create path: connections had a unique
- * (club, puzzle, mode) constraint, so starting a game for a puzzle the club
- * already had one for loaded the EXISTING game and waited for ITS roster
- * rather than the players just picked — and the fix (a rich error naming the
- * players that game needs) had its own bug, reading `game_players` /
- * `profiles` through the connections-scoped client when they live in
- * `common`.
- *
- * All of that is gone, and could not be reached today: the setup dialog has
- * no puzzle picker, and `connections.create_game` hands out the earliest
- * puzzle none of the selected players has played — so "a game already exists
- * for this puzzle" is not a state the dialog can produce. Resuming a
- * half-finished game is the club page's job.
- *
- * What's left to pin is that starting a game passes the setup through
- * untouched, `puzzle_id` included when one IS supplied (the fixtures rely on
- * that) and absent when it isn't (which is how the server is told to choose).
+ * connections's `startGameInClub`: starting a game passes the setup through
+ * untouched — `puzzle_id` included when one IS supplied (the fixtures rely on
+ * that) and absent when it isn't, which is how the server is told to choose —
+ * and a create_game failure comes back as the not-ok envelope.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'

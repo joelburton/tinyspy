@@ -44,11 +44,10 @@ import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
 /**
  * Print variants of the four rank colors.
  *
- * The screen tokens (`--connections-rank-N`: `#f9df6d` `#a0c35a` `#b0c4ef`
- * `#ba81c5`) are tuned as pale FILLS behind black text. Stroked as a 2.5pt
- * border on white they nearly vanish — pale yellow especially. These are the
- * same four hues taken darker so the border actually reads as a line. Keep the
- * order (rank 0..3 = easiest..hardest) in step with the screen tokens.
+ * The screen tokens (`--connections-rank-N` in `theme.css`) are tuned as pale
+ * FILLS behind black text. Stroked as a 2.5pt border on white they nearly
+ * vanish — pale yellow especially. These are the same four hues taken darker
+ * so the border actually reads as a line, in the same rank order.
  */
 const BORDER_RGB: Record<CategoryRank, [number, number, number]> = {
   0: [181, 150, 20], // yellow

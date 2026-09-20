@@ -5,15 +5,15 @@
 -- ============================================================
 -- The per-game wiring for the common turn primitive. connections is the
 -- subtle case: a guess is RECORDED for both correct AND wrong results
--- (both consume the shared budget), but a duplicate tile-set is a race
--- no-op `return` — so the turn must advance on a fresh guess and NOT on a
+-- (both consume the shared budget), but a duplicate tile-set is a race that
+-- writes nothing — so the turn must advance on a fresh guess and NOT on a
 -- duplicate. (The server trusts the FE-supplied `result` under the
 -- friends-only model, so a 'wrong' guess needn't actually be wrong.)
 -- Covers:
 --   1. create_game seats the pointer on the chosen first player
 --   2. an out-of-turn guess is rejected ('not your turn')
 --   3. an accepted (wrong) guess advances the pointer
---   4. a duplicate (soft no-op) does NOT advance
+--   4. a duplicate (a race, nothing written) does NOT advance
 --   5. free-for-all (no coop_style) leaves the pointer null and ungated
 -- ============================================================
 
@@ -94,7 +94,7 @@ reset role;
 select is(
   (select current_turn_user_id from common.games where id = (select id from g)),
   'bea22222-2222-2222-2222-222222222222'::uuid,
-  'turns: a duplicate (no-op) guess does NOT advance the turn'
+  'turns: a duplicate guess (a race) does NOT advance the turn'
 );
 
 -- bea then makes a FRESH wrong guess → advances back to ada.

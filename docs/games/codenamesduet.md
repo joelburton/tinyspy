@@ -318,7 +318,7 @@ Behaviors per `setup.timer.kind`:
 
 ## Pause-on-disconnect
 
-Inherited unchanged from the common shell. The only codenamesduet-relevant note: PauseBoundary's child-unmount means codenamesduet's per-tab postgres-changes channel tears down and reconnects on every pause cycle, with the on-SUBSCRIBED refetch in `useBoard` / `useGame` / `useClues` covering the gap. See [`connections.md → Pause`](connections.md#pause-presence-driven--manual) for the canonical write-up.
+Inherited unchanged from the common shell. The only codenamesduet-relevant note: PauseBoundary's child-unmount means codenamesduet's per-tab postgres-changes channel tears down and reconnects on every pause cycle, with the on-SUBSCRIBED refetch in `useBoard` / `useGame` / `useClues` covering the gap. See [`states.md → paused`](../states.md#paused) for the canonical write-up.
 
 ## Edge Function: `codenamesduet-suggest-clue`
 

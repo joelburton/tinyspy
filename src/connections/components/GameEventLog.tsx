@@ -11,19 +11,19 @@ import type { EventRow, Player } from '../hooks/useGame'
 import styles from './GameEventLog.module.css'
 
 type Props = {
-  /** Every guess the viewer can currently see. Coop: the whole shared game.
-   *  Compete: the viewer's own during play, and (once terminal, when RLS opens)
-   *  everyone's — which is what makes the picker below useful. */
+  // Every guess the viewer can currently see. Coop: the whole shared game.
+  // Compete: the viewer's own during play, and (once terminal, when RLS opens)
+  // everyone's — which is what makes the picker below useful.
   guesses: EventRow[]
-  /** The board's four categories — PUBLIC in both modes (the FE holds the answer
-   *  key, see connections.md). Used to name a correct guess's category, so an
-   *  OPPONENT's correct rows name theirs too; deriving the names from the
-   *  viewer's own matches would leave every opponent row saying just "Correct". */
+  // The board's four categories — PUBLIC in both modes (the FE holds the
+  // answer key, see doc.md). Used to name a correct guess's category, so an
+  // OPPONENT's correct rows name theirs too; deriving the names from the
+  // viewer's own matches would leave every opponent row saying just "Correct".
   categories: Category[]
   players: Player[]
   selfId: string
   mode: 'coop' | 'compete'
-  /** Distinguishes an opponent's RLS-hidden log from a genuinely empty one. */
+  // Distinguishes an opponent's RLS-hidden log from a genuinely empty one.
   isTerminal: boolean
   // The turn currently open in the board viewer — the row's own id — or null
   // when live. Its `#N` handle wears the shared history ring.
@@ -34,31 +34,19 @@ type Props = {
 }
 
 /**
- * connections's event log — its guesses rendered with the shared `<EventLog>`
- * table (same chrome psychicnum uses, so a player reads the same log shape
- * across games). (Named GameEventLog, not GuessHistory — see EventLog.tsx on why
- * an event-log row isn't "a guess" in the shared vocabulary, even though here it
- * happens to be.)
+ * connections's event log — the guesses, in the shared `<EventLog>` table.
  *
- * Stateless and presentational. connections renders its own **two-`<tr>`** turn
- * (the row anatomy is the game's — see EventLog.tsx): row 1 is `[bar ⇣rowSpan 2] |
- * verdict | actor` in **real `<td>` columns** (the actor right-aligned via the
- * shared `.who`), and row 2 spans those columns with the four guessed tiles (full
- * width, in board order — kept as the FE stored them, so the row matches what the
- * players were looking at). Real table cells, not a flexbox sub-line inside one
- * cell (that throws away the column alignment the table exists for — see
- * playarea.md → Event log (conversion gotchas)). `.divider` on row 1 draws the
- * between-turns line. The verdict names the matched
- * category on a correct guess ("Matched: Colors"), so "the row that solved the
- * blue band" is legible at a glance; the other two outcomes carry the
- * NYT-canonical copy.
+ * Each turn is two `<tr>`s (the row anatomy is the game's — see EventLog.tsx):
+ * row 1 is `[bar ⇣rowSpan 2] | #N | verdict | actor` in real `<td>` columns,
+ * and row 2 spans them with the four guessed tiles in board order, as the FE
+ * stored them. The verdict names the matched category on a correct guess
+ * ("Colors"), so the row that solved the blue band is legible at a glance;
+ * the other two carry the NYT-canonical short text.
  *
- * **Whose guesses** are shown is picked by the shared
- * `useEventLogPlayerPicker` dropdown in the header — solo is your handle, coop is
- * "Team" plus each player, compete is "All" plus each player (defaulting to your
- * own board). In compete an
- * opponent's rows are empty during play (RLS hides them) and fill in once the
- * game ends, which is exactly what the picker's empty text says.
+ * Whose guesses are shown is the shared `useEventLogPlayerPicker` dropdown in
+ * the header. In compete an opponent's rows are empty during play (RLS hides
+ * them) and fill in once the game ends, which is what the picker's empty text
+ * says.
  */
 export function GameEventLog({
   guesses,
@@ -122,7 +110,7 @@ export function GameEventLog({
 /**
  * Short verdict line for one guess row. Correct guesses just name the category
  * (the green outcome bar already says "found", so no "Matched:" prefix); the
- * other two carry the NYT-canonical short copy.
+ * other two carry the NYT-canonical short text.
  *
  * `matched_category_rank` is non-null IFF the guess MATCHED (the SQL
  * constraint guarantees this); a defensive fallback to plain "Correct" if a

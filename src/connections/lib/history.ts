@@ -1,57 +1,51 @@
 // cs-met-connections
 
 /**
- * connections — the turn-history replay. Given the guess log, the static board, and
- * the position of a turn within the log, reconstruct what the board looked like *at
- * the moment that turn was submitted* — so PlayArea can hand `<Board>` a historical
- * snapshot the same way it hands it the live board.
+ * connections — the turn-history replay. Given the guess log, the static board
+ * and a turn's row id, reconstruct what the board looked like *at the moment
+ * that turn was submitted*, so PlayArea hands `<Board>` a snapshot the same
+ * way it hands it the live board.
  *
- * connections's board MUTATES: a **correct** guess collapses its 4 tiles into a
- * colored band (they leave the grid); a wrong / one-away guess leaves the board
- * unchanged. That makes it the removal-style twin of stackdown (a guess "consumes"
- * tiles into a band like stackdown clears a word off the stack) — so this uses the
- * same **strictly-before** boundary: a turn's snapshot shows the
- * bands matched by correct guesses strictly before it, and every other tile
- * still on the grid. That leaves THIS turn's own 4 tiles on the board (even a
- * correct guess's — they haven't collapsed yet), which is exactly what we want,
- * because we then light those 4 in the turn's outcome color ("this is the
- * group this turn guessed, and here's how it went").
+ * The board MUTATES: a correct guess collapses its four tiles into a band, a
+ * wrong or one-away guess leaves it alone. So the snapshot takes a
+ * **strictly-before** boundary — the bands matched before this turn, and every
+ * other tile still on the grid, THIS turn's four included even when it was
+ * correct (they had not collapsed yet). Those four are then lit by what the
+ * turn was.
  *
- * **Addressed by the row's own id**, resolved against the list being folded. The
+ * Addressed by the row's own id, resolved against the list being folded: the
  * `#N` the log prints counts the rows it is SHOWING, which a filter moves.
- *
- * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
- * Which rows are folded is PlayArea's: the rows of whoever wrote the row opened,
- * so a compete terminal can replay an opponent's board as easily as your own.
+ * Which rows are folded is PlayArea's — the rows of whoever wrote the row
+ * opened, so a compete terminal can replay an opponent's board.
  */
 import type { Board, Category } from './board'
 import type { EventRow, MatchedCategory } from '../hooks/useGame'
 import type { GuessResult } from './answer'
 
 export interface HistorySnapshot {
-  /** Bands matched by correct guesses STRICTLY BEFORE this turn (so this turn's own
-   *  tiles, if correct, are still on the grid). Feed straight to `<Board matched>`. */
+  // Bands matched by correct guesses STRICTLY BEFORE this turn (so this turn's
+  // own tiles, if correct, are still on the grid). Feed straight to
+  // `<Board matched>`.
   matched: MatchedCategory[]
-  /** The tiles on the grid at this turn — `board.tileOrder` minus the strictly-before
-   *  matched tiles. Feed straight to `<Board tiles>`. */
+  // The tiles on the grid at this turn — `board.tileOrder` minus the
+  // strictly-before matched tiles. Feed straight to `<Board tiles>`.
   tiles: string[]
-  /** The four tiles this turn guessed — light them by what it was. */
+  // The four tiles this turn guessed — light them by what it was.
   historyLitTiles: Set<string>
-  /** This turn's verdict, as the three-value wire word — which is what the lit
-   *  tiles' tint keys on, there being exactly three of those and seven
-   *  outcomes. What it is WORTH is `lib/answer.ts`'s. */
+  // This turn's verdict, as the three-value wire word — which is what the lit
+  // tiles' tint keys on, there being exactly three of those and seven
+  // outcomes. What it is WORTH is `lib/answer.ts`'s.
   result: GuessResult
-  /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
+  // A short, name-free turn label for the viewer banner (the log row shows
+  // *who*).
   historyLabel: string
 }
 
 /**
- * Reconstruct the board + lit tiles + historyLabel for the turn with this `id`.
- * Folds every CORRECT guess strictly before it into the matched bands, and marks
- * that event's own 4 tiles as the lit ones.
- *
- * Addressed by the ROW'S ID, resolved against the list being folded — the log's
- * number is a position in what is SHOWN, and a filter moves it.
+ * The board, the lit tiles and the banner label for the turn with this `id`:
+ * every CORRECT guess strictly before it folded into the bands, and that
+ * event's own four tiles lit. An id these rows do not hold folds nothing and
+ * lights nothing.
  */
 export function historySnapshot(
   guesses: ReadonlyArray<EventRow>,
