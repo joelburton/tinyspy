@@ -730,27 +730,9 @@ The broadcast / presence *behavior* itself (selection events merging across peer
 
 ## Deferred
 
-- **`useGame.ts:248`'s `as GameRow | undefined` is a cast standing in for a
-  compiler flag.** The twin of stackdown's, and the full reasoning is filed
-  there ([stackdown.md](stackdown.md#7-deferred)): `data[0]` types as present
-  because `noUncheckedIndexedAccess` is off, so the `| undefined` is written by
-  hand to give the following `if (!row)` something to narrow. Correct today, and
-  the two of them are the only sites in the app that felt the gap enough to work
-  around it.
-
-- **"Next puzzle" should give the next date we HAVE a puzzle for, not just the
-  next date** (Joel, 2026-08-25), quoted as said because I am not certain which
-  behavior he means and the evidence cuts both ways. What
-  `connections.next_puzzle_for_club` does today already skips gaps — it selects
-  `from connections.puzzles`, so a date with no row cannot come back. So the
-  case he is probably describing is the OVERRIDE: type a date the archive
-  doesn't have and the field says *"No Connections puzzle for 2026-08-11."* and
-  stops, where it could offer the next date that does have one. Confirm which
-  before building. Raised while converting `<SetupNextPuzzleSection>` to a
-  `<SetupSection>` in the CSS sprint's `forms` area, and deliberately **not**
-  done there.
-
-- **Per-tile rise-and-fade animations** on category match. A rejected guess shakes (the shared verdict mark); the match-resolved animation doesn't exist — the arriving band's attention flash is the nearest thing, and it is deliberately for the OTHER players.
+The register lives in [`src/connections/todo.md`](../../src/connections/todo.md)
+since the area opened (2026-09-19); the three items that were here are its
+Maybe section.
 
 ## Printing the board (PDF)
 
