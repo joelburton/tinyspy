@@ -15,10 +15,6 @@
   `<HintList>` only in the `showInput` branch, so at terminal and for an
   eliminated or conceded player the row flips a flag nothing renders. It
   should answer `hidden` whenever `!showInput`.
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
 
 ## Soon
 

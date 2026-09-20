@@ -63,7 +63,7 @@ const helpLoader = lazy(() =>
 // hook's loaded game row) for the compete-only OpponentStrip
 // + eliminated-state UI.
 const playAreaLoader = lazy(() =>
-  import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+  import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
 
 // SetupForm is shared — puzzle picker + timer-mode field, mode-

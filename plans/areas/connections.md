@@ -140,6 +140,47 @@ went:
 | an eliminated racer pauses the survivors (Soon) | pass 2, with the SQL open — a decision |
 | the three Maybes | pass 2 or pass 3, as each says |
 
+### Step 2 — the loader / loaded split (readability 3.1) — DONE 2026-09-19
+
+The shape psychicnum settled, copied: `PlayAreaLoader` owns `useGame` and
+the three gates — `<Loading>`, `<EnvelopeErrorPage>`, `<NoSuchGamePage>`
+(its `detail` names the read that came back empty, `rows=0
+table=connections.games`, since this hook reads the table and not a view) —
+and hands `PlayArea` a non-null game plus the ten things the hook returns
+beside it, including the selection state (`selections`, `unionTiles`,
+`toggleTile`, `sendClear`) that `useGame` keeps for the Broadcast. The cast
+happens once, in the loader's JSX; the inner component takes
+`setup: ConnectionsSetup` through `Omit<GamePageCtx, 'setup'>`. The
+manifest's lazy line names the loader; the test file mounts it at all
+thirty-five sites, `useGame` mocked exactly as before.
+
+**What went with it**, all in this commit: every `game?.` (six), `gameMode`
+and its `if (!gameMode) return` in `createNewGame`, the `mode ?? 'coop'`
+default, the three `setup` casts, `boardView`'s null branch and the `!` at
+its read, Print's `describe: () => (game && boardView ? 'active' : 'hidden')`
+(now `'active'`) and the `if (!game || !boardView) return` inside its run,
+the two `game.mode` reads in the render section (every read is `mode` now),
+and four comments whose reason was the early return: "hoisted ABOVE the early
+return so the print-model build … reads the SAME values", "Above the early
+returns because effects must be", "(`myConceded` is derived above the early
+returns so the header-menu effect can read it)", and "menu exists pre-load".
+The old inline `<p>Loading board…</p>` and `<p>Game not found.</p>` are gone.
+
+**One behavior change, stated now**, the same one psychicnum's split made:
+while the read is out the header menu has no game rows and `+` does nothing,
+where before the rows were published pre-load and `+` asked the new-game
+question and then could not act. That was the `act-new-game` Bug in
+`todo.md`, closed by this step and deleted there.
+
+**Not this step's, and left for Step 5 and Step 6:** `boardView` still
+computes `locallyDone` and `unmatched` that the render section computes a
+second time — the memo existed for the early return and no longer needs to
+be one, but where those derivations sit is the section order's question. The
+surface's docstring still describes the pre-split file; Step 6 rewrites it.
+
+Verified: `tsc -b` clean, lint clean, 372 unit tests green (the game's and
+the guards). The e2e specs have not run for this step.
+
 ### After the restructure — pass 2, the audit
 
 The area's ordinary process from here: the prose pass, then findings one at a
@@ -203,6 +244,13 @@ has one, no prefix means OPEN)*
 ## Predicted test breaks
 
 *(the spec names, written when the area starts changing things)*
+
+- Step 2: `PlayArea.test.tsx` imports and mounts `PlayAreaLoader` (the same
+  tree, `useGame` mocked as before); its "still says Game not found" case
+  had to change, since the gate is the shared Not-Found card now — it asserts
+  the card's title and the console line naming the empty read. **Held**
+  otherwise: 372 green. Nothing else predicted; no column moved, so the
+  geometry harness has no reason to.
 
 ## Closing
 

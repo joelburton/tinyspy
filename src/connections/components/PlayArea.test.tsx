@@ -23,7 +23,7 @@ import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { ConnectionsGame, MatchedCategory } from '../hooks/useGame'
 import { db } from '../db'
-import { PlayArea } from './PlayArea'
+import { PlayAreaLoader } from './PlayArea'
 
 /**
  * The shape connections' useGame returns — the mock hands one of these back.
@@ -143,9 +143,9 @@ const ok = (data: unknown) => ({ ...okEnvelope, data: { ...okEnvelope.data, data
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
  *  Only the tests whose subject is a keystroke need it — a bare `render` binds
  *  the actions but has nothing feeding them keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+function WithKeys(props: React.ComponentProps<typeof PlayAreaLoader>) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** A keystroke as the app-root listener sees it: from the body, with nothing
@@ -192,7 +192,7 @@ describe('connections PlayArea — concede', () => {
     h.result = loaded({ game: game('compete') })
     render(
       <>
-        <PlayArea {...makeCtx({ players: twoMembers })} />
+        <PlayAreaLoader {...makeCtx({ players: twoMembers })} />
         <ConfirmationHost />
       </>,
     )
@@ -209,7 +209,7 @@ describe('connections PlayArea — concede', () => {
     h.result = loaded({ game: game('coop') })
     render(
       <>
-        <PlayArea {...makeCtx()} />
+        <PlayAreaLoader {...makeCtx()} />
         <ConfirmationHost />
       </>,
     )
@@ -227,7 +227,7 @@ describe('connections PlayArea — concede', () => {
   it('marks a conceded opponent "out" in the strip', () => {
     h.result = loaded({ game: game('compete') })
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })],
         })}
@@ -239,7 +239,7 @@ describe('connections PlayArea — concede', () => {
   it('shows the "You conceded" locally-terminal look after I concede', () => {
     h.result = loaded({ game: game('compete') })
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
         })}
@@ -275,7 +275,7 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
       matchedCategories: [{ rank: 0, name: 'RED', tiles: ['a', 'b', 'c', 'd'], matched_at: '2026-06-15T00:00:00Z' }],
       mistakeCount: 4,
     })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
     // The one they solved is a band; the other twelve tiles are still there.
     expect(screen.getByText('RED')).toBeInTheDocument()
@@ -291,7 +291,7 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
       matchedCategories: [{ rank: 0, name: 'RED', tiles: ['a', 'b', 'c', 'd'], matched_at: '2026-06-15T00:00:00Z' }],
       mistakeCount: 4,
     })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
     await user.click(revealButton()!)
     expect(screen.getByText('GREEN')).toBeInTheDocument()
@@ -307,7 +307,7 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
 
   it('an eliminated compete player sees no answer while the others race', () => {
     h.result = loaded({ game: game('compete'), isEliminated: true, mistakeCount: 4 })
-    render(<PlayArea {...makeCtx({ isTerminal: false, playState: 'playing' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: false, playState: 'playing' })} />)
 
     // Their board freezes and says so, but the puzzle stays unspoiled — sitting
     // out with something left to think about beats being handed the answer.
@@ -322,7 +322,7 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
     const user = userEvent.setup()
     const toggleTile = vi.fn()
     h.result = loaded({ game: game('coop'), mistakeCount: 4, toggleTile })
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
     await user.click(document.querySelector('[data-tile="a"]') as HTMLElement)
     // The tiles are a RECORD now, not an input surface.
@@ -349,14 +349,14 @@ describe('connections PlayArea — the board-scope marks', () => {
 
   it('leaves a live board unmarked', () => {
     h.result = loaded({ game: game('coop') })
-    const { container } = render(<PlayArea {...makeCtx()} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(gridIn(container).className).not.toMatch(/gameOver/)
     expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)
   })
 
   it('bands the finished board in its outcome', () => {
     h.result = loaded({ game: game('coop'), mistakeCount: 4 })
-    const { container } = render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
     expect(gridIn(container).className).toMatch(/gameOverFrame/)
     expect(gridIn(container).className).toMatch(/gameOverLost/)
@@ -367,7 +367,7 @@ describe('connections PlayArea — the board-scope marks', () => {
     // The game is still on for the survivors, so there is no verdict to color
     // the frame with — but this board is inert, which is all the frame claims.
     h.result = loaded({ game: game('compete'), isEliminated: true, mistakeCount: 4 })
-    const { container } = render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
 
     expect(gridIn(container).className).toMatch(/gameOverFrame/)
     expect(gridIn(container).className).not.toMatch(/gameOverWon|gameOverLost/)
@@ -376,7 +376,7 @@ describe('connections PlayArea — the board-scope marks', () => {
   it('dims the board while a teammate holds the move, and flashes when it arrives', () => {
     h.result = loaded({ game: game('coop') })
     const { container, rerender } = render(
-      <PlayArea {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: twoMembers })} />,
     )
     expect(gridIn(container).className).toMatch(/dimNotYourTurn/)
     // An EVENT, so never on mount: opening a game on your own turn is not the
@@ -384,7 +384,7 @@ describe('connections PlayArea — the board-scope marks', () => {
     expect(gridIn(container).className).not.toMatch(/yourTurnFlash/)
 
     rerender(
-      <PlayArea {...makeCtx({ currentTurnUserId: 'u1', isMyTurn: true, players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u1', isMyTurn: true, players: twoMembers })} />,
     )
 
     expect(gridIn(container).className).toMatch(/yourTurnFlash/)
@@ -396,7 +396,7 @@ describe('connections PlayArea — the board-scope marks', () => {
     const toggleTile = vi.fn()
     h.result = loaded({ game: game('coop'), toggleTile })
     render(
-      <PlayArea {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: twoMembers })} />,
     )
 
     const tile = document.querySelector('[data-tile="a"]') as HTMLButtonElement
@@ -418,7 +418,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       selections: new Map([['u1', ['a']], ['u2', ['b']]]),
       unionTiles: ['a', 'b'],
     })
-    render(<PlayArea {...makeCtx({ players: twoMembers })} />)
+    render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
 
     // In coop the four tiles are ONE shared move, so both are "in the guess"…
     expect(tile('a').className).toMatch(/selected/)
@@ -446,7 +446,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
         selections: new Map([['u1', ['a']]]),
         unionTiles: ['a'],
       })
-      const { unmount } = render(<PlayArea {...makeCtx({ players })} />)
+      const { unmount } = render(<PlayAreaLoader {...makeCtx({ players })} />)
       expect(tile('a').className).toMatch(/selected/)
       expect(tile('a').className).not.toMatch(/peerPick/)
       unmount()
@@ -464,7 +464,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
       unionTiles: ['a', 'b', 'e', 'i'],
     })
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
 
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
@@ -500,7 +500,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
       unionTiles: ['a', 'b', 'e', 'i'],
     })
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
 
     await user.click(screen.getByRole('button', { name: 'Submit' }))
 
@@ -527,7 +527,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
       unionTiles: ['a', 'b', 'e', 'i'],
     })
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
 
     await user.click(screen.getByRole('button', { name: 'Submit' }))
     expect(tile('a').className).toMatch(/verdictFill/)
@@ -560,7 +560,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
         selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
-      const view = render(<PlayArea {...ctx} />)
+      const view = render(<PlayAreaLoader {...ctx} />)
       await user.click(screen.getByRole('button', { name: 'Submit' }))
       expect(tile('a').className).toMatch(/verdictFill/)
       return view
@@ -579,7 +579,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
         selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
-      rerender(<PlayArea {...ctx} />)
+      rerender(<PlayAreaLoader {...ctx} />)
 
       expect(tile('a').className).toMatch(/verdictFill/)
     })
@@ -600,7 +600,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
         selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
-      rerender(<PlayArea {...ctx} />)
+      rerender(<PlayAreaLoader {...ctx} />)
 
       expect(tile('a').className).not.toMatch(/verdictFill/)
       expect(tile('c').className).toMatch(/verdictFill/)
@@ -616,7 +616,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
         selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
-      rerender(<PlayArea {...ctx} />)
+      rerender(<PlayAreaLoader {...ctx} />)
 
       expect(tile('a').className).not.toMatch(/verdictFill/)
     })
@@ -634,7 +634,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       mistakeCount: 4,
     })
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({ isTerminal: true, playState: 'lost', players: twoMembers })}
       />,
     )
@@ -659,7 +659,7 @@ describe('connections PlayArea — a failed load is not a missing game', () => {
         detail: 'GET /rest/v1/games_state',
       },
     })
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
 
     expect(screen.getByText('The read failed.')).toBeInTheDocument()
     expect(screen.queryByText('Game not found.')).not.toBeInTheDocument()
@@ -668,11 +668,16 @@ describe('connections PlayArea — a failed load is not a missing game', () => {
     expect(screen.getByText(/GET \/rest\/v1\/games_state/)).toBeInTheDocument()
   })
 
-  it('still says "Game not found." when the reads WORKED and there is no game', () => {
+  it('shows the Not-Found card when the reads WORKED and there is no game', () => {
+    // The shared `<NoSuchGamePage>`: the card says nothing diagnostic, and the
+    // console line names the read that came back empty.
+    const debug = vi.spyOn(console, 'debug').mockImplementation(() => {})
     h.result = loaded({ game: null, failure: null })
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
 
-    expect(screen.getByText('Game not found.')).toBeInTheDocument()
+    expect(screen.getByText('Not Found')).toBeInTheDocument()
+    expect(screen.queryByText('Game not found.')).not.toBeInTheDocument()
+    expect(debug).toHaveBeenCalledWith('[ui] no-such-game | rows=0 table=connections.games game=g1')
   })
 })
 
@@ -703,7 +708,7 @@ describe('connections PlayArea — attention', () => {
   it('flashes a band a teammate’s guess produced', () => {
     h.result = loaded({ game: game('coop') })
     const ctx = makeCtx({ players: twoMembers })
-    const { rerender } = render(<PlayArea {...ctx} />)
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
 
     // moth's correct guess arrives: four tiles collapse into a band and
     // everything below reflows, in whatever corner they were working.
@@ -712,7 +717,7 @@ describe('connections PlayArea — attention', () => {
       guesses: [correctGuess('u2')],
       matchedCategories: [redBand],
     })
-    rerender(<PlayArea {...ctx} />)
+    rerender(<PlayAreaLoader {...ctx} />)
 
     expect(bandFor('RED').className).toMatch(/attentionFlash/)
   })
@@ -721,14 +726,14 @@ describe('connections PlayArea — attention', () => {
   it('flashes my own band too — the band lands where I was not looking', () => {
     h.result = loaded({ game: game('coop') })
     const ctx = makeCtx({ players: twoMembers })
-    const { rerender } = render(<PlayArea {...ctx} />)
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
 
     h.result = loaded({
       game: game('coop'),
       guesses: [correctGuess('u1')],
       matchedCategories: [redBand],
     })
-    rerender(<PlayArea {...ctx} />)
+    rerender(<PlayAreaLoader {...ctx} />)
 
     // I chose the four tiles, but the band arrives at the TOP of the board while
     // I am reading the tiles — so the flash says "your four went here".
@@ -744,7 +749,7 @@ describe('connections PlayArea — attention', () => {
       mistakeCount: 4,
     })
     const { container } = render(
-      <PlayArea {...makeCtx({ isTerminal: true, playState: 'lost', players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost', players: twoMembers })} />,
     )
 
     await user.click(revealButton()!)
@@ -948,7 +953,7 @@ describe('connections PlayArea — the keys', () => {
       h.result = loaded({ game: game('coop') })
       render(
         <>
-          <PlayArea {...makeCtx()} />
+          <PlayAreaLoader {...makeCtx()} />
           <ConfirmationHost />
         </>,
       )
@@ -965,7 +970,7 @@ describe('connections PlayArea — the keys', () => {
       h.result = loaded({ game: game('coop') })
       render(
         <>
-          <PlayArea {...makeCtx()} />
+          <PlayAreaLoader {...makeCtx()} />
           <ConfirmationHost />
         </>,
       )
@@ -978,7 +983,7 @@ describe('connections PlayArea — the keys', () => {
     it('at terminal the button goes straight through', async () => {
       const user = userEvent.setup()
       h.result = loaded({ game: game('coop'), mistakeCount: 4 })
-      render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+      render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
       await user.click(screen.getByRole('button', { name: 'Restart' }))
       // No <ConfirmationHost/> is mounted, so a question would have been

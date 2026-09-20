@@ -4,6 +4,8 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
+import { Loading } from '@/common/loading/Loading'
+import { NoSuchGamePage } from '@/common/game-page/NoSuchGamePage'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { colorByUserIdMap } from '@/common/members/memberColor'
@@ -30,7 +32,7 @@ import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { db } from '../db'
 import type { CategoryRank } from '../lib/board'
-import { useGame } from '../hooks/useGame'
+import { useGame, type ConnectionsGame, type EventRow, type MatchedCategory, type SelectionMap } from '../hooks/useGame'
 import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
 import { historySnapshot } from '../lib/history'
 import { BoardCol } from './BoardCol'
@@ -45,6 +47,84 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *  constants, shown in the setup disclosure + the "N/4 found" state line. */
 const CATEGORY_COUNT = 4
 const MISTAKE_BUDGET = 4
+
+/**
+ * The three gates in front of connections' play surface: the read is out, the
+ * read failed, or there is no such game. Everything below starts with a game
+ * in hand, which is why the surface never writes `game?.`.
+ *
+ * The game's menu rows and its `+` arrive WITH the game, because the surface
+ * that binds them mounts with it — a row for a game not yet read could only
+ * gray itself or lie.
+ */
+export function PlayAreaLoader(ctx: GamePageCtx) {
+  const {
+    game,
+    guesses,
+    matchedCategories,
+    mistakeCount,
+    opponentFound,
+    isEliminated,
+    selections,
+    unionTiles,
+    toggleTile,
+    sendClear,
+    loading,
+    failure,
+  } = useGame(ctx.session, ctx.gameId)
+
+  if (loading) return <Loading />
+  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // "there's no game here" about a dead connection is a confident wrong answer
+  // — this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  // Reaching this means the COMMON row exists — `GamePageGate` and
+  // `GamePageLoader` each checked — and the connections one does not: a torn
+  // write, or a game deleted while somebody had the board open. `detail` goes
+  // to the console, never to the page.
+  if (!game) return <NoSuchGamePage detail={`rows=0 table=connections.games game=${ctx.gameId}`} />
+
+  return (
+    <PlayArea
+      {...ctx}
+      game={game}
+      guesses={guesses}
+      matchedCategories={matchedCategories}
+      mistakeCount={mistakeCount}
+      opponentFound={opponentFound}
+      isEliminated={isEliminated}
+      selections={selections}
+      unionTiles={unionTiles}
+      toggleTile={toggleTile}
+      sendClear={sendClear}
+      // The one place the setup blob is narrowed. `GamePageCtx` types it
+      // `Record<string, unknown>` for every game; below, it is this game's.
+      setup={ctx.setup as unknown as ConnectionsSetup}
+    />
+  )
+}
+
+type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
+  // The loaded game row. Non-null by construction — the loader holds the gates.
+  game: ConnectionsGame
+  // This player's guess log (`connections.events`); RLS scopes it in compete.
+  guesses: EventRow[]
+  // The categories solved so far — a projection of `guesses`, in solve order.
+  matchedCategories: MatchedCategory[]
+  // My mistakes so far, and whether they used up the budget.
+  mistakeCount: number
+  isEliminated: boolean
+  // Compete: each opponent's categories-found, from the public players rows.
+  opponentFound: ReadonlyMap<string, number>
+  // The shared selection state `useGame` keeps (Broadcast in coop, local in
+  // compete): who has which tiles picked, their union, and the two senders.
+  selections: SelectionMap
+  unionTiles: string[]
+  toggleTile: (tile: string) => void
+  sendClear: () => void
+  // This game's setup blob, narrowed once by the loader.
+  setup: ConnectionsSetup
+}
 
 /**
  * connections's play surface, shared between the coop and compete
@@ -93,7 +173,17 @@ const MISTAKE_BUDGET = 4
  * state lives in `useGame` (component-local + broadcast); the
  * unmount drops it automatically.
  */
-export function PlayArea({
+function PlayArea({
+  game,
+  guesses,
+  matchedCategories,
+  mistakeCount,
+  opponentFound,
+  isEliminated,
+  selections,
+  unionTiles,
+  toggleTile,
+  sendClear,
   session,
   gameId,
   players,
@@ -109,32 +199,20 @@ export function PlayArea({
   menu,
   brand,
   title,
-}: GamePageCtx) {
+}: PlayAreaProps) {
+  const mode = game.mode
+  const puzzleDate = game.puzzleDate
+
   // The board is worked by clicks and typing, so Tab has nowhere to go here —
   // and an empty ring is what keeps it from walking out to the browser.
   useTabRing([])
-  const {
-    game,
-    guesses,
-    matchedCategories,
-    mistakeCount,
-    opponentFound,
-    isEliminated,
-    selections,
-    unionTiles,
-    toggleTile,
-    sendClear,
-    loading,
-    failure,
-  } = useGame(session, gameId)
-  const connectionsSetup = setup as unknown as ConnectionsSetup
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
-    () => setupRows(connectionsSetup, game?.mode ?? 'coop', players, game?.puzzleDate ?? null),
-    [connectionsSetup, game, players],
+    () => setupRows(setup, mode, players, puzzleDate),
+    [setup, mode, players, puzzleDate],
   )
   // Inline hint list open/closed — InfoCol's Hints button TOGGLES it, and the list
   // renders in InfoCol right below that button (it's one more info-column readout,
@@ -212,7 +290,7 @@ export function PlayArea({
   // the caller server-side, so no foreign rows arrive, and we gate on coop
   // besides.
   usePeerFeedback({
-    enabled: game?.mode === 'coop',
+    enabled: mode === 'coop',
     items: guesses,
     keyOf: (g) => String(g.id),
     messageFor: (g) => {
@@ -271,7 +349,7 @@ export function PlayArea({
     impliedBySolve,
   } = useSolutionReveal({
     impliedBy: solvedByMe({
-      isCompete: game?.mode === 'compete',
+      isCompete: mode === 'compete',
       playState,
       mine: iMatchedThemAll,
     }),
@@ -281,7 +359,7 @@ export function PlayArea({
       db,
       gameId,
       isTerminal,
-      mode: game?.mode === 'compete' ? 'compete' : 'coop',
+      mode,
       myConceded,
       localFeedbackSlot,
     })
@@ -306,10 +384,7 @@ export function PlayArea({
   // A plain function, rebuilt every render: the binding below reads it at click
   // time, so the values it closes over are whatever the last realtime refetch
   // left, and the action's own identity doesn't move when they do.
-  const gameMode = game?.mode
   const createNewGame = async () => {
-    if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
-
     // Ask what we'd get, purely so running out can be a NOTICE rather than a
     // not-ok: "there is no next puzzle" is a fact about the archive, not a
     // failure of this click. Same shape strands uses. The answer is advisory —
@@ -354,7 +429,7 @@ export function PlayArea({
     // `puzzle_id` is deliberately ABSENT: that is how create_game is told to
     // choose. Carrying THIS game's setup forward would otherwise re-start the
     // very puzzle we just finished.
-    const carried = { ...(setup as unknown as ConnectionsSetup) }
+    const carried = { ...setup }
     delete carried.puzzle_id
     // No `.single()`: the RPC returns the envelope itself, one jsonb value —
     // asking for a single ROW of it gets the envelope where the game was meant
@@ -364,7 +439,7 @@ export function PlayArea({
         target_club: clubHandle,
         setup: carried,
         player_user_ids: players.map((p) => p.user_id),
-        mode: gameMode,
+        mode,
       }),
     )
     if (res.type === 'not-ok') {
@@ -377,7 +452,7 @@ export function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`connections_${gameMode}`, res.data.id)
+      goToGame(`connections_${mode}`, res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)
@@ -413,13 +488,9 @@ export function PlayArea({
     run: toggleSolution,
   })
 
-  // Mode is read off the loaded game; before it loads we default to coop.
-  const mode: 'coop' | 'compete' = game?.mode ?? 'coop'
-  // Board derivations, hoisted ABOVE the early return so the print-model build
-  // in the menu effect (a hook, so it can't live below one) reads the SAME
-  // values the render does rather than a second copy that could drift.
+  // Board derivations the print model and the render both read — the same
+  // values, rather than a second copy that could drift.
   const boardView = useMemo(() => {
-    if (!game) return null
     const locallyDone = isEliminated || myConceded
     const matchedTiles = new Set<string>()
     for (const mc of matchedCategories) for (const t of mc.tiles) matchedTiles.add(t)
@@ -444,9 +515,8 @@ export function PlayArea({
   // scoping carries onto paper for free. Built inside `run` rather than in the
   // menu effect, so the menu needn't rebuild as the board moves.
   const actPrintBoard = useBoundAction('act-print-board', {
-    describe: () => (game && boardView ? 'active' : 'hidden'),
+    describe: () => 'active',
     run: () => {
-      if (!game || !boardView) return
       printConnectionsPdf(
         buildConnectionsPrintModel({
           brand,
@@ -502,8 +572,7 @@ export function PlayArea({
 
   // ─── The three standing conditions of the local slot ───
   // Each is an effect on a primitive edge that shows on true and retracts in
-  // its cleanup — the slot draws whichever ranks highest. Above the early
-  // returns because effects must be.
+  // its cleanup — the slot draws whichever ranks highest.
 
   // The terminal message, memoized on primitives so the verdict effect sees
   // one object per outcome. Compete distinguishes the winner (caller hit 4
@@ -516,10 +585,10 @@ export function PlayArea({
   const selfEliminated = mistakeCount >= MISTAKE_BUDGET
   const over = useMemo(
     () =>
-      isTerminal && gameMode
-        ? buildOver({ mode: gameMode, playState, timerExpired, selfMatched, selfEliminated })
+      isTerminal
+        ? buildOver({ mode, playState, timerExpired, selfMatched, selfEliminated })
         : null,
-    [isTerminal, gameMode, playState, timerExpired, selfMatched, selfEliminated],
+    [isTerminal, mode, playState, timerExpired, selfMatched, selfEliminated],
   )
   useEffect(function showTerminalVerdict() {
     if (!over) return
@@ -559,24 +628,12 @@ export function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, waiting, holderName, holderColor])
 
-  if (loading) return <p>Loading board…</p>
-  // THE LOAD FAILED, which is not the same as the game being absent — and used
-  // to be told as if it were, so a dead connection said "Game not found."
-  // about a game that exists. The board cannot render either way, so the
-  // failure IS the surface here (docs/ui.md → Faults: a fault page where the
-  // page behind it does not survive, a modal where it does). The modal has
-  // already been and gone; this is what a player is left looking at.
-  if (failure) return <EnvelopeErrorPage envelope={failure} />
-  // Genuinely absent: the reads worked and there is no such game.
-  if (!game) return <p>Game not found.</p>
-
-  // `concededIds` marks a dropped-out opponent 'out' in the strip. (`myConceded`
-  // is derived above the early returns so the header-menu effect can read it.)
+  // `concededIds` marks a dropped-out opponent 'out' in the strip.
   const concededIds = new Set(
     players.filter((p) => p.conceded).map((p) => p.user_id),
   )
 
-  const { remainingTiles } = boardView!
+  const { remainingTiles } = boardView
 
   // When a past turn is open, `historySnap` is that turn's board (else null =
   // live) — the bands matched STRICTLY BEFORE it + its own 4 guessed tiles (ringed in
@@ -589,7 +646,7 @@ export function PlayArea({
   // board, so the filter is a no-op there.
   const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
   const historyRows =
-    game.mode === 'compete' && historyRow
+    mode === 'compete' && historyRow
       ? guesses.filter((g) => g.user_id === historyRow.user_id)
       : guesses
   const historySnap =
@@ -597,7 +654,7 @@ export function PlayArea({
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared grid.
   const historyActor =
-    game.mode === 'compete' && historyRow && historyRow.user_id !== session.user.id
+    mode === 'compete' && historyRow && historyRow.user_id !== session.user.id
       ? memberById(players, historyRow.user_id)
       : undefined
 
@@ -619,7 +676,6 @@ export function PlayArea({
     ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
     : []
 
-  const connSetup = setup as ConnectionsSetup
   const found = matchedCategories.length
 
   return (
@@ -655,7 +711,7 @@ export function PlayArea({
         // somebody else here. Solo, every pick is mine and a colored ring would
         // be decoration on top of the selection border; in compete the selection
         // never leaves this client, so the same holds however many are racing.
-        sharedBoard={game.mode === 'coop' && players.length > 1}
+        sharedBoard={mode === 'coop' && players.length > 1}
         // ── Own-guess feedback (the slot is PlayArea's) ──
         localFeedbackSlot={localFeedbackSlot}
         // ── Guess dispatch ──
@@ -669,7 +725,7 @@ export function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
       <InfoCol
         // ── Mode + phase ──
-        isCompete={game.mode === 'compete'}
+        isCompete={mode === 'compete'}
         over={over}
         showInput={showInput}
         myConceded={myConceded}
@@ -697,9 +753,9 @@ export function PlayArea({
         actNewGame={actNewGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
-        setup={connSetup}
+        setup={setup}
         setupRows={summaryRows}
-        puzzleDate={game.puzzleDate}
+        puzzleDate={puzzleDate}
         tileCount={game.board.tileOrder.length}
         // ── Turn-history log ──
         guesses={guesses}
