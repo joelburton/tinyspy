@@ -63,8 +63,8 @@ export function drawTile(doc: jsPDF, t: TileBox): void {
   // An un-outlined 'blank' draws no box at all.
 
   if (!t.letter.trim()) return
-  // White on the dark fill, black everywhere else — the only place the letter's
-  // own color carries anything, and it's a contrast decision, not a code.
+  // White on the dark fill, black everywhere else — a contrast decision, not a
+  // code: the state is already in the fill.
   const fontSize = size * 0.58
   doc.setFont('helvetica', 'bold').setFontSize(fontSize)
   if (state === 'wordleGreen') doc.setTextColor(255, 255, 255)

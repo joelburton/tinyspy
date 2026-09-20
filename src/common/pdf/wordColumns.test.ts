@@ -1,13 +1,13 @@
 // cs-audited-pdf
 
 /**
- * Tests for the shared word-list PDF body (boggle, spellingbee, wordwheel).
- * drawWordColumns owns the balance-then-paginate packing every word-list
- * printer inherits; drawWordListBody is the skeleton that places the board, the
- * Setup to its right, and the words BELOW whichever of the two is taller. We pin
- * the placeholder, the "fits without spilling" case, the overflow spill, and
- * that the body flows words below the board — the parts a per-game printer
- * can't see regress.
+ * Tests for the shared word-list PDF body. drawWordColumns owns the
+ * balance-then-paginate packing every word-list printer inherits;
+ * drawWordListBody is the skeleton that places the board, the Setup to its
+ * right, and the words BELOW whichever of the two is taller. What is pinned
+ * is what a per-game printer can't see regress: the placeholder, the spill,
+ * a section that has to open a new page, and where the body puts the board,
+ * the Setup and the words.
  */
 
 import { describe, expect, it, vi } from 'vitest'

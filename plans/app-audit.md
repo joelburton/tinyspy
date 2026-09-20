@@ -69,7 +69,8 @@ behind, and the rule that a subset lives with its consumer is written in the
 folder's `doc.md`. Two things found and handed on, both to `turn-log`:
 `TurnOutcome` is a second name for `Outcome` with three words missing, and the
 missing `warning` is why four games work around it to log a hint row. One thing
-found and left for `pdf`: its printed ✓/✗ marks are still glossed `good` / `bad`.
+found and left for `pdf`: its printed ✓/✗ marks were glossed `good` / `bad`
+(a find and a miss since 2026-09-19).
 
 **`mobile` is closed** (2026-09-05): fifteen files `cs-blessed-mobile`, and all
 thirteen findings settled — twelve worked, one closed with no change. Three

@@ -609,7 +609,7 @@ trip, tiles bounced back, pill) without depending on which letters are on top.
 ## 6. Printing the board (PDF)
 
 `src/stackdown/pdf/` — a **"Print board (PDF)"** GamePage menu item, the tenth
-game to print (common/pdf/doc.md). Event-log family: the stack in the left column, the
+game to print (common/pdf/doc.md). Track family: the stack at the top of its column, the
 word log beneath.
 
 **The stack prints almost for free**, because `common/pdf/doc.md`'s "every surface is white"

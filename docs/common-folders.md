@@ -352,12 +352,13 @@ from everyone else.
   already its doc.
 - **`revealWords` stays in `shared/word-hunt`** while `useSolutionReveal` is
   `common/reveal` — reveal is split between common and shared on purpose.
-- **`pdfTiles` is the one printer outside `common/pdf/`.** Printing lives in
-  one folder deliberately, and this bends that: it takes `TileColor` from
-  `wordle-style`, and common may not import a family. It is honestly a
-  wordle/waffle file anyway — those two are its only callers. It still reads
-  `common/pdf/frame`'s grays, which is a family using the shell, the allowed
-  direction. Joel's call, 2026-09-04, when the guard surfaced the edge.
+- **`pdfTiles` is a shared print helper outside `common/pdf/`.** The shared
+  print helpers live in one folder deliberately, and this bends that: it takes
+  `TileColor` from `wordle-style`, and common may not import a family. It is
+  honestly the hidden-target family's file anyway — its callers are that
+  family's printers. It still reads `common/pdf/frame`'s grays, which is a
+  family using the shell, the allowed direction. Joel's call, 2026-09-04, when
+  the guard surfaced the edge.
 - **`Menu.tsx` + `menuModel.ts`, `FilterSelect.tsx` + `filterSelectHelpers.ts`.**
   A component and a same-named lowercase module cannot share a folder: the
   filesystem is case-insensitive, so `./menu` and `./Menu` name the same file

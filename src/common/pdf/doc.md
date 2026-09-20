@@ -61,7 +61,7 @@ to know whether the block fits before drawing it asks `setupLineCount`,
 which wraps with the same fonts.
 
 **Three tracks per page.** Compete allows six players, and six tracks on a
-letter page are about 88pt each — a wordle keyboard needs ten keys across,
+letter page are about 78pt each — a wordle keyboard needs ten keys across,
 which lands under 9pt per key and stops being readable. Three keeps the
 realistic two- or three-player game on one sheet and spills the rest onto
 further pages rather than shrinking past legibility. The width is computed
@@ -89,7 +89,7 @@ as a bonus, and a mono one still reads the shape. They take a center and a size
 so the caller owns placement — a cell's corner for one game, a small keycard
 inset for another.
 
-**The Wordle tiles are the one agreed fill.** [Backgrounds are
+**The Wordle tiles are an agreed fill.** [Backgrounds are
 white](#backgrounds-are-white) says a tile is not filled and an outcome rides a
 mark instead; that assumes room for a mark beside the content, and a letter
 tile has none — the letter is the content. The four states are also the whole
@@ -109,11 +109,12 @@ diamond tapers and a squiggle is a ribbon, but an oval is at full width the
 whole way down, so the ovals crowd while the others look airy; draw the heavy
 one narrower than its slot.
 
-**Every drawer sets what it needs before it draws.** Font, size, text color and
-draw color are document state in jsPDF, so each row and each cell sets its own
-rather than trusting what the previous call left. Line width is the exception:
-a mark sets its own and restores what it found, so a board's cell borders
-keep their weight after a marked cell.
+**Every drawer sets what it needs before it draws.** Font, size, text color,
+draw color and line width are document state in jsPDF, so each row and each
+cell sets its own rather than trusting what the previous call left. A mark
+goes one further and restores the line width it found, because it is drawn
+inside a caller's cell: the board's borders continue after it, at the weight
+the board chose.
 
 ## Shades
 
@@ -127,7 +128,7 @@ values on an actual printout, not only on screen.
 | name | value | used for |
 |---|---|---|
 | **black** | `0` | all real text — titles, data, the log, section headings, board words, setup values. The default. |
-| **dark gray** | `70` | real-but-secondary marks — the board grid, and the one place text is a label rather than data (a table's `# / Player / …` column headers). Clearly visible, a step down from black, because these still carry the structure. |
+| **dark gray** | `70` | real-but-secondary marks — the board grid, and text that is a label rather than data (a table's `# / Player / …` column headers, a legend's captions). Clearly visible, a step down from black, because these still carry the structure. |
 | **medium gray** | `180` | minor lines only — the thin dividers between turn rows, the rule under a table header. Faint on purpose; they separate, they aren't content. |
 
 Use black unless a thing is *specifically* not important. Small is not

@@ -18,8 +18,9 @@ export type WordRow = {
 }
 
 /**
- * Draw a word list: the heading (`heading`, or "Words") at (margin, startY),
- * an optional `subheading` tally line ("12 words · 34 pts") under it, then the
+ * Draw a word list: the heading (`heading`, or "Words") at (margin, startY) —
+ * on a new page when it and one row will not fit above `pageBottom` — an
+ * optional `subheading` tally line ("12 words · 34 pts") under it, then the
  * rows in `cols` column-major, balanced columns — ⌈n / cols⌉ rows each, so the
  * words form a compact block rather than one tall column — capped and spilled
  * onto further pages only when even the balanced height overflows. An empty

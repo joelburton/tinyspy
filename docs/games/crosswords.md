@@ -508,7 +508,7 @@ without protecting anything — the person printing it is the person choosing no
 to read it. Compete keeps its gate, since there an answer key mid-race is a
 giveaway to someone else's disadvantage. Both PDFs are exposed as
 `setGameSections` menu items; the grid is snapshotted at click-time. See
-[common/pdf/doc.md](../../src/common/pdf/doc.md) → the grid-plus-clue-columns body family.
+[common/pdf/doc.md → The body families](../../src/common/pdf/doc.md#the-body-families), where crosswords is the stated exception.
 
 **The game menu** is the fullest in the app — crosswords builds its whole menu
 via `ctx.menu.setGameSections` + the shared `buildGameMenu` helper (see

@@ -2,7 +2,7 @@
 
 /**
  * Tests for the shared print frame (doc.md) — the primitives every game's
- * printer composes, so a regression here degrades every printout at once.
+ * printer composes, so a regression here degrades every printout built on it.
  * Rather than render real PDFs, we drive the helpers with the folder's fake
  * jsPDF (`fakeJsPdf.ts`), which records its calls and models text width as
  * one point per character; that keeps the assertions on the pure assembly
@@ -86,11 +86,8 @@ describe('drawSetup', () => {
     expect(drawSetup(pd.doc, items, 40, 100, 'coop', 30) - 100).toBe(setupBlockHeight(lines))
   })
 
-  // The heading carries the MODE (`Setup: Co-op`) rather than spending a row on
-  // it — mode is locked at the gametype level, never a control on the setup
-  // form, so it frames the block instead of sitting in it (common/setup-form/doc.md → Setup
-  // rows). Both spellings are pinned: a PDF is a standalone artifact with no app
-  // chrome, so this heading is the only place the paper says which game it was.
+  // The heading carries the mode (`Setup: Co-op`); why, and why both spellings
+  // matter on a page with no chrome: doc.md → Details.
   it('draws the "Setup" sub-heading, qualified by mode', () => {
     const { pd, calls } = fakePd()
     drawSetup(pd.doc, [], 40, 100, 'coop', 400)
@@ -104,10 +101,8 @@ describe('drawSetup', () => {
   })
 
   // Wrapping. Worth pinning because the failure it prevents is invisible in
-  // review and easy to miss on paper: an over-long value doesn't clip or
-  // error, it draws past the right edge and off the sheet. Two rows have no
-  // natural length bound — boggle's `Letters` prints a whole 6×6 board, the
-  // roster prints every username.
+  // review: an over-long value doesn't clip or error, it draws past the right
+  // edge and off the sheet. Which rows have no length bound: doc.md → Details.
   describe('a value too wide for the space', () => {
     // 41 characters = 41pt under the fake's 1pt/char.
     const LETTERS = [

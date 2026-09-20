@@ -18,6 +18,13 @@
   stated once in `common/pdf/frame.ts`); `printSetgamePdf` writes its own
   number. Either read `contentTop` like the rest, or keep the two points and
   say why beside it.
+- **The printed log is headed "Turns"; the screen's log wears a tally.**
+  `common/pdf`'s rule (2026-09-19) is that the paper's heading is the word
+  the game's on-screen event log wears, and the shared `drawEventLog` now
+  requires it — but setgame draws its own rows with `twoColGeom` and writes
+  `'Turns'`, while `GameEventLog` passes `Found: n · Hints: n`, which is not a
+  heading word at all. Decide what the paper says (a word the screen also
+  shows, or the same tally) when the printer is read.
 
 - **The live hint's ring is GREEN, and a hint is amber everywhere else.**
   `--setgame-hint-ring` is `#16a34a` — a saturated green, and green is this

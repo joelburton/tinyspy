@@ -25,9 +25,9 @@ export type Track = {
  * a game where each player has a board of their own and a log that belongs
  * to it. Runs `draw` once per item, adding pages as needed; the caller draws
  * everything inside a track, this only decides where each one starts and how
- * wide it is. Returns the y the tallest track on the LAST page ended at, and
- * the page-wide left edge and width, so a block that describes the whole game
- * (the Setup recap) can sit under the columns.
+ * wide it is. Returns the y the tallest track on the LAST page ended at —
+ * where `drawSetupBelow` puts the Setup recap — and the page-wide left edge
+ * and width, for a caller's own block that spans the page under the columns.
  *
  * Width is computed from the cap, not from how many items this page happens
  * to hold — a four-player game's second page draws its lone track at the same

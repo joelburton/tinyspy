@@ -22,7 +22,7 @@ what it turned up (F-1 to F-4); five are prose in the code (F-5 to F-9); five
 are shape or behavior with a decision in them (F-10 to F-14); one is a bug
 with an obvious fix (F-15); two are tests (F-16, F-17). The audit is committed (`0612f17f`).
 
-**The prose pass is DONE (2026-09-19, uncommitted):** F-5 to F-8 shipped in
+**The prose pass is DONE (2026-09-19):** F-5 to F-8 shipped in
 one sitting — the marker pass over every member, the six module blocks
 dissolved onto their exports or into `//`, the rationale moved to the new
 `doc.md` (lede, `## Intro to area`, `## Details`; `common/pdf` off
@@ -30,17 +30,22 @@ dissolved onto their exports or into `//`, the rationale moved to the new
 replaced by codenames. `tsc -b` clean, lint clean, 44 of 44 green (the folder
 plus the four guards). Committed (`c30d52b7`).
 
-**The collapse is DONE (2026-09-19, uncommitted):** F-1 to F-3 shipped on
-Joel's three rulings — `docs/pdf.md` deleted, the folder's `doc.md` carries
-the design language, the Setup rows went to `setup-form/doc.md`, the setgame
-hatch story to `docs/games/setgame.md`, seventy-odd cites repointed.
+**The collapse is DONE (2026-09-19):** F-1 to F-3 shipped on Joel's three
+rulings — `docs/pdf.md` deleted, the folder's `doc.md` carries the design
+language, the Setup rows went to `setup-form/doc.md`, the setgame hatch story
+to `docs/games/setgame.md`, seventy-odd cites repointed. Committed
+(`e306f230`).
 
 **All seventeen findings are SETTLED (2026-09-19)**, each ruled by Joel and
-committed apiece, F-17 uncommitted at this writing. The roster is fourteen
-stamped files (`fakeJsPdf.ts`, `columns.test.ts` and `pdfTiles.test.ts`
-joined), all `cs-audited-pdf`. What the area still owes: the whole-area
-re-read in one sitting (Closing), then `todo.md` — then the blessing, which
-is Joel's.
+committed apiece (F-17 at `18790444`). The roster is fourteen stamped files
+(`fakeJsPdf.ts`, `columns.test.ts` and `pdfTiles.test.ts` joined), all
+`cs-audited-pdf`.
+
+**The closing re-read is DONE (2026-09-19, uncommitted):** every roster file
+and the doc again in one sitting, then the fault-class greps. Fourteen prose
+things worked in the sitting (recorded under *The closing re-read* below) and
+one finding with a decision in it, F-pdf-18, ruled no-change the same day.
+What the area still owes: `todo.md` — then the blessing, which is Joel's.
 
 ## The roster
 
@@ -594,6 +599,104 @@ truncation clearing the date is unpinned too. `marks.ts` is pure segments
 and can stay untested. Recommendation: specs for `columns.ts` and
 `pdfTiles.ts` on the shared fake (F-16); `drawHeader` one case.
 
+### The closing re-read — 2026-09-19
+
+Every roster file and `doc.md` again in one sitting after F-17, each claim
+checked against the tree as the day left it; then the greps for the area's
+own fault classes over every roster file, tests included (a "the only" / "the
+one", an indented `/**`, a brand, a caller census, a `rather than` /
+`because`, a hand-written `+ 44`, a literal `'Turns'`, a `docs/pdf.md` cite,
+a date). `tsc -b`, lint and the folder's tests plus the guards were green
+before and after. Fourteen things, all prose, all worked in the sitting;
+**most were the day's own findings recurring in the file next door** — F-6
+in the test the prose pass never opened, F-7 in two test headers, F-13's own
+words in the doc it wrote, F-14 in a game's printer.
+
+- **`doc.md` → Details said "line width is the exception"** to
+  set-before-you-draw — that a mark sets its own and restores it. Written by
+  F-13, and wrong about the folder: `eventLog.ts` sets the width before every
+  rule and `pdfTiles.ts`'s `drawTile` sets its own for each tile and leaves
+  it, the way every drawer here does. Line width is document state like the
+  rest; a MARK additionally restores it, because it is drawn inside a
+  caller's cell. Says that now.
+- **Three "the one" claims in the doc**, each already false: "the Wordle
+  tiles are the one agreed fill" (scrabble's tan tiles are the other, two
+  paragraphs down and again under Backgrounds are white); "the one place text
+  is a label rather than data" in the Shades table (the tile legend's
+  captions are dark-gray labels too); and **"six tracks are about 88pt
+  each"** — with the 18pt gutter they are 78, which is what makes the
+  ten-key keyboard land under 9pt. An agreed fill, "a legend's captions", 78.
+- **`pdfTiles.ts` — "the only place the letter's own color carries
+  anything"**: F-6 struck the file's "the one printer" and left this one
+  forty lines down. Now "a contrast decision, not a code".
+- **`columns.ts`'s docstring** still said the returned page-wide edge and
+  width are "so a block that describes the whole game (the Setup recap) can
+  sit under the columns" — F-11 moved the recap into `drawSetupBelow`, which
+  takes `pd` and reads neither. stackdown reads them for its solution line,
+  which is what they are now for; the docstring says so.
+- **`wordColumns.ts`'s docstring** said the heading is drawn "at (margin,
+  startY)"; since F-15 it is drawn on a new page when it and a row will not
+  fit, and only the comment inside said so. The docstring carries it.
+- **`frame.test.ts` held two copies of `doc.md → Details`** — the mode-in-the-
+  heading rationale and the wrap rationale, boggle's `Letters` and all — the
+  F-6 shape in the file the prose pass listed no candidates for. One also
+  said the heading "is the only place the paper says which GAME it was"; it
+  is the mode. Each is a line and a pointer now. Its header's "degrades every
+  printout at once" overclaimed by crosswords; "every printout built on it".
+- **Two test headers kept the census F-7 struck from the source**:
+  `wordColumns.test.ts` opened "(boggle, spellingbee, wordwheel)" and listed
+  four pinned cases where there are six; `eventLog.test.ts` pinned "the two
+  behaviors" and lists four. Each names what is pinned, not who calls it.
+- **`docs/common-folders.md`** (closed; closed is not locked) had the same
+  "the one printer outside `common/pdf/`" F-6 struck from `pdfTiles.ts` —
+  every game has a printer outside it. "A shared print helper outside".
+- **Two game docs, touched by F-1's sweep, which repointed the path and did
+  not read the sentence**: `docs/games/crosswords.md` cited "the
+  grid-plus-clue-columns body family", a section that has never existed in
+  the collapsed doc (the words date from 2026-07-05); `docs/games/stackdown.md`
+  opened its print section "Event-log family" and fourteen lines later says
+  "one column per board". Both say what the doc says.
+- **`plans/app-audit.md`**'s `outcomes` close still said the marks "are still
+  glossed good / bad" — F-4's ruling made it past tense.
+- **This file** called the collapse and the prose pass "uncommitted" a commit
+  each later; the header reads from the log now.
+- **Handed on: setgame's printed log is headed "Turns" while its screen's
+  log wears a tally** (`Found: n · Hints: n`). F-14's rule is the screen's
+  word, and setgame's screen has no word — a decision for that area, in
+  `src/setgame/todo.md` → Soon. strands also writes `'Turns'` by hand, and
+  its screen says "Turns": no defect.
+
+**Checked and standing**: the `@media print` rule is in `core-css/base.css`;
+`gmake gallery TECH=pdf` is a real target; the registry's two print labels
+are "Print board (PDF)" and "Print answer key (PDF)"; the brand comes from the
+manifest's `name`; the crosswords key fetches the solution by RPC; bananagrams
+is a 25×25 arena printed 26 tiles down; the track family's "just yours during
+play" is what wordle, strands, letterboxed and stackdown's models each say;
+`drawEventLog`'s `emptyText` has three callers; no roster file carries a
+date, a brand in prose, an indented `/**` on a member, or a `docs/pdf.md`
+cite; `Track.bottom` is read by no game yet, as F-11 recorded.
+
+### RULED · F-pdf-18 · `word-list-setup-unguarded` · the word-list body draws a bare "Setup" heading for a game with no rows
+
+**Ruled 2026-09-19, no change** (Joel: *"we can skip this concern"*), on the
+answer to his question: every game that prints through the frame always has
+rows — each of the fifteen `setupRows()` builders opens with the roster row
+and adds at least one fixed row; crosswords, the game with no rows, composes
+nothing here. The empty case is reachable only from a test.
+
+Found at the re-read, checking F-11's guard against its siblings. The
+event-log family draws its recap only `if (o.setup.length)`, and
+`drawSetupBelow` returns before drawing for a game with no rows — "Nothing is
+drawn for a game with no rows" is in its docstring. `drawWordListBody` calls
+`drawSetup` unconditionally, so a word-list model with an empty `setup` would
+print `Setup: Co-op` to the board's right with nothing under it. No caller
+does today: boggle, spellingbee and wordwheel all have rows. Options: *guard
+it* (`if (m.setup.length)`, the words then flow from the board's bottom
+alone; one test) — or *leave it*, since the case is not reachable and the
+three families need not agree. Recommendation: guard it — the three families
+should answer an empty recap the same way, and the frame's own words already
+say what that way is.
+
 ### What checked out
 
 - **jsPDF's one-argument gray IS 0–255 as a Number** (its own docstring:
@@ -643,7 +746,10 @@ and can stay untested. Recommendation: specs for `columns.ts` and
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group
+      (2026-09-19, after F-17) — fourteen prose things worked in the sitting
+      and one finding, F-pdf-18, recorded under *The closing re-read* above
+      and ruled no-change
 - [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (2026-09-19)
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
