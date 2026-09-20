@@ -7,15 +7,97 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/connections/todo.md`, not here.
 
-**Status: NOT OPENED.**
+**Status: OPENED 2026-09-19** (Joel: *"open the connections area. this will
+be our second game audited; it has a lot of similarities to psychicnum, so it
+should end up being similarly-shaped"*). Roster agreed the same day — fifty
+files `cs-met-connections` (Joel: *"the things marked with
+cs-fixed-outcome-fix can go to cs-met-connections. the puzzle importer should
+be part of this area"*).
 
-**Two passes, back to back**: the audit — React, SQL and CSS together — then
-the tile-feedback pass against [tile-feedback.md](../tile-feedback.md).
+**Three passes, back to back**, the shape `psychicnum` settled (app-audit.md
+§3, the game rows): the **restructure** —
+[playarea-readability.md](../playarea-readability.md) step by step, each step
+a commit Joel reads — then the **audit**, React, SQL and CSS together, then
+the **tile-feedback pass** against [tile-feedback.md](../tile-feedback.md).
+The restructure goes first because the audit's prose pass would otherwise
+polish comments the split and the comment pass rewrite or delete.
+
+**This is the SECOND game, which changes one thing about the restructure.**
+psychicnum cut nothing shared — *"a shared hook is a rule-of-three cut, and
+one game cannot prove sameness"* — so the readability plan's slots (3.3), its
+`useGameMenu` and its standing-condition hooks (3.8) were left for the second
+game. Here they can be weighed against two games; whether two is enough is
+Joel's call when each comes up.
 
 ## The roster
 
-*(agreed with Joel when the area opens — `src/connections/`, its two SQL files,
-and `docs/games/connections.md`. List the files and STOP)*
+Listed 2026-09-19 (`src/connections/`, its SQL, its pgTAP, its doc), from
+`git ls-files`. Stamps at the opening: twelve files `cs-fixed-outcome-fix`
+(the move path `outcome-fix` worked), thirty-seven `cs-unmet`, and the
+markdown and the logo none.
+
+- **`src/connections/` — 38 files** (6,317 lines of code; the three biggest
+  are `PlayArea.test.tsx` at 989, `PlayArea.tsx` at 792, `BoardCol.tsx` at
+  564). components: `Board.tsx`, `BoardCol.tsx`, `GameEventLog.tsx` +
+  `.module.css`, `Help.tsx`, `HintList.tsx` + `.module.css`, `InfoCol.tsx`,
+  `PlayArea.tsx` + `.module.css` + `.test.tsx`, `SetupForm.tsx` + `.test.tsx`,
+  `StrikeMarks.tsx` + `.module.css`. hooks: `useGame.ts` + `.test.ts`. lib:
+  `answer.ts` + `.test.ts`, `board.ts`, `evaluate.ts` + `.test.ts`,
+  `history.ts` + `.test.ts`, `localOrder.ts` + `.test.ts`, `rankColors.ts`,
+  `setup.ts`, `setupSummary.ts`. pdf: `model.ts` + `.test.ts`,
+  `printConnectionsPdf.ts`. root: `db.ts`, `manifest.ts` + `.test.ts`,
+  `theme.css`, `logo.svg`, `todo.md`. **No `doc.md` yet** — pass 2 writes it
+  in psychicnum's shape (Intro to area · Game rules · Schema · RPCs · FE
+  submissions · Frontend · Tests) and `docs/games/connections.md` (820 lines)
+  is deleted into it.
+- **SQL — 3 files**: `supabase/migrations/20260615000003_connections.sql`,
+  `supabase/migrations/20260917000005_connections_events.sql`,
+  `supabase/sql/connections.sql` (1,520 lines).
+- **The pgTAP suite — 11 files**, `supabase/tests/connections/`:
+  `club_game_status`, `compete`, `concede`, `create_game`, `end_game`,
+  `gameplay`, `next_puzzle`, `replay`, `rls`, `turn_order`, and `setup.psql`
+  (the per-game helpers; `.psql` carries no stamp). This game's own files, and
+  the stamp scope covers `supabase/`, so roster.
+- **The puzzle importer — 1 file**: `supabase/scripts/import-connections-puzzles.ts`
+  (211 lines; the NYT archive, through the REST API). It lives in
+  `supabase/scripts/`, which no row of §3 names, and is this game's alone —
+  roster by Joel's ruling at the opening.
+- **Doc — 1 file**: `docs/games/connections.md`, roster and unstamped, deleted
+  at the harvest the way psychicnum's was.
+
+**Not the roster, and why:**
+
+- **The net**: five e2e specs (`connections-enter-submit`, `-history`,
+  `-mobile`, `-print`, `-replay`), the gallery script
+  `e2e/gallery/games/connections.ts`, `e2e/board-geometry.e2e.ts` (this is one
+  of its boards), `PlayArea.test.tsx` and the pgTAP suite. Run, not read as
+  roster; the e2e runs are asked for first, every time.
+- **The `connections.puzzles` rows** the importer fills — data, which has
+  nowhere to carry a stamp (step 11's).
+
+## The restructure — plan
+
+Each step is one commit Joel reads; every step is a behavior-preserving no-op
+unless its heading says otherwise, verified by the net. The shape is
+psychicnum's, written into
+[docs/playarea.md → The shape of a game's PlayArea.tsx](../../docs/playarea.md):
+this game conforms to it, and where it cannot, this file says why.
+
+### Step 0 — the baseline
+
+Run 2026-09-19 (Joel: *"do it"*), on the untouched tree with the roster
+stamped `cs-met-connections`:
+
+- `tsc -b` clean, lint clean over `src/connections/` and the importer.
+- The game's unit tests and the guards: 40 files, 372 tests, green
+  (`PlayArea.test.tsx`, `useGame.test.ts`, `answer`, `evaluate`, `history`,
+  `localOrder`, `manifest`, `pdf/model`, `SetupForm`).
+- The geometry harness re-seeded with `BASELINE=1`: twelve boards written,
+  and the new file is byte-identical to the one it replaced — no board had
+  drifted since the last seed.
+- The five connections e2e specs: 9 tests, green in 17 seconds.
+
+**Step 0 is DONE (2026-09-19).** A later red is the step's.
 
 ## Findings
 
@@ -24,10 +106,33 @@ has one, no prefix means OPEN)*
 
 ## Notes
 
-*(things worth remembering about this area that are neither a finding nor
-owed work — a forward-fix made from another area, a question for the opening,
-a dependency listed and left. Anything durable goes to `todo.md` or
-`docs/games/connections.md` instead; a note here never stands in for either)*
+- **What psychicnum's area taught, read before this one opened** (Joel:
+  *"make sure you've read psychicnum's area to understand lessons-learned"*):
+  - **Step 0 is a baseline, and both e2e runs are asked for first** — the
+    geometry harness with `BASELINE=1` and this game's five specs, green on
+    the untouched tree, so a later red is the step's.
+  - **Step 1 gathers the owed work into `todo.md`** before anything moves:
+    the doc's *Deferred* (here a real section, at line 731 of an 820-line
+    doc), the todo's own items (three Bugs, several Soons — the action-row
+    collapse is already written up there with psychicnum as the worked
+    example), tile-feedback.md's rows for this game, and `deferred.md`'s
+    per-game row, which then points at the todo.
+  - **The `doc.md` skeleton goes in early**, seven headings, and the RPC and
+    FE-submission sections are written first so Joel can see what the game
+    does — writing them turned up a real bug at psychicnum.
+  - **A new file is invisible to every guard until it is `git add`ed.**
+  - **The restructure is a behavior-preserving no-op per step**, verified by
+    the net; a step that changes behavior says so in its heading.
+  - **A spec that clicks the wrong element fails somewhere else** — read a red
+    before re-anchoring it. `PlayArea.test.tsx` here is 989 lines.
+  - **The closing re-read finds the day's own findings next door**, and half of
+    what it finds is prose the day wrote. Grep the fault class after the eye.
+  - **`theme.css` stays** even when nearly empty; a CSS "duplication" note is a
+    measurement, not a smell — psychicnum's turned out to be 38 lines that
+    duplicated nothing.
+- **`supabase/scripts/` has no row in app-audit.md §3.** This game claimed
+  its importer; the other per-game importers there are each their game's to
+  claim the same way, or the folder wants a row.
 
 ## Predicted test breaks
 

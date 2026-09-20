@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-connections
 
 -- ============================================================
 -- Test: connections.club_game_status view

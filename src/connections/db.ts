@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 import { supabase } from '@/common/supabase/supabase'
 

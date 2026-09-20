@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-connections
 
 -- ============================================================
 -- Test: connections RLS + access boundaries

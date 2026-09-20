@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 import type { CategoryRank } from './board'
 

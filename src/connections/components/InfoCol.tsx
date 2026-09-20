@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'

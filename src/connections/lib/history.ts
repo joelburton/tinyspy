@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-connections
 
 /**
  * connections — the turn-history replay. Given the guess log, the static board, and

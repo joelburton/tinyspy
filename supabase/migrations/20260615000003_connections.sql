@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-connections
 
 -- ============================================================
 -- connections — Connections-style word-grouping puzzle

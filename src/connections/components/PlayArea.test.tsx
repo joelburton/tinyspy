@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 /**
  * Render + concede tests for connections' PlayArea.

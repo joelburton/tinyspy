@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 import type { Member } from '@/common/members/member'
 import { coopRows, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'

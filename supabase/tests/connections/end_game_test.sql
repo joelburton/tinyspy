@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-connections
 
 -- ============================================================
 -- Test: connections.end_game — manual "End game" terminal

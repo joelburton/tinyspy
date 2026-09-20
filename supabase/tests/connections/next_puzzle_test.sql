@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-connections
 
 -- ============================================================
 -- Test: connections.next_puzzle_for_club + connections.puzzle_for_date

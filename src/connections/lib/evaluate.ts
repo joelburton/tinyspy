@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-connections
 
 import type { Category, CategoryRank } from './board'
 

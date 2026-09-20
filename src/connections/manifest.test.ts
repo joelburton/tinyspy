@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 /**
  * Tests for connections's `startGameInClub`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env -S npx tsx
-// cs-unmet
+// cs-met-connections
 
 /**
  * Import the NYT Connections puzzle archive into

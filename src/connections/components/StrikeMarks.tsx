@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 import { IconStrikeUsed, IconStrikeOpen } from '@/common/icons/icons'
 import styles from './StrikeMarks.module.css'

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 import { describe, expect, it } from 'vitest'
 import { evaluateGuess, sameTileSet } from './evaluate'

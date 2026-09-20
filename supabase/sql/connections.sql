@@ -1,4 +1,4 @@
--- cs-fixed-outcome-fix
+-- cs-met-connections
 
 -- ============================================================
 -- connections — the REPEATABLE half

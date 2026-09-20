@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-connections
 
 -- ============================================================
 -- Test: connections.replay_board (restart this puzzle from scratch)

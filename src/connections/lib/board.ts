@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 /**
  * Wire types for the connections `board` jsonb column.

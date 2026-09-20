@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'

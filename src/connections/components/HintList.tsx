@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 import { cls } from '@/common/utils/cls'
 import type { Board, CategoryRank } from '../lib/board'

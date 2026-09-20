@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-connections
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 

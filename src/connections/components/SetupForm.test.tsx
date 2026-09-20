@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 /**
  * connections' setup form — and the first game whose refusals are mostly

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 /**
  * Tests for the connections print model.

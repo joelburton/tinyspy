@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-connections
 
 import { describe, it, expect } from 'vitest'
 import { ANSWER_OUTCOME } from './answer'

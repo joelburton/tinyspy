@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-connections
 
 /**
  * Realtime-channel lifecycle tests for connections' useGame.
