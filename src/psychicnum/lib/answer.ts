@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-blessed-psychicnum
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'

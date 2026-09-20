@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-psychicnum
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'

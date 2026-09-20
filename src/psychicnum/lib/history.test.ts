@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-psychicnum
 
 /**
  * Unit test for the psychicnum turn-history snapshot (lib/history.ts). Pure — no

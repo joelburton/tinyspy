@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-psychicnum
 
 import {
   gameEndedTerminalMessage,

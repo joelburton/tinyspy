@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-psychicnum
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'

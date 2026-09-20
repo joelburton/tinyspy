@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-blessed-psychicnum
 
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'

@@ -9,7 +9,13 @@ of a game area rather than about the game. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in `src/psychicnum/todo.md`, not here.
 
-**Status: OPENED 2026-09-19.** Roster listed; the restructure plan below is
+**Status: CLOSED 2026-09-19, blessed** (Joel: *"bless all files in the
+psychicnum area, then close it"*): thirty-nine files `cs-blessed-psychicnum` —
+the thirty in `src/psychicnum/` that carry a stamp, the three SQL files and
+the seven pgTAP files. The first game area closed, and the control for the
+fifteen that follow.
+
+**Opened 2026-09-19.** Roster listed; the restructure plan below is
 written and its four decisions are Joel's (2026-09-19): "precedent" names,
 "row order" for the menu, `lib/terminal.ts`, the section order as proposed.
 The two e2e baseline runs are permitted. No stamps written. **Step 0 (the
@@ -1548,4 +1554,6 @@ the trailing `: `, which is what separates the pill from the log.
       docs/testing.md; the offered length assertion into `todo.md` → Maybe.
       Nothing else here is durable: the rest is the reading, the rulings and
       the archaeology, which is what this file is for
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] every file on the roster blessed, or its stamp says why not
+      (2026-09-19: thirty-nine files `cs-blessed-psychicnum`, after `pdf`
+      closed and the full e2e suite ran green)

@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-blessed-psychicnum
 
 -- ============================================================
 -- Test: RLS + the games_state view + per-mode guess visibility

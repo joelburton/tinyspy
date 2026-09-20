@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-blessed-psychicnum
 
 import { useEffect, type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'

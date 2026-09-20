@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-blessed-psychicnum
 
 -- ============================================================
 -- Test: psychicnum.submit_guess + request_hint / request_spoiler + submit_timeout

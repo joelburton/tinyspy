@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-blessed-psychicnum
 
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'

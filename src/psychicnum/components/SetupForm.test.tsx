@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-psychicnum
 
 /**
  * psychicnum's setup form — what it offers, and where a refusal lands.

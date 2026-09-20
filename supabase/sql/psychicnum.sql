@@ -1,4 +1,4 @@
--- cs-fixed-outcome-fix
+-- cs-blessed-psychicnum
 
 -- ============================================================
 -- psychicnum — the REPEATABLE half

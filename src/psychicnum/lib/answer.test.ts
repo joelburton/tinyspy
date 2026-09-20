@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-blessed-psychicnum
 
 import { describe, it, expect } from 'vitest'
 import { answerMessage, eventToOutcome, peerAnswerMessage, type Answer } from './answer'

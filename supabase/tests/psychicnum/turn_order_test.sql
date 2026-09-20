@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-blessed-psychicnum
 
 -- ============================================================
 -- Test: psychicnum turn-order (opt-in turn-by-turn coop)

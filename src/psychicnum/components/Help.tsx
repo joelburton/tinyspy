@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-psychicnum
 
 import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 

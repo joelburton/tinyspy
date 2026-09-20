@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-blessed-psychicnum
 
 -- ============================================================
 -- Test: psychicnum.end_game — manual stop

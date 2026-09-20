@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-psychicnum
 
 /**
  * Unit test for psychicnum's terminal message (lib/terminal.ts). Pure — no DOM,

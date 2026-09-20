@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-blessed-psychicnum
 
 -- ============================================================
 -- Test: psychicnum.replay_board (restart this board from scratch)

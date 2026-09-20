@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-psychicnum
 
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection'

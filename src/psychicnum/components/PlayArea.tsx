@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-blessed-psychicnum
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useMemo, useRef } from 'react'

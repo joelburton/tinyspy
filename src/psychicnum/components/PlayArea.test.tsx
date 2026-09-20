@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-psychicnum
 
 /**
  * Component tests for psychicnum's PlayArea — focused on the per-player

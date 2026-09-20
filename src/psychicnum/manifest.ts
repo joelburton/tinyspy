@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-psychicnum
 
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
