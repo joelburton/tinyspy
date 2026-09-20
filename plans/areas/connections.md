@@ -584,7 +584,22 @@ becoming `mode · playState · reason · selfWon · selfEliminated`, with "All
 conceded — no winner" as the third `lost_compete` sentence — or *leave the
 clock*. Recommendation: read the server's word.
 
-### F-connections-3 · `help-text-wrong` · the Help modal tells players three things that are not true
+### SHIPPED · F-connections-3 · `help-text-wrong` · the Help modal tells players three things that are not true
+
+**Joel, 2026-09-19: "as proposed."** Six blocks now: the lede (with NYT
+named), **Guesses** with one-away charged a mistake and four mistakes putting
+you out, a new **Together or racing** naming the two modes — coop shares
+every pick, a race shares none, and what a racer CAN see of a rival is their
+found count and whether they are still in — and a closing paragraph for
+Hints, the frozen board and Reveal. The modal went 440×360 → 460×440, which
+sits it with wordiply and wordwheel instead of second-smallest of the sixteen.
+The docstring names the sharing rule as the thing this game is easiest to get
+wrong about. The size is a DEFAULT for a resizable panel and was chosen, not
+measured.
+
+The finding also charged the docstring with a "placeholder content … deferred
+until we have a unified visual register" claim: the prose pass had already cut
+it.
 
 Player-facing text, so a finding rather than a fix:
 
