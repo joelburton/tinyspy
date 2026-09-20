@@ -1,4 +1,4 @@
-// cs-audited-pdf
+// cs-blessed-pdf
 
 import { BLACK, fit, type PrintDoc } from './frame'
 

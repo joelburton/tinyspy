@@ -4,10 +4,12 @@ The folders it reads: `pdf`, plus `shared/wordle-style/pdfTiles.ts`. The
 process is [app-audit.md](../app-audit.md) §4; the plan holds the order, this
 file holds the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPENED 2026-09-19.** Roster listed and agreed the same day; eleven
-files stamped `cs-met-pdf`. Opened ahead of its position because `psychicnum`
-paused pre-close on it: that game's printer builds on this folder, and Joel
-wants the shared printer read before he blesses the game.
+**Status: CLOSED 2026-09-19, blessed** (Joel: *"bless all files in this
+area, close it, and commit"*): fourteen files `cs-blessed-pdf`. Opened the
+same day, ahead of its position, because `psychicnum` paused pre-close on it:
+that game's printer builds on this folder, and Joel wanted the shared printer
+read before he blesses the game. Roster listed and agreed at the opening;
+eleven files stamped `cs-met-pdf`, three more created by the area.
 
 **The audit READ is DONE (2026-09-19).** Every roster file read end to end —
 the ten in `src/common/pdf/`, `pdfTiles.ts`, the three markdown files — and
@@ -45,7 +47,8 @@ committed apiece (F-17 at `18790444`). The roster is fourteen stamped files
 and the doc again in one sitting, then the fault-class greps. Fourteen prose
 things worked in the sitting (recorded under *The closing re-read* below) and
 one finding with a decision in it, F-pdf-18, ruled no-change the same day.
-What the area still owes: `todo.md` — then the blessing, which is Joel's.
+Committed (`1fc64d3b`). `todo.md` holds the two no-change rulings under Won't
+do; nothing is owed.
 
 ## The roster
 
@@ -63,7 +66,8 @@ Agreed 2026-09-19. Eleven stamped files, three unstamped markdown files.
   **Plus its `pdfTiles.test.ts`, created by F-17 (2026-09-19).**
 - **The folder's `doc.md` and `todo.md`**, and **`docs/pdf.md`** — roster, and
   none of the three carries a stamp (a `.md` has nowhere to put one).
-  `todo.md` is empty: five headings, no items.
+  `todo.md` was empty at the opening; at the close it holds two Won't do
+  entries.
 
 **Not the roster, and why:**
 
@@ -751,5 +755,8 @@ say what that way is.
       and one finding, F-pdf-18, recorded under *The closing re-read* above
       and ruled no-change
 - [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (2026-09-19)
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      (2026-09-19: two Won't do entries — F-18's empty recap, `marks.ts`
+      untested; the two hand-ons sit in setgame's and psychicnum's todos)
+- [x] every file on the roster blessed, or its stamp says why not
+      (2026-09-19: fourteen files `cs-blessed-pdf`)

@@ -1,4 +1,4 @@
-// cs-audited-pdf
+// cs-blessed-pdf
 
 /**
  * Tests for the shared event-log PDF body. twoColGeom is

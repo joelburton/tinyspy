@@ -1,4 +1,4 @@
-// cs-audited-pdf
+// cs-blessed-pdf
 
 import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, fit, setupBlockHeight, setupLineCount, type PrintDoc } from './frame'
 import type { SetupRow } from '../setup-form/setupRows'

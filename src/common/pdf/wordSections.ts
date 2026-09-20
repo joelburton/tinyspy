@@ -1,4 +1,4 @@
-// cs-audited-pdf
+// cs-blessed-pdf
 
 import type { WordRow } from './wordColumns'
 

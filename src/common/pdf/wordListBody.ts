@@ -1,4 +1,4 @@
-// cs-audited-pdf
+// cs-blessed-pdf
 
 import { drawSetup, type PrintDoc, type PrintHeader } from './frame'
 import { drawWordColumns } from './wordColumns'

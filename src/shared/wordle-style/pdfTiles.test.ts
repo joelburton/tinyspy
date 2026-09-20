@@ -1,4 +1,4 @@
-// cs-audited-pdf
+// cs-blessed-pdf
 
 /**
  * Tests for the printed Wordle tile: the four states as border and fill

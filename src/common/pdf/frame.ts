@@ -1,4 +1,4 @@
-// cs-audited-pdf
+// cs-blessed-pdf
 
 import { jsPDF } from 'jspdf'
 import type { SetupRow } from '../setup-form/setupRows'

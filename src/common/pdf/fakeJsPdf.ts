@@ -1,4 +1,4 @@
-// cs-audited-pdf
+// cs-blessed-pdf
 
 import type { jsPDF } from 'jspdf'
 import type { PrintDoc } from './frame'

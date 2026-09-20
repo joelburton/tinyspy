@@ -1,4 +1,4 @@
-// cs-audited-pdf
+// cs-blessed-pdf
 
 /**
  * Tests for the shared print frame (doc.md) — the primitives every game's
