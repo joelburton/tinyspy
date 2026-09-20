@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-word-list
 
 /**
  * Tests for useWordListFilter — the word list's two-axis KIND/WHO filter.

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-word-list
 
 /**
  * Tests for the shared WordList's heading tally: "Words: N · Score: M ·

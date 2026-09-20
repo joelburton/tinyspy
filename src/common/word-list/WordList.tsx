@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-word-list
 
 import { useMemo } from 'react'
 import { DefinableWord } from '../definitions/DefinableWord'
