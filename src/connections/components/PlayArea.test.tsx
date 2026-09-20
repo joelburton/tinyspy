@@ -250,6 +250,27 @@ describe('connections PlayArea — concede', () => {
     // carries the shared "Conceded — race continues" variant.
     expect(screen.getByText('You conceded')).toBeInTheDocument()
   })
+
+  it('a race everyone walked away from says so — the server\u2019s word, not the clock', () => {
+    h.result = loaded({ game: game('compete') })
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          players: [
+            gp('u1', 'me', 'red', { conceded: true }),
+            gp('u2', 'moth', 'blue', { conceded: true }),
+          ],
+          isTerminal: true,
+          playState: 'lost_compete',
+          status: { outcome: 'conceded' },
+        })}
+      />,
+    )
+    // The clock never ran out here, and it is not what decides: `concede`
+    // wrote 'conceded' into `status.outcome` and the pill reads that. The
+    // sentences themselves are `lib/terminal.test.ts`'s; this is the WIRE.
+    expect(screen.getByText('All conceded — no winner')).toBeInTheDocument()
+  })
 })
 
 /**

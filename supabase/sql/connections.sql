@@ -1140,7 +1140,8 @@ grant execute on function connections.concede(uuid) to authenticated;
 --
 -- Terminal play_state values: 'lost' (coop) / 'lost_compete' (compete). In
 -- coop, 'lost' is the same terminal as a 4-mistakes loss; the CAUSE rides in
--- status.outcome ('timeout'), which the club-list label reads.
+-- status.outcome ('timeout'), which the club-list label and the below-board
+-- pill both read.
 --
 -- Concurrency: multiple clients may fire submit_timeout at the same instant
 -- because each client's local timer hits 0 around the same wall-clock moment.

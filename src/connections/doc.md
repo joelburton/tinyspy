@@ -114,8 +114,10 @@ tell which was played without joining anything:
 Plus `playing`, and `ended` when somebody stopped it — neutral in every mode.
 WHY it ended is the server's word: the RPC that ends the game writes the
 reason into `common.games.status.outcome` — `solved`, `mistakes`, `timeout`,
-`conceded` (every racer walked away), or `manual` — and the club-list label
-reads it. A compete win also freezes the winner's name onto `status`.
+`conceded` (every racer walked away), or `manual` — and both surfaces that
+name a reason read it: the club-list label and the below-board pill
+(`lib/terminal.ts`). A compete win also freezes the winner's name onto
+`status`.
 
 ## Schema
 

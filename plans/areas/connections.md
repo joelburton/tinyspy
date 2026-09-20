@@ -555,7 +555,22 @@ choice with a comment that says it is one. Recommendation: the same here; a
 race's winner has more to celebrate than a team, and the pill alone says
 "Won: the race" in the corner.
 
-### F-connections-2 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, and cannot say "all conceded"
+### SHIPPED · F-connections-2 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, and cannot say "all conceded"
+
+**Joel, 2026-09-19: "do it."** The builder's inputs are `mode · playState ·
+reason · selfWon · selfEliminated`, `reason` being `status.outcome`; the call
+site reads `status` off the context (the prop it never destructured) and the
+`timer` prop is gone from this component. `lost_compete` gained *All conceded
+— no winner* / *All conceded*; a MIXED table stays "Everyone eliminated",
+which is the server's own call in `connections.concede` and what the
+club-list label says from the same word. `lib/terminal.test.ts` walks every
+word `status.outcome` can hold (plus `undefined`) instead of a boolean, and
+`PlayArea.test.tsx` gained the WIRE: an all-conceded race whose clock never
+ran out reads the server's word. **Verified by planting two faults**: the
+builder blind to `conceded` (2 red) and the call site back on
+`timer.expired` (1 red). The SQL's timeout header and `doc.md`'s status
+paragraph said the club-list label reads the column; both now name the pill
+beside it.
 
 `buildTerminalMessage` takes `timerExpired` off `timer.expired` — the
 browser's clock — where the RPC that ended the game wrote WHY into
@@ -840,6 +855,25 @@ printer's A–D. Then the doc is deleted, its inbound links repointed
 The Bug (`matched`) and the Soon (the eliminated racer) are F-4 and F-5 and
 leave the todo with their rulings; the "next puzzle" Maybe is a question for
 Joel this pass can ask; the animation Maybe is pass 3's.
+
+### F-connections-21 · `ellipsising` · a British spelling the guard's list does not carry, in nine places
+
+Found while reading psychicnum's `lib/terminal.ts` beside connections' (F-2's
+verification): its docstring says the pill is a "fixed-height, **ellipsising**
+row". Connections' own says *ellipsizing* and is right. `-ise` where American
+writes `-ize` is the CLAUDE.md rule, and `americanSpelling.test.ts` says in
+its own words that the list "grows when one gets through". This one got
+through nine times: `psychicnum/lib/terminal.ts`, `wordiply`, `crosswords`,
+`stackdown` and `wordle`'s PlayAreas, `wordle/components/InfoCol.tsx`,
+`letterboxed/lib/board.ts`, `docs/ui.md` → the pill, and
+`plans/areas/common-hosts.md`. Every one is the same sentence about the pill,
+copied outward from whichever wrote it first.
+
+**Options:** *fix and guard* — the nine lines to `ellipsizing`, and
+`ellipsising → ellipsizing` joins the guard's map so it cannot come back — or
+*fix only*, leaving the word off the list. Recommendation: fix and guard;
+the guard's docstring asks for exactly this, and a word this sentence keeps
+copying is the kind that returns.
 
 ### The prose pass — shipped 2026-09-19, one sitting
 

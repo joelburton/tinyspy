@@ -6,8 +6,8 @@ import {
 } from '@/common/terminal/terminalMessage'
 
 /**
- * What connections says once the game is over, for a play state, a mode and
- * what the caller's own row shows.
+ * What connections says once the game is over, for a play state, a mode, the
+ * server's reason and what the caller's own row shows.
  *
  * `pillText` + `outcome` are the below-board verdict; `infoColText` + `outcome`
  * are the short, bold, color-coded line in the info column (won = green,
@@ -24,14 +24,18 @@ import {
 export function buildTerminalMessage({
   mode,
   playState,
-  timerExpired,
+  reason,
   selfWon,
   selfEliminated,
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  // Did the clock run out? Tells a timeout loss from a mistakes loss.
-  timerExpired: boolean
+  // WHY it ended — `common.games.status.outcome`, written by whichever RPC
+  // ended the game: `timeout` (submit_timeout), `conceded` (every racer
+  // dropped out), `mistakes` (somebody played it out and spent their four).
+  // The club-list label reads the same column, so the two surfaces name one
+  // reason.
+  reason: string | undefined
   // Compete: did the caller match all four? (Coop verdicts ignore it.)
   selfWon: boolean
   // Compete: did the caller use all their mistakes? Tells the out-of-mistakes
@@ -45,10 +49,10 @@ export function buildTerminalMessage({
     if (playState === 'won') {
       return { pillText: 'You win!', infoColText: 'You won!', outcome: 'won' }
     }
-    // lost: the clock, or the mistakes.
+    // lost: the clock, or the mistakes (coop cannot concede — End ends it).
     return {
-      pillText: timerExpired ? 'Lost: out of time' : 'Lost: out of mistakes',
-      infoColText: timerExpired ? 'Out of time' : 'Out of mistakes',
+      pillText: reason === 'timeout' ? 'Lost: out of time' : 'Lost: out of mistakes',
+      infoColText: reason === 'timeout' ? 'Out of time' : 'Out of mistakes',
       outcome: 'lost',
     }
   }
@@ -62,10 +66,19 @@ export function buildTerminalMessage({
     }
     return { pillText: 'Beaten to the punch', infoColText: 'Opponent won', outcome: 'lost' }
   }
-  // lost_compete: everyone eliminated, or the clock.
+  // lost_compete: the clock, every racer conceded, or the mistakes. A MIXED
+  // table — someone conceded, someone played it out — is `mistakes`, the
+  // server's own call (`connections.concede`), because somebody did play it
+  // out; the club-list label says the same thing from the same word.
   return {
-    pillText: timerExpired ? 'Out of time — no winner' : 'Everyone eliminated',
-    infoColText: timerExpired ? 'Out of time' : 'All eliminated',
+    pillText:
+      reason === 'timeout' ? 'Out of time — no winner'
+      : reason === 'conceded' ? 'All conceded — no winner'
+      : 'Everyone eliminated',
+    infoColText:
+      reason === 'timeout' ? 'Out of time'
+      : reason === 'conceded' ? 'All conceded'
+      : 'All eliminated',
     outcome: 'lost',
   }
 }

@@ -158,7 +158,7 @@ function PlayArea({
   players,
   playState,
   isTerminal,
-  timer,
+  status,
   isMyTurn,
   currentTurnUserId,
   setup,
@@ -293,15 +293,20 @@ function PlayArea({
 
   // The terminal message, memoized on primitives so the verdict effect sees
   // one object per outcome; what it says per state is `lib/terminal.ts`'s.
-  const timerExpired = timer.expired
+  //
+  // WHY it ended is the server's word (`status.outcome`), never the browser's
+  // clock: `timer.expired` is the TRIGGER that fires `submitTimeout`, so the
+  // client that ticked last has it and the others do not, and it has no word
+  // at all for a race everyone conceded.
+  const reason = status?.outcome as string | undefined
   const selfWon = iMatchedThemAll
   const selfEliminated = mistakeCount >= MISTAKE_BUDGET
   const terminalMessage = useMemo(
     () =>
       isTerminal
-        ? buildTerminalMessage({ mode, playState, timerExpired, selfWon, selfEliminated })
+        ? buildTerminalMessage({ mode, playState, reason, selfWon, selfEliminated })
         : null,
-    [isTerminal, mode, playState, timerExpired, selfWon, selfEliminated],
+    [isTerminal, mode, playState, reason, selfWon, selfEliminated],
   )
   useEffect(function showTerminalVerdict() {
     if (!terminalMessage) return
