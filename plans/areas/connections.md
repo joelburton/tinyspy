@@ -779,7 +779,7 @@ it until the games conform*, as psychicnum's `a5ff4ca4` chose for
 what the next fourteen areas will remove is a doc that misleads each of them
 at its opening.
 
-### F-connections-8 · `stale-table-name` · `connections.guesses` in prose the rename left behind
+### SHIPPED · F-connections-8 · `stale-table-name` · `connections.guesses` in prose the rename left behind
 
 The table is `events` (2026-09-17). `useGame.ts`'s docstring says
 `connections.{games, guesses, players}` three times; `GameEventLog` and the
@@ -788,7 +788,7 @@ throughout and stay as they are — an applied migration is never edited, and
 its comments were true on the day (docs/supabase.md → Schema vs code). The
 2026-09-17 migration is the record of the rename.
 
-### F-connections-9 · `docstring-marker-pass` · `/**` on a member, in eight files
+### SHIPPED · F-connections-9 · `docstring-marker-pass` · `/**` on a member, in eight files
 
 A note on one member of a declaration takes `//` (app-audit.md §4 → the
 docstring marker). Candidates, all read, all members: `useGame.ts` —
@@ -799,14 +799,14 @@ object; `lib/setup.ts` — `player_user_ids`; `StrikeMarks.tsx` — both props;
 `GameEventLog.tsx` — three props. `InfoCol` and `Board` are done (Steps 8
 and 7).
 
-### F-connections-10 · `banned-word-copy` · "copy" for a message's words, in six files
+### SHIPPED · F-connections-10 · `banned-word-copy` · "copy" for a message's words, in six files
 
 `manifest.ts` (three: "Start-button copy", "terminal copy", "Terminal copy
 carries the winner's name"), `GameEventLog.tsx` (two), `Help.tsx` (two),
 `lib/history.test.ts` ("the canonical copy"), `supabase/sql/connections.sql`
 (two, in `submit_timeout`'s header). A message's words are its TEXT.
 
-### F-connections-11 · `archaeology` · "used to", dated asides, and what was replaced
+### SHIPPED · F-connections-11 · `archaeology` · "used to", dated asides, and what was replaced
 
 Each a paragraph about a previous shape, deleted or cut to what is true
 today: `manifest.ts` — the find-or-create story told twice ("There is no
@@ -831,7 +831,7 @@ word in `result`", `_maybe_finish_compete`'s "This used to write
 'lost_compete_mistakes'", `end_game`'s "see those for the bug history";
 `next_puzzle_test.sql`'s "They used to `return table(...)`".
 
-### F-connections-12 · `stale-claims-in-code` · sentences in the folder that are no longer true
+### SHIPPED · F-connections-12 · `stale-claims-in-code` · sentences in the folder that are no longer true
 
 Each checked against the tree:
 
@@ -892,7 +892,7 @@ Each checked against the tree:
   lost_compete_timeout)"; `next_puzzle_test` — "Empty is `ok` with
   `outcome: 'warning'`" in a file whose own pins assert PN302 and PN303.
 
-### F-connections-13 · `compete-visibility-claim` · "opponents see mistakes only" is stated in five places, and the strip shows FOUND
+### SHIPPED · F-connections-13 · `compete-visibility-claim` · "opponents see mistakes only" is stated in five places, and the strip shows FOUND
 
 `connections.players.matched_count` is public — the migration added it so the
 compete strip could show race progress, and the strip's `metricLabel` is
@@ -960,7 +960,7 @@ already maps `conceded` to "all conceded", so the branch exists only to drop
 *one line, every cause with "no winner"* — or *keep the branch* because a
 table that all walked away from has no winner to mention. Small.
 
-### F-connections-16 · `importer-runs-daily` · the importer's docstring says it is run by hand
+### SHIPPED · F-connections-16 · `importer-runs-daily` · the importer's docstring says it is run by hand
 
 "For v1 this is run manually … It graduates to a scheduled Edge Function /
 GitHub Action when that annoyance compounds" — and
@@ -970,7 +970,7 @@ the manual-run sentence itself. The docstring says what runs it. (Its
 `SUPABASE_SERVICE_ROLE_KEY` default is the well-known local demo key; the
 comment beside it says so, and that is fine.)
 
-### F-connections-17 · `test-prose` · what the tests say about themselves
+### SHIPPED · F-connections-17 · `test-prose` · what the tests say about themselves
 
 `PlayArea.test.tsx` names a keystroke in a describe ("⌥Z shuffles the tiles")
 and carries the two archaeology headers under F-11; `manifest.test.ts`'s
@@ -979,7 +979,7 @@ header is the find-or-create story; `useGame.test.ts`'s is F-12's
 are F-12's. `next_puzzle_test`'s header contradicts its own pins, which is
 the worst kind — a reader trusts the header.
 
-### F-connections-18 · `sql-prose-pass` · the repeatable file's comments, as a set
+### SHIPPED · F-connections-18 · `sql-prose-pass` · the repeatable file's comments, as a set
 
 Beyond the specific claims above: the file opens every function with a
 ten-to-forty-line essay, most of it design rationale and history ("Why a
@@ -989,7 +989,7 @@ its SQL: the contract stays on the function, the rationale goes to `doc.md`
 → Schema and RPCs, the dated rulings and the history go. This is the pass
 that also lands F-8, F-10, F-11, F-12 and F-13's SQL halves.
 
-### F-connections-19 · `doc-harvest` · `doc.md`'s four owed sections, and the old doc's deletion
+### SHIPPED · F-connections-19 · `doc-harvest` · `doc.md`'s four owed sections, and the old doc's deletion
 
 Game rules, Schema, Frontend and Tests are owed to pass 2 (Step 3). What
 `docs/games/connections.md` says that the code does not, to carry across
@@ -1002,7 +1002,19 @@ no-status-bar decision, the event-log picker's compete behavior, the
 printer's A–D. Then the doc is deleted, its inbound links repointed
 (`docLinks.test.ts` catches the anchors; the prose cites need the grep).
 
-### F-connections-20 · `todo-stale` · what `todo.md` says that this pass settles
+### SHIPPED · F-connections-20 · `todo-stale` · what `todo.md` says that this pass settles
+
+The Bug (`matched`) left with F-4 and the Soon (the eliminated racer) with
+F-5, both deleted as shipped. The "next puzzle" Maybe went to Joel and came
+back a NO-CHANGE, so it is struck through rather than deleted (the
+convention): **Joel, 2026-09-19** — *"if the user chooses a specific date, we
+either load that exact date puzzle or show a validation error — which sounds
+like the behavior we already have."* It is, on both halves:
+`next_puzzle_for_club` selects from `connections.puzzles` so a gap cannot come
+back, and `puzzle_for_date` either returns that date's puzzle or refuses into
+the `puzzle_id` field (PN303). Nothing was proposed and nothing built. The
+animation Maybe stays for pass 3; the `as GameRow | undefined` cast stays as
+the cross-game item it is.
 
 The Bug (`matched`) and the Soon (the eliminated racer) are F-4 and F-5 and
 leave the todo with their rulings; the "next puzzle" Maybe is a question for
