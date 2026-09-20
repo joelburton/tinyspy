@@ -67,7 +67,8 @@ markdown and the logo none.
 - **SQL — 3 files**: `supabase/migrations/20260615000003_connections.sql`,
   `supabase/migrations/20260917000005_connections_events.sql`,
   `supabase/sql/connections.sql` (1,520 lines).
-- **The pgTAP suite — 11 files**, `supabase/tests/connections/`:
+- **The pgTAP suite — 11 files** (10 after F-6 deleted `club_game_status_test`),
+  `supabase/tests/connections/`:
   `club_game_status`, `compete`, `concede`, `create_game`, `end_game`,
   `gameplay`, `next_puzzle`, `replay`, `rls`, `turn_order`, and `setup.psql`
   (the per-game helpers; `.psql` carries no stamp). This game's own files, and
@@ -709,7 +710,28 @@ write the caveat as a rule in `doc.md`. Recommendation: (a) — one flag
 meaning "out of the race", however you got there, and the pgTAP concede and
 compete suites pin the words.
 
-### F-connections-6 · `unread-view` · `club_game_status` has no reader, and its comments describe a calendar that is gone
+### SHIPPED · F-connections-6 · `unread-view` · `club_game_status` has no reader, and its comments describe a calendar that is gone
+
+**Joel, 2026-09-19: "do it."** Dropped. The view, its thirty lines of comment
+and its grant become the tombstone `psychicnum.sql` and `letterboxed.sql`
+already use — a bare `drop view if exists` that stays for good, because the
+repeatable file is the whole definition of what the schema contains and a
+database still carrying the view has nothing else that would remove it.
+`club_game_status_test.sql` is `git rm`-ed (186 lines) and the types are
+regenerated.
+
+The recorded reason for keeping it — "crosswords' `club_nyt_status` is modeled
+on it" — **did not survive checking**: that view has never existed anywhere
+(recorded as F-crosswords-1). Two more references were repointed rather than
+left to rot: `docs/supabase.md`'s query-scale table had a row for this read and
+another describing the SetupForm as a no-limit select of the whole library —
+it is two single-puzzle RPCs now — and `docs/games/crosswords.md` explained its
+own choice by comparison with this view.
+
+**strands has the same view**, and its comment pointed HERE "for the full
+rationale" while claiming New game reads it (it does not — `next_puzzle_for_club`
+answers from the puzzles table). The false sentence was fixed on the spot; the
+keep-or-drop decision is recorded as F-strands-1.
 
 The view (`supabase/sql/connections.sql`), its thirty lines of comment ("the
 setup-form calendar asks … colors each calendar square"), its pgTAP file

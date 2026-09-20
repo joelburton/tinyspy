@@ -100,53 +100,15 @@ grant select on connections.games to authenticated;
 grant select on connections.events to authenticated;
 grant select on connections.players to authenticated;
 
--- ============================================================
--- connections.club_game_status — calendar-coloring view
--- ============================================================
--- Joins connections.games + connections.puzzles + common.games to
--- answer the question the connections setup-form calendar asks:
--- "for this club, which puzzle-dates already have a game, and
--- in what state?" The FE reads this once on dialog-open, builds
--- a Map<puzzle_date, status>, and colors each calendar square
--- accordingly (won / lost / in-progress). The `mode` column lets
--- the FE calendar filter to the current dialog's mode.
+-- A view this schema once carried: it answered "which puzzle-dates does this
+-- club already have a game for, and in what state?" for the setup form's
+-- calendar, which went at `53e71cc1` (2026-08-13) when the server took over
+-- picking the puzzle. Nothing has read it since.
 --
--- security_invoker=true so the view runs with the caller's
--- privileges — both connections.games's RLS policy and
--- common.games's RLS policy gate visibility. A non-member of
--- the club sees zero rows; the FE's `.eq('club_handle', X)` filter
--- is belt-and-braces on top.
---
--- Why a view rather than two FE queries + JS merge: the
--- connections.games -> common.games relationship is cross-schema,
--- which PostgREST's embed syntax doesn't resolve (see
--- code-conventions.md → "Cross-schema embeds"). A view does
--- the join SQL-side in one round-trip and types cleanly via
--- supabase gen types. Same shape as psychicnum.games_state.
---
--- Filtered to gametype in ('connections_coop', 'connections_compete')
--- (defensive; common.games.id ↔ connections.games.id is one-to-one
--- by FK, but the join condition doesn't say "and only connections,"
--- so the filter makes the intent visible) and puzzle_date IS NOT NULL
--- (a calendar-anchored view doesn't include rows whose puzzles
--- have no date).
-
+-- The drop stays here for good: this file is the whole definition of what
+-- connections' schema contains, so a database that still carries the view has
+-- nothing else that would ever remove it.
 drop view if exists connections.club_game_status;
-create view connections.club_game_status with (security_invoker = true) as
-select
-  cg.id          as game_id,
-  cg.club_handle as club_handle,
-  cg.play_state  as play_state,
-  cg.is_terminal as is_terminal,
-  wg.mode        as mode,
-  p.puzzle_date     as puzzle_date
-from connections.games wg
-join connections.puzzles p on p.id = wg.puzzle_id
-join common.games cg on cg.id = wg.id
-where cg.gametype in ('connections_coop', 'connections_compete')
-  and p.puzzle_date is not null;
-
-grant select on connections.club_game_status to authenticated;
 
 -- ============================================================
 -- connections.next_puzzle_for_club — the only puzzle choice there is

@@ -298,11 +298,17 @@ grant select on strands.games_state to authenticated;
 -- ============================================================
 -- strands.club_game_status — which dates has this club played?
 -- ============================================================
--- The connections shape (see connections.club_game_status for the full
--- rationale): "for this club and mode, which puzzle-dates already have a
--- game?" New game reads it to advance to the next UNPLAYED date rather than
--- re-dealing a board the club has seen. security_invoker, so both tables'
--- RLS gate visibility; nothing shielded is exposed (dates and states only).
+-- "For this club and mode, which puzzle-dates already have a game, and in
+-- what state?" — one cross-schema join (strands.games ⨝ common.games) that
+-- PostgREST's embed syntax cannot express, done SQL-side in one round-trip.
+-- security_invoker, so both tables' RLS gate visibility; nothing shielded is
+-- exposed (dates and states only).
+--
+-- NOTHING READS IT, and the claim that New game does is wrong:
+-- `next_puzzle_for_club` below answers "one nobody here has played" from
+-- `strands.puzzles` and `common.game_players` without touching this. Whether
+-- it keeps its place is this area's call (plans/areas/strands.md → F-strands-1);
+-- connections' twin was dropped 2026-09-19 for the same reason.
 drop view if exists strands.club_game_status;
 create view strands.club_game_status with (security_invoker = true) as
 select

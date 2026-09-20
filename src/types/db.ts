@@ -1179,13 +1179,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "games_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "club_game_status"
-            referencedColumns: ["game_id"]
-          },
-          {
             foreignKeyName: "games_puzzle_id_fkey"
             columns: ["puzzle_id"]
             isOneToOne: false
@@ -1249,17 +1242,7 @@ export type Database = {
       }
     }
     Views: {
-      club_game_status: {
-        Row: {
-          club_handle: string | null
-          game_id: string | null
-          is_terminal: boolean | null
-          mode: string | null
-          play_state: string | null
-          puzzle_date: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }

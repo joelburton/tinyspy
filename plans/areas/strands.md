@@ -22,6 +22,24 @@ and `docs/games/strands.md`. List the files and STOP)*
 *(`F-strands-1 · slug · title`, one heading each; a status prefix when it
 has one, no prefix means OPEN)*
 
+### F-strands-1 · `unread-view` · `club_game_status` has no reader, and its comment says New game is one
+
+Found from the connections area, 2026-09-19, when connections' twin view was
+dropped for having no reader (F-connections-6). strands copied the shape, and
+the same two things are true of it: **nothing reads it** — not `src/`, not the
+schema's own SQL, not its pgTAP — and its comment claims "New game reads it to
+advance to the next UNPLAYED date", which `strands.next_puzzle_for_club`
+plainly does not: it answers from `strands.puzzles` joined to
+`common.game_players`, and never names the view.
+
+The false sentence was fixed on the spot (it also pointed at connections'
+deleted view "for the full rationale"), and the comment now says the view is
+unread and names this finding. What is left is the decision: *drop it* — a
+tombstone `drop view if exists` in the repeatable file, the pattern
+`psychicnum.sql` and `letterboxed.sql` already use, which is what connections
+did — or *keep it* as a club-history read a future surface might want, with
+the comment saying that is the reason.
+
 ## Notes
 
 *(things worth remembering about this area that are neither a finding nor
