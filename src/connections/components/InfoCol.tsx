@@ -33,7 +33,7 @@ export function InfoCol({
   // block below name each group. Names are shared with the other games' columns for the
   // same idea — see docs/playarea.md.
   isCompete,
-  over,
+  terminalMessage,
   showInput,
   myConceded,
   currentTurnUserId,
@@ -61,8 +61,8 @@ export function InfoCol({
 }: {
   // ── Mode + phase ──
   isCompete: boolean
-  /** Terminal copy when the game is over (drives the action row), else null. */
-  over: TerminalMessage | null
+  /** The terminal message when the game is over (drives the action row), else null. */
+  terminalMessage: TerminalMessage | null
   /** May I still submit? Gates the hint list + help (vs the locally-done look). */
   showInput: boolean
   /** I conceded / was eliminated in a compete race — picks the locally-done wording. */
@@ -133,8 +133,8 @@ export function InfoCol({
   // The row's line, and the only thing that varies between states: the verdict
   // once the game is over, a neutral "you are done, they are not" while a race
   // runs on without you, and nothing at all while you can still play.
-  const rowMessage: InfoActionsMessage | undefined = over
-    ? { text: over.infoColText, outcome: over.outcome }
+  const rowMessage: InfoActionsMessage | undefined = terminalMessage
+    ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
     : showInput
       ? undefined
       : { text: myConceded ? 'You conceded' : 'You’re out', outcome: 'neutral' }
@@ -161,7 +161,7 @@ export function InfoCol({
             currentTurnUserId={currentTurnUserId}
             players={players}
             selfId={selfId}
-            isTerminal={over !== null}
+            isTerminal={terminalMessage !== null}
           />
         )}
 
@@ -215,7 +215,7 @@ export function InfoCol({
           <ActionButton
             action={actBackToClub}
             show="icon"
-            weight={over ? 'primary' : 'secondary'}
+            weight={terminalMessage ? 'primary' : 'secondary'}
           />
         </InfoActionsRow>
         {/* The per-player hint reveals — unfolds right under the action row when
@@ -249,7 +249,7 @@ export function InfoCol({
         players={players}
         selfId={selfId}
         mode={isCompete ? 'compete' : 'coop'}
-        isTerminal={over !== null}
+        isTerminal={terminalMessage !== null}
         historyId={historyId}
         onShowHistory={onShowHistory}
       />

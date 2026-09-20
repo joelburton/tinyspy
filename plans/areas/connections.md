@@ -56,7 +56,8 @@ markdown and the logo none.
   `StrikeMarks.tsx` + `.module.css`. hooks: `useGame.ts` + `.test.ts`. lib:
   `answer.ts` + `.test.ts`, `board.ts`, `evaluate.ts` + `.test.ts`,
   `history.ts` + `.test.ts`, `localOrder.ts` + `.test.ts`, `rankColors.ts`,
-  `setup.ts`, `setupSummary.ts`. pdf: `model.ts` + `.test.ts`,
+  `setup.ts`, `setupSummary.ts`, **`terminal.ts` + `.test.ts` (created by
+  Step 6, 2026-09-19)**. pdf: `model.ts` + `.test.ts`,
   `printConnectionsPdf.ts`. root: `db.ts`, `manifest.ts` + `.test.ts`,
   `theme.css`, `logo.svg`, `todo.md`, and **`doc.md`, written at Step 3**
   (2026-09-19) in psychicnum's shape (Intro to area · Game rules · Schema ·
@@ -328,9 +329,41 @@ the end; Hints goes with the input, and the grayed Reveal takes its place).
 Verified: `tsc -b` clean, lint clean, 380 unit tests green (the game's and
 the guards). The e2e specs have not run for Steps 2–5.
 
-### Steps 6–8 — the builder to `lib/` · the section order · the comment pass
+### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-19
 
-psychicnum's Steps 4–6, in that order, each a commit Joel reads; recorded
+psychicnum's Step 4, copied, with its rename ruling applied from the start:
+the builder is **`buildTerminalMessage`** in `lib/terminal.ts` — Joel's word
+is "terminal", not "over" — the value it produces is `terminalMessage`, and
+InfoCol's `over` prop is `terminalMessage` too. `<Board gameOver>` keeps its
+name, being the shared vocabulary backed by the `.gameOver*` classes.
+`PlayArea.tsx` no longer imports `gameEndedTerminalMessage` or the
+`TerminalMessage` type; the `useMemo` on primitives that feeds the verdict
+effect stays there, as planned.
+
+**A no-op with one signature change**: the builder took `selfMatched` and
+compared it to `CATEGORY_COUNT`, a constant of the component file; it takes
+`selfWon` now, which the PlayArea computes from the `iMatchedThemAll` it
+already had for the reveal. Same branches, same words.
+
+`lib/terminal.test.ts` walks the whole input space — every terminal play
+state (`won` · `lost` · `ended` · `won_compete` · `lost_compete`) in both
+modes, the clock run out and not, the caller eliminated and not — and the
+last case is a TABLE: no cell pairs a winning sentence with a losing outcome,
+both texts are filled, neither is punctuated. Both files join the roster at
+`cs-met-connections`.
+
+**Known and left for pass 2, as psychicnum's F-5 was:** the builder decides
+the reason from the client clock (`timer.expired`) where psychicnum's now
+reads the server's word, `status.outcome`; and a race that ended because
+everyone conceded reads "Everyone eliminated". Pass 2's finding, with the
+SQL open.
+
+Verified: `tsc -b` clean, lint clean, 394 unit tests green (the game's and
+the guards). The e2e specs have not run for Steps 2–6.
+
+### Steps 7–8 — the section order · the comment pass
+
+psychicnum's Steps 5–6, in that order, each a commit Joel reads; recorded
 here as each lands.
 
 ### After the restructure — pass 2, the audit

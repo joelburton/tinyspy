@@ -21,7 +21,6 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { memberById } from '@/common/members/memberList'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { buildConnectionsPrintModel } from '../pdf/model'
 import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
@@ -35,6 +34,7 @@ import { peerAnswerMessage } from '../lib/answer'
 import { useGame, type ConnectionsGame, type EventRow, type MatchedCategory, type SelectionMap } from '../hooks/useGame'
 import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
 import { historySnapshot } from '../lib/history'
+import { buildTerminalMessage } from '../lib/terminal'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
@@ -592,20 +592,20 @@ function PlayArea({
   // mistakes) vs "beaten to the punch" (still racing when an opponent solved
   // it). Coop verdicts are team-wide.
   const timerExpired = timer.expired
-  const selfMatched = matchedCategories.length
+  const selfWon = iMatchedThemAll
   const selfEliminated = mistakeCount >= MISTAKE_BUDGET
-  const over = useMemo(
+  const terminalMessage = useMemo(
     () =>
       isTerminal
-        ? buildOver({ mode, playState, timerExpired, selfMatched, selfEliminated })
+        ? buildTerminalMessage({ mode, playState, timerExpired, selfWon, selfEliminated })
         : null,
-    [isTerminal, mode, playState, timerExpired, selfMatched, selfEliminated],
+    [isTerminal, mode, playState, timerExpired, selfWon, selfEliminated],
   )
   useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    if (!terminalMessage) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(terminalMessage))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  }, [localFeedbackSlot, terminalMessage])
 
   // Locally terminal (compete, not game-over): caller is out of the race but
   // the game continues for the survivors — either eliminated (hit 4 mistakes)
@@ -706,7 +706,7 @@ function PlayArea({
         // wears the verdict's outcome), or this player is out of a compete race while the
         // others play on. The second has no verdict yet, so it takes the neutral
         // gray — their board is inert, which is all the frame claims.
-        gameOver={over ? over.outcome : locallyDone ? 'neutral' : null}
+        gameOver={terminalMessage ? terminalMessage.outcome : locallyDone ? 'neutral' : null}
         onExitHistory={exitHistory}
         // ── Tile selection (state in useGame; rendered + committed here) ──
         ownerByTile={ownerByTile}
@@ -734,7 +734,7 @@ function PlayArea({
       <InfoCol
         // ── Mode + phase ──
         isCompete={mode === 'compete'}
-        over={over}
+        terminalMessage={terminalMessage}
         showInput={showInput}
         myConceded={myConceded}
         currentTurnUserId={currentTurnUserId}
@@ -784,72 +784,4 @@ function PlayArea({
       {acknowledgeModal}
     </div>
   )
-}
-
-/**
- * The per-status terminal message. `pillText` + `outcome` are the below-board
- * verdict; `infoColText` + `outcome` the short, bold, color-coded line in the
- * info-column action row (won = green, lost = red, manual end = neutral). Same
- * shape as psychicnum's buildOver. Coop
- * verdicts are team-wide; compete distinguishes the racer who hit 4 matches (the
- * winner) from two losers — eliminated (used all 4 mistakes) vs beaten to the
- * punch (an opponent solved it first). Detail-on-page intentionally: the
- * matched/unmatched categories show on the bands and mistake counts on the strip;
- * the pill + line stay focused on the verdict.
- *
- * Verdicts are terse and unpunctuated ("Lost: out of mistakes", not "You lost:
- * out of mistakes."): the pill is a fixed-height, ellipsising row that has to fit
- * a phone (docs/mobile.md → feedback text).
- */
-function buildOver({
-  mode,
-  playState,
-  timerExpired,
-  selfMatched,
-  selfEliminated,
-}: {
-  mode: 'coop' | 'compete'
-  playState: string
-  timerExpired: boolean
-  selfMatched: number
-  /** Compete: did the caller use all their mistakes? Distinguishes the
-   *  out-of-mistakes loss from "beaten to the punch". */
-  selfEliminated: boolean
-}): TerminalMessage {
-  // Manual end (connections.end_game) — NEUTRAL terminal in BOTH modes: the
-  // friends chose to stop, nobody won or lost. The shared
-  // gameEndedTerminalMessage() owns it. Must come first — 'ended' is
-  // mode-independent.
-  if (playState === 'ended') return gameEndedTerminalMessage(mode)
-  if (mode === 'coop') {
-    if (playState === 'won') {
-      return { pillText: 'You win!', infoColText: 'You won!', outcome: 'won' }
-    }
-    return {
-      pillText: timerExpired ? 'Lost: out of time' : 'Lost: out of mistakes',
-      infoColText: timerExpired ? 'Out of time' : 'Out of mistakes',
-      outcome: 'lost',
-    }
-  }
-  // compete
-  if (playState === 'won_compete') {
-    if (selfMatched >= CATEGORY_COUNT) {
-      return { pillText: 'Won: the race', infoColText: 'You won!', outcome: 'won' }
-    }
-    // I lost — but WHY matters. If I used all my mistakes I was eliminated
-    // (out of mistakes); "beaten to the punch" is only for a still-racing player
-    // whose opponent solved it first.
-    if (selfEliminated) {
-      return { pillText: 'Lost: out of mistakes', infoColText: 'Out of mistakes', outcome: 'lost' }
-    }
-    return { pillText: 'Beaten to the punch', infoColText: 'Opponent won', outcome: 'lost' }
-  }
-  // lost_compete (everyone eliminated OR timeout)
-  return {
-    pillText: timerExpired
-      ? 'Out of time — no winner'
-      : 'Everyone eliminated',
-    infoColText: timerExpired ? 'Out of time' : 'All eliminated',
-    outcome: 'lost',
-  }
 }
