@@ -33,12 +33,21 @@ walked through and ruled by Joel, one commit apiece. What pass 2 still owes:
 the whole-area re-read in one sitting (Closing), then pass 3. The earlier
 three findings (F-1 to F-3) shipped during the restructure.
 
-**PAUSED pre-close, 2026-09-19.** Everything Claude owes the area is done —
-three passes, tf2, the closing re-read, the `doc.md` harvest, `todo.md` empty
-but for its Won't-dos — and the blessing is Joel's alone. He is holding it:
-this game's printer builds on `src/common/pdf/`, which no area has read, so
-`pdf` opens first and psychicnum closes after it. The note under *Notes* that
-recorded the opposite ruling is marked superseded there.
+**Paused pre-close 2026-09-19, and UNPAUSED the same day.** Everything Claude
+owes the area is done — three passes, tf2, the closing re-read, the `doc.md`
+harvest, `todo.md` empty but for its Won't-dos — and the blessing is Joel's
+alone. He held it while `pdf` was read: this game's printer builds on
+`src/common/pdf/`, which no area had read, so `pdf` opened first and closed
+blessed the same day. The note under *Notes* that recorded the opposite ruling
+is marked superseded there. **What `pdf` changed here** (Joel: *"make sure
+that nothing in the pdf area work requires updates in psychicnum"*): the
+printer already carried the two sweeps (`drawSetupBelow`, `heading: 'Turns'`
+— the word its screen wears); its one stale claim, the "set the border weight
+on EVERY rect" comment that `pdf` handed to `todo.md`, is worked — the marks
+restore the line width now, so the grid sets it once above the loop and the
+todo item is deleted. The print e2e's "No turns yet." is still the shared
+default; `model.ts`'s `SetupRow` import from `frame` is the re-export `pdf`
+kept; `doc.md` already points at `common/pdf/doc.md`.
 
 **Three passes, back to back** (Joel, 2026-09-19 — the game rows in
 app-audit.md §3 say two and should say three):
@@ -94,8 +103,9 @@ Stamps at the opening: ten files `cs-fixed-outcome-fix`, eighteen `cs-unmet`,
 **The net, not the roster**: five e2e specs (`psychicnum-history`, `-mobile`,
 `-print`, `-terminal`, `-turn-order`, 454 lines), `PlayArea.test.tsx` (about
 forty cases), `e2e/board-geometry.e2e.ts` (psychicnum is one of its boards),
-the pgTAP suite. `common/pdf` (row 47) is the one shared folder psychicnum
-imports that is not yet blessed; Joel: fine, the focus is the web-based parts.
+the pgTAP suite. `common/pdf` (the `pdf` area) was, at the read, a shared
+folder psychicnum imports that no area had blessed; it closed and was blessed
+2026-09-19, ahead of this game's blessing.
 
 ## The restructure — plan
 

@@ -38,8 +38,7 @@ import type { PrintTile, PrintTrack, PsychicnumPrintModel } from './model'
  * a bonus on a color printer.
  */
 
-// A "normal" cell-border weight, set on EVERY rect so a mark's thicker stroke can't
-// leak into the next cell.
+// The cell-border weight.
 const BORDER_W = 0.6
 // The ✓ / ✗ marks — green / red on a color printer, distinguished by SHAPE in B&W.
 const MARK_CORRECT: [number, number, number] = [46, 106, 42]
@@ -114,12 +113,13 @@ function drawBoard(
   doc.setFont('helvetica', 'bold').setFontSize(10)
   const size = Math.min(cellH * 0.42, (10 * (cellW - 10)) / doc.getTextWidth('WATERMELON'))
   doc.setFontSize(size).setTextColor(BLACK)
+  // Set once for the grid: a mark restores the line width it found, so the
+  // border weight survives a marked cell.
+  doc.setLineWidth(BORDER_W).setDrawColor(DARK_GRAY)
   board.forEach((tile, i) => {
     const px = x0 + (i % cols) * cellW
     const py = y0 + Math.floor(i / cols) * cellH
-    // Set the border weight on EVERY rect — the marks bump the line width, so a
-    // stale value would otherwise thicken every cell after the first marked one.
-    doc.setLineWidth(BORDER_W).setDrawColor(DARK_GRAY).rect(px, py, cellW, cellH, 'S')
+    doc.rect(px, py, cellW, cellH, 'S')
     // Word a hair below center so it clears the top-corner mark.
     doc.text(tile.word, px + cellW / 2, py + cellH / 2 + size * 0.35 + 2, { align: 'center' })
     // Top-right corner of the cell — psychicnum's own placement; the shared
