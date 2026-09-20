@@ -43,10 +43,11 @@ export type EventRow = {
   // color: the history viewer's tint has exactly three classes, and a
   // seven-value vocabulary cannot key them.
   result: GuessResult
-  // Whether this guess MATCHED a category — the rule, kept separate from the
-  // look. `outcome === 'won'` happens to mean the same thing today, but that
-  // is a color answering a question about the rules, which is exactly the
-  // confusion the seam exists to end.
+  // Whether this guess MATCHED a category — the rules question, answered once
+  // here. `result === 'correct'` says the same thing, but `result` is the
+  // COLUMN's word: a reader asking it is reading the wire, and a reader asking
+  // `outcome === 'won'` is asking a color. Downstream asks this instead, so
+  // neither of those leaks past the seam.
   matched: boolean
   matched_category_rank: number | null
   created_at: string

@@ -617,7 +617,19 @@ And its docstring calls the whole thing "placeholder content … deferred until
 we have a unified visual register", with "copy" twice. Joel's words for the
 three lines; the docstring loses the placeholder claim either way.
 
-### F-connections-4 · `matched-derivable` · `EventRow.matched` is `result === 'correct'`
+### SHIPPED · F-connections-4 · `matched-derivable` · `EventRow.matched` is `result === 'correct'`
+
+**Joel, 2026-09-19: "keep it and rewrite the note."** The field stays; its
+docstring now says why the row carries it — `result` is the COLUMN's word and
+`outcome` is a color, so a reader asking either is asking something else, and
+the seam answers the rules question once. `todo.md` → Bugs loses the item,
+which asked for this choice.
+
+The finding said SIX readers, counting BoardCol's "a teammate's guess that did
+not win": BoardCol is not one — it asks `res.data.result === 'correct'` on the
+RPC's envelope and never touches an `EventRow`. They are `useGame`'s own
+projection, `GameEventLog.verdictLabel`, `lib/history.ts`, and `pdf/model.ts`
+twice.
 
 From `todo.md` → Bugs. The seam derives both from one column; the docstring
 defends `matched` as "the rule, kept separate from the look", which argued

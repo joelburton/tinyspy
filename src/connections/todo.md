@@ -2,14 +2,6 @@
 
 ## Bugs
 
-- **`matched` on `EventRow` is now derivable.** It is `result === 'correct'`,
-  and `result` joined the row on 2026-09-17 so the history viewer's three tint
-  classes could key on a three-value word instead of a narrowed `Outcome`. Its
-  docstring defends it as "the rule, kept separate from the look" — an argument
-  against asking a COLOR about the rules, which no longer applies now that the
-  fact is there to ask. Collapse it, or rewrite the docstring to say why two
-  fields carry one fact.
-
 ## Soon
 
 - **An eliminated racer still pauses the game for the survivors.** The
