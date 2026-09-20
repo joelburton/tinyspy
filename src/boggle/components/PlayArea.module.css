@@ -242,7 +242,7 @@
  * The resting border is drawn transparent so selecting one changes only the
  * color and the width — a border appearing from nothing would move the letter. */
 /* @@ */ .selected {
-  border-color: var(--tile-selected-edge-color);
+  border-color: var(--tile-spent-edge-color);
   border-width: var(--tile-selected-edge-width);
 }
 

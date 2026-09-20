@@ -151,7 +151,7 @@
  * position: the outer hexes' strokes paint past the viewBox, which `.grid` lets
  * through. */
 /* @@ */ .used .hexShape {
-  stroke: var(--tile-selected-edge-color);
+  stroke: var(--tile-spent-edge-color);
   stroke-width: var(--tile-selected-edge-width);
 }
 

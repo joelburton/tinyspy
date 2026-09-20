@@ -170,5 +170,5 @@
   pointer-events: none;
 }
 /* @@ */ .tile.used .face {
-  border-color: var(--tile-selected-edge-color);
+  border-color: var(--tile-spent-edge-color);
 }
