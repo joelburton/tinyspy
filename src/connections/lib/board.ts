@@ -9,6 +9,11 @@
  * components import it alike.
  */
 
+/** A board is four categories of four tiles; a game allows four mistakes. */
+export const CATEGORY_COUNT = 4
+export const TILES_PER_CATEGORY = 4
+export const MISTAKE_BUDGET = 4
+
 /** Difficulty rank of a category. 0..3 maps to NYT Connections'
  *  yellow/green/blue/purple bands in theme.css. "Rank" rather
  *  than "level" because "level" can mean too many other things

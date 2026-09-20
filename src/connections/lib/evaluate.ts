@@ -1,6 +1,6 @@
 // cs-met-connections
 
-import type { Category, CategoryRank } from './board'
+import { TILES_PER_CATEGORY, type Category, type CategoryRank } from './board'
 
 /**
  * What a 4-tile guess turned out to be: `correct` (with the matched category's
@@ -36,7 +36,7 @@ export function evaluateGuess(
   // Defensive: `BoardCol` offers Submit only at four tiles, but a short
   // input shouldn't false-positive as 'oneAway' just because all 3 happen
   // to be in the same category.
-  if (tiles.length !== 4) return { result: 'wrong' }
+  if (tiles.length !== TILES_PER_CATEGORY) return { result: 'wrong' }
 
   // Find the category with the largest overlap to the guessed
   // tiles. If anything has all 4, it's the matched category.
@@ -52,7 +52,7 @@ export function evaluateGuess(
       bestCategory = c
     }
   }
-  if (best === 4 && bestCategory) {
+  if (best === TILES_PER_CATEGORY && bestCategory) {
     return {
       result: 'correct',
       rank: bestCategory.rank,

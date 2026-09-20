@@ -31,6 +31,7 @@ import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { db } from '../db'
 import { peerAnswerMessage } from '../lib/answer'
+import { CATEGORY_COUNT, MISTAKE_BUDGET } from '../lib/board'
 import { useGame, type ConnectionsGame, type EventRow, type MatchedCategory, type SelectionMap } from '../hooks/useGame'
 import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
 import { historySnapshot } from '../lib/history'
@@ -42,11 +43,6 @@ import styles from './PlayArea.module.css'
 import '../theme.css'  // connections-specific color tokens (lazy with this chunk)
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-
-/** Four categories to find, four mistakes allowed — the NYT Connections
- *  constants, shown in the setup disclosure + the "N/4 found" state line. */
-const CATEGORY_COUNT = 4
-const MISTAKE_BUDGET = 4
 
 /**
  * The three gates in front of connections' play surface: the read is out, the

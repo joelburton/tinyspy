@@ -25,7 +25,7 @@ import { answerMessage, type GuessResult } from '../lib/answer'
 import { reconcileLocalOrder } from '../lib/localOrder'
 import { shuffle } from '@/common/utils/shuffle'
 import type { ConnectionsGame, EventRow, MatchedCategory } from '../hooks/useGame'
-import type { Category } from '../lib/board'
+import { TILES_PER_CATEGORY, type Category } from '../lib/board'
 import type { HistorySnapshot } from '../lib/history'
 import { Board, type BoardVerdict } from './Board'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
@@ -282,7 +282,7 @@ export function BoardCol({
   const [submitting, setSubmitting] = useState(false)
 
   async function handleSubmit() {
-    if (submitting || unionTiles.length !== 4) return
+    if (submitting || unionTiles.length !== TILES_PER_CATEGORY) return
     // The tiles as they were at SEND. The selection is cleared on the way out
     // (and a teammate can move it in coop), so every mark about this guess has
     // to carry its own copy rather than re-reading `unionTiles` afterwards.
@@ -371,7 +371,7 @@ export function BoardCol({
     describe: () => {
       if (!showInput || !isMyTurn || isViewingHistory) return 'hidden'
       if (submitting) return { state: 'disabled', label: 'Submitting…' }
-      return unionTiles.length === 4 ? 'active' : 'disabled'
+      return unionTiles.length === TILES_PER_CATEGORY ? 'active' : 'disabled'
     },
     run: handleSubmit,
   })

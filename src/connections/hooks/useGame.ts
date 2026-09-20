@@ -12,7 +12,12 @@ import { eventToOutcome, type GuessResult } from '../lib/answer'
 import { db } from '../db'
 import type { Database } from '@/types/db'
 import type { Member } from '@/common/members/member'
-import type { Board, CategoryRank } from '../lib/board'
+import {
+  MISTAKE_BUDGET,
+  TILES_PER_CATEGORY,
+  type Board,
+  type CategoryRank,
+} from '../lib/board'
 
 /** One player in a connections game — a `Member` as-is. What this game keeps
  *  per player lives on `connections.players` (`PlayerRow`), not on the person. */
@@ -400,7 +405,7 @@ export function useGame(
       }
       let unionSize = 0
       for (const list of selections.values()) unionSize += list.length
-      if (unionSize >= 4) return
+      if (unionSize >= TILES_PER_CATEGORY) return
       broadcast({ type: 'select', tile, userId: session.user.id })
     },
     [broadcast, selections, session.user.id],
@@ -460,7 +465,7 @@ export function useGame(
 
   // Eliminated in compete: the caller has spent the budget. Coop reaches four
   // only on the game-ending guess, so this stays false there.
-  const isEliminated = game?.mode === 'compete' && mistakeCount >= 4
+  const isEliminated = game?.mode === 'compete' && mistakeCount >= MISTAKE_BUDGET
 
   return {
     game,

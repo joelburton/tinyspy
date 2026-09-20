@@ -908,7 +908,23 @@ strip shows found counts; guesses and which categories stay private during
 play. The prose says that; the migration's comments stay (F-8's rule) and
 the SQL file's are corrected.
 
-### F-connections-14 · `constants-have-two-homes` · four and four, written in the component file and again as `>= 4`
+### SHIPPED · F-connections-14 · `constants-have-two-homes` · four and four, written in the component file and again as `>= 4`
+
+**Joel, 2026-09-19: "all three."** `CATEGORY_COUNT`, `TILES_PER_CATEGORY` and
+`MISTAKE_BUDGET` are exported from `lib/board.ts` — beside the wire types,
+where `lib/` can reach them — and `PlayArea`, `useGame`, `evaluate` and
+`BoardCol` read them. The printer already took `maxMistakes` as a prop and
+still does; the SQL keeps its own 4s, being the authority.
+
+**THREE facts, not the two the finding named.** Tiles-per-category is a third
+number spelled `4`, and the one with the most literals:
+`evaluate.ts`'s `tiles.length !== 4` and `best === 4`, `useGame`'s selection
+cap `unionSize >= 4`, and `BoardCol`'s two submit gates. Four categories of
+four tiles with four mistakes allowed — a bare `4` in a comparison reads as
+whichever of them the reader had in mind, which is what the names fix.
+
+What stayed a literal: the player-facing words ("Pick 4 tiles that share a
+category", "Mistakes (lose at 4)"), which are text and not arithmetic.
 
 `CATEGORY_COUNT` and `MISTAKE_BUDGET` live in `PlayArea.tsx`, which is why
 `lib/terminal.ts` had to take `selfWon` rather than a count (Step 6);
