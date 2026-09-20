@@ -918,7 +918,24 @@ home in `lib/setup.ts`. The same here: both constants beside the wire types
 in `lib/board.ts` (they are facts about a Connections board), `useGame`,
 `PlayArea` and the printer's `maxMistakes` reading them.
 
-### F-connections-15 · `compete-label-shape` · the compete "all conceded" label is a second branch for a word the table already has
+### SHIPPED · F-connections-15 · `compete-label-shape` · the compete "all conceded" label is a second branch for a word the table already has
+
+**Joel, 2026-09-19: "do it"** — on the recommendation, which was *keep the
+branch and write the reason down*. The branch stays; five lines of comment
+above it say what it is for: "no winner" for every cause but one, because a
+table everybody walked away from has no winner to mention where a race played
+to the end does.
+
+**The finding read it as connections' redundancy; it is the ROSTER's
+convention** — bananagrams, boggle, crosswords, scrabble, spellingbee,
+wordiply and psychicnum all special-case `conceded` the same way, and every
+one of those lines is pinned in `docs/game-status-labels.md`. Dropping the
+branch here would have split the roster until seven other areas made the same
+call. The labels doc regenerates unchanged.
+
+This finding is also where the `status.outcome` → `status.reason` and
+`outcome()` → `verdict()` renames came from: Joel read the code quoted in its
+presentation (F-connections-22).
 
 `labelFor` for `lost_compete`: `conceded ? outcome('Lost', 'all conceded') :
 statusLine(outcome('Lost', COMPETE_LOSS[…]), 'no winner')` — `COMPETE_LOSS`

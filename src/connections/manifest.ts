@@ -178,6 +178,11 @@ export const connectionsCompeteGame: GameManifest = {
         return verdict('Playing')
       case 'won_compete':
         return wonBy(s.winner_username as string | undefined)
+      // "no winner" for every cause but one: a table everybody walked away
+      // from has no winner to mention, where a race played to the end does.
+      // The roster keeps the same asymmetry (docs/game-status-labels.md),
+      // which is why the branch is not the redundancy it looks like —
+      // `COMPETE_LOSS` already holds the words.
       case 'lost_compete':
         return (s.reason as string) === 'conceded'
           ? verdict('Lost', 'all conceded')
