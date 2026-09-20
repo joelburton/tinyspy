@@ -527,7 +527,19 @@ explanation standing next door. Twenty findings: six with a decision in them
 (F-1 to F-6), one about a shared doc (F-7), and the rest prose, tests and
 small shapes.
 
-### F-connections-1 · `race-winner-celebration` · the race's winner gets no confetti, and the stated reason is gone
+### SHIPPED · F-connections-1 · `race-winner-celebration` · the race's winner gets no confetti, and the stated reason is gone
+
+**Joel, 2026-09-19: "the same here."** The gate is `playState === 'won' ||
+(playState === 'won_compete' && iMatchedThemAll)`; `iMatchedThemAll` moved up
+into Page hooks beside the hook that reads it (Derived's reveal now reads the
+name rather than declaring it), and the modal's body says *You found all four
+first.* in a race. Four cases in `PlayArea.test.tsx` — the racer who matched
+all four with the bands landing a render after the play state, the beaten
+racer, a reload of a race already won, and the coop team. The card's handle
+there is its `<h2>`, not its words: coop's verdict PILL also says *You win!*.
+**Verified by planting two faults**: the gate back to coop-only (1 red), and
+the body fixed to the coop sentence (1 red). `doc.md` said "a coop solve
+celebrates" in two places and now says what the rule is.
 
 `useCelebration(playState === 'won')` — coop only. The comment's reason (cut
 at Step 8, since it was false) was that "did I win the race?" needs a count

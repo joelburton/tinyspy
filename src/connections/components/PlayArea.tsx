@@ -195,12 +195,24 @@ function PlayArea({
   // The notice New game shows when the archive is spent.
   const { acknowledge, acknowledgeModal } = useAcknowledge()
 
-  // Confetti the moment the team clears the fourth category, and never on
-  // mount: opening an already-won game stays quiet (`useCelebration` states
-  // its three rules). It is the ONLY modal at terminal — the verdict itself
-  // rides the below-board pill (docs/ui.md → Terminal results). Coop only: a
-  // race's winner gets the pill and nothing more.
-  const celebration = useCelebration(playState === 'won')
+  // Did I match all four? MY four, not the game's verdict — compete ends the
+  // race for everyone the moment one player finishes. Read here because the
+  // celebration, Derived's reveal and the terminal message all ask it.
+  const iMatchedThemAll = matchedCategories.length >= CATEGORY_COUNT
+
+  // Confetti the moment the win is MINE — the coop team's fourth category, or
+  // my own fourth in a race — and never on mount: opening an already-won game
+  // stays quiet (`useCelebration` states its three rules). It is the ONLY
+  // modal at terminal — the verdict itself rides the below-board pill
+  // (docs/ui.md → Terminal results), and a racer who lost gets that and
+  // nothing more.
+  //
+  // Both gates are correct on the first render, which is what `useCelebration`
+  // requires: `playState` comes with the page, and the matched categories come
+  // with the game — the loader holds this surface back until both are in hand.
+  const celebration = useCelebration(
+    playState === 'won' || (playState === 'won_compete' && iMatchedThemAll),
+  )
 
   // The board frame flashes the moment the move becomes mine: the dim is what
   // says "not yours", its lifting is a removal, and you are by definition
@@ -230,10 +242,7 @@ function PlayArea({
   // ended board is what the players left, their bands plus the tiles they never
   // cracked, and Reveal swaps the four bands in for the tiles (local and
   // reversible; common/reveal/doc.md). `impliedBy` is the exception: matching
-  // all four IS the win, and a solver's board already carries every band. MY
-  // four, not the game's verdict — compete ends the race for everyone the
-  // moment one player finishes.
-  const iMatchedThemAll = matchedCategories.length >= CATEGORY_COUNT
+  // all four IS the win, and a solver's board already carries every band.
   const {
     revealed: solutionShown,
     toggle: toggleSolution,
@@ -677,7 +686,11 @@ function PlayArea({
       {celebration.show && (
         <CelebrationBlockingModal
           title="You win! 🎉"
-          body="All four categories found."
+          body={
+            mode === 'compete'
+              ? 'You found all four first.'
+              : 'All four categories found.'
+          }
           onClose={celebration.close}
         />
       )}

@@ -35,8 +35,8 @@ below-board pill says it, and the board stays as the players left it — their
 bands, and the tiles they never cracked, frozen. Reveal is a button that
 swaps the unsolved categories in, and Hide swaps them back; in compete it
 waits until the whole table is done, so a racer who is out still has
-something to think about. A coop solve celebrates once, on every client, as
-the fourth band lands.
+something to think about. A win celebrates once, at the moment it is yours:
+the coop team's fourth band, or your own fourth in a race.
 
 ## Game rules
 
@@ -361,9 +361,9 @@ then `PlayArea` in the eight sections. What is connections's own:
   tiles lit by what it was, addressed by the row's id so a filter cannot move
   it, and folding the rows of whoever wrote it.
 - **The terminal** is the pill (`lib/terminal.ts`) and the frozen board; a
-  coop solve also celebrates. New game asks `next_puzzle_for_club` first, so
-  a spent archive is a notice with two ways forward rather than a failed
-  create.
+  win also celebrates — the coop team's, or the racer's own. New game asks
+  `next_puzzle_for_club` first, so a spent archive is a notice with two ways
+  forward rather than a failed create.
 - **No mobile status bar.** Both numbers are already on the play surface —
   the bands are the found count, and the mistakes sit under the board — so a
   bar would restate them and shorten the board for nothing.

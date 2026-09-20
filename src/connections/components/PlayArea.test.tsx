@@ -21,6 +21,7 @@ import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
+import type { CategoryRank } from '../lib/board'
 import type { ConnectionsGame, MatchedCategory } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayAreaLoader } from './PlayArea'
@@ -323,6 +324,67 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
     await user.click(document.querySelector('[data-tile="a"]') as HTMLElement)
     // The tiles are a RECORD now, not an input surface.
     expect(toggleTile).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The celebration — confetti for the win that is MINE, and never on mount.
+ * Coop's gate is the play state alone; compete's adds my own fourth band,
+ * which is safe only because the loader hands this surface both at once. The
+ * reload case is the one `useCelebration`'s first rule exists for.
+ */
+describe('connections PlayArea — the celebration', () => {
+  const band = (rank: CategoryRank, name: string, tiles: string[]): MatchedCategory => ({
+    rank, name, tiles, matched_at: '2026-06-15T00:01:00Z',
+  })
+  const two = [band(0, 'RED', ['a', 'b', 'c', 'd']), band(1, 'GREEN', ['e', 'f', 'g', 'h'])]
+  const four = [...two, band(2, 'BLUE', ['i', 'j', 'k', 'l']), band(3, 'PURPLE', ['m', 'n', 'o', 'p'])]
+  // The card by its heading: coop's verdict PILL says "You win!" too, so the
+  // words alone match twice — the <h2> is the modal's alone.
+  const confetti = () => screen.queryByRole('heading', { name: /You win!/ })
+  const won = (mode: 'coop' | 'compete') =>
+    makeCtx({
+      players: twoMembers,
+      isTerminal: true,
+      playState: mode === 'compete' ? 'won_compete' : 'won',
+    })
+
+  it('pops for the racer who matched all four, even when the bands land a render late', () => {
+    h.result = loaded({ matchedCategories: two })
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
+    expect(confetti()).toBeNull()
+
+    // The winning guess reaches the client as two refetches: the common row
+    // (the play state) and the game's own (my bands). Either order is a
+    // false→true flip during the session, so the modal pops once.
+    rerender(<PlayAreaLoader {...won('compete')} />)
+    expect(confetti()).toBeNull()
+    h.result = loaded({ matchedCategories: four })
+    rerender(<PlayAreaLoader {...won('compete')} />)
+    expect(confetti()).toBeInTheDocument()
+    expect(screen.getByText('You found all four first.')).toBeInTheDocument()
+  })
+
+  it('stays quiet for the racer who was beaten', () => {
+    h.result = loaded({ matchedCategories: two })
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
+    rerender(<PlayAreaLoader {...won('compete')} />)
+    expect(confetti()).toBeNull()
+  })
+
+  it('stays quiet on opening a race already won — reviewing is not winning', () => {
+    h.result = loaded({ matchedCategories: four })
+    render(<PlayAreaLoader {...won('compete')} />)
+    expect(confetti()).toBeNull()
+  })
+
+  it('pops for the coop team on the fourth category, whoever guessed it', () => {
+    h.result = loaded({ game: game('coop'), matchedCategories: two })
+    const { rerender } = render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
+    h.result = loaded({ game: game('coop'), matchedCategories: four })
+    rerender(<PlayAreaLoader {...won('coop')} />)
+    expect(confetti()).toBeInTheDocument()
+    expect(screen.getByText('All four categories found.')).toBeInTheDocument()
   })
 })
 
