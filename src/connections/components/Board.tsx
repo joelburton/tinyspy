@@ -30,15 +30,9 @@ const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
  * The verdict's class, keyed by the outcome its PILL wore — the fill the four
- * tiles take.
- *
- * TOTAL over `Outcome`, which is the point: the mark never picks its own color,
- * it wears the pill's, because the two are one message
- * (plans/tile-feedback.md). A map that covered only the three connections
- * happened to use forced the one call site whose outcome comes from the SERVER
- * to hand-map seven words onto three — `msg.outcome === 'warning' ? 'warning' :
- * 'lost'` — which silently painted anything unrecognized red (Joel,
- * 2026-08-29). Being total makes a new outcome a compile error here instead.
+ * tiles take. TOTAL over `Outcome`: the mark never picks its own color, it
+ * wears the pill's, because the two are one message, and a new outcome is a
+ * compile error here rather than a tile painted the wrong color.
  *
  * `won: null` is a real entry, not a gap: a correct guess's four tiles collapse
  * into a band on the same render, so there is nothing left to mark.
@@ -114,10 +108,10 @@ type Props = {
   // `'neutral'` also covers a player who is out of a compete race while
   // the others play on: their board is inert even though the game isn't.
   gameOver?: TerminalOutcome | null
-  // ATTENTION, the server's move marker: the guess log's length. A band
+  // ATTENTION's cause, the server's move marker: the guess log's length. A band
   // arriving is only news when a MOVE put it there — `replay_board` deletes the
   // guesses, so a restart drops this instead of advancing it and the re-dealt
-  // board says nothing (plans/tile-feedback.md → Read the cause).
+  // board says nothing (`useMoveAttention`).
   moveCount: number
   // Render read-only under the shared viewer frame (a past turn's board). Off
   // during live play.
@@ -128,26 +122,22 @@ type Props = {
   // The viewed turn's verdict — the tint for `historyLitTiles`.
   historyLitResult?: GuessResult
   // A control floated over the board's top-right (the Shuffle button). Rendered
-  // INSIDE the board root — the root is the `position: relative` anchor — so it
-  // hugs the VISUAL board. Anchoring to the column instead would strand it at the
-  // column's top, which the vertically-centered board no longer touches.
+  // INSIDE the board root, the `position: relative` anchor, so it hugs the
+  // VISUAL board rather than the column's top.
   floatingControl?: ReactNode
 }
 
 /**
  * connections's board: a SINGLE grid holding both the solved-category bands and
  * the remaining tiles. A solved category becomes a full-width band row
- * (`grid-column: 1 / -1`) in place of the tile row it replaced — a band is just
- * "one long tile" spanning the row instead of four, so it's the same height,
- * padding, and depth as a tile and shares the one grid gap. Because every
- * category is four tiles, `bands + ceil(remaining / 4)` is always the same row
- * count, so it's one grid that grows to fill its `.board` wrapper (which fills
- * the column) — the same layout psychicnum's WordBoard uses (psychicnum caps
- * tile height; connections doesn't yet). The `.board` wrapper is a shared shape
- * across games (no border/background today; the slot for a future framed board).
+ * (`grid-column: 1 / -1`) in place of the tile row it replaced — a band is
+ * "one long tile" spanning the row instead of four, the same height, padding
+ * and depth as a tile, sharing the one grid gap. Because every category is
+ * four tiles, `bands + ceil(remaining / 4)` is always the same row count, so
+ * it is one grid that grows to fill its `.board` wrapper.
  *
- * Every mark on it is the SHARED vocabulary (plans/tile-feedback.md), and the
- * element each one lands on is what says how far it reaches. On a TILE: the
+ * Every mark on it is the SHARED vocabulary (common/board-marks/doc.md), and
+ * the element each one lands on is what says how far it reaches. On a TILE: the
  * `.selected` border for a tile in the guess being built — worn whoever picked
  * it, because in coop the four tiles are one shared move — with `.peerPick`
  * naming the picker where that is worth saying; `.dimInFlight` while the guess
@@ -227,10 +217,8 @@ export function Board({
 
   // ─── A band ────────────────────────────────────────────
   // One long tile: a solved or revealed category drawn across the row.
-  // `revealed` no longer changes how a band LOOKS — a category you solved and
-  // one the game handed you at the end print and render identically, on purpose
-  // (2026-08-02). It survives only to namespace the React keys across the two
-  // disjoint lists.
+  // A solved band and a revealed one look the same; `revealed` only namespaces
+  // the React keys across the two lists.
   const band = (c: Category | MatchedCategory, revealed: boolean) => (
     <div
       key={`${revealed ? 'u' : 'm'}-${c.rank}`}
@@ -261,10 +249,6 @@ export function Board({
 
   // ─── Render ────────────────────────────────────────────
   return (
-    // The .board wrapper carries NO border/background today — the inter-tile
-    // gaps show the column behind, matching psychicnum. The wrapper + class
-    // exist in both games so a future game frames its board (border / fill /
-    // padding) in one place. See WordBoard's .board for the twin.
     // --rows (bands + tile-rows) drives the grid's 1fr row tracks AND the
     // board's max-height (both computed in CSS from the --max-tile-* caps — see
     // PlayArea.module.css). A band is one of these rows spanning all columns.
@@ -345,13 +329,9 @@ export function Board({
               style={ownerColor ? { ['--peer-color' as string]: ownerColor } : undefined}
               onClick={() => onToggle(tile)}
               // NOT a focus target: `preventDefault` on mousedown stops a CLICK
-              // parking focus here — the trap the rank squares fell into: the
-              // click focuses silently, the next keystroke promotes it to
-              // `:focus-visible`, and a stray ring sits on the tile until you
-              // click elsewhere. Nothing here needs focus: tiles are clicked,
-              // and Enter submits from anywhere (`act-submit`, bound in
-              // BoardCol). Tab never reaches a tile either — the page's ring is
-              // empty.
+              // parking focus here, where the next keystroke would promote it
+              // to `:focus-visible` and leave a stray ring. Nothing here needs
+              // focus — tiles are clicked, and Submit is bound board-wide.
               onMouseDown={(e) => e.preventDefault()}
             >
               {/* --len drives the shared .tileWord auto-fit. */}

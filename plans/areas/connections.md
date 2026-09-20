@@ -431,9 +431,61 @@ is never a tone: `Board.tsx`'s `VERDICT_TONE`, the class map keyed by
 Verified: `tsc -b` clean, lint clean, 394 unit tests green (the game's and
 the guards). The e2e specs have not run for Steps 2–7.
 
-### Step 8 — the comment pass
+### Step 8 — the comment pass (readability 3.5) — DONE 2026-09-19
 
-psychicnum's Step 6, a commit Joel reads; recorded here when it lands.
+psychicnum's Step 6, under the three rules Joel gave there — a comment does
+not name a keystroke, "why this lives here" is not worth a comment, "why
+Joel decided this" is not a comment — plus the call-site rule (a sentence and
+a pointer where a shared mechanism is explained elsewhere) and the
+archaeology cut. Four files: `PlayArea.tsx`, `BoardCol.tsx`, `Board.tsx`,
+`InfoCol.tsx`. **404 comment lines out, 199 in.**
+
+**The surface's docstring is rewritten around the decomposition** — it
+described the pre-split file: a five-bullet mode table whose surfaces had
+moved out (the OpponentStrip is InfoCol's, the eliminated look is the row's,
+the "terminal copy" is `lib/terminal.ts`'s), a five-step submission flow that
+is `BoardCol`'s, and a pointer at `docs/deferred.md → Feedback channels`. It
+says now what psychicnum's says: holds no board, draws no control; `mode` is
+what differs and where; what a guess is worth is `lib/answer.ts`'s.
+`BoardCol`'s docstring the same — it called itself "the input engine" and
+listed what it did not own.
+
+**The rules did most of the cutting.** Keystrokes (rule 1): "Enter submits
+… (macOS doesn't focus a `<button>` on click …)", "Its ⌫ comes with the
+action", "⌥Z shuffles", "(the floating pill and ⌥Z)". Why-here (rule 2): "A
+plain function, rebuilt every render: the binding below reads it at click
+time…", "Passed into Board so it anchors to the visual board, not the
+column", the `sendClear()`-per-branch paragraph. Rulings (rule 3): the
+back-to-club weight, "Sitting out with the puzzle unspoiled is the better
+version of spectating", the refusal's "worth more as one rule than as a
+small convenience". Archaeology: "connections used to be one of the two
+games registered hides_solution = false…", "It used to be two FE reads plus
+a pure `nextUnplayedPuzzle` helper…", "A RESTART used to be the other half
+of this…", "This used to squeeze seven outcomes into three by hand…", "the
+waffle loading-race lesson", "the trap the rank squares fell into", the
+`(2026-08-02)` band note. Call sites to a sentence and a pointer: the
+celebration (`useCelebration` states its three rules), the reveal
+(`common/reveal/doc.md`), the envelope paragraphs in `createNewGame` and
+`handleSubmit` (`docs/envelopes.md`), the mobile recipe (`docs/mobile.md`).
+`plans/tile-feedback.md` is cited nowhere in the four files now — a comment
+points at `common/board-marks/doc.md`, since a plan is deleted when it
+ships. The two orphan comments after the menu are gone. `InfoCol`'s
+twenty-odd member notes written `/**` are `//` (the marker pass; psychicnum's
+column had it right).
+
+**Two comments were not stale but FALSE, and are corrected rather than
+cut:** the narration comment quoted peer lines that Step 4 replaced ("Bea
+found ANIMALS!", "was one away", "guessed wrong"); and the celebration's
+reason for coop-only — *"did I win the race?" needs `selfMatched` from
+`useGame`, which is 0 until the fetch lands* — stopped being true at Step 2,
+since the loader now holds the surface back until the rows are in hand. The
+comment says coop-only without that reason; **whether the race's winner
+should get the confetti too**, as psychicnum's does since its F-6, is pass
+2's finding.
+
+Verified: `tsc -b` clean, lint clean, 394 unit tests green (the game's and
+the guards). **The restructure is complete.** The e2e specs have not run for
+Steps 2–8.
 
 ### After the restructure — pass 2, the audit
 

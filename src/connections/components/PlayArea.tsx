@@ -127,51 +127,20 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
 }
 
 /**
- * connections's play surface, shared between the coop and compete
- * manifests. The mode is read from `game.mode` (set at create-
- * game time and never changes); rendering branches on it for:
+ * connections's play surface — the coordinator. It holds no board and draws no
+ * control of its own: `<BoardCol>` takes the grid and the commit row,
+ * `<InfoCol>` the readouts and the action row, and this component decides what
+ * each of them is handed.
  *
- *   - **Selection**: coop shares via Broadcast (the Board
- *     shows per-tile peer attribution); compete keeps selections
- *     local (every tile reads as "mine" because the broadcast
- *     send is suppressed in useGame).
- *   - **Mistakes**: coop shows a single shared dot row; compete
- *     shows an OpponentStrip with everyone's per-player
- *     counts.
- *   - **Eliminated state** (compete only, non-terminal): caller's
- *     mistake_count >= 4 → render the unmatched categories
- *     revealed + a "you're out" indicator; let the game continue
- *     for the survivors (opponents' counts keep ticking via the
- *     realtime players-row subscription).
- *   - **Terminal copy**: coop says "you win/lose" (team verdict);
- *     compete distinguishes "you won the race" from "beaten to
- *     the punch" using the caller's matched-count.
- *   - **Feedback split** (docs/deferred.md → Feedback channels;
- *     mirrors psychicnum): my OWN guess result shows green/red
- *     in the commit slot below the board (local — near my eyes,
- *     about what I just did); a teammate's guess is narrated in
- *     the GamePage header (the global slot). Compete reaches
- *     neither header branch — the guesses log is RLS-scoped to the
- *     caller, so there are no peer events to announce.
+ * Both manifests mount it, and `mode` (`game.mode`, fixed at create-game time)
+ * is what differs: whose picks the board shows (coop shares them over
+ * Broadcast, compete keeps them local), whose progress a readout counts, and
+ * which verdict `lib/terminal.ts` builds. What a guess is worth is decided in
+ * `lib/answer.ts` and nowhere here.
  *
- * Submission flow:
- *   1. FE evaluates the guess locally against board.categories
- *      (FE-knows-the-answer; see docs/games/connections.md).
- *   2. Dup detection (sameTileSet on the existing guess log) —
- *      in compete the log is RLS-filtered to caller, so dup-
- *      detection only catches the caller's own repeats. Good.
- *   3. Fire submit_guess RPC with (tiles, result, rank).
- *   4. Realtime postgres-changes propagate to every player; the
- *      hook refetches automatically (players + guesses + games).
- *   5. On a CORRECT guess only, broadcast a `clear` (no-op in
- *      compete because broadcast is local-only there; coop drops
- *      everyone's selection). A wrong / one-away guess keeps the
- *      selection so the player can tweak it and resubmit.
- *
- * **Pause behavior**: PauseBoundary in GamePage unmounts this
- * component on pause and remounts on resume. The shared selection
- * state lives in `useGame` (component-local + broadcast); the
- * unmount drops it automatically.
+ * Above it, `<GamePage>` owns members, the timer, play_state, pause and chat,
+ * and unmounts this surface on pause — every piece of state below goes with it,
+ * the shared selections in `useGame` included.
  */
 function PlayArea({
   game,
@@ -214,40 +183,28 @@ function PlayArea({
   // and an empty ring is what keeps it from walking out to the browser.
   useTabRing([])
 
-  // Mobile: below --mobile the board fills the screen and the info column slides in
-  // as the off-canvas info page, reached by the header's page switch (the shared
-  // recipe — docs/mobile.md). The info column is a narrow 22rem readout
-  // + event log, no multi-column word list. Desktop is untouched.
+  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
+  // fills the screen and the info column moves into an off-canvas <InfoSheet>,
+  // reached by the header's InfoSwitchButton. Desktop is unchanged.
   const infoSheet = useInfoSheet()
 
-  // Inline hint list open/closed — InfoCol's Hints button TOGGLES it, and the list
-  // renders in InfoCol right below that button (it's one more info-column readout,
-  // not a window over the board). (The guess dispatch, the local tile shuffle, and
-  // the wrong-guess shake all live in BoardCol.)
+  // The inline hint list, open or closed — the Hints binding toggles it, and
+  // InfoCol draws the list under its action row.
   const [hintsOpen, setHintsOpen] = useState(false)
 
+  // The notice New game shows when the archive is spent.
   const { acknowledge, acknowledgeModal } = useAcknowledge()
 
-  // Coop-win celebration
-  // Confetti at the MOMENT the team clears the fourth category (the winning
-  // guess flips playState to 'won' on every connected client via realtime, so
-  // the whole group celebrates together); opening an already-solved game stays
-  // quiet (useCelebration never pops on mount). It's the ONLY modal at terminal
-  // — the verdict itself rides the below-board pill (docs/ui.md → Terminal
-  // results).
-  //
-  // Gated on `playState` ALONE, which is available from the very first render —
-  // the waffle loading-race lesson. That's also why COMPETE doesn't celebrate:
-  // "did I win the race?" needs `selfMatched` from useGame, which is 0 until the
-  // fetch lands, so a won-race game opened fresh would go false→true after load
-  // and pop confetti at someone merely reviewing it. Same call wordle + waffle
-  // made (they celebrate coop only).
+  // Confetti the moment the team clears the fourth category, and never on
+  // mount: opening an already-won game stays quiet (`useCelebration` states
+  // its three rules). It is the ONLY modal at terminal — the verdict itself
+  // rides the below-board pill (docs/ui.md → Terminal results). Coop only: a
+  // race's winner gets the pill and nothing more.
   const celebration = useCelebration(playState === 'won')
 
-  // Your turn just started (coop turn-order)
-  // The board looks identical the instant it becomes yours, and by definition
-  // you were looking somewhere else — you had been waiting. Never fires in a
-  // free-for-all game, where `isMyTurn` is permanently true.
+  // The board frame flashes the moment the move becomes mine: the dim is what
+  // says "not yours", its lifting is a removal, and you are by definition
+  // looking elsewhere when it happens. Never fires in a free-for-all game.
   const turnFlash = useTurnStartFlash(isMyTurn)
 
   // ─── Derived ───────────────────────────────────────────
@@ -257,9 +214,8 @@ function PlayArea({
   // columns all ask the same questions, and they must not answer them
   // differently.
 
-  // Concede lives on the common roster (ctx `players` = GamePlayer[]), not
-  // connections.players; `myConceded` also folds into the locally-terminal
-  // branch below (same treatment as a 4-mistake elimination).
+  // I dropped out of a compete race (a real loss; the others keep racing). Read
+  // from the common roster (prop `players`), not from `connections.players`.
   const myConceded =
     players.find((p) => p.user_id === session.user.id)?.conceded ?? false
   // Locally terminal (compete, not game-over): out of the race — eliminated on
@@ -269,22 +225,14 @@ function PlayArea({
   // by the Hint and Reveal bindings, so their buttons and menu rows agree.
   const showInput = !isTerminal && !locallyDone
 
-  // The categories show only when I ask for them
-  // Never automatically for a player who did not solve it (the one who did is
-  // covered by `impliedBy`, below). connections used to be one of the two games
-  // registered hides_solution = false, so a loss (or, in compete, being
-  // eliminated) put the answer on screen unasked — and, because the board swaps
-  // loose tiles for full-width bands, it did that by DELETING the tiles the
-  // players were still looking at. Now the ended board is what they actually
-  // left: their solved bands plus the tiles they never cracked, frozen. Reveal
-  // swaps in the four bands; Hide swaps back. Local, so one impatient player
-  // can't end everyone's thinking.
-  //
-  // `impliedBy` is the exception: matching all four IS the win, and each match
-  // resolves into a full-width band — so a solver's board already carries every
-  // category and there is nothing left for the reveal to draw. MY four, not the
-  // game's verdict: connections compete ends the race for everyone the moment
-  // one player finishes, and the rest never got there.
+  // The terminal reveal — derived state, because the Reveal binding below reads
+  // it. The categories nobody got are shown only when this viewer asks: an
+  // ended board is what the players left, their bands plus the tiles they never
+  // cracked, and Reveal swaps the four bands in for the tiles (local and
+  // reversible; common/reveal/doc.md). `impliedBy` is the exception: matching
+  // all four IS the win, and a solver's board already carries every band. MY
+  // four, not the game's verdict — compete ends the race for everyone the
+  // moment one player finishes.
   const iMatchedThemAll = matchedCategories.length >= CATEGORY_COUNT
   const {
     revealed: solutionShown,
@@ -315,11 +263,7 @@ function PlayArea({
     return {
       matchedTiles,
       remainingTiles: game.board.tileOrder.filter((t) => !matchedTiles.has(t)),
-      // The categories nobody got — ONLY while this viewer is asking for them.
-      // They used to appear the moment the game ended (or the moment a compete
-      // player was eliminated), which both handed over the answer unasked and,
-      // because the board swaps tiles for bands, erased the sixteen-minus-solved
-      // tiles the players were still staring at.
+      // The categories nobody got — only while this viewer is asking for them.
       unmatched: solutionShown
         ? game.board.categories.filter((c) => !matchedRanks.has(c.rank))
         : [],
@@ -331,27 +275,15 @@ function PlayArea({
   // retracts in its cleanup — the slot draws whichever ranks highest. The
   // local slot is the one for messages about ME; a peer's go in the header's.
 
-  // The local feedback slot (own-action feedback)
-  // Shown *in place of the commit buttons*: the player's own guess result —
-  // "Correct" (green) / "One away!" (amber) / "Incorrect" (red) — a not-ok,
-  // and the standing conditions further down. It lives in the commit row's
-  // already-reserved height (never a new line that would reflow the board —
-  // docs/ui.md → Layout stability), and a tile click dismisses a result the
-  // moment the player starts a fresh selection (BoardCol's handleToggle) —
-  // the tile-click analog of psychicnum's "typing dismisses the result".
-  // Local channel: near my eyes, about what I just did (docs/deferred.md →
-  // Feedback channels).
+  // Drawn in the commit row's reserved height below the board (docs/ui.md →
+  // Feedback pill): my own guess's answer, a not-ok, and the standing
+  // conditions below. BoardCol shows the answers into it; a tile click
+  // dismisses one, and so does any key.
   const localFeedbackSlot = useFeedbackSlot('local')
-  // Any key is the player's next move → dismiss a gesture-cleared message,
-  // even though connections has no keyboard entry (guesses are tile clicks).
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // The terminal message, memoized on primitives so the verdict effect sees
-  // one object per outcome. Compete distinguishes the winner (caller hit 4
-  // matches — RLS hides peer matches, so caller-with-4-matched is the
-  // server-confirmed winner) from two kinds of loser: eliminated (used all 4
-  // mistakes) vs "beaten to the punch" (still racing when an opponent solved
-  // it). Coop verdicts are team-wide.
+  // one object per outcome; what it says per state is `lib/terminal.ts`'s.
   const timerExpired = timer.expired
   const selfWon = iMatchedThemAll
   const selfEliminated = mistakeCount >= MISTAKE_BUDGET
@@ -368,12 +300,10 @@ function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, terminalMessage])
 
-  // Locally terminal (compete, not game-over): caller is out of the race but
-  // the game continues for the survivors — either eliminated (hit 4 mistakes)
-  // OR they conceded (dropped out). It freezes this player's input; it does NOT
-  // open the answer, which waits for the game to be over for everyone (see the
-  // reveal below). Sitting out with the puzzle unspoiled is the better version
-  // of spectating, and it's the same rule every other game follows.
+  // Out of the race while the others play on: eliminated, or conceded. A
+  // standing state with the fill; the verdict outranks it when the game ends.
+  // It freezes this player's input and does not open the answer, which waits
+  // for the game to be over for everyone.
   useEffect(function showOutOfRace() {
     if (!locallyDone || isTerminal) return
     const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(myConceded))
@@ -383,8 +313,8 @@ function PlayArea({
   // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
   // is null in a free-for-all game, so this never fires there. It carries the
   // whose-turn answer on MOBILE, where the InfoCol's TurnStatusLine is
-  // off-canvas in the InfoSheet; without it a frozen board just ignored taps
-  // with no explanation.
+  // off-canvas; without it a frozen board just ignored taps. The holder is
+  // read as two primitives so the effect settles in one pass.
   const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
   const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
   const holderName = turnHolder?.username
@@ -403,14 +333,10 @@ function PlayArea({
   // About somebody else, which is what puts it in the global slot rather than
   // the local one (docs/ui.md → the two feedback slots). Only coop has one.
 
-  // Coop peer events (group feedback)
-  // A teammate's guess is narrated in the GamePage header: correct →
-  // "Bea found ANIMALS!" (green), one-away → "Bea was one away" (amber),
-  // wrong → "Bea guessed wrong" (red). My own guesses are excluded — they
-  // get the local commit flash above; my guess also already shows in the
-  // event log. Compete never reaches here: the guesses log is RLS-scoped to
-  // the caller server-side, so no foreign rows arrive, and we gate on coop
-  // besides.
+  // A teammate's guess is narrated in the header, with the words and the color
+  // `lib/answer.ts` gives its `_peer` twin. My own rows are excluded — my
+  // answer is the local slot's. Compete never reaches here: RLS scopes the
+  // guess log to the caller, so no foreign rows arrive, and we gate on coop.
   usePeerFeedback({
     enabled: mode === 'coop',
     items: guesses,
@@ -429,13 +355,12 @@ function PlayArea({
   })
 
   // ─── The turn-history viewer ───────────────────────────
-  // Click an event-log #N to replay that turn (the bands matched before it + this
-  // turn's 4 guessed tiles lit in their outcome color, on the board as it was).
-  // Addressed by the row's id. Exit is intrinsic to the hook (a click anywhere, the
-  // banner ✕, or any key — the hook binds `act-exit-history` itself, and the
-  // board's own commands hide while a turn is open so the key reaches it).
-  const { historyId, showHistory, exitHistory } =
-    useHistoryViewer<number>()
+  // Click an event-log #N to replay that turn's board (the bands matched before
+  // it + its four guessed tiles lit in their outcome color). Keyed by the row's
+  // own id, resolved against the rows the board replays (`lib/history.ts`).
+  // Exit is intrinsic to the hook: a click anywhere, the banner ✕, or any key —
+  // the viewer binds an any-key action that consumes the press.
+  const { historyId, showHistory, exitHistory } = useHistoryViewer<number>()
 
   // ─── The commands, bound ───────────────────────────────
   // Every command this game offers, in one order that three readers keep: this
@@ -447,18 +372,10 @@ function PlayArea({
   // through a ref it refreshes every render, and the bound value's identity
   // turns on `pending` alone.
 
-  // End / Concede / Replay — the shared three
-  // End is coop's stop, hidden in compete: it terminates with everyone
-  // {won:false} and a NEUTRAL verdict, because friends agreeing to stop is a
-  // valid outcome, not a "you lose" punishment. It is a button in the info
-  // column and a menu row, one binding. Concede is compete's drop-out (a real
-  // loss; the others keep racing). Replay restarts THIS puzzle — the same
-  // sixteen tiles in the same shuffle, everyone's guesses + mistakes wiped —
-  // A restart needs nothing from this game: the page unmounts the whole play
-  // surface when the run changes, and the shared selections live in `useGame`
-  // inside it — so every client, not just the one that pressed Restart, drops
-  // its own picks AND its picture of everyone else's. Nothing replays them
-  // either: selections are fire-and-forget Broadcast with no presence sync.
+  // The shared trio — End / Concede / Restart. connections' own bit is which
+  // `db` they call: a restart needs nothing else from this game, since the page
+  // unmounts the whole play surface when the run changes and the shared
+  // selections in `useGame` go with it, on every client.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
       db,
       gameId,
@@ -493,43 +410,22 @@ function PlayArea({
     run: toggleSolution,
   })
 
-  // New game — the NEXT unplayed puzzle
-  // connections's boards are a dated ARCHIVE rather than something generated
-  // per game, so "New game" can't just re-roll — it has to move on to a
-  // puzzle nobody here has done. That rule now lives in ONE place, the server
-  // (`connections.next_puzzle_for_club`, reached by simply omitting
-  // `puzzle_id`), which is the same thing the setup dialog previews. It used
-  // to be two FE reads plus a pure `nextUnplayedPuzzle` helper, and the two
-  // paths could disagree: that rule was per-club and per-MODE and walked
-  // forward from the current puzzle, so a coop game didn't use up the compete
-  // side and another club's play didn't count at all. The server's is
-  // per-PLAYER and spans clubs, which is what stops a puzzle you played
-  // alone turning up in a game with friends.
-  //
-  // Running out is now a server raise (`no-unplayed-puzzle|`) rather than a
-  // pre-flight check, so it can't race a peer starting the last puzzle
-  // between our two reads and the create.
-  //
-  // A plain function, rebuilt every render: the binding below reads it at click
-  // time, so the values it closes over are whatever the last realtime refetch
-  // left, and the action's own identity doesn't move when they do.
+  // New game — the NEXT unplayed puzzle. The boards are a dated archive, so a
+  // new game moves on to a date nobody seated has played; the server decides
+  // which (`connections.next_puzzle_for_club`, reached by omitting
+  // `puzzle_id`), the same answer the setup dialog previews. Same setup and
+  // roster, same mode, same club.
   async function createNewGame() {
-    // Ask what we'd get, purely so running out can be a NOTICE rather than a
-    // not-ok: "there is no next puzzle" is a fact about the archive, not a
-    // failure of this click. Same shape strands uses. The answer is advisory —
-    // the create below derives it again, so a peer taking that puzzle in the
-    // gap costs nothing.
+    // Ask what we'd get first, so a spent archive can be a NOTICE rather than
+    // a failed create. The answer is advisory — `create_game` derives it again,
+    // so a peer taking that puzzle in the gap costs nothing.
     const preview = await runRpc<PuzzleAnswer>(
       db.rpc('next_puzzle_for_club', { seen_by: players.map((p) => p.user_id) }),
     )
     if (preview.type === 'not-ok' && preview.dbcode === 'PN302') {
-      // THE ARCHIVE IS SPENT, and this surface says it better than the server
-      // can. PN302's own sentence points at the date field on the setup form —
-      // right there, useless here, since this path has no form. What this
-      // surface knows instead is the two ways forward from a finished game, so
-      // it substitutes rather than repeats (docs/envelopes.md → a server
-      // message may not say LESS than the sentence it replaces; the same test
-      // read the other way permits a caller that says MORE).
+      // The archive is spent. The server's sentence points at the setup form's
+      // date field, which this path has no form for; this surface says the two
+      // ways forward instead (docs/envelopes.md → a caller may say MORE).
       await acknowledge({
         title: 'No more puzzles',
         message:
@@ -539,30 +435,23 @@ function PlayArea({
       })
       return
     } else if (preview.type === 'not-ok') {
-      // Anything else: the slot carries the words, because the fault modal that
-      // just fired is dismissable and this is what remains once it is gone. It
-      // also has to be said HERE — the new game never happens, and a player who
-      // pressed a button and saw nothing change is owed a reason.
+      // Shown even for a fault whose modal has already fired: a modal escalates
+      // rather than replaces, so the board must not go silent when it is
+      // dismissed. See docs/envelopes.md.
       localFeedbackSlot.show(FeedbackMessage.notOk(preview))
       return
     } else if (preview.type === 'ok' && preview.data.result === 'found') {
-      // A puzzle is waiting, so the create below runs. Nothing to do HERE: the
-      // id is deliberately not carried forward — this was only ever a
-      // look-ahead, and create_game derives it again — so the branch exists to
-      // name the answer, not to act on it.
+      // A puzzle is waiting, so the create below runs; its id is not carried
+      // forward, since `create_game` derives it again.
     } else {
       reportUnhandled('next_puzzle_for_club', preview)
       return
     }
 
-    // `puzzle_id` is deliberately ABSENT: that is how create_game is told to
-    // choose. Carrying THIS game's setup forward would otherwise re-start the
-    // very puzzle we just finished.
+    // `puzzle_id` absent is how `create_game` is told to choose; carrying this
+    // game's forward would restart the puzzle just finished.
     const carried = { ...setup }
     delete carried.puzzle_id
-    // No `.single()`: the RPC returns the envelope itself, one jsonb value —
-    // asking for a single ROW of it gets the envelope where the game was meant
-    // to be, and `data.id` reads undefined off it.
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
@@ -572,12 +461,7 @@ function PlayArea({
       }),
     )
     if (res.type === 'not-ok') {
-      // The same envelope the setup form reads, read differently: there is no
-      // field and no form here, so whatever came back goes in the slot as it
-      // reads, over the verdict, until its × is pressed. Shown even for a
-      // fault, whose modal has already fired centrally — the modal escalates,
-      // it does not replace, and dismissing it must not leave the board silent
-      // about why the game did not start.
+      // As above: the words go in the slot, whichever severity they came with.
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
@@ -590,11 +474,10 @@ function PlayArea({
   }
 
   // New game — its `+`, its menu row and its terminal button, from one binding.
-  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
-  // create_game clears the club's current-view flag, so it stays resumable — the
-  // copy says shelved, not ended) and goes straight through at terminal, where
-  // there is nothing to interrupt. The shared run's single flight is what stops a
-  // second press taking two puzzles out of the archive.
+  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this
+  // game, which stays resumable) and goes straight through at terminal; the
+  // shared run's single flight is what stops a second press taking two puzzles
+  // out of the archive.
   const actNewGame = useBoundAction('act-new-game', {
     terminal: isTerminal,
     // Reachable all game from the menu and `+` — NEW_GAME_CONFIRM is written
@@ -604,10 +487,9 @@ function PlayArea({
     run: createNewGame,
   })
 
-  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). The bands, the
-  // remaining tiles and the log all come from what the VIEWER may see, so RLS
-  // scoping carries onto paper for free. Built inside `run` rather than in the
-  // menu effect, so the menu needn't rebuild as the board moves.
+  // Print builds its model from the live state at CLICK time (common/pdf/doc.md):
+  // the bands, the remaining tiles and the log are what the VIEWER may see, so
+  // RLS carries onto paper — and the menu needn't rebuild as the board moves.
   const actPrintBoard = useBoundAction('act-print-board', {
     describe: () => 'active',
     run: () => {
@@ -640,8 +522,9 @@ function PlayArea({
   // from the action rather than being typed here a second time. The effect
   // re-runs only when the SHAPE changes, which is why every dep is stable.
   //
-  // Hints is a MENU row as well as an info-column button: that button is
-  // icon-only, so the row is where its name is taught beside its glyph.
+  // The rows read as the info column's action row does, divider for divider
+  // (docs/playarea.md); Print is the one row with no twin in the row, and sits
+  // after them. The icon-only Hints button is NAMED by its row.
   useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
@@ -662,18 +545,12 @@ function PlayArea({
     return () => menu.setGameSections([])
   }, [menu, actConcede, actEndGame, actHint, actReveal, actRestart, actNewGame, actPrintBoard])
 
-  // Hints + End are buttons in the info-column action row AND menu rows, each
-  // from one binding — see the .infoActions block below. Hints toggles the
-  // inline HintList (only shown while the caller can submit).
-
-  // (The guess dispatch — submit_guess + dup detection + the wrong-guess shake — and
-  // the local tile shuffle moved into BoardCol, beside the board + commit row.)
-
   // ─── Render ────────────────────────────────────────────
   // Everything below is derived fresh each render and read only by the JSX —
   // nothing here is a hook, which is why it may sit after the menu effect.
 
-  // `concededIds` marks a dropped-out opponent 'out' in the strip.
+  // Who has bowed out of the race — the opponent strip's "out" cell. From the
+  // common roster, like `myConceded`.
   const concededIds = new Set(
     players.filter((p) => p.conceded).map((p) => p.user_id),
   )
@@ -681,14 +558,10 @@ function PlayArea({
   const { remainingTiles } = boardView
 
   // When a past turn is open, `historySnap` is that turn's board (else null =
-  // live) — the bands matched STRICTLY BEFORE it + its own 4 guessed tiles (lit in
-  // the outcome color). Addressed by the row's id; a later realtime guess only grows
-  // the log past it, so a past turn holds.
-  //
-  // WHOSE board it replays is the row's own author's. Mid-game compete that is
-  // always me — RLS shows me nothing else — but at TERMINAL every player's rows
-  // arrive, and a `#N` on one of theirs replays THEIR grid. Coop is one shared
-  // board, so the filter is a no-op there.
+  // live). WHOSE board it replays is the row's own author's: mid-game compete
+  // that is always me (RLS shows me nothing else), but at TERMINAL every
+  // player's rows arrive, and a `#N` on one of theirs replays THEIR grid. Coop
+  // is one shared board, so the filter is a no-op there.
   const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
   const historyRows =
     mode === 'compete' && historyRow
@@ -703,10 +576,8 @@ function PlayArea({
       ? memberById(players, historyRow.user_id)
       : undefined
 
-  // tile → user_id mapping. In coop this carries every peer's
-  // contribution; in compete it only ever has the caller's tiles
-  // (broadcast is local-only there) so every tile reads as "mine"
-  // and the peer-frame logic in Board never activates.
+  // tile → user_id. In coop this carries every peer's picks; in compete only
+  // the caller's, since the broadcast is local there.
   const ownerByTile = new Map<string, string>()
   for (const [userId, list] of selections) {
     for (const t of list) ownerByTile.set(t, userId)
@@ -719,7 +590,7 @@ function PlayArea({
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
-        // ── Board to render (live OR the historical snapshot via `snap`) ──
+        // ── Board to render (live OR the historical snapshot) ──
         game={game}
         matchedCategories={matchedCategories}
         remainingTiles={remainingTiles}
@@ -738,7 +609,7 @@ function PlayArea({
         // gray — their board is inert, which is all the frame claims.
         gameOver={terminalMessage ? terminalMessage.outcome : locallyDone ? 'neutral' : null}
         onExitHistory={exitHistory}
-        // ── Tile selection (state in useGame; rendered + committed here) ──
+        // ── Tile selection (state in useGame; BoardCol renders and commits it) ──
         ownerByTile={ownerByTile}
         toggleTile={toggleTile}
         sendClear={sendClear}
@@ -746,9 +617,8 @@ function PlayArea({
         selfId={session.user.id}
         colorByUserId={colorByUserId}
         // Identity is only information on a genuinely shared board: coop, with
-        // somebody else here. Solo, every pick is mine and a colored ring would
-        // be decoration on top of the selection border; in compete the selection
-        // never leaves this client, so the same holds however many are racing.
+        // somebody else here. Solo, every pick is mine; in compete the picks
+        // never leave this client.
         sharedBoard={mode === 'coop' && players.length > 1}
         // ── Own-guess feedback (the slot is PlayArea's) ──
         localFeedbackSlot={localFeedbackSlot}

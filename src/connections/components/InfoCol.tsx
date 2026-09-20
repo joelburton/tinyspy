@@ -61,14 +61,14 @@ export function InfoCol({
 }: {
   // ── Mode + phase ──
   isCompete: boolean
-  /** The terminal message when the game is over (drives the action row), else null. */
+  // The terminal message when the game is over (drives the action row), else null.
   terminalMessage: TerminalMessage | null
-  /** May I still submit? Gates the hint list + help (vs the locally-done look). */
+  // May I still submit? Gates the hint list + help (vs the locally-done look).
   showInput: boolean
-  /** I conceded / was eliminated in a compete race — picks the locally-done wording. */
+  // I conceded / was eliminated in a compete race — picks the locally-done wording.
   myConceded: boolean
-  /** Whose turn it is under turn-order, or null for a free-for-all game.
-   *  Non-null ⇒ render the shared TurnStatusLine (a turn game). */
+  // Whose turn it is under turn-order, or null for a free-for-all game.
+  // Non-null ⇒ render the shared TurnStatusLine (a turn game).
   currentTurnUserId: string | null
 
   // ── State readout (categories found + mistakes) ──
@@ -78,56 +78,56 @@ export function InfoCol({
   mistakeBudget: number
 
   // ── Players (the OpponentStrip — compete) ──
-  /** The roster (identity + per-player concede flags). */
+  // The roster (identity + per-player concede flags).
   players: Player[]
   selfId: string
-  /** Opponents' public categories-found counts (`connections.players.matched_count`). */
+  // Opponents' public categories-found counts (`connections.players.matched_count`).
   metricByUser: ReadonlyMap<string, number>
-  /** Who has conceded (drives the OpponentStrip "out" mid-game). */
+  // Who has conceded (drives the OpponentStrip "out" mid-game).
   concededIds: Set<string>
 
   // ── Action row — listed in the order the row draws them, which is the order
   //    the game menu lists them too (docs/playarea.md) ──
-  /** Unfold / fold the inline hint list. Carries its own two faces. */
+  // Unfold / fold the inline hint list. Carries its own two faces.
   actHint: BoundAction
-  /** Show the categories nobody solved — or put them away, bringing back the
-   *  board as the game ended. A local display toggle; nothing is written, and it
-   *  carries its own two faces (see PlayArea's useSolutionReveal). */
+  // Show the categories nobody solved — or put them away, bringing back the
+  // board as the game ended. A local display toggle; nothing is written, and it
+  // carries its own two faces (see PlayArea's useSolutionReveal).
   actReveal: BoundAction
-  /** Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle. */
+  // Solve THIS puzzle again from scratch — same sixteen tiles, same shuffle.
   actRestart: BoundAction
-  /** Start the NEXT unplayed daily puzzle — connections' archive is dated, so
-   *  this walks forward rather than re-rolling a board. Disables itself while
-   *  the create is in flight, so a slow network reads as "working". */
+  // Start the NEXT unplayed daily puzzle — connections' archive is dated, so
+  // this walks forward rather than re-rolling a board. Disables itself while
+  // the create is in flight, so a slow network reads as "working".
   actNewGame: BoundAction
-  /** Drop out of a race while the others play on — hidden outside compete. */
+  // Drop out of a race while the others play on — hidden outside compete.
   actConcede: BoundAction
-  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  // End the game for the whole table — coop's exit; it hides itself in a race.
   actEndGame: BoundAction
-  /** Leave for the club — the shell's own action, off `ctx.menu`. */
+  // Leave for the club — the shell's own action, off `ctx.menu`.
   actBackToClub: BoundAction
 
   // ── The hint list ──
-  /** The board's 4 categories — feeds the inline HintList (first-tile reveals). */
+  // The board's 4 categories — feeds the inline HintList (first-tile reveals).
   categories: Board['categories']
-  /** Is the inline hint list unfolded? The Hints button toggles this (PlayArea owns it). */
+  // Is the inline hint list unfolded? The Hints button toggles this (PlayArea owns it).
   hintsOpen: boolean
 
   // ── Setup disclosure ──
   setup: ConnectionsSetup
-  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
   setupRows: SetupRow[]
-  /** The puzzle's NYT date (setup echo), or null for a custom puzzle. */
+  // The puzzle's NYT date (setup echo), or null for a custom puzzle.
   puzzleDate: string | null
-  /** The number of board tiles (setup echo). */
+  // The number of board tiles (setup echo).
   tileCount: number
 
   // ── Turn-history log (GameEventLog) ──
   guesses: EventRow[]
-  /** The turn currently open in the board viewer, or null. */
+  // The turn currently open in the board viewer, or null.
   historyId: number | null
-  /** Straight through to the log: opening a `#N` hands up the row's id and the
-   *  number the log printed beside it. */
+  // Straight through to the log: opening a `#N` hands up the row's id and the
+  // number the log printed beside it.
   onShowHistory: (id: number, n: number) => void
 }) {
   // The row's line, and the only thing that varies between states: the verdict
