@@ -253,7 +253,7 @@ export const ACTIONS = {
   // whole grid, a partner's key, three secrets. Its quieter sibling is the
   // spoiler: amber, bare eye, one item, mid-game.
   'act-reveal': { label: 'Reveal', icon: IconRevealSolution, tone: 'destructive' },
-  'act-hint': { label: 'Hint', icon: IconHint, tone: 'caution' },
+  'act-hint': { label: 'Hint', icon: IconHint, tone: 'caution', keys: [alt('KeyH', '⌥H')] },
   'act-exchange': { label: 'Exchange', icon: IconExchange },
   // Two ways to give a turn up, and they are different acts. `act-pass` is
   // scrabble's: forgoing a move is UNCOMMON there and costs you the turn's
