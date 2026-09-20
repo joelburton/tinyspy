@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 /**
  * Wire types for the connections `board` jsonb column.
@@ -9,21 +9,19 @@
  * components import it alike.
  */
 
-/** A board is four categories of four tiles; a game allows four mistakes. */
+/** How many categories a board hides — matching them all is the win. */
 export const CATEGORY_COUNT = 4
+/** How many tiles make a category, and so a guess. */
 export const TILES_PER_CATEGORY = 4
+/** How many mistakes a player (coop: the team) may make before losing. */
 export const MISTAKE_BUDGET = 4
 
-/** Difficulty rank of a category. 0..3 maps to NYT Connections'
- *  yellow/green/blue/purple bands in theme.css. "Rank" rather
- *  than "level" because "level" can mean too many other things
- *  (XP level, app routing level, puzzle difficulty level for a
- *  whole game). */
+/** A category's difficulty index, 0..3 — NYT's yellow / green / blue /
+ *  purple, the band colors in theme.css. */
 export type CategoryRank = 0 | 1 | 2 | 3
 
-/** One of the four hidden categories in a board. `tiles` is the
- *  four-word answer; `name` is the category label shown when the
- *  category is matched and revealed as a band. */
+/** One of the four hidden categories in a board. `tiles` is the four-word
+ *  answer; `name` is what the band says once the category is matched. */
 export type Category = {
   rank: CategoryRank
   name: string

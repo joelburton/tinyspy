@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useMemo, useState } from 'react'
@@ -192,8 +192,7 @@ function PlayArea({
   const { acknowledge, acknowledgeModal } = useAcknowledge()
 
   // Did I match all four? MY four, not the game's verdict — compete ends the
-  // race for everyone the moment one player finishes. Read here because the
-  // celebration, Derived's reveal and the terminal message all ask it.
+  // race for everyone the moment one player finishes.
   const iMatchedThemAll = matchedCategories.length >= CATEGORY_COUNT
 
   // Confetti the moment the win is MINE — the coop team's fourth category, or
@@ -290,10 +289,9 @@ function PlayArea({
   // The terminal message, memoized on primitives so the verdict effect sees
   // one object per outcome; what it says per state is `lib/terminal.ts`'s.
   //
-  // WHY it ended is the server's word (`status.reason`), never the browser's
-  // clock: `timer.expired` is the TRIGGER that fires `submitTimeout`, so the
-  // client that ticked last has it and the others do not, and it has no word
-  // at all for a race everyone conceded.
+  // WHY it ended is the server's word (`status.reason`), never the browser
+  // clock's: the RPC that ended the game wrote the reason, and the club-list
+  // label reads the same column.
   const reason = status?.reason as string | undefined
   const selfWon = iMatchedThemAll
   const selfEliminated = mistakeCount >= MISTAKE_BUDGET
@@ -355,9 +353,7 @@ function PlayArea({
       if (g.user_id === session.user.id) return null // mine → the local slot
       const member = memberById(players, g.user_id)
       // The row is somebody else's — the line above returned for my own — so
-      // its answer is the `_peer` one. It never names the category: a NYT
-      // category can run past what the header fits on a phone, and the solved
-      // band lands on the reader's own board at the same moment.
+      // its answer is the `_peer` one.
       const { outcome, text } = peerAnswerMessage(g)
       return FeedbackMessage.peer(member, outcome, text)
     },
@@ -397,8 +393,7 @@ function PlayArea({
 
   // Hints — the inline per-player reveal list, unfolded under the action row.
   // A toggle, so its words move with it; the list itself is InfoCol's. Gone,
-  // row and button, once you can no longer submit: there is nothing left to
-  // be nudged toward.
+  // row and button, once you can no longer submit.
   const actHint = useBoundAction('act-hint', {
     describe: () =>
       showInput ? { state: 'active', label: hintsOpen ? 'Hide hints' : 'Hints' } : 'hidden',
@@ -679,8 +674,8 @@ function PlayArea({
       </InfoSheet>
 
       {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
-          in-page by the below-board slot + the info-column outcome line,
-          and a coop solve gets the celebration instead — once, when it happens. */}
+          in-page by the below-board slot + the info-column outcome line, and MY
+          win gets the celebration instead — once, when it happens. */}
       {celebration.show && (
         <CelebrationBlockingModal
           title="You win! 🎉"

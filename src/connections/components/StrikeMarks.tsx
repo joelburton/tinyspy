@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { IconStrikeUsed, IconStrikeOpen } from '@/common/icons/icons'
 import styles from './StrikeMarks.module.css'
@@ -11,15 +11,12 @@ type Props = {
 }
 
 /**
- * A bounded "N of M used" meter, drawn as a row of square marks that fill
- * left-to-right: the first `used` are a **red square-X** (used / struck), the
- * rest a **dashed square** (an open slot). Reads the same direction as a "N/M"
- * text count.
+ * A bounded "N of M used" meter: a row of square marks filling left to right,
+ * `used` of them a red square-X and the rest a dashed open square. The mistakes
+ * meter on the commit row ("Mistakes (lose at 4)").
  *
- * Deliberately **squares, not dots** — circles are reserved for the
- * player-identity disc (docs/ui.md → Player identity = a colored disc). Here it
- * is the mistakes meter ("Mistakes (lose at 4)"). The marks size in `em` so they
- * read at the surrounding text scale. Stateless, no interaction.
+ * Squares, not dots — a circle is the player-identity disc (docs/ui.md). The
+ * marks size in `em`, so they read at the surrounding text scale.
  */
 export function StrikeMarks({ used, total }: Props) {
   return (

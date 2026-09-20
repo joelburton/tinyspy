@@ -1,4 +1,4 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- common.games.status: the `outcome` key becomes `reason`

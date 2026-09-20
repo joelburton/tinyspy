@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { TILES_PER_CATEGORY, type Category, type CategoryRank } from './board'
 

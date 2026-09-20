@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { supabase } from '@/common/supabase/supabase'
 

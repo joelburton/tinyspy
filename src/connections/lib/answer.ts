@@ -1,11 +1,11 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
 
 /**
  * What a 4-tile guess was — the three values `connections.events.result`
- * stores, and the only place in the frontend that names them.
+ * stores.
  *
  * Unusually for this roster, the FRONTEND decides which one a guess is: the
  * board is publicly readable, so `evaluateGuess` adjudicates locally and sends

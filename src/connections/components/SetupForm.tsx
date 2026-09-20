@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { SetupTimerSection } from '@/common/setup-form/SetupTimerSection'
 import { runRpc } from '@/common/supabase/dbResult'

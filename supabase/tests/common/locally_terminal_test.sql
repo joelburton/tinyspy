@@ -1,4 +1,4 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- Test: common.game_players.locally_terminal

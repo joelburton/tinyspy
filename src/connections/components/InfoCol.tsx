@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
@@ -13,7 +13,6 @@ import { GameEventLog } from './GameEventLog'
 import { HintList } from './HintList'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
-
 
 /**
  * connections' info column — near-zero state, an arrangement of the shared scaffold
@@ -136,8 +135,8 @@ export function InfoCol({
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
-        {/* State — categories found + mistakes (the mistakes dots live below the
-            board; this is the at-a-glance textual count, kept here too). */}
+        {/* State — categories found + mistakes, as text; the marks are the
+            board column's, on the commit row. */}
         <p className={shared.infoState}>
           <strong>
             {found}/{categoryCount}
@@ -185,8 +184,8 @@ export function InfoCol({
             disagree with what the menu shows. The game menu lists the same
             bindings in this same order (docs/playarea.md). */}
         <InfoActionsRow message={rowMessage}>
-          {/* Hints toggles the inline HintList below (warning-toned, amber);
-              aria-pressed reflects whether the list is currently unfolded. */}
+          {/* Hints toggles the inline HintList below; aria-pressed says whether
+              it is unfolded. */}
           <ActionButton action={actHint} show="icon" aria-pressed={hintsOpen} />
           {/* Everything right of here is about the END of the game rather than
               about playing it. Both sides are pressable mid-game, so the bar is

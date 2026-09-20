@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { Fragment } from 'react'
 import { cls } from '@/common/utils/cls'
@@ -15,10 +15,8 @@ type Props = {
   // Compete: the viewer's own during play, and (once terminal, when RLS opens)
   // everyone's — which is what makes the picker below useful.
   guesses: EventRow[]
-  // The board's four categories — PUBLIC in both modes (the FE holds the
-  // answer key, see doc.md). Used to name a correct guess's category, so an
-  // OPPONENT's correct rows name theirs too; deriving the names from the
-  // viewer's own matches would leave every opponent row saying just "Correct".
+  // The board's four categories, public in both modes — names a correct
+  // guess's category, an opponent's too.
   categories: Category[]
   players: Player[]
   selfId: string
@@ -68,9 +66,8 @@ export function GameEventLog({
   })
   const shown = eventLogPicker.filter(guesses)
 
-  // rank → name, off the BOARD (public in both modes) rather than off the
-  // viewer's own matches — so an opponent's correct rows name their category
-  // too. Each rank appears exactly once, so a Map is the honest shape.
+  // rank → name, off the BOARD rather than off the viewer's own matches, so an
+  // opponent's correct rows name their category too.
   const nameByRank = new Map<number, string>(categories.map((c) => [c.rank, c.name]))
 
   return (

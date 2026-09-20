@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import type { CategoryRank } from './board'
 
@@ -6,8 +6,7 @@ import type { CategoryRank } from './board'
  * Per-rank fill tokens: NYT's yellow / green / blue / purple for rank 0..3
  * (increasing difficulty). The values live in `theme.css` as
  * `--connections-rank-N`; this map only spells the lookup, for a band's face
- * on the board and a hint row's swatch. Its own file so a component can
- * import it without tripping Vite Fast Refresh's components-only rule.
+ * on the board and a hint row's swatch.
  */
 export const RANK_TOKEN: Record<CategoryRank, string> = {
   0: 'var(--connections-rank-0)',

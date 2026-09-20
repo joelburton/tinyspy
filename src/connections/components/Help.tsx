@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 

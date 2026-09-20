@@ -1,9 +1,9 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- Test: connections.replay_board (restart this puzzle from scratch)
 -- ============================================================
--- The "Replay board" menu item / terminal-row Restart. Resets the working
+-- The Restart action — a menu row all game, a button at the end. Resets the working
 -- state on the SAME game row — the frozen `board` (categories AND this game's
 -- shuffled tileOrder) stays, so it's the same sixteen tiles in the same
 -- arrangement solved again, and everything the players did is wiped. Both

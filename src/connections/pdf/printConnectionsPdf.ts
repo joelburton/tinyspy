@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import type { jsPDF } from 'jspdf'
 import {
@@ -16,29 +16,20 @@ import type { CategoryRank } from '../lib/board'
 import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
 
 /**
- * connections' print-to-PDF. The model (see ./model.ts) decides whose bands
- * belong on whose board; this file only draws.
+ * connections' print-to-PDF, composed from the shared `common/pdf` helpers
+ * (common/pdf/doc.md). The model (see ./model.ts) decides whose bands belong
+ * on whose board; this file only draws.
  *
  * Two layouts, one per mode:
- *   - **coop** — the event-log body family (common/pdf/doc.md): the shared board in
- *     the left column, `drawEventLog` beneath it.
+ *   - **coop** — the event-log body family: the shared board in the left
+ *     column, `drawEventLog` beneath it.
  *   - **compete** — one **track per player** (`common/pdf/columns.ts`, up to
- *     three per page): their own bands, their own leftover tiles, their own
- *     score line and guess list. A merged board is a lie in compete — every
- *     player races their own copy.
+ *     three per page): their own bands, leftover tiles, score line and guess
+ *     list.
  *
- * The board drawing is the interesting part either way. On screen a solved
- * category is a full-width colored band; that translates directly, with two
- * deliberate changes for paper:
- *
- *  1. **A thick colored border, not a fill.** A band's color is a full-bleed
- *     background on screen. Four of those is an enormous amount of ink for a
- *     home printer, and `common/pdf/doc.md`'s "backgrounds are white" rule already says
- *     don't. The border carries the same hue at a fraction of the cost.
- *  2. **A letter A–D in the top-left.** Color alone can't be the signal —
- *     mono flattens all four ranks to one gray — and `common/pdf/doc.md` requires a shape
- *     or text carrying the same meaning. See `model.ts` for why A–D is a
- *     faithful stand-in rather than an arbitrary tag.
+ * A band prints as a thick colored border, not a fill, with its rank's letter
+ * A–D top-left — the letter is what survives a mono printer (doc.md →
+ * Frontend, the printer).
  */
 
 /**

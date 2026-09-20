@@ -1,4 +1,4 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- common.game_players.locally_terminal — this player is done, the

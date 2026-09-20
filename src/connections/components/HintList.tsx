@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
@@ -14,22 +14,15 @@ type Props = {
 }
 
 /**
- * Per-category hint reveal, shown inline in the info column. Players who want a
- * nudge push "Hints" (InfoCol's action row) to unfold this list; each of the four
- * rows starts as a colored rank swatch + a "Reveal" link, and clicking Reveal
- * surfaces the first tile in that category — just enough to point them in a
- * direction without giving the whole category away. Pushing "Hints" again hides the
- * list.
+ * The per-category hint list, unfolded under the info column's action row by
+ * the Hints toggle: one row per category, a rank swatch and a Reveal link, and
+ * Reveal shows that category's first tile.
  *
- * **Purely client-side.** Revealing a hint doesn't broadcast to peers, doesn't
- * persist to the DB, and doesn't show up in any game history. Each player can
- * independently consult their own hints.
- *
- * The revealed set is this component's own. `open` is a prop and the list stays
- * mounted while it is closed, so closing it with yellow already revealed and
- * reopening it keeps yellow shown; a Restart unmounts the whole play surface
- * (common/game-page/doc.md), so the same board hunted again starts with no
- * hint spent.
+ * Purely client-side — nothing is broadcast, written or logged; each player's
+ * hints are their own. The revealed set is this component's own and the list
+ * stays mounted while closed, so a hint taken stays shown across toggles; a
+ * Restart unmounts the whole play surface (common/game-page/doc.md), so the
+ * same board hunted again starts with none spent.
  */
 export function HintList({ categories, open }: Props) {
   const [revealed, setRevealed] = useState<ReadonlySet<CategoryRank>>(() => new Set())

@@ -1,4 +1,4 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- Test: connections.concede(target_game)  (elimination-game concede)

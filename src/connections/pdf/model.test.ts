@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 /**
  * Tests for the connections print model.
@@ -95,9 +95,9 @@ describe('buildConnectionsPrintModel — bands', () => {
   })
 
   it('never prints a tile both as a band and as a leftover (the reveal double-draw)', () => {
-    // Before 2026-08-06 the terminal reveal handed the printer every unsolved
-    // tile twice — once inside its revealed band, once in the leftover grid
-    // below — because remainingTiles was filtered against MATCHED tiles only.
+    // The leftover grid is filtered against every BANDED tile, revealed as
+    // well as matched — else a revealed category's words print twice, once in
+    // its band and once below.
     const t = team({
       isTerminal: true,
       matched: [matched(0)],

@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import {
   gameEndedTerminalMessage,
@@ -68,8 +68,8 @@ export function buildTerminalMessage({
   }
   // lost_compete: the clock, every racer conceded, or the mistakes. A MIXED
   // table — someone conceded, someone played it out — is `mistakes`, the
-  // server's own call (`connections.concede`), because somebody did play it
-  // out; the club-list label says the same thing from the same word.
+  // server's own call (`connections.concede`); the club-list label says the
+  // same thing from the same word.
   return {
     pillText:
       reason === 'timeout' ? 'Out of time — no winner'

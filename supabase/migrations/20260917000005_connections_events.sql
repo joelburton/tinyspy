@@ -1,4 +1,4 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- connections.guesses → connections.events

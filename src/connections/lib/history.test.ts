@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 /**
  * Unit test for the connections turn-history snapshot (lib/history.ts). Pure — no

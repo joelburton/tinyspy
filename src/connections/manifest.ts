@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
@@ -7,6 +7,7 @@ import { db } from './db'
 import { count, verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_CONNECTIONS_SETUP, type ConnectionsSetup } from './lib/setup'
+import { CATEGORY_COUNT, MISTAKE_BUDGET } from './lib/board'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -30,9 +31,7 @@ const helpLoader = lazy(() =>
   import('./components/Help').then((m) => ({ default: m.Help })),
 )
 
-// PlayArea is shared — branches on `game.mode` (read from the
-// hook's loaded game row) for the compete-only OpponentStrip
-// + eliminated-state UI.
+// PlayArea is shared; it reads `game.mode` off the row for what differs.
 const playAreaLoader = lazy(() =>
   import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
@@ -77,7 +76,7 @@ type StatusBlob = Record<string, unknown>
 /** Why a compete race ended with nobody solving it (connections' terminals). */
 const COMPETE_LOSS: Record<string, string> = {
   timeout: 'out of time',
-  mistakes: '4 mistakes',
+  mistakes: `${MISTAKE_BUDGET} mistakes`,
   conceded: 'all conceded',
 }
 
@@ -118,16 +117,18 @@ export const connectionsCoopGame: GameManifest = {
     const matched = (s.matched_count as number | undefined) ?? 0
     const mistakes = (s.mistake_count as number | undefined) ?? 0
     // "categories", the game's own noun (doc.md → Vocabulary), throughout.
-    const categories = tally(matched, 4, 'categories')
+    const categories = tally(matched, CATEGORY_COUNT, 'categories')
     switch (row.play_state) {
       case 'playing':
-        return statusLine(verdict('Playing'), categories, tally(mistakes, 4, 'mistakes'))
+        return statusLine(
+          verdict('Playing'), categories, tally(mistakes, MISTAKE_BUDGET, 'mistakes'))
       case 'won':
-        // Solving means 4/4, so the mistakes are the story.
+        // Solving means every category, so the mistakes are the story.
         return statusLine(verdict('Won'), count(mistakes, 'mistake'))
       case 'lost':
         return statusLine(
-          verdict('Lost', s.reason === 'timeout' ? 'out of time' : '4 mistakes'), categories)
+          verdict('Lost', s.reason === 'timeout' ? 'out of time' : `${MISTAKE_BUDGET} mistakes`),
+          categories)
       // Manual end (connections.end_game) — neutral, no win/loss framing.
       case 'ended':
         return statusLine(verdict('Ended'), categories)

@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { describe, expect, it } from 'vitest'
 import { reconcileLocalOrder } from './localOrder'

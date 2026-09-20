@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { execFileSync } from 'node:child_process'
 import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test'

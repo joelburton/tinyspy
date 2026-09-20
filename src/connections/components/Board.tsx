@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { type ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
@@ -64,12 +64,8 @@ type Props = {
   shakenTiles: ReadonlySet<string>
   // user_id → resolved color var, for the identity ring.
   colorByUserId: ReadonlyMap<string, string>
-  // Is this board SHARED — a coop game with somebody else in it? Identity is
-  // only information there. Solo, every pick is mine and a colored ring would be
-  // decoration on top of the selection border; in compete nobody sees my picks
-  // but me, so the same applies. When it IS shared, everyone's picks are ringed
-  // INCLUDING MINE: a board where only some picks carry a color reads as missing
-  // data rather than as "the unmarked ones are yours".
+  // Is this board SHARED — a coop game with somebody else in it? Only then is
+  // a pick ringed in its picker's color, and then every pick is, mine included.
   sharedBoard: boolean
   // Turn-order (coop, opt-in): a teammate holds the move, so the whole board
   // is inactive — the board-scope dim.
@@ -89,9 +85,9 @@ type Props = {
   // during live play.
   isViewingHistory: boolean
   // The four tiles the viewed turn guessed, tinted by `historyLitOutcome` and
-  // under the viewer's outline. The only two optional props here: the caller
+  // under the viewer's outline. Optional, with its twin below: the caller
   // reads both off the open snapshot (`historySnap?.…`), so they arrive
-  // undefined whenever no past turn is open — which is most of the time.
+  // undefined whenever no past turn is open.
   historyLitTiles?: ReadonlySet<string>
   // The viewed turn's outcome — the tint for `historyLitTiles`.
   historyLitOutcome?: Outcome
@@ -153,35 +149,23 @@ export function Board({
   const rows = sortedMatched.length + unmatched.length + Math.ceil(tiles.length / COLS)
 
   // ─── Attention ─────────────────────────────────────────
-  // ATTENTION: a category resolved while you were reading another corner
+  // ATTENTION — a category resolved while you were reading another corner: a
+  // correct guess collapses four tiles into a band and reflows everything
+  // below it, in coop wherever a teammate was working.
   //
-  // The one change on this board that doesn't announce itself. A correct guess
-  // collapses four tiles into a full-width band and reflows everything below it
-  // — a substitution in place, and in coop it happens wherever a teammate was
-  // working rather than where you are looking.
-  //
-  // The cause has to come from the LOG, never from the board: `replay_board`
-  // re-deals the same sixteen tiles with every band gone, and the terminal
-  // reveal swaps four bands in at once. Both differ wildly from the previous
-  // render and neither is news. `useMoveAttention` only speaks when the
-  // content changed AND the server's move marker advanced, which is exactly
-  // "a guess did this" (the marker drops on a replay, and the reveal doesn't
-  // touch it).
-  //
-  // The two are guaranteed to agree here for free: `matchedCategories` is
-  // PROJECTED from the guess log in useGame, so a band can't arrive a render
-  // before the row that produced it.
+  // Gated on the CAUSE (the guess log) rather than on the board differing:
+  // a restart re-deals with every band gone and the reveal swaps four bands
+  // in at once, and neither is a move. `matched` is projected from the log in
+  // useGame, so a band cannot arrive a render before its row. See
+  // `useMoveAttention`.
   const rankKey = sortedMatched.map((m) => m.rank).join(',')
   const flashingRanks = useMoveAttention({
     content: sortedMatched,
     contentKey: rankKey,
     moveCount,
-    // Quiet only while viewing a past turn — the lit tiles there are already
-    // the mark, and a live band landing behind the viewer is not something to
-    // point at on a board nobody is reading. The band a player's OWN guess
-    // produced is marked like anyone else's: it arrives somewhere they were not
-    // looking (the top of the board, while they were reading tiles), and what
-    // the flash says is "your four went here", not "something happened".
+    // Quiet only while viewing a past turn: the lit tiles there are already
+    // the mark. A player's OWN band is marked like anyone else's — it lands at
+    // the top of the board while they were reading tiles.
     quiet: isViewingHistory,
     changed: (before, now) => {
       const had = new Set(before.map((m) => m.rank))
@@ -207,10 +191,9 @@ export function Board({
       )}
       style={{
         ['--tile-slot-fill-color' as string]: RANK_TOKEN[c.rank],
-        // The rank color stepped ~16% darker, as quiet definition — the same
-        // derived edge psychicnum's decided tiles wear. A band is INERT (it can
-        // never be selected and nothing can be refused on it), which is what
-        // frees the border here: neither claimant on that channel can appear.
+        // The edge is the rank color stepped darker. A band is inert — never
+        // selected, nothing refused on it — so nothing else ever claims its
+        // border.
         ['--tile-slot-edge-color' as string]: `color-mix(in srgb, ${RANK_TOKEN[c.rank]} 84%, #000)`,
         // --len drives the same auto-fit the tiles use (here for the band name).
         ['--len' as string]: c.name.length,
@@ -280,10 +263,8 @@ export function Board({
               className={cls(
                 shared.tileFace,
                 shared.tile,
-                // SELECTED, whoever picked it. In coop the four tiles are one
-                // shared move — a teammate's pick is part of the guess I am
-                // about to submit, not a note about where they are standing — so
-                // the border says "in the move" and the ring below says whose.
+                // SELECTED, whoever picked it: the border says "in the move",
+                // the ring below says whose.
                 ownerId !== undefined && shared.selected,
                 ownerColor && styles.peerPick,
                 // The answer landing here — the attention flash first, then the
@@ -292,9 +273,6 @@ export function Board({
                 shakenTiles.has(tile) && shared.verdictShake,
                 inFlight && shared.dimInFlight,
                 // The answer fills the tile, in a PALE tier of its pill's outcome.
-                // The background is free to take it: a connections tile carries
-                // no state color — a decided one stops being a tile at all and
-                // becomes part of a band.
                 isVerdict && shared.verdictFill,
                 isVerdict && verdict && VERDICT_TONE[verdict.outcome],
                 isHistoryLit && shared.verdictFill,

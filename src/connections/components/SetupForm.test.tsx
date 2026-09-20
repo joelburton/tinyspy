@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 /**
  * connections' setup form — and the first game whose not-oks are mostly

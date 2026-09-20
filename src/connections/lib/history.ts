@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 /**
  * connections — the turn-history replay. Given the guess log, the static board

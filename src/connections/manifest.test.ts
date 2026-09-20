@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 /**
  * connections' `startGameInClub`: starting a game passes the setup through

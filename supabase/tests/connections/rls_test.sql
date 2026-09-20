@@ -1,4 +1,4 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- Test: connections RLS + access boundaries
@@ -131,7 +131,7 @@ select throws_ok(
 
 -- ============================================================
 -- COMPETE: opponents' guesses are private DURING PLAY, and open
--- at terminal (2026-08-02)
+-- at terminal
 -- ============================================================
 -- The privacy is a GAME RULE, not etiquette: a peer's oneAway guess plus the
 -- public board would hand you the answer while you can still use it. Once the

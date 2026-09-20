@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
@@ -49,10 +49,7 @@ export type EventRow = {
   // seven-value vocabulary cannot key them.
   result: GuessResult
   // Whether this guess MATCHED a category — the rules question, answered once
-  // here. `result === 'correct'` says the same thing, but `result` is the
-  // COLUMN's word: a reader asking it is reading the wire, and a reader asking
-  // `outcome === 'won'` is asking a color. Downstream asks this instead, so
-  // neither of those leaks past the seam.
+  // here so downstream asks neither the wire word nor a color.
   matched: boolean
   matched_category_rank: number | null
   created_at: string
@@ -69,13 +66,8 @@ export type PlayerRow = {
 }
 
 /**
- * One matched category, derived from a `result='correct'` guess
- * row joined with the static board.categories. In coop the partial
- * unique index on `(game_id, matched_category_rank) where
- * result='correct' and mode='coop'` enforces one match per rank
- * per game; in compete the index extends to include user_id so
- * each player can independently solve every category. The FE
- * just projects whatever it can see.
+ * One matched category — a `result = 'correct'` guess row joined to the
+ * board's category by rank.
  */
 export type MatchedCategory = {
   rank: CategoryRank
@@ -425,11 +417,9 @@ export function useGame(
     }
   }
 
-  // Project matched categories from the guess log + static board.
-  // RLS in compete hides peers' guesses server-side, so a compete
-  // caller's projection naturally yields only their own matches.
-  // Coop sees every player's matches (one row per rank because of
-  // the partial unique index).
+  // Project the matched categories from the guess log and the board. In
+  // compete RLS hands a caller only their own rows, so these are their own
+  // matches; coop sees everyone's.
   const matchedCategories: MatchedCategory[] = []
   if (game) {
     const categoryByRank = new Map<number, Board['categories'][number]>()

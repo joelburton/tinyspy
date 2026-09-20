@@ -1,12 +1,12 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- Test: connections.next_puzzle_for_club + connections.puzzle_for_date
 -- ============================================================
 --
--- The two lookups the setup dialog runs to say what Start will play — and the
--- FIRST RPCs in the roster that answer a question rather than change anything.
--- That is what these tests are about:
+-- The two lookups the setup dialog runs to say what Start will play — RPCs
+-- that answer a question rather than change anything. That is what these
+-- tests are about:
 --
 --   1. `data` is ONE puzzle, not an array — the single answer the question
 --      actually has.

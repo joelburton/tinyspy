@@ -1,11 +1,10 @@
-/* cs-met-connections */
+/* cs-blessed-connections */
 
-/* connections-specific bits of the event log. Everything structural — the panel
- * chrome, the row look (outcome bar, divider), the two-row-entry hugging
- * (`.entryHead`/`.entryCont`), and the column-sizing classes (`.main` / `.who`) —
- * is shared in common/event-log/EventLog. The ONLY connections-specific styling
- * is the tiles cell below. (Each turn is two real <tr>s — row 1 `verdict | actor`
- * columns, row 2 the spanning tiles — NOT a flexbox sub-line in one cell.) */
+/* connections' own bit of the event log: the tiles cell. Everything structural
+ * — the panel chrome, the row look (outcome bar, divider), the two-row-entry
+ * hugging (`.entryHead`/`.entryCont`), and the column-sizing classes (`.main` /
+ * `.who`) — is shared in common/event-log/EventLog. Each turn is two real
+ * <tr>s: row 1 `verdict | actor` columns, row 2 the spanning tiles. */
 
 /* Row 2: the four guessed tiles, full width (a `colSpan` over the verdict + who
  * columns, so they're not squished into a narrow wrapping strip). UPPERCASE to

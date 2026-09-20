@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import type { Member } from '@/common/members/member'
 import { coopRows, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
@@ -20,11 +20,9 @@ function formatPuzzleDate(d: string | null): string {
 /**
  * connections' setup recap — ONE array, rendered by the info column and the
  * PDF alike (common/setup-form/doc.md → Setup rows). Order mirrors
- * `components/SetupForm.tsx`.
- *
- * The recap is the dialog read back: what is fixed about a Connections puzzle
- * (sixteen words, four categories, four mistakes) is no row, because none of
- * it is a control the dialog offers. That belongs in Help.
+ * `components/SetupForm.tsx`. What is fixed about a puzzle (sixteen tiles,
+ * four categories, four mistakes) is no row, since the dialog offers no
+ * control for it.
  */
 export function setupRows(
   setup: ConnectionsSetup,

@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import type { TimerMode } from '@/common/manifest/gameManifest'
 import type { SetupOf } from '@/common/setup-form/setupForm'
@@ -12,9 +12,8 @@ import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
  * `create_game` is told to derive the next puzzle none of the seated players
  * has played (`connections.next_puzzle_for_club`). Present, it is honored —
  * the setup dialog's date field, and the pgTAP and e2e fixtures pinning a
- * board. `timer` is per game rather than per gametype so a group can pick its
- * own challenge per puzzle. `coop_style` and `first_turn_user_id` are the
- * shared coop-pacing pair (`CoopTurnSetup`).
+ * board. `coop_style` and `first_turn_user_id` are the shared coop-pacing
+ * pair (`CoopTurnSetup`).
  */
 export type ConnectionsValues = CoopTurnSetup & {
   puzzle_id?: string

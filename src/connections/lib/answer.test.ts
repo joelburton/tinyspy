@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { describe, it, expect } from 'vitest'
 import { answerMessage, eventToOutcome, peerAnswerMessage, type Answer } from './answer'
@@ -16,9 +16,8 @@ import { answerMessage, eventToOutcome, peerAnswerMessage, type Answer } from '.
  * than a blank pill.
  *
  * The SQL half is pinned in `supabase/tests/connections/gameplay_test.sql`,
- * which asserts `submit_guess` answers with `data` and NO outcome. That is the
- * other half of this arrangement, and what makes this file the only place the
- * outcome lives.
+ * which asserts `submit_guess` answers with `data` and NO outcome — the other
+ * half of this arrangement.
  */
 describe('answerMessage', () => {
   // Every member, with its color and its words — one table to read them from,

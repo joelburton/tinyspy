@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
@@ -6,28 +6,15 @@ import type { Category, CategoryRank } from '../lib/board'
 import type { EventRow, MatchedCategory } from '../hooks/useGame'
 
 /**
- * Build the connections print model — the pure half, kept away from jsPDF so the
- * judgment is testable without a renderer (same split as wordiply's).
+ * Build the connections print model — the pure half, away from jsPDF so the
+ * judgment is testable without a renderer.
  *
- * Two judgments live here.
- *
- * **What a category band has to carry on paper.** On screen a band is
- * identified by its fill color — NYT's yellow/green/blue/purple for rank 0–3.
- * Print can't lean on that twice over: a full-bleed fill is far too much ink,
- * and a mono printer flattens all four to the same gray. So a printed band is a
- * thick colored BORDER plus a **letter A–D**, and the letter is the
- * load-bearing one — it's the only signal that survives a black-and-white
- * printer. A–D is a faithful stand-in rather than an arbitrary label: rank 0–3
- * IS the difficulty order (yellow easiest → purple hardest), which is exactly
- * what the color encodes.
- *
- * **Whose bands belong on whose board.** Compete players race their OWN copy
- * of the puzzle — own solved categories, own mistake budget, own log — so the
- * printout is one track per player (`common/pdf/columns.ts`), not one merged
- * board. The full solution prints once, on the VIEWER's track (their unsolved
- * categories reveal as bands at terminal, same as their screen); a rival's
- * track shows only what THEY earned, with their unsolved tiles as the plain
- * grid — that's their story, and it keeps the columns tellingly different.
+ * Two judgments live here. **What a band carries on paper**: a letter A–D for
+ * its rank, the signal that survives a mono printer (doc.md → Frontend, the
+ * printer). **Whose bands belong on whose board**: compete racers each play
+ * their own copy, so the printout is one track per player
+ * (`common/pdf/columns.ts`) — the full solution once, on the viewer's, and a
+ * rival's showing only what they earned.
  */
 
 /** rank → the printed letter. Rank 0..3 is NYT's difficulty order. */
@@ -61,19 +48,9 @@ export type ConnectionsPrintModel = PrintHeader & {
 }
 
 /**
- * The verdict, kept SHORT on purpose.
- *
- * The coop page's `drawEventLog` move column holds ~38 characters at 9pt, and
- * four tiles eat ~30 of them, so every character of prefix costs a character of
- * the guess. Measured against the real renderer: `one away — …` truncated the
- * last tile; `1 away: …` doesn't. A correct guess shows the category's LETTER,
- * which ties the row straight back to the band it solved — the same A–D
- * vocabulary doing double duty, and the shortest possible prefix.
- *
- * A category of genuinely long words can still ellipsize its final tile. That's
- * the accepted cost of a one-line row (the on-screen log spends two rows per
- * turn for exactly this reason). The VERDICT is what can't be reconstructed
- * from a truncated line, so it goes first and always survives.
+ * The verdict, kept SHORT: the log line is one row, four tiles fill most of
+ * it, and a long category can still ellipsize its last tile — so the verdict
+ * leads, where it always survives. A correct guess shows its band's letter.
  */
 function verdict(g: EventRow): string {
   if (g.matched) {

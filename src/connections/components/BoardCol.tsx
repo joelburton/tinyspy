@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useState } from 'react'
@@ -42,6 +42,18 @@ const NO_OWNERS: ReadonlyMap<string, string> = new Map()
 const NO_TILES: ReadonlySet<string> = new Set()
 
 /**
+ * What `connections.submit_guess` puts in `data`: the verdict it RECORDED.
+ *
+ * The frontend adjudicates the guess itself (`evaluateGuess`, the FE-knows
+ * model) and sends its answer up, so this tells it nothing new — but a call
+ * site may not pick an `ok` branch by reading its own local value back
+ * (docs/envelopes.md → Choosing which `ok` branch), so each recorded verdict is
+ * its own answer. A guess that wrote NOTHING is not here at all: it comes back
+ * as PN300 or PN301, both races.
+ */
+type GuessAnswer = { result: GuessResult }
+
+/**
  * connections' board column: the `<Board>` with its floating Shuffle, and the
  * fixed-height slot below it — the commit row with the inline mistakes, or the
  * local slot's top message, or the history banner while a past turn is open.
@@ -54,20 +66,8 @@ const NO_TILES: ReadonlySet<string> = new Set()
  * snapshot, which is what makes the turn-history viewer a drop-in. See
  * docs/playarea.md.
  */
-/**
- * What `connections.submit_guess` puts in `data`: the verdict it RECORDED.
- *
- * The frontend adjudicates the guess itself (`evaluateGuess`, the FE-knows
- * model) and sends its answer up, so this tells it nothing new — but a call
- * site may not pick an `ok` branch by reading its own local value back
- * (docs/envelopes.md → Choosing which `ok` branch), so each recorded verdict is
- * its own answer. A guess that wrote NOTHING is not here at all: it comes back
- * as PN300 or PN301, both races.
- */
-type GuessAnswer = { result: GuessResult }
-
 export function BoardCol({
-  // ── Board to render (live OR a historical snapshot — PlayArea picks via `snap`) ──
+  // ── Board to render (live OR a historical snapshot — PlayArea picks) ──
   game,
   matchedCategories,
   remainingTiles,
@@ -104,11 +104,11 @@ export function BoardCol({
   matchedCategories: MatchedCategory[]
   // Live remaining tiles — the shuffle source; the display order derives from these.
   remainingTiles: string[]
-  // Categories revealed at game-end (loss / elimination); `[]` during play.
+  // The categories nobody got, while the reveal is on; `[]` otherwise.
   unmatched: Category[]
-  // Is the ANSWER on the board right now (the terminal reveal)? The four
-  // unsolved categories take the loose tiles' place while it's on, and the
-  // tiles come back when it's off — see the `tiles` prop below.
+  // Is the ANSWER on the board right now (the terminal reveal)? The unsolved
+  // categories take the loose tiles' place while it's on, and the tiles come
+  // back when it's off — see the `tiles` prop below.
   solutionShown: boolean
   // The viewed turn's snapshot, or null when live — PlayArea reconstructs it.
   historySnap: HistorySnapshot | null
@@ -142,8 +142,8 @@ export function BoardCol({
   unionTiles: string[]
   selfId: string
   colorByUserId: ReadonlyMap<string, string>
-  // Coop, with somebody else in the game — the only case where "whose pick is
-  // this?" is a question the board can usefully answer.
+  // Coop, with somebody else in the game — where "whose pick is this?" has an
+  // answer worth drawing.
   sharedBoard: boolean
 
   // ── Own-guess feedback ──
@@ -171,8 +171,8 @@ export function BoardCol({
   // conventions: one prop says so, and the flag is derived, never passed).
   const isViewingHistory = historySnap !== null
   // On a phone the below-board commit row is tight: the Clear/Submit buttons go
-  // icon-only and the mistakes label shortens to "Mistakes" (the strike dots
-  // already carry "lose at 4"). Desktop keeps the full labels.
+  // icon-only and the mistakes label shortens to "Mistakes" (the marks already
+  // carry "lose at 4"). Desktop keeps the full labels.
   const phone = useIsPhone()
 
   // ─── The marks this column owns ────────────────────────
@@ -253,14 +253,9 @@ export function BoardCol({
     const foreign = newestGuess !== null && newestGuess.user_id !== selfId
     setSeenGuess({ count: guesses.length, id: newestGuess?.id ?? null })
     if (foreign) {
-      // A TEAMMATE'S guess that did not win: mark THEIR four tiles for everyone,
-      // because "no" is news to the whole table — those four are now the four
-      // nobody should try again, and the player who learns it last is the one
-      // about to pick them. A correct guess needs no mark: its band arrives and
-      // says the same thing in more detail.
-      //
-      // Their own client shows this as their own verdict, from their own answer,
-      // a beat earlier; this is the same mark reaching everyone else.
+      // A TEAMMATE'S guess that did not win marks THEIR four tiles here too;
+      // their own client marked the same four from its own answer a beat
+      // earlier. A correct guess needs no mark: its band arrives on this render.
       const marks = !isViewingHistory && newestGuess !== null && newestGuess.outcome !== 'won'
       setVerdictSeq(verdictSeq + 1)
       setVerdict(
@@ -288,11 +283,8 @@ export function BoardCol({
     // to carry its own copy rather than re-reading `unionTiles` afterwards.
     const sent = [...unionTiles]
 
-    // Dup detection (FE-side per the FE-knows model). My own action, so it
-    // shows locally (clicking a tile dismisses it) — and the fill goes on the
-    // four tiles it is about, in the pill's amber. A refusal is the one
-    // verdict whose pill I might not be looking at: my eyes are on the board,
-    // having just clicked four tiles there.
+    // Dup detection, local (the FE-knows model): shown into the slot, and
+    // filled on the four tiles it is about.
     if (guesses.some((g) => sameTileSet(g.tiles, unionTiles))) {
       const { outcome, text } = answerMessage({ answerType: 'already_tried' })
       showWithVerdict(sent, FeedbackMessage.result(outcome, text))
@@ -331,10 +323,8 @@ export function BoardCol({
       showWithVerdict(sent, FeedbackMessage.notOk(res))
       return
     // One branch per recorded verdict, each asserting `data` and nothing else
-    // (docs/envelopes.md → The shape of a call site): the frontend sent the
-    // verdict up, and reading its own value back to pick a branch would be
-    // choosing an `ok` case by something the envelope did not say. Each shows
-    // the answer, then clears the selection.
+    // (docs/envelopes.md → The shape of a call site) — never the value this
+    // client sent up. Each shows the answer, then clears the selection.
     } else if (res.type === 'ok' && res.data.result === 'correct') {
       // A correct guess that wrote NOTHING comes back as PN300, so reaching
       // here means the match is durably recorded. No mark: these four collapse
@@ -403,9 +393,9 @@ export function BoardCol({
   // ─── The board's display order ─────────────────────────
   // The shuffle — purely visual, this client's own view of the same sixteen,
   // and it touches nothing else.
-  // Per-player local tile order. NULL = use `remainingTiles` as-is (the create_game
-  // shuffle, same for every player). A permutation gives this client its own view;
-  // doesn't broadcast.
+
+  // NULL = `remainingTiles` as-is (the create_game shuffle, the same for every
+  // player); a permutation is this client's own view.
   const [localOrder, setLocalOrder] = useState<string[] | null>(null)
 
   const displayedTiles = localOrder
@@ -437,21 +427,18 @@ export function BoardCol({
         matched={historySnap ? historySnap.matched : matchedCategories}
         unmatched={historySnap ? [] : unmatched}
         // The tiles survive the end of the game — a finished board is your
-        // bands PLUS the ones you never cracked, frozen, which is the only
-        // record of how far you got. They step aside only for the reveal, whose
-        // bands need the rows (bands + ceil(tiles/4) is a fixed row count).
+        // bands PLUS the tiles you never cracked, frozen. They step aside only
+        // for the reveal, whose bands need the rows (bands + ceil(tiles/4) is a
+        // fixed row count).
         tiles={historySnap ? historySnap.tiles : solutionShown ? [] : displayedTiles}
         // A historical snapshot is a record too — never clickable. `isMyTurn` is
         // in here as well as on the click guard: a tile that hovers, lifts and
         // shows a pointer while silently swallowing the click is a promise the
         // board can't keep, and the dim beside it would be saying the opposite.
         interactive={showInput && isMyTurn && !isViewingHistory}
-        // Nobody is building a move on a board that can't take one, so the
-        // selection is not drawn on one: not in the history viewer (a past turn
-        // is a record), and not once this player is finished — the game over,
-        // eliminated, or conceded. The selection state itself is ephemeral
-        // broadcast chatter that outlives all three, and a frozen board wearing
-        // black selection borders reads as a move still in progress.
+        // No selection is drawn on a board that can't take a move — a past
+        // turn, or a player who is finished — though the broadcast state
+        // itself outlives both.
         ownerByTile={isViewingHistory || !showInput ? NO_OWNERS : ownerByTile}
         onToggle={handleToggle}
         inFlightTiles={inFlightTiles}
@@ -506,9 +493,7 @@ export function BoardCol({
             </div>
           ) : (
               <div className={styles.moveArea}>
-                {/* "Mistakes (lose at 4)" — the caller's OWN mistakes made (shared in
-                    coop, personal in compete). margin-right:auto pushes the buttons
-                    right. */}
+                {/* The caller's OWN mistakes — the team's one count in coop. */}
                 <div className={styles.mistakesInline}>
                   {phone ? 'Mistakes' : 'Mistakes (lose at 4)'}{' '}
                   <StrikeMarks used={mistakeCount} total={mistakeBudget} />

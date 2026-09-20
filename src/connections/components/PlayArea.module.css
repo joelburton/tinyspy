@@ -1,4 +1,4 @@
-/* cs-met-connections */
+/* cs-blessed-connections */
 
 /* connections board surface. The two-column shell and the tile chrome are the
  * shared common/game-page/playArea.module.css; the info-column readouts are
@@ -22,10 +22,8 @@
 /* @@ */   --info-col-width: 22rem;
 }
 
-/* The board wrapper. Visually empty TODAY — no border, no background, no padding
- * — so it reads identically to psychicnum's board (gaps show the column behind).
- * It's the deliberate single place a future game adds a framed look; the twin
- * lives in psychicnum's Board.module.css (`.board`).
+/* The board wrapper. No border, no background, no padding — the tiles carry
+ * the look; the wrapper exists so a framed board would be added in one place.
  *
  * ─── Tile size caps — TINKER HERE ────────────────────────────────────────────
  * The board grows to fill the space, but a tile never exceeds these. Relative
@@ -152,17 +150,14 @@
   outline-offset: 0;
 }
 
-/* Coop "Mistakes remaining ●●●○" — left-justified on the input row below the
- * board (margin-right:auto pushes the Clear/Submit buttons to the right).
- * (Compete shows the per-player OpponentStrip in its own row instead; the
- * textual N/4 count lives in the info column.) */
+/* The mistakes readout — "Mistakes (lose at 4)" and the marks — left-justified
+ * on the commit row below the board, in both modes; margin-right:auto pushes
+ * Clear/Submit to the right. */
 /* @@ */ .mistakesInline {
   margin-right: auto;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  /* Normal body text — this is real game state (how many mistakes are left),
-   * not incidental help, so it reads at full color and size. */
   color: var(--page-text-color);
   font-size: 1rem;
 }
@@ -185,10 +180,8 @@
   gap: 0.5rem;
 }
 
-/* A button in the input row (`.inputButton` — the shared name psychicnum uses
- * for its Submit too). The icon+label look is the global `.icon-button` class
- * (composed via cls() at the call site); this just adds the floor width. Here
- * it's the Clear + Submit pair. */
+/* A button in the commit row — the Clear + Submit pair. The icon+label look
+ * is the global `.icon-button` class; this adds only the floor width. */
 /* @@ */ .inputButton {
   min-width: 7rem;
 }
@@ -227,11 +220,10 @@
  * which re-sets that token.
  *
  * ── Why three rules ──────────────────────────────────────────────────────────
- * `box-shadow` is a LIST, and the tile's depth already occupies it. Setting a
- * bare inset border would silently drop that depth — a picked tile would go flat
- * and stop lifting on hover, which is how this arrived here in the first place
- * (the color was set inline and lost both). So it composes WITH each shadow, and
- * the hover/press pair restate their own beside it. */
+ * `box-shadow` is a LIST, and the tile's depth already occupies it. A bare inset
+ * border would silently drop that depth — a picked tile would go flat and stop
+ * lifting on hover. So it composes WITH each shadow, and the hover/press pair
+ * restate their own beside it. */
 /* @@ */ .peerPick {
 /* @@ */   --peer-band:
     inset 0 0 0 var(--connections-peer-inner-border-inset) var(--tile-slot-fill-color),

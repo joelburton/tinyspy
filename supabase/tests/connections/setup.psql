@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-blessed-connections
 
 -- ============================================================
 -- connections-shared test setup
@@ -14,13 +14,9 @@
 -- the including file's directory, so the same two lines work
 -- from every connections test regardless of the caller's cwd.)
 --
--- This file holds connections-specific helpers. Today: two helpers
--- (`connections_puzzle` inserts a known fixture puzzle;
--- `connections_setup` builds a valid setup payload referencing
--- that puzzle). Per docs/testing.md's threshold ("three or more
--- shared helpers" promotes to a file), we're below the bar — but
--- both helpers are non-trivial AND every test needs them, so a
--- shared file beats copy-pasting.
+-- This file holds connections' own helpers: `connections_puzzle`
+-- inserts a known fixture puzzle, and `connections_setup` builds a
+-- valid setup payload referencing it.
 
 -- ─── connections_puzzle ────────────────────────────────────
 -- Insert a deterministic test puzzle and return its id. Every

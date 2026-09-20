@@ -1,14 +1,16 @@
-// cs-met-connections
+// cs-blessed-connections
 
 /**
- * Render + concede tests for connections' PlayArea.
+ * connections' PlayArea, mounted for real — the board, the strip, the event
+ * log and the action row — with `useGame` (realtime + supabase) and `db`
+ * mocked, so no client or network is needed.
  *
- * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; everything else — the board, strip, event log, action row — renders
- * for real. These are deliberately shallow: game logic lives in pgTAP (the RPCs)
- * and `evaluate.test.ts` (the guess evaluator); here we prove the component tree
- * mounts and that the concede wiring (compete → connections.concede; coop → End)
- * is correct.
+ * What is pinned here is the surface's behavior: the loader's failed-read
+ * gate, Concede vs End per mode, the ended board and the reveal, the
+ * celebration, the board-scope marks, whose pick is ringed, the marks on a
+ * guess and the three ways one ends, attention on a band, and every key and
+ * action-row face per asker. Game logic is pgTAP's (the RPCs) and
+ * `evaluate.test.ts`'s.
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

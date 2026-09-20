@@ -1,4 +1,4 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- Test: connections.end_game — manual "End game" terminal
@@ -10,7 +10,7 @@
 -- NEUTRAL stop: the friends agreed to quit, so nobody won and
 -- nobody lost. It writes:
 --   - play_state = 'ended'
---   - status = {outcome:'manual', mode:<coop|compete>}
+--   - status = {reason:'manual', mode:<coop|compete>}
 --   - every player's game_players.result = {"won": false}
 -- in BOTH modes (the per-player result is identical coop vs
 -- compete — there's nothing "achieved" to snapshot).

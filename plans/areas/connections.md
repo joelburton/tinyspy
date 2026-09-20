@@ -7,7 +7,18 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/connections/todo.md`, not here.
 
-**Status: OPENED 2026-09-19** (Joel: *"open the connections area. this will
+**Status: CLOSED 2026-09-19, blessed** (Joel: *"mark all files in this area
+blessed and close it"*): fifty-six files `cs-blessed-connections` — the
+fifty-one on the roster (every stamped file in `src/connections/`, its three
+SQL files, its ten pgTAP files and `setup.psql`) and the five this area
+stamped `cs-met-connections` as it worked: `e2e/presence-pause.e2e.ts` and
+`supabase/tests/common/locally_terminal_test.sql` (F-5), the two migrations
+(F-5's `locally_terminal`, F-22's `status_outcome_to_reason`), and the puzzle
+importer. The second game area closed. The full e2e suite did NOT run before
+this blessing (it has not run since the status-key rename, the shared CSS
+change or the one-noun label change); Joel closed without it.
+
+**Opened 2026-09-19** (Joel: *"open the connections area. this will
 be our second game audited; it has a lot of similarities to psychicnum, so it
 should end up being similarly-shaped"*). Roster agreed the same day — fifty
 files `cs-met-connections` (Joel: *"the things marked with
@@ -71,7 +82,7 @@ markdown and the logo none.
   `supabase/tests/connections/`:
   `club_game_status`, `compete`, `concede`, `create_game`, `end_game`,
   `gameplay`, `next_puzzle`, `replay`, `rls`, `turn_order`, and `setup.psql`
-  (the per-game helpers; `.psql` carries no stamp). This game's own files, and
+  (the per-game helpers, stamped like the rest). This game's own files, and
   the stamp scope covers `supabase/`, so roster.
 - **The puzzle importer — 1 file**: `supabase/scripts/import-connections-puzzles.ts`
   (211 lines; the NYT archive, through the REST API). It lives in
@@ -1282,7 +1293,8 @@ prose, and are OPEN — listed below so they outlive this reading.
   s-ending game settled it 67:1 as `connections'`. Swept to `connections'`
   everywhere but the two frozen migrations, whose comments stay.
 
-**Still open — thirteen, all prose, none with a decision in it:**
+**The thirteen prose findings — SHIPPED 2026-09-19, one pass, with the two
+nits below.** Listed as found; what each got follows the list.
 
 1. `view-outlived-its-drop` — `doc.md` still counts "Four tables and a view",
    gives the view a Schema row and lists `club_game_status_test` in Tests;
@@ -1332,6 +1344,51 @@ Two nits recorded and not worth a number: `lib/board.ts` has one docstring over
 three constants, so hovering the second or third shows nothing; the
 `replay_board` header's first line is a rewrap artifact.
 
+**How they shipped** (Joel: *"there are open findings from the doc re-read. fix
+them"*): (1) `doc.md` counts four tables, the view's Schema row and the
+`club_game_status_test` row are gone, and `crosswords.sql` argues for a
+function without citing a view connections does not have; (2) every
+`status.outcome` reads `status.reason` — four in `connections.sql`, the
+`compete_test` and `end_game_test` headers, four assertion labels, and the one
+in `psychicnum.sql`; (3) the render comment says MY win celebrates; (4)
+`GuessAnswer` moved above the docstring, and the orphaned-docstring guard's
+allowlist lost its connections line; (5) the four claims name a condition or
+nothing; (6) `.mistakesInline`'s comment names the real label, both modes, and
+`doc.md` puts `<StrikeMarks>` on the commit row with a bullet of its own; (7)
+`doc.md`'s Tests names the selection Broadcast as the untested thing and
+`e2e/presence-pause.e2e.ts` as the pause's test; (8) `PlayArea.test.tsx`'s lede
+lists what its describes pin; (9) `replay_test` says the Restart action; (10)
+the three dated asides are gone, `model.test.ts`'s stating the property; (11)
+the register row is deleted, and the same file's stale picker row count went
+with it; (12) `manifest.ts` reads `CATEGORY_COUNT` and `MISTAKE_BUDGET`
+(`report:labels` unchanged); (13) `setup.psql` is `cs-met-connections`, its
+"below the promotion threshold" paragraph cut. The nits: three docstrings in
+`lib/board.ts`, and the header rewrapped.
+
+**And the comment pass in the same sitting** (Joel: *"make sure the comments
+are free of obvious things, explanation of obvious 'why's and other things we
+pruned from psychicnum's comments"*), against the rules psychicnum settled —
+no "why this lives here", no "why Joel decided this", no game rule on a type,
+no archaeology, no naming rationale: `PlayArea.tsx` (the terminal-message
+rationale matches psychicnum's; the peer line no longer argues why it omits
+the category; Hints no longer says why it hides), `BoardCol.tsx` (the
+teammate-mark, dup-detection, selection-not-drawn and one-branch comments
+shrink to what the code needs; the shuffle's two comments become one; `snap`
+named as it is), `Board.tsx` (ATTENTION to nine lines like psychicnum's;
+`sharedBoard`, the band edge, SELECTED and the fill lose their arguments),
+`InfoCol.tsx`, `GameEventLog.tsx` (the categories prop's reasoning was written
+twice), `HintList.tsx` and `StrikeMarks.tsx` (docstrings to what they are),
+`useGame.ts` (`matched`, `MatchedCategory` and the projection stop restating
+the partial index), `lib/` (`CategoryRank`'s naming rationale, `localOrder`'s
+"cheap to handle", `rankColors`' Fast-Refresh placement note, `setup.ts`'s
+per-game-timer rationale, `setupSummary`'s "that belongs in Help"), `pdf/`
+(both file docstrings point at doc.md for the A–D design instead of arguing
+it; `verdict()` no longer cites a measurement), and the four stylesheets (the
+`.board` "visually empty TODAY", the `.peerPick` "how this arrived here",
+`theme.css`'s "just the rank palette now" and its why-not-common note,
+`GameEventLog.module.css`'s "NOT a flexbox"). And `doc.md` gained the
+components diagram psychicnum's carries, under Frontend.
+
 **Verified:** `tsc -b` and eslint clean; 41 files / 399 tests green
 (`src/connections` + `src/guards`); `gmake db-sql ENV=local` then
 `npm run test:db` — 179 files, 2523 tests, PASS.
@@ -1346,10 +1403,10 @@ three constants, so hovering the second or third shows nothing; the
 - [x] `docs/games/connections.md` reconciled — **satisfied differently**: F-19
       deleted that file into `src/connections/doc.md` and its Deferred items
       went to `todo.md`, so there is no standing register left to reconcile
-- [ ] the whole area re-read in one sitting after the last group — the READING
-      is done (2026-09-19, above); five of its eighteen findings shipped and
-      thirteen are still open
-- [ ] every file on the roster blessed, or its stamp says why not — 51 files
-      read `cs-met-connections`, `setup.psql` still reads `cs-unmet` (the
-      re-read's last finding) and `doc.md` / `todo.md` / `logo.svg` carry none;
-      the blessing is Joel's
+- [x] the whole area re-read in one sitting after the last group — read
+      2026-09-19 (above); all eighteen findings shipped the same day, the
+      five with rulings and then the thirteen prose ones
+- [x] every file on the roster blessed, or its stamp says why not
+      (2026-09-19: fifty-six files `cs-blessed-connections` — the roster's
+      fifty-one and the five the area stamped outside it; `doc.md` /
+      `todo.md` / `logo.svg` carry none)

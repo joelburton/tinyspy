@@ -1,4 +1,4 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- Test: connections compete mode
@@ -25,7 +25,7 @@
 --     eliminated, play_state flips to lost_compete
 --   - eliminated-player submit answered as a race
 --   - submit_timeout writes the compete-mode terminal state
---     (lost_compete, outcome timeout)
+--     (lost_compete, reason timeout)
 --
 -- See create_game_test.sql for the pgTAP / auth-simulation primer.
 
@@ -356,7 +356,7 @@ select is(
 select is(
   (select (status->>'reason') from common.games where id = (select id from g2)),
   'mistakes',
-  'submit_guess (compete): collective loss outcome = mistakes (the cause)'
+  'submit_guess (compete): collective loss reason = mistakes (the cause)'
 );
 
 -- Every player gets {won: false}.
@@ -370,7 +370,7 @@ select is(
 
 -- ============================================================
 -- (15)–(16) submit_timeout writes lost_compete + the right
---           terminal outcome
+--           terminal reason
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -394,7 +394,7 @@ select is(
 select is(
   (select (status->>'reason') from common.games where id = (select id from g3)),
   'timeout',
-  'submit_timeout (compete): outcome = timeout (the cause)'
+  'submit_timeout (compete): reason = timeout (the cause)'
 );
 
 -- Idempotency: a second concurrent fire is the game-over race.

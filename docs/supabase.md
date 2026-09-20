@@ -64,8 +64,7 @@ Two operational invariants ride on this:
   response at this many rows. It's a backstop against a missing-filter
   bug fetching a whole seed table, not a license to skip `.limit()` —
   see [Query bounds](#query-bounds--and-the-max_rows-trap). Set above the
-  1000 default so the connections puzzle picker (1122 dated rows) isn't
-  truncated and every legitimately-growing query has years of headroom.
+  1000 default so every legitimately-growing query has years of headroom.
   Two gotchas (both in the config.toml comment): applied only at
   `supabase stop && supabase start`, and the hosted project's Max Rows is
   a separate setting — `gmake project-config-api ENV=prod` sets it to match
@@ -345,7 +344,7 @@ The inventory (row counts from a freshly-imported dev DB):
 | boggle-build-board | — | dictionary **bundled** in the fn (`dict.ts`); no fetch | no ✓ |
 | stackdown `create_game` board pick | `stackdown.boards` (1.2k) | `order by random() limit 1` inside the RPC | no ✓ |
 | import CLIs (`gmake db-data`) | everything | direct Postgres (`psql \copy`), not PostgREST | no ✓ |
-| connections SetupForm | `connections.puzzles` (**1122** NYT-dated) | two RPCs — `next_puzzle_for_club`, `puzzle_for_date` | each answers with ONE puzzle, so the row count never reaches the client and the 10k cap is not in play. It was a no-limit select of the whole library while the dialog drew a calendar of its own (gone at `53e71cc1`, 2026-08-13) |
+| connections SetupForm | `connections.puzzles` (NYT-dated, growing daily) | two RPCs — `next_puzzle_for_club`, `puzzle_for_date` | each answers with ONE puzzle, so the row count never reaches the client and the 10k cap is not in play |
 | crosswords SetupForm library list | `crosswords.puzzles` (3 today; the planned dictionary-puzzle import will be **large**) | plain select | fine until that import — give it a paging loop (or a limit + real picker UI, which >10k puzzles needs regardless) **before** importing in bulk (deferred: [crosswords.md §9](games/crosswords.md#9-deferred)) |
 
 ## Realtime
@@ -617,7 +616,6 @@ All of these are commented at the site; this table is the index.
 | Ephemeral broadcast on a second stable channel | scrabble `useSharedMove` | staged-move preview is never stored; a missed broadcast just means no preview |
 | Direct CDC apply instead of refetch | crosswords `useCells`, scratchpad body | per-keystroke frequency; version-merge ("newer wins") + optimistic echo. `useCells` rolls a refused write back; the scratchpad has no rollback, its next keystroke re-flushes the whole text |
 | Append-on-INSERT instead of refetch | `useClubChat` | chat volume; requires merge-on-refetch (see the rule) |
-| Find-or-create instead of create | connections `startGameInClub` | one game per puzzle per mode per club |
 | Shared `useGame` factory across two games | `makeFoundWordsGame` (spellingbee + wordwheel) | byte-identical lifecycle; fork it back if they diverge |
 | One-shot on-demand fetch | crosswords Reveal (`games_state.solution`) | solution is gated; fetched only when the button is pressed |
 | Stable-name temp channel | ClubPage delete-current-game broadcast | borrows `useCommonGame`'s room name to reach peers, send-only, ~1s lifetime |

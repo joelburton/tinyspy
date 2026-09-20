@@ -1,13 +1,13 @@
-/* cs-met-connections */
+/* cs-blessed-connections */
 
 /* connections' color tokens. Loaded with this game's chunk (imported from
  * components/PlayArea.tsx) so they only ship when connections is being played.
  *
- * Just the rank palette now: the tile chrome (resting beige, dark hover ring,
- * dark selected fill) is the SHARED tile system — see the --tile-* tokens in
- * common/themes/daylight.css and the `.tile` class in common/game-page/playArea.module.css.
- * connections keeps only what's game-specific: the four NYT category colors,
- * and the two widths of the peer-pick mark.
+ * The tile chrome (resting beige, dark hover ring, dark selected fill) is the
+ * SHARED tile system — the --tile-* tokens in common/themes/daylight.css and
+ * the `.tile` class in common/game-page/playArea.module.css. What is here is
+ * this game's own: the four NYT category colors, and the two widths of the
+ * peer-pick mark.
  *
  * The rank palette matches the NYT Connections convention: yellow / green /
  * blue / purple, mapped to category rank 0..3, slightly darkened so the bands
@@ -27,11 +27,7 @@
    * too, so without the gap the color and the thick black selection border meet
    * as one band and read as a single two-tone edge; the gap shows the tile's own
    * fill between them. It matters most when a player's color is dark enough to
-   * be mistaken for the selection black.
-   *
-   * These are this game's rather than common's: the mark's geometry is
-   * connections' own (crosswords' peer cursor is not inset and has its own
-   * thickness), so there is nothing shared to name. */
+   * be mistaken for the selection black. */
 /* @@ */   --connections-peer-inner-border-width: 4px;
 /* @@ */   --connections-peer-inner-border-inset: 2px;
 }

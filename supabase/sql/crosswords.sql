@@ -183,8 +183,7 @@ grant select on crosswords.games_state to authenticated;
 -- played it, so the picker can paint a color bar per row and the club can
 -- see at a glance which crossword to do next.
 --
--- Why a FUNCTION, when connections answers the same question with a view
--- (connections.club_game_status):
+-- Why a FUNCTION rather than a view:
 --
 --   * something SQL-side has to do the join either way — reaching
 --     play_state means crosswords.games -> common.games, which is
@@ -195,8 +194,6 @@ grant select on crosswords.games_state to authenticated;
 --     games side is inner by construction: an unplayed puzzle's row has a
 --     null club_handle, so the FE's `.eq('club_handle', …)` drops exactly
 --     the rows the picker most wants to show. Hence a parameter.
---     (connections escapes this because its calendar is a date grid the FE
---     builds itself — it never needs the unplayed rows back from SQL.)
 --   * one round trip means the list arrives already colored, instead of
 --     painting rows and recoloring them a beat later.
 --

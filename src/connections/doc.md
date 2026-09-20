@@ -121,8 +121,8 @@ name a reason read it: the club-list label and the below-board pill
 
 ## Schema
 
-Four tables and a view, in `supabase/migrations/20260615000003_connections.sql`
-(shape; the events rename is `20260917000005_connections_events.sql`) and
+Four tables, in `supabase/migrations/20260615000003_connections.sql` (shape;
+the events rename is `20260917000005_connections_events.sql`) and
 `supabase/sql/connections.sql` (behavior).
 
 | | |
@@ -131,7 +131,6 @@ Four tables and a view, in `supabase/migrations/20260615000003_connections.sql`
 | `connections.games` | one row per game: the `board`, the `mode`, and the puzzle's date frozen as `puzzle_date`. `puzzle_id` is a soft, provenance-only FK (`on delete set null`): everything needed to play is on the row |
 | `connections.players` | one row per player: `mistake_count` and `matched_count`. **Club-wide readable in both modes** — compete's Found strip is built on it |
 | `connections.events` | the guess log, append-only: `kind` is `guess`, `took_turn` is true, `result` is the wire word (`correct` · `oneAway` · `wrong`), `matched_category_rank` is set iff correct. `mode` is copied from the game so the indexes and the policy need no join |
-| `connections.club_game_status` | a calendar view from the picker that is gone; nothing in the frontend reads it |
 
 The `board`:
 
@@ -337,7 +336,36 @@ taking that puzzle in the gap costs nothing.
 
 The play surface is the shape [`docs/playarea.md`](../../docs/playarea.md)
 describes — a loader that gates on the three ways a game can fail to load,
-then `PlayArea` in the eight sections. What is connections' own:
+then `PlayArea` in the eight sections.
+
+```
+<PlayAreaLoader {...GamePageCtx}>        useGame, and the three gates
+  └── PlayArea                           the coordinator: draws no board, no control
+        ├── BoardCol                     the board column — and submit_guess
+        │     ├── Board                  one grid: the solved bands, then the tiles
+        │     │     └── ShuffleButton ←  floats on the board, not in the action row
+        │     └── the commit row         Clear · Submit, and the mistakes beside them
+        │           ├── StrikeMarks      "Mistakes (lose at 4)" ■■□□, in both modes
+        │           ├── FeedbackPill ←   takes the row's place while the local slot holds a message
+        │           └── HistoryBanner ←  overlays it while a past turn is open
+        └── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
+              └── InfoCol                the readouts and the action row
+                    ├── TurnStatusLine ← turn-order coop only
+                    ├── OpponentStrip ←  compete only: each rival's Found, or "out"
+                    ├── InfoActionsRow ← one row, every action, in the menu's order
+                    ├── HintList         unfolds under the row: one Reveal per category
+                    ├── SetupDisclosure ←
+                    └── GameEventLog     two rows per guess
+
+  ← belongs to common/ ; everything else is this folder's
+```
+
+`GamePage` mounts the loader and owns everything above it — members, the timer,
+play_state, pause, chat — and unmounts this whole surface on pause. The state
+line at the top of the info column ("2/4 categories found · 1/4 mistakes") is a
+paragraph of `InfoCol`'s own, not a component.
+
+What is connections' own:
 
 - **The board is one grid.** A solved category is a full-width row wearing
   the shared tile face in its rank's color; the tiles are the rest, in this
@@ -349,13 +377,15 @@ then `PlayArea` in the eight sections. What is connections' own:
 - **Two checks are local** — four tiles picked, and not a set already tried
   (see FE submissions). The verdict is `lib/evaluate.ts`'s, and the pill
   reads `lib/answer.ts`.
-- **The info column** shows Found for compete (the shared `OpponentStrip`)
-  and the mistakes as `<StrikeMarks>` for coop, then the one action row:
-  Hints | Reveal · Restart · New game · Concede · End, each shown or hidden
-  by its action's own rule, and Back to club at the end. Hints unfolds
-  `<HintList>` inline — one row per category, each with its own Reveal for
-  the category's first word; per player, never broadcast, and it closes with
-  the board.
+- **The mistakes are drawn twice**, and the marks are the board's: the
+  commit row below the board carries "Mistakes (lose at 4)" as `<StrikeMarks>`
+  in both modes, and the info column's state line restates the count as text.
+- **The info column** shows the state line, Found for compete (the shared
+  `OpponentStrip`), then the one action row: Hints | Reveal · Restart · New
+  game · Concede · End, each shown or hidden by its action's own rule, and
+  Back to club at the end. Hints unfolds `<HintList>` inline — one row per
+  category, each with its own Reveal for the category's first word; per
+  player, never broadcast, and it closes with the board.
 - **The event log** is two rows per guess (the verdict and who, then the four
   tiles), and a correct row names its category from the board, so an
   opponent's rows name theirs too. The picker's compete options mean
@@ -393,7 +423,6 @@ fixture puzzle whose date and source id are alien to the real archive:
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, a fresh guess advances, a race does not |
 | `end_game_test` · `replay_test` · `rls_test` | the neutral stop and its realtime touch; Restart un-matches by deleting the log; an outsider sees nothing and can change nothing |
 | `next_puzzle_test` | the queue is per player and across clubs; a spent archive and an empty date are not-oks naming `puzzle_id`; the override filters nothing |
-| `club_game_status_test` | the view's five columns and its RLS |
 
 Vitest, beside the code:
 
@@ -403,10 +432,10 @@ Vitest, beside the code:
 | `lib/answer.test` · `lib/terminal.test` | every `answerType`'s words and outcome; every terminal sentence per mode and reason |
 | `lib/history.test` · `lib/localOrder.test` | the strictly-before boundary and the lit tiles; a shuffle keeps every tile |
 | `hooks/useGame.test` | one stable room per game, rebuilt on `gameId` and never on a session refresh |
-| `components/PlayArea.test` | the loader's three gates, the action row per asker, the board marks (whose pick, the in-flight dim, the verdict fill, the band flash, the frozen board) and the three ways a mark ends |
+| `components/PlayArea.test` | a failed load is not a missing game; Concede vs End per mode; the ended board, and Reveal / Hide; the celebration, mine only; the board-scope marks; whose pick is ringed; the in-flight dim, the verdict fill and the three ways a mark ends; attention on a band; every key, and the action row per asker |
 | `components/SetupForm.test` · `manifest.test` | the puzzle line and the date override; the setup passes through with `puzzle_id` absent unless typed |
 | `pdf/model.test` | A–D, whose bands print on whose track, and the log line |
 
-What has no test is the broadcast and presence behavior itself — picks
-merging across tabs, the pause on a disconnect — which is manual browser
-smoke ([`docs/testing.md` → What we don't test](../../docs/testing.md#what-we-dont-test)).
+What has no test is the selection Broadcast itself — picks merging across
+tabs — which is manual browser smoke. The pause on a disconnect is the shared
+rule, `useCommonGame`'s, and `e2e/presence-pause.e2e.ts` drives it end to end.

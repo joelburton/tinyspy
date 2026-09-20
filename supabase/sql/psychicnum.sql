@@ -1195,7 +1195,7 @@ grant execute on function psychicnum.submit_timeout(uuid) to authenticated;
 -- loss, a *manual* stop is neither a win nor a loss — the friends
 -- simply agreed to stop. So this writes the UNIFORM terminal
 -- play_state 'ended' (the same value spellingbee/the other games use
--- for their manual stops) with status.outcome='manual'. The FE
+-- for their manual stops) with status.reason='manual'. The FE
 -- has explicit 'ended' branches that render this neutrally (the
 -- neutral "Game ended", not the red "you lost" treatment).
 --

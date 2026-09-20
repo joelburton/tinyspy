@@ -1,4 +1,4 @@
--- cs-met-connections
+-- cs-blessed-connections
 
 -- ============================================================
 -- connections — the REPEATABLE half
@@ -53,7 +53,7 @@ create policy games_select on connections.games
 --             reverse-engineer the answer from a peer's oneAway guess
 --             plus the public board. That privacy is a GAME RULE, not
 --             just etiquette — it's what makes the race a race.
---   compete AT TERMINAL — everyone's guesses open up (2026-08-02). The
+--   compete AT TERMINAL — everyone's guesses open up. The
 --             rule exists to stop you learning the answer while you can
 --             still use it; once the game is over there's nothing left to
 --             protect, and comparing lines afterwards is most of the fun.
@@ -100,14 +100,10 @@ grant select on connections.games to authenticated;
 grant select on connections.events to authenticated;
 grant select on connections.players to authenticated;
 
--- A view this schema once carried: it answered "which puzzle-dates does this
--- club already have a game for, and in what state?" for the setup form's
--- calendar, which went at `53e71cc1` (2026-08-13) when the server took over
--- picking the puzzle. Nothing has read it since.
---
--- The drop stays here for good: this file is the whole definition of what
--- connections' schema contains, so a database that still carries the view has
--- nothing else that would ever remove it.
+-- A view this schema does not define. The drop stays here for good: this
+-- file is the whole definition of what connections' schema contains, so a
+-- database that still carries the view has nothing else that would ever
+-- remove it.
 drop view if exists connections.club_game_status;
 
 -- ============================================================
@@ -416,9 +412,9 @@ begin
   -- happened not to have played.
   if (setup->>'puzzle_id') is null then
     -- Reading the ENVELOPE's `data`, which names its answer: `{"result":
-    -- "found", "puzzle": {…}}`. A spent archive is no longer an empty payload
-    -- here — it is PN302, a not-ok, whose `data` is null — so this stays null
-    -- and the next branch raises this function's own PN062 for it.
+    -- "found", "puzzle": {…}}`. A spent archive is PN302, a not-ok, whose
+    -- `data` is null — so this stays null and the next branch raises this
+    -- function's own PN062 for it.
     s_puzzle_id := (connections.next_puzzle_for_club(player_user_ids)
                       -> 'data' -> 'puzzle' ->> 'id')::uuid;
     if s_puzzle_id is null then
@@ -842,7 +838,7 @@ begin
          where game_id = target_game;
 
         -- The verdict is the roster's `won`; connections' own word for HOW it
-        -- ended rides in `outcome` (docs/states.md → status.outcome names the
+        -- ended rides in `reason` (docs/states.md → status.reason names the
         -- CAUSE).
         perform common.end_game(
           target_game,
@@ -1109,7 +1105,7 @@ grant execute on function connections.concede(uuid) to authenticated;
 --
 -- Terminal play_state values: 'lost' (coop) / 'lost_compete' (compete). In
 -- coop, 'lost' is the same terminal as a 4-mistakes loss; the CAUSE rides in
--- status.outcome ('timeout'), which the club-list label and the below-board
+-- status.reason ('timeout'), which the club-list label and the below-board
 -- pill both read.
 --
 -- Concurrency: multiple clients may fire submit_timeout at the same instant
@@ -1227,7 +1223,7 @@ grant execute on function connections.submit_timeout(uuid) to authenticated;
 -- We encode that as:
 --   - play_state = 'ended' (a terminal the FE and labelFor render as
 --     neutral, distinct from coop's 'lost' / compete's 'lost_compete')
---   - status = {outcome:'manual', mode:<coop|compete>}
+--   - status = {reason:'manual', mode:<coop|compete>}
 --   - every player's result = {"won": false}  (no winner — and the FE's
 --     "Game ended" pill is neutral, because "ended" is not a defeat)
 --
@@ -1241,7 +1237,7 @@ grant execute on function connections.submit_timeout(uuid) to authenticated;
 --     {"won": false}, identical coop and compete — there's no
 --     mistake_count/matched_count snapshot to take because nothing
 --     was "achieved", the friends just stopped)
---   - status.outcome = 'manual' (vs submit_timeout's 'timeout')
+--   - status.reason = 'manual' (vs submit_timeout's 'timeout')
 --   - an EXPLICIT Realtime touch at the tail — see the long
 --     comment there; this is the one wrinkle that submit_timeout
 --     doesn't need but end_game does.
@@ -1284,7 +1280,7 @@ begin
   -- Every player gets the bare {"won": false}. Identical in coop
   -- and compete — manual end has no winner in either mode. The
   -- neutral-vs-loss distinction lives entirely in play_state
-  -- ('ended', not 'lost'/'lost_compete') + status.outcome
+  -- ('ended', not 'lost'/'lost_compete') + status.reason
   -- ('manual'), which is what the FE branches on for the neutral
   -- terminal.
   select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
@@ -1337,9 +1333,10 @@ grant execute on function connections.end_game(uuid) to authenticated;
 -- ============================================================
 -- connections.replay_board — restart this puzzle from scratch
 -- ============================================================
--- The Restart action: reset the working state on the SAME game row. The frozen puzzle (`board` — the categories
--- AND this game's shuffled tileOrder — plus `puzzle_date` / `mode`) stays,
--- so it's the same sixteen tiles in the same arrangement, solved again;
+-- The Restart action: reset the working state on the SAME game row. The
+-- frozen puzzle (`board` — the categories AND this game's shuffled tileOrder —
+-- plus `puzzle_date` / `mode`) stays, so it's the same sixteen tiles in the
+-- same arrangement, solved again;
 -- everything the players did is wiped. Any game player may call it, from a
 -- finished game OR mid-game (no play_state guard — it's a restart). Both
 -- modes reset ALL players (a group "run it back", per the friends trust

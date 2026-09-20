@@ -1,4 +1,4 @@
-// cs-met-connections
+// cs-blessed-connections
 
 /**
  * Unit test for connections' terminal message (lib/terminal.ts). Pure — no
