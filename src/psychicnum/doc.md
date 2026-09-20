@@ -313,8 +313,8 @@ language is [common/pdf/doc.md](../common/pdf/doc.md).
 
 ## Tests
 
-pgTAP in `supabase/tests/psychicnum/`, vitest beside each `lib/` module, the
-Playwright specs named `psychicnum-*`. Each file's own header says what it
+pgTAP in `supabase/tests/psychicnum/`, vitest beside each `lib/` module and
+beside the data hook, the Playwright specs named `psychicnum-*`. Each file's own header says what it
 covers; [docs/testing.md](../../docs/testing.md) has the conventions.
 
 **The one thing worth knowing before writing one:** the board words and the

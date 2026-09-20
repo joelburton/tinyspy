@@ -73,9 +73,9 @@ chosen one, finished or not.
 One board, one budget: every player's `mistake_count` moves in lock-step, and
 every guess is everyone's. The four tiles of a guess are picked together —
 each pick is broadcast as it happens, and the board shows whose it was in
-their color. The click rule is on the **union** of everyone's picks: a tile
-already in it comes out, whoever put it in; an unselected tile joins MY picks,
-up to four across the table. Submit is whoever presses it. A correct guess
+their color. The click rule is on the **union** of everyone's picks
+(`lib/selection.ts`): a tile already in it comes out, whoever put it in; an
+unselected tile joins MY picks, up to four across the table. Submit is whoever presses it. A correct guess
 clears everyone's selection; a wrong or one-away guess keeps it, so the
 player can swap a tile and try again.
 
@@ -431,11 +431,14 @@ Vitest, beside the code:
 | `lib/evaluate.test` | the evaluator's boundaries — 1-, 2-, 3- and 4-overlap, ties, order |
 | `lib/answer.test` · `lib/terminal.test` | every `answerType`'s words and outcome; every terminal sentence per mode and reason |
 | `lib/history.test` · `lib/localOrder.test` | the strictly-before boundary and the lit tiles; a shuffle keeps every tile |
+| `lib/selection.test` | the click rule on the union of everyone's picks, and a reducer whose no-op returns the same map |
+| `lib/setup.test` · `lib/setupSummary.test` | the two keys the default leaves out; the recap's order, and a puzzle date that names the same day in every timezone |
 | `hooks/useGame.test` | one stable room per game, rebuilt on `gameId` and never on a session refresh |
 | `components/PlayArea.test` | a failed load is not a missing game; Concede vs End per mode; the ended board, and Reveal / Hide; the celebration, mine only; the board-scope marks; whose pick is ringed; the in-flight dim, the verdict fill and the three ways a mark ends; attention on a band; every key, and the action row per asker |
 | `components/SetupForm.test` · `manifest.test` | the puzzle line and the date override; the setup passes through with `puzzle_id` absent unless typed |
 | `pdf/model.test` | A–D, whose bands print on whose track, and the log line |
 
-What has no test is the selection Broadcast itself — picks merging across
-tabs — which is manual browser smoke. The pause on a disconnect is the shared
-rule, `useCommonGame`'s, and `e2e/presence-pause.e2e.ts` drives it end to end.
+What has no test is the Broadcast wire itself — two tabs actually exchanging
+picks — which is manual browser smoke. What those events MEAN when they land is
+`lib/selection.test`'s. The pause on a disconnect is the shared rule,
+`useCommonGame`'s, and `e2e/presence-pause.e2e.ts` drives it end to end.

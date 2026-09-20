@@ -12,12 +12,14 @@ import { eventToOutcome, type GuessResult } from '../lib/answer'
 import { db } from '../db'
 import type { Database } from '@/types/db'
 import type { Member } from '@/common/members/member'
+import { MISTAKE_BUDGET, type Board, type CategoryRank } from '../lib/board'
 import {
-  MISTAKE_BUDGET,
-  TILES_PER_CATEGORY,
-  type Board,
-  type CategoryRank,
-} from '../lib/board'
+  applySelectionEvent,
+  eventForClick,
+  unionTiles,
+  type SelectionEvent,
+  type SelectionMap,
+} from '../lib/selection'
 
 /** One player in a connections game — a `Member` as-is. What this game keeps
  *  per player lives on `connections.players` (`PlayerRow`), not on the person. */
@@ -90,17 +92,6 @@ export type ConnectionsGame = {
 }
 
 /**
- * Broadcast event shape carried over the connections-specific
- * realtime channel for shared-selection mutations.
- */
-type SelectionEvent =
-  | { type: 'select'; tile: string; userId: string }
-  | { type: 'deselect'; tile: string }
-  | { type: 'clear' }
-
-export type SelectionMap = ReadonlyMap<string, string[]>
-
-/**
  * connections' per-game data hook: the game row, the guess log, the player
  * rows and, in coop, the shared selection — one Realtime room per game.
  *
@@ -144,9 +135,7 @@ export function useGame(
   const [game, setGame] = useState<ConnectionsGame | null>(null)
   const [guesses, setGuesses] = useState<EventRow[]>([])
   const [players, setPlayers] = useState<PlayerRow[]>([])
-  const [selections, setSelections] = useState<Map<string, string[]>>(
-    () => new Map(),
-  )
+  const [selections, setSelections] = useState<SelectionMap>(() => new Map())
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
   const [channel, setChannel] = useState<
@@ -157,36 +146,10 @@ export function useGame(
   // body returns (the join waits on any in-flight teardown of this room).
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
-  // Apply an incoming selection event to local state. Idempotent —
-  // adding an already-present tile is a no-op, deselecting an
-  // absent tile is a no-op — so echoes of our own broadcasts are
-  // safe.
+  // Fold an incoming selection event into local state; the rules (and why an
+  // echo of our own broadcast is safe) are `lib/selection.ts`'s.
   const applySelection = useCallback((event: SelectionEvent) => {
-    setSelections((prev) => {
-      const next = new Map(prev)
-      if (event.type === 'clear') {
-        if (next.size === 0) return prev
-        next.clear()
-        return next
-      }
-      if (event.type === 'select') {
-        const list = next.get(event.userId) ?? []
-        if (list.includes(event.tile)) return prev
-        next.set(event.userId, [...list, event.tile])
-        return next
-      }
-      // event.type === 'deselect' — remove from whoever has it
-      let mutated = false
-      for (const [uid, list] of next) {
-        if (list.includes(event.tile)) {
-          const filtered = list.filter((t) => t !== event.tile)
-          if (filtered.length === 0) next.delete(uid)
-          else next.set(uid, filtered)
-          mutated = true
-        }
-      }
-      return mutated ? next : prev
-    })
+    setSelections((prev) => applySelectionEvent(prev, event))
   }, [])
 
   // Join this game's connections-specific Realtime room: load the
@@ -381,26 +344,12 @@ export function useGame(
     [applySelection, channel, game?.mode],
   )
 
-  // The click rule for a shared board (doc.md → Coop): a tile already in the
-  // union comes out whoever put it in; an unselected one joins MY picks, up
-  // to four across everyone.
+  // What a click does is `eventForClick`'s (doc.md → Coop); `null` is the
+  // refused click on a full guess, which sends nothing.
   const toggleTile = useCallback(
     (tile: string) => {
-      let alreadySelected = false
-      for (const list of selections.values()) {
-        if (list.includes(tile)) {
-          alreadySelected = true
-          break
-        }
-      }
-      if (alreadySelected) {
-        broadcast({ type: 'deselect', tile })
-        return
-      }
-      let unionSize = 0
-      for (const list of selections.values()) unionSize += list.length
-      if (unionSize >= TILES_PER_CATEGORY) return
-      broadcast({ type: 'select', tile, userId: session.user.id })
+      const event = eventForClick(selections, tile, session.user.id)
+      if (event) broadcast(event)
     },
     [broadcast, selections, session.user.id],
   )
@@ -410,12 +359,7 @@ export function useGame(
   }, [broadcast])
 
   // Flat union for submit + display.
-  const unionTiles: string[] = []
-  for (const list of selections.values()) {
-    for (const t of list) {
-      if (!unionTiles.includes(t)) unionTiles.push(t)
-    }
-  }
+  const union = unionTiles(selections)
 
   // Project the matched categories from the guess log and the board. In
   // compete RLS hands a caller only their own rows, so these are their own
@@ -467,7 +411,7 @@ export function useGame(
     opponentFound,
     isEliminated,
     selections,
-    unionTiles,
+    unionTiles: union,
     toggleTile,
     sendClear,
     loading,
