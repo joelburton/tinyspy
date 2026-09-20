@@ -746,7 +746,25 @@ and `npm run types:gen` follows — or *keep it and rewrite the comments* to say
 what it is for today, which is nothing. Recommendation: drop; a reader that
 wants it can write it, and the file it is modeled on is crosswords' own.
 
-### F-connections-7 · `outcomes-doc-describes-the-old-shape` · `docs/outcomes.md` → How a game does it is the `ANSWER_OUTCOME` table
+### SHIPPED · F-connections-7 · `outcomes-doc-describes-the-old-shape` · `docs/outcomes.md` → How a game does it is the `ANSWER_OUTCOME` table
+
+**Joel, 2026-09-19: "rewrite now."** The section now describes the shape the
+game areas convert to — the closed `Answer` union, `answerMessage` returning
+the `{ outcome, text }` pair `common/feedback` owns, `peerAnswerMessage` for a
+row off a subscription, an `ok` carrying no outcome with the pgTAP pinning the
+null — and carries one paragraph naming the rollout, so a reader of an
+unconverted game knows which shape they are looking at and that the table is
+what their area removes.
+
+Two sentences ELSEWHERE in the same doc said the old thing and were fixed with
+it (the re-read checks siblings): the intro's "the pill reads the word the
+envelope carries (`res.outcome`)", and rule 2's "one table … every surface
+indexes that table". The two trailing paragraphs that still said "the table"
+now name `lib/answer.ts`.
+
+Recorded, not fixed: `docs/envelopes.md`'s call-site example shows
+`showMsg({ tone: res.outcome, … })` — neither the function nor the field
+exists, and `tone` is CHROME's word (F-feedback-22).
 
 The shared doc says "each game has a `lib/answer.ts`" with a static table
 from answer words to outcomes, that "the PILL reads the RPC's envelope", and

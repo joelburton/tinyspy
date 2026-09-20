@@ -122,10 +122,10 @@ overrides the default appearance its severity would otherwise give it. See
 The two arms reach a pill differently, and the asymmetry is deliberate. A
 `not-ok` is mapped by one shared constructor (`FeedbackMessage.notOk`, reading
 `notOkOutcome`), because severity already says how it should read and fifteen
-boards deriving that separately would drift. An `ok` is **not** mapped: what a successful answer shows is
-game-specific — a pangram's score, a word's length, nothing at all — so the pill
-reads the word the envelope carries (`res.outcome`) and composes the sentence
-itself. See One event, one outcome below.
+boards deriving that separately would drift. An `ok` is **not** mapped: what a
+successful answer shows is game-specific — a pangram's score, a word's length,
+nothing at all — so the game composes both the sentence and the outcome, in the
+one place it names its answers. See One event, one outcome below.
 
 Two rules from there worth repeating, because they are what keep this list from
 sprawling:
@@ -156,10 +156,9 @@ outcome is a frontend that will disagree with the log showing the same row.
 
 **2 · Where the frontend decides, it decides ONCE.** A move the frontend judges
 alone (a trusting-commit word, a locally-refused guess), or a server answer that
-carries no outcome, is classified in exactly one place — one table, one
-function — and every surface reads it. `lib/answer.ts` maps the game's answers
-to outcomes, and the pill, the row and the event log all index that table. The
-shape is written out below.
+carries no outcome, is classified in exactly one place — one function — and
+every surface reads it. `lib/answer.ts` is that place, and the pill, the row and
+the event log all read it. The shape is written out below.
 
 **3 · So audit a game by asking the same question three times.** For each event
 a game can produce: what does the pill say, what does the log row say, what does
@@ -170,46 +169,77 @@ the board do? A game passes when one derivation answers all three.
 The three rules above are the rule; this is the shape a game takes, and what a
 new game copies.
 
-**Each game has a `src/<game>/lib/answer.ts`.** It declares the game's own answer
-words — whatever its rows and its RPC already call them, never a new set — and
-one table from those to outcomes:
+**Each game names its own answers in `src/<game>/lib/answer.ts`** — every move
+it can answer, as a closed union, in whatever words its rows and its RPC
+already use rather than a new set. Read as a list, it is the whole roster of
+what that game tells anybody.
+
+**One function turns an answer into what is SAID about it**, both halves at
+once — the outcome and the words:
 
 ```ts
-export type Answer = 'accepted' | 'invalid' | 'hint' | 'spoiler'
+export type Answer =
+  | { answerType: 'correct' }
+  | { answerType: 'correct_peer' }   // a teammate's, off a subscription
+  | { answerType: 'one_away' }
+  | { answerType: 'already_tried' }
 
-export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
-  accepted: 'won', invalid: 'lost', hint: 'warning', spoiler: 'lost',
+export function answerMessage(answer: Answer): AnswerMessage {
+  switch (answer.answerType) {
+    case 'correct':
+    case 'correct_peer':  return { outcome: 'won',     text: 'Correct' }
+    case 'one_away':      return { outcome: 'near',    text: 'One away!' }
+    case 'already_tried': return { outcome: 'warning', text: 'You already tried that' }
+  }
 }
 ```
 
-**Anything reading a ROW indexes that table** — the event-log bar, a board mark, a
-teammate's line, the PDF, the history viewer. Where a row's answer has to be
-worked out from its columns, one `answerOf(row)` beside the table does it, and
-nothing else asks the columns. (psychicnum is why that function exists: a hint
-row and a reveal row are both written `is_correct = true`, so asking the verdict
-before asking the kind reads a hint as a correct guess.)
+`AnswerMessage` is the `{ outcome, text }` pair `common/feedback` takes
+([its doc.md](../src/common/feedback/doc.md)); the type lives there because the
+pair is that folder's, and which answers a game has is the game's. A pair that
+shares its words — mine and a teammate's — shares a branch, which is what stops
+"Correct" and "● moth Correct" drifting apart.
 
-**The PILL reads the RPC's envelope instead** — `res.outcome`, never a literal —
-and the SQL says the same word for the same facts. A teammate's move arrives only
-as a row, with no envelope at all, which is why both halves exist.
+**Anything reading a ROW asks the same file** — the event-log bar, a board
+mark, a teammate's line, the PDF, the history viewer. Where a row's answer has
+to be worked out from its columns, one `peerAnswerMessage(row)` (or an
+`answerOf(row)` beside it) does that, and nothing else asks the columns.
+(psychicnum is why: a hint row and a reveal row are both written
+`is_correct = true`, so asking the verdict before asking the kind reads a hint
+as a correct guess.)
 
-**The two halves are one rule in two languages, and each gets its own test.**
-There is no fixture both can read without codegen, so a game pins its SQL half
-with an `outcome` assertion in pgTAP and its frontend half in
-`lib/answer.test.ts`, with a comment in each naming the other. An SQL half that
-nothing asserts is how a server comes to say a different word from its log with
-no test going red.
+**So an `ok` envelope carries no outcome** where the answer is one of these —
+`outcome: null`, and the pgTAP pins assert the null. The server's word still
+wins wherever it says one (rule 1), which is every `not-ok`: severity decides
+how a refusal reads, and no board re-decides it.
 
-**Two games deliberately have no table, and that is not an oversight.**
+**The frontend half gets a test, and so does the SQL half.** There is no
+fixture both can read without codegen, so `lib/answer.test.ts` pins every
+answer's outcome and words, and the game's pgTAP pins what its envelope
+carries — including the nulls — with a comment in each naming the other. An SQL
+half that nothing asserts is how a server comes to say a different word from
+its log with no test going red.
+
+**The rollout, so a reader knows which shape they are looking at.** This is the
+shape the game areas are converting to, and most of the roster has not been
+there yet: a game not yet audited has a static `ANSWER_OUTCOME` table from
+answer words to outcomes, and a pill that reads `res.outcome` off the envelope
+— the outcome-fix area's shape, which was one derivation per game and is now
+becoming one function. Each game converts as its area opens
+([plans/app-audit.md](../plans/app-audit.md) → the per-game rows); the rule
+that the outcome is decided once has not changed.
+
+**Two games deliberately have no answer file, and that is not an oversight.**
 codenamesduet shows no single guess's outcome — a guess is one tile, it answers
 with a reveal, and the board says it — so the only thing wearing an outcome is
 the TURN, folded in `lib/turnOutcome.ts`. waffle has one move kind whose bar is
-always `neutral`. One move, one word, one reader: a table would be ceremony.
+always `neutral`. One move, one word, one reader: a file of its own would be
+ceremony.
 
-**An event that writes no row stays out of the table.** A duplicate wordle guess,
+**An event that writes no row stays out of it.** A duplicate wordle guess,
 scrabble's dictionary refusal, psychicnum's "already guessed" — none reaches a
-log, so the pill (and a board flash where there is one) are its only surfaces and
-both read the envelope. There is nothing to derive twice.
+log, so the pill (and a board flash where there is one) are its only surfaces.
+There is nothing to derive twice.
 
 **A different vocabulary is not a disagreement.** wordle's and waffle's tile
 colors, codenamesduet's key card, setgame's card fills, strands' printed glyphs,
@@ -221,7 +251,7 @@ the terminal frame: these are games saying their own thing, deliberately outside
 vocabulary.** wordiply's engine reports one refusal for "not a word" and "does
 not contain the stem" while the server distinguishes them — so the frontend
 splits its own answer into the server's words (`not_a_word` / `missing_base`)
-before reading the table. Otherwise the log, which reads the server's reason, is
+before asking `lib/answer.ts` what they say. Otherwise the log, which reads the server's reason, is
 answering a different question from the pill.
 
 ## The colors

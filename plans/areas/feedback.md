@@ -664,6 +664,27 @@ names connections' "Incorrect", codenamesduet's rejected clue and boggle's
 The hand-held state is gone. The row now says what the folder holds: the
 message and its kinds, the two slots, and the pill.
 
+## F-feedback-22 · `envelopes-md-shows-a-dead-api` · `docs/envelopes.md`'s call-site example calls `showMsg({ tone: … })`
+
+Found from the connections area, 2026-09-19, while rewriting
+`docs/outcomes.md` → How a game does it (F-connections-7). The worked example
+at `docs/envelopes.md:360` shows
+
+```ts
+showMsg({ tone: res.outcome, text: res.message, mode: { kind: 'sticky' } })
+```
+
+and **neither `showMsg` nor a `tone` field exists** — a message is built by a
+`FeedbackMessage` constructor and shown into a slot, and `tone` is CHROME's
+word, never an outcome's (the vocabulary rule this repo guards). The same
+section's "**Never guess a tone or a sentence**" heading spends the word the
+same way. envelopes.md is canonical for call-site shape, so the example is
+what a reader copies.
+
+Options at this area's opening (or the next one to open envelopes.md): *fix
+the example to the real constructor + slot call and spend "outcome" for the
+outcome* — or *leave it* if the section is due a rewrite for another reason.
+
 ## F-feedback-21 · `conventions-sentence-garbled` · code-conventions' "same role → same name" example read "`usePeerFeedback` everywhere, not `usePeerFeedback` in one game" — WORKED
 
 A rename sweep replaced both halves of the contrast. The sentence now
