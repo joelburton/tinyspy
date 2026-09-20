@@ -1,5 +1,6 @@
 // cs-blessed-boot
 
+import { useEffect } from 'react'
 import { useSession } from './common/session/useSession'
 import { LoginScreen } from './common/auth/LoginScreen'
 import { ClaimHandleScreen } from './common/auth/ClaimHandleScreen'
@@ -21,6 +22,8 @@ import { EnvelopeErrorPage } from './common/error-page/ErrorPage'
 import { StandardButton } from './common/buttons/StandardButton'
 import { TooltipHost } from './common/tooltips/TooltipHost'
 import { useRealtimeReconnect } from './common/realtime/useRealtimeReconnect'
+import { consumeReloadForUpdate } from './common/boot/reloadNotice'
+import { DEFAULT_TOAST_MS, showToast } from './common/toasts/toastStore'
 import { useBacktickEscape } from './common/keyboard/useBacktickEscape'
 import { useActionDispatcher } from './common/actions/dispatcher'
 import { AppActionsHost } from './common/actions/AppActionsHost'
@@ -75,6 +78,13 @@ export default function App() {
   // returns, so a slept-then-resumed session re-establishes presence instead of
   // sitting wedged in a game's pause overlay until a refresh. See the hook.
   useRealtimeReconnect()
+  // A page that reloaded itself to pick up a deploy says so once it is back,
+  // so the person is told why the page rebuilt under them — see `reloadNotice`.
+  useEffect(function announceReloadForUpdate() {
+    if (consumeReloadForUpdate()) {
+      showToast({ message: 'PuzPuzPuz was updated, so this tab reloaded itself.', ms: DEFAULT_TOAST_MS })
+    }
+  }, [])
   // Let `` ` `` stand in for Escape app-wide (keyboards without a physical
   // Esc key). Window-level, so it's mounted here at the root — see the hook.
   useBacktickEscape()

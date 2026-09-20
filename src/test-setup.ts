@@ -11,7 +11,17 @@
  */
 
 import '@testing-library/jest-dom/vitest'
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
+
+// The stale-build probe (`common/boot/reloadOnStaleBuild`) is a fetch that
+// every RPC fall-through and every game-page mount makes, so under the guard
+// below it would fail hundreds of tests that are about something else. Every
+// test sees a stub that answers "current"; the module's own test unmocks it.
+vi.mock('@/common/boot/reloadOnStaleBuild', () => ({
+  reloadIfStaleBuild: vi.fn(async () => false),
+  watchForStaleBuild: vi.fn(),
+  BUILD_STAMP: { built: 'test', sha: 'test' },
+}))
 
 /**
  * The real `fetch`, for the handful of tests that mean to reach the local

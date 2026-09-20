@@ -538,7 +538,10 @@ throwing alone proves nothing: app code catches its own transport failures by
 design, so a leaked lookup renders its error state and the test passes — which
 is how two of them sat there reaching the local stack on every run. A test that
 MEANS to reach the stack imports `fetchTheRealStack` from the same file, as
-`schemaExposure.e2e` does.
+`schemaExposure.e2e` does. The same file stubs the stale-build probe
+(`common/boot/reloadOnStaleBuild`) as "current" for every test, since a game
+page mount and every RPC fall-through would otherwise make that fetch; the
+module's own test unmocks it.
 
 Single-file pgTAP run, for tightening one test:
 

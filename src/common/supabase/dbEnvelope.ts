@@ -1,6 +1,7 @@
 // cs-blessed-supabase
 
 import { showFaultModal } from '../faults/faultStore'
+import { reloadIfStaleBuild } from '../boot/reloadOnStaleBuild'
 import { logDb, type DiagFields, type TransportFacts } from './dbLog'
 import type { Envelope, NotOkEnvelope } from './envelope'
 
@@ -477,8 +478,20 @@ export function reportDbFault(
  *
  * `call` stays a hand-written string. By the `else` branch the caller holds an
  * envelope, and an envelope does not carry the call's name.
+ *
+ * **Unless the tab is stale.** A build left open across a deploy meets new
+ * shapes exactly this way, and that is not our bug: the stale-build check runs
+ * first, and if the deployed stamp differs the page reloads instead of
+ * reporting. The call's own `[db]` line has already recorded what the server
+ * answered. See `reloadOnStaleBuild`.
  */
 export function reportUnhandled(call: string, answer: Envelope): void {
+  void reloadIfStaleBuild('unhandled-answer').then((reloading) => {
+    if (!reloading) reportUnhandledAsBug(call, answer)
+  })
+}
+
+function reportUnhandledAsBug(call: string, answer: Envelope): void {
   const { code, text } = OUR_BUG_TO_CODE_AND_TEXT.unhandledAnswer
   // **`status` is claimed only where it is known.** An `ok` arrived 200 on
   // every transport, so it says so. A `not-ok` may have arrived 200 (one a

@@ -30,6 +30,7 @@ import { loadTheme } from './common/themes/loadTheme'
 import { trackLayoutWidth } from './common/mobile/layoutWidth'
 import { publishMarkDurations } from './common/board-marks/feedbackTiming'
 import { reloadOnStaleChunk } from './common/boot/reloadOnStaleChunk'
+import { watchForStaleBuild } from './common/boot/reloadOnStaleBuild'
 import { onUncaughtRender, showPanic } from './common/boot/panic'
 
 // Publish `--client-width` (usable viewport width, scrollbar excluded) for the
@@ -44,6 +45,11 @@ publishMarkDurations()
 // reload once to pick up the current build. First, because the await below is
 // itself a dynamic import — see `reloadOnStaleChunk`.
 reloadOnStaleChunk()
+
+// The other half of the same fact: a tab whose chunks are all loaded fails
+// nothing and just runs old code. Ask the server when the person comes back
+// — see `reloadOnStaleBuild`.
+watchForStaleBuild()
 
 try {
   // AWAITED before the first render: the theme's stylesheet arrives a tick after

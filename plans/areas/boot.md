@@ -31,6 +31,10 @@ instead, we're going to audit it and treat it as this area"), and gave the word
 | `src/common/themes/loadTheme.ts` | pick a theme chain and import it before the first render | `cs-blessed-boot` |
 | `src/common/themes/loadTheme.test.ts` | WRITTEN by this area (F-boot-6): the four rules the file used to argue only in comments | `cs-blessed-boot` |
 | `src/common/boot/reload.fake.ts` | WRITTEN by this area (F-boot-8): a pressable `location.reload()`, shared by both boot tests | `cs-blessed-boot` |
+| `src/common/boot/reloadOnStaleBuild.ts` | WRITTEN AFTER THE CLOSE (2026-09-19, the stale-build work): fetch `version.json`, compare to the baked stamp, reload once per value | `cs-unmet` — awaits Joel's read |
+| `src/common/boot/reloadOnStaleBuild.test.ts` | the reload, the by-value cap, the non-stamp answers, the fail-closed read, the floor, the three return events | `cs-unmet` — awaits Joel's read |
+| `src/common/boot/reloadNotice.ts` | the note a self-reload leaves for the page that comes back; `App` turns it into a toast | `cs-unmet` — awaits Joel's read |
+| `src/common/boot/reloadNotice.test.ts` | read once, then gone | `cs-unmet` — awaits Joel's read |
 | `src/common/boot/doc.md` | lede, Design and Details written at the re-read; off `INTROS_OWED` | (no stamp — markdown) |
 | `src/common/boot/todo.md` | empty at the open | (no stamp — markdown) |
 

@@ -1,9 +1,12 @@
 // cs-blessed-boot
 
 import { readStored, writeStored } from '../web-storage/storage'
+import { rememberReloadForUpdate } from './reloadNotice'
 
 /**
- * Reload the page when a code-split chunk fails to load — stale-deploy recovery.
+ * Reload the page when a code-split chunk fails to load — the half of
+ * stale-deploy recovery that a failed import can see; `reloadOnStaleBuild` is
+ * the other.
  *
  * Every game's PlayArea / SetupForm / Help ships in its own lazily-imported
  * chunk named by content hash (docs/common.md → Code-splitting). Netlify
@@ -67,6 +70,7 @@ export function reloadOnStaleChunk() {
   window.addEventListener('vite:preloadError', (event) => {
     if (reloadedRecently()) return // let it throw
     rememberReload()
+    rememberReloadForUpdate() // so the page that comes back can say why
     // Swallow the import error: Vite's helper returns instead of throwing, so
     // the failed import resolves to nothing and its caller runs once more
     // against `undefined`. The reload already requested replaces the page first.

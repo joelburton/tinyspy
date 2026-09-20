@@ -263,7 +263,7 @@ area is audited. No sweep.
 | `anagram-finder` | the anagram dialog |
 | `auth` | the pre-app screens — sign in, claim a handle |
 | `board-marks` | the marks a board wears for a beat: a move's attention flash, the your-turn frame, a hot set or a single mark a game raises for its own reasons, and every mark's lifetime |
-| `boot` | what `main.tsx` runs before React mounts (`panic`, `reloadOnStaleChunk`) |
+| `boot` | what `main.tsx` runs before React mounts (`panic`, `reloadOnStaleChunk`, `reloadOnStaleBuild`) |
 | `branding` | the app and per-game logos |
 | `buttons` | every purpose button and the `StandardButton` base |
 | `chat` | the club chat panel end to end (its header mark is in `page-header`) |

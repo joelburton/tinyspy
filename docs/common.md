@@ -575,7 +575,7 @@ src/
   App.tsx              Top-level shell — the session gates, then URL → page
                        (/, /c/<handle>, /g/<gametype>/<id>), then the singletons
                        that hang off the root.
-  main.tsx             Boots: registers stale-chunk recovery, awaits the theme chain
+  main.tsx             Boots: registers stale-deploy recovery, awaits the theme chain
                        (common/themes/loadTheme), mounts <App>. If boot throws, or a
                        render throws with no boundary above it, paints the plain-DOM
                        last-resort screen in common/boot/panic.ts.
@@ -615,6 +615,8 @@ Why hand-rolled instead of react-router: the route surface is flat — a handful
 ### Code-splitting
 
 Every game ships as its own lazily-loaded chunk, and this falls out of the registry + lazy-manifest shape for free — no per-game wiring. A manifest's `PlayArea`, `setupForm.Component`, and `help` are all `React.lazy`, and each game's `theme.css` is imported from its `PlayArea.tsx`, so Vite emits each game's JS + CSS as separate chunks; the main bundle carries only the shell + `common/` + the manifest constants. First navigation to `/g/<gametype>/<id>` fetches that game's chunk — a player who only ever opens codenamesduet never downloads any other game's code.
+
+**A tab open across a deploy is stale in one of two ways, and `common/boot` recovers both.** A deploy is atomic and deletes the previous build's hashed assets, so a tab that still needs a chunk asks for a file that is gone; `reloadOnStaleChunk` catches that failed import and reloads once. A tab whose chunks are all in memory fails nothing and simply runs old code against a server that has moved on, which every wire-shape change turns silently wrong — on 2026-09-18 such a tab started two real crossword games while being told both had failed. No loader hook can see a module already loaded, so the vite build stamps the bundle with the moment it was built and emits the same stamp as `dist/version.json` from the same run; `reloadOnStaleBuild` fetches it when the person comes back to the tab, on entering a game page, and when an RPC answers in a shape the code has no branch for, and reloads once if the stamp differs. The page that comes back says so in a toast. `version.json` falls under `public/_headers`' `/*` rule (`max-age=0, must-revalidate`), the same policy as `index.html`. The one hole: a backend-only deploy moves no stamp, so only the unhandled-answer trigger can catch it.
 
 ### The game registry
 

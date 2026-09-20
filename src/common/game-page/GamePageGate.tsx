@@ -12,6 +12,7 @@ import { readRows } from '../supabase/dbResult'
 import type { NotOkEnvelope } from '../supabase/envelope'
 import { GamePageLoader } from './GamePageLoader'
 import { NoSuchGamePage } from './NoSuchGamePage'
+import { reloadIfStaleBuild } from '../boot/reloadOnStaleBuild'
 
 /**
  * What the gate hands down once the URL has survived it: the loader takes
@@ -81,6 +82,13 @@ const isGameId = (s: string) =>
 export function GamePageGate({ urlGametype, gameId, session }: Props) {
   const manifest = manifestFor(urlGametype.toLowerCase())
   const [exists, setExists] = useState<'checking' | 'yes' | 'no' | NotOkEnvelope>('checking')
+
+  // Entering a game fetches its chunk anyway, so the stale-build check rides
+  // along; a tab open across a deploy reloads here rather than playing on old
+  // code — see `reloadOnStaleBuild`.
+  useEffect(function checkBuildOnEntry() {
+    void reloadIfStaleBuild('game-page')
+  }, [gameId])
 
   useEffect(function askWhetherTheGameExists() {
     if (!isGameId(gameId)) return

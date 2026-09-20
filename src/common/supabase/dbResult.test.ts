@@ -8,6 +8,12 @@ import {
 import { diagnosticsLine, logDb, logSlow } from './dbLog'
 import { _isEnvelope, notOkOutcome, readRows, runEdgeFn, runRpc } from './dbResult'
 import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'
+import { reloadIfStaleBuild } from '../boot/reloadOnStaleBuild'
+
+// `reportUnhandled` asks the stale-build check before it reports (a stale tab
+// reloads instead); the check is a fetch, so it is mocked as "current" here and
+// flipped to "reloading" by the one case about that.
+vi.mock('../boot/reloadOnStaleBuild', () => ({ reloadIfStaleBuild: vi.fn(async () => false) }))
 
 const { mockInvoke } = vi.hoisted(() => ({ mockInvoke: vi.fn() }))
 vi.mock('./supabase', () => ({ supabase: { functions: { invoke: mockInvoke } } }))
@@ -840,9 +846,13 @@ describe('reportUnhandled', () => {
     severity: null, field: null, meta: null, dbcode: null, detail: null,
   } as const
 
-  it('writes a FAULT line AND raises a modal carrying it', () => {
+  // The report lands after the stale check answers — a microtask away.
+  const reported = () => new Promise((r) => setTimeout(r, 0))
+
+  it('writes a FAULT line AND raises a modal carrying it', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     reportUnhandled('end_game', okAnswer)
+    await reported()
 
     const line = spy.mock.calls.map((c) => String(c[0])).join('\n')
     expect(line).toContain('[db]')
@@ -860,7 +870,7 @@ describe('reportUnhandled', () => {
     expect(fault.diagnostics).toContain('dbcode=PN488')
   })
 
-  it('leaves the status blank for a not-ok, whose HTTP status it cannot know', () => {
+  it('leaves the status blank for a not-ok, whose HTTP status it cannot know', async () => {
     // A raw fault arrived 4xx and a handler-built not-ok arrived 200; the envelope
     // carries neither. Printing 200 for a not-ok would state a fact this layer
     // does not have — so the field is left off, and this is the one [db] line
@@ -870,15 +880,28 @@ describe('reportUnhandled', () => {
       ...okAnswer, type: 'not-ok', data: null, severity: 'fault',
       message: 'permission denied', dbcode: '42501',
     })
+    await reported()
     const line = spy.mock.calls.map((c) => String(c[0])).join('\n')
     expect(line).toContain('dbcode=PN488')
     expect(line).toContain('| status= |')
     expect(line).not.toContain('status=200')
   })
 
-  it('names the call it was given, so two fall-throughs are distinguishable', () => {
+  it('names the call it was given, so two fall-throughs are distinguishable', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     reportUnhandled('submit_guess', okAnswer)
+    await reported()
     expect(peekFaultsForTest()[0].text).toBe('BUG: submit_guess fell through to unhandled')
+  })
+
+  // A build left open across a deploy meets new shapes exactly this way, and
+  // that is not our bug: the tab reloads, and nothing is reported.
+  it('reports nothing when the tab is stale and reloading instead', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(reloadIfStaleBuild).mockResolvedValueOnce(true)
+    reportUnhandled('end_game', okAnswer)
+    await reported()
+    expect(spy).not.toHaveBeenCalled()
+    expect(peekFaultsForTest()).toHaveLength(0)
   })
 })
