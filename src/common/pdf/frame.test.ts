@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawSetup, drawSetupBelow, fit, savePrint, setupBlockHeight, setupLineCount } from './frame'
+import { BLACK, DARK_GRAY, MEDIUM_GRAY, drawHeader, drawSetup, drawSetupBelow, fit, savePrint, setupBlockHeight, setupLineCount } from './frame'
 import { fakeDoc, fakePd, type Call } from './fakeJsPdf'
 
 describe('shade palette', () => {
@@ -40,6 +40,23 @@ describe('fit', () => {
 
   it('keeps at least one character before the ellipsis', () => {
     expect(fit(doc, 'abcdef', 0)).toBe('a…')
+  })
+})
+
+describe('drawHeader', () => {
+  const m = { brand: 'MothCubes', gameTitle: 'x'.repeat(600), date: 'today', summary: 'sum', setup: [], mode: 'coop' as const }
+
+  it('draws the date top-right, the summary under the title, and truncates the title clear of the date', () => {
+    const { pd, calls } = fakePd()
+    drawHeader(pd, m)
+    const texts = calls.filter((c) => c.m === 'text')
+    expect(texts[0]).toMatchObject({ args: ['today', 612 - 28, 28 + 6, { align: 'right' }] })
+    const title = texts[1].args[0] as string
+    // 612 − 2·28 − 5 (the date, 1pt/char) − 16 of air.
+    expect(title.length).toBeLessThanOrEqual(535)
+    expect(title.endsWith('…')).toBe(true)
+    expect(title.startsWith('MothCubes: ')).toBe(true)
+    expect(texts[2]).toMatchObject({ args: ['sum', 28, 28 + 24] })
   })
 })
 

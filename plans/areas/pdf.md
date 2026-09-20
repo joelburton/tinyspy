@@ -33,9 +33,14 @@ plus the four guards). Committed (`c30d52b7`).
 **The collapse is DONE (2026-09-19, uncommitted):** F-1 to F-3 shipped on
 Joel's three rulings — `docs/pdf.md` deleted, the folder's `doc.md` carries
 the design language, the Setup rows went to `setup-form/doc.md`, the setgame
-hatch story to `docs/games/setgame.md`, seventy-odd cites repointed. Open:
-F-4 (the gloss, carried verbatim), F-9 to F-14 (decisions), F-15 (a bug,
-waiting), F-16 and F-17.
+hatch story to `docs/games/setgame.md`, seventy-odd cites repointed.
+
+**All seventeen findings are SETTLED (2026-09-19)**, each ruled by Joel and
+committed apiece, F-17 uncommitted at this writing. The roster is fourteen
+stamped files (`fakeJsPdf.ts`, `columns.test.ts` and `pdfTiles.test.ts`
+joined), all `cs-audited-pdf`. What the area still owes: the whole-area
+re-read in one sitting (Closing), then `todo.md` — then the blessing, which
+is Joel's.
 
 ## The roster
 
@@ -44,12 +49,13 @@ Agreed 2026-09-19. Eleven stamped files, three unstamped markdown files.
 - **`src/common/pdf/` — ten files**, all `cs-unmet` at the opening and now
   `cs-met-pdf`: `frame.ts` + `.test.ts`, `columns.ts`, `wordColumns.ts` +
   `.test.ts`, `wordSections.ts`, `wordListBody.ts`, `eventLog.ts` + `.test.ts`,
-  `marks.ts`. **Plus `fakeJsPdf.ts`, created by F-16 (2026-09-19)** — a
-  created file joins the roster.
+  `marks.ts`. **Plus `fakeJsPdf.ts` (F-16) and `columns.test.ts` (F-17),
+  created 2026-09-19** — a created file joins the roster.
 - **`src/shared/wordle-style/pdfTiles.ts`**, `cs-unmet` at the opening and now
   `cs-met-pdf`. It lives in a shared family's folder and is read HERE (Joel,
   2026-09-19: *"add"*), because what it does is print. `shared/wordle-style`
   is therefore named by two rows of the plan's table, and both rows say so.
+  **Plus its `pdfTiles.test.ts`, created by F-17 (2026-09-19).**
 - **The folder's `doc.md` and `todo.md`**, and **`docs/pdf.md`** — roster, and
   none of the three carries a stamp (a `.md` has nowhere to put one).
   `todo.md` is empty: five headings, no items.
@@ -567,7 +573,18 @@ Recommendation: one `fakeJsPdf.ts` in the folder (a test helper; it joins the
 roster), used by all three, with `splitTextToSize` modeled once — the
 `web-storage` precedent.
 
-### F-pdf-17 · `untested-columns-and-tiles` · the two files whose docstrings insist hardest have no spec
+### SHIPPED · F-pdf-17 · `untested-columns-and-tiles` · the two files whose docstrings insist hardest have no spec
+
+**Ruled and shipped 2026-09-19** (Joel: *"i'll take your rec"*).
+`common/pdf/columns.test.ts` (six cases: one width from the cap for a lone
+second-page track, the gutter layout, `top`/`bottom` on every track, the
+tallest column on the LAST page, a lower cap, no tracks) and
+`shared/wordle-style/pdfTiles.test.ts` (the four-state table, yellow lighter
+than green, `outlineBlank` in the lighter gray, white-on-green and uppercase,
+no letter for a blank, the legend's three swatches and its return).
+`frame.test.ts` gained a `drawHeader` case: the date top-right, the summary
+under the title, the title truncated clear of the date. Both new files are
+`cs-audited-pdf` and on the roster; `marks.ts` stays untested by decision.
 
 `columns.ts` has no test: width from the cap not the count, the page break
 resetting `bottom`, `maxTracks` — the three rules its docstring is about.
