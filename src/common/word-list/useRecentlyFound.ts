@@ -1,4 +1,4 @@
-// cs-met-word-list
+// cs-audited-word-list
 
 import { useEffect, useRef, useState } from 'react'
 

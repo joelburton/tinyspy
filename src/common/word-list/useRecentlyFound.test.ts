@@ -1,4 +1,4 @@
-// cs-met-word-list
+// cs-audited-word-list
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'

@@ -1,4 +1,4 @@
-// cs-met-word-list
+// cs-audited-word-list
 
 /**
  * Tests for useWordListFilter — the word list's two-axis KIND/WHO filter.
