@@ -198,5 +198,5 @@ function emptyTextFor(kind: string, who: string, players: Member[]): string {
     const name = players.find((p) => p.user_id === who)?.username ?? 'that player'
     return kindWord ? `No ${kindWord} words from ${name} yet.` : `Nothing from ${name} yet.`
   }
-  return kindWord ? `No ${kindWord} words yet.` : 'No words yet'
+  return kindWord ? `No ${kindWord} words yet.` : 'No words yet.'
 }

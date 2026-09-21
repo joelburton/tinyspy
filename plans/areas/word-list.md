@@ -376,6 +376,16 @@ and `No words yet`. The event log's own is `Hidden until game ends.` The
 default line is the one most players see. Both specs match by substring, so
 either way passes; pick one.
 
+**WORKED 2026-09-21 — the period is added** (Joel). Eight lines now, not six
+(F-18's Found branch added two), and the ramp was seven-to-one: the odd one out
+was the most-seen line rather than a case anyone designed.
+
+**The substring matching is why it drifted, so it goes too.** Both specs read
+`toHaveTextContent`, which passes with or without the period — the assertion
+could not see the thing the finding is about. The two lines that pin a whole
+sentence are exact matches now (`.textContent).toBe(…)`), planted-verified by
+removing the period again.
+
 ### F-word-list-9 · `word-hover-drift` · `.word` re-declares what `.definable` already gives it
 
 `<DefinableWord>` wears `.definable` (`core-css/utilities.css`), which sets

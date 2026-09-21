@@ -224,16 +224,19 @@ describe('useWordListFilter — the empty line names the filter', () => {
     return (<>{f.picker}<p data-testid="empty">{f.emptyText}</p></>)
   }
 
-  it('says plain "No words yet" at the mid-game defaults', () => {
+  it('says plain "No words yet." at the mid-game defaults', () => {
+    // EXACT, not a substring: every one of these lines ends in a period, and
+    // the plain one drifted without one precisely because a substring match
+    // passed either way.
     render(<Probe isTerminal={false} />)
-    expect(screen.getByTestId('empty')).toHaveTextContent('No words yet')
+    expect(screen.getByTestId('empty').textContent).toBe('No words yet.')
   })
 
   it('does not say "yet" at terminal, where nothing more is coming', () => {
     // Newly reachable: Found is the terminal default, so a player who found
     // nothing lands here — and "yet" would be a lie on a finished game.
     render(<Probe />)
-    expect(screen.getByTestId('empty')).toHaveTextContent('Nothing found.')
+    expect(screen.getByTestId('empty').textContent).toBe('Nothing found.')
   })
 
   it('names the KIND', async () => {
