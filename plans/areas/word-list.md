@@ -7,8 +7,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN — opened 2026-09-20, paused the same day and RESUMED 2026-09-20**
 once the one-mark-hook work landed in the re-opened `board-marks`. **Every
 finding from the read is worked or closed (2026-09-21, `42ac72e3`..`b76fa483`).
-The closing re-read ran 2026-09-21 and found thirteen more, F-19 to F-31; the
-two that were Joel's calls (F-25, F-30) are worked and the rest are OPEN** — see
+The closing re-read ran 2026-09-21 and found thirteen more, F-19 to F-31; F-20,
+F-21, F-25 and F-30 are worked and the rest are OPEN** — see
 [The closing re-read](#the-closing-re-read--2026-09-21). Baseline
 at the re-read: 70 of 70 tests green in `word-list` + `word-hunt`, lint and
 `tsc -b` clean, the working tree clean.
@@ -708,6 +708,43 @@ missed-word list at terminal" with no mention of the hold. (`docs/deferred.md:19
 says "their found/missed filter" with no axis named, and is fine.) The fix is
 the axis and the tense in both; whether `common.md` should restate `ui.md`'s
 paragraph at all is `common.md`'s question, not this area's.
+
+**WORKED 2026-09-21 — and the fix is not the one this finding proposed.** Joel
+ruled against correcting the axis and the tense in place: *"i don't understand
+why ui.md or common.md really need to go into details on this — word-list docs
+describe how word-list works"*, and *"don't list the games w/out reveal — that
+just begs being stale. State the logic instead."* So both paragraphs lose the
+detail rather than gaining a correction, and neither names a game.
+
+**The paragraph was built backwards, which is what produced both faults.** It
+explained the absence of a reveal by nominating the filter as a stand-in for one
+("the word list's KIND filter already IS that control"). Framed that way it had
+to name an axis — and named the wrong one — and had to hold a hypothetical in
+reserve ("if we ever wanted them to withhold it, the change is that filter's
+default"), which F-18 then shipped. Say what happens instead and there is no
+control to identify and nothing in reserve. **These three games have no reveal
+feature of any kind**: `useSolutionReveal`, `act-reveal` and `act-spoiler` are
+all absent from `src/spellingbee`, `src/wordwheel` and `src/boggle` (grepped),
+against eleven games that use the hook.
+
+`ui.md:245` is now one sentence — a game whose readout is the word list needs no
+reveal control, because the missed words fold into the readout itself and the
+WHO select decides which half you read — plus the link to this folder's
+`doc.md`. `common.md`'s clause is the same fact in one line, with NO link of its
+own — the sentence before it in that paragraph already points at
+`ui.md → Terminal results`, and a second citation to the same anchor two clauses
+later reads as a stutter. The no-solution claim beside it keeps its two game
+names (Joel), being a different claim.
+
+**The logic was verified before it was written, since a wrong logic sentence is
+worse than a stale list.** `<WordList>` has exactly three call sites, all
+InfoCols (boggle, spellingbee, wordwheel); none of the three renders an event
+log. The converse is NOT true and the sentence does not claim it: bananagrams
+and scrabble carry no reveal either, for the no-answer-to-hide reason `ui.md`
+states separately.
+
+**Two of F-19's nine copies go with this**, so that finding shrinks to the code
+sites.
 
 ### F-word-list-21 · `f4-unworked-site` · F-4's "(spellingbee, boggle)" survives at its own listed site, and at three siblings
 
