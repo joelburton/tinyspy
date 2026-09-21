@@ -32,8 +32,10 @@ with an obvious fix (F-9); two are tests, one of them confirmed by planting
 **Shipped since the read**, in the order Joel ruled them: F-6 (the answer
 union, which he named `WordSubmitAnswer`), F-7 (`WordEntry` → `LegalWord`),
 F-8 (the structural row types), F-12 (the loading/empty rule), F-9 (the dead
-`??`) and F-10 (the tautology, with its `spellingbee.md` clause). The prose
-pass F-1 to F-5 has not run, and F-7's `doc.md` sentence is held for it.
+`??`), F-10 (the tautology, with its `spellingbee.md` clause), F-3 (the
+pangram wording, Joel's second option) and F-14 with F-13 (the composed
+`--avail-h`, proved by board-geometry). The prose pass F-1, F-2, F-4 and F-5
+has not run, and F-7's `doc.md` sentence is held for it.
 
 ## The roster
 
@@ -163,6 +165,20 @@ paragraph goes with the first; the test header keeps its list of cases and
 loses the parenthetical.
 
 ### F-found-words-3 · `pangram-spellingbee-only` · Two claims that the pangram flag is one game's, when two set it
+
+**RULED AND SHIPPED, 2026-09-21.** Joel took the second wording, so both sites
+say *optional: only some games in the family have the concept* — the
+`LegalWord` docstring and the accepted-word comment. Neither names a game now.
+
+**A correction to the finding:** it credits that wording to `foundWords.ts`,
+which does not say it. `foundWords.ts:12` says *"`is_pangram` is optional
+because boggle has no pangram concept and its table has no such column"* —
+naming a caller for the same flag, the shape F-4 is about. The phrase actually
+lived on `DisplayableFound`, which F-8 deleted, so nothing in the folder
+carried it when this shipped. **`foundWords.ts:12` is left as it is**: it is
+not one of F-3's two sites, and its sentence is a claim about a TABLE (boggle's
+column does not exist), which is a fact about the schema rather than a roster.
+Flagged for F-4's pass to look at rather than settled here.
 
 `useFoundWordSubmit.ts:52–53`: *"`isPangram` is spellingbee-only (boggle has no
 pangram concept)"*, and `:299–300`: *"a spellingbee-only flag; boggle entries
@@ -481,6 +497,12 @@ text-align: center; color: var(--page-text-muted-color); grid-column: 1 / -1 }`:
 
 ### F-found-words-13 · `below-board-margin-literal` · The pending row is a straight conversion
 
+**SHIPPED with F-14, 2026-09-21**, which is the only way it could go. F-14's
+composed sum reads `--below-board-gap`, and that token IS this conversion:
+`.layout` declares `--below-board-gap: var(--spacer-1)` and `.belowBoard`'s
+`margin-top` reads it. The `vocabularies` pending row is deleted, and the guard
+fired to say so before it was — see F-14.
+
 `foundWordsPlayArea.module.css:91`, `.belowBoard { margin-top: 1.5rem }` — the
 one value on this file's `vocabularies.test.ts` pending row (`:288`). It equals
 `--spacer-1` exactly, so it converts silently and the row is deleted. Listed
@@ -489,6 +511,40 @@ rather than just done because the same `1.5rem` is one of the three terms
 `5rem` summing a token by its old value.
 
 ### F-found-words-14 · `avail-h-hand-sum` · The todo item: three terms written as one guess, with a "keep in sync" instruction
+
+**RULED (1) AND SHIPPED, 2026-09-21** (Joel: *"do it, and you can run the
+e2e"*). Both lines compose now — desktop subtracts
+`var(--swap-box-min-height, 2.75rem)`, `var(--board-col-gap)` and
+`var(--below-board-gap)`; mobile subtracts those three plus
+`var(--mobile-status-height)` and a second `--board-col-gap`. The `~`
+estimates, the `5rem` and the *"Keep this in sync"* sentence are gone, and the
+`todo.md` item is deleted as worked.
+
+**Proved: no pixel moved.** `e2e/board-geometry.e2e.ts` cannot be trusted
+against a stale local baseline, so the baseline was re-seeded on the
+PRE-change tree (`git stash`, `rm` the artifact, run — 21 boards written), the
+change restored, and the spec re-run: **21 of 21 match within 0.5px.**
+
+**One deviation from the finding, and it matters.** It said to name the gap on
+`.boardCol` — *"`--board-col-gap: 0.75rem`, read by `.boardCol`'s `gap`"*. That
+cannot work: `.boardCol` is a DESCENDANT of `.layout`, and a custom property
+declared on the descendant is invisible to the ancestor that does the
+arithmetic, so `--avail-h` would have resolved to nothing and voided the whole
+declaration — the exact silent damage this file's own mobile comment warns
+about. It is declared on the scaffold's `.layout` instead, read by
+`.boardCol`'s `gap` through inheritance. **Checked before relying on it:** 14
+of 16 PlayAreas compose `shared.layout`, and the two that do not
+(bananagrams, crosswords) do not use the shared `.boardCol` at all —
+bananagrams has its own by a comment that says so, crosswords has none. So no
+fallback is needed and none was added.
+
+**The guard drove one improvement.** `--board-col-gap: 0.75rem` left the
+scaffold clean of literals, which failed `vocabularies` with *"on the pending
+list but write no literal at all any more"*. The honest fix was not to delete
+the row quietly: `0.75rem` IS `--spacer-3`, so the token reads
+`var(--spacer-3)` and sources its value from the ramp, exactly like
+`--below-board-gap: var(--spacer-1)` beside it. Two pending rows deleted —
+`playArea.module.css`'s `0.75rem` and this file's `1.5rem` (F-13).
 
 `foundWordsPlayArea.module.css:43–44`: `--avail-h: calc(100svh -
 var(--game-chrome-height) - 5rem)`, where the comment (`:37–42`) says the `5rem`
@@ -586,10 +642,14 @@ C-pass the same day.
   Shipped; predicted correctly, and the fix was the one line.
 - ~~F-10: one case fewer in `wordListRows.test.ts` (five → four).~~ Shipped.
 - F-11: four cases more in `useFoundWordSubmit.test.ts` (13 → 17).
-- F-13: `src/guards/vocabularies.test.ts:288` — the pending row is deleted
-  with the conversion, or the guard reports a converted value still listed.
-- F-14 (1): `e2e/board-geometry.e2e.ts` is the proof, not a break — 21 boxes
-  within 0.5px, on Joel's word.
+- ~~F-13: `src/guards/vocabularies.test.ts:288` — the pending row is deleted
+  with the conversion, or the guard reports a converted value still listed.~~
+  Shipped, and it fired exactly as predicted — plus a SECOND row nobody
+  predicted, `playArea.module.css`'s `0.75rem`, which the scaffold edit
+  emptied. Both deleted.
+- ~~F-14 (1): `e2e/board-geometry.e2e.ts` is the proof, not a break — 21 boxes
+  within 0.5px, on Joel's word.~~ Run 2026-09-21 on his word: baseline
+  re-seeded on the pre-change tree, 21 of 21 match within 0.5px.
 - F-1: `src/guards/folderDocs.test.ts` — `shared/found-words` comes off
   `INTROS_OWED` in the same commit as the intro, or the guard fails either way.
 

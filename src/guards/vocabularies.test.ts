@@ -285,7 +285,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/word-entry/WordEntryInput.module.css': ['1px'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.4rem'],
       'src/common/lists/FilterSelect.module.css': ['0.35rem'],
-      'src/shared/found-words/foundWordsPlayArea.module.css': ['1.5rem'],
       'src/common/game-page/GamePage.module.css': ['0.1rem'],
       'src/common/info-sheet/infoPanel.module.css': ['0.35rem'],
       'src/common/members/ActorMention.module.css': ['0.4rem'],
@@ -305,7 +304,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/word-list/WordList.module.css': ['7px'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.3rem', '0.6rem', '0.35rem'],
       'src/common/pause-suspend/PauseOverlay.module.css': ['0.5rem', '0.75rem', '0.4rem', '1rem'],
-      'src/common/game-page/playArea.module.css': ['0.75rem'],
       'src/common/setup-form/SetupDisclosure.module.css': ['0.3rem'],
       // The players strip's three spacings are BESPOKE by decision (Joel,
       // 2026-09-12), not unconverted: a row of identity marks, tuned by eye

@@ -35,13 +35,19 @@
  * list gives way to the board as the viewport narrows (see that class).
  *
  * --avail-h is the vertical space left for the board (these boards are bounded
- * by height too, like waffle's square): viewport − chrome − the single
- * below-board slot (the input row / feedback pill / terminal status, ~2.75rem),
- * the board column's gap above it (~0.75rem), and the extra `.belowBoard`
- * margin-top that drops the input row down off the board (1.5rem) — 5rem total.
- * Keep this in sync with `.belowBoard`'s margin-top below. */
+ * by height too, like waffle's square): viewport − chrome − the three things
+ * standing between the board and the bottom of the column, each read from the
+ * rule that sets it rather than guessed at — the single below-board slot (the
+ * input row / feedback pill / terminal status), the board column's gap above
+ * it, and `.belowBoard`'s own margin-top, which drops the input row further off
+ * the board. `--swap-box-min-height` carries its scaffold default here for the
+ * same reason the scaffold gives it one: a game may raise it. */
 /* @@ */ .layout {
-/* @@ */   --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
+  --below-board-gap: var(--spacer-1);
+/* @@ */   --avail-h: calc(
+    100svh - var(--game-chrome-height) - var(--swap-box-min-height, 2.75rem) -
+      var(--board-col-gap) - var(--below-board-gap)
+  );
 }
 
 /* Mobile: the info column is off-canvas, so each game's state readout is
@@ -49,8 +55,9 @@
  * not the one-line default, so the bar's height token is raised by the game.
  * That height must also come out of `--avail-h`: the board sizes itself from
  * that number, so leaving it alone would size a board that no longer fits and
- * push the page into scrolling (the hard no-scroll invariant). The extra
- * 0.75rem is `.boardCol`'s flex gap between the status block and the board.
+ * push the page into scrolling (the hard no-scroll invariant). The second
+ * `--board-col-gap` is the same flex gap again, this time between the status
+ * block and the board.
  *
  * `--mobile-status-height` is READ here and DECLARED by each game (see the
  * header). No fallback on purpose — one would be a fourth number, right for
@@ -65,7 +72,9 @@
 @media (--mobile) {
 /* @@ */   .layout {
 /* @@ */     --avail-h: calc(
-      100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
+      100svh - var(--game-chrome-height) - var(--swap-box-min-height, 2.75rem) -
+        var(--board-col-gap) - var(--below-board-gap) - var(--mobile-status-height) -
+        var(--board-col-gap)
     );
   }
 }
@@ -77,8 +86,9 @@
  * long typed word can't widen the column and shift the centered board. Column
  * so that box STRETCHES to the full board width (so the input row spans the
  * board and its WordEntryInput flex-fills between the buttons). `margin-top` drops the
- * row down off the board for breathing room (on top of the board column's
- * 0.75rem gap) — counted into `--avail-h` above.
+ * row down off the board for breathing room, on top of the board column's own
+ * gap — it is `--below-board-gap`, which `--avail-h` above subtracts, so the
+ * two cannot disagree.
  *
  * `--board-width` is whatever the game's own board column published: the
  * coordinate-unit product for a hive or a wheel, boggle's square edge. That one
@@ -88,7 +98,7 @@
  * common/word-entry/WordEntryArea; only the slot wrapper is here.) */
 /* @@ */ .belowBoard {
   width: var(--board-width);
-  margin-top: 1.5rem;
+  margin-top: var(--below-board-gap);
   display: flex;
   flex-direction: column;
 }

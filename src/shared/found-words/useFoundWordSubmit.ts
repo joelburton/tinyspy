@@ -49,8 +49,8 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 /** One entry of a game's shipped legal list. `word` is the canonical lowercase
  *  form (matches the DB rows + boggle's board string); `points` and the flags
  *  come straight off the shipped data, so the FE computes nothing. `isPangram`
- *  is spellingbee-only (boggle has no pangram concept) and drives that game's
- *  own success wording. */
+ *  is optional: only some games in the family have the concept, and it drives
+ *  the success wording where they do. */
 export type LegalWord = {
   word: string
   points: number
@@ -299,9 +299,9 @@ export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitA
     }
 
     // Accept optimistically: reserve the word, show it, commit in the background.
-    // Body is universal — `+N`, or `pangram +N` when the entry is a pangram (a
-    // spellingbee-only flag; boggle entries never set it). The bonus dot rides
-    // right after the word.
+    // Body is universal — `+N`, or `pangram +N` when the entry is a pangram
+    // (optional: only some games in the family have the concept). The bonus dot
+    // rides right after the word.
     pendingRef.current.add(w)
     c.onAnswer?.(w, 'accepted')
     const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
