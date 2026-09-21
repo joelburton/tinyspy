@@ -792,6 +792,18 @@ and 'names both' all run on a `Probe` whose default is `isTerminal: true` and
 assert the "yet." lines. The hook has `isTerminal` in hand; the tense follows
 it. Decision-sized only in the wording of the terminal forms.
 
+**WORKED 2026-09-21 — "yet" is dropped at terminal** (Joel, over the past-tense
+and player-as-subject forms). `emptyTextFor` takes `isTerminal` and every line
+that said "yet" now says it only mid-game: `Nothing from moth.`, `No bonus
+words from moth.`, `No required words.`, `No words.`. The Found branch's
+comment loses the half that explained the plain line's tense, since the plain
+line now carries its own. The three terminal specs pin the new lines exactly,
+and a fourth pins that a narrowed line still says "yet" mid-game, so the tense
+is shown to follow the game rather than the filter. spellingbee's and
+wordwheel's `PlayArea.test.tsx` match `/no words yet/` on a mid-game render and
+stay right; the `No words yet.` in `common/pdf/wordColumns.ts` is the printer's
+own line, not this hook's.
+
 ### F-word-list-26 · `dead-guard` · `who !== FOUND` after the FOUND return
 
 `useWordListFilter.tsx` → `emptyTextFor`: `if (who === FOUND) return …` on one

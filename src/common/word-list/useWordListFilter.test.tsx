@@ -243,20 +243,28 @@ describe('useWordListFilter — the empty line names the filter', () => {
     render(<Probe />)
     await pickFilter('All', WHO)
     await pickFilter('Bonus', KIND)
-    expect(screen.getByTestId('empty')).toHaveTextContent('No bonus words yet.')
+    expect(screen.getByTestId('empty').textContent).toBe('No bonus words.')
   })
 
   it('names the player, by handle', async () => {
     render(<Probe />)
     await pickFilter('moth', WHO)
-    expect(screen.getByTestId('empty')).toHaveTextContent('Nothing from moth yet.')
+    expect(screen.getByTestId('empty').textContent).toBe('Nothing from moth.')
   })
 
   it('names both when both are narrowed', async () => {
     render(<Probe />)
     await pickFilter('Required', KIND)
     await pickFilter('moth', WHO)
-    expect(screen.getByTestId('empty')).toHaveTextContent('No required words from moth yet.')
+    expect(screen.getByTestId('empty').textContent).toBe('No required words from moth.')
+  })
+
+  it('keeps "yet" mid-game once narrowed', async () => {
+    // The tense follows the game, not the filter: a narrowed line still says
+    // "yet" while more words can come.
+    render(<Probe isTerminal={false} />)
+    await pickFilter('moth', WHO)
+    expect(screen.getByTestId('empty').textContent).toBe('Nothing from moth yet.')
   })
 
   it('reads as an achievement for Missed, not an absence', async () => {

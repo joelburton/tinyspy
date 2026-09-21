@@ -181,7 +181,7 @@ export function useWordListFilter({
       </div>
     ),
     filter: (rs) => rs.filter((r) => matchesKind(r) && matchesWho(r)),
-    emptyText: emptyTextFor(kind, who, players),
+    emptyText: emptyTextFor(kind, who, players, isTerminal),
   }
 }
 
@@ -196,16 +196,17 @@ export function useWordListFilter({
  * entries — simply aren't offered until their data is visible, so every empty this
  * has to explain is a genuine empty.
  */
-function emptyTextFor(kind: Kind, who: string, players: Member[]): string {
+function emptyTextFor(kind: Kind, who: string, players: Member[], isTerminal: boolean): string {
   const kindWord = kind === REQUIRED ? 'required' : kind === BONUS ? 'bonus' : ''
+  // "yet" promises more is coming, which a finished game cannot keep.
+  const yet = isTerminal ? '' : ' yet'
 
   if (who === MISSED) return kindWord ? `No ${kindWord} words missed.` : 'Nothing missed.'
-  // Reachable only at terminal, where Found is the default — and where "yet" of
-  // the plain line below would be a lie, since nothing more is coming.
+  // Reachable only at terminal, where Found is the default.
   if (who === FOUND) return kindWord ? `No ${kindWord} words found.` : 'Nothing found.'
   if (who !== ALL && who !== FOUND) {
     const name = players.find((p) => p.user_id === who)?.username ?? 'that player'
-    return kindWord ? `No ${kindWord} words from ${name} yet.` : `Nothing from ${name} yet.`
+    return kindWord ? `No ${kindWord} words from ${name}${yet}.` : `Nothing from ${name}${yet}.`
   }
-  return kindWord ? `No ${kindWord} words yet.` : 'No words yet.'
+  return kindWord ? `No ${kindWord} words${yet}.` : `No words${yet}.`
 }
