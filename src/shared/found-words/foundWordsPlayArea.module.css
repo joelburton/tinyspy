@@ -93,10 +93,9 @@
   flex-direction: column;
 }
 
-.loading,
+/* @@ */ .loading,
 /* @@ */ .empty {
-  padding: 48px 16px;
+  padding: 3rem 1rem;
   text-align: center;
   color: var(--page-text-muted-color);
-  grid-column: 1 / -1;
 }

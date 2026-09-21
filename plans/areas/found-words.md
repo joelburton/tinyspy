@@ -30,8 +30,9 @@ with an obvious fix (F-9); two are tests, one of them confirmed by planting
 `cs-met` until the prose pass ships.
 
 **Shipped since the read:** F-6 (the answer union, named `WordSubmitAnswer` by
-Joel), F-7 (`WordEntry` → `LegalWord`) and F-8 (the structural row types). The
-prose pass F-1 to F-5 has not run; F-7's `doc.md` sentence is held for it.
+Joel), F-7 (`WordEntry` → `LegalWord`), F-8 (the structural row types) and
+F-12 (the loading/empty rule). The prose pass F-1 to F-5 has not run; F-7's
+`doc.md` sentence is held for it.
 
 ## The roster
 
@@ -402,6 +403,37 @@ Four cases, no decision. wordiply's `PlayArea.test.tsx` may reach the first
 through the page, but the contract is this hook's to pin.
 
 ### F-found-words-12 · `loading-empty-rule` · A dead declaration, two px literals, and a marker on the wrong selector
+
+**RULED AND SHIPPED, 2026-09-21**, all three parts.
+
+- **`padding: 3rem 1rem`.** Joel: *"we don't need to fit padding to ramps, so
+  we won't. [but] this is probably best expressed in rem"* — so neither half is
+  tokenized, though `16px` is `--spacer-2` exactly. No pixel moves.
+- **`grid-column: 1 / -1` deleted.** Confirmed inert: both divs are early
+  RETURNS, so their parent is `GamePage`'s `.pageHeaderAndPlaySurface`, which is
+  `display: flex; flex-direction: column` (`GamePage.module.css:22–24`).
+- **The marker: the finding had the convention backwards.** It said *"one
+  marker per rule, before it"*; the repo says a marker on EVERY selector line,
+  4 of 4 marked multi-selector rules — `wordiply/GuessBoard.module.css:63`,
+  `FloatingPanel.module.css:263`, `PageHeaderButton.module.css:31`, and
+  `strands/components/PlayArea.module.css:49`, which is the same `.loading,
+  .empty` pair. So the fix was to ADD one to `.loading`, not move `.empty`'s.
+  Caught by checking the precedent before editing.
+
+**The rule is destined to go entirely, and that is now recorded.** Joel, on
+reading the two divs: *"i suspect all game[s] will get a ..Loader component and
+will move to NoSuchGamePage and Loading components, so it probably doesn't
+matter what we do here."* It is already the settled shape —
+[docs/playarea.md → The shape of a game's PlayArea.tsx](../../docs/playarea.md#the-shape-of-a-games-playareatsx),
+harvested at psychicnum's close, three gates: `<Loading>`,
+`<EnvelopeErrorPage>`, `<NoSuchGamePage>`. Each of the three games deletes its
+own two divs as its area opens; **the shared rule is this folder's to delete
+and nobody else's**, which nothing said before — now a Someday in `todo.md`
+with the trigger and the grep that says it is time.
+
+**A sibling difference, flagged and not touched:** strands' identical selector
+pair is `padding: 2rem` with no `text-align: center`. Both are headed for the
+same two components, so the drift resolves itself.
 
 `foundWordsPlayArea.module.css:96–102`, `.loading, .empty { padding: 48px 16px;
 text-align: center; color: var(--page-text-muted-color); grid-column: 1 / -1 }`:
