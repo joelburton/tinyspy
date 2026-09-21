@@ -366,6 +366,26 @@ a component reads as the wrong direction. A `wordListRow.ts` beside the
 component would hold the type and its docstring; the component would import
 it like everyone else. Take it with F-15's seam or leave it.
 
+**CLOSED 2026-09-21, NO CHANGE — leave it** (Joel). Two reasons, and the second
+is the one that settles it.
+
+The finding reads the import as the wrong DIRECTION, and on that the
+import-direction guard has already ruled the opposite way, in its own docstring:
+*"shared may reach up into common (a family's row builder taking its row type
+from `word-list` is exactly right)"*. What that guard forbids is `common`
+reaching DOWN into a family. These builders reach up, which is the sanctioned
+direction — so the direction half of the finding is answered, and answered
+against it.
+
+What remains is a within-folder taste question the guard has no opinion on: a
+type living in a component file rather than beside it. A file whose only content
+is one exported type buys a shorter import path and little else, and the type's
+docstring is already read where the component is. The finding's own closing
+words were *"take it with F-15's seam or leave it"*, and that seam shipped
+without it — doing it now would be tidiness justified by nothing the seam needs.
+Three importers (the shared builder, boggle's copy, and `wordListRows.ts`) is
+not a number that changes that.
+
 ### F-word-list-12 · `css-literals` · The values Joel decides
 
 Every rule in the file is `@@`. The literals, by what the a/b/c rule asks of
