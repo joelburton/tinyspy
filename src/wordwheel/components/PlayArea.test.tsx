@@ -190,10 +190,8 @@ describe('wordwheel PlayArea — render smoke', () => {
   })
 
   it('holds the missed words one select back at terminal, and shows them on ask', async () => {
-    // wordwheel never hides its solution (gametypes.hides_solution = false),
-    // so the missed words fold into the rows the moment the game ends. What
-    // holds them is the WHO filter's terminal default, Found — the beat before
-    // the answer. The filter IS the reveal for these games; there is no button.
+    // The missed words are in the rows the moment the game ends; the WHO
+    // filter's terminal default, Found, is what holds them one select back.
     render(
       <PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />,
     )

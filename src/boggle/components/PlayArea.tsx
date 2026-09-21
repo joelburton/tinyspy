@@ -301,13 +301,6 @@ export function PlayArea(ctx: GamePageCtx) {
       // board with a genuinely wider legal band; mid-game there's no reveal, so
       // only found words show. The print follows the screen deliberately:
       // the missed-word list IS the post-game artifact.
-      // Gated on `isTerminal`, which is the whole rule for these three word-finding
-      // games: at game over the missed words fold into the list, and the WHO
-      // filter (found / missed) is the only control anyone needs over them.
-      // They carry no Reveal button on purpose — it would be a second,
-      // confusing way to switch the same two lists (docs/ui.md → Terminal
-      // results) — and the answer is withheld one beat by that filter's
-      // terminal DEFAULT, Found, which is where such a change belongs.
       const words = buildWordListRows({
         foundWords,
         requiredWords: game.required_words,
@@ -535,12 +528,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // so it can only be absent when the game is, and it has no failure of its own.
   if (!game || !grid) return <div className={surface.empty}>Game not found.</div>
 
-  // The reveal: every word nobody found, folded in at game over. No button
-  // gates it — the word list's WHO filter (found / missed) already IS that
-  // control, and a Reveal button would be a second, confusing way to switch the
-  // same two lists (docs/ui.md → Terminal results). What gives the beat before
-  // the answer is that filter's terminal DEFAULT, Found, so the list opens on
-  // what you got. boggle, spellingbee and wordwheel all work this way.
+  // The reveal: every word nobody found, folded in at game over. Nothing gates
+  // it — see src/common/word-list/doc.md for why the list needs no Reveal button.
   //
   // The missed BONUS words fold in too — but only when the board actually has a
   // wider legal band. With the bands equal, "bonus" means nothing but the words

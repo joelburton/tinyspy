@@ -59,8 +59,7 @@ describe('WordList — the heading tally', () => {
   })
 
   it('counts and scores what is SHOWN — at terminal that is the finds', async () => {
-    // The terminal default is Found, so the heading opens on what you got
-    // rather than on the whole list including what you missed.
+    // The terminal default is Found, so the heading opens on what you got.
     render(<WordList rows={ROWS} {...base} />)
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Words: 2 · Score: 6')
 

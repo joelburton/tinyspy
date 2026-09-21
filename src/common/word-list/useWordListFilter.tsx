@@ -106,12 +106,9 @@ export function useWordListFilter({
   // and a selection that stops being offered (a player who left, or Missed before
   // the reveal lands) degrades to the default instead of filtering to nothing
   // forever.
-  // WHO's default is the one place the missed words are held back. They fold
-  // into the rows the moment the game ends, so a list opening on All would open
-  // on the answer — you would read what you missed before you had read what you
-  // got. Defaulting to Found gives that beat, and the answer stays one select
-  // away rather than behind a second control: the WHO axis IS the reveal for
-  // these games, which is why they carry no Reveal button.
+  // WHO's default is the one place the missed words are held back — they are
+  // already in the rows at terminal, and Found is what keeps the list off the
+  // answer for a beat (see doc.md).
   //
   // Gated on `hasMissed` as well as `isTerminal`, because Found is not offered
   // until a missed row exists — a default that is not in the option set would

@@ -7,8 +7,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN — opened 2026-09-20, paused the same day and RESUMED 2026-09-20**
 once the one-mark-hook work landed in the re-opened `board-marks`. **Every
 finding from the read is worked or closed (2026-09-21, `42ac72e3`..`b76fa483`).
-The closing re-read ran 2026-09-21 and found thirteen more, F-19 to F-31; F-20,
-F-21, F-25 and F-30 are worked, F-31 is closed no-change, and the rest are
+The closing re-read ran 2026-09-21 and found thirteen more, F-19 to F-31; F-19,
+F-20, F-21, F-25 and F-30 are worked, F-31 is closed no-change, and the rest are
 OPEN** — see
 [The closing re-read](#the-closing-re-read--2026-09-21). Baseline
 at the re-read: 70 of 70 tests green in `word-list` + `word-hunt`, lint and
@@ -696,6 +696,35 @@ decision is one sentence and a pointer, and the doc is the copy that stays
 right. The print sites' seven lines shrink to their first sentence (the gate is
 `isTerminal`; the WHO filter is the control; see `word-list/doc.md`), the hook's
 comment to two, the two spec comments to one each.
+
+**WORKED 2026-09-21. F-20 came first and changed what this finding is about:**
+two of the nine copies went with it, and four of the survivors were left
+CITING the sentence it deleted — each pointed at `docs/ui.md → Terminal
+results` for "a Reveal button would be a second, confusing way to switch the
+same two lists", which lives only in this folder's `doc.md` now. So these were
+stale pointers, not just duplication.
+
+**The rationale is GONE at the code sites rather than repointed** (Joel:
+*"ui.md doesn't need to go into details about who gets a reveal button or
+not"*). The three print sites lose the whole seven-line block — the paragraph
+above it already carries the local decision, that the print makes the same call
+as the screen, and the gate is the `isTerminal` argument two lines below.
+Boggle's `wordRows` site keeps two lines, since nothing else there explains the
+fold: what folds in, and a pointer at this folder's `doc.md`. In this folder the
+hook's `whoDefault` comment is three lines (the local fact plus the pointer),
+and the two spec comments one each.
+
+**The sibling grep found two more copies the finding never listed**, in
+spellingbee's and wordwheel's `PlayArea.test.tsx` — five lines each, the same
+rationale again. Trimmed to the fact the test needs, and **each opened by
+citing a column that does not exist**: *"never hides its solution
+(`gametypes.hides_solution = false`)"*. `common.gametypes.hides_solution` was
+dropped by `20260815000000_drop_solution_revealed.sql`; `common.md:536` records
+the removal. Gone with the trim.
+
+`src/common/reveal/doc.md`'s two sites STAY (Joel: a brief mention there that
+these games need no reveal button is fine). They name no axis, and `reveal` is
+closed and blessed.
 
 ### F-word-list-20 · `kind-not-who` · Two docs say the reveal control is the KIND filter, in the tense of a change not yet made
 

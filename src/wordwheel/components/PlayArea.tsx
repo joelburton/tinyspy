@@ -186,13 +186,6 @@ export function PlayArea(ctx: GamePageCtx) {
       // the unfound). The print deliberately follows the screen here: the missed-word
       // list IS the post-game artifact, so a printout that quietly dropped the bonus
       // half would be a different document from the one on screen.
-      // Gated on `isTerminal`, which is the whole rule for these three word-finding
-      // games: at game over the missed words fold into the list, and the WHO
-      // filter (found / missed) is the only control anyone needs over them.
-      // They carry no Reveal button on purpose — it would be a second,
-      // confusing way to switch the same two lists (docs/ui.md → Terminal
-      // results) — and the answer is withheld one beat by that filter's
-      // terminal DEFAULT, Found, which is where such a change belongs.
       const words = buildWordListRows({
         foundWords,
         requiredWords: game.requiredWords,

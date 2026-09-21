@@ -57,10 +57,7 @@ describe('useWordListFilter — the two axes', () => {
   })
 
   it('defaults to Legal · Found at terminal — the answer is one select away', () => {
-    // The missed words fold into the rows the moment the game ends, so a list
-    // opening on All would open on the answer. Found is the beat before it;
-    // the WHO axis IS the reveal for these games, so All and Missed are a
-    // select away rather than behind a second control.
+    // The missed rows are already there; Found is what the list opens on.
     const { result } = setup()
     expect(result.current.filter(ended).map((r) => r.word)).toEqual(['bead', 'blag'])
   })
