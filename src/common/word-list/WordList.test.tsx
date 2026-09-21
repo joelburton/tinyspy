@@ -1,4 +1,4 @@
-// cs-audited-word-list
+// cs-blessed-word-list
 
 /**
  * Tests for the shared WordList, in three groups: the heading's tally, the

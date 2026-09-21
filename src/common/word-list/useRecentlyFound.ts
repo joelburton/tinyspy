@@ -1,4 +1,4 @@
-// cs-audited-word-list
+// cs-blessed-word-list
 
 import { useEffect, useRef, useState } from 'react'
 

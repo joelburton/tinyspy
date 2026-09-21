@@ -4,19 +4,24 @@ The folders it reads: `word-list`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — opened 2026-09-20, paused the same day and RESUMED 2026-09-20**
-once the one-mark-hook work landed in the re-opened `board-marks`. **Every
-finding from the read is worked or closed (2026-09-21, `42ac72e3`..`b76fa483`).
-The closing re-read's thirteen, F-19 to F-31, are ALL worked but F-31, which is
-closed no-change** — see
-[The closing re-read](#the-closing-re-read--2026-09-21). **A SECOND re-read ran
-2026-09-21** once those were worked, and found five more, F-32 to F-36: four
-worked, F-34 closed no-change. See
-[The second closing re-read](#the-second-closing-re-read--2026-09-21). F-37 came
-from Joel's own read of the stylesheet afterwards. **Every finding in this area
-is now worked or closed; what it owes is Joel's blessing.** Baseline at the first re-read: 70
-of 70 tests green in `word-list` + `word-hunt`, lint and `tsc -b` clean, the
-working tree clean.
+**Status: CLOSED 2026-09-21, blessed** (Joel: *"bless the files in this area and
+then close this area"*) — seven files `cs-blessed-word-list`. Opened 2026-09-20,
+paused the same day behind the re-opened `board-marks` and resumed once that
+work landed. **Thirty-seven findings, all worked or closed**; the four that
+closed no-change are F-5 (a restart remounts, so the hook cannot remember),
+F-11 (the row type stays in the component file), F-31 (the two created files
+keep `cs-unmet`) and F-34 (`doc.md` is the right home for the no-reveal
+account).
+
+Where they came from: seventeen from the audit read, worked over
+`42ac72e3`..`b76fa483`; thirteen from
+[the closing re-read](#the-closing-re-read--2026-09-21), F-19 to F-31; five from
+[a SECOND closing re-read](#the-second-closing-re-read--2026-09-21), F-32 to
+F-36, which was owed because the first re-read's thirteen were worked in two
+sittings and it could not have seen what the later one wrote; and F-37 from
+Joel's own read of the stylesheet at the end. Baseline at the close: `tsc -b`
+and lint clean, 43 of 43 green in the folder, 3439 of 3441 in the suite — the
+two being `folderDocs`' `common/lib` pair, which is not this area's.
 
 **The audit READ is DONE (2026-09-20).** Every roster file read end to end —
 the three source files, the stylesheet, the three specs, `doc.md` and
@@ -1180,7 +1185,13 @@ which is what makes the three structural names mean "structure".
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group — TWICE, since
+      the first re-read's thirteen were worked in two sittings and could not
+      have seen what the second one wrote
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED` (that
+      list is `shared/` only now)
+- [x] `todo.md` holds everything still owed — the two reserved row markers, ◐
+      and ⦻, rehoused from `deferred.md` by F-21; nothing durable left here
+- [x] every file on the roster blessed — seven `cs-blessed-word-list`
+      (2026-09-21, Joel: *"bless the files in this area and then close this
+      area"*)

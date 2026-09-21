@@ -1,4 +1,4 @@
-// cs-audited-word-list
+// cs-blessed-word-list
 
 /**
  * What the recently-found set promises, on fake timers: a word marked when it

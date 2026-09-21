@@ -1,4 +1,4 @@
-// cs-audited-word-list
+// cs-blessed-word-list
 
 import { useMemo } from 'react'
 import { DefinableWord } from '../definitions/DefinableWord'

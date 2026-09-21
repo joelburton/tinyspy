@@ -1,4 +1,4 @@
-// cs-audited-word-list
+// cs-blessed-word-list
 
 import { useState } from 'react'
 import type { WordListRow } from './WordList'
