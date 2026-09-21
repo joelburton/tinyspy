@@ -4,10 +4,9 @@ The folders it reads: `word-list`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — opened 2026-09-20. PAUSED 2026-09-20**, behind the re-opened
-`board-marks` area and [one-mark-hook.md](../one-mark-hook.md). Nothing here is
-abandoned: the seventeen findings stand, the prose pass is still the next step,
-and this resumes when that plan lands.
+**Status: OPEN — opened 2026-09-20, paused the same day and RESUMED 2026-09-20**
+once the one-mark-hook work landed in the re-opened `board-marks`. Nothing was
+abandoned: the seventeen findings stand, and the prose pass is the next step.
 
 **The audit READ is DONE (2026-09-20).** Every roster file read end to end —
 the three source files, the stylesheet, the three specs, `doc.md` and

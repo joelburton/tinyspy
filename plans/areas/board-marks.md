@@ -8,11 +8,14 @@ stylesheet times are in scope). The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: RE-OPENED 2026-09-20**, for [one-mark-hook.md](../one-mark-hook.md) —
-`useFlash`, `useMark` and `useAnnouncedMark` become one `useMark`. That reverses
-F-14's two-hook split and revisits F-15's rejected raise counter; both are
-recorded under those findings. `word-list` pauses behind it. The stamps do not
-change while the work runs — Joel re-reads and re-blesses at the end.
+**Status: RE-OPENED 2026-09-20; the one-mark-hook work is DONE, the area awaits
+its re-bless.** `useFlash`, `useMark` and `useAnnouncedMark` became one
+`useMark`, which reversed F-14's two-hook split and revisited F-15's rejected
+raise counter; both are recorded under those findings, and the plan that carried
+it is deleted. Sixteen call sites across ten games, six commits
+(`8402f1f9`..`4877c3f8`). **No file was re-stamped** — this retro-fixed what the
+area itself built, so the fifteen `cs-blessed-board-marks` stamps stand as they
+were and Joel re-reads and re-blesses when he is ready. `word-list` resumes.
 
 **Status before that: CLOSED 2026-09-16, blessed.** Audited 2026-09-15; the prose pass
 done 2026-09-15; the findings re-read 2026-09-15 after the game work recorded
