@@ -36,7 +36,7 @@ similar games happened to share"; the rest of the roster followed.
   the board grows, this doesn't). Holds the four **info readouts** (see
   [Info-column readouts](#info-column-readouts) below) above the **event log**
   (chronological, one entry per turn) or **word list** (alphabetical found-words;
-  boggle/spellingbee). It's the **mobile-secondary** column — on small screens it
+  spellingbee/wordwheel/boggle). It's the **mobile-secondary** column — on small screens it
   may collapse to a popup — so anything *critical to playing* goes in the board
   column instead. (That's why the word/number **entry** lives below the board,
   not here — and it's the capture model, not an `<input>`; see
@@ -353,7 +353,7 @@ The shared **`<EventLog>`** (`src/common/event-log/EventLog.tsx`) is a game's pe
 history — one **item** per turn (= per guess for most games; a codenamesduet turn can
 span a clue + several guesses, so an item is a "turn", never a "guess" in the
 shared vocabulary). It's the chronological counterpart to the alphabetical
-`<WordList>` (spellingbee/boggle); a game has whichever fits.
+`<WordList>` (spellingbee/wordwheel/boggle); a game has whichever fits.
 
 **The game owns its rows.** `<EventLog>` is the **panel only** — heading, scroll
 box, `<table>` — and makes **no** assumption about row shape, because row anatomy
@@ -794,8 +794,8 @@ own engine-hook + views shape — see below). The shared turn-history viewer
 (`useHistoryViewer` + a per-game replay helper) ships in the **ten** games whose
 board can replay a past turn — stackdown, connections, psychicnum, codenamesduet,
 wordle, waffle, strands, letterboxed, setgame (each via its own `lib/history.ts`)
-and scrabble (via `historyBoard` in `lib/play.ts`); spellingbee + boggle are
-decomposed but have **no** viewer (a `WordList` isn't chronological).
+and scrabble (via `historyBoard` in `lib/play.ts`); spellingbee, wordwheel and
+boggle are decomposed but have **no** viewer (a `WordList` isn't chronological).
 
 **Read [What building it taught us](#what-building-it-taught-us) before extracting
 `InfoCol` / `BoardCol` for a new game** — it records where the "target architecture"

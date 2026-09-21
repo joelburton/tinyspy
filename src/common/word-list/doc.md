@@ -81,7 +81,9 @@ the segment and reflowing the heading.
 
 **Identity is the dot, never the text.** A found word leads with a filled disc in
 its finder's color and the word itself stays body-black; an unfound one (the
-post-terminal reveal) leads with a hollow gray ring and a gray word. Three flags
+post-terminal reveal) leads with a hollow gray ring and a gray word. A solid
+disc carries a color far better than thin colored text, so a member's color
+only has to survive as a disc and never has to stay legible as a word. Three flags
 compose on top — pangram bolds, bonus adds a trailing bullet, and a recently
 found word takes an underline in its finder's color. That underline is the one
 mark here with a lifetime, and it is suppressed under the reveal, when every

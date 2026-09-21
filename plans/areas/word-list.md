@@ -728,6 +728,19 @@ a finding declared done with a listed site unworked. Siblings the grep found:
 `docs/mobile.md`'s "spellingbee + boggle were the original wide-sheet pair" is a
 history of that pass and stays.
 
+**WORKED 2026-09-21 — the heading is removed, not renamed** (Joel: remove it,
+and point anything that needs a word list at this area's `doc.md`). The
+`deferred.md` section went whole: its rationale for the disc (a solid disc
+carries a color better than thin text) is one sentence in `doc.md`'s dot
+paragraph now; its two reserved markers, ◐ and ⦻, are `Maybe` lines in this
+folder's `todo.md`, which is where an audited area's register lives by
+`deferred.md`'s own rule; its struck-through filter-dropdown item is deleted,
+being shipped. The two links that reached the heading — `spellingbee.md`'s
+shared-items bullet and `deferred.md`'s far-future ⦻ line — point at
+`word-list/doc.md`, and `deferred.md → Where an item goes` loses the clause
+that cited the section as its example. The three `playarea.md` sites say all
+three games.
+
 ### F-word-list-22 · `spellingbee-doc-stale` · spellingbee's doc describes the rows call and the prop this area removed
 
 Made false by this area's own commits (F-6 and F-15 both edited spellingbee's

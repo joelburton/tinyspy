@@ -696,4 +696,4 @@ you want the evidence, are the `forms` area's `letter-input-unnamed`,
 Two shared items also touch this game:
 
 - The **`Letters.module.css` / `Wheel.module.css` fold** with wordwheel — full entry in [`wordwheel.md → Deferred`](wordwheel.md#deferred) (wordwheel is the fork, and owns the pair's shared-vs-not ledger).
-- The **`WordList` marker vocabulary + filter dropdown** (◐, ⦻, the per-player select) — the work is in `common/`, so it stays in [`deferred.md → Wordlist markers`](../deferred.md#wordlist-markers-spellingbee--boggle).
+- The **`WordList` marker vocabulary** (◐, ⦻) — the work is in `common/`, so it lives with [`word-list`](../../src/common/word-list/doc.md).
