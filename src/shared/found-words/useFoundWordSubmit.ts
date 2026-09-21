@@ -51,7 +51,7 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
  *  come straight off the shipped data, so the FE computes nothing. `isPangram`
  *  is spellingbee-only (boggle has no pangram concept) and drives that game's
  *  own success wording. */
-export type WordEntry = {
+export type LegalWord = {
   word: string
   points: number
   isBonus: boolean
@@ -77,7 +77,7 @@ export type FoundWordSubmitConfig = {
   foundWords: ReadonlyArray<{ word: string; user_id: string }>
   /** O(1) membership over the game's legal list, keyed by lowercase word. Returns
    *  the matched entry (points + flags) or `null` for a non-legal word. */
-  lookup: (word: string) => WordEntry | null
+  lookup: (word: string) => LegalWord | null
   /**
    * The trusting-commit RPC, fired in the background.
    *
@@ -91,7 +91,7 @@ export type FoundWordSubmitConfig = {
    * because none of them records the word. That is what lets one envelope carry
    * the whole answer here.
    */
-  commit: (entry: WordEntry) => Promise<NotOkEnvelope | null>
+  commit: (entry: LegalWord) => Promise<NotOkEnvelope | null>
   /** Why did `lookup` miss? Returns just the lowercase *reason* — the hook wraps
    *  it in the shared `WORD — reason` line. Per-game vocabulary: boggle "not on
    *  board" (untraceable) vs "not a word"; spellingbee "bad letters" / "missing

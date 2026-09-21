@@ -15,7 +15,7 @@ import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
-import { useFoundWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/found-words/useFoundWordSubmit'
+import { useFoundWordSubmit, wordWithBonusDot, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
 import { memberById } from '@/common/members/memberList'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import type { LeaderboardEntry } from '@/shared/bee-games/beeLeaderboard'
@@ -254,7 +254,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // not-a-word), and the success label (with the pangram flourish). See
   // docs/games/wordwheel.md.
   const legalIndex = useMemo(() => {
-    const m = new Map<string, WordEntry>()
+    const m = new Map<string, LegalWord>()
     for (const r of game?.requiredWords ?? []) {
       m.set(r.word, { word: r.word, points: r.points, isBonus: false, isPangram: r.is_pangram })
     }

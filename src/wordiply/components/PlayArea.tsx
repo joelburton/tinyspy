@@ -19,7 +19,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import {
   useFoundWordSubmit,
-  type WordEntry,
+  type LegalWord,
   type WordSubmitAnswer,
 } from '@/shared/found-words/useFoundWordSubmit'
 import { useMark } from '@/common/board-marks/useMark'
@@ -258,7 +258,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // readout — so the engine says nothing on an accept.
       hideAccepted: true,
       foundWords: guesses, // ALL rows: the server dedups on rejects too, so a re-try reads as 'already found' here rather than round-tripping
-      lookup: (w): WordEntry | null =>
+      lookup: (w): LegalWord | null =>
         legalSet.has(w) ? { word: w, points: w.length, isBonus: false } : null,
       // ONE ok answer reaches this path. `rejected` is the other one the RPC can
       // give, but only to `recordReject` below: the FE gates all three reasons

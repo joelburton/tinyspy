@@ -14,13 +14,13 @@ import { renderHook, act } from '@testing-library/react'
  */
 import { clearFaultsForTest } from '@/common/faults/faultStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { useFoundWordSubmit, type FoundWordSubmitConfig, type WordEntry } from './useFoundWordSubmit'
+import { useFoundWordSubmit, type FoundWordSubmitConfig, type LegalWord } from './useFoundWordSubmit'
 
-const APPLE: WordEntry = { word: 'apple', points: 5, isBonus: false }
-const ZESTY: WordEntry = { word: 'zesty', points: 9, isBonus: true }
+const APPLE: LegalWord = { word: 'apple', points: 5, isBonus: false }
+const ZESTY: LegalWord = { word: 'zesty', points: 9, isBonus: true }
 
 /** A legal list of two words; everything else misses. */
-const lookup = (w: string): WordEntry | null =>
+const lookup = (w: string): LegalWord | null =>
   w === 'apple' ? APPLE : w === 'zesty' ? ZESTY : null
 
 function makeCfg(over: Partial<FoundWordSubmitConfig> = {}): FoundWordSubmitConfig {

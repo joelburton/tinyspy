@@ -21,7 +21,7 @@ import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
-import { useFoundWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/found-words/useFoundWordSubmit'
+import { useFoundWordSubmit, wordWithBonusDot, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr, tracePathStr, traceCellsStr } from '../lib/boardTrace'
 import { ANSWER_OUTCOME } from '../lib/answer'
@@ -152,7 +152,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // reject reason (not-on-board vs not-a-word, client-side via `traceableStr`),
   // and the success label. See docs/games/boggle.md.
   const legalIndex = useMemo(() => {
-    const m = new Map<string, WordEntry>()
+    const m = new Map<string, LegalWord>()
     for (const r of game?.required_words ?? []) {
       m.set(r.word, { word: r.word, points: r.points, isBonus: false })
     }

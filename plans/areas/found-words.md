@@ -30,7 +30,8 @@ with an obvious fix (F-9); two are tests, one of them confirmed by planting
 `cs-met` until the prose pass ships.
 
 **Shipped since the read:** F-6 (the answer union, named `WordSubmitAnswer` by
-Joel). The prose pass F-1 to F-5 has not run.
+Joel) and F-7 (`WordEntry` → `LegalWord`). The prose pass F-1 to F-5 has not
+run; F-7's `doc.md` sentence is held for it.
 
 ## The roster
 
@@ -263,6 +264,21 @@ says `not_legal`, and `answerFor` maps between them. So the hook's word for
 
 ### F-found-words-7 · `word-entry-name` · `WordEntry` says the wrong thing, and it is the folder's most-imported name
 
+**RULED (1) AND SHIPPED — `LegalWord`** (Joel, 2026-09-21). Thirteen lines in
+six files: the declaration, `lookup` and `commit` in the hook; four in its
+spec; an import and a `Map<string, …>` in each of the four PlayAreas. No doc
+named the type, and `WordEntry` now means one thing in `src/` — the typed-word
+control in `common/word-entry` and stackdown's own component. `tsc -b` and lint
+clean, 386 green across the folder and the four games.
+
+**A correction to the finding below:** its parenthetical calls `FoundWordsWord`
+"the DB row". It is not — `FoundWordRow` is. `FoundWordsWord` is the SHIPPED
+list entry in snake, straight off the board data. So the pair to describe in
+`doc.md` is two shapes of one shipped word: snake off the data, and camel once
+the game's two lists are merged into one index with `isBonus` recording which
+list a word came from (`spellingbee/components/PlayArea.tsx:253–261`). Whether
+that sentence is written now or with the rest of `doc.md` at F-1 is unanswered.
+
 `WordEntry` (`useFoundWordSubmit.ts:54–59`) is what `lookup` returns: an entry
 of the game's legal list — the word, its points, whether it is a bonus word,
 whether a pangram. Every one of the four games imports it by that name to type
@@ -486,8 +502,8 @@ C-pass the same day.
 - ~~F-6 (1): `tsc -b` in three `lib/answer.ts` and their `answer.test.ts` until
   the rename lands; a find-and-replace.~~ Shipped, and the `answer.test.ts`
   half was wrong — none of the three names the type.
-- F-7: `tsc -b` at every `WordEntry` import — the hook, its test, four
-  PlayAreas — until the sweep lands.
+- ~~F-7: `tsc -b` at every `WordEntry` import — the hook, its test, four
+  PlayAreas — until the sweep lands.~~ Shipped; nothing broke.
 - F-8 (1): `wordListRows.test.ts` — `found()` builds a row without `game_id`.
 - F-10: one case fewer in `wordListRows.test.ts` (five → four).
 - F-11: four cases more in `useFoundWordSubmit.test.ts` (13 → 17).
