@@ -23,14 +23,6 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
  * its guesses are the found set — which is the reason the model above is
  * written in terms of the two lists rather than the schema.
  *
- * Why this exists as one hook: boggle previously hand-rolled an optimistic
- * required-word path with no in-flight guard and no `.catch`, so a fast re-submit
- * of the same word (before the realtime `found_words` row lands) could double-fire
- * `submit_word` and surface a raw unique-violation (code-review §1.4). Concentrating
- * the guard here fixes that class of bug by construction and keeps spellingbee from
- * ever growing it — the same "one correct implementation kills the duplicated bug"
- * move as `usePeerFeedback`.
- *
  * **Optimistic, never blocking.** Because the FE already knows the full legal
  * list, a valid word needs no server round-trip to *confirm* — we show `+points`
  * immediately and commit in the background. So there is no busy/disabled state:
@@ -64,137 +56,92 @@ export type LegalWord = {
  *  `answerFor` splits `not_legal` in two). */
 export type WordSubmitAnswer = 'accepted' | 'too_short' | 'not_legal' | 'already_found'
 
+/** Everything the engine cannot know: the game's board rules, its RPC, its
+ *  words for what happened, and the slot to say them in. */
 export type FoundWordSubmitConfig = {
   mode: 'coop' | 'compete'
   userId: string
-  /** True once the game is over — submit becomes a no-op. */
+  // True once the game is over — submit becomes a no-op.
   isTerminal: boolean
   minWordLength: number
-  /** The game's below-board slot: every result this hook produces is shown here. */
+  // The game's below-board slot: every result this hook produces is shown here.
   localFeedbackSlot: FeedbackSlot
-  /** Committed rows (from `useGame`), the dedup source. Mode-aware: coop dedups
-   *  across all players (one shared find list); compete dedups per-player. */
+  // Committed rows (from `useGame`), the dedup source. Mode-aware: coop dedups
+  // across all players (one shared find list); compete dedups per-player.
   foundWords: ReadonlyArray<{ word: string; user_id: string }>
-  /** O(1) membership over the game's legal list, keyed by lowercase word. Returns
-   *  the matched entry (points + flags) or `null` for a non-legal word. */
+  // O(1) membership over the game's legal list, keyed by lowercase word. Returns
+  // the matched entry (points + flags) or `null` for a non-legal word.
   lookup: (word: string) => LegalWord | null
-  /**
-   * The trusting-commit RPC, fired in the background.
-   *
-   * **`null` means the word LANDED; a `NotOkEnvelope` means it did not.** The game owns
-   * the branch chain over its own answers (they are per-game — `pangram` in one,
-   * `dealt` in another — so a shared hook could not read them), and hands back
-   * only the fact this hook is entitled to: whether the optimistic pill it just
-   * showed is still true.
-   *
-   * Every refusal the four games can give is a REFUSAL — a race or a fault —
-   * because none of them records the word. That is what lets one envelope carry
-   * the whole answer here.
-   */
+  // The trusting-commit RPC, fired in the background. **`null` means the word
+  // LANDED; a `NotOkEnvelope` means it did not** — the game reads its own
+  // answers (`pangram` in one, `dealt` in another, which a shared hook could
+  // not) and hands back only whether the optimistic pill is still true.
   commit: (entry: LegalWord) => Promise<NotOkEnvelope | null>
-  /** Why did `lookup` miss? Returns just the lowercase *reason* — the hook wraps
-   *  it in the shared `WORD — reason` line. Per-game vocabulary: boggle "not on
-   *  board" (untraceable) vs "not a word"; spellingbee "bad letters" / "missing
-   *  center letter" / "not a word". `word` is the normalized lowercase. */
+  // Why did `lookup` miss? Returns just the lowercase *reason* — the hook wraps
+  // it in the shared `WORD — reason` line, so the answer is a fragment and not a
+  // sentence. The wording is the game's: one board's misses divide differently
+  // from another's. `word` is the normalized lowercase.
   explainReject: (word: string) => string
-  /**
-   * Optional: also RECORD the rejection, don't just show it.
-   *
-   * Omitted (spellingbee / wordwheel / boggle) → a rejected word never leaves
-   * the client, which is right for a parallel word-search: "whose non-word was
-   * that" is a question nobody asks, and the log would be noise.
-   *
-   * Supplied (wordiply) → the rejection is a TURN. It goes in the shared log so
-   * peers can see what's already been tried, and — for a structural reject —
-   * so it can cost the caller their go. See docs/games/wordiply.md.
-   *
-   * Fire-and-forget: the pill is already on screen and says the same thing, so
-   * a failed write must not change what the player sees. NOT called for an
-   * already-found word — that row is in the log by definition, and re-logging
-   * it is exactly what the reminder exists to prevent.
-   */
+  // Optional: also RECORD the rejection, don't just show it. Omitted, a rejected
+  // word never leaves the client. Supplied, the rejection is a TURN — it goes in
+  // the shared log and can cost the caller their go, which is why wordiply
+  // passes it (docs/games/wordiply.md).
+  //
+  // Fire-and-forget: the pill already says the same thing, so a failed write
+  // must not change what the player sees. **NOT called for an already-found
+  // word** — that row is in the log by definition, and re-logging it is exactly
+  // what the reminder exists to prevent.
   recordReject?: (
     word: string,
     reason: Exclude<WordSubmitAnswer, 'accepted' | 'already_found'>,
   ) => void
 
-  /**
-   * What the engine decided, for a surface that shows it somewhere other than
-   * the pill — wordiply marks the guess row the word was typed into.
-   *
-   * Presentational and nothing else: unlike `recordReject` it fires for EVERY
-   * answer including the already-found one, because a board showing an answer
-   * has to show that one too; and it writes nothing anywhere, so a game COULD
-   * color a reason differently from the pill. None does: a surface that colors
-   * anything here takes the word from its own `lib/answer.ts`, the same table
-   * `outcomeFor` reads for the pill, which is the rule (docs/outcomes.md → One
-   * event, one outcome). wordwheel colors nothing — its `onAnswer` only bumps
-   * the shake — so the question does not arise there.
-   */
+  // What the engine decided, for a surface that shows it somewhere other than
+  // the pill. Presentational and nothing else — it writes nothing anywhere, and
+  // unlike `recordReject` it fires for EVERY answer including the already-found
+  // one, because a board showing an answer has to show that one too.
   onAnswer?: (word: string, answer: WordSubmitAnswer) => void
 
-  /**
-   * What each refusal MEANS in this game, as an outcome. Required, and there is
-   * deliberately no default: what a refusal is worth is the game's judgment, not
-   * this engine's.
-   *
-   * The two readings in the roster are opposite and both right. boggle,
-   * spellingbee and wordwheel treat a word the list does not know as a wrong
-   * move — `lost`. wordiply encourages long, strange guesses, so the same event
-   * is a `warning` there: making a bad word feel like an error would be mean in
-   * a game that wants you to try one.
-   *
-   * It takes the word as well as the answer because a game's single `not_legal`
-   * may cover several things: wordiply's list misses both "not a word" and "does
-   * not contain the stem", and only the second is a rule broken.
-   *
-   * **`accepted` goes through it too**, so the engine never names a word of its
-   * own — not even for the one answer that looks like it could not be argued
-   * about, since all four games already carry a word for it in their tables.
-   *
-   * Whatever it returns is what the PILL says — so a game showing the answer
-   * anywhere else reads this same function for those surfaces too, and the two
-   * cannot drift.
-   */
+  // What each answer MEANS in this game, as an outcome. Required, no default,
+  // and `accepted` goes through it too, so the engine never names a word of its
+  // own. Takes the word as well because one `not_legal` may cover several
+  // things and only some of them are a rule broken. **Whatever it returns is
+  // what the pill says.** See doc.md for why this is the game's judgment.
   outcomeFor: (word: string, answer: WordSubmitAnswer) => Outcome
-  /**
-   * Optional: say nothing when a word is ACCEPTED.
-   *
-   * Omitted (spellingbee / wordwheel / boggle) → the accepted word shows as a
-   * result, `CAT +3`, the one place the player learns it landed.
-   *
-   * Supplied (wordiply) → the board row already shows the word and its
-   * length the moment it is accepted, so a result would say it twice; only
-   * the rejections show.
-   */
+  // Optional: say nothing when a word is ACCEPTED. Omitted, the accepted word
+  // shows as a result — `CAT +3`, the one place the player learns it landed.
+  // Supplied, the board already shows the word the moment it lands, so a result
+  // would say it twice and only the rejections show.
   hideAccepted?: boolean
 }
 
+/** The typed word and the three ways a game touches it. */
 export type FoundWordSubmitApi = {
   word: string
-  /** The raw state setter — accepts a value or an updater, so a game can append
-   *  a clicked letter (`setWord((w) => w + 'A')`) as well as replace. */
+  // The raw state setter — accepts a value or an updater, so a game can append
+  // a clicked letter (`setWord((w) => w + 'A')`) as well as replace.
   setWord: Dispatch<SetStateAction<string>>
-  /** The last word submitted (accepted or rejected), for `<WordEntryArea recall>` —
-   *  ArrowUp brings it back to fix a typo. */
+  // The last word submitted (accepted or rejected), for `<WordEntryArea recall>` —
+  // ArrowUp brings it back to fix a typo. Keeps the RAW text, not the
+  // normalized lookup key, so recall shows what was typed.
   lastWord: string
-  /** Fire a submit of the current `word`. */
+  // Fire a submit of the current `word`.
   submit: () => void
 }
 
 /**
  * A word as it appears anywhere in feedback: caps, with a trailing ` •` bonus
- * dot when it's a bonus find. Single-sources that convention so it can't drift
- * between the local own-move `line()` (below) and the per-game peer-narration
- * pills (spellingbee/boggle coop headers), which also lead with `{name} found
- * {WORD}` and must show the same dot.
+ * dot when it's a bonus find. Exported because the own-move `line()` below is
+ * not the only place a found word is named — a game narrating a PEER's find
+ * (`{name} found {WORD}`) must show the same dot, and the two would drift the
+ * first time either was edited.
  */
 export const wordWithBonusDot = (word: string, isBonus = false): string =>
   `${word.toUpperCase()}${isBonus ? ' •' : ''}`
 
 /**
- * The one own-move line format, shared by both games so their feedback reads
- * identically: `WORD — body`, always leading with the word in caps. A **bonus**
+ * The one own-move line format, so every game in the family reads identically:
+ * `WORD — body`, always leading with the word in caps. A **bonus**
  * find gets the ` •` dot right after the word (not at the end of the line):
  *   accept       → `GOOD — +2`      (bonus: `GOOD • — +2`)
  *   pangram      → `ABCDEFG — pangram +17`

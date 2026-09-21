@@ -34,8 +34,11 @@ union, which he named `WordSubmitAnswer`), F-7 (`WordEntry` → `LegalWord`),
 F-8 (the structural row types), F-12 (the loading/empty rule), F-9 (the dead
 `??`), F-10 (the tautology, with its `spellingbee.md` clause), F-3 (the
 pangram wording, Joel's second option) and F-14 with F-13 (the composed
-`--avail-h`, proved by board-geometry). The prose pass F-1, F-2, F-4 and F-5
-has not run, and F-7's `doc.md` sentence is held for it.
+`--avail-h`, proved by board-geometry), and then the rest in one sitting on
+*"fix remaining items"* — the prose pass F-1, F-2, F-4 and F-5 (F-7's held
+`doc.md` sentence landed with F-1), F-11's four cases and F-15's stale paths.
+**All fifteen findings are worked.** What the area still owes is its closing
+re-read and the bless.
 
 ## The roster
 
@@ -118,6 +121,23 @@ instruction where a composed one would do.
 
 ### F-found-words-1 · `doc-md` · The intro is owed, and the design has no home but the hook's docstring
 
+**SHIPPED, 2026-09-21** (Joel: *"fix remaining items"*). `doc.md` has its
+`## Intro to area` and a `## Details`; `shared/found-words` is off
+`INTROS_OWED`. The intro states the model as the membership test it is (a game
+with all three parts fits the engine), why the folder is drawn around that
+rather than around a family of boards, what "shipped" buys — the optimism and
+the trusting commit — the one thing the games disagree about and why the engine
+has no view of it, and F-7's held sentence about the two spellings of a word.
+Details carries the call tree, the screen-equals-printer property and
+`hasBonus`. The reveal-sizing section moved under it unchanged.
+
+**The guard shaped it.** `folderDocs`'s in-shape case rejected the first draft:
+*"1 intro paragraph(s) open with bold — a bolded claim is a Details item, and
+the intro is narrative"*. The two-spellings paragraph opened with a bold claim
+and now opens narratively. Worth recording because the rule is not about
+emphasis: an intro paragraph that starts by asserting is a Details item wearing
+an intro's clothes.
+
 `doc.md` is a lede and one named section (the reveal's sizing). No `## Intro to
 area`, no `## Details`; `shared/found-words` is on `INTROS_OWED`. What a
 newcomer would need is scattered: the model (*a typed word, a shipped legal
@@ -150,6 +170,18 @@ The reveal-sizing section moves under Details as it is. Its row comes off
 `INTROS_OWED`.
 
 ### F-found-words-2 · `dangling-code-review-cite` · A cite into a document that does not exist, and the paragraph around it is archaeology
+
+**SHIPPED, 2026-09-21.** Both cites are gone. The hook's *"Why this exists as
+one hook"* paragraph went with the first — it was how boggle used to work, and
+its one durable sentence is the "Optimistic, never blocking" paragraph below it
+already. The spec's header keeps its list of cases and loses the parenthetical;
+it also moved above the imports, which F-5 owed.
+
+**A correction to the finding:** it says the grep *"comes back with these two
+lines and nothing else"*. There is a third — `docs/games/bananagrams.md:64`,
+*"Known race — accepted (code-review §1.4)"*. Left alone: bananagrams is its
+own area (row 50), and this is its doc, not this folder's. Recorded here so
+that area does not have to rediscover the document does not exist.
 
 `useFoundWordSubmit.ts:26–32` — *"Why this exists as one hook: boggle
 previously hand-rolled an optimistic required-word path … (code-review §1.4)"*
@@ -192,6 +224,23 @@ just *optional: only some games in the family have the concept*, which is what
 
 ### F-found-words-4 · `caller-rosters-in-docstrings` · Five sentences that describe callers rather than the contract, and four are wrong today
 
+**SHIPPED, 2026-09-21.** All five name the condition now and quote no game's
+wording: `line()` is "every game in the family"; `wordWithBonusDot` says WHY it
+is exported (a peer-narration pill names a found word too, and the two would
+drift); `explainReject` says the wording is the game's because one board's
+misses divide differently from another's; `revealWords`'s lede is "the games
+that keep a list of what was found and can therefore say what was not";
+`FoundWordsWord` drops the wrong claim that it is also a reveal entry and
+points at `RevealWord<FoundWordsWord>` instead.
+
+**Two sentences beyond the five, both handed here.** F-3 flagged
+`foundWords.ts:12` (*"optional because boggle has no pangram concept"*), and
+the file docstring above it rostered the same three games. Both now state the
+condition — "not every board has the concept", "a game in the family keeps a
+`<schema>.found_words` table" — which keeps the reason each sentence exists
+while losing the count that rots. The wordiply sentence F-4 preserves is
+untouched: it explains this file's own shape.
+
 Each is a roster or a quotation of a caller written into this folder, and each
 has rotted since:
 
@@ -218,6 +267,20 @@ being the caller with no table, which is why the model is written over two
 lists — stays, because it explains this file's own shape.
 
 ### F-found-words-5 · `config-member-markers` · Fourteen `/**` on the members of two types, and two of them are essays about callers
+
+**SHIPPED, 2026-09-21.** Every member of both types takes `//`, and both types
+have a one-line docstring of their own — the config is "everything the engine
+cannot know", the api is "the typed word and the three ways a game touches it".
+
+The two essays are their contract now. `onAnswer` keeps what a caller must know
+(presentational, writes nothing, fires for EVERY answer including the
+already-found one) and loses the paragraph about which game colors what.
+`outcomeFor` keeps required-no-default, `accepted` goes through it too, it takes
+the word because one `not_legal` may cover several things, and whatever it
+returns is what the pill says — and points at `doc.md` for WHY that judgment is
+the game's, which is the folder's design and now lives there once (F-1).
+`lastWord` gained the one line its own contract was missing: it keeps the RAW
+text, not the lookup key.
 
 The marker pass. `FoundWordSubmitConfig` (`useFoundWordSubmit.ts:61–168`) and
 `FoundWordSubmitApi` (`:170–180`) are two declarations; every documented
@@ -424,6 +487,18 @@ and more mechanism than the property is worth.
 
 ### F-found-words-11 · `unpinned-branches` · Four behaviors no spec reaches, confirmed by planting
 
+**SHIPPED, 2026-09-21.** Four cases, 13 → 17, no production code touched:
+`recordReject` fires for too-short and not-legal and NOT for already-found (as
+one `mock.calls` assertion, so an extra call fails too); `onAnswer` gets all
+four answers in order; the word is trimmed + lowercased for lookup while
+`lastWord` keeps `'  ApPle  '`; and a commit that THROWS raises the fault modal,
+read back with `peekFaultsForTest`.
+
+**Planted to prove they bite:** with the `too_short` `recordReject` call, the
+`already_found` `onAnswer` call and the normalization all removed at once,
+three of the four fail (the fourth is the throw case, which those edits do not
+touch). Before this, the same plant passed 13 of 13.
+
 Planted in the hook, then the file's spec run: both `recordReject` calls
 removed, the `already_found` `onAnswer` call removed, and the input
 normalization (`raw.trim().toLowerCase()` → `raw`) removed — **13 of 13
@@ -581,6 +656,19 @@ first.
 
 ### F-found-words-15 · `game-docs-stale-paths` · The family's own subject, stale in two game docs
 
+**SHIPPED, 2026-09-21**, all four items — the fourth shipped early with F-10.
+`spellingbee.md:398` and `wordwheel.md:352` name `shared/found-words/`;
+wordwheel's sentence no longer claims one file holds the `--u` arithmetic too;
+`wordwheel.md:357` points `typedWord.module.css` at this folder;
+`spellingbee.md:219` says "every game that ships its legal list to the client"
+where it counted two.
+
+**Found while sweeping, and NOT fixed:** the pre-reorg path
+`common/components/game/` survives in six game docs for OTHER folders' files —
+`PlayArea.module.css` (stackdown, boggle, waffle, spellingbee), `RankBar` and
+`Stats` (spellingbee), and `common/…/entry/GuessKeyboard` (wordiply ×2). Each
+belongs to the area that owns that file, not to this one.
+
 Outside the folder, found by grepping every doc for the folder's exports:
 
 - `docs/games/spellingbee.md:398` and `wordwheel.md:352` name
@@ -641,7 +729,8 @@ C-pass the same day.
 - ~~F-8 (1): `wordListRows.test.ts` — `found()` builds a row without `game_id`.~~
   Shipped; predicted correctly, and the fix was the one line.
 - ~~F-10: one case fewer in `wordListRows.test.ts` (five → four).~~ Shipped.
-- F-11: four cases more in `useFoundWordSubmit.test.ts` (13 → 17).
+- ~~F-11: four cases more in `useFoundWordSubmit.test.ts` (13 → 17).~~ Shipped,
+  exactly 13 → 17.
 - ~~F-13: `src/guards/vocabularies.test.ts:288` — the pending row is deleted
   with the conversion, or the guard reports a converted value still listed.~~
   Shipped, and it fired exactly as predicted — plus a SECOND row nobody
@@ -650,8 +739,10 @@ C-pass the same day.
 - ~~F-14 (1): `e2e/board-geometry.e2e.ts` is the proof, not a break — 21 boxes
   within 0.5px, on Joel's word.~~ Run 2026-09-21 on his word: baseline
   re-seeded on the pre-change tree, 21 of 21 match within 0.5px.
-- F-1: `src/guards/folderDocs.test.ts` — `shared/found-words` comes off
-  `INTROS_OWED` in the same commit as the intro, or the guard fails either way.
+- ~~F-1: `src/guards/folderDocs.test.ts` — `shared/found-words` comes off
+  `INTROS_OWED` in the same commit as the intro, or the guard fails either
+  way.~~ Shipped together. The guard ALSO caught the intro's shape, which was
+  not predicted — see F-1.
 
 ## Closing
 

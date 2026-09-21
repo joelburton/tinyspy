@@ -1,18 +1,18 @@
 // cs-met-found-words
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { renderHook, act } from '@testing-library/react'
-
 /**
  * Tests for the shared word validate/submit engine. The cases that matter are the
  * ones a hand-rolled submit path gets wrong or duplicates: an accepted word fires the
  * commit exactly once and shows the pill (with the bonus dot); the optimistic
  * in-flight guard stops a same-word re-submit from double-committing during the
- * realtime-lag window (code-review §1.4); dedup is mode-aware; a non-legal word is
- * rejected with the per-game reason and NEVER hits the RPC; and a failed commit
- * releases the word so a retry works.
+ * realtime-lag window; dedup is mode-aware; a non-legal word is rejected with the
+ * per-game reason and NEVER hits the RPC; and a failed commit releases the word so
+ * a retry works. The answers a caller can act on — which of them record a
+ * rejection, which reach `onAnswer` — are pinned at the bottom.
  */
-import { clearFaultsForTest } from '@/common/faults/faultStore'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { renderHook, act } from '@testing-library/react'
+import { clearFaultsForTest, peekFaultsForTest } from '@/common/faults/faultStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { useFoundWordSubmit, type FoundWordSubmitConfig, type LegalWord } from './useFoundWordSubmit'
 
@@ -266,5 +266,79 @@ describe('useFoundWordSubmit', () => {
     await submit()
     expect(commit).toHaveBeenCalledTimes(2)
     expect(shown(cfg)?.outcome).toBe('won')
+  })
+
+  it('raises a fault when the commit THROWS rather than answering', async () => {
+    // `runRpc` resolves for every answer it can classify, so a rejected promise
+    // is a bug in the caller, not a refusal — and it gets the modal, not a pill.
+    const cfg = makeCfg({ commit: vi.fn().mockRejectedValue(new Error('boom')) })
+    const { type, submit } = setup(cfg)
+
+    type('apple')
+    await submit()
+
+    expect(peekFaultsForTest()).toHaveLength(1)
+    expect(peekFaultsForTest()[0]?.text).toContain('BUG')
+  })
+
+  // ── What the caller's two callbacks are told ───────────────────────────────
+  // The rule is a split: `recordReject` WRITES (wordiply logs the rejection and
+  // it can cost a turn), `onAnswer` only shows. So the already-found answer
+  // reaches one and not the other, and nothing but these cases holds that.
+
+  it('records a rejection for too-short and not-legal, and NOT for already-found', async () => {
+    const recordReject = vi.fn()
+    const cfg = makeCfg({ recordReject, foundWords: [{ word: 'apple', user_id: 'u1' }] })
+    const { type, submit } = setup(cfg)
+
+    type('abc') // under minWordLength
+    await submit()
+    type('zzzzz') // not on the legal list
+    await submit()
+    type('apple') // already in foundWords
+    await submit()
+
+    expect(recordReject.mock.calls).toEqual([
+      ['abc', 'too_short'],
+      ['zzzzz', 'not_legal'],
+    ])
+  })
+
+  it('tells onAnswer about every answer, already-found included', async () => {
+    const onAnswer = vi.fn()
+    const cfg = makeCfg({ onAnswer, foundWords: [{ word: 'apple', user_id: 'u1' }] })
+    const { type, submit } = setup(cfg)
+
+    type('abc')
+    await submit()
+    type('zzzzz')
+    await submit()
+    type('apple')
+    await submit()
+    type('zesty')
+    await submit()
+
+    expect(onAnswer.mock.calls).toEqual([
+      ['abc', 'too_short'],
+      ['zzzzz', 'not_legal'],
+      ['apple', 'already_found'],
+      ['zesty', 'accepted'],
+    ])
+  })
+
+  it('normalizes the word for lookup but recalls the raw text', async () => {
+    const cfg = makeCfg()
+    const { result, type, submit } = setup(cfg)
+
+    type('  ApPle  ')
+    await submit()
+
+    // The lookup key is trimmed + lowercased, so a word typed loosely still
+    // finds its entry and the pill names it in caps…
+    expect(cfg.commit).toHaveBeenCalledWith(APPLE)
+    expect(shown(cfg)?.text).toBe('APPLE — +5')
+    // …while recall keeps what was actually typed, which is the point of it:
+    // ArrowUp is for fixing a typo, not for reading back a normalized key.
+    expect(result.current.lastWord).toBe('  ApPle  ')
   })
 })

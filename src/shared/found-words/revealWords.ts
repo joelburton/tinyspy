@@ -1,8 +1,8 @@
 // cs-met-found-words
 
 /**
- * The terminal **missed-word reveal**, shared by the found-words games
- * (spellingbee, wordwheel, boggle).
+ * The terminal **missed-word reveal**, for the games that keep a list of what
+ * was found and can therefore say what was not.
  *
  * **Generic over the word so the entry rides through unchanged**: this adds a
  * tag and takes nothing away, so what a caller passes in comes back out with
