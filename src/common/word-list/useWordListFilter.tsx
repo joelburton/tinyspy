@@ -101,8 +101,19 @@ export function useWordListFilter({
   // and a selection that stops being offered (a player who left, or Missed before
   // the reveal lands) degrades to the default instead of filtering to nothing
   // forever.
+  // WHO's default is the one place the missed words are held back. They fold
+  // into the rows the moment the game ends, so a list opening on All would open
+  // on the answer — you would read what you missed before you had read what you
+  // got. Defaulting to Found gives that beat, and the answer stays one select
+  // away rather than behind a second control: the WHO axis IS the reveal for
+  // these games, which is why they carry no Reveal button.
+  //
+  // Gated on `hasMissed` as well as `isTerminal`, because Found is not offered
+  // until a missed row exists — a default that is not in the option set would
+  // filter to a list the player cannot get back from.
+  const whoDefault = isTerminal && hasMissed ? FOUND : ALL
   const kind = kindChosen !== null && kindOffered.includes(kindChosen) ? kindChosen : LEGAL
-  const who = whoChosen !== null && whoOffered.includes(whoChosen) ? whoChosen : ALL
+  const who = whoChosen !== null && whoOffered.includes(whoChosen) ? whoChosen : whoDefault
 
   function matchesKind(r: WordListRow): boolean {
     if (kind === LEGAL) return true
@@ -180,6 +191,9 @@ function emptyTextFor(kind: string, who: string, players: Member[]): string {
   const kindWord = kind === REQUIRED ? 'required' : kind === BONUS ? 'bonus' : ''
 
   if (who === MISSED) return kindWord ? `No ${kindWord} words missed.` : 'Nothing missed.'
+  // Reachable only at terminal, where Found is the default — and where "yet" of
+  // the plain line below would be a lie, since nothing more is coming.
+  if (who === FOUND) return kindWord ? `No ${kindWord} words found.` : 'Nothing found.'
   if (who !== ALL && who !== FOUND) {
     const name = players.find((p) => p.user_id === who)?.username ?? 'that player'
     return kindWord ? `No ${kindWord} words from ${name} yet.` : `Nothing from ${name} yet.`

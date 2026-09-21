@@ -32,6 +32,7 @@ import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import type { WordwheelGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
+import { pickFilter } from '@/common/lists/filterSelectHelpers'
 import { PlayArea } from './PlayArea'
 
 /** A ctx whose global slot is real, with a spy on its one door. */
@@ -188,15 +189,18 @@ describe('wordwheel PlayArea — render smoke', () => {
     expect(screen.getByText('Rank:')).toBeInTheDocument()
   })
 
-  it('renders the terminal state and reveals unfound required words', () => {
+  it('holds the missed words one select back at terminal, and shows them on ask', async () => {
     // wordwheel never hides its solution (gametypes.hides_solution = false),
-    // so end_game sets solution_revealed at every ending; the WordList reads
-    // that common flag rather than isTerminal.
+    // so the missed words fold into the rows the moment the game ends. What
+    // holds them is the WHO filter's terminal default, Found — the beat before
+    // the answer. The filter IS the reveal for these games; there is no button.
     render(
       <PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />,
     )
-    // At terminal the WordList reveals required words nobody found — 'bead' was
-    // never submitted, so it appears in the list.
+    // 'bead' was never submitted, so it is a missed word and not on show.
+    expect(screen.queryByText(/bead/i)).toBeNull()
+
+    await pickFilter('Missed', 1) // the WHO select; KIND is 0 on a bonus board
     expect(screen.getByText(/bead/i)).toBeInTheDocument()
   })
 })

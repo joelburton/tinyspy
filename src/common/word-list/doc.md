@@ -17,7 +17,15 @@ is what happens to a list of words once somebody has built it: how it is laid
 out, how a word says who found it, how you narrow it, and how a word that just
 arrived says so.
 
-Two things about it are worth knowing before reading the code, and both are
+The filter is also the one thing standing between a finished game and its
+answer. The missed words fold into the rows the moment the game ends, and what
+holds them back is the WHO axis's terminal default: **Found**, so the list opens
+on what you got rather than on what you missed. The answer is one select away,
+not behind a second control — these games carry no Reveal button precisely
+because this axis already is one, and a button beside it would be two ways to
+switch the same two lists.
+
+Two more things about it are worth knowing before reading the code, and both are
 about the filter. The list is narrowed on two axes rather than one: a KIND
 select for which shipped list a word came from, and a WHO select over everyone,
 somebody, nobody and each person. They stay separate because they answer

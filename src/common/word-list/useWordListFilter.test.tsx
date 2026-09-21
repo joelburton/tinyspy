@@ -56,9 +56,18 @@ describe('useWordListFilter — the two axes', () => {
     expect(await filterOptions(WHO)).toEqual(['All', 'Found', 'Missed', 'me', 'moth'])
   })
 
-  it('defaults to Legal · All — the whole list', () => {
+  it('defaults to Legal · Found at terminal — the answer is one select away', () => {
+    // The missed words fold into the rows the moment the game ends, so a list
+    // opening on All would open on the answer. Found is the beat before it;
+    // the WHO axis IS the reveal for these games, so All and Missed are a
+    // select away rather than behind a second control.
     const { result } = setup()
-    expect(result.current.filter(ended)).toHaveLength(4)
+    expect(result.current.filter(ended).map((r) => r.word)).toEqual(['bead', 'blag'])
+  })
+
+  it('defaults to Legal · All mid-game, where there is nothing to hold back', () => {
+    const { result } = setup({ rows: playing, isTerminal: false })
+    expect(result.current.filter(playing).map((r) => r.word)).toEqual(['bead', 'blag'])
   })
 
   it('drops the KIND picker entirely on a board with no bonus list', async () => {
@@ -143,19 +152,22 @@ describe('useWordListFilter — filtering', () => {
     )
   }
 
-  it('KIND narrows to one shipped list, across found AND missed', () => {
+  it('KIND narrows to one shipped list, across found AND missed', async () => {
     render(<Probe />)
+    await pickFilter('All', WHO) // past the terminal default, which is Found
     expect(screen.getByTestId('rows')).toHaveTextContent('bead,blag,bald,zho')
   })
 
   it('Required keeps found + missed required words only', async () => {
     render(<Probe />)
+    await pickFilter('All', WHO)
     await pickFilter('Required', KIND)
     expect(screen.getByTestId('rows')).toHaveTextContent('bead,bald')
   })
 
   it('Bonus keeps found + missed bonus words only', async () => {
     render(<Probe />)
+    await pickFilter('All', WHO)
     await pickFilter('Bonus', KIND)
     expect(screen.getByTestId('rows')).toHaveTextContent('blag,zho')
   })
@@ -205,20 +217,28 @@ describe('useWordListFilter — filtering', () => {
  * "this game has no words" when really your filter matched none of them.
  */
 describe('useWordListFilter — the empty line names the filter', () => {
-  function Probe() {
+  function Probe({ isTerminal = true }: { isTerminal?: boolean } = {}) {
     const f = useWordListFilter({
-      rows: ended, players: two, selfId: 'u1', isCompete: false, isTerminal: true, hasBonus: true,
+      rows: ended, players: two, selfId: 'u1', isCompete: false, isTerminal, hasBonus: true,
     })
     return (<>{f.picker}<p data-testid="empty">{f.emptyText}</p></>)
   }
 
-  it('says plain "No words yet" at the defaults', () => {
-    render(<Probe />)
+  it('says plain "No words yet" at the mid-game defaults', () => {
+    render(<Probe isTerminal={false} />)
     expect(screen.getByTestId('empty')).toHaveTextContent('No words yet')
+  })
+
+  it('does not say "yet" at terminal, where nothing more is coming', () => {
+    // Newly reachable: Found is the terminal default, so a player who found
+    // nothing lands here — and "yet" would be a lie on a finished game.
+    render(<Probe />)
+    expect(screen.getByTestId('empty')).toHaveTextContent('Nothing found.')
   })
 
   it('names the KIND', async () => {
     render(<Probe />)
+    await pickFilter('All', WHO)
     await pickFilter('Bonus', KIND)
     expect(screen.getByTestId('empty')).toHaveTextContent('No bonus words yet.')
   })

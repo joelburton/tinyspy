@@ -39,8 +39,13 @@ const base = {
 }
 
 describe('WordList — the heading tally', () => {
-  it('counts and scores the whole list at the default filter', () => {
+  it('counts and scores what is SHOWN — at terminal that is the finds', async () => {
+    // The terminal default is Found, so the heading opens on what you got
+    // rather than on the whole list including what you missed.
     render(<WordList rows={ROWS} {...base} />)
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Words: 2 · Score: 6')
+
+    await pickFilter('All')
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('Words: 3 · Score: 11')
   })
 
@@ -59,8 +64,9 @@ describe('WordList — the heading tally', () => {
     const unscored = ROWS.map((r) => ({ ...r, points: undefined }))
     render(<WordList rows={unscored} {...base} />)
     // Anchored: no stray "Score:" clause between the count and the longest.
+    // Two, not three — the terminal default shows the finds.
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent(
-      /^Words: 3 · Longest: 5$/,
+      /^Words: 2 · Longest: 5$/,
     )
   })
 

@@ -301,12 +301,12 @@ export function PlayArea(ctx: GamePageCtx) {
       // the missed-word list IS the post-game artifact. Look up each found word's
       // points (the shared row type carries the finder/bonus but not the score).
       // Gated on `isTerminal`, which is the whole rule for these three word-finding
-      // games: at game over the list shows what nobody found, and the KIND filter
-      // (found / missed) is the only control anyone needs over it. They carry no
-      // Reveal button on purpose — it would be a second, confusing way to switch
-      // between the same two lists (docs/ui.md → Terminal results). If we ever
-      // wanted the answer withheld at the end, the change is the filter's DEFAULT,
-      // not a new control.
+      // games: at game over the missed words fold into the list, and the WHO
+      // filter (found / missed) is the only control anyone needs over them.
+      // They carry no Reveal button on purpose — it would be a second,
+      // confusing way to switch the same two lists (docs/ui.md → Terminal
+      // results) — and the answer is withheld one beat by that filter's
+      // terminal DEFAULT, Found, which is where such a change belongs.
       const revealWords = isTerminal
         ? buildRevealWords(game.required_words, hasBonusDifficulty ? game.bonus_words : [], foundWords)
         : null
@@ -532,11 +532,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // so it can only be absent when the game is, and it has no failure of its own.
   if (!game || !grid) return <div className={styles.empty}>Game not found.</div>
 
-  // The reveal: every word nobody found, at game over. No button gates it —
-  // the word list's KIND filter (found / missed) already IS that control, and a
-  // Reveal button would be a second, confusing way to switch the same two lists
-  // (docs/ui.md → Terminal results). boggle, spellingbee and wordwheel are the
-  // three games that work this way.
+  // The reveal: every word nobody found, folded in at game over. No button
+  // gates it — the word list's WHO filter (found / missed) already IS that
+  // control, and a Reveal button would be a second, confusing way to switch the
+  // same two lists (docs/ui.md → Terminal results). What gives the beat before
+  // the answer is that filter's terminal DEFAULT, Found, so the list opens on
+  // what you got. boggle, spellingbee and wordwheel all work this way.
   //
   // The missed BONUS words fold in too — but only when the board actually has a
   // wider legal band. With the bands equal, "bonus" means nothing but the words

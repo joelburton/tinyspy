@@ -263,6 +263,43 @@ Nothing can reach it. The process fix is in [app-audit.md](../app-audit.md) §4 
 [A restart REMOUNTS](../app-audit.md#a-restart-remounts--assume-nothing-in-a-game-still-has-to-clear-itself),
 and the opening step that reads what moved under an area.
 
+### F-word-list-18 · `terminal-default` · The list opens on the answer at game over
+
+**RAISED AND RULED BY JOEL, 2026-09-21**, out of F-6: *"i've been thinking about
+whether we should show all missed words automatically at game end, or whether we
+should get that behind a 'reveal-solution', as we do for most other games."*
+
+The missed words fold into the rows the moment the game ends, and the WHO filter
+defaulted to All — so a finished game opened on what you missed before you had
+read what you got. Eleven games gate their answer behind a reveal control; these
+three do not.
+
+**Ruled: keep the automatic fold, and make the WHO filter's terminal default
+`Found`.** Not a Reveal button, for the reason all three games already had
+written down and which this finding only confirms — the WHO axis IS that control
+for these games, and a button beside it would be two ways to switch the same two
+lists. The code's own note predicted the shape of the fix: *"If we ever wanted
+the answer withheld at the end, the change is the filter's DEFAULT, not a new
+control."* The trade taken knowingly: a default of Found gives the beat but
+announces nothing, so discovery rests on the select being visible.
+
+Gated on `hasMissed` as well as `isTerminal`, since Found is not offered until a
+missed row exists and a default outside the option set would strand the list.
+
+**It made one empty line reachable that never was.** At terminal with Found
+selected and nothing found, the plain line read "No words yet" — "yet" being a
+lie on a finished game. There is a `Found` branch now: "Nothing found."
+
+**Six specs changed, and the two that matter are the games'.** spellingbee's and
+wordwheel's terminal smoke tests asserted a missed word was on screen; they now
+assert it is NOT, and that it appears after picking Missed — both halves, so
+neither the fold nor the hold can regress silently. The rest were tests that had
+leaned on the old default while testing something else (the KIND axis, the
+heading tally); each now picks All explicitly, which is what it always meant.
+
+**F-6 is unblocked by this.** The fold is still exactly `isTerminal`, so `reveal`
+is still that same value under a second name.
+
 ### F-word-list-6 · `reveal-prop` · `reveal` is `isTerminal` at every caller
 
 The prop exists to suppress the flash when the terminal refetch lands every

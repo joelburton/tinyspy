@@ -189,12 +189,12 @@ export function PlayArea(ctx: GamePageCtx) {
       // half would be a different document from the one on screen. Look up each found
       // word's points (the shared row type carries finder/bonus/pangram, not score).
       // Gated on `isTerminal`, which is the whole rule for these three word-finding
-      // games: at game over the list shows what nobody found, and the KIND filter
-      // (found / missed) is the only control anyone needs over it. They carry no
-      // Reveal button on purpose — it would be a second, confusing way to switch
-      // between the same two lists (docs/ui.md → Terminal results). If we ever
-      // wanted the answer withheld at the end, the change is the filter's DEFAULT,
-      // not a new control.
+      // games: at game over the missed words fold into the list, and the WHO
+      // filter (found / missed) is the only control anyone needs over them.
+      // They carry no Reveal button on purpose — it would be a second,
+      // confusing way to switch the same two lists (docs/ui.md → Terminal
+      // results) — and the answer is withheld one beat by that filter's
+      // terminal DEFAULT, Found, which is where such a change belongs.
       const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
       const words = buildWordListRows({
         foundWords,
