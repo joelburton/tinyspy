@@ -420,6 +420,18 @@ competes for the cascade. Removal cannot change what renders.
 `string` is honest there. A `type Kind = typeof LEGAL | …` costs four
 annotations and lets the compiler read `kind === BONUS`. Small; leave or take.
 
+**WORKED 2026-09-21 — taken.** `type Kind` over the three constants; the state,
+the offered list, the derived value and `emptyTextFor`'s parameter all read it.
+WHO stays `string`, which is honest — it holds user ids.
+
+**It cost five changes, not four, and the fifth is the interesting one.**
+`FilterSelect` answers in `string`, so `onChange={setKindChosen}` stopped
+typechecking. The fix is a narrowing at that boundary — `kindOffered.find((k) =>
+k === v) ?? null` — rather than a cast: a value the select could not have been
+given stores null and reads as the default, instead of being asserted into a
+type it does not belong to. The union is worth more here than at the three sites
+that merely annotate, because it turned an untyped boundary into a checked one.
+
 ### F-word-list-11 · `row-type-home` · The row type lives in the component file
 
 `WordListRow` is exported from `WordList.tsx`, and the code that BUILDS rows
