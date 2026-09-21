@@ -6,8 +6,9 @@ Joel during the `word-list` area, and re-read against the code the same day;
 it ships, the durable parts move into
 [docs/common-folders.md](../docs/common-folders.md) and each folder's `doc.md`,
 and this file is deleted. Decisions marked **(Joel)** are his and made;
-questions under "Open calls" are his and not yet made. Nothing here is
-precedent for anything else.
+questions under "Open calls" are his. **All seven are answered as of
+2026-09-21**, each recorded on its own entry with the reasoning that produced
+it. Nothing here is precedent for anything else.
 
 ## What the walk found
 
@@ -191,7 +192,12 @@ and that is not wrong, because the file's inputs are found words.
    file there lands `cs-unmet` until an area reads it. Mechanics: the stamps
    guard reads the git index, so the new file must be `git add`ed to be seen
    at all, and must carry `// cs-unmet` on line 1 or the guard fails it.
-4. **The mobile status height.** The shared layout block sets
+4. **ANSWERED (Joel, 2026-09-21): the per-game token.** The shared mobile
+   block reads `--mobile-status-height` and stops declaring it; spellingbee
+   and wordwheel each declare `4.25rem` on their own `.layout`, boggle
+   `4.5rem`, beside the board numbers already there.
+
+   **The mobile status height.** The shared layout block sets
    `--mobile-status-height: 4.25rem`; boggle's measured value is 4.5rem
    (its three-line stat cells). Either the shared block reads a per-game token
    the game's own stylesheet sets, like the four board-units numbers already
@@ -213,12 +219,22 @@ and that is not wrong, because the file's inputs are found words.
    hive-and-wheel board geometry. The two games' shared trait is a center
    letter the word must use, so `center-letter` would say what they share;
    keeping `bee-games` costs nothing. Not load-bearing.
-6. **Stamps for boggle's converted files.** This work happens outside boggle's
+6. **ANSWERED (Joel, 2026-09-21): leave them `cs-unmet`.** This plan stamps
+   nothing, in boggle or anywhere else. Boggle's own area reads and stamps
+   those files when it opens — the same answer the three previous
+   cross-cutting passes reached (app-audit.md §3 rows 39, 40 and 41).
+
+   **Stamps for boggle's converted files.** This work happens outside boggle's
    area, at Joel's word (*"we'll do this during the plan rather than waiting
    for a boggle audit"*), the same way the post-close connections work did.
    Those files carry `cs-unmet` today; whether the plan stamps them for the
    audit or leaves them for boggle's area is Joel's.
-7. **The width token the shared `.belowBoard` reads.** spellingbee's board
+7. **ANSWERED (Joel, 2026-09-21): the alias.** Boggle's `.boardCol` gains one
+   line, `--board-width: var(--side)`. `--side` stays boggle's own, so it
+   keeps the square-board idiom it shares with waffle, scrabble, stackdown
+   and letterboxed, and the shared rule has one name to read.
+
+   **The width token the shared `.belowBoard` reads.** spellingbee's board
    column computes `--board-width`; boggle's computes `--side`, the idiom every
    square board in the app uses (waffle, scrabble, stackdown, letterboxed) and
    that `playArea.module.css` documents as the square variant. Either boggle
