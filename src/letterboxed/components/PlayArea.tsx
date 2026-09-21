@@ -1,6 +1,8 @@
 // cs-fixed-outcome-fix
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMark } from '@/common/board-marks/useMark'
+import { NO_TIMER } from '@/common/board-marks/feedbackTiming'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -168,22 +170,27 @@ export function PlayArea(ctx: GamePageCtx) {
   const sides = game?.sides ?? ''
   const maxWords = game?.max_words ?? 5
 
-  /** The word this player just had refused, with a nonce beside it: refusing the
-   *  same word twice has to shake twice, and a CSS animation only restarts on a
-   *  new element — so the letters are keyed on this.
+  /** The word this player just had refused. `NO_TIMER`, because nothing on a
+   *  clock ends it: it stands until the next action, which is any edit to what
+   *  is in the box. The mark's `nonce` is what the board keys its letters on —
+   *  refusing the same word twice has to shake twice, and a CSS animation only
+   *  restarts on a new element.
    *
    *  It is about the word AS SUBMITTED, so the next edit ends it — which is why
    *  `editDraft` below clears it rather than the board comparing text. Comparing
    *  text was the first version and it was wrong in a way worth remembering: a
    *  refused ABD shook again on the way to ABDE, because typing toward a longer
    *  word passes through the refused one and the match came back. */
-  const [refused, setRefused] = useState<{ word: string; nonce: number } | null>(null)
+  const [refused, showRefused, clearRefused] = useMark<{ word: string }>(NO_TIMER)
   /** Every path that changes what is in the box goes through here, so a refusal
    *  cannot outlive the word it was about. */
-  const editDraft = useCallback((next: string) => {
-    setRefused(null)
-    setDraft(next)
-  }, [])
+  const editDraft = useCallback(
+    (next: string) => {
+      clearRefused()
+      setDraft(next)
+    },
+    [clearRefused],
+  )
 
   // ─── Move entry ────────────────────────────────────────
   const submit = useCallback(async () => {
@@ -195,7 +202,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // …and the path says no on the board, where the word is drawn. Nothing
       // left this client — a word the frontend can refuse never reaches the
       // server — so there is no peer half to this mark.
-      setRefused((r) => ({ word, nonce: (r?.nonce ?? 0) + 1 }))
+      showRefused({ word })
       return
     }
     setBusy(true)
@@ -217,7 +224,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // The next word's first letter comes from the chain, which the realtime
       // refetch is about to update — so clearing the draft is all that's needed.
       setDraft('')
-      setRefused(null)
+      clearRefused()
       // The accepted-word result restates the cap: with no mobile status bar
       // the board shows WHICH letters are covered and the strip shows the
       // words, but "how many words are left" has no ambient home on a phone,
@@ -243,21 +250,24 @@ export function PlayArea(ctx: GamePageCtx) {
       // The terminal verdict is about to arrive on the play_state, so this
       // says nothing and only hands the entry back.
       setDraft('')
-      setRefused(null)
+      clearRefused()
       localFeedbackSlot.dismiss()
       return
     } else {
       reportUnhandled('submit_word', res)
       return
     }
-  }, [game, busy, chain, draft, sides, playable, maxWords, gameId, localFeedbackSlot])
+  }, [
+    game, busy, chain, draft, sides, playable, maxWords, gameId, localFeedbackSlot,
+    showRefused, clearRefused,
+  ])
 
   // A board click appends — unless it lands on the letter the word already
   // ends with, which submits (see Board.tsx for why that is unambiguous).
   const pick = useCallback(
     (letter: string) => {
       localFeedbackSlot.dismiss() // a click is the next move, like a keystroke
-      setRefused(null) // …and so is no longer the word that was refused
+      clearRefused() // …and so is no longer the word that was refused
       const word = (tailLetter(chain) ?? '') + draft
       if (word.length > 0 && letter === word[word.length - 1]) {
         void submit()
@@ -265,7 +275,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }
       setDraft((d) => d + letter)
     },
-    [chain, draft, submit, localFeedbackSlot],
+    [chain, draft, submit, localFeedbackSlot, clearRefused],
   )
 
   const runChainRpc = useCallback(
@@ -281,12 +291,12 @@ export function PlayArea(ctx: GamePageCtx) {
         // itself; all this owes the player is the entry back — taking a word
         // back is a move, so it dismisses the last result like a keystroke.
         setDraft('')
-        setRefused(null)
+        clearRefused()
         localFeedbackSlot.dismiss()
         return
       } else if (res.type === 'ok' && res.data.result === 'cleared') {
         setDraft('')
-        setRefused(null)
+        clearRefused()
         localFeedbackSlot.dismiss()
         return
       } else {
@@ -294,7 +304,7 @@ export function PlayArea(ctx: GamePageCtx) {
         return
       }
     },
-    [gameId, localFeedbackSlot],
+    [gameId, localFeedbackSlot, clearRefused],
   )
   // The chain strip's × on the last word. `clear_chain` still exists
   // server-side but has no surface: clicking × repeatedly reaches the empty

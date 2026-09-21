@@ -3,6 +3,7 @@
 import { useCallback, useMemo, type CSSProperties } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import type { Mark } from '@/common/board-marks/useMark'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
 import { Board } from './Board'
 import { ChainStrip } from './ChainStrip'
@@ -77,10 +78,11 @@ export function BoardCol({
   historyActor?: Actor | null
   onExitHistory: () => void
   // ── Entry ──
-  // The word this player just had refused, with its replay nonce — the board
-  // shakes its letters. Handed on only while it still describes what is in the
-  // box: edit a letter and the answer is about a word that no longer exists.
-  refused: { word: string; nonce: number } | null
+  // The word this player just had refused — the board shakes its letters, and
+  // the mark's nonce is what they are keyed on so a second refusal shakes
+  // again. Handed on only while it still describes what is in the box: edit a
+  // letter and the answer is about a word that no longer exists.
+  refused: Mark<{ word: string }> | null
   // Only the letters the PLAYER added — the seed is derived, see above.
   draft: string
   onDraftChange: (next: string) => void
@@ -220,7 +222,7 @@ export function BoardCol({
           word={isViewingHistory ? '' : word}
           onPick={onPick}
           disabled={entryDisabled || isViewingHistory}
-          shakeNonce={refused && refused.word === word ? refused.nonce : null}
+          shakeNonce={refused && refused.value.word === word ? refused.nonce : null}
         />
       </div>
 

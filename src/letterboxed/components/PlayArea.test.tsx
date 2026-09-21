@@ -474,6 +474,78 @@ describe('letterboxed PlayArea — the hint corpus when clean_words is empty', (
 })
 
 /**
+ * The board's answer to a word it refuses: the letters that word used shake.
+ * It has NO clock — nothing arrives to take it down, and the thing that ends
+ * it is the player's next edit, which is the lifetime `NO_TIMER` names. Two
+ * things make it awkward and both are pinned here: refusing the same word
+ * twice has to shake twice, and the mark is about the word AS SUBMITTED, so
+ * typing on is what ends it.
+ */
+describe('letterboxed PlayArea — a refused word shakes its letters', () => {
+  /** The board letters currently shaking. */
+  const shaking = () =>
+    [...document.querySelectorAll('div[class*="verdictShake"]')].map((n) => n.textContent)
+  /** One board letter's element, so a REMOUNT can be told from a re-render. */
+  const nodeFor = (letter: string) =>
+    [...document.querySelectorAll('div[class*="node"]')].find((n) => n.textContent === letter)
+
+  /** One keystroke, AWAITED — an action's run is single-flight, so two keys
+   *  fired in one tick would land one. The file's bare `press` is for the
+   *  single presses elsewhere. */
+  const key = (init: KeyboardEventInit) =>
+    act(async () => {
+      fireEvent.keyDown(document.body, init)
+    })
+
+  /** Type ADG — three letters on three different sides, so the board's own
+   *  rules pass and only the word list refuses it. */
+  const typeADG = async () => {
+    await key({ key: 'a' })
+    await key({ key: 'd' })
+    await key({ key: 'g' })
+  }
+
+  it('shakes the letters it used, and shakes AGAIN when the same word is refused twice', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await typeADG()
+    await key({ key: 'Enter', code: 'Enter' })
+
+    // Refused by the word list alone — nothing left this client.
+    expect(screen.getByText('Not a word')).toBeInTheDocument()
+    expect(rpc).not.toHaveBeenCalledWith('submit_word', expect.anything())
+    expect(shaking().sort()).toEqual(['A', 'D', 'G'])
+
+    // The same word again. A CSS animation runs once per mount, so the proof
+    // that it shakes a second time is that the letter is a NEW element.
+    const before = nodeFor('A')
+    await key({ key: 'Enter', code: 'Enter' })
+    expect(shaking().sort()).toEqual(['A', 'D', 'G'])
+    expect(nodeFor('A')).not.toBe(before)
+  })
+
+  it('does not come back when the draft passes through the refused word again', async () => {
+    // The lesson recorded in the mark's own docstring, and the reason the mark
+    // is ENDED by the edit rather than merely hidden by a text comparison: a
+    // refused ADG shook again on the way back from ADGJ, because typing past a
+    // refused word and back makes the text match a second time. The mark is
+    // about the word AS SUBMITTED, so the first edit is what kills it.
+    render(<WithKeys {...makeCtx()} />)
+    await typeADG()
+    await key({ key: 'Enter', code: 'Enter' })
+    expect(shaking().sort()).toEqual(['A', 'D', 'G'])
+
+    // Type on: a different word, so nothing is being refused now.
+    await key({ key: 'j' })
+    expect(shaking()).toEqual([])
+
+    // …and back to exactly the refused text. The board must stay still: that
+    // answer was about a submission, and this is a draft being edited.
+    await key({ key: 'Backspace', code: 'Backspace' })
+    expect(shaking()).toEqual([])
+  })
+})
+
+/**
  * The keys, through the app-root dispatcher. Each key is a bound action's, so
  * what these pin is the wiring: the chord reaches the binding, the binding asks
  * the registry's question mid-game and skips it at terminal, and the answer
