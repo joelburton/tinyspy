@@ -1,4 +1,4 @@
-// cs-met-found-words
+// cs-blessed-found-words
 
 import type { WordListRow } from '@/common/word-list/WordList'
 import type { FoundWordRow, FoundWordsWord } from './foundWords'

@@ -1,4 +1,4 @@
-// cs-met-found-words
+// cs-blessed-found-words
 
 /**
  * The found-words family's two data shapes: one accepted guess, and one entry

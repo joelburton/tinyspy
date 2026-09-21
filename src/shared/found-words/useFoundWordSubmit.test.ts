@@ -1,4 +1,4 @@
-// cs-met-found-words
+// cs-blessed-found-words
 
 /**
  * Tests for the shared word validate/submit engine. The cases that matter are the

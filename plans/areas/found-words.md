@@ -4,9 +4,12 @@ The folders it reads: `shared/found-words`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — opened 2026-09-21**, roster agreed the same day (Joel: *"all of
-these below, stamp them all as cs-met"*). Eleven files `cs-met-found-words`
-plus the two markdown ones, which carry no stamp.
+**Status: CLOSED 2026-09-21, blessed** (Joel: *"bless files in the area, then
+close and commit"*): eleven files `cs-blessed-found-words` — every code file in
+`src/shared/found-words/`, plus the two markdown ones, which carry no stamp.
+The area stamped nothing outside its own folder, so nothing is left at `met`
+(`cs-stamp.mjs list met-found-words` prints nothing). Opened the same day, on
+*"all of these below, stamp them all as cs-met"*.
 
 **The audit READ is DONE (2026-09-21).** Every roster file read end to end —
 the hook and its spec, the three pure modules and their specs, the two
@@ -38,7 +41,7 @@ pangram wording, Joel's second option) and F-14 with F-13 (the composed
 *"fix remaining items"* — the prose pass F-1, F-2, F-4 and F-5 (F-7's held
 `doc.md` sentence landed with F-1), F-11's four cases and F-15's stale paths.
 **All twenty-one findings are worked** — fifteen from the read, six from the
-closing re-read. What the area owes now is the bless, which is Joel's.
+closing re-read.
 
 ## The roster
 
@@ -887,5 +890,10 @@ C-pass the same day.
 - [x] the whole area re-read in one sitting after the last group (2026-09-21,
       after F-1..F-15) — six more findings, recorded under *The closing re-read*
 - [x] the folder's `doc.md` Design written; its row off `INTROS_OWED` (F-1)
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — the `--avail-h` hand-sum is deleted as worked (F-14), and the one item
+      left is the ending of `.loading` / `.empty`, with its trigger and the
+      grep that says it is time
+- [x] every file on the roster blessed, or its stamp says why not — eleven
+      `cs-blessed-found-words`, censused with the script rather than over the
+      roster's paths

@@ -1,4 +1,4 @@
-// cs-met-found-words
+// cs-blessed-found-words
 
 /**
  * The terminal **missed-word reveal**, for the games that keep a list of what

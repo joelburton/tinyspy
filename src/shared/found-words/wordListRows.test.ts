@@ -1,4 +1,4 @@
-// cs-met-found-words
+// cs-blessed-found-words
 
 /**
  * What composing the reveal and the merge in one call promises: the gate is

@@ -1,4 +1,4 @@
-// cs-met-found-words
+// cs-blessed-found-words
 
 import { describe, expect, it } from 'vitest'
 import { buildRevealWords } from './revealWords'
