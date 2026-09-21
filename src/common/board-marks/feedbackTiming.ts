@@ -74,10 +74,6 @@ export const YOUR_TURN_FLASH_MS = YOUR_TURN_FADE_MS + CLASS_HOLD_SLACK_MS
  * action that answers it clears it. It lives here with the beats because it is
  * one of the choices a caller makes about how long news stays up, and reading
  * `useMark(NO_TIMER)` beside `useMark(WORD_ANSWER_MS)` is how a caller sees that.
- *
- * A SYMBOL rather than `null` so the name is the only way to ask for it. A
- * lifetime the vocabulary has a word for should not also be spellable as a bare
- * `null` that says nothing about which lifetime was meant — the type refuses it.
  */
 export const NO_TIMER: unique symbol = Symbol('NO_TIMER')
 
