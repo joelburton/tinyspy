@@ -2,8 +2,8 @@
 
 /* The shared found-words list — an alphabetical, column-major grid (down each
  * column, then right) in a bordered card that scrolls horizontally once the words
- * run past the columns its width admits. Every found-words game that keeps a
- * found-words list wears this one, so the list looks identical across them
+ * run past the columns its width admits. Every game that keeps a found-words
+ * list wears this one, so the list looks identical across them
  * (docs/ui.md → "Consistency across games").
  *
  * Each row leads with a circle marker carrying the attribution — a filled ● in
@@ -47,7 +47,7 @@
 /* @@ */   --wl-row-height: 1.625rem;
   /* Column WIDTH as a real defined token (not a `var(--x, fallback)`, which
    * src/guards/cssTokens.test.ts flags as phantom — see Board.module.css's same
-   * note). A custom property so the row arithmetic above can read it. */
+   * note). A custom property so `grid-auto-columns` below can read it. */
 /* @@ */   --wl-col-width: 10.5rem;
   display: grid;
   /* As many rows as fit the box's height; columns then flow rightward. */
@@ -144,9 +144,10 @@
   overflow: hidden;
 }
 
-/* Unfound required words (the post-terminal reveal — what the team / field
- * missed). The hollow ○ ring (.dotUnfound) is the primary signal; the word also
- * goes medium gray to stay de-emphasized next to the black found words. */
+/* Unfound words (the post-terminal reveal — what the team / field missed, from
+ * both shipped lists). The hollow ○ ring (.dotUnfound) is the primary signal;
+ * the word also goes medium gray to stay de-emphasized next to the black found
+ * words. */
 /* @@ */ .unfound {
   color: var(--page-text-muted-color);
 }

@@ -18,12 +18,13 @@ out, how a word says who found it, how you narrow it, and how a word that just
 arrived says so.
 
 The filter is also the one thing standing between a finished game and its
-answer. The missed words fold into the rows the moment the game ends, and what
-holds them back is the WHO axis's terminal default: **Found**, so the list opens
-on what you got rather than on what you missed. The answer is one select away,
-not behind a second control — these games carry no Reveal button precisely
-because this axis already is one, and a button beside it would be two ways to
-switch the same two lists.
+answer, and it is worth being exact about how little machinery that involves.
+These games have no reveal feature — no button, no gate, nothing withheld. The
+missed words fold into the rows the moment the game ends, and from then on the
+only question is which way the WHO select is pointing. At terminal it points at
+**Found**, so a finished game opens on what you got rather than on what you
+missed; All or Missed is one pick away. That default is the whole of the beat
+before the answer.
 
 Two more things about it are worth knowing before reading the code, and both are
 about the filter. The list is narrowed on two axes rather than one: a KIND
@@ -36,6 +37,11 @@ worth carrying: KIND narrows what you can already see, which is fair mid-game
 even in compete, while WHO must never offer an option whose data is hidden or
 whose answer is guaranteed empty. That is why the hook derives its option set
 from the rows in front of it rather than from a flag a caller passes.
+
+The empty line follows from the same place. It names whichever axis emptied the
+list, because "no words" on a narrowed list reads as a claim about the game
+rather than about the filter — and it says "yet" only while the game is running,
+since a finished one cannot keep that promise.
 
 The other is where the filter lives. The event log's picker is a hook the game
 calls, because that selection also gates the panel's history handle; nothing

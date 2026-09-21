@@ -7,12 +7,16 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN — opened 2026-09-20, paused the same day and RESUMED 2026-09-20**
 once the one-mark-hook work landed in the re-opened `board-marks`. **Every
 finding from the read is worked or closed (2026-09-21, `42ac72e3`..`b76fa483`).
-The closing re-read ran 2026-09-21 and found thirteen more, F-19 to F-31; F-19,
-F-20, F-21, F-25 and F-30 are worked, F-31 is closed no-change, and the rest are
-OPEN** — see
-[The closing re-read](#the-closing-re-read--2026-09-21). Baseline
-at the re-read: 70 of 70 tests green in `word-list` + `word-hunt`, lint and
-`tsc -b` clean, the working tree clean.
+The closing re-read's thirteen, F-19 to F-31, are ALL worked but F-31, which is
+closed no-change** — see
+[The closing re-read](#the-closing-re-read--2026-09-21). **A SECOND re-read ran
+2026-09-21** once those were worked, and found five more, F-32 to F-36: four
+worked, F-34 closed no-change. See
+[The second closing re-read](#the-second-closing-re-read--2026-09-21). **Every
+finding in this area is now worked or closed; what it owes is Joel's
+blessing.** Baseline at the first re-read: 70
+of 70 tests green in `word-list` + `word-hunt`, lint and `tsc -b` clean, the
+working tree clean.
 
 **The audit READ is DONE (2026-09-20).** Every roster file read end to end —
 the three source files, the stylesheet, the three specs, `doc.md` and
@@ -49,10 +53,10 @@ re-read's findings below, then the `doc.md` harvest of whatever they add.
 - `useWordListFilter.test.tsx`
 - `useRecentlyFound.ts` — which words arrived just now
 - `useRecentlyFound.test.ts`
-- `doc.md` (a three-line lede; the `## Intro to area` is owed, and
-  `common/word-list` is the one `common/` row left on `INTROS_OWED` in
-  `src/guards/folderDocs.test.ts`) · `todo.md` (every section empty — no
-  earlier area handed this one anything)
+- `doc.md` (a lede, the `## Intro to area` F-1 ruled, and `## Details` with the
+  render tree; its `INTROS_OWED` row is gone, leaving that list `shared/` only)
+  · `todo.md` (every section empty — no earlier area handed this one anything,
+  and F-30 answered the one question that might have filled it)
 
 Evidence, read and left `cs-unmet` — **and read with a refactor in mind**
 (Joel at the opening: examine them "in case they're useful for any potential
@@ -830,6 +834,20 @@ spellingbee's:
 pre-reorg test path that is wordwheel's own), and `docs/games/boggle.md:520`
 ("boggle builds its rows via `lib/displayRows`") is still true.
 
+**WORKED 2026-09-21 — by `plans/found-words.md`, not from here, and verified
+rather than taken on its word.** That plan's step 5 rewrote all four passages
+as part of its own close; re-read here, three are right (the rows call is
+`buildWordListRows`, the `revealWords` prop is gone, the test table gains
+`wordListRows.test.ts`). The fourth had picked up a stutter in the rewrite —
+*"builds its rows via **the shared shared**/found-words/wordListRows"*, where
+the adjective and the folder name collided — and lost the adjective here.
+
+**The same stutter was next door**, found by grepping the sibling docs for it:
+`docs/games/boggle.md:519` read *"via the shared `shared/found-words/
+wordListRows`"*. Fixed the same way. That line is otherwise correct now — the
+finding's note that it "is still true" of `lib/displayRows` is superseded, since
+that module is deleted and the same plan repointed the sentence.
+
 ### F-word-list-23 · `inner-function-named` · Four sentences name the function beneath the one that is called
 
 F-15 replaced the call and F-4's prose, written the same day, names the layer
@@ -847,6 +865,13 @@ And one in the file the area wrote: `wordListRows.ts`'s docstring says the four
 steps begin with *"decide whether the game is over"*, and the function decides
 nothing — it is told, through `isTerminal`. "Gate on whether the game is over."
 
+**WORKED 2026-09-21, and three of the four sites were already right.** The two
+bee print comments were recast by `plans/found-words.md`'s C-7 the same day, and
+`WordList.tsx → Props.rows` and `doc.md → Details` both name
+`shared/found-words/wordListRows.ts` — corrected somewhere between F-15 and the
+folder move, not here. Only the docstring sentence survived, and it now reads
+"gate on whether the game is over".
+
 ### F-word-list-24 · `empty-line-test-lies` · A test named for the empty line never reaches it
 
 `WordList.test.tsx` → 'renders the hook's empty line when a filter matches
@@ -860,6 +885,17 @@ still unpinned at the component; the hook's text is pinned in the hook's spec,
 but not that the component renders it. The fix is a combination that does
 empty — Bonus + ada, who found no bonus word — asserting the line, and the
 existing test renamed for what it does.
+
+**WORKED 2026-09-21 as written.** The old test is now
+`narrows KIND within the missed words`, which is what its body always did, and a
+new one picks ada + Bonus — she found a plain word and a pangram, never a bonus
+one — and asserts the whole line, `No bonus words from ada.`, so what is pinned
+is the COMPONENT rendering the hook's text, not just the hook producing it.
+
+**Planted the other way round.** With `{wordFilter.emptyText}` replaced by a
+literal, the new test is the ONLY one of the file's forty-three that fails —
+the same plant that proved the old test never reached the line, now answering
+for the new one.
 
 ### F-word-list-25 · `yet-at-terminal` · "yet" survives at terminal in the KIND and player lines
 
@@ -892,6 +928,10 @@ line, `if (who !== ALL && who !== FOUND)` on the next. The second clause is
 dead, written by F-18 when the Found branch went in above a guard that had not
 needed it. `if (who !== ALL)`.
 
+**WORKED 2026-09-21.** The clause is gone. Dead by construction, not by
+argument: the `who === FOUND` line above it RETURNS, so nothing reaching the
+guard can be FOUND.
+
 ### F-word-list-27 · `docstring-default` · The hook's docstring says WHO defaults to All
 
 `useWordListFilter`'s docstring table: *"WHO All (default) · Found · Missed ·
@@ -900,12 +940,24 @@ that flip is the one thing about the default a caller most needs — it is how t
 answer is held back. The table names the mid-game default as if it were the
 only one.
 
+**WORKED 2026-09-21.** "(default)" comes off the WHO row, since the row cannot
+carry two, and a sentence under the table says both: All mid-game, Found at
+terminal once a missed row exists, with the pointer at `doc.md` for why. KIND's
+default stays on its row and is restated there, so the two axes are not left
+looking different in kind.
+
 ### F-word-list-28 · `test-header-stale` · `WordList.test.tsx`'s header describes one of its three describes
 
 The file header still reads *"Tests for the shared WordList's heading tally"*
 and explains only the tally; F-6 and F-13 grew the file two more `describe`s
 (the underline, what a row wears), each with its own docstring, and nobody
 re-read the header. Twelve tests, four of them the tally's.
+
+**WORKED 2026-09-21.** The header names all three groups and points at
+`useWordListFilter.test.tsx` for the filter's own gating, then keeps the tally
+paragraph — which is the one group with a rule worth stating before the tests,
+that the numbers track the FILTERED list — under a line saying that is what it
+is. Thirteen tests now, F-24 having added one.
 
 ### F-word-list-29 · `css-comment-nits` · Two sentences in the stylesheet
 
@@ -917,6 +969,10 @@ re-read the header. Twelve tests, four of them the tally's.
   team / field missed)"*. The reveal covers both lists, which the TSX says two
   rules away and F-4 fixed in the row type's docstring; "required" is the same
   stale word one file over.
+
+**WORKED 2026-09-21.** The first names `grid-auto-columns` below, which is what
+actually reads the token; the second is "Unfound words … from both shipped
+lists".
 
 ### F-word-list-30 · `px-question-homeless` · The px-in-a-rem-column question has no home
 
@@ -951,6 +1007,102 @@ area opens, along with the eleven `cs-unmet` files beside them.
 
 So this finding is the only record that the two came from here, which is what it
 is for. F-23's sentence in `wordListRows.ts` is still owed and is F-23's.
+
+### The second closing re-read — 2026-09-21
+
+Run after the re-read's own thirteen were worked, because four of those landed
+in a second sitting (F-19 and F-20 on Joel's rulings, then F-22 to F-29 in one
+pass) and the first re-read could not have seen what they wrote. Every roster
+file read end to end again, then the three `InfoCol` call sites, the three
+`PlayArea` row-building and print sites, `wordListRows.ts`, `doc.md`, `todo.md`,
+and `docs/playarea.md → Word list`. For each worked finding the grep that would
+find the same defect elsewhere was run over the folder, its callers and `docs/`.
+Baseline: `tsc -b` and lint clean, 43 of 43 green in the folder, 3439 of 3441
+in the suite (the two are `folderDocs`' `common/lib` pair, not this area's).
+
+**What holds.** The three call sites are one identical six-prop call each —
+`reveal` and `heading` are gone from every caller and from `docs/` (grepped).
+`pointsByWord` is gone from all three print sites, `boggle/lib/displayRows` from
+the tree and the docs, and no pre-reorg `common/components/game/lists` path
+survives. "three columns", "fades after 5s" and every two-game "(spellingbee,
+boggle)" roster claim are gone from `src/` and `docs/`; what the grep still
+finds are `mobile.md`'s history of the wide-sheet pass, which F-21 ruled stays,
+and other games' docs comparing themselves to these. `.emptyState` on the empty
+`<li>` is the shared global from `core-css/patterns/empty-state.css`, the same
+one `EventLog` and both list components use, and `WordList.module.css` says so.
+`playarea.md → Word list` is the placement sentence F-17 called for, and
+`common/word-list` is off `INTROS_OWED`.
+
+**Five more, and the shape is the one every area hits: three of the five were
+written by this area's own fixes.**
+
+### F-word-list-32 · `flags-count-wrong` · A count that is wrong and would rot anyway
+
+`useWordListFilter`'s docstring: the option sets are derived *"from the rows and
+from the four flags below"*. The parameter object holds three booleans —
+`isCompete`, `isTerminal`, `hasBonus` — beside `rows`, `players` and `selfId`,
+which are not flags. The sentence needs no number at all.
+
+**WORKED 2026-09-21** — "from the rows and from the flags below".
+
+### F-word-list-33 · `whodefault-comment-runs-together` · F-19's trim left two paragraphs with no seam
+
+At `whoDefault`, the derive-don't-freeze paragraph (state holds only what the
+user picked; a default frozen at mount would read an empty roster) now runs
+straight into the WHO-default one with no `//` break between them, where the
+paragraph after it has one. Written by F-19 an hour before this read, which is
+the third time in this area a fix has been the source of the next finding.
+
+**WORKED 2026-09-21** — the seam is back.
+
+### F-word-list-34 · `doc-md-reveal-framing` · The home carried the framing F-20 corrected next door
+
+`doc.md`'s third paragraph read *"these games carry no Reveal button precisely
+because this axis already is one, and a button beside it would be two ways to
+switch the same two lists"* — the same nomination of the filter as a stand-in
+for a reveal that Joel ruled out of `ui.md` the same day (*"word-list games
+don't have a separate 'reveal' feature; players just change the filter"*). F-20
+moved the detail HERE on the grounds that this is the copy that stays right, so
+leaving the corrected sentence only in `ui.md` would have inverted the point.
+
+**CLOSED 2026-09-21 — the finding was wrong about the PLACE** (Joel: *"this is
+a fine place for this"*). `doc.md` carries the full account, including why there
+is no button, and F-20 is what put it there; only `ui.md` and `common.md` had to
+lose the detail. Nothing was moved out of this file.
+
+What the same-day `doc.md` update DID change is the wording, and it stands: the
+paragraph says there is no reveal feature — no button, no gate, nothing
+withheld — that the missed words are in the rows from game over, and that the
+only question is which way the WHO select points. Same subject, same length,
+same place; it just stops nominating the filter as a stand-in for a control that
+does not exist.
+
+### F-word-list-35 · `circular-condition` · F-4's replacement restates itself
+
+F-4 replaced "(spellingbee, boggle)" with a condition, and the condition it
+chose is circular: *"Every **found-words game** that keeps a **found-words
+list** wears this one"* (`WordList.module.css:5`), and the same phrase in
+`docs/games/spellingbee.md:477`. "Every game that keeps a found-words list" is
+the whole of it.
+
+**WORKED 2026-09-21** — both sites say that.
+
+### F-word-list-36 · `missed-required-in-game-docs` · F-29's stale "required" is in two game docs too
+
+F-29 fixed `.unfound`'s *"Unfound **required** words"* — the reveal covers both
+shipped lists. The same claim is in three doc sentences the grep found:
+`docs/games/spellingbee.md:71` (*"missed required words gray"*) and `:664`
+(*"missed required words fold in at…"*), and `docs/games/boggle.md:582`. The
+`src/` hits for the phrase are all correct — they contrast a missed bonus with a
+missed required, which is the real distinction.
+
+**WORKED 2026-09-21, and the honest fix is not "both lists" flat.** The two
+print sentences would have overclaimed the other way: the bonus half folds in
+only where the board HAS a bonus list (spellingbee's `legal !== required`,
+boggle's wider legal band), which is the condition boggle's own PlayArea states
+at the reveal. So the tally row drops the word ("missed words gray") and each
+print sentence names the condition — bonus ones too, on a board with a bonus
+list / when the legal band is the wider one.
 
 ## Notes
 

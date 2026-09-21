@@ -516,8 +516,8 @@ board), swapped in for spellingbee's hex flower.
     dot, a recently-found underline (`common/word-list/useRecentlyFound`), click-to-define
     words (`<DefinableWord>`), the post-terminal missed-words reveal, and the
     two-axis KIND/WHO filter (`common/word-list/useWordListFilter` — see
-    [common/word-list/doc.md](../../src/common/word-list/doc.md)). boggle builds its rows via the
-    shared `shared/found-words/wordListRows` → `WordListRow[]`, the same one call the screen
+    [common/word-list/doc.md](../../src/common/word-list/doc.md)). boggle builds its rows via
+    `shared/found-words/wordListRows` → `WordListRow[]`, the same one call the screen
     and the printer both make (the live count moved to the info-column state
     line, so the list header carries the label + the two selects).
 
@@ -579,8 +579,8 @@ in `src/gametypes.ts`; `boggle` is in `supabase/config.toml` schemas and the esl
 
 boggle joins the printable games — a **"Print board (PDF)"** GamePage menu item that hands
 you a paper record of the game: the fixed-size letter grid (a 6×6 prints bigger than a 4×4)
-with the Setup to its right, above the found-words list in columns (missed required words
-fold in at terminal) — `src/boggle/pdf/printBogglePdf.ts`. The shared clean-printable design
+with the Setup to its right, above the found-words list in columns (missed words
+fold in at terminal — bonus ones too, when the legal band is the wider one) — `src/boggle/pdf/printBogglePdf.ts`. The shared clean-printable design
 language + helpers live in [common/pdf/doc.md](../../src/common/pdf/doc.md).
 
 ---

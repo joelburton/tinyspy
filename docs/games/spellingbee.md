@@ -68,7 +68,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Shuffle / Delete / Enter actions** | shipped | Shuffle stays clickable when locked; hover rotates only the ⟲ glyph, not the button |
 | **Pangram detection + bonus + visual marker** | shipped | |
 | **Rank ladder + rank-bar UI with hover tooltips** | shipped | |
-| **Found-words list** (column-major grid, horizontal scroll past the columns its width admits; found words in their finder's color, missed required words gray, pangram bold, bonus bullet, recently-found underline) | shipped | |
+| **Found-words list** (column-major grid, horizontal scroll past the columns its width admits; found words in their finder's color, missed words gray, pangram bold, bonus bullet, recently-found underline) | shipped | |
 | **Timer modes** (none / countup / countdown) + countdown-expiry termination | shipped | Via shared `<SetupTimerSection>` + `useGameTimer` |
 | **Manual end-game** (menu item; confirms then writes terminal) | shipped | Per-game menu item; outcome = `'manual'` |
 | **Pause-on-disconnect + manual pause** | shipped (via common) | Free from the common shell |
@@ -474,9 +474,9 @@ src/spellingbee/
                           unit with the RankBar). Tabular-nums so the digits don't shift
                           width as the score climbs. (Timer lives in the GamePage header.)
     (WordList)            The found-words list is now the SHARED
-                          common/word-list/WordList (used by every found-words game that keeps a
-                          found-words list, so it looks identical across them). PlayArea builds its rows via
-                          the shared shared/found-words/wordListRows.buildWordListRows
+                          common/word-list/WordList (used by every game that keeps a found-words
+                          list, so it looks identical across them). PlayArea builds its rows via
+                          shared/found-words/wordListRows.buildWordListRows
                           ({foundWords, requiredWords, bonusWords, hasBonus, isTerminal}) — one call
                           that composes the terminal reveal and the found/unfound merge, and the
                           same call the printer makes — and passes `hasBonus`. Per-finder color, pangram bold,
@@ -661,8 +661,8 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 
 spellingbee joins the printable games — a **"Print board (PDF)"** GamePage menu item that
 hands you a paper record of the puzzle. It shows the 7-hex honeycomb (the flower) above the
-found-words list (pangrams bold, bonus finds dotted; missed required words fold in at
-terminal) — `src/spellingbee/pdf/printSpellingbeePdf.ts`. The shared clean-printable design
+found-words list (pangrams bold, bonus finds dotted; missed words fold in at
+terminal — bonus ones too, on a board with a bonus list) — `src/spellingbee/pdf/printSpellingbeePdf.ts`. The shared clean-printable design
 language + helpers live in [common/pdf/doc.md](../../src/common/pdf/doc.md).
 
 ## Deferred

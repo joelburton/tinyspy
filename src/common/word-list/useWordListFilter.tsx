@@ -44,9 +44,13 @@ export type WordListFilter = {
  * plus the `filter` that applies both and the line to show when nothing matches.
  *
  *     KIND   Legal (default) · Required · Bonus
- *     WHO    All (default) · Found · Missed · …every player by handle
+ *     WHO    All · Found · Missed · …every player by handle
  *
- * Both option sets are DERIVED, from the rows and from the four flags below, so
+ * WHO's default is All mid-game and **Found** at terminal once a missed row
+ * exists, which is how these games hold the answer back a beat — see `doc.md`.
+ * KIND always defaults to Legal.
+ *
+ * Both option sets are DERIVED, from the rows and from the flags below, so
  * a caller never has to decide what to offer: KIND is dropped whole without a
  * bonus list, and WHO adds Found/Missed only once a missed row exists and the
  * per-player entries only where peers' words are visible. Players are named by
@@ -106,6 +110,7 @@ export function useWordListFilter({
   // and a selection that stops being offered (a player who left, or Missed before
   // the reveal lands) degrades to the default instead of filtering to nothing
   // forever.
+  //
   // WHO's default is the one place the missed words are held back — they are
   // already in the rows at terminal, and Found is what keeps the list off the
   // answer for a beat (see doc.md).
@@ -201,7 +206,7 @@ function emptyTextFor(kind: Kind, who: string, players: Member[], isTerminal: bo
   if (who === MISSED) return kindWord ? `No ${kindWord} words missed.` : 'Nothing missed.'
   // Reachable only at terminal, where Found is the default.
   if (who === FOUND) return kindWord ? `No ${kindWord} words found.` : 'Nothing found.'
-  if (who !== ALL && who !== FOUND) {
+  if (who !== ALL) {
     const name = players.find((p) => p.user_id === who)?.username ?? 'that player'
     return kindWord ? `No ${kindWord} words from ${name}${yet}.` : `Nothing from ${name}${yet}.`
   }

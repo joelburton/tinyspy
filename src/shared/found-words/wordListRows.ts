@@ -9,7 +9,7 @@ import { buildRevealWords } from './revealWords'
  * draws — the reveal and the merge composed once.
  *
  * This is the whole of what a found-words game does before it can show its list,
- * and it is the same four steps in each: decide whether the game is over,
+ * and it is the same four steps in each: gate on whether the game is over,
  * fold the missed words out of the two shipped lists, merge them under the
  * found ones, and alphabetize. Composing it here is what lets the SCREEN and
  * the PRINTER agree by construction — they are the same call, not two copies of

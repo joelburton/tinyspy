@@ -1,17 +1,20 @@
 // cs-audited-word-list
 
 /**
- * Tests for the shared WordList's heading tally: "Words: N · Score: M ·
- * Longest: L" over
- * **the currently filtered list** — the feature's whole point is that the
- * filters become a reading tool (a player's coop contribution; the missed
- * words' cost at terminal), so the numbers must track the filter, not the
- * full row set. Score renders only when the game's rows carry points at all,
- * gated on ALL rows so it doesn't blink away when a filter empties the list.
- * Longest is ungated (every word has a length) and DESKTOP-ONLY, hidden by a
- * media query rather than dropped from the tree — so it's in the text content
- * here regardless of viewport, which is exactly why the hiding is a CSS
- * assertion's job and not this file's.
+ * Tests for the shared WordList, in three groups: the heading's tally, the
+ * recently-found underline, and the marks a row wears. Each `describe` says
+ * what it pins; the filter's own gating lives in `useWordListFilter.test.tsx`.
+ *
+ * On the tally, since it is the group with a rule worth stating up front: it
+ * counts **the currently filtered list** — the feature's whole point is that
+ * the filters become a reading tool (a player's coop contribution; the missed
+ * words' cost at terminal), so the numbers must track the filter, not the full
+ * row set. Score renders only when the game's rows carry points at all, gated
+ * on ALL rows so it doesn't blink away when a filter empties the list. Longest
+ * is ungated (every word has a length) and DESKTOP-ONLY, hidden by a media
+ * query rather than dropped from the tree — so it's in the text content here
+ * regardless of viewport, which is exactly why the hiding is a CSS assertion's
+ * job and not this file's.
  */
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
@@ -184,14 +187,24 @@ describe('WordList — what a row wears', () => {
     expect(rowFor('BEAD').className).not.toMatch(/pangram/)
   })
 
-  it('renders the hook’s empty line when a filter matches nothing', async () => {
+  it('narrows KIND within the missed words', async () => {
     render(<WordList {...all} />)
     await pickFilter('Missed', 1)
-    // 'zho' is the only missed BONUS word, so removing it empties the pair —
-    // and the line has to name the axis rather than say "no words yet".
+    // Both picks leave a row, which is the point: KIND cuts the missed set into
+    // its two shipped halves rather than replacing the WHO choice.
     await pickFilter('Required', 0)
     expect(screen.getByText('CHAFE')).toBeInTheDocument()
     await pickFilter('Bonus', 0)
     expect(screen.getByText('ZHO')).toBeInTheDocument()
+  })
+
+  it("renders the hook's empty line, naming both axes, when a pair matches nothing", async () => {
+    render(<WordList {...all} />)
+    // ada found a plain word and a pangram, never a bonus one, so this pair is
+    // genuinely empty — the one combination above that never gets there.
+    await pickFilter('ada', 1)
+    await pickFilter('Bonus', 0)
+    expect(screen.queryByText('BEAD')).toBeNull()
+    expect(screen.getByText('No bonus words from ada.')).toBeInTheDocument()
   })
 })
