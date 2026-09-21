@@ -37,8 +37,9 @@ pangram wording, Joel's second option) and F-14 with F-13 (the composed
 `--avail-h`, proved by board-geometry), and then the rest in one sitting on
 *"fix remaining items"* — the prose pass F-1, F-2, F-4 and F-5 (F-7's held
 `doc.md` sentence landed with F-1), F-11's four cases and F-15's stale paths.
-**All fifteen findings are worked.** What the area still owes is its closing
-re-read and the bless.
+**All fifteen findings are worked.** The closing re-read is DONE and added six
+more, F-16 to F-21 — open, and one of them (F-20) has a decision in it. After
+those, what the area owes is the bless.
 
 ## The roster
 
@@ -686,6 +687,105 @@ Outside the folder, found by grepping every doc for the folder's exports:
 were two rank-ladder ones; these four are found-words' own and were missed.
 Fixed here, as the sweep this folder's move caused.
 
+### The closing re-read — 2026-09-21
+
+Every roster file read in one sitting after the last group, plus a
+docstring-marker pass over the prose the area itself wrote today. **Six
+findings, F-16 to F-21.** The effects are named (`syncConfigRef`), no `/**`
+survives inside a type body, the call tree in `doc.md` matches the six call
+sites, and nothing outside the folder still names a type this area deleted
+(`WordEntry`, `DisplayableFound`, `DisplayableReveal`, `Shipped`) — those were
+checked and are clean.
+
+**Five of the six are this area's own fixes not reaching a sibling**, which is
+now the seventh area running with that lesson. F-4 rewrote five docstrings to
+name a condition instead of a roster and did not reach the file docstring above
+them, the sentence four lines under the one it fixed in `revealWords.ts`, or
+either stylesheet. F-3 ruled the pangram flag names no game and the spec still
+names one. And F-1's new intro introduced a count of its own.
+
+### F-found-words-16 · `file-docstring-roster` · The engine's own docstring opens with the roster F-4 removed from its members
+
+`useFoundWordSubmit.ts:11-12` — *"used by boggle, spellingbee, wordwheel and
+wordiply"* — and `:16`, *"All four ship their legal list to the FE, so all four
+do the same thing on submit."* F-4 fixed five member docstrings in this file
+for exactly this and never looked up at the file's own. A fifth caller makes
+both lines wrong, and the second one twice in one sentence. The condition is
+already written on the line below: a game that ships its legal list to the
+client. The wordiply sentence at `:22` stays — F-4 preserved it on purpose,
+because it explains this file's shape.
+
+### F-found-words-17 · `reveal-three-games` · The same fault four lines under the fix
+
+`revealWords.ts:23`: *"for the three games that use this it's simply
+`isTerminal`."* F-4 rewrote this file's lede today to stop rostering three games
+and left the count in the next docstring down. Say the condition — a caller
+whose word list has a found/missed filter — or drop the clause, since the
+sentence's point is that WHEN to reveal is the caller's business.
+
+### F-found-words-18 · `stylesheets-roster` · Neither stylesheet was in the prose pass's scope, and both carry its fault
+
+F-4 was written as a docstring finding, so the CSS was never read for it. Six
+sites: `foundWordsPlayArea.module.css:3` (a roster and a count — *"the three
+found-words games share — boggle, spellingbee and wordwheel"*), `:11` (*"All
+three games compose every class"*), `:22` (*"all three use 24rem"*), `:25`
+(*"the three genuinely differ"*), `:70` (*"the three games here"*), and
+`typedWord.module.css:8` (*"Worn by all three of the family's `TypedWord.tsx`
+files"*).
+
+`typedWord.module.css:14-16` names all three games too and should STAY: it says
+what "illegal" means on each board — off the letters, past the tile count,
+beyond a traceable path — which is the rule's whole subject, not a roster.
+
+### F-found-words-19 · `pangram-spellingbee-in-spec` · The claim F-3 retired, one file away
+
+`useFoundWordSubmit.test.ts:217`: *"A pangram entry (spellingbee) gets the
+'pangram' prefix."* F-3 ruled this morning that the flag is not one game's —
+wordwheel has set it since it was written — and fixed the two sites in the
+hook. The spec's copy was not in F-3's two and survived. The parenthetical
+buys nothing here: the case is about the format, not about whose board it is.
+
+### F-found-words-20 · `model-sentence-two-homes` · The folder's defining sentence now has two copies
+
+**RULED (2) — the DETAILED version lives in the docstring** (Joel, 2026-09-21:
+*"prefer docstring for detailed version"*). Not yet built. So
+`useFoundWordSubmit.ts` keeps the model stated in full, as the thing a caller
+reads before calling; `doc.md`'s intro stops spelling the three parts out and
+names the model instead, pointing at the docstring for the exact statement. The
+intro's own argument is unchanged — it is about what the model DECIDES
+(whether a game belongs here, why the folder is drawn around a data model, why
+wordiply is the test of the rule rather than the exception) and that reasoning
+stays in `doc.md`, where nothing else carries it.
+
+F-1 wrote the model into `doc.md:13-15` as the intro's first claim, and it is
+still verbatim at `useFoundWordSubmit.ts:14-16`: *"a typed word, a shipped legal
+list to look it up in, and a growing set of found words to dedup against."* One
+sentence, two durable homes, written by this area today — the drift starts the
+first time either is edited.
+
+1. **`doc.md` keeps the model; the hook's docstring says what the HOOK does.**
+   The sentence is the FOLDER's identity — it is what decides whether a game
+   belongs here, which is an orientation question and not a calling question.
+   The docstring keeps its own subject (validate, show, commit optimistically,
+   never block) and points at `doc.md` once. **Recommended**, and it is the
+   same move F-5 made with `outcomeFor`'s reasoning.
+2. **The hook keeps it; `doc.md` cites the docstring.** Against: an intro that
+   sends a newcomer into a 280-line hook for the folder's one-sentence
+   definition has the direction backwards.
+3. Leave both. Against: it is one sentence with two owners, which is the thing
+   a whole-repo read exists to find.
+
+### F-found-words-21 · `intro-count` · A count in the intro the prose pass wrote
+
+`doc.md:39`: *"Three games read a word the list does not know as a wrong
+move."* Written today, in the same pass that took seven counts out of the
+docstrings. The paragraph does not need the number — the contrast is between
+the games whose board is in front of you and wordiply, which is asking for
+strange words, and that reads better without counting either side.
+
+Also cosmetic, same paragraph: `doc.md:51-52` has a ragged line break mid-
+sentence left by the reshaping that answered the `folderDocs` guard.
+
 ## What checked out
 
 Claims re-verified against code rather than taken from the docstrings, listed
@@ -746,7 +846,8 @@ C-pass the same day.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
+- [x] the whole area re-read in one sitting after the last group (2026-09-21,
+      after F-1..F-15) — six more findings, recorded under *The closing re-read*
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED` (F-1)
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
