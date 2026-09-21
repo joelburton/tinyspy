@@ -6,6 +6,7 @@ import { db } from './db'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { runEdgeFn } from '@/common/supabase/dbResult'
+import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import {
   DEFAULT_WORDIPLY_SETUP_COMPETE,
   DEFAULT_WORDIPLY_SETUP_COOP,
@@ -114,7 +115,7 @@ const COOP_END: Record<string, string> = {
 
 function competeLabel(row: { play_state: string; status?: unknown }): string {
   const s = (row.status ?? {}) as StatusBlob
-  const leaderboard = (s.leaderboard as LeaderRow[] | undefined) ?? []
+  const leaderboard = readLeaderboard<LeaderRow>(s)
   if (row.play_state === 'playing') return verdict('Playing')
   if ((s.reason as string) === 'conceded') return verdict('Lost', 'all conceded')
   if (row.play_state === 'won_compete') {

@@ -74,8 +74,7 @@
   `shared/found-words/wordListRows.ts`, which composes the reveal and the merge
   in one call and which spellingbee and wordwheel already use (its two
   remaining hand-written sites, the screen's rows and the print's, collapse to
-  one call each); and the two inline `(status?.leaderboard as LeaderRow[] …) ?? []`
-  casts in `PlayArea.tsx` become `readLeaderboard<LeaderRow>(status)`. **The
+  one call each). **The
   note that said boggle "must NOT use" the shared rows was false** — its own
   tests dedup a word to the earliest finder exactly as the shared one does; a
   false justification is worse than none because it survives by being cited.

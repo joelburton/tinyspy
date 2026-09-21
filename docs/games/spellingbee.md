@@ -545,8 +545,8 @@ src/spellingbee/
     pangram.ts            isPangram (popcount26(letterMask(w)) === 7). UI cue only;
                           authority on "real" required pangrams is the server's
                           required_words.is_pangram flag.
-    (foundWordsLeaderboard) SHARED common/lib/game/foundWordsLeaderboard.ts — LeaderboardEntry
-                          type + readLeaderboard(status): the compete rank payload off
+    (beeLeaderboard)      SHARED shared/bee-games/beeLeaderboard.ts — the LeaderboardEntry
+                          type, read via common/game-page/readLeaderboard: the compete rank payload off
                           common.games.status. Shared by the OpponentStrip and the common
                           usePeerFeedback.
 ```

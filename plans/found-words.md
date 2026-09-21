@@ -339,7 +339,23 @@ records and were left as written.
   since §3 is the plan's order.** Both areas are NOT OPENED, so no blessing
   is disturbed.
 
-### 2. The leaderboard reader goes common
+### 2. The leaderboard reader goes common — SHIPPED 2026-09-21
+
+Went as written. Two notes for the record:
+
+- **The leftover bee file is `beeLeaderboard.ts`**, not folded into
+  `makeBeeGame.ts` — the step left that choice open. The leaderboard is a
+  `common.games.status` payload and the factory is about the `games_state`
+  header and the realtime refetch; one short type is not a reason to put two
+  subjects in one file.
+- **The three games' todo items were rewritten, not deleted.** Each asked for
+  two things, and only one shipped: letterboxed, setgame and wordiply each
+  declare `LeaderRow` TWICE, in the manifest and in the PlayArea, and in two
+  of the three the copies disagree about what the server writes. That is a
+  per-game question answered by reading that game's `submit_word`, so it
+  stays with the game. Each item now says the read is done and the row is
+  open.
+
 
 - `readLeaderboard` to common per call 3, as `readLeaderboard<T>(status:
   Record<string, unknown> | null): T[]` with no default. Its docstring keeps

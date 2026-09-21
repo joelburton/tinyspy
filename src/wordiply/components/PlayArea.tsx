@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
@@ -383,13 +384,10 @@ export function PlayArea(ctx: GamePageCtx) {
   })
 
   // Compete leaderboard (off the live status jsonb) → per-player metrics.
-  // Memoized because the print model (and so the menu effect) depends on it: the
-  // `?? []` fallback would otherwise mint a new array every render and rebuild
-  // the whole game menu each time.
-  const leaderboard = useMemo(
-    () => (status?.leaderboard as LeaderRow[] | undefined) ?? [],
-    [status],
-  )
+  // Memoized because the print model (and so the menu effect) depends on it:
+  // pre-first-submission the read hands back a fresh empty array each call,
+  // which would otherwise rebuild the whole game menu every render.
+  const leaderboard = useMemo(() => readLeaderboard<LeaderRow>(status), [status])
 
   // ─── GamePage menu ─────────────────────────────────────
   // Print the board — a snapshot at CLICK time (common/pdf/doc.md). What it may show is

@@ -48,15 +48,15 @@
   what the menu drops at draw time — so "not in the menu" asserts `?.hidden
   === true`, not `toBeUndefined()`.
 
-- **Adopt the shared leaderboard read — the common side is already
-  widened.** The manifest's status line and `PlayArea.tsx` each write
-  `(s.leaderboard as LeaderRow[] | undefined) ?? []` by hand; each becomes
-  `readLeaderboard<LeaderRow>(…)`, which also catches the field being present
-  and not an array. **The real question is the row, not the read**:
-  `LeaderRow` is declared twice, in `manifest.ts` and `PlayArea.tsx`, and the
-  PlayArea copy carries `letter_count?`, which the manifest copy has never
-  heard of. One of them is wrong about what the server writes, and adopting
-  the helper is the moment that becomes visible.
+- **`LeaderRow` is declared twice and the two copies disagree.** The
+  `PlayArea.tsx` copy carries `letter_count?`, which the `manifest.ts` copy
+  has never heard of. One of them is wrong about what the server writes, and
+  reading `wordiply.submit_word` is what settles it.
+
+  The read itself is done (2026-09-21): both sites call
+  `readLeaderboard<LeaderRow>(…)` from `common/game-page/`, so the
+  hand-written cast is gone and the field being present but not an array is
+  caught. Only the row is open.
 - **A race here has no way to stop the whole table.** Compete offers Concede
   alone, so a group that has lost interest can only close the game by every
   player conceding — one at a time, each taking a loss on their record for a

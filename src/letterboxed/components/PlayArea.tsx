@@ -6,6 +6,7 @@ import { NO_TIMER } from '@/common/board-marks/feedbackTiming'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
@@ -129,10 +130,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // the four standing conditions further down.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  const leaderboard = useMemo(
-    () => (status?.leaderboard as LeaderRow[] | undefined) ?? [],
-    [status],
-  )
+  const leaderboard = useMemo(() => readLeaderboard<LeaderRow>(status), [status])
 
   // Confetti at the MOMENT the board is covered. Gated ONLY on the common.games
   // row, which GamePage has already awaited — anything that arrives later would

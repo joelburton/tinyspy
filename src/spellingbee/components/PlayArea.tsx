@@ -17,7 +17,8 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { useFoundWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/found-words/useFoundWordSubmit'
 import { memberById } from '@/common/members/memberList'
-import { readLeaderboard } from '@/shared/bee-games/foundWordsLeaderboard'
+import { readLeaderboard } from '@/common/game-page/readLeaderboard'
+import type { LeaderboardEntry } from '@/shared/bee-games/beeLeaderboard'
 import { currentRankIndex, RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
@@ -482,7 +483,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const ranksReadyRef = useRef(false)
   useEffect(function narrateRankClimbs() {
     if (game?.mode !== 'compete') return
-    const board = readLeaderboard(status)
+    const board = readLeaderboard<LeaderboardEntry>(status)
     const prev = prevRankRef.current
     if (!ranksReadyRef.current) {
       ranksReadyRef.current = true
@@ -578,7 +579,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // status jsonb. Pre-first-submission the array is empty and
   // the strip falls back to placeholder zeros for opponents.
   const leaderboard = isCompete
-    ? readLeaderboard(status)
+    ? readLeaderboard<LeaderboardEntry>(status)
     : null
   // Each peer's rank index, keyed by user — the OpponentStrip metric reads it.
   const rankByUser = new Map(leaderboard?.map((e) => [e.user_id, e.rank_idx]) ?? [])

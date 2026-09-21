@@ -5,6 +5,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
@@ -429,10 +430,7 @@ export function PlayArea(ctx: GamePageCtx) {
     run: createNewGame,
   })
 
-  const leaderboard = useMemo(
-    () => (status?.leaderboard as LeaderRow[] | undefined) ?? [],
-    [status],
-  )
+  const leaderboard = useMemo(() => readLeaderboard<LeaderRow>(status), [status])
 
   const foundByUser = useMemo(() => {
     const counts = new Map<string, number>()

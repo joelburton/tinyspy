@@ -115,15 +115,16 @@
   what the menu drops at draw time — so "not in the menu" asserts `?.hidden
   === true`, not `toBeUndefined()`.
 
-- **Adopt the shared leaderboard read — the common side is already
-  widened.** The manifest's status line and `PlayArea.tsx` each write
-  `(s.leaderboard as LeaderRow[] | undefined) ?? []` by hand; each becomes
-  `readLeaderboard<LeaderRow>(…)`, which also catches the field being present
-  and not an array. `LeaderRow` is declared twice, in `manifest.ts` and
-  `PlayArea.tsx`, and setgame is the closest of the four games to having one
-  row: the copies carry the same four columns and differ only in whether
-  `user_id` is optional. Collapse to one declaration while both sites are
-  open, rather than keeping a copy per file that agrees today by luck.
+- **`LeaderRow` is declared twice, and here the copies agree by luck.**
+  `manifest.ts` and `PlayArea.tsx` carry the same four columns and differ
+  only in whether `user_id` is optional — the closest of the four compete
+  games to having one row. Collapse it to a single declaration rather than
+  keeping a copy per file that nothing holds together.
+
+  The read itself is done (2026-09-21): both sites call
+  `readLeaderboard<LeaderRow>(…)` from `common/game-page/`, so the
+  hand-written cast is gone and the field being present but not an array is
+  caught. Only the row is open.
 - `Card.tsx` exports two components (`Card`, `CardDefs`), so "the filename
   is the component" is false here. Split or justify.
 - **A race here has no way to stop the whole table.** Compete offers Concede

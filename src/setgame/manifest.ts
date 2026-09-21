@@ -8,6 +8,7 @@ import { CLAIM_SIZE } from './lib/selection'
 import { db } from './db'
 import { count, verdict, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
+import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import {
   DEFAULT_SETGAME_SETUP_COMPETE,
   DEFAULT_SETGAME_SETUP_COOP,
@@ -117,7 +118,7 @@ function coopLabel(row: CommonGameListRow): string {
  */
 function competeLabel(row: CommonGameListRow): string {
   const s = (row.status ?? {}) as StatusBlob
-  const leaderboard = (s.leaderboard as LeaderRow[] | undefined) ?? []
+  const leaderboard = readLeaderboard<LeaderRow>(s)
   const sets = (s.sets_found as number | undefined) ?? 0
 
   if (row.play_state === 'playing') {

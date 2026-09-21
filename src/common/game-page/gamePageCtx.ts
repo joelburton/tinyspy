@@ -105,8 +105,9 @@ export type GamePageCtx = {
   // **Load-bearing across the roster, not a spare channel.** The settled
   // convention is `status.leaderboard` — a per-player array a compete game's
   // RPCs rewrite on every accepted move, which that game's PlayArea reads for
-  // its OpponentStrip. Anything changing how this field is fetched or
-  // delivered affects every game that follows it.
+  // its OpponentStrip, through `readLeaderboard` beside this file. Anything
+  // changing how this field is fetched or delivered affects every game that
+  // follows it.
   status: Record<string, unknown> | null
   // The GLOBAL feedback slot — the header's `<PageHeaderStatusSlot>`, where
   // peer and opponent news shows. A PlayArea calls

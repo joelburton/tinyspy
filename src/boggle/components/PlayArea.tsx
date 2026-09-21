@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
@@ -478,7 +479,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const winnerColor = winner?.color
   // The winning bar excludes conceded players — a drop-out can't be the
   // winner anyone sees, matching boggle._finish's max_score.
-  const racers = ((status?.leaderboard as LeaderRow[] | undefined) ?? []).filter(
+  const racers = readLeaderboard<LeaderRow>(status).filter(
     (r) => !concededIds.has(r.user_id),
   )
   const leaderMax = racers.reduce((m, r) => Math.max(m, r.found_words_score), 0)
@@ -558,7 +559,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // step with the state line above). Every row, conceded included: the strip
   // shows a conceder's banked score beside their "out" cell.
   const scoreByUser = new Map(
-    ((status?.leaderboard as LeaderRow[] | undefined) ?? []).map((e) => [e.user_id, e.found_words_score]),
+    readLeaderboard<LeaderRow>(status).map((e) => [e.user_id, e.found_words_score]),
   )
 
   const ladderLabel = ladder.charAt(0).toUpperCase() + ladder.slice(1)
