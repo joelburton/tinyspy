@@ -7,17 +7,17 @@
  * is the property that stops a printed board disagreeing with the one on screen.
  */
 import { describe, expect, it } from 'vitest'
+import type { FoundWordRow, FoundWordsWord } from './foundWords'
 import { buildWordListRows } from './wordListRows'
 
-type Shipped = { word: string; points: number; is_pangram?: boolean }
-
-const REQUIRED: Shipped[] = [
+const REQUIRED: FoundWordsWord[] = [
   { word: 'alpha', points: 1 },
   { word: 'bravo', points: 2 },
 ]
-const BONUS: Shipped[] = [{ word: 'zulu', points: 9 }]
+const BONUS: FoundWordsWord[] = [{ word: 'zulu', points: 9 }]
 
-const found = (word: string, user = 'u1', at = '2026-01-01T00:00:00Z') => ({
+const found = (word: string, user = 'u1', at = '2026-01-01T00:00:00Z'): FoundWordRow => ({
+  game_id: 'g',
   word,
   user_id: user,
   points: 1,

@@ -1,32 +1,12 @@
 // cs-met-found-words
 
 import type { WordListRow } from '@/common/word-list/WordList'
+import type { FoundWordRow, FoundWordsWord } from './foundWords'
+import type { RevealWord } from './revealWords'
 
 /**
  * The rows behind the info column's found-words list, for any game in the family.
- *
- * Its two parameter types are STRUCTURAL rather than a game's named types, so
- * a game whose words have no pangram flag passes its own rows unchanged.
  */
-
-/** What this needs off a found row. `is_pangram` is optional because only some
- *  games in the family have the concept; `WordListRow` carries it optionally too. */
-type DisplayableFound = {
-  word: string
-  user_id: string
-  points: number
-  is_bonus: boolean
-  found_at: string
-  is_pangram?: boolean
-}
-
-/** What this needs off a reveal entry. Same story, minus the finder. */
-type DisplayableReveal = {
-  word: string
-  points: number
-  is_bonus: boolean
-  is_pangram?: boolean
-}
 
 /**
  * One alphabetized row per word — the found ones, plus (once the game is over)
@@ -52,12 +32,12 @@ type DisplayableReveal = {
  * Pure and synchronous, so it tests away from the component.
  */
 export function buildDisplayRows(
-  foundWords: DisplayableFound[],
-  revealWords: readonly DisplayableReveal[] | null | undefined,
+  foundWords: readonly FoundWordRow[],
+  revealWords: readonly RevealWord<FoundWordsWord>[] | null | undefined,
 ): WordListRow[] {
   // Dedup found rows by word, keeping the earliest finder. `found_at` is an ISO
   // timestamp, so a lexicographic compare is chronological.
-  const foundByWord = new Map<string, DisplayableFound>()
+  const foundByWord = new Map<string, FoundWordRow>()
   // Every finder per word, in first-found order — the WHO filter's input.
   const findersByWord = new Map<string, string[]>()
   for (const r of [...foundWords].sort((a, b) => a.found_at.localeCompare(b.found_at))) {

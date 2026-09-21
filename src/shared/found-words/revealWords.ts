@@ -4,10 +4,9 @@
  * The terminal **missed-word reveal**, shared by the found-words games
  * (spellingbee, wordwheel, boggle).
  *
- * **Generic over the word, because that is the only thing the three disagree
- * about**: spellingbee and wordwheel entries carry `is_pangram` and boggle's do
- * not. Everything else here — which words were missed, and which shipped list
- * each came from — is the same question in all three.
+ * **Generic over the word so the entry rides through unchanged**: this adds a
+ * tag and takes nothing away, so what a caller passes in comes back out with
+ * `is_bonus` on it and every other field intact.
  */
 
 /** A missed word, tagged with which shipped list it came from. The games hold

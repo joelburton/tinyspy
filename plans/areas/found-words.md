@@ -30,8 +30,8 @@ with an obvious fix (F-9); two are tests, one of them confirmed by planting
 `cs-met` until the prose pass ships.
 
 **Shipped since the read:** F-6 (the answer union, named `WordSubmitAnswer` by
-Joel) and F-7 (`WordEntry` → `LegalWord`). The prose pass F-1 to F-5 has not
-run; F-7's `doc.md` sentence is held for it.
+Joel), F-7 (`WordEntry` → `LegalWord`) and F-8 (the structural row types). The
+prose pass F-1 to F-5 has not run; F-7's `doc.md` sentence is held for it.
 
 ## The roster
 
@@ -302,6 +302,27 @@ one becomes the other.
 
 ### F-found-words-8 · `found-row-spellings` · Structural row types whose stated reason died the day they moved in
 
+**RULED (1) AND SHIPPED, 2026-09-21.** `buildDisplayRows` takes `readonly
+FoundWordRow[]` and `readonly RevealWord<FoundWordsWord>[]`; `buildWordListRows`
+drops its `<W>` and takes the family's two types. `DisplayableFound`,
+`DisplayableReveal`, the inline found-row shape and the test's `Shipped` are
+gone. `tsc -b` and lint clean, 308 green across the folder and the three games.
+
+On Q2, Joel took the rec: **no shared fixture.** `wordListRows.test.ts`'s
+`found()` gained its `game_id` and is typed `FoundWordRow`; the two spec files
+keep a small helper each, which reads locally.
+
+**Two corrections to the finding as read.** It is **four** structural copies,
+not two-plus-one — `wordListRows.test.ts:12` declared `Shipped`, a fourth
+spelling of `FoundWordsWord`. And the dead justification was in **three**
+docstrings: `revealWords.ts:7–10` and `wordListRows.ts:27–29` both said the
+generic existed *"since spellingbee's and wordwheel's entries carry
+`is_pangram` and boggle's do not"*, equally dead now that all three pass the
+same type with the flag optional on it. `wordListRows`'s paragraph went with
+its generic; `revealWords` keeps its generic and now states the real reason —
+it adds a tag and takes nothing away, so the entry rides through unchanged.
+Its lede still names the three games, which is F-4's to fix, not this one's.
+
 `foundWordsDisplayRows.ts:14–29` declares `DisplayableFound` and
 `DisplayableReveal`, and `wordListRows.ts:38–45` writes the found row's shape
 inline a second time; the file docstring gives the reason — *"structural
@@ -504,7 +525,8 @@ C-pass the same day.
   half was wrong — none of the three names the type.
 - ~~F-7: `tsc -b` at every `WordEntry` import — the hook, its test, four
   PlayAreas — until the sweep lands.~~ Shipped; nothing broke.
-- F-8 (1): `wordListRows.test.ts` — `found()` builds a row without `game_id`.
+- ~~F-8 (1): `wordListRows.test.ts` — `found()` builds a row without `game_id`.~~
+  Shipped; predicted correctly, and the fix was the one line.
 - F-10: one case fewer in `wordListRows.test.ts` (five → four).
 - F-11: four cases more in `useFoundWordSubmit.test.ts` (13 → 17).
 - F-13: `src/guards/vocabularies.test.ts:288` — the pending row is deleted
