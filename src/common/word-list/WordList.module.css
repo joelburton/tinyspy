@@ -96,17 +96,21 @@
 /* @@ */   --dot-ring: var(--wordList-unfoundDot-ring-color);
 }
 
-/* The word text itself — and the ONLY click-to-define target (not the whole
- * cell), so the pointer cursor and the hover underline scope to this span. Plain body-black for found words; finder identity lives in the dot.
- * Underlines (hover + recent flash) scope here too so they don't run under the
- * leading dot. */
+/* The word text itself — and the ONLY click-to-define target, not the whole
+ * cell, so both underlines (hover and the recent flash) scope here and do not
+ * run under the leading dot. Plain body-black for found words; finder identity
+ * lives in the dot.
+ *
+ * The pointer cursor and the hover underline itself are `.definable`'s, which
+ * `<DefinableWord>` wears unconditionally (`core-css/utilities.css`) — every
+ * definable word in the app reads the same. What is this list's own is how that
+ * underline is DRAWN against a tight row: a closer offset and a hairline
+ * thickness, so it sits under the word rather than crowding the row below. */
 /* @@ */ .word {
-  cursor: pointer;
   text-underline-offset: 2px;
 }
 
 /* @@ */ .word:hover {
-  text-decoration: underline;
   text-decoration-thickness: 1px;
 }
 

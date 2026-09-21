@@ -395,6 +395,17 @@ app. `.word` sets `cursor: pointer` again and `.word:hover` sets
 `text-underline-offset: 2px` and the hover's `thickness: 1px`. Two rules
 saying one thing is the drift `definitions` closed to end.
 
+**WORKED 2026-09-21 as (1).** `.word` loses `cursor: pointer` and
+`.word:hover` loses `text-decoration: underline`; both come from `.definable`,
+which `<DefinableWord>` composes unconditionally, so every definable word in the
+app reads the same.
+
+**Checked before removing, because a module class and a global utility can
+disagree about who wins.** Here they cannot: what is left in the module
+(`text-underline-offset`, `text-decoration-thickness`) and what the utility
+supplies (`cursor`, `text-decoration`) are different properties, so nothing
+competes for the cascade. Removal cannot change what renders.
+
 1. **Drop the duplicates; keep the offset and thickness with a comment that
    says they tune `.definable`'s underline for a 17px row.** **Recommended.**
 2. Move the offset up into `.definable` if every definable word wants it —
