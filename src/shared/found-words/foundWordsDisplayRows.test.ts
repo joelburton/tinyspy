@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-found-words
 
 import { describe, expect, it } from 'vitest'
 import type { FoundWordRow } from './foundWords'

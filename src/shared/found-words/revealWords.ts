@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-found-words
 
 /**
  * The terminal **missed-word reveal**, shared by the found-words games

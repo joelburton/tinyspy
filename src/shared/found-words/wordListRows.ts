@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-found-words
 
 import type { WordListRow } from '@/common/word-list/WordList'
 import { buildDisplayRows } from './foundWordsDisplayRows'
