@@ -70,7 +70,7 @@ Here it does both:
   containing the base, in the legal band) alongside `max_word_length` + `longest_words`. The
   FE validates a guess locally (contains the base? in the legal set? longer than the base?)
   and knows its length instantly — no per-guess round-trip.
-- The submit engine collapses into a **reuse of the shared `useWordSubmit`** (sync lookup +
+- The submit engine collapses into a **reuse of the shared `useFoundWordSubmit`** (sync lookup +
   optimistic + trusting-commit), instead of the bespoke async-validated hook a
   server-validated design would have needed.
 - For a 2-letter base the legal list can be a few thousand words — an acceptable payload
@@ -245,7 +245,7 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
   |---|---|---|
   | `{ result: 'accepted', length, … }` | `ok` | the guess landed and spent a line |
   | `{ result: 'rejected', … }` | `ok` | a guard refused it, a `guesses` row was written, and a line may have been spent. A verdict on a move that happened |
-  | `PN365` `<WORD> — already found` | `race` | records NOTHING, so it refuses. `useWordSubmit` dedups locally first, so reaching this means that list was stale |
+  | `PN365` `<WORD> — already found` | `race` | records NOTHING, so it refuses. `useFoundWordSubmit` dedups locally first, so reaching this means that list was stale |
   | `PN363` "Game over" · `PN364` "Already conceded" · `PN366` "No guesses left" | `race` | the frontend's own gates losing to the subscription that feeds them |
   | `PN362` `BUG: a guess submitted to a game with no wordiply row` · `PN367` `BUG: a guess the client called legal breaks the base rules` | `fault` | |
 
@@ -456,7 +456,7 @@ board. A real fork, resolved in [Decisions](#10-decisions).
 Five answers — `accepted` · `too_short` · `missing_base` · `not_a_word` ·
 `already_found` — mapped to `won` · `lost` · `lost` · `warning` · `warning`.
 The pill, the board's answer mark and the log bar all index that table; the
-shared `useWordSubmit` routes every answer, `accepted` included, through this
+shared `useFoundWordSubmit` routes every answer, `accepted` included, through this
 game's `outcomeFor`, and the log reads a row's `reason`, which is the server's
 word for the same answer (so `answerFor` splits the engine's one "not legal"
 into `missing_base` / `not_a_word` before indexing). No RPC carries an outcome
@@ -492,7 +492,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 - **`hooks/useGame.ts`** — subscribe to `wordiply.events` (+ `wordiply.games` for the
   replay/terminal touch), fetch `games_state` + guesses; derive per-track length score +
   letter count (or read `status.leaderboard`).
-- **Submit engine — reuse `useWordSubmit`.** Because the legal list ships to the FE, submit
+- **Submit engine — reuse `useFoundWordSubmit`.** Because the legal list ships to the FE, submit
   is the same **sync-lookup + optimistic + trusting-commit** engine wordwheel uses — the
   lookup is membership in the shipped `legalWords` Set (points = the word's **length**, so the
   hook's per-word value IS the length), `commit` calls the `submit_guess` RPC (and surfaces a
@@ -585,7 +585,7 @@ cost your go, never one of the five guesses.
 `submit_guess` takes **`fe_legal`** — the FE's dictionary verdict. Trusting it is
 no weaker than trusting its accepts, which trusting-commit already does; the
 server's own guards still run first and can reject a word the FE called legal.
-The shared `useWordSubmit` supplies this through its optional `recordReject`,
+The shared `useFoundWordSubmit` supplies this through its optional `recordReject`,
 which only wordiply passes (spellingbee / wordwheel / boggle are parallel
 word-searches where "whose non-word was that" is a question nobody asks).
 
@@ -717,7 +717,7 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
 - **Setup:** `<SetupGameModal>`, `<SetupSection>`, `<DictBandField>`, `<SetupTimerSection>`.
 - **Entry + submit:** the shared **`common/…/entry/GuessKeyboard`** (the Wordle-style on-screen
   keyboard, shared with wordle) for touch input + **`useCaptureKeys`** for physical keys, both
-  driving the same `word`. Submit reuses **`useWordSubmit`** (shipped-list, trusting-commit)
+  driving the same `word`. Submit reuses **`useFoundWordSubmit`** (shipped-list, trusting-commit)
   with a wordiply validator (points = the word's length). No `<WordEntryArea>` / `<WordEntryInput>` (that
   needs a physical keyboard).
 - **Feedback:** `useFeedbackSlot` / `usePeerFeedback` / `<FeedbackPill>`.
@@ -742,7 +742,7 @@ next to the thing it was chosen over. The chosen option is in **bold**.
 1. **Brand name** — **resolved: "WordWire".** Lives only in the manifest `BRAND` const.
 2. **Validation model** — **resolved: ship-list trusting-commit** (§2). Per the trust model
    we don't care about cheating, so the legal list ships to the FE (simpler build, reuses
-   `useWordSubmit`, no per-guess round-trip). Scores + longest word are hidden until terminal
+   `useFoundWordSubmit`, no per-guess round-trip). Scores + longest word are hidden until terminal
    as a *display* choice, not a security one.
 3. **Letter-count tiebreak direction** — **resolved 2026-08-03: higher wins**
    (more/longer words = more wordplay). The alternative reading — lower = efficiency,

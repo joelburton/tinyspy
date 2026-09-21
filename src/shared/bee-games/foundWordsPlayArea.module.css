@@ -8,7 +8,7 @@
  * WHY THIS EXISTS. wordwheel is a targeted fork of spellingbee (docs/games/
  * wordwheel.md → the fork). The 2026-07-12 review's D2 finding pulled their
  * shared TypeScript into `common/` — rankLadder, displayRows, leaderboard, the
- * `makeFoundWordsGame` factory, RankBar, Stats — but left the CSS forked, so two
+ * `makeBeeGame` factory, RankBar, Stats — but left the CSS forked, so two
  * 104-line modules sat here differing by ONE token name and FOUR numbers. They
  * had already begun to drift apart in ways nobody decided (a stroke token in one
  * and not the other, left commented out mid-tuning). This is the CSS half of D2.

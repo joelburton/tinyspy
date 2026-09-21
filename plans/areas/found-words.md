@@ -1,6 +1,6 @@
-# Area: word-hunt
+# Area: found-words
 
-The folders it reads: `shared/word-hunt`. The process is
+The folders it reads: `shared/found-words`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
@@ -12,7 +12,7 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 
 ## Findings
 
-*(`F-word-hunt-1 · slug · title`, one heading each; a status prefix when it has
+*(`F-found-words-1 · slug · title`, one heading each; a status prefix when it has
 one, no prefix means OPEN)*
 
 ## Notes

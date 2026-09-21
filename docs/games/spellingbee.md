@@ -127,7 +127,7 @@ The word list itself is **not** a spellingbee table — it's the shared `common.
 
 ### The word lists ship to the FE (not hidden)
 
-`required_words` + `bonus_words` are the board's answer key, and both ship to the FE from game start — the FE validates + scores every guess against required ∪ bonus locally (via the shared `useWordSubmit` hook) and submits trusting-commit. Per [CLAUDE.md → Trust model](../../CLAUDE.md) we don't withhold them (friends, not anti-cheat), so there's no column-grant gate and no `SECURITY DEFINER` reveal helper: the FE reads both lists straight off `games_state`, and the missed-words reveal is a **client-side** `(required ∪ bonus) − found` computed at `isTerminal` — a FE display choice throughout, not a server gate.
+`required_words` + `bonus_words` are the board's answer key, and both ship to the FE from game start — the FE validates + scores every guess against required ∪ bonus locally (via the shared `useFoundWordSubmit` hook) and submits trusting-commit. Per [CLAUDE.md → Trust model](../../CLAUDE.md) we don't withhold them (friends, not anti-cheat), so there's no column-grant gate and no `SECURITY DEFINER` reveal helper: the FE reads both lists straight off `games_state`, and the missed-words reveal is a **client-side** `(required ∪ bonus) − found` computed at `isTerminal` — a FE display choice throughout, not a server gate.
 
 This is a deliberate convergence with boggle (which also ships its lists): `games_state` selects both lists unconditionally, and the FE's `useGame` loads the immutable header once (nothing to re-reveal). `candidate_words` is a `SECURITY DEFINER`-free helper the edge-function builder uses at board-build time.
 
@@ -216,9 +216,9 @@ Builds the title (per the formula above), calls `common.create_game` with the `'
 
 ### `spellingbee.submit_word(target_game uuid, word text, points int, is_pangram boolean, is_bonus boolean) → jsonb`
 
-**Trusting-commit** (like boggle — both word-list games share the FE `useWordSubmit` engine). Because the full legal list (`required_words ∪ bonus_words`) ships to the FE at game start, the client validates + scores every guess LOCALLY and only commits accepted words. So the server **trusts** `word` + `points` + `is_pangram` + `is_bonus` and does NOT re-derive letters / center / min-length / dictionary membership — it just enforces the live-game check, dedups, records, and recomputes aggregates / the compete win. Returns `{ "result": <enum>, "points": int }` (the returned points echo what the FE sent, 0 for a server-side reject like a dup); the commit that wins the coop game additionally returns `"won": true`.
+**Trusting-commit** (like boggle — both word-list games share the FE `useFoundWordSubmit` engine). Because the full legal list (`required_words ∪ bonus_words`) ships to the FE at game start, the client validates + scores every guess LOCALLY and only commits accepted words. So the server **trusts** `word` + `points` + `is_pangram` + `is_bonus` and does NOT re-derive letters / center / min-length / dictionary membership — it just enforces the live-game check, dedups, records, and recomputes aggregates / the compete win. Returns `{ "result": <enum>, "points": int }` (the returned points echo what the FE sent, 0 for a server-side reject like a dup); the commit that wins the coop game additionally returns `"won": true`.
 
-The FE-side validation happens in `useWordSubmit` + `lib/` before the commit fires, in the spellingbee-ws order (friendliest message wins when several things are wrong):
+The FE-side validation happens in `useFoundWordSubmit` + `lib/` before the commit fires, in the spellingbee-ws order (friendliest message wins when several things are wrong):
 
 1. `too_short` — length < `minWordLength` (4)
 2. `not_legal` — not in the shipped `required ∪ bonus` list; `explainReject` says which rule it broke (a letter off the board, the center letter missing, or simply not a word)
@@ -246,7 +246,7 @@ Server-side on the trusted commit: inserts `found_words` row, recomputes team/pl
 | | | |
 |---|---|---|
 | `{ result: 'accepted', points }` / `{ result: 'bonus', points }` | `ok` | the two ways a word lands; `won: true` rides along on the commit that wins |
-| `PN360` `<WORD> — already found` | `race` | **not a verdict.** `useWordSubmit` dedups locally first (step 4 above), so reaching this means that list was stale — a teammate found it between the render and the submit (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses. The server composes the whole `WORD — body` line, because this rejection is reachable by BOTH routes and the two must not read differently |
+| `PN360` `<WORD> — already found` | `race` | **not a verdict.** `useFoundWordSubmit` dedups locally first (step 4 above), so reaching this means that list was stale — a teammate found it between the render and the submit (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses. The server composes the whole `WORD — body` line, because this rejection is reachable by BOTH routes and the two must not read differently |
 | `PN354` "Game over" | `race` | a peer ended it, or the clock did, while the word was in flight |
 | `PN355` "Already conceded" | `race` | a raise rather than a soft return, deliberately: a refusal is what releases the optimistically-accepted word |
 | `PN353` `BUG: a word submitted to a game with no spellingbee row` | `fault` | |
@@ -362,7 +362,7 @@ src/spellingbee/
     PlayArea.tsx          The thin two-column coordinator on the shared scaffold (.boardCol /
                           .infoCol). **Decomposed** into BoardCol + InfoCol (no-op verified; no
                           history viewer — a WordList isn't chronological). PlayArea keeps the
-                          word-entry ENGINE — the shared `useWordSubmit` (the typed word, the
+                          word-entry ENGINE — the shared `useFoundWordSubmit` (the typed word, the
                           `submit_word` dispatch, the sticky own-move feedback, a shared
                           <FeedbackPill> dismissed on the next move, no timer) — in the
                           coordinator, because its feedback channel is ALSO written by InfoCol's
@@ -474,9 +474,9 @@ src/spellingbee/
                           unit with the RankBar). Tabular-nums so the digits don't shift
                           width as the score climbs. (Timer lives in the GamePage header.)
     (WordList)            The found-words list is now the SHARED
-                          common/word-list/WordList (used by every word-hunt game that keeps a
+                          common/word-list/WordList (used by every found-words game that keeps a
                           found-words list, so it looks identical across them). PlayArea builds its rows via
-                          the shared shared/word-hunt/foundWordsDisplayRows.buildDisplayRows
+                          the shared shared/found-words/foundWordsDisplayRows.buildDisplayRows
                           (foundWords, buildRevealWords(required, bonus, found))
                           and passes `reveal` + `hasBonus`. Per-finder color, pangram bold,
                           bonus dot, a recently-found underline (the shared
@@ -558,11 +558,11 @@ Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_comp
 ### State flow for one submission
 
 1. User types or clicks letters → `PlayArea` updates `word` state.
-2. User hits Enter → the shared `useWordSubmit` validates + scores the word locally against the shipped lists, then its `commit` fires `db.rpc('submit_word', { target_game, word, points, is_pangram, is_bonus })` — the trusting-commit call carries the FE's verdict.
+2. User hits Enter → the shared `useFoundWordSubmit` validates + scores the word locally against the shipped lists, then its `commit` fires `db.rpc('submit_word', { target_game, word, points, is_pangram, is_bonus })` — the trusting-commit call carries the FE's verdict.
 3. RPC validates, inserts a `found_words` row, updates `common.games.status`, possibly fires the terminal flip.
 4. Realtime UPDATE event on `spellingbee.found_words` reaches `useGame`'s `useRealtimeRefetch`; `load()` re-reads `games_state` + `found_words`.
 5. `setGame({...})` + `setFoundWords(...)` re-render `PlayArea`.
-6. The pill was already shown before the RPC fired — `useWordSubmit` decides the answer from the shipped list and `lib/answer.ts` gives it its outcome — so the `ok` answer's `{ result, points }` changes nothing the pill says; only a not-ok does, by releasing the word.
+6. The pill was already shown before the RPC fired — `useFoundWordSubmit` decides the answer from the shipped list and `lib/answer.ts` gives it its outcome — so the `ok` answer's `{ result, points }` changes nothing the pill says; only a not-ok does, by releasing the word.
 7. `useRecentlyFound` flags the new word as recent for 5s → `<WordList>` underlines it in the finder's color.
 
 ### "End game" menu wiring
@@ -636,7 +636,7 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 | `src/common/lib/game/rankLadder.test.ts` | (shared) Rank ladder boundary cases; integer-math agreement with `spellingbee._rank_idx`. |
 | `src/spellingbee/lib/pangram.test.ts` | `isPangram` boundary cases (6/7/8 distinct, case-insensitive). |
 | `src/spellingbee/lib/letterMask.test.ts` | `letterMask` round-trips, `popcount26`, `isSubsetMask`. |
-| `src/shared/word-hunt/foundWordsDisplayRows.test.ts` | (shared) Found-word dedup to the first finder, found-shadows-reveal, alphabetical merge → shared `WordListRow`s. |
+| `src/shared/found-words/foundWordsDisplayRows.test.ts` | (shared) Found-word dedup to the first finder, found-shadows-reveal, alphabetical merge → shared `WordListRow`s. |
 | `src/common/word-list/useRecentlyFound.test.ts` | (shared) Initial-quiet, fresh-arrival, 5s expiry, staggered expiry per word, no-op rerender idempotency. |
 
 ## File locations
@@ -652,7 +652,7 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 | The play surface | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
 | The honeycomb layout (CSS lifted from spellingbee-ws) | [`src/spellingbee/components/Letters.module.css`](../../src/spellingbee/components/Letters.module.css) |
 | The rank ladder math | the SHARED [`src/common/lib/game/rankLadder.ts`](../../src/shared/rank-ladder/rankLadder.ts) |
-| The found-words list | the SHARED [`src/common/word-list/WordList.tsx`](../../src/common/word-list/WordList.tsx) (spellingbee builds its rows via the shared [`src/shared/word-hunt/foundWordsDisplayRows.ts`](../../src/shared/word-hunt/foundWordsDisplayRows.ts)) |
+| The found-words list | the SHARED [`src/common/word-list/WordList.tsx`](../../src/common/word-list/WordList.tsx) (spellingbee builds its rows via the shared [`src/shared/found-words/foundWordsDisplayRows.ts`](../../src/shared/found-words/foundWordsDisplayRows.ts)) |
 | The per-gametype data hook | [`src/spellingbee/hooks/useGame.ts`](../../src/spellingbee/hooks/useGame.ts) |
 
 ## Printing the board (PDF)

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { describe, expect, it } from 'vitest'
-import type { FoundWordRow } from '../bee-games/foundWords'
+import type { FoundWordRow } from './foundWords'
 import { buildDisplayRows } from './foundWordsDisplayRows'
 
 /**

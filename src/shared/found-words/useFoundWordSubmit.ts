@@ -8,14 +8,20 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 
 /**
- * The shared **type-a-word-and-submit** engine for the two word-list games
- * (boggle + spellingbee). Both ship their full legal word list
- * (required ∪ bonus) to the FE, so both do the *same* thing on submit: validate
- * the typed word against that list, and — if it's good — show instant own-move
- * feedback and fire a trusting-commit RPC in the background. The only per-game
- * bits are the list lookup, the RPC, the reject-reason wording, and the success
- * label; everything structural (dedup, the optimistic in-flight guard, the
- * feedback plumbing, last-word recall) lives here once.
+ * The shared **type-a-word-and-submit** engine, used by boggle, spellingbee,
+ * wordwheel and wordiply.
+ *
+ * What it models is narrower than hunting words: **a typed word, a shipped
+ * legal list to look it up in, and a growing set of found words to dedup
+ * against.** All four ship their legal list to the FE, so all four do the
+ * *same* thing on submit: validate the typed word against that list, and — if
+ * it's good — show instant own-move feedback and fire a trusting-commit RPC in
+ * the background. The only per-game bits are the list lookup, the RPC, the
+ * reject-reason wording, and the success label; everything structural (dedup,
+ * the optimistic in-flight guard, the feedback plumbing, last-word recall)
+ * lives here once. Wordiply is the caller with no `found_words` table at all —
+ * its guesses are the found set — which is the reason the model above is
+ * written in terms of the two lists rather than the schema.
  *
  * Why this exists as one hook: boggle previously hand-rolled an optimistic
  * required-word path with no in-flight guard and no `.catch`, so a fast re-submit
@@ -52,7 +58,7 @@ export type WordEntry = {
   isPangram?: boolean
 }
 
-export type WordSubmitConfig = {
+export type FoundWordSubmitConfig = {
   mode: 'coop' | 'compete'
   userId: string
   /** True once the game is over — submit becomes a no-op. */
@@ -161,7 +167,7 @@ export type WordSubmitConfig = {
   hideAccepted?: boolean
 }
 
-export type WordSubmitApi = {
+export type FoundWordSubmitApi = {
   word: string
   /** The raw state setter — accepts a value or an updater, so a game can append
    *  a clicked letter (`setWord((w) => w + 'A')`) as well as replace. */
@@ -196,7 +202,7 @@ export const wordWithBonusDot = (word: string, isBonus = false): string =>
 const line = (word: string, body: string, isBonus = false): string =>
   `${wordWithBonusDot(word, isBonus)} — ${body}`
 
-export function useWordSubmit(cfg: WordSubmitConfig): WordSubmitApi {
+export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitApi {
   const [word, setWordState] = useState('')
   const [lastWord, setLastWord] = useState('')
 

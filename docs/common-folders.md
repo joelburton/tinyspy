@@ -54,8 +54,10 @@ which is why it is guarded rather than trusted:
 [`src/guards/commonNeverImportsShared.test.ts`](../src/guards/commonNeverImportsShared.test.ts)
 fails on any such import, in either spelling.
 
-A family importing another family is fine and unguarded; there is no such edge
-today. And `src/shared/` is held to the same cross-game rule `src/common/` is —
+A family importing another family is fine and unguarded, and there is one edge:
+`bee-games` takes the found-word row and the shipped-word type from
+`found-words`, because spellingbee and wordwheel are members of that family as
+well as a pair of their own. And `src/shared/` is held to the same cross-game rule `src/common/` is —
 eslint blocks it from importing `src/<game>/`.
 
 ### Imports use the `@/` alias when they leave their folder
@@ -326,13 +328,13 @@ from everyone else.
 
 | folder | the family | what it is |
 |---|---|---|
-| `bee-games` | spellingbee, wordwheel | the found-words data model, the game factory, the compete leaderboard, the typed-word look |
+| `bee-games` | spellingbee, wordwheel | the hook factory behind their identical data lifecycles, the board header it returns, the compete leaderboard, their shared play surface |
 | `board-cursor` | bananagrams, scrabble | arrows move a cursor over a board: the reusable key handling plus the letter-grid cursor math |
 | `dict-trie` | boggle, scrabble | the flat trie behind boggle's solver and scrabble's suggester |
+| `found-words` | spellingbee, wordwheel, boggle — and wordiply, which takes the submit engine alone | the games that accumulate a list of found words: the submit engine, the terminal reveal, the rows the word-list panel draws, the row and word types, the typed-word look |
 | `grid-and-drag` | bananagrams, scrabble | dragging a tile to the right place on the grid |
 | `onscreen-keyboard` | wordle, wordiply | the on-screen QWERTY |
 | `rank-ladder` | the games with a Start..Genius ladder | the ladder, its bar and its stat grid — no data model behind it, so any game with a ladder can take it |
-| `word-hunt` | spellingbee, wordwheel, boggle, wordiply | find-words-on-a-board games: the display rows, the reveal, the submit hook |
 | `wordle-style` | wordle, waffle | the per-letter color codes of the hidden-target games, on screen (`tileColor`) and on paper (`pdfTiles`) |
 
 ## Judgment calls (recorded so they don't get re-litigated)
@@ -350,7 +352,7 @@ from everyone else.
 - **`outcomes`** is its own folder, not terminal's. It is read by boards, the
   pills, the feedback layer and `dbResult`; [outcomes.md](outcomes.md) is
   already its doc.
-- **`revealWords` stays in `shared/word-hunt`** while `useSolutionReveal` is
+- **`revealWords` stays in `shared/found-words`** while `useSolutionReveal` is
   `common/reveal` — reveal is split between common and shared on purpose.
 - **`pdfTiles` is a shared print helper outside `common/pdf/`.** The shared
   print helpers live in one folder deliberately, and this bends that: it takes

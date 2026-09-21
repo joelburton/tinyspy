@@ -577,7 +577,7 @@ name.
 
 Folder [`src/letterboxed/`](../../src/letterboxed/), standard v3 two-column
 layout, `BoardCol` / `InfoCol` decomposition per [playarea.md](../playarea.md).
-Move entry is deliberately **not** `useWordSubmit` — that hook models a
+Move entry is deliberately **not** `useFoundWordSubmit` — that hook models a
 found-words game (dedup against a growing set, points per word); here a
 submission is a chain *append* whose legality depends on the word before it, so
 validation lives in [`lib/board.ts`](../../src/letterboxed/lib/board.ts)

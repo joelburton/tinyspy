@@ -4,7 +4,7 @@
  * Render + behavior tests for wordwheel's PlayArea.
  *
  * Why this exists: the trusting-commit refactor rewired the whole submit path
- * (the shared `useWordSubmit` hook, the un-gated word lists, the client-side
+ * (the shared `useFoundWordSubmit` hook, the un-gated word lists, the client-side
  * reveal), and wordwheel's PlayArea (the largest FE file in that change) had NO
  * component coverage — a blank-page runtime error wouldn't be caught by `tsc`
  * (the root tsconfig checks nothing — see memory project_typecheck_use_tsc_b).
@@ -295,7 +295,7 @@ describe('wordwheel PlayArea — icon-only action rows', () => {
   })
 })
 
-describe('wordwheel PlayArea — submit behavior (shared useWordSubmit)', () => {
+describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', () => {
   it('accepts a required word: optimistic pill + submit_word call', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)

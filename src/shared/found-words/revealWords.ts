@@ -1,7 +1,7 @@
 // cs-unmet
 
 /**
- * The terminal **missed-word reveal**, shared by the three word-hunt games
+ * The terminal **missed-word reveal**, shared by the found-words games
  * (spellingbee, wordwheel, boggle).
  *
  * **Generic over the word, because that is the only thing the three disagree

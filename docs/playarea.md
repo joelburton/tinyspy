@@ -321,7 +321,7 @@ one register (see [ui.md → Feedback pill](ui.md#feedback-pill)). Every game's
 PlayArea makes the slot with `useFeedbackSlot('local')`, shows into it (a
 result, a not-ok, and its standing conditions as effects), and hands it to
 its BoardCol to draw; the four word-list games show their results through
-`useWordSubmit`. The slot reserves its height so swapping the pill in for the
+`useFoundWordSubmit`. The slot reserves its height so swapping the pill in for the
 move controls never reflows the board. In the eight turn-order coop games the
 same slot also carries the "Waiting for ● Name…" standing note
 (`FeedbackMessage.waiting()`), which ranks under the verdict, out-of-race and a
@@ -497,11 +497,11 @@ Some games bend the defaults, each documented at its call site:
 
 The shared **`<WordList>`** is one of the two panels the info column commonly
 carries, the other being the event log: the alphabetical counterpart to that
-chronological one, worn by the three word-hunt games (spellingbee, wordwheel,
+chronological one, worn by the found-words games (spellingbee, wordwheel,
 boggle). What it is, how it is narrowed and what its marks mean are
 [src/common/word-list/doc.md](../src/common/word-list/doc.md)'s; the reveal that
 fills its unfound rows is
-[src/shared/word-hunt/doc.md](../src/shared/word-hunt/doc.md)'s.
+[src/shared/found-words/doc.md](../src/shared/found-words/doc.md)'s.
 
 ## Turn-history viewer
 

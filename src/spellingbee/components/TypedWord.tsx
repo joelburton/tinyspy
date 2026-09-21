@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import styles from '@/shared/bee-games/typedWord.module.css'
+import styles from '@/shared/found-words/typedWord.module.css'
 
 type Props = {
   /** The current typed word (already uppercase; we uppercase defensively). */

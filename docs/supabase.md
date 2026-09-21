@@ -277,7 +277,7 @@ the views. waffle's `useGame` is the canonical commented example.
 
 Games whose header row carries a large immutable payload (boggle's word
 lists, wordiply's `legal_words`, crosswords' puzzle meta, the
-`makeFoundWordsGame` pair spellingbee/wordwheel) fetch it **once** in a
+`makeBeeGame` pair spellingbee/wordwheel) fetch it **once** in a
 plain effect and wire only the volatile child rows (`found_words`,
 `guesses`, `cells`) into the refetch loop. This avoids re-downloading a
 multi-kilobyte word list every time a teammate finds a word. Games with
@@ -307,7 +307,7 @@ explicit mechanism:
 | `useClubChat` messages (`useClubChat.ts`) | `sent_at` **asc** | a 7-day recency window (`.gte('sent_at', cutoff)`, cutoff computed once per subscription) | **bounded** ✓ (a recency window, not a row limit — the window matches how chat is read) |
 | `useGameInvitations` (`game_players` for self) | n/a | one `!inner` embed filtered to `is_terminal = false`, so the row set is my *active* games (a handful), not every seat I've ever held | **bounded** ✓ |
 | ClubPage games list | `last_active_at` **desc** | explicit `.limit(200)`; overflow drops the oldest games (deliberate, commented) | **bounded** ✓ |
-| `makeFoundWordsGame` / boggle / wordiply child rows | `found_at` asc | human-bounded (nobody finds thousands of words in one game) | note the pattern, no action |
+| `makeBeeGame` / boggle / wordiply child rows | `found_at` asc | human-bounded (nobody finds thousands of words in one game) | note the pattern, no action |
 
 ### The flip side: reads that legitimately NEED >1000 rows
 
@@ -616,7 +616,7 @@ All of these are commented at the site; this table is the index.
 | Ephemeral broadcast on a second stable channel | scrabble `useSharedMove` | staged-move preview is never stored; a missed broadcast just means no preview |
 | Direct CDC apply instead of refetch | crosswords `useCells`, scratchpad body | per-keystroke frequency; version-merge ("newer wins") + optimistic echo. `useCells` rolls a refused write back; the scratchpad has no rollback, its next keystroke re-flushes the whole text |
 | Append-on-INSERT instead of refetch | `useClubChat` | chat volume; requires merge-on-refetch (see the rule) |
-| Shared `useGame` factory across two games | `makeFoundWordsGame` (spellingbee + wordwheel) | byte-identical lifecycle; fork it back if they diverge |
+| Shared `useGame` factory across two games | `makeBeeGame` (spellingbee + wordwheel) | byte-identical lifecycle; fork it back if they diverge |
 | One-shot on-demand fetch | crosswords Reveal (`games_state.solution`) | solution is gated; fetched only when the button is pressed |
 | Stable-name temp channel | ClubPage delete-current-game broadcast | borrows `useCommonGame`'s room name to reach peers, send-only, ~1s lifetime |
 | FE-side owner filter on CDC | crosswords `useCells` | compete privacy: CDC payload carries other owners' cells; dropped before apply |

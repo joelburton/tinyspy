@@ -20,7 +20,7 @@ import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
-import { useWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
+import { useFoundWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/found-words/useFoundWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
 import { traceableStr, tracePathStr, traceCellsStr } from '../lib/boardTrace'
 import { ANSWER_OUTCOME } from '../lib/answer'
@@ -30,7 +30,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import { type LadderName } from '../lib/solver'
 import type { BoggleSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
-import { buildRevealWords } from '@/shared/word-hunt/revealWords'
+import { buildRevealWords } from '@/shared/found-words/revealWords'
 import { buildDisplayRows } from '../lib/displayRows'
 import { printBogglePdf } from '../pdf/printBogglePdf'
 import { buildWordSections } from '@/common/pdf/wordSections'
@@ -145,7 +145,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Move entry + own-move results (shared engine) ────
   // The board ships with its full legal list (required ∪ bonus), so a guess is
-  // validated + scored locally — index it by word for O(1) lookup. `useWordSubmit`
+  // validated + scored locally — index it by word for O(1) lookup. `useFoundWordSubmit`
   // owns the typed-word state, the results it shows into the slot, and the
   // optimistic commit + dedup; boggle only supplies the lookup, the RPC, the
   // reject reason (not-on-board vs not-a-word, client-side via `traceableStr`),
@@ -177,7 +177,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const [answered, showAnswer] = useMark<{ cells: number[]; outcome: Outcome }>(WORD_ANSWER_MS)
 
   const { word, setWord, lastWord, submit } =
-    useWordSubmit({
+    useFoundWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: myId,
       // A conceder is locally done: gate word entry as if the game were terminal.

@@ -206,7 +206,7 @@ as spellingbee, under wordwheel's own codes:
 | | | |
 |---|---|---|
 | `{ result: 'accepted', points }` / `{ result: 'bonus', points }` | `ok` | `won: true` rides along on the commit that wins |
-| `PN361` `<WORD> — already found` | `race` | **not a verdict.** `useWordSubmit` dedups locally first, so reaching this means that list was stale — a teammate found it mid-flight (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses |
+| `PN361` `<WORD> — already found` | `race` | **not a verdict.** `useFoundWordSubmit` dedups locally first, so reaching this means that list was stale — a teammate found it mid-flight (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses |
 | `PN357` "Game over" | `race` | |
 | `PN358` "Already conceded" | `race` | a raise rather than a soft return: a refusal is what releases the optimistically-accepted word |
 | `PN356` `BUG: a word submitted to a game with no wordwheel row` | `fault` | |
@@ -308,7 +308,7 @@ publication membership (both `wordwheel.games` and `wordwheel.found_words`) so a
 
 Four answers — `accepted` · `already_found` · `not_legal` · `too_short` —
 mapped to `won` · `warning` · `lost` · `warning`, read by the pill through
-`outcomeFor`, which the shared `useWordSubmit` calls for every answer,
+`outcomeFor`, which the shared `useFoundWordSubmit` calls for every answer,
 `accepted` included (the wheel shakes on a miss and shows no color of its
 own). No RPC carries an outcome: the frontend decides, once. The same table as
 spellingbee's, for the same reasons ([spellingbee.md](spellingbee.md);
@@ -321,7 +321,7 @@ into three buckets:
   after a codename rename live once, so a fix lands for both games: the rank
   ladder (`common/lib/game/rankLadder`), the found-words data model + display +
   leaderboard (`common/lib/game/foundWords*`), the `useGame` factory
-  (`common/hooks/game/makeFoundWordsGame`), and the `RankBar` / `Stats`
+  (`shared/bee-games/makeBeeGame`), and the `RankBar` / `Stats`
   components (`common/components/game/`, themed via generic `--rank-*` tokens
   each game's `theme.css` aliases). The RankBar marks the game's
   `target_rank` square with a heavy near-black outline — deliberately NOT a

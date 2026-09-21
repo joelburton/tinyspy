@@ -71,7 +71,7 @@
   `foundWordsDisplayRows` — the same algorithm line for line, differing only
   in that boggle omits `isPangram`, which the shared row type already makes
   optional — and doing so also lets boggle reach
-  `shared/word-hunt/wordListRows.ts`, which composes the reveal and the merge
+  `shared/found-words/wordListRows.ts`, which composes the reveal and the merge
   in one call and which spellingbee and wordwheel already use (its two
   remaining hand-written sites, the screen's rows and the print's, collapse to
   one call each); and the two inline `(status?.leaderboard as LeaderRow[] …) ?? []`
@@ -79,7 +79,7 @@
   note that said boggle "must NOT use" the shared rows was false** — its own
   tests dedup a word to the earliest finder exactly as the shared one does; a
   false justification is worse than none because it survives by being cited.
-  **Deliberately NOT `makeFoundWordsGame`**: boggle reads `games` where the
+  **Deliberately NOT `makeBeeGame`**: boggle reads `games` where the
   hive games read a `games_state` view, with different columns and a
   different header type, and sharing it would mean parameterizing the table,
   the select and the row mapping — a hook turned into a framework. Joel:

@@ -9,7 +9,7 @@ import { startGameRow } from './helpers/clubPage'
 /**
  * Smoke test for the FreeBee (spellingbee) play loop on screen, after the
  * trusting-commit refactor: both word lists ship to the FE, which validates +
- * scores every guess locally (shared `useWordSubmit`) and commits optimistically.
+ * scores every guess locally (shared `useFoundWordSubmit`) and commits optimistically.
  * Confirms end-to-end that:
  *   - a required word lands in the found list (via realtime) + advances the score;
  *   - a bonus word shows the trailing `•` in its own-move pill;

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { makeFoundWordsGame } from '@/shared/bee-games/makeFoundWordsGame'
+import { makeBeeGame } from '@/shared/bee-games/makeBeeGame'
 
 /**
  * One player in a spellingbee game — a straight Member re-export (spellingbee
@@ -13,16 +13,16 @@ import { makeFoundWordsGame } from '@/shared/bee-games/makeFoundWordsGame'
 export type Player = Member
 
 /**
- * spellingbee + wordwheel project the identical found-words shape, so the hook
+ * spellingbee + wordwheel project the identical game shape, so the hook
  * body — the once-loaded header + the found_words realtime refetch — lives once
- * in `makeFoundWordsGame`; this binds it to the spellingbee schema. The data
+ * in `makeBeeGame`; this binds it to the spellingbee schema. The data
  * types are re-exported under spellingbee's local names; if spellingbee ever
  * grows a schema-specific column, that's the seam to fork (give it its own body).
  */
+export type { BeeGame as SpellingbeeGame } from '@/shared/bee-games/makeBeeGame'
 export type {
-  FoundWordsGame as SpellingbeeGame,
   FoundWordsWord as SpellingbeeWord,
   FoundWordRow,
-} from '@/shared/bee-games/foundWords'
+} from '@/shared/found-words/foundWords'
 
-export const useGame = makeFoundWordsGame('spellingbee')
+export const useGame = makeBeeGame('spellingbee')

@@ -3,14 +3,14 @@
 import type { WordListRow } from '@/common/word-list/WordList'
 
 /**
- * The rows behind the info column's found-words list, for any word-hunt game.
+ * The rows behind the info column's found-words list, for any game in the family.
  *
  * Its two parameter types are STRUCTURAL rather than a game's named types, so
  * a game whose words have no pangram flag passes its own rows unchanged.
  */
 
 /** What this needs off a found row. `is_pangram` is optional because only some
- *  word-hunt games have the concept; `WordListRow` carries it optionally too. */
+ *  games in the family have the concept; `WordListRow` carries it optionally too. */
 type DisplayableFound = {
   word: string
   user_id: string

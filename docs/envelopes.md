@@ -108,7 +108,7 @@ move should never have been sent.
 **The same word can fall on either side, and the frontend decides which.**
 strands ships no word list to the client and does not gate on
 `min_word_length`, so its `duplicate`, `too_short` and `invalid` are all `ok`.
-The four word games are the mirror image: `useWordSubmit` dedups locally against
+The four word games are the mirror image: `useFoundWordSubmit` dedups locally against
 `foundWords` plus a synchronous `pendingRef` and returns *before* calling
 `commit`, so the server's duplicate branch is reachable ONLY when that list was
 stale — a teammate found the word between the render and the submit, or the
@@ -893,7 +893,7 @@ second answer lands, the naming is what stops it being drawn as the first.
 **A typed caller can tell you the answer is on the wrong arm.** boggle's
 `submit_word` answered `gameOver` as an `ok` for months, and it was wrong the
 whole time: the word is not recorded on that path, so an `ok` left
-`useWordSubmit`'s optimistic `+N` pill standing over a word that never landed.
+`useFoundWordSubmit`'s optimistic `+N` pill standing over a word that never landed.
 Nothing noticed, because the call site read `error` alone and an `ok` looks like
 success. What surfaced it was giving the hook a real contract —
 `commit: (entry) => Promise<NotOkEnvelope | null>`, where `null` means the word landed.

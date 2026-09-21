@@ -77,7 +77,7 @@ set (the board's goal + reveal) and *bonus* words (extra legal finds). Two
 independent difficulty bands govern them, and **both lists are enumerated at
 board-build time and shipped to the FE** — the FE validates + scores every guess
 locally against required ∪ bonus and submits trusting-commit (the same model as
-spellingbee, via the shared `useWordSubmit` hook). No `common.words` round-trip
+spellingbee, via the shared `useFoundWordSubmit` hook). No `common.words` round-trip
 at guess time.
 
 - **Required words** — the set the board is **built and judged against**:
@@ -335,7 +335,7 @@ game is terminal, then all.
      near-simultaneous second crosser a no-op.
 
   No word-content or dictionary check, and no scoring, in plpgsql — it does not
-  read `common.words` at all anymore. (Drives off the shared `useWordSubmit` hook,
+  read `common.words` at all anymore. (Drives off the shared `useFoundWordSubmit` hook,
   same as spellingbee.)
 
   **What it answers** ([envelopes.md](../envelopes.md)). Two `ok`s, both
@@ -345,8 +345,8 @@ game is terminal, then all.
   |---|---|---|
   | `{ result: 'accepted', points }` | `ok` | a required word |
   | `{ result: 'bonus', points }` | `ok` | legal, but not on the required list |
-  | `PN359` `<WORD> — already found` | `race` | **not a verdict.** `useWordSubmit` dedups locally first, so reaching this means that list was stale — a teammate found it between the render and the submit (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses. The server composes the whole `WORD — body` line here, because this is the one rejection reachable by BOTH routes and the two must not read differently |
-  | `PN368` "Game over" | `race` | it used to be an `ok` named `gameOver`, which was wrong the whole time: the word is not recorded on that path, so an `ok` left the optimistic `+N` pill standing over a word that never landed. `useWordSubmit`'s contract has no way to say *"ok, but release the word"*, and that absence is what surfaced it ([envelopes.md → How SQL builds one](../envelopes.md#how-sql-builds-one)) |
+  | `PN359` `<WORD> — already found` | `race` | **not a verdict.** `useFoundWordSubmit` dedups locally first, so reaching this means that list was stale — a teammate found it between the render and the submit (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses. The server composes the whole `WORD — body` line here, because this is the one rejection reachable by BOTH routes and the two must not read differently |
+  | `PN368` "Game over" | `race` | it used to be an `ok` named `gameOver`, which was wrong the whole time: the word is not recorded on that path, so an `ok` left the optimistic `+N` pill standing over a word that never landed. `useFoundWordSubmit`'s contract has no way to say *"ok, but release the word"*, and that absence is what surfaced it ([envelopes.md → How SQL builds one](../envelopes.md#how-sql-builds-one)) |
   | `PN352` "Already conceded" | `race` | a raise rather than a soft return, deliberately: a refusal is what releases the optimistically-accepted word |
   | `PN351` `BUG: a word submitted to a game with no boggle row` | `fault` | |
 
@@ -422,7 +422,7 @@ The work splits by **where the data is**, so nothing intricate is written twice:
 | piece | needs | lives |
 |---|---|---|
 | board generation + required solve + bonus enumeration | the dictionary trie | **edge function** (`lib/solver` + `generate`) |
-| guess validity + scoring (membership in required ∪ bonus) | the shipped lists (FE has them) | **FE** shared `useWordSubmit` |
+| guess validity + scoring (membership in required ∪ bonus) | the shipped lists (FE has them) | **FE** shared `useFoundWordSubmit` |
 | reject-message nuance (not-on-board vs not-a-word) | the board (FE has it) | **FE** `lib/boardTrace` |
 | dedup + live-game gate + status | the DB rows | **server** `submit_word` |
 
@@ -438,7 +438,7 @@ dedups. Exactly the scrabble/spellingbee trusting-commit model.
 
 Four answers — `accepted` · `already_found` · `not_legal` · `too_short` —
 mapped to `won` · `warning` · `lost` · `warning`, read by the pill and by the
-board's answer mark through `outcomeFor`, which the shared `useWordSubmit`
+board's answer mark through `outcomeFor`, which the shared `useFoundWordSubmit`
 calls for every answer, `accepted` included. No RPC carries an outcome: the
 frontend decides, once. The same table as spellingbee's, for the same reasons
 ([spellingbee.md](spellingbee.md); [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).

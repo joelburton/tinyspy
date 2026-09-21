@@ -52,7 +52,7 @@ function pathWord(path: Cell[], view: string[][]): string {
  *
  * It owns the **local board rotation** (a per-player view-only matrix rotation — the
  * tiles reposition, each letter stays upright — never persisted or shared). The
- * word-entry ENGINE (`useWordSubmit`: the typed word, the submit RPC, the results)
+ * word-entry ENGINE (`useFoundWordSubmit`: the typed word, the submit RPC, the results)
  * stays in PlayArea, as does the local feedback slot it shows into — InfoCol's
  * End / Concede and PlayArea's standing conditions show into the same slot — so
  * PlayArea passes the entry primitives (`word` / `onChange` / `onSubmit` / the

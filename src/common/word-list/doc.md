@@ -5,7 +5,7 @@ makes it common rather than one family's.
 
 ## Intro to area
 
-A word-hunt game accumulates a list, and the list is the game's record of itself:
+A found-words game accumulates a list, and the list is the game's record of itself:
 what has been found, by whom, and at the end what was missed. Three games keep
 one — spellingbee, wordwheel and boggle — and they keep the same one, because a
 player who learns to read it in one should read it in the next.
@@ -60,7 +60,7 @@ spellingbee/InfoCol ┐
 ```
 
 The rows themselves come from outside: spellingbee and wordwheel from
-`shared/word-hunt/foundWordsDisplayRows.ts`, boggle from its own `lib/displayRows`
+`shared/found-words/foundWordsDisplayRows.ts`, boggle from its own `lib/displayRows`
 (a copy, and already slated to adopt the shared one).
 
 **Who calls what, and what each piece owns.**
@@ -97,4 +97,4 @@ grid rather than a taller panel.
 The placement on the page — that this is one of the two panels the info column
 commonly carries, the other being the event log — is
 [docs/playarea.md](../../../docs/playarea.md)'s. The reveal that produces the
-unfound rows belongs to [shared/word-hunt](../../shared/word-hunt/doc.md).
+unfound rows belongs to [shared/found-words](../../shared/found-words/doc.md).

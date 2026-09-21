@@ -74,11 +74,11 @@ spellingbee and wordwheel use.
 | `useWordSubmit` | word-hunt | **found-words** | the model is a shipped list + a found set; wordiply is a found-words user without the table |
 | `revealWords`, `foundWordsDisplayRows`, `wordListRows` | word-hunt | **found-words** | the family's rows-in adapter to the panel: what they know is the family's data (finder, time, which shipped list) |
 | `FoundWordRow`, `FoundWordsWord` (in `foundWords.ts`) | bee-games | **found-words, per call 2** | the row and the word are the family's once `is_pangram` is optional. If call 2 keeps boggle on its own two types, they have only bee readers and stay where they are |
-| `FoundWordsGame` (the same file today) | bee-games | **bee-games** | the header — a center letter, outer letters, a ladder denominator — is the hive's and the wheel's, and the factory's return type. It does not move with the row, so `foundWords.ts` splits if the row moves |
+| `FoundWordsGame` (the same file today), renamed **`BeeGame`** | bee-games | **bee-games** | the header — a center letter, outer letters, a ladder denominator — is the hive's and the wheel's, and the factory's return type. It does not move with the row, so `foundWords.ts` splits if the row moves. Its NAME had to move too: it is bee-specific and was calling itself found-words (call 2) |
 | `typedWord.module.css` | bee-games | **found-words** | boggle duplicates its one rule |
 | the layout half of `foundWordsPlayArea.module.css` | bee-games | **found-words** | `.layout`, the mobile block, `.belowBoard`, `.loading` / `.empty` are the same in boggle but for three numbers |
 | the board half of that stylesheet | bee-games | **bee-games** | `.boardCol`'s rectangle-in-units geometry and the 20rem `.mobileStatus` are the hive's and the wheel's |
-| `makeFoundWordsGame` | bee-games | **bee-games** | boggle keeps its own hook (the standing ruling, below) |
+| `makeFoundWordsGame`, renamed **`makeBeeGame`** | bee-games | **bee-games** | boggle keeps its own hook (the standing ruling, below), so the factory answers for the two bee games and says so |
 | `readLeaderboard` | bee-games | **common** | generic over every compete game; five games hand-write its guard |
 | `LeaderboardEntry` (the row with `rank_idx`) | bee-games | **bee-games** | its writers are `spellingbee.submit_word` and `wordwheel.submit_word`, and two of its three columns are found-words facts. rank-ladder's doc says there is no data model behind that folder, which is what lets any ladder game take it; this row would give it one |
 | `word-list/*` | common | **unchanged** | the panel, its filter, its recent mark, its stylesheet |
@@ -113,7 +113,8 @@ and that is not wrong, because the file's inputs are found words.
 
 ## Open calls
 
-1. **The hook's name.** Keep `useWordSubmit` under the new folder, or rename
+1. **ANSWERED (Joel, 2026-09-21): rename to `useFoundWordSubmit`.** Keep
+   `useWordSubmit` under the new folder, or rename
    it. My recommendation: `useFoundWordSubmit`, which says the folder's word.
    Not `useTrustingCommit` — scrabble and letterboxed are trusting-commit too
    and could never use it, so the trust model is the part that is not
@@ -124,7 +125,37 @@ and that is not wrong, because the file's inputs are found words.
    they do not use it), nine game and hub docs, one e2e header — and a rename's
    tail is prose, not identifiers: every one is read, not sed'd. Keeping the
    name costs nothing at step 1 beyond the import path.
-2. **How boggle's row gets `is_pangram`** — which is really *whether boggle
+2. **ANSWERED (Joel, 2026-09-21): (a), optional on the shared type.** So the
+   row and the word move to found-words, boggle deletes its own two, and
+   `foundWords.ts` splits — the header goes to bee-games, into the factory
+   file whose return type it is rather than a one-type file of its own.
+
+   **And the sub-question below was answered the other way, on Joel's
+   correction: nothing bee-specific is called found-words.** *"why is
+   `FoundWordsGame` called that when it's specific to bee games? it has stuff
+   like center letters and stuff, so it's not for found-word games; it's for
+   bee games."* He is right, and the plan's own answer below — that leaving it
+   is honest enough because the factory is called `makeFoundWordsGame` — was
+   not an argument: it defended one wrong name with another. The word
+   `found-words` meant the two bee games only because boggle was never in
+   their folder; this plan is what gives it a second, real meaning, and the
+   collision is the plan's to clean up.
+
+   **The five names, and where each is fixed:**
+
+   | was | is | when |
+   |---|---|---|
+   | `FoundWordsGame` | `BeeGame` | step 1 |
+   | `makeFoundWordsGame` | `makeBeeGame` | step 1 |
+   | `useFoundWordsGame` | `useBeeGame` | step 1 |
+   | `foundWordsLeaderboard.ts` | a bee name | **step 2**, when it loses `readLeaderboard` and is left holding one bee row |
+   | `foundWordsPlayArea.module.css` | a bee name for the half that stays | **step 4**, when it splits |
+
+   The first three had no other work scheduled, so they were done at step 1.
+   The last two are being restructured anyway, and renaming them twice would
+   be churn — so each takes its name at the step that opens it.
+
+   **How boggle's row gets `is_pangram`** — which is really *whether boggle
    imports the family's types at all*, and that decides where `foundWords.ts`
    lives. The types are hand-written to match each hook's explicit select;
    boggle's table has no such column. Three ways:
@@ -150,7 +181,10 @@ and that is not wrong, because the file's inputs are found words.
    `FoundWordsGame` in a folder that is no longer the found-words one. Leaving
    it is honest enough (the factory's own name is `makeFoundWordsGame`); if it
    changes, the two `useGame.ts` re-exports are the whole tail.
-3. **Where `readLeaderboard` lives in common.** `game-page/gamePageCtx.ts` is
+3. **ANSWERED (Joel, 2026-09-21): `common/game-page/readLeaderboard.ts`, its
+   own file beside `gamePageCtx.ts`.**
+
+   **Where `readLeaderboard` lives in common.** `game-page/gamePageCtx.ts` is
    the file that documents the `status.leaderboard` convention and hands games
    their status, so `game-page/readLeaderboard.ts` beside it is the obvious
    home. `game-page` is a closed, blessed area; closed is not locked, and a new
@@ -171,7 +205,10 @@ and that is not wrong, because the file's inputs are found words.
    it already sets there (`<MobileStatusBar>` is display-none on desktop, so the
    value is inert above the breakpoint). The bar's own stylesheet reads the
    same token with a 1.75rem fallback and needs no change.
-5. **bee-games' name.** Its doc calls the name a placeholder. After this plan
+5. **ANSWERED (Joel, 2026-09-21): `bee-games` keeps its name.** The doc stops
+   calling it a placeholder.
+
+   **bee-games' name.** Its doc calls the name a placeholder. After this plan
    it holds the factory, the bee header and leaderboard row, and the
    hive-and-wheel board geometry. The two games' shared trait is a center
    letter the word must use, so `center-letter` would say what they share;
@@ -197,7 +234,40 @@ the rename first so every later import path is written once. Steps 2 and 3
 are independent of each other; step 4 needs step 1's folder and, for boggle,
 step 3's `.illegal`.
 
-### 1. `word-hunt` becomes `found-words`, and takes the family's files
+### 1. `word-hunt` becomes `found-words`, and takes the family's files — SHIPPED 2026-09-21
+
+**Four deviations from what this step said, each small and each deliberate:**
+
+- **The intro was NOT written, and the folder stays on `INTROS_OWED` under its
+  new name.** This step said "a new lede and intro". But `folderDocs.test.ts`
+  is explicit that the list "tracks the intro, not the file", that "each area
+  deletes its own line when it writes its intro", and that the length of the
+  list "is how much of the tree is still undescribed". The found-words area is
+  NOT OPENED, so an intro written here would claim work nobody has done and
+  shorten that marker by a folder. The LEDE is rewritten (it has to be — the
+  H1 is the folder name and the folder is a different one now), the
+  reveal-sizing section is kept, and the row is renamed in place.
+- **The bee header went into the factory's own file**, not a `beeGame.ts` of
+  its own — the step offered either. It is the factory's return type, the two
+  `useGame.ts` files already import the factory from that path, and it saves a
+  one-type file. That file is now `makeBeeGame.ts`, per the naming ruling in
+  call 2, which also renamed the header to `BeeGame`, the factory to
+  `makeBeeGame` and its hook to `useBeeGame`.
+- **`WordSubmitConfig` and `WordSubmitApi` renamed with the hook**, to
+  `FoundWordSubmitConfig` / `FoundWordSubmitApi`. They are named for the hook
+  and read nowhere but the hook and its test, so leaving them would be the
+  kind of rename tail that compiles and lies.
+- **`common-folders.md`'s "there is no such edge today" sentence was corrected
+  here, not at step 5.** This step is what makes bee-games import found-words,
+  so this step is where the sentence stops being true.
+
+Also worth knowing: spellingbee.md's four stale `F-word-list-22` sentences had
+their PATHS corrected here and their CONTENT left alone, which is what step 5
+says. They still name `foundWordsDisplayRows.buildDisplayRows` where the call
+is `buildWordListRows`. Three closed areas' files (`common-hosts.md`,
+`supabase.md`) still name `useWordSubmit` as a live example; they are area
+records and were left as written.
+
 
 - `git mv src/shared/word-hunt src/shared/found-words`. `git mv`
   `bee-games/typedWord.module.css` into it. Then `foundWords.ts` per call 2:
@@ -259,9 +329,13 @@ step 3's `.illegal`.
   Record<string, unknown> | null): T[]` with no default. Its docstring keeps
   the defensive-read sentence and loses the "`LeaderboardEntry` is only the
   default" one. `LeaderboardEntry` stays in bee-games — in what is left of
-  `foundWordsLeaderboard.ts` (one type; rename the file or fold it beside the
-  header, Claude's call at the step), and spellingbee and wordwheel write
+  `foundWordsLeaderboard.ts`, and spellingbee and wordwheel write
   `readLeaderboard<LeaderboardEntry>(status)` at their two sites each.
+- **That leftover file takes a bee name here** (call 2's naming ruling): it
+  holds one bee-specific row and must stop calling itself found-words. Either
+  a `beeLeaderboard.ts` of its own or folded in beside the header in
+  `makeBeeGame.ts` — Claude's call at the step, since one short type is on the
+  line either way.
 - The inline casts become the reader. From the grep: boggle's PlayArea (two
   sites, lines 481 and 561), letterboxed's, setgame's and wordiply's PlayArea
   (one each, a `useMemo` over the cast), and the three manifests (letterboxed,
@@ -315,8 +389,9 @@ describes, done here rather than at boggle's area **(Joel)**:
   the family's play-surface scaffolding — `.layout` with its mobile block,
   `.belowBoard`, `.loading` / `.empty` — and cut `.boardCol` (with `--u` and
   `--board-width`) and `.mobileStatus` (at 20rem) into a NEW bee-games sheet,
-  the hive-and-wheel geometry (name at the step; `beeBoard.module.css` says
-  it). The moved file keeps its stamp and its markers and its row in the
+  the hive-and-wheel geometry. **The bee half takes a bee name** (call 2's
+  naming ruling), `beeBoard.module.css` saying it; the family half may keep
+  `foundWordsPlayArea.module.css`, which is finally true of it. The moved file keeps its stamp and its markers and its row in the
   vocabularies guard follows its path; the new file lands `cs-unmet`, `git
   add`ed, its two rules' `/* @@ */` markers carried over by hand. Both headers
   are rewritten: the family sheet's says what the three games compose and

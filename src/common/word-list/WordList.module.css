@@ -2,7 +2,7 @@
 
 /* The shared found-words list — an alphabetical, column-major grid (down each
  * column, then right) in a bordered card that scrolls horizontally once the words
- * run past the columns its width admits. Every word-hunt game that keeps a
+ * run past the columns its width admits. Every found-words game that keeps a
  * found-words list wears this one, so the list looks identical across them
  * (docs/ui.md → "Consistency across games").
  *

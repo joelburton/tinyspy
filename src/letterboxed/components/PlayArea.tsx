@@ -68,7 +68,7 @@ type LeaderRow = {
  *     Rivals' words are hidden until terminal; the OpponentStrip publishes
  *     only the two numbers a race may reveal — letters covered and words used.
  *
- * Move entry is deliberately NOT `useWordSubmit`: that hook models a
+ * Move entry is deliberately NOT `useFoundWordSubmit`: that hook models a
  * found-words game (dedup against a growing set, points per word). Here a
  * submission is a chain APPEND whose legality depends on the word before it,
  * so the validation lives in `lib/board.ts` and the commit is a plain RPC.

@@ -6,11 +6,42 @@ import { supabase } from '@/common/supabase/supabase'
 import { type DbError } from '@/common/supabase/dbEnvelope'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
-import type { FoundWordsGame, FoundWordsWord, FoundWordRow } from './foundWords'
+import type { FoundWordsWord, FoundWordRow } from '@/shared/found-words/foundWords'
 
-/** The schema names of the found-words rank-ladder games — whatever
- *  `supabase.schema()` accepts (keeps the factory type-safe without hard-coding
- *  the union here). */
+/**
+ * The immutable header exposed to the FE — projected from `<schema>.games_state`.
+ * Loads once (play state lives on common.games). Both word lists ship from game
+ * start; the FE just doesn't RENDER the required list until terminal.
+ *
+ * This is the half of the found-words shape that spellingbee and wordwheel
+ * share and boggle does not: a center letter, an outer-letters string, two
+ * scored word lists and a rank-ladder denominator. The board differs at RENDER
+ * time (a hex hive vs a 9-tile wheel) and in game logic (spellingbee's letter
+ * SET vs wordwheel's letter MULTISET), but this data is the same, which is what
+ * lets one factory answer for both. If either game grows a column, split the
+ * type back out (per-game body, same name).
+ */
+export type BeeGame = {
+  id: string
+  club_handle: string
+  // Denormalized from `<schema>.games.mode`. Drives FE branching for the
+  // OpponentStrip + win-vs-loss verdict copy in the PlayArea.
+  mode: 'coop' | 'compete'
+  outer_letters: string
+  center_letter: string
+  // Score of the required set — the rank-ladder denominator.
+  required_words_score: number
+  // Count of required words — the "X / Y words" goal (Y).
+  required_words_count: number
+  created_at: string
+  // The required-words answer key (the displayed goal + the terminal reveal).
+  requiredWords: FoundWordsWord[]
+  // The bonus set (legal − required): accepted + scored, never revealed.
+  bonusWords: FoundWordsWord[]
+}
+
+/** The schema names of the two bee games — whatever `supabase.schema()`
+ *  accepts (keeps the factory type-safe without hard-coding the union here). */
 type GameSchema = Parameters<typeof supabase.schema>[0]
 
 /**
@@ -19,7 +50,7 @@ type GameSchema = Parameters<typeof supabase.schema>[0]
  * table set from a non-literal — and the two hive schemas have distinct
  * generated types, so there is no shared typed `.from`. We read through this
  * hand-written shape (the exact two chains below) and cast each result field to
- * the FoundWords* types, the same field-casting the per-game hooks already did.
+ * the row and header types, the same field-casting the per-game hooks already did.
  */
 type Rows = { data: Record<string, unknown>[] | null; error: DbError }
 type SchemaQuery = {
@@ -40,7 +71,7 @@ type SchemaQuery = {
  * Their `hooks/useGame.ts` bodies were byte-identical (139 lines) — same two
  * data lifecycles, same columns, same realtime wiring — differing only in the
  * schema string. This owns the one copy; each game's `useGame.ts` is now a
- * thin `makeFoundWordsGame('<schema>')` + its type aliases.
+ * thin `makeBeeGame('<schema>')` + its type aliases.
  *
  * Two data lifecycles:
  *   - **The header loads ONCE.** `<schema>.games` is immutable during play (the
@@ -55,11 +86,11 @@ type SchemaQuery = {
  * If either game grows a game-specific column, give it back its own `useGame`
  * body (the thin file is the seam); don't bend the factory around one caller.
  */
-export function makeFoundWordsGame(schema: GameSchema) {
+export function makeBeeGame(schema: GameSchema) {
   const db = supabase.schema(schema) as unknown as SchemaQuery
 
-  return function useFoundWordsGame(gameId: string): {
-    game: FoundWordsGame | null
+  return function useBeeGame(gameId: string): {
+    game: BeeGame | null
     foundWords: FoundWordRow[]
     loading: boolean
     /** True once the found_words rows have loaded at least once — distinct from
@@ -70,7 +101,7 @@ export function makeFoundWordsGame(schema: GameSchema) {
      *  The surface renders this instead of "Game not found." */
     failure: NotOkEnvelope | null
   } {
-    const [game, setGame] = useState<FoundWordsGame | null>(null)
+    const [game, setGame] = useState<BeeGame | null>(null)
     const [foundWords, setFoundWords] = useState<FoundWordRow[]>([])
     const [loading, setLoading] = useState(true)
     const [rowsLoaded, setRowsLoaded] = useState(false)

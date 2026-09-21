@@ -333,7 +333,7 @@ describe('boggle PlayArea — icon-only action rows', () => {
   })
 })
 
-describe('boggle PlayArea — submit behavior (shared useWordSubmit)', () => {
+describe('boggle PlayArea — submit behavior (shared useFoundWordSubmit)', () => {
   it('accepts a required word: optimistic pill + submit_word call', async () => {
     // 'cat' is in the required list (membership, not traceability, drives accept),
     // so it commits optimistically with the stored points + is_bonus=false.

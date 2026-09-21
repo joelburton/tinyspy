@@ -46,7 +46,7 @@ export type WordListRow =
   | { kind: 'unfound'; word: string; isBonus?: boolean; isPangram?: boolean; points?: number }
 
 type Props = {
-  // The merged, alphabetized rows — `shared/word-hunt/foundWordsDisplayRows.ts`
+  // The merged, alphabetized rows — `shared/found-words/foundWordsDisplayRows.ts`
   // builds them for spellingbee and wordwheel, boggle's `lib/displayRows` for
   // boggle.
   rows: WordListRow[]

@@ -1,7 +1,7 @@
 // cs-unmet
 
 /**
- * Tests for makeFoundWordsGame — the useGame data-hook factory shared by
+ * Tests for makeBeeGame — the useGame data-hook factory shared by
  * spellingbee + wordwheel (their hook bodies were byte-identical). Two data
  * lifecycles ride on it and both hit every consumer at once if they break:
  *   - the immutable HEADER loads ONCE from the games_state view (not per event,
@@ -57,10 +57,10 @@ vi.mock('@/common/realtime/useRealtimeRefetch', () => ({
   useRealtimeRefetch: (config: unknown) => refetchMock(config),
 }))
 
-import { makeFoundWordsGame } from './makeFoundWordsGame'
+import { makeBeeGame } from './makeBeeGame'
 
 // The factory param is a schema-name union; spellingbee is a real member.
-const useFoundWordsGame = makeFoundWordsGame('spellingbee')
+const useBeeGame = makeBeeGame('spellingbee')
 
 /** The captured useRealtimeRefetch config from the most recent render. */
 type RefetchConfig = {
@@ -79,11 +79,11 @@ beforeEach(() => {
   refetchMock.mockClear()
 })
 
-describe('makeFoundWordsGame — header', () => {
+describe('makeBeeGame — header', () => {
   it('scopes the client to the given schema at factory-build time', () => {
     // schema() is called once when the factory is built (not per render), so
     // build a fresh one here (beforeEach cleared the module-load call).
-    makeFoundWordsGame('wordwheel')
+    makeBeeGame('wordwheel')
     expect(schemaMock).toHaveBeenCalledWith('wordwheel')
   })
 
@@ -101,7 +101,7 @@ describe('makeFoundWordsGame — header', () => {
       bonus_words: [{ word: 'acned', points: 5, is_pangram: false }],
     }
 
-    const { result } = renderHook(() => useFoundWordsGame('g1'))
+    const { result } = renderHook(() => useBeeGame('g1'))
     expect(result.current.loading).toBe(true) // header not yet resolved
 
     await waitFor(() => expect(result.current.loading).toBe(false))
@@ -117,7 +117,7 @@ describe('makeFoundWordsGame — header', () => {
 
   it('leaves game null but still clears loading when the header is missing', async () => {
     headerResult.value = null
-    const { result } = renderHook(() => useFoundWordsGame('missing'))
+    const { result } = renderHook(() => useBeeGame('missing'))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.game).toBeNull()
   })
@@ -128,16 +128,16 @@ describe('makeFoundWordsGame — header', () => {
       center_letter: 'e', required_words_score: 0, required_words_count: 0,
       created_at: 'x', required_words: null, bonus_words: null,
     }
-    const { result } = renderHook(() => useFoundWordsGame('g1'))
+    const { result } = renderHook(() => useBeeGame('g1'))
     await waitFor(() => expect(result.current.game).not.toBeNull())
     expect(result.current.game!.requiredWords).toEqual([])
     expect(result.current.game!.bonusWords).toEqual([])
   })
 })
 
-describe('makeFoundWordsGame — found_words realtime', () => {
+describe('makeBeeGame — found_words realtime', () => {
   it('subscribes to BOTH found_words and games with the game-scoped filters', () => {
-    renderHook(() => useFoundWordsGame('g7'))
+    renderHook(() => useBeeGame('g7'))
     const cfg = lastConfig()
     expect(cfg.channelPrefix).toBe('spellingbee')
     expect(cfg.id).toBe('g7')
@@ -151,7 +151,7 @@ describe('makeFoundWordsGame — found_words realtime', () => {
     rowsResult.value = [
       { game_id: 'g1', user_id: 'u1', word: 'bead', points: 1, is_pangram: false, is_bonus: false, found_at: 't1' },
     ]
-    const { result } = renderHook(() => useFoundWordsGame('g1'))
+    const { result } = renderHook(() => useBeeGame('g1'))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.rowsLoaded).toBe(false) // load hasn't run yet (mock doesn't auto-run it)
 
@@ -167,7 +167,7 @@ describe('makeFoundWordsGame — found_words realtime', () => {
     rowsResult.value = [
       { game_id: 'g1', user_id: 'u1', word: 'bead', points: 1, is_pangram: false, is_bonus: false, found_at: 't1' },
     ]
-    const { result } = renderHook(() => useFoundWordsGame('g1'))
+    const { result } = renderHook(() => useBeeGame('g1'))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     await act(async () => { await lastConfig().load({ mounted: () => false }) })

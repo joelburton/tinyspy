@@ -8,7 +8,7 @@ import { buildRevealWords } from './revealWords'
  * A game's found words and its two shipped lists, as the rows `<WordList>`
  * draws — the reveal and the merge composed once.
  *
- * This is the whole of what a word-hunt game does before it can show its list,
+ * This is the whole of what a found-words game does before it can show its list,
  * and it is the same four steps in each: decide whether the game is over,
  * fold the missed words out of the two shipped lists, merge them under the
  * found ones, and alphabetize. Composing it here is what lets the SCREEN and

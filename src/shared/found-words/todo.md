@@ -1,4 +1,4 @@
-# word-hunt — todo
+# found-words — todo
 
 ## Bugs
 

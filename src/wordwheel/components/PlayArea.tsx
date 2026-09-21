@@ -15,7 +15,7 @@ import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
-import { useWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
+import { useFoundWordSubmit, wordWithBonusDot, type WordEntry } from '@/shared/found-words/useFoundWordSubmit'
 import { memberById } from '@/common/members/memberList'
 import { readLeaderboard } from '@/shared/bee-games/foundWordsLeaderboard'
 import { currentRankIndex, RANKS } from '@/shared/rank-ladder/rankLadder'
@@ -23,7 +23,7 @@ import { ANSWER_OUTCOME } from '../lib/answer'
 import type { WordwheelSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
-import { buildWordListRows } from '@/shared/word-hunt/wordListRows'
+import { buildWordListRows } from '@/shared/found-words/wordListRows'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn } from '@/common/supabase/dbResult'
@@ -254,7 +254,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Move entry + own-move results (shared engine) ────
   // Both word lists ship to the FE, so a guess is validated + scored locally —
-  // index required ∪ bonus by word. useWordSubmit owns the typed-word state,
+  // index required ∪ bonus by word. useFoundWordSubmit owns the typed-word state,
   // the results it shows into the slot, and the optimistic commit + dedup;
   // wordwheel supplies the lookup, the RPC, the reject reason (missing-center /
   // not-a-word), and the success label (with the pangram flourish). See
@@ -279,7 +279,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const center = game?.center_letter.toLowerCase() ?? ''
   const { word, setWord, lastWord, submit } =
-    useWordSubmit({
+    useFoundWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: session.user.id,
       isTerminal: isTerminal || myConceded,

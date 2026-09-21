@@ -71,7 +71,7 @@ type SubmitResult = {
 
 /**
  * A move's result, in the **shared word-game format**: `WORD — body`, word
- * first and in caps. That is `useWordSubmit`'s `line()` convention, which
+ * first and in caps. That is `useFoundWordSubmit`'s `line()` convention, which
  * spellingbee / wordwheel / boggle all speak — strands can't use that hook
  * (its acceptance is server-side, not a local list lookup), so it matches the
  * OUTPUT instead of inventing a second dialect.

@@ -5,7 +5,7 @@ import { renderHook, act } from '@testing-library/react'
 
 /**
  * Tests for the shared word validate/submit engine. The cases that matter are the
- * ones the two games used to get wrong or duplicate: an accepted word fires the
+ * ones a hand-rolled submit path gets wrong or duplicates: an accepted word fires the
  * commit exactly once and shows the pill (with the bonus dot); the optimistic
  * in-flight guard stops a same-word re-submit from double-committing during the
  * realtime-lag window (code-review §1.4); dedup is mode-aware; a non-legal word is
@@ -14,7 +14,7 @@ import { renderHook, act } from '@testing-library/react'
  */
 import { clearFaultsForTest } from '@/common/faults/faultStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { useWordSubmit, type WordSubmitConfig, type WordEntry } from './useWordSubmit'
+import { useFoundWordSubmit, type FoundWordSubmitConfig, type WordEntry } from './useFoundWordSubmit'
 
 const APPLE: WordEntry = { word: 'apple', points: 5, isBonus: false }
 const ZESTY: WordEntry = { word: 'zesty', points: 9, isBonus: true }
@@ -23,7 +23,7 @@ const ZESTY: WordEntry = { word: 'zesty', points: 9, isBonus: true }
 const lookup = (w: string): WordEntry | null =>
   w === 'apple' ? APPLE : w === 'zesty' ? ZESTY : null
 
-function makeCfg(over: Partial<WordSubmitConfig> = {}): WordSubmitConfig {
+function makeCfg(over: Partial<FoundWordSubmitConfig> = {}): FoundWordSubmitConfig {
   return {
     mode: 'coop',
     userId: 'u1',
@@ -46,12 +46,12 @@ function makeCfg(over: Partial<WordSubmitConfig> = {}): WordSubmitConfig {
 }
 
 /** The message the hook last showed — the slot's top. */
-const shown = (cfg: WordSubmitConfig) => cfg.localFeedbackSlot.getTop()
+const shown = (cfg: FoundWordSubmitConfig) => cfg.localFeedbackSlot.getTop()
 
 /** Render the hook and give back a typed handle + the ability to swap config
  *  (e.g. to simulate a realtime `found_words` update mid-test). */
-function setup(cfg: WordSubmitConfig) {
-  const view = renderHook((props: WordSubmitConfig) => useWordSubmit(props), {
+function setup(cfg: FoundWordSubmitConfig) {
+  const view = renderHook((props: FoundWordSubmitConfig) => useFoundWordSubmit(props), {
     initialProps: cfg,
   })
   const type = (w: string) => act(() => view.result.current.setWord(w))
@@ -65,7 +65,7 @@ function setup(cfg: WordSubmitConfig) {
 
 beforeEach(() => clearFaultsForTest())
 
-describe('useWordSubmit', () => {
+describe('useFoundWordSubmit', () => {
   it('accepts a legal word: fires commit once and shows a success pill', async () => {
     const cfg = makeCfg()
     const { result, type, submit } = setup(cfg)

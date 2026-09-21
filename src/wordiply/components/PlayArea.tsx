@@ -16,7 +16,7 @@ import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
-import { useWordSubmit, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
+import { useFoundWordSubmit, type WordEntry } from '@/shared/found-words/useFoundWordSubmit'
 import { useMark } from '@/common/board-marks/useMark'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { lengthScore } from '../lib/scoring'
@@ -166,7 +166,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Move entry + own-move results (shared engine) ────
   // The legal list ships to the FE, so a guess validates locally against a
-  // Set. useWordSubmit owns the typed word, the results it shows into the
+  // Set. useFoundWordSubmit owns the typed word, the results it shows into the
   // slot, and the optimistic commit + dedup; wordiply supplies the lookup
   // (points = the word's LENGTH), the submit_guess RPC, and the reject reason.
   const legalSet = useMemo(() => new Set(game?.legalWords ?? []), [game?.legalWords])
@@ -242,7 +242,7 @@ export function PlayArea(ctx: GamePageCtx) {
   if (takenOver) setHeld(null)
 
   const { word, setWord, lastWord, submit } =
-    useWordSubmit({
+    useFoundWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: session.user.id,
       isTerminal: isTerminal || myConceded,

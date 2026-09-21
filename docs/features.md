@@ -235,11 +235,11 @@ PP (find the words HIDDEN in a grid — the only one where a word's PLACEMENT,
 not just its letters, is what you're looking for)
 
 ## Shared entry / submit machinery (who consumes what from `common/`)
-`useWordSubmit` (shipped-list lookup + optimistic trusting-commit):  FB MC MW WW
+`useFoundWordSubmit` (shipped-list lookup + optimistic trusting-commit):  FB MC MW WW
 `WordEntryArea` / `WordEntryInput` (the typed-word box + Delete/Submit row):  PN FB MC MW SB
 `useCaptureKeys` directly (bare-keys grab, no focused input):  FB MC WN MW WW
   (PN + SB get their capture via `WordEntryArea`; WN/WW letters land on the board,
-  not a box. SB deliberately skips `useWordSubmit` — a chain append isn't a
+  not a box. SB deliberately skips `useFoundWordSubmit` — a chain append isn't a
   found-word, so its validation is `lib/board.ts` + a plain RPC.)
 `GuessKeyboard` (shared on-screen QWERTY):  WN WW
 
