@@ -325,6 +325,28 @@ no caller reaches.
 The `pdf` area's rule: six knobs no caller turned are gone. Remove it, or say
 who it is for.
 
+**WORKED 2026-09-21 — removed**, on Joel's condition that the heading keep
+rendering exactly `Words: 7 · Score: 10 · Longest: 5`. It does, byte for byte:
+no game supplies any part of that line, so the prop could not have changed it.
+The guarantee is now a spec of its own asserting the WHOLE string rather than
+the three substring matches that were there — the line three `e2e` files pin by
+content, and `'Words'` is a literal in the component now.
+
+**Folded in, from Joel's question "why does only hasPoints use useMemo?":
+because of nothing, and the memo never even fired.** It was keyed on `rows`,
+which every caller builds fresh in its render body, so the dependency differed
+every time and the `.some()` re-ran regardless — overhead plus a false signal
+that something expensive was being avoided. Its two neighbors could not be
+memoized even deliberately: they read `shown`, a `.filter` result, new by
+construction. All three are plain expressions now, with one comment saying why
+none of them is memoized so nobody re-adds one.
+
+`foundWordsOnly`'s memo STAYS and is now marked as the one that is
+load-bearing: `useRecentlyFound`'s effect depends on that array's identity, so
+a fresh one per render would re-run it every render. That distinction — an
+optimization that cannot hit versus a memo that is correctness — is the useful
+half of this finding.
+
 ### F-word-list-8 · `empty-line-period` · One empty line of six has no period
 
 `emptyTextFor` returns `No bonus words yet.`, `No required words from moth

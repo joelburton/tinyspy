@@ -56,8 +56,6 @@ type Props = {
   // underline: the reveal lands every peer row at once and the whole list would
   // otherwise mark itself. Default `false`.
   reveal?: boolean
-  // The card heading. Default "Words".
-  heading?: string
   // The viewer, for the WHO filter's self-first ordering.
   selfId: string
   // Compete gates the per-player filter options until terminal (RLS).
@@ -86,7 +84,6 @@ export function WordList({
   rows,
   players,
   reveal = false,
-  heading = 'Words',
   selfId,
   isCompete,
   isTerminal,
@@ -98,10 +95,18 @@ export function WordList({
   // The heading tallies THE FILTERED LIST — "Words: 7 · Score: 10" — so the
   // filters become a reading tool: flip WHO to a player to see their coop
   // contribution, or to Missed at terminal to see what the reveal cost.
+  //
+  // None of the three is memoized, and that is deliberate rather than an
+  // oversight to fix: both `rows` (built fresh in each game's render) and
+  // `shown` (a `.filter` result) are new arrays every render, so a `useMemo`
+  // keyed on either can never hit — it would cost a comparison and buy nothing
+  // while reading as though something expensive were being avoided. They are
+  // three O(n) passes over a list that runs to a few hundred words at most.
+  //
   // Score only when this game's rows carry points at all — and gated on ALL
   // rows (not `shown`) so the score doesn't blink away when a filter empties
   // the list ("Score: 0" is an answer; a vanishing label is a question).
-  const hasPoints = useMemo(() => rows.some((r) => r.points !== undefined), [rows])
+  const hasPoints = rows.some((r) => r.points !== undefined)
   const shownScore = shown.reduce((sum, r) => sum + (r.points ?? 0), 0)
   // The longest word in the filtered list, in letters. Ungated, unlike Score:
   // every word list has lengths, so there's no "does this game have it" question
@@ -120,6 +125,10 @@ export function WordList({
 
   // Just the found words for the useRecentlyFound input — the unfound reveal
   // entries arrive in bulk when the game terminalizes and would all flash at once.
+  //
+  // THIS memo is load-bearing, unlike the tallies above: `useRecentlyFound`'s
+  // effect depends on this array's identity, so a fresh one per render would
+  // re-run it on every render.
   const foundWordsOnly = useMemo(
     () => rows.filter((r) => r.kind === 'found').map((r) => r.word),
     [rows],
@@ -132,7 +141,7 @@ export function WordList({
           the event log's picker wears (`infoPanel.headerRow`). */}
       <div className={infoPanel.headerRow}>
         <h3 className={infoPanel.heading}>
-          {`${heading}: ${shown.length}`}
+          {`Words: ${shown.length}`}
           {hasPoints && ` · Score: ${shownScore}`}
           {/* Third tally, DESKTOP ONLY — below the breakpoint this heading
               shares its line with both filter selects inside the info sheet,

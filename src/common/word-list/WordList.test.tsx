@@ -39,6 +39,25 @@ const base = {
 }
 
 describe('WordList — the heading tally', () => {
+  // The WHOLE heading, as one exact string rather than three substring matches.
+  // It is the line a player reads to know how they did, three `e2e` specs pin
+  // it by content, and the word "Words" is a literal in the component now that
+  // no caller overrides it — so the shape is asserted here, byte for byte.
+  it('reads "Words: 7 · Score: 10 · Longest: 5"', () => {
+    const seven: WordListRow[] = [
+      { kind: 'found', word: 'bead', userId: 'ada', points: 2 },
+      { kind: 'found', word: 'beach', userId: 'ada', points: 2 },
+      { kind: 'found', word: 'cafe', userId: 'ada', points: 2 },
+      { kind: 'found', word: 'chafe', userId: 'ada', points: 1 },
+      { kind: 'found', word: 'dace', userId: 'ada', points: 1 },
+      { kind: 'found', word: 'face', userId: 'ada', points: 1 },
+      { kind: 'found', word: 'head', userId: 'ada', points: 1 },
+    ]
+    render(<WordList rows={seven} {...base} isTerminal={false} />)
+    expect(screen.getByRole('heading', { level: 3 }).textContent)
+      .toBe('Words: 7 · Score: 10 · Longest: 5')
+  })
+
   it('counts and scores what is SHOWN — at terminal that is the finds', async () => {
     // The terminal default is Found, so the heading opens on what you got
     // rather than on the whole list including what you missed.
