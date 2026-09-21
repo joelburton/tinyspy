@@ -1,0 +1,97 @@
+/* cs-unmet */
+
+/* The play-surface scaffolding the three found-words games share — boggle,
+ * spellingbee and wordwheel. Layered ON TOP of the two-column scaffold
+ * (`common/game-page/playArea.module.css`, imported as `shared`), not a
+ * replacement for it: a call site composes `cls(shared.layout, surface.layout,
+ * styles.layout)`.
+ *
+ * WHAT IS HERE: everything about the play surface that does not depend on what
+ * the board looks like — the layout's two vertical budgets, the mobile regime,
+ * the below-board slot, and the loading/empty states. All three games compose
+ * every class in this file.
+ *
+ * WHAT IS NOT: the board's own geometry. A hive and a wheel are rectangles
+ * measured in coordinate units and share that arithmetic in
+ * `shared/bee-games/beeBoard.module.css`; boggle's board is a square and sizes
+ * itself in its own module. Both end up publishing `--board-width`, which is
+ * the one name `.belowBoard` below reads.
+ *
+ * THE TWO NUMBERS EACH GAME SETS on its own `.layout`, which inherit down:
+ *
+ *   --board-reserve          the info column's clamp floor (all three use 24rem)
+ *   --mobile-status-height   how tall that game's mobile status block is
+ *
+ * The second is here rather than in this file because the three genuinely
+ * differ — the bee games mirror a rank bar over a two-cell grid (4.25rem) and
+ * boggle a three-line four-cell grid (4.5rem) — and because a second `.layout`
+ * rule overriding this one would be resolved by stylesheet order in the bundle,
+ * which is per lazy chunk. A token each game declares has no such contest.
+ */
+
+/* Per-game layout vars the shared scaffold reads. The info column is RESPONSIVE
+ * for all three — they compose `shared.responsiveInfoCol`, which derives
+ * `--info-col-width` (a 22rem…53rem clamp) from `--board-reserve` so the word
+ * list gives way to the board as the viewport narrows (see that class).
+ *
+ * --avail-h is the vertical space left for the board (these boards are bounded
+ * by height too, like waffle's square): viewport − chrome − the single
+ * below-board slot (the input row / feedback pill / terminal status, ~2.75rem),
+ * the board column's gap above it (~0.75rem), and the extra `.belowBoard`
+ * margin-top that drops the input row down off the board (1.5rem) — 5rem total.
+ * Keep this in sync with `.belowBoard`'s margin-top below. */
+/* @@ */ .layout {
+/* @@ */   --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
+}
+
+/* Mobile: the info column is off-canvas, so each game's state readout is
+ * mirrored ABOVE the board by the shared `<MobileStatusBar>` — a small BLOCK,
+ * not the one-line default, so the bar's height token is raised by the game.
+ * That height must also come out of `--avail-h`: the board sizes itself from
+ * that number, so leaving it alone would size a board that no longer fits and
+ * push the page into scrolling (the hard no-scroll invariant). The extra
+ * 0.75rem is `.boardCol`'s flex gap between the status block and the board.
+ *
+ * `--mobile-status-height` is READ here and DECLARED by each game (see the
+ * header). No fallback on purpose: a game composing this file without setting
+ * it would silently lose the whole `--avail-h` line to an invalid value, and
+ * the cssTokens guard catches an undeclared token, which is the louder
+ * failure. */
+@media (--mobile) {
+/* @@ */   .layout {
+/* @@ */     --avail-h: calc(
+      100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
+    );
+  }
+}
+
+/* The below-board REGION. Board-matched width + the gap off the board; the
+ * fixed-height reservation lives on the `shared.moveAreaOrLocalFeedback` swap
+ * box inside it, which holds exactly ONE of the input row, the own-action
+ * feedback pill, or the terminal status. Width pinned to the board width so a
+ * long typed word can't widen the column and shift the centered board. Column
+ * so that box STRETCHES to the full board width (so the input row spans the
+ * board and its WordEntryInput flex-fills between the buttons). `margin-top` drops the
+ * row down off the board for breathing room (on top of the board column's
+ * 0.75rem gap) — counted into `--avail-h` above.
+ *
+ * `--board-width` is whatever the game's own board column published: the
+ * coordinate-unit product for a hive or a wheel, boggle's square edge. That one
+ * name is why this rule can be shared by boards of two different shapes.
+ *
+ * (The input row + its WordEntryInput/Delete/Submit live in the shared
+ * common/word-entry/WordEntryArea; only the slot wrapper is here.) */
+/* @@ */ .belowBoard {
+  width: var(--board-width);
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.loading,
+/* @@ */ .empty {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--page-text-muted-color);
+  grid-column: 1 / -1;
+}

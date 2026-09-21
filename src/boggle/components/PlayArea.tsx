@@ -31,14 +31,14 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import { type LadderName } from '../lib/solver'
 import type { BoggleSetup } from '../lib/setup'
 import { useGame } from '../hooks/useGame'
-import { buildRevealWords } from '@/shared/found-words/revealWords'
-import { buildDisplayRows } from '../lib/displayRows'
+import { buildWordListRows } from '@/shared/found-words/wordListRows'
 import { printBogglePdf } from '../pdf/printBogglePdf'
 import { buildWordSections } from '@/common/pdf/wordSections'
 import { db } from '../db'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import shared from '@/common/game-page/playArea.module.css'
+import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import { runRpc } from '@/common/supabase/dbResult'
 import styles from './PlayArea.module.css'
@@ -295,10 +295,11 @@ export function PlayArea(ctx: GamePageCtx) {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       if (!game) return
-      // The same reveal the on-screen list uses: at terminal every missed word folds
-      // in (`buildDisplayRows` dedups found + appends the unfound) — required always,
-      // bonus only on a board with a genuinely wider legal band; mid-game there's no
-      // reveal, so only found words show. The print follows the screen deliberately:
+      // The same call the on-screen list makes, which is what keeps the two
+      // agreeing by construction rather than by two copies of one recipe: at
+      // terminal every missed word folds in — required always, bonus only on a
+      // board with a genuinely wider legal band; mid-game there's no reveal, so
+      // only found words show. The print follows the screen deliberately:
       // the missed-word list IS the post-game artifact.
       // Gated on `isTerminal`, which is the whole rule for these three word-finding
       // games: at game over the missed words fold into the list, and the WHO
@@ -307,10 +308,13 @@ export function PlayArea(ctx: GamePageCtx) {
       // confusing way to switch the same two lists (docs/ui.md → Terminal
       // results) — and the answer is withheld one beat by that filter's
       // terminal DEFAULT, Found, which is where such a change belongs.
-      const revealWords = isTerminal
-        ? buildRevealWords(game.required_words, hasBonusDifficulty ? game.bonus_words : [], foundWords)
-        : null
-      const words = buildDisplayRows(foundWords, revealWords).map((r) => ({
+      const words = buildWordListRows({
+        foundWords,
+        requiredWords: game.required_words,
+        bonusWords: game.bonus_words,
+        hasBonus: hasBonusDifficulty,
+        isTerminal,
+      }).map((r) => ({
         word: r.word.toUpperCase(),
         bonus: r.isBonus ?? false,
         // A found word carries score + finder; an unfound (missed) reveal entry is bare.
@@ -522,14 +526,14 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isLocallyDone])
 
-  if (loading) return <div className={styles.loading}>Loading…</div>
+  if (loading) return <div className={surface.loading}>Loading…</div>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
   // "Game not found." about a dead connection is a confident wrong answer —
   // this is what remains once the fault modal is dismissed.
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   // `!grid` stays fused with `!game`: the grid is DERIVED from the game's board,
   // so it can only be absent when the game is, and it has no failure of its own.
-  if (!game || !grid) return <div className={styles.empty}>Game not found.</div>
+  if (!game || !grid) return <div className={surface.empty}>Game not found.</div>
 
   // The reveal: every word nobody found, folded in at game over. No button
   // gates it — the word list's WHO filter (found / missed) already IS that
@@ -544,15 +548,15 @@ export function PlayArea(ctx: GamePageCtx) {
   // those as a list of things you might have played is not the post-game read
   // anyone wants. Same `hasBonusDifficulty` flag that suppresses the Bonus stat
   // cells, so the two can't disagree about whether this board has bonus words.
-  const revealWords = isTerminal
-    ? buildRevealWords(
-      game.required_words,
-      hasBonusDifficulty ? game.bonus_words : [],
-      foundWords,
-    )
-    : null
-  // Merged, alphabetized rows for the shared WordList (found + the reveal).
-  const wordRows = buildDisplayRows(foundWords, revealWords)
+  // Merged, alphabetized rows for the shared WordList: the found words, plus
+  // the reveal once the game is over.
+  const wordRows = buildWordListRows({
+    foundWords,
+    requiredWords: game.required_words,
+    bonusWords: game.bonus_words,
+    hasBonus: hasBonusDifficulty,
+    isTerminal,
+  })
 
   // Index the compete leaderboard by user so the OpponentStrip metric can read
   // each peer's score (self reads the live local computation so it stays in lock
@@ -580,7 +584,7 @@ export function PlayArea(ctx: GamePageCtx) {
   }
 
   return (
-    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, styles.layout)}>
+    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
       <BoardCol
         // ── Mobile-only status block (the SAME Stats the InfoCol renders; on a
         //    phone the info column is off-canvas in the InfoSheet) ──

@@ -2,9 +2,10 @@
 
 What spellingbee, wordwheel and boggle share as games that accumulate a list of
 found words: the submit engine, the terminal reveal, the rows the word-list
-panel draws, the two data shapes behind them, and the typed word's
-illegal-letter dim. Wordiply takes the submit engine alone — its guesses are
-the found set, though it keeps no `found_words` table and shows no list.
+panel draws, the two data shapes behind them, the typed word's illegal-letter
+dim, and the play-surface scaffolding all three compose. Wordiply takes the
+submit engine alone — its guesses are the found set, though it keeps no
+`found_words` table and shows no list.
 
 ## The reveal's sizing, and the board with no real bonus list
 

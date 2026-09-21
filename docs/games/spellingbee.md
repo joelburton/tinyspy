@@ -476,9 +476,10 @@ src/spellingbee/
     (WordList)            The found-words list is now the SHARED
                           common/word-list/WordList (used by every found-words game that keeps a
                           found-words list, so it looks identical across them). PlayArea builds its rows via
-                          the shared shared/found-words/foundWordsDisplayRows.buildDisplayRows
-                          (foundWords, buildRevealWords(required, bonus, found))
-                          and passes `reveal` + `hasBonus`. Per-finder color, pangram bold,
+                          the shared shared/found-words/wordListRows.buildWordListRows
+                          ({foundWords, requiredWords, bonusWords, hasBonus, isTerminal}) — one call
+                          that composes the terminal reveal and the found/unfound merge, and the
+                          same call the printer makes — and passes `hasBonus`. Per-finder color, pangram bold,
                           bonus dot, a recently-found underline (the shared
                           common/word-list/useRecentlyFound), the post-terminal gray reveal, and the two-axis
                           KIND/WHO filter (common/word-list/useWordListFilter) all live in
@@ -576,7 +577,7 @@ When `isTerminal` flips true:
 2. The below-board slot swaps the input row for a **permanent fill `<FeedbackPill>`** (outcome-colored) carrying the terse `verdict` (`Won: "Genius" 47/50 points`). Per the v3 rule, the terminal state shows in BOTH places — this local pill *and* the info-column `<InfoActionsRow>`'s bold message line + compact Back-to-club button (the Back-to-club button is in the action row, not the below-board slot).
 3. The input row's Delete + Submit buttons disable; the floating Shuffle stays clickable.
 4. `game.requiredWords` is already present (both word lists ship from game start — see [The word lists ship to the FE](#the-word-lists-ship-to-the-fe-not-hidden)); the terminal reveal is the client-side `(required ∪ bonus) − found`, no refetch needed.
-5. `<WordList revealWords={game.requiredWords}>` merges the unfound required words into the alphabetical render as gray rows.
+5. The rows handed to `<WordList>` already carry the reveal: `buildWordListRows` folds in every word nobody found — required **and** bonus — and they render as gray rows interleaved alphabetically among the found ones.
 
 The verdict copy is computed by `buildOver({mode, playState, status, targetRankIdx, ...})`. Rank names come straight off the shared ladder — `RANKS[idx]` from [`rankLadder`](../../src/shared/rank-ladder/rankLadder.ts) — and a rank naming the GOAL is quoted (`"Amazing"`); the neutral `Ended:` verdict names the rank reached, unquoted.
 
@@ -637,6 +638,7 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 | `src/spellingbee/lib/pangram.test.ts` | `isPangram` boundary cases (6/7/8 distinct, case-insensitive). |
 | `src/spellingbee/lib/letterMask.test.ts` | `letterMask` round-trips, `popcount26`, `isSubsetMask`. |
 | `src/shared/found-words/foundWordsDisplayRows.test.ts` | (shared) Found-word dedup to the first finder, found-shadows-reveal, alphabetical merge → shared `WordListRow`s. |
+| `src/shared/found-words/wordListRows.test.ts` | (shared) The one call above it: `isTerminal` is the reveal's only gate, `hasBonus` decides how much of the missed set comes back, and the screen and the printer get the same answer. |
 | `src/common/word-list/useRecentlyFound.test.ts` | (shared) Initial-quiet, fresh-arrival, 5s expiry, staggered expiry per word, no-op rerender idempotency. |
 
 ## File locations
@@ -652,7 +654,7 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 | The play surface | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
 | The honeycomb layout (CSS lifted from spellingbee-ws) | [`src/spellingbee/components/Letters.module.css`](../../src/spellingbee/components/Letters.module.css) |
 | The rank ladder math | the SHARED [`src/common/lib/game/rankLadder.ts`](../../src/shared/rank-ladder/rankLadder.ts) |
-| The found-words list | the SHARED [`src/common/word-list/WordList.tsx`](../../src/common/word-list/WordList.tsx) (spellingbee builds its rows via the shared [`src/shared/found-words/foundWordsDisplayRows.ts`](../../src/shared/found-words/foundWordsDisplayRows.ts)) |
+| The found-words list | the SHARED [`src/common/word-list/WordList.tsx`](../../src/common/word-list/WordList.tsx) (spellingbee builds its rows via the shared [`src/shared/found-words/wordListRows.ts`](../../src/shared/found-words/wordListRows.ts)) |
 | The per-gametype data hook | [`src/spellingbee/hooks/useGame.ts`](../../src/spellingbee/hooks/useGame.ts) |
 
 ## Printing the board (PDF)

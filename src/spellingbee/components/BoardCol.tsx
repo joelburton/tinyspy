@@ -14,7 +14,8 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import { Letters } from './Letters'
 import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
-import surface from '@/shared/bee-games/foundWordsPlayArea.module.css'
+import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
+import bee from '@/shared/bee-games/beeBoard.module.css'
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
 function shuffled<T>(arr: readonly T[]): T[] {
@@ -139,13 +140,13 @@ export function BoardCol({
   })
 
   return (
-    <div className={cls(shared.boardCol, surface.boardCol)}>
+    <div className={cls(shared.boardCol, bee.boardCol)}>
       {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
           the rank ladder + score/words, above the hive. A fixed-height block —
           the hive's `--avail-h` already has it subtracted, so the board shrinks
           by exactly this much and the page still doesn't scroll. */}
       <MobileStatusBar>
-        <div className={surface.mobileStatus}>
+        <div className={bee.mobileStatus}>
           <RankBar score={foundWordsScore} total={requiredWordsScore} targetIdx={targetRankIdx} />
           <Stats
             foundWordsScore={foundWordsScore}

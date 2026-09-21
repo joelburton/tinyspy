@@ -1,0 +1,56 @@
+/* cs-unmet */
+
+/* The hive's and the wheel's board geometry — the half of the two games' play
+ * surface that boggle does not share, because a rectangle measured in
+ * coordinate units is not a square measured in tiles.
+ *
+ * Composed alongside the family's scaffolding
+ * (`shared/found-words/foundWordsPlayArea.module.css`, which carries the
+ * layout budgets, the mobile regime, the below-board slot and loading/empty)
+ * and the game's own module: `cls(shared.boardCol, bee.boardCol)`.
+ *
+ * WHAT STAYS PER-GAME: the board's coordinate geometry, and only that. Each
+ * game's own `PlayArea.module.css` sets four numbers on `.layout`, which
+ * inherit down to `.boardCol` here:
+ *
+ *   --board-units-w    the board's bounding-box WIDTH in its own coordinate units
+ *   --board-units-h    ... and its HEIGHT
+ *   --board-units-cap  the unit count `--max-board-size` is expressed in
+ *   --max-board-size   the on-screen cap (the TINKER knob)
+ *
+ * They're custom properties rather than a `composes:` or a duplicated block
+ * because the *shape* of the arithmetic is identical and only its inputs differ
+ * — which is exactly what a custom property is for. (This repo doesn't use
+ * `composes` anywhere; classes are combined with `cls()` at the call site.)
+ */
+
+/* The mobile status block's content — the RankBar over the Stats grid, sized to
+ * a comfortable reading width rather than the full phone width (the two figures
+ * shouldn't drift to opposite edges). Only ever rendered inside the mobile-only
+ * `<MobileStatusBar>`. Its HEIGHT is the game's `--mobile-status-height`; this
+ * is only how wide the content inside it runs. */
+/* @@ */ .mobileStatus {
+  width: min(20rem, 100%);
+}
+
+/* The board column. Defines `--u` (one board coordinate unit) and the derived
+ * `--board-width` HERE — rather than on the grid — so the below-board input row
+ * can match the board's width from the same source. That name is the seam the
+ * shared `.belowBoard` reads, and boggle's square module publishes it too.
+ *
+ * ─── Board size cap — TINKER IN THE PER-GAME MODULE ──────────────────────────
+ * `--u` sizes the board to fill the SMALLER of the width left beside the info
+ * column (--avail-w, the shared scaffold token) and the height left above the
+ * input row (--avail-h, the family's scaffolding), capped by --max-board-size.
+ * All four inputs come from the game's own PlayArea.module.css — change them
+ * there, not here. To REMOVE the cap, SET it to 999rem (don't comment the knob
+ * OUT: the token must stay defined, or the cssTokens guard trips on the
+ * now-undefined var() reference). */
+/* @@ */ .boardCol {
+/* @@ */   --u: min(
+    calc(var(--avail-w) / var(--board-units-w)),
+    calc(var(--avail-h) / var(--board-units-h)),
+    calc(var(--max-board-size) / var(--board-units-cap))
+  );
+/* @@ */   --board-width: calc(var(--board-units-w) * var(--u));
+}

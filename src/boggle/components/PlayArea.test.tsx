@@ -9,7 +9,7 @@
  * wouldn't be caught by `tsc` (the root tsconfig checks nothing — see memory
  * project_typecheck_use_tsc_b), so a one-line `render()` per mode is the guard.
  * Deliberately shallow: game logic lives in pgTAP (the RPCs) + the lib Vitest
- * suites (solver / boardTrace / displayRows); here we only prove the tree mounts.
+ * suites (solver / boardTrace); here we only prove the tree mounts.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the grid, entry row, word list, modal — renders real.
@@ -420,7 +420,7 @@ describe('boggle PlayArea — trace as you type', () => {
   const typedWord = () => {
     const spans = [...screen.getByTestId('entry-value').children]
     return spans.map((c) => c.textContent).join('') +
-      '/' + spans.map((c) => (c.className.includes('_unreachable_') ? '·' : ' ')).join('')
+      '/' + spans.map((c) => (c.className.includes('_illegal_') ? '·' : ' ')).join('')
   }
 
   it('replays the head-shake when the same word is refused twice', async () => {

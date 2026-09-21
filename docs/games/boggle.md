@@ -516,8 +516,9 @@ board), swapped in for spellingbee's hex flower.
     dot, a recently-found underline (`common/word-list/useRecentlyFound`), click-to-define
     words (`<DefinableWord>`), the post-terminal missed-words reveal, and the
     two-axis KIND/WHO filter (`common/word-list/useWordListFilter` — see
-    [common/word-list/doc.md](../../src/common/word-list/doc.md)). boggle builds its rows via
-    `lib/displayRows` → `WordListRow[]` (the live count moved to the info-column state
+    [common/word-list/doc.md](../../src/common/word-list/doc.md)). boggle builds its rows via the
+    shared `shared/found-words/wordListRows` → `WordListRow[]`, the same one call the screen
+    and the printer both make (the live count moved to the info-column state
     line, so the list header carries the label + the two selects).
 
 **End game** is surfaced in both places per the common convention (see
@@ -569,8 +570,7 @@ the custom-board parse.
 Other files: `manifest.ts` (the two sibling manifests, `BRAND='MothCubes'`,
 `startGameInClub` → invoke `boggle-build-board`, `submitTimeout`, `labelFor`),
 `db.ts`, `theme.css`, `logo.svg`, `hooks/useGame.ts` (realtime refetch on
-`boggle.{games, found_words}`), `lib/{setup, customBoard, boardTrace,
-displayRows}`. Registered
+`boggle.{games, found_words}`), `lib/{setup, customBoard, boardTrace}`. Registered
 in `src/gametypes.ts`; `boggle` is in `supabase/config.toml` schemas and the eslint
 `GAMETYPES`. Presence-pause is inherited via `<GamePage>` + `useCommonGame`
 ([[feedback_pause_on_disconnect]]).
@@ -593,7 +593,8 @@ language + helpers live in [common/pdf/doc.md](../../src/common/pdf/doc.md).
 - `dice.test.ts` — the eight sets (n² dice of valid faces), multiface + blank
   display.
 - `generate.test.ts`, `boardTrace.test.ts` (traces validated against the solver),
-  `displayRows.test.ts`, `setup.test.ts` (the cross-field band guard).
+  `setup.test.ts` (the cross-field band guard). The word-list rows are the
+  shared family's now, and are specced there.
 - `customBoard.test.ts` — the custom-board **round trip**, which is the property
   the feature rests on: `parse(format(board)) === board` over 200 rolls of each
   of the eight dice sets, plus a guard that those rolls actually reach the

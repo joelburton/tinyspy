@@ -380,7 +380,26 @@ Went as written. Two notes for the record:
   guard and removes the cast, nothing else.
 - The new file: `git add` and `// cs-unmet` on line 1 (the stamps guard).
 
-### 3. Boggle adopts the family's machinery
+### 3. Boggle adopts the family's machinery — SHIPPED 2026-09-21
+
+One deviation, and it is the kind worth writing down:
+
+- **The todo entry was not simply deleted.** This step said it would be,
+  "being shipped" — but it carried TWO things under one bullet: the work,
+  which shipped, and the standing ruling that boggle does not take the bee
+  factory, which did not. Deleting the bullet whole would have destroyed the
+  ruling's only home, since this plan is itself deleted at step 5 and cites
+  `boggle/todo.md` for it. So the work is gone and the ruling moved to
+  **Won't do**, which is exactly what that section is for: ruled against,
+  kept so a review does not propose it again.
+
+Confirmed rather than assumed: the four cases in the deleted
+`displayRows.test.ts` are all covered next door. Dedup to the first finder,
+keeping every finder, the found-shadows-reveal rule and the alphabetical merge
+are eight cases in `foundWordsDisplayRows.test.ts`, and `wordListRows.test.ts`
+adds the one boggle gains by making the switch — that the screen and the
+printer answer identically because they now make the same call.
+
 
 The work `boggle/todo.md` → "Adopt the two shared found-words modules"
 describes, done here rather than at boggle's area **(Joel)**:
@@ -415,7 +434,34 @@ describes, done here rather than at boggle's area **(Joel)**:
   own extension of the shared grid; it already imports the grid's stylesheet).
 - The todo entry is deleted when this lands, being shipped.
 
-### 4. The stylesheet splits, and boggle composes the shared half
+### 4. The stylesheet splits, and boggle composes the shared half — SHIPPED 2026-09-21
+
+**The geometry check was run, at Joel's word, and it passes.** But the spec had
+to be extended first, because as it stood it would have reported a clean no-op
+over a regression: it measures `.boardCol` at desktop, and this step moves the
+below-board row, the mobile status block and the mobile board. So
+`board-geometry.e2e.ts` grew `measureBelowAndMobile`, adding nine boxes — the
+below-board row, the phone-width board column and the phone-width status block,
+for each of the three games. Baseline re-seeded on the pre-split tree, then
+re-run after: **21 of 21 boxes match within 0.5px.**
+
+The seeded numbers also confirm the premise of call 4 rather than assuming it:
+boggle's mobile status block measures 72px and the two bee games' 68px, which is
+the 4.5rem-against-4.25rem difference the token exists to carry.
+
+Two notes:
+
+- **`--board-reserve` did NOT become a shared declaration**, though all three
+  games use 24rem. The stylesheet's own comment said that number "reads
+  slightly differently in each game and is the same number by coincidence of
+  design, not by derivation". Sharing it would assert a derivation the repo
+  says is not there, so each game declares it with its own reason.
+- **boggle's loading and empty states changed look**, which this step predicted
+  and is the one thing here that is not a no-op: centered muted text with the
+  family's padding, in place of boggle's own left-aligned body-ink line. The
+  geometry spec does not cover it, because a game that is loading has no board
+  to measure.
+
 
 - `foundWordsPlayArea.module.css` splits. `git mv` the file to found-words as
   the family's play-surface scaffolding — `.layout` with its mobile block,
@@ -473,7 +519,37 @@ describes, done here rather than at boggle's area **(Joel)**:
   `spellingbee-mobile`, `wordwheel` and `boggle` specs are the ones that would
   show a regression later.
 
-### 5. Close: docs, census, this file
+### 5. Close: docs, census, this file — DOCS + CENSUS DONE 2026-09-21; THE FILE STAYS
+
+**Joel: do the folder docs and the census, but do not delete the plan.** So the
+last bullet below is NOT done and this file survives until he has read it. The
+durable knowledge is already out: `common-folders.md` carries the family table,
+the two judgment calls and the family-imports-family edge, and each folder's
+`doc.md` says what it now holds.
+
+The census needed no action beyond checking, which is call 6's answer working:
+every file in both folders carries a stamp, `git mv` moved each one's header,
+the four new files (`readLeaderboard.ts`, `beeLeaderboard.ts`,
+`beeBoard.module.css`, and the split sheet) are `cs-unmet` and tracked, and
+`useFoundWordSubmit.ts` still reads `cs-fixed-outcome-fix` from the area that
+earned it. **Nothing was stamped for this plan, in boggle or anywhere.**
+
+Two notes on what was and was not corrected:
+
+- **spellingbee.md's four `F-word-list-22` passages are fixed** — the rows call
+  is `buildWordListRows`, the `reveal` prop is gone, `<WordList
+  revealWords={…}>` was a prop the component never had under that name, and the
+  test table gains `wordListRows.test.ts`.
+- **Two rank-ladder paths in the same tables were left alone**
+  (`src/common/lib/game/rankLadder.ts` and its test, pre-reorg spellings whose
+  LINKS resolve correctly). They are not word-list or submit lines and they
+  belong to an area that has not opened. Named here so the next reader knows
+  they were seen, not missed.
+
+`plans/areas/word-list.md` keeps its own `shared/word-hunt` spellings, which are
+that area's record of what it read. Only its open F-31 — the one finding that
+tells someone to go and do something to those files — says where they are now.
+
 
 - `common-folders.md`: the family table's three rows say what each folder is
   now; the `@/shared/bee-games/…` example at the top of the file still reads

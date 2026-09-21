@@ -1,6 +1,6 @@
 // cs-unmet
 
-import { test, expect, type Browser, type Page } from '@playwright/test'
+import { test, expect, type Browser, type Locator, type Page } from '@playwright/test'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import {
@@ -67,13 +67,62 @@ const BASELINE_PATH = 'e2e/.artifacts/board-geometry.json'
  *  readable; compared with a 0.5px tolerance to absorb sub-pixel rounding. */
 type Box = { x: number; y: number; width: number; height: number }
 
+/** A visible locator's rounded box. One copy of the rounding, so two measured
+ *  elements can never be rounded differently. */
+async function boxOf(loc: Locator): Promise<Box> {
+  const box = await loc.boundingBox()
+  if (!box) throw new Error('element has no bounding box (not visible / paused?)')
+  const round = (n: number) => Math.round(n * 100) / 100
+  return { x: round(box.x), y: round(box.y), width: round(box.width), height: round(box.height) }
+}
+
 async function measureBoard(page: Page): Promise<Box> {
   const col = page.locator('[class*="boardCol"]').first()
   await expect(col).toBeVisible({ timeout: 20000 })
-  const box = await col.boundingBox()
-  if (!box) throw new Error('boardCol has no bounding box (not visible / paused?)')
-  const round = (n: number) => Math.round(n * 100) / 100
-  return { x: round(box.x), y: round(box.y), width: round(box.width), height: round(box.height) }
+  return await boxOf(col)
+}
+
+/**
+ * The three boxes the `.boardCol` pass above cannot see, measured for the three
+ * found-words games: the below-board row, whose width is pinned to the board's
+ * own through a custom property, and — at phone width — the board column plus
+ * the status block mirrored above it, whose height the same stylesheet budgets
+ * out of `--avail-h`.
+ *
+ * They are here because the family's play-surface stylesheet is split between
+ * `shared/found-words` (the layout scaffolding all three compose) and
+ * `shared/bee-games` (the hive-and-wheel board geometry). That split moves
+ * exactly these three boxes and none of the ones the pass above measures — so
+ * without this, a clean run would have reported a no-op over a real regression.
+ */
+async function measureBelowAndMobile(
+  browser: Browser,
+  club: E2EClub,
+  game: { id: string; gametype: string },
+): Promise<{ belowBoard: Box; phoneCol: Box; phoneStatus: Box }> {
+  const ctx = await browser.newContext()
+  try {
+    await signIn(ctx, club.members[0].session)
+    const page = await ctx.newPage()
+    await page.goto(`/g/${game.gametype}/${game.id}`)
+
+    const below = page.locator('[class*="belowBoard"]').first()
+    await expect(below).toBeVisible({ timeout: 20000 })
+    const belowBoard = await boxOf(below)
+
+    // Below the breakpoint the info column goes off-canvas and the state
+    // readout reappears as a fixed-height block above the board, which the
+    // board pays for out of its own height. `[data-mobile-status]` is that
+    // block's own e2e handle (hashed module classes aren't selectable).
+    await page.setViewportSize({ width: 390, height: 844 })
+    const status = page.locator('[data-mobile-status]').first()
+    await expect(status).toBeVisible({ timeout: 20000 })
+    const col = page.locator('[class*="boardCol"]').first()
+    await expect(col).toBeVisible({ timeout: 20000 })
+    return { belowBoard, phoneCol: await boxOf(col), phoneStatus: await boxOf(status) }
+  } finally {
+    await ctx.close()
+  }
 }
 
 /** Sign one solo player in, open the game, and measure its board. Single-player
@@ -112,13 +161,7 @@ async function measureSoloWithBoard(
     const col = await measureBoard(page)
     const inner = page.locator('[class*="_board_"]').first()
     await expect(inner).toBeVisible({ timeout: 20000 })
-    const b = await inner.boundingBox()
-    if (!b) throw new Error('board root has no bounding box')
-    const round = (n: number) => Math.round(n * 100) / 100
-    return {
-      col,
-      board: { x: round(b.x), y: round(b.y), width: round(b.width), height: round(b.height) },
-    }
+    return { col, board: await boxOf(inner) }
   } finally {
     await ctx.close()
   }
@@ -157,7 +200,8 @@ test.describe('hug-board geometry (§3.2 no-op guard)', () => {
     measured.waffle = await measureSolo(browser, waffle, await createWaffleGame(waffle))
 
     const bog = await createSoloClub('bog')
-    measured.boggle = await measureSolo(browser, bog, await createBoggleGame(bog))
+    const bogGame = await createBoggleGame(bog)
+    measured.boggle = await measureSolo(browser, bog, bogGame)
 
     const scrab = await createSoloClub('scrab')
     measured.scrabble = await measureSolo(browser, scrab, await createScrabbleGame(scrab))
@@ -167,14 +211,28 @@ test.describe('hug-board geometry (§3.2 no-op guard)', () => {
 
     // ── The fork pair: column AND board root (see the header note). ──────────
     const sbee = await createSoloClub('sbee')
-    const sbeeBoxes = await measureSoloWithBoard(browser, sbee, await createSpellingbeeGame(sbee))
+    const sbeeGame = await createSpellingbeeGame(sbee)
+    const sbeeBoxes = await measureSoloWithBoard(browser, sbee, sbeeGame)
     measured.spellingbee = sbeeBoxes.col
     measured.spellingbee_board = sbeeBoxes.board
 
     const wwheel = await createSoloClub('wwheel')
-    const wwheelBoxes = await measureSoloWithBoard(browser, wwheel, await createWordwheelGame(wwheel))
+    const wwheelGame = await createWordwheelGame(wwheel)
+    const wwheelBoxes = await measureSoloWithBoard(browser, wwheel, wwheelGame)
     measured.wordwheel = wwheelBoxes.col
     measured.wordwheel_board = wwheelBoxes.board
+
+    // ── The found-words family's below-board row and mobile regime. ─────────
+    for (const [name, club, game] of [
+      ['boggle', bog, bogGame],
+      ['spellingbee', sbee, sbeeGame],
+      ['wordwheel', wwheel, wwheelGame],
+    ] as const) {
+      const m = await measureBelowAndMobile(browser, club, game)
+      measured[`${name}_belowBoard`] = m.belowBoard
+      measured[`${name}_phoneCol`] = m.phoneCol
+      measured[`${name}_phoneStatus`] = m.phoneStatus
+    }
 
     // ── codenamesduet: fixed 2-seat game; both must be present or it pauses
     //    and the board unmounts. Two contexts; measure on the opener's page. ──

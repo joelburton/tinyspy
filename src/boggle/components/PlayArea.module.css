@@ -1,52 +1,43 @@
 /* cs-unmet */
 
-/* boggle play surface, on the shared two-column scaffold
- * (common/game-page/playArea.module.css) and the shared info column
- * (common/info-sheet/infoCol.module.css, imported as `shared`) — the same
- * .layout / .boardCol / .infoCol / .noShrinkRow the other converged games use.
- * This module holds only boggle's own bits: the per-game layout vars, the SQUARE
- * board sizing (the waffle model — boggle's board is a square tile grid like
- * waffle's), the below-board input region, and the loading style. The info
- * column's readouts use the shared `.noShrinkRow` + readout classes; own-move and
- * terminal feedback render as the shared `<FeedbackPill>` in `.localFeedback`. */
+/* boggle play surface. THREE stylesheets meet here: the two-column scaffold and
+ * the info column (common/game-page/playArea.module.css and
+ * common/info-sheet/infoCol.module.css, imported as `shared`); the found-words
+ * family's play-surface scaffolding (shared/found-words/foundWordsPlayArea.module.css,
+ * imported as `surface` — the layout budgets, the mobile regime, the below-board
+ * slot and loading/empty, which boggle shares with spellingbee and wordwheel);
+ * and this module, which holds what is boggle's alone — two layout numbers and
+ * the SQUARE board sizing (the waffle model: boggle's board is a square tile grid
+ * like waffle's). The info column's readouts use the shared `.noShrinkRow` +
+ * readout classes; own-move and terminal feedback render as the shared
+ * `<FeedbackPill>` in `.localFeedback`. */
 
-/* Per-game layout vars the shared scaffold reads. The info column is RESPONSIVE
- * here — boggle composes `shared.responsiveInfoCol`, which derives
- * `--info-col-width` (a 22rem…53rem clamp) from `--board-reserve` so the word
- * list gives way to the board as the viewport narrows (see that class). This
- * game reserves 24rem — a usable floor that keeps the word list wider at narrow
- * widths; the board's own min() still caps it by tile size / avail-h and it grows
- * past 24rem on a roomy desktop. --avail-h is the vertical space left for the
- * square board (it's bounded by height too, unlike the rectangular fill-boards):
- * viewport − chrome − the below-board stack (the input row / feedback pill
- * min-height 2.75rem + the board column's 0.75rem gap + the .belowBoard
- * margin-top 1.5rem = 5rem). Keep in sync with `.belowBoard`. */
+/* The two numbers the family's scaffolding reads off this game's layout.
+ *
+ * The info column is RESPONSIVE here — boggle composes
+ * `shared.responsiveInfoCol`, which derives `--info-col-width` (a 22rem…53rem
+ * clamp) from `--board-reserve` so the word list gives way to the board as the
+ * viewport narrows (see that class). This game reserves 24rem — a usable floor
+ * that keeps the word list wider at narrow widths; the board's own min() still
+ * caps it by tile size / avail-h and it grows past 24rem on a roomy desktop.
+ *
+ * `--avail-h` itself is the family's now, and already nets out the below-board
+ * stack and the mobile status block. */
 /* @@ */ .layout {
 /* @@ */   --board-reserve: 24rem;
-/* @@ */   --avail-h: calc(100svh - var(--game-chrome-height) - 5rem);
-}
 
-/* Mobile: the info column is off-canvas, so the state readout (the 4-cell Stats
- * grid) is mirrored ABOVE the board by the shared `<MobileStatusBar>` — a small
- * BLOCK, not the one-line default, so the bar's height token is raised here. It
- * must also come out of `--avail-h`: the board takes its side length from that
- * number, so leaving it alone would size a board that no longer fits and push
- * the page into scrolling (the hard no-scroll invariant). The extra 0.75rem is
- * `.boardCol`'s flex gap between the status block and the tray.
- *
- * 4.5rem (72px) is measured, not guessed: the compact three-line cell (label /
- * value / percent) plus its 0.25rem lead-in comes to 69px. It was 4rem while the
- * grid still wore its info-column rules and padding — 104px of content in a
- * 64px `overflow: hidden` box, so the percent line was clipped away entirely;
- * then 4.25rem while the grid ran a notch smaller than the other games'. Adopting
- * the shared type scale added 3px, so the budget follows. */
-@media (--mobile) {
-/* @@ */   .layout {
-/* @@ */     --mobile-status-height: 4.5rem;
-/* @@ */     --avail-h: calc(
-      100svh - var(--game-chrome-height) - 5rem - var(--mobile-status-height) - 0.75rem
-    );
-  }
+  /* How tall the mobile status block is — the 4-cell Stats grid, mirrored above
+   * the board by the shared `<MobileStatusBar>` once the info column goes
+   * off-canvas. TALLER than the bee games' 4.25rem, which is exactly why the
+   * family's scaffolding reads this token rather than declaring it.
+   *
+   * 4.5rem (72px) is measured, not guessed: the compact three-line cell (label /
+   * value / percent) plus its 0.25rem lead-in comes to 69px. It was 4rem while
+   * the grid still wore its info-column rules and padding — 104px of content in
+   * a 64px `overflow: hidden` box, so the percent line was clipped away
+   * entirely; then 4.25rem while the grid ran a notch smaller than the other
+   * games'. Adopting the shared type scale added 3px, so the budget follows. */
+/* @@ */   --mobile-status-height: 4.5rem;
 }
 
 /* The mobile status block's content. Only ever rendered inside the mobile-only
@@ -90,6 +81,12 @@
     var(--avail-h),
     calc(var(--cols) * var(--max-tile-size) + (var(--cols) - 1) * var(--grid-gap))
   );
+  /* The name the family's `.belowBoard` reads, so one shared rule can pin its
+   * width to a square board's edge and to a hive's coordinate-unit product
+   * alike. An alias rather than a rename: `--side` is the idiom every square
+   * board in the app uses (waffle, scrabble, stackdown, letterboxed), and
+   * common/game-page/playArea.module.css documents it as the square variant. */
+/* @@ */   --board-width: var(--side);
 }
 
 /* The square tile grid: an n×n lattice of 1fr tracks sized to the definite
@@ -246,34 +243,5 @@
   border-width: var(--tile-selected-edge-width);
 }
 
-/* A typed letter the board cannot follow, in the entry box (<TypedWord>): the
- * shared dim the bee games give a letter their puzzle doesn't have. Here it
- * means the path stops — so it runs from the first such letter to the end of
- * the word, and the tiles behind it stay lit at the prefix that does trace. */
-/* @@ */ .unreachable {
-  color: var(--entry-illegal-ink-color);
-}
-
-/* The below-board REGION (universal). Board-matched width (a long typed word
- * can't widen the column and shift the board) + `margin-top` drops it off the
- * board (on top of the board column's 0.75rem gap) — counted into `--avail-h`.
- * The fixed-height reservation now lives on the `shared.moveAreaOrLocalFeedback`
- * swap box inside it. Column so that box STRETCHES to the full board width
- * (column flex's default align-items: stretch) — that's what lets the input row
- * span the board and its WordEntryInput flex-fill between the buttons. */
-/* @@ */ .belowBoard {
-  width: var(--side);
-  margin-top: 1.5rem;
-  display: flex;
-  flex-direction: column;
-}
-
-/* The entry row: icon-only Delete | the entry box | icon-only Submit, centered. */
-/* (The input row + its WordEntryInput/Delete/Submit live in the shared
- * common/word-entry/WordEntryArea now; only the below-board slot wrapper is here.) */
-
-/* @@ */ .loading,
-/* @@ */ .empty {
-  padding: 2rem;
-  color: var(--page-text-color);
-}
+/* The below-board region and the loading/empty states are the family's —
+ * shared/found-words/foundWordsPlayArea.module.css, composed as `surface`. */

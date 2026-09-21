@@ -869,8 +869,10 @@ checklist line. F-12's tail is updated to say the question was answered here.
 
 ### F-word-list-31 · `created-files-roster` · The two files the area created are off the roster
 
-`git log --diff-filter=A` over the area's commits: `shared/word-hunt/wordListRows.ts`
-and its test, both `cs-unmet` and on no roster. The rule from `deep`'s close
+`git log --diff-filter=A` over the area's commits: `wordListRows.ts` and its
+test, both `cs-unmet` and on no roster. (They were created in
+`shared/word-hunt`; that folder is `shared/found-words` since 2026-09-21, and
+everything else on this page still names it as it was read.) The rule from `deep`'s close
 (Joel, 2026-09-02: a file the area created is the area's, wherever it lives)
 puts them on this roster with this area's stamp. They were read at this
 re-read; F-23 has the one sentence in them to fix.

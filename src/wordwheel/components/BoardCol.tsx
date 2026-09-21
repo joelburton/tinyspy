@@ -15,7 +15,8 @@ import { wordFitsWheel } from '../lib/tiles'
 import { Wheel } from './Wheel'
 import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
-import surface from '@/shared/bee-games/foundWordsPlayArea.module.css'
+import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
+import bee from '@/shared/bee-games/beeBoard.module.css'
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
 function shuffled<T>(arr: readonly T[]): T[] {
@@ -161,7 +162,7 @@ export function BoardCol({
   })
 
   return (
-    <div className={cls(shared.boardCol, surface.boardCol)}>
+    <div className={cls(shared.boardCol, bee.boardCol)}>
       {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
           the rank bar + stat grid, above the board. A small BLOCK rather than the
           bar's one-line default, so PlayArea.module.css raises
@@ -169,7 +170,7 @@ export function BoardCol({
           sizes itself from that number, so leaving it alone would size a board
           that no longer fits (the hard no-scroll invariant). */}
       <MobileStatusBar>
-        <div className={surface.mobileStatus}>
+        <div className={bee.mobileStatus}>
           <RankBar score={foundWordsScore} total={requiredWordsScore} targetIdx={targetRankIdx} />
           <Stats
             foundWordsScore={foundWordsScore}

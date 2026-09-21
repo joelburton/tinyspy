@@ -46,9 +46,8 @@ export type WordListRow =
   | { kind: 'unfound'; word: string; isBonus?: boolean; isPangram?: boolean; points?: number }
 
 type Props = {
-  // The merged, alphabetized rows — `shared/found-words/foundWordsDisplayRows.ts`
-  // builds them for spellingbee and wordwheel, boggle's `lib/displayRows` for
-  // boggle.
+  // The merged, alphabetized rows — all three games build them with
+  // `shared/found-words/wordListRows.ts`.
   rows: WordListRow[]
   // The game's players, for the finder-color lookup on each found row.
   players: Member[]

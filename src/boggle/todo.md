@@ -9,22 +9,6 @@
 
 ## Soon
 
-- **The below-board reserve is a hand-tuned constant.**
-  `components/PlayArea.module.css`'s `--avail-h` sizes the board as `100svh -
-  var(--game-chrome-height) - 5rem`, where that last term stands for
-  everything else in the board column — the entry row, the feedback slot, a
-  mobile status bar. Nothing checks that it matches what is actually there.
-
-  Same construction as the shell's own `--game-chrome-height`, which was a
-  hand-written `5rem` until 2026-09-15, when it turned out to omit the 1px
-  rule under the header and put every desktop game page a pixel past the
-  viewport. That one is composed from its terms now; this one is not.
-
-  Too SMALL overflows the page; too LARGE wastes board. Neither shows without
-  measuring, and the page-fits-the-viewport e2e cannot see either — it checks
-  the play surface against the window, and this is the slack one level in,
-  inside the board column.
-
 - **Collapse the info-column action row's branches.** This game still FORKS on
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these
@@ -64,26 +48,6 @@
   what the menu drops at draw time — so "not in the menu" asserts `?.hidden
   === true`, not `toBeUndefined()`.
 
-- **Adopt the two shared found-words modules — the common side is already
-  widened.** Boggle is the third member of the found-words family that the
-  original extraction stopped one game short of. Two call-site changes, both
-  deletions: `lib/displayRows.ts` (and its test) goes, replaced by the shared
-  `foundWordsDisplayRows` — the same algorithm line for line, differing only
-  in that boggle omits `isPangram`, which the shared row type already makes
-  optional — and doing so also lets boggle reach
-  `shared/found-words/wordListRows.ts`, which composes the reveal and the merge
-  in one call and which spellingbee and wordwheel already use (its two
-  remaining hand-written sites, the screen's rows and the print's, collapse to
-  one call each). **The
-  note that said boggle "must NOT use" the shared rows was false** — its own
-  tests dedup a word to the earliest finder exactly as the shared one does; a
-  false justification is worse than none because it survives by being cited.
-  **Deliberately NOT `makeBeeGame`**: boggle reads `games` where the
-  hive games read a `games_state` view, with different columns and a
-  different header type, and sharing it would mean parameterizing the table,
-  the select and the row mapping — a hook turned into a framework. Joel:
-  *"i prefer clarity and not over-generalizing."* Revisit only if a fourth
-  game turns up.
 - **A race here has no way to stop the whole table.** Compete offers Concede
   alone, so a group that has lost interest can only close the game by every
   player conceding — one at a time, each taking a loss on their record for a
@@ -105,3 +69,14 @@
 ## Maybe
 
 ## Won't do
+
+- **Share the bee games' `useGame` factory.** boggle reads `boggle.games`
+  where spellingbee and wordwheel read a `games_state` view, with different
+  columns and a different header type, so sharing `makeBeeGame` would mean
+  parameterizing the table, the select and the row mapping — a hook turned
+  into a framework. Joel: *"i prefer clarity and not over-generalizing."*
+  Revisit only if a fourth game turns up.
+
+  Boggle DOES share the rest of the found-words family (the submit engine,
+  the reveal, the rows call, the row and word types, the typed-word dim); it
+  is the header alone that is its own.

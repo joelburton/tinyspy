@@ -15,6 +15,7 @@ import { asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { Stats, type BoggleStats } from './Stats'
 import shared from '@/common/game-page/playArea.module.css'
+import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
 import styles from './PlayArea.module.css'
 
 /** Rotate a square grid 90° clockwise — repositions tiles; the letters themselves
@@ -327,7 +328,7 @@ export function BoardCol({
           + icon-only Submit, plus the capture keyboard). While the slot holds a
           message it draws it in place of the controls — the verdict, "you're
           out", a word result, whichever ranks highest. */}
-      <div className={styles.belowBoard}>
+      <div className={surface.belowBoard}>
         <div className={shared.moveAreaOrLocalFeedback}>
           <WordEntryArea
             value={word}

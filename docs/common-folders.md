@@ -328,10 +328,10 @@ from everyone else.
 
 | folder | the family | what it is |
 |---|---|---|
-| `bee-games` | spellingbee, wordwheel | the hook factory behind their identical data lifecycles, the board header it returns, the compete leaderboard, their shared play surface |
+| `bee-games` | spellingbee, wordwheel | the hook factory behind their identical data lifecycles, the board header it returns, the compete leaderboard row, the coordinate-unit geometry a hive and a wheel are both drawn by |
 | `board-cursor` | bananagrams, scrabble | arrows move a cursor over a board: the reusable key handling plus the letter-grid cursor math |
 | `dict-trie` | boggle, scrabble | the flat trie behind boggle's solver and scrabble's suggester |
-| `found-words` | spellingbee, wordwheel, boggle — and wordiply, which takes the submit engine alone | the games that accumulate a list of found words: the submit engine, the terminal reveal, the rows the word-list panel draws, the row and word types, the typed-word look |
+| `found-words` | spellingbee, wordwheel, boggle — and wordiply, which takes the submit engine alone | the games that accumulate a list of found words: the submit engine, the terminal reveal, the rows the word-list panel draws, the row and word types, the typed-word look, the play-surface scaffolding |
 | `grid-and-drag` | bananagrams, scrabble | dragging a tile to the right place on the grid |
 | `onscreen-keyboard` | wordle, wordiply | the on-screen QWERTY |
 | `rank-ladder` | the games with a Start..Genius ladder | the ladder, its bar and its stat grid — no data model behind it, so any game with a ladder can take it |
@@ -354,6 +354,20 @@ from everyone else.
   already its doc.
 - **`revealWords` stays in `shared/found-words`** while `useSolutionReveal` is
   `common/reveal` — reveal is split between common and shared on purpose.
+- **The found-words family folder is drawn by the DATA MODEL, not by history**
+  (2026-09-21). `shared/found-words` is "the games that accumulate a list of
+  found words" — which is three games, plus wordiply for the submit engine
+  alone — and `shared/bee-games` is what is left when you take that away from
+  spellingbee and wordwheel: a shared hook body and the geometry of a hive and
+  a wheel. The folders were the other way round for months, because boggle was
+  written independently and was never in the room when anything was factored
+  out of the other two. Nothing bee-specific is named for the family, either:
+  the header is `BeeGame` and the factory `makeBeeGame`, and if a name in
+  `bee-games` ever says "found-words" again it is wrong.
+- **`common/word-list` is the PANEL and only the panel.** It is handed a flat
+  array of rows and knows nothing about found-word tables, reveals, bands or
+  scoring. That is what keeps it common rather than the family's: a game could
+  use the list without the family, or the family without the list.
 - **`pdfTiles` is a shared print helper outside `common/pdf/`.** The shared
   print helpers live in one folder deliberately, and this bends that: it takes
   `TileColor` from `wordle-style`, and common may not import a family. It is

@@ -6,15 +6,22 @@ import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { db } from '../db'
 import type { Member } from '@/common/members/member'
+import type { FoundWordRow, FoundWordsWord } from '@/shared/found-words/foundWords'
 
 /** One player in a boggle game. No per-player state beyond a Member today. */
 export type Player = Member
 
-/** A word the board ships to the FE — one entry of the legal list. `required`
- *  words are the goal/reveal set; `bonus` words are the extra legal-band finds.
- *  boggle has no hidden-solution view; the FE validates + scores guesses against
- *  required ∪ bonus locally, so both carry points. (No pangram concept in boggle.) */
-export type BoggleWord = { word: string; points: number }
+/**
+ * The found-word row and the shipped-word entry are the FAMILY's: boggle's
+ * `found_words` table and its two word lists are the same shape spellingbee's
+ * and wordwheel's are, and the one column they do not share — the pangram
+ * flag — is optional on both. There is no pangram in boggle, so it is simply
+ * absent from every row and every shipped word here.
+ *
+ * Re-exported under this file's roof because that is where a reader scanning
+ * per-game folders looks for them, beside the header below.
+ */
+export type { FoundWordRow, FoundWordsWord } from '@/shared/found-words/foundWords'
 
 /** The boggle game header, read straight off `boggle.games`. Immutable for the
  *  life of the game (play state lives in common.games), so it loads once. */
@@ -27,21 +34,15 @@ export type BoggleGame = {
   /** board side length (n × n) */
   n: number
   min_word_length: number
-  required_words: BoggleWord[]
+  /** The goal/reveal set. boggle has no hidden-solution view: the FE validates
+   *  and scores guesses against required ∪ bonus locally, so both lists carry
+   *  points. */
+  required_words: FoundWordsWord[]
   /** Legal-band words traceable on the board but outside the required set (empty
    *  when legal_band == band). The FE accepts+scores these as bonus finds. */
-  bonus_words: BoggleWord[]
+  bonus_words: FoundWordsWord[]
   required_words_count: number
   required_words_score: number
-}
-
-export type FoundWordRow = {
-  game_id: string
-  user_id: string
-  word: string
-  points: number
-  is_bonus: boolean
-  found_at: string
 }
 
 /**
@@ -118,8 +119,8 @@ export function useGame(gameId: string): {
           board: data.board as string,
           n: data.n as number,
           min_word_length: data.min_word_length as number,
-          required_words: (data.required_words as BoggleWord[]) ?? [],
-          bonus_words: (data.bonus_words as BoggleWord[]) ?? [],
+          required_words: (data.required_words as FoundWordsWord[]) ?? [],
+          bonus_words: (data.bonus_words as FoundWordsWord[]) ?? [],
           required_words_count: data.required_words_count as number,
           required_words_score: data.required_words_score as number,
         })

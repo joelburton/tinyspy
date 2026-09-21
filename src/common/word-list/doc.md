@@ -59,9 +59,9 @@ spellingbee/InfoCol ┐
                                └─▶ <DefinableWord>    (common/definitions) click-to-define
 ```
 
-The rows themselves come from outside: spellingbee and wordwheel from
-`shared/found-words/foundWordsDisplayRows.ts`, boggle from its own `lib/displayRows`
-(a copy, and already slated to adopt the shared one).
+The rows themselves come from outside: all three games build them with
+`shared/found-words/wordListRows.ts`, which composes the terminal reveal and the
+found/unfound merge in one call.
 
 **Who calls what, and what each piece owns.**
 

@@ -3,10 +3,11 @@
 /* spellingbee's board geometry — the ONLY thing its play surface does
  * differently from wordwheel's.
  *
- * Everything else (the two-column layout vars, the mobile status block, the
- * `--u` arithmetic, the below-board slot, loading/empty) lives in the shared
- * `shared/bee-games/foundWordsPlayArea.module.css`, composed alongside
- * this class at the call site. See that file's header for why the split is here.
+ * Everything else is composed: the layout budgets, the mobile regime, the
+ * below-board slot and loading/empty from the family's
+ * `shared/found-words/foundWordsPlayArea.module.css`, and the coordinate-unit
+ * board arithmetic from `shared/bee-games/beeBoard.module.css`. See those two
+ * headers for why the split falls where it does.
  *
  * ─── Board size — TINKER HERE ────────────────────────────────────────────────
  * The flower's bounding box is 256 (wide) × 267 (tall) coordinate units (see
@@ -21,4 +22,16 @@
 /* @@ */   --board-units-h: 267;
 /* @@ */   --board-units-cap: 320;
 /* @@ */   --max-board-size: 30rem;
+
+  /* The info column's clamp floor, read by `shared.responsiveInfoCol`. For
+   * spellingbee this is the hex board's capped width (256 × 30rem/320). All
+   * three found-words games land on 24rem and none derives it from another —
+   * the family's scaffolding therefore reads this rather than declaring it. */
+/* @@ */   --board-reserve: 24rem;
+
+  /* How tall the mobile status block is: the RankBar over the two-cell Stats
+   * grid. The family's scaffolding subtracts it from `--avail-h`, so the board
+   * shrinks by exactly this much and the page still doesn't scroll. boggle's is
+   * taller (three-line cells); that difference is why this is per game. */
+/* @@ */   --mobile-status-height: 4.25rem;
 }

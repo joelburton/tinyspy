@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { cls } from '@/common/utils/cls'
-import styles from './PlayArea.module.css'
+import styles from '@/shared/found-words/typedWord.module.css'
 
 type Props = {
   /** The current typed word (already uppercase; we uppercase defensively). */
@@ -27,7 +27,7 @@ export function TypedWord({ word, reach }: Props) {
   return (
     <>
       {Array.from(word).map((ch, i) => (
-        <span key={i} className={cls(i >= reach && styles.unreachable)}>
+        <span key={i} className={cls(i >= reach && styles.illegal)}>
           {ch.toUpperCase()}
         </span>
       ))}

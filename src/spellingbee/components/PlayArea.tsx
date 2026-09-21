@@ -38,7 +38,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { printSpellingbeePdf } from '../pdf/printSpellingbeePdf'
 import { buildWordSections } from '@/common/pdf/wordSections'
 import shared from '@/common/game-page/playArea.module.css'
-import surface from '@/shared/bee-games/foundWordsPlayArea.module.css'
+import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
 import styles from './PlayArea.module.css'
 
