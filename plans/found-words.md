@@ -10,6 +10,107 @@ questions under "Open calls" are his. **All seven are answered as of
 2026-09-21**, each recorded on its own entry with the reasoning that produced
 it. Nothing here is precedent for anything else.
 
+## Checked against the code — 2026-09-21
+
+A read of the four commits (`28de7fa1`, `1a661a59`, `b9640cfd`, and the calls
+commit between) against every bullet of the five steps, done after the work
+shipped and before Joel's read. Nothing below was changed; each is a finding
+for him to rule on. Numbered `C-n` so they can be named.
+
+**What holds.** `tsc -b` clean; eslint clean over every touched folder; vitest
+3438 pass, the two failures being `folderDocs`' `common/lib` pair (C-9). The
+old names are gone from `src/`, `docs/` and `e2e/` — `word-hunt`,
+`useWordSubmit`, `FoundWordsGame`, `makeFoundWordsGame`, `foundWordsLeaderboard`,
+`BoggleWord`, `.unreachable` — except in this file and the area records, which
+is the rule step 1 set. Every file in both folders is tracked and stamped, the
+four new ones `cs-unmet`, `useFoundWordSubmit.ts` still `cs-fixed-outcome-fix`.
+`foundWords.ts`'s claim that the three tables agree column for column but for
+the pangram flag is true of the three migrations. The baseline artifact carries
+21 boxes including the nine new ones, and boggle's phone status block is 72px
+against the bee games' 68px, as step 4 says. The four cases deleted with
+boggle's `displayRows.test.ts` each have a counterpart among the eight in
+`foundWordsDisplayRows.test.ts`, and `wordListRows.test.ts` has the
+screen-equals-print case. `[data-mobile-status]` is the bar's own attribute.
+`e2e/boggle.e2e.ts`'s `belowBoard` selector still matches. The plan's one
+"not a no-op" — boggle's loading and empty look — is exactly the change in
+its `PlayArea.tsx`. Step 1's four deviations, step 2's two notes, step 3's
+one and step 4's two are all as recorded.
+
+**What does not, in weight order.**
+
+1. **C-1 · `token-guard-claim-false` · The family sheet's safety claim is
+   false, and a plant shows it.** `foundWordsPlayArea.module.css`'s mobile
+   block says `--mobile-status-height` has no fallback on purpose because "the
+   cssTokens guard catches an undeclared token, which is the louder failure."
+   Planted: boggle's `--mobile-status-height: 4.5rem` line removed,
+   `src/guards/cssTokens.test.ts` run — **18 of 18 pass.** The guard checks
+   that a token read somewhere is declared somewhere, and spellingbee,
+   wordwheel and setgame all declare this one, so a game that composes the
+   sheet and forgets it is invisible to the guard. What happens instead is
+   silent: the mobile `--avail-h` declaration goes invalid at computed-value
+   time, which voids it rather than falling back to the desktop line above
+   (a custom property with an unresolvable `var()` takes the guaranteed-invalid
+   value), so the board's `min()` loses its height bound on a phone while
+   `<MobileStatusBar>` keeps its own 1.75rem fallback and looks fine. For the
+   three games that exist the board-geometry spec's phone boxes would show it;
+   the hole is a fourth game. Call 4 was made with "the louder failure" as its
+   argument, so it is worth re-asking with that gone. The ways out: rewrite the
+   sentence to say the truth (the phone boxes pin the three, a fourth game is
+   on its own); or give the shared read a fallback, which is the default the
+   comment argues against and would hide the miss; or a guard that reads what
+   a composed sheet requires, which does not exist. The first is the honest
+   minimum.
+2. **C-2 · `plan-header-stale` · This file's own header still says "nothing
+   in it has been built, and no step starts until Joel says so"** while every
+   step heading says SHIPPED and `CLAUDE.md`'s row was rewritten to match. The
+   header is the first thing a reader sees.
+3. **C-3 · `read-leaderboard-count` · `readLeaderboard.ts`'s docstring
+   carries a wrong, archaeological count.** "What six of them used to write
+   by hand": before the plan, four games wrote the cast at eight sites
+   (boggle twice, and letterboxed, setgame and wordiply in a PlayArea and a
+   manifest each); spellingbee and wordwheel used the old helper. Six is
+   neither the sites nor the games. And "used to write" is how-it-used-to-work,
+   which the comment rule excludes. The sentence loses nothing if it stops
+   at "That defensive half is what every caller needs."
+4. **C-4 · `wordwheel-md-stale-path` · Step 1 edited one path in
+   `docs/games/wordwheel.md`'s "Shared, hoisted" bullet and left a found-words
+   path beside it.** The bullet now reads `shared/bee-games/makeBeeGame` next
+   to "the found-words data model + display + leaderboard
+   (`common/lib/game/foundWords*`)" — three files this plan moved
+   (`shared/found-words/foundWords.ts`, `foundWordsDisplayRows.ts`,
+   `shared/bee-games/beeLeaderboard.ts`). Step 5's note says the only stale
+   paths left were two rank-ladder ones; this one is the plan's own subject.
+   (The bullet's `common/lib/game/rankLadder` and `common/components/game/`
+   are the rank-ladder ones the note means, and stay.)
+5. **C-5 · `family-sheet-header-here` · A garbled sentence in the family
+   sheet's header.** "The second is here rather than in this file because the
+   three genuinely differ" — "here" and "in this file" are the same place.
+   It means "declared per game rather than here."
+6. **C-6 · `boggle-usegame-reexport` · An unrecorded deviation in step 3.**
+   The step said boggle's `hooks/useGame.ts` "imports `FoundWordRow` and
+   `FoundWordsWord` from found-words and deletes its own"; it deletes its own
+   and RE-EXPORTS the family's two under its roof, with a comment giving the
+   reason, and `PlayArea.test.tsx:28` is the one reader. That is what the two
+   bee `useGame.ts` files do too, so it is consistent; it is just not what the
+   step says it did.
+7. **C-7 · `bee-print-comments-inner-name` · The siblings were not
+   re-read.** Step 3 rewrote boggle's print-site comment to stop narrating
+   `buildDisplayRows`, the inner function, where the call is
+   `buildWordListRows`. spellingbee's and wordwheel's `PlayArea.tsx` carry the
+   same comment at the same site (`:187` and `:185`) and still name the inner
+   function. Not wrong — the inner function still dedups — but the same
+   sentence was judged worth recasting in boggle.
+8. **C-8 · `common-folders-one-edge` · A count that rots.**
+   `common-folders.md` now says "there is one edge" where it said "there is
+   no such edge today" — and the old sentence is the one this plan had to
+   correct. Verified true today (`makeBeeGame.ts` is the only shared-to-shared
+   import); "for instance" would not need re-verifying.
+9. **C-9 · `common-lib-description` · A wrong description in Predicted test
+   breaks.** `common/lib` is not "an untracked stray folder holding two files";
+   it holds no files — two empty directories, `game/` and `util/`, which is why
+   `git status` is clean while the guard, walking the filesystem, still fails
+   two specs. Still not this plan's.
+
 ## What the walk found
 
 Three folders serve the games that find words on a board, and the folders were
