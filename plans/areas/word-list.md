@@ -243,6 +243,26 @@ a planted spec (`['bead']` → `[]` → `['bead']`, expecting `has('bead')`):
 `found` on every change — plus that spec kept in `useRecentlyFound.test.ts`.
 No decision in it; waiting for the word.
 
+**CLOSED 2026-09-21, NO CHANGE — the finding's premise is false.** *"How would
+this remember anything, since we now remount the component after restart?"*
+(Joel). Verified end to end: all three word-hunt games' `replay_board` calls
+`common.reset_game`, which bumps `common.games.restarts`; `GamePage` renders
+`<PlayArea key={commonGame.restarts}>`, so a restart unmounts the surface and
+every ref in it. The hook cannot carry its memory across one.
+
+**The planted spec was red for a reason that is not a bug.** It drove the hook
+with `renderHook` — a word, an empty list, the same word again — with no unmount
+between, which is a sequence the app cannot produce, because the only thing that
+empties the list also remounts the hook. A property of the hook in isolation was
+reported as a defect in the app.
+
+The key landed 2026-09-15 (`24664a0a`), five days BEFORE this audit read, so the
+finding was already false when filed rather than overtaken. What remains true and
+is not worth acting on: the hook does not re-sync its memory when `found` shrinks.
+Nothing can reach it. The process fix is in [app-audit.md](../app-audit.md) §4 —
+[A restart REMOUNTS](../app-audit.md#a-restart-remounts--assume-nothing-in-a-game-still-has-to-clear-itself),
+and the opening step that reads what moved under an area.
+
 ### F-word-list-6 · `reveal-prop` · `reveal` is `isTerminal` at every caller
 
 The prop exists to suppress the flash when the terminal refetch lands every
