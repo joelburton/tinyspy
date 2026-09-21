@@ -8,7 +8,8 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 once the one-mark-hook work landed in the re-opened `board-marks`. **Every
 finding from the read is worked or closed (2026-09-21, `42ac72e3`..`b76fa483`).
 The closing re-read ran 2026-09-21 and found thirteen more, F-19 to F-31; F-20,
-F-21, F-25 and F-30 are worked and the rest are OPEN** — see
+F-21, F-25 and F-30 are worked, F-31 is closed no-change, and the rest are
+OPEN** — see
 [The closing re-read](#the-closing-re-read--2026-09-21). Baseline
 at the re-read: 70 of 70 tests green in `word-list` + `word-hunt`, lint and
 `tsc -b` clean, the working tree clean.
@@ -913,6 +914,14 @@ everything else on this page still names it as it was read.) The rule from `deep
 (Joel, 2026-09-02: a file the area created is the area's, wherever it lives)
 puts them on this roster with this area's stamp. They were read at this
 re-read; F-23 has the one sentence in them to fix.
+
+**CLOSED 2026-09-21, NO CHANGE** (Joel: *"just close this finding; we don't need
+to change them"*). Both files stay `cs-unmet` and off this roster; no stamp is
+written and no roster row is added. `shared/found-words` reads them when its own
+area opens, along with the eleven `cs-unmet` files beside them.
+
+So this finding is the only record that the two came from here, which is what it
+is for. F-23's sentence in `wordListRows.ts` is still owed and is F-23's.
 
 ## Notes
 
