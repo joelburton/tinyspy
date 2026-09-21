@@ -378,13 +378,12 @@ function PlayArea({
   // through a ref it refreshes every render, and the bound value's identity
   // turns on `pending` alone.
 
-  // The shared trio — End / Concede / Restart. psychicnum's own bits are which
-  // `db` they call and the post-replay cleanup (leave the turn-history view; a
-  // restart is the player's next action, so it dismisses a lingering result —
-  // the verdict itself leaves by its own effect when the terminal state ends).
-  //
-  // (Nothing hides the secrets again here: a restart remounts the play surface,
-  //  so the reveal goes with it and the same three are hunted blind again.)
+  // The shared trio — End / Concede / Restart. psychicnum's own bit is which
+  // `db` they call; a restart needs nothing else from this game, because the
+  // page unmounts the whole play surface when the run changes
+  // (common/game-page/doc.md). The turn-history view, a lingering result and
+  // the revealed secrets all go with it, so the same three are hunted blind
+  // again.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,

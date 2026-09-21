@@ -818,6 +818,22 @@ its two SQL files, and `docs/games/<game>.md`.
 **An area's first read is its folder's `todo.md`**, so it does not start by
 re-deriving what earlier areas already handed it.
 
+**Then read what moved under it.** The shell keeps changing while the sprint
+runs, so an area's code was written against a `common/game-page` that may no
+longer be the one it will be audited against — and a rule that landed in between
+both makes some of the area's code unnecessary and some plausible finding wrong.
+Before reading the files, read the commits that touched the shell since the
+area's own files last changed:
+
+```sh
+git log --oneline --since="$(git log -1 --format=%cI -- src/<area>/)" -- src/common/game-page/
+```
+
+The remount is why this is a step and not a nicety: a restart has unmounted the
+whole play surface since 2026-09-15, which retired per-game cleanup in eleven
+games at once and makes "this state survives a restart" a false finding — twice
+filed before the step existed. See [A restart REMOUNTS](#a-restart-remounts--assume-nothing-in-a-game-still-has-to-clear-itself).
+
 **An area is committed before the next one opens.** Several commits inside one
 area is normal; what may not share a commit is two areas' WORK — you finish and
 commit one area before starting the next, so the history reads area by area.
@@ -967,6 +983,37 @@ line it defends, not in the docstring. `members` had three, and had written two
 of them that same day while working its own findings — the pass catches what
 the area itself just wrote, which is the argument for doing it at the CLOSING
 re-read and not only at the opening.
+
+### A restart REMOUNTS — assume nothing in a game still has to clear itself
+
+**Since 2026-09-15 (`24664a0a`), `common.reset_game` bumps
+`common.games.restarts` and `GamePage` renders `<PlayArea key={restarts}>`.** A
+restart therefore unmounts the whole play surface and mounts a fresh one, on
+every client — taking a half-typed word, an optimistic row, a mark mid-beat, a
+history viewer, and **the refs inside shared hooks that no game's own code can
+reach**. Eleven games used to clean up after `replay_board`, each only tidying
+the presser's own board; all eleven lost that code in the same commit.
+
+**This is a standing trap for an audit, and it has already been walked into
+twice.** Both times the same shape: a hook or a component was read on its own,
+its state was seen to survive a board emptying, and that was written up as a
+defect — once as a bug with a planted-red spec (`F-word-list-5`), which was red
+only because `renderHook` fed the hook a shrinking list *without* the remount the
+app always performs. A finding about state surviving a restart is wrong by
+default now. **Verify the mount boundary before believing one.**
+
+The reverse costs as much and is quieter: **code and comments that still defend
+against a restart are dead weight**, and they read as load-bearing to the next
+person. When an area opens, check its game for both — a `replay_board` callback,
+an effect watching for its own rows to vanish, a `quiet` flag or a marker rule
+justified by "a restart clears the lot". What the cause-gating in `board-marks`
+is really for is the change that arrives WITHOUT a remount, which in practice
+means the terminal reveal.
+
+Two audited games were re-checked when this was written (2026-09-21): psychicnum
+and connections both had clean CODE and stale COMMENTS, and `board-marks/doc.md`
+carried the claim both had copied — a "re-deal must drop the marker" requirement
+that the remount makes unreachable. Fixed in all three.
 
 ### A narrower `Outcome` type is a finding until proven otherwise
 

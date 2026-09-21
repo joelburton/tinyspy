@@ -69,9 +69,8 @@ type Props = {
   // the others play on: their board is inert even though the game isn't.
   gameOver: TerminalOutcome | null
   // ATTENTION's cause, the server's move marker: the guess log's length. A band
-  // arriving is only news when a MOVE put it there — `replay_board` deletes the
-  // guesses, so a restart drops this instead of advancing it and the re-dealt
-  // board says nothing (`useMoveAttention`).
+  // arriving is only news when a MOVE put it there — the terminal reveal swaps
+  // four bands in without one (`useMoveAttention`).
   moveCount: number
   // Render read-only under the shared viewer frame (a past turn's board). Off
   // during live play.

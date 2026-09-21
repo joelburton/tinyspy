@@ -84,15 +84,19 @@ it recomputes on renders the mark had no part in. Such a set is emptied with
 `clear()`, never by raising a mark of nothing — an empty raise is still a raise,
 with a nonce and a clock.
 
-**Two requirements on the caller's data path**, and both are worth checking
-when a new game raises an attention mark. The content key and the move marker
-must come from the same read, so that within one render a board that has moved
-always carries the row that moved it. A marker that arrives a render after its
-content is too late: the change is absorbed as an unexplained one, and the move
-it would have announced is never marked. And a re-deal must DROP the marker
-rather than carry it forward — the RPCs that re-deal a board delete the move
-log with it, so the marker falls instead of advancing and a fresh board reads
-as what it is rather than as a flurry of moves.
+**One requirement on the caller's data path**, worth checking when a new game
+raises an attention mark: the content key and the move marker must come from the
+same read, so that within one render a board that has moved always carries the
+row that moved it. A marker that arrives a render after its content is too late —
+the change is absorbed as an unexplained one, and the move it would have
+announced is never marked.
+
+**A re-dealt board is not one of the cases this has to survive.** A restart bumps
+`common.games.restarts`, which the page keys its play surface on, so the whole
+surface unmounts and every hook in it — this one included — starts again against
+the new board and says nothing. What the cause gating is really for is the change
+that arrives WITHOUT a remount: a terminal reveal swapping the solution in, which
+would otherwise light the whole board at the moment nothing happened.
 
 **The cause check runs during render**, not in an effect, so that the caller
 can set its own flashing state from the result and have the mark and the change

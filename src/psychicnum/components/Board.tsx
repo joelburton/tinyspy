@@ -104,10 +104,11 @@ export function Board({
   // SHARED, so a teammate's guess colors a tile anywhere on it while you are
   // reading somewhere else: change in place, announcing nothing.
   //
-  // Gated on the CAUSE (the event log) rather than on the board differing, because
-  // the board also changes when nothing was played — asking to see the solution
-  // turns every unfound secret green at once, and a restart clears the lot. Both
-  // would light up the board at the moment nothing happened. See
+  // Gated on the CAUSE (the event log) rather than on the board differing,
+  // because the board also changes when nothing was played: asking to see the
+  // solution turns every unfound secret green at once, which would light the
+  // board up at the moment nothing happened. (A restart cannot reach here — it
+  // remounts the surface, so this hook seeds fresh and says nothing.) See
   // `useMoveAttention`.
   const flashing = useMoveAttention({
     content: results,
