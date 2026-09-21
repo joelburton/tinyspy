@@ -5,6 +5,7 @@ import { cls } from '@/common/utils/cls'
 import type { Category } from '../lib/board'
 import type { MatchedCategory } from '../hooks/useGame'
 import type { Outcome } from '@/common/outcomes/outcomes'
+import type { Mark } from '@/common/board-marks/useMark'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
@@ -24,10 +25,6 @@ export type BoardVerdict = {
   // ANY outcome, because the mark wears its PILL's outcome — the two are one
   // message — and the pill speaks the full vocabulary.
   outcome: Outcome
-  // Bumped per verdict. The shake is a CSS animation, which only restarts on a
-  // NEW element, so the tiles are keyed on this: submitting the same four tiles
-  // twice has to shake twice.
-  nonce: number
 }
 
 type Props = {
@@ -52,14 +49,11 @@ type Props = {
   inFlightTiles: ReadonlySet<string>
   // The verdict on my last guess, filling its tiles in its pill's outcome
   // (BoardCol sets it, and clears it on the next tile click). Null while
-  // nothing is being judged.
-  verdict: BoardVerdict | null
-  // Tiles taking the attention flash — the beat that says an answer landed here.
-  // Raised for every verdict, my own included.
-  attentionTiles: ReadonlySet<string>
-  // Tiles taking the head-shake, which starts once the flash has faded and the
-  // verdict color underneath is visible.
-  shakenTiles: ReadonlySet<string>
+  // nothing is being judged. Its PHASE is the mark's two beats, and the tiles
+  // draw both off it: the attention flash first, then the head-shake over the
+  // fill the flash hands back. Its `nonce` is what those tiles are keyed on, so
+  // submitting the same four twice shakes twice.
+  verdict: Mark<BoardVerdict> | null
   // user_id → resolved color var, for the identity ring.
   colorByUserId: ReadonlyMap<string, string>
   // Is this board SHARED — a coop game with somebody else in it? Only then is
@@ -130,8 +124,6 @@ export function Board({
   myTurnJustStarted,
   gameOver,
   moveCount,
-  attentionTiles,
-  shakenTiles,
   isViewingHistory,
   historyLitTiles = NO_TILES,
   historyLitOutcome = 'lost',
@@ -241,7 +233,7 @@ export function Board({
           const ownerColor =
             sharedBoard && ownerId !== undefined ? colorByUserId.get(ownerId) : undefined
           const inFlight = inFlightTiles.has(tile)
-          const isVerdict = verdict?.tiles.has(tile) ?? false
+          const isVerdict = verdict?.value.tiles.has(tile) ?? false
           // One of the four tiles the viewed turn guessed — tinted the outcome
           // color and outlined in the history blue.
           const isHistoryLit = historyLitTiles.has(tile)
@@ -266,13 +258,14 @@ export function Board({
                 ownerId !== undefined && shared.selected,
                 ownerColor && styles.peerPick,
                 // The answer landing here — the attention flash first, then the
-                // head-shake over the verdict color the flash hands back.
-                attentionTiles.has(tile) && shared.attentionFlash,
-                shakenTiles.has(tile) && shared.verdictShake,
+                // head-shake over the verdict color the flash hands back. One
+                // mark, two beats, so the phase is the whole of the ordering.
+                isVerdict && verdict?.phase === 'attention' && shared.attentionFlash,
+                isVerdict && verdict?.phase === 'answer' && shared.verdictShake,
                 inFlight && shared.dimInFlight,
                 // The answer fills the tile, in a PALE tier of its pill's outcome.
                 isVerdict && shared.verdictFill,
-                isVerdict && verdict && VERDICT_TONE[verdict.outcome],
+                isVerdict && verdict && VERDICT_TONE[verdict.value.outcome],
                 isHistoryLit && shared.verdictFill,
                 isHistoryLit && VERDICT_TONE[historyLitOutcome],
                 isHistoryLit && styles.historyTile,

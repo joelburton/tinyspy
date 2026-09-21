@@ -2,7 +2,7 @@
 
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ATTENTION_FADE_MS } from './feedbackTiming'
+import { ATTENTION_FADE_MS, NO_TIMER } from './feedbackTiming'
 import { useMark } from './useMark'
 
 type Answer = { word: string; outcome: string }
@@ -50,9 +50,9 @@ describe('useMark', () => {
   })
 
   it('stands until cleared when it has no clock', () => {
-    // `ms: null` — the "until the next action" lifetime: a refused word that
+    // `NO_TIMER` — the "until the next action" lifetime: a refused word that
     // the next keystroke takes off, with nothing on a timer to end it.
-    const { result } = renderHook(() => useMark<string>(null))
+    const { result } = renderHook(() => useMark<string>(NO_TIMER))
     act(() => result.current[1]('ABD'))
     act(() => vi.advanceTimersByTime(60_000))
     expect(result.current[0]?.value).toBe('ABD')
@@ -62,7 +62,7 @@ describe('useMark', () => {
   })
 
   it('announces a clockless mark too, then stands in the answer', () => {
-    const { result } = renderHook(() => useMark<string>(null))
+    const { result } = renderHook(() => useMark<string>(NO_TIMER))
     act(() => result.current[1]('MINE', { attention: true }))
     expect(result.current[0]?.phase).toBe('attention')
     act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS))
@@ -127,7 +127,7 @@ describe('useMark', () => {
   it('never runs onEnd for a mark with no clock', () => {
     // Nothing ends it but the caller, and the caller ending it is a clear.
     const ended: string[] = []
-    const { result } = renderHook(() => useMark<string>(null))
+    const { result } = renderHook(() => useMark<string>(NO_TIMER))
     act(() => result.current[1]('ABD', { onEnd: () => ended.push('ABD') }))
     act(() => vi.advanceTimersByTime(60_000))
     expect(ended).toEqual([])

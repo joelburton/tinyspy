@@ -1,14 +1,10 @@
 // cs-blessed-connections
 
 import { runRpc } from '@/common/supabase/dbResult'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
-import { useFlash } from '@/common/board-marks/useFlash'
-import {
-  ATTENTION_FADE_MS,
-  ATTENTION_FLASH_MS,
-  VERDICT_SHAKE_MS,
-} from '@/common/board-marks/feedbackTiming'
+import { useMark } from '@/common/board-marks/useMark'
+import { NO_TIMER } from '@/common/board-marks/feedbackTiming'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
@@ -183,53 +179,39 @@ export function BoardCol({
   // The verdict fill on the tiles of my last guess, in the outcome its PILL
   // wears — the two are one message arriving in two places, so they share a
   // lifetime as well as a color: both last until my next action (a tile
-  // click, or a tap on the pill). The mark remembers which slot entry it
-  // belongs to (`msgId`), and below it is drawn only while that entry is
-  // still in the slot — so a tap on the pill takes the mark with it without
-  // this column being told. `msgId` null means the mark is about somebody
-  // ELSE's guess — there is no sentence of mine for it to outlive, so it lives
-  // by the board rule below instead.
-  const [verdict, setVerdict] = useState<(BoardVerdict & { msgId: string | null }) | null>(null)
-  // Bumped per verdict so the verdict's shake replays on a repeat (Board keys
-  // the marked tiles on it). State rather than a ref because one of the two places
-  // that raises a mark runs during render, where a ref may not be touched — and
-  // both raises take their number from here, so a peer's mark and my own can
-  // never collide on one and swallow a shake.
-  const [verdictSeq, setVerdictSeq] = useState(0)
+  // click, or a tap on the pill), which is what `NO_TIMER` says. The mark
+  // remembers which slot entry it belongs to (`msgId`), and below it is drawn
+  // only while that entry is still in the slot — so a tap on the pill takes
+  // the mark with it without this column being told. `msgId` null means the
+  // mark is about somebody ELSE's guess — there is no sentence of mine for it
+  // to outlive, so it lives by the board rule below instead.
+  //
+  // ANNOUNCED, so the mark carries both beats itself: its `attention` phase is
+  // the flash saying WHERE the answer landed, and its `answer` phase — which
+  // begins the instant the flash has faded — is the fill and the head-shake
+  // saying what it was. Every verdict that can land ON TILES is a refusal (a
+  // correct guess takes its four away and becomes a band), so the shake needs
+  // no outcome test. Both raisers below go through this one call, so my own
+  // answer and a teammate's read the same.
+  const [verdict, showVerdict, clearVerdict] =
+    useMark<BoardVerdict & { msgId: string | null }>(NO_TIMER)
 
   /** Show a message into the slot and fill these tiles in its outcome,
    *  replaying the shake — one message, two places. */
   function showWithVerdict(tiles: string[], feedbackMsg: FeedbackMessage) {
     const msgId = localFeedbackSlot.show(feedbackMsg)
-    setVerdictSeq(verdictSeq + 1)
-    setVerdict({
-      tiles: new Set(tiles),
-      outcome: feedbackMsg.outcome,
-      nonce: verdictSeq + 1,
-      msgId,
-    })
+    showVerdict(
+      { tiles: new Set(tiles), outcome: feedbackMsg.outcome, msgId },
+      { attention: true },
+    )
   }
-  // The two beats a verdict gets on the board, in order: the attention flash says
-  // WHERE the answer landed, and once it has faded the head-shake says the answer
-  // was no. Both are raised here, off whichever path set the verdict — my own
-  // submit, or a teammate's row arriving — so they read the same either way.
-  const [attentionTiles, flashAttention] = useFlash<string>(ATTENTION_FLASH_MS)
-  const [shakenTiles, shakeTiles] = useFlash<string>(VERDICT_SHAKE_MS)
-  useEffect(function flashThenShake() {
-    if (verdict === null) return
-    flashAttention(verdict.tiles)
-    // Every verdict that can land ON TILES is a refusal — a correct guess takes
-    // its four away and becomes a band — so the shake needs no outcome test.
-    const timer = setTimeout(() => shakeTiles(verdict.tiles), ATTENTION_FADE_MS)
-    return () => clearTimeout(timer)
-  }, [verdict, flashAttention, shakeTiles])
 
   // Subscribes to the slot, so the mark re-derives when its message leaves.
   const top = useTopFeedbackMessage(localFeedbackSlot)
   const verdictShown =
     verdict !== null &&
-    (verdict.msgId === null ||
-      localFeedbackSlot.peek().some((entry) => entry.id === verdict.msgId))
+    (verdict.value.msgId === null ||
+      localFeedbackSlot.peek().some((entry) => entry.id === verdict.value.msgId))
 
   // When the verdict mark expires. It fills four particular tiles, so it is a
   // claim about the board AS IT WAS, and it has no timer: it lives until the
@@ -255,17 +237,16 @@ export function BoardCol({
       // their own client marked the same four from its own answer a beat
       // earlier. A correct guess needs no mark: its band arrives on this render.
       const marks = !isViewingHistory && newestGuess !== null && newestGuess.outcome !== 'won'
-      setVerdictSeq(verdictSeq + 1)
-      setVerdict(
-        marks
-          ? {
-              tiles: new Set(newestGuess.tiles),
-              outcome: newestGuess.outcome,
-              nonce: verdictSeq + 1,
-              msgId: null,
-            }
-          : null,
-      )
+      // Raised DURING render, legally: `show` is a plain state update, so the
+      // mark and the board that earned it land in one commit.
+      if (marks) {
+        showVerdict(
+          { tiles: new Set(newestGuess.tiles), outcome: newestGuess.outcome, msgId: null },
+          { attention: true },
+        )
+      } else {
+        clearVerdict()
+      }
     }
   }
 
@@ -384,7 +365,7 @@ export function BoardCol({
     if (!showInput || !isMyTurn) return
     localFeedbackSlot.dismiss()
     // The fill goes with the pill it belongs to — one message, one dismissal.
-    setVerdict(null)
+    clearVerdict()
     toggleTile(tile)
   }
 
@@ -441,8 +422,6 @@ export function BoardCol({
         onToggle={handleToggle}
         inFlightTiles={inFlightTiles}
         verdict={verdictShown ? verdict : null}
-        attentionTiles={attentionTiles}
-        shakenTiles={shakenTiles}
         colorByUserId={colorByUserId}
         sharedBoard={sharedBoard}
         notMyTurn={notMyTurn}

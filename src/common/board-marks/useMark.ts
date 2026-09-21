@@ -1,7 +1,7 @@
 // cs-blessed-board-marks
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ATTENTION_FADE_MS } from './feedbackTiming'
+import { ATTENTION_FADE_MS, NO_TIMER } from './feedbackTiming'
 
 /** A mark the board is wearing: what it was raised with, which stage it is in,
  *  and which raise it belongs to. Null, from the hook, is the board saying
@@ -51,10 +51,10 @@ type Raise<T> = {
  * - **When it ends.** `ms` is the ANSWER's beat, so an announced mark is up for
  *   `ATTENTION_FADE_MS + ms`. It comes from `feedbackTiming` for the reason it
  *   lives there — a mark's lifetime is part of what the mark MEANS, so a caller
- *   says which beat it is raising and never a number of its own. `null` is a
- *   mark with no clock at all, standing until `clear`: the "until the next
- *   action" lifetime the vocabulary names, where the action that ends it is
- *   what clears it.
+ *   says which beat it is raising and never a number of its own. `NO_TIMER`,
+ *   from the same place, is a mark with no clock at all, standing until
+ *   `clear`: the "until the next action" lifetime the vocabulary names, where
+ *   the action that ends it is what clears it.
  *
  * `onEnd` runs when the CLOCK ends the mark, for state that lives beside it and
  * ends with it. It is captured at `show`, so it sees the answer it was raised
@@ -71,7 +71,7 @@ type Raise<T> = {
  * beginning, which is what a second refusal should do.
  */
 export function useMark<T>(
-  ms: number | null,
+  ms: number | typeof NO_TIMER,
 ): [
   Mark<T> | null,
   (value: T, opts?: { attention?: boolean; onEnd?: () => void }) => void,
@@ -121,7 +121,7 @@ export function useMark<T>(
       if (attention) {
         timers.push(setTimeout(() => setPhase('answer'), ATTENTION_FADE_MS))
       }
-      if (ms !== null) {
+      if (ms !== NO_TIMER) {
         timers.push(
           setTimeout(
             () => {

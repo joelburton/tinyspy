@@ -27,7 +27,7 @@ return shapes.
  *  and the type a child names when a mark is passed down whole. */
 export type Mark<T> = { value: T; phase: 'attention' | 'answer'; nonce: number }
 
-function useMark<T>(ms: number | null): [
+function useMark<T>(ms: number | typeof NO_TIMER): [
   Mark<T> | null,
   (value: T, opts?: { attention?: boolean; onEnd?: () => void }) => void,
   () => void,
@@ -40,10 +40,16 @@ function useMark<T>(ms: number | null): [
   in `'attention'`, then `ms` in `'answer'` — which is exactly
   `useAnnouncedMark`'s `lead + WORD_ANSWER_MS` today, and what stackdown's
   peer-mark spec measures (`ATTENTION_FADE_MS + WORD_ANSWER_MS + 10`).
-- **`null`** means the mark stands until `clear`, which is the "until the next
-  action" lifetime the vocabulary already names and no hook could hold.
-  **`null` with `attention: true` is legal and is connections' verdict**: the
-  phase flips at the fade and the mark then stands in `'answer'`.
+- **`NO_TIMER`** means the mark stands until `clear`, which is the "until the
+  next action" lifetime the vocabulary already names and no hook could hold.
+  **`NO_TIMER` with `attention: true` is legal and is connections' verdict**:
+  the phase flips at the fade and the mark then stands in `'answer'`.
+  It is a **unique symbol** exported from `feedbackTiming` beside the beats, not
+  a `null` and not a constant equal to one (Joel, 2026-09-20, offering both):
+  a lifetime the vocabulary has a word for should not also be spellable as a
+  bare `null` that says nothing about which lifetime was meant, and the type is
+  what makes the name the only way in. Planted: `useMark(null)` is a compile
+  error.
 - **`T` is opaque.** The hook never reads it. A mark on board pieces carries
   its own noun for them (`{tiles}`, `{cells}`, `{letters}`); wordiply's carries
   no pieces at all.
@@ -59,7 +65,7 @@ function useMark<T>(ms: number | null): [
   because the word will look wrong to someone reading that call site.
 - **`onEnd` runs when the CLOCK ends the mark.** Not on `clear` (the caller
   interrupted it and knows more than the hook does — today's rule), not on
-  unmount, and never for `ms: null` (nothing ends it). It is captured at
+  unmount, and never for `NO_TIMER` (nothing ends it). It is captured at
   `show`, so a later `show` replaces it along with the mark.
 - **`show` while a mark is up replaces it and restarts the sequence from the
   beginning**, attention included if asked — today's rule in both hooks.
@@ -177,7 +183,7 @@ passed — `attention` and `onEnd` are `show`'s, never the hook's.
 | setgame | `PlayArea` | `useFlash<CardCode>(ARRIVE_MS)` | a set caller; `clearArriving` is already `clear`; the `for (const card of arriving)` iterates the derived set |
 | psychicnum | `Board` | `useFlash<string>(VERDICT_SHAKE_MS)` | a set caller. **Its `shakeAfterFlash` effect and `setTimeout(…, ATTENTION_FADE_MS)` stay**: they look like the changeover this hook now owns, but the attention half there is `useMoveAttention`'s, not this mark's — the shake waits on a flash it did not raise |
 | connections | `BoardCol` | two `useFlash` + a hand-rolled standing `verdict` + `verdictSeq` | `useMark<BoardVerdict & {msgId}>(null)` · `show(v, {attention: true})` — the one mark, whose `phase` draws the flash AND the shake (decision 1, settled). `setVerdict(null)` at the tile click, and the `marks`-false arm of the render-path raise (a teammate's `won`, or viewing history), become `clear()` |
-| letterboxed | `PlayArea` | hand-rolled `{word, nonce}`, cleared by the next keystroke | `useMark<{word: string}>(null)`; `setRefused(null)` ×4 become `clear()`; `BoardCol`'s `refused` prop becomes `Mark<{word}> \| null` and `Board` keys on `refused.nonce` as now |
+| letterboxed | `PlayArea` | hand-rolled `{word, nonce}`, cleared by the next keystroke | `useMark<{word: string}>(NO_TIMER)`; `setRefused(null)` ×4 become `clear()`; `BoardCol`'s `refused` prop becomes `Mark<{word}> \| null` and `Board` keys on `refused.nonce` as now |
 
 Ten games, sixteen call sites. **Mostly mechanical, with two that are not:**
 connections sheds real logic (its attention instance, its `setTimeout`, its
@@ -212,7 +218,7 @@ per read.
 - **Phase value names:** `'attention' | 'answer'`, replacing `'pointing' |
   'answering'`. With `announce` gone, `'pointing'` would be a third word for the
   yellow flash.
-- **Every game converts**, letterboxed included (Joel, 2026-09-20). `ms: null`
+- **Every game converts**, letterboxed included (Joel, 2026-09-20). `NO_TIMER`
   is the shape F-14 had to leave it behind for.
 - **No file stamps change.** This is retro-fixing what the area already built;
   Joel re-reads and re-blesses at the end.
@@ -272,7 +278,7 @@ and nothing dual-runs.
 
 1. **The hook.** Rewrite `useMark.ts` to the API above; grow `useMark.test.ts`
    to cover the seven invariants — both phases and the total lifetime under
-   `attention`, `ms: null` with and without `attention`, the nonce (bumps per
+   `attention`, `NO_TIMER` with and without `attention`, the nonce (bumps per
    raise, survives a clear), `onEnd` runs at the clock and not after `clear`,
    a stale timer leaves a newer mark alone, and a `show` called during render
    (a wrapper component that raises from its own render body on a prop, guarded
@@ -286,12 +292,12 @@ and nothing dual-runs.
 3. **The set callers, by game.** psychicnum · strands · setgame · stackdown ×2 ·
    scrabble ×3. Delete `useFlash.ts` and its test when the last one lands.
 4. **connections.** The attention instance disappears into `phase`; the
-   verdict becomes `useMark(null)` raised with `attention: true`; the shake
+   verdict becomes `useMark(NO_TIMER)` raised with `attention: true`; the shake
    rides its phase (decision 1). Its two raisers both call `show` — the
    render-phase one legally now — and `Board`'s `BoardVerdict` loses its
    `nonce` field (the key reads `verdict.nonce` off the `Mark`) and both the
    `attentionTiles` and `shakenTiles` props.
-5. **letterboxed** — the hand-rolled standing mark onto `useMark(null)`.
+5. **letterboxed** — the hand-rolled standing mark onto `useMark(NO_TIMER)`.
 6. **The prose.** In `board-marks/doc.md`, six places, not two: the intro's
    third-question paragraph (three shapes → one hook, three options); the
    "Who calls what" table (three rows → one) and the setgame paragraph under

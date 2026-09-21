@@ -23,6 +23,7 @@ import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
+import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import type { CategoryRank } from '../lib/board'
 import type { ConnectionsGame, MatchedCategory } from '../hooks/useGame'
 import { db } from '../db'
@@ -589,6 +590,53 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
     expect(screen.getByText('You already tried that')).toBeInTheDocument()
     expect(tile('a').className).toMatch(/verdictFill/)
     expect(tile('a').className).toMatch(/verdictWarning/)
+  })
+
+  // The two beats a verdict gets, in order. They are ONE mark: the attention
+  // flash points at where the answer landed, and only once it has faded — and
+  // the fill underneath it is visible — does the head-shake say the answer was
+  // no. A shake under a flash still on top of it would be a remark about a
+  // color nobody can see yet.
+  it('points at the answered tiles first, and shakes them once the flash has faded', () => {
+    vi.useFakeTimers()
+    try {
+      // A repeat guess: refused locally, so the mark goes up in the same tick
+      // with no round trip to wait on.
+      h.result = loaded({
+        game: game('coop'),
+        guesses: [
+          {
+            id: 1,
+            user_id: 'u1',
+            tiles: ['a', 'b', 'e', 'i'],
+            outcome: 'lost', result: 'wrong', matched: false,
+            matched_category_rank: null,
+            created_at: '2026-06-15T00:01:00Z',
+          },
+        ],
+        selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+        unionTiles: ['a', 'b', 'e', 'i'],
+      })
+      render(<PlayAreaLoader {...makeCtx()} />)
+      act(() => {
+        fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+      })
+
+      // Beat one: the flash, on the four the answer is about — and no shake yet.
+      expect(tile('a').className).toMatch(/attentionFlash/)
+      expect(tile('a').className).not.toMatch(/verdictShake/)
+      expect(tile('c').className).not.toMatch(/attentionFlash/)
+
+      // Beat two: the flash has handed the fill back, so now the board says no.
+      act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS))
+      expect(tile('a').className).toMatch(/verdictShake/)
+      expect(tile('a').className).not.toMatch(/attentionFlash/)
+      // …and the fill is on through both beats: it is what the flash is
+      // pointing at and what the shake is remarking on.
+      expect(tile('a').className).toMatch(/verdictFill/)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('takes the fill off with the pill it belongs to', async () => {

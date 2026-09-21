@@ -70,6 +70,18 @@ export const ATTENTION_FLASH_MS = ATTENTION_FADE_MS + CLASS_HOLD_SLACK_MS
 export const YOUR_TURN_FLASH_MS = YOUR_TURN_FADE_MS + CLASS_HOLD_SLACK_MS
 
 /**
+ * The lifetime that is NOT a duration: a mark with no clock, standing until the
+ * action that answers it clears it. It lives here with the beats because it is
+ * one of the choices a caller makes about how long news stays up, and reading
+ * `useMark(NO_TIMER)` beside `useMark(WORD_ANSWER_MS)` is how a caller sees that.
+ *
+ * A SYMBOL rather than `null` so the name is the only way to ask for it. A
+ * lifetime the vocabulary has a word for should not also be spellable as a bare
+ * `null` that says nothing about which lifetime was meant — the type refuses it.
+ */
+export const NO_TIMER: unique symbol = Symbol('NO_TIMER')
+
+/**
  * Hand the durations to the stylesheet, on the document root. Call once at
  * startup, from main.tsx — before the first board can render a mark.
  *
