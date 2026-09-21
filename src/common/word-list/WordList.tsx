@@ -131,7 +131,7 @@ export function WordList({
   const recentlyFound = useRecentlyFound(foundWordsOnly)
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.panel}>
       {/* Heading + the KIND/WHO selects on one line — the same header-row chrome
           the event log's picker wears (`infoPanel.headerRow`). */}
       <div className={infoPanel.headerRow}>
@@ -147,15 +147,16 @@ export function WordList({
         </h3>
         {wordFilter.picker}
       </div>
-      {/* The list in a bordered card — the same scroll-box chrome the shared
-          EventLog uses (a heading over an evident frame). */}
-      <div className={cls(infoPanel.box, styles.box)}>
+      {/* The card — the same scroll-box chrome the shared EventLog uses (a
+          heading over an evident frame). Its border and flex sizing are
+          `infoPanel.box`; `styles.card` is this list's additions to it. */}
+      <div className={cls(infoPanel.box, styles.card)}>
         <ul
           className={cls(
-            styles.list,
+            styles.grid,
             // Drop the column grid when there's nothing to lay out, so the
             // placeholder centers instead of sitting in a third-width cell.
-            shown.length === 0 && styles.listEmpty,
+            shown.length === 0 && styles.gridEmpty,
           )}
         >
           {shown.length === 0 ? (

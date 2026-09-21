@@ -12,9 +12,9 @@ closed no-change** — see
 [The closing re-read](#the-closing-re-read--2026-09-21). **A SECOND re-read ran
 2026-09-21** once those were worked, and found five more, F-32 to F-36: four
 worked, F-34 closed no-change. See
-[The second closing re-read](#the-second-closing-re-read--2026-09-21). **Every
-finding in this area is now worked or closed; what it owes is Joel's
-blessing.** Baseline at the first re-read: 70
+[The second closing re-read](#the-second-closing-re-read--2026-09-21). F-37 came
+from Joel's own read of the stylesheet afterwards. **Every finding in this area
+is now worked or closed; what it owes is Joel's blessing.** Baseline at the first re-read: 70
 of 70 tests green in `word-list` + `word-hunt`, lint and `tsc -b` clean, the
 working tree clean.
 
@@ -1103,6 +1103,40 @@ boggle's wider legal band), which is the condition boggle's own PlayArea states
 at the reveal. So the tally row drops the word ("missed words gray") and each
 print sentence names the condition — bonus ones too, on a board with a bonus
 list / when the legal band is the wider one.
+
+### F-word-list-37 · `three-levels-unnamed` · `.wrapper` / `.box` / `.list` hid which one contains which
+
+**RAISED AND RULED BY JOEL, 2026-09-21**, reading the stylesheet: *"'wrapper',
+'box', and 'list' are very generic names (i could imagine the list inside the
+box **or** the box inside the list)"*, and the file's header describes the
+component while the first rule, `.wrapper`, had no comment of its own.
+
+**The first answer offered was wrong, and worth recording as wrong.** It
+proposed the sibling panel's shape — `EventLog` names its three levels
+`.eventLog` / `.eventLogBox` / `.eventLogTable` — as `.wordList` /
+`.wordListBox` / `.wordListGrid`. Joel: *"it's not that they need 'wordList' at
+the start — it's not clear if the box is 'bigger' than the wrapper."* A shared
+stem says these three belong together; it says nothing about which sits inside
+which, and `eventLogBox` has the same hole.
+
+**Ruled: nouns whose size order cannot invert — `.panel` ⊃ `.card` ⊃ `.grid`**
+(`.listEmpty` → `.gridEmpty`). Nobody reads a card as bigger than a panel or a
+grid as bigger than a card. They are also the words this folder's prose had
+already chosen: `doc.md` says *"The grid is column-major … inside a bordered
+card … so a longer list makes a wider grid rather than a taller panel"* — the
+containment stated in one sentence, in three files' comments, while the classes
+used none of it.
+
+**What it cost:** `.box` echoed the shared `infoPanel.box` it is composed with,
+and `.card` drops that echo, so `cls(infoPanel.box, styles.card)` names one
+element two ways. Both rules' comments now say which half is which. Four
+references, all in `WordList.tsx`; no test or e2e keys on these names (grepped
+before the rename), so nothing else moved.
+
+`.panel` also gained the comment it never had, and it is where the three levels
+are stated once. The leaf classes stay bare — `.row`, `.dot`, `.word` — which
+`code-conventions.md` sanctions for a module whose file IS its subject, and
+which is what makes the three structural names mean "structure".
 
 ## Notes
 

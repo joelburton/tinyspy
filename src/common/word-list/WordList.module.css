@@ -2,16 +2,21 @@
 
 /* The shared found-words list — an alphabetical, column-major grid (down each
  * column, then right) in a bordered card that scrolls horizontally once the words
- * run past the columns its width admits. Every game that keeps a found-words
- * list wears this one, so the list looks identical across them
- * (docs/ui.md → "Consistency across games").
+ * run past the columns its width admits.
  *
  * Each row leads with a circle marker carrying the attribution — a filled ● in
  * the finder's color for found words, a hollow ○ in gray for post-terminal missed
  * words — while the word text stays black (found) / gray (missed). A recently
  * found word adds a thick finder-color underline for its beat. */
 
-/* @@ */ .wrapper {
+/* THE THREE LEVELS, outermost first — panel ⊃ card ⊃ grid, which is the order
+ * the names are chosen to carry.
+ *
+ * The panel: the heading row (the shared `infoPanel.headerRow`, with
+ * `infoPanel.heading` and the two filter selects in it) stacked over the card. A
+ * flex column so the card takes the height the info column leaves it and the
+ * words scroll inside the card rather than growing the panel. */
+/* @@ */ .panel {
   width: 100%;
   flex: 1 1 auto;
   min-height: 0;
@@ -20,40 +25,42 @@
   gap: var(--spacer-4);
 }
 
-/* The box's interior: a padded flex row around the column-major list, clipped so
- * the list scrolls HORIZONTALLY inside once words run past the visible columns.
- * The frame (flex sizing + the 2px border) is the shared `infoPanel.box`,
- * composed alongside this; the heading is `infoPanel.heading`. */
-/* Both paddings are literals: the spacer ramp is the space BETWEEN boxes, and
+/* The card's interior: a padded flex row around the grid, clipped so the grid
+ * scrolls HORIZONTALLY inside once words run past the visible columns. The
+ * card's own frame — flex sizing + the 2px border — is the shared
+ * `infoPanel.box`, composed alongside this rule, so the element wears two names:
+ * the shared frame and this list's additions to it.
+ *
+ * Both paddings are literals: the spacer ramp is the space BETWEEN boxes, and
  * whether the room inside one belongs on it is parked (core-css/todo.md). The
  * horizontal 0.6rem is tuned to the column grid besides — the gutter that keeps
  * the first column off the border without eating a column's worth of width. */
-/* @@ */ .box {
+/* @@ */ .card {
   display: flex;
   overflow: hidden;
   padding: 0.5rem 0.6rem;
 }
 
-/* An alphabetical list filled COLUMN-major (down each column, then the next to
- * the right): APPLE / BERRY in column 1, CHERRY / DURIAN in column 2, … Each
- * column is exactly as tall as the box, and as many columns show as its width
- * admits; the rest scroll HORIZONTALLY. */
-/* @@ */ .list {
+/* The grid: the words themselves, alphabetical and filled COLUMN-major (down
+ * each column, then the next to the right) — APPLE / BERRY in column 1, CHERRY
+ * / DURIAN in column 2, … Each column is exactly as tall as the card, and as
+ * many columns show as its width admits; the rest scroll HORIZONTALLY. */
+/* @@ */ .grid {
   list-style: none;
   margin: 0;
   padding: 0;
   /* Referenced by the row style below; a token so the row count is derived from
-   * it and the box height rather than stated twice. */
+   * it and the card's height rather than stated twice. */
 /* @@ */   --wl-row-height: 1.625rem;
   /* Column WIDTH as a real defined token (not a `var(--x, fallback)`, which
    * src/guards/cssTokens.test.ts flags as phantom — see Board.module.css's same
    * note). A custom property so `grid-auto-columns` below can read it. */
 /* @@ */   --wl-col-width: 10.5rem;
   display: grid;
-  /* As many rows as fit the box's height; columns then flow rightward. */
+  /* As many rows as fit the card's height; columns then flow rightward. */
   grid-template-rows: repeat(auto-fill, var(--wl-row-height));
   grid-auto-flow: column;
-  /* Each column is a fixed rem WIDTH (not a fraction of the box), so a column is
+  /* Each column is a fixed rem WIDTH (not a fraction of the card), so a column is
    * always the same readable size and you get as many columns as the words need,
    * side-scrolling past the visible ones. In the narrow mobile sheet the columns
    * stay that same readable width and scroll, rather than being cramped to a
@@ -136,10 +143,10 @@
   text-underline-offset: 3px;
 }
 
-/* When the list is empty the grid is dropped so the message is a normal
- * full-width block rather than a cell in a column of words. The message itself
- * is the shared `.emptyState` (core-css/patterns/empty-state.css). */
-/* @@ */ .listEmpty {
+/* When there is nothing to lay out the grid is dropped, so the message is a
+ * normal full-width block rather than a cell in a column of words. The message
+ * itself is the shared `.emptyState` (core-css/patterns/empty-state.css). */
+/* @@ */ .gridEmpty {
   display: block;
   overflow: hidden;
 }
