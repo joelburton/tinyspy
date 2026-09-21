@@ -7,30 +7,23 @@ import { useEffect, useRef, useState } from 'react'
 const RECENT_MS = 5000
 
 /**
- * Returns the set of words that arrived in `found` since the last render. Each
- * freshly-arrived word stays in the set for 5 seconds, then drops out — the
- * shared `<WordList>` uses it to flash a per-finder underline on a just-found word.
+ * Which words have arrived in `found` since it last changed, each staying in the
+ * set for `RECENT_MS` and then dropping out. The shared `<WordList>` underlines
+ * them in their finder's color.
  *
- * Two subtleties worth knowing about:
- *
- *   1. **Per-word timers live in a ref**, not in the effect's cleanup. A submit
- *      can trigger `setFoundWords` twice in quick succession (the immediate
- *      Realtime INSERT echo + a postgres-changes refetch a tick later); a
- *      per-effect cleanup would clear the just-scheduled timer on the second
- *      update, leaving the underline stuck on forever.
- *
- *   2. **The initial mount doesn't flash existing words.** A reconnect (or a
- *      navigate-back-to-game) brings a fully-populated `found` array; without the
- *      `knownFoundRef` bootstrap, every entry would count as "fresh" and the whole
- *      list would underline at once. Bootstrapping from the constructor argument
- *      keeps the initial render quiet.
- *
- * Lifted to common from the per-game copies spellingbee + boggle shared verbatim
- * (originally a TS port of `~/spellingbee-ws/src/components/useRecentlyFound.js`).
+ * Pass the found words alone — a caller holding reveal entries too must filter
+ * them out first, or the whole reveal marks itself as just-arrived.
  */
 export function useRecentlyFound(found: string[]): ReadonlySet<string> {
   const [recentlyFound, setRecentlyFound] = useState<Set<string>>(() => new Set())
+  // Seeded from the FIRST render's argument, so a reconnect or a navigate back
+  // into a game arrives with its list already known and marks nothing. Without
+  // the seed every existing word would read as fresh at once.
   const knownFoundRef = useRef<Set<string>>(new Set(found))
+  // Per-word timers, held here rather than in the effect's cleanup: one submit
+  // can change `found` twice in quick succession (the Realtime echo, then the
+  // refetch a tick later), and a per-effect cleanup would cancel the timer the
+  // first update just scheduled — leaving that word underlined for good.
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map())
 
   useEffect(function flagFreshArrivals() {
@@ -59,8 +52,8 @@ export function useRecentlyFound(found: string[]): ReadonlySet<string> {
     }
   }, [found])
 
-  // One-shot cleanup on unmount. The per-effect path above doesn't own these —
-  // see the note about double-update timers — so we explicitly tear them down here.
+  // One-shot cleanup on unmount, because the effect above deliberately does not
+  // own these — see the timers' own note at the ref.
   useEffect(function clearTimersOnUnmount() {
     const timers = timersRef.current
     return () => {

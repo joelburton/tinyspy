@@ -13,8 +13,7 @@ import styles from './WordList.module.css'
 
 /**
  * One row of the shared word list, normalized so every word game renders the same
- * shape. A game builds these from its own found-word + reveal data (see each
- * game's `lib/displayRows`):
+ * shape. A game builds these from its own found-word + reveal data:
  *
  *   - **found** — a word someone found; `userId` colors its dot (the finder).
  *     `isBonus` adds a trailing '•'; `isPangram` bolds it (games without either
@@ -24,89 +23,64 @@ import styles from './WordList.module.css'
  *     required and bonus, so the post-game artifact includes the interesting
  *     vocabulary nobody reached.
  *
- * Rows arrive **pre-merged + alphabetized** (the game's builder dedups found words
- * to their first finder and shadows a found word over its reveal entry). The only
- * state this component owns is the two-axis filter in its header — see
- * `useWordListFilter`.
+ * Rows arrive **pre-merged + alphabetized** — the builder dedups found words to
+ * their first finder and shadows a found word over its reveal entry.
  */
 export type WordListRow =
   | {
     kind: 'found'
     word: string
-    /** The **attributed** finder — earliest `found_at`. Colors the dot. */
+    // The attributed finder — earliest `found_at`. Colors the dot.
     userId: string
-    /**
-     * EVERY player who found this word, `userId` first. Only compete can have
-     * more than one (coop's `submit_word` rejects a word anyone already found),
-     * and only post-terminal, when RLS opens peers' rows and the builder merges
-     * duplicates into a single row.
-     *
-     * The dot can only carry one color, so attribution stays first-finder — but
-     * the WHO filter matches against this whole list. Without it, filtering to
-     * yourself would HIDE a word you found because someone else got there first.
-     * Optional: a builder that omits it means "just `userId`".
-     */
+    // EVERY player who found this word, `userId` first, because the WHO filter
+    // matches against the whole list rather than the attributed finder alone.
+    // Only compete post-terminal can hold more than one. Optional: omitting it
+    // means "just `userId`".
     finderIds?: string[]
     isBonus?: boolean
     isPangram?: boolean
-    /** The word's score, for the heading's filtered tally. Optional: a game
-     *  without per-word scoring omits it and the heading shows count only. */
+    // The word's score, for the heading's filtered tally. Optional: a game
+    // without per-word scoring omits it and the heading shows count only.
     points?: number
   }
   | { kind: 'unfound'; word: string; isBonus?: boolean; isPangram?: boolean; points?: number }
 
 type Props = {
-  /** The merged, alphabetized rows (built by the game's `buildDisplayRows`). */
+  // The merged, alphabetized rows — `shared/word-hunt/foundWordsDisplayRows.ts`
+  // builds them for spellingbee and wordwheel, boggle's `lib/displayRows` for
+  // boggle.
   rows: WordListRow[]
-  /** Club members, for the finder-color lookup on each found row. */
+  // The game's players, for the finder-color lookup on each found row.
   players: Member[]
-  /**
-   * Post-terminal reveal is active. Suppresses the recently-found flash — the
-   * reveal refetch makes every peer row appear at once, which would otherwise
-   * flash the whole list. Default `false`.
-   */
+  // Post-terminal reveal is active, which suppresses the recently-found
+  // underline: the reveal lands every peer row at once and the whole list would
+  // otherwise mark itself. Default `false`.
   reveal?: boolean
-  /** The card heading. Default "Words". */
+  // The card heading. Default "Words".
   heading?: string
-  /** The viewer, for the WHO filter's self-first ordering. */
+  // The viewer, for the WHO filter's self-first ordering.
   selfId: string
-  /** Compete gates the per-player filter options until terminal (RLS). */
+  // Compete gates the per-player filter options until terminal (RLS).
   isCompete: boolean
   isTerminal: boolean
-  /** Does this board have a bonus list? False drops the KIND filter entirely. */
+  // Does this board have a bonus list? False drops the KIND filter entirely.
   hasBonus: boolean
 }
 
 /**
- * The shared found-words list — one component for every word-hunt game
- * (spellingbee, boggle) so the list looks + behaves identically across games
- * (docs/ui.md → "Consistency across games"). A heading over a bordered scroll-box
- * card holding an alphabetical, **column-major** grid (down each column, then the
- * next to the right); the box is a fixed height, so three columns show and the
- * rest scroll horizontally.
+ * The shared found-words list: a heading over a bordered card holding an
+ * alphabetical, column-major grid of `rows`. Call it with the rows a game built
+ * and the five facts the filter needs; it owns everything below that.
  *
- * Each row leads with a **circle marker** carrying the attribution; the word text
- * itself is plain body-black, so finder identity reads from the dot, not the text:
+ * What a row draws: a filled dot in its finder's color for a found word, a
+ * hollow gray one for an unfound reveal entry, with the word itself plain — so
+ * identity reads from the dot, never the text. Pangram bolds, bonus adds a
+ * trailing '•', and a word that just arrived takes an underline in its finder's
+ * color unless `reveal` is set. Every word is a `<DefinableWord>`.
  *
- *   - **Found words** lead with a filled disc in their finder's color, word in black.
- *   - **Unfound required words** (the post-terminal reveal) lead with a hollow ring in
- *     gray, word also gray — "here's what the team / field missed."
- *
- * Three flags compose on top: **pangram** (bold), **bonus** (a trailing '•'), and
- * **recently found** (a finder-color underline that fades after 5s — mid-game
- * only, suppressed when `reveal` is set). Every word is click-to-define via the
- * shared `DefinitionPopover` — the word text itself is the target, not the whole
- * cell.
- *
- * **The two-axis filter** (`useWordListFilter`) lives in the heading row: a KIND
- * select (Legal / Required / Bonus) and a WHO select (All / Found / Missed / each
- * player). Unlike the event log — whose picker is a hook the GAME calls, because
- * the selection also gates its `#N` history handle — this one is called *inside*
- * the component. Nothing outside the list consumes the selection (a word list
- * isn't chronological, so there's no history viewer to misaddress), and keeping it
- * in here means the **PDF prints the full list** no matter what's filtered on
- * screen: the printers build their own rows from the same `buildDisplayRows` and
- * never see this state.
+ * The heading tallies the FILTERED rows, and the two selects beside it are
+ * `useWordListFilter`'s. See `common/word-list/doc.md` for why the filter lives
+ * in here rather than in the game.
  */
 export function WordList({
   rows,
@@ -136,8 +110,8 @@ export function WordList({
   const shownLongest = shown.reduce((n, r) => Math.max(n, r.word.length), 0)
 
   // Color-NAME lookup by user_id (the shared <Dot> + colorVarFor resolve it).
-  // Players list is small (<10 in realistic clubs) so a Map+get rather than
-  // .find on each row.
+  // A Map rather than `.find` per row because it is the ROWS that can run to a
+  // few hundred; the player list itself is small enough that either would do.
   const colorByUser = useMemo(() => {
     const m = new Map<string, string>()
     for (const p of players) m.set(p.user_id, p.color)

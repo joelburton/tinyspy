@@ -125,6 +125,26 @@ owns the design:
 3. Leave both. Against: it is the drift this sprint exists to stop; the two
    copies already disagree (F-4).
 
+**RULED (1), and Joel drew the whole split rather than just picking, 2026-09-21.
+Three homes, by what a reader is doing:**
+
+- **`doc.md` — orienting.** A high-level outline of the area, **a component
+  diagram**, and whatever else helps a reader place themselves in it. The
+  diagram is a deliverable, not a nicety: it is the thing that answers "what
+  talks to what" before any prose does.
+- **The docstrings — calling.** How to call the component and what it hands
+  back. That is their whole job, which is what lets F-3 cut the design and the
+  rationale out of them without losing anything.
+- **`docs/playarea.md` — placement, and *very little*.** In Joel's words, that
+  the word list is **one of two things that often appear in the info column,
+  the other being the event log**. Not a paragraph of design with a link — a
+  placement sentence naming the pair.
+
+So the hundred lines do not move to `doc.md` wholesale. Most of them describe
+the calling contract and belong in docstrings; the orientation and the diagram
+are what `doc.md` is owed; and the reveal's two paragraphs still go to
+`shared/word-hunt` per F-17.
+
 ### F-word-list-2 · `docstring-markers` · Every member note wears `/**`
 
 The marker pass has not reached this folder. `WordListRow`'s `userId`,
@@ -388,6 +408,12 @@ are the two things in it NOT in a docstring today — they are the reveal's
 design and belong with `buildRevealWords` in `shared/word-hunt`, not here.
 Whatever F-1 rules, those two paragraphs move to that folder's doc, not to
 this one's.
+
+**Per F-1's ruling this section becomes a placement sentence**: the word list
+is one of the two panels that often appear in the info column, the other being
+the event log. Everything else in it goes — to docstrings if it is the calling
+contract, to `doc.md` if it is orientation, to `shared/word-hunt` if it is the
+reveal's.
 
 ## Notes
 

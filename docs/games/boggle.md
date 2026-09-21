@@ -511,12 +511,12 @@ board), swapped in for spellingbee's hex flower.
     dialog read back" (`common/setup-form/setupRows.ts` → `BOARD_KEY`): a row that
     appeared only on hand-picked boards would be exactly the half you never need
     to copy.
-  - **`WordList`:** the **shared `common/components/game/lists/WordList`** (identical to
+  - **`WordList`:** the **shared `common/word-list/WordList`** (identical to
     spellingbee's, since it IS the same component) — finder color (coop), a bonus
-    dot, a 5 s new-word flash (`common/hooks/game/useRecentlyFound`), click-to-define via
-    the shared `DefinitionPopover`, the post-terminal missed-words reveal, and the
-    two-axis KIND/WHO filter (`common/hooks/game/useWordListFilter` — see
-    [playarea.md → Word list](../playarea.md#word-list)). boggle builds its rows via
+    dot, a recently-found underline (`common/word-list/useRecentlyFound`), click-to-define
+    words (`<DefinableWord>`), the post-terminal missed-words reveal, and the
+    two-axis KIND/WHO filter (`common/word-list/useWordListFilter` — see
+    [common/word-list/doc.md](../../src/common/word-list/doc.md)). boggle builds its rows via
     `lib/displayRows` → `WordListRow[]` (the live count moved to the info-column state
     line, so the list header carries the label + the two selects).
 

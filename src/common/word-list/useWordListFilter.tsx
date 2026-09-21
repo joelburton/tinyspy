@@ -12,10 +12,9 @@ import type { Member } from '../members/member'
  * (required ∪ bonus), which is the games' own word for it: boggle's setup
  * disclosure already reads "Dictionary (required) / Dictionary (legal)".
  *
- * Deliberately NOT called "All" even though that's what it means, because the WHO
- * axis has an "All" too and the two selects render bare, side by side, with no
- * visible labels. Two adjacent dropdowns both reading "All" can't be told apart at
- * a glance; "Legal · All" can.
+ * Deliberately NOT called "All" even though that's what it means: the WHO axis
+ * has an "All" too, and the two selects render bare and side by side, where two
+ * dropdowns both reading "All" cannot be told apart at a glance.
  */
 const LEGAL = 'legal'
 const REQUIRED = 'required'
@@ -27,46 +26,32 @@ const FOUND = 'found'
 const MISSED = 'missed'
 
 export type WordListFilter = {
-  /** Both `<select>`s as one group, for the word list's heading row. */
+  // Both `<select>`s as one group, for the word list's heading row.
   picker: React.ReactNode
-  /** Rows narrowed to both current selections. */
+  // Rows narrowed to both current selections.
   filter: (rows: readonly WordListRow[]) => WordListRow[]
-  /**
-   * The empty-state line, which has to name WHICH axis emptied the list — "No
-   * words yet" is a lie when you've picked Bonus and simply have none.
-   */
+  // The empty-state line, named for whichever axis emptied the list.
   emptyText: string
 }
 
 /**
- * The word list's **two-axis filter**: a KIND select and a WHO select, side by
- * side in the list's heading row.
+ * The word list's two-axis filter: a KIND select and a WHO select, side by side,
+ * plus the `filter` that applies both and the line to show when nothing matches.
  *
  *     KIND   Legal (default) · Required · Bonus
  *     WHO    All (default) · Found · Missed · …every player by handle
  *
- * **Why two controls and not one flat list.** They answer independent questions,
- * so a single select can't express "leah's bonus words" — and worse, picking
- * `Bonus` would silently discard a `leah` selection with nothing on screen saying
- * it had. Two controls make the whole state readable at rest: "Legal · All".
- *
- * **Why WHO is one axis and not two.** `Missed` looks like it belongs on a
- * separate found-vs-missed axis alongside a person, but it doesn't: a missed word
- * has no finder, so `Missed × leah` is a contradiction and `All × leah` is just
- * `Found × leah` again. "Everyone / somebody / nobody / this person" is one proper
- * enumeration — mutually exclusive, jointly exhaustive — so it stays one select.
- *
- * **Which axis needs gating.** KIND is always live: it narrows whatever rows you
- * can already see, which is correct mid-game in compete too (RLS has scoped them
- * to you, and "just my bonus words" is a fine question). WHO carries all the
- * honesty rules instead — see the option-set derivation below.
- *
- * Vocabulary note: players are named by **handle, including you**, matching the
- * event log's picker (settled 2026-08-02) — a list of handles is one list, where
- * labeling yourself "You" makes your own entry read as a different kind of thing.
+ * Both option sets are DERIVED, from the rows and from the four flags below, so
+ * a caller never has to decide what to offer: KIND is dropped whole without a
+ * bonus list, and WHO adds Found/Missed only once a missed row exists and the
+ * per-player entries only where peers' words are visible. Players are named by
+ * handle, yours included.
  *
  *     const f = useWordListFilter({ rows, players, selfId, isCompete, isTerminal, hasBonus })
  *     const shown = f.filter(rows)
+ *
+ * Why the axes are shaped this way, and why only one of them is gated, is in
+ * `common/word-list/doc.md`.
  */
 export function useWordListFilter({
   rows,
@@ -76,20 +61,15 @@ export function useWordListFilter({
   isTerminal,
   hasBonus,
 }: {
-  /** The unfiltered rows — the option set is partly derived from what's IN them. */
+  // The unfiltered rows — the option set is partly derived from what is IN them.
   rows: readonly WordListRow[]
   players: Member[]
   selfId: string
   isCompete: boolean
-  /** Gates the per-player options in compete, where RLS hides peers until the end. */
+  // Gates the per-player options in compete, where RLS hides peers until the end.
   isTerminal: boolean
-  /**
-   * Does this board have a bonus list at all? boggle can be set up with the legal
-   * band equal to the required band, which leaves bonus meaning only "words the
-   * clean filter removed" — a distinction that game already suppresses in its
-   * stats. False drops the KIND select entirely rather than offering a `Bonus`
-   * option that can never match.
-   */
+  // Does this board have a bonus list at all? False drops the KIND select
+  // entirely rather than offering a `Bonus` option that can never match.
   hasBonus: boolean
 }): WordListFilter {
   const [kindChosen, setKindChosen] = useState<string | null>(null)

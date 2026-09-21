@@ -68,7 +68,7 @@ In addition to the cross-cutting terms in [`naming.md`](../naming.md):
 | **Shuffle / Delete / Enter actions** | shipped | Shuffle stays clickable when locked; hover rotates only the ⟲ glyph, not the button |
 | **Pangram detection + bonus + visual marker** | shipped | |
 | **Rank ladder + rank-bar UI with hover tooltips** | shipped | |
-| **Found-words list** (column-major grid, fixed height, horizontal scroll past 3 columns; found words in their finder's color, missed required words gray, pangram bold, bonus bullet, recently-found underline) | shipped | |
+| **Found-words list** (column-major grid, horizontal scroll past the columns its width admits; found words in their finder's color, missed required words gray, pangram bold, bonus bullet, recently-found underline) | shipped | |
 | **Timer modes** (none / countup / countdown) + countdown-expiry termination | shipped | Via shared `<SetupTimerSection>` + `useGameTimer` |
 | **Manual end-game** (menu item; confirms then writes terminal) | shipped | Per-game menu item; outcome = `'manual'` |
 | **Pause-on-disconnect + manual pause** | shipped (via common) | Free from the common shell |
@@ -474,14 +474,14 @@ src/spellingbee/
                           unit with the RankBar). Tabular-nums so the digits don't shift
                           width as the score climbs. (Timer lives in the GamePage header.)
     (WordList)            The found-words list is now the SHARED
-                          common/components/game/lists/WordList (used by spellingbee + boggle, so the
-                          list looks identical across games). PlayArea builds its rows via
-                          the shared common/lib/game/foundWordsDisplayRows.buildDisplayRows
+                          common/word-list/WordList (used by every word-hunt game that keeps a
+                          found-words list, so it looks identical across them). PlayArea builds its rows via
+                          the shared shared/word-hunt/foundWordsDisplayRows.buildDisplayRows
                           (foundWords, buildRevealWords(required, bonus, found))
                           and passes `reveal` + `hasBonus`. Per-finder color, pangram bold,
-                          bonus dot, 5s recently-found underline (the now-shared common/hooks/
-                          useRecentlyFound), the post-terminal gray reveal, and the two-axis
-                          KIND/WHO filter (common/hooks/game/useWordListFilter) all live in
+                          bonus dot, a recently-found underline (the shared
+                          common/word-list/useRecentlyFound), the post-terminal gray reveal, and the two-axis
+                          KIND/WHO filter (common/word-list/useWordListFilter) all live in
                           the common component. In compete the foundWords input is already
                           caller-only (RLS hides peers' rows mid-game).
     SetupForm.tsx         The setup dialog body (lazy-loaded inside the common
@@ -507,7 +507,7 @@ src/spellingbee/
                           on the next refetch.
                           (Keyboard capture is the SHARED src/common/keyboard/useCaptureKeys.ts, called
                           from PlayArea — no longer a spellingbee-local hook.)
-                          (useRecentlyFound is now SHARED: common/hooks/game/useRecentlyFound,
+                          (useRecentlyFound is now SHARED: common/word-list/useRecentlyFound,
                           used inside the common WordList — no longer a spellingbee-local
                           hook. Tracks freshly-arrived words, each "recent" for 5s via
                           per-word setTimeouts in a ref, NOT effect cleanup.)
@@ -636,8 +636,8 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 | `src/common/lib/game/rankLadder.test.ts` | (shared) Rank ladder boundary cases; integer-math agreement with `spellingbee._rank_idx`. |
 | `src/spellingbee/lib/pangram.test.ts` | `isPangram` boundary cases (6/7/8 distinct, case-insensitive). |
 | `src/spellingbee/lib/letterMask.test.ts` | `letterMask` round-trips, `popcount26`, `isSubsetMask`. |
-| `src/common/lib/game/foundWordsDisplayRows.test.ts` | (shared) Found-word dedup to the first finder, found-shadows-reveal, alphabetical merge → shared `WordListRow`s. |
-| `src/common/hooks/game/useRecentlyFound.test.ts` | (shared) Initial-quiet, fresh-arrival, 5s expiry, staggered expiry per word, no-op rerender idempotency. |
+| `src/shared/word-hunt/foundWordsDisplayRows.test.ts` | (shared) Found-word dedup to the first finder, found-shadows-reveal, alphabetical merge → shared `WordListRow`s. |
+| `src/common/word-list/useRecentlyFound.test.ts` | (shared) Initial-quiet, fresh-arrival, 5s expiry, staggered expiry per word, no-op rerender idempotency. |
 
 ## File locations
 
@@ -652,7 +652,7 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 | The play surface | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
 | The honeycomb layout (CSS lifted from spellingbee-ws) | [`src/spellingbee/components/Letters.module.css`](../../src/spellingbee/components/Letters.module.css) |
 | The rank ladder math | the SHARED [`src/common/lib/game/rankLadder.ts`](../../src/shared/rank-ladder/rankLadder.ts) |
-| The found-words list | the SHARED [`src/common/components/game/lists/WordList.tsx`](../../src/common/word-list/WordList.tsx) (spellingbee builds its rows via the shared [`src/common/lib/game/foundWordsDisplayRows.ts`](../../src/shared/word-hunt/foundWordsDisplayRows.ts)) |
+| The found-words list | the SHARED [`src/common/word-list/WordList.tsx`](../../src/common/word-list/WordList.tsx) (spellingbee builds its rows via the shared [`src/shared/word-hunt/foundWordsDisplayRows.ts`](../../src/shared/word-hunt/foundWordsDisplayRows.ts)) |
 | The per-gametype data hook | [`src/spellingbee/hooks/useGame.ts`](../../src/spellingbee/hooks/useGame.ts) |
 
 ## Printing the board (PDF)

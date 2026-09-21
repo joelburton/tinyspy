@@ -80,7 +80,6 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
  * is the test.
  */
 const INTROS_OWED: string[] = [
-  'common/word-list',
   'shared/bee-games', 'shared/board-cursor', 'shared/dict-trie',
   'shared/grid-and-drag', 'shared/onscreen-keyboard', 'shared/rank-ladder',
   'shared/word-hunt', 'shared/wordle-style',

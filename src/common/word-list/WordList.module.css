@@ -1,15 +1,15 @@
 /* cs-audited-word-list */
 
 /* The shared found-words list — an alphabetical, column-major grid (down each
- * column, then right) in a fixed-height bordered card that scrolls horizontally
- * once words run past the third column. Modeled on spellingbee's; the same component
- * every word-hunt game (spellingbee, boggle) uses, so the list looks identical
- * across games (docs/ui.md → "Consistency across games").
+ * column, then right) in a bordered card that scrolls horizontally once the words
+ * run past the columns its width admits. Every word-hunt game that keeps a
+ * found-words list wears this one, so the list looks identical across them
+ * (docs/ui.md → "Consistency across games").
  *
  * Each row leads with a circle marker carrying the attribution — a filled ● in
  * the finder's color for found words, a hollow ○ in gray for post-terminal missed
- * words — while the word text stays black (found) / gray (missed). The
- * recently-found state adds a thick finder-color underline that fades after 5s. */
+ * words — while the word text stays black (found) / gray (missed). A recently
+ * found word adds a thick finder-color underline for its beat. */
 
 /* @@ */ .wrapper {
   width: 100%;
@@ -20,9 +20,6 @@
   gap: 0.5rem;
 }
 
-/* The card heading — a plain label over the list, matching the shared EventLog's
- * heading. (The live "X / Y words" count belongs in the info-column state line,
- * not here — it would duplicate it.) */
 /* The box's interior: a padded flex row around the column-major list, clipped so
  * the list scrolls HORIZONTALLY inside once words run past the visible columns.
  * The frame (flex sizing + the 2px border) is the shared `infoPanel.box`,
@@ -34,29 +31,29 @@
 }
 
 /* An alphabetical list filled COLUMN-major (down each column, then the next to
- * the right): APPLE / BERRY in column 1, CHERRY / DURIAN in column 2, … It fills
- * the card box at a FIXED height, so each column is exactly that tall; three
- * columns show at a time and the rest scroll HORIZONTALLY. */
+ * the right): APPLE / BERRY in column 1, CHERRY / DURIAN in column 2, … Each
+ * column is exactly as tall as the box, and as many columns show as its width
+ * admits; the rest scroll HORIZONTALLY. */
 /* @@ */ .list {
   list-style: none;
   margin: 0;
   padding: 0;
-  /* --wl-row-height is referenced by the row-style below; keeping it a token
-   * means the row count is derived from it + the box height. */
+  /* Referenced by the row style below; a token so the row count is derived from
+   * it and the box height rather than stated twice. */
 /* @@ */   --wl-row-height: 26px;
   /* Column WIDTH as a real defined token (not a `var(--x, fallback)`, which
-   * src/guards/cssTokens.test.ts flags as phantom — see Board.module.css's same note): a
-   * game/layout can override it, but the default lives here as a concrete value. */
+   * src/guards/cssTokens.test.ts flags as phantom — see Board.module.css's same
+   * note). A custom property so the row arithmetic above can read it. */
 /* @@ */   --wl-col-width: 10.5rem;
   display: grid;
-  /* As many rows as fit the fixed height; columns then flow rightward. */
+  /* As many rows as fit the box's height; columns then flow rightward. */
   grid-template-rows: repeat(auto-fill, var(--wl-row-height));
   grid-auto-flow: column;
   /* Each column is a fixed rem WIDTH (not a fraction of the box), so a column is
    * always the same readable size and you get as many columns as the words need,
-   * side-scrolling past the visible ones. On the wide desktop box this is ~5
-   * columns (≈ the old box/5); in the narrow mobile sheet the columns stay
-   * readable (instead of box/5 cramped) and scroll. */
+   * side-scrolling past the visible ones. In the narrow mobile sheet the columns
+   * stay that same readable width and scroll, rather than being cramped to a
+   * fraction of it. */
   grid-auto-columns: var(--wl-col-width);
   column-gap: 16px;
   overflow-x: auto;
@@ -89,8 +86,7 @@
 }
 
 /* The word text itself — and the ONLY click-to-define target (not the whole
- * cell), so the pointer cursor, hover underline, and focus ring all scope to
- * this span. Plain body-black for found words; finder identity lives in the dot.
+ * cell), so the pointer cursor and the hover underline scope to this span. Plain body-black for found words; finder identity lives in the dot.
  * Underlines (hover + recent flash) scope here too so they don't run under the
  * leading dot. */
 /* @@ */ .word {

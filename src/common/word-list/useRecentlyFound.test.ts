@@ -1,5 +1,11 @@
 // cs-audited-word-list
 
+/**
+ * What the recently-found set promises, on fake timers: a word marked when it
+ * arrives, unmarked when its beat is spent, and the two quiet cases that are the
+ * whole reason the hook is not a one-liner — the first render marks nothing, and
+ * `found` changing twice for one arrival does not cancel the mark it just made.
+ */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
 import { useRecentlyFound } from './useRecentlyFound'
