@@ -1,21 +1,24 @@
 # The found-words family — the plan
 
 **A PLAN, not a description.** Drafted 2026-09-21 from a conversation with
-Joel during the `word-list` area, and re-read against the code the same day;
-**nothing in it has been built, and no step starts until Joel says so.** When
-it ships, the durable parts move into
-[docs/common-folders.md](../docs/common-folders.md) and each folder's `doc.md`,
-and this file is deleted. Decisions marked **(Joel)** are his and made;
-questions under "Open calls" are his. **All seven are answered as of
-2026-09-21**, each recorded on its own entry with the reasoning that produced
-it. Nothing here is precedent for anything else.
+Joel during the `word-list` area, and re-read against the code the same day.
+**All five steps have SHIPPED** — each step heading says so. The durable parts
+are already out, in [docs/common-folders.md](../docs/common-folders.md) and
+each folder's `doc.md`; this file is kept only until Joel has read it, and is
+deleted then. Decisions marked **(Joel)** are his and made; questions under
+"Open calls" are his, and **all seven are answered as of 2026-09-21**, each
+recorded on its own entry with the reasoning that produced it. Nothing here is
+precedent for anything else.
 
 ## Checked against the code — 2026-09-21
 
 A read of the four commits (`28de7fa1`, `1a661a59`, `b9640cfd`, and the calls
 commit between) against every bullet of the five steps, done after the work
-shipped and before Joel's read. Nothing below was changed; each is a finding
-for him to rule on. Numbered `C-n` so they can be named.
+shipped and before Joel's read. Numbered `C-n` so they can be named.
+
+**Joel's ruling, the same day: fix all nine.** Each entry below keeps the
+finding as written and closes with **Fixed:** and what landed, so his read can
+check the fix against the claim.
 
 **What holds.** `tsc -b` clean; eslint clean over every touched folder; vitest
 3438 pass, the two failures being `folderDocs`' `common/lib` pair (C-9). The
@@ -60,10 +63,23 @@ one and step 4's two are all as recorded.
    comment argues against and would hide the miss; or a guard that reads what
    a composed sheet requires, which does not exist. The first is the honest
    minimum.
+
+   **Fixed:** the first. The plant was re-run before the edit — boggle's
+   declaration removed, `cssTokens.test.ts` 18 of 18 pass — so the claim is
+   confirmed, not taken on trust. The mobile block's comment now says the
+   guard does not catch this, what the silent miss costs, that the
+   board-geometry phone boxes pin the three games that exist, and that a fourth
+   is on its own until it is measured. No fallback was added and no guard was
+   written: call 4 stands on the bundler-order argument, which the false
+   sentence was never carrying.
 2. **C-2 · `plan-header-stale` · This file's own header still says "nothing
    in it has been built, and no step starts until Joel says so"** while every
    step heading says SHIPPED and `CLAUDE.md`'s row was rewritten to match. The
    header is the first thing a reader sees.
+
+   **Fixed:** the header says all five steps shipped, that the durable parts
+   are already in `docs/` and the folders' docs, and that the file survives
+   only until Joel's read.
 3. **C-3 · `read-leaderboard-count` · `readLeaderboard.ts`'s docstring
    carries a wrong, archaeological count.** "What six of them used to write
    by hand": before the plan, four games wrote the cast at eight sites
@@ -72,6 +88,9 @@ one and step 4's two are all as recorded.
    neither the sites nor the games. And "used to write" is how-it-used-to-work,
    which the comment rule excludes. The sentence loses nothing if it stops
    at "That defensive half is what every caller needs."
+
+   **Fixed:** it stops there. The reason the guard exists — no field before
+   the first submit, and an untyped status blob — follows as it did.
 4. **C-4 · `wordwheel-md-stale-path` · Step 1 edited one path in
    `docs/games/wordwheel.md`'s "Shared, hoisted" bullet and left a found-words
    path beside it.** The bullet now reads `shared/bee-games/makeBeeGame` next
@@ -82,10 +101,19 @@ one and step 4's two are all as recorded.
    paths left were two rank-ladder ones; this one is the plan's own subject.
    (The bullet's `common/lib/game/rankLadder` and `common/components/game/`
    are the rank-ladder ones the note means, and stay.)
+
+   **Fixed:** the bullet now names `shared/found-words/foundWords` +
+   `foundWordsDisplayRows` for the data model and display, and
+   `shared/bee-games/beeLeaderboard` for the leaderboard row — which is the
+   honest split, since the leaderboard READER went to common and only the bee
+   row stayed behind. The two rank-ladder paths beside it are untouched.
+   spellingbee.md has no counterpart bullet (grepped).
 5. **C-5 · `family-sheet-header-here` · A garbled sentence in the family
    sheet's header.** "The second is here rather than in this file because the
    three genuinely differ" — "here" and "in this file" are the same place.
    It means "declared per game rather than here."
+
+   **Fixed:** it reads "declared per game rather than here".
 6. **C-6 · `boggle-usegame-reexport` · An unrecorded deviation in step 3.**
    The step said boggle's `hooks/useGame.ts` "imports `FoundWordRow` and
    `FoundWordsWord` from found-words and deletes its own"; it deletes its own
@@ -93,6 +121,9 @@ one and step 4's two are all as recorded.
    reason, and `PlayArea.test.tsx:28` is the one reader. That is what the two
    bee `useGame.ts` files do too, so it is consistent; it is just not what the
    step says it did.
+
+   **Fixed:** the code stands (it matches the family) and step 3's deviation
+   list gains it — the step now records two deviations, not one.
 7. **C-7 · `bee-print-comments-inner-name` · The siblings were not
    re-read.** Step 3 rewrote boggle's print-site comment to stop narrating
    `buildDisplayRows`, the inner function, where the call is
@@ -100,16 +131,35 @@ one and step 4's two are all as recorded.
    same comment at the same site (`:187` and `:185`) and still name the inner
    function. Not wrong — the inner function still dedups — but the same
    sentence was judged worth recasting in boggle.
+
+   **Fixed:** both now open "The same call the on-screen list makes" and say
+   "the rows call dedups the found and appends the unfound", naming no
+   function. spellingbee.md:111 also says `buildDisplayRows`, and stays: there
+   the sentence is ABOUT the dedup-to-first-finder rule, which is that
+   function's own, so the name is the right one.
 8. **C-8 · `common-folders-one-edge` · A count that rots.**
    `common-folders.md` now says "there is one edge" where it said "there is
    no such edge today" — and the old sentence is the one this plan had to
    correct. Verified true today (`makeBeeGame.ts` is the only shared-to-shared
    import); "for instance" would not need re-verifying.
+
+   **Fixed:** the sentence reads "A family importing another family is fine and
+   unguarded — `bee-games`, for instance, takes…", so the example carries no
+   claim about how many there are.
 9. **C-9 · `common-lib-description` · A wrong description in Predicted test
    breaks.** `common/lib` is not "an untracked stray folder holding two files";
    it holds no files — two empty directories, `game/` and `util/`, which is why
    `git status` is clean while the guard, walking the filesystem, still fails
    two specs. Still not this plan's.
+
+   **Fixed — the description only.** The stray directories were left exactly as
+   they are: they are not this plan's, and nothing here licenses deleting
+   anything. One correction to the correction, from `find`: there are FOUR empty
+   directories, not two. `game/` and `util/` each hold one more, named for the
+   module that moved out (`game/trie.ts/`, `util/mulberry32.ts/`) — the shape a
+   move leaves when it takes the file and not the path. The
+   Predicted-test-breaks bullet now says that, and names the two specs
+   (`doc.md`, `todo.md`).
 
 ## What the walk found
 
@@ -483,7 +533,7 @@ Went as written. Two notes for the record:
 
 ### 3. Boggle adopts the family's machinery — SHIPPED 2026-09-21
 
-One deviation, and it is the kind worth writing down:
+Two deviations, and the first is the kind worth writing down:
 
 - **The todo entry was not simply deleted.** This step said it would be,
   "being shipped" — but it carried TWO things under one bullet: the work,
@@ -493,6 +543,14 @@ One deviation, and it is the kind worth writing down:
   `boggle/todo.md` for it. So the work is gone and the ruling moved to
   **Won't do**, which is exactly what that section is for: ruled against,
   kept so a review does not propose it again.
+- **`hooks/useGame.ts` RE-EXPORTS the family's two types**, where the bullet
+  below says only that it imports them and deletes its own. It does both: the
+  import feeds the header's own fields, and a `export type { FoundWordRow,
+  FoundWordsWord }` line puts them back under boggle's roof, with a comment
+  giving the reason (a reader scanning a game folder looks for them beside its
+  header). `PlayArea.test.tsx:28` is the one reader. Both bee `useGame.ts`
+  files do the same, so boggle matches the family; it is just not what the
+  bullet describes.
 
 Confirmed rather than assumed: the four cases in the deleted
 `displayRows.test.ts` are all covered next door. Dedup to the first finder,
@@ -680,9 +738,11 @@ tells someone to go and do something to those files — says where they are now.
 - `src/guards/folderDocs.test.ts:83–85` — the `INTROS_OWED` list names
   `shared/word-hunt`; a rename without the list edit reads as a folder that
   has an intro it does not have (the list checks the intro, not the file). The
-  `common/lib` failures already present — an untracked stray folder holding
-  two files and no `doc.md` / `todo.md`, which the guard walks off the
-  filesystem — are not this plan's.
+  `common/lib` failures already present are not this plan's: the folder holds
+  no FILES at all — four empty directories, `game/` and `util/`, each holding
+  one named for a module that moved out (`trie.ts/`, `mulberry32.ts/`). That is
+  why `git status` is clean while the guard, which walks the filesystem, still
+  fails its `doc.md` and `todo.md` specs.
 - `src/guards/vocabularies.test.ts:288` — the pending row for
   `foundWordsPlayArea.module.css` (`1.5rem`, `.belowBoard`'s margin) is keyed
   by path; it follows the rule to whichever file `.belowBoard` ends up in.

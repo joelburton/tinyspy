@@ -183,9 +183,9 @@ export function PlayArea(ctx: GamePageCtx) {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
       if (!game) return
-      // The same reveal the on-screen list uses: at terminal, every missed word —
-      // required AND bonus — folds in (`buildDisplayRows` dedups found + appends the
-      // unfound). The print deliberately follows the screen here: the missed-word
+      // The same call the on-screen list makes: at terminal, every missed word —
+      // required AND bonus — folds in (the rows call dedups the found and appends
+      // the unfound). The print deliberately follows the screen here: the missed-word
       // list IS the post-game artifact, so a printout that quietly dropped the bonus
       // half would be a different document from the one on screen.
       // Gated on `isTerminal`, which is the whole rule for these three word-finding

@@ -319,8 +319,9 @@ into three buckets:
 
 - **Shared, hoisted into `common/`.** The pieces that are byte-identical
   after a codename rename live once, so a fix lands for both games: the rank
-  ladder (`common/lib/game/rankLadder`), the found-words data model + display +
-  leaderboard (`common/lib/game/foundWords*`), the `useGame` factory
+  ladder (`common/lib/game/rankLadder`), the found-words data model + display
+  (`shared/found-words/foundWords` + `foundWordsDisplayRows`), the bee
+  leaderboard row (`shared/bee-games/beeLeaderboard`), the `useGame` factory
   (`shared/bee-games/makeBeeGame`), and the `RankBar` / `Stats`
   components (`common/components/game/`, themed via generic `--rank-*` tokens
   each game's `theme.css` aliases). The RankBar marks the game's

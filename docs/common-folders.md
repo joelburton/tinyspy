@@ -54,8 +54,8 @@ which is why it is guarded rather than trusted:
 [`src/guards/commonNeverImportsShared.test.ts`](../src/guards/commonNeverImportsShared.test.ts)
 fails on any such import, in either spelling.
 
-A family importing another family is fine and unguarded, and there is one edge:
-`bee-games` takes the found-word row and the shipped-word type from
+A family importing another family is fine and unguarded — `bee-games`, for
+instance, takes the found-word row and the shipped-word type from
 `found-words`, because spellingbee and wordwheel are members of that family as
 well as a pair of their own. And `src/shared/` is held to the same cross-game rule `src/common/` is —
 eslint blocks it from importing `src/<game>/`.

@@ -6,10 +6,9 @@
  * documents that convention and hands a PlayArea the status it reads from.
  *
  * Gives back an empty array when the field is missing or is not an array. That
- * defensive half is what every caller needs and what six of them used to write
- * by hand: the server writes the field on every submit, but a game has none
- * before the first one, and a status blob is typed `Record<string, unknown>`
- * because each gametype writes its own shape.
+ * defensive half is what every caller needs: the server writes the field on
+ * every submit, but a game has none before the first one, and a status blob is
+ * typed `Record<string, unknown>` because each gametype writes its own shape.
  *
  * **Generic over the ROW, and deliberately without a default**, because every
  * compete game keeps a leaderboard and they do not agree on its columns — each

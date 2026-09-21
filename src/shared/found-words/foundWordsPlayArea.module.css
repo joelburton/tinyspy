@@ -22,7 +22,7 @@
  *   --board-reserve          the info column's clamp floor (all three use 24rem)
  *   --mobile-status-height   how tall that game's mobile status block is
  *
- * The second is here rather than in this file because the three genuinely
+ * The second is declared per game rather than here because the three genuinely
  * differ — the bee games mirror a rank bar over a two-cell grid (4.25rem) and
  * boggle a three-line four-cell grid (4.5rem) — and because a second `.layout`
  * rule overriding this one would be resolved by stylesheet order in the bundle,
@@ -53,10 +53,15 @@
  * 0.75rem is `.boardCol`'s flex gap between the status block and the board.
  *
  * `--mobile-status-height` is READ here and DECLARED by each game (see the
- * header). No fallback on purpose: a game composing this file without setting
- * it would silently lose the whole `--avail-h` line to an invalid value, and
- * the cssTokens guard catches an undeclared token, which is the louder
- * failure. */
+ * header). No fallback on purpose — one would be a fourth number, right for
+ * nobody. Nothing catches a game that composes this file and forgets it: the
+ * cssTokens guard only asks that a token read somewhere is declared somewhere,
+ * and these three declare it. The miss is silent, because a `var()` that
+ * resolves to nothing voids the whole `--avail-h` declaration rather than
+ * falling back to the desktop line above, so the board loses its height bound
+ * on a phone while the bar keeps its own 1.75rem fallback and looks fine. For
+ * the three games here the board-geometry spec's phone boxes would show it; a
+ * fourth game is on its own until it is measured. */
 @media (--mobile) {
 /* @@ */   .layout {
 /* @@ */     --avail-h: calc(
