@@ -5,7 +5,7 @@
  * blinking caret, and the placeholder are WordEntryInput's; only the illegal-letter
  * dim lives here.
  *
- * Worn by all three of the family's `TypedWord.tsx` files, which genuinely
+ * Worn by each of the family's `TypedWord.tsx` files, which genuinely
  * differ: WHICH letter is illegal is real game logic and stays per-game. The
  * *styling* of the answer never differed, so it lives here instead of in three
  * identical rules that could drift apart.

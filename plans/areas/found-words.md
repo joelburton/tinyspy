@@ -37,9 +37,8 @@ pangram wording, Joel's second option) and F-14 with F-13 (the composed
 `--avail-h`, proved by board-geometry), and then the rest in one sitting on
 *"fix remaining items"* — the prose pass F-1, F-2, F-4 and F-5 (F-7's held
 `doc.md` sentence landed with F-1), F-11's four cases and F-15's stale paths.
-**All fifteen findings are worked.** The closing re-read is DONE and added six
-more, F-16 to F-21 — open, and one of them (F-20) has a decision in it. After
-those, what the area owes is the bless.
+**All twenty-one findings are worked** — fifteen from the read, six from the
+closing re-read. What the area owes now is the bless, which is Joel's.
 
 ## The roster
 
@@ -706,6 +705,10 @@ names one. And F-1's new intro introduced a count of its own.
 
 ### F-found-words-16 · `file-docstring-roster` · The engine's own docstring opens with the roster F-4 removed from its members
 
+**SHIPPED, 2026-09-21.** *"for a game that ships its legal list to the client"*,
+and the sentence that counted four twice now says what such a game does. The
+wordiply sentence stays.
+
 `useFoundWordSubmit.ts:11-12` — *"used by boggle, spellingbee, wordwheel and
 wordiply"* — and `:16`, *"All four ship their legal list to the FE, so all four
 do the same thing on submit."* F-4 fixed five member docstrings in this file
@@ -717,6 +720,9 @@ because it explains this file's shape.
 
 ### F-found-words-17 · `reveal-three-games` · The same fault four lines under the fix
 
+**SHIPPED, 2026-09-21.** The condition, not the count: *"where the word list
+has a found/missed filter of its own that is control enough."*
+
 `revealWords.ts:23`: *"for the three games that use this it's simply
 `isTerminal`."* F-4 rewrote this file's lede today to stop rostering three games
 and left the count in the next docstring down. Say the condition — a caller
@@ -724,6 +730,10 @@ whose word list has a found/missed filter — or drop the clause, since the
 sentence's point is that WHEN to reveal is the caller's business.
 
 ### F-found-words-18 · `stylesheets-roster` · Neither stylesheet was in the prose pass's scope, and both carry its fault
+
+**SHIPPED, 2026-09-21** — five sites in `foundWordsPlayArea.module.css`, one in
+`typedWord.module.css`. The `.illegal` comment naming all three boards stays,
+as recorded above.
 
 F-4 was written as a docstring finding, so the CSS was never read for it. Six
 sites: `foundWordsPlayArea.module.css:3` (a roster and a count — *"the three
@@ -739,6 +749,9 @@ beyond a traceable path — which is the rule's whole subject, not a roster.
 
 ### F-found-words-19 · `pangram-spellingbee-in-spec` · The claim F-3 retired, one file away
 
+**SHIPPED, 2026-09-21.** The parenthetical is gone; the case is about the
+format.
+
 `useFoundWordSubmit.test.ts:217`: *"A pangram entry (spellingbee) gets the
 'pangram' prefix."* F-3 ruled this morning that the flag is not one game's —
 wordwheel has set it since it was written — and fixed the two sites in the
@@ -746,6 +759,15 @@ hook. The spec's copy was not in F-3's two and survived. The parenthetical
 buys nothing here: the case is about the format, not about whose board it is.
 
 ### F-found-words-20 · `model-sentence-two-homes` · The folder's defining sentence now has two copies
+
+**SHIPPED under (2), 2026-09-21.** The docstring keeps the model in full;
+`doc.md` names it and points there.
+
+**The fix broke the paragraph under it, and that is the finding worth keeping.**
+`doc.md`'s next paragraph opened *"What they share is the sentence above"* — a
+back-reference to the sentence this fix had just removed. Caught by reading the
+intro straight through after editing it, which no check does. It reads *"What
+they share is the model"* now.
 
 **RULED (2) — the DETAILED version lives in the docstring** (Joel, 2026-09-21:
 *"prefer docstring for detailed version"*). Not yet built. So
@@ -776,6 +798,22 @@ first time either is edited.
    a whole-repo read exists to find.
 
 ### F-found-words-21 · `intro-count` · A count in the intro the prose pass wrote
+
+**SHIPPED, 2026-09-21.** *"A game whose board is in front of you"* against
+wordiply, no count on either side, and the ragged break is closed.
+
+**Four counts were read and KEPT**, so a later pass does not re-raise them:
+`foundWordsPlayArea.module.css:38`'s "the three things" counts the three terms
+of the `calc` directly below it; `doc.md`'s "so the three cannot disagree"
+counts three surfaces the same sentence just enumerated; the call-tree diagram
+names real callers, which is what a diagram is; and `todo.md`'s count is
+load-bearing — the item fires when the LAST of those three converts.
+
+**One flagged, not touched:** `doc.md`'s LEDE opens *"What spellingbee,
+wordwheel and boggle share"* and closes *"the play-surface scaffolding all
+three compose"* — the same fault the stylesheets just lost. It predates this
+area, no finding covered it, and whether a folder's front door should name its
+games is Joel's call.
 
 `doc.md:39`: *"Three games read a word the list does not know as a wrong
 move."* Written today, in the same pass that took seven counts out of the

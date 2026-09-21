@@ -1,15 +1,15 @@
 /* cs-met-found-words */
 
-/* The play-surface scaffolding the three found-words games share — boggle,
- * spellingbee and wordwheel. Layered ON TOP of the two-column scaffold
+/* The play-surface scaffolding shared by the found-words games that draw a
+ * board and a word list. Layered ON TOP of the two-column scaffold
  * (`common/game-page/playArea.module.css`, imported as `shared`), not a
  * replacement for it: a call site composes `cls(shared.layout, surface.layout,
  * styles.layout)`.
  *
  * WHAT IS HERE: everything about the play surface that does not depend on what
  * the board looks like — the layout's two vertical budgets, the mobile regime,
- * the below-board slot, and the loading/empty states. All three games compose
- * every class in this file.
+ * the below-board slot, and the loading/empty states. Every class here is
+ * composed by every game that composes the file — there is no à la carte half.
  *
  * WHAT IS NOT: the board's own geometry. A hive and a wheel are rectangles
  * measured in coordinate units and share that arithmetic in
@@ -19,10 +19,10 @@
  *
  * THE TWO NUMBERS EACH GAME SETS on its own `.layout`, which inherit down:
  *
- *   --board-reserve          the info column's clamp floor (all three use 24rem)
+ *   --board-reserve          the info column's clamp floor (24rem everywhere so far)
  *   --mobile-status-height   how tall that game's mobile status block is
  *
- * The second is declared per game rather than here because the three genuinely
+ * The second is declared per game rather than here because the boards genuinely
  * differ — the bee games mirror a rank bar over a two-cell grid (4.25rem) and
  * boggle a three-line four-cell grid (4.5rem) — and because a second `.layout`
  * rule overriding this one would be resolved by stylesheet order in the bundle,
@@ -30,7 +30,7 @@
  */
 
 /* Per-game layout vars the shared scaffold reads. The info column is RESPONSIVE
- * for all three — they compose `shared.responsiveInfoCol`, which derives
+ * here — these games compose `shared.responsiveInfoCol`, which derives
  * `--info-col-width` (a 22rem…53rem clamp) from `--board-reserve` so the word
  * list gives way to the board as the viewport narrows (see that class).
  *
@@ -63,12 +63,12 @@
  * header). No fallback on purpose — one would be a fourth number, right for
  * nobody. Nothing catches a game that composes this file and forgets it: the
  * cssTokens guard only asks that a token read somewhere is declared somewhere,
- * and these three declare it. The miss is silent, because a `var()` that
- * resolves to nothing voids the whole `--avail-h` declaration rather than
- * falling back to the desktop line above, so the board loses its height bound
- * on a phone while the bar keeps its own 1.75rem fallback and looks fine. For
- * the three games here the board-geometry spec's phone boxes would show it; a
- * fourth game is on its own until it is measured. */
+ * and every game composing this file today declares it. The miss is silent,
+ * because a `var()` that resolves to nothing voids the whole `--avail-h`
+ * declaration rather than falling back to the desktop line above, so the board
+ * loses its height bound on a phone while the bar keeps its own 1.75rem
+ * fallback and looks fine. The board-geometry spec's phone boxes would show it
+ * for a game it measures; one it does not is on its own. */
 @media (--mobile) {
 /* @@ */   .layout {
 /* @@ */     --avail-h: calc(

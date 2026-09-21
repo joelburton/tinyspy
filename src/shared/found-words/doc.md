@@ -9,16 +9,15 @@ submit engine alone — its guesses are the found set, though it keeps no
 
 ## Intro to area
 
-The model is narrower than hunting words, and it is worth stating exactly,
-because it is what decides whether a game belongs here: **a typed word, a
-shipped legal list to look it up in, and a growing set of found words to dedup
-against.** A game with all three fits the engine; one without does not, whatever
-it looks like on screen.
+What decides whether a game belongs here is the **model**, which is narrower
+than hunting words and which `useFoundWordSubmit`'s docstring states exactly.
+A game that has its three parts fits the engine; one that doesn't, doesn't,
+whatever it looks like on screen.
 
 That is why the folder is drawn around a data model rather than around a family
 of boards. A hive, a wheel and a square of dice have nothing in common visually,
-and their boards live in each game's own files. What they share is the sentence
-above — and so does wordiply, which is the useful test of the rule. It has no
+and their boards live in each game's own files. What they share is the model —
+and so does wordiply, which is the useful test of the rule. It has no
 `found_words` table at all; its guesses ARE its found set. It takes the engine
 and nothing else, and that is not a compromise: the model is written over two
 lists rather than over a schema precisely so the caller without the schema is
@@ -36,11 +35,12 @@ server records what it is told, because the client was given the answers
 One thing the games genuinely disagree about, and it stays theirs: **what a
 refusal is worth.** `outcomeFor` is required, has deliberately no default, and
 takes `accepted` through it like every other answer, so the engine never names a
-word of its own. Three games read a word the list does not know as a wrong move,
-because the letters are in front of you and the list is the ordinary English
-one. Wordiply reads the identical event as a warning, because it is asking you
-to try strange words and making a bad guess feel like an error would be mean.
-Both are right, which is the whole argument for the engine having no view: what
+word of its own. A game whose board is in front of you reads a word the list
+does not know as a wrong move — the letters are right there and the list is the
+ordinary English one. Wordiply reads the identical event as a warning, because
+it is asking you to try strange words and making a bad guess feel like an error
+would be mean. Both are right, which is the argument for the engine having no
+view of its own: what
 a refusal MEANS is a rule of the game, not a fact about the lookup that produced
 it. Whatever `outcomeFor` returns is what the pill says, so a surface that
 colors an answer anywhere else reads that same table and the two cannot
@@ -48,12 +48,12 @@ disagree ([docs/outcomes.md → One event, one outcome](../../../docs/outcomes.m
 
 A word has two spellings in this folder, and the difference is not cosmetic.
 `FoundWordsWord` is a shipped word as the board data gives it — snake,
-`is_pangram`, straight off the JSON.
-`LegalWord` is what the engine hands back from a lookup — camel, and carrying
-`isBonus`, which the shipped entry has no room for because the two lists are
-kept separately and which list a word came from is only knowable once they are
-merged. Each game's `legalIndex` is where one becomes the other, and
-`WordListRow` is camel for the same reason: it is an FE shape, not a row.
+`is_pangram`, straight off the JSON. `LegalWord` is what the engine hands back
+from a lookup — camel, and carrying `isBonus`, which the shipped entry has no
+room for because the two lists are kept separately and which list a word came
+from is only knowable once they are merged. Each game's `legalIndex` is where
+one becomes the other, and `WordListRow` is camel for the same reason: it is an
+FE shape, not a row.
 
 ## Details
 

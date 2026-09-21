@@ -214,8 +214,8 @@ describe('useFoundWordSubmit', () => {
   })
 
   it('formats a pangram accept as "WORD — pangram +N"', async () => {
-    // A pangram entry (spellingbee) gets the "pangram" prefix; a bonus pangram
-    // also gets the dot after the word.
+    // A pangram entry gets the "pangram" prefix; a bonus pangram also gets the
+    // dot after the word.
     const PANGRAM = { word: 'abcdefg', points: 17, isBonus: true, isPangram: true }
     const cfg = makeCfg({ lookup: (w) => (w === 'abcdefg' ? PANGRAM : null) })
     const { type, submit } = setup(cfg)

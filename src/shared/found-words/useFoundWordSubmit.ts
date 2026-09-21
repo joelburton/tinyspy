@@ -8,20 +8,20 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 
 /**
- * The shared **type-a-word-and-submit** engine, used by boggle, spellingbee,
- * wordwheel and wordiply.
+ * The shared **type-a-word-and-submit** engine, for a game that ships its legal
+ * list to the client.
  *
  * What it models is narrower than hunting words: **a typed word, a shipped
  * legal list to look it up in, and a growing set of found words to dedup
- * against.** All four ship their legal list to the FE, so all four do the
- * *same* thing on submit: validate the typed word against that list, and — if
- * it's good — show instant own-move feedback and fire a trusting-commit RPC in
- * the background. The only per-game bits are the list lookup, the RPC, the
- * reject-reason wording, and the success label; everything structural (dedup,
- * the optimistic in-flight guard, the feedback plumbing, last-word recall)
- * lives here once. Wordiply is the caller with no `found_words` table at all —
- * its guesses are the found set — which is the reason the model above is
- * written in terms of the two lists rather than the schema.
+ * against.** A game with the list in hand does the same thing on every submit —
+ * validate the typed word against it, and, if it's good, show instant own-move
+ * feedback and fire a trusting-commit RPC in the background. The per-game bits
+ * are the list lookup, the RPC, the reject-reason wording and the success
+ * label; everything structural (dedup, the optimistic in-flight guard, the
+ * feedback plumbing, last-word recall) lives here once. Wordiply is the caller
+ * with no `found_words` table at all — its guesses are the found set — which is
+ * the reason the model above is written in terms of the two lists rather than
+ * the schema.
  *
  * **Optimistic, never blocking.** Because the FE already knows the full legal
  * list, a valid word needs no server round-trip to *confirm* — we show `+points`
@@ -115,7 +115,7 @@ export type FoundWordSubmitConfig = {
   hideAccepted?: boolean
 }
 
-/** The typed word and the three ways a game touches it. */
+/** The typed word, and the ways a game touches it. */
 export type FoundWordSubmitApi = {
   word: string
   // The raw state setter — accepts a value or an updater, so a game can append
