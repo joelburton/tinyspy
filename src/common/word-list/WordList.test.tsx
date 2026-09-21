@@ -99,3 +99,27 @@ describe('WordList — the heading tally', () => {
     expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('· Longest: 4')
   })
 })
+
+/**
+ * The recently-found underline, and the one thing that switches it off.
+ *
+ * It says "this word just arrived", which is true of a teammate's find during
+ * play and false of the reveal: at terminal every missed word — and in compete
+ * every peer's find — lands in one refetch, so marking them would tell the
+ * player a whole list had just been played.
+ */
+describe('WordList — the recently-found underline', () => {
+  const ada = ROWS[0]!
+
+  it('marks a word that arrives DURING play', () => {
+    const { rerender } = render(<WordList rows={[]} {...base} isTerminal={false} />)
+    rerender(<WordList rows={[ada]} {...base} isTerminal={false} />)
+    expect(screen.getByText('BEAD').closest('li')!.className).toMatch(/recent/)
+  })
+
+  it('marks nothing once the game is over — the reveal is not an arrival', () => {
+    const { rerender } = render(<WordList rows={[]} {...base} />)
+    rerender(<WordList rows={[ada]} {...base} />)
+    expect(screen.getByText('BEAD').closest('li')!.className).not.toMatch(/recent/)
+  })
+})

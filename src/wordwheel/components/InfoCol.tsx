@@ -53,7 +53,6 @@ export function InfoCol({
   actBackToClub,
   setupRows,
   wordRows,
-  reveal,
   hasBonus,
 }: {
   // ── Mode + phase ──
@@ -107,8 +106,6 @@ export function InfoCol({
 
   // ── Found-words list ──
   wordRows: WordListRow[]
-  /** True once the terminal missed-words reveal is folded into `wordRows`. */
-  reveal: boolean
   /** Does this board have a bonus word list? Drops the list's KIND filter when not. */
   hasBonus: boolean
 }) {
@@ -186,12 +183,11 @@ export function InfoCol({
       </div>
 
       {/* The required-words answer key ships from game start, so the missed-words
-          reveal is gated on terminal: during play only found rows show; at terminal
-          the unfound required words are revealed (bonus words are never revealed). */}
+          reveal is gated on terminal — `wordRows` carries them only then, and the
+          list holds them one select back behind its WHO filter's Found default. */}
       <WordList
         rows={wordRows}
         players={players}
-        reveal={reveal}
         selfId={selfId}
         isCompete={isCompete}
         isTerminal={isTerminal}

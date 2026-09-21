@@ -666,7 +666,6 @@ export function PlayArea(ctx: GamePageCtx) {
         setupRows={summaryRows}
         // ── Found-words list ──
         wordRows={wordRows}
-        reveal={isTerminal}
         hasBonus={hasBonus}
         />
       </InfoSheet>

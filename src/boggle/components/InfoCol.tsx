@@ -45,7 +45,6 @@ export function InfoCol({
   actBackToClub,
   setupRows,
   wordRows,
-  reveal,
   hasBonus,
 }: {
   // ── Mode + phase ──
@@ -101,8 +100,6 @@ export function InfoCol({
 
   // ── Found-words list ──
   wordRows: WordListRow[]
-  /** True once the terminal missed-words reveal is folded into `wordRows`. */
-  reveal: boolean
   /** Does this board have a bonus word list? Drops the list's KIND filter when not. */
   hasBonus: boolean
 }) {
@@ -178,7 +175,6 @@ export function InfoCol({
       <WordList
         rows={wordRows}
         players={players}
-        reveal={reveal}
         selfId={selfId}
         isCompete={isCompete}
         isTerminal={isTerminal}

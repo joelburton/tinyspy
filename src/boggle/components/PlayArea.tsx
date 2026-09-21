@@ -636,7 +636,6 @@ export function PlayArea(ctx: GamePageCtx) {
         minWordLength={game.min_word_length}
         // ── Found-words list ──
         wordRows={wordRows}
-        reveal={revealWords !== null}
         hasBonus={hasBonusDifficulty}
         />
       </InfoSheet>

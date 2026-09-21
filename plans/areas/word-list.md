@@ -312,6 +312,27 @@ no caller reaches.
 1. **Drop `reveal`; gate the flash on `isTerminal`** — three call sites lose a
    line, `Props` loses a member, and the docstring's "mid-game only" becomes
    literally what the code says. **Recommended.**
+**WORKED 2026-09-21 as (1) — dropped.** The underline gates on `isTerminal`,
+which the component already takes.
+
+**Verified before the edit, because boggle's spelling differed.** It passed
+`revealWords !== null` rather than `isTerminal`, and the two can only be the
+same if a terminal game can never have a null reveal. It cannot:
+`buildRevealWords` returns an array literal, never null, and boggle's
+`revealWords` is `isTerminal ? buildRevealWords(…) : null`. So the expression is
+exactly `isTerminal`, and dropping the prop changed no behavior in any of the
+three.
+
+**It was unpinned, and this found that out.** With the prop removed, deleting
+the suppression entirely left all 317 tests in the folder and its three games
+green — the prop's whole purpose had no spec. Two now exist: a word arriving
+mid-game takes the underline, and one arriving at terminal does not. Planted
+both ways — suppression removed fails the second, marking disabled fails the
+first.
+
+Six sites lost a line each (three `InfoCol` props plus their docstrings, three
+`PlayArea` call sites), and the component's props lost a member.
+
 2. Keep it, and document that it is the same value — for a game that might
    one day reveal before terminal. Against: no such game; a default is a
    decision, and this one is never taken.

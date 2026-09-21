@@ -52,10 +52,6 @@ type Props = {
   rows: WordListRow[]
   // The game's players, for the finder-color lookup on each found row.
   players: Member[]
-  // Post-terminal reveal is active, which suppresses the recently-found
-  // underline: the reveal lands every peer row at once and the whole list would
-  // otherwise mark itself. Default `false`.
-  reveal?: boolean
   // The viewer, for the WHO filter's self-first ordering.
   selfId: string
   // Compete gates the per-player filter options until terminal (RLS).
@@ -74,7 +70,8 @@ type Props = {
  * hollow gray one for an unfound reveal entry, with the word itself plain — so
  * identity reads from the dot, never the text. Pangram bolds, bonus adds a
  * trailing '•', and a word that just arrived takes an underline in its finder's
- * color unless `reveal` is set. Every word is a `<DefinableWord>`.
+ * color — mid-game only, since the reveal lands every peer's rows at once and
+ * the whole list would otherwise mark itself. Every word is a `<DefinableWord>`.
  *
  * The heading tallies the FILTERED rows, and the two selects beside it are
  * `useWordListFilter`'s. See `common/word-list/doc.md` for why the filter lives
@@ -83,7 +80,6 @@ type Props = {
 export function WordList({
   rows,
   players,
-  reveal = false,
   selfId,
   isCompete,
   isTerminal,
@@ -188,8 +184,10 @@ export function WordList({
               }
               // A found word — a filled dot in its finder's color, word in black.
               const colorName = colorByUser.get(entry.userId)
-              // Recently-found flash is mid-game only (suppressed under reveal).
-              const isRecent = !reveal && recentlyFound.has(entry.word)
+              // Mid-game only: at terminal the reveal lands every peer's rows
+              // in one refetch, and marking them all as just-arrived would say
+              // the opposite of what the mark means.
+              const isRecent = !isTerminal && recentlyFound.has(entry.word)
               return (
                 <li
                   key={entry.word}
