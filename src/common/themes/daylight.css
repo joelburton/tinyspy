@@ -47,6 +47,13 @@
   /* The line under the pageHeader. No pageHeader, no line. */
 /* @@ */   --pageHeader-border-color:      #8a8a8a;
 
+  /* The hollow ring on a word NOBODY found, in the shared word list. Its own
+     token, not the divider it happens to equal today (Joel, 2026-09-21: the
+     shared value was a stand-in). A missed word is a muted thing on a card and
+     a divider is a line on the page — one palette may want them apart, and a
+     divider nudged for the page's sake must not restyle every missed word. */
+/* @@ */   --wordList-unfoundDot-ring-color: #8a8a8a;
+
   /* A floating panel's TITLEBAR at rest. Its own token, and that is the whole
      point: share one with the app's hover gray and the two become a single
      decision by accident — nudge the hover and every panel header moves with

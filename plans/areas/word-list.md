@@ -536,6 +536,23 @@ the question is only whether the divider color is the decision or a stand-in:
 the same value draws the box's border two rules up. A `@@` call, listed so it
 is not passed over.
 
+**WORKED 2026-09-21 — a stand-in, and it now has a name** (Joel: *"it's a stand
+in, make this same value a new token under a name that makes it clear its
+unfound-word-dots"*). `--wordList-unfoundDot-ring-color`, declared in BOTH
+palettes at the value the divider holds there today, and read by `.dotUnfound`
+alone.
+
+Same value, different decision — which is the point, and the shape
+`--floatingPanel-titlebar-color` already set in this palette for the same reason.
+A missed word's marker is a muted thing on a card; a divider is a line on the
+page. Sharing one token made them a single decision by accident, so a divider
+nudged for the page's sake would have silently restyled every missed word in
+three games. Midnight is where they are likeliest to part, and its comment says
+so.
+
+The guard that keeps both palettes in set equality is what makes this cheap to
+get right: a token added to one and forgotten in the other fails.
+
 ### F-word-list-17 · `playarea-doc` · `docs/playarea.md → Word list` restates the folder
 
 Named in F-1 for the decision; listed apart because it is the one thing

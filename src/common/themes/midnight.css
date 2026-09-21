@@ -63,6 +63,12 @@
   /* The line under the pageHeader. No pageHeader, no line. */
 /* @@ */   --pageHeader-border-color:      #7b8391;
 
+  /* The hollow ring on a word NOBODY found, in the shared word list — its own
+     token rather than the divider it equals today; see daylight. This is the
+     palette where the two are most likely to part, since a muted marker on a
+     dark card and a line on a dark page are lit differently. */
+/* @@ */   --wordList-unfoundDot-ring-color: #7b8391;
+
   /* A floating panel's TITLEBAR at rest. Its own token, and that is the whole
      point: share one with the page's hover and the two become a single
      decision by accident. Same value as the hover here, free to diverge —
