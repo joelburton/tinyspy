@@ -17,7 +17,11 @@ import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
-import { useFoundWordSubmit, type WordEntry } from '@/shared/found-words/useFoundWordSubmit'
+import {
+  useFoundWordSubmit,
+  type WordEntry,
+  type WordSubmitAnswer,
+} from '@/shared/found-words/useFoundWordSubmit'
 import { useMark } from '@/common/board-marks/useMark'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { lengthScore } from '../lib/scoring'
@@ -178,7 +182,7 @@ export function PlayArea(ctx: GamePageCtx) {
    *  through here and then through `ANSWER_OUTCOME`, so the pill, the row and
    *  the log cannot disagree about one word. */
   const answerFor = useCallback(
-    (w: string, answer: 'accepted' | 'too_short' | 'not_legal' | 'already_found'): Answer =>
+    (w: string, answer: WordSubmitAnswer): Answer =>
       answer !== 'not_legal'
         ? answer
         : base !== '' && !w.includes(base.toLowerCase())

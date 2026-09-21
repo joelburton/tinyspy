@@ -1,10 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { Outcome } from '@/common/outcomes/outcomes'
-
-/** What happened to a submitted word — the shared engine's four answers, which
- *  boggle reads through one table so the pill and the tiles cannot disagree. */
-export type Answer = 'accepted' | 'already_found' | 'not_legal' | 'too_short'
+import type { WordSubmitAnswer } from '@/shared/found-words/useFoundWordSubmit'
 
 /**
  * The outcome of every answer, in one place — the pill takes it through the
@@ -15,7 +12,7 @@ export type Answer = 'accepted' | 'already_found' | 'not_legal' | 'too_short'
  * boggle keeps: `explainReject` says which, and only the traceable one has tiles
  * to mark at all.
  */
-export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
+export const ANSWER_OUTCOME: Record<WordSubmitAnswer, Outcome> = {
   accepted: 'won',
   // Already found is nothing happening — you have it, and now you know.
   already_found: 'warning',

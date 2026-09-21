@@ -1,11 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { Outcome } from '@/common/outcomes/outcomes'
-
-/** What happened to a submitted word — the shared engine's four answers, which
- *  spellingbee reads through one table so the pill and the hexes cannot
- *  disagree. */
-export type Answer = 'accepted' | 'already_found' | 'not_legal' | 'too_short'
+import type { WordSubmitAnswer } from '@/shared/found-words/useFoundWordSubmit'
 
 /**
  * The outcome of every answer, in one place — the pill takes it through the
@@ -16,7 +12,7 @@ export type Answer = 'accepted' | 'already_found' | 'not_legal' | 'too_short'
  * not a word). They are one outcome because they are one thing to the player:
  * that word did not count.
  */
-export const ANSWER_OUTCOME: Record<Answer, Outcome> = {
+export const ANSWER_OUTCOME: Record<WordSubmitAnswer, Outcome> = {
   accepted: 'won',
   // Already found is nothing happening — you have it, and now you know.
   already_found: 'warning',

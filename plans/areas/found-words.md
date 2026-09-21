@@ -29,6 +29,9 @@ with an obvious fix (F-9); two are tests, one of them confirmed by planting
 `todo.md` item); one is docs outside the folder (F-15). The stamps stay
 `cs-met` until the prose pass ships.
 
+**Shipped since the read:** F-6 (the answer union, named `WordSubmitAnswer` by
+Joel). The prose pass F-1 to F-5 has not run.
+
 ## The roster
 
 `src/shared/found-words/` — every code file `cs-met-found-words`:
@@ -216,6 +219,23 @@ header docstring (`useFoundWordSubmit.test.ts:6–14`) sits above an `import`
 line rather than at the top of the file — cosmetic, and moved in the same pass.
 
 ### F-found-words-6 · `answer-union-spellings` · The four answer words are spelled six times across four files
+
+**RULED (1) AND SHIPPED, 2026-09-21.** Joel named the type: *"make it
+`WordSubmitAnswer`, then do engine names it"*. The hook declares and exports
+`WordSubmitAnswer`; `onAnswer` and `outcomeFor` read it, `recordReject` reads
+`Exclude<WordSubmitAnswer, 'accepted' | 'already_found'>` inline (Q2 went
+unanswered and a second exported name was not asked for); the three games'
+local `Answer` is gone and their `ANSWER_OUTCOME` is `Record<WordSubmitAnswer,
+Outcome>`; wordiply's `answerFor` takes `WordSubmitAnswer` and still returns
+its own `Answer`, which is now what that seam looks like. One spelling left in
+`src/`. `tsc -b` and lint clean, 32/32 green across the folder and the three
+answer specs, 640 green across the four games.
+
+**Two corrections to the finding as read.** It is **seven** spellings, not six
+— `wordiply/components/PlayArea.tsx:181` wrote the union out as `answerFor`'s
+parameter. And the predicted `tsc` break in the three `answer.test.ts` was
+wrong: none of them names the type, they assert on `ANSWER_OUTCOME`'s value.
+Nothing broke and no test changed.
 
 In the hook the union `'accepted' | 'too_short' | 'not_legal' |
 'already_found'` is written inline three times — `onAnswer` (`:127`) and
@@ -463,8 +483,9 @@ C-pass the same day.
 
 ## Predicted test breaks
 
-- F-6 (1): `tsc -b` in three `lib/answer.ts` and their `answer.test.ts` until
-  the rename lands; a find-and-replace.
+- ~~F-6 (1): `tsc -b` in three `lib/answer.ts` and their `answer.test.ts` until
+  the rename lands; a find-and-replace.~~ Shipped, and the `answer.test.ts`
+  half was wrong — none of the three names the type.
 - F-7: `tsc -b` at every `WordEntry` import — the hook, its test, four
   PlayAreas — until the sweep lands.
 - F-8 (1): `wordListRows.test.ts` — `found()` builds a row without `game_id`.

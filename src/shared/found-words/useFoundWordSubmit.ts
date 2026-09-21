@@ -58,6 +58,12 @@ export type WordEntry = {
   isPangram?: boolean
 }
 
+/** What the engine decided about a submitted word — the closed set every
+ *  caller's answer table is keyed by, so a game cannot miss one. A game that
+ *  speaks a wider vocabulary than this maps into its own (wordiply's
+ *  `answerFor` splits `not_legal` in two). */
+export type WordSubmitAnswer = 'accepted' | 'too_short' | 'not_legal' | 'already_found'
+
 export type FoundWordSubmitConfig = {
   mode: 'coop' | 'compete'
   userId: string
@@ -107,7 +113,10 @@ export type FoundWordSubmitConfig = {
    * already-found word — that row is in the log by definition, and re-logging
    * it is exactly what the reminder exists to prevent.
    */
-  recordReject?: (word: string, reason: 'too_short' | 'not_legal') => void
+  recordReject?: (
+    word: string,
+    reason: Exclude<WordSubmitAnswer, 'accepted' | 'already_found'>,
+  ) => void
 
   /**
    * What the engine decided, for a surface that shows it somewhere other than
@@ -122,10 +131,7 @@ export type FoundWordSubmitConfig = {
    * event, one outcome). wordwheel colors nothing — its `onAnswer` only bumps
    * the shake — so the question does not arise there.
    */
-  onAnswer?: (
-    word: string,
-    answer: 'accepted' | 'too_short' | 'not_legal' | 'already_found',
-  ) => void
+  onAnswer?: (word: string, answer: WordSubmitAnswer) => void
 
   /**
    * What each refusal MEANS in this game, as an outcome. Required, and there is
@@ -150,10 +156,7 @@ export type FoundWordSubmitConfig = {
    * anywhere else reads this same function for those surfaces too, and the two
    * cannot drift.
    */
-  outcomeFor: (
-    word: string,
-    answer: 'accepted' | 'too_short' | 'already_found' | 'not_legal',
-  ) => Outcome
+  outcomeFor: (word: string, answer: WordSubmitAnswer) => Outcome
   /**
    * Optional: say nothing when a word is ACCEPTED.
    *
