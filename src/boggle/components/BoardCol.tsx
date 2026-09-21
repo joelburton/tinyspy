@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
+import type { Mark } from '@/common/board-marks/useMark'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import type { TraceCells } from '../lib/boardTrace'
@@ -90,9 +91,10 @@ export function BoardCol({
   n: number
   /** The tiles a refused word used, wearing its answer, in BOARD cell indices —
    *  this column turns them into the view the player is looking at. Null when
-   *  nothing was just refused, which is nearly always. `nonce` counts the raises;
-   *  the marked tiles are keyed by it so the head-shake replays (see below). */
-  answered: { cells: number[]; outcome: Outcome; nonce: number } | null
+   *  nothing was just refused, which is nearly always. The mark's `nonce` counts
+   *  the raises; the marked tiles are keyed by it so the head-shake replays
+   *  (see below). */
+  answered: Mark<{ cells: number[]; outcome: Outcome }> | null
   /** Where the TYPED word's letters can sit, in board cells: `certain` is a
    *  letter with one candidate tile, `possible` a letter with several. Null when
    *  nothing is typed. Ignored while a tapped path exists — that one is the
@@ -159,7 +161,11 @@ export function BoardCol({
   const answeredCells = useMemo(
     () =>
       answered
-        ? { cells: inView(answered.cells), outcome: answered.outcome, nonce: answered.nonce }
+        ? {
+            cells: inView(answered.value.cells),
+            outcome: answered.value.outcome,
+            nonce: answered.nonce,
+          }
         : null,
     [answered, inView],
   )

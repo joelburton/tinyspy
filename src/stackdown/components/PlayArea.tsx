@@ -720,7 +720,7 @@ export function PlayArea({
         // While viewing a past turn, BoardCol's overlay banner covers the
         // slot's region with the turn's description.
         localFeedbackSlot={localFeedbackSlot}
-        flash={flash}
+        flash={flash?.value ?? null}
         clearFlash={clearFlash}
         // The marks a live board wears. All three are empty while viewing a past
         // turn: that board is a record, and nothing is happening on it.

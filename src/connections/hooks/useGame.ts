@@ -35,6 +35,12 @@ type GameRow = Pick<
   'id' | 'club_handle' | 'mode' | 'board' | 'created_at' | 'puzzle_date'
 >
 
+/**
+ * One guess from `connections.events`, as the board reads it: the columns this
+ * game needs, plus the three readings of that guess — `outcome`, `result` and
+ * `matched` — derived once where the rows are loaded so no consumer re-decides
+ * any of them.
+ */
 export type EventRow = {
   // The row's own id, and the order of play: the database hands them out in
   // the order the rows were written, which is what the read below orders by.
@@ -78,6 +84,12 @@ export type MatchedCategory = {
   matched_at: string
 }
 
+/**
+ * A connections game as the frontend holds it: the setup facts from
+ * `connections.games`, all of them fixed once the game is created. Play state,
+ * pause and the timer are the common row's and reach a component through
+ * `ctx`, not through here.
+ */
 export type ConnectionsGame = {
   id: string
   club_handle: string

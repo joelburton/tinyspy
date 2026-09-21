@@ -8,7 +8,13 @@ stylesheet times are in scope). The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: CLOSED 2026-09-16, blessed.** Audited 2026-09-15; the prose pass
+**Status: RE-OPENED 2026-09-20**, for [one-mark-hook.md](../one-mark-hook.md) —
+`useFlash`, `useMark` and `useAnnouncedMark` become one `useMark`. That reverses
+F-14's two-hook split and revisits F-15's rejected raise counter; both are
+recorded under those findings. `word-list` pauses behind it. The stamps do not
+change while the work runs — Joel re-reads and re-blesses at the end.
+
+**Status before that: CLOSED 2026-09-16, blessed.** Audited 2026-09-15; the prose pass
 done 2026-09-15; the findings re-read 2026-09-15 after the game work recorded
 below; the closing re-read done 2026-09-16 and the `doc.md` harvested the same
 day. Blessed on Joel's words the same day — *"bless the files in this area and
@@ -492,6 +498,17 @@ next than the hook does.
 Joel, 2026-09-16, on building it at two callers: *"we may have other games use
 'announce-then-mark' pattern in the future."*
 
+**REVERSED 2026-09-20 — the two hooks merge.** See
+[one-mark-hook.md](../one-mark-hook.md). What changed is not the reasoning but
+what it is for: the difference between the two hooks is a **per-game ruling that
+tile-feedback turns repeatedly** — scrabble's own comment says its green mark may
+be wrong because a player's own move needs no announcement — and a decision made
+that often belongs in an argument, not in the choice of import. Two more things
+this finding recorded point the same way: letterboxed could not convert at all
+(no clock — the merged hook takes `ms: null`), and option (2) here already saw
+the end state, *"two hooks carry the same option and the difference between them
+shrinks to the announce phase."*
+
 ### F-board-marks-15 · `replay-hand-rolled` · Replaying a mark is solved four ways, and one of them silently doesn't
 
 **FOUND 2026-09-15, in the re-read.** A CSS animation runs once per mount, so a
@@ -534,6 +551,16 @@ already worked; (3) buys a name for a hook whose body is shorter than its import
 
 The boggle spec is planted-verified: with the old key restored it fails on the
 tile being the same DOM node across two refusals.
+
+**REVISITED 2026-09-20 — option (2) arrives anyway, as a side effect.** The
+merged `useMark` ([one-mark-hook.md](../one-mark-hook.md)) bumps a nonce on every
+`show`, so the counter is there whether a board reads it or not. That does not
+overturn this finding's ruling, which was about the three keying idioms, and
+they survive it: boggle, letterboxed and connections key marked PIECES and read
+the engine's nonce, deleting their own; spellingbee and wordwheel key the WHOLE
+BOARD and keep theirs, because a mark's nonce is null most of the time — reading
+it there would change the key a second time as the mark ends, and the board
+would shake again on the way out.
 
 ## The closing re-read, 2026-09-16
 

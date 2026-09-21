@@ -91,10 +91,16 @@ audited, which is the natural place for them since an area's board work is
 already open. So `plans/tile-feedback.md` is a design reference to consult per
 area, not a pass waiting its turn.
 
+**A plan of its own is not a second sprint.** `one-mark-hook.md` is work inside
+ONE of app-audit's areas — `board-marks`, re-opened 2026-09-20 for it, with
+`word-list` paused behind it. It has a file because it reaches into ten games,
+not because it is a sprint beside the audit.
+
 | file | the work |
 |---|---|
 | [plans/app-audit.md](plans/app-audit.md) | **THE LIVE SPRINT** — the app-wide, area-by-area audit (React, SQL and CSS together), and the ONLY spec for it. Began as the CSS half — one palette in one place, a theme-ready structure, named patterns, the vocabularies — and grew into the whole walk; renamed from `css-system-2` 2026-09-02 because "the CSS sprint" had stopped describing it. Unblocked 2026-09-01 when the error/envelope sprint finished. **Trimmed to the plan 2026-09-05**: what shipped lives in `docs/` and the folders' `doc.md` / `todo.md`, and the plan keeps only what is open or process. Start a session there — "Where to start" says what is next, §3 holds the areas in order, §4 the process |
 | [plans/tile-feedback.md](plans/tile-feedback.md) | **The design target for tile/board feedback** — one channel per meaning, with a per-game roster tracked by **tf level** (tf0 untouched · tf1 done in round 1, pre color+buttons · tf2 done against the current framework). **Not a queued sprint: read it per AREA.** Its work folds into each area's audit rather than waiting for a pass of its own, so consult it whenever app-audit opens a game's board. Folds into ui.md once the games conform |
+| [plans/one-mark-hook.md](plans/one-mark-hook.md) | **IN FLIGHT inside the re-opened `board-marks` area** (2026-09-20) — `useFlash`, `useMark` and `useAnnouncedMark` become one `useMark`, so a mark's decisions (does it carry a reason · does it announce itself first · does it end on a clock or an action) are options on one call. Reverses F-board-marks-14 and part of F-15, both recorded there. Sixteen call sites across ten games; `word-list` pauses until it lands. Folds into `board-marks/doc.md` and is deleted |
 | [plans/dark-mode.md](plans/dark-mode.md) | **Not scheduled** — what the midnight spike proved: the CSS system CAN carry a dark theme, what it would still cost, and the one thing not solved (depth on a dark page). Reachable today behind `?theme=midnight` |
 | [plans/keyboard-nav-plan.md](plans/keyboard-nav-plan.md) | Arrow-key navigation of board pieces for the five games where clicking pieces IS the move; two prerequisites land first |
 | [plans/playarea-readability.md](plans/playarea-readability.md) | **The readability target for each game's `PlayArea.tsx` — read it per GAME AREA, like tile-feedback.** Re-surveyed 2026-09-19 against the rebuilt actions, feedback slots and reveal: the loader/loaded split, one section order, the menu's row order, `buildOver` to `lib/`, a comment pass, the unconditional action row, three action conventions, and the copied standing-condition effects. psychicnum settles the shape; the other fifteen copy it. Deleted when the games conform |

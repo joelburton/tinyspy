@@ -596,7 +596,7 @@ export function PlayArea(ctx: GamePageCtx) {
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
       <BoardCol
         shakeNonce={shakeNonce}
-        answered={answered}
+        answered={answered?.value ?? null}
         // ── Mobile-only status block (the SAME RankBar + Stats the InfoCol
         //    renders; on a phone the info column is off-canvas in the InfoSheet) ──
         foundWordsScore={foundWordsScore}
