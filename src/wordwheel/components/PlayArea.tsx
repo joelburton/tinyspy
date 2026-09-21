@@ -23,8 +23,7 @@ import { ANSWER_OUTCOME } from '../lib/answer'
 import type { WordwheelSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
-import { buildDisplayRows } from '@/shared/word-hunt/foundWordsDisplayRows'
-import { buildRevealWords } from '@/shared/word-hunt/revealWords'
+import { buildWordListRows } from '@/shared/word-hunt/wordListRows'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { setupRows } from '../lib/setupSummary'
 import { runEdgeFn } from '@/common/supabase/dbResult'
@@ -194,11 +193,14 @@ export function PlayArea(ctx: GamePageCtx) {
       // between the same two lists (docs/ui.md → Terminal results). If we ever
       // wanted the answer withheld at the end, the change is the filter's DEFAULT,
       // not a new control.
-      const reveal = isTerminal
-        ? buildRevealWords(game.requiredWords, hasBonus ? game.bonusWords : [], foundWords)
-        : null
       const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
-      const words = buildDisplayRows(foundWords, reveal).map((r) => ({
+      const words = buildWordListRows({
+        foundWords,
+        requiredWords: game.requiredWords,
+        bonusWords: game.bonusWords,
+        hasBonus: hasBonus,
+        isTerminal,
+      }).map((r) => ({
         word: r.word.toUpperCase(),
         pangram: r.isPangram ?? false, // wordwheel's own difference: pangrams print bold
         bonus: r.isBonus ?? false,
@@ -588,10 +590,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // reveal). The reveal covers BOTH shipped lists — the missed bonus words are
   // half the fun of the post-game read, and they're the same client-side data the
   // required half comes from.
-  const wordRows = buildDisplayRows(
+  const wordRows = buildWordListRows({
     foundWords,
-    isTerminal ? buildRevealWords(game.requiredWords, hasBonus ? game.bonusWords : [], foundWords) : null,
-  )
+    requiredWords: game.requiredWords,
+    bonusWords: game.bonusWords,
+    hasBonus: hasBonus,
+    isTerminal,
+  })
 
   return (
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>

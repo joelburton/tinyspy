@@ -389,6 +389,13 @@ elsewhere.
    its `doc.md` is owed too; a second area's work in one commit.
 3. Leave it; the six sites are each three lines.
 
+**RULED (2) — build it now and here** (Joel, 2026-09-21), against the
+recommendation. The seam is real and the six sites are in front of us; deferring
+it to an area with nothing read yet would mean re-deriving the finding to act on
+it. `shared/word-hunt` gains the function and a `todo.md` line is NOT what this
+becomes. Its `doc.md` intro stays owed — writing the function does not oblige
+this area to read that folder.
+
 ### F-word-list-16 · `hollow-ring-token` · The unfound ring reads the divider token by hand
 
 `.dotUnfound { --dot-ring: var(--page-divider-color) }` — the "nobody" ring

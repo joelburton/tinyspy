@@ -70,7 +70,11 @@
   deletions: `lib/displayRows.ts` (and its test) goes, replaced by the shared
   `foundWordsDisplayRows` — the same algorithm line for line, differing only
   in that boggle omits `isPangram`, which the shared row type already makes
-  optional; and the two inline `(status?.leaderboard as LeaderRow[] …) ?? []`
+  optional — and doing so also lets boggle reach
+  `shared/word-hunt/wordListRows.ts`, which composes the reveal and the merge
+  in one call and which spellingbee and wordwheel already use (its two
+  remaining hand-written sites, the screen's rows and the print's, collapse to
+  one call each); and the two inline `(status?.leaderboard as LeaderRow[] …) ?? []`
   casts in `PlayArea.tsx` become `readLeaderboard<LeaderRow>(status)`. **The
   note that said boggle "must NOT use" the shared rows was false** — its own
   tests dedup a word to the earliest finder exactly as the shared one does; a
