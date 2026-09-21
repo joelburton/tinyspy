@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type
 import { runRpc } from '@/common/supabase/dbResult'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { useFlash } from '@/common/board-marks/useFlash'
+import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { cls } from '@/common/utils/cls'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
@@ -287,9 +287,15 @@ export function BoardCol({
   // WHETHER these are the right marks at all is scrabble's own tile-feedback
   // pass to say — the green one marks the player's own move, which the audience
   // rule says needs no mark, since the pill already answers.
-  const [greenFlash, flashGreen] = useFlash<number>(WORD_ANSWER_MS)
-  const [yellowFlash, flashYellow] = useFlash<number>(ATTENTION_FLASH_MS)
-  const [redFlash, flashRed] = useFlash<number>(WORD_ANSWER_MS)
+  // Three marks rather than one, because they can be up at once: a move that
+  // played tiles and drew replacements raises the green and the yellow in the
+  // same beat.
+  const [greenMark, flashGreen] = useMark<{ cells: ReadonlySet<number> }>(WORD_ANSWER_MS)
+  const [yellowMark, flashYellow] = useMark<{ cells: ReadonlySet<number> }>(ATTENTION_FLASH_MS)
+  const [redMark, flashRed] = useMark<{ cells: ReadonlySet<number> }>(WORD_ANSWER_MS)
+  const greenFlash = greenMark?.value.cells ?? NO_CELLS
+  const yellowFlash = yellowMark?.value.cells ?? NO_CELLS
+  const redFlash = redMark?.value.cells ?? NO_CELLS
 
   // ─── Derived ───────────────────────────────────────────────────
   const mode = game.mode
@@ -399,7 +405,7 @@ export function BoardCol({
     lastActionRef.current = null
     if (pendingDrawRef.current > 0 && rackLen > 0) {
       const n = Math.min(pendingDrawRef.current, rackLen)
-      flashYellow(Array.from({ length: n }, (_, i) => rackLen - n + i))
+      flashYellow({ cells: new Set(Array.from({ length: n }, (_, i) => rackLen - n + i)) })
     }
     pendingDrawRef.current = 0
   }, [game.version, game.board, rackLen, isCompete, localFeedbackSlot, flashYellow, onExitHistory])
@@ -664,7 +670,7 @@ export function BoardCol({
       // refetch lands, so they don't blink out; green-flash them. The new rack
       // tiles get the yellow flash once the rack arrives.
       setOptimistic(placements)
-      flashGreen(placements.map((p) => cellIndex(p.x, p.y)))
+      flashGreen({ cells: new Set(placements.map((p) => cellIndex(p.x, p.y))) })
       pendingDrawRef.current = res.data.drawn.length // exact draw count now known
       setStaged([])
       setSelected(new Set())
@@ -695,7 +701,7 @@ export function BoardCol({
         if (!bad.has(w.word.toUpperCase())) continue
         for (const c of w.cells) if (c.isNew) cells.add(cellIndex(c.x, c.y))
       }
-      flashRed(cells)
+      flashRed({ cells })
       return
     } else {
       lastActionRef.current = prevAction

@@ -23,7 +23,7 @@ import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { CLAIM_SIZE, liveSelection, toggleCard } from '../lib/selection'
 import { ARRIVE_MS, claimTransition, DEPART_MS, type FlashKind } from '../lib/flash'
 import { useChangeCause } from '@/common/board-marks/useChangeCause'
-import { useFlash } from '@/common/board-marks/useFlash'
+import { useMark } from '@/common/board-marks/useMark'
 import { slotForKey } from '../lib/letters'
 import { hintLabel } from '../lib/readouts'
 import { setupRows } from '../lib/setupSummary'
@@ -40,6 +40,10 @@ import styles from './PlayArea.module.css'
 
 import '../theme.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
+
+/** Empty arrival list — the resting value of the arrive mark, so a table with
+ *  nothing arriving rebuilds `flashes` from the same object every render. */
+const NO_CARDS: CardCode[] = []
 
 /** What `setgame.submit_set` puts in `data`. One `ok` answer, named anyway — a
  *  branch matching merely by being `ok` would draw a second one as this. Its
@@ -131,7 +135,8 @@ export function PlayArea(ctx: GamePageCtx) {
   const [depart, setDepart] = useState<{ leaving: CardCode[]; mine: boolean } | null>(null)
   /** Cards lit as freshly arrived — raised when the hold ends, and it clears
    *  itself after `ARRIVE_MS`. */
-  const [arriving, flashArriving, clearArriving] = useFlash<CardCode>(ARRIVE_MS)
+  const [arrivingMark, flashArriving, clearArriving] = useMark<{ cards: CardCode[] }>(ARRIVE_MS)
+  const arriving = arrivingMark?.value.cards ?? NO_CARDS
   /** My own three, dim from the click — before any server answer. */
   const [submitted, setSubmitted] = useState<CardCode[]>([])
 
@@ -175,7 +180,7 @@ export function PlayArea(ctx: GamePageCtx) {
   useEffect(function holdThenSwap() {
     if (!depart) return
     const timer = setTimeout(() => {
-      flashArriving(claimTransition(shown, board).arriving)
+      flashArriving({ cards: claimTransition(shown, board).arriving })
       setShown([...board])
       setDepart(null)
       setSubmitted([]) // the claimer's dim ends exactly when everyone's mark does

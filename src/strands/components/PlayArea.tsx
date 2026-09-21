@@ -14,7 +14,7 @@ import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { useBoundAction } from '@/common/actions/useBoundAction'
-import { useFlash } from '@/common/board-marks/useFlash'
+import { useMark } from '@/common/board-marks/useMark'
 import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/board-marks/feedbackTiming'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { useAcknowledge } from '@/common/floating-panels/useAcknowledge'
@@ -47,6 +47,10 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 /** Stable empty trace, so the derived-clear below doesn't hand React a new
  *  array identity on every render. */
 const EMPTY_TRACE: Trace = []
+
+/** Empty candidate list — the resting value of the ambiguous-letter mark, for
+ *  the same identity reason. */
+const NO_CELLS: Coord[] = []
 
 /** What `submit_path` hands back. */
 /** What `spend_hint` answers: one `ok`, the coords of the word now ringed. */
@@ -235,9 +239,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // The ambiguous-letter flash: a typed letter matched several cells, so they
   // ring red for a beat and the player clicks the one they meant. Local input
   // feedback owned here (nothing else can trigger it) — the same shape
-  // stackdown's ambiguous-tile flash uses. The set is only ever iterated, never
-  // `.has()`-tested, so holding tuples in it is fine (identity would be, too).
-  const [ambiguous, flashAmbiguous] = useFlash<Coord>(AMBIGUOUS_PICK_FLASH_MS)
+  // stackdown's ambiguous-tile flash uses. The cells are only ever iterated,
+  // never membership-tested, so a list is what the mark carries.
+  const [ambiguousMark, flashAmbiguous, clearAmbiguous] =
+    useMark<{ cells: Coord[] }>(AMBIGUOUS_PICK_FLASH_MS)
+  const ambiguous = ambiguousMark?.value.cells ?? NO_CELLS
 
   /**
    * The turn-history viewer. Exit-on-click is built into the shared hook; the
@@ -325,7 +331,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // A click ANSWERS the ambiguous-letter question, so the red rings go now
       // rather than sitting there for the rest of their second, pointing at
       // cells the player has already chosen between.
-      flashAmbiguous([])
+      clearAmbiguous()
       // A click only ever changes the trace — it can no longer submit
       // (2026-08-14). Re-clicking the last tile takes it back like any other
       // selected tile; Enter and the Submit button are the two deliberate
@@ -335,7 +341,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // `consumed` is rebuilt each render from `found`; listing it would rerun
     // this on every render for no benefit, so the found LENGTH stands in.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [busy, trace, found.length, submit, localFeedbackSlot, flashAmbiguous, historyViewer],
+    [busy, trace, found.length, submit, localFeedbackSlot, clearAmbiguous, historyViewer],
   )
 
   /** Take back the last traced cell — the ⌫ button and Backspace share it.
@@ -421,13 +427,13 @@ export function PlayArea(ctx: GamePageCtx) {
       if (r.kind === 'extend') {
         // Same as a click: this keystroke resolved things, so any rings from a
         // previous one stop pointing.
-        flashAmbiguous([])
+        clearAmbiguous()
         setTrace([...trace, r.at])
       } else if (r.kind === 'ambiguous') {
         // No message here on purpose: that row IS the entry area, so a pill
         // would hide the word being built to say something the board can say
         // better. The red rings ARE the message.
-        flashAmbiguous(r.candidates)
+        flashAmbiguous({ cells: r.candidates })
       } else {
         // Nothing matched. Unlike the ambiguous case there is nothing on the
         // board to point at, and it's nearly always a player mistake rather than
@@ -888,7 +894,7 @@ export function PlayArea(ctx: GamePageCtx) {
         echo={trace.length ? wordFromPath(game.board, trace) : ''}
         actDelete={actDropLastCell}
         actSubmit={actSubmitEntry}
-        ambiguous={[...ambiguous]}
+        ambiguous={ambiguous}
         localFeedbackSlot={localFeedbackSlot}
         hintPoints={me?.hint_points ?? 0}
         hintCost={game.hint_cost}

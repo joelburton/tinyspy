@@ -26,7 +26,6 @@ import type { StackdownSetup } from '../lib/setup'
 import { ANSWER_OUTCOME, answerOf, type Answer } from '../lib/answer'
 import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
-import { useFlash } from '@/common/board-marks/useFlash'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
@@ -197,7 +196,7 @@ export function PlayArea({
 
   // My own refused word's tiles, marked as they land back on the board — the
   // answer was read in the slots, and this is where the letters went.
-  const [returnedTiles, flashReturned] = useFlash<number>(ATTENTION_FLASH_MS)
+  const [returnedMark, flashReturned] = useMark<{ ids: number[] }>(ATTENTION_FLASH_MS)
 
   // The word this player just had refused, still in the slots and wearing the
   // answer; its tiles are off the board until the beat ends. The answer only —
@@ -278,7 +277,7 @@ export function PlayArea({
         showRefusedWord(tileIds, {
           onEnd: () => {
             clearWord()
-            flashReturned(tileIds)
+            flashReturned({ ids: tileIds })
           },
         })
         localFeedbackSlot.show(FeedbackMessage.result(res.outcome, res.message))
@@ -501,10 +500,10 @@ export function PlayArea({
   /** Tiles taking the attention flash: a teammate's word before its answer
    *  shows, and my own refused tiles as they land back. */
   const attentionTiles = useMemo(() => {
-    const ids = new Set<number>(returnedTiles)
+    const ids = new Set<number>(returnedMark?.value.ids ?? [])
     if (peerMark?.phase === 'attention') for (const id of peerMark.value.ids) ids.add(id)
     return ids
-  }, [returnedTiles, peerMark])
+  }, [returnedMark, peerMark])
 
   /** A teammate's answer, once the attention flash has handed the tiles back. */
   const boardAnswer = useMemo(

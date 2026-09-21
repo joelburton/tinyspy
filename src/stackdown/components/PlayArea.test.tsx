@@ -498,6 +498,23 @@ describe('stackdown PlayArea — the board keys', () => {
     expect(wordSlots()).toBe('A')
   })
 
+  // Two exposed tiles bear the letter, so the board cannot pick for you. It
+  // rings the candidates and says nothing in the pill — the rings ARE the
+  // question, which is why a mark that stops drawing leaves the player with a
+  // keystroke that silently did nothing.
+  it('rings both candidates when a letter is ambiguous, and asks nothing in the pill', async () => {
+    const twoRs: Tile[] = [
+      { id: 1, x: 0, y: 0, z: 0, letter: 'R' },
+      { id: 2, x: 2, y: 0, z: 0, letter: 'R' },
+    ]
+    h.result = loaded(loadedGame({ tiles: twoRs }), [playerRow('u1')])
+    render(<WithKeys {...makeCtx()} />)
+
+    await press({ key: 'r' })
+    expect(h.result.appendTile).not.toHaveBeenCalled()
+    expect(document.querySelectorAll('[class*="flash"]').length).toBe(2)
+  })
+
   it('a letter no exposed tile bears is refused in the pill', async () => {
     h.result = loaded(loadedGame({ tiles: five }), [playerRow('u1')])
     render(<WithKeys {...makeCtx()} />)

@@ -6,12 +6,16 @@ import type { Actor } from '@/common/members/member'
 import { Dot } from '@/common/members/Dot'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
-import { useFlash } from '@/common/board-marks/useFlash'
+import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import { eventToOutcome } from '../lib/answer'
 import styles from './Board.module.css'
+
+/** Empty word set — the resting value of the head-shake mark, so a board with
+ *  nothing shaking hands the same object down every render. */
+const NO_WORDS: ReadonlySet<string> = new Set()
 
 type Props = {
   // The board words (5..20), shown as clickable tiles. Lowercase; displayed
@@ -118,7 +122,8 @@ export function Board({
   // NO — the head-shake, on the words that just came back WRONG. It waits for
   // the flash to finish rather than riding it: the shake is a remark about the
   // tile's own color, and that color is under the yellow until the flash is done.
-  const [shaking, shakeWrong] = useFlash<string>(VERDICT_SHAKE_MS)
+  const [shakeMark, shakeWrong] = useMark<{ words: ReadonlySet<string> }>(VERDICT_SHAKE_MS)
+  const shaking = shakeMark?.value.words ?? NO_WORDS
   // Keyed on the WORDS rather than on the set that holds them: `results` is a
   // fresh Map every render, so an effect that depended on it would cancel its own
   // timer whenever anything re-rendered inside the wait.
@@ -128,7 +133,7 @@ export function Board({
     .join(',')
   useEffect(function shakeAfterFlash() {
     if (wrongKey === '') return
-    const timer = setTimeout(() => shakeWrong(wrongKey.split(',')), ATTENTION_FADE_MS)
+    const timer = setTimeout(() => shakeWrong({ words: new Set(wrongKey.split(',')) }), ATTENTION_FADE_MS)
     return () => clearTimeout(timer)
   }, [wrongKey, shakeWrong])
 

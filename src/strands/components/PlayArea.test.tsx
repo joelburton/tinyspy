@@ -174,6 +174,9 @@ const control = (id: string) => document.querySelector<HTMLButtonElement>(`butto
 /** How many cells the live trace covers — each wears a disc on the board. */
 const tracedCells = () => document.querySelectorAll('circle[class*="discTrace"]').length
 
+/** The red rings on the cells an ambiguous letter could have meant. */
+const ambiguousRings = () => document.querySelectorAll('circle[class*="ringAmbiguous"]').length
+
 beforeEach(() => {
   h.result = loaded()
   rpc.mockReset()
@@ -331,6 +334,23 @@ describe('strands PlayArea — a letter extends the trace', () => {
     expect(tracedCells()).toBe(2)
     // ⌫ takes the last one back.
     await press({ key: 'Backspace', code: 'Backspace' })
+    expect(tracedCells()).toBe(1)
+  })
+
+  // The board's answer to "several cells bear that letter": red rings on the
+  // candidates, and no pill — the rings ARE the message, so if they stop being
+  // drawn the player is told nothing at all.
+  it('rings every candidate when a letter is ambiguous, and drops them on the next resolving key', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    // A sits at (0,0) and (4,2) on this board, so it names no single cell.
+    await press({ key: 'a' })
+    expect(ambiguousRings()).toBe(2)
+    expect(tracedCells()).toBe(0) // …and nothing was traced
+
+    // W names one cell, so it resolves — and the rings from the last key stop
+    // pointing at a choice that has been made.
+    await press({ key: 'w' })
+    expect(ambiguousRings()).toBe(0)
     expect(tracedCells()).toBe(1)
   })
 

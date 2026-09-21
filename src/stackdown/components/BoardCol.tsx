@@ -2,7 +2,7 @@
 
 import { useCallback } from 'react'
 import { cls } from '@/common/utils/cls'
-import { useFlash } from '@/common/board-marks/useFlash'
+import { useMark } from '@/common/board-marks/useMark'
 import { AMBIGUOUS_PICK_FLASH_MS } from '@/common/board-marks/feedbackTiming'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
@@ -126,7 +126,10 @@ export function BoardCol({
   // Red ambiguous-tile flash — a typed letter matched more than one exposed tile;
   // the candidates outline red for a beat. Purely this column's input feedback, so
   // the state lives here (unlike the word-slot flash, which a teammate can trigger).
-  const [flashIds, flashTiles] = useFlash<number>(AMBIGUOUS_PICK_FLASH_MS)
+  const [ambiguousMark, flashTiles] = useMark<{ ids: ReadonlySet<number> }>(
+    AMBIGUOUS_PICK_FLASH_MS,
+  )
+  const flashIds = ambiguousMark?.value.ids ?? NO_TILES
 
   // ─── Tile click → extend the word ─────────────────────────────
   // Filling the fifth slot deliberately does NOT submit: the word sits there
@@ -217,7 +220,7 @@ export function BoardCol({
         localFeedbackSlot.show(FeedbackMessage.result('lost', `No “${letter}” tile is on top`))
       } else {
         // Ambiguous — point out the candidates with a brief red outline.
-        flashTiles(matches.map((m) => m.id))
+        flashTiles({ ids: new Set(matches.map((m) => m.id)) })
         localFeedbackSlot.show(
           FeedbackMessage.result('warning', `${matches.length} “${letter}” tiles are on top — click one`),
         )

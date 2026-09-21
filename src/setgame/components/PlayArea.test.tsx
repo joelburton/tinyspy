@@ -29,6 +29,7 @@ import type { ActionId } from '@/common/actions/registry'
 import { KeyList } from '@/common/actions/KeyList'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { db } from '../db'
+import { ARRIVE_MS, DEPART_MS } from '../lib/flash'
 import { PlayArea } from './PlayArea'
 
 /**
@@ -211,6 +212,54 @@ describe('setgame PlayArea — the letters are the input', () => {
     // `G` is slot 18 — past the twelve dealt, so there is no card to toggle.
     await user.keyboard('g')
     expect(selectedCards()).toHaveLength(0)
+  })
+})
+
+/**
+ * A claim substitutes cards in place, so the board simply DIFFERS a moment
+ * later. The choreography is what tells you: the departing three are held on
+ * screen for a beat, and when they finally go the replacements land LIT — and
+ * the lit mark is the whole reason a teammate's claim is noticeable at all.
+ */
+describe('setgame PlayArea — the arrivals are lit when the hold ends', () => {
+  /** The cards drawn as freshly arrived. */
+  const arrivingCards = () => document.querySelectorAll('button[class*="arriving"]').length
+  /** The departing three, held on screen before the swap. */
+  const leavingCards = () => document.querySelectorAll('button[class*="leaving"]').length
+
+  it('holds the departing three, then lights the three that replace them', () => {
+    vi.useFakeTimers()
+    try {
+      const ctx = makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')] })
+      h.result = loaded()
+      const { rerender } = render(<PlayArea {...ctx} />)
+      expect(arrivingCards()).toBe(0)
+
+      // moth claims the first three: the server's board swaps 0,1,2 for 12,13,14
+      // and the claim row is what says a MOVE did it.
+      const after = [12, 13, 14, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+      const claim = {
+        id: 1, game_id: 'g1', user_id: 'u2', kind: 'claim' as const,
+        cards: [0, 1, 2], board_after: after, created_at: '2026-01-01T00:00:01Z',
+      }
+      h.result = loaded({ game: { ...loaded().game!, board: after }, lastClaim: claim, claims: [claim] })
+      act(() => rerender(<PlayArea {...ctx} />))
+
+      // Beat one: the old three are still there, lit as leaving. Nothing has
+      // arrived yet — the point is to see what left.
+      expect(leavingCards()).toBe(3)
+      expect(arrivingCards()).toBe(0)
+
+      // Beat two: the hold ends, the swap happens, and the replacements are lit.
+      act(() => vi.advanceTimersByTime(DEPART_MS))
+      expect(arrivingCards()).toBe(3)
+
+      // …and the lit mark takes itself off, leaving a plain board.
+      act(() => vi.advanceTimersByTime(ARRIVE_MS))
+      expect(arrivingCards()).toBe(0)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 

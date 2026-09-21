@@ -28,7 +28,8 @@ import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import type { ActionId } from '@/common/actions/registry'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
-import type { PsychicnumGame, PlayerRow } from '../hooks/useGame'
+import type { PsychicnumGame, PlayerRow, EventRow } from '../hooks/useGame'
+import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import { db } from '../db'
 import { PlayAreaLoader } from './PlayArea'
 
@@ -264,6 +265,63 @@ describe('psychicnum PlayArea — the celebration', () => {
     rerender(<PlayAreaLoader {...makeCtx({ players: two, playState: 'won', isTerminal: true })} />)
     expect(confetti()).toBeInTheDocument()
     expect(screen.getByText('All three secret words found.')).toBeInTheDocument()
+  })
+})
+
+/**
+ * The two beats a guess gets on the board, in order. The attention flash says
+ * WHERE the guess landed, and only once it has faded — and the tile's own red
+ * is visible under it — does the head-shake say the guess was wrong. A correct
+ * guess never shakes: side to side means "not a winning move".
+ */
+describe('psychicnum PlayArea — a wrong guess is pointed at, then shaken', () => {
+  /** The board tile for a word, whatever marks it is wearing. */
+  const tileFor = (word: string) =>
+    document.querySelector(`[data-tile="${word}"]`) as HTMLElement
+
+  function guessRow(word: string, isCorrect: boolean): EventRow {
+    return {
+      id: 1, user_id: 'u1', word, is_correct: isCorrect,
+      kind: 'guess', created_at: '2026-01-01T00:00:01Z',
+    }
+  }
+
+  it('flashes the tile, then shakes it once the flash has handed the red back', () => {
+    vi.useFakeTimers()
+    try {
+      h.result = loaded(coopGame)
+      const ctx = makeCtx()
+      const { rerender } = render(<PlayAreaLoader {...ctx} />)
+
+      // The guess lands — a move, so the board points at where it went.
+      h.result = { ...loaded(coopGame), guesses: [guessRow('bravo', false)] }
+      act(() => rerender(<PlayAreaLoader {...ctx} />))
+      expect(tileFor('bravo').className).toMatch(/attentionFlash/)
+      expect(tileFor('bravo').className).not.toMatch(/verdictShake/)
+
+      // …and the shake waits for the flash, because it is a remark about the
+      // red underneath it.
+      act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS))
+      expect(tileFor('bravo').className).toMatch(/verdictShake/)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('never shakes a correct guess', () => {
+    vi.useFakeTimers()
+    try {
+      h.result = loaded(coopGame)
+      const ctx = makeCtx()
+      const { rerender } = render(<PlayAreaLoader {...ctx} />)
+      h.result = { ...loaded(coopGame), guesses: [guessRow('bravo', true)] }
+      act(() => rerender(<PlayAreaLoader {...ctx} />))
+
+      act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS))
+      expect(tileFor('bravo').className).not.toMatch(/verdictShake/)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
