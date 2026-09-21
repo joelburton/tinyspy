@@ -526,6 +526,24 @@ them only through `filter()`. One file — it is one unit — grows a `describe`
 per row kind and one for the flash; F-5's restart spec goes in
 `useRecentlyFound.test.ts`.
 
+**WORKED 2026-09-21.** `WordList.test.tsx` went from four tests to twelve. Two
+of the eight arrived earlier in this area, when F-6 and F-7 each turned out to
+be unpinned; the other six are this finding: the finder's color on a found dot
+and the word staying plain beside it, the hollow ring and the muted word on an
+unfound one, the bonus bullet on BOTH kinds (and its absence on both), pangram
+bold and only pangram, and narrowing KIND within the missed words.
+
+**Each planted.** Dropping the finder color, the hollow flag, the bonus bullets
+or the pangram class each fails exactly one test and nothing else. F-5's restart
+spec did not go anywhere, since that finding closed no-change.
+
+**The gap this closes is the one the area kept walking into.** Two behaviors —
+the `reveal` prop's whole purpose, and the terminal underline suppression —
+were found unobserved by PLANTING rather than by reading, both after the audit
+had read the file end to end. A spec file that pins the heading and nothing
+below it reads as coverage while asserting almost nothing about the component's
+actual job.
+
 ### F-word-list-14 · `points-by-word` · Three print sites look up a score the row already carries
 
 In spellingbee's, wordwheel's and boggle's `actPrintBoard`, each print row's

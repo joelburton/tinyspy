@@ -123,3 +123,76 @@ describe('WordList — the recently-found underline', () => {
     expect(screen.getByText('BEAD').closest('li')!.className).not.toMatch(/recent/)
   })
 })
+
+/**
+ * The two row KINDS and the three flags that compose on them — the component's
+ * actual job, and the half the filter tests reach only through `filter()`.
+ *
+ * Identity is the DOT, never the text: a found word's disc carries its finder's
+ * color while the word itself stays plain, and an unfound one is a hollow ring
+ * with the word muted. Everything below asserts the mark, not the words.
+ */
+describe('WordList — what a row wears', () => {
+  const rowFor = (word: string) => screen.getByText(word).closest('li')!
+  const dotIn = (word: string) => rowFor(word).querySelector('span[class*="dot"]') as HTMLElement
+
+  const mixed: WordListRow[] = [
+    { kind: 'found', word: 'bead', userId: 'ada', points: 1 },
+    { kind: 'found', word: 'beach', userId: 'bea', points: 5, isBonus: true },
+    { kind: 'found', word: 'cabbage', userId: 'ada', points: 9, isPangram: true },
+    { kind: 'unfound', word: 'chafe', points: 5 },
+    { kind: 'unfound', word: 'zho', points: 2, isBonus: true },
+  ]
+  // hasBonus so BOTH selects render: KIND is 0, WHO is 1. The rows carry bonus
+  // words of each kind, which is the whole point of the pair.
+  const all = { ...base, rows: mixed, hasBonus: true }
+
+  it("fills a found word's dot in its FINDER's color, leaving the word plain", async () => {
+    render(<WordList {...all} />)
+    await pickFilter('All', 1) // WHO; KIND is 0 on a bonus board
+    // ada and bea hold different palette colors, so the two discs differ — the
+    // dot is where identity lives.
+    expect(dotIn('BEAD').getAttribute('style')).toContain('--member-red')
+    expect(dotIn('BEACH').getAttribute('style')).toContain('--member-blue')
+    // …and the word itself carries no color of its own.
+    expect(rowFor('BEAD').className).not.toMatch(/unfound/)
+  })
+
+  it('draws a word nobody found as a HOLLOW ring with the word muted', async () => {
+    render(<WordList {...all} />)
+    await pickFilter('All', 1) // WHO; KIND is 0 on a bonus board
+    expect(dotIn('CHAFE').className).toMatch(/hollow/)
+    expect(dotIn('CHAFE').className).toMatch(/dotUnfound/)
+    expect(rowFor('CHAFE').className).toMatch(/unfound/)
+    // A hollow disc takes no inline fill — the ring is its whole appearance.
+    expect(dotIn('CHAFE').getAttribute('style')).toBeNull()
+  })
+
+  it('marks a bonus word on BOTH kinds — a missed bonus is not a missed required', async () => {
+    render(<WordList {...all} />)
+    await pickFilter('All', 1) // WHO; KIND is 0 on a bonus board
+    expect(rowFor('BEACH').textContent).toContain('•')
+    expect(rowFor('ZHO').textContent).toContain('•')
+    // …and a plain word of either kind carries none.
+    expect(rowFor('BEAD').textContent).not.toContain('•')
+    expect(rowFor('CHAFE').textContent).not.toContain('•')
+  })
+
+  it('bolds a pangram, and only a pangram', async () => {
+    render(<WordList {...all} />)
+    await pickFilter('All', 1) // WHO; KIND is 0 on a bonus board
+    expect(rowFor('CABBAGE').className).toMatch(/pangram/)
+    expect(rowFor('BEAD').className).not.toMatch(/pangram/)
+  })
+
+  it('renders the hook’s empty line when a filter matches nothing', async () => {
+    render(<WordList {...all} />)
+    await pickFilter('Missed', 1)
+    // 'zho' is the only missed BONUS word, so removing it empties the pair —
+    // and the line has to name the axis rather than say "no words yet".
+    await pickFilter('Required', 0)
+    expect(screen.getByText('CHAFE')).toBeInTheDocument()
+    await pickFilter('Bonus', 0)
+    expect(screen.getByText('ZHO')).toBeInTheDocument()
+  })
+})
