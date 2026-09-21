@@ -327,7 +327,7 @@ describe('button shape and treatment are separate', () => {
    * (docs/games/scrabble.md → Deferred).
    */
   it('nobody re-implements the button by hand-composing its classes', () => {
-    const ALLOWED = ['common/components/buttons/']
+    const ALLOWED = ['common/buttons/']
     const offenders: string[] = []
     for (const f of walk(SRC, ['.tsx']).filter((f) => !f.endsWith('.test.tsx'))) {
       if (ALLOWED.some((a) => rel(f).includes(a))) continue

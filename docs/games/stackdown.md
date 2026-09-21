@@ -401,7 +401,7 @@ outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 ### 5.3 Frontend (`src/stackdown/`)
 
 stackdown is a **v3** game ([ui.md → Game versions](../ui.md#game-versions-v1--v3)): it renders on the shared
-two-column PlayArea scaffold (`common/components/game/PlayArea.module.css` — `.layout` /
+two-column PlayArea scaffold (`common/game-page/playArea.module.css` — `.layout` /
 `.boardCol` / `.infoCol` / `.noShrinkRow`). The board column holds the stacked-tile
 board, the **word-entry row**, and a fixed-height **local feedback slot**; the
 info column runs **state → opponent strip → action row → help → setup → log** in

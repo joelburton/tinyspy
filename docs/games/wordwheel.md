@@ -323,7 +323,7 @@ into three buckets:
   (`shared/found-words/foundWords` + `foundWordsDisplayRows`), the bee
   leaderboard row (`shared/bee-games/beeLeaderboard`), the `useGame` factory
   (`shared/bee-games/makeBeeGame`), and the `RankBar` / `Stats`
-  components (`common/components/game/`, themed via generic `--rank-*` tokens
+  components (`shared/rank-ladder/`, themed via generic `--rank-*` tokens
   each game's `theme.css` aliases). The RankBar marks the game's
   `target_rank` square with a heavy near-black outline — deliberately NOT a
   per-game hue, since a goal is neither good nor bad and the component is
@@ -349,11 +349,12 @@ into three buckets:
 - **The CSS is NOT forked, though the components are.** The deltas above are
   behavioral, and the two play surfaces never looked different — so the
   stylesheets folded even where their `.tsx` siblings stayed apart:
-  `common/components/game/foundWordsPlayArea.module.css` holds the whole surface
-  (layout vars, mobile status block, the `--u` arithmetic, below-board slot), and
-  each game's `PlayArea.module.css` is now just four numbers naming its board's
+  `shared/found-words/foundWordsPlayArea.module.css` holds the play surface
+  (layout vars, mobile status block, below-board slot, loading/empty) while the
+  `--u` arithmetic sits in each family's own board sheet, and each game's
+  `PlayArea.module.css` is now just four numbers naming its board's
   coordinate box — spellingbee `256×267` capped at `320`, wordwheel `300×300×300`.
-  `TypedWord.module.css` collapsed into `common/…/entry/typedWord.module.css`
+  `TypedWord.module.css` collapsed into `shared/found-words/typedWord.module.css`
   (the dimming *rule* was always one line; the multiset-vs-set logic that decides
   *what* to dim stays per-game), and `.checkRow` moved to the shared
   `setupForm.module.css` it shares with bananagrams.

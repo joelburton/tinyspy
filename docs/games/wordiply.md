@@ -507,7 +507,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   `usePeerFeedback`.
 - **`components/BoardCol.tsx` + the guess board**:
   - **On-screen keyboard, no text box.** wordiply plays on **touch alone** — input is the
-    shared **`common/…/entry/GuessKeyboard`** (the Wordle-style QWERTY + Enter/Backspace,
+    shared **`shared/onscreen-keyboard/GuessKeyboard`** (the Wordle-style QWERTY + Enter/Backspace,
     extracted so wordle + wordiply share one; wordle tints its keys from the shared
     `--wordle-*` palette, wordiply uses neutral keys). A physical keyboard still works via `useCaptureKeys`
     feeding the same `word` state — and the Enter and ⌫ CAPS are the two bound actions that
@@ -715,7 +715,7 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
 - **Shell / lifecycle:** `<GamePage>`, `useCommonGame`, the manifest/registry + sibling
   pattern, `common.concede` / `end_game` / timers / presence-pause (inherited).
 - **Setup:** `<SetupGameModal>`, `<SetupSection>`, `<DictBandField>`, `<SetupTimerSection>`.
-- **Entry + submit:** the shared **`common/…/entry/GuessKeyboard`** (the Wordle-style on-screen
+- **Entry + submit:** the shared **`shared/onscreen-keyboard/GuessKeyboard`** (the Wordle-style on-screen
   keyboard, shared with wordle) for touch input + **`useCaptureKeys`** for physical keys, both
   driving the same `word`. Submit reuses **`useFoundWordSubmit`** (shipped-list, trusting-commit)
   with a wordiply validator (points = the word's length). No `<WordEntryArea>` / `<WordEntryInput>` (that

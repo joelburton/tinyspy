@@ -216,7 +216,7 @@ Builds the title (per the formula above), calls `common.create_game` with the `'
 
 ### `spellingbee.submit_word(target_game uuid, word text, points int, is_pangram boolean, is_bonus boolean) → jsonb`
 
-**Trusting-commit** (like boggle — both word-list games share the FE `useFoundWordSubmit` engine). Because the full legal list (`required_words ∪ bonus_words`) ships to the FE at game start, the client validates + scores every guess LOCALLY and only commits accepted words. So the server **trusts** `word` + `points` + `is_pangram` + `is_bonus` and does NOT re-derive letters / center / min-length / dictionary membership — it just enforces the live-game check, dedups, records, and recomputes aggregates / the compete win. Returns `{ "result": <enum>, "points": int }` (the returned points echo what the FE sent, 0 for a server-side reject like a dup); the commit that wins the coop game additionally returns `"won": true`.
+**Trusting-commit** (like every game that ships its legal list to the client — they share the FE `useFoundWordSubmit` engine). Because the full legal list (`required_words ∪ bonus_words`) ships to the FE at game start, the client validates + scores every guess LOCALLY and only commits accepted words. So the server **trusts** `word` + `points` + `is_pangram` + `is_bonus` and does NOT re-derive letters / center / min-length / dictionary membership — it just enforces the live-game check, dedups, records, and recomputes aggregates / the compete win. Returns `{ "result": <enum>, "points": int }` (the returned points echo what the FE sent, 0 for a server-side reject like a dup); the commit that wins the coop game additionally returns `"won": true`.
 
 The FE-side validation happens in `useFoundWordSubmit` + `lib/` before the commit fires, in the spellingbee-ws order (friendliest message wins when several things are wrong):
 
@@ -395,9 +395,9 @@ src/spellingbee/
                           divisor, and --max-board-size. That's the only way this play surface
                           differs from wordwheel's; everything else (layout vars, the --u
                           arithmetic, mobile status block, below-board slot, loading/empty) is
-                          the shared common/components/game/foundWordsPlayArea.module.css,
+                          the shared shared/found-words/foundWordsPlayArea.module.css,
                           composed alongside it. The two-column shell + readout classes are
-                          the shared common/components/game/PlayArea.module.css. Desktop-first,
+                          the shared common/game-page/playArea.module.css. Desktop-first,
                           no @media reflow — per ui.md.
     PlayArea.test.tsx     Render + word-submit tests (useGame/db mocked; the rest renders for
                           real): a legal word gets the optimistic pill + the submit_word call
@@ -457,7 +457,7 @@ src/spellingbee/
                           the surface needs no game-specific type for them.
                           Peer/opponent events still go to the HEADER slot via the common
                           usePeerFeedback — two distinct LOCATIONS for the same shared pill component.)
-    (RankBar)             SHARED common/components/game/RankBar — 7 squares from Start to
+    (RankBar)             SHARED shared/rank-ladder/RankBar — 7 squares from Start to
                           Genius, filled up to the current rank, with the rank NAME inline
                           to their left ("GENIUS ▪-▪-▪…"). Per-square hover tooltip with
                           rank name + points threshold. When the game has a `target_rank`
@@ -469,7 +469,7 @@ src/spellingbee/
                           The goal also appears as a `Target rank:` line in the setup-options
                           disclosure below (both modes); compete additionally names it in the
                           OpponentStrip.
-    (Stats)               SHARED common/components/game/Stats — 2-cell grid: Score / Words,
+    (Stats)               SHARED shared/rank-ladder/Stats — 2-cell grid: Score / Words,
                           written tight ("13/50"), no rules above or below (it reads as one
                           unit with the RankBar). Tabular-nums so the digits don't shift
                           width as the score climbs. (Timer lives in the GamePage header.)
@@ -647,7 +647,7 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 |---|---|
 | Everything server-side — schema, column grants, RLS, the `games_state` view, `candidate_words`, the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), `_rank_idx`, the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `spellingbee_coop`/`spellingbee_compete` gametype rows | [`supabase/migrations/20260617000000_spellingbee.sql`](../../supabase/migrations/20260617000000_spellingbee.sql) |
 | Compete-specific FE rendering (OpponentStrip, mode-aware buildOver) | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
-| Target-rank picker + word-difficulty (required/legal band) fields + custom-letters fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/components/fields/DictBandField.tsx`](../../src/common/fields/DictBandField.tsx); the combined Start gate (`legal ≥ required` + custom-letter rules) is `spellingbeeSetupError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
+| Target-rank picker + word-difficulty (required/legal band) fields + custom-letters fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/fields/DictBandField.tsx`](../../src/common/fields/DictBandField.tsx); the combined Start gate (`legal ≥ required` + custom-letter rules) is `spellingbeeSetupError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
 | How the word list is populated | `common.words` via [`supabase/scripts/import-words.ts`](../../supabase/scripts/import-words.ts) (read live from `~/src/gamelist/words.tsv`) — see [common.md](../common.md#the-word-list-commonwords) |
 | How the pangram seed pool is built | [`supabase/scripts/import-spellingbee-pangrams.ts`](../../supabase/scripts/import-spellingbee-pangrams.ts) (derives `spellingbee.pangrams` from `common.words`) |
 | The board-builder edge function | [`supabase/functions/spellingbee-build-board/index.ts`](../../supabase/functions/spellingbee-build-board/index.ts) |

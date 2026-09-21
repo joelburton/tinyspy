@@ -453,7 +453,7 @@ Mirrors the other game folders:
   scrabble/stackdown's history viewer.
 
 The PlayArea sits on the **shared two-column scaffold**
-(`common/components/game/PlayArea.module.css` — the same one psychicnum / connections /
+(`common/game-page/playArea.module.css` — the same one psychicnum / connections /
 codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-layout)):
 
 - **Board column** — `Board` (the 5×5 lattice, tap-A-then-tap-B or
@@ -508,7 +508,7 @@ codenamesduet use; see [docs/ui.md → PlayArea layout](../playarea.md#playarea-
   `GameEventLog` renders its own `<tr>` rows on the shared `<EventLog>` table — the
   outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
   coordinates small/light) + the swapper's `<ActorDot>`; coop only. Compete shows
-  the shared `common/components/game/OpponentStrip` instead, with `metricLabel="Swaps"`
+  the shared `common/info-sheet/OpponentStrip` instead, with `metricLabel="Swaps"`
   and a `metricFor` returning swaps-used + a ✓/✗ mark.
 - **Feedback split** — own not-oks (a refused swap / a failed End) show **locally**
   below the board; the header's global slot carries **peer** news (compete: "● moth

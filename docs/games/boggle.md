@@ -443,7 +443,7 @@ calls for every answer, `accepted` included. No RPC carries an outcome: the
 frontend decides, once. The same table as spellingbee's, for the same reasons
 ([spellingbee.md](spellingbee.md); [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
 
-**v3 layout** — the shared two-column scaffold (`common/components/game/PlayArea.module.css`,
+**v3 layout** — the shared two-column scaffold (`common/game-page/playArea.module.css`,
 imported as `shared`): a board column + a fixed info column, no full-page scroll
 (per [docs/ui.md](../ui.md) and [docs/playarea.md](../playarea.md)).
 boggle is spellingbee's structural twin (hunt words → typed entry → found-words

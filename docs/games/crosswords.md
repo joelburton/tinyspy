@@ -584,12 +584,12 @@ This is the **canonical deferred register** for crosswords — distilled from th
 
 ### Deferred features
 - **The setup form opts out of the shared field vocabulary.** Every other game's
-  `SetupForm` builds from `common/components/fields/`; crosswords hand-rolls its
+  `SetupForm` builds from `common/fields/`; crosswords hand-rolls its
   controls, and they have drifted on every axis. Moved here from the CSS sprint's
   `forms` area on 2026-08-25 (it was F37, `crosswords-rolls-its-own-field`) —
   the DECISION is the shared vocabulary's, but every edit lands in this game.
   - **Two raw `<select>`s** (`SetupForm.tsx:326`, `:378`) — the only ones left in
-    the app outside `common/components/fields/`. Both wear a local `.search`
+    the app outside `common/fields/`. Both wear a local `.search`
     class instead of `<SelectField>`.
   - **`.search` re-declares the field chrome and disagrees with it four ways**:
     `border-radius: 6px` (a literal — `--radius-md` IS `6px`, `base.css:85`),

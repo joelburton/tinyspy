@@ -49,9 +49,9 @@ function draw(value: Partial<PuzzleChoice> = {}, error?: string) {
 }
 
 // The SHARED contract, the same one the twelve components in
-// `common/components/fields` are held to. It lives in a game folder, which is
+// `common/fields` are held to. It lives in a game folder, which is
 // exactly why it needs saying out loud: `fieldTests.test.ts` only reads
-// `common/components/fields`, so nothing would have noticed this field taking
+// `common/fields`, so nothing would have noticed this field taking
 // its own ad-hoc props and quietly dropping `help`, `entryHelp` and `disabled`.
 expectFieldContract((props) => render(
   <PuzzleSourceField

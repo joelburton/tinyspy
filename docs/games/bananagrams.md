@@ -2,7 +2,7 @@
 
 > **Status: live (v3).** The bank loop — deal, the derived hand (the `board` +
 > `tiles` split), ⟲ shuffle, **peel**, **dump**, and snapshot persistence — sits on
-> the shared two-column scaffold (`common/components/game/PlayArea.module.css`) with
+> the shared two-column scaffold (`common/game-page/playArea.module.css`) with
 > the v3 info-column chrome. bananagrams is the roster's **documented exception** to
 > "everything needed to make a move lives in the board column": the board is a
 > zoom/scroll arena that FILLS the left column, and the hand + peel + dump live in
