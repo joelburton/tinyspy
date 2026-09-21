@@ -298,8 +298,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // in (`buildDisplayRows` dedups found + appends the unfound) — required always,
       // bonus only on a board with a genuinely wider legal band; mid-game there's no
       // reveal, so only found words show. The print follows the screen deliberately:
-      // the missed-word list IS the post-game artifact. Look up each found word's
-      // points (the shared row type carries the finder/bonus but not the score).
+      // the missed-word list IS the post-game artifact.
       // Gated on `isTerminal`, which is the whole rule for these three word-finding
       // games: at game over the missed words fold into the list, and the WHO
       // filter (found / missed) is the only control anyone needs over them.
@@ -310,14 +309,13 @@ export function PlayArea(ctx: GamePageCtx) {
       const revealWords = isTerminal
         ? buildRevealWords(game.required_words, hasBonusDifficulty ? game.bonus_words : [], foundWords)
         : null
-      const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
       const words = buildDisplayRows(foundWords, revealWords).map((r) => ({
         word: r.word.toUpperCase(),
         bonus: r.isBonus ?? false,
         // A found word carries score + finder; an unfound (missed) reveal entry is bare.
         found:
           r.kind === 'found'
-            ? { points: pointsByWord.get(r.word) ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
+            ? { points: r.points ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
             : null,
       }))
       printBogglePdf({

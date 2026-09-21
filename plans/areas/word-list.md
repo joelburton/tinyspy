@@ -518,6 +518,16 @@ work and the sentence is false in three files.
 2. Fold into F-15's seam, which rewrites those lines anyway.
 3. A line in each game's `todo.md`.
 
+**WORKED 2026-09-21 as (1).** Option (2) had already closed — F-15's seam
+shipped without it — so the choice was fix-here or file, and this area owns the
+row type. Each print site reads `r.points ?? 0`; the map, its build and the
+false sentence are gone from all three.
+
+The sentence is the part worth naming: three files said the shared row type
+carries finder, bonus and pangram *but not score*, which stopped being true on
+2026-08-07 when `points` joined the row for the heading's tally. It read as a
+reason, so it kept the dead map alive in three places for six weeks.
+
 ### F-word-list-15 · `rows-seam` · What the callers build before they can call
 
 Joel's question at the opening. Each of the three games, before `<WordList>`

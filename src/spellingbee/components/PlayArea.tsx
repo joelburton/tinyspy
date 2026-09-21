@@ -186,8 +186,7 @@ export function PlayArea(ctx: GamePageCtx) {
       // required AND bonus — folds in (`buildDisplayRows` dedups found + appends the
       // unfound). The print deliberately follows the screen here: the missed-word
       // list IS the post-game artifact, so a printout that quietly dropped the bonus
-      // half would be a different document from the one on screen. Look up each found
-      // word's points (the shared row type carries finder/bonus/pangram, not score).
+      // half would be a different document from the one on screen.
       // Gated on `isTerminal`, which is the whole rule for these three word-finding
       // games: at game over the missed words fold into the list, and the WHO
       // filter (found / missed) is the only control anyone needs over them.
@@ -195,7 +194,6 @@ export function PlayArea(ctx: GamePageCtx) {
       // confusing way to switch the same two lists (docs/ui.md → Terminal
       // results) — and the answer is withheld one beat by that filter's
       // terminal DEFAULT, Found, which is where such a change belongs.
-      const pointsByWord = new Map(foundWords.map((w) => [w.word, w.points]))
       const words = buildWordListRows({
         foundWords,
         requiredWords: game.requiredWords,
@@ -208,7 +206,7 @@ export function PlayArea(ctx: GamePageCtx) {
         bonus: r.isBonus ?? false,
         found:
           r.kind === 'found'
-            ? { points: pointsByWord.get(r.word) ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
+            ? { points: r.points ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
             : null,
       }))
       const rankIdx = currentRankIndex(foundWordsScore, game.required_words_score)
