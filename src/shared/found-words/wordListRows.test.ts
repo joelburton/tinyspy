@@ -2,9 +2,8 @@
 
 /**
  * What composing the reveal and the merge in one call promises: the gate is
- * `isTerminal` and nothing else, `hasBonus` decides how much of the missed set
- * is revealed, and the SAME call answers for the screen and the printer — which
- * is the property that stops a printed board disagreeing with the one on screen.
+ * `isTerminal` and nothing else, and `hasBonus` decides how much of the missed
+ * set is revealed.
  */
 import { describe, expect, it } from 'vitest'
 import type { FoundWordRow, FoundWordsWord } from './foundWords'
@@ -62,20 +61,6 @@ describe('buildWordListRows', () => {
       isTerminal: true,
     })
     expect(words(rows)).toEqual(['alpha', 'bravo'])
-  })
-
-  it('answers identically for two callers given the same game — the screen and the print', () => {
-    // Not a tautology about one function: the printer used to re-derive this
-    // recipe, and the point of the seam is that it can no longer drift from the
-    // screen's copy of it.
-    const args = {
-      foundWords: [found('bravo', 'u2')],
-      requiredWords: REQUIRED,
-      bonusWords: BONUS,
-      hasBonus: true,
-      isTerminal: true,
-    }
-    expect(buildWordListRows(args)).toEqual(buildWordListRows(args))
   })
 
   it('keeps every finder of a word several people found', () => {

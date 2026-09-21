@@ -29,11 +29,11 @@ with an obvious fix (F-9); two are tests, one of them confirmed by planting
 `todo.md` item); one is docs outside the folder (F-15). The stamps stay
 `cs-met` until the prose pass ships.
 
-**Shipped since the read:** F-6 (the answer union, named `WordSubmitAnswer` by
-Joel), F-7 (`WordEntry` → `LegalWord`), F-8 (the structural row types) and
-F-12 (the loading/empty rule), plus F-9 (the dead `??`). The prose pass F-1 to
-F-5 has not run; F-7's
-`doc.md` sentence is held for it.
+**Shipped since the read**, in the order Joel ruled them: F-6 (the answer
+union, which he named `WordSubmitAnswer`), F-7 (`WordEntry` → `LegalWord`),
+F-8 (the structural row types), F-12 (the loading/empty rule), F-9 (the dead
+`??`) and F-10 (the tautology, with its `spellingbee.md` clause). The prose
+pass F-1 to F-5 has not run, and F-7's `doc.md` sentence is held for it.
 
 ## The roster
 
@@ -379,6 +379,19 @@ building. No decision in it; an obvious fix, waiting for the go.
 
 ### F-found-words-10 · `screen-print-tautology` · A test that any implementation passes
 
+**SHIPPED, 2026-09-21** (Joel: *"do it"*). The case is gone (five → four), and
+`docs/games/spellingbee.md`'s test-table row lost the clause with it — the F-15
+half that belonged to this edit. The property it was reaching for stays where
+it was already stated by construction, in `buildWordListRows`'s own docstring.
+28 of 28 green in the folder.
+
+**One site beyond the finding.** The spec's own header docstring made the same
+claim — *"the SAME call answers for the screen and the printer — which is the
+property that stops a printed board disagreeing with the one on screen"* — so
+deleting the case alone would have left the file promising a case it no longer
+has. Trimmed to the two properties it does pin. Found by re-reading the header
+after the fix; nothing else in `src/` or `docs/` claims it.
+
 `wordListRows.test.ts:67–79`, *"answers identically for two callers given the
 same game — the screen and the print"*: it calls `buildWordListRows(args)`
 twice with the same object and asserts the two results are equal. A pure
@@ -571,7 +584,7 @@ C-pass the same day.
   PlayAreas — until the sweep lands.~~ Shipped; nothing broke.
 - ~~F-8 (1): `wordListRows.test.ts` — `found()` builds a row without `game_id`.~~
   Shipped; predicted correctly, and the fix was the one line.
-- F-10: one case fewer in `wordListRows.test.ts` (five → four).
+- ~~F-10: one case fewer in `wordListRows.test.ts` (five → four).~~ Shipped.
 - F-11: four cases more in `useFoundWordSubmit.test.ts` (13 → 17).
 - F-13: `src/guards/vocabularies.test.ts:288` — the pending row is deleted
   with the conversion, or the guard reports a converted value still listed.

@@ -638,7 +638,7 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 | `src/spellingbee/lib/pangram.test.ts` | `isPangram` boundary cases (6/7/8 distinct, case-insensitive). |
 | `src/spellingbee/lib/letterMask.test.ts` | `letterMask` round-trips, `popcount26`, `isSubsetMask`. |
 | `src/shared/found-words/foundWordsDisplayRows.test.ts` | (shared) Found-word dedup to the first finder, found-shadows-reveal, alphabetical merge → shared `WordListRow`s. |
-| `src/shared/found-words/wordListRows.test.ts` | (shared) The one call above it: `isTerminal` is the reveal's only gate, `hasBonus` decides how much of the missed set comes back, and the screen and the printer get the same answer. |
+| `src/shared/found-words/wordListRows.test.ts` | (shared) The one call above it: `isTerminal` is the reveal's only gate, and `hasBonus` decides how much of the missed set comes back. |
 | `src/common/word-list/useRecentlyFound.test.ts` | (shared) Initial-quiet, fresh-arrival, 5s expiry, staggered expiry per word, no-op rerender idempotency. |
 
 ## File locations
