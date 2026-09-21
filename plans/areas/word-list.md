@@ -5,8 +5,12 @@ The folders it reads: `word-list`. The process is
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
 **Status: OPEN — opened 2026-09-20, paused the same day and RESUMED 2026-09-20**
-once the one-mark-hook work landed in the re-opened `board-marks`. Nothing was
-abandoned: the seventeen findings stand, and the prose pass is the next step.
+once the one-mark-hook work landed in the re-opened `board-marks`. **Every
+finding from the read is worked or closed (2026-09-21, `42ac72e3`..`b76fa483`).
+The closing re-read ran 2026-09-21 and found thirteen more, F-19 to F-31, all
+OPEN** — see [The closing re-read](#the-closing-re-read--2026-09-21). Baseline
+at the re-read: 70 of 70 tests green in `word-list` + `word-hunt`, lint and
+`tsc -b` clean, the working tree clean.
 
 **The audit READ is DONE (2026-09-20).** Every roster file read end to end —
 the three source files, the stylesheet, the three specs, `doc.md` and
@@ -26,9 +30,9 @@ is tests (F-13); two are what the callers showed, read with Joel's refactor
 question in mind (F-14, F-15); one is a `@@` call listed so it is not passed
 over (F-16); one is a doc outside the folder (F-17).
 
-**The prose pass is NOT started.** It is the next step: `doc.md`'s intro and
-Details, the marker pass, the docstrings shrunk to the caller, the stale
-claims — F-1 to F-4 as one commit — and only then a finding at a time.
+**The prose pass shipped as one commit (`42ac72e3`, F-1 to F-4), then a
+finding at a time.** What the area still owes before Joel's blessing: the
+re-read's findings below, then the `doc.md` harvest of whatever they add.
 
 ## The roster
 
@@ -650,6 +654,192 @@ is one of the two panels that often appear in the info column, the other being
 the event log. Everything else in it goes — to docstrings if it is the calling
 contract, to `doc.md` if it is orientation, to `shared/word-hunt` if it is the
 reveal's.
+
+### The closing re-read — 2026-09-21
+
+Every roster file re-read end to end in one sitting, then the three InfoCols,
+the three `PlayArea.tsx` row-building and print sites, the two files the area
+created in `shared/word-hunt`, and every doc line that names the list. For each
+worked finding the grep that would find the same defect elsewhere was run over
+the folder, its callers, and `docs/`. Thirteen more. The shape, for the fifth
+area running: **most of them were written by this area's own findings** — F-18
+(the terminal default) wrote its rationale into nine places and left "yet" in
+two lines it made reachable at terminal; F-15 (the rows seam) moved a call and
+left two comments, a prop note and a game doc naming the function beneath it;
+F-4 was declared done with one of its own listed sites unworked. One is a test
+whose name promises what its body never reaches, found by planting rather than
+reading — the third such in this area.
+
+### F-word-list-19 · `rationale-nine-places` · The terminal default's rationale is written nine times
+
+F-18's design paragraph — the missed words fold in at terminal, the WHO default
+of Found is the beat before the answer, the axis IS the reveal so there is no
+Reveal button, a button would be two ways to switch the same two lists — is
+now in `doc.md` (the intro's third paragraph, the home) AND, near-verbatim:
+
+- `useWordListFilter.tsx` at `whoDefault` (six lines)
+- `useWordListFilter.test.tsx` → 'defaults to Legal · Found at terminal' (four lines)
+- `WordList.test.tsx` → 'counts and scores what is SHOWN' (two lines)
+- the three print sites — spellingbee's, wordwheel's and boggle's
+  `actPrintBoard` — **seven identical lines each**, beginning "Gated on
+  `isTerminal`, which is the whole rule for these three word-finding games"
+- boggle's `wordRows` site, a fourth copy of the same six lines
+- `docs/ui.md` → Terminal results and `docs/common.md` → the reveal paragraph
+  (F-20's two, which also get it wrong)
+
+The two InfoCol comments are the right size — one sentence, "the list holds
+them one select back behind its WHO filter's Found default" — and stay. The
+rule is the one `board-marks` relearned this week: a comment beside a shared
+decision is one sentence and a pointer, and the doc is the copy that stays
+right. The print sites' seven lines shrink to their first sentence (the gate is
+`isTerminal`; the WHO filter is the control; see `word-list/doc.md`), the hook's
+comment to two, the two spec comments to one each.
+
+### F-word-list-20 · `kind-not-who` · Two docs say the reveal control is the KIND filter, in the tense of a change not yet made
+
+`docs/ui.md:245` and `docs/common.md:532` carry one paragraph twice: *"the word
+list's KIND filter (found / missed) already is that control … If we ever wanted
+them to withhold it, the change is that filter's default, not a new control."*
+Two faults. Found / Missed is the **WHO** axis; KIND is Legal / Required /
+Bonus. And F-18 made exactly the change the sentence holds in reserve, so both
+now describe the road taken as untaken and say the three games "show their
+missed-word list at terminal" with no mention of the hold. (`docs/deferred.md:191`
+says "their found/missed filter" with no axis named, and is fine.) The fix is
+the axis and the tense in both; whether `common.md` should restate `ui.md`'s
+paragraph at all is `common.md`'s question, not this area's.
+
+### F-word-list-21 · `f4-unworked-site` · F-4's "(spellingbee, boggle)" survives at its own listed site, and at three siblings
+
+F-4 listed `docs/playarea.md:356` and the commit that worked it (`42ac72e3`)
+touched `playarea.md` for the section rewrite and left that line as it was:
+*"the alphabetical `<WordList>` (spellingbee/boggle)"*. The `club-page` shape —
+a finding declared done with a listed site unworked. Siblings the grep found:
+
+- `docs/playarea.md:39` — *"**word list** (alphabetical found-words;
+  boggle/spellingbee)"*
+- `docs/playarea.md:797` — *"spellingbee + boggle are decomposed but have **no**
+  viewer"*; wordwheel has none either
+- `docs/deferred.md:217–219` — the heading *"Wordlist markers (spellingbee +
+  boggle)"* and *"used by both spellingbee and boggle"*. The sentence can say
+  three games; the heading is an anchor target from `spellingbee.md:699` and
+  `deferred.md:348`, so renaming it is a `docLinks.test.ts` run, not a free edit.
+
+`docs/mobile.md`'s "spellingbee + boggle were the original wide-sheet pair" is a
+history of that pass and stays.
+
+### F-word-list-22 · `spellingbee-doc-stale` · spellingbee's doc describes the rows call and the prop this area removed
+
+Made false by this area's own commits (F-6 and F-15 both edited spellingbee's
+`PlayArea.tsx`), so it is this area's to fix even though the file is
+spellingbee's:
+
+- `docs/games/spellingbee.md:478–481` — *"builds its rows via the shared
+  `foundWordsDisplayRows.buildDisplayRows(foundWords, buildRevealWords(…))` and
+  passes `reveal` + `hasBonus`"* — the call is `buildWordListRows`, and `reveal`
+  is gone
+- `:579` — *"`<WordList revealWords={game.requiredWords}>` merges the unfound
+  required words"* — a prop the component has never taken under that name,
+  and the reveal covers both lists
+- `:655` — *"spellingbee builds its rows via the shared
+  `foundWordsDisplayRows.ts`"* — now `wordListRows.ts`
+- `:639–640` — the test table lists `foundWordsDisplayRows.test.ts` and
+  `useRecentlyFound.test.ts` and not `wordListRows.test.ts`
+
+`docs/games/wordwheel.md` has no such line (its only rows mention is a
+pre-reorg test path that is wordwheel's own), and `docs/games/boggle.md:520`
+("boggle builds its rows via `lib/displayRows`") is still true.
+
+### F-word-list-23 · `inner-function-named` · Four sentences name the function beneath the one that is called
+
+F-15 replaced the call and F-4's prose, written the same day, names the layer
+under it:
+
+- spellingbee's and wordwheel's print comments — *"(`buildDisplayRows` dedups
+  found + appends the unfound)"* — over a call to `buildWordListRows`. boggle's
+  copy is right, since boggle still calls `buildDisplayRows`.
+- `WordList.tsx` → `Props.rows` — *"`shared/word-hunt/foundWordsDisplayRows.ts`
+  builds them for spellingbee and wordwheel"* — true one layer down; the file a
+  reader opens is `wordListRows.ts`
+- `doc.md` → Details, the sentence under the diagram — the same claim
+
+And one in the file the area wrote: `wordListRows.ts`'s docstring says the four
+steps begin with *"decide whether the game is over"*, and the function decides
+nothing — it is told, through `isTerminal`. "Gate on whether the game is over."
+
+### F-word-list-24 · `empty-line-test-lies` · A test named for the empty line never reaches it
+
+`WordList.test.tsx` → 'renders the hook's empty line when a filter matches
+nothing': every pick in its body leaves a row on screen (Missed + Required
+keeps CHAFE, Missed + Bonus keeps ZHO) and the assertions are those rows. It
+tests that KIND narrows within Missed, which the test above it does not, so it
+is a real test under a false name. **Planted 2026-09-21**: the component's
+`<li className="emptyState">{wordFilter.emptyText}</li>` replaced with a
+literal — 12 of 12 green. So the one line F-13 listed for the empty line is
+still unpinned at the component; the hook's text is pinned in the hook's spec,
+but not that the component renders it. The fix is a combination that does
+empty — Bonus + ada, who found no bonus word — asserting the line, and the
+existing test renamed for what it does.
+
+### F-word-list-25 · `yet-at-terminal` · "yet" survives at terminal in the KIND and player lines
+
+F-18 found "No words yet" a lie on a finished game and added the Found branch —
+and `emptyTextFor` still takes no `isTerminal`, so the other lines say "yet" at
+terminal too. Two are reachable: pick a player who found nothing → *"Nothing
+from moth yet."*; pick a player and Bonus → *"No bonus words from moth yet."*
+The spec pins the wording at terminal without noticing —
+`useWordListFilter.test.tsx` → 'names the KIND', 'names the player, by handle'
+and 'names both' all run on a `Probe` whose default is `isTerminal: true` and
+assert the "yet." lines. The hook has `isTerminal` in hand; the tense follows
+it. Decision-sized only in the wording of the terminal forms.
+
+### F-word-list-26 · `dead-guard` · `who !== FOUND` after the FOUND return
+
+`useWordListFilter.tsx` → `emptyTextFor`: `if (who === FOUND) return …` on one
+line, `if (who !== ALL && who !== FOUND)` on the next. The second clause is
+dead, written by F-18 when the Found branch went in above a guard that had not
+needed it. `if (who !== ALL)`.
+
+### F-word-list-27 · `docstring-default` · The hook's docstring says WHO defaults to All
+
+`useWordListFilter`'s docstring table: *"WHO All (default) · Found · Missed ·
+…"*. Since F-18 the default is Found at terminal once a missed row exists, and
+that flip is the one thing about the default a caller most needs — it is how the
+answer is held back. The table names the mid-game default as if it were the
+only one.
+
+### F-word-list-28 · `test-header-stale` · `WordList.test.tsx`'s header describes one of its three describes
+
+The file header still reads *"Tests for the shared WordList's heading tally"*
+and explains only the tally; F-6 and F-13 grew the file two more `describe`s
+(the underline, what a row wears), each with its own docstring, and nobody
+re-read the header. Twelve tests, four of them the tally's.
+
+### F-word-list-29 · `css-comment-nits` · Two sentences in the stylesheet
+
+- `.list` → `--wl-col-width`: *"A custom property so the row arithmetic above
+  can read it."* Nothing above reads it; what reads it is `grid-auto-columns`
+  below, and that is the column's width, not row arithmetic. F-4 kept this
+  sentence as "the one worth keeping" and it was wrong when kept.
+- `.unfound`: *"Unfound **required** words (the post-terminal reveal — what the
+  team / field missed)"*. The reveal covers both lists, which the TSX says two
+  rules away and F-4 fixed in the row type's docstring; "required" is the same
+  stale word one file over.
+
+### F-word-list-30 · `px-question-homeless` · The px-in-a-rem-column question has no home
+
+F-12 ends *"whether a row's height is a px decision or a rem one is still
+open"* — `--wl-row-height: 26px` beside `--wl-col-width: 10.5rem` — and
+`todo.md` is empty. The closing checklist's "todo.md holds everything still
+owed" is unmet while an open question lives only in this file. Either a
+`Maybe` line in `todo.md` or a `Won't do` ruling with the reason; Joel's call.
+
+### F-word-list-31 · `created-files-roster` · The two files the area created are off the roster
+
+`git log --diff-filter=A` over the area's commits: `shared/word-hunt/wordListRows.ts`
+and its test, both `cs-unmet` and on no roster. The rule from `deep`'s close
+(Joel, 2026-09-02: a file the area created is the area's, wherever it lives)
+puts them on this roster with this area's stamp. They were read at this
+re-read; F-23 has the one sentence in them to fix.
 
 ## Notes
 
