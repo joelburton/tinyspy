@@ -44,7 +44,7 @@
   padding: 0;
   /* Referenced by the row style below; a token so the row count is derived from
    * it and the box height rather than stated twice. */
-/* @@ */   --wl-row-height: 26px;
+/* @@ */   --wl-row-height: 1.625rem;
   /* Column WIDTH as a real defined token (not a `var(--x, fallback)`, which
    * src/guards/cssTokens.test.ts flags as phantom — see Board.module.css's same
    * note). A custom property so the row arithmetic above can read it. */

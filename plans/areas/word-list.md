@@ -7,8 +7,9 @@ the reading. Owed work lives in each folder's `todo.md`, not here.
 **Status: OPEN — opened 2026-09-20, paused the same day and RESUMED 2026-09-20**
 once the one-mark-hook work landed in the re-opened `board-marks`. **Every
 finding from the read is worked or closed (2026-09-21, `42ac72e3`..`b76fa483`).
-The closing re-read ran 2026-09-21 and found thirteen more, F-19 to F-31, all
-OPEN** — see [The closing re-read](#the-closing-re-read--2026-09-21). Baseline
+The closing re-read ran 2026-09-21 and found thirteen more, F-19 to F-31; the
+two that were Joel's calls (F-25, F-30) are worked and the rest are OPEN** — see
+[The closing re-read](#the-closing-re-read--2026-09-21). Baseline
 at the re-read: 70 of 70 tests green in `word-list` + `word-hunt`, lint and
 `tsc -b` clean, the working tree clean.
 
@@ -515,9 +516,9 @@ padding wrong, and it was read as a scope note about the pending list rather tha
 as the rule it is — Joel caught the conversion. Only `7px` is on the pending row;
 the `17px` row is deleted outright.
 
-The px-in-a-rem-column question is NOT answered by this: `26px` and `10.5rem`
-are untouched, and whether a row's height is a px decision or a rem one is still
-open.
+The px-in-a-rem-column question was NOT answered by this: `26px` and `10.5rem`
+were untouched, and whether a row's height is a px decision or a rem one stayed
+open until F-30 asked it.
 
 ### F-word-list-13 · `rows-untested` · The spec pins the heading and nothing below it
 
@@ -844,6 +845,14 @@ open"* — `--wl-row-height: 26px` beside `--wl-col-width: 10.5rem` — and
 `todo.md` is empty. The closing checklist's "todo.md holds everything still
 owed" is unmet while an open question lives only in this file. Either a
 `Maybe` line in `todo.md` or a `Won't do` ruling with the reason; Joel's call.
+
+**WORKED 2026-09-21 — converted, not filed** (Joel, over a `Maybe` line and a
+`Won't do` ruling). `--wl-row-height` is `1.625rem`, the same 26 pixels at the
+default root size, so nothing visible moves; it now follows the column's own
+"a rem, never a pixel lock" rule beside the `10.5rem` width. Only the grid's
+row template and the row's `line-height` read the token, and nothing in TS
+assumes the pixel count. `todo.md` stays empty, which is the answer to the
+checklist line. F-12's tail is updated to say the question was answered here.
 
 ### F-word-list-31 · `created-files-roster` · The two files the area created are off the roster
 
