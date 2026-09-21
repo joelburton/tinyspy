@@ -31,7 +31,8 @@ with an obvious fix (F-9); two are tests, one of them confirmed by planting
 
 **Shipped since the read:** F-6 (the answer union, named `WordSubmitAnswer` by
 Joel), F-7 (`WordEntry` → `LegalWord`), F-8 (the structural row types) and
-F-12 (the loading/empty rule). The prose pass F-1 to F-5 has not run; F-7's
+F-12 (the loading/empty rule), plus F-9 (the dead `??`). The prose pass F-1 to
+F-5 has not run; F-7's
 `doc.md` sentence is held for it.
 
 ## The roster
@@ -356,6 +357,17 @@ without `game_id` and fails `tsc`; it takes the field (or the helper in
 moves to a shared fixture — a tiny one for two files).
 
 ### F-found-words-9 · `finderids-dead-fallback` · A `??` arm that cannot run
+
+**SHIPPED, 2026-09-21** (Joel: *"do it"*). One map, `Map<string, { first:
+FoundWordRow; finderIds: string[] }>`, so the `if (!seen)` branch states the
+whole rule at once — the first row of a word wins the attribution AND opens the
+finder list — where it was split across two ifs on two maps and re-asserted by
+the `??`. The reveal's shadow check reads the same map. 29 of 29 green in the
+folder, `tsc -b` and lint clean.
+
+**The rewritten loop is pinned, confirmed by planting:** reversing the sort to
+latest-first failed 3 of the spec's 8 cases. So the earliest-finder rule is a
+real assertion, not an accident of fixture order.
 
 `foundWordsDisplayRows.ts:76`: `finderIds: findersByWord.get(r.word) ??
 [r.user_id]`. The loop above fills `foundByWord` and `findersByWord` for the

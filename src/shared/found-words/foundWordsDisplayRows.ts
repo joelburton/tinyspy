@@ -35,33 +35,32 @@ export function buildDisplayRows(
   foundWords: readonly FoundWordRow[],
   revealWords: readonly RevealWord<FoundWordsWord>[] | null | undefined,
 ): WordListRow[] {
-  // Dedup found rows by word, keeping the earliest finder. `found_at` is an ISO
-  // timestamp, so a lexicographic compare is chronological.
-  const foundByWord = new Map<string, FoundWordRow>()
-  // Every finder per word, in first-found order — the WHO filter's input.
-  const findersByWord = new Map<string, string[]>()
+  // One entry per word: the row that wins the attribution, and every finder in
+  // first-found order (the WHO filter's input). Walked earliest-first, so the
+  // first row of a word opens its entry and later ones only add finders.
+  // `found_at` is an ISO timestamp, so a lexicographic compare is chronological.
+  const byWord = new Map<string, { first: FoundWordRow; finderIds: string[] }>()
   for (const r of [...foundWords].sort((a, b) => a.found_at.localeCompare(b.found_at))) {
-    if (!foundByWord.has(r.word)) foundByWord.set(r.word, r)
-    const finders = findersByWord.get(r.word)
-    if (!finders) findersByWord.set(r.word, [r.user_id])
-    else if (!finders.includes(r.user_id)) finders.push(r.user_id)
+    const seen = byWord.get(r.word)
+    if (!seen) byWord.set(r.word, { first: r, finderIds: [r.user_id] })
+    else if (!seen.finderIds.includes(r.user_id)) seen.finderIds.push(r.user_id)
   }
 
   const rows: WordListRow[] = []
-  for (const r of foundByWord.values()) {
+  for (const { first, finderIds } of byWord.values()) {
     rows.push({
       kind: 'found',
-      word: r.word,
-      userId: r.user_id,
-      finderIds: findersByWord.get(r.word) ?? [r.user_id],
-      isBonus: r.is_bonus,
-      isPangram: r.is_pangram,
-      points: r.points,
+      word: first.word,
+      userId: first.user_id,
+      finderIds,
+      isBonus: first.is_bonus,
+      isPangram: first.is_pangram,
+      points: first.points,
     })
   }
   if (revealWords) {
     for (const sw of revealWords) {
-      if (foundByWord.has(sw.word)) continue // shadowed by a found row
+      if (byWord.has(sw.word)) continue // shadowed by a found row
       rows.push({ kind: 'unfound', word: sw.word, isBonus: sw.is_bonus, isPangram: sw.is_pangram, points: sw.points })
     }
   }
