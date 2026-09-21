@@ -3,7 +3,7 @@
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { AnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
+import type { Mark } from '@/common/board-marks/useMark'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import history from '@/common/event-log/historyViewer.module.css'
 import { DimmedBaseWord } from './DimmedBaseWord'
@@ -48,7 +48,7 @@ export function GuessBoard({
   held?: { word: string; length: number; awaitingRow: boolean } | null
   /** The answer on whichever row its word is in, for a beat: a teammate's word
    *  is already a landed row, mine may still be the held one. */
-  flash?: AnnouncedMark<{ word: string; outcome: Outcome }> | null
+  flash?: Mark<{ word: string; outcome: Outcome }> | null
   /** A past row is open: the board wears the shared history frame and the rows
    *  drawn are that moment's, not the live ones. */
   isViewingHistory?: boolean
@@ -64,11 +64,11 @@ export function GuessBoard({
   /** The marks a row wears while it is the answered one. */
   const answerMarks = (a: NonNullable<typeof flash>) =>
     cls(
-      a.phase === 'pointing' && shared.attentionFlash,
-      a.phase === 'answering' && styles.answered,
-      a.phase === 'answering' && VERDICT_TONE[a.value.outcome],
+      a.phase === 'attention' && shared.attentionFlash,
+      a.phase === 'answer' && styles.answered,
+      a.phase === 'answer' && VERDICT_TONE[a.value.outcome],
       // Side to side means "not a winning move", so only a win is spared it.
-      a.phase === 'answering' && a.value.outcome !== 'won' && shared.verdictShake,
+      a.phase === 'answer' && a.value.outcome !== 'won' && shared.verdictShake,
     )
 
   return (

@@ -12,7 +12,7 @@ import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import history from '@/common/event-log/historyViewer.module.css'
 import shared from '@/common/game-page/playArea.module.css'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { AnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
+import type { Mark } from '@/common/board-marks/useMark'
 import type { Actor } from '@/common/members/member'
 import styles from './PlayArea.module.css'
 
@@ -55,7 +55,7 @@ export function BoardCol({
    *  `<GuessBoard>`. */
   held: { word: string; length: number; awaitingRow: boolean } | null
   /** The answer being shown on the row that word is in, for a beat. */
-  flash: AnnouncedMark<{ word: string; outcome: Outcome }> | null
+  flash: Mark<{ word: string; outcome: Outcome }> | null
   word: string
   onChange: Dispatch<SetStateAction<string>>
   onSubmit: () => void

@@ -28,7 +28,6 @@ import { useGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFlash } from '@/common/board-marks/useFlash'
 import { useMark } from '@/common/board-marks/useMark'
-import { useAnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
 import { ATTENTION_FLASH_MS, WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
@@ -187,11 +186,11 @@ export function PlayArea({
   // The mark carries the ANSWER, not a color: whether the word was accepted is a
   // fact two different things downstream need — the outcome the tiles wear, and
   // whether the tiles are being held at all (only an accepted word takes them).
-  const [peerMark, showPeerMark] = useAnnouncedMark<{ ids: number[]; answer: Answer }>()
+  const [peerMark, showPeerMark] = useMark<{ ids: number[]; answer: Answer }>(WORD_ANSWER_MS)
   const markPeerWord = useCallback(
     (tileIds: number[], answer: Answer) => {
       if (tileIds.length === 0) return
-      showPeerMark({ ids: tileIds, answer })
+      showPeerMark({ ids: tileIds, answer }, { attention: true })
     },
     [showPeerMark],
   )
@@ -204,7 +203,7 @@ export function PlayArea({
   // answer; its tiles are off the board until the beat ends. The answer only —
   // no announcement, since the player is looking at the word they just typed —
   // and the sequence's end is where the tiles go home (`onEnd`, at the raise).
-  const [refusedWord, showRefusedWord] = useAnnouncedMark<number[]>()
+  const [refusedWord, showRefusedWord] = useMark<number[]>(WORD_ANSWER_MS)
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
@@ -277,7 +276,6 @@ export function PlayArea({
         // tiles stay off the board while it does — coming back only once the
         // beat ends, wearing the attention flash so the eye follows them home.
         showRefusedWord(tileIds, {
-          announce: false,
           onEnd: () => {
             clearWord()
             flashReturned(tileIds)
@@ -504,14 +502,14 @@ export function PlayArea({
    *  shows, and my own refused tiles as they land back. */
   const attentionTiles = useMemo(() => {
     const ids = new Set<number>(returnedTiles)
-    if (peerMark?.phase === 'pointing') for (const id of peerMark.value.ids) ids.add(id)
+    if (peerMark?.phase === 'attention') for (const id of peerMark.value.ids) ids.add(id)
     return ids
   }, [returnedTiles, peerMark])
 
   /** A teammate's answer, once the attention flash has handed the tiles back. */
   const boardAnswer = useMemo(
     () =>
-      peerMark?.phase === 'answering'
+      peerMark?.phase === 'answer'
         ? { ids: new Set(peerMark.value.ids), outcome: ANSWER_OUTCOME[peerMark.value.answer] }
         : null,
     [peerMark],

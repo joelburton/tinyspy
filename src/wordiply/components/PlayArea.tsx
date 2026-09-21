@@ -17,7 +17,8 @@ import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { useWordSubmit, type WordEntry } from '@/shared/word-hunt/useWordSubmit'
-import { useAnnouncedMark } from '@/common/board-marks/useAnnouncedMark'
+import { useMark } from '@/common/board-marks/useMark'
+import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { lengthScore } from '../lib/scoring'
 import type { WordiplySetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
@@ -208,7 +209,7 @@ export function PlayArea(ctx: GamePageCtx) {
   /** The answer being shown on whichever row the word is in. Always timed, for
    *  everyone: a mark that waits for your next move is a mark still claiming
    *  something about a board you have moved on from. */
-  const [flash, showFlash] = useAnnouncedMark<{ word: string; outcome: Outcome }>()
+  const [flash, showFlash] = useMark<{ word: string; outcome: Outcome }>(WORD_ANSWER_MS)
   const showAnswer = useCallback(
     (w: string, outcome: Outcome, peer = false) => {
       // A teammate's word lands in a row nobody was watching, so it is
@@ -226,7 +227,7 @@ export function PlayArea(ctx: GamePageCtx) {
       if (!peer) setHeld({ word: w, length: w.length, awaitingRow: outcome === 'won' })
       showFlash(
         { word: w, outcome },
-        { announce: peer, onEnd: outcome === 'won' ? undefined : () => setHeld(null) },
+        { attention: peer, onEnd: outcome === 'won' ? undefined : () => setHeld(null) },
       )
     },
     [showFlash],

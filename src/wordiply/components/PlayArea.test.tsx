@@ -18,6 +18,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
@@ -29,7 +30,14 @@ import type { WordiplyGame, EventRow } from '../hooks/useGame'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
-type GameHook = { game: WordiplyGame | null; guesses: EventRow[]; loading: boolean }
+type GameHook = {
+  game: WordiplyGame | null
+  guesses: EventRow[]
+  loading: boolean
+  // The rows-arrived flag peer narration gates on; off unless a test is about
+  // a teammate's guess, so nothing else has to think about the seed.
+  rowsLoaded?: boolean
+}
 
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 // The real hook derives validGuesses from guesses; mirror that here rather than
@@ -163,6 +171,12 @@ const typedLength = () =>
 
 /** What a bound action says about itself right now. */
 const stateOf = (id: string) => liveBindings().find((b) => b.id === id)?.describe('button').state
+
+/** The board row holding this word, whatever marks it is wearing. */
+const rowFor = (word: string) =>
+  [...document.querySelectorAll('ol > li')].find((li) =>
+    (li.textContent ?? '').toLowerCase().includes(word),
+  ) as HTMLElement | undefined
 
 beforeEach(() => {
   h.result = { game: loadedGame(), guesses: [], loading: false }
@@ -471,6 +485,67 @@ describe('wordiply PlayArea — event log', () => {
     const banner = document.querySelector('[data-history-banner]') as HTMLElement
     expect(banner.textContent).toContain('moth')
     expect(banner.textContent).toContain('HANGARS — 7 letters')
+  })
+})
+
+/**
+ * WHO the answer is for, which is the one thing the mark's two beats encode.
+ * A teammate's word lands on a row nobody was watching, so it is announced —
+ * the attention flash points at the row, and the outcome's color goes on only
+ * once that flash has faded. My own word needs no pointing at: I am looking at
+ * the row I typed into, so it wears the answer from the first frame.
+ */
+describe('wordiply PlayArea — whose word is announced', () => {
+  it("announces a teammate's word: the flash first, then the answer's color", () => {
+    vi.useFakeTimers()
+    try {
+      h.result = { game: loadedGame(), guesses: [], loading: false, rowsLoaded: true }
+      const ctx = makeCtx({ players: twoMembers })
+      const { rerender } = render(<PlayArea {...ctx} />)
+
+      // moth's word arrives over realtime, onto the shared coop board.
+      h.result = { ...h.result, guesses: [guess('stars', 1, 'u2')] }
+      act(() => rerender(<PlayArea {...ctx} />))
+
+      const row = rowFor('stars') as HTMLElement
+      expect(row.className).toMatch(/attentionFlash/)
+      expect(row.className).not.toMatch(/answered/)
+
+      // Once the flash has faded, the answer — never under a flash still on
+      // top of it.
+      act(() => vi.advanceTimersByTime(ATTENTION_FADE_MS))
+      expect((rowFor('stars') as HTMLElement).className).toMatch(/answered/)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('answers my own word without announcing it', async () => {
+    vi.useFakeTimers()
+    try {
+      rpc.mockResolvedValue(
+        okEnvelope({ result: 'accepted', length: 3, guesses_used: 1, is_terminal: false }),
+      )
+      render(<WithKeys {...makeCtx()} />)
+      await press({ key: 'b' })
+      await press({ key: 'a' })
+      await press({ key: 'r' })
+      await press({ key: 'Enter', code: 'Enter' })
+      // Let the answer arrive: the mock resolves in microtasks, not on a timer,
+      // so no fake time passes here — which is the whole point of the assertion
+      // below.
+      await act(async () => {
+        for (let i = 0; i < 5; i++) await Promise.resolve()
+      })
+
+      // The held row wears the answer from the FIRST frame, with no flash ever
+      // pointing at a row the player is already looking at.
+      const row = rowFor('bar') as HTMLElement
+      expect(row.className).toMatch(/answered/)
+      expect(row.className).not.toMatch(/attentionFlash/)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
