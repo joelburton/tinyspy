@@ -1118,7 +1118,8 @@ board needs no peer-facing refusal mark at all, unlike stackdown's.
 
 ### scrabble · shape 1 and 4
 
-**Today.** Three transient outlines, all on `useFlash`, each on a named beat
+**Today.** Three transient outlines, each its own `useMark` (they can be up at
+once), each on a named beat
 since 2026-09-15 (`WORD_ANSWER_MS` for the green and the red, the attention beat
 for the yellow — consistency first; whether the marks belong at all is this
 pass's question): green on the cells you just played, yellow on the rack slots

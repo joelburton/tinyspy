@@ -498,8 +498,35 @@ next than the hook does.
 Joel, 2026-09-16, on building it at two callers: *"we may have other games use
 'announce-then-mark' pattern in the future."*
 
-**REVERSED 2026-09-20 — the two hooks merge.** See
-[one-mark-hook.md](../one-mark-hook.md). What changed is not the reasoning but
+**REVERSED AND WORKED 2026-09-20 — three hooks are one.** `useFlash`,
+`useMark` and `useAnnouncedMark` became one `useMark(ms)`, with what a mark
+carries, whether it announces itself and when it ends as arguments rather than
+as a choice of import. Sixteen call sites across ten games, in five commits
+(`8402f1f9`..`6fc83794`); `useAnnouncedMark` and `useFlash` are deleted.
+
+What it cost and what it bought, beyond the merge itself. **connections shed
+real logic**: its verdict is one mark whose `phase` draws both beats, so the
+second flash instance, the `flashThenShake` effect with its hand-rolled
+`setTimeout` and the `verdictSeq` counter all went, and `Board` lost two props.
+**letterboxed converted at last** — `NO_TIMER` is the clockless shape this
+finding had to leave it behind for. **The timers moved into an effect keyed on
+the raise**, which is what makes `show` and `clear` legal during render;
+connections' render-phase raise is no longer hand-split from its beats.
+
+**`NO_TIMER` is a unique symbol, not a `null`** (Joel, offering either): a
+lifetime the vocabulary has a word for is asked for BY that word, and the type
+refuses a bare `null`. Planted-verified as a compile error.
+
+**The conversions found a coverage hole wider than the work.** Seven of the
+converted marks had no spec at all — making each one never draw left every
+suite green. Six now have one, each planted-verified: wordiply's audience
+split (inverting it had been silent), psychicnum's flash-then-shake, strands'
+ambiguous rings, setgame's lit arrivals, stackdown's ambiguous rings,
+connections' two beats, and letterboxed's shake with its replay. **scrabble's
+three are still unspecced** and are in this folder's `todo.md`: they need a
+staged-and-committed move, which no scrabble spec has ever built.
+
+The original reversal note follows. What changed is not the reasoning but
 what it is for: the difference between the two hooks is a **per-game ruling that
 tile-feedback turns repeatedly** — scrabble's own comment says its green mark may
 be wrong because a player's own move needs no announcement — and a decision made
@@ -552,15 +579,22 @@ already worked; (3) buys a name for a hook whose body is shorter than its import
 The boggle spec is planted-verified: with the old key restored it fails on the
 tile being the same DOM node across two refusals.
 
-**REVISITED 2026-09-20 — option (2) arrives anyway, as a side effect.** The
-merged `useMark` ([one-mark-hook.md](../one-mark-hook.md)) bumps a nonce on every
-`show`, so the counter is there whether a board reads it or not. That does not
+**REVISITED AND WORKED 2026-09-20 — option (2) arrives anyway, as a side
+effect.** The merged `useMark` bumps a nonce on every `show` and keeps it across
+a clear, so the counter is there whether a board reads it or not. That did not
 overturn this finding's ruling, which was about the three keying idioms, and
-they survive it: boggle, letterboxed and connections key marked PIECES and read
-the engine's nonce, deleting their own; spellingbee and wordwheel key the WHOLE
-BOARD and keep theirs, because a mark's nonce is null most of the time — reading
-it there would change the key a second time as the mark ends, and the board
-would shake again on the way out.
+they survived it exactly as predicted: boggle, letterboxed and connections key
+marked PIECES and read the engine's nonce, each deleting its own counter;
+spellingbee and wordwheel key the WHOLE BOARD and keep theirs, because a mark's
+nonce is null most of the time — reading it there would change the key a second
+time as the mark ends, and the board would shake again on the way out. The rule
+now says all of that beside `.verdictShake`, where the requirement already was.
+
+letterboxed's replay is planted-verified two ways: with the nonce pinned to a
+constant the same word refused twice no longer remounts its letters, and with
+the mark's clear removed a draft typed past the refused word and back shakes a
+second time — the bug this game's own docstring had recorded and nothing had
+ever tested.
 
 ## The closing re-read, 2026-09-16
 

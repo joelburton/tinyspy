@@ -2,9 +2,8 @@
 
 The marks a board wears for a beat and then takes off: the attention flash on
 the pieces a move just changed, the frame at the moment the turn becomes yours,
-and the hot set or single mark a game raises for its own reasons — with every
-mark's lifetime. None of them is state — a mark says "look here", never "this is
-how things are".
+and the marks a game raises for its own reasons — with every mark's lifetime.
+None of them is state — a mark says "look here", never "this is how things are".
 
 ## Intro to area
 
@@ -44,17 +43,13 @@ poor one — you notice things that appear far better than things that stop — 
 never on mount.
 
 The third is the general case: something that should be up for a moment for a
-reason this folder has no opinion about. It comes in two shapes, and the
-difference is what the board needs to know. `useFlash` holds a SET of ids —
-which pieces are hot — and marks an ambiguous letter in the word a player typed,
-or outlines the cells of a word the server just refused. `useMark` holds ONE
-mark with a reason attached, where null means the board is saying nothing: a
-refused word's tiles and the outcome they wear are one fact, not a set of hot
-ids. `useAnnouncedMark` is that mark in two phases, for news the player was not
-watching for — the attention flash points at the pieces, and when it has faded
-they wear the outcome's color. Neither is about a move at all. A mark whose lifetime is "until the next
-action" is neither shape — it has no clock, and the action that ends it is what
-clears it.
+reason this folder has no opinion about. That is `useMark`, and it is one hook
+rather than several because marks differ in three ways — what they carry,
+whether they announce themselves before showing an answer, and when they come
+off — and all three are decisions a game makes per mark and sometimes per
+raise. wordiply announces a teammate's word and not your own from one line. So
+they are arguments at the call, and the hook's docstring is their contract.
+None of this is about a move.
 
 What this folder decides is which pieces are hot and for how long; the drawing
 is CSS, in `game-page/playArea.module.css`. The durations are not written twice:
@@ -72,17 +67,22 @@ something unmarked is made.
 | hook | callers | what it marks |
 |---|---|---|
 | `useMoveAttention` (over `useChangeCause`) | waffle, connections and psychicnum `Board` | the attention flash on pieces a move changed |
-| `useFlash` (a set of hot ids) | connections `BoardCol`, psychicnum `Board`, stackdown `PlayArea` + `BoardCol`, strands `PlayArea`, scrabble `BoardCol` (one per outline color) | an attention flash, a head-shake, an ambiguous letter, scrabble's three placement outlines |
-| `useMark` (one mark, with its reason) | boggle, spellingbee and stackdown `PlayArea` | a refused word's answer, on the tiles or letters it used |
-| `useAnnouncedMark` (one mark, in two phases) | stackdown and wordiply `PlayArea` | a teammate's word: the attention flash, then the outcome's color |
+| `useMark` | every game that marks something of its own, most more than once | a refused word's answer, a teammate's word announced then answered, a head-shake, an ambiguous letter, an arrival, a placement outline |
 | `useTurnStartFlash` | waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives |
 
-setgame is on the two pieces underneath instead: `useChangeCause`, keyed on the
-last claim's id, and `useFlash` for the arrivals. Its mark is not a flash for a
-beat — a claim substitutes cards in place, so the departing cards are held on
-screen before the swap, the claimer sees dim where everyone else sees lit, and
-the two halves have lifetimes chosen against each other (`setgame/lib/flash.ts`).
-That choreography is its own and stays its own.
+setgame is on `useChangeCause` underneath as well, keyed on the last claim's id.
+Its mark is not a flash for a beat — a claim substitutes cards in place, so the
+departing cards are held on screen before the swap, the claimer sees dim where
+everyone else sees lit, and the two halves have lifetimes chosen against each
+other (`setgame/lib/flash.ts`). That choreography is its own and stays its own.
+
+**A mark that holds a SET is derived once, beside the hook** — a board reads
+`mark?.value.ids ?? NO_TILES` against a module-level empty constant and hands
+that down, so nothing below knows a mark is involved. The constant is the point:
+a render at rest must hand children the same object, or everything memoized on
+it recomputes on renders the mark had no part in. Such a set is emptied with
+`clear()`, never by raising a mark of nothing — an empty raise is still a raise,
+with a nonce and a clock.
 
 **Two requirements on the caller's data path**, and both are worth checking
 when a new game raises an attention mark. The content key and the move marker
@@ -115,21 +115,22 @@ What a game times is only the mark's CLASS, on the fade plus a little slack —
 early would clip the animation, late now costs nothing, because the visible mark
 ends by itself.
 
-Neither `useFlash` nor `useMark` has a default duration: a caller says which beat
-it is raising, because a mark's lifetime is part of what the mark means. Passing
-a number of your own is therefore a claim that the mark is a kind the vocabulary
+So `useMark` has no default duration: a caller names the beat it is raising, and
+passing a number of its own is a claim that the mark is a kind the vocabulary
 does not have yet — setgame's hold-then-arrive is the one that is, and its two
-numbers live with the choreography they time.
+numbers live with the choreography they time. The lifetime that is not a
+duration is
+`NO_TIMER` — the mark with no clock, standing until the action that answers it
+clears it: letterboxed's refused word and connections' verdict, which lives
+exactly as long as the pill it arrived with.
 
-**Announce, then answer, and the changeover is the fade.** When a piece has to
-be pointed at AND then wear an outcome — a teammate's word, which the player was
-not watching for — `useAnnouncedMark` runs the two in sequence, and the answer's
-color goes on at exactly the instant the attention flash finishes fading. Any
-earlier paints the answer under a flash still on top of it, so the player sees
-the flash and then a color that arrives unannounced. Both lifetimes are the
-vocabulary's, so the hook takes neither; what a caller chooses is whether to
-announce at all (your own word needs no pointing at) and what should happen
-when the sequence ends, for state a game keeps beside the mark.
+**Announce, then answer, and the changeover is the fade.** A piece that has to
+be pointed at AND then wear an outcome takes the two in sequence, and the
+answer's color goes on at exactly the instant the attention flash finishes
+fading — the instant the piece's own color becomes visible again. The order and
+both instants are the vocabulary's rather than a game's; what a game chooses is
+whether to announce at all, since your own move is news to nobody but the
+table.
 
 **Both halves of the attention mark are animations on that one duration** — the
 flash fading off the piece, and the dark ink it needs while it is up. They begin
@@ -139,22 +140,21 @@ Tying the ink to the class instead is what produced exactly that: a timer that
 fires late (a throttled tab, a constant someone lengthened) left dark ink on a
 piece that had handed its color back.
 
-**`useFlash`'s trigger starts a timer**, so it is called from an event handler
-or an effect and never during render. That is why the attention mark has a hook
-of its own rather than using it: its diff has to run during render to land in
-one commit with the change, so `useMoveAttention` takes the diff as a function
-and raises the set itself.
+**A mark may be raised during render**, which is what lets one land in the same
+commit as the change it points at — the marks whose cause is a comparison of
+renders rather than a click. So `useMoveAttention` exists for what it KNOWS
+rather than for when it may run: it is a move-gated differ over
+`useChangeCause`, and a game raising a mark of its own needs nothing but `show`.
 
-**A mark that must fire twice in a row needs a key that changes.** A CSS
-animation runs once per mount, so a class that is simply present for a beat
-animates once however many times the mark is raised — refuse the same word twice
-inside its own beat and the second refusal moves nothing. What the boards do is
-bump a counter where the mark is raised and put it in the element's `key`, at
-whichever grain the mark has: on the pieces the word used, or on the board itself
-where the whole board shakes. A mark held in a `useFlash` set gets it free, but
-only after the beat, because the class leaves when the timer clears. The rule and
-its reason live beside `.verdictShake` in `game-page/playArea.module.css`, which
-is where someone adding a mark will be standing.
+**A mark that must fire twice in a row needs a key that changes**, because a CSS
+animation runs once per mount. The counter comes with the mark; what a board
+chooses is the GRAIN, and both answers are right where they are used: the pieces
+a word used (boggle, letterboxed, connections), or the board itself where the
+whole board shakes (spellingbee, wordwheel). A whole-board key keeps a counter
+of its own, since a mark is null most of the time and keying on it would remount
+a second time as the mark ends. The rule and its reason live beside
+`.verdictShake` in `game-page/playArea.module.css`, which is where someone adding
+a mark will be standing.
 
 The tile's attention flash is drawn as an overlay rather than as a background, because a
 background cannot be faded and the fade is what makes the mark hand the tile

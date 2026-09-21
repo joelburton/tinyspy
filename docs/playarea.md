@@ -1146,7 +1146,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
 
 - **Split flashes by their trigger, not by where they render.** Both of stackdown's
   flashes *render* inside `BoardCol`'s subtree, but ownership follows the trigger:
-  the red ambiguous-tile flash (`useFlash`) is purely input-engine → lives in
+  the red ambiguous-tile mark is purely input-engine → lives in
   `BoardCol`; the green/red word-slot flash lives in `PlayArea` because a **coop
   teammate's move** (via `usePeerFeedback`) is one of its triggers. Render location
   ≠ state location — lift state to wherever all its triggers already are.
