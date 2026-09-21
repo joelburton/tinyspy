@@ -297,7 +297,12 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/lists/SelectionList.module.css': ['0.6rem', '0.85rem'],
       'src/common/event-log/historyViewer.module.css': ['0.6rem'],
       'src/common/event-log/EventLog.module.css': ['0.5rem', '-1px', '-3px'],
-      'src/common/word-list/WordList.module.css': ['0.5rem', '16px', '7px'],
+      // RECORDED, not unconverted (Joel, 2026-09-21): the breath between the
+      // 0.6em attribution disc and the word it attributes — a marker's gap
+      // rather than a layout step. The file's gap and column-gap converted.
+      // (Its card padding carries a 0.6rem the same ruling keeps bespoke, but
+      // padding is not this vocabulary's — see the properties note above.)
+      'src/common/word-list/WordList.module.css': ['7px'],
       'src/common/info-sheet/OpponentStrip.module.css': ['0.3rem', '0.6rem', '0.35rem'],
       'src/common/pause-suspend/PauseOverlay.module.css': ['0.5rem', '0.75rem', '0.4rem', '1rem'],
       'src/common/game-page/playArea.module.css': ['0.75rem'],
@@ -367,7 +372,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/event-log/historyViewer.module.css': ['1rem'],
       'src/common/event-log/EventLog.module.css': ['0.9rem'],
       'src/common/event-log/gameEventLog.module.css': ['1rem'], //  `.primary`, the row's lead value
-      'src/common/word-list/WordList.module.css': ['17px'],
       'src/common/pause-suspend/PauseOverlay.module.css': ['1.05rem'],
       'src/common/info-sheet/infoCol.module.css': ['0.9rem'],
       'src/common/setup-form/SetupDisclosure.module.css': ['0.85rem'],
@@ -444,6 +448,8 @@ const VOCABULARIES: Vocabulary[] = [
       // wordiply and letterboxed all wrote 0.2em. Unconverted, not
       // unconsidered: it is what makes typed letters read like tiles.
       'src/common/fields/ManualBoardField.module.css': ['0.2em'],
+      // RECORDED (Joel, 2026-09-21): --letter-spacing-label is 0.03em, which
+      // is the ramp for a LABEL — these are words to read, not a label to scan.
       'src/common/word-list/WordList.module.css': ['0.02em'],
       'src/common/game-page/playArea.module.css': ['0.03em'],
       'src/shared/rank-ladder/RankBar.module.css': ['0.04em'],

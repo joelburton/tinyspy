@@ -17,13 +17,17 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--spacer-4);
 }
 
 /* The box's interior: a padded flex row around the column-major list, clipped so
  * the list scrolls HORIZONTALLY inside once words run past the visible columns.
  * The frame (flex sizing + the 2px border) is the shared `infoPanel.box`,
  * composed alongside this; the heading is `infoPanel.heading`. */
+/* Both paddings are literals: the spacer ramp is the space BETWEEN boxes, and
+ * whether the room inside one belongs on it is parked (core-css/todo.md). The
+ * horizontal 0.6rem is tuned to the column grid besides — the gutter that keeps
+ * the first column off the border without eating a column's worth of width. */
 /* @@ */ .box {
   display: flex;
   overflow: hidden;
@@ -55,7 +59,7 @@
    * stay that same readable width and scroll, rather than being cramped to a
    * fraction of it. */
   grid-auto-columns: var(--wl-col-width);
-  column-gap: 16px;
+  column-gap: var(--spacer-2);
   overflow-x: auto;
   overflow-y: hidden;
   flex: 1 1 auto;
@@ -63,8 +67,10 @@
   min-width: 0;
 }
 
+/* The letter-spacing is BESPOKE: --letter-spacing-label is 0.03em, which is the
+ * ramp for a LABEL, and these are words to read rather than a label to scan. */
 /* @@ */ .row {
-  font-size: 17px;
+  font-size: var(--font-size-1);
   line-height: var(--wl-row-height);
   letter-spacing: 0.02em;
   color: var(--page-text-color);
@@ -75,6 +81,8 @@
  * row's text). */
 /* @@ */ .dot {
 /* @@ */   --dot-size: 0.6em;
+  /* BESPOKE, and no token is near it: the breath between a 0.6em disc and the
+   * word it attributes, which is a marker's gap rather than a layout step. */
   margin-right: 7px;
 }
 

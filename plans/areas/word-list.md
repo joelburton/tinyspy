@@ -331,6 +331,37 @@ each:
   lock". Whether the row height is a px decision or a rem one is the same
   question the info column already answered for itself.
 
+**WORKED 2026-09-21** (Joel took the recommendation). Four converted, three
+recorded as bespoke with the reason beside the value:
+
+- `.wrapper`'s `gap` and the list's `column-gap` are `--spacer-4` and
+  `--spacer-2`. **Both of `.box`'s paddings stay literals** (Joel: *"we don't
+  use --spacer for padding"*) — the ramp is the space BETWEEN boxes, and whether
+  the room inside one belongs on it is parked in `core-css/todo.md`. The first
+  pass converted the vertical one and was wrong to.
+- **`17px` → `--font-size-1`**, the one with a visible result: every word in
+  the list is a pixel smaller. Nothing moves — the row's height is
+  `--wl-row-height` and its `line-height` reads that — and a smaller word only
+  gains room in a fixed-width column.
+- **Bespoke, each now saying so in the file**: the card's horizontal `0.6rem`
+  (tuned to the column grid; the same 0.6 `lists/todo.md` parks), the row's
+  `0.02em` (`--letter-spacing-label` is 0.03em, which is the ramp for a LABEL,
+  and these are words to read), and the dot's `7px` (a marker's breath, with no
+  token near it).
+
+**The guard said the padding rule out loud and the first pass still missed it.**
+It reported `0.5rem` and `16px` as excused-but-no-longer-written, naming what the
+pending row owed; then, when the row was rewritten to record `0.6rem` as bespoke,
+it rejected that too, because **padding is deliberately absent from the spacer
+vocabulary**. That is the same fact that makes converting `.box`'s vertical
+padding wrong, and it was read as a scope note about the pending list rather than
+as the rule it is — Joel caught the conversion. Only `7px` is on the pending row;
+the `17px` row is deleted outright.
+
+The px-in-a-rem-column question is NOT answered by this: `26px` and `10.5rem`
+are untouched, and whether a row's height is a px decision or a rem one is still
+open.
+
 ### F-word-list-13 · `rows-untested` · The spec pins the heading and nothing below it
 
 `WordList.test.tsx` is four tests of the tally. Nothing asserts a row: the
