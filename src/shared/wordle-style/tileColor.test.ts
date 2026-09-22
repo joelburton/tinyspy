@@ -1,4 +1,4 @@
-// cs-audited-wordle-style
+// cs-blessed-wordle-style
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'

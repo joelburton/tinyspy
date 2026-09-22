@@ -1,4 +1,4 @@
-// cs-audited-wordle-style
+// cs-blessed-wordle-style
 
 /**
  * A server per-letter color code → the CSS class key that paints it.

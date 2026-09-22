@@ -4,9 +4,9 @@ The folders it reads: `shared/wordle-style`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: AUDITED** (2026-09-22) — every finding worked, the closing re-read
-done, the roster `cs-audited-wordle-style`. **NOT CLOSED:** an area closes when
-its files read `cs-blessed`, and only Joel sets that.
+**Status: CLOSED 2026-09-22, blessed** (Joel: *"mark the files in this as
+blessed, the close the area and commit"*). All four roster files read
+`cs-blessed-wordle-style`.
 
 ## The roster
 
@@ -388,7 +388,7 @@ the closing re-read does not redo them:
       `INTROS_OWED` (F-1)
 - [x] `todo.md` holds everything still owed — which is nothing: no finding was
       handed on, and nothing durable is left in this file
-- [ ] every file on the roster blessed, or its stamp says why not — **NOT DONE,
-      and not Claude's to do.** The four roster files read
-      `cs-audited-wordle-style` (set 2026-09-22 on Joel's instruction). Only
-      Joel sets `cs-blessed`
+- [x] every file on the roster blessed — checked by reading each of the four
+      first lines, not by counting stamps: `tileColor.ts`, `tileColor.test.ts`,
+      and both `colors_test.sql` say `cs-blessed-wordle-style`.
+      `supabase/sql/common.sql` is not on the roster and stays `cs-unmet`

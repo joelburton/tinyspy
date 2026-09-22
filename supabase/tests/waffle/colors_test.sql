@@ -1,4 +1,4 @@
--- cs-audited-wordle-style
+-- cs-blessed-wordle-style
 
 -- ============================================================
 -- Test: waffle color-feedback algorithm

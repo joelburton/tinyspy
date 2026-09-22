@@ -1,4 +1,4 @@
--- cs-audited-wordle-style
+-- cs-blessed-wordle-style
 
 -- ============================================================
 -- Test: common.wordle_colors — the Wordle coloring algorithm
