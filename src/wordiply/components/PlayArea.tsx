@@ -600,7 +600,6 @@ export function PlayArea(ctx: GamePageCtx) {
         // treatment.
         localFeedbackSlot={localFeedbackSlot}
         lastWord={lastWord}
-        isTerminal={isTerminal}
       />
 
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>

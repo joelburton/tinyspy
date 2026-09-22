@@ -34,30 +34,6 @@
   margin: 0 auto;
 }
 
-/* GAME OVER — the keyboard is WITHDRAWN, not merely disabled. Disabled keys say
- * "not right now"; there is no right-now left, and a finished game that still
- * shows its input surface reads as one you could type into. The board's own
- * game-over frame is the positive statement (plans/tile-feedback.md); this is the
- * matching absence.
- *
- * ┌──────────────────────────────────────────────────────────────────────────┐
- * │ DO NOT change this to `display: none`. It is `visibility: hidden` on      │
- * │ purpose, and the difference is the entire point of the rule.              │
- * │                                                                          │
- * │ `visibility: hidden` KEEPS THE BOX. The space the keyboard occupied stays │
- * │ reserved, so the page height and the board's position are pixel-identical │
- * │ to the frame before the game ended. `display: none` removes it from the   │
- * │ flow, which yanks the whole column downward at the exact moment a player  │
- * │ is reading their verdict — and layout must never move on a state change   │
- * │ (docs/ui.md → Layout stability; plans/tile-feedback.md → game over).      │
- * │                                                                          │
- * │ It costs nothing else: a `visibility: hidden` subtree is already out of   │
- * │ reach of the pointer, out of the tab order, and out of the a11y tree.     │
- * └──────────────────────────────────────────────────────────────────────────┘ */
-/* @@ */ .gameOver {
-  visibility: hidden;
-}
-
 /* @@ */ .row {
   display: flex;
   justify-content: center;
@@ -147,9 +123,12 @@
    line (plans/tile-feedback.md → Depth belongs to game pieces), so which cursor it
    takes needs deciding rather than inheriting. It takes the CONTROL's:
    a key is only ever disabled while the whole keyboard is — a guess in flight,
-   or not your turn — which is a refusal, not the key ceasing to be a key. (At
-   game over the keyboard is WITHDRAWN, not disabled, so that case never lands
-   here.) A spent tile is the other story and keeps `default`. */
+   not your turn, or a game that has ended — which is a refusal, not the key
+   ceasing to be a key. A spent tile is the other story and keeps `default`.
+
+   A FINISHED game wears this same fade, and that is the point: the caps carry
+   what each letter earned, so the keyboard is the record of the game you just
+   played and stays on screen to be read. */
 /* @@ */ .key:disabled {
   cursor: not-allowed;
   /* The CONTROL's fade, for the same reason as the cursor above: a disabled

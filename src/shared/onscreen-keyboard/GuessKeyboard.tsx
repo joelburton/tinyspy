@@ -36,11 +36,11 @@ type Props = {
   // hard-coding its own letter would be a registry entry per keycap.
   actSubmit: BoundAction
   actDelete: BoundAction
+  // No move to make right now — not your turn, a guess in flight, or the game
+  // is over. The keyboard stays on screen either way: its caps carry the tone
+  // each letter has earned, which is a readout of the game and is worth most
+  // once the game has ended.
   disabled?: boolean
-  // The game is finished. The keyboard is WITHDRAWN rather than disabled — see
-  // `.gameOver` in the stylesheet — while keeping the space it occupied, so the
-  // board above it doesn't move on the frame the game ends.
-  gameOver?: boolean
   // Best tone seen for each (lowercase) letter, or absent for neutral.
   keyStates?: ReadonlyMap<string, KeyTone>
 }
@@ -64,7 +64,6 @@ export function GuessKeyboard({
   actSubmit,
   actDelete,
   disabled = false,
-  gameOver = false,
   keyStates,
 }: Props) {
   // A keycap keeps its own chrome and takes what it DOES from the binding — the
@@ -75,7 +74,7 @@ export function GuessKeyboard({
   const del = actionSurface(actDelete)
 
   return (
-    <div className={cls(styles.keyboard, gameOver && styles.gameOver)} aria-label="Keyboard">
+    <div className={styles.keyboard} aria-label="Keyboard">
       {ROWS.map((row, i) => (
         <div key={i} className={styles.row}>
           {i === 2 && (

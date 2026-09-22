@@ -171,6 +171,4 @@ and the model refuses to emit it before terminal regardless.
 ## Deferred
 
 The register lives in [`src/wordle/todo.md`](../../src/wordle/todo.md) since the
-area opened, won't-dos included. The keyboard-at-terminal item went to
-[`src/shared/onscreen-keyboard/todo.md`](../../src/shared/onscreen-keyboard/todo.md),
-which owns the file the work would touch.
+area opened, won't-dos included.

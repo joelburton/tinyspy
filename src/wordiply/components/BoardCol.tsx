@@ -41,7 +41,6 @@ export function BoardCol({
   localFeedbackSlot,
   lastWord,
   entryDisabled,
-  isTerminal,
   held,
   flash,
   isViewingHistory,
@@ -59,17 +58,16 @@ export function BoardCol({
   word: string
   onChange: Dispatch<SetStateAction<string>>
   onSubmit: () => void
-  /** PlayArea's below-board slot — drawn above the keyboard during play and
-   *  in the keyboard's place at terminal. A key, on screen or physical, is
-   *  the player's next move, so it dismisses a gesture-cleared message. */
+  /** PlayArea's below-board slot, drawn above the keyboard. A key, on screen or
+   *  physical, is the player's next move, so it dismisses a gesture-cleared
+   *  message. */
   localFeedbackSlot: FeedbackSlot
   /** The last submitted guess — ArrowUp recalls it (the next guess is often the
    *  previous one with another letter). */
   lastWord: string
-  /** Freeze input (terminal / conceded / out of guesses). */
+  /** Freeze input (terminal / conceded / out of guesses / not your turn) — the
+   *  keyboard stays on screen and wears the disabled look either way. */
   entryDisabled: boolean
-  /** Game over for everyone: the keyboard leaves and the slot takes its place. */
-  isTerminal: boolean
   /** A past row is open in the viewer: the board wears the history frame and the
    *  banner overlays the input area, which stays mounted underneath. */
   isViewingHistory: boolean
@@ -128,13 +126,11 @@ export function BoardCol({
         {isViewingHistory && (
           <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
         )}
-        {/* One arrangement, played or finished. At terminal the keyboard is
-            WITHDRAWN by its own `gameOver` — invisible, and its box kept — so
-            the column does not rise by the ten-odd rem of cap rows at the frame
-            a player is reading their verdict. Branching here instead, and
-            unmounting it, was `display: none` by another road: the pill's slot
-            reserved 3.6rem where the keyboard and its own slot had taken about
-            12.4rem. See GuessKeyboard.module.css → `.gameOver`. */}
+        {/* One arrangement, played or finished: the keyboard stays at terminal,
+            disabled by `entryDisabled`. Never branch here and unmount it — the
+            column would rise by the ten-odd rem of cap rows at the frame a
+            player is reading their verdict (the pill's slot reserves 3.6rem
+            where the keyboard and its own slot take about 12.4rem). */}
         <div className={styles.kbFeedback}>
           <FeedbackPill slot={localFeedbackSlot} />
         </div>
@@ -143,7 +139,6 @@ export function BoardCol({
           actSubmit={actSubmitEntry}
           actDelete={actDeleteLast}
           disabled={entryDisabled}
-          gameOver={isTerminal}
         />
       </div>
     </div>

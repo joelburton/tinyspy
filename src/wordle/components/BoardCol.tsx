@@ -114,8 +114,8 @@ export function BoardCol({
   localFeedbackSlot: FeedbackSlot
 
   // ── Board-scope marks ──
-  // The game is finished, and how — bands the board, and withdraws the keyboard
-  // (there is no move left to make). Null while live.
+  // The game is finished, and how — bands the board in that outcome. Null while
+  // live.
   gameOver: TerminalOutcome | null
   // Turn-order coop: a teammate holds the move, so the board dims.
   notMyTurn: boolean
@@ -349,16 +349,15 @@ export function BoardCol({
           <FeedbackPill slot={localFeedbackSlot} />
         </div>
         <div className={styles.moveArea}>
-          {/* Withdrawn at terminal, and its space kept — see `.gameOver` in
-              GuessKeyboard.module.css. The verdict pill sits in the slot above,
-              so nothing needs to move into the vacated area. */}
+          {/* Stays at terminal, disabled — `canGuess` is already false there.
+              Its caps hold the color every letter earned, which is the record of
+              the game just played and is worth reading once it is over. */}
           <GuessKeyboard
             keyStates={keyTones}
             onKey={typeLetter}
             actSubmit={actSubmitEntry}
             actDelete={actDeleteLast}
             disabled={!canGuess}
-            gameOver={gameOver !== null}
           />
         </div>
       </div>

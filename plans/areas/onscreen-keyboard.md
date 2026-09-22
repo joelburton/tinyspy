@@ -96,6 +96,14 @@ bindings, and that is why one of them can be gray while letters are live.
 
 ### F-onscreen-keyboard-2 · `wordiply-drops-the-keyboard` · The prop that stops the page moving has one caller
 
+**SUPERSEDED the same day.** Joel: the keyboard should be SHOWN at terminal —
+its caps carry the colors of the letters used, which is the record of the game.
+`gameOver`, `.gameOver` and the `visibility: hidden` are gone; both games now
+show a disabled keyboard, the same look as not-your-turn. What this finding
+fixed survives it: wordiply has one arrangement rather than a branch that
+unmounted the column's bottom 12.4rem, which is the half that was never about
+the prop. Everything below is the reading as it stood.
+
 **SHIPPED, 2026-09-22** (Joel ruled it an oversight, not a deliberate second
 arrangement). wordiply passes `gameOver={isTerminal}` and the branch is gone:
 one arrangement, played or finished, with the keyboard withdrawn at terminal

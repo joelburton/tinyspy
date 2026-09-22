@@ -15,7 +15,7 @@
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the grid, keyboard, lists, dialogs — renders for real.
  */
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
@@ -743,7 +743,7 @@ describe('wordle PlayArea — the board-scope marks', () => {
   // What these pin is the vocabulary in plans/tile-feedback.md, at BOARD scope.
   // None of it is game logic, and all of it is invisible to a type check: a mark
   // that stops being applied looks exactly like a mark that was never asked for.
-  it('bands the finished board in its outcome and withdraws the keyboard', () => {
+  it('bands the finished board in its outcome and disables the keyboard', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' }, [
       { user_id: 'u1', id: 1, guess: 'crane', colors: 'ggggg', is_correct: true },
     ])
@@ -752,13 +752,14 @@ describe('wordle PlayArea — the board-scope marks', () => {
     expect(board().className).toMatch(/gameOverFrame/)
     expect(board().className).toMatch(/gameOverWon/)
 
-    // The keyboard is HIDDEN, not unmounted: its space stays reserved so the
-    // board doesn't drop as the game ends. If someone swaps the CSS for
-    // `display: none` this assertion still passes — which is why the stylesheet
-    // carries the loud comment; what this catches is the class going missing, or
-    // the keyboard being conditionally rendered away.
+    // The keyboard STAYS, disabled: its caps hold the color every letter
+    // earned, which is the record of the game just played. Both halves are
+    // pinned, since a keyboard that is present but still typable would pass the
+    // first assertion alone.
     expect(keyboard()).toBeInTheDocument()
-    expect(keyboard().className).toMatch(/gameOver/)
+    for (const cap of within(keyboard()).getAllByRole('button')) {
+      expect(cap).toBeDisabled()
+    }
   })
 
   it('bands a lost board in the losing tone', () => {
@@ -775,7 +776,7 @@ describe('wordle PlayArea — the board-scope marks', () => {
     render(<PlayAreaLoader {...makeCtx()} />)
 
     expect(board().className).not.toMatch(/gameOver/)
-    expect(keyboard().className).not.toMatch(/gameOver/)
+    expect(within(keyboard()).getByRole('button', { name: /^a$/i })).toBeEnabled()
   })
 
   it('dims the board while a teammate holds the move', () => {

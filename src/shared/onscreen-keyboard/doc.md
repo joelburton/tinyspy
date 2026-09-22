@@ -31,14 +31,15 @@ nothing and every cap stays neutral.
   so a key and the tile above it cannot drift into two vocabularies. The missing
   value is the difference between them: a tile can be waiting to be judged, and
   an untried key is simply untried — it carries no tone at all.
-- **At game over the keyboard is withdrawn, not removed.** It goes invisible and
-  **keeps its box**, so the column does not lurch upward at the moment a player
-  is reading their verdict. `visibility: hidden`, never `display: none`; the
-  stylesheet argues it at length because the difference is the whole rule.
-  **Whether it should be hidden at all is open** — a keyboard that has recorded
-  six guesses is a readout, not only an input, and taking it away removes the
-  summary at the moment you want to study it. `todo.md` has the item; what is
-  settled here is only that the box stays.
+- **At game over the keyboard stays, disabled** — the same look it wears when it
+  is not your turn. It is not only an input: its caps carry the tone every letter
+  earned, so a keyboard that has recorded six guesses is a readout of the game
+  just played, and that is worth most at the moment you want to study it. The
+  general rule is *an input surface that is also a READOUT stays visible when the
+  game ends* — a rack you can no longer play says nothing once the game is over;
+  this says plenty. **Never unmount it either**, in a game or here: the column
+  would lurch upward by ten-odd rem of cap rows at the frame a player starts
+  reading their verdict (docs/ui.md → Layout stability).
 - **A cap refuses the focus a click would give it.** Canceling `mousedown` on
   every cap: nothing here needs focus — this exists so a player without a
   physical keyboard can type, and a player with one just types — and a focused

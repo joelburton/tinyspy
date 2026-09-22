@@ -516,8 +516,9 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
     `↑` recalls the last word and `↓` clears the entry (`useArrowHistory`, the same two
     actions the WordEntryInput games bind). The keyboard sits **below** the grid and **doubles as the
     feedback area**: the local slot's top message above the keys (a rejection, "you're
-    out", whose turn it is), and at terminal the keyboard leaves and the same slot fills
-    its place with the verdict ([ui.md → Feedback pill](../ui.md#feedback-pill)).
+    out", whose turn it is, and at terminal the verdict — [ui.md → Feedback
+    pill](../ui.md#feedback-pill)). The keyboard itself stays at terminal, wearing the
+    disabled look it wears when it is not your turn.
   - **`<GuessBoard>`** — exactly **5 fixed-height rows** (a HARD layout-stability rule; compact
     vertical rhythm so the keyboard fits on mobile). Completed rows render the guess via
     `<DimmedBaseWord>` + a small **length badge** (teal-on-white — the one live readout); the
