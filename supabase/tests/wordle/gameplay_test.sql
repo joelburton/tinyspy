@@ -1,4 +1,4 @@
--- cs-met-wordle
+-- cs-blessed-wordle
 
 -- ============================================================
 -- Test: wordle.submit_guess (coop) — soft rejects, shared board, win
@@ -143,12 +143,13 @@ select is(
   (select target from wordle.games_state where id = (select id from g))::text,
   (select w from tgt),
   'target revealed once the game is terminal');
--- Terminal → the title stops being the latest guess and becomes the answer
--- (which the solving guess happens to equal, so assert against the target).
+-- The solving guess is the most recent one, so the title now reads the answer
+-- — by the ordinary latest-guess branch, not because the game is terminal
+-- (reveal_test pins that a terminal alone never spells it).
 select is(
   (select title from common.games where id = (select id from g)),
   (select upper(w) from tgt),
-  'terminal: the title becomes the answer');
+  'the title reads the winning guess');
 
 -- ============================================================
 -- No such game — the guard that needs constructing

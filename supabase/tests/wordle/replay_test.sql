@@ -1,4 +1,4 @@
--- cs-met-wordle
+-- cs-blessed-wordle
 
 -- ============================================================
 -- Test: wordle.replay_board (restart this game from scratch)

@@ -1,4 +1,4 @@
--- cs-met-wordle
+-- cs-blessed-wordle
 
 -- ============================================================
 -- Test: wordle.create_game + the hidden-target pattern
@@ -16,8 +16,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Wordle cg', array['ada', 'bea']) as handle;
 -- The whole envelope is kept, not just the id: `data.result` is what both call
--- sites branch on — the in-game New Game, and SetupGameModal once the interface
--- follows.
+-- sites branch on — the in-game New Game and SetupGameModal.
 create temp table created on commit drop as
 select wordle.create_game(
   (select handle from club), pg_temp.wordle_setup(5),

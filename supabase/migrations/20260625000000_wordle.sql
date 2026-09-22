@@ -1,4 +1,4 @@
--- cs-met-wordle
+-- cs-blessed-wordle
 
 -- ============================================================
 -- wordle — NYT-Wordle-style guess-the-word game

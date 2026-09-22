@@ -1,4 +1,4 @@
-/* cs-met-wordle */
+/* cs-blessed-wordle */
 
 /* The board wrapper: no border or background, it holds the tile-size knobs and
  * centers the grid, which drives its own size (see below). `--rows` and
@@ -139,7 +139,7 @@
  * that same tile once a letter is typed into it. */
 
 /* In flight — the row you just submitted, while the server works out its colors.
- * The SHARED `.dimInFlight` dim (common PlayArea.module.css), applied per TILE
+ * The SHARED `.dimInFlight` dim (common playArea.module.css), applied per TILE
  * rather than to the row so the gaps between tiles stay light: a bar across the
  * whole row would read as a new element rather than as the letters being sent.
  *
@@ -150,7 +150,7 @@
  *
  * It must clear before the reveal flip starts, or the flip plays under a dim —
  * which it does, because the row stops being pending the moment its colored row
- * lands. See plans/tile-feedback.md. */
+ * lands. */
 
 /* @@ */ .inFlight {
 /* @@ */   --tile-slot-fill-color: var(--wordle-gray-fill-color);
@@ -161,14 +161,14 @@
 }
 
 /* A refused guess wears the SHARED verdict ring + shake (common
- * PlayArea.module.css → `.verdictRing`), applied to the active row — the word is
+ * playArea.module.css → `.verdictRing`), applied to the active row — the word is
  * still sitting there, since it was never accepted.
  *
  * A ROW, not a tile, which is what licenses the outline: the five tiles are
  * contiguous and aligned, so they are a GEOGRAPHIC unit — a real shape on the
  * board to draw around, with room to sit clear of the tiles rather than crowd
- * them. That is the test, and it is geography rather than count
- * (plans/tile-feedback.md → "A verdict may be drawn on a GEOGRAPHIC unit").
+ * them. That is the test, and it is geography rather than count (common
+ * playArea.module.css → `.verdictRing`, which states the rule).
  * Judging several pieces at once doesn't earn a group mark by itself:
  * connections judges four tiles scattered across its grid, so it has no unit to
  * outline and colors each tile's border instead — which is the vocabulary's
@@ -179,8 +179,7 @@
  * tile rotates edge-on (rotateX -90°) at the midpoint, and ONLY then
  * swaps to its feedback color (carried in `--reveal-bg`, set inline per
  * tile). Per-tile `animation-delay` (set inline) staggers the row so the
- * letters turn over left-to-right. `forwards` holds the final colored
- * state after the animation ends.
+ * letters turn over left-to-right.
  */
 /* @@ */ .reveal {
   /* `both` (not just `forwards`) is load-bearing: each tile has a

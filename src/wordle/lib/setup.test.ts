@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 /**
  * wordle's Start gate — the rule that every possible answer must itself be a

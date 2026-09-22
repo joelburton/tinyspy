@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 /**
  * wordle's color module = the shared code→class-key mapper (the server,

@@ -1,4 +1,4 @@
--- cs-met-wordle
+-- cs-blessed-wordle
 
 -- ============================================================
 -- Test: wordle compete — independent boards, opponent hidden,
@@ -149,11 +149,12 @@ select is(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   1::bigint,
   'post-terminal: ada''s guesses are revealed to bea');
--- The race is over, so the title can finally say what the word was.
+-- The race is over, so compete's title drops its placeholder and reads the
+-- latest guess — bea's solve, so the answer.
 select is(
   (select title from common.games where id = (select id from g)),
   (select upper(w) from tgt),
-  'compete: the finished race titles the game with the answer');
+  'compete: the finished race titles the game with its latest guess, the solve');
 select is(
   (select target from wordle.games_state where id = (select id from g))::text,
   (select w from tgt),

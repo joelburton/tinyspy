@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import { useState } from 'react'
 import { cls } from '@/common/utils/cls'

@@ -1,4 +1,4 @@
--- cs-met-wordle
+-- cs-blessed-wordle
 
 -- ============================================================
 -- Test: wordle.concede(target_game)  (elimination-game concede)
@@ -7,8 +7,8 @@
 -- of guesses — without the table ending), so it can't use the generic
 -- common.concede. wordle.concede flips the shared conceded flag
 -- (common._set_conceded) then re-runs its own terminal check
--- (_maybe_finish_compete), which counts a conceder as done and
--- excludes them from the win. Covers:
+-- (_maybe_finish_compete), which counts a conceder as done; the ending it
+-- hands to _finish_compete excludes them from the win. Covers:
 --   1. A concede while an opponent still races keeps the game going
 --   2. When the last racer finishes, the game ends and the CONCEDER
 --      forfeits (recorded a loss even though the game had a winner)

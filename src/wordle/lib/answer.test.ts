@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import { describe, it, expect } from 'vitest'
 import { answerMessage, eventToOutcome, peerAnswerMessage, type Answer } from './answer'

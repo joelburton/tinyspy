@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
@@ -69,7 +69,7 @@ function labelFor(mode: 'coop' | 'compete') {
       // Coop only — compete never updates these (a live count leaks how close
       // a racer is), so they're absent there rather than a permanent 0.
       guesses_used?: number; max_guesses?: number
-      // The WINNER's own count, written at terminal (see _maybe_finish_compete).
+      // The WINNER's own count, written at terminal (see _finish_compete).
       winner_guesses?: number
     }
     const dict = answerSourceLabel(setupNum(row.setup, 'answer_source'))
@@ -105,7 +105,7 @@ function labelFor(mode: 'coop' | 'compete') {
   }
 }
 
-/** Why a compete race ended with nobody winning (wordle._maybe_finish_compete). */
+/** Why a compete race ended with nobody winning (wordle._finish_compete). */
 const COMPETE_LOSS: Record<string, string> = {
   timeout: 'out of time',
   exhausted: 'out of guesses',

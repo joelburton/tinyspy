@@ -1,4 +1,4 @@
--- cs-met-wordle
+-- cs-blessed-wordle
 
 -- ============================================================
 -- Test: wordle.submit_timeout + wordle.end_game (terminals)
@@ -44,7 +44,7 @@ select pg_temp.envelope_is(
 --    natural finish writes ─────────────────────────────────────
 -- The clock ends the race as it stands: whoever solved in the fewest guesses
 -- wins, the reason is 'timeout', and the status carries the winner's count the
--- way _maybe_finish_compete's does — one finisher writes both endings.
+-- way a natural finish's does — _finish_compete writes both endings.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club3 on commit drop as
 select pg_temp.create_club('Wordle t3', array['ada', 'bea']) as handle;

@@ -7,7 +7,11 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/wordle/todo.md`, not here.
 
-**Status: OPEN** (2026-09-22). **Pass 1, the restructure, is DONE** (Steps
+**Status: CLOSED 2026-09-22, blessed** (Joel: *"mark all files in this area
+as blessed, then close the area and commit"*): 48 files `cs-blessed-wordle`,
+checked by `cs-stamp.mjs list blessed-wordle` against the roster — every
+`cs-met-wordle` stamp became `cs-blessed-wordle`, none left. Opened the same
+day. **Pass 1, the restructure, is DONE** (Steps
 0–8). **Pass 2, the audit, is IN PROGRESS**: the prose pass shipped
 (`39ec69c5`) and the five findings the todo and that pass raised are answered —
 F-1, F-3, F-4 and F-5 shipped, F-2 ruled back to `game-page`. **The roster
@@ -21,8 +25,12 @@ board was read against the plan as it stands now and held up, F-18 to F-22 are
 ruled and shipped (F-13's `useMark` conversion among them), and F-23 and F-24
 are ruled no-change — wordle is EXEMPT from the identity dot (recorded in
 `tile-feedback.md` → wordle), and the two dims compound to 27.8% by design.
-**PASS 3 IS DONE**; `src/wordle/todo.md` is empty and nothing is owed but the
-closing re-read.
+**PASS 3 IS DONE**; `src/wordle/todo.md` is empty. **The closing re-read is
+DONE (2026-09-22, below): eight findings, F-25 to F-32, all prose, ALL
+SHIPPED the same day.** Six of the eight were this area's own earlier work
+standing next door: a claim a pass corrected in one file and left in its
+sibling, or a sentence a shipped finding wrote and then made false. Nothing is
+owed.
 **Three passes back to back**, psychicnum's and connections' shape:
 restructure → audit → tile-feedback.
 
@@ -1339,6 +1347,17 @@ renamed `.blank` in waffle fails `cssClasses` twice.
 declarations (a chip's `background`/`color`; a key plus its hover token), so
 there was never one block for four files to share — only two.
 
+### `docs/deferred.md`'s per-game table overstates itself — 2026-09-22
+
+Seen at the closing re-read and not wordle's: the table is headed *"Only
+these games have open items today; the rest have none"* and lists psychicnum,
+connections and wordle, whose folder `todo.md`s hold nothing but won't-dos
+(wordle's is empty outright). Step 1 added wordle's row on the two siblings'
+pattern, so the row is right by the table's convention and the HEADLINE is
+what lags it — a game area that keeps its register in its folder has a row
+whether or not anything is open. The sentence is `deferred.md`'s own,
+cross-cutting, and left for whoever next edits that table.
+
 ## Pass 3 — tile-feedback
 
 Read 2026-09-22 against `plans/tile-feedback.md` as it stands today, not as it
@@ -1444,15 +1463,272 @@ asks the question of every board and the answer was never written down for this
 one. The tokens are `base.css`'s, so had the answer gone the other way the work
 would have belonged to the area that owns them, not here.
 
+## The closing re-read — 2026-09-22
+
+**The whole area in one sitting, after the last group** (app-audit.md §4):
+the four components, the five stylesheets and `theme.css`, `Help`,
+`GameEventLog`, `SetupForm`, `useGame`, `db`, the manifest, the eight `lib/`
+files and their tests, the printer and its model, `PlayArea.test.tsx` and
+`SetupForm.test.tsx`, the shared `tileColors.module.css`, the repeatable SQL,
+both migrations, the eleven pgTAP files and `setup.psql`, and `doc.md`. Beside
+them: every doc anchor the folder cites, resolved against the heading it names
+(`docs/ui.md → Terminal results`, `Feedback pill`, `Layout stability`, `the menu
+is the legend`, `Back to club`; `docs/playarea.md → PlayArea layout`,
+`Info-column readouts`; `docs/envelopes.md → The shape of a call site`;
+`docs/common.md → Done, but not out`, `Which words a game may use`;
+`docs/outcomes.md → How a game does it`; `common/setup-form/doc.md → Setup
+rows`; `themes/daylight.css → WORDLE INK`; `core-css/fixed.css`'s `--wordle-*`
+tokens; `utilities.css → .definable`; `pdf/columns.ts`; `board-marks/doc.md`
+— all present); the shared sheet's `.tileFace` / `.tile` split and which of the
+two reads the `--tile-slot-*` tokens; `--history-color`'s value; the shell
+commits since the area opened (still nothing under `game-page`); and, for each
+worked finding, the grep that would find the same defect in a sibling file
+(the old function names F-8 retired, `forwards`, `.tile` where `.tileFace` is
+meant, `plans/`, "becomes the answer", "PlayArea hands", the reserve's terms,
+a prop with no reader, an optional prop always passed).
+
+**What the read found is prose, all of it — eight findings, and six are the
+area's own earlier work recurring next door**, which is the shape every closing
+re-read so far has had ([app-audit.md](../app-audit.md) §4: "a claim one
+group disproved can still stand in a sibling file"). F-8 moved the finisher and left
+six pointers naming the function it moved out of; Step 8 corrected `forwards`
+in `Board.tsx` and not in `Board.module.css`; F-14 corrected `.tile` to
+`.tileFace` in `Board.module.css` and not in the shared sheet this area wrote
+the same morning; Step 4 moved the refusal sentences off the server and the
+doc's intro, written at Step 3, still says the server writes them; F-4 gave the
+server the two-player check and the doc's `create_game` entry still says the
+manifest owns it; F-14 handed two plan cites to pass 3, which never touched
+them. Nothing found is behavior: every RPC, gate, policy and test does what its
+file says it does, and the eight are sentences.
+
+**All eight SHIPPED 2026-09-22** (Joel: *"then fix all"*), twenty-one edits
+across sixteen files, every one a comment, a docstring, a doc sentence or a
+test label — no code line and no assertion changed. The two decisions:
+**F-28, "point at common"** — the ring cite points at the shared
+`playArea.module.css → .verdictRing`, whose comment states the geographic-unit
+rule, and the in-flight cite is dropped; **F-32, "drop date"** — the
+`not_a_word` reason keeps its sentence and loses "Ruled 2026-09-22". F-29 and
+F-31 took the recommendation (the `forwards` sentence dropped; the history
+ring named by no color). Verified: the grep for each corrected phrase comes
+back empty; `tsc -b` and eslint clean; 420 unit tests green (wordle,
+`wordle-style`, the guards); the SQL re-applied and the whole pgTAP suite run.
+
+### SHIPPED · F-wordle-25 · `title-becomes-the-answer` · four RPC comments and two test labels say the title becomes the answer at terminal
+
+`_sync_title`'s own header says the title NEVER spells the answer of its own
+accord — it reads the most recent guess, which is the answer only when the
+last guess was the win — and `reveal_test.sql` pins exactly that (a manual end
+does not spell it; a re-sync of a lost game does not either). The prose pass
+corrected the old doc's title table on this rule and left six sites saying the
+opposite:
+
+- `wordle.sql` → `submit_guess`, before the `_sync_title` call: *"either mode
+  that just ended now reads the answer"*.
+- `wordle.sql` → `concede`: *"in which case the title becomes the answer"*.
+- `wordle.sql` → `submit_timeout`: *"The game is over either way — the title
+  becomes the answer."*
+- `wordle.sql` → `end_game`: *"Terminal now, so the title becomes the answer
+  (see _sync_title)"* — pointing at the function that says it does not.
+- `gameplay_test.sql`, the win: the comment *"Terminal → the title stops being
+  the latest guess and becomes the answer"* and the label `terminal: the title
+  becomes the answer`. The parenthetical beside it ("which the solving guess
+  happens to equal") knows better than the label.
+- `compete_test.sql`, the finished race: *"the title can finally say what the
+  word was"* / `the finished race titles the game with the answer`. True of
+  this race because bea's last guess solved it; the rule it states is not the
+  function's.
+
+A timeout or a manual end on a game with guesses titles the LAST GUESS; on a
+game with none, the placeholder. Options: **say what happens** — each comment
+says the title re-reads the latest guess (or, at terminal, that compete's
+readout opens), and the two labels say "the title reads the winning guess";
+or **leave them**. Recommendation: fix — `reveal_test` and `replay_test` pin
+the opposite of what these six say, and a reader of `end_game` is sent to the
+function that contradicts the comment that sent them.
+
+### SHIPPED · F-wordle-26 · `finisher-moved-pointers-stayed` · F-8 moved the ending into `_finish_compete` and six pointers still credit `_maybe_finish_compete`
+
+F-8 made `_finish_compete(target_game, clock_ran_out)` the one place a race's
+ending is written — the winner, the results, the reason and `winner_guesses` —
+and left `_maybe_finish_compete` the still-racing check alone. Six durable
+sentences, four of them older than F-8 and two written BY it, still name the
+old function for what the new one does:
+
+- `manifest.ts` → `labelFor`'s status shape: *"The WINNER's own count, written
+  at terminal (see _maybe_finish_compete)"*.
+- `manifest.ts` → `COMPETE_LOSS`'s docstring: *"Why a compete race ended with
+  nobody winning (wordle._maybe_finish_compete)"* — the reason is
+  `_finish_compete`'s `case`.
+- `lib/terminal.ts` → the `lost_compete` branch: *"a MIXED table … is
+  `exhausted`, the server's own call (`_maybe_finish_compete`)"*.
+- `doc.md` → `submit_guess`: *"`_maybe_finish_compete` is the one place that
+  rule is written, and it picks the winner by fewest guesses, then earliest
+  solve, conceders excluded"* — it is the one place the RACE-IS-OVER rule is
+  written; the winner is the finisher's.
+- `end_game_test.sql` → the compete timeout, written by F-8: *"the status
+  carries the winner's count the way _maybe_finish_compete's does — one
+  finisher writes both endings"* — the one finisher is the one it does not
+  name.
+- `concede_test.sql`'s header: *"re-runs its own terminal check
+  (_maybe_finish_compete), which counts a conceder as done and excludes them
+  from the win"* — the first clause is that function's, the second is the
+  finisher's query.
+
+The `doc.md` → *The rest* line (*"`concede` re-runs `_maybe_finish_compete`"*)
+and `wordle.sql`'s own headers are right. chat's re-read recorded this exact
+shape: a finding that moves code writes tomorrow's stale claim. Options:
+**repoint each** at `_finish_compete` where the sentence is about the ending,
+keeping `_maybe_finish_compete` where it is about whether the race is over; or
+**leave them**, the two functions being adjacent. Recommendation: repoint — the
+manifest's two send a reader to a function that no longer contains what they
+describe.
+
+### SHIPPED · F-wordle-27 · `doc-says-what-two-steps-undid` · two sentences in `doc.md` written before the code under them changed
+
+Both are this area's own: written at Step 3 from the code as it then stood,
+and made false by a later step that updated the doc's other sections and not
+these.
+
+- **Intro, second paragraph:** *"the reply is an `ok` with the server's own
+  sentence"*. Step 4 moved the two refusals' sentences to `lib/answer.ts` and
+  the SQL now answers `result` and nothing else; the doc's own `submit_guess`
+  entry (*"the words the two refusals show included — is the frontend's"*) and
+  its FE-submissions section say so, one screen down.
+- **`create_game`'s entry:** *"Either mode takes up to six players, which the
+  server checks; that compete needs two is the manifest's rule."* F-4 gave
+  `create_game` the lower check (`PN498`) and rewrote the Compete paragraph
+  under Game rules to say the server checks both ends; the RPC entry still
+  carries Step 3's sentence.
+
+Options: **fix both**; or leave. Recommendation: fix — the doc contradicts
+itself on both, and a `folderDocs` reader takes the intro first.
+
+### SHIPPED · F-wordle-28 · `plan-cites-left-for-pass-3` · the two `plans/tile-feedback.md` cites F-14 handed to pass 3 are still there
+
+`Board.module.css` cites the plan twice: the `.inFlight` comment ends *"See
+plans/tile-feedback.md."*, and the `.verdictRing` comment cites *"(plans/
+tile-feedback.md → 'A verdict may be drawn on a GEOGRAPHIC unit')"*. F-14
+recorded both as *"pass 3's to repoint at `common/board-marks/doc.md`, the way
+connections' Step 8 did"*, and pass 3 shipped five findings in this file's
+neighborhood (F-22 deleted `.blank` from it) without touching either. §4:
+durable files never cite the plan.
+
+Where to point instead was checked: `board-marks/doc.md` has no sentence about
+a geographic unit, and the rule lives beside the class it governs — the shared
+`playArea.module.css`'s `.verdictRing` comment says *"available only where the
+judged pieces form a GEOGRAPHIC unit — wordle's refused word is a contiguous
+row"*. Options: **repoint the ring cite at `playArea.module.css → .verdictRing`
+and drop the in-flight cite** (its sentence — the dim clears before the flip
+because the row stops being pending when its row lands — stands on its own);
+or **move the rule into `board-marks/doc.md`** and point there, which is the
+larger edit and touches a closed folder's doc. Recommendation: the first.
+
+### SHIPPED · F-wordle-29 · `forwards-in-the-css-too` · the `.reveal` header credits `forwards` for holding the final color
+
+`Board.module.css` → the `.reveal` block's header: *"`forwards` holds the final
+colored state after the animation ends."* The declaration beneath is
+`animation: tile-flip 0.55s ease both`, and the comment inside the rule spends
+six lines on why `both` and not `forwards` is load-bearing (with plain
+`forwards` a waiting tile falls back to the base look and the word blinks out
+pre-flip). Step 8 found the identical false claim in `Board.tsx`'s docstring
+and fixed it there; the stylesheet's copy was not read. Options: the header
+says `both`, or the header drops the fill-mode sentence and leaves it to the
+comment that explains it. Recommendation: drop the sentence — the rule's own
+comment is the copy that stays right.
+
+### SHIPPED · F-wordle-30 · `tile-not-tileface-in-shared-sheet` · the shared color sheet says the tokens are `.tile`'s
+
+`src/shared/wordle-style/tileColors.module.css` (created by this area, stamped
+`cs-met-wordle`): *"They work by RE-SETTING the shared `.tile`'s `--tile-slot-*`
+tokens"*. The tokens are read by `.tileFace` (`playArea.module.css`:
+`color: var(--tile-slot-ink-color)`, `background: var(--tile-slot-fill-color)`,
+the edge); `.tile` is the interaction half and *"deliberately carries no box of
+its own"*. F-14 corrected this same `.tile` → `.tileFace` in
+`Board.module.css`'s two comments; the sheet written the same morning says it
+a third time, and the two marks it names in its next paragraph
+(`.tile.selected`, `.tileFace.verdictFill`) show it knows both classes exist.
+Options: say `.tileFace`; or leave. Recommendation: say `.tileFace` — waffle
+reads this sheet too, and it is the one sentence in it that says how the
+override wins.
+
+### SHIPPED · F-wordle-31 · `ring-color-named-wrong` · the event log calls the history ring yellow
+
+`GameEventLog.tsx` → the `historyId` prop: *"Its `#N` handle wears the shared
+yellow ring."* `--history-color` is the muted blue (`#4a7bab` in daylight),
+`historyViewer.module.css` describes `.historyNumber` as *"a blue outline on the
+'#N' handle"*, and this folder's other three mentions (`lib/history.ts` twice,
+`Board.module.css`'s `.historyRow`) say blue. Yellow is the turn-start flash.
+Options: **name no color** — "wears the shared history ring" — since the token
+owns it and the shared sheet explains it; or say blue. Recommendation: no
+color.
+
+### SHIPPED · F-wordle-32 · `small-stale-claims` · six one-line sentences that say a little less than the code
+
+- `Board.module.css` → `.inFlight` and `.verdictRing` comments: *"common
+  PlayArea.module.css"* — the shared sheet is `playArea.module.css` (renamed
+  2026-09-14, recorded in `docs/deferred.md`); the same file's `.grid` comment
+  spells it right.
+- `lib/history.ts`'s header: *"so PlayArea can hand `<Board>` a historical
+  `rows` list"* — `BoardCol` hands `<Board>` its rows; F-14 fixed the same
+  sentence in `Board.tsx`.
+- `create_game_test.sql`, above the created envelope: *"the in-game New Game,
+  and SetupGameModal once the interface follows"* — `SetupGameModal` branches
+  on `result.data.result === 'created'` today.
+- `Help.tsx`'s docstring: *"the `help: ComponentType<{ onClose }>` contract"* —
+  `GameManifest.help` is `ComponentType<{ onClose; brand }>`, and this
+  component takes both.
+- `lib/answer.ts` → the `not_a_word` comment ends *"Ruled 2026-09-22."* — a
+  dated aside in code, the class the prose pass removed from every file in the
+  roster; F-9's ruling wrote a new one.
+- `wordle.sql` → `submit_guess`: the section banner *"─── Soft reject:
+  malformed entry (no burn) ───"* over a block whose first line is *"Not a soft
+  reject"* and whose body raises `PN256`. The prose pass corrected
+  `gameplay_test.sql`'s header for listing malformed among the soft rejects and
+  left the SQL's banner.
+
+Options: fix all six in one commit; or leave any. Recommendation: fix — each
+is a sentence, and three of them are the re-read's own class (a fix made in one
+file, its twin left).
+
+### What checked out at the re-read
+
+- **Every doc anchor the folder cites resolves** to a heading or a bold lead
+  in the file it names — F-14's dangling-cite sweep left none.
+- **Every prop has a reader, every reader has a prop** — the four components'
+  props blocks against their destructures and their call sites; F-5's shape
+  recurs nowhere. `<Board>`'s twelve are all required and all passed.
+- **The marker rule holds in the prose written this week** — F-3, F-6, F-8,
+  F-18's docstrings on functions, `//` on every field and prop, including
+  `buildTerminalMessage`'s seven inputs and `GuessAnswer`'s two arms.
+- **The reserve is composed and its four terms each resolve** (`base.css`
+  declares `--guessKeyboard-height` and `--local-feedback-min-height`; the
+  layout publishes `--board-col-gap`; `BoardCol.module.css` reads it).
+- **`_finish_compete` is the one writer of a race's ending**, and both callers
+  hand it the boolean; `end_game_test` pins both endings carrying
+  `winner_guesses`.
+- **`GuessAnswer`'s two arms match the SQL's two `ok` shapes** — the soft
+  rejects carry `solved: false, terminal: false` and no colors, as the type
+  says; `gameplay_test` pins the nulls.
+- **`plans/tile-feedback.md`** carries wordle at tf2 with the dot exemption and
+  the dims ruling under `### wordle · shape 1`; nothing in the four component
+  files cites the plan (only the two stylesheet cites of F-28).
+- **The three pgTAP fixtures read the target as the superuser and grant the
+  temp table back** — every file that crafts a guess does it the same way.
+
 ## Predicted test breaks
 
 *(the spec names, written when the area starts changing things)*
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group (2026-09-22;
+      F-25 to F-32 recorded and shipped)
 - [x] `docs/games/wordle.md` reconciled with `todo.md` (Step 1) and absorbed
       into `src/wordle/doc.md` (the prose pass); the file is deleted
-- [ ] the tile-feedback pass done, and the game's tf level updated there
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the tile-feedback pass done, and the game's tf level updated there
+      (tf2, 2026-09-22)
+- [x] `todo.md` holds everything still owed (nothing is); `doc.md` is whole
+      and nothing durable is left in this file
+- [x] every file on the roster blessed, or its stamp says why not (48
+      `cs-blessed-wordle`, 2026-09-22 — Joel: *"mark all files in this area as
+      blessed"*)

@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useMemo } from 'react'

@@ -1,4 +1,4 @@
-/* cs-met-wordle */
+/* cs-blessed-wordle */
 
 /* The three JUDGED tile colors, for the boards that draw a server verdict on a
  * letter — wordle's guess rows and waffle's lattice. A board indexes this sheet
@@ -6,7 +6,7 @@
  * files; `tileColor.test.ts` is what holds them together, since the lookup has
  * no compiler behind it.
  *
- * They work by RE-SETTING the shared `.tile`'s `--tile-slot-*` tokens rather
+ * They work by RE-SETTING the shared `.tileFace`'s `--tile-slot-*` tokens rather
  * than painting `background` and friends directly. A board declares the resting
  * values on its GRID and these override them on the TILE, so the winner is
  * element-level-beats-inherited rather than a race between two single-class

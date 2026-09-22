@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'

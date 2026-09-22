@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
@@ -24,7 +24,7 @@ type Props = {
   // a genuinely empty one (at terminal, when their guesses reveal).
   isTerminal: boolean
   // The turn currently open in the board viewer — the row's own id — or null
-  // when live. Its `#N` handle wears the shared yellow ring.
+  // when live. Its `#N` handle wears the shared history ring.
   historyId: number | null
   // Open a turn in the board viewer (click its `#N`) — the row's id, and the
   // `#N` this log printed beside it, which is what the banner shows back.

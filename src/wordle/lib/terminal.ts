@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import {
   gameEndedTerminalMessage,
@@ -88,7 +88,7 @@ export function buildTerminalMessage({
   }
   // lost_compete: the clock, every racer conceded, or the guesses. A MIXED
   // table — one quit, one played it out — is `exhausted`, the server's own call
-  // (`_maybe_finish_compete`); the club-list label says the same from the same
+  // (`_finish_compete`); the club-list label says the same from the same
   // word. No `Lost:` prefix on any of them — nobody was beaten, the race just
   // ran out.
   return {

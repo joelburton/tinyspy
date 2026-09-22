@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 
@@ -9,7 +9,7 @@ type Props = {
 
 /**
  * wordle's help / rules modal — opened from the "Help" item in the
- * GamePage menu. Implements the `help: ComponentType<{ onClose }>`
+ * GamePage menu. Implements the `help: ComponentType<{ onClose, brand }>`
  * contract on GameManifest. The frame (panel + title + Got-it) is the
  * shared `<GameHelpCompanion>`; this is just the rules themselves.
  */

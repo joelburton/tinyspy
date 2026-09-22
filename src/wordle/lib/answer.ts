@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
@@ -64,7 +64,7 @@ export function answerMessage(answer: Answer): AnswerMessage {
     // Red where the duplicate is amber, though both cost nothing: a duplicate
     // is a move refused for form — the word exists, it is just already there —
     // while a non-word is a wrong answer of its own kind, the one thing typed
-    // at this board that is not a word. Ruled 2026-09-22.
+    // at this board that is not a word.
     case 'not_a_word':
       return { outcome: 'lost', text: 'Not in word list' }
     case 'too_short':

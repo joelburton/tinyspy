@@ -1,4 +1,4 @@
--- cs-met-wordle
+-- cs-blessed-wordle
 
 -- ============================================================
 -- wordle — the REPEATABLE half
@@ -572,7 +572,7 @@ begin
   -- before the soft-rejects so an out-of-turn guess is rejected outright.
   perform common._require_turn(target_game, caller_id);
 
-  -- ─── Soft reject: malformed entry (no burn) ──────────────
+  -- ─── Malformed entry: a fault ────────────────────────────
   -- Not a soft reject: `doSubmit` refuses a short word before it calls, so a
   -- malformed one arriving means a broken client.
   norm := lower(trim(coalesce(guess, '')));
@@ -741,9 +741,9 @@ begin
     out_terminal := wordle._maybe_finish_compete(target_game);
   end if;
 
-  -- Club-list title: coop now reads the guess just made; either mode that
-  -- just ended now reads the answer. Runs after the terminal branches so it
-  -- sees the settled is_terminal.
+  -- Club-list title: coop reads the guess just made, and a race that just
+  -- ended opens its readout. Runs after the terminal branches so it sees the
+  -- settled is_terminal.
   perform wordle._sync_title(target_game);
 
   -- The fact alone. What an accepted guess shows is composed from the colors
@@ -805,7 +805,8 @@ begin
   perform common._set_conceded(target_game);
   perform wordle._maybe_finish_compete(target_game);
   -- A concede can be the move that empties the racing set, ending the game —
-  -- in which case the title becomes the answer.
+  -- in which case the race's readout opens (compete's title holds its
+  -- placeholder only while the race runs).
   perform wordle._sync_title(target_game);
 
   return common.ok_envelope(jsonb_build_object('result', 'conceded'));
@@ -872,7 +873,8 @@ begin
     perform wordle._finish_compete(target_game, true);
   end if;
 
-  -- The game is over either way — the title becomes the answer.
+  -- The game is over either way — the title re-reads the latest guess, which
+  -- compete publishes only now.
   perform wordle._sync_title(target_game);
 
   -- Realtime touch — common.end_game writes common.games, not wordle.*,
@@ -938,7 +940,8 @@ begin
     player_results
   );
 
-  -- Terminal now, so the title becomes the answer (see _sync_title).
+  -- Terminal now, so a race's readout opens (see _sync_title — the title never
+  -- spells an answer nobody guessed).
   perform wordle._sync_title(target_game);
 
   -- Realtime touch (see submit_timeout).

@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import { describe, it, expect } from 'vitest'
 import { historySnapshot } from './history'

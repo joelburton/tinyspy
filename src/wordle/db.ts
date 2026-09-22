@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import { supabase } from '@/common/supabase/supabase'
 

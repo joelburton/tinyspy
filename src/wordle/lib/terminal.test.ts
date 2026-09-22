@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 /**
  * Unit test for wordle's terminal message (lib/terminal.ts). Pure — no DOM,

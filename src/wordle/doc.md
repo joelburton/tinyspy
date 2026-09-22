@@ -18,8 +18,9 @@ its own guesses.
 
 A guess can also come back without costing anything. A word that is not in
 the legal slice of the dictionary, or one already on the board, is refused by
-the rules rather than by a fault: the reply is an `ok` with the server's own
-sentence, nothing is written, and the typed row stays put for another try.
+the rules rather than by a fault: the reply is an `ok` naming the case, nothing
+is written, and the typed row stays put for another try; the words the player
+reads are the frontend's.
 An accepted guess is the other kind of answer. It writes one row and spends one
 guess, and that row — not the reply — is what every player's board is built
 from, which is why the typed word waits on the board uncolored until its row
@@ -197,8 +198,8 @@ target and the legal band, one `wordle.players` row per player, and seeds the
 club-list readout — `{ mode, solved: false }` plus the guess counters in coop,
 where the count is the team's; compete's counters are each racer's own and
 never published. A coop game with `coop_style: 'turns'` also seats the turn
-order, starting at `first_turn_user_id`. Either mode takes up to six players,
-which the server checks; that compete needs two is the manifest's rule.
+order, starting at `first_turn_user_id`. Either mode takes up to six players
+and a race needs two; the server checks both.
 
 **Passed:**
 
@@ -245,8 +246,9 @@ that does not loses. In compete only the caller's row moves; a racer who has
 solved it or spent their budget is marked done for the shared roster, so the
 presence-pause stops waiting on them (docs/common.md → Done, but not out), and
 the race ends when nobody is still racing — `_maybe_finish_compete` is the one
-place that rule is written, and it picks the winner by fewest guesses, then
-earliest solve, conceders excluded. **The answer is about the caller's guess
+place that rule is written — and `_finish_compete` writes the ending, picking
+the winner by fewest guesses, then earliest solve, conceders excluded. **The
+answer is about the caller's guess
 and never about the game's fate**: the win or the loss reaches every client
 over realtime, and the reply's `terminal` flag only says whether this guess
 was the move that ended it. In turn-order coop an accepted guess that did not

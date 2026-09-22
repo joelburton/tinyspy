@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import { describe, expect, it } from 'vitest'
 import { colorRank } from './colors'

@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, drawSetupBelow, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'

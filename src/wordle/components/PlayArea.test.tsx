@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 /**
  * wordle's play surface, mounted for real: does it render in coop, in compete

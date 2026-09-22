@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 import { notOkOutcome, runRpc } from '@/common/supabase/dbResult'
 import type { Outcome } from '@/common/outcomes/outcomes'

@@ -1,9 +1,9 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 /**
  * wordle — the turn-history replay. Given the guess log and a turn in it,
  * reconstruct what the board looked like at that turn (the guess rows up to
- * and including it) plus which row that turn added — so PlayArea can hand
+ * and including it) plus which row that turn added — so BoardCol can hand
  * `<Board>` a historical `rows` list the same way it hands it the live one.
  *
  * ADD-style replay: a guess only ever ADDS a colored row to the board, so a

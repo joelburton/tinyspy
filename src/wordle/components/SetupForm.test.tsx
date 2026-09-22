@@ -1,4 +1,4 @@
-// cs-met-wordle
+// cs-blessed-wordle
 
 /**
  * wordle's setup form — three settings of its own, and a CROSS-FIELD rule.
