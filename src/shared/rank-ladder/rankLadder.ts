@@ -1,8 +1,8 @@
 // cs-met-rank-ladder
 
 /**
- * The Start..Genius rank ladder shared by the found-words rank-ladder games
- * (spellingbee + wordwheel — both ports of the NYT-Bee-style `*-ws` originals).
+ * The Start..Genius rank ladder, for a game that scores a board out of a
+ * possible maximum and names how far along you are.
  *
  * 7 rank tiers from Start (0%) to Genius (70%); the middle ranks spread
  * linearly between 0 and GENIUS_AT. The same constants drive:

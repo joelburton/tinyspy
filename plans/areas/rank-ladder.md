@@ -201,10 +201,12 @@ All three planted: spaces round the slash fails two of them, unmuting the
 denominator fails one, and putting a single size back on the rem ramp fails the
 static one.
 
-**The americanSpelling guard caught me twice in one commit** — `labelled` in
-this file and `neighbour` in the new spec. Both are in prose I wrote today, and
-CLAUDE.md's first prior is that the rule holds in comments and docs as much as
-in identifiers.
+**The americanSpelling guard caught me twice in one commit** — a doubled-l
+past participle in this file and an -our noun in the new spec, both in prose
+written that day. Named obliquely on purpose: the guard's list is ABSOLUTE and
+catches the words wherever they appear, so writing them here to illustrate the
+point turns the record into a second violation. CLAUDE.md says so outright, and
+this paragraph tripped the guard once before it said it this way.
 
 There is no `Stats.test.tsx`. The component derives nothing, so what is worth
 pinning is narrow but real: the tight `12/93` format — which is a DECISION with
@@ -214,6 +216,39 @@ that the denominator wears `.muted` so it reads as the denominator. Two
 assertions.
 
 ### F-rank-ladder-4 · `roster-archaeology` · Three docstrings roster the two games and date themselves to a refactor
+
+**SHIPPED, 2026-09-21** (Joel: *"do it"*). Both remaining docstrings name the
+condition: `RankBar` is *"for a game with a rank ladder"* and `rankLadder.ts` is
+*"for a game that scores a board out of a possible maximum and names how far
+along you are."* The `*-ws` provenance is not lost — F-1 put it in `doc.md`'s
+intro, which is its one home now.
+
+**The finding undercounted, the same way `bee-games` F-9 did:** it was written
+as a DOCSTRING finding, so the stylesheets were never read for it, and they
+carried three more — `Stats.module.css`'s *"Shared by the found-words
+rank-ladder games (spellingbee + wordwheel)"*, and `RankBar.module.css`'s *"the
+same in both games"* and *"so both games mark it identically."* All three now
+state the condition.
+
+**And one of them named a retired CODENAME.** `RankBar.module.css` described
+the ladder's hue as *"freebee yellow"* — `freebee` was renamed to `spellingbee`
+on 2026-06-26. Rewritten as *"a warm yellow"*, which the sentence wanted anyway:
+its point is that the ladder does NOT take a per-game accent, so naming a game
+in it worked against itself.
+
+**Joel flagged the risk before the sweep went wider** — *"FreeBee is the brand
+name for spellingbee, so make sure you didn't fix any cases where it means to
+be about the brand."* The capitalization turns out to separate them cleanly:
+capitalized **`FreeBee`** is the live brand (the manifest's `BRAND`, the
+setup-presence line a player reads, `naming.md`, `features.md` — eight sites,
+all correct), and lowercase **`freebee`** is the retired codename. Only the
+lowercase one was touched.
+
+**Six stale lowercase sites survive in other areas' files** and are left for
+them: `boggle/lib/setup.ts:148`, `boggle/lib/customBoard.ts:116`,
+`boggle.md:196` and `:234`, `wordwheel.md:170` and `:332`. The two in
+`boggle.md` write *"freebee's and MooseWheel's"* — a retired codename beside a
+live brand in one phrase, where the convention is codenames in prose.
 
 Each says who shares the file and what the code used to be:
 

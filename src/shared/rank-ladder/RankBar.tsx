@@ -14,8 +14,7 @@ type Props = {
 }
 
 /**
- * The 7-square Start..Genius progress bar, shared by spellingbee + wordwheel
- * (their per-game `RankBar` copies were identical bar the accent token).
+ * The 7-square Start..Genius progress bar, for a game with a rank ladder.
  *
  * Each square represents one rank tier. Squares at or below the player's current
  * rank fill with the accent color; remaining squares stay hollow. (Squares, not

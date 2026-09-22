@@ -10,11 +10,11 @@
  * name is displayed as a label above the track so the player has a vocabulary
  * anchor without hovering.
  *
- * The LADDER'S OWN palette is deliberately the same in both games — freebee
- * yellow with dark-gold rules and borders — rather than each game's accent.
- * A rank ladder means the same thing wherever it appears, and when the two
- * games' bars sat side by side in the docs the differing hues read as a
- * distinction that wasn't there. It's defined once, here:
+ * The LADDER'S OWN palette is deliberately the same wherever it appears — a
+ * warm yellow with dark-gold rules and borders — rather than each game's
+ * accent. A rank ladder means the same thing in every game that has one, and
+ * when two games' bars sat side by side in the docs the differing hues read as
+ * a distinction that wasn't there. It's defined once, here:
  *   --rank-bar-fill-color  the achieved-tier fill
  *   --rank-bar-edge-color  every rule + border on the track
  * (`--rank-text`, the rank LABEL's color, is still aliased per game — it's
@@ -122,7 +122,7 @@
  * collide on this very square at the moment it's reached. An outline sits on
  * top of either state, so the goal stays marked before AND after you get
  * there. Deliberately NOT a per-game hue — a goal isn't good or bad, and this
- * component is shared, so both games mark it identically.
+ * component is shared, so every game marks it identically.
  *
  * `box-sizing: border-box` is global, so the thicker border eats inward and
  * the square's 14px footprint is unchanged — no reflow of the track.
