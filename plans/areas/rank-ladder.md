@@ -156,14 +156,26 @@ clear. The plant that had been green all session — `i <= idx` → `false` — 
 fails it, as does an off-by-one.
 
 **Selected through the stylesheet's own export, after checking rather than
-assuming.** I wrote it against a literal `.achieved` on the strength of a memory
-note saying vitest CSS modules are proxies; the case failed, and a probe showed
-the class lands **hashed** (`_achieved_f92464`). `vite.config.ts`'s `css: false`
-skips PARSING, it does not stub the names. So the selector is
-`` `.${styles.achieved}` `` — which is also the honest one, since a literal
-would have passed only by accident. (The memory's substance still holds:
-indexing a stylesheet for a key that no longer exists yields `undefined`, which
-`cls()` drops silently. It is the word "proxy" that is loose.)
+assuming.** I wrote it against a literal `.achieved`, the case failed, and a
+probe showed the class lands as `_achieved_f92464`. So the selector is
+`` `.${styles.achieved}` `` — also the honest one, since a literal could only
+ever have passed by accident.
+
+**And the correction that matters is to what I then wrote here.** This
+paragraph originally said the test-time module "does not stub the names" and
+that a missing key yields `undefined`. **Both are false**, and a second probe
+settled it: `styles.thisClassDoesNotExist` returns
+`_thisClassDoesNotExist_f92464` — a fabricated STRING, for any key at all. The
+module is a proxy exactly as it was already documented, and I had talked myself
+out of a correct note by reading one hashed value and inferring the rest.
+
+The asymmetry is the whole point, and is what I had collapsed: in the TEST the
+proxy invents a name for any key, while in the real build a missing key is
+`undefined` and `cls()` drops it, so the element renders unstyled. A DOM
+assertion therefore can never prove a class EXISTS in the stylesheet — the
+environment that could tell you is the one the test is not running in. `RankBar.test.tsx`'s case pins which ELEMENTS
+carry the class, which is the wiring; whether the class paints anything is the
+stylesheet's, and nothing in vitest can see it.
 
 **And a third plant caught an overclaim in my own comment** — the third time
 this session that planting AFTER writing has found the prose wrong rather than
