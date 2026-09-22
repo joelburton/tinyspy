@@ -110,6 +110,9 @@ function swapRow(posA: number, posB: number, id = 1, userId = 'u1'): EventRow {
     pos_b: posB,
     letter_a: BOARD[posA],
     letter_b: BOARD[posB],
+    // What the board scored after this swap. These tests are about the log and
+    // the flash, not the feedback, so one neutral string serves every row.
+    colors: 'x'.repeat(25),
   }
 }
 
@@ -560,7 +563,13 @@ describe('waffle PlayArea — turn-history viewer (coop)', () => {
   const SCRAMBLE = 'badcef.g.hijklmn.o.pqrstu' // cells 0,1 and 2,3 swapped
   const swapRow = (
     over: Partial<EventRow> & Pick<EventRow, 'id' | 'pos_a' | 'pos_b'>,
-  ): EventRow => ({ user_id: 'u2', letter_a: '?', letter_b: '?', ...over })
+  ): EventRow => ({
+    user_id: 'u2',
+    letter_a: '?',
+    letter_b: '?',
+    colors: 'x'.repeat(25),
+    ...over,
+  })
   // Solving sequence in log order: fix 2↔3 first, then 0↔1.
   const swaps = [
     swapRow({ id: 1, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),

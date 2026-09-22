@@ -56,6 +56,10 @@ export type EventRow = {
   pos_b: number
   letter_a: string
   letter_b: string
+  /** The board's 25-char feedback AFTER this swap, written by `submit_swap`.
+   *  Stored rather than worked out here: coloring needs the solution, and
+   *  making the browser hold it is what this column exists to stop. */
+  colors: string
 }
 
 /**
@@ -111,7 +115,7 @@ export function useGame(gameId: string): {
         readRows(
           db
             .from('events')
-            .select('id, user_id, pos_a, pos_b, letter_a, letter_b')
+            .select('id, user_id, pos_a, pos_b, letter_a, letter_b, colors')
             .eq('game_id', gameId)
             .order('id', { ascending: true }),
         ),

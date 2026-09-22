@@ -3393,6 +3393,7 @@ export type Database = {
     Tables: {
       events: {
         Row: {
+          colors: string
           created_at: string
           game_id: string
           id: number
@@ -3405,6 +3406,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          colors: string
           created_at?: string
           game_id: string
           id?: never
@@ -3417,6 +3419,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          colors?: string
           created_at?: string
           game_id?: string
           id?: never

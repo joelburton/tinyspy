@@ -15,15 +15,24 @@ const SOLUTION = 'abcdef.g.hijklmn.o.pqrstu'
 const SCRAMBLE = 'badcef.g.hijklmn.o.pqrstu'
 
 function swap(over: Partial<EventRow> & Pick<EventRow, 'id' | 'pos_a' | 'pos_b'>): EventRow {
-  return { user_id: 'u1', letter_a: '?', letter_b: '?', ...over }
+  return { user_id: 'u1', letter_a: '?', letter_b: '?', colors: ALL_GREEN, ...over }
 }
+
+/** The colors of the solved board: every filled cell green, holes '.'. */
+const ALL_GREEN = Array.from({ length: 25 }, (_, i) =>
+  [6, 8, 16, 18].includes(i) ? '.' : 'g',
+).join('')
+/** …and of the board one swap earlier, where cells 0 and 1 are still swapped. */
+const TWO_YELLOW = `yy${ALL_GREEN.slice(2)}`
 
 // The solving sequence, in log order: fix cells 2↔3 first, then 0↔1. The ids
 // are what the viewer addresses, and are deliberately not 0,1 — a builder that
 // still indexed would pass by accident.
+// Each row carries what the board scored AFTER it — the server wrote that at
+// submit time, and the viewer reads it rather than working it out.
 const SWAPS: EventRow[] = [
-  swap({ id: 11, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c' }),
-  swap({ id: 12, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a' }),
+  swap({ id: 11, pos_a: 2, pos_b: 3, letter_a: 'd', letter_b: 'c', colors: TWO_YELLOW }),
+  swap({ id: 12, pos_a: 0, pos_b: 1, letter_a: 'b', letter_b: 'a', colors: ALL_GREEN }),
 ]
 
 describe('historyBoardAfter — inclusive replay', () => {
@@ -37,12 +46,10 @@ describe('historyBoardAfter — inclusive replay', () => {
 
 describe('historySnapshot', () => {
   it('viewing the last swap shows the solved board, all green, with its cells ringed', () => {
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 12, 2)
+    const snap = historySnapshot(SCRAMBLE, SWAPS, 12, 2)
     expect(snap.board).toBe(SOLUTION)
-    // Solved → every filled cell green, holes '.'.
-    expect(snap.colors).toBe(
-      Array.from({ length: 25 }, (_, i) => ([6, 8, 16, 18].includes(i) ? '.' : 'g')).join(''),
-    )
+    // The colors are the ROW's — stored by submit_swap, not derived here.
+    expect(snap.colors).toBe(ALL_GREEN)
     expect(snap.historyLitTiles).toEqual(new Set([0, 1]))
     expect(snap.historyLabel).toBe('#2: B (A1) ↔ A (B1)')
   })
@@ -50,15 +57,15 @@ describe('historySnapshot', () => {
   it('labels with the number it was GIVEN — the log numbers what it shows', () => {
     // Swap 12 sits second in this list; a log filtered to one player printed it
     // as "#1", and the banner echoes what the reader clicked.
-    expect(historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 12, 1).historyLabel)
+    expect(historySnapshot(SCRAMBLE, SWAPS, 12, 1).historyLabel)
       .toBe('#1: B (A1) ↔ A (B1)')
     // No number at all when the opening carried none.
-    expect(historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 12, null).historyLabel)
+    expect(historySnapshot(SCRAMBLE, SWAPS, 12, null).historyLabel)
       .toBe('B (A1) ↔ A (B1)')
   })
 
   it('viewing an earlier swap shows the board AS OF that swap, colored for that state', () => {
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 11, 1)
+    const snap = historySnapshot(SCRAMBLE, SWAPS, 11, 1)
     // Board after only the 2↔3 swap: cells 0,1 still wrong.
     expect(snap.board).toBe('bacdef.g.hijklmn.o.pqrstu')
     // Cells 0,1 yellow (in-word, wrong spot), everything else green.
@@ -69,17 +76,21 @@ describe('historySnapshot', () => {
     expect(snap.historyLitTiles).toEqual(new Set([2, 3]))
   })
 
-  it('no solution → letters replay but colors are null (graceful)', () => {
-    const snap = historySnapshot(SCRAMBLE, null, SWAPS, 12, 2)
-    expect(snap.board).toBe(SOLUTION)
-    expect(snap.colors).toBeNull()
+  it('carries the viewed row\u2019s own colors, not the latest', () => {
+    // The two rows store different strings; picking the wrong one would show
+    // the finished board's colors under an earlier board's letters.
+    expect(historySnapshot(SCRAMBLE, SWAPS, 11, 1).colors).toBe(TWO_YELLOW)
+    expect(historySnapshot(SCRAMBLE, SWAPS, 12, 2).colors).toBe(ALL_GREEN)
   })
 
   it('an id this list does not hold replays nothing', () => {
     // A compete opponent's swap, against your own board: none of it is here, so
     // the scramble comes back untouched rather than fully solved.
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, SWAPS, 99, 1)
+    const snap = historySnapshot(SCRAMBLE, SWAPS, 99, 1)
     expect(snap.board).toBe(SCRAMBLE)
+    // No row, so no colors: the grid draws the scramble's letters uncolored
+    // rather than a string belonging to some other board.
+    expect(snap.colors).toBeNull()
     expect(snap.historyLitTiles.size).toBe(0)
     expect(snap.historyLabel).toBe('This swap')
   })
@@ -123,7 +134,7 @@ describe('compete: one player’s swaps at a time', () => {
 
   it('historySnapshot resolves the id against the FILTERED list', () => {
     const mine = MIXED.filter((s) => s.user_id === 'u1')
-    const snap = historySnapshot(SCRAMBLE, SOLUTION, mine, 21, 1)
+    const snap = historySnapshot(SCRAMBLE, mine, 21, 1)
     // My first swap is 2↔3 — NOT the opponent's 4↔5, which sits between them in
     // the unfiltered table.
     expect(snap.historyLitTiles).toEqual(new Set([2, 3]))

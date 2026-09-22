@@ -27,7 +27,7 @@ import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { db } from '../db'
 import { useGame } from '../hooks/useGame'
 import { historySnapshot } from '../lib/history'
-import { computeColors } from '../lib/colors'
+import { allGreen } from '../lib/colors'
 import { solvedWords, swapCells, unjudgeCells } from '../lib/waffle'
 import type { WaffleSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
@@ -418,7 +418,7 @@ export function PlayArea({
           // The six words, derived the same way the on-screen reveal derives
           // them: every word is fully green against the solution itself.
           solutionWords: game.solution
-            ? (solvedWords(game.solution, computeColors(game.solution, game.solution))
+            ? (solvedWords(game.solution, allGreen(game.solution))
                 .filter((w): w is string => w !== null))
             : null,
           answerShown,
@@ -554,7 +554,7 @@ export function PlayArea({
       : replaySwaps
   const historySnap =
     historyId !== null
-      ? historySnapshot(game.scramble, game.solution, historySwaps, historyId, historyN)
+      ? historySnapshot(game.scramble, historySwaps, historyId, historyN)
       : null
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared board.
@@ -600,7 +600,7 @@ export function PlayArea({
   const colors = historySnap
     ? historySnap.colors
     : revealSolution
-      ? computeColors(revealSolution, revealSolution)
+      ? allGreen(revealSolution)
       : pendingSwap && self?.colors
         ? unjudgeCells(self.colors, pendingSwap)
         : (self?.colors ?? null)
@@ -613,7 +613,7 @@ export function PlayArea({
   // too, so all six words fill in together with the board.
   const answerWords = solvedWords(
     revealSolution ?? self?.board ?? game.scramble,
-    revealSolution ? computeColors(revealSolution, revealSolution) : (self?.colors ?? null),
+    revealSolution ? allGreen(revealSolution) : (self?.colors ?? null),
   )
 
   // The board is inert whenever I can't act OR I'm peeking at history. `!isMyTurn`

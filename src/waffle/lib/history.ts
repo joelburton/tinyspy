@@ -1,16 +1,20 @@
 // cs-unmet
 
 /**
- * waffle — the turn-history replay. Given the starting `scramble`, the hidden
- * `solution`, and the coop swap log, reconstruct what the board looked like at any
- * past swap, plus its colors and a historyLabel — so the PlayArea can hand `Board`
- * a historical board the same way it hands it the live one.
+ * waffle — the turn-history replay. Given the starting `scramble` and the swap
+ * log, reconstruct what the board looked like at any past swap, plus its colors
+ * and a historyLabel — so the PlayArea can hand `Board` a historical board the
+ * same way it hands it the live one.
  *
  * This is the ADD-style replay (like scrabble's `historyBoard`, unlike stackdown's
  * removal): each swap is a reversible transposition of two cells, so a past board is
- * just `scramble` with the swaps up to that point applied. Colors aren't stored per
- * swap — they're a pure function of `(board, solution)`, recomputed here via the TS
- * `computeColors` port (see lib/colors).
+ * just `scramble` with the swaps up to that point applied.
+ *
+ * **The letters are replayed; the colors are READ.** Every swap row carries the
+ * board's feedback as of that swap (`waffle.events.colors`, written by
+ * `submit_swap`). Replaying letters needs nothing secret, but coloring them
+ * needs the solution — so working them out here is what would make the browser
+ * hold the answer.
  *
  * **One player's swaps at a time.** Compete logs swaps too since 2026-08-02, so
  * `waffle.events` can hold several players' independent sequences interleaved in
@@ -32,14 +36,14 @@
  * See docs/games/waffle.md and docs/playarea.md.
  */
 import { coord } from './waffle'
-import { computeColors } from './colors'
 import type { EventRow } from '../hooks/useGame'
 
 export interface HistorySnapshot {
   /** The 25-char board AFTER the viewed swap. Feed straight to `<Board board>`. */
   board: string
-  /** Its 25-char g/y/x colors, or null if the solution isn't available (shouldn't
-   *  happen in coop — the grid then renders letters without color). */
+  /** Its 25-char g/y/x colors, off the swap row — or null when the id named no
+   *  row in this list, since then there is no swap whose colors to show and the
+   *  grid renders the scramble's letters without color. */
   colors: string | null
   /** The two cells the viewed swap moved — ring these on the board. */
   historyLitTiles: Set<number>
@@ -73,7 +77,6 @@ export function historyBoardAfter(
  */
 export function historySnapshot(
   scramble: string,
-  solution: string | null,
   swaps: ReadonlyArray<EventRow>,
   id: number,
   n: number | null,
@@ -85,7 +88,7 @@ export function historySnapshot(
   const swap = index >= 0 ? swaps[index] : undefined
   return {
     board,
-    colors: solution ? computeColors(board, solution) : null,
+    colors: swap?.colors ?? null,
     historyLitTiles: swap ? new Set([swap.pos_a, swap.pos_b]) : new Set<number>(),
     historyLabel: describe(swap, n),
   }

@@ -109,11 +109,15 @@ The puzzle is shared + immutable on `waffle.games`; the **solution is
 grant-hidden** (column-grant revoked from `authenticated`; the only read path is
 the `_solution_for` SECURITY DEFINER helper behind `games_state`). That helper is
 **mode-aware**: **compete** hides the solution until terminal (players race on
-independent boards); **coop** exposes it *during* play, because the turn-history
-viewer recomputes each past board's colors on the FE (a pure function of
-board+solution) and coop is a collaborative solve — per the trust model
-(server-authoritative for cleanliness, not anti-cheat) a friend peeking at the
-shared answer only spoils their own puzzle.
+independent boards); **coop** exposes it *during* play, which is a collaborative
+solve — per the trust model (server-authoritative for cleanliness, not
+anti-cheat) a friend peeking at the shared answer only spoils their own puzzle.
+
+**That exposure no longer has a mechanical reason.** It was there because the
+turn-history viewer recomputed each past board's colors in the browser, which
+needs the answer; every swap now stores its own colors (`waffle.events.colors`)
+and the viewer reads them. What is left is the trust-model argument above, and
+whether coop should keep the solution mid-game on that alone is undecided.
 
 Working state lives in `waffle.players`, **one table for both modes**. Compete
 forces a per-player row (each player solves their own copy, with their own
@@ -439,10 +443,11 @@ Mirrors the other game folders:
 - `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`. Color
   rendering is the shared `shared/wordle-style/tileColor.ts` (server code → class key);
   the server is authoritative for the actual colors.
-- `lib/colors.ts` — a TS port of `waffle.board_colors` / `common.wordle_colors`, pinned
-  against the pgTAP oracle by `colors.test.ts`. The server stays authoritative for
-  LIVE colors; this exists only so the turn-history viewer can color a *historical*
-  board on the FE (see below).
+- `lib/colors.ts` — `allGreen` alone: the colors of a board that IS the solution,
+  for the reveal and the printed word list. Every other colored board the FE
+  draws was colored by `waffle.board_colors` — the live one off `players_state`,
+  a past one off the swap row that stored it. Nothing here recomputes feedback,
+  and the coloring algorithm lives only in SQL.
 - `lib/history.ts` — the coop turn-history replay (pure + unit-tested): given the
   `scramble` + the swap log, `historySnapshot(index)` reconstructs the board *after*
   that swap (each swap is a reversible transposition), colors it via `lib/colors`,

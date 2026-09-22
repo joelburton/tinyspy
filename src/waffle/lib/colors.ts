@@ -1,80 +1,29 @@
 // cs-unmet
 
 /**
- * Waffle's green/yellow/gray feedback, ported to TypeScript from the SQL
- * `waffle.board_colors` (the board merger, migration `20260624000000_waffle.sql`)
- * and the shared `common.wordle_colors` algorithm it wraps. The server stays the
- * source of truth for LIVE
- * colors (it computes them in `submit_swap` + the read view); this port exists so
- * the turn-history viewer can color a *historical* board on the frontend — replaying
- * past board states needs their colors, and those are a pure function of
- * `(board, solution)` that we'd otherwise have to round-trip to the server for.
+ * waffle's green/yellow/gray feedback is the SERVER's, in full. Every colored
+ * board the frontend draws was colored by `waffle.board_colors` — the live one
+ * off `players_state`, and a past one off the swap row that stored it
+ * (`waffle.events.colors`). Nothing here recomputes any of it, and nothing here
+ * holds the algorithm.
  *
- * Because there are now two copies of this subtle algorithm, `colors.test.ts`
- * pins the TS port against **the exact vectors from the pgTAP `colors_test.sql`
- * oracle** — if the SQL ever changes, that test catches the drift. See
- * docs/playarea.md (turn-history rollout) and
- * docs/games/waffle.md → "Color feedback".
+ * What is left is the one color string that needs no answer to know: a board
+ * that IS the solution.
  */
-import { WORDS, lettersAt, HOLE, CELLS } from './waffle'
-
-/** Merge rank for an intersection cell: green beats yellow beats gray beats hole. */
-function rank(c: string): number {
-  return c === 'g' ? 3 : c === 'y' ? 2 : c === 'x' ? 1 : 0
-}
+import { HOLE } from './waffle'
 
 /**
- * Color ONE 5-letter word, Wordle-style → a same-length `g`/`y`/`x` string.
- * Two passes with the standard duplicate-letter accounting (mirrors the SQL
- * `common.wordle_colors`): greens first, so each correct-place letter claims its answer
- * copy; then yellows from the leftover pool, left-to-right, so a guess letter only
- * earns a yellow while an unconsumed copy remains in the answer.
+ * The colors of a solved board — `g` on every filled cell, `.` on every hole.
+ *
+ * For the places that draw the solution itself: the end-of-game reveal, and the
+ * six words the printed sheet lists. Coloring the solution against the solution
+ * is green by definition, so these asked the algorithm a question whose answer
+ * was already known.
+ *
+ * Reads the holes off the string rather than off the fixed grid, so it says
+ * "whatever this board's holes are" instead of repeating a layout that lives in
+ * `waffle.ts`.
  */
-export function wordleColors(guess: string, answer: string): string {
-  guess = guess.toLowerCase()
-  answer = answer.toLowerCase()
-  const n = guess.length
-  const res: string[] = new Array(n).fill('x')
-  const pool = new Array<number>(26).fill(0) // answer letters left after greens
-
-  // Pass 1: greens. Non-green answer letters go into the pool.
-  for (let i = 0; i < n; i++) {
-    if (guess[i] === answer[i]) {
-      res[i] = 'g'
-    } else {
-      const idx = answer.charCodeAt(i) - 97 // 'a' → 0 … 'z' → 25
-      if (idx >= 0 && idx < 26) pool[idx]++
-    }
-  }
-
-  // Pass 2: yellows, consuming from the pool left-to-right.
-  for (let i = 0; i < n; i++) {
-    if (res[i] !== 'g') {
-      const idx = guess.charCodeAt(i) - 97
-      if (idx >= 0 && idx < 26 && pool[idx] > 0) {
-        res[i] = 'y'
-        pool[idx]--
-      }
-    }
-  }
-
-  return res.join('')
-}
-
-/**
- * Color a whole 25-char board against the 25-char solution → a 25-char `g`/`y`/`x`
- * string with holes left as `.`. Colors each of the 6 words independently, then
- * merges per cell: an intersection cell (in two words) shows the STRONGER of its
- * two colors. Mirrors the SQL `board_colors` exactly.
- */
-export function computeColors(board: string, solution: string): string {
-  const res: string[] = new Array(CELLS).fill(HOLE) // holes stay '.'
-  for (const cells of WORDS) {
-    const wc = wordleColors(lettersAt(board, cells), lettersAt(solution, cells))
-    for (let k = 0; k < cells.length; k++) {
-      const cell = cells[k]
-      if (rank(wc[k]) > rank(res[cell])) res[cell] = wc[k]
-    }
-  }
-  return res.join('')
+export function allGreen(solution: string): string {
+  return [...solution].map((ch) => (ch === HOLE ? HOLE : 'g')).join('')
 }

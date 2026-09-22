@@ -15,7 +15,7 @@ import type { EventRow } from '../hooks/useGame'
 const MY_BOARD = 'badcef.g.hijklmn.o.pqrstu'
 
 const swap = (over: Partial<EventRow> & Pick<EventRow, 'id' | 'pos_a' | 'pos_b'>): EventRow => ({
-  user_id: 'u1', letter_a: 'a', letter_b: 'b', ...over,
+  user_id: 'u1', letter_a: 'a', letter_b: 'b', colors: 'x'.repeat(25), ...over,
 })
 
 const board = (user_id: string, over: Partial<{ board: string | null; colors: string | null; swaps_used: number; solved: boolean }> = {}) => ({
