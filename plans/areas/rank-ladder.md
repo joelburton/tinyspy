@@ -137,6 +137,29 @@ that the bar renders twice per game.
 
 ### F-rank-ladder-2 · `achieved-unpinned` · Which squares fill has no spec, and the plant is clean
 
+**SHIPPED, 2026-09-21** (Joel: *"do it"*). One case, 2 → 3, no production code
+touched. Start alone at 0/40, three squares at 12/40, all seven at a full
+clear. The plant that had been green all session — `i <= idx` → `false` — now
+fails it, as does an off-by-one.
+
+**Selected through the stylesheet's own export, after checking rather than
+assuming.** I wrote it against a literal `.achieved` on the strength of a memory
+note saying vitest CSS modules are proxies; the case failed, and a probe showed
+the class lands **hashed** (`_achieved_f92464`). `vite.config.ts`'s `css: false`
+skips PARSING, it does not stub the names. So the selector is
+`` `.${styles.achieved}` `` — which is also the honest one, since a literal
+would have passed only by accident. (The memory's substance still holds:
+indexing a stylesheet for a key that no longer exists yields `undefined`, which
+`cls()` drops silently. It is the word "proxy" that is loose.)
+
+**And a third plant caught an overclaim in my own comment** — the third time
+this session that planting AFTER writing has found the prose wrong rather than
+the code. I had labelled the full-clear assertion "the CLAMP", and an unclamped
+index passes it: `i <= idx` caps at seven whatever `idx` is, because there are
+seven squares. The clamp belongs to `currentRankIndex` and
+`rankLadder.test.ts:138` already pins it. The comment now says what the
+assertion earns and points at the real home.
+
 The bar's entire job is unpinned. Planted:
 
 ```
@@ -561,7 +584,7 @@ resolves; `docLinks` passes.
 
 ## Predicted test breaks
 
-- F-2: `RankBar.test.tsx` gains a case (2 → 3).
+- ~~F-2: `RankBar.test.tsx` gains a case (2 → 3).~~ Shipped, exactly 2 → 3.
 - F-3: a new `Stats.test.tsx`, two assertions.
 - F-1: `src/guards/folderDocs.test.ts` — `shared/rank-ladder` comes off
   `INTROS_OWED` in the same commit as the intro, or the guard fails either way.

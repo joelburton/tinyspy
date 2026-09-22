@@ -5,6 +5,7 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { RANKS } from './rankLadder'
 import { RankBar } from './RankBar'
+import styles from './RankBar.module.css'
 
 /**
  * The rank ladder is a READOUT, and these pin the one thing that makes it one:
@@ -32,6 +33,32 @@ describe('RankBar — a readout, not a control', () => {
     // button (common/core-css/utilities.css → `.definable` names the same escape hatch),
     // not a tabIndex back on the list item.
     expect(container.querySelectorAll('button, a[href], input')).toHaveLength(0)
+  })
+
+  it('fills every square up to the current rank, and no further', () => {
+    // The component's whole job, and nothing pinned it: making `.achieved`
+    // unreachable left all 20 tests green.
+    //
+    // Selected through the stylesheet's own export rather than a literal class
+    // name — the build hashes these (`_achieved_f92464`), so a literal would
+    // pass only by accident. What this pins is the WIRING, which tiers get
+    // marked at a given score; that the class paints anything is the
+    // stylesheet's business and no render test can see it.
+    const filled = (score: number, total: number) =>
+      render(<RankBar score={score} total={total} />).container.querySelectorAll(
+        `.${styles.achieved}`,
+      ).length
+
+    // Start is index 0 and is reached by definition, so the bar is never empty.
+    expect(filled(0, 40)).toBe(1)
+    // Mid-ladder: 12/40 is 30% of the max, which is Solid — the same score the
+    // case below reads the label for.
+    expect(filled(12, 40)).toBe(3)
+    // A full clear fills the lot. NOT the clamp, though it reads like it:
+    // `i <= idx` caps at seven whatever `idx` is, because there are seven
+    // squares — planting an unclamped index still passes this. The clamp is
+    // `currentRankIndex`'s and `rankLadder.test.ts` pins it there.
+    expect(filled(40, 40)).toBe(RANKS.length)
   })
 
   it('still says everything it needs to in text', () => {
