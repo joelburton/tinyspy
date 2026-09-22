@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-bee-games
 
 /**
  * One row of the compete leaderboard the two bee games keep on

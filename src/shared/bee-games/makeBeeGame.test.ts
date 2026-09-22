@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-bee-games
 
 /**
  * Tests for makeBeeGame — the useGame data-hook factory shared by
