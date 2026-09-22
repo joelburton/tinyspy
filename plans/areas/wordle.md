@@ -8,10 +8,13 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 `src/wordle/todo.md`, not here.
 
 **Status: OPEN** (2026-09-22). **Pass 1, the restructure, is DONE** (Steps
-0–8). **Pass 2, the audit, is done bar the closing re-read**: the prose pass
-shipped (`39ec69c5`) and all five findings are answered — F-1, F-3, F-4 and
-F-5 shipped, F-2 ruled back to `game-page`. `src/wordle/todo.md` is empty.
-Next: pass 3, tile-feedback, then the closing re-read.
+0–8). **Pass 2, the audit, is IN PROGRESS**: the prose pass shipped
+(`39ec69c5`) and the five findings the todo and that pass raised are answered —
+F-1, F-3, F-4 and F-5 shipped, F-2 ruled back to `game-page`. **The roster
+READ is done (2026-09-22, below) and recorded twelve more, F-6 to F-17, none
+worked**: eight with a decision in them, four prose, tests and small shapes.
+`src/wordle/todo.md` is empty. Then pass 3, tile-feedback, then the closing
+re-read.
 **Three passes back to back**, psychicnum's and connections' shape:
 restructure → audit → tile-feedback.
 
@@ -805,6 +808,340 @@ variable. Options: **delete it** — the prop, the pass-through and the
 `WordleSetup` import from `InfoCol.tsx`; or keep it for a reader nobody has
 named. Recommendation: delete it, a prop with no reader being a claim the
 component makes about itself that is false.
+
+### The audit's read — 2026-09-22
+
+**The READ is DONE.** Every roster file end to end, React, SQL and CSS
+together: the four components and their five stylesheets, `useGame`, the
+eight `lib/` files and their tests, the printer and its model, the manifest,
+`db.ts`, `theme.css`, the shared `tileColors.module.css`, `PlayArea.test.tsx`
+and `SetupForm.test.tsx`, the repeatable SQL file, both migrations, the eleven
+pgTAP files and `setup.psql`, plus `colors_test.sql` as evidence. And the
+checks beside them: the shell commits since the area opened (F-1's own, the
+keyboard change, the tile-colors move — nothing under `game-page`), that
+`GamePage` keys the surface on `restarts`, what the shared `.verdictRing` and
+`useMark` do, what `useCelebration` requires of its gate, what the outcome
+vocabulary says a refused move reads as and what the sibling games say, and
+every doc anchor the folder cites.
+
+What the game IS, for the record: the code held up. The hidden-target
+pattern is sound end to end (the grant, the definer view, the re-shield on
+Restart, the title that never spells an unearned answer), the seam is one
+function, the printer refuses the answer under the same rule the screen uses,
+and the pgTAP suite pins the rules it names. What the read found is of three
+kinds: two things the shell moved under this game that its code still defends
+against (F-7, F-13); decisions this game never made where its siblings have
+(F-6, F-8, F-9, F-12); and prose that drifted, the same way connections' did.
+Twelve findings: eight with a decision in them (F-6 to F-13), then prose,
+tests and small shapes (F-14 to F-17).
+
+### F-wordle-6 · `race-winner-celebration` · the race's winner gets no confetti
+
+`useCelebration(playState === 'won')` — coop only, and the comment beside it
+says so "by the states vocabulary (compete writes `won_compete`)", which is a
+description of the gate rather than a reason for it. psychicnum's F-6 and
+connections' F-1 asked the same question and both gave the race's winner the
+celebration (`playState === 'won' || (playState === 'won_compete' &&
+iFoundThemAll)`), with the modal's body reading per mode (*"You found all
+three first."*). Here the winner is `selfWon`, read off `status.winner_user_id`
+— on the common row, so correct on the first render, which is what the hook's
+rule 1 requires. `PlayArea.test.tsx` → "does not celebrate a compete win" pins
+the current behavior and would flip. Options: *the same here* — the gate
+becomes `playState === 'won' || (playState === 'won_compete' && selfWon)`, the
+modal's title stays *Solved! 🎉* and gains a body per mode, the test pins the
+winner celebrating and the beaten racer not — or *keep coop-only* as a design
+choice with a comment that says it is one. Recommendation: the same here, for
+the reason connections gave — a race's winner has more to celebrate than a
+team, and the pill alone says "Won: fewest guesses" in the corner.
+
+### F-wordle-7 · `restart-defenses-dead` · two render-phase guards, two specs and a doc sentence defend against a restart that cannot reach them
+
+**§4's standing trap, checked here as it asks.** `GamePage` renders
+`<PlayArea key={commonGame.restarts}>` (`GamePage.tsx:442`), so a Restart
+unmounts this whole surface on every client and mounts a fresh one — `pending`,
+`current`, `flipBaseline` and every ref inside the shared hooks start over.
+Four things in this folder still defend against the case:
+
+- `BoardCol.tsx` → the `prevRowCount` state and its render-phase branch:
+  "Rows only SHRINK on a reset … drop the stale in-flight word AND any
+  half-typed buffer from the previous run". Rows shrink on nothing else — the
+  live `rows` prop is append-only in both modes, and the history snapshot goes
+  to `<Board>` by a different prop.
+- `Board.tsx` → `flipBaseline` "MOVES BACK, which is why it is state and not a
+  mount-time count: a restart deletes the guesses". With the remount the
+  replayed game's first row flips because the board is new; the
+  `!isViewingHistory` guard beside it is guarding a branch that never runs.
+- `PlayArea.test.tsx` → "restart resets the board fully — no stale pending row
+  from the finished run" and "still flips the first guess of a replayed board"
+  both `rerender` with a shrunken `rows` and NO remount — the exact shape
+  `F-word-list-5` was filed in, red only because the test skipped the remount
+  the app always performs.
+- `doc.md` → Frontend: "a Restart moves the line so the replayed game's first
+  row flips too."
+
+Options: *delete the four* — `prevRowCount` and its branch go, `flipBaseline`
+becomes a plain `useState(rows.length)` seed (the mount-time line is still
+what tells a landed row from one that was already there), the two specs go or
+are rewritten to mount a fresh surface, and the doc sentence says a restart
+remounts — or *keep them* as belt-and-braces. Recommendation: delete; §4's own
+words are that code still defending against a restart "reads as load-bearing
+to the next person", and the two specs are worse than dead, since they pass
+against a path the app cannot take.
+
+### F-wordle-8 · `won-by-timeout` · a race the clock ends with a solver is under-recorded by the server and mis-described by the client
+
+`submit_timeout`'s compete branch builds the winner, the per-player results and
+the terminal status by hand — a duplicate of `_maybe_finish_compete`'s three
+queries — and the duplicate is missing a key: it writes `winner_user_id` and
+`winner_username` but not **`winner_guesses`**, so the club-list label for a
+race the clock decided reads `Won by alice · dict "Wordle"` where every other
+`won_compete` reads `Won by alice · 4 guesses · …` (`labelFor` → `count(…)`
+returns null on the missing key). On the client, `buildTerminalMessage` reads
+no `reason` for `won_compete`: a racer who had not finished when time ran out
+sees *Lost: beaten on guesses* / *Opponent won*, which is not what happened to
+them — they were never beaten on guesses, the clock stopped them — and the
+solver sees *Won: fewest guesses* with nobody else's count to be fewest than.
+`terminal.test.ts`'s table walks `reason: 'timeout'` against `won_compete` but
+asserts only the outcome, and **no pgTAP exercises a compete timeout at all**
+(`end_game_test` covers coop's). `docs/win-lose.md` files wordle as "best —
+fewest guesses · rank the finishers" on timeout, which is what the SQL does;
+the words and the status are what lag it.
+
+Options: *(a) one finisher* — `_finish_compete(target_game, reason)` builds
+the winner, the results and the whole status once, `_maybe_finish_compete`
+calls it with its computed reason and `submit_timeout` with `'timeout'`, so
+`winner_guesses` cannot be missed twice; `buildTerminalMessage` gains the
+`won_compete` + `timeout` pair on both sides (Joel's words — something like
+*Won: solved before time ran out* / *Lost: time ran out*), and
+`compete_test.sql` or `end_game_test.sql` gains the compete timeout, both the
+solver-wins and the nobody-solved cases. *(b) the minimum* — add
+`winner_guesses` to the timeout branch and the two FE sentences, leave the
+duplication. Recommendation: (a); the missing key is what the duplication
+costs, and it will cost again.
+
+### F-wordle-9 · `not-a-word-reads-lost` · one soft reject is red and the other amber
+
+`lib/answer.ts`: `duplicate` → `warning` / *Already guessed*, `not_a_word` →
+`lost` / *Not in word list*. Both are the same kind of answer — the rules
+applied, no guess spent, no row written, the typed row still there to edit —
+and `docs/outcomes.md` defines `warning` as exactly that: *"A move not being
+taken. Not a losing move — that is `lost`, red — but it is not happening and
+you should notice, the way a duplicate word needs noticing."* The roster
+mostly agrees: wordiply's `not_a_word` is `warning`, and every game's
+already-guessed is `warning` (psychicnum, connections, spellingbee, boggle,
+wordwheel, strands, wordiply). strands is the exception with a reason written
+down — its "not a word" is "the one real miss", in a game where guesses are
+otherwise unlimited. wordle's has no reason written; `answer.test.ts` pins the
+color without saying why. The board's reject mark and the pill both take the
+color from this one place, so the change is one line and one test row.
+Options: *`warning` for both*, since neither is a verdict on your play — or
+*keep red* as wordle's own reading (a non-word is a typo, a duplicate is a
+lapse) with the reason written where the table is. Recommendation: `warning`;
+the vocabulary's own definition names this case, and a player who mistypes a
+word did not lose anything.
+
+### F-wordle-10 · `help-text` · the Help modal assumes two players and omits two rules
+
+Player-facing text, so a finding rather than a fix (Joel's words):
+
+- *"either of you can guess, and you both see every guess"* — coop takes one
+  to six players; "either" and "both" are true of exactly two.
+- The duplicate rule is unstated: a word already on the board is refused and
+  costs nothing, which is the one refusal a player will meet by accident.
+- *"you don't see each other's guesses"* — until the game ends, when every
+  board opens (and the event log's picker can read them back).
+- Nothing about the legal band — that a guess may be crude or British, only
+  too obscure — or that a countdown ends the game. Whether Help should say so
+  is the same call connections' F-3 made (it named what a racer can see of a
+  rival).
+
+The size (460×380) sits with the mid-sized siblings and was chosen, not
+measured; nothing here moves it unless the text grows a block.
+
+### F-wordle-11 · `word-length-two-homes` · `WORD_LENGTH` exists so screen and paper agree, and the screen does not read it
+
+`PlayArea.tsx` declares `const WORD_LENGTH = 5` with the docstring *"Named
+here so the printed grid and the on-screen one can't disagree"*, and hands it
+to the print model alone. The on-screen one spells the number itself:
+`Board.tsx` (`Array.from({ length: 5 })`), `BoardCol.tsx` four times (the
+typing cap, the submit check, `maxLength`, the keyboard-tint loop),
+`SetupForm.tsx` twice (`length={5}` on both dictionary fields),
+`printWordlePdf.ts` (`?? 5`), and `Board.module.css` (`--cols: 5`). Same class
+as connections' F-14 (`constants-have-two-homes`) and psychicnum's F-19. The
+player-facing "5-letter word" in Help and the info column is text, not
+arithmetic, and stays. Options: *one home in `lib/`* — `lib/setup.ts` beside
+`GUESS_OPTIONS`, since `SetupForm` reads it too and every file that needs it
+already imports from `lib/` — read by the board, the column, the form, the
+printer and the model; the stylesheet keeps its `--cols` (a CSS token cannot
+read a TS constant, and `Board.tsx` already sets `--rows` inline, so it could
+set `--cols` the same way if Joel wants the one home to be total) — or
+*leave it*. Recommendation: `lib/setup.ts`, with `--cols` set inline beside
+`--rows`.
+
+### F-wordle-12 · `spectator-notice` · "Watching — you're not in this game" is two games' sentence for a state the shell owns
+
+`InfoCol.tsx` shows *Watching — you're not in this game.* when `isPlayer` is
+false; scrabble's `BoardCol` shows the same words; the other fourteen games
+show a non-player nothing in particular. The state is real — a club member can
+open a game they are not seated in (`docs/common.md` → "spectators a free
+future affordance") — and CLAUDE.md's prior is that there are no spectators. So
+this is not wordle's sentence to keep or drop: what a non-player sees is
+`game-page`'s question (CLOSED 2026-09-15, not locked). Options: *file it to
+`common/game-page/todo.md`* — one notice, or none, for all sixteen — and keep
+wordle's line until the shell answers; or *drop the line here now* and let the
+column read as a player's would. Recommendation: file and keep; a lone honest
+sentence beats fifteen silences, and removing it here would be deciding the
+shell's question from one game.
+
+### F-wordle-13 · `reject-mark-hand-rolled` · the row's reject mark keeps its own clock beside a vocabulary that publishes one
+
+`BoardCol.tsx`: `rejectNonce` + `rejectOutcome` as two `useState`s, a
+`useEffect` with a `setTimeout`, and `REJECT_MARK_MS = 900` — "a touch past
+the shake, so the mark is still there when the movement stops". The shake is
+`VERDICT_SHAKE_MS = 400` (`feedbackTiming.ts`, published as
+`--mark-verdict-shake-duration`, which `.verdictRing` animates on), so 900 is
+not a touch past it but more than double, hand-tuned. `board-marks` re-opened
+2026-09-20 to merge every mark hook into one `useMark` — sixteen call sites in
+ten games, connections' verdict among them — whose timers live in the hook and
+whose durations come from `feedbackTiming.ts`; wordle's mark was not one of
+the sixteen (`board-marks/doc.md` names only `useTurnStartFlash` for this
+game). `<Board>` keys the active row on the nonce so a repeat refusal
+re-shakes, which `useMark`'s own `nonce` does. Options: *convert now*, in pass
+2 — `useMark<Outcome>(VERDICT_SHAKE_MS)` (or the beat Joel picks), `show(outcome)`
+at both raise sites, the row keyed on the mark's nonce, the two states, the
+effect and the constant gone — or *leave it for pass 3*, which reads this very
+mark against tile-feedback.md (its line about wordle: "a refused word wears an
+outline"), so the channel may change under the hook. Recommendation: pass 3,
+recorded here so it is not lost; converting a mark whose channel is about to
+be weighed is work done twice.
+
+### F-wordle-14 · `stale-claims` · sentences in the folder that are no longer true, and cites that point at nothing
+
+Each checked against the tree:
+
+- `PlayArea.tsx` → `createNewGame`: "so the cast is the usual per-game
+  narrowing" — there is no cast; Step 2's loader narrows `setup` once.
+- `PlayArea.tsx` → the reveal: "a wordle can only be FINISHED by typing the
+  answer" — solved; a wordle finishes on the budget and the clock too.
+  `PlayArea.test.tsx` → "SOLVING shows the answer unasked" says the same.
+- `PlayArea.tsx` cites `docs/ui.md → the two feedback slots` and
+  `docs/common.md → GamePageCtx.setup`; `lib/terminal.ts` cites
+  `docs/mobile.md → feedback text`. None of the three phrases exists in the
+  doc it names.
+- `Board.tsx` → the `isViewingHistory` prop: "PlayArea also hands historical
+  `rows`" — `BoardCol` does.
+- `Board.module.css` → `.grid` and `.tile`: "wordle's tiles are the shared
+  `.tile`", "The box comes from the SHARED `.tile`" — the board composes
+  `shared.tileFace`; `.tile` is the button class the same comments say wordle
+  does not take.
+- `Board.module.css` → `.reveal`'s reduced-motion arm paints
+  `border-color: var(--reveal-bg)` where the keyframes paint
+  `var(--reveal-border)` — the one place a settled tile's edge is its fill.
+- `manifest.ts` → `BRAND`: "both manifests' name and the start-game error read
+  it" — nothing but the two `name`s reads it.
+- `manifest.ts` docstring: "the brand lives only in the BRAND const below" is
+  true; "The game itself is `doc.md`'s" fine. `labelFor`'s comment "compete
+  never updates these" — true.
+- `supabase/sql/wordle.sql` → the column grant: "everything EXCEPT `target`" —
+  `legal_guess` is withheld too (and `games_state` omits it); the frontend
+  reads the band off `setup`, so nothing is broken, but the sentence is.
+- `wordle.sql` → `create_game`'s header: the setup shape lists four keys of
+  six (`coop_style`, `first_turn_user_id` missing) — connections' F-12 had the
+  same.
+- `wordle.sql` → PN056: "it names the field the form can fix" — the raise is
+  `column = '_'`, `hint = 'fault'`; it names nothing, correctly, since the
+  form floors the control and `validate` gates Start, so the server seeing it
+  means a broken client. `create_game_test.sql` labels four assertions "names
+  the max_guesses field" / "the answer_source field" / "the legal_guess field"
+  / "the legal band" against envelopes asserting `"field":"_"`.
+  `SetupForm.test.tsx`'s header makes the same claim in its first paragraph
+  and its last describe says the opposite ("raises NO form-validations") — the
+  second is right.
+- `wordle.sql` → `submit_guess`'s header lists the hard rejections and omits
+  out-of-turn (PN243, `_require_turn`, which `turn_order_test` pins).
+- `wordle.sql` → `replay_board`'s header and `replay_test.sql`'s: 'The "Replay
+  board" game-menu item' — the row says Restart (connections' F-12 corrected
+  its twin).
+- `replay_test.sql`: "42501 = common.require_game_player's 'not-a-player|'" —
+  the assertion under it is PN253 and the raise text is gone.
+- `legal_guess_test.sql`: "it would have been legal under the old hardcoded
+  ≤4" — archaeology.
+- `PlayArea.test.tsx` → the terminal-flow describe: "the word stays HIDDEN at
+  every terminal, win included, until THIS viewer asks" — a solver sees it
+  unasked, and the describe's own fourth case pins that.
+- `PlayArea.test.tsx` → the board-scope marks: "the vocabulary in
+  plans/tile-feedback.md" — a plan cite in a durable file, the third in the
+  folder beside `Board.module.css`'s two (pass 3's to repoint at
+  `common/board-marks/doc.md`, the way connections' Step 8 did).
+- `GameEventLog.tsx`'s docstring restates the shared picker's behavior for a
+  paragraph ("solo is your handle, coop is 'Team' plus each player…") — a
+  sentence and a pointer at `useEventLogPlayerPicker` is the rule.
+
+### F-wordle-15 · `small-shapes` · types, props and derivations that say a little more or less than the code
+
+- `BoardCol.tsx` → `GuessAnswer.guesses_used: number | null` — the column is
+  `not null default 0` and both `ok` shapes return `p_used` or `new_used`;
+  `WordlePlayerState` types the same fact `number`.
+- `BoardCol.tsx` → `historyActor?: Actor | null` is optional while `PlayArea`
+  always passes it — the reasoning that made `<Board>`'s props all required
+  (Notes, 2026-09-22) applies one prop up.
+- `useGame.ts` → `export type Player = Member` has no reader.
+- `PlayArea.tsx` reads `game.mode` and `game.max_guesses` in the JSX where
+  `mode` and `maxGuesses` were derived above, and computes
+  `selfSolved: solvedIds.includes(session.user.id)` beside `mySolved`, the
+  same fact.
+- `InfoCol.tsx` → the strip's `metricFor` branches `isSelf ? guessesUsed :
+  playerStates.find(…)` where the find answers both.
+- Two sentences for one standing state: the pill says *Solved — waiting on the
+  rest* / *Out of guesses — waiting* while the row's line says *Waiting for
+  others* (Joel's words, if they should be one).
+
+### F-wordle-16 · `roster-gap-setup-psql` · `supabase/tests/wordle/setup.psql` reads `cs-unmet`
+
+The roster names eleven pgTAP files; `setup.psql` — the per-file fixture every
+one of them `\ir`s — carries a stamp and it is not this area's. connections'
+closing re-read found the same (its finding 13) and stamped it
+`cs-met-connections`. Roster by Joel's word, as there.
+
+### F-wordle-17 · `test-gaps` · rules nothing exercises
+
+- **A compete timeout**, either outcome (F-8): `submit_timeout`'s compete
+  branch has no pgTAP at all.
+- **The mixed `lost_compete`** — one racer conceded, one spent the budget —
+  reading `exhausted` rather than `conceded`, which `_maybe_finish_compete`'s
+  comment calls out and `concede_test` does not reach (it pins all-conceded).
+- **The tie-break** — `compete_test` says `now()` is constant in a transaction
+  so it is "not exercised"; `solved_at` can be set directly as the superuser,
+  the way `replay_test` ages the clock.
+- **`wonByClock` and `selfTiedWinner`** — `terminal.test.ts` walks the builder
+  given the flags; nothing feeds the flags from `playerStates`. A render case
+  with two solvers on the same count, one the winner, would pin the inference
+  `PlayArea` makes ("if any OTHER solver used the same guess count as the
+  winner, the clock broke the tie").
+
+### What checked out
+
+- **The hidden target** — the column grant, the definer helper gated on
+  `is_terminal`, the invoker view, and the re-shield on Restart; `_sync_title`
+  never spells an unearned answer, in both modes, and `reveal_test` pins the
+  regression it once had.
+- **The seam** — `eventToOutcome` and `peerAnswerMessage` on one `answerMessage`;
+  the two `ok` shapes carry the fact alone and `gameplay_test` pins the nulls.
+- **`_maybe_finish_compete`** — racing is not conceded, not solved and under
+  budget; the winner is fewest guesses then earliest solve, conceders out;
+  `conceded` only when every player conceded.
+- **The presence roster** — a solver or an exhausted racer is
+  `locally_terminal`, not `conceded` (F-connections-5's fix, pinned in
+  `compete_test`).
+- **The evaluator's absence** — the frontend recomputes no color; the printer's
+  keyboard is derived per player from `colorRank`, never pooled.
+- **The events table** — `kind = 'guess'`, `took_turn = true`, read by `id`;
+  the migration numbered the existing rows in write order and checked itself.
+- **Turn order** — seated by `create_game`, gated before the soft rejects,
+  advanced on an accepted non-terminal guess, rewound by Restart.
+- **The loader and the eight sections** — the shape `docs/playarea.md` states,
+  with the standard trio, Reveal, New game and Print bound in one block and
+  read in one order by the row and the menu.
 
 ## Notes
 
