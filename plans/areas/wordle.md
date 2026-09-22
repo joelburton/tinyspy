@@ -7,9 +7,9 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/wordle/todo.md`, not here.
 
-**Status: OPEN** (2026-09-22). Pass 1, the restructure: Step 0 done, Step 1
-next. **Three passes back to back**, psychicnum's and connections' shape:
-restructure → audit → tile-feedback.
+**Status: OPEN** (2026-09-22). Pass 1, the restructure: Steps 0–3 done, Step
+4 (`AnswerMessage`) next. **Three passes back to back**, psychicnum's and
+connections' shape: restructure → audit → tile-feedback.
 
 ## The roster
 
@@ -23,9 +23,9 @@ Agreed with Joel 2026-09-22, `cs-met-wordle` — **44 stamped files**:
 | `supabase/tests/wordle/` | 11 | every pgTAP file but one |
 
 `src/wordle/logo.svg` has nowhere to put a stamp (step 11's); `todo.md` is
-markdown and carries none. `src/wordle/doc.md` does not exist yet —
-`docs/games/wordle.md` is deleted into it during the passes, as psychicnum's
-and connections' docs were.
+markdown and carries none. **`src/wordle/doc.md` was written at Step 3**
+(2026-09-22), markdown like the todo, roster all the same; `docs/games/wordle.md`
+is deleted into it in pass 2, as psychicnum's and connections' docs were.
 
 ### What is NOT on it
 
@@ -164,6 +164,51 @@ pre-load), three Soons (the hand-tuned `--avail-h`, the action row's branches,
 no whole-table stop for a race) and one Someday (the `<Loading>` swap). Three of
 those are the restructure's own work: Step 2 closes the `<Loading>` swap, Step 5
 the action row, and `act-new-game`'s pre-load answer goes with Step 2's split.
+
+### Step 3 — the `doc.md` skeleton, with the RPCs and FE submissions written — DONE 2026-09-22
+
+As connections' `d9b5a1c0`: `src/wordle/doc.md`, seven headings, with the
+lede, a short intro (three things that are high-level about this game: the
+frontend never learns the word while the game runs, a guess can come back
+without costing anything, and what separates the modes is what each player
+can see), the RPCs and the FE submissions written from `supabase/sql/wordle.sql`
+and the call sites — not from the old doc — and Game rules, Schema, Frontend
+and Tests marked owed to pass 2. The RPC section is the `ok` answers only, per
+Joel's ruling at psychicnum; a refusal that is part of the story is a clause
+without a code. **One departure from the two earlier docs, on purpose:** the
+intro's paragraphs open in plain prose, not bold, which is the rule
+`docs/common-folders.md` states and `folderDocs` guards; psychicnum's and
+connections' intros open with bold and are pass-2 material there, not here.
+The guards are green with the file in place (31 files, 285 tests).
+
+**Written against the code, and where the old doc and the code's own words
+disagreed:**
+
+- The old doc's RPC line says `submit_guess` returns `invalid` "gone from the
+  payload", lists the not-ok codes, and describes the coop-only turn wiring in
+  the same sentence as the answer shapes. The new section says what an `ok`
+  carries, by `result`, and nothing else.
+- The old doc's title table says a terminal game titles "the winning guess";
+  read from `_sync_title`, a LOST game titles its last guess too — the answer
+  appears only when the last guess was the win. The doc says that.
+- **`manifest.ts` claims the RPC enforces compete's two-player minimum**
+  (*"Lower bound 2; the RPC enforces it"*). It does not: `wordle.create_game`
+  checks the maximum (`require_player_count_max(…, 6)`) and the mode's
+  spelling, and `common.sql`'s own header says the sizing rules "stay
+  per-gametype". The doc says the minimum is the manifest's rule. The false
+  comment is pass 2's (a stale-claims finding, as connections' F-12 was).
+- `submit_guess`'s SQL header and `lib/answer.ts`'s docstring both say the
+  envelope carries the outcome; it does today, and the doc records that as
+  today's state with the words "today each carries its outcome in the envelope
+  beside the fact" — the inventory Step 4 starts from.
+
+**What the doc records as it is TODAY, which Step 4 changes:** the
+`submit_guess` reply carries its outcome beside the fact, the two soft rejects
+carry the server's sentence as well, and the words a player reads are written
+in four places — `lib/answer.ts` (the two wire words and their outcomes), the
+SQL (the two refusals' sentences), `BoardCol` (the too-short refusal) and
+`PlayArea` (the two peer lines). The FE-submissions table lists all six with
+where each is written.
 
 ## Findings
 
