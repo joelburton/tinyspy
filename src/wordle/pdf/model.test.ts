@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordle
 
 /**
  * Tests for the wordle print model.

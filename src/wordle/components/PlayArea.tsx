@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-wordle
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useMemo } from 'react'

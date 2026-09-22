@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordle
 
 -- ============================================================
 -- Test: wordle compete — independent boards, opponent hidden,

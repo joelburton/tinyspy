@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordle
 
 -- ============================================================
 -- Test: wordle turn-order (opt-in turn-by-turn coop)

@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-wordle
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 

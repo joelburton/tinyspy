@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordle
 
 import { cls } from '@/common/utils/cls'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'

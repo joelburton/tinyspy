@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordle
 
 -- ============================================================
 -- Test: wordle.create_game + the hidden-target pattern

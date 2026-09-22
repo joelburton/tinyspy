@@ -1,4 +1,4 @@
--- cs-fixed-outcome-fix
+-- cs-met-wordle
 
 -- ============================================================
 -- wordle — the REPEATABLE half

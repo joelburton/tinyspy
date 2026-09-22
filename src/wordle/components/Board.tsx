@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-wordle
 
 import { useState } from 'react'
 import { cls } from '@/common/utils/cls'

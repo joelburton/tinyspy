@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordle
 
 -- ============================================================
 -- wordle.guesses → wordle.events

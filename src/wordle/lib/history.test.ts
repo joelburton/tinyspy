@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordle
 
 import { describe, it, expect } from 'vitest'
 import { historySnapshot } from './history'

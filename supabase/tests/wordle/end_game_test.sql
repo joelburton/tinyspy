@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordle
 
 -- ============================================================
 -- Test: wordle.submit_timeout + wordle.end_game (terminals)

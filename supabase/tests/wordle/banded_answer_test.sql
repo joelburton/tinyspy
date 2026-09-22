@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordle
 
 -- ============================================================
 -- Test: the answer is ALWAYS guessable — even banded out from under

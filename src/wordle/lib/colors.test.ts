@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordle
 
 import { describe, expect, it } from 'vitest'
 import { colorRank } from './colors'

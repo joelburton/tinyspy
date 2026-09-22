@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordle
 
 import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 

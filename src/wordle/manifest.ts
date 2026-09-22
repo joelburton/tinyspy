@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordle
 
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'

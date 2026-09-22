@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordle
 
 /**
  * wordle's setup form — three settings of its own, and the first CROSS-FIELD

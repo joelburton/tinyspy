@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordle
 
 /**
  * Render smoke tests for wordle's PlayArea: does the play surface mount and
