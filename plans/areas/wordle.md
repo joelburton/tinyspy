@@ -18,11 +18,11 @@ F-9 and F-12 ruled no-change (F-12 opened `plans/spectating.md`), F-13 ruled
 pass 3's. **F-14 to F-17, the prose pass, SHIPPED the same day** — pass 2 is done bar the
 closing re-read. **Pass 3, tile-feedback, is IN PROGRESS** (2026-09-22): the
 board was read against the plan as it stands now and held up, F-18 to F-22 are
-ruled and shipped (F-13's `useMark` conversion among them), and F-23 is ruled
-no-change — wordle is EXEMPT from the identity dot, recorded in
-`tile-feedback.md` → wordle. **One finding is open and it is Joel's**: F-24,
-the two dims that compound. `src/wordle/todo.md` is empty. Then the closing
-re-read.
+ruled and shipped (F-13's `useMark` conversion among them), and F-23 and F-24
+are ruled no-change — wordle is EXEMPT from the identity dot (recorded in
+`tile-feedback.md` → wordle), and the two dims compound to 27.8% by design.
+**PASS 3 IS DONE**; `src/wordle/todo.md` is empty and nothing is owed but the
+closing re-read.
 **Three passes back to back**, psychicnum's and connections' shape:
 restructure → audit → tile-feedback.
 
@@ -1429,13 +1429,20 @@ Two things noted there for the next game that asks: wordle's unit of
 attribution is a ROW, which the rule's geometry has no answer for, and its tiles
 already spend three exact colors on their backgrounds.
 
-### OPEN · F-wordle-24 · `two-dims-compound` · two dims that can land together, never chosen as a pair
+### RULED — NO CHANGE · F-wordle-24 · `two-dims-compound` · two dims that can land together, never chosen as a pair
 
-Not ruled. `tile-feedback.md` §169: where the tile dim and the board dim can
-co-occur, "their values must be chosen as a pair". In turn-order coop they can —
-a submitted row is still `pending` when the turn passes — and 18% over 12% is
-27.8% black on those tiles. Needs a look; if the pair is wrong the tokens are
-`base.css`'s, so the note goes to the shared area rather than here.
+**Joel, 2026-09-22: "it looks fine."** Nothing changed. `tile-feedback.md` §169
+asks that where the tile dim and the board dim can co-occur, "their values must
+be chosen as a pair" — and in turn-order coop they can: a submitted row is still
+`pending` when the turn passes, so `.dimInFlight` on those five tiles sits under
+`.dimNotYourTurn` over the whole grid. `rgb(0 0 0 / 18%)` over `rgb(0 0 0 / 12%)`
+is 27.8% black, not 18 and not 30, and that is what a pending row looks like on
+a board someone else now holds. Looked at and kept.
+
+The pair is recorded as CHECKED rather than merely untouched, because the rule
+asks the question of every board and the answer was never written down for this
+one. The tokens are `base.css`'s, so had the answer gone the other way the work
+would have belonged to the area that owns them, not here.
 
 ## Predicted test breaks
 
