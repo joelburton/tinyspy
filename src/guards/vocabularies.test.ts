@@ -285,12 +285,12 @@ const VOCABULARIES: Vocabulary[] = [
       // smallest step is 0.25rem, which beside a 2px bar is a gap rather
       // than a hairline, so no step can express it.
       'src/common/word-entry/WordEntryInput.module.css': ['1px'],
-      // RECORDED, not unconverted (Joel, 2026-09-22): the keyboard's two gaps
-      // are a PAIR, chosen against each other — 0.4rem between the rows and
-      // 0.3rem between the caps, so it runs tighter across than down. A step
-      // off the ramp for one of them breaks the pair, and the ramp has no step
-      // for the other to move to.
-      'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.4rem'],
+      // The keyboard's row gap is no longer a literal `gap` — it is
+      // `--guessKeyboard-row-gap` in core-css/base.css, where wordle's board
+      // can read it to size itself. Joel's 2026-09-22 ruling still holds and
+      // travels with the value: that gap and `--key-gap` are a PAIR, tuned
+      // against each other, and neither is a step off this ramp. The file says
+      // so beside the one that stayed.
       'src/common/lists/FilterSelect.module.css': ['0.35rem'],
       'src/common/game-page/GamePage.module.css': ['0.1rem'],
       'src/common/info-sheet/infoPanel.module.css': ['0.35rem'],

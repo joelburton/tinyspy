@@ -574,7 +574,47 @@ sitting has them in the file and not in a memory.
 *(`F-wordle-1 · slug · title`, one heading each; a status prefix when it
 has one, no prefix means OPEN)*
 
-### F-wordle-1 · `hand-tuned-reserve` · the board's height cap subtracts a `15rem` that nothing composes
+### SHIPPED · F-wordle-1 · `hand-tuned-reserve` · the board's height cap subtracts a `15rem` that nothing composes
+
+**Joel, 2026-09-22: "do 1."** The cap reads its terms now:
+`100svh − --game-chrome-height − --guessKeyboard-height −
+--local-feedback-min-height − 2 × --board-col-gap`. Four tokens carry it, and
+each had to become reachable first, since a property declared on a sibling or
+a descendant cannot be read by the board:
+
+- **`--guessKeyboard-height`** is new, in `core-css/base.css` beside
+  `--game-chrome-height`, composed from two new primitives
+  (`--guessKeyboard-row-height: 3.2rem`, `--guessKeyboard-row-gap: 0.4rem`)
+  that `GuessKeyboard.module.css` now READS in place of its two literals. Its
+  "TWO FAMILIES" comment is three, and the third's rule is read-only, like the
+  theme's.
+- **`--local-feedback-min-height`** was a `var()` fallback on the shared
+  `.localFeedback` and nothing else — so wordle would have needed a second
+  copy of `2.75rem` to subtract it. The default is declared in `base.css` and
+  the fallback is gone, which is also the convention `cssTokens.test.ts`
+  states (no `var()` fallbacks; the guard is the net instead).
+  bananagrams' 2.5rem override is untouched, still winning by proximity.
+- **`--board-col-gap`** already existed and needed nothing — but the second
+  gap was `BoardCol.module.css`'s own `0.75rem`, written to match it. It reads
+  the token now, so the cap can subtract `2 ×` one term.
+
+**Two behavior changes, stated now.** The reserve is 14.65rem where it was
+15rem, so when the cap BINDS the board is up to 0.29rem wider (the reserve
+times `cols/rows`) — the "hair of slack" was rounding left over from summing
+by hand, and composing exactly is what removes it. Say so and it comes back as
+a named term. Nothing moves when the cap is inert, which is every window with
+room. And `GuessKeyboard.module.css` no longer writes a literal `gap`, so its
+`pending` row in `vocabularies.test.ts` is gone; **Joel's 2026-09-22 ruling
+that the two keyboard gaps are a tuned pair is not reversed** — the value is
+named, not put on the ramp — but it now lives in the two stylesheets' comments
+rather than under the guard's eye, which is a real loss of enforcement and is
+his to overturn.
+
+**Verified:** `tsc -b` clean; eslint clean; 404 unit tests green (wordle, the
+keyboard, the guards); the five changed stylesheets parse under postcss.
+**Planted** the literal `gap: 0.4rem` back into the keyboard: the spacer
+vocabulary goes red naming that file, so the guard does watch it and the row's
+removal is the right half of the edit. **No e2e has run for this.**
 
 `Board.module.css` caps the grid's width at `(100svh − chrome − 15rem) ×
 cols/rows`, the `15rem` standing for everything else in the board column —

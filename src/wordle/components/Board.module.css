@@ -62,13 +62,19 @@
  *
  * wordle stacks a board AND an on-screen keyboard in the board column, so the
  * board hugging its width can push something else off-screen. The column is
- * `100svh - chrome` tall and the keyboard + feedback slot eat a fixed ~14.65rem
- * of it; converting what's left into a width via the board's own cols/rows
- * aspect ratio keeps the whole stack on screen with square tiles. `max-width`
- * composes with the shared `hugRectWidth` (the smaller wins); the keyboard is
- * untouched, sizing off `--avail-w` directly. The ~15rem reserve = keyboard
- * (10.4rem) + feedback slot (2.75rem) + the two 0.75rem column gaps, rounded up
- * for a hair of slack.
+ * `100svh - chrome` tall and everything under the board eats a fixed slice of
+ * it; converting what's left into a width via the board's own cols/rows aspect
+ * ratio keeps the whole stack on screen with square tiles. `max-width` composes
+ * with the shared `hugRectWidth` (the smaller wins); the keyboard is untouched,
+ * sizing off `--avail-w` directly.
+ *
+ * The reserve is COMPOSED from the things it stands for — the keyboard, the
+ * feedback slot above it, and the two gaps (the column's own, then
+ * `.belowBoard`'s between the slot and the keys) — so a taller keycap or a
+ * deeper slot moves this cap with them. Summed by hand it cannot: too small
+ * clips the page, too large only wastes board, and the page-fits-the-viewport
+ * e2e sees neither, measuring the play surface against the window while this is
+ * slack one level in.
  *
  * Not gated to mobile: a desktop-width window can be phone-height (a scaled
  * laptop panel under browser chrome), and the stack clips there just the same.
@@ -77,7 +83,10 @@
  * the per-tile cap wins first. */
 /* @@ */ .grid {
   max-width: calc(
-    (100svh - var(--game-chrome-height) - 15rem) * var(--cols) / var(--rows)
+    (
+        100svh - var(--game-chrome-height) - var(--guessKeyboard-height) -
+          var(--local-feedback-min-height) - 2 * var(--board-col-gap)
+      ) * var(--cols) / var(--rows)
   );
 }
 

@@ -258,9 +258,11 @@
    * non-swap game (wordle / stackdown / bananagrams / waffle), so the board
    * doesn't reflow when the pill clears. The two coexist: in a swap box (already
    * ≥ this height) the min-height is inert; standing alone it's what holds the
-   * space. */
+   * space. The default is in core-css/base.css, where a game that subtracts
+   * this slot from the viewport can also read it; a game re-declares the token
+   * on its own below-board region to tighten the floor. */
   flex: 1;
-  min-height: var(--local-feedback-min-height, 2.75rem);
+  min-height: var(--local-feedback-min-height);
   display: flex;
   align-items: center;
   justify-content: center;

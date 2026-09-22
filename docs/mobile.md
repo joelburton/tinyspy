@@ -569,8 +569,9 @@ variation rather than psychicnum's assumptions:
   only game that does this). **Divergence:** the board must cap its height, or a
   short viewport pushes the keyboard off-screen. Done with a `max-width` on the
   board grid ([`Board.module.css`](../src/wordle/components/Board.module.css))
-  derived from the leftover height (`100svh − chrome − ~15rem` of keyboard +
-  feedback + gaps), converted to a width via the board's own aspect ratio so
+  derived from the leftover height (`100svh − chrome −` the keyboard, the
+  feedback slot and the two gaps, each read from its own token rather than
+  summed here), converted to a width via the board's own aspect ratio so
   tiles stay square and the keyboard's own width is untouched. Guarded by
   [`wordle-mobile.e2e.ts`](../e2e/wordle-mobile.e2e.ts) at a tall + short
   viewport (no page scroll; whole keyboard on-screen; sheet opens/closes).

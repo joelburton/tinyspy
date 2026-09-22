@@ -643,6 +643,38 @@
      1.4rem ✕. Nothing repaints; the arithmetic just stops being implicit. */
   --floatingPanel-titlebar-height: 2rem;
 
+  /* The below-board feedback slot's reserved height. Two files read it: the
+     shared `.localFeedback` (common/game-page/playArea.module.css), which
+     reserves the space so a board never reflows when the pill clears, and a
+     game that has to subtract the slot from the viewport to size its board
+     (wordle's cap). A game whose slot wants a tighter floor re-declares it on
+     its own below-board region, as bananagrams does at 2.5rem.
+
+     Here rather than as a `var()` fallback on that one rule: a fallback is a
+     second copy of the number, and the subtractor would have to carry it. */
+/* @@ */   --local-feedback-min-height: 2.75rem;
+
+  /* The on-screen keyboard's BOX — a cap's height, the gap between rows, and
+     what the rows come to. GuessKeyboard.module.css sizes the caps and the
+     rows from the first two; wordle subtracts the total from the viewport so
+     the keyboard under its board stays on screen (its Board.module.css). The
+     3 and the 2 are QWERTY's rows and the gaps between them, which
+     GuessKeyboard.tsx fixes in `ROWS`.
+
+     COMPOSED, like --game-chrome-height above and for the same reason: a
+     hand-summed total drifts the moment a cap grows, and neither direction
+     shows — too small clips the page, too large only wastes board, which no
+     test measures.
+
+     The row gap's PARTNER is `--key-gap` in GuessKeyboard.module.css, the gap
+     between caps. The two are tuned against each other so the keyboard runs
+     tighter across than down, and neither is a step off the spacer ramp. */
+/* @@ */   --guessKeyboard-row-height: 3.2rem;
+/* @@ */   --guessKeyboard-row-gap: 0.4rem;
+/* @@ */   --guessKeyboard-height: calc(
+    3 * var(--guessKeyboard-row-height) + 2 * var(--guessKeyboard-row-gap)
+  );
+
   /* Type + the page's own ink, which every element inherits.
      The fallbacks are what shows while the file is in flight, and on the one
      visit where it never arrives. RESTING WIDTH IS 100% for now: this face

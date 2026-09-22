@@ -21,15 +21,22 @@
 /* @@ */   --key-shadow: 1px 1px 3px rgb(0 0 0 / 26%);
 /* @@ */   --key-hover-shadow: 1px 4px 9px rgb(0 0 0 / 30%);
 
-  /* TWO FAMILIES, and the prefix is the difference. `--kbd-*` comes from the
+  /* THREE FAMILIES, and the prefix is the difference. `--kbd-*` comes from the
    * theme and a rule here may only READ it — except `--kbd-key-hover-fill-color`,
-   * which a tone re-sets on purpose (see the judged keys). `--key-*` is this
+   * which a tone re-sets on purpose (see the judged keys). `--guessKeyboard-*`
+   * is this keyboard's BOX, declared in core-css/base.css because wordle's board
+   * subtracts the height of it from the viewport and a sibling's property cannot
+   * reach that far; a rule here may only read those too. `--key-*` is this
    * file's own arithmetic, declared here and read nowhere else in the app. A
-   * reader meeting both in adjacent declarations can tell which is which. */
+   * reader meeting them in adjacent declarations can tell which is which.
+   *
+   * The cap gap below and the ROW gap in base.css are a pair, tuned against
+   * each other: 0.3rem across, 0.4rem down, so the keyboard reads tighter
+   * across than it does down. Neither is a step off the spacer ramp. */
 /* @@ */   --key-gap: 0.3rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: var(--guessKeyboard-row-gap);
   width: min(var(--avail-w), 30rem);
   margin: 0 auto;
 }
@@ -45,7 +52,7 @@
  * instead of stretching to fill each row's leftover space. */
 /* @@ */ .key {
   flex: 0 0 calc((100% - 9 * var(--key-gap)) / 10);
-  height: 3.2rem;
+  height: var(--guessKeyboard-row-height);
   padding: 0;
   /* Bigger than it looks like it needs to be. A keycap has plenty of dead space
    * inside it, and the letter is the whole content — worth reading at a glance,

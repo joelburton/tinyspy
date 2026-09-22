@@ -7,13 +7,14 @@
 /* The below-board REGION (universal). wordle is a NON-SWAP game: the feedback and
  * the move controls (keyboard) are SEPARATE and both always present, so this holds
  * `shared.localFeedback` (which reserves its own height) ABOVE the `.moveArea`
- * (keyboard). A real flex column whose `gap` matches the board column's own
- * 0.75rem, so wrapping the two here spaces them exactly as direct .boardCol
- * children would be. See docs/code-conventions.md → below-board structure. */
+ * (keyboard). A real flex column that takes the board column's OWN gap, so
+ * wrapping the two here spaces them exactly as direct .boardCol children would
+ * be — and so the board's height cap can subtract the two gaps as one term
+ * (Board.module.css). See docs/code-conventions.md → below-board structure. */
 /* @@ */ .belowBoard {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: var(--board-col-gap);
   /* Positioning context for the turn-history banner, which overlays this whole
    * region (`inset: 0`) while inspecting a past turn. `relative` keeps the element
    * in normal flow, so it changes nothing when no banner is shown (no reflow). */
