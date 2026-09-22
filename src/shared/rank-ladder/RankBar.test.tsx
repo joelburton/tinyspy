@@ -20,9 +20,9 @@ import styles from './RankBar.module.css'
  * play surface's tab ring is empty by design. Just resuming play lit a square
  * up and left it lit.
  *
- * The bar renders TWICE per game (info column + mobile status bar) in both
- * spellingbee and wordwheel, so that was fourteen dead tab stops ahead of every
- * real control.
+ * And it multiplies: the bar renders more than once per page — the info column
+ * and the mobile status bar each draw one — so every square is a dead tab stop
+ * ahead of every real control, once per bar on screen.
  */
 describe('RankBar — a readout, not a control', () => {
   it('puts nothing in the tab order', () => {

@@ -26,9 +26,11 @@ carries the derivation; a `rank_idx_test.sql` per caller pins the SQL half.
 A tier is a readout rather than a control, and two things follow from that
 which would look arbitrary apart. Nothing in the bar is focusable — no
 `tabIndex`, no role, no button — because a square has no action, and a tab stop
-in it multiplies: the bar renders twice per page, so seven squares would be
-fourteen stops ahead of every real control. And each square asks the shared tooltip host for its bubble as a
-`data-tooltip-on="readout"` carrier, which reverses all three of that host's
+in it multiplies: the bar draws once in the info column and again in the mobile
+status bar, so every square would be a dead stop ahead of every real control,
+once per bar on screen. And each square asks the shared tooltip host for its
+bubble as a `data-tooltip-on="readout"` carrier, which reverses all three of
+that host's
 timings: the bubble appears at once rather than after a beat, a tap reveals it
 where a button needs a hold, and pressing a square leaves it up. Every one of
 those defaults protects a control you might be about to click, and a square is

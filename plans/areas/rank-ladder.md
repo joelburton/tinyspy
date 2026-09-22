@@ -268,6 +268,19 @@ already happened for the stylesheet, since boggle takes `Stats.module.css`
 
 ### F-rank-ladder-5 · `tabindex-story-twice` · One scar, told twice at length, with a count in three places
 
+**SHIPPED, 2026-09-21** (Joel: *"fix F5"*). The spec header keeps the account —
+it exists to explain why those assertions exist, which is the scar — and the
+component comment is four lines: what the rule is, and a pointer to where the
+story lives.
+
+The count went with it, in all three places plus a fourth: *"fourteen dead tab
+stops… in both spellingbee and wordwheel"* is now the condition — the bar draws
+once in the info column and again in the mobile status bar, so every square is
+a dead stop once per bar on screen. The fourth site was `doc.md`'s intro, which
+F-1 had written **that same day** with the count copied from the comment it was
+summarizing. `fourteen` appears nowhere in the folder now, and the folder's last
+roster went with it.
+
 The `tabIndex={0}` incident of 2026-08-16 is told in ten lines at
 `RankBar.tsx:56–65` and told again in sixteen lines at `RankBar.test.tsx:9–25`.
 Both accounts are good; two are one too many, and the comment is the wrong one
@@ -513,8 +526,17 @@ stylesheet, and *"RECORDED, not unconverted"* comments on the two
 got. **Groups B (type) and C (spacing) are still open** — Joel: *"we'll walk
 through groups B and C after the listed changes are done."*
 
-**The 80ms duration is gone rather than ruled, and F-11 with it** — see the
-tooltip move below, which deleted the rule that held both.
+**The 80ms duration is gone rather than ruled** — see the tooltip move below,
+which deleted the rule that held it.
+
+**A CORRECTION to this paragraph, 2026-09-21.** It originally read "and F-11
+with it", which was false: the deleted `.tooltip` rule held Group D's `80ms`,
+and F-11 is a different finding about `.target` and `.achieved` that the
+tooltip move never touched. F-11 stayed OPEN while this file said it was
+dissolved, and it was only caught because F-5's fix sat on the adjacent lines.
+Recorded because the failure mode is the point: two items retired in one
+sentence, one of them wrongly, reads as tidy and is unfalsifiable until someone
+happens to look at the code.
 
 ### F-rank-ladder-12 · `hand-rolled-tooltip` · The bar drew its own bubble beside the app's one tooltip renderer
 
