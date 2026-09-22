@@ -95,6 +95,32 @@ unconverted literals.
 
 ### F-rank-ladder-1 · `doc-md` · The intro is owed
 
+**SHIPPED, 2026-09-21** (Joel: *"do it"*). The intro is written and
+`shared/rank-ladder` is off `INTROS_OWED`; `folderDocs`'s in-shape case passes
+and `docLinks` is green.
+
+It opens on the fact everything else follows from — Genius is a FRACTION of a
+board's maximum, not a score — and then carries the four things this area
+decided, none of which existed in writing a day ago: why the ladder is computed
+twice and that **algebra rather than shared code** is what holds the halves
+together (with the exhaustive check as the evidence, and the real constraint
+named: preserve the equivalence, which is stronger than leaving the constants
+alone); that a tier is a READOUT, which is one idea with two consequences that
+look arbitrary apart — nothing focusable, and the tooltip host's three timings
+reversed; why the type is relative where the ramp is absolute; and why the
+ladder's colors are shared while `--rank-text` is not.
+
+`## Details` carries the call tree — including boggle taking `Stats.module.css`
+alone, and `submit_word` → `common._rank_idx` — the twice-per-page shape, the
+tight `12/93` rule and where it belongs, and the bespoke lengths.
+
+**The guard caught the first draft, and it is the SECOND area running that it
+caught the same way:** four intro paragraphs opened with a bold claim, which is
+a Details item wearing an intro's clothes. `found-words` F-1 made exactly this
+mistake and the lesson was recorded there — and it did not transfer, because
+the rule is easy to agree with and easy to not notice yourself breaking. The
+four now open narratively.
+
 `doc.md` is one sentence — *"The rank ladder, the bar that draws it, and the
 stat grid beside it. There is no data model behind it, so any game with a
 ladder can take it."* — and `shared/rank-ladder` is on `INTROS_OWED`. The lede
