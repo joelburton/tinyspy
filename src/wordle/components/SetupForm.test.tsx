@@ -1,13 +1,14 @@
 // cs-met-wordle
 
 /**
- * wordle's setup form — three settings of its own, and a CROSS-FIELD refusal.
+ * wordle's setup form — three settings of its own, and a CROSS-FIELD rule.
  *
- * `create_game` names `legal_guess` twice: once for a band outside 1..6
- * (PN055), and once when it sits below the answer band (PN056). The second is
- * about two fields and names the one the form can move — every answer has to be
- * a legal guess, so the legal band rises to meet the answer band rather than
- * the answer band dropping to meet it.
+ * Every answer has to be a legal guess, so the legal band rises to meet the
+ * answer band rather than the answer band dropping to meet it. The FORM holds
+ * that rule: the legal-guess select disables every band below the floor, and
+ * the manifest's `validate` gates Start on it. `create_game` checks it again
+ * (PN056) and, like every check it makes, raises a fault naming no field —
+ * nothing this form offers can reach it.
  */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

@@ -12,7 +12,9 @@
 --   1. A concede while an opponent still races keeps the game going
 --   2. When the last racer finishes, the game ends and the CONCEDER
 --      forfeits (recorded a loss even though the game had a winner)
---   3. Everyone conceding ends it as a collective loss (no winner)
+--   3. Everyone conceding ends it as a collective loss (no winner), and the
+--      reason says everyone walked away — where a MIXED table, one quit and
+--      one played it out, reads as the guesses running out
 --   4. Concede is rejected in coop (a team doesn't drop out)
 -- ============================================================
 
@@ -22,7 +24,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(10);
+select plan(13);
 
 -- ─── A 2-player compete game (ada + bea) ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -95,6 +97,44 @@ select is(
 select is(
   (select status->>'reason' from common.games where id = (select id from g2)),
   'conceded', 'an all-conceded race is labeled conceded, not exhausted');
+
+-- ─── (3b) a MIXED table: ada concedes, bea burns her budget → exhausted ───
+-- Somebody played it to the end, so the race did not end by everyone walking
+-- away. Five valid words that miss the target, read as the superuser.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g3 on commit drop as
+select (wordle.create_game(
+  (select handle from club), pg_temp.wordle_setup(5),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete')->'data'->>'id')::uuid as id;
+reset role;
+create temp table tgt3 on commit drop as
+select target::text as w from wordle.games where id = (select id from g3);
+create temp table valw3 on commit drop as
+select word, row_number() over (order by word) as rn
+  from common.words
+ where len = 5 and difficulty <= 4 and word <> (select w from tgt3)
+ order by word limit 5;
+grant select on valw3 to authenticated;
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select wordle.concede((select id from g3));
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select wordle.submit_guess((select id from g3), (select word from valw3 where rn = 1));
+select wordle.submit_guess((select id from g3), (select word from valw3 where rn = 2));
+select wordle.submit_guess((select id from g3), (select word from valw3 where rn = 3));
+select wordle.submit_guess((select id from g3), (select word from valw3 where rn = 4));
+select wordle.submit_guess((select id from g3), (select word from valw3 where rn = 5));
+reset role;
+select is(
+  (select play_state from common.games where id = (select id from g3)),
+  'lost_compete', 'mixed table: the last racer running out ends it with no winner');
+select is(
+  (select status->>'reason' from common.games where id = (select id from g3)),
+  'exhausted', 'mixed table: one quit and one ran out reads exhausted, not conceded');
+select is(
+  (select status->>'winner_user_id' from common.games where id = (select id from g3)),
+  null, 'mixed table: nobody won');
 
 -- ─── (4) concede is rejected in coop ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

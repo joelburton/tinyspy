@@ -169,12 +169,10 @@ export function InfoCol({
             players={players}
             selfId={selfId}
             metricLabel="Guesses"
-            metricFor={(p, isSelf) =>
+            metricFor={(p) =>
               concededIds.has(p.user_id)
                 ? 'out'
-                : isSelf
-                  ? guessesUsed
-                  : (playerStates.find((s) => s.user_id === p.user_id)?.guesses_used ?? 0)
+                : (playerStates.find((s) => s.user_id === p.user_id)?.guesses_used ?? 0)
             }
           />
         )}

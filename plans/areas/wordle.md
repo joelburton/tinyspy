@@ -15,7 +15,9 @@ READ is done (2026-09-22, below) and recorded twelve more, F-6 to F-17**:
 eight with a decision in them, four prose, tests and small shapes. **All eight
 decisions are answered** (2026-09-22): F-6, F-7, F-8, F-10 and F-11 shipped,
 F-9 and F-12 ruled no-change (F-12 opened `plans/spectating.md`), F-13 ruled
-pass 3's. **F-14 to F-17 — the prose pass — are what is left of pass 2.**
+pass 3's. **F-14 to F-17, the prose pass, SHIPPED the same day** — pass 2 is done bar the
+closing re-read. Next: pass 3, tile-feedback (F-13's `useMark` conversion goes
+with it), then the closing re-read.
 `src/wordle/todo.md` is empty. Then pass 3, tile-feedback, then the closing
 re-read.
 **Three passes back to back**, psychicnum's and connections' shape:
@@ -31,7 +33,7 @@ opening, 46 with Step 6's two:
 | `src/wordle/` | 32 | nine arrived `cs-fixed-outcome-fix` — that area ruled its files belong to their own area, which is this one; **`lib/terminal.ts` + `.test.ts` created by Step 6** (2026-09-22) and stamped with the rest |
 | `supabase/migrations/` | 2 | `20260625000000_wordle.sql`, `20260917000001_wordle_events.sql` |
 | `supabase/sql/wordle.sql` | 1 | also `cs-fixed-outcome-fix` |
-| `supabase/tests/wordle/` | 11 | every pgTAP file but one |
+| `supabase/tests/wordle/` | 12 | every pgTAP file but one, and `setup.psql` — the fixture was `cs-unmet` at the opening and joined at F-16 (2026-09-22) |
 
 **`src/shared/wordle-style/tileColors.module.css` was created by this area**
 (2026-09-22, the judged-tile-colors move below) and is the 47th: it lives in a
@@ -1103,7 +1105,22 @@ outline"), so the channel may change under the hook. Recommendation: pass 3,
 recorded here so it is not lost; converting a mark whose channel is about to
 be weighed is work done twice.
 
-### F-wordle-14 · `stale-claims` · sentences in the folder that are no longer true, and cites that point at nothing
+### SHIPPED · F-wordle-14 · `stale-claims` · sentences in the folder that are no longer true, and cites that point at nothing
+
+**Shipped 2026-09-22, one sitting** (Joel: *"commit, then continue"*): every
+bullet below, as listed — the cast comment and its cite gone, "finished" is
+"solved" in the component and the test, the two dangling cites repointed
+(`docs/ui.md → Feedback pill`) or dropped, `BoardCol` hands the snapshot,
+`.tileFace` in both stylesheet comments, the reduced-motion edge is
+`--reveal-border`, the `BRAND` comment names its two readers, the grant comment
+names `legal_guess`, the setup shape lists six keys, PN056's comment and the
+four assertion labels say a fault naming no field and `SetupForm.test.tsx`'s
+header says the form holds the rule, out-of-turn joins the hard rejections,
+Restart in the two `replay` headers, the `42501` line and the "old hardcoded"
+aside gone, the board-scope marks' comment points at `common/board-marks/doc.md`,
+and the log's docstring is a sentence and a pointer. **Left for pass 3**:
+`Board.module.css`'s two `plans/tile-feedback.md` cites, as that pass reads
+them. The terminal-flow describe's docstring was already corrected at F-6.
 
 Each checked against the tree:
 
@@ -1165,7 +1182,15 @@ Each checked against the tree:
   paragraph ("solo is your handle, coop is 'Team' plus each player…") — a
   sentence and a pointer at `useEventLogPlayerPicker` is the rule.
 
-### F-wordle-15 · `small-shapes` · types, props and derivations that say a little more or less than the code
+### SHIPPED · F-wordle-15 · `small-shapes` · types, props and derivations that say a little more or less than the code
+
+**Shipped 2026-09-22, with F-14**: `guesses_used: number` on both arms,
+`historyActor: Actor | undefined` required, `Player` and its `Member` import
+gone from `useGame.ts`, `PlayArea` reads its own `mode` / `maxGuesses` /
+`mySolved`, the strip's `metricFor` asks the rows for everyone. **Left, being
+Joel's words**: the two sentences for one standing state (the pill's *Solved —
+waiting on the rest* / *Out of guesses — waiting* beside the row's *Waiting for
+others*).
 
 - `BoardCol.tsx` → `GuessAnswer.guesses_used: number | null` — the column is
   `not null default 0` and both `ok` shapes return `p_used` or `new_used`;
@@ -1184,14 +1209,29 @@ Each checked against the tree:
   rest* / *Out of guesses — waiting* while the row's line says *Waiting for
   others* (Joel's words, if they should be one).
 
-### F-wordle-16 · `roster-gap-setup-psql` · `supabase/tests/wordle/setup.psql` reads `cs-unmet`
+### SHIPPED · F-wordle-16 · `roster-gap-setup-psql` · `supabase/tests/wordle/setup.psql` reads `cs-unmet`
+
+**Shipped 2026-09-22**: `setup.psql` is `cs-met-wordle` (`cs-stamp.mjs set`),
+the roster's 48th file; the roster table below counts it. A `met` stamp is the
+one Claude sets on an agreed roster — the pgTAP folder was agreed at the
+opening, and connections' fixture took the same stamp the same way.
 
 The roster names eleven pgTAP files; `setup.psql` — the per-file fixture every
 one of them `\ir`s — carries a stamp and it is not this area's. connections'
 closing re-read found the same (its finding 13) and stamped it
 `cs-met-connections`. Roster by Joel's word, as there.
 
-### F-wordle-17 · `test-gaps` · rules nothing exercises
+### SHIPPED · F-wordle-17 · `test-gaps` · rules nothing exercises
+
+**Shipped 2026-09-22**: the compete timeout came with F-8; `concede_test`
+gained the mixed table (ada concedes, bea burns her budget → `lost_compete`,
+`exhausted`, no winner); `compete_test` gained the tie-break, pushing one
+`solved_at` a minute into the future so the count alone cannot pick;
+`PlayArea.test.tsx` gained the tie read from the rows, both sides. **Verified
+by planting three faults**: the tie-break ordered `desc` (1 red), a mixed table
+reading `conceded` (1 red), the client never inferring a clock win (1 red),
+each restored. `doc.md`'s Tests rows name the new pins. pgTAP 181 / 2559 PASS,
+402 unit tests.
 
 - **A compete timeout**, either outcome (F-8): `submit_timeout`'s compete
   branch has no pgTAP at all.

@@ -268,7 +268,7 @@ describe('wordle PlayArea — icon-only action row', () => {
   })
 
   it('SOLVING shows the answer unasked, and the control says it has nothing to do', () => {
-    // You can only finish a wordle by typing the answer, so a solver is already
+    // You can only solve a wordle by typing the answer, so a solver is already
     // looking at it — the info-column line just makes it click-to-define.
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' }, [], [
       { ...me, solved: true },
@@ -486,6 +486,30 @@ describe('wordle PlayArea — terminal flow', () => {
       />,
     )
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  // The tie-break, inferred from the rows: two solvers on the same count, and
+  // the one the server named winner got there first. The loser's words say the
+  // clock decided it; the winner's say the same from their side.
+  it('a tie on guesses reads as the clock deciding it, on both sides', () => {
+    const tied = (winner: string) =>
+      makeCtx({
+        players: twoMembers,
+        isTerminal: true,
+        playState: 'won_compete',
+        status: { reason: 'solved', winner_user_id: winner },
+      })
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
+      { ...me, solved: true, guesses_used: 3 },
+      { ...moth, solved: true, guesses_used: 3 },
+    ])
+    const { rerender } = render(<PlayAreaLoader {...tied('u2')} />)
+    expect(screen.getByText('Lost: beaten on the clock')).toBeInTheDocument()
+    expect(screen.getByText('Opponent won (faster)')).toBeInTheDocument()
+
+    rerender(<PlayAreaLoader {...tied('u1')} />)
+    expect(screen.getByText('Won: same guesses, but faster')).toBeInTheDocument()
+    expect(screen.getByText('You won (faster)')).toBeInTheDocument()
   })
 
   // A race the clock ended with a solver: the racer still guessing reads that
@@ -790,8 +814,8 @@ describe('wordle PlayArea — the board-scope marks', () => {
   const board = () => screen.getByRole('grid', { name: /board/i })
   const keyboard = () => screen.getByLabelText('Keyboard')
 
-  // What these pin is the vocabulary in plans/tile-feedback.md, at BOARD scope.
-  // None of it is game logic, and all of it is invisible to a type check: a mark
+  // What these pin is the board-scope marks (common/board-marks/doc.md). None
+  // of it is game logic, and all of it is invisible to a type check: a mark
   // that stops being applied looks exactly like a mark that was never asked for.
   it('bands the finished board in its outcome and disables the keyboard', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' }, [

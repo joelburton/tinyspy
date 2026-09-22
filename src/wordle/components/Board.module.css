@@ -23,9 +23,9 @@
  * (a keyboard shares this column below the board, so the board hugs its height
  * rather than filling the column). Each row is its own --cols grid (`.row`). */
 /* @@ */ .grid {
-  /* The TILE TOKENS for this board. wordle's tiles are the shared `.tile` (box,
-   * radius, token plumbing — see common PlayArea.module.css), and these are the
-   * four places wordle's piece differs from the warm default:
+  /* The TILE TOKENS for this board. wordle's tiles are the shared `.tileFace`
+   * (the box, radius and token plumbing — see common playArea.module.css), and
+   * these are the four places wordle's piece differs from the warm default:
    *
    *   - an empty tile is EMPTY — transparent with a light edge — where the shared
    *     resting fill is the warm cream a clickable tile wants;
@@ -100,9 +100,9 @@
   border-radius: 4px;
 }
 
-/* The box comes from the SHARED `.tile` (composed in Board.tsx); this is what is
- * left over. wordle's tiles are inert `<div>`s, so they get none of the shared
- * interaction chrome — that lives on `button.tile`. */
+/* The box comes from the SHARED `.tileFace` (composed in Board.tsx); this is
+ * what is left over. wordle's tiles are inert `<div>`s, so they take the face
+ * and none of the interaction chrome, which lives on the shared `.tile`. */
 /* @@ */ .tile {
   /* The grid already squares its cells (1fr rows under the grid's own
    * aspect-ratio); this holds the shape if either ever changes. */
@@ -231,7 +231,7 @@
 /* @@ */   .reveal {
     animation: none;
     background: var(--reveal-bg);
-    border-color: var(--reveal-bg);
+    border-color: var(--reveal-border);
     color: var(--reveal-ink);
   }
 }

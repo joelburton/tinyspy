@@ -3,8 +3,7 @@
 -- ============================================================
 -- Test: wordle.replay_board (restart this game from scratch)
 -- ============================================================
--- The "Replay board" game-menu item. Resets the working state on the
--- SAME game row — the frozen puzzle (target / budgets) stays, everything
+-- The Restart action. Resets the working state on the SAME game row — the frozen puzzle (target / budgets) stays, everything
 -- the players did is wiped, and the target re-shields (it's gated on
 -- is_terminal, which the reset clears). Available from a finished game
 -- OR mid-game; any game player may call it; a non-player is rejected.
@@ -126,7 +125,6 @@ select is(
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
--- 42501 = common.require_game_player's 'not-a-player|'.
 select pg_temp.envelope_is(
   wordle.replay_board((select id from g1)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",

@@ -53,13 +53,11 @@ type Props = {
  * `guesses` to the caller, so it simply shows the viewer's own identity on each
  * row.
  *
- * **Whose guesses** are shown is picked by a small dropdown in the header
- * (right-aligned, kept understated — a rarely-used control): the shared
- * `useEventLogPlayerPicker` — solo is your handle, coop is "Team" plus each
- * player, compete is "All" plus each player, defaulting to your own board.
- * Compete is the "see opponents' boards" affordance — an opponent's rows are
- * empty during play (RLS hides them) and fill in once the game ends and their
- * guesses reveal.
+ * **Whose guesses** are shown is the shared header picker's choice
+ * (`useEventLogPlayerPicker` says what it offers per mode). In compete it is
+ * the "see opponents' boards" affordance — an opponent's rows are empty during
+ * play (RLS hides them) and fill in once the game ends and their guesses
+ * reveal.
  */
 export function GameEventLog({
   guesses,

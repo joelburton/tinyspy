@@ -16,8 +16,8 @@ set search_path = wordle, common, public, extensions;
 
 select plan(2);
 
--- legal_guess 2: a band-3 word is too obscure → notAWord (it would have been
--- legal under the old hardcoded ≤4). Solo game in ada's solo club.
+-- legal_guess 2: a band-3 word is too obscure → notAWord. Solo game in ada's
+-- solo club.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (wordle.create_game(

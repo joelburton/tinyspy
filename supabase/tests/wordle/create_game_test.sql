@@ -65,13 +65,13 @@ select pg_temp.envelope_is(
     (select handle from club), pg_temp.wordle_setup(4),
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN053"}'::jsonb,
-  'max_guesses below 5 names the max_guesses field');
+  'max_guesses below 5 is a fault, naming no field');
 select pg_temp.envelope_is(
   wordle.create_game(
     (select handle from club), pg_temp.wordle_setup(9),
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN053"}'::jsonb,
-  'max_guesses above 8 names it too');
+  'max_guesses above 8 is the same fault');
 -- A mode nobody can pick is a FAULT, not a validation: no control offers one.
 select pg_temp.envelope_is(
   wordle.create_game(
@@ -131,21 +131,22 @@ select pg_temp.envelope_is(
     (select handle from club), '{"max_guesses":6,"answer_source":7,"legal_guess":6,"timer":{"kind":"none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN054"}'::jsonb,
-  'answer_source above 6 names the answer_source field');
+  'answer_source above 6 is a fault');
 select pg_temp.envelope_is(
   wordle.create_game(
     (select handle from club), '{"max_guesses":6,"answer_source":1,"legal_guess":7,"timer":{"kind":"none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN055"}'::jsonb,
-  'legal_guess above 6 names the legal_guess field');
--- The CROSS-FIELD rule. Two fields are involved and it names the one the form
--- can move: the legal band rises to meet the answer band, never the reverse.
+  'legal_guess above 6 is a fault');
+-- The CROSS-FIELD rule: the legal band rises to meet the answer band, never the
+-- reverse. The form floors the control and gates Start on it, so the server's
+-- check is a fault like the rest — nothing the form offers can reach it.
 select pg_temp.envelope_is(
   wordle.create_game(
     (select handle from club), '{"max_guesses":6,"answer_source":5,"legal_guess":4,"timer":{"kind":"none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN056"}'::jsonb,
-  'a legal_guess below the answer band names the legal band');
+  'a legal_guess below the answer band is a fault');
 
 -- ── PN057: an empty dictionary ──
 -- Emptying `common.words` is the only way to reach this raise, so it goes LAST —

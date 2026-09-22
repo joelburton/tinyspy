@@ -20,8 +20,9 @@
 
 grant usage on schema wordle to authenticated;
 
--- Column-level grant: everything EXCEPT `target`. The presence of any
--- column grant flips the table from "all columns visible" to "only
+-- Column-level grant: everything EXCEPT `target`, the secret, and
+-- `legal_guess`, which the frontend reads off `setup` instead. The presence
+-- of any column grant flips the table from "all columns visible" to "only
 -- granted columns," so we enumerate the safe ones. games_state exposes
 -- the target conditionally via a SECURITY DEFINER helper.
 grant select
@@ -179,7 +180,10 @@ grant select on wordle.games_state to authenticated;
 --       that difficulty band of common.words),
 --     "legal_guess": 1..6 (the band a typed guess must exist in to
 --       count; default 4; must reach the answer's hardest band),
---     "timer": (none | countup | countdown{seconds}) }
+--     "timer": (none | countup | countdown{seconds}),
+--     "coop_style": 'free-for-all' | 'turns' (coop only),
+--     "first_turn_user_id": a player (with 'turns'; stripped from the
+--       club's saved default) }
 -- `mode` ('coop' | 'compete') routes the gametype string and the
 -- working-state semantics. Picks a hidden target per `answer_source`
 -- (always clean — see the pick below) and seeds one players row per player.
@@ -253,10 +257,11 @@ begin
   end if;
   s_answer_max := case when s_answer_source = 0 then 2 else s_answer_source end;
   if s_legal_guess < s_answer_max then
-    -- A CROSS-FIELD rule, and it names the field the form can fix: every
-    -- answer has to be a legal guess, so the legal band is raised to meet the
-    -- answer band rather than the answer band lowered to meet it. The setup
-    -- form already floors the control at `answerMaxBand`; this is the backstop.
+    -- A CROSS-FIELD rule: every answer has to be a legal guess, so the legal
+    -- band is raised to meet the answer band rather than the answer band
+    -- lowered to meet it. The setup form floors the control at `answerMaxBand`
+    -- and the manifest gates Start on the same rule, so no value the form
+    -- offers reaches this — a fault, naming no field, like the checks above.
     raise exception 'BUG: legal-guess band below the answer band'
       using errcode = 'PN056', hint = 'fault', column = '_',
       detail = 'legal_guess must be >= the answer band';
@@ -502,8 +507,9 @@ revoke execute on function wordle._maybe_finish_compete(uuid) from public;
 -- Submit a 5-letter guess. Soft rejections (an `ok`: no guess consumed,
 -- no row written) are the word already guessed on this board
 -- ('duplicate') and the word not in the legal slice ('notAWord'). A
--- valid, fresh word is colored, logged, and counts against the budget. Hard rejections (raised): not a player,
--- game not playing, a malformed entry (PN256 — the client refuses a
+-- valid, fresh word is colored, logged, and counts against the budget. Hard
+-- rejections (raised): not a player, game not playing, out of turn in a
+-- turn-order coop game, a malformed entry (PN256 — the client refuses a
 -- short word before it calls), the caller already solved, or out of
 -- guesses.
 --
@@ -955,8 +961,7 @@ grant execute on function wordle.end_game(uuid) to authenticated;
 -- ============================================================
 -- wordle.replay_board — restart this game from scratch
 -- ============================================================
--- The "Replay board" game-menu item: reset the working state on the
--- SAME game row. The frozen puzzle (target / max_guesses / legal_guess
+-- The Restart action: reset the working state on the SAME game row. The frozen puzzle (target / max_guesses / legal_guess
 -- / mode) stays — the same word, played again; everything the players
 -- did is wiped. Any game player may call it, from a finished game OR
 -- mid-game (no play_state guard — it's a restart). Both modes reset

@@ -431,11 +431,11 @@ winning guess or five that miss:
 |---|---|
 | `create_game_test` | both modes; every setup fault by the field it names; the target picked from the list or the band; `target` denied by the grant and null in the view mid-game; an empty word pool is a fault |
 | `gameplay_test` | `submit_guess` in coop: a short word is a fault; the two soft rejects spend nothing and write nothing; every accepted row carries colors and spent a go; every `ok` carries no outcome; the title reads the latest guess, then the answer on a win |
-| `compete_test` | independent rows; an opponent's guesses hidden mid-race and open at terminal; the title and the status leak nothing mid-race; fewest guesses wins once everyone is done |
+| `compete_test` | independent rows; an opponent's guesses hidden mid-race and open at terminal; the title and the status leak nothing mid-race; fewest guesses wins once everyone is done, the earlier solve breaking a tie |
 | `loss_test` | coop's last wrong guess is the loss and reveals the target; a racer spending their own budget ends nothing, and their next guess is a fault |
-| `concede_test` | a conceder counts as done and forfeits; the last one out ends the race; everyone out is `conceded`, not `exhausted`; coop is refused |
+| `concede_test` | a conceder counts as done and forfeits; the last one out ends the race; everyone out is `conceded`, a mixed table is `exhausted`; coop is refused |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, an accepted guess advances, a soft reject does not, free-for-all leaves the pointer null |
-| `end_game_test` · `replay_test` | the timeout and the manual end, each idempotent and each revealing the target; Restart undoes everything a loss wrote — rows, counts, the clock, the title, and the target's shield — and keeps the word |
+| `end_game_test` · `replay_test` | the timeout in both modes — coop's loss, a race ended as it stands with and without a solver, the winner's count named — and the manual end, each idempotent and each revealing the target; Restart undoes everything a loss wrote — rows, counts, the clock, the title, and the target's shield — and keeps the word |
 | `reveal_test` | the target unshields at terminal whatever the outcome; `_sync_title` never spells the answer of a game the players may still replay blind |
 | `legal_guess_test` · `banded_answer_test` | the same word is `notAWord` under a strict band and legal under a loose one; an answer banded out from under a live game still solves it |
 

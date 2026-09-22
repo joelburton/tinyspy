@@ -123,9 +123,9 @@ function answerSourceLabel(source: number | null): string | null {
   return dictLabel(source)
 }
 
-// Single source of truth for this game's user-facing brand name —
-// both manifests' name and the start-game error read it, so a fork
-// rebrands by editing this one line. Codename stays lowercase in code.
+// Single source of truth for this game's user-facing brand name — both
+// manifests' `name` reads it, so a fork rebrands by editing this one line.
+// Codename stays lowercase in code.
 const BRAND = 'WordNerd'
 
 export const wordleCoopGame: GameManifest = {

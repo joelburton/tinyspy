@@ -192,7 +192,7 @@ export function PlayArea({
   // terminal (`wordle._target_for` gates on `is_terminal`), so this is purely
   // what gets drawn.
   //
-  // `impliedBy` is the exception: a wordle can only be finished by typing the
+  // `impliedBy` is the exception: a wordle can only be SOLVED by typing the
   // answer, so a solver is already looking at it. MY solve, not the game's
   // verdict — compete writes `won_compete` when SOMEONE wins, and the racer who
   // was three guesses off never produced the word.
@@ -301,8 +301,8 @@ export function PlayArea({
 
   // ─── Narration — what a PEER did, in the header slot ───
   // About somebody else, which is what puts it in the global slot rather than
-  // the local one (docs/ui.md → the two feedback slots). Each mode has one
-  // peer event it can see.
+  // the local one (docs/ui.md → Feedback pill). Each mode has one peer event
+  // it can see.
 
   // Coop: a teammate's guess narrated in the header — "● moth guessed CRANE",
   // in the row's own outcome. Only ACCEPTED guesses can reach here, since a
@@ -365,7 +365,7 @@ export function PlayArea({
     myConceded,
     // Solved and waiting for the others: conceding would forfeit a win already
     // banked, so it goes gray and you leave via Back to club.
-    selfSolved: solvedIds.includes(session.user.id),
+    selfSolved: mySolved,
     localFeedbackSlot,
   })
 
@@ -393,9 +393,6 @@ export function PlayArea({
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
-        // ctx.setup is Record<string,unknown> at the shell level; this game's
-        // rows were created from a WordleSetup, so the cast is the usual
-        // per-game narrowing (docs/common.md → GamePageCtx.setup).
         setup,
         player_user_ids: members.map((m) => m.user_id),
         mode,
@@ -520,7 +517,7 @@ export function PlayArea({
         rows={rows}
         historySnap={historySnap}
         historyActor={historyActor}
-        maxGuesses={game.max_guesses}
+        maxGuesses={maxGuesses}
         brand={brand}
         // ── History viewer ──
         onExitHistory={exitHistory}
@@ -569,7 +566,7 @@ export function PlayArea({
         solution={answerShown ? game.target : null}
         // ── Event log ──
         guesses={guesses}
-        mode={game.mode}
+        mode={mode}
         historyId={historyId}
         onShowHistory={showHistory}
         />

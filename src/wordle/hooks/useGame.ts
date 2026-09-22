@@ -2,13 +2,9 @@
 
 import { useState } from 'react'
 import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
-import type { Member } from '@/common/members/member'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { db } from '../db'
-
-/** A wordle player. No fixed seats — every game_player can guess. */
-export type Player = Member
 
 /**
  * The game header, projected from `wordle.games_state`. `target` is

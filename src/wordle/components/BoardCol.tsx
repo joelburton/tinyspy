@@ -38,7 +38,7 @@ type GuessAnswer =
   // stays.
   | {
       result: 'duplicate' | 'notAWord'
-      guesses_used: number | null
+      guesses_used: number
       solved: false
       terminal: false
     }
@@ -47,7 +47,7 @@ type GuessAnswer =
   | {
       result: 'correct' | 'incorrect'
       colors: string
-      guesses_used: number | null
+      guesses_used: number
       solved: boolean
       terminal: boolean
     }
@@ -94,8 +94,8 @@ export function BoardCol({
   // it.
   historySnap: HistorySnapshot | null
   // Whose board is on screen, when it is not the viewer's own — at terminal a
-  // compete log can open an opponent's row.
-  historyActor?: Actor | null
+  // compete log can open an opponent's row. Undefined for the viewer's own.
+  historyActor: Actor | undefined
   maxGuesses: number
   // Brand name (manifest) for the grid's `aria-label`, a test handle.
   brand: string

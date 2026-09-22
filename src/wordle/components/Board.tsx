@@ -39,8 +39,8 @@ type Props = {
   brand: string
   // Wear the shared viewing frame and make the board
   // click-through (so a board click falls to the document exit listener).
-  // While viewing, PlayArea also hands historical `rows` + `active={false}` +
-  // no `pending`, and rows never flip (they're already-final history).
+  // While viewing, BoardCol also hands the snapshot's `rows` + `active={false}`
+  // + no `pending`, and rows never flip (they're already-final history).
   isViewingHistory: boolean
   // Ring this row (the guess the viewed turn added), or -1 = none.
   // The row keeps its g/y/x tile colors; the ring just marks which one.
