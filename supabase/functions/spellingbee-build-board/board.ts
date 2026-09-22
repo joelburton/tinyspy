@@ -69,6 +69,13 @@ const PANGRAM_BONUS = 10
 
 // ───────────────────────────────────────────────────────────
 // Bitmask helpers
+//
+// Masks live HERE and nowhere else, because this is the only place a
+// dictionary is filtered: the board builder tests a whole table of candidate
+// words against the puzzle's letters, where one `&` per row beats a scan, and
+// the mask it compares against is a `bigint` column in Postgres. The frontend
+// never filters — it is shipped the finished word lists and looks a word up in
+// a Map — so a mask there would answer a question nobody asks.
 // ───────────────────────────────────────────────────────────
 
 export function letterMask(s: string): bigint {

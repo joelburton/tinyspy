@@ -491,14 +491,12 @@ wordwheel-specific tests:
 
 ### FE Vitest (`src/wordwheel/`)
 
-The wordwheel suite — `lib/letterMask.test.ts`, `lib/setup.test.ts`,
-`lib/tiles.test.ts`, plus the component tests below — is spellingbee's shape
+The wordwheel suite — `lib/setup.test.ts`, `lib/tiles.test.ts`,
+`lib/spend.test.ts`, plus the component tests below — is spellingbee's shape
 adjusted for nine tiles / +15 / tile-spending. The rank-ladder and display-rows
 coverage moved to `common/` with the hoisted shared modules
 (`src/common/lib/game/rankLadder.test.ts`, `foundWordsDisplayRows.test.ts`), so
-it isn't duplicated here. (The old `pangram.ts` lib + test were deleted — "is a
-pangram" can't be answered from the word alone under multisets, and the shipped
-entry's `is_pangram` was already the authority everywhere.)
+it isn't duplicated here.
 
 - **`TypedWord.test.tsx`** — count-based dimming: off-wheel dims; on a single-tile
   wheel the 2nd occurrence dims; on a two-e/two-g wheel `BEE` and `EGGED` are fully

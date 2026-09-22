@@ -11,8 +11,8 @@
  * These prove the tree mounts in every mode AND that the wordwheel-specific
  * glue works: the local lookup accepts a required/bonus/pangram word (optimistic
  * pill + `submit_word` call) and rejects a non-legal one with the right reason.
- * Deep game logic still lives in pgTAP + the lib Vitest suites (ranks /
- * letterMask / displayRows); here we cover the composition.
+ * Deep game logic still lives in pgTAP + the lib Vitest suites (ranks, the
+ * answer table, the tile spend); here we cover the composition.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the wheel, RankBar, entry row, word list — renders

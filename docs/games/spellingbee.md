@@ -541,11 +541,6 @@ src/spellingbee/
                           rankPoints, currentRankIndex. Mirrored on the SQL side by
                           spellingbee._rank_idx (different numeric form, same answer
                           — Vitest verifies agreement at every score / total).
-    letterMask.ts         26-bit letter mask helpers (letterMask, popcount26, isSubsetMask).
-                          Used by TypedWord for per-character illegal-letter dimming.
-    pangram.ts            isPangram (popcount26(letterMask(w)) === 7). UI cue only;
-                          authority on "real" required pangrams is the server's
-                          required_words.is_pangram flag.
     (beeLeaderboard)      SHARED shared/bee-games/beeLeaderboard.ts — the LeaderboardEntry
                           type, read via common/game-page/readLeaderboard: the compete rank payload off
                           common.games.status. Shared by the OpponentStrip and the common
@@ -635,8 +630,6 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 | file | covers |
 |---|---|
 | `src/common/lib/game/rankLadder.test.ts` | (shared) Rank ladder boundary cases; integer-math agreement with `spellingbee._rank_idx`. |
-| `src/spellingbee/lib/pangram.test.ts` | `isPangram` boundary cases (6/7/8 distinct, case-insensitive). |
-| `src/spellingbee/lib/letterMask.test.ts` | `letterMask` round-trips, `popcount26`, `isSubsetMask`. |
 | `src/shared/found-words/foundWordsDisplayRows.test.ts` | (shared) Found-word dedup to the first finder, found-shadows-reveal, alphabetical merge → shared `WordListRow`s. |
 | `src/shared/found-words/wordListRows.test.ts` | (shared) The one call above it: `isTerminal` is the reveal's only gate, and `hasBonus` decides how much of the missed set comes back. |
 | `src/common/word-list/useRecentlyFound.test.ts` | (shared) Initial-quiet, fresh-arrival, 5s expiry, staggered expiry per word, no-op rerender idempotency. |
