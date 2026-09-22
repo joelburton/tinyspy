@@ -436,6 +436,16 @@ owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to `todo.md` or
 `docs/games/wordle.md` instead; a note here never stands in for either)*
 
+### `<Board>`'s props are all required — 2026-09-22
+
+Joel, reading the file: six of the thirteen were optional with defaults
+(`isViewingHistory`, `historyLitBoardRow`, `rejectNonce`, `gameOver`,
+`notMyTurn`, `myTurnJustStarted`) while `BoardCol` passed every one; nothing
+else renders `<Board>`, tests included. Three were already required on
+`BoardCol` itself, so the defaults could not fire. They are required now.
+`rejectOutcome`'s existing reason is kept and loses its `REQUIRED:` label,
+which only distinguished it while its neighbors were optional.
+
 ### The judged tile colors moved to `wordle-style` — 2026-09-22
 
 Out of Joel's question while reading `Board.module.css`: *"wouldn't this be in

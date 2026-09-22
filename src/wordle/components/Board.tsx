@@ -41,27 +41,27 @@ type Props = {
   // click-through (so a board click falls to the document exit listener).
   // While viewing, PlayArea also hands historical `rows` + `active={false}` +
   // no `pending`, and rows never flip (they're already-final history).
-  isViewingHistory?: boolean
+  isViewingHistory: boolean
   // Ring this row (the guess the viewed turn added), or -1 = none.
   // The row keeps its g/y/x tile colors; the ring just marks which one.
-  historyLitBoardRow?: number
+  historyLitBoardRow: number
   // Bumped by `<BoardCol>` on every soft reject — the active row shakes and
   // rings. The pill says WHAT was wrong; this says WHERE. Keyed into the row so
   // a repeat rejection replays the shake rather than doing nothing.
-  rejectNonce?: number
-  // Which outcome that rejection carries. REQUIRED: a default here would be a
-  // second place naming a refusal's word, and the caller is the one holding the
-  // answer. The ring's color comes from the shared table, which is TOTAL over
-  // the vocabulary, so the caller narrows nothing on the way down.
+  rejectNonce: number
+  // Which outcome that rejection carries. A default would be a second place
+  // naming a refusal's word, and the caller is the one holding the answer; the
+  // ring's color comes from the shared table, which is TOTAL over the
+  // vocabulary, so the caller narrows nothing on the way down.
   rejectOutcome: Outcome
   // The game is finished, and how it ended — the board takes a band in that
   // outcome's gray (neutral for a game merely ended), null while it's live. The
   // same mark waffle wears; see plans/tile-feedback.md.
-  gameOver?: TerminalOutcome | null
+  gameOver: TerminalOutcome | null
   // A teammate holds the move (turn-order coop): dim the whole board.
-  notMyTurn?: boolean
+  notMyTurn: boolean
   // True for a beat at the moment the turn becomes mine — flash the frame.
-  myTurnJustStarted?: boolean
+  myTurnJustStarted: boolean
 }
 
 /**
@@ -88,13 +88,13 @@ export function Board({
   maxGuesses,
   active,
   brand,
-  isViewingHistory = false,
-  historyLitBoardRow = -1,
-  rejectNonce = 0,
+  isViewingHistory,
+  historyLitBoardRow,
+  rejectNonce,
   rejectOutcome,
-  gameOver = null,
-  notMyTurn = false,
-  myTurnJustStarted = false,
+  gameOver,
+  notMyTurn,
+  myTurnJustStarted,
 }: Props) {
   const activeIndex = active ? rows.length : -1
   // Rows that were ALREADY THERE don't flip — only guesses that land while you
