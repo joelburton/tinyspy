@@ -171,8 +171,28 @@ the two — whether the empty answer stops anything.
 
 ## 5. Puzzle sourcing
 
-Four sources, exposed as four tabs in the setup form (Library / NYT /
-Guardian / Upload):
+Four sources (Library / NYT / Guardian / Upload), exposed in the setup form as
+**one field with four buttons**, each opening its own blocking picker —
+`PuzzleSourceField`. How that field behaves:
+
+- **Nothing is chosen until a picker answers.** A fresh form names no source at
+  all, so none of the four is drawn as chosen and Start is blocked. A club that
+  has played arrives with its saved default over that, which carries the source
+  — but not `puzzle_id` or `date`, so a returning library club names `library`
+  with no puzzle in hand and is still blocked.
+- **The named source is the primary button.** The one piece of state the row
+  carries, and the only place it says so.
+- **Backing out of a picker clears the choice** — Cancel, the ✕ or Escape
+  leaves no source, not the one held before the press. Pressing a source button
+  is the start of choosing, so leaving without an answer ends with nothing
+  chosen, rather than with a filled button and a caption describing a puzzle
+  you walked away from.
+- **A picker's answer replaces the WHOLE value** — `source`, `puzzle_id`,
+  `date`, `weekday`, `series`, `board`, `filename` — so every key the chosen
+  source did not set lands absent. That is the first of the three guards on the
+  uploaded board below.
+
+The sources themselves:
 
 - **`gmake g-crosswords-puzzles`** (CLI, `supabase/scripts/`) — bulk-imports crossplay's
   `.puz` / `.ipuz` files + the `content_hash` dedup into the curated
@@ -198,21 +218,22 @@ Guardian / Upload):
   imports where you left off — crossplay's `saved` round-trip, the counterpart to
   **Download as .ipuz** (§9). Blank library/NYT templates carry no fills, so this
   is a no-op there.
-- **In-app upload** — the setup form's "Upload" tab parses a dropped /
+- **In-app upload** — the setup form's Upload picker parses a dropped /
   chosen `.puz` / `.ipuz` **entirely client-side** (`lib/importFile.ts` →
   `lib/parse/`; puzjs is a dependency-free `Uint8Array` reader, so it bundles in
   the browser) into the inline board, then `create_game(board=…)` directly — a
   self-contained game, no `puzzles` row (like NYT). The parsed board rides in the
   FE-only `setup.board` and is **stripped** before create_game stores the setup,
   so the solution never lands in the unshielded status / saved-default. The strip
-  is **belt-and-braces** across three layers, because a parsed board can linger
-  in `setup` after a source tab-switch (the SetupForm segment buttons spread the
-  prior setup): `startGameInClub` deletes `board`/`filename` *unconditionally*
-  (not just on the upload tab), the tab buttons clear them when leaving Upload,
-  and `create_game` itself runs `setup := setup - 'board' - 'filename'` as a
+  is **belt-and-braces** across three layers, because a parsed board lingering
+  in `setup` under a source that is no longer Upload would leak the answers:
+  `PuzzleSourceField` replaces the whole value on every pick and clears it on
+  every cancel, `startGameInClub` deletes `board`/`filename` *unconditionally*
+  (not just for an upload), and `create_game` itself runs
+  `setup := setup - 'board' - 'filename'` as a
   server backstop — the real inline puzzle always rides as the separate `board`
   arg, so it's never wanted in the persisted setup regardless of what the FE sends.
-- **The NYT tab picks a WEEKDAY** (2026-08-13), not a date — a dropdown of
+- **The NYT picker picks a WEEKDAY** (2026-08-13), not a date — a list of
   Monday…Sunday, each labeled with what it means (`Monday — easiest`,
   `Saturday — hardest`, `Sunday — big (21×21), medium`). An NYT crossword's day
   IS its difficulty, so that is the choice a solver actually wants to make, and

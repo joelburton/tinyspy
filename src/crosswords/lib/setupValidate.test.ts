@@ -58,4 +58,13 @@ describe('crosswords setup — the other sources', () => {
       source: 'Pick a puzzle to start.',
     })
   })
+
+  it('refuses NO SOURCE — a fresh form, or a picker backed out of', () => {
+    // The state `CROSSWORDS_DEFAULTS` opens in and the one `cancel` returns to.
+    // Without this clause it fell through to the library branch and was refused
+    // by accident, which would have held only as long as library stayed last.
+    expect(check({})).toEqual({ source: 'Pick a puzzle to start.' })
+    // And a stale key from a source that was abandoned does not resurrect it.
+    expect(check({ puzzle_id: 'p1' })).toEqual({ source: 'Pick a puzzle to start.' })
+  })
 })

@@ -1753,7 +1753,7 @@ assembling the same skeleton by hand is how they drifted apart before.
 ## A segmented choice
 
 A few options in a row, exactly one chosen — the club page's mobile tabs and
-its co-op/compete/all filter, crosswords' puzzle-source picker. The shared
+its co-op/compete/all filter. The shared
 [`<Segmented>`](../src/common/buttons/Segmented.tsx), which owns the frame and
 the group's label; the segments stay the caller's own buttons.
 
@@ -1772,10 +1772,15 @@ the group's label; the segments stay the caller's own buttons.
   family, the paint a primary button takes, because "this is the one" is the
   same statement.
 
-The component deliberately does not hold the value or wire the clicks: its
-three call sites want different things from a press — one sets a filter, one
-switches a view, one opens a picker — and owning the value would make two of
-them lie about what pressing a segment does.
+The component deliberately does not hold the value or wire the clicks: a press
+means something different at each call site — one sets a filter, one switches
+which column the club page shows — and owning the value would make one of them
+lie about what pressing a segment does.
+
+**A button that opens the question is not a segment.** Pressing a segment IS
+the choice; a press that only puts a picker on screen has chosen nothing yet,
+so it is an ordinary [`<StandardButton>`](#what-a-button-is-the-fourteen-kinds)
+however few of them sit together. Crosswords' four puzzle sources are that row.
 
 ## The heading levels
 
@@ -2146,13 +2151,6 @@ shared component is one implementation of the rule, not the rule itself.
 |---|---|
 | crosswords' pencil/pen + scope buttons (`.btn`) | a game-surface control bar whose ON state is `--crosswords-cursor`, a **game** color. Its selected state can't come from a button family without lying about what the color means |
 
-Crosswords' puzzle-source picker was listed here too, on the strength of being a
-segmented control the shared button would dismantle. That was right about the
-button and wrong about the conclusion: the answer was a segmented-control
-pattern, not a per-game exemption. It is [`<Segmented>`](#a-segmented-choice)
-now, and the yellow it filled its chosen segment with was never a decision — it
-had simply reached for the game's cursor color because that was to hand.
-
 The distinction that keeps this honest: what made the button sweep worth doing was
 that buttons were being handed chrome they never asked for. This one doesn't have
 that problem — it asks for exactly what it wants. Converting it would change how a
@@ -2375,6 +2373,13 @@ sits. Where they land: the hint ladder — Hint, Spoiler, an AI suggestion — i
 End, Concede and Reveal are `destructive`, since all three are irreversible; a
 move commit, and codenamesduet's every-turn End turn, are `primary`; a dialog's
 Cancel is `quiet`+`secondary`. `success` is wired with no caller.
+
+**`primary` also draws the CHOSEN one in a row of buttons that name a choice**
+— crosswords' four puzzle sources. That is not a second meaning: a segmented
+control already fills its chosen segment with a primary button's paint, for the
+reason given under [a segmented choice](#a-segmented-choice) — "this is the one"
+is the same statement. A row of loose buttons says it the same way, with the
+weight rather than a class of its own, and says nothing when nothing is chosen.
 
 The tone deliberately avoids the word `action`, which is one of the fourteen
 BUTTON KINDS above — one word naming a purpose in one taxonomy and a color in

@@ -99,6 +99,10 @@ const puzzle = (message: string): FormErrors => ({ source: message })
 
 const validate = (setup: unknown): FormErrors => {
   const s = setup as CrosswordsSetup
+  // No source at all: a fresh form, or a picker someone backed out of. Same
+  // words as an unanswered library, because it is the same state to the player
+  // — no puzzle in hand.
+  if (s.source === undefined) return puzzle('Pick a puzzle to start.')
   // NYT takes either: a weekday (the normal path — the server resolves it to
   // the most recent unplayed date) or an explicit date (the override). The
   // picker always sets one of them, so this only fires for a client that

@@ -23,6 +23,7 @@ import { summarize } from '../lib/puzzleSummary'
 import { errorUnder } from '@/common/fields/errorUnder'
 import { expectFieldContract } from '@/common/fields/fieldContract'
 import type { PuzzleChoice } from '../lib/setup'
+import button from '@/common/buttons/StandardButton.module.css'
 
 // jsdom doesn't implement scrollIntoView, and SelectionList keeps its cursor
 // row in view with it — reached now that a picker takes focus on open.
@@ -76,6 +77,7 @@ describe('the puzzle caption', () => {
     summarize({ ...BASE, ...values }, resolved, title ?? null)
 
   it('asks for a choice before one is made', () => {
+    expect(say({ source: undefined })).toBe('Puzzle: choose one')
     expect(say({ source: 'library' })).toBe('Puzzle: choose one')
     expect(say({ source: 'guardian' })).toBe('Puzzle: choose one')
     expect(say({ source: 'upload' })).toBe('Puzzle: choose one')
@@ -202,6 +204,57 @@ describe('the field', () => {
 
     const picker = screen.getByRole('group', { name: 'Guardian series' })
     expect(picker.contains(document.activeElement)).toBe(true)
+  })
+
+  it('draws the named source as the PRIMARY button and the rest as secondary', () => {
+    // Which source the puzzle comes from is the one piece of state this row
+    // carries, and `weight` is the only place it says so — there is no
+    // segmented frame to fill and no `aria-pressed` on an ordinary button. Read
+    // through the button's own module because vitest hands back hashed names;
+    // that makes a renamed class invisible here, so what this pins is the
+    // DIFFERENCE between the four buttons, which is the part that can regress.
+    draw({ source: 'guardian', series: 'quiptic' })
+
+    expect(screen.getByRole('button', { name: 'Guardian' })).toHaveClass(button.primary)
+    for (const name of ['Library', 'NYT', 'Upload']) {
+      expect(screen.getByRole('button', { name })).toHaveClass(button.secondary)
+    }
+  })
+
+  it('draws NONE of them as chosen before a picker has answered', () => {
+    draw({ source: undefined })
+    for (const name of ['Library', 'NYT', 'Guardian', 'Upload']) {
+      expect(screen.getByRole('button', { name })).toHaveClass(button.secondary)
+    }
+  })
+
+  it('CLEARS the choice when a picker is backed out of', async () => {
+    // Pressing a source button is the start of choosing, so leaving without an
+    // answer ends with nothing chosen — not with the puzzle you had before the
+    // press, which a primary button and the caption would both still be
+    // describing while Start offered to play it.
+    const user = userEvent.setup()
+    const { onChange } = draw({ source: 'guardian', series: 'quiptic' })
+
+    await user.click(screen.getByRole('button', { name: 'NYT' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    // The WHOLE value, so the Guardian series goes with it rather than lingering
+    // under a source nobody named.
+    expect(onChange).toHaveBeenCalledWith({ source: undefined })
+  })
+
+  it('keeps a picker ANSWER, which cancel must not be confused with', async () => {
+    // The two paths are separate props on every picker (`onPick`, `onClose`),
+    // and this is what would break if one ever called the other.
+    const user = userEvent.setup()
+    const { onChange } = draw({ source: undefined })
+
+    await user.click(screen.getByRole('button', { name: 'Guardian' }))
+    await user.click(screen.getByText('Quiptic'))
+
+    expect(onChange).toHaveBeenCalledWith({ source: 'guardian', series: 'quiptic' })
+    expect(onChange).toHaveBeenCalledTimes(1)
   })
 
   it('only asks which date a weekday resolves to when that is the question', () => {

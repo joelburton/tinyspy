@@ -67,6 +67,13 @@ shape rather than inventing one.
 - **Tab is not the form's.** Inside a floating panel the form is already in
   that ring, fields and all. A form that is the page declares its own with
   `useTabRing({ within: formRef })`; `LoginScreen` is the example.
+- **Enter IS the form's.** It commits from anywhere inside, because the
+  browser's own rule fires from a text box alone and a setup dialog is
+  checkboxes and radios. A button, a textarea and a native `<select>` keep
+  their own Enter, and the press goes through the commit button rather than
+  around it, so a disabled Start stays disabled. An Enter from a portaled
+  child — a crosswords puzzle picker — bubbles through React's tree to the
+  form and is ignored by asking the DOM whether the target is really inside.
 - **`initialValues` is read once**, so a form whose data loads asynchronously
   waits to mount rather than disabling every control while it waits.
 - **Test helpers** for reading what a form says are in `fields/errorUnder.ts`:

@@ -13,7 +13,7 @@ import { summarize } from '../lib/puzzleSummary'
 import { runRpc } from '@/common/supabase/dbResult'
 import { GuardianPickerBlockingModal } from './pickers/GuardianPickerBlockingModal'
 import { UploadPickerBlockingModal } from './pickers/UploadPickerBlockingModal'
-import { Segmented } from '@/common/buttons/Segmented'
+import { StandardButton } from '@/common/buttons/StandardButton'
 import styles from './PuzzleSourceField.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
@@ -138,40 +138,44 @@ export function PuzzleSourceField({
             in a span under the caption. It matters more here than there, since
             after a picker closes this is the only account of what it chose. */}
         <p className={styles.chosen}>{summarize(s, resolved, libraryTitle)}</p>
-        <Segmented label="Puzzle source" className={styles.sources}>
-          <button
-            type="button"
+        {/* FOUR ORDINARY BUTTONS, each opening a picker. Not a segmented group:
+            a segment is a choice you make by pressing it, and pressing one of
+            these only opens the question.
+
+            The named source is the PRIMARY button — the filled one, the weight
+            a row gives the thing it is actually doing. Until a picker answers,
+            `source` is absent and all four are secondary, which is the state a
+            fresh form and a canceled picker both leave behind. */}
+        <div className={styles.sources}>
+          <StandardButton
+            show="label"
+            label="Library"
+            weight={s.source === 'library' ? 'primary' : 'secondary'}
             disabled={disabled}
-            aria-pressed={s.source === 'library'}
             onClick={() => setOpen('library')}
-          >
-            Library
-          </button>
-          <button
-            type="button"
+          />
+          <StandardButton
+            show="label"
+            label="NYT"
+            weight={s.source === 'nyt' ? 'primary' : 'secondary'}
             disabled={disabled}
-            aria-pressed={s.source === 'nyt'}
             onClick={() => setOpen('nyt')}
-          >
-            NYT
-          </button>
-          <button
-            type="button"
+          />
+          <StandardButton
+            show="label"
+            label="Guardian"
+            weight={s.source === 'guardian' ? 'primary' : 'secondary'}
             disabled={disabled}
-            aria-pressed={s.source === 'guardian'}
             onClick={() => setOpen('guardian')}
-          >
-            Guardian
-          </button>
-          <button
-            type="button"
+          />
+          <StandardButton
+            show="label"
+            label="Upload"
+            weight={s.source === 'upload' ? 'primary' : 'secondary'}
             disabled={disabled}
-            aria-pressed={s.source === 'upload'}
             onClick={() => setOpen('upload')}
-          >
-            Upload
-          </button>
-        </Segmented>
+          />
+        </div>
       </Field>
 
       {/*
@@ -196,7 +200,7 @@ export function PuzzleSourceField({
       {open === 'library' && (
         <LibraryPickerBlockingModal
           clubHandle={clubHandle}
-          onClose={() => setOpen(null)}
+          onClose={cancel}
           onPick={(p) => {
             choose({ source: 'library', puzzle_id: p.id })
             setLibraryTitle(`${p.title}${p.author ? ` · ${p.author}` : ''}`)
@@ -206,7 +210,7 @@ export function PuzzleSourceField({
       )}
       {open === 'nyt' && (
         <NytPickerBlockingModal
-          onClose={() => setOpen(null)}
+          onClose={cancel}
           onPick={(picked) => {
             // Exactly one of the two, always: a weekday clears any override and
             // an override clears the weekday, because they answer one question.
@@ -217,7 +221,7 @@ export function PuzzleSourceField({
       )}
       {open === 'guardian' && (
         <GuardianPickerBlockingModal
-          onClose={() => setOpen(null)}
+          onClose={cancel}
           onPick={(slug) => {
             choose({ source: 'guardian', series: slug })
             setOpen(null)
@@ -226,7 +230,7 @@ export function PuzzleSourceField({
       )}
       {open === 'upload' && (
         <UploadPickerBlockingModal
-          onClose={() => setOpen(null)}
+          onClose={cancel}
           onPick={({ board, filename }) => {
             choose({ source: 'upload', board, filename })
             setOpen(null)
@@ -253,5 +257,19 @@ export function PuzzleSourceField({
   function choose(next: PuzzleChoice) {
     if (next.source !== 'library') setLibraryTitle(null)
     onChange(next)
+  }
+
+  /**
+   * Back out of a picker — Cancel, the ✕, or Escape — and the field is left
+   * holding NO PUZZLE, not the one it held before.
+   *
+   * Pressing a source button is the start of choosing, so leaving without an
+   * answer ends with nothing chosen. The alternative is a row where the
+   * primary button and the caption describe a choice you just walked away
+   * from, and a Start that would play it.
+   */
+  function cancel() {
+    choose({ source: undefined })
+    setOpen(null)
   }
 }

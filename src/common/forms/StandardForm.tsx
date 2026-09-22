@@ -1,6 +1,6 @@
 // cs-blessed-forms
 
-import { useCallback, useState, type ComponentPropsWithRef, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useState, type ComponentPropsWithRef, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { cls } from '../utils/cls'
 import styles from './StandardForm.module.css'
 
@@ -13,6 +13,10 @@ import styles from './StandardForm.module.css'
  * where its value comes from and where it goes, both typed against `V`. Errors
  * never come through here: the caller that made the call holds them and writes
  * `error={errors.<name>}` itself.
+ *
+ * **Enter commits it, from anywhere in it** — see `handleEnter`. The browser
+ * only does that from a text box, which left a form of checkboxes and radios
+ * (a game's setup) with no key that starts the game.
  *
  * forms/doc.md
  */
@@ -50,10 +54,48 @@ export function StandardForm<V extends object>({
     onSubmit(values)
   }
 
+  /**
+   * ENTER COMMITS THE FORM, wherever in it the keyboard happens to be.
+   *
+   * The browser's own rule is narrower — it submits from a text box and from
+   * nothing else — so a form whose controls are checkboxes, radios and buttons
+   * has no key that finishes it. Every game's setup dialog is such a form.
+   *
+   * Three targets keep their own Enter rather than handing it here: a button
+   * (Enter presses it, which is how Cancel and the setup pickers work), a
+   * textarea (Enter is a newline), and a native select (Enter closes its
+   * dropdown, and the browser then submits from it anyway).
+   *
+   * It goes through the SUBMIT BUTTON rather than calling `onSubmit`, so a
+   * commit the caller has disabled stays disabled: Enter is that button being
+   * pressed, not a way around it.
+   */
+  function handleEnter(e: KeyboardEvent<HTMLFormElement>) {
+    if (e.key !== 'Enter') return
+    if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return
+    const target = e.target as HTMLElement
+    // A PORTAL still bubbles through the React tree, so a blocking modal a
+    // field opened elsewhere in the DOM reaches this handler. Containment is
+    // asked of the DOM, which is where the answer is.
+    if (!e.currentTarget.contains(target)) return
+    if (target.closest('button, textarea, select') !== null) return
+    const commit = e.currentTarget.querySelector<HTMLButtonElement>('button[type="submit"]')
+    if (commit === null || commit.disabled) return
+    // Before the click, so the browser's own implicit submission — which fires
+    // from a text box — cannot land a second one.
+    e.preventDefault()
+    commit.click()
+  }
+
   return (
     // `ref` rides `rest`: a form that IS the page hangs its tab ring on it
     // (`LoginScreen`); inside a floating panel that ring already covers it.
-    <form className={cls(styles.standardForm, className)} onSubmit={handleSubmit} {...rest}>
+    <form
+      className={cls(styles.standardForm, className)}
+      onSubmit={handleSubmit}
+      onKeyDown={handleEnter}
+      {...rest}
+    >
       {children({ values, set })}
     </form>
   )

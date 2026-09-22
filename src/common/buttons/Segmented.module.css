@@ -18,7 +18,7 @@
    `width`, not `align-self: flex-start`, and the difference is the whole bug it
    fixed: a flex item's `align-self` is CROSS-AXIS, so the same declaration means
    "don't stretch to full width" inside a flex column and "sit at the top" inside
-   a flex row. This group sits in both — a field's column in crosswords, a
+   a flex row. This group sits in both — a form's field column, a
    `heading-with-controls` row on the club page — and in the row it was pinning
    itself to the top of a line whose height comes from the heading's margins,
    roughly a heading's margin above where the words sit. A definite width beats

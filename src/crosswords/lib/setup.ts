@@ -27,7 +27,11 @@ import type { ImportedBoard } from './importFile'
  */
 export type CrosswordsValues = {
   timer: TimerMode
-  source: 'library' | 'nyt' | 'guardian' | 'upload'
+  /** WHERE THE PUZZLE COMES FROM, and absent until someone says. A fresh form
+   *  names no source, and backing out of a picker puts it back here — see
+   *  `PuzzleSourceField`, whose button row draws the named one as the primary
+   *  button and so must have nothing to draw when nothing is chosen. */
+  source?: 'library' | 'nyt' | 'guardian' | 'upload'
   /** Library path. */
   puzzle_id?: string
   /** NYT path: the OVERRIDE — a specific date (YYYY-MM-DD). Wins over
@@ -79,15 +83,23 @@ export type PuzzleChoice = Pick<
 >
 
 export type CrosswordsSetup = SetupOf<CrosswordsValues>
-/** Default setup: no timer, library source, nothing picked yet (the form's
- *  `validate` blocks Start until a puzzle / date is chosen). */
+/**
+ * Default setup: no timer, and NO SOURCE — a club that has never played names
+ * none, so the form's button row draws none of the four as chosen and its
+ * `validate` blocks Start until a picker answers.
+ *
+ * A club that HAS played arrives with its saved default over this, which
+ * carries the source it used. `create_game` strips `puzzle_id` and `date` from
+ * what it saves (an instance, not a preference), so a club that last played
+ * from the library comes back naming `library` with no puzzle in hand: the
+ * source button is chosen, the caption still says "choose one", and Start is
+ * still blocked.
+ */
 export const CROSSWORDS_DEFAULTS: CrosswordsSetup = {
   timer: { kind: 'none' },
-  source: 'library',
-  puzzle_id: '',
   // Monday — the easiest NYT day, and the natural place for a club that has
-  // never picked to start. Overwritten by the club's saved default the moment
-  // they have one.
+  // never picked to start. Seeds the NYT picker if they go there; overwritten
+  // by the club's saved default the moment they have one.
   weekday: 1,
 }
 

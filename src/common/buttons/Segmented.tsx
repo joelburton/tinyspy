@@ -21,11 +21,14 @@ type Props = {
  * A SEGMENTED CHOICE — a few options in one joined frame, exactly one chosen.
  *
  * Reach for this when the options change what you are LOOKING at rather than
- * recording an answer: a filter over a list, a tab bar, a picker for which
- * source a puzzle comes from. A control whose value the game reads later is
- * `<RadioRow>`; a choice with too many options to show at once collapses into
- * `<FilterSelect>`'s menu, which is why the club page's mode filter is
- * segmented and its gametype filter is not.
+ * recording an answer: a filter over a list, a tab bar. A control whose value
+ * the game reads later is `<RadioRow>`; a choice with too many options to show
+ * at once collapses into `<FilterSelect>`'s menu, which is why the club page's
+ * mode filter is segmented and its gametype filter is not.
+ *
+ * A button that OPENS the question rather than answering it is not one of
+ * these, however few of them there are: pressing a segment is the choice, and a
+ * press that only puts a picker on screen has not chosen anything yet.
  *
  * **Pass ordinary `<button>`s as children and give each one `aria-pressed`.**
  * That attribute is the whole state contract: it is what a caller's own logic
@@ -40,9 +43,9 @@ type Props = {
  * own their fill.
  *
  * What it deliberately does NOT do: hold the value, map an options array, or
- * wire the clicks. Its three call sites want three different things from a
- * press — one sets a filter, one switches a view, one opens a picker — and a
- * component that owned the value would make two of them lie about what
+ * wire the clicks. A press means something different at each call site — one
+ * sets a filter, one switches which column the club page shows — and a
+ * component that owned the value would make one of them lie about what
  * pressing a segment does.
  */
 export function Segmented({ label, children, className }: Props) {
