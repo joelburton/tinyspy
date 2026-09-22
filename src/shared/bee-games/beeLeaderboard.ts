@@ -5,9 +5,10 @@
  * `common.games.status`. `spellingbee.submit_word` and `wordwheel.submit_word`
  * each rewrite the full array on every accepted submission.
  *
- * Two FE readers share it: the OpponentStrip, which renders each opponent's
- * current rank, and the opponent-rank-up header feedback, the compete
- * rank-climb effect in PlayArea.
+ * It is the compete rank payload, and everything that shows a rank goes through
+ * it: the PlayArea reads it to narrate a peer's climb into the header slot, and
+ * again to feed the OpponentStrip the rank it draws per opponent. Both from one
+ * row, so the narration and the strip cannot disagree about where someone is.
  *
  * Read it through the shell's `readLeaderboard<LeaderboardEntry>(status)`
  * (`common/game-page/readLeaderboard.ts`), which does the narrowing every

@@ -47,8 +47,8 @@ type GameSchema = Parameters<typeof supabase.schema>[0]
  * RUNTIME schema string widens `.from()` to `never` — TS can't pick a schema's
  * table set from a non-literal — and the two hive schemas have distinct
  * generated types, so there is no shared typed `.from`. We read through this
- * hand-written shape (the exact two chains below) and cast each result field to
- * the row and header types, the same field-casting the per-game hooks already did.
+ * hand-written shape — the exact two chains below, and no more of the client
+ * than they use — and cast each result field to the row and header types.
  */
 type Rows = { data: Record<string, unknown>[] | null; error: DbError }
 type SchemaQuery = {
@@ -65,11 +65,10 @@ type SchemaQuery = {
 }
 
 /**
- * Factory for the per-gametype data hook shared by spellingbee + wordwheel.
- * Their `hooks/useGame.ts` bodies were byte-identical (139 lines) — same two
- * data lifecycles, same columns, same realtime wiring — differing only in the
- * schema string. This owns the one copy; each game's `useGame.ts` is now a
- * thin `makeBeeGame('<schema>')` + its type aliases.
+ * Builds the `useGame` a bee game exports, bound to its schema. Everything a
+ * caller's data needs is here — the same columns, the same realtime wiring, the
+ * same two lifecycles — so a game's own `hooks/useGame.ts` is the binding and
+ * its type aliases, and nothing else.
  *
  * Two data lifecycles:
  *   - **The header loads ONCE.** `<schema>.games` is immutable during play (the
@@ -111,9 +110,8 @@ export function makeBeeGame(schema: GameSchema) {
     const [headerFailure, setHeaderFailure] = useState<NotOkEnvelope | null>(null)
     const [rowsFailure, setRowsFailure] = useState<NotOkEnvelope | null>(null)
 
-    // The immutable header (letters + both word lists) — fetched once per game.
     // `loading` gates the PlayArea render, so it flips here.
-    useEffect(() => {
+    useEffect(function loadHeaderOnce() {
       let mounted = true
       void (async () => {
         // No `.maybeSingle()`: `readRows` hands back rows, and `id` is the PK,

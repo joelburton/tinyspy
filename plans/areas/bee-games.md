@@ -20,7 +20,8 @@ four coordinate numbers `.boardCol` reads), both `PlayArea.tsx`'s two
 `docs/common-folders.md` and the two game docs. Nothing has landed under the
 folder since it was created (§4's shell-commit check is empty). Baseline at the
 read: `tsc -b` clean, lint clean, 7 of 7 green in the folder. **Seven findings,
-F-bee-games-1 to -7; nothing in the code moved at the read.** One is the prose
+F-bee-games-1 to -7; nothing in the code moved at the read.** Shipped since:
+F-7, F-4, then the prose pass (F-1, F-2, F-3, F-6). **F-5 is the only one open.** One is the prose
 pass (F-1); one is the effect-name convention (F-2); two are docstrings that
 describe history or repeat a ruling (F-3, F-4); one is a spec gap confirmed by
 planting (F-5); one is a count and an imprecise reader (F-6); **and one is a
@@ -88,6 +89,25 @@ folder's fault but runs through it.
 
 ### F-bee-games-1 · `doc-md` · The intro is owed
 
+**SHIPPED, 2026-09-21** (Joel: *"do the prose pass"*). The intro is written and
+`shared/bee-games` is off `INTROS_OWED`; `folderDocs`'s in-shape case passes.
+
+It opens on the thing that is actually surprising about the folder — that the
+two games it serves **disagree about the rule of their own game** (a letter set
+you may reuse freely versus a multiset where each use spends a tile) and share
+almost everything anyway. The reason is where that difference is spent: the
+board builder resolves legality once and ships finished word lists, so a set and
+a multiset produce the same SHAPE of answer and the shape is all a data hook
+sees. Then the same argument for the stylesheet — two boards with no geometry in
+common are SIZED the same way, so the arithmetic is written once and only its
+four inputs are per-game — and `--board-width` as the name three boards publish
+from unrelated maths.
+
+`## Details` carries the call tree and the three decisions a reader would
+otherwise have to infer: the header read once against a found list that is not,
+the two failure slots, and the `games` subscription that looks redundant and is
+not.
+
 `doc.md` is a lede and nothing else; `shared/bee-games` is on `INTROS_OWED`. The
 lede is already good and says the right thing — what the two games share and
 where the wider family's half lives. What an intro owes on top of it is the part
@@ -117,6 +137,9 @@ Its row comes off `INTROS_OWED` in the same commit as the intro.
 
 ### F-bee-games-2 · `bare-arrow-effect` · The folder's one effect is unnamed
 
+**SHIPPED, 2026-09-21.** `useEffect(function loadHeaderOnce() {`. The comment
+above it lost its first line to the name, which said the same thing.
+
 `makeBeeGame.ts:118`: `useEffect(() => {`. The folder has exactly one effect and
 it is a bare arrow, where the convention is a named function — the fault
 `board-marks` was caught on at its close, which is why the effect-name grep now
@@ -125,6 +148,14 @@ runs beside the docstring-marker pass. It is the header read, so
 paragraph on.
 
 ### F-bee-games-3 · `factory-archaeology` · The factory docstring explains what the code used to be
+
+**SHIPPED, 2026-09-21.** Both sites. The factory's opening is now what it
+builds and what that buys a caller — *"Everything a caller's data needs is here
+… so a game's own `hooks/useGame.ts` is the binding and its type aliases, and
+nothing else"* — with no line count, no "were byte-identical", and no "is now".
+`SchemaQuery`'s docstring keeps the durable half (a runtime schema string widens
+`.from()` to `never`) and drops *"the same field-casting the per-game hooks
+already did"*.
 
 `makeBeeGame.ts:70–74`: *"Their `hooks/useGame.ts` bodies were byte-identical
 (139 lines) — same two data lifecycles, same columns, same realtime wiring —
@@ -199,6 +230,11 @@ decision in them — the spec already mocks the chain and drives `load` directly
 so each is an assertion away.
 
 ### F-bee-games-6 · `leaderboard-readers` · A count, and a reader that does not read it
+
+**SHIPPED, 2026-09-21.** The docstring says what the row is FOR and drops both
+the count and the claim that `<OpponentStrip>` reads it: the PlayArea reads it to
+narrate a peer's climb and again to feed the strip the rank it draws, from one
+row, so the two cannot disagree about where someone is.
 
 `beeLeaderboard.ts:8–10`: *"Two FE readers share it: the OpponentStrip, which
 renders each opponent's current rank, and the opponent-rank-up header feedback,
@@ -331,8 +367,9 @@ row and writes no governed literal; no `/**` marker survives inside a type body;
 
 ## Predicted test breaks
 
-- F-1: `src/guards/folderDocs.test.ts` — `shared/bee-games` comes off
-  `INTROS_OWED` in the same commit as the intro, or the guard fails either way.
+- ~~F-1: `src/guards/folderDocs.test.ts` — `shared/bee-games` comes off
+  `INTROS_OWED` in the same commit as the intro, or the guard fails either
+  way.~~ Shipped together; the in-shape case passes.
 - F-5: four cases more in `makeBeeGame.test.ts` (7 → 11).
 - ~~F-7 (1): a new case in `game-page`'s gate spec, not in this folder.~~
   Shipped — `GamePage.test.tsx` 14 → 15, written red first.
