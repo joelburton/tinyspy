@@ -1,7 +1,7 @@
 // cs-met-wordle
 
 import { cls } from '@/common/utils/cls'
-import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
+import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
@@ -20,19 +20,20 @@ import styles from './InfoCol.module.css'
 /**
  * wordle's info column — near-zero state, an arrangement of the shared scaffold pieces
  * in the fixed order (docs/playarea.md → Info-column readouts): state (guess count) →
- * OpponentStrip (compete) → action row → help → setup disclosure → terminal answer
- * reveal → the event log. Every COMMAND arrives as a bound action this column
- * places; `onShowHistory` stays a callback, being coordination rather than a
- * command. PlayArea owns the RPCs + the history
- * coordination. Prop names match the other games' columns for the same idea (docs/
- * playarea.md).
+ * whose-turn line (turn-order) → OpponentStrip (compete) → action row → help →
+ * terminal answer reveal → setup disclosure → the event log. Every command is a
+ * BOUND ACTION the PlayArea handed down (`actReveal`, `actEndGame`, …), so this
+ * column places buttons and decides nothing about them — an action that does
+ * not apply here draws nothing, which is how one row serves coop and compete.
+ * What is a callback is what isn't a command: the history-viewer selection.
+ * Prop names match the other games' columns for the same idea (docs/playarea.md).
  */
 export function InfoCol({
   // ── Mode + phase ──
   isCompete,
   isTerminal,
   over,
-  isLocallyDone,
+  showInput,
   myConceded,
   isPlayer,
   currentTurnUserId,
@@ -45,11 +46,11 @@ export function InfoCol({
   playerStates,
   concededIds,
   // ── Action row ──
-  actEndGame,
-  actConcede,
-  actRestart,
   actReveal,
+  actRestart,
   actNewGame,
+  actConcede,
+  actEndGame,
   actBackToClub,
   // ── Setup disclosure ──
   setupRows,
@@ -66,10 +67,11 @@ export function InfoCol({
   isTerminal: boolean
   /** The terminal message when the game is over (drives the action row), else null. */
   over: TerminalMessage | null
-  /** I'm done in a compete race (solved / out / conceded) while the others race on —
-   *  the terminal LOOK without revealing the answer. */
-  isLocallyDone: boolean
-  /** I specifically conceded (vs. ran out) — picks the locally-done wording. */
+  /** May I still submit? Gates the help line, and picks the row's line: false
+   *  with the game still on means I am done in a race the others are still
+   *  running — solved, out of guesses, or conceded. */
+  showInput: boolean
+  /** I specifically conceded (vs. solved or ran out) — picks the locally-done wording. */
   myConceded: boolean
   /** Am I a player in this game? (Else the "watching" notice.) */
   isPlayer: boolean
@@ -90,26 +92,24 @@ export function InfoCol({
   /** Who has conceded (drives the strip's "out" cell). */
   concededIds: Set<string>
 
-  // ── Action row (ICON-ONLY buttons — the waffle arrangement; tooltips
-  //    carry the labels. Playing: End/Concede + back-to-club. Terminal:
-  //    Restart + Reveal + New game + back-to-club.) ──
-  /** End the game for the whole table — coop's exit; it hides itself in a race. */
-  actEndGame: BoundAction
-  /** Drop out of a race while the others play on — hidden outside compete, and
-   *  gray once you have SOLVED it (conceding would forfeit a banked win). */
-  actConcede: BoundAction
-  /** Restart THIS game — same word — from scratch. */
-  actRestart: BoundAction
+  // ── Action row — listed in the order the row draws them, which is the order
+  //    the game menu lists them too (docs/playarea.md) ──
   /** Show the word — or put it away again. A local display toggle, no RPC (see
    *  PlayArea's useSolutionReveal); it carries its own faces, the inert
    *  "solution already shown" included. */
   actReveal: BoundAction
+  /** Restart THIS game — same word — from scratch. */
+  actRestart: BoundAction
   /** Start a fresh follow-up game — same setup, new target + id. Disables itself
    *  while the create is in flight. */
   actNewGame: BoundAction
-  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
-   *  for both rows: it navigates directly at terminal and routes through the
-   *  suspend-confirm flow mid-game. */
+  /** Drop out of a race while the others play on — hidden outside compete, and
+   *  gray once you have SOLVED it (conceding would forfeit a banked win). */
+  actConcede: BoundAction
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`: it navigates
+   *  directly at terminal and routes through the suspend-confirm flow mid-game. */
   actBackToClub: BoundAction
 
   // ── Setup disclosure ──
@@ -135,17 +135,14 @@ export function InfoCol({
    *  number the log printed beside it. */
   onShowHistory: (id: number, n: number) => void
 }) {
-  // Both exits, error-toned (red), placed together and each hiding itself in the
-  // mode that isn't its own: compete CONCEDES (drop out of the race →
-  // wordle.concede), coop ENDS (a mutual "we're done" → end_game). Shared by the
-  // playing and the locally-terminal action rows. Icon-only (the waffle
-  // arrangement): the styled tooltip carries the label.
-  const endButton = (
-    <>
-      <ActionButton action={actConcede} show="icon" />
-      <ActionButton action={actEndGame} show="icon" />
-    </>
-  )
+  // The row's line, and the only thing that varies between states: the verdict
+  // once the game is over, a neutral "you are done, they are not" while a race
+  // runs on without you, and nothing at all while you can still play.
+  const rowMessage: InfoActionsMessage | undefined = over
+    ? { text: over.infoColText, outcome: over.outcome }
+    : showInput
+      ? undefined
+      : { text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
 
   return (
     <div className={shared.infoCol}>
@@ -186,41 +183,39 @@ export function InfoCol({
           />
         )}
 
-        {/* Action row — three states. Terminal: the outcome line + back-to-club.
-            Locally terminal (compete, I'm done while others race): the terminal LOOK —
-            "Waiting for others" + Concede. Playing: just End/Concede (wordle has no
-            hint or spoiler). */}
-        {over ? (
-          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
-            {/* Stay-here options left of the leave option (Club): restart this
-                word, see the answer, or spin up the next game. */}
-            <ActionButton action={actRestart} show="icon" />
-            <ActionButton action={actReveal} show="icon" />
-            <ActionButton action={actNewGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </InfoActionsRow>
-        ) : isLocallyDone ? (
-          <InfoActionsRow message={{ text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }}>
-            {/* Reveal keeps its slot while the others race, but inert: the
-                answer opens only when the game is over for EVERYONE — the
-                target doesn't even reach this client before then
-                (wordle._target_for gates on is_terminal) — so a player who
-                dropped out can't spoil a live race. Present rather than absent
-                so the row doesn't change shape when the last racer finishes;
-                the button is simply enabled then. */}
-            <ActionButton action={actReveal} show="icon" />
-            {endButton}
-          </InfoActionsRow>
-        ) : (
-          <InfoActionsRow>
-            {endButton}
-            <ActionButton action={actBackToClub} show="icon" />
-          </InfoActionsRow>
-        )}
+        {/* ONE row, one order, every action listed once. Which of them is on
+            screen right now is each action's own answer — `<ActionButton>` draws
+            nothing for an action that says it is hidden — so no branch here can
+            disagree with what the menu shows. The game menu lists the same
+            bindings in this same order (docs/playarea.md). wordle has nothing to
+            the left of the divider — no hint, no spoiler — so it draws none. */}
+        <InfoActionsRow message={rowMessage}>
+          {/* Grayed rather than gone while a race runs on without you: the
+              answer opens only when the game is over for EVERYONE, and the
+              tooltip says so. */}
+          <ActionButton action={actReveal} show="icon" />
+          {/* Both say `hidden` to a button until the game is over, while their
+              menu rows and keys stay live all game — the row's few slots belong
+              to playing, and moving on is a thing you go looking for. */}
+          <ActionButton action={actRestart} show="icon" />
+          <ActionButton action={actNewGame} show="icon" />
+          {/* Compete's Concede and coop's End are distinct acts, and each hides
+              itself in the mode that isn't its own. */}
+          <ActionButton action={actConcede} show="icon" />
+          <ActionButton action={actEndGame} show="icon" />
+          {/* Leaving, last. Filled at terminal, outline while the game runs:
+              `weight` is the placement's to choose rather than the action's,
+              which is why it is a condition here (docs/ui.md → Back to club). */}
+          <ActionButton
+            action={actBackToClub}
+            show="icon"
+            weight={over ? 'primary' : 'secondary'}
+          />
+        </InfoActionsRow>
 
         {/* Help — only while you can act (never a silent swap; the locally-done state is
             carried loudly by the action row above). */}
-        {!over && !isLocallyDone && (
+        {showInput && (
           <p className={shared.infoHelp}>Type a 5-letter word, then Enter.</p>
         )}
 

@@ -313,6 +313,9 @@ export function PlayArea({
   // default "Lost — race continues" would be flatly wrong for them.
   const isLocallyDone =
     !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses || myConceded)
+  // May I still submit? Gates the help line and the row's line; read by the
+  // Reveal binding, so its button and its menu row agree.
+  const showInput = !isTerminal && !isLocallyDone
   useEffect(function showOutOfRace() {
     if (!isLocallyDone) return
     const id = localFeedbackSlot.show(
@@ -360,10 +363,17 @@ export function PlayArea({
   // writes nothing, and affects no peer. Terminal-only, since the target does
   // not reach the client until the game is over for everyone
   // (wordle._target_for), so a player who dropped out early can't peek at a
-  // live race; inert too once solving has already put the word on screen.
+  // live race; inert too once solving has already put the word on screen. Both
+  // faces come from `describeReveal`, which is where the rule for every game's
+  // reveal lives.
   const actReveal = useBoundAction('act-reveal', {
-    describe: () =>
-      describeReveal({ noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal }),
+    describe: (asker) => {
+      // The one narrowing this game adds: no BUTTON while you can still play.
+      // The menu row keeps it all game, grayed, because it NAMES the glyph
+      // (docs/ui.md → the menu is the legend).
+      if (showInput && asker === 'button') return 'hidden'
+      return describeReveal({ noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal })
+    },
     run: toggleAnswer,
   })
 
@@ -378,7 +388,7 @@ export function PlayArea({
   // A plain function, rebuilt every render: the binding below reads it at click
   // time, so `setup` and `members` are whatever the last realtime refetch left,
   // and the action's own identity doesn't move when they do.
-  const createNewGame = async () => {
+  async function createNewGame() {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
@@ -422,7 +432,10 @@ export function PlayArea({
   // second press dealing a second word.
   const actNewGame = useBoundAction('act-new-game', {
     terminal: isTerminal,
-    describe: () => 'active',
+    // Reachable all game from the menu and `+` — NEW_GAME_CONFIRM is written
+    // for that ("will be shelved, not lost", "Keep playing"). A BUTTON only at
+    // the end, where the next game is what you came to the row for.
+    describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
     run: createNewGame,
   })
 
@@ -441,7 +454,7 @@ export function PlayArea({
   // and the model refuses to print the target before terminal, so neither the
   // boards nor the answer can leak onto paper early.
   const actPrintBoard = useBoundAction('act-print-board', {
-    describe: () => (game ? 'active' : 'hidden'),
+    describe: () => 'active',
     run: () => {
       printWordlePdf(
         buildWordlePrintModel({
@@ -477,7 +490,9 @@ export function PlayArea({
         // its own, so this list is the same in coop and compete.
         exits: [actConcede, actEndGame],
         extra: [
-          { items: [actRestart, actNewGame, actReveal] },
+          // The same three the terminal action row offers, reachable mid-game
+          // too — Reveal grayed until the game is over.
+          { items: [actReveal, actRestart, actNewGame] },
           { items: [actPrintBoard] },
         ],
       }),
@@ -562,7 +577,7 @@ export function PlayArea({
         isCompete={isCompete}
         isTerminal={isTerminal}
         over={over}
-        isLocallyDone={isLocallyDone}
+        showInput={showInput}
         myConceded={myConceded}
         isPlayer={!!self}
         currentTurnUserId={currentTurnUserId}
@@ -574,12 +589,12 @@ export function PlayArea({
         selfId={session.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
-        // ── Action row ──
-        actEndGame={actEndGame}
-        actConcede={actConcede}
-        actRestart={actRestart}
+        // ── Action row — the same bindings, in the order the menu lists them ──
         actReveal={actReveal}
+        actRestart={actRestart}
         actNewGame={actNewGame}
+        actConcede={actConcede}
+        actEndGame={actEndGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setup={setup}

@@ -189,14 +189,44 @@ describe('wordle PlayArea — render smoke', () => {
 })
 
 /**
- * The icon-only action rows (the waffle arrangement — labels live in
- * tooltips): PLAYING = End/Concede + Back-to-club (via the shell's
- * suspend-confirm flow, NOT direct navigation); TERMINAL = Restart + Reveal
- * answer + New game + Back-to-club. New game = a fresh create_game with THIS
- * game's setup/roster/mode (direct RPC — wordle has no edge function), then
- * ctx.goToGame.
+ * The icon-only action row (labels live in tooltips): ONE row, every action
+ * listed once, and which buttons show is each action's own answer — Concede /
+ * End and Back-to-club (via the shell's suspend-confirm flow, NOT direct
+ * navigation) while playing; Reveal, Restart and New game join at terminal.
+ * New game = a fresh create_game with THIS game's setup/roster/mode (direct RPC
+ * — wordle has no edge function), then ctx.goToGame.
  */
-describe('wordle PlayArea — icon-only action rows', () => {
+describe('wordle PlayArea — icon-only action row', () => {
+  const bound = (id: string) => liveBindings().find((b) => b.id === id)!
+
+  // The row is one list; which buttons are on screen is each action's own
+  // answer, and the menu asks the same bindings.
+  it('Reveal, Restart and New game are menu rows all game, and buttons only at the end', () => {
+    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
+    render(<PlayAreaLoader {...makeCtx()} />)
+    for (const id of ['act-reveal', 'act-restart', 'act-new-game'] as const) {
+      expect(bound(id).describe('button').state).toBe('hidden')
+      expect(bound(id).describe('menu').state).not.toBe('hidden')
+    }
+  })
+
+  it('a racer who is done sees Reveal grayed, Concede, and Back to club', () => {
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [
+      { ...me, solved: true }, moth,
+    ])
+    render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
+    expect(screen.getByText('Waiting for others')).toBeInTheDocument()
+    // Possible here, not right now: the answer waits for the race to end for
+    // everyone, and the tooltip says so.
+    expect(bound('act-reveal').describe('button').state).toBe('disabled')
+    expect(control('act-reveal')).toBeDisabled()
+    expect(control('act-concede')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Back to club' })).toBeInTheDocument()
+    // Moving on is still a menu thing until the game is over.
+    expect(bound('act-restart').describe('button').state).toBe('hidden')
+    expect(bound('act-new-game').describe('button').state).toBe('hidden')
+  })
+
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
     // ONE binding for both rows: it navigates directly at terminal and routes
     // through the suspend-confirm flow mid-game, so the game no longer picks

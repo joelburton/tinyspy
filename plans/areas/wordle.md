@@ -7,8 +7,8 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/wordle/todo.md`, not here.
 
-**Status: OPEN** (2026-09-22). Pass 1, the restructure: Steps 0–4 done, Step
-5 (the actions and the row) next. **Three passes back to back**, psychicnum's and
+**Status: OPEN** (2026-09-22). Pass 1, the restructure: Steps 0–5 done, Step
+6 (the builder to `lib/`) next. **Three passes back to back**, psychicnum's and
 connections' shape: restructure → audit → tile-feedback.
 
 ## The roster
@@ -271,6 +271,52 @@ Steps 2–4.
 write says *"Every terminal write states its `outcome` explicitly"* while the
 key it writes is `reason` — the status-key rename left the comment behind. A
 stale-claims item for the audit, with `manifest.ts`'s two-player claim.
+
+### Step 5 — the actions and the row (readability 3.6, 3.7) — DONE 2026-09-22
+
+connections' Step 5 (`e0d0d104`), copied. **The row is one `<InfoActionsRow>`
+now**, in the order `docs/playarea.md` states: Reveal · Restart · New game ·
+Concede · End | Back to club, Back to club filled only at terminal. The
+three-way fork (`over ? … : isLocallyDone ? … : …`) is gone; the only thing
+that varies is the row's line — the verdict, "You conceded" / "Waiting for
+others" while a race runs on without you, nothing while you can play. The
+InfoCol's destructure, its prop-type block and the PlayArea's prop list read
+in that same order, and so does the menu. **No divider**: wordle has no hint
+and no spoiler, so nothing sits left of it, and the shared `.actionsDivider`
+draws only after a button anyway — omitting the span is the same screen.
+
+**The conventions, per binding:** Reveal takes the button guard in front of
+the shared `describeReveal` (`showInput && asker === 'button'` → hidden, a
+grayed menu row all game, since the menu names the glyph); New game is a
+button only at terminal, `(asker) => asker === 'button' && !isTerminal ?
+'hidden' : 'active'`, a menu row and `+` all game; Restart's was already the
+shared hook's; Concede and End were already the shared hook's, each hidden in
+the mode that isn't its own. `createNewGame` is a plain `async function`. No
+in-flight flag existed to remove. Print's `describe` is `'active'` — it still
+read `game ? 'active' : 'hidden'`, a guard Step 2's split had made dead.
+
+**One gate hoisted:** `showInput = !isTerminal && !isLocallyDone`, declared
+beside `isLocallyDone` because the Reveal binding reads it; InfoCol takes
+`showInput` in place of `isLocallyDone` (the help line and the row's line
+read it), as connections' does.
+
+**Two behavior changes, stated now.** *An out-of-race racer gets Back to
+club* — the locally-done row had no way to leave except Concede, which the
+todo named as the thing the fork loses; the unconditional row cannot lose it.
+*The menu lists Reveal · Restart · New game* where it listed Restart · New
+game · Reveal, so the menu and the row read alike. Everything else the
+collapse could destroy was watched: Back to club keeps `weight={over ?
+'primary' : 'secondary'}`, and Reveal stays grayed rather than gone while the
+others race (that was already this game's arrangement, so nothing moved).
+
+**The todo's Soon item is deleted** (the action-row collapse). Two new render
+cases pin the conventions: the three end-of-game actions are menu rows all
+game and buttons only at the end; and a racer who is done sees Reveal grayed,
+Concede, and Back to club, with Restart and New game still menu-only. The
+test file's action-row docstring says the one row.
+
+Verified: `tsc -b` clean, lint clean over `src/wordle/`, 381 unit tests green
+(the game's and the guards). The e2e specs have not run for Steps 2–5.
 
 ## Findings
 
