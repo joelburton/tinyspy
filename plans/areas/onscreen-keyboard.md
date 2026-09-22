@@ -4,7 +4,9 @@ The folders it reads: `shared/onscreen-keyboard`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-22).
+**Status: CLOSED 2026-09-22, blessed** (Joel: *"bless the files in the area,
+then close and commit"*). All three roster files read
+`cs-blessed-onscreen-keyboard`.
 
 ## The roster
 
@@ -14,10 +16,11 @@ Agreed with Joel 2026-09-22, `cs-met-onscreen-keyboard`:
 |---|---|
 | `src/shared/onscreen-keyboard/GuessKeyboard.tsx` | the QWERTY caps, their tones, and the two command keys |
 | `src/shared/onscreen-keyboard/GuessKeyboard.module.css` | its stylesheet |
+| `src/shared/onscreen-keyboard/GuessKeyboard.test.tsx` | **written by this area** (F-8) — the component's own contract |
 
 `doc.md` and `todo.md` are on the roster and carry no stamp, markdown having
-nowhere to put one. **The folder has no spec of its own** — what coverage
-exists is at the consumers.
+nowhere to put one. The folder had no spec of its own at the opening; F-8 wrote
+one, and a created file joins the roster.
 
 ### What is NOT on it
 
@@ -259,6 +262,39 @@ also reads from the theme. Cosmetic, but it is three declarations in one rule.
 
 ### F-onscreen-keyboard-8 · `no-spec-of-its-own` · Every test that reaches the caps is wordle's
 
+**SHIPPED, 2026-09-22.** `GuessKeyboard.test.tsx`, eight cases, mounting the
+component with `boundActionFixture` for the two commands.
+
+**The gap it closes is the reason the component exists: nothing had ever tapped
+a key.** The e2e locates caps by name to read their color, and every typing test
+in both games drives PHYSICAL keys — so the whole suite would have stayed green
+with `onKey` wired to the wrong letter. Planting exactly that (`onKey(ch)` →
+`onKey(ch.toUpperCase())`) now fails two cases.
+
+Four plants, all bite:
+
+| planted | caught by |
+|---|---|
+| `onKey` hands back the wrong letter | the two typing cases |
+| the command caps stop reading their binding | the gray-Enter-live-letters case |
+| the caps stop refusing focus | the focus case |
+| the tone class stops being applied | the tint case |
+
+The second is the docstring's central claim, and was unasserted: a cap and its
+physical key are one binding drawn twice, so Enter can be gray over an empty
+guess while every letter beside it is pressable.
+
+**What this file deliberately does NOT take from the consumers.** The computed
+colors stay in `e2e/wordle-keyboard.e2e.ts`, where a browser can read a fill and
+an ink; the withdraw stays pinned at both consumers, since it is about a game's
+terminal frame rather than the component's own contract.
+
+**Two slips in writing it, both caught by running it.** A case asserted an
+inventory of 26 caps without rendering anything — it passed nothing and failed
+on an empty `<body />`. And `getByRole`'s `name` matches a SUBSTRING, which for
+one-character caps means `q` also matches nothing else by luck rather than by
+rule; the helper anchors the name as a regex instead.
+
 The folder has no test. What covers it is `e2e/wordle-keyboard.e2e.ts`,
 `e2e/wordle-mobile.e2e.ts` and `src/wordle/components/PlayArea.test.tsx` — all
 good, all one consumer's, and all reaching the component through a game.
@@ -289,6 +325,50 @@ not redo them:
   defines the three judged classes and no `.blank` — which `wordle-style`'s
   palette guard now knows about by name.
 
+### The closing re-read — 2026-09-22
+
+**Three findings, F-onscreen-keyboard-9 to -11, all worked.** The whole area in
+one sitting: all three roster files, `doc.md`, `todo.md`, and the evidence this
+area changed — wordiply's `BoardCol.tsx`, its `PlayArea.module.css` and its
+spec, plus the five `vocabularies` entries. The docstring-marker pass ran here
+as well as at F-3; the props block stayed correct and the new spec's markers sit
+on declarations.
+
+**Two of the three are the day's own prose, which is the fourth area running.**
+
+### F-onscreen-keyboard-9 · `spec-header-rosters-and-narrates` · The new spec's own header
+
+**SHIPPED, 2026-09-22.** `GuessKeyboard.test.tsx`, written an hour earlier,
+opened by listing the coverage it was joining — *"wordle's `PlayArea.test.tsx`
+and two e2e specs, plus wordiply's terminal test"* — and then narrating the
+state before it existed: *"nothing had ever tapped a key. Every test in the repo
+would have stayed green…"*.
+
+**That is F-4 and archaeology together, in the file this area wrote after fixing
+F-4.** A roster of test files rots the moment coverage moves, and what came
+before this file is not something its reader needs. It now says what it covers
+and what it deliberately leaves to a browser — conditions, not a history.
+
+### F-onscreen-keyboard-10 · `over-long-line-and-a-daylight-claim` · The shadow comment
+
+**SHIPPED, 2026-09-22.** One line ran past 100 characters in a file that wraps
+near 80, and it carried a claim true in one theme: *"with the cap going white
+underneath"*. White is daylight's `--kbd-key-hover-fill-color`; midnight's is a
+dark brown. It says "taking its hover fill" now, which is true in both and
+shorter.
+
+### F-onscreen-keyboard-11 · `doc-md-predates-three-findings` · The harvest
+
+**SHIPPED, 2026-09-22.** `doc.md` was written at F-1, before F-6, F-7 and F-8
+happened, so three durable things the area learned lived only in a stylesheet
+comment, a guard entry, and a test file. Now in `## Details`: the two token
+families and why the one exception is the hover mechanism; the two bespoke
+sizes, each half of a pair, and why neither can take a ramp step; and where the
+coverage lives and why it is split three ways.
+
+The `aria-label` item stopped enumerating its users, which was a small roster of
+the same kind F-4 and F-9 are about.
+
 ## Notes
 
 *(things worth remembering about this area that are neither a finding nor
@@ -302,7 +382,12 @@ or `todo.md` instead; a note here never stands in for either)*
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group — 2026-09-22,
+      three findings, all worked
+- [x] the folder's `doc.md` intro written; `shared/onscreen-keyboard` off
+      `INTROS_OWED` (F-1), and harvested at the re-read (F-11)
+- [x] `todo.md` holds everything still owed — which is nothing: no finding was
+      handed on, and nothing durable is left in this file
+- [x] every file on the roster blessed — checked by reading each of the three
+      first lines, not by counting stamps: `GuessKeyboard.tsx`, its stylesheet
+      and its spec all say `cs-blessed-onscreen-keyboard`

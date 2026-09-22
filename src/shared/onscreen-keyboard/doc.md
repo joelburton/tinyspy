@@ -43,5 +43,25 @@ nothing and every cap stays neutral.
   game-agnostic token that a game then sets to the same value. A game outside
   that family which ever tints keys adds classes of its own: "this key has been
   used" needs its own color, never wordle-gray, which means *not in the word*.
-- **`aria-label="Keyboard"` on the container is a test handle** — an e2e locator
-  and a unit `getByLabelText` both reach the caps through it.
+- **`aria-label="Keyboard"` on the container is a test handle.** Both a browser
+  and a unit test reach the caps through it, so it is load-bearing rather than
+  decorative.
+- **Two token families, and the prefix is the difference.** `--kbd-*` comes from
+  the theme and a rule here may only READ it — except `--kbd-key-hover-fill-color`,
+  which a tone re-sets on purpose, and that re-setting is the whole hover
+  mechanism: the hover rule reads the token off the element, so a tone wins
+  without a specificity contest. `--key-*` is the stylesheet's own arithmetic,
+  read nowhere else in the app.
+- **Two sizes are bespoke because each is half of a PAIR.** The gaps are chosen
+  against each other, so the keyboard runs tighter across than down; the cap
+  sizes likewise — one is deliberately bigger than a letter needs, because the
+  glyph is the cap's whole content and it is what rescues ⌫, and the other is
+  what "Enter" must shrink to so a WORD fits a cap barely wider than a letter's.
+  Moving either alone breaks its pair, which is why neither takes a step off a
+  ramp. Both are recorded in `src/guards/vocabularies.test.ts`.
+- **Where the coverage lives, and why it is split.** `GuessKeyboard.test.tsx`
+  holds what a caller is promised — the tap, what can be pressed, which class a
+  tone lands, the focus refusal. The tones' COLORS are in a browser, where a
+  fill and an ink can be read. The game-over withdraw is pinned by each
+  consumer, being a fact about a game's terminal frame rather than this
+  component's contract.

@@ -1,4 +1,4 @@
-// cs-met-onscreen-keyboard
+// cs-blessed-onscreen-keyboard
 
 import { cls } from '@/common/utils/cls'
 import { actionSurface } from '@/common/actions/actionSurface'

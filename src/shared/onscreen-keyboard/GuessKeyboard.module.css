@@ -1,4 +1,4 @@
-/* cs-met-onscreen-keyboard */
+/* cs-blessed-onscreen-keyboard */
 
 /* The shared on-screen keyboard. Its width is a DEFINITE size (not 100%),
  * because in the games that use it the keyboard is the widest board-column
@@ -15,8 +15,8 @@
    * hover deepens MORE than a tile's does, because a keycap is small and packed
    * against its neighbors, so a shadow alone has little surface to read against.
    * The lift matches the tile's 2px and the drop goes 1px → 4px, with the cap
-   * going white underneath (see --kbd-key-hover-fill-color). Same light angle as everything else
-   * (the 1px x-offset), because a shadow that disagrees about where the light is
+   * taking its hover fill underneath. Same light angle as everything else (the
+   * 1px x-offset), because a shadow that disagrees about where the light is
    * looks broken beside the rest. */
 /* @@ */   --key-shadow: 1px 1px 3px rgb(0 0 0 / 26%);
 /* @@ */   --key-hover-shadow: 1px 4px 9px rgb(0 0 0 / 30%);
