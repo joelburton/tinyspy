@@ -21,7 +21,7 @@
 
   /* The IDENTITY mark on a tile someone has picked: a border drawn INSIDE the
    * tile's own border, in that player's color (`.peerPick` in
-   * components/PlayArea.module.css).
+   * components/Board.module.css).
    *
    * `-inset` is what keeps it a separate mark. A picked tile is usually selected
    * too, so without the gap the color and the thick black selection border meet

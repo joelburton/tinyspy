@@ -28,7 +28,7 @@ import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import type { Actor } from '@/common/members/member'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
-import styles from './PlayArea.module.css'
+import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /** Empty selection map — the board draws no selection while viewing a past turn. */

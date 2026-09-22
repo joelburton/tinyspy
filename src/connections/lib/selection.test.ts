@@ -1,4 +1,4 @@
-// cs-fixed-connections
+// cs-blessed-connections
 
 import { describe, expect, it } from 'vitest'
 import {

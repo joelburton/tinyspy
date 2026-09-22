@@ -1,4 +1,4 @@
-// cs-fixed-connections
+// cs-blessed-connections
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Member } from '@/common/members/member'

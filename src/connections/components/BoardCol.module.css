@@ -1,0 +1,53 @@
+/* cs-blessed-connections */
+
+/* connections' board-column chrome. The column scaffold (.boardCol, the swap box
+ * `.moveAreaOrLocalFeedback`, `.localFeedback`, `.floatingShuffle`) is the shared
+ * common/game-page/playArea.module.css, which arrives as `shared` in BoardCol.tsx;
+ * the board inside the column is Board.module.css. This owns only the commit row
+ * below the board — the mistakes readout and the Clear/Submit pair
+ * (docs/code-conventions.md → below-board structure). */
+
+/* The mistakes readout — "Mistakes (lose at 4)" and the marks — left-justified
+ * on the commit row below the board, in both modes; margin-right:auto pushes
+ * Clear/Submit to the right. */
+/* @@ */ .mistakesInline {
+  margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--page-text-color);
+  font-size: 1rem;
+}
+
+/* The below-board REGION (universal). `display: contents` — the swap box inside
+ * (`shared.moveAreaOrLocalFeedback`) keeps its place as a `.boardCol` child. */
+/* @@ */ .belowBoard {
+  display: contents;
+}
+
+/* connections' move controls: the "mistakes" readout + Clear/Submit, right-
+ * justified (in coop the mistakes group pushes the buttons there via
+ * margin-right:auto). Lives inside the shared `.moveAreaOrLocalFeedback` swap box
+ * — which reserves the height — and the pill takes its place when there's
+ * feedback. */
+/* @@ */ .moveArea {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* A button in the commit row — the Clear + Submit pair. The icon+label look
+ * is the global `.icon-button` class; this adds only the floor width. */
+/* @@ */ .inputButton {
+  min-width: 7rem;
+}
+
+@media (--phone) {
+  /* On a phone the Clear/Submit buttons go icon-only (BoardCol passes
+   * `show="icon"`), so drop the text-era floor width — they shrink to the icon and
+   * the tight commit row (mistakes readout + both buttons) fits a narrow screen. */
+/* @@ */   .inputButton {
+    min-width: 0;
+  }
+}

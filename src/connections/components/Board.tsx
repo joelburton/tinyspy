@@ -12,7 +12,7 @@ import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
-import styles from './PlayArea.module.css'
+import styles from './Board.module.css'
 
 const COLS = 4
 
@@ -197,7 +197,7 @@ export function Board({
   return (
     // --rows (bands + tile-rows) drives the grid's 1fr row tracks AND the
     // board's max-height (both computed in CSS from the --max-tile-* caps — see
-    // PlayArea.module.css). A band is one of these rows spanning all columns.
+    // Board.module.css). A band is one of these rows spanning all columns.
     <div className={cls(shared.boardSeal, styles.board)} style={{ ['--rows' as string]: rows }} data-board>
       {/* Four shared marks ride on the grid box, and all four are about the whole
           surface rather than any piece of it: the blue frame of "you're viewing a

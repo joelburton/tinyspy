@@ -1,4 +1,4 @@
-// cs-fixed-connections
+// cs-blessed-connections
 
 import { TILES_PER_CATEGORY } from './board'
 
