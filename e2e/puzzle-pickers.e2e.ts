@@ -167,9 +167,11 @@ test.describe('puzzle pickers', () => {
     await ctx.close()
   })
 
-  test('crosswords: a picker can be canceled without choosing', async ({ browser }) => {
-    // Backing out of a picker leaves the choice alone — Cancel is not a way to
-    // clear what you had already chosen.
+  test('crosswords: canceling a picker CLEARS the choice', async ({ browser }) => {
+    // Pressing a source button is the start of choosing, so backing out ends
+    // with nothing chosen — not with the puzzle you had before the press, which
+    // the caption and a filled button would both still be describing while
+    // Start offered to play it.
     const club = await createClubWithMembers(['erin', 'finn'])
     const ctx = await browser.newContext()
     await signIn(ctx, club.members[0].session)
@@ -192,7 +194,11 @@ test.describe('puzzle pickers', () => {
       .locator('.react-draggable, [class*="rnd"]')
       .filter({ has: page.getByRole('heading', { name: 'New York Times' }) })
     await nytPicker.getByRole('button', { name: 'Cancel' }).click()
-    await expect(caption).toHaveText('Puzzle: Guardian Quiptic')
+
+    // The Guardian series went with it: no source is named, so the field is back
+    // to asking, and the Start it was gating is refused again.
+    await expect(caption).toHaveText('Puzzle: choose one')
+    await expect(page.getByRole('button', { name: /^Start/ })).toBeDisabled()
 
     await ctx.close()
   })
