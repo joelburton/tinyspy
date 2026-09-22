@@ -4,9 +4,22 @@ The folders it reads: `shared/rank-ladder`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN — opened 2026-09-21.** Roster agreed the same day; seven files
-`cs-met-rank-ladder` plus the two markdown ones, which carry no stamp. Baseline
-at the opening: 20 of 20 green in the folder, lint clean, `tsc -b` clean.
+**Status: CLOSED 2026-09-21, blessed** (Joel: *"mark files in area as blessed,
+close the area, then commit"*): **ten files `cs-blessed-rank-ladder`** — the
+eight in `src/shared/rank-ladder/` plus the two `rank_idx_test.sql` the area
+wrote, which is why the census goes through `cs-stamp.mjs` rather than the
+folder's paths. `list met-rank-ladder` prints nothing. The two markdown files
+carry no stamp. Opened the same day; the roster was seven files at the opening
+and grew to ten as the area created `Stats.test.tsx` and the two pgTAP files.
+
+**Files this area changed that it did NOT stamp**, each keeping the stamp its
+own area gives it: `common/tooltips/TooltipHost.tsx` and its spec
+(`cs-blessed-common-hosts` — F-12's readout carrier, a conformance edit into a
+closed area whose re-bless is Joel's); `supabase/sql/common.sql`,
+`spellingbee.sql` and `wordwheel.sql`; `boggle/components/Stats.tsx`
+(`cs-unmet`); `src/types/db.ts` (`cs-na`, regenerated); `docs/games/
+spellingbee.md` and `wordwheel.md`; and `src/guards/` — `vocabularies.test.ts`,
+`folderDocs.test.ts`.
 
 ## The roster
 
@@ -674,6 +687,53 @@ owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to the folder's `doc.md`
 or `todo.md` instead; a note here never stands in for either)*
 
+### The closing re-read — 2026-09-21
+
+Every roster file read in one sitting after the last finding, plus a
+docstring-marker, effect-name and count sweep over the prose this area wrote
+today. **Two findings, F-13 and F-14, and BOTH were created by this area's own
+fixes.** The folder has no effects, no `/**` inside a type body, and
+`orphanedDocstrings` passes. No count rots: the survivors are "the only thing a
+square has to say", "all three of that host's timings" and "the first that
+does", each counting something the same sentence enumerates. The two dated
+archaeology lines are both in SPEC headers, which is where F-5 ruled that story
+belongs.
+
+### F-rank-ladder-13 · `tight-pair-three-homes` · One rule, three places, each pointing at another
+
+**SHIPPED, 2026-09-21** (Joel: *"do it"*). One home: `Stats.module.css` beside
+`.muted`, which is the shared surface every grid is built on. `Stats.tsx` names
+the rule and points there; `doc.md` says only that a game can build its own grid
+on the stylesheet, so the rules governing every such grid live beside the
+classes — orientation rather than the rule a third time. `Stats.test.tsx`'s
+header still states it, and stays: a spec header exists to explain why its
+assertions exist, which is F-5's ruling.
+
+The found/total format is stated in full at `Stats.tsx:21–24`,
+`Stats.module.css:93–97` and `doc.md:71–75` — and **all three say it belongs to
+the stylesheet.** Two of the copies were written by this area today: F-9 added
+the stylesheet's (correctly, as the shared surface) without cutting the
+component's, and F-1 added `doc.md`'s.
+
+It is the fault F-4 fixed in this same folder eight commits ago — one ruling,
+four homes — and the fault `found-words` recorded as `model-sentence-two-homes`.
+The component's copy should point rather than restate, since it already says
+where the rule lives; `doc.md`'s is orientation and can stay short.
+
+### F-rank-ladder-14 · `roster-four-lines-down` · F-4's roster, surviving four lines below F-4's fix
+
+**SHIPPED, 2026-09-21.** *"the same wherever the bar appears — see the CSS
+module for why."* A sweep afterwards confirms no roster survives anywhere in the
+folder's code. The ragged wrap in `rankLadder.test.ts` is closed.
+
+`RankBar.tsx:31–32`: *"The ladder's own colors … are shared by both games."*
+F-4 rewrote this docstring's LEDE to name a condition and did not read on. The
+same signature as `found-words` F-17 and `bee-games` F-9 — a fix that stops at
+the sentence it was pointed at — and the third area running to produce it.
+
+Also cosmetic, from the same day's edits: `rankLadder.test.ts:21–22` has a
+ragged wrap left by the `common._rank_idx` rename.
+
 ## What checked out
 
 Claims re-verified against code rather than taken from the docstrings, listed so
@@ -702,7 +762,12 @@ resolves; `docLinks` passes.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group (2026-09-21,
+      after F-11) — two more findings, both created by this area's own fixes
+- [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (F-1)
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — it is EMPTY, and that is not an oversight: every finding was ruled and
+      shipped in the sitting, so the area produced no owed work
+- [x] every file on the roster blessed, or its stamp says why not — ten
+      `cs-blessed-rank-ladder`, censused with the script rather than over the
+      folder's paths, which is what caught the two pgTAP files

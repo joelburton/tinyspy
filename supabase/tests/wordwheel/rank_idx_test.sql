@@ -1,4 +1,4 @@
--- cs-met-rank-ladder
+-- cs-blessed-rank-ladder
 
 -- ============================================================
 -- Test: common._rank_idx — the rank ladder as integer math

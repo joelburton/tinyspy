@@ -68,11 +68,10 @@ inside the mobile status bar — so each has a compressed shape scoped to
 than a prop: the surface a component lands in decides its own shape, so the two
 cannot drift the way a hand-passed flag can.
 
-**A found/total pair is written tight — `12/93`.** The pair is one figure, and
-in the status bar the spaces cost width nobody has. That rule belongs to
-`Stats.module.css` rather than to `<Stats>`, because a game can build its own
-grid on the stylesheet without using the component — boggle does, with four
-cells and a percent line.
+**A game can build its own grid on `Stats.module.css` without using
+`<Stats>`** — boggle does, with four cells and a percent line. So the rules that
+govern every such grid, like writing a found/total pair tight, live beside the
+classes in that file rather than in the component.
 
 **Three lengths are bespoke by decision**, each with its reason in the file: the
 tier's `2px` radius (the radius ramp starts at 4px, and this only stops the

@@ -1,4 +1,4 @@
-// cs-met-rank-ladder
+// cs-blessed-rank-ladder
 
 import { describe, expect, it } from 'vitest'
 import {
@@ -18,8 +18,8 @@ import {
  * disagree: this side draws the bar and prints "needs N points", that side
  * decides who wins a compete race. Each caller's `rank_idx_test.sql` pins the
  * SQL half; what these tests add is the pairing, so two of them compare the
- * TypeScript against the SQL formula
- * directly rather than against expected values.
+ * TypeScript against the SQL formula directly rather than against expected
+ * values.
  *
  * That is also why float arithmetic gets its own case. `(5/6)*0.7*108` is
  * exactly 63 on paper and `63.00000000000001` in IEEE-754, which a naive

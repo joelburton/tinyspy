@@ -1,4 +1,4 @@
-// cs-met-rank-ladder
+// cs-blessed-rank-ladder
 
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs'

@@ -1,4 +1,4 @@
-// cs-met-rank-ladder
+// cs-blessed-rank-ladder
 
 import styles from './Stats.module.css'
 
@@ -18,10 +18,9 @@ type Props = {
  * digits don't shift width as the score climbs. (No timer cell — the GamePage
  * header already shows the countdown, so repeating it here would be redundant.)
  *
- * **A found/total pair is written TIGHT — `12/93`, no spaces around the
- * slash.** That belongs to the stylesheet rather than to this component: the
- * pair is one figure, and in the mobile status bar the spaces cost width
- * nobody has. Every grid built on `Stats.module.css` writes it that way.
+ * A found/total pair is written TIGHT — `12/93`. The rule and its reason belong
+ * to `Stats.module.css`, beside `.muted`, because every grid built on that file
+ * follows it and not every one of them is this component.
  *
  * Pure presentation — no derivation, no state. The parent (PlayArea) wires in
  * the found vs required figures (found counts include bonus words, so each

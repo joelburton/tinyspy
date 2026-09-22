@@ -1,4 +1,4 @@
-// cs-met-rank-ladder
+// cs-blessed-rank-ladder
 
 import { cls } from '@/common/utils/cls'
 import { currentRankIndex, rankPoints, RANKS } from './rankLadder'
@@ -28,9 +28,9 @@ type Props = {
  * it up — because unlike a button, the bubble is the only thing a square has
  * to say. See `common/tooltips/TooltipHost.tsx`.
  *
- * The ladder's own colors (`--rank-bar-fill-color` / `--rank-bar-edge-color`) are shared by both
- * games — see the CSS module; only the type color `--rank-text` is aliased per
- * game in its `theme.css`.
+ * The ladder's own colors (`--rank-bar-fill-color` / `--rank-bar-edge-color`)
+ * are the same wherever the bar appears — see the CSS module for why; only the
+ * type color `--rank-text` is aliased per game in its `theme.css`.
  *
  * Pure derivation from `score` + `total` via `currentRankIndex`, which agrees
  * with the SQL `common._rank_idx` that decides a compete win — not because they

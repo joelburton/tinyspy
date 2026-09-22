@@ -1,4 +1,4 @@
-// cs-met-rank-ladder
+// cs-blessed-rank-ladder
 
 /**
  * The Start..Genius rank ladder, for a game that scores a board out of a
