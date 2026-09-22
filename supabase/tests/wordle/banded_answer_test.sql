@@ -8,12 +8,11 @@
 -- submit_guess reads the legal-word band LIVE from common.words, but the
 -- target was banded at game creation — so a dictionary edit (or an
 -- upstream re-band + reimport) can move the answer above the game's
--- legal_guess mid-game. Before 2026-08-08 the dictionary gate ran before
--- the target comparison, which made such a game UNWINNABLE: typing the
--- actual answer returned notAWord. The rule this pins (stackdown's rule,
--- adopted here): the solution is checked before the dictionary, so a
--- solved game never hears "not a word", whatever the dictionary says
--- today.
+-- legal_guess mid-game. A dictionary gate that ran before the target
+-- comparison would make such a game UNWINNABLE: typing the actual answer
+-- would return notAWord. The rule this pins: the solution is checked
+-- before the dictionary, so a solved game never hears "not a word",
+-- whatever the dictionary says today.
 
 begin;
 set search_path = wordle, common, public, extensions;

@@ -123,20 +123,13 @@ set search_path = wordle, common, public, extensions
 as $$
   update common.games cg
      set title = case
-           -- The title NEVER spells the answer out of its own accord. It used
-           -- to, whenever the game was revealed — first keyed on is_terminal
-           -- (which spoiled every lost game, fixed 2026-08-02), then on the
-           -- shared solution_revealed flag. That flag is gone: revealing is
-           -- now
-           -- a LOCAL, per-player display toggle (docs/ui.md → Terminal
-           -- results), and a club-wide title can't follow a decision one player
-           -- made on their own screen — it would tell Moth the word because
-           -- Joel looked.
-           --
-           -- Nothing is lost on a win: the winning guess IS the answer, so the
-           -- branches below already title it "SLATE". What goes away is exactly
-           -- the case that shouldn't have shown it — a game the players are
-           -- still entitled to replay blind.
+           -- The title NEVER spells the answer of its own accord — not on
+           -- is_terminal, which would spoil every lost game the players may
+           -- still replay blind, and not on anybody's reveal, which is a LOCAL
+           -- per-player display toggle (docs/ui.md → Terminal results) that a
+           -- club-wide title cannot follow: it would tell Moth the word because
+           -- Joel looked. A win still titles "SLATE", because the winning guess
+           -- IS the answer and the branches below read the most recent guess.
            --
            -- The most recent guess — a readout of what's been DONE,
            -- which is already on the board in front of the players.
@@ -190,9 +183,9 @@ grant select on wordle.games_state to authenticated;
 -- `mode` ('coop' | 'compete') routes the gametype string and the
 -- working-state semantics. Picks a hidden target per `answer_source`
 -- (always clean — see the pick below) and seeds one players row per player.
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
+-- Dropped first because `create or replace` cannot change a function's return
+-- type; `if exists` because this file is re-applied in full on every deploy,
+-- so the drop has to be a no-op the second time.
 drop function if exists wordle.create_game(text, jsonb, uuid[], text);
 
 create or replace function wordle.create_game(
@@ -269,10 +262,10 @@ begin
   -- alone, so you may still type a slur at the board, it just won't be right.
   --
   -- answer_source 0: the curated 5-letter NYT answers. Clean-filtering the
-  -- curated list is a deliberate ~1% divergence from the original (2026-08-03):
-  -- it drops 26 of 2315 — 5 slurs, 4 non-american spellings, and 17 the `slang`
-  -- tag catches for a slang SENSE (ONION, OWNER, GOOSE), which is the part of
-  -- the trade we're accepting rather than the part we want.
+  -- curated list is a deliberate small divergence from the original: it drops
+  -- the list's slurs and non-American spellings, which is the point, and also
+  -- the words the `slang` tag catches for a slang SENSE (ONION, OWNER, GOOSE),
+  -- which is the part of the trade we're accepting rather than the part we want.
   -- 1..6: any clean 5-letter word of that band or easier (a higher band can be
   -- obscure).
   if s_answer_source = 0 then
@@ -605,13 +598,13 @@ begin
   -- band (setup choice). No dialect / slur / slang filter (Wordle is permissive
   -- on guesses — only the difficulty band gates them).
   --
-  -- THE ANSWER IS CHECKED FIRST, before the dictionary (stackdown's rule,
-  -- learned here 2026-08-08): the band is read LIVE from common.words, and
-  -- the target was banded at game creation — so a word edit (or an upstream
-  -- re-band + reimport) can move the answer above legal_guess mid-game.
-  -- Gate-then-compare made that an UNWINNABLE game: typing the actual
-  -- answer returned notAWord. A solved game must never hear "not a word",
-  -- whatever the dictionary says today.
+  -- THE ANSWER IS CHECKED FIRST, before the dictionary: the band is read LIVE
+  -- from common.words, and the target was banded at game creation — so a word
+  -- edit (or an upstream re-band + reimport) can move the answer above
+  -- legal_guess mid-game. Gate-then-compare would make that an UNWINNABLE
+  -- game, typing the actual answer returning notAWord. A solved game must
+  -- never hear "not a word", whatever the dictionary says today
+  -- (banded_answer_test.sql).
   if norm <> lower(g_row.target) and not exists (
     select 1 from common.words
      where word = norm and len = 5 and difficulty <= g_row.legal_guess
@@ -655,9 +648,9 @@ begin
         into player_results
         from common.game_players
        where game_id = target_game;
-      -- Every terminal write states its `outcome` explicitly: under the
+      -- Every terminal write states its `reason` explicitly: under the
       -- merging common.end_game an omitted key inherits whatever was on the
-      -- row, so "no outcome" can't mean "solved normally".
+      -- row, so "no reason" can't mean "solved normally".
       perform common.end_game(
         target_game, term_state,
         jsonb_build_object('mode', 'coop', 'solved', did_solve,
@@ -894,9 +887,9 @@ grant execute on function wordle.submit_timeout(uuid) to authenticated;
 -- ============================================================
 -- The friends' explicit "we're done" action, in BOTH modes. Writes the
 -- uniform neutral terminal 'ended' (nobody wins or loses), everyone
--- {"won": false}, status.outcome = 'manual'. Any game player may fire
--- it; idempotent on the play_state check (a second click / a race with
--- submit_timeout raises P0001, which the manifest swallows).
+-- {"won": false}, status.reason = 'manual'. Any game player may fire
+-- it; idempotent on the play_state check (a second click, or a race with
+-- submit_timeout, answers a race — the work is already done).
 drop function if exists wordle.end_game(uuid);
 
 create or replace function wordle.end_game(target_game uuid)
@@ -951,17 +944,6 @@ $$;
 
 revoke execute on function wordle.end_game(uuid) from public;
 grant execute on function wordle.end_game(uuid) to authenticated;
-
--- ============================================================
--- (removed 2026-08-03) wordle.reveal_answer — the mid-game give-up
--- ============================================================
--- Was: end the game AND reveal the word in one click, tagging
--- status.outcome='revealed'. Gone so wordle matches every other game:
--- End the game (which ends it for everyone), THEN Reveal — where Reveal
--- is a local FE display toggle (docs/ui.md → Terminal results), not an RPC
--- at all. Nothing gametype-specific was lost: the target unshields at
--- terminal either way.
-
 
 -- ============================================================
 -- wordle.replay_board — restart this game from scratch

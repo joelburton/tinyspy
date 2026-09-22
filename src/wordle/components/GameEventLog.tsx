@@ -13,27 +13,27 @@ import type { EventRow } from '../hooks/useGame'
 import styles from './GameEventLog.module.css'
 
 type Props = {
-  /** Every guess the viewer can currently see, in order. Coop: the whole shared
-   *  board. Compete: the viewer's own during play, and (once terminal, when RLS
-   *  opens) everyone's — which is what makes the opponent picker below useful. */
+  // Every guess the viewer can currently see, in order. Coop: the whole shared
+  // board. Compete: the viewer's own during play, and (once terminal, when RLS
+  // opens) everyone's — which is what makes the opponent picker below useful.
   guesses: EventRow[]
   players: Member[]
   selfId: string
   mode: 'coop' | 'compete'
-  /** Terminal yet? Distinguishes an opponent's RLS-hidden log (during play) from
-   *  a genuinely empty one (at terminal, when their guesses reveal). */
+  // Terminal yet? Distinguishes an opponent's RLS-hidden log (during play) from
+  // a genuinely empty one (at terminal, when their guesses reveal).
   isTerminal: boolean
-  /** The turn currently open in the board viewer — the row's own id — or null
-   *  when live. Its `#N` handle wears the shared yellow ring. */
+  // The turn currently open in the board viewer — the row's own id — or null
+  // when live. Its `#N` handle wears the shared yellow ring.
   historyId: number | null
-  /** Open a turn in the board viewer (click its `#N`) — the row's id, and the
-   *  `#N` this log printed beside it, which is what the banner shows back. */
+  // Open a turn in the board viewer (click its `#N`) — the row's id, and the
+  // `#N` this log printed beside it, which is what the banner shows back.
   onShowHistory: (id: number, n: number) => void
 }
 
 /**
- * wordle's event log — each guess is one `<tr>` in the shared `<EventLog>` table
- * (named GameEventLog like the other games' logs; a wordle turn IS a guess).
+ * wordle's event log — each guess is one `<tr>` in the shared `<EventLog>`
+ * table; a wordle turn IS a guess.
  *
  * Each row composes the shared atoms: the outcome bar, the guess number, the
  * guess as its five colored letter-squares, and the guesser's identity.
@@ -49,17 +49,17 @@ type Props = {
  *   - **who** — the guesser's `<ActorDot>`, which `<EventLogActor>` puts in the
  *     right-aligned who column, so the identity discs line up down the log.
  *
- * The who column is rendered **unconditionally**, like every other v3 event log:
- * in compete, RLS scopes `guesses` to the caller, so it simply shows the viewer's
- * own identity on each row.
+ * The who column is rendered **unconditionally**: in compete, RLS scopes
+ * `guesses` to the caller, so it simply shows the viewer's own identity on each
+ * row.
  *
  * **Whose guesses** are shown is picked by a small dropdown in the header
  * (right-aligned, kept understated — a rarely-used control): the shared
- * `useEventLogPlayerPicker`, on one vocabulary across every event-log game — solo
- * is your handle, coop is "Team" plus each player, compete is "All" plus each
- * player, defaulting to your own board. Compete is the "see opponents' boards"
- * affordance — an opponent's rows are empty during play (RLS hides them) and fill
- * in once the game ends and their guesses reveal.
+ * `useEventLogPlayerPicker` — solo is your handle, coop is "Team" plus each
+ * player, compete is "All" plus each player, defaulting to your own board.
+ * Compete is the "see opponents' boards" affordance — an opponent's rows are
+ * empty during play (RLS hides them) and fill in once the game ends and their
+ * guesses reveal.
  */
 export function GameEventLog({
   guesses,

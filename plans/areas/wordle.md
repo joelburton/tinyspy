@@ -8,9 +8,10 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 `src/wordle/todo.md`, not here.
 
 **Status: OPEN** (2026-09-22). **Pass 1, the restructure, is DONE** (Steps
-0–8); pass 2, the audit, opens with the prose pass. **Three passes back to
-back**, psychicnum's and connections' shape: restructure → audit →
-tile-feedback.
+0–8); **pass 2, the audit, is open — its prose pass is in the tree** (below,
+under *The audit*), and the todo's emptying and the findings come next.
+**Three passes back to back**, psychicnum's and connections' shape:
+restructure → audit → tile-feedback.
 
 ## The roster
 
@@ -480,6 +481,81 @@ rewritten through a script rather than an edit.
 Verified: `tsc -b` clean, lint clean over `src/wordle/`, 396 unit tests green.
 **The restructure is complete.** The e2e specs have not run for Steps 2–8.
 
+## The audit — pass 2
+
+### The prose pass — shipped 2026-09-22, one sitting
+
+In the working tree for Joel's read, before any finding is presented
+(the order [app-audit.md](../app-audit.md) §4 sets):
+
+- **`src/wordle/doc.md` is whole.** The intro's fourth paragraph (the end of a
+  game is on the board); Game rules with a Vocabulary table, Coop, Compete and
+  The play states; Schema; Frontend, with the render tree and what is
+  wordle's own; Tests, both suites as tables and the four Playwright specs
+  named. Written from the code, as Step 3's sections were, not from the old
+  doc — and where the old doc and the code disagreed, the code won: the old
+  doc's "Malformed … guesses are soft-rejected" (a short word is a fault), its
+  `wordle.{games, players, guesses}` (the table is `events`), its title table
+  saying a terminal game titles the winning guess (a lost one titles its last
+  guess), and its `hides_solution` paragraph (nothing reads the column).
+  **`docs/games/wordle.md` is deleted**; CLAUDE.md's row and the manifest's
+  docstring are repointed. The frozen migration's `See docs/games/wordle.md`
+  stays, an applied migration being nobody's to edit.
+- **The marker pass**, in the shape [[docs/code-conventions.md]] → Code
+  clarity states: a note on a prop, a field or a union member is `//`
+  (`useGame.ts`, `BoardCol.tsx`'s `GuessAnswer`, `GameEventLog.tsx`'s props,
+  `lib/setup.ts`'s fields, `lib/history.ts`'s snapshot, `pdf/model.ts`'s two
+  types and its argument fields, the manifest's status shape). Two docstrings
+  sat on the wrong declaration — `PlayArea`'s above `WORD_LENGTH`, `BoardCol`'s
+  above `REJECT_MARK_MS` — and now sit on their functions. The manifest's
+  `labelFor` carried two stacked docstrings, the first naming a `modeLabel`
+  that does not exist; it is gone.
+- **The stale claims.** `manifest.ts` said the RPC enforces compete's
+  two-player minimum (it checks the maximum only — the comment says so now,
+  and whether the server should check is a finding). `PlayArea.tsx` named
+  `wordle.players_state`, a view that does not exist. `submit_guess`'s and
+  `end_game`'s SQL comments said `outcome` where the key written is `reason`;
+  so did `todo.md`'s End-for-all item. `end_game_test.sql` said a second call
+  "raises P0001 (the FE swallows it)" twice, comment and assertion label,
+  against an assertion that reads a race envelope. `loss_test.sql`'s header
+  named two error keys that exist nowhere (`'game-not-in-play|'`,
+  `'no-guesses-left|'`), "the line 429 guard", and a `PN258` that no file
+  defines. `gameplay_test.sql`'s header listed malformed among the soft
+  rejects while its body asserts the fault. `PlayArea.test.tsx`'s header
+  credited `colors.test.ts` with "the render mapping" (it tests `colorRank`)
+  and cited a memory file by name. `SetupForm.tsx` said mode does not change
+  the form (the coop-pacing section gates on it). Two stylesheets pointed at
+  `docs/ui.md → "PlayArea layout"`, a heading in `docs/playarea.md`.
+- **The archaeology.** Every dated aside and "used to" in the roster:
+  `_sync_title`'s inner comment (two regressions and a deleted flag, now the
+  rule), the `reveal_answer` tombstone in `wordle.sql` (a removed function
+  with no drop under it, prod having never carried it), `create_game`'s
+  "26 of 2315 — 5 slurs, 4 …" census of the clean filter (now the argument),
+  the manifest's `ended` comment, `Board.module.css`'s media-gate history
+  with its measured pixel sizes and "the other twelve games",
+  `GameEventLog.module.css`'s keycap story, `theme.css`'s two "moved to
+  common" notes, `lib/colors.ts`'s two bug narratives (now the reason each
+  variable exists), `lib/history.ts`'s three rosters of games, and the
+  `used to` in `replay_test`, `compete_test`, `concede_test` and
+  `banded_answer_test`; `setup.test.ts`'s and `SetupForm.test.tsx`'s dated
+  passages. "Rules copy" in `Help.tsx`; "the first cross-field refusal in the
+  roster" and "full six-row shape" (a budget is 5–8).
+- **Not touched, on purpose:** `Board.module.css`'s two `plans/tile-feedback.md`
+  cites are pass 3's, which reads that plan against this board; the e2e
+  headers are `cs-unmet` and off the roster (`wordle-history.e2e.ts` still
+  says "the (still monolithic) PlayArea"); `InfoCol.tsx` and
+  `lib/answer.ts` needed nothing.
+
+**Seen on the way and left for the findings**, none of it prose: `InfoCol`
+takes a `setup` prop it never reads (typed, passed by `PlayArea`, not
+destructured); the builder's clock inference and `status.reason`
+(connections' F-2); the compete minimum the server does not check.
+
+**Verified:** `tsc -b` and eslint clean; the guards and the wordle unit
+tests green (39 files, 396 tests — `orphanedDocstrings` caught the fixed
+`labelFor` still on its allowlist, and the row is gone); `gmake db-sql
+ENV=local` then `npm run test:db`, 181 files, 2545 tests, PASS.
+
 ## Findings
 
 *(`F-wordle-1 · slug · title`, one heading each; a status prefix when it
@@ -490,7 +566,7 @@ has one, no prefix means OPEN)*
 *(things worth remembering about this area that are neither a finding nor
 owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to `todo.md` or
-`docs/games/wordle.md` instead; a note here never stands in for either)*
+`src/wordle/doc.md` instead; a note here never stands in for either)*
 
 ### `<Board>`'s props are all required — 2026-09-22
 
@@ -548,8 +624,8 @@ there was never one block for four files to share — only two.
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] `docs/games/wordle.md` reconciled with `todo.md`: its Deferred
-      section moved into the todo, or deliberately kept as the standing register
+- [x] `docs/games/wordle.md` reconciled with `todo.md` (Step 1) and absorbed
+      into `src/wordle/doc.md` (the prose pass); the file is deleted
 - [ ] the tile-feedback pass done, and the game's tf level updated there
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

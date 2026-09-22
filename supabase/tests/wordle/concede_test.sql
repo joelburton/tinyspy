@@ -89,9 +89,9 @@ select is(
 select is(
   (select status->>'winner_user_id' from common.games where id = (select id from g2)),
   null, 'no winner recorded when all conceded');
--- The two ways a race ends with nobody winning used to be indistinguishable
--- on the row (both wrote lost_compete with NO outcome key), so the club list
--- couldn't tell "everyone burned their guesses" from "everyone walked away".
+-- The two ways a race ends with nobody winning both write lost_compete; the
+-- reason is what lets the club list tell "everyone burned their guesses" from
+-- "everyone walked away".
 select is(
   (select status->>'reason' from common.games where id = (select id from g2)),
   'conceded', 'an all-conceded race is labeled conceded, not exhausted');

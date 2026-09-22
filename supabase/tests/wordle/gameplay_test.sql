@@ -3,10 +3,10 @@
 -- ============================================================
 -- Test: wordle.submit_guess (coop) — soft rejects, shared board, win
 -- ============================================================
--- Coop: one shared board + budget; either player guesses. Malformed /
--- not-a-word / duplicate guesses are soft-rejected without burning a
--- guess. The target is random, so we read it back as the superuser to
--- craft the winning guess.
+-- Coop: one shared board + budget; either player guesses. A not-a-word or
+-- duplicate guess is soft-rejected without burning a guess; a malformed
+-- one is a fault, the frontend having refused it first. The target is
+-- random, so we read it back as the superuser to craft the winning guess.
 
 begin;
 set search_path = wordle, common, public, extensions;

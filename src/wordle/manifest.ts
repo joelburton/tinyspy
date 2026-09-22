@@ -12,14 +12,13 @@ import logoUrl from './logo.svg?url'
 /**
  * wordle's registration with the shell. Codename `wordle` everywhere
  * in code (schema, folder, gametype strings); the brand lives only in
- * the BRAND const below. A NYT-Wordle-style guess-the-word game — see
- * docs/games/wordle.md.
+ * the BRAND const below. The game itself is `doc.md`'s.
  *
  * Two-manifest family (sibling pattern): coop and compete share the
  * `wordle` schema and the PlayArea / SetupForm / Help; they differ on
- * gametype string, name, mode, and numberOfPlayers. The per-game setup
- * is a guess budget (5–8) + an optional countdown timer, ended
- * server-side via `submitTimeout`.
+ * gametype string, mode, and numberOfPlayers. The per-game setup is
+ * `lib/setup.ts`'s; a countdown timer ends the game server-side via
+ * `submitTimeout`.
  */
 
 const helpLoader = lazy(() =>
@@ -55,9 +54,6 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
 const endGame = makeRpcDispatcher(db, 'end_game')
 
-/** One-line label for the ClubPage games list — pure + synchronous.
- *  The coop/compete mode is shown by the card's <ModeBadge>, so it's no
- *  longer prefixed here; `modeLabel` only picks the mid-game verb. */
 /**
  * wordle's club-page status line. The answer-source band rides on every row —
  * a game drawn from the curated Wordle answer list plays very differently from
@@ -73,7 +69,7 @@ function labelFor(mode: 'coop' | 'compete') {
       // Coop only — compete never updates these (a live count leaks how close
       // a racer is), so they're absent there rather than a permanent 0.
       guesses_used?: number; max_guesses?: number
-      /** The WINNER's own count, written at terminal (see _maybe_finish_compete). */
+      // The WINNER's own count, written at terminal (see _maybe_finish_compete).
       winner_guesses?: number
     }
     const dict = answerSourceLabel(setupNum(row.setup, 'answer_source'))
@@ -99,10 +95,9 @@ function labelFor(mode: 'coop' | 'compete') {
           ? verdict('Lost', 'all conceded')
           : statusLine(verdict('Lost', COMPETE_LOSS[s.reason ?? ''] ?? null), 'no winner')
       case 'ended':
-        // No 'answer revealed' variant: the mid-game give-up that wrote
-        // outcome='revealed' is gone (2026-08-03). Revealing is now a display
-        // decision on an already-ended game, and the club list describes the
-        // ENDING, not what the players have since looked at.
+        // No 'answer revealed' variant: revealing is a display decision on an
+        // already-ended game, and the club list describes the ENDING, not what
+        // the players have since looked at.
         return statusLine(verdict('Ended', null), dict)
       default:
         return row.play_state
@@ -176,7 +171,8 @@ export const wordleCompeteGame: GameManifest = {
 
   help: helpLoader,
 
-  // Compete needs an opposing PLAYER. Lower bound 2; the RPC enforces it.
+  // Compete needs an opposing PLAYER. Lower bound 2 — this manifest's rule;
+  // the RPC checks only the maximum.
   numberOfPlayers: [2, 6],
 
   PlayArea: playAreaLoader,

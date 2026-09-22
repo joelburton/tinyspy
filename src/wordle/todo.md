@@ -26,7 +26,7 @@
   game nobody wanted to finish.
 
   Most of it already exists. `wordle.end_game` writes the neutral terminal
-  (`ended` + `outcome: 'manual'`, nobody won) and does not care which mode it is
+  (`ended` + `reason: 'manual'`, nobody won) and does not care which mode it is
   called in, and the FE side is one argument: `offersEndForAll` on this game's
   `useStandardGameActions` call, which grows Concede's question a second answer
   ("End for everyone") rather than putting a second red button on the board.

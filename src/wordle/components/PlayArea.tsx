@@ -40,21 +40,6 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
-/**
- * wordle's play surface, shared by the coop and compete manifests. It holds no
- * board and draws no control — `<BoardCol>` and `<InfoCol>` do — and decides
- * what each of them is handed.
- *
- * What is genuinely this surface's: the below-board feedback channel both
- * columns write into, the turn-history viewer, the peer narration, the bound
- * actions, and the derivations the two columns must agree on. The game rows
- * arrive as props from the loader above.
- *
- * `mode` is what differs between the manifests, and it differs in one place
- * each: coop shows the SHARED guess list and team budget, compete only the
- * caller's own guesses (RLS hides the rest until terminal) plus an
- * OpponentStrip of their counts.
- */
 /** Every wordle answer is five letters — the board renders a fixed 5 columns
  *  (Board.tsx) and the word lists are 5-letter. Named here so the printed grid
  *  and the on-screen one can't disagree. */
@@ -96,7 +81,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
 type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
   // The loaded game row. Non-null by construction — the loader holds the gates.
   game: WordleGame
-  // Per-player guess counts and solved flags (`wordle.players_state`).
+  // Per-player guess counts and solved flags (`wordle.players`).
   playerStates: WordlePlayerState[]
   // The guess log, oldest first.
   guesses: EventRow[]
@@ -104,6 +89,21 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
   setup: WordleSetup
 }
 
+/**
+ * wordle's play surface, shared by the coop and compete manifests. It holds no
+ * board and draws no control — `<BoardCol>` and `<InfoCol>` do — and decides
+ * what each of them is handed.
+ *
+ * What is genuinely this surface's: the below-board feedback channel both
+ * columns write into, the turn-history viewer, the peer narration, the bound
+ * actions, and the derivations the two columns must agree on. The game rows
+ * arrive as props from the loader above.
+ *
+ * `mode` is what differs between the manifests, and it differs in one place
+ * each: coop shows the SHARED guess list and team budget, compete only the
+ * caller's own guesses (RLS hides the rest until terminal) plus an
+ * OpponentStrip of their counts.
+ */
 export function PlayArea({
   session,
   gameId,

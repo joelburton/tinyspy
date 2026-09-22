@@ -14,33 +14,24 @@ import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
  * import the type without dragging the manifest into its lazy chunk.
  */
 export type WordleValues = CoopTurnSetup & {
-  /**
-   * Guess budget — how many guesses the player (coop: the team) gets.
-   * Classic Wordle is 6; we offer 5–8. The server bounds it.
-   */
+  // Guess budget — how many guesses the player (coop: the team) gets. Classic
+  // Wordle is 6; we offer 5–8. The server bounds it.
   max_guesses: number
-  /**
-   * Where the hidden target is drawn from. `0` = the curated NYT-Wordle answer
-   * list (`wordle=true`, the classic feel — default). `1..6` = any 5-letter
-   * word of that difficulty band or easier (a higher band can yield an obscure
-   * answer). See `wordle.create_game`.
-   */
+  // Where the hidden target is drawn from. `0` = the curated NYT-Wordle answer
+  // list (`wordle=true`, the classic feel — default). `1..6` = any 5-letter
+  // word of that difficulty band or easier (a higher band can yield an obscure
+  // answer). See `wordle.create_game`.
   answer_source: number
-  /**
-   * What counts as a legal guess: any real 5-letter word of difficulty ≤ this
-   * (1..6). Must reach the answer's hardest band so every possible answer is
-   * itself a legal guess — see `legalGuessError` / `answerMaxBand`.
-   */
+  // What counts as a legal guess: any real 5-letter word of difficulty ≤ this
+  // (1..6). Must reach the answer's hardest band so every possible answer is
+  // itself a legal guess — see `legalGuessError` / `answerMaxBand`.
   legal_guess: number
-  /**
-   * Timer mode. `none` / `countup` are purely informational; a
-   * `countdown` ends the game when it expires, via the shared
-   * `wordle.submit_timeout` RPC.
-   */
+  // Timer mode. `none` / `countup` are purely informational; a `countdown`
+  // ends the game when it expires, via the shared `wordle.submit_timeout` RPC.
   timer: TimerMode
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
+  // WHO IS PLAYING — a field like any other, and not part of the setup blob:
+  // `create_game` takes it as its own argument and writes
+  // `common.game_players` rows from it.
   player_user_ids: Set<string>
 }
 

@@ -66,7 +66,7 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WordlePrintModel)
         letter: row.letters[c] ?? '',
         state,
         // Un-played rows print as empty outlined slots, so the grid keeps its
-        // full six-row shape instead of floating above a void.
+        // full budget-height shape instead of floating above a void.
         outlineBlank: true,
       })
     })

@@ -107,10 +107,10 @@ select is(
   (select title from common.games where id = (select id from g)),
   'New compete',
   'compete: a mid-race guess never lands in the club-wide title');
--- …and the club-wide STATUS carries no guess counter either. It used to seed
--- `guesses_used: 0` at create and never update it in compete (the update is
--- coop-only for the same leak reason), so the club card read a permanent
--- "0 guesses" — including on a game someone had just WON in three.
+-- …and the club-wide STATUS carries no guess counter either. The update is
+-- coop-only for the same leak reason, so a counter seeded here would sit at a
+-- permanent "0 guesses" on the club card — including on a game someone had
+-- just WON in three. Absent is honest.
 reset role;
 select ok(
   (select not (status ? 'guesses_used') from common.games where id = (select id from g)),

@@ -21,8 +21,9 @@ import { answerMaxBand, GUESS_OPTIONS, type WordleValues } from '../lib/setup'
  *     the answer's hardest are disabled (you must be able to guess any answer);
  *     the manifest's `validate` gates Start on the same rule.
  *
- * Plus the shared `SetupTimerSection`. Controlled component (state lives in the
- * wrapper); shared by both manifests (mode doesn't change the form).
+ * Plus the shared coop-pacing and timer sections. Controlled component (state
+ * lives in the wrapper); shared by both manifests, the coop-pacing section
+ * gating itself by mode.
  */
 export function SetupForm({
   mode, members, selfId, numberOfPlayers, values, set: setValue, errors,
@@ -34,8 +35,8 @@ export function SetupForm({
   const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
   // Disclosure summaries carry the current values so each section reads without
-  // opening (the boggle/scrabble/spellingbee pattern). Answer source 0 is the
-  // curated Wordle list — not a difficulty band — so it formats as "0 (Wordle)".
+  // opening. Answer source 0 is the curated Wordle list — not a difficulty band
+  // — so it formats as "0 (Wordle)".
   const guessesLabel = `Guesses: ${s.max_guesses}`
   const answerValue =
     s.answer_source === 0 ? '0 (Wordle)' : difficultyValue(s.answer_source)

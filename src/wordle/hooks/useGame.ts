@@ -38,10 +38,10 @@ export type WordlePlayerState = {
  * up). `colors` is the 5-char g/y/x feedback.
  */
 export type EventRow = {
-  /** The row's own id, and the order of play — the database hands them out in
-   *  the order the rows were written, which is what the read below orders by.
-   *  How many goes a player has spent is `players.guesses_used`, not a count of
-   *  these. */
+  // The row's own id, and the order of play — the database hands them out in
+  // the order the rows were written, which is what the read below orders by.
+  // How many goes a player has spent is `players.guesses_used`, not a count of
+  // these.
   id: number
   user_id: string
   guess: string
@@ -62,8 +62,8 @@ export function useGame(gameId: string): {
   playerStates: WordlePlayerState[]
   guesses: EventRow[]
   loading: boolean
-  /** Set when a read FAILED, which is not the same as the game being absent.
-   *  The surface renders this instead of "Game not found." */
+  // Set when a read FAILED, which is not the same as the game being absent.
+  // The surface renders this instead of "Game not found."
   failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<WordleGame | null>(null)

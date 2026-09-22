@@ -25,18 +25,18 @@ export type PrintRow = { letters: string[]; states: TileColor[] }
 export type PrintTrack = {
   who: string
   rows: PrintRow[]
-  /** letter → best state seen. Absent letters are untried ('blank'). */
+  // letter → best state seen. Absent letters are untried ('blank').
   keys: Map<string, TileColor>
   turns: TurnRow[]
-  /** Their own outcome line ("solved in 4" / "did not solve"). */
+  // Their own outcome line ("solved in 4" / "did not solve").
   result: string
 }
 
 export type WordlePrintModel = PrintHeader & {
-  /** One track per board. Coop is a single shared track; compete is one per
-   *  player at terminal, or just yours during play. */
+  // One track per board. Coop is a single shared track; compete is one per
+  // player at terminal, or just yours during play.
   tracks: PrintTrack[]
-  /** The answer — terminal only, null while the game is live. */
+  // The answer — only while it is shown on screen, else null.
   target: string | null
 }
 
@@ -80,21 +80,18 @@ export function buildWordlePrintModel(o: {
   isTerminal: boolean
   maxGuesses: number
   wordLength: number
-  /** Every guess the viewer can see. Compete mid-game: only their own. */
+  // Every guess the viewer can see. Compete mid-game: only their own.
   guesses: EventRow[]
   players: { user_id: string; username: string }[]
   selfId: string
-  /** From the game row — the FE only holds it post-game. */
+  // From the game row — the FE only holds it post-game.
   target: string | null
-  /**
-   * Is the answer legitimately on screen? A WIN or an explicit reveal — NOT
-   * merely terminal. wordle hides the answer on a loss so a Restart is a real
-   * second try (docs/ui.md → Terminal results), and a printout that spelled it
-   * out would undo that from the outside. (The same reasoning fixed the
-   * club-list title in `_sync_title`, which had exactly this bug.)
-   */
+  // Is the answer legitimately on screen? A WIN or an explicit reveal — NOT
+  // merely terminal. wordle hides the answer on a loss so a Restart is a real
+  // second try (docs/ui.md → Terminal results), and a printout that spelled it
+  // out would undo that from the outside.
   answerShown: boolean
-  /** Per-player solved flags, for the outcome line. */
+  // Per-player solved flags, for the outcome line.
   solvedBy: ReadonlySet<string>
   setup: SetupRow[]
 }): WordlePrintModel {

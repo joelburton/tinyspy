@@ -30,16 +30,12 @@ export function revealVar(c: TileColor): string | undefined {
 
 /**
  * The matching EDGE for a feedback color — the darker shade a settled tile
- * wears (see `--wordle-*-border`).
+ * wears (see `--wordle-*-edge-color`).
  *
- * It needs its own variable because the flip's keyframes paint the tile
- * themselves, and `animation-fill-mode: both` makes the final frame stick. A
- * freshly-flipped tile therefore keeps whatever the keyframes left it with — so
- * when they painted `border-color` with the FILL, every new row ended up without
- * the darker edge, while rows already on screen at mount (which take the static
- * `.green` / `.yellow` class instead) had one. Two identical-looking tiles,
- * different borders, depending only on whether you were watching when they
- * landed.
+ * Its own variable because the flip's keyframes paint the tile themselves and
+ * `animation-fill-mode: both` makes the final frame stick: a freshly-flipped
+ * tile keeps whatever the keyframes left it with, so they have to paint the
+ * same edge the static class gives a row that was already on screen at mount.
  */
 export function revealBorderVar(c: TileColor): string | undefined {
   switch (c) {
@@ -58,15 +54,10 @@ export function revealBorderVar(c: TileColor): string | undefined {
  * The matching INK — the color the letter takes once the flip lands on a
  * judgment.
  *
- * Its own variable for the same reason the edge has one: the keyframes paint
- * `color` themselves and `animation-fill-mode: both` makes the final frame
- * stick, so a freshly-flipped tile keeps whatever they left it with. Not a hard
+ * Its own variable for the same reason the edge has one. Not a hard
  * `--ink-onDark-color`: that is only right while the page is light — the judged
  * ink is half of a contrast whose other half is the page, and it flips with the
- * theme (themes/daylight.css → WORDLE INK). Painting the flip with a generic
- * white would leave every revealed row wearing light ink on a light fill the
- * moment a dark theme loaded, while the rows already on screen at mount —
- * which take the static classes — looked right.
+ * theme (themes/daylight.css → WORDLE INK).
  */
 export function revealInkVar(c: TileColor): string | undefined {
   switch (c) {

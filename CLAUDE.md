@@ -52,7 +52,7 @@ Each game doc carries that game's rules, schema, RPCs, FE shape, and tests; the 
 | [docs/games/spellingbee.md](docs/games/spellingbee.md) | Required + bonus word lists, trusting-commit local scoring, the rank ladder |
 | [docs/games/bananagrams.md](docs/games/bananagrams.md) | The FE-owned board / server-owned tiles split, per-player concede, the desktop-only layout exception |
 | [docs/games/waffle.md](docs/games/waffle.md) | Hidden-solution color feedback, on-demand board generation, difficulty bands |
-| [docs/games/wordle.md](docs/games/wordle.md) | Hidden-target color feedback, mode-aware per-guess RLS, the on-screen keyboard |
+| [src/wordle/doc.md](src/wordle/doc.md) | Hidden-target color feedback, mode-aware per-guess RLS, the on-screen keyboard. **Its doc lives in its own folder** — `docs/games/wordle.md` is gone, absorbed by its area audit |
 | [docs/games/stackdown.md](docs/games/stackdown.md) | Clear a tile stack by spelling words: the no-trap board invariant, the pre-generated board library |
 | [docs/games/scrabble.md](docs/games/scrabble.md) | Trusting-commit moves, the shared 100-tile bag, the AI move suggester + autonomous opponent |
 | [docs/games/boggle.md](docs/games/boggle.md) | Brand **MothCubes**: the required-vs-bonus split, the pure-TS solver, all 8 dice sets |

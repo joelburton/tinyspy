@@ -1,16 +1,17 @@
 // cs-met-wordle
 
 /**
- * Render smoke tests for wordle's PlayArea: does the play surface mount and
- * render without throwing — in coop, in compete, and at terminal?
+ * wordle's play surface, mounted for real: does it render in coop, in compete
+ * and at terminal, and does each surface on it do what its docstring says —
+ * the action row per mode and state, Reveal and Hide, the celebration, the
+ * peer narration, the picker's labels, the board-scope marks, the flip, and
+ * the keys.
  *
- * Why this exists: a Phase-2 refactor removed a prop that was still referenced,
- * and the app shipped a BLANK PAGE (a runtime `ReferenceError`, not a type
- * error `tsc --noEmit` would surface — the root tsconfig checks nothing; see
- * memory project_typecheck_use_tsc_b). A one-line `render()` catches that class
- * of bug instantly. These are deliberately shallow: game logic lives in pgTAP
- * (the RPCs) and `colors.test.ts` (the render mapping); here we only prove the
- * component tree mounts.
+ * The smoke cases exist because a removed prop that was still referenced once
+ * shipped a BLANK PAGE — a runtime `ReferenceError` that no type check
+ * surfaces — and a one-line `render()` catches that class of bug instantly.
+ * Game logic is not here: the rules live in pgTAP (the RPCs), and what a move
+ * reads as in `lib/answer.test.ts`.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the grid, keyboard, lists, dialogs — renders for real.
@@ -229,8 +230,8 @@ describe('wordle PlayArea — icon-only action row', () => {
 
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
     // ONE binding for both rows: it navigates directly at terminal and routes
-    // through the suspend-confirm flow mid-game, so the game no longer picks
-    // between two callbacks and no longer can pick wrong.
+    // through the suspend-confirm flow mid-game, so the game picks between no
+    // callbacks and cannot pick wrong.
     const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
     const ctx = makeCtx()

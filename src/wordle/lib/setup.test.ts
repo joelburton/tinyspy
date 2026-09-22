@@ -4,12 +4,9 @@
  * wordle's Start gate — the rule that every possible answer must itself be a
  * guessable word, and which select it asks you to move.
  *
- * This is the case that exposed the whole `validate`-returns-an-object change.
- * The check existed, the message was right, and the field it named was rendered
- * directly above ready to show it — but `validate` returned a bare sentence, so
- * the message went to the dialog's bottom line instead, and nothing was red.
- * Asserting the KEY here is what makes that visible: the words alone were
- * correct the entire time.
+ * The KEY is asserted, not the words alone: `validate` returns an object so
+ * the message lands under the field it names, and a bare sentence would go to
+ * the dialog's bottom line with nothing red above it.
  *
  * Reaching it takes moving the OTHER field, which is worth knowing. The
  * legal-guess select disables every band below the floor, so you cannot pick an

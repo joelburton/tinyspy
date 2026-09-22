@@ -1,8 +1,7 @@
 // cs-met-wordle
 
 /**
- * wordle's setup form — three settings of its own, and the first CROSS-FIELD
- * refusal in the roster.
+ * wordle's setup form — three settings of its own, and a CROSS-FIELD refusal.
  *
  * `create_game` names `legal_guess` twice: once for a band outside 1..6
  * (PN055), and once when it sits below the answer band (PN056). The second is
@@ -107,12 +106,11 @@ describe('wordle setup — writing a setting', () => {
 })
 
 describe('wordle setup — where a refusal lands', () => {
-  // `wordle.create_game` raises NO form-validations today: every refusal it can
-  // make is about a value this form does not offer, so all of them are faults
-  // and land on the dialog's own line. PN057 was the last one that wasn't, and
-  // it became a fault on 2026-08-30 — the bands are cumulative, so no choice
-  // here can empty the answer pool, and the sentence was inviting the player to
-  // re-pick a control that could not help.
+  // `wordle.create_game` raises NO form-validations: every refusal it can make
+  // is about a value this form does not offer, so all of them are faults and
+  // land on the dialog's own line. An empty answer pool included — the bands
+  // are cumulative, so no choice here can empty it, and a sentence inviting the
+  // player to re-pick a control that could not help would be wrong.
   //
   // These two keep testing the WIRING rather than a live raise: a field error
   // that arrives renders under its own control. That is what a future

@@ -9,13 +9,12 @@
 --
 --   Coop: the 5th wrong guess (max_guesses=5) flips the shared board to
 --   `lost` with everyone {won:false}, reveals the target, and a further
---   guess is rejected ('game-not-in-play|').
+--   guess is a race ("Game over").
 --
 --   Compete: a player who exhausts their OWN budget while an opponent is
 --   still playing does NOT end the game, and a further guess from that
---   player raises 'no-guesses-left|' (the line 429 guard, which is
---   only reachable in compete — in coop, exhaustion makes the game
---   terminal first).
+--   player is a fault ("No guesses left" — a guard only compete can reach;
+--   in coop, exhaustion makes the game terminal first).
 --
 -- Both games are created up front so we can read both random targets and
 -- pick guess words that miss BOTH — otherwise a guess could accidentally
@@ -117,8 +116,9 @@ select is((select (res->'data'->>'terminal')::boolean from p5), false,
 
 -- ada is out of guesses while the game is still 'playing'. In COMPETE the
 -- budget is her own and the board stays locked until her row lands, so getting
--- here means a broken client — a fault, where the coop twin (PN258, a teammate
--- spending the last shared guess) is a race.
+-- here means a broken client — a fault. Coop never reaches this guard: a
+-- teammate spending the last shared guess ends the game, and the next guess
+-- meets the play_state guard as a race.
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g_comp), (select word from valw where rn = 1)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN259",

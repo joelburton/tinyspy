@@ -1,25 +1,20 @@
 // cs-met-wordle
 
 /**
- * wordle — the turn-history replay. Given the guess log and the position of a turn
- * within it, reconstruct what the board looked like at that turn (the guess rows up
- * to and including it) plus which row that turn added — so PlayArea can hand
+ * wordle — the turn-history replay. Given the guess log and a turn in it,
+ * reconstruct what the board looked like at that turn (the guess rows up to
+ * and including it) plus which row that turn added — so PlayArea can hand
  * `<Board>` a historical `rows` list the same way it hands it the live one.
  *
- * ADD-style replay (like psychicnum/scrabble, unlike stackdown's removal): a guess
- * only ever ADDS a colored row to the board, so a past board is simply the first N
- * guess rows. No fold or mutation is needed — the rows ARE the state.
+ * ADD-style replay: a guess only ever ADDS a colored row to the board, so a
+ * past board is simply the first N guess rows. No fold or mutation is needed —
+ * the rows ARE the state.
  *
- * **Addressed by the row's own id**, resolved against the list being folded — the
- * rows of whoever wrote that row, which PlayArea picks. The `#N` the log prints is
- * a place in what the log is SHOWING, which a filter moves; the two are different
- * lists and the label's number is handed down rather than counted here.
+ * **The boundary is INCLUSIVE**: viewing a turn shows the board AFTER that
+ * guess landed, with that guess's row ringed in the history blue — "this is the
+ * row this turn added" (the reveal IS the event).
  *
- * **The boundary is INCLUSIVE**: viewing a turn shows the board AFTER
- * that guess landed, with that guess's row ringed in the history blue — "this is the row
- * this turn added" (the reveal IS the event). Matches psychicnum/waffle/scrabble.
- *
- * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
+ * Pure (no React / supabase) + unit-tested.
  */
 import type { EventRow } from '../hooks/useGame'
 
@@ -30,27 +25,28 @@ export interface HistorySnapshotRow {
 }
 
 export interface HistorySnapshot {
-  /** The guess rows as of the END of the viewed turn — feed straight to
-   *  `<Board rows>` (each is `{ guess, colors }`). */
+  // The guess rows as of the END of the viewed turn — feed straight to
+  // `<Board rows>` (each is `{ guess, colors }`).
   rows: HistorySnapshotRow[]
-  /** The board row this turn added — ring it in the history blue (it already wears its
-   *  g/y/x tile colors). The last row in `rows`; -1 when nothing was replayed. */
+  // The board row this turn added — ring it in the history blue (it already
+  // wears its g/y/x tile colors). The last row in `rows`; -1 when nothing was
+  // replayed.
   historyLitBoardRow: number
-  /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
+  // A short, name-free turn label for the viewer banner (the log row shows *who*).
   historyLabel: string
 }
 
 /**
- * Reconstruct the rows + lit board row + historyLabel for the event with this
- * `id`. Takes the guesses up to and including it (INCLUSIVE) as the board's
- * rows and rings the last one.
+ * The board at the turn with this `id`: the guesses up to and including it as
+ * the rows, the last one ringed, and the banner's label.
  *
- * Addressed by the ROW'S ID, resolved against the list being folded. The number
- * the log prints is the row's place in whatever the log is SHOWING, which a
- * filter changes; the board replays the rows it is looking at, which a filter
- * does not. Two lists, so no shared index — which is why `n`, the `#N` the log
- * was printing on the clicked row, is passed in rather than counted here. Null
- * drops the number from the label.
+ * Addressed by the ROW'S ID, resolved against the list being folded — the rows
+ * of whoever wrote that row, which PlayArea picks. The number the log prints is
+ * the row's place in whatever the log is SHOWING, which a filter changes; the
+ * board replays the rows it is looking at, which a filter does not. Two lists,
+ * so no shared index — which is why `n`, the `#N` the log was printing on the
+ * clicked row, is passed in rather than counted here. Null drops the number
+ * from the label.
  */
 export function historySnapshot(
   guesses: ReadonlyArray<EventRow>,

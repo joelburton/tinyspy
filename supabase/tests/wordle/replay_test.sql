@@ -56,8 +56,7 @@ select is(
   'lost', 'coop: precondition — budget burned, game lost');
 -- A LOST game must NOT be titled with the answer: wordle hides it on a loss so
 -- Restart stays a genuine second try, and the club-list title would undo that
--- from the outside (2026-08-02 — this used to assert the opposite). It reads as
--- the last guess instead.
+-- from the outside. It reads as the last guess instead.
 select is(
   (select title from common.games where id = (select id from g1)),
   (select upper(word) from valw where rn = 5),

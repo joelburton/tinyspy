@@ -82,8 +82,6 @@ const KNOWN: string[] = [
   'src/waffle/manifest.ts › labelFor',
   // → wordiply
   'src/wordiply/components/PlayArea.tsx › GuessResult',
-  // → wordle
-  'src/wordle/manifest.ts › labelFor',
 ]
 
 const ROOTS = ['src', 'supabase/functions', 'e2e', 'scripts']

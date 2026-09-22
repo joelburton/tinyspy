@@ -20,19 +20,6 @@ import shared from '@/common/game-page/playArea.module.css'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
-/**
- * wordle's board column — the `<Board>` plus the region under it: the
- * turn-viewer banner, the local-feedback pill slot, and the on-screen keyboard.
- *
- * It owns the guess being typed (`current`), the one out for judgment
- * (`pending`) and the `submit_guess` RPC that turns the first into the second.
- * The physical keys and the on-screen caps drive that same `current`.
- *
- * Everything else is handed down: the board to draw (the live `rows`, or
- * `historySnap` when a past turn is open), and `readOnly`, which this column
- * ORs with its own mid-submit state. The feedback slot belongs to PlayArea —
- * this column shows its soft rejects into it and draws it. See docs/playarea.md.
- */
 /** How long the rejected row keeps its ring — a touch past the shake, so
  *  the mark is still there when the movement stops. */
 const REJECT_MARK_MS = 900
@@ -46,16 +33,16 @@ const REJECT_MARK_MS = 900
  * while an accepted guess always has them.
  */
 type GuessAnswer =
-  /** Soft rejects: the rules were applied, nothing was burned, the typed row
-   *  stays. */
+  // Soft rejects: the rules were applied, nothing was burned, the typed row
+  // stays.
   | {
       result: 'duplicate' | 'notAWord'
       guesses_used: number | null
       solved: false
       terminal: false
     }
-  /** Accepted: the guess is recorded. `colors` and the finish reach this surface
-   *  by realtime like everyone else's, so neither is read here. */
+  // Accepted: the guess is recorded. `colors` and the finish reach this surface
+  // by realtime like everyone else's, so neither is read here.
   | {
       result: 'correct' | 'incorrect'
       colors: string
@@ -64,6 +51,19 @@ type GuessAnswer =
       terminal: boolean
     }
 
+/**
+ * wordle's board column — the `<Board>` plus the region under it: the
+ * turn-viewer banner, the local-feedback pill slot, and the on-screen keyboard.
+ *
+ * It owns the guess being typed (`current`), the one out for judgment
+ * (`pending`) and the `submit_guess` RPC that turns the first into the second.
+ * The physical keys and the on-screen caps drive that same `current`.
+ *
+ * Everything else is handed down: the board to draw (the live `rows`, or
+ * `historySnap` when a past turn is open), and `readOnly`, which this column
+ * ORs with its own mid-submit state. The feedback slot belongs to PlayArea —
+ * this column shows its soft rejects into it and draws it. See docs/playarea.md.
+ */
 export function BoardCol({
   // ── Board to render (live rows + the history snapshot — PlayArea picks the log,
   //    this column picks live-vs-snapshot) ──
@@ -96,7 +96,7 @@ export function BoardCol({
   // compete log can open an opponent's row.
   historyActor?: Actor | null
   maxGuesses: number
-  // Brand name (manifest) for the grid's screen-reader label.
+  // Brand name (manifest) for the grid's `aria-label`, a test handle.
   brand: string
 
   // ── History viewer ──

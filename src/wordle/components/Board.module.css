@@ -1,8 +1,7 @@
 /* cs-met-wordle */
 
-/* The board wrapper. NO border/background today;
-it holds the tile-size knobs. It just centers the
- * grid; the grid drives its own size (see below). */
+/* The board wrapper: no border or background, it holds the tile-size knobs and
+ * centers the grid, which drives its own size (see below). */
 /* @@ */ .board {
   /* ─── Tile size cap — TINKER HERE ────────────────────────────────────────
    * The board grows to fill the space, but a tile never exceeds this width.
@@ -42,12 +41,7 @@ it holds the tile-size knobs. It just centers the
    * together for every board at once.
    *
    * Set on the GRID, not on `.tile`, so they cascade into the shared rule without
-   * two same-specificity declarations racing across modules.
-   *
-   * WIDTH: the shared rectangular hug (`shared.hugRectWidth`, composed on this
-   * element in Board.tsx). `aspect-ratio` then derives the HEIGHT from that
-   * width so the tiles stay SQUARE (wordle's look) instead of flex-filling — a
-   * keyboard shares this column below the board, so the board hugs its height. */
+   * two same-specificity declarations racing across modules. */
 /* @@ */   --tile-slot-fill-color: transparent;
 /* @@ */   --tile-slot-edge-color: var(--wordle-tile-border);
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
@@ -67,24 +61,20 @@ it holds the tile-size knobs. It just centers the
 /* Cap the board by the LEFTOVER HEIGHT — at every width, not just on a phone.
  *
  * wordle stacks a board AND an on-screen keyboard in the board column, so the
- * board hugging its width can push something else off-screen. The column is `100svh - chrome` tall and the
- * keyboard + feedback slot eat a fixed ~14.65rem of it; converting what's left
- * into a width via the board's own cols/rows aspect ratio keeps the whole stack
- * on screen with square tiles. `max-width` composes with the shared
- * `hugRectWidth` (the smaller wins); the keyboard is untouched, sizing off
- * `--avail-w` directly. The ~15rem reserve = keyboard (10.4rem) + feedback slot
- * (2.75rem) + the two 0.75rem column gaps, rounded up for a hair of slack.
+ * board hugging its width can push something else off-screen. The column is
+ * `100svh - chrome` tall and the keyboard + feedback slot eat a fixed ~14.65rem
+ * of it; converting what's left into a width via the board's own cols/rows
+ * aspect ratio keeps the whole stack on screen with square tiles. `max-width`
+ * composes with the shared `hugRectWidth` (the smaller wins); the keyboard is
+ * untouched, sizing off `--avail-w` directly. The ~15rem reserve = keyboard
+ * (10.4rem) + feedback slot (2.75rem) + the two 0.75rem column gaps, rounded up
+ * for a hair of slack.
  *
- * This lived under `@media (--mobile)` until 2026-08-08, on the reasoning that
- * "on desktop the stack centers in the tall column with slack to spare" — which
- * is true of a tall desktop and false of a SHORT one. A 2256×1504 laptop panel
- * at 200% Windows scaling hands the browser 1128×752 CSS px, and ~617 of that
- * survives the browser chrome: desktop-width, phone-height. wordle then clipped
- * by 33px while the other twelve games, which all size off `--avail-h`, were
- * fine at 560. Ungating cost nothing, because the cap is INERT whenever there's
- * room — measured identical at 720px and 900px (board 318×383 either way), and
- * only engaging below that (248×298 at 617px). The same reason it's already
- * inert on a tall phone, where the per-tile cap wins. */
+ * Not gated to mobile: a desktop-width window can be phone-height (a scaled
+ * laptop panel under browser chrome), and the stack clips there just the same.
+ * Ungating costs nothing, because the cap is INERT whenever there is room — it
+ * engages only when the column is shorter than the stack, and on a tall phone
+ * the per-tile cap wins first. */
 /* @@ */ .grid {
   max-width: calc(
     (100svh - var(--game-chrome-height) - 15rem) * var(--cols) / var(--rows)

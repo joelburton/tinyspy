@@ -30,13 +30,13 @@ select is(
 select is(
   (select status->>'reason' from common.games where id = (select id from g1)),
   'timeout', 'status.reason = timeout');
--- Idempotent: a second call raises P0001 (the FE swallows it).
+-- Idempotent: a second call is a race — the work is already done.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordle.submit_timeout((select id from g1)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'submit_timeout is idempotent (second call raises P0001)');
+  'submit_timeout is idempotent (a second call is a race)');
 
 -- ── Manual end (end_game) → neutral 'ended' ─────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
