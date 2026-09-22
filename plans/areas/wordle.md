@@ -8,8 +8,9 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 `src/wordle/todo.md`, not here.
 
 **Status: OPEN** (2026-09-22). **Pass 1, the restructure, is DONE** (Steps
-0–8); **pass 2, the audit, is open — its prose pass is in the tree** (below,
-under *The audit*), and the todo's emptying and the findings come next.
+0–8); **pass 2, the audit, is open — the prose pass shipped (`39ec69c5`),
+and five findings are recorded, all OPEN**: the two todo items (F-1, F-2)
+and three the prose pass saw (F-3 to F-5). Next: the findings one at a time.
 **Three passes back to back**, psychicnum's and connections' shape:
 restructure → audit → tile-feedback.
 
@@ -556,10 +557,117 @@ tests green (39 files, 396 tests — `orphanedDocstrings` caught the fixed
 `labelFor` still on its allowlist, and the row is gone); `gmake db-sql
 ENV=local` then `npm run test:db`, 181 files, 2545 tests, PASS.
 
+### The todo, emptied into findings — 2026-09-22
+
+The two Soon items are F-1 and F-2 below, each with its options; they leave
+`todo.md` when they ship or are ruled, and the list is empty before the
+closing re-read (Joel, 2026-09-19, at connections).
+The Bugs, Someday, Maybe and Won't-do sections were already empty. **Nothing
+moved under the area**: `git log` on `src/common/game-page/` since this area
+opened is empty, so there is no shared change to read against the game.
+
+F-3 to F-5 are what the prose pass saw and left, recorded here so the next
+sitting has them in the file and not in a memory.
+
 ## Findings
 
 *(`F-wordle-1 · slug · title`, one heading each; a status prefix when it
 has one, no prefix means OPEN)*
+
+### F-wordle-1 · `hand-tuned-reserve` · the board's height cap subtracts a `15rem` that nothing composes
+
+`Board.module.css` caps the grid's width at `(100svh − chrome − 15rem) ×
+cols/rows`, the `15rem` standing for everything else in the board column —
+which the comment itemizes as the keyboard (10.4rem), the feedback slot
+(2.75rem) and two column gaps (0.75rem each), 14.65rem, "rounded up for a
+hair of slack". **Every term checks out today**: the keyboard is three
+3.2rem rows with two 0.4rem gaps, the slot's `min-height` is 2.75rem, and
+the column gap is `--spacer-3`, 0.75rem. But nothing holds them together: a
+taller keycap, a deeper slot or a wider gap moves the stack and not the cap,
+and the page-fits-the-viewport e2e cannot see it, since it measures the play
+surface against the window and this is slack one level in. The shell's own
+`--game-chrome-height` was the same construction until it turned out to omit
+a 1px rule, and is composed from its terms now.
+
+Options: **compose it** — the slot already publishes
+`--local-feedback-min-height` and the layout publishes `--board-col-gap`, so
+the cap can read those two and a `--keyboard-height` the keyboard's
+stylesheet would declare, leaving only the rounding as a literal; **pin it
+with a test** — a jsdom or e2e assertion that the reserve equals the sum of
+the measured parts, so a drift is red rather than clipped; or **leave it**,
+the terms being stable and the comment naming them. Recommendation: compose
+it — three tokens, no new file, and the comment's arithmetic becomes the
+code's.
+
+### F-wordle-2 · `no-end-for-all` · a race can only be closed by every racer conceding
+
+Compete offers Concede alone. A table that has lost interest closes the game
+one concession at a time, each a loss on that player's record for a game
+nobody wanted to finish. The mechanism exists: `useStandardGameActions`
+takes `offersEndForAll`, which grows Concede's question a second answer
+("End for everyone") that calls `end_game`, and a conceder gets End back on
+its own — bananagrams is the worked example, and wordle's `end_game` already
+writes the neutral `ended` in either mode. **The reading the todo asked to
+check first checks out**: `labelFor` reads `ended` as "Ended", mode blind,
+and `buildTerminalMessage` hands `ended` to the shared neutral message before
+it looks at the mode — nobody won is not everybody lost, on both surfaces.
+
+Options: **wire it** — `offersEndForAll: true` on this game's
+`useStandardGameActions` call, a `PlayArea.test.tsx` case for the two-answer
+question, and the doc's Compete paragraph gaining the sentence; or **leave a
+race to its racers**, which is a design position psychicnum holds today
+(its doc says there is no way to stop a race for the whole table, and points
+at `common/game-page/todo.md`). Recommendation: wire it — but this is a
+cross-game question with a shared todo behind it, so the ruling may belong
+to `game-page` rather than here.
+
+### F-wordle-3 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, not `status.reason`
+
+`buildTerminalMessage` takes `timerExpired` off `timer.expired` — the
+browser's clock — where the RPC that ended the game wrote WHY into
+`common.games.status.reason` (`solved` · `exhausted` · `timeout` ·
+`conceded` · `manual`), which `labelFor` already reads for the club list.
+Two consequences: a `lost_compete` because everyone conceded reads "Nobody
+solved", and a timeout that lands while the local clock still shows a
+second reads as a guesses loss. The doc's *The play states* says as much,
+as today's state. connections' F-2 and psychicnum's F-5 fixed the same
+thing: the builder takes `reason` from `status`.
+
+Options: **read `status.reason`** — the builder's inputs become `mode ·
+playState · reason · selfWon · wonByClock · selfTiedWinner`, `lost_compete`
+gaining an "All conceded — no winner" sentence, `lib/terminal.test.ts`
+walking every word the column can hold, and the call site reading `status`
+(a prop it already destructures for the winner); or **leave the clock**.
+Recommendation: read the server's word.
+
+### F-wordle-4 · `compete-min-unchecked` · the server accepts a one-player race
+
+`wordleCompeteGame` says `[2, 6]` and its comment now says the minimum is
+the manifest's rule, which is true: `wordle.create_game` checks the maximum
+(`require_player_count_max(…, 6)`) and the mode's spelling, and a compete
+game with one player is created. psychicnum's and connections' `create_game`
+each raise a fault (`'BUG: race with fewer than two players'`) for the same
+case, on the reasoning that a solo race is a coop game with a timer, and
+`docs/features.md` records wordle among the games with no such check.
+Nothing reaches it today — the setup dialog hides compete in a one-player
+club — so a raise here is the server-side catch, not a fix for anything a
+player can do.
+
+Options: **add the raise**, the sibling games' shape, with the next free
+`PN` code and a `create_game_test.sql` case; or **leave it**, the manifest
+gating it and the trust model not asking for a second gate. Recommendation:
+add it — the two audited siblings have it, and a fault costs nothing.
+
+### F-wordle-5 · `unused-setup-prop` · `InfoCol` takes a `setup` it never reads
+
+`InfoCol`'s props type declares `setup: WordleSetup` under *Setup
+disclosure*, `PlayArea` passes it, and the component destructures only
+`setupRows` beside it — the disclosure renders the rows. The type import is
+what keeps the lint quiet: an unused member of a props type is not an unused
+variable. Options: **delete it** — the prop, the pass-through and the
+`WordleSetup` import from `InfoCol.tsx`; or keep it for a reader nobody has
+named. Recommendation: delete it, a prop with no reader being a claim the
+component makes about itself that is false.
 
 ## Notes
 
