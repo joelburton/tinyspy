@@ -23,10 +23,10 @@ import { useBoundAction } from '@/common/actions/useBoundAction'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import { useGame, type WordleGame, type WordlePlayerState, type EventRow } from '../hooks/useGame'
 import { historySnapshot } from '../lib/history'
+import { buildTerminalMessage } from '../lib/terminal'
 import type { WordleSetup } from '../lib/setup'
 import { memberById } from '@/common/members/memberList'
 import { BoardCol } from './BoardCol'
@@ -292,18 +292,18 @@ export function PlayArea({
     self.solved &&
     !!winnerState &&
     self.guesses_used === winnerState.guesses_used
-  const over = useMemo(
+  const terminalMessage = useMemo(
     () =>
       isTerminal
-        ? buildOver({ mode, playState, timerExpired: timer.expired, selfWon, wonByClock, selfTiedWinner })
+        ? buildTerminalMessage({ mode, playState, timerExpired: timer.expired, selfWon, wonByClock, selfTiedWinner })
         : null,
     [isTerminal, mode, playState, timer.expired, selfWon, wonByClock, selfTiedWinner],
   )
   useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    if (!terminalMessage) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(terminalMessage))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  }, [localFeedbackSlot, terminalMessage])
 
   // Locally terminal (compete only): I'm done — solved, or out of my own
   // guesses, or conceded — but the game continues for the others still racing.
@@ -564,9 +564,9 @@ export function PlayArea({
         localFeedbackSlot={localFeedbackSlot}
         // ── Board-scope marks ──
         // The finished board wears its verdict, and the keyboard goes with it:
-        // `over` is the same terminal message the slot shows, so the two can't
+        // `terminalMessage` is the same one the slot shows, so the two can't
         // disagree about how this game went.
-        gameOver={over ? over.outcome : null}
+        gameOver={terminalMessage ? terminalMessage.outcome : null}
         notMyTurn={waiting}
         myTurnJustStarted={turnFlash}
       />
@@ -576,7 +576,7 @@ export function PlayArea({
         // ── Mode + phase ──
         isCompete={isCompete}
         isTerminal={isTerminal}
-        over={over}
+        terminalMessage={terminalMessage}
         showInput={showInput}
         myConceded={myConceded}
         isPlayer={!!self}
@@ -616,61 +616,4 @@ export function PlayArea({
       {celebration.show && <CelebrationBlockingModal title="Solved! 🎉" onClose={celebration.close} />}
     </div>
   )
-}
-
-/**
- * Per-status terminal message. `outcome` + `pillText` are the below-board
- * verdict; `outcome` + `infoColText` are the short, color-coded info-column
- * outcome line. Mode- and (compete) self-aware.
- */
-function buildOver({
-  mode,
-  playState,
-  timerExpired,
-  selfWon,
-  wonByClock,
-  selfTiedWinner,
-}: {
-  mode: 'coop' | 'compete'
-  playState: string
-  timerExpired: boolean
-  selfWon: boolean
-  /** The winner tied another solver on guesses → the clock decided it. */
-  wonByClock: boolean
-  /** The viewer lost specifically on the clock (tied the winner's count). */
-  selfTiedWinner: boolean
-}): TerminalMessage {
-  // Manual end (wordle.end_game) → the shared neutral message. Deliberately
-  // NOT worded here: manual end is the one terminal every game shares, so it
-  // stays in one place rather than drifting per game.
-  if (playState === 'ended') return gameEndedTerminalMessage(mode)
-  if (mode === 'coop') {
-    if (playState === 'won') {
-      return { pillText: 'Won: solved it', infoColText: 'Solved it!', outcome: 'won' }
-    }
-    return {
-      pillText: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
-      infoColText: timerExpired ? 'Out of time' : 'Out of guesses',
-      outcome: 'lost',
-    }
-  }
-  // compete. The winner is fewest-guesses, clock-as-tiebreak — so the words
-  // distinguish "fewest guesses" from "same guesses, but faster".
-  if (playState === 'won_compete') {
-    if (selfWon) {
-      return wonByClock
-        ? { pillText: 'Won: same guesses, but faster', infoColText: 'You won (faster)', outcome: 'won' }
-        : { pillText: 'Won: fewest guesses', infoColText: 'You won!', outcome: 'won' }
-    }
-    return selfTiedWinner
-      ? { pillText: 'Lost: beaten on the clock', infoColText: 'Opponent won (faster)', outcome: 'lost' }
-      : { pillText: 'Lost: beaten on guesses', infoColText: 'Opponent won', outcome: 'lost' }
-  }
-  // lost_compete — nobody solved, or time ran out. No `Lost:` prefix: nobody was
-  // beaten, the board just ran out.
-  return {
-    pillText: timerExpired ? 'Out of time — no winner' : 'Nobody solved',
-    infoColText: timerExpired ? 'Out of time' : 'No winner',
-    outcome: 'lost',
-  }
 }

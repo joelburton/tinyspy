@@ -32,7 +32,7 @@ export function InfoCol({
   // ── Mode + phase ──
   isCompete,
   isTerminal,
-  over,
+  terminalMessage,
   showInput,
   myConceded,
   isPlayer,
@@ -66,7 +66,7 @@ export function InfoCol({
   isCompete: boolean
   isTerminal: boolean
   /** The terminal message when the game is over (drives the action row), else null. */
-  over: TerminalMessage | null
+  terminalMessage: TerminalMessage | null
   /** May I still submit? Gates the help line, and picks the row's line: false
    *  with the game still on means I am done in a race the others are still
    *  running — solved, out of guesses, or conceded. */
@@ -138,8 +138,8 @@ export function InfoCol({
   // The row's line, and the only thing that varies between states: the verdict
   // once the game is over, a neutral "you are done, they are not" while a race
   // runs on without you, and nothing at all while you can still play.
-  const rowMessage: InfoActionsMessage | undefined = over
-    ? { text: over.infoColText, outcome: over.outcome }
+  const rowMessage: InfoActionsMessage | undefined = terminalMessage
+    ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
     : showInput
       ? undefined
       : { text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
@@ -209,7 +209,7 @@ export function InfoCol({
           <ActionButton
             action={actBackToClub}
             show="icon"
-            weight={over ? 'primary' : 'secondary'}
+            weight={terminalMessage ? 'primary' : 'secondary'}
           />
         </InfoActionsRow>
 
@@ -228,7 +228,7 @@ export function InfoCol({
             The ONLY place the word shows: the below-board terminal pill carries the
             verdict alone (a one-line, ellipsizing row), so the answer lives here
             where it has room to be a sentence and a click-to-define target. */}
-        {over && solution && (
+        {terminalMessage && solution && (
           <div className={shared.terminalExtra}>
             <p className={cls(shared.infoState, styles.answerLine)}>
               The answer was <DefinableWord word={solution} className={styles.answerReveal} />

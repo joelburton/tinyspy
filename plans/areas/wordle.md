@@ -7,17 +7,18 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/wordle/todo.md`, not here.
 
-**Status: OPEN** (2026-09-22). Pass 1, the restructure: Steps 0–5 done, Step
-6 (the builder to `lib/`) next. **Three passes back to back**, psychicnum's and
+**Status: OPEN** (2026-09-22). Pass 1, the restructure: Steps 0–6 done, Step
+7 (the section order) next. **Three passes back to back**, psychicnum's and
 connections' shape: restructure → audit → tile-feedback.
 
 ## The roster
 
-Agreed with Joel 2026-09-22, `cs-met-wordle` — **44 stamped files**:
+Agreed with Joel 2026-09-22, `cs-met-wordle` — **44 stamped files** at the
+opening, 46 with Step 6's two:
 
 | where | how many | note |
 |---|---|---|
-| `src/wordle/` | 30 | nine arrived `cs-fixed-outcome-fix` — that area ruled its files belong to their own area, which is this one |
+| `src/wordle/` | 32 | nine arrived `cs-fixed-outcome-fix` — that area ruled its files belong to their own area, which is this one; **`lib/terminal.ts` + `.test.ts` created by Step 6** (2026-09-22) and stamped with the rest |
 | `supabase/migrations/` | 2 | `20260625000000_wordle.sql`, `20260917000001_wordle_events.sql` |
 | `supabase/sql/wordle.sql` | 1 | also `cs-fixed-outcome-fix` |
 | `supabase/tests/wordle/` | 11 | every pgTAP file but one |
@@ -317,6 +318,41 @@ test file's action-row docstring says the one row.
 
 Verified: `tsc -b` clean, lint clean over `src/wordle/`, 381 unit tests green
 (the game's and the guards). The e2e specs have not run for Steps 2–5.
+
+### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-22
+
+connections' Step 6 (`95d7872a`), copied, with Joel's rename ruling applied
+from the start: the builder is **`buildTerminalMessage`** in
+`lib/terminal.ts` — Joel's word is "terminal", not "over" — the value it
+produces is `terminalMessage`, and InfoCol's `over` prop is `terminalMessage`
+too. `<Board gameOver>` keeps its name, being the shared vocabulary backed by
+the `.gameOver*` classes. `PlayArea.tsx` no longer imports
+`gameEndedTerminalMessage` or the `TerminalMessage` type; the `useMemo` on
+primitives that feeds the verdict effect stays there, as planned.
+
+**A pure move, no signature change.** The builder's inputs were already
+`mode · playState · timerExpired · selfWon · wonByClock · selfTiedWinner`,
+every one a primitive the component derives; none compared a count to a
+constant of the component file, so nothing had to be renamed on the way out.
+Same branches, same words.
+
+`lib/terminal.test.ts` walks the whole input space — every terminal play
+state (`won` · `lost` · `ended` · `won_compete` · `lost_compete`) in both
+modes, the clock run out and not, the caller winning on guesses or on the
+clock and losing the same two ways — and the last case is a TABLE: no cell
+pairs a winning sentence with a losing outcome, both texts are filled,
+neither is punctuated. Both files join the roster at `cs-met-wordle`.
+
+**Known and left for pass 2, as connections' F-2 was:** the builder decides
+the reason from the client clock (`timer.expired`) where the server wrote why
+into `status.reason` (`solved` · `exhausted` · `timeout` · `conceded` ·
+`manual`), which the club-list label already reads. Two consequences: a
+`lost_compete` because everyone conceded reads "Nobody solved", and a
+timeout that lands while the local clock still shows a second reads as a
+guesses loss. Pass 2's finding, with the SQL open.
+
+Verified: `tsc -b` clean, lint clean over `src/wordle/`, 396 unit tests green
+(the game's and the guards). The e2e specs have not run for Steps 2–6.
 
 ## Findings
 
