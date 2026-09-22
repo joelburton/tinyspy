@@ -3,6 +3,8 @@
 -- ============================================================
 -- Test: wordle.submit_timeout + wordle.end_game (terminals)
 -- ============================================================
+-- The timeout in both modes — coop's loss, and a race ended as it stands with
+-- and without a solver — then the manual end.
 
 begin;
 set search_path = wordle, common, public, extensions;
@@ -10,7 +12,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(8);
+select plan(15);
 
 -- ── Coop timeout → lost ─────────────────────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -37,6 +39,63 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'submit_timeout is idempotent (a second call is a race)');
+
+-- ── Compete timeout with a solver → won_compete, the same status a
+--    natural finish writes ─────────────────────────────────────
+-- The clock ends the race as it stands: whoever solved in the fewest guesses
+-- wins, the reason is 'timeout', and the status carries the winner's count the
+-- way _maybe_finish_compete's does — one finisher writes both endings.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table club3 on commit drop as
+select pg_temp.create_club('Wordle t3', array['ada', 'bea']) as handle;
+create temp table g3 on commit drop as
+select (wordle.create_game(
+  (select handle from club3), pg_temp.wordle_setup(6),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete')->'data'->>'id')::uuid as id;
+reset role;
+create temp table tgt3 on commit drop as
+select target::text as w from wordle.games where id = (select id from g3);
+grant select on tgt3 to authenticated;
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select wordle.submit_guess((select id from g3), (select w from tgt3));
+select wordle.submit_timeout((select id from g3));
+reset role;
+select is(
+  (select play_state from common.games where id = (select id from g3)),
+  'won_compete', 'compete timeout with a solver → won_compete');
+select is(
+  (select status->>'reason' from common.games where id = (select id from g3)),
+  'timeout', 'compete timeout: status.reason = timeout');
+select is(
+  (select (status->>'winner_user_id')::uuid from common.games where id = (select id from g3)),
+  'ada11111-1111-1111-1111-111111111111'::uuid, 'compete timeout: the solver is the winner');
+select is(
+  (select (status->>'winner_guesses')::int from common.games where id = (select id from g3)),
+  1, 'compete timeout: the status names the winner''s guess count, as a natural finish does');
+select is(
+  (select (result->>'won')::boolean from common.game_players
+    where game_id = (select id from g3) and user_id = 'bea22222-2222-2222-2222-222222222222'),
+  false, 'compete timeout: the racer still guessing did not win');
+
+-- ── Compete timeout with nobody solved → lost_compete ───────
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g4 on commit drop as
+select (wordle.create_game(
+  (select handle from club3), pg_temp.wordle_setup(6),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete')->'data'->>'id')::uuid as id;
+select wordle.submit_timeout((select id from g4));
+reset role;
+select is(
+  (select play_state from common.games where id = (select id from g4)),
+  'lost_compete', 'compete timeout with nobody solved → lost_compete');
+select is(
+  (select status->>'reason' || ':' || coalesce(status->>'winner_user_id', 'none')
+     from common.games where id = (select id from g4)),
+  'timeout:none', 'compete timeout: reason timeout, no winner recorded');
 
 -- ── Manual end (end_game) → neutral 'ended' ─────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

@@ -18,6 +18,7 @@ import { buildTerminalMessage } from './terminal'
 const base = {
   reason: 'exhausted' as string | undefined,
   selfWon: false,
+  selfSolved: false,
   wonByClock: false,
   selfTiedWinner: false,
 }
@@ -81,6 +82,28 @@ describe('compete', () => {
     ).toEqual({ pillText: 'Lost: beaten on the clock', infoColText: 'Opponent won (faster)', outcome: 'lost' })
   })
 
+  // The clock ending a race SOMEBODY had solved: the racer still guessing was
+  // stopped, not outscored; the winner solved in time; a solver who had used
+  // more guesses was beaten on them all the same; a tie is still a tie.
+  it('a race the clock ended with a solver says so, on both sides', () => {
+    const timedOut = { ...base, mode: 'compete', playState: 'won_compete', reason: 'timeout' } as const
+    expect(buildTerminalMessage({ ...timedOut, selfWon: true, selfSolved: true })).toEqual({
+      pillText: 'Won: solved before time ran out', infoColText: 'You won!', outcome: 'won',
+    })
+    expect(buildTerminalMessage({ ...timedOut })).toEqual({
+      pillText: 'Lost: time ran out', infoColText: 'Opponent won', outcome: 'lost',
+    })
+    expect(buildTerminalMessage({ ...timedOut, selfSolved: true })).toEqual({
+      pillText: 'Lost: beaten on guesses', infoColText: 'Opponent won', outcome: 'lost',
+    })
+    expect(buildTerminalMessage({ ...timedOut, selfSolved: true, selfTiedWinner: true })).toEqual({
+      pillText: 'Lost: beaten on the clock', infoColText: 'Opponent won (faster)', outcome: 'lost',
+    })
+    expect(buildTerminalMessage({ ...timedOut, selfWon: true, selfSolved: true, wonByClock: true })).toEqual({
+      pillText: 'Won: same guesses, but faster', infoColText: 'You won (faster)', outcome: 'won',
+    })
+  })
+
   it('a race nobody finished says which of the three ways it ran out', () => {
     expect(buildTerminalMessage({ ...base, mode: 'compete', playState: 'lost_compete' })).toEqual({
       pillText: 'Nobody solved',
@@ -111,11 +134,11 @@ describe('compete', () => {
     expect(msg.pillText).toBe('Game ended — no winner')
   })
 
-  // The three caller flags are compete questions. Coop reads none of them: the
+  // The four caller flags are compete questions. Coop reads none of them: the
   // team won or the team did not.
   it('coop ignores the caller flags; compete is the only mode that asks', () => {
     const coopLoss = { ...base, mode: 'coop', playState: 'lost' } as const
-    expect(buildTerminalMessage({ ...coopLoss, selfWon: true, wonByClock: true, selfTiedWinner: true })).toEqual(
+    expect(buildTerminalMessage({ ...coopLoss, selfWon: true, selfSolved: true, wonByClock: true, selfTiedWinner: true })).toEqual(
       buildTerminalMessage(coopLoss),
     )
   })
@@ -147,19 +170,22 @@ describe('every terminal state, in both modes, for every reason and every caller
 
   it.each(CASES)('$mode/$playState (selfWon $selfWon) reads $outcome, with both texts filled', (c) => {
     for (const reason of REASONS) {
-      for (const wonByClock of [false, true]) {
-        for (const selfTiedWinner of [false, true]) {
-          const msg = buildTerminalMessage({
-            mode: c.mode, playState: c.playState, selfWon: c.selfWon,
-            reason, wonByClock, selfTiedWinner,
-          })
-          expect(msg.outcome).toBe(c.outcome)
-          expect(msg.pillText.length).toBeGreaterThan(0)
-          expect(msg.infoColText.length).toBeGreaterThan(0)
-          // A pill LABEL, never a sentence — it ellipsizes at about 48 characters
-          // on a phone, and nothing in this vocabulary is punctuated.
-          expect(msg.pillText.endsWith('.')).toBe(false)
-          expect(msg.infoColText.endsWith('.')).toBe(false)
+      for (const selfSolved of [false, true]) {
+        for (const wonByClock of [false, true]) {
+          for (const selfTiedWinner of [false, true]) {
+            const msg = buildTerminalMessage({
+              mode: c.mode, playState: c.playState, selfWon: c.selfWon,
+              reason, selfSolved, wonByClock, selfTiedWinner,
+            })
+            expect(msg.outcome).toBe(c.outcome)
+            expect(msg.pillText.length).toBeGreaterThan(0)
+            expect(msg.infoColText.length).toBeGreaterThan(0)
+            // A pill LABEL, never a sentence — it ellipsizes at about 48
+            // characters on a phone, and nothing in this vocabulary is
+            // punctuated.
+            expect(msg.pillText.endsWith('.')).toBe(false)
+            expect(msg.infoColText.endsWith('.')).toBe(false)
+          }
         }
       }
     }

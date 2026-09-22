@@ -14,7 +14,9 @@ import {
  * lost = red, a manual end = neutral). Both come back in one object so the two
  * surfaces cannot disagree. Coop verdicts are team-wide. Compete is won by
  * fewest guesses with the clock as the tie-break, so its words tell "fewest
- * guesses" from "same guesses, but faster" on both sides of the result.
+ * guesses" from "same guesses, but faster" on both sides of the result — and a
+ * race the countdown ended tells a racer still guessing that time ran out,
+ * rather than that they were beaten on a count they never finished.
  *
  * Verdicts are terse and unpunctuated ("Lost: out of guesses"), the shared
  * sweep vocabulary — the pill is a fixed-height, ellipsizing row that has to
@@ -26,6 +28,7 @@ export function buildTerminalMessage({
   playState,
   reason,
   selfWon,
+  selfSolved,
   wonByClock,
   selfTiedWinner,
 }: {
@@ -38,6 +41,9 @@ export function buildTerminalMessage({
   reason: string | undefined
   // Compete: is the caller the winner? (Coop verdicts ignore it.)
   selfWon: boolean
+  // Compete: had the caller solved it? Tells a racer the clock stopped from
+  // one it merely outranked.
+  selfSolved: boolean
   // Compete: the winner tied another solver on guesses, so the clock decided it.
   wonByClock: boolean
   // Compete: the caller lost specifically on the clock — solved it in the
@@ -60,14 +66,25 @@ export function buildTerminalMessage({
   }
   // compete
   if (playState === 'won_compete') {
+    // A countdown that ran out with a solver on the board is a win by the same
+    // rule — fewest guesses among those who finished — but the racer who had
+    // not finished was stopped by the clock, not outscored, and a winner with
+    // nobody to be fewest than solved in time. A tie broken by solved_at is
+    // still a tie, whatever ended the race.
     if (selfWon) {
       return wonByClock
         ? { pillText: 'Won: same guesses, but faster', infoColText: 'You won (faster)', outcome: 'won' }
-        : { pillText: 'Won: fewest guesses', infoColText: 'You won!', outcome: 'won' }
+        : reason === 'timeout'
+          ? { pillText: 'Won: solved before time ran out', infoColText: 'You won!', outcome: 'won' }
+          : { pillText: 'Won: fewest guesses', infoColText: 'You won!', outcome: 'won' }
     }
-    return selfTiedWinner
-      ? { pillText: 'Lost: beaten on the clock', infoColText: 'Opponent won (faster)', outcome: 'lost' }
-      : { pillText: 'Lost: beaten on guesses', infoColText: 'Opponent won', outcome: 'lost' }
+    if (selfTiedWinner) {
+      return { pillText: 'Lost: beaten on the clock', infoColText: 'Opponent won (faster)', outcome: 'lost' }
+    }
+    if (reason === 'timeout' && !selfSolved) {
+      return { pillText: 'Lost: time ran out', infoColText: 'Opponent won', outcome: 'lost' }
+    }
+    return { pillText: 'Lost: beaten on guesses', infoColText: 'Opponent won', outcome: 'lost' }
   }
   // lost_compete: the clock, every racer conceded, or the guesses. A MIXED
   // table — one quit, one played it out — is `exhausted`, the server's own call

@@ -915,7 +915,28 @@ words are that code still defending against a restart "reads as load-bearing
 to the next person", and the two specs are worse than dead, since they pass
 against a path the app cannot take.
 
-### F-wordle-8 · `won-by-timeout` · a race the clock ends with a solver is under-recorded by the server and mis-described by the client
+### SHIPPED · F-wordle-8 · `won-by-timeout` · a race the clock ends with a solver is under-recorded by the server and mis-described by the client
+
+**Joel, 2026-09-22: option 1.** `wordle._finish_compete(target_game,
+clock_ran_out)` is the one place a race's ending is written — the winner, the
+results, the state and the whole status, `winner_guesses` included;
+`_maybe_finish_compete` keeps only the still-racing check and calls it with
+`false`, `submit_timeout`'s compete branch is one line calling it with `true`.
+**One deviation from the shape shown**: the second argument is a boolean, not
+the reason — the reason needs the winner, which the finisher computes, so
+passing a reason in would have meant computing the winner twice. The client
+builder takes `selfSolved` (PlayArea's `mySolved`) and says, for a
+`won_compete` whose reason is `timeout`: *Won: solved before time ran out* to
+the winner, *Lost: time ran out* to a racer who had not solved, while a solver
+who was outranked still reads *beaten on guesses* and a tie still reads *beaten
+on the clock* — my words, placeholders until ruled. Tests: `terminal.test.ts`
+walks the five timeout cells and its table gains the `selfSolved` axis;
+`PlayArea.test.tsx` wires a timed-out race to the racer still guessing;
+`end_game_test.sql` gains the compete timeout with a solver (state, reason,
+winner, the count, the loser) and without one. **Verified by planting two
+faults**: the finisher without `winner_guesses` (2 red — the new pin and
+`compete_test`'s) and the client without the timeout branch (2 red), both
+restored. `tsc -b`, lint, 401 unit tests, pgTAP 181 files / 2554 PASS.
 
 `submit_timeout`'s compete branch builds the winner, the per-player results and
 the terminal status by hand — a duplicate of `_maybe_finish_compete`'s three

@@ -261,9 +261,11 @@ export function PlayArea({
   const terminalMessage = useMemo(
     () =>
       isTerminal
-        ? buildTerminalMessage({ mode, playState, reason, selfWon, wonByClock, selfTiedWinner })
+        ? buildTerminalMessage({
+            mode, playState, reason, selfWon, selfSolved: mySolved, wonByClock, selfTiedWinner,
+          })
         : null,
-    [isTerminal, mode, playState, reason, selfWon, wonByClock, selfTiedWinner],
+    [isTerminal, mode, playState, reason, selfWon, mySolved, wonByClock, selfTiedWinner],
   )
   useEffect(function showTerminalVerdict() {
     if (!terminalMessage) return

@@ -371,22 +371,24 @@ revoke execute on function wordle.create_game(text, jsonb, uuid[], text) from pu
 grant execute on function wordle.create_game(text, jsonb, uuid[], text) to authenticated;
 
 -- ============================================================
--- wordle._maybe_finish_compete — end the compete game if it's over
+-- wordle._finish_compete — end a compete game, whatever ended it
 -- ============================================================
--- A compete game ends when NO player is still racing. A player is
--- racing while they're not conceded, not solved, and have guesses
--- left. Shared by submit_guess (a guess can be the last move) and
--- wordle.concede (a drop-out can be — if everyone else already
--- finished, the concede is what empties the racing set).
+-- The ONE place a race's ending is written: the winner, every player's
+-- result, the play state and the status. Two callers — _maybe_finish_compete
+-- when nobody is still racing, submit_timeout when the clock runs out — and
+-- neither builds any of it itself, so the status cannot carry a key in one
+-- ending and lack it in the other.
 --
--- Winner = the player who solved in the FEWEST guesses (tie-break
--- earliest solved_at), EXCLUDING conceders — a drop-out forfeits any
--- win. NULL if nobody eligible solved → a collective loss.
+-- Winner = the player who solved in the FEWEST guesses (tie-break earliest
+-- solved_at), EXCLUDING conceders — a drop-out forfeits any win. NULL if
+-- nobody eligible solved → a collective loss.
 --
--- Returns true when it ended the game (submit_guess surfaces this as
--- its `terminal` flag), false when someone is still racing.
-create or replace function wordle._maybe_finish_compete(target_game uuid)
-returns boolean
+-- `clock_ran_out` picks the reason: 'timeout' when the clock ended it, else
+-- the race's own — 'solved' with a winner; with none, 'conceded' only when
+-- EVERY player conceded, since a mixed table (one quit, one ran out) had
+-- somebody play it to the end, which is 'exhausted'.
+create or replace function wordle._finish_compete(target_game uuid, clock_ran_out boolean)
+returns void
 language plpgsql
 security definer
 set search_path = wordle, common, public, extensions
@@ -395,26 +397,8 @@ declare
   winner_id      uuid;
   player_results jsonb;
   term_state     text;
-  v_reason      text;
-  v_max          int;
+  v_reason       text;
 begin
-  select max_guesses into v_max from wordle.games where id = target_game;
-
-  -- Anyone still racing? (not conceded, not solved, guesses left)
-  if exists (
-    select 1
-      from wordle.players wp
-      join common.game_players gp
-        on gp.game_id = wp.game_id and gp.user_id = wp.user_id
-     where wp.game_id = target_game
-       and not gp.conceded
-       and not wp.solved
-       and wp.guesses_used < v_max
-  ) then
-    return false;
-  end if;
-
-  -- Everyone's done → pick the winner among solved, non-conceded players.
   select wp.user_id into winner_id
     from wordle.players wp
     join common.game_players gp
@@ -438,11 +422,8 @@ begin
   term_state := case when winner_id is not null
                      then 'won_compete' else 'lost_compete' end;
 
-  -- Why a no-winner race ended, for the club-list label: everyone burned their
-  -- guesses without solving it, versus everyone walked away. 'conceded' only
-  -- when EVERY player conceded — a mixed table (one quit, one ran out) is
-  -- 'exhausted', because somebody did play it to the end.
   select case
+           when clock_ran_out then 'timeout'
            when winner_id is not null then 'solved'
            when not exists (select 1 from common.game_players gp
                              where gp.game_id = target_game and not gp.conceded)
@@ -466,6 +447,49 @@ begin
                                              and wp.user_id = winner_id)),
     player_results
   );
+end;
+$$;
+
+revoke execute on function wordle._finish_compete(uuid, boolean) from public;
+
+-- ============================================================
+-- wordle._maybe_finish_compete — end the compete game if it's over
+-- ============================================================
+-- A compete game ends when NO player is still racing. A player is
+-- racing while they're not conceded, not solved, and have guesses
+-- left. Shared by submit_guess (a guess can be the last move) and
+-- wordle.concede (a drop-out can be — if everyone else already
+-- finished, the concede is what empties the racing set). The ending
+-- itself is _finish_compete's.
+--
+-- Returns true when it ended the game (submit_guess surfaces this as
+-- its `terminal` flag), false when someone is still racing.
+create or replace function wordle._maybe_finish_compete(target_game uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = wordle, common, public, extensions
+as $$
+declare
+  v_max int;
+begin
+  select max_guesses into v_max from wordle.games where id = target_game;
+
+  -- Anyone still racing? (not conceded, not solved, guesses left)
+  if exists (
+    select 1
+      from wordle.players wp
+      join common.game_players gp
+        on gp.game_id = wp.game_id and gp.user_id = wp.user_id
+     where wp.game_id = target_game
+       and not gp.conceded
+       and not wp.solved
+       and wp.guesses_used < v_max
+  ) then
+    return false;
+  end if;
+
+  perform wordle._finish_compete(target_game, false);
   return true;
 end;
 $$;
@@ -798,9 +822,9 @@ grant execute on function wordle.concede(uuid) to authenticated;
 -- ============================================================
 -- Fired by the FE when a countdown hits 0 (every player races to call
 -- it). Idempotent on the play_state check. Coop: not solved → lost.
--- Compete: time's up — the winner is whoever solved in the fewest
--- guesses (same rule as a natural finish); nobody solved →
--- lost_compete.
+-- Compete: time's up — _finish_compete ends the race as it stands, the
+-- winner being whoever solved in the fewest guesses (the same rule as a
+-- natural finish) and the reason 'timeout' either way.
 drop function if exists wordle.submit_timeout(uuid);
 
 create or replace function wordle.submit_timeout(target_game uuid)
@@ -813,8 +837,6 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row              wordle.games%rowtype;
   current_play_state text;
-  winner_id          uuid;
-  term_state         text;
   player_results     jsonb;
 begin
   select * into g_row from wordle.games where id = target_game for update;
@@ -841,33 +863,7 @@ begin
       player_results
     );
   else
-    -- Winner among solved, non-conceded players (a drop-out forfeits).
-    select wp.user_id into winner_id
-      from wordle.players wp
-      join common.game_players gp
-        on gp.game_id = wp.game_id and gp.user_id = wp.user_id
-     where wp.game_id = target_game and wp.solved and not gp.conceded
-     order by wp.guesses_used asc, wp.solved_at asc
-     limit 1;
-    select jsonb_object_agg(
-             user_id::text,
-             jsonb_build_object(
-               'won',     coalesce(user_id = winner_id, false),
-               'solved',  solved,
-               'guesses', guesses_used
-             )
-           )
-      into player_results
-      from wordle.players
-     where game_id = target_game;
-    term_state := case when winner_id is not null
-                       then 'won_compete' else 'lost_compete' end;
-    perform common.end_game(
-      target_game, term_state,
-      jsonb_build_object('mode', 'compete', 'reason', 'timeout',
-                         'winner_user_id', winner_id, 'winner_username', (select username from common.profiles where user_id = winner_id)),
-      player_results
-    );
+    perform wordle._finish_compete(target_game, true);
   end if;
 
   -- The game is over either way — the title becomes the answer.

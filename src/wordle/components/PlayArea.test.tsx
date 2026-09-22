@@ -488,6 +488,28 @@ describe('wordle PlayArea — terminal flow', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
+  // A race the clock ended with a solver: the racer still guessing reads that
+  // time ran out, from the server's reason and their own unsolved row — not
+  // "beaten on guesses", a count they never finished.
+  it('a timed-out race tells the racer still guessing that time ran out', () => {
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
+      me,
+      { ...moth, solved: true, guesses_used: 3 },
+    ])
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          players: twoMembers,
+          isTerminal: true,
+          playState: 'won_compete',
+          status: { reason: 'timeout', winner_user_id: 'u2' },
+        })}
+      />,
+    )
+    expect(screen.getByText('Lost: time ran out')).toBeInTheDocument()
+    expect(screen.getByText('Opponent won')).toBeInTheDocument()
+  })
+
   // THE WIRE, end to end: the verdict names the reason the SERVER wrote, not
   // one the page infers from its own clock. An all-conceded race is the case
   // where the two part company — the clock never ran out, so a clock-reading
