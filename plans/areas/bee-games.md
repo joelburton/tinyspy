@@ -24,7 +24,8 @@ F-bee-games-1 to -7; nothing in the code moved at the read.** One is the prose
 pass (F-1); one is the effect-name convention (F-2); two are docstrings that
 describe history or repeat a ruling (F-3, F-4); one is a spec gap confirmed by
 planting (F-5); one is a count and an imprecise reader (F-6); **and one is a
-reachable BUG (F-7)** whose cause is upstream of this folder.
+reachable BUG (F-7)** whose cause is upstream of this folder — ruled and
+shipped the same day, at the gate, fixing all sixteen games.
 
 ## The roster
 
@@ -190,6 +191,38 @@ the strip and the climb narration cannot disagree.
 
 ### F-bee-games-7 · `stale-game-on-invite-join` · Accepting an invitation from a game page shows the OLD game's board
 
+**RULED (1) AND SHIPPED, 2026-09-21** (Joel: *"q1. fix-at-game / q2. yes, add
+spec"*). Fixed at the gate, so all sixteen games are fixed rather than these two.
+
+**THE MECHANISM CHANGED, and the option as written would not have passed
+lint.** Option 1 said `setExists('checking')` at the top of the effect — a
+synchronous setState in an effect body, which this repo's eslint ERRORS on
+(`react-hooks/set-state-in-effect`). The sanctioned pattern is the one the rule
+points at: **derive at render, storing the context the value was computed
+against.** So `exists` is no longer state — the gate stores
+`{ id, exists }` and derives:
+
+```ts
+const exists = answer?.id === gameId ? answer.exists : 'checking'
+```
+
+Strictly better than the reset it replaces: `exists` cannot describe an id other
+than the one being rendered, by construction, so there is no clearing step to
+forget and a late answer for the previous id cannot be shown either.
+
+**The spec was written FIRST and seen red** (`expected <div></div> to be null` —
+the old surface still on screen after the id changed), then green, then
+planted: dropping the `answer?.id === gameId` comparison fails it again. It
+asserts the property rather than the implementation — a different `gameId`
+REMOUNTS the play surface — counted with the mount-counting `PlayArea` the file
+already uses for the restart case, which is deterministic where catching a
+transient `<Loading/>` would not be.
+
+`GamePage.test.tsx` 14 → 15 cases; 58 green in `game-page`, 3361 across `src`.
+**No file was re-stamped:** `GamePageGate.tsx` and `GamePage.test.tsx` keep
+`cs-blessed-game-page`, since this is a conformance edit into a closed area and
+the blessing is Joel's to re-set.
+
 **A bug, reachable through the app's central social flow, and its cause is
 upstream of this folder.**
 
@@ -276,7 +309,8 @@ row and writes no governed literal; no `/**` marker survives inside a type body;
 - F-1: `src/guards/folderDocs.test.ts` — `shared/bee-games` comes off
   `INTROS_OWED` in the same commit as the intro, or the guard fails either way.
 - F-5: four cases more in `makeBeeGame.test.ts` (7 → 11).
-- F-7 (1): a new case in `game-page`'s gate spec, not in this folder.
+- ~~F-7 (1): a new case in `game-page`'s gate spec, not in this folder.~~
+  Shipped — `GamePage.test.tsx` 14 → 15, written red first.
 
 ## Closing
 

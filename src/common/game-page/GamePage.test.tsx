@@ -194,6 +194,35 @@ describe('GamePage — mounting', () => {
     expect(screen.getByText('play')).toBeInTheDocument()
   })
 
+  it('starts over when the URL names a DIFFERENT game — the surface remounts', async () => {
+    // Reachable from inside a game: the invitation toast is mounted in App, so
+    // `join` navigates /g/<type>/A → /g/<type>/B, which changes this route's
+    // params without unmounting it. The gate is what has to notice, because
+    // GamePage keys the surface on `restarts` — right for a restart, silent
+    // about a different game — and a game's own useGame hook refetches on
+    // `gameId` without clearing what it already holds. So without the gate
+    // going back to 'checking', the player reads game A's board under B's URL.
+    let mounts = 0
+    const Counting = () => {
+      useEffect(() => {
+        mounts += 1
+      }, [])
+      return <div>play</div>
+    }
+    const { view } = await mount(commonGameState(), makeManifest({ PlayArea: Counting }))
+    expect(mounts).toBe(1)
+
+    const OTHER_GAME = '99999999-8888-7777-6666-555555555555'
+    view.rerender(
+      <GamePageGate urlGametype={GAMETYPE} gameId={OTHER_GAME} session={session} />,
+    )
+    // Before the new read answers, the old surface must already be gone.
+    expect(screen.queryByText('play')).toBeNull()
+
+    await act(async () => { await Promise.resolve() })
+    expect(mounts).toBe(2)
+  })
+
   it('says so when the URL names a gametype the registry has never heard of', async () => {
     // A different screen from the calm "no game here" card on purpose: the app
     // cannot name the thing the link asks for, which is a fault, not a 404.

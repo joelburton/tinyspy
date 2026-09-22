@@ -81,7 +81,23 @@ const isGameId = (s: string) =>
  */
 export function GamePageGate({ urlGametype, gameId, session }: Props) {
   const manifest = manifestFor(urlGametype.toLowerCase())
-  const [exists, setExists] = useState<'checking' | 'yes' | 'no' | NotOkEnvelope>('checking')
+  // The existence answer, stored WITH the id it answers for — and `exists`
+  // DERIVED from the pair, so an id we have no answer for is 'checking' by
+  // construction rather than by an effect that remembers to clear.
+  //
+  // It has to notice a different id, because nothing below does. Navigating
+  // game → game happens inside this route (the invitation toast's `join`
+  // changes only the params), `GamePage` keys the play surface on `restarts` —
+  // right for a restart, silent about a different game — and a game's own
+  // `useGame` refetches on `gameId` while keeping the header and rows it
+  // already holds. Saying 'checking' is what unmounts the subtree, so every
+  // game's hooks start the new game clean; without it the player reads the
+  // previous game's board under the new game's URL.
+  const [answer, setAnswer] = useState<{
+    id: string
+    exists: 'yes' | 'no' | NotOkEnvelope
+  } | null>(null)
+  const exists = answer?.id === gameId ? answer.exists : 'checking'
 
   // Entering a game fetches its chunk anyway, so the stale-build check rides
   // along; a tab open across a deploy reloads here rather than playing on old
@@ -99,7 +115,10 @@ export function GamePageGate({ urlGametype, gameId, session }: Props) {
       // Three-way on purpose. Collapsing a FAILED read into "no" would tell a
       // player their game is gone because the network blinked — the confident
       // wrong answer this whole area exists to stop.
-      setExists(res.type === 'not-ok' ? res : res.data.length > 0 ? 'yes' : 'no')
+      setAnswer({
+        id: gameId,
+        exists: res.type === 'not-ok' ? res : res.data.length > 0 ? 'yes' : 'no',
+      })
     }
     void readAndAnswer()
     return function ignoreALateAnswer() {
