@@ -198,7 +198,7 @@ board shape differ). See spellingbee.md → *RPCs* for the full contracts.
   tile multiplicity (an over-demanding word simply isn't in the shipped list, so the
   FE never submits it).
 - `wordwheel.submit_timeout` / `end_game` / `replay_board` / `concede` — as spellingbee.
-- Helper: `wordwheel._rank_idx(score, total)` — the shared 7-tier ladder.
+- Helper: `common._rank_idx(score, total)` — the shared 7-tier ladder, one function for both bee games.
 
 **What `submit_word` answers** ([envelopes.md](../envelopes.md)) — the same four
 as spellingbee, under wordwheel's own codes:

@@ -8,8 +8,8 @@
  * linearly between 0 and GENIUS_AT. The same constants drive:
  *   - the FE's <RankBar> visualization;
  *   - the compete-mode "first to target_rank wins" check in each game's
- *     `submit_word` RPC. The RPC's `<schema>._rank_idx` computes the same
- *     number via integer math; the formula `(score * 60) / (total * 7)` is the
+ *     `submit_word` RPC. That RPC calls `common._rank_idx`, which computes the
+ *     same number via integer math; the formula `(score * 60) / (total * 7)` is the
  *     algebraic rearrangement of this file's `score >= rankThreshold(i) * total`,
  *     derived to avoid PL/pgSQL floating point.
  *
@@ -49,7 +49,7 @@ export function rankThreshold(i: number): number {
  *  number (e.g. i=5, total=108 → 63.00000000000001) and make `Math.ceil`
  *  overshoot by one. The algebraically-identical `(i * 7 * total) / 60`
  *  keeps the numerator an exact integer, so the label matches the
- *  integer win-check in the SQL `_rank_idx` and the bar fill in
+ *  integer win-check in `common._rank_idx` and the bar fill in
  *  `currentRankIndex` (see the lockstep note atop this file). */
 export function rankPoints(i: number, total: number): number {
   return Math.ceil((i * 7 * total) / 60)

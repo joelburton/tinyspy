@@ -249,6 +249,31 @@ on the division, which is the guard's whole point).
 **Correction to the finding as recorded:** it said 12 call sites per game. It is
 10 — `grep -c` counted the `create or replace` and `revoke` lines too.
 
+**THE MOVE WAS INCOMPLETE, and a `gen-types` run is what found it
+(2026-09-21).** Deleting a `create or replace` from `supabase/sql/` does NOT
+remove the function from a database that already has it — that file is
+**re-applied, not diffed**. So `spellingbee._rank_idx` and
+`wordwheel._rank_idx` were still live in the local database after the move, and
+would have stayed live on prod through every future deploy: two orphaned
+functions nothing called and nothing would ever drop.
+
+It surfaced because the regenerated `db.ts` listed `_rank_idx` **three** times —
+`common`, `spellingbee`, `wordwheel` — and `pg_proc` confirmed all three
+existed. Both games' SQL now carries `drop function if exists
+<schema>._rank_idx(int, int);` with a note saying why a retired signature has to
+say so, which is what the other sixteen SQL files already do (every one of them
+has drops; `common.sql` has nineteen). After re-applying, `pg_proc` returns
+`common._rank_idx` alone.
+
+**No migration.** The drop lives in `supabase/sql/`, re-applied in full on every
+deploy, so an ordinary `gmake deploy` retires them on prod — nothing to
+back-fill and no shape change.
+
+**The lesson is about what a regen is for.** `db.ts` had been flagged as merely
+stale, cosmetic, "nothing calls it". It was the evidence of a live defect in the
+database, and reading its diff was what turned a bookkeeping chore into the
+find. 181 pgTAP files / 2545 green after the drops; 3372 FE green.
+
 `_rank_idx` is **byte-identical** in `spellingbee.sql:156` and
 `wordwheel.sql:156` apart from the schema name and its `search_path`. And
 **nothing asserts it**: `_rank_idx` appears in `supabase/tests/` exactly once,

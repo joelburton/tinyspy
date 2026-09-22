@@ -31,9 +31,15 @@ type Props = {
  *
  * The ladder's own colors (`--rank-bar-fill-color` / `--rank-bar-edge-color`) are shared by both
  * games — see the CSS module; only the type color `--rank-text` is aliased per
- * game in its `theme.css`. Pure derivation from
- * `score` + `total` via `currentRankIndex`; the FE never disagrees with the SQL
- * `_rank_idx` because both compute from the same constants.
+ * game in its `theme.css`.
+ *
+ * Pure derivation from `score` + `total` via `currentRankIndex`, which agrees
+ * with the SQL `common._rank_idx` that decides a compete win — not because they
+ * share code or constants but because the integer expression there is the
+ * algebraic rearrangement of the float comparison here. `rankLadder.ts` carries
+ * the derivation, and a pgTAP per caller pins the two at every rank boundary.
+ * Rewriting either side means preserving that equivalence, which is a stronger
+ * constraint than leaving the constants alone.
  */
 export function RankBar({ score, total, targetIdx = null }: Props) {
   const idx = currentRankIndex(score, total)

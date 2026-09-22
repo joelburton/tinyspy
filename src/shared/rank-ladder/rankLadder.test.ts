@@ -14,10 +14,11 @@ import {
  * score that unlocks it.
  *
  * **The point of most of this file is that the ladder is computed TWICE**, once
- * here and once in each game's `<schema>._rank_idx` as integer SQL, and the two
- * must never disagree: this side draws the bar and prints "needs N points",
- * that side decides who wins a compete race. Nothing enforces the pairing but
- * these tests, so two of them compare the TypeScript against the SQL formula
+ * here and once in `common._rank_idx` as integer SQL, and the two must never
+ * disagree: this side draws the bar and prints "needs N points", that side
+ * decides who wins a compete race. Each caller's `rank_idx_test.sql` pins the
+ * SQL half; what these tests add is the pairing, so two of them compare the
+ * TypeScript against the SQL formula
  * directly rather than against expected values.
  *
  * That is also why float arithmetic gets its own case. `(5/6)*0.7*108` is
@@ -98,7 +99,7 @@ describe('rankPoints', () => {
   it('the displayed threshold is the real integer unlock point for every rank/total', () => {
     // The "needs N points" label must be the MINIMAL score at which the rank is
     // actually awarded — i.e. it must agree with the integer win-check each
-    // game's `_rank_idx` runs: least(6, (score*60)/(total*7)). This is the
+    // `common._rank_idx` runs: least(6, (score*60)/(total*7)). This is the
     // "keep the two implementations in lockstep" invariant from rankLadder.ts,
     // applied to the display. A float-drifted rankPoints breaks it (34 totals in
     // 1..2000, all at Amazing).
@@ -166,7 +167,7 @@ describe('currentRankIndex', () => {
     expect(currentRankIndex(34, 50)).toBe(5)
   })
 
-  it('agrees with the integer-math formula used by each game\'s _rank_idx', () => {
+  it("agrees with the integer-math formula common._rank_idx uses", () => {
     // The SQL helper computes:
     //   least(6, (score * 60) / (total * 7))   -- integer division
     // For every value of total ∈ {50, 100} and score ∈ [0, total]

@@ -132,6 +132,13 @@ select
 
 grant select on spellingbee.games_state to authenticated;
 
+-- RETIRED: the rank ladder moved to common._rank_idx (2026-09-21), one function
+-- for both bee games rather than a byte-identical copy each. Dropped here
+-- because removing a `create or replace` from this file does NOT remove the
+-- object from a database that already has it — this file is re-applied, not
+-- diffed, so a retired signature has to say so.
+drop function if exists spellingbee._rank_idx(int, int);
+
 -- ============================================================
 -- spellingbee.candidate_words — edge-function board-build helper
 -- ============================================================
