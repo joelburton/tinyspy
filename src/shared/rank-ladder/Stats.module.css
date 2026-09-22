@@ -66,6 +66,11 @@
   color: var(--rank-text);
 }
 
+/* The denominator of a found/total pair, sitting inside `.value`. Write the
+ * pair TIGHT — `12/93`, no spaces around the slash — in every grid built on
+ * this file: the pair is one figure, and in the mobile status bar the spaces
+ * cost width nobody has. That matters most where the cells are narrowest, so a
+ * grid with more of them needs it more, not less. */
 /* @@ */ .muted {
   font-size: 13px;
   font-weight: 500;

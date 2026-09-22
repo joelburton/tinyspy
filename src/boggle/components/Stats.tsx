@@ -42,12 +42,12 @@ export function Stats(s: BoggleStats) {
   // above the board — and one-line labels either wrapped at an arbitrary point or
   // forced the columns wider than the numbers needed.
   const cells: { label: readonly [string, string]; value: string; sub: string; pct: string }[] = [
-    { label: ['Req', 'Words'] as const, value: `${s.requiredFound}`, sub: `/ ${s.requiredCount}`, pct: pct(s.requiredFound, s.requiredCount) },
-    { label: ['Req', 'Score'] as const, value: `${s.requiredFoundScore}`, sub: `/ ${s.requiredScore}`, pct: pct(s.requiredFoundScore, s.requiredScore) },
+    { label: ['Req', 'Words'] as const, value: `${s.requiredFound}`, sub: `/${s.requiredCount}`, pct: pct(s.requiredFound, s.requiredCount) },
+    { label: ['Req', 'Score'] as const, value: `${s.requiredFoundScore}`, sub: `/${s.requiredScore}`, pct: pct(s.requiredFoundScore, s.requiredScore) },
     ...(s.bonusCount > 0
       ? ([
-          { label: ['Bonus', 'Words'] as const, value: `${s.bonusFound}`, sub: `/ ${s.bonusCount}`, pct: pct(s.bonusFound, s.bonusCount) },
-          { label: ['Bonus', 'Score'] as const, value: `${s.bonusFoundScore}`, sub: `/ ${s.bonusScore}`, pct: pct(s.bonusFoundScore, s.bonusScore) },
+          { label: ['Bonus', 'Words'] as const, value: `${s.bonusFound}`, sub: `/${s.bonusCount}`, pct: pct(s.bonusFound, s.bonusCount) },
+          { label: ['Bonus', 'Score'] as const, value: `${s.bonusFoundScore}`, sub: `/${s.bonusScore}`, pct: pct(s.bonusFoundScore, s.bonusScore) },
         ])
       : []),
   ]
@@ -80,7 +80,7 @@ function Cell({
       </span>
       <span className={styles.value}>
         {value}
-        {sub && <span className={styles.muted}> {sub}</span>}
+        {sub && <span className={styles.muted}>{sub}</span>}
       </span>
       <span className={styles.percent}>{pct}</span>
     </div>

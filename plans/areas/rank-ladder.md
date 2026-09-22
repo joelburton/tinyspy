@@ -264,6 +264,39 @@ copies with a pgTAP each, or two copies and one shared pgTAP. Each game's
 
 ### F-rank-ladder-9 · `stats-format-disagreement` · Two readers of one stylesheet disagree about the figure it exists to draw tightly
 
+**RULED (1) AND SHIPPED, 2026-09-21** (Joel: *"i'll take your recs"*). boggle
+goes tight: its four `sub` literals lose the space after the slash and the span
+that renders them loses its leading space, so every grid built on
+`Stats.module.css` writes `12/93`. Eight characters reclaimed in the narrowest
+place the grid appears.
+
+**And the rule moved to where it is actually shared** (Joel's yes to Q2). The
+shared `Stats` docstring had stated the format as its own, while the stylesheet
+it sits on has a second reader with different cells — so the component now says
+what IT is (the two-cell grid for a game with a ladder, and that a game needing
+different cells builds on the stylesheet instead, which is what boggle does),
+and **`Stats.module.css`'s `.muted` carries the format rule** for every grid
+built on the file. Adding the sentence there was forced by the docstring
+change: saying "that belongs to the stylesheet" and then not writing it there
+would have left it belonging to nothing.
+
+The docstring also lost its roster and its archaeology while open — *"Shared by
+spellingbee + wordwheel (their per-game `Stats` copies were identical bar the
+text token)"* — which is F-4's fault at one of its three sites.
+
+**This change is pinned by nothing, and that is worth saying.** boggle has no
+`Stats` spec and neither does this folder (F-3), so there is no test to plant
+against: the format is held by two comments and a code review. F-3's spec, when
+it is ruled, pins it for the shared component's two cells; boggle's own copy
+stays unpinned until the boggle area writes one. 416 green across boggle, this
+folder and the guards; `tsc -b` and lint clean.
+
+**Correction to the finding as recorded:** it says boggle renders *"a space
+before the slash AND after it."* Only one of those was boggle's own — the `sub`
+literal carried `/ 93` and the span added the leading space, so the rendered
+string was `12 / 93` from two separate sources, which is why the fix needed both
+edits.
+
 `Stats.tsx:16–20` states a decision: each cell is written *"tight as `12/93` (no
 spaces around the slash — the pair is one figure, and the spaces cost width the
 mobile status area doesn't have)."*

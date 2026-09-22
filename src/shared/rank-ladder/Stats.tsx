@@ -10,14 +10,18 @@ type Props = {
 }
 
 /**
- * The 2-cell stat grid below the rank bar: Score, Words. Shared by spellingbee
- * + wordwheel (their per-game `Stats` copies were identical bar the text token).
+ * The 2-cell stat grid below the rank bar: Score, Words. For a game with a rank
+ * ladder; a game needing different cells builds its own grid on
+ * `Stats.module.css` instead of on this, which is what boggle does.
  *
- * Each cell is a small label over a value, written tight as `12/93` (no spaces
- * around the slash — the pair is one figure, and the spaces cost width the
- * mobile status area doesn't have). Values are tabular-nums so the digits don't
- * shift width as the score climbs. (No timer cell — the GamePage header already
- * shows the countdown, so repeating it here would be redundant.)
+ * Each cell is a small label over a value. Values are tabular-nums so the
+ * digits don't shift width as the score climbs. (No timer cell — the GamePage
+ * header already shows the countdown, so repeating it here would be redundant.)
+ *
+ * **A found/total pair is written TIGHT — `12/93`, no spaces around the
+ * slash.** That belongs to the stylesheet rather than to this component: the
+ * pair is one figure, and in the mobile status bar the spaces cost width
+ * nobody has. Every grid built on `Stats.module.css` writes it that way.
  *
  * Pure presentation — no derivation, no state. The parent (PlayArea) wires in
  * the found vs required figures (found counts include bonus words, so each
