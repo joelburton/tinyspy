@@ -8,6 +8,18 @@
   beside it already answers `hidden` for it.
 
 ## Soon
+- **A swap row records no colors, so the browser is given the answer.** The
+  turn-history viewer recolors each past board on the frontend, which needs the
+  solution — so `waffle._solution_for` hands it to the coop client DURING PLAY,
+  and says so in its own comment. Storing a 25-char `colors` on the event row
+  the way wordle has always stored its per-guess colors takes the secret off the
+  client mid-game and retires `lib/colors.ts`'s copy of `common.wordle_colors`,
+  which is held to the SQL by hand-copied test vectors and has already drifted
+  once. The design, the footprint, the visibility check and the backfill for
+  existing games are worked out in `plans/waffle-stored-colors.md`; the three
+  open questions there are Joel's, and the first of them — whether the old games
+  are backfilled — decides whether it is worth doing at all.
+
 - **The below-board reserve is a hand-tuned constant.**
   `components/Board.module.css`'s `--avail-h` sizes the board as `100svh -
   var(--game-chrome-height) - 3.5rem`, where that last term stands for

@@ -826,11 +826,20 @@ begin
   -- so `took_turn` is a literal — the solving swap and the last one included.
   -- The caller's own count lives on waffle.players.swaps_used, which is what
   -- the budget strip reads.
+  --
+  -- `colors` is the board AFTER this swap, the same 25-char string the player
+  -- row gets below. Stored rather than left to the reader because the only
+  -- other way to know it is to replay the log against the solution, which is
+  -- what made the browser need the answer mid-game. wordle stores its per-guess
+  -- colors the same way. Computed here rather than read back off `players` a
+  -- line later, so the log row is written from the same `new_board` the rest of
+  -- this block uses.
   insert into waffle.events
-    (game_id, user_id, kind, pos_a, pos_b, letter_a, letter_b, took_turn)
+    (game_id, user_id, kind, pos_a, pos_b, letter_a, letter_b, took_turn, colors)
   values
     (target_game, caller_id, 'swap', pos_a, pos_b,
-     substr(p_board, a1, 1), substr(p_board, b1, 1), true);
+     substr(p_board, a1, 1), substr(p_board, b1, 1), true,
+     waffle.board_colors(new_board, g_row.solution));
 
   if g_row.mode = 'coop' then
     -- Lock-step: every player's row mirrors the shared board + count.
