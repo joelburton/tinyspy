@@ -30,6 +30,7 @@ describe('answerMessage', () => {
     [{ answerType: 'incorrect_peer', guess: 'crane' }, 'neutral', 'guessed CRANE'],
     [{ answerType: 'solved_peer' }, 'won', 'solved it'],
     [{ answerType: 'duplicate' }, 'warning', 'Already guessed'],
+    // Red on purpose, beside the amber duplicate — the reason is in answer.ts.
     [{ answerType: 'not_a_word' }, 'lost', 'Not in word list'],
     [{ answerType: 'too_short' }, 'warning', 'Not enough letters'],
   ]

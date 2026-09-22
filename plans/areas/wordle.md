@@ -967,7 +967,15 @@ solver-wins and the nobody-solved cases. *(b) the minimum* — add
 duplication. Recommendation: (a); the missing key is what the duplication
 costs, and it will cost again.
 
-### F-wordle-9 · `not-a-word-reads-lost` · one soft reject is red and the other amber
+### RULED · F-wordle-9 · `not-a-word-reads-lost` · one soft reject is red and the other amber
+
+**Joel, 2026-09-22: option 2 — keep red, and write the reason.** No color
+moved. `lib/answer.ts` carries the reason above the `not_a_word` case: a
+duplicate is a move refused for form (the word exists, it is already there)
+while a non-word is a wrong answer of its own kind, the one thing typed at
+this board that is not a word. `answer.test.ts`'s row says the red is on
+purpose and points at it. The pill and the row ring read the same line as
+before.
 
 `lib/answer.ts`: `duplicate` → `warning` / *Already guessed*, `not_a_word` →
 `lost` / *Not in word list*. Both are the same kind of answer — the rules
@@ -1043,7 +1051,17 @@ set `--cols` the same way if Joel wants the one home to be total) — or
 *leave it*. Recommendation: `lib/setup.ts`, with `--cols` set inline beside
 `--rows`.
 
-### F-wordle-12 · `spectator-notice` · "Watching — you're not in this game" is two games' sentence for a state the shell owns
+### RULED · F-wordle-12 · `spectator-notice` · "Watching — you're not in this game" is two games' sentence for a state the shell owns
+
+**Joel, 2026-09-22: "CLAUDE.md is wrong; there can be spectators. make a new
+plan file … so we can comprehensively think about this. keep the line in
+wordle for now."** Neither option, then: `plans/spectating.md` opened —
+PROPOSED, nothing decided — with the inventory (the finding undercounted:
+waffle and stackdown show a notice too, as the action row's `neutral` line, so
+it is FOUR games in three shapes, not two) and the seven questions a design has
+to settle; CLAUDE.md's audience bullet says spectators are friends too and
+points at the plan; README's "there aren't spectators" line follows. wordle's
+line stays.
 
 `InfoCol.tsx` shows *Watching — you're not in this game.* when `isPlayer` is
 false; scrabble's `BoardCol` shows the same words; the other fourteen games

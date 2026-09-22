@@ -61,6 +61,10 @@ export function answerMessage(answer: Answer): AnswerMessage {
 
     case 'duplicate':
       return { outcome: 'warning', text: 'Already guessed' }
+    // Red where the duplicate is amber, though both cost nothing: a duplicate
+    // is a move refused for form — the word exists, it is just already there —
+    // while a non-word is a wrong answer of its own kind, the one thing typed
+    // at this board that is not a word. Ruled 2026-09-22.
     case 'not_a_word':
       return { outcome: 'lost', text: 'Not in word list' }
     case 'too_short':
