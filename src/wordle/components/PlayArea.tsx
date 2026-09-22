@@ -566,7 +566,6 @@ export function PlayArea({
         actEndGame={actEndGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
-        setup={setup}
         setupRows={summaryRows}
         // ── Terminal answer reveal (null while hidden — incl. on a loss) ──
         solution={answerShown ? game.target : null}

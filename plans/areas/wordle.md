@@ -8,9 +8,10 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 `src/wordle/todo.md`, not here.
 
 **Status: OPEN** (2026-09-22). **Pass 1, the restructure, is DONE** (Steps
-0–8); **pass 2, the audit, is open — the prose pass shipped (`39ec69c5`),
-and five findings are recorded, all OPEN**: the two todo items (F-1, F-2)
-and three the prose pass saw (F-3 to F-5). Next: the findings one at a time.
+0–8). **Pass 2, the audit, is done bar the closing re-read**: the prose pass
+shipped (`39ec69c5`) and all five findings are answered — F-1, F-3, F-4 and
+F-5 shipped, F-2 ruled back to `game-page`. `src/wordle/todo.md` is empty.
+Next: pass 3, tile-feedback, then the closing re-read.
 **Three passes back to back**, psychicnum's and connections' shape:
 restructure → audit → tile-feedback.
 
@@ -776,7 +777,25 @@ Options: **add the raise**, the sibling games' shape, with the next free
 gating it and the trust model not asking for a second gate. Recommendation:
 add it — the two audited siblings have it, and a fault costs nothing.
 
-### F-wordle-5 · `unused-setup-prop` · `InfoCol` takes a `setup` it never reads
+### SHIPPED · F-wordle-5 · `unused-setup-prop` · `InfoCol` takes a `setup` it never reads
+
+**Joel, 2026-09-22: "delete it."** Three lines in two files: the
+`setup: WordleSetup` member of `InfoCol`'s props, the `setup={setup}`
+pass-through in `PlayArea`'s JSX, and the `WordleSetup` import that the
+member was the only use of. The `// ── Setup disclosure ──` heading keeps its
+one real prop, `setupRows`, which is what `<SetupDisclosure rows={…}>`
+renders.
+
+**`PlayArea`'s own `setup` stays** and is not the same prop: it is read once,
+by `setupRows(setup, mode, members)`, and that memo feeds both the info column
+and the print model. Only the hand-down was dead.
+
+**Nothing was planted, and that is the finding.** A prop with no reader is
+invisible to every test by construction — there is no failure to plant,
+which is why it survived the restructure's own prop pass (the `<Board>` props
+note above) and why the lint is quiet: an unused member of a props type is not
+an unused variable. `tsc -b` clean, eslint clean, 398 unit tests green;
+`PlayArea.tsx` is the only file that renders `<InfoCol>`, tests included.
 
 `InfoCol`'s props type declares `setup: WordleSetup` under *Setup
 disclosure*, `PlayArea` passes it, and the component destructures only

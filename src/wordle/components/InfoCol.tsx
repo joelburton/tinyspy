@@ -11,7 +11,6 @@ import { DefinableWord } from '@/common/definitions/DefinableWord'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import type { Member } from '@/common/members/member'
 import type { WordlePlayerState, EventRow } from '../hooks/useGame'
-import type { WordleSetup } from '../lib/setup'
 import { GameEventLog } from './GameEventLog'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -113,7 +112,6 @@ export function InfoCol({
   actBackToClub: BoundAction
 
   // ── Setup disclosure ──
-  setup: WordleSetup
   // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
   setupRows: SetupRow[]
 
