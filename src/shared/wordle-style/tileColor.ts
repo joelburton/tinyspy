@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordle-style
 
 /**
  * Shared render-only mapping from a server per-letter color code to a

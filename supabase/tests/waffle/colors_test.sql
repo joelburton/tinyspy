@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordle-style
 
 -- ============================================================
 -- Test: waffle color-feedback algorithm

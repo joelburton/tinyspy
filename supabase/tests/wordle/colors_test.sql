@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordle-style
 
 -- ============================================================
 -- Test: common.wordle_colors — the Wordle coloring algorithm
