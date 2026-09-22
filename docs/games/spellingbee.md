@@ -543,8 +543,8 @@ src/spellingbee/
                           — Vitest verifies agreement at every score / total).
     (beeLeaderboard)      SHARED shared/bee-games/beeLeaderboard.ts — the LeaderboardEntry
                           type, read via common/game-page/readLeaderboard: the compete rank payload off
-                          common.games.status. Shared by the OpponentStrip and the common
-                          usePeerFeedback.
+                          common.games.status. PlayArea reads it twice — to narrate a peer's
+                          rank climb, and to feed the OpponentStrip the rank it draws.
 ```
 
 ### Routes & shell

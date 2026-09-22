@@ -1,9 +1,9 @@
-// cs-met-bee-games
+// cs-blessed-bee-games
 
 /**
- * Tests for makeBeeGame — the useGame data-hook factory shared by
- * spellingbee + wordwheel (their hook bodies were byte-identical). Two data
- * lifecycles ride on it and both hit every consumer at once if they break:
+ * Tests for makeBeeGame — the data hook a bee game's `useGame` is bound from.
+ * Two data lifecycles ride on it, and each hits every game at once if it
+ * breaks:
  *   - the immutable HEADER loads ONCE from the games_state view (not per event,
  *     or the word lists re-download on every teammate submission);
  *   - found_words refetches through useRealtimeRefetch, subscribing to BOTH

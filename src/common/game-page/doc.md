@@ -101,7 +101,15 @@ read failed; the loader shows the same three for what happens after, since a
 game deleted mid-session arrives at it as zero rows.
 
 **The existence check is its own component, and that is why there are three.**
-The gate does one `select id` and mounts nothing until it answers. It cannot
+The gate does one `select id` and mounts nothing until it answers — including
+when the id CHANGES under it, which happens inside this route: the invitation
+toast is mounted at the root, so accepting one from a game page swaps the
+params and nothing else. So the gate holds its answer next to the id it
+answers for and treats any other id as not yet answered, which is what
+unmounts the subtree and lets every game's hooks start the new game clean.
+Nothing below can do this for itself — the play surface is keyed on `restarts`,
+right for a restart and silent about a different game, and a game's `useGame`
+refetches on `gameId` while keeping the header and rows it already holds. It cannot
 instead read the answer out of `useCommonGame`, which fetches the same row a
 moment later, because that hook does far more than fetch: calling it joins the
 channel, tracks presence and asserts `set_current_view` — for a game that may

@@ -1,4 +1,4 @@
-// cs-met-bee-games
+// cs-blessed-bee-games
 
 import { useEffect, useState } from 'react'
 import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
@@ -38,8 +38,9 @@ export type BeeGame = {
   bonusWords: FoundWordsWord[]
 }
 
-/** The schema names of the two bee games — whatever `supabase.schema()`
- *  accepts (keeps the factory type-safe without hard-coding the union here). */
+/** The schema a bee game lives in. Typed as whatever `supabase.schema()`
+ *  accepts — wider than the games that call this, but it keeps the factory
+ *  honest against the generated types without hard-coding a union here. */
 type GameSchema = Parameters<typeof supabase.schema>[0]
 
 /**

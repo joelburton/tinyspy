@@ -1,9 +1,9 @@
-// cs-met-bee-games
+// cs-blessed-bee-games
 
 /**
- * One row of the compete leaderboard the two bee games keep on
- * `common.games.status`. `spellingbee.submit_word` and `wordwheel.submit_word`
- * each rewrite the full array on every accepted submission.
+ * One row of the compete leaderboard the bee games keep on
+ * `common.games.status` — each game's own `submit_word` rewrites the full array
+ * on every accepted submission.
  *
  * It is the compete rank payload, and everything that shows a rank goes through
  * it: the PlayArea reads it to narrate a peer's climb into the header slot, and

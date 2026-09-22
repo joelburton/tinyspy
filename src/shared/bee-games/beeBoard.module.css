@@ -1,8 +1,9 @@
-/* cs-met-bee-games */
+/* cs-blessed-bee-games */
 
-/* The hive's and the wheel's board geometry — the half of the two games' play
- * surface that boggle does not share, because a rectangle measured in
- * coordinate units is not a square measured in tiles.
+/* The hive's and the wheel's board geometry — the half of a play surface that
+ * depends on what the board LOOKS like, which is the half the wider family's
+ * scaffolding cannot carry: a rectangle measured in coordinate units is not a
+ * square measured in tiles.
  *
  * Composed alongside the family's scaffolding
  * (`shared/found-words/foundWordsPlayArea.module.css`, which carries the

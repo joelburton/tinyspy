@@ -317,8 +317,8 @@ spellingbee's, for the same reasons ([spellingbee.md](spellingbee.md);
 `src/wordwheel/` mirrors spellingbee's layout. The two games' code splits cleanly
 into three buckets:
 
-- **Shared, hoisted into `common/`.** The pieces that are byte-identical
-  after a codename rename live once, so a fix lands for both games: the rank
+- **Shared, and where each piece lives.** What the two games do identically
+  lives once, so a fix lands for both: the rank
   ladder (`common/lib/game/rankLadder`), the found-words data model + display
   (`shared/found-words/foundWords` + `foundWordsDisplayRows`), the bee
   leaderboard row (`shared/bee-games/beeLeaderboard`), the `useGame` factory
