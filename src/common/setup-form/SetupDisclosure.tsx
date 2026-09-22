@@ -11,11 +11,18 @@ import styles from './SetupDisclosure.module.css'
  * PDF prints; a row renders as `label: value`. Every game's disclosure is
  * identical down to the `<li>`, so the whole of it lives here rather than the
  * wrapper alone.
+ *
+ * **A click must not leave focus on it** — see the `onMouseDown` below.
  */
 export function SetupDisclosure({ rows }: { rows: SetupRow[] }) {
   return (
     <details className={styles.disclosure}>
-      <summary>Setup options</summary>
+      {/*
+        Canceling `mousedown` is what withholds focus, that being the event's
+        default action while the toggle is the click's. A pointer still opens
+        and closes it, which is the only way it is ever operated.
+      */}
+      <summary onMouseDown={(e) => e.preventDefault()}>Setup options</summary>
       <ul>
         {rows.map((r) => (
           <li key={r.key}>

@@ -10,6 +10,14 @@ crosswords is keyboard-first by design, and every word game takes physical keys.
 There is almost no `onKeyDown` on the board. A play surface has nothing
 meaningful to focus, so keys are read off `window`.
 
+**And it stays that way on purpose.** Focus is not a third gate below — the
+dispatcher stands down for a focused field and for a floating panel, and for
+nothing else — so anything else a click could focus would answer Enter and
+Space *and* let the bound command fire. The one such element is the info
+column's "Setup options" `<summary>`, which withholds focus by canceling its
+`mousedown`
+([`SetupDisclosure`](../src/common/setup-form/SetupDisclosure.tsx)).
+
 **Every key is an action** ([`common/actions`](../src/common/actions/doc.md)): a
 surface binds an action, which is what gives it a key, a menu row and a button
 at once, and ONE listener at the app root
