@@ -2,9 +2,16 @@
 
 /**
  * The TS color port pinned against the SQL oracle. Every case here is copied
- * verbatim from the pgTAP `supabase/tests/waffle/colors_test.sql` — same inputs,
- * same expected outputs — so the two implementations can't silently drift. If you
- * change one, change (and re-sync) the other.
+ * verbatim from pgTAP — same inputs, same expected outputs — so the two
+ * implementations can't silently drift. If you change one, change (and re-sync)
+ * the other.
+ *
+ * **The oracle is TWO files**, because `common.wordle_colors` is shared and
+ * each caller pins it: `supabase/tests/waffle/colors_test.sql` and
+ * `supabase/tests/wordle/colors_test.sql`. Both are copied below, under
+ * headings that say which. For a while only waffle's were, and the cases the
+ * wordle file holds alone went unpinned here — including the one covering this
+ * port's `toLowerCase`, which could be deleted with every test still passing.
  *
  * The reference solution has 21 distinct letters (a..u), holes at 0-based 6,8,16,18:
  *   row0 abcde  row1 f.g.h  row2 ijklm  row3 n.o.p  row4 qrstu
@@ -23,7 +30,7 @@ function expected(overrides: Record<number, string>, fill = 'g'): string {
   ).join('')
 }
 
-describe('wordleColors — one word, Wordle-style', () => {
+describe('wordleColors — the waffle oracle', () => {
   it('all correct → all green', () => {
     expect(wordleColors('abcde', 'abcde')).toBe('ggggg')
   })
@@ -38,6 +45,39 @@ describe('wordleColors — one word, Wordle-style', () => {
   })
   it('duplicate guess letters only claim as many yellows as the answer has', () => {
     expect(wordleColors('aabbb', 'abxyz')).toBe('gxyxx')
+  })
+})
+
+/**
+ * The same function's other caller pins it with its own words, on inputs that
+ * share nothing with the five above. Copied verbatim from
+ * `supabase/tests/wordle/colors_test.sql`, labels included, so a reader can put
+ * the two files side by side.
+ */
+describe('wordleColors — the wordle oracle', () => {
+  it('exact match → all green', () => {
+    expect(wordleColors('crate', 'crate')).toBe('ggggg')
+  })
+  it('one wrong letter → gray in place', () => {
+    expect(wordleColors('crane', 'crate')).toBe('gggxg')
+  })
+  it('yellows pulled from the leftover pool, gray where absent', () => {
+    expect(wordleColors('speed', 'erase')).toBe('yxyyx')
+  })
+  it('duplicate letters: only as many yellows as the answer has copies', () => {
+    expect(wordleColors('allee', 'apple')).toBe('gyxxg')
+  })
+  it('no shared letters → all gray', () => {
+    expect(wordleColors('zzzzz', 'crate')).toBe('xxxxx')
+  })
+  it('greens consume their answer letter first', () => {
+    expect(wordleColors('eerie', 'three')).toBe('yxgxg')
+  })
+  it('wordle_colors lowercases its inputs', () => {
+    // The case that went unpinned here. waffle cannot reach it today — boards
+    // and solutions come out of the database lowercase — but it is a line of
+    // this port, and the SQL it mirrors is asserted on it.
+    expect(wordleColors('CRATE', 'crate')).toBe('ggggg')
   })
 })
 

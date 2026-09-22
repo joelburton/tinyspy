@@ -97,6 +97,19 @@ a mono printer and a color one produce the same page.
 
 ### F-wordle-style-2 · `ts-port-half-pinned` · The port claims the oracle's vectors and copies five of twelve
 
+**SHIPPED, 2026-09-22** (Joel: *"we can copy all the tests"*). All seven wordle
+vectors are in `src/waffle/lib/colors.test.ts` under a second heading naming the
+file they came from, the docstring says the oracle is two files, and the plant
+that used to pass now fails. A forward-fix in a game folder: not blessed.
+
+**The severity was overstated when this was written, and the correction belongs
+here.** The two implementations do not disagree today — read line for line, they
+match — and the one line the plant exposed cannot be reached from waffle: boards
+and solutions come out of the database lowercase, and every `toUpperCase()` in
+the game is at the display layer. So no color was ever wrong. What was wrong was
+the CLAIM: two files said the port was pinned to the oracle, and a future editor
+would have trusted that. Five of twelve.
+
 **The finding this area exists to find.** `common.wordle_colors` has a second
 implementation, `wordleColors` in `src/waffle/lib/colors.ts:33` — the same two
 passes, the same duplicate-letter accounting, written again in TypeScript so the
