@@ -7,8 +7,8 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/wordle/todo.md`, not here.
 
-**Status: OPEN** (2026-09-22). Pass 1, the restructure: Steps 0–6 done, Step
-7 (the section order) next. **Three passes back to back**, psychicnum's and
+**Status: OPEN** (2026-09-22). Pass 1, the restructure: Steps 0–7 done, Step
+8 (the comment pass) next. **Three passes back to back**, psychicnum's and
 connections' shape: restructure → audit → tile-feedback.
 
 ## The roster
@@ -353,6 +353,70 @@ guesses loss. Pass 2's finding, with the SQL open.
 
 Verified: `tsc -b` clean, lint clean over `src/wordle/`, 396 unit tests green
 (the game's and the guards). The e2e specs have not run for Steps 2–6.
+
+### Step 7 — the section order (readability 3.2) — DONE 2026-09-22
+
+connections' Step 7 (`60e1f932`), copied: `PlayArea.tsx` reordered into the
+eight sections in the one order (Page hooks · Derived · The local slot, and
+its three standing conditions · Narration — what a PEER did, in the header
+slot · The turn-history viewer · The commands, bound · The menu · Render),
+each header stating the rule its section follows; `BoardCol.tsx` into six.
+For wordle that is:
+
+1. Page hooks — `useTabRing`, `useInfoSheet`, `useCelebration`,
+   `useTurnStartFlash`
+2. Derived — `self`, `isCompete`, `maxGuesses`, `guessesUsed`, `mySolved`,
+   `myConceded`, `solvedIds`, `myGuesses`, `summaryRows`, the reveal,
+   `isLocallyDone`, `showInput`, `readOnly`
+3. The local slot — the slot, the terminal message and its winner
+   derivations, out-of-race, waiting
+4. Narration — the coop peer-guess line and the compete opponent-solve line
+5. The turn-history viewer
+6. The commands — the shared trio, Reveal, New game, Print
+7. The menu
+8. Render — `concededIds`, `rows`, the snapshot and its actor, then the
+   columns
+
+`BoardCol.tsx`'s six: **Which board is on screen** · **The pending guess**
+(`current`, `pending`, the reset-on-shrink, `pendingWord`, `typeLetter`) ·
+**The marks this column owns** (the reject nonce and its outcome, the timer
+that clears it) · **Committing a guess** (`submitting`, `canGuess`,
+`softReject`, `doSubmit`, the capture hook) · **The keyboard's letters**
+(`keyStates`, `keyTones`) · **Render**. One more than the shape's five, and
+one swapped: this game has no display order to shuffle, and it has a
+keyboard whose tints are the same kind of thing — purely visual, this
+client's reading of the rows, touching nothing else — so that section stands
+where the shuffle would.
+
+**Every code line in both files is a pure move, checked by diff** — the
+non-comment lines of each file before and after, sorted, are identical (337
+in `PlayArea.tsx`, 210 in `BoardCol.tsx`). Nine of the PlayArea's old `// ───`
+sub-headers are demoted to plain comments inside the section they fall in
+(the viewer, the celebration, the turn flash, the null-safe derived, the
+reveal, the two narrations, the standing conditions, the shared trio) so the
+file has eight headers and not seventeen; `BoardCol`'s three ("Edit the
+active row", "Submit a guess", "Physical keyboard") the same. `readOnly` and
+`concededIds` moved out of the render tail — the first to Derived, being
+"what I may still do", the second to Render, being read by the column alone,
+where connections put its own.
+
+**What the reorder showed:** `solvedIds` sat between the two narrations
+while three readers asked it (the compete narration, Concede's `selfSolved`,
+the print model); it is Derived now. The winner derivations (`selfWon`,
+`wonByClock`, `selfTiedWinner`) stayed beside the terminal message, being
+its inputs and nobody else's. Two orphan comments are stale and left for
+Step 8, the comment pass: the "Reveal solution — TERMINAL ONLY … No handler
+of its own any more" block after New game, and the "verdict in the slot is
+the terse verdict ALONE" block before the JSX. `Derived`'s old header said
+"null-safe; real values after the loading guard", a sentence Step 2's split
+made false; the section header says what the section is for.
+
+**`Board.tsx` was not touched.** connections' Step 7 organized its `Board`
+on Joel's word that day; wordle's is one component whose body is a baseline
+adjustment and a render, with nothing to section.
+
+Verified: `tsc -b` clean, lint clean over `src/wordle/`, 396 unit tests green
+(the game's and the guards). The e2e specs have not run for Steps 2–7.
 
 ## Findings
 

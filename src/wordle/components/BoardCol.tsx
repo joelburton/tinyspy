@@ -128,26 +128,23 @@ export function BoardCol({
   // True for a beat as the turn becomes mine — the frame flashes yellow.
   myTurnJustStarted: boolean
 }) {
+  // ─── Which board is on screen ──────────────────────────
+  // Live, or a past turn's snapshot — and everything that would WRITE to the
+  // board answers to it: the capture is frozen and the active row is not drawn.
+
+  // Viewing a past turn ⟺ a snapshot is open (PlayArea sets `historySnap` only then).
+  const isViewingHistory = historySnap !== null
+
+  // ─── The pending guess ─────────────────────────────────
+  // The state this column owns — the letters being typed and the word that is
+  // out — and everything that reads or resets it.
+
   const [current, setCurrent] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  /** Bumped on every soft reject — the active row shakes and rings in the
-   *  refusal's outcome for a beat (amber for a duplicate, red for a word the
-   *  dictionary refused). A NONCE rather than a boolean, because rejecting the same word twice
-   *  must replay the shake: a boolean already `true` changes nothing, and the
-   *  second attempt would look ignored. `<Board>` keys the row on it so the
-   *  animation restarts. */
-  const [rejectNonce, setRejectNonce] = useState(0)
-  /** The outcome of the last rejection — written with the nonce, by every path
-   *  that bumps it, so the mark and the pill beside it read one value. */
-  const [rejectOutcome, setRejectOutcome] = useState<Outcome>('lost')
   // The accepted-but-not-yet-rendered guess: kept on the board (uncolored) from the
   // moment we submit until its colored server row arrives via realtime, so the letters
   // don't blink out during the round-trip. The row then flips in place. Cleared on
   // soft-reject, or once it lands.
   const [pending, setPending] = useState<string | null>(null)
-
-  // Viewing a past turn ⟺ a snapshot is open (PlayArea sets `historySnap` only then).
-  const isViewingHistory = historySnap !== null
 
   // Replay-board resets the live rows. A `pending` left over from the finished
   // run would then resurrect (its row is no longer in `rows`, so the "landed"
@@ -167,15 +164,6 @@ export function BoardCol({
     }
   }
 
-  // The mark is transient: clear it once the shake has played. Dropping back to
-  // zero is also what lets the next rejection replay — the row is keyed on this
-  // value, so 0 → 1 remounts it even if the same word is rejected twice.
-  useEffect(() => {
-    if (rejectNonce === 0) return
-    const timer = setTimeout(() => setRejectNonce(0), REJECT_MARK_MS)
-    return () => clearTimeout(timer)
-  }, [rejectNonce])
-
   // The pending word, shown until its colored server row actually lands. Once it's in
   // the live `rows` we stop showing it (the real row flips in its place) — `pending`
   // state may linger stale, but `pendingWord` is the value everything reads, so that's
@@ -183,29 +171,7 @@ export function BoardCol({
   // clearing `pending` in an effect) also dodges a one-frame double-render.
   const pendingLanded = pending != null && rows.some((r) => r.guess === pending)
   const pendingWord = pending && !pendingLanded ? pending : ''
-  // The live gate: the game permits guessing (PlayArea) AND I'm not mid-submit / with a
-  // word in flight (this column's input state).
-  const canGuess = !readOnly && !submitting && !pendingWord
 
-  // Per-key feedback state — the strongest color each letter has earned across the LIVE
-  // board (drives the on-screen keyboard tinting).
-  const keyStates = new Map<string, TileColor>()
-  for (const r of rows) {
-    for (let i = 0; i < 5; i++) {
-      const ch = r.guess[i]
-      const col = tileColor(r.colors[i])
-      const prev = keyStates.get(ch)
-      if (!prev || colorRank(col) > colorRank(prev)) keyStates.set(ch, col)
-    }
-  }
-  // The keyboard speaks the same vocabulary the board does, so there is nothing
-  // to translate — only 'blank' to drop, which is the absence of a tone.
-  const keyTones = new Map<string, KeyTone>()
-  for (const [ch, col] of keyStates) {
-    if (col !== 'blank') keyTones.set(ch, col)
-  }
-
-  // ─── Edit the active row (the player's next action) ─────
   // Typing a letter is the player's "next move", so it dismisses a
   // gesture-cleared soft reject. Both keyboards route through here — the
   // physical one via `act-type-letter` inside the capture hook, an on-screen
@@ -216,6 +182,38 @@ export function BoardCol({
     localFeedbackSlot.dismiss()
     setCurrent((c) => (c.length < 5 ? c + ch.toLowerCase() : c))
   }, [localFeedbackSlot])
+
+  // ─── The marks this column owns ────────────────────────
+  // The reject mark on the active row — raised by a refusal, ended by a timer.
+
+  /** Bumped on every soft reject — the active row shakes and rings in the
+   *  refusal's outcome for a beat (amber for a duplicate, red for a word the
+   *  dictionary refused). A NONCE rather than a boolean, because rejecting the same word twice
+   *  must replay the shake: a boolean already `true` changes nothing, and the
+   *  second attempt would look ignored. `<Board>` keys the row on it so the
+   *  animation restarts. */
+  const [rejectNonce, setRejectNonce] = useState(0)
+  /** The outcome of the last rejection — written with the nonce, by every path
+   *  that bumps it, so the mark and the pill beside it read one value. */
+  const [rejectOutcome, setRejectOutcome] = useState<Outcome>('lost')
+
+  // The mark is transient: clear it once the shake has played. Dropping back to
+  // zero is also what lets the next rejection replay — the row is keyed on this
+  // value, so 0 → 1 remounts it even if the same word is rejected twice.
+  useEffect(() => {
+    if (rejectNonce === 0) return
+    const timer = setTimeout(() => setRejectNonce(0), REJECT_MARK_MS)
+    return () => clearTimeout(timer)
+  }, [rejectNonce])
+
+  // ─── Committing a guess ────────────────────────────────
+  // The move RPC and the two commands beside it, kept with the entry they
+  // commit; the physical keys and the on-screen caps drive the same `current`.
+
+  const [submitting, setSubmitting] = useState(false)
+  // The live gate: the game permits guessing (PlayArea) AND I'm not mid-submit / with a
+  // word in flight (this column's input state).
+  const canGuess = !readOnly && !submitting && !pendingWord
 
   /**
    * What BOTH soft rejects do — `duplicate` and `notAWord`. They are separate
@@ -244,7 +242,7 @@ export function BoardCol({
     [localFeedbackSlot],
   )
 
-  // ─── Submit a guess (stable across keystrokes) ────────────────
+  // Submit a guess (stable across keystrokes).
   const doSubmit = useCallback(
     async (word: string) => {
       if (word.length !== 5) {
@@ -299,8 +297,8 @@ export function BoardCol({
     [gameId, localFeedbackSlot, softReject],
   )
 
-  // ─── Physical keyboard ────────────────────────────────────────
-  // Drives the same pending-guess state (`current`) as the on-screen <Keyboard> below,
+  // The physical keyboard. Drives the same pending-guess state (`current`) as
+  // the on-screen <Keyboard> below,
   // off the shared capture CORE — so wordle can't drift from the modifier bail /
   // focused-input guard / any-key-dismiss that the WordEntryInput games get. wordle has no
   // WordEntryInput (letters land on the Board, not a box), so it uses useCaptureKeys
@@ -321,6 +319,29 @@ export function BoardCol({
     maxLength: 5, // a guess is one 5-letter word
   })
 
+  // ─── The keyboard's letters ────────────────────────────
+  // What each key has earned — purely visual, this client's reading of the
+  // live rows, and it touches nothing else.
+
+  // Per-key feedback state — the strongest color each letter has earned across the LIVE
+  // board (drives the on-screen keyboard tinting).
+  const keyStates = new Map<string, TileColor>()
+  for (const r of rows) {
+    for (let i = 0; i < 5; i++) {
+      const ch = r.guess[i]
+      const col = tileColor(r.colors[i])
+      const prev = keyStates.get(ch)
+      if (!prev || colorRank(col) > colorRank(prev)) keyStates.set(ch, col)
+    }
+  }
+  // The keyboard speaks the same vocabulary the board does, so there is nothing
+  // to translate — only 'blank' to drop, which is the absence of a tone.
+  const keyTones = new Map<string, KeyTone>()
+  for (const [ch, col] of keyStates) {
+    if (col !== 'blank') keyTones.set(ch, col)
+  }
+
+  // ─── Render ────────────────────────────────────────────
   return (
     <div className={shared.boardCol}>
       <Board

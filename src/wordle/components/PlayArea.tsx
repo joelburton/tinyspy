@@ -127,10 +127,64 @@ export function PlayArea({
 }: PlayAreaProps) {
   const mode = game.mode
 
+  // ─── Page hooks ────────────────────────────────────────
+  // What this surface IS, before anything this game knows: where Tab may go,
+  // where the info column sits on a phone, and the two things that fire at a
+  // moment rather than describing a state — the win's confetti and the frame's
+  // flash when the turn arrives.
+
   // The guess is typed at the window rather than into an input, so nothing here
   // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
   // out to the browser. (The on-screen keyboard's caps are clicks, not stops.)
   useTabRing([])
+
+  // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
+  // board + keyboard fill the screen and the info column moves into an off-canvas
+  // <InfoSheet>, reached by the header's page switch. Desktop is
+  // unchanged. wordle's one divergence — the board caps its height so the
+  // keyboard always fits — lives in Board.module.css, not here.
+  const infoSheet = useInfoSheet()
+
+  // Confetti at the MOMENT the team solves it (the winning guess flips
+  // playState to 'won' on every connected client via realtime); opening an
+  // already-won game stays quiet (useCelebration never pops on mount). Gated on
+  // playState ALONE — it's coop-only by the states vocabulary (compete writes
+  // 'won_compete') and, unlike anything read from useGame, correct from the
+  // very first render (the waffle loading-race lesson).
+  const celebration = useCelebration(playState === 'won')
+
+  // The board frame flashes yellow the moment the move becomes mine. The board
+  // dimming says "not yours"; its lifting is a removal, and a removal is a poor
+  // signal — you have been waiting, so you are looking somewhere else when it
+  // happens. Never fires in a free-for-all game (`isMyTurn` is permanently true
+  // there), so it needs no mode gate.
+  const turnFlash = useTurnStartFlash(isMyTurn)
+
+  // ─── Derived ───────────────────────────────────────────
+  // Who I am in this game and what I may still do, read off the props and the
+  // hook's rows. Named here because the sections below share them: the
+  // standing conditions, the bindings' `describe`s, the print model and both
+  // columns all ask the same questions, and they must not answer them
+  // differently.
+
+  const self = playerStates.find((p) => p.user_id === session.user.id)
+  const isCompete = mode === 'compete'
+  const maxGuesses = game.max_guesses
+  const guessesUsed = self?.guesses_used ?? 0
+  const mySolved = self?.solved ?? false
+  // Concede lives on the common roster (ctx `members`), not wordle.players.
+  const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  // Who has solved it — the compete narration, Concede's gate and the print
+  // model all read it. Memoized so the narration hook re-runs only when it
+  // changes.
+  const solvedIds = useMemo(
+    () => playerStates.filter((p) => p.solved).map((p) => p.user_id),
+    [playerStates],
+  )
+  // Coop: the shared board. Compete: my own guesses (RLS-filtered).
+  const myGuesses = isCompete
+    ? guesses.filter((g) => g.user_id === session.user.id)
+    : guesses
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
@@ -140,59 +194,12 @@ export function PlayArea({
     [setup, mode, members],
   )
 
-  // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
-  // board + keyboard fill the screen and the info column moves into an off-canvas
-  // <InfoSheet>, reached by the header's page switch. Desktop is
-  // unchanged. wordle's one divergence — the board caps its height so the
-  // keyboard always fits — lives in Board.module.css, not here.
-  const infoSheet = useInfoSheet()
-
-  // The local feedback slot — the fixed-height slot between the board and the
-  // keyboard. A soft reject or an RPC not-ok is shown into it by BoardCol, the
-  // End / Concede races by InfoCol's actions, and the three standing
-  // conditions below are effects on it. Accepted guesses get NO message — the
-  // colored row that lands IS the feedback.
-  const localFeedbackSlot = useFeedbackSlot('local')
-
-  // ─── Turn-history viewer ───────────────────────────────
-  // Click an event-log #N to replay that turn's board (the guess rows up to that turn,
-  // with that turn's row ringed in the history blue), addressed by the row's id. Exit is
-  // intrinsic to the hook (a click anywhere / the banner ✕); a keystroke also exits —
-  // BoardCol freezes its capture while viewing, so the viewer's own any-key
-  // action (bound by the hook) has the keys to itself.
-  const { isViewingHistory, historyId, historyN, showHistory, exitHistory } =
-    useHistoryViewer<number>()
-
-  // ─── Coop-win celebration ──────────────────────────────
-  // Confetti at the MOMENT the team solves it (the winning guess flips
-  // playState to 'won' on every connected client via realtime); opening an
-  // already-won game stays quiet (useCelebration never pops on mount). Gated on
-  // playState ALONE — it's coop-only by the states vocabulary (compete writes
-  // 'won_compete') and, unlike anything read from useGame, correct from the
-  // very first render (the waffle loading-race lesson).
-  const celebration = useCelebration(playState === 'won')
-
-  // ─── The turn arriving (turn-order coop) ───────────────
-  // The board frame flashes yellow the moment the move becomes mine. The board
-  // dimming says "not yours"; its lifting is a removal, and a removal is a poor
-  // signal — you have been waiting, so you are looking somewhere else when it
-  // happens. Never fires in a free-for-all game (`isMyTurn` is permanently true
-  // there), so it needs no mode gate.
-  const turnFlash = useTurnStartFlash(isMyTurn)
-
-  // ─── Derived (null-safe; real values after the loading guard) ──
-  const self = playerStates.find((p) => p.user_id === session.user.id)
-  const isCompete = mode === 'compete'
-  const maxGuesses = game.max_guesses
-  const guessesUsed = self?.guesses_used ?? 0
-  const mySolved = self?.solved ?? false
-
-  // ─── The word shows only when I ask for it — unless I solved it ────
-  // The ask is LOCAL and reversible (useSolutionReveal): my looking doesn't open
-  // the word on my opponent's screen while they're still turning it over, and
-  // hiding it again costs a click, not a Restart. The target itself is on every
-  // client once the game is terminal (wordle._target_for gates on is_terminal),
-  // so this is purely what's drawn.
+  // The word shows only when I ask for it — unless I solved it. The ask is
+  // LOCAL and reversible (useSolutionReveal): my looking doesn't open the word
+  // on my opponent's screen while they're still turning it over, and hiding it
+  // again costs a click, not a Restart. The target itself is on every client
+  // once the game is terminal (wordle._target_for gates on is_terminal), so
+  // this is purely what's drawn.
   //
   // `impliedBy: mySolved` is the exception: you can only finish a wordle by
   // typing the answer, so a solver is already looking at it and the info-column
@@ -206,67 +213,42 @@ export function PlayArea({
   } = useSolutionReveal({
     impliedBy: solvedByMe({ isCompete, playState, mine: mySolved }),
   })
-  // Concede lives on the common roster (ctx `members`), not wordle.players.
-  const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
-  const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
-  // Coop: the shared board. Compete: my own guesses (RLS-filtered).
-  const myGuesses = isCompete
-    ? guesses.filter((g) => g.user_id === session.user.id)
-    : guesses
 
-  // ─── Coop peer-guess narration (global header) ─────────────────
-  // A teammate's ACCEPTED guess is narrated in the GamePage header: "● moth guessed
-  // CRANE", in the row's own outcome (`neutral` for an ordinary guess, `won` for the
-  // one that solves it) with their identity dot. Only accepted guesses reach here —
-  // `wordle.events` holds nothing else (a soft reject writes no row). My own guesses
-  // are excluded (they land on the shared board). Compete never narrates a guess: RLS
-  // scopes the log to the caller, and we gate on coop besides. The shared hook's
-  // seen-set (not "the last row") is what handles two coop players' rows arriving
-  // interleaved.
-  usePeerFeedback({
-    enabled: mode === 'coop',
-    items: guesses,
-    keyOf: (g) => String(g.id),
-    messageFor: (g) => {
-      if (g.user_id === session.user.id) return null // mine → board, no narration
-      const member = memberById(members, g.user_id)
-      // The row is somebody else's — the line above returned for my own — so
-      // its answer is the `_peer` one.
-      const { outcome, text } = peerAnswerMessage(g)
-      return FeedbackMessage.peer(member, outcome, text)
-    },
-    globalFeedbackSlot,
-  })
+  // Locally terminal (compete only): I'm done — solved, or out of my own
+  // guesses, or conceded — but the game continues for the others still racing.
+  // Coop has no such state (one shared board: over for me ⇒ over for everyone).
+  // Solving is the GOOD way to be done: compete is won by fewest guesses,
+  // decided when everyone finishes, so a solver may well be winning, and the
+  // default "Lost — race continues" would be flatly wrong for them.
+  const isLocallyDone =
+    !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses || myConceded)
+  // May I still submit? Gates the help line and the row's line; read by the
+  // Reveal binding, so its button and its menu row agree.
+  const showInput = !isTerminal && !isLocallyDone
 
-  // ─── Compete opponent-solve narration (global header) ──────────
-  // In compete, RLS hides opponents' guesses, so the only peer event we can surface is
-  // a SOLVE (the public `players.solved` flag flips): "● moth solved it". It wears the
-  // word a solving guess wears anywhere — a solve is a solve regardless of whose it is;
-  // the OUTCOME follows the event, not my competitive stake (docs/ui.md → Feedback
-  // pill, "Outcome follows the event, not the viewer's stake"). My own
-  // solve is excluded (covered by the terminal feedback). `solvedIds` is memoized so
-  // the hook re-runs only when it changes.
-  const solvedIds = useMemo(
-    () => playerStates.filter((p) => p.solved).map((p) => p.user_id),
-    [playerStates],
-  )
-  usePeerFeedback({
-    enabled: mode === 'compete',
-    items: solvedIds,
-    keyOf: (id) => id,
-    messageFor: (id) => {
-      if (id === session.user.id) return null // my own solve → terminal handling
-      const member = memberById(members, id)
-      const { outcome, text } = answerMessage({ answerType: 'solved_peer' })
-      return FeedbackMessage.peerMilestone(member, outcome, text)
-    },
-    globalFeedbackSlot,
-  })
+  // The GAME-STATE half of the board gate — BoardCol ORs in its own mid-submit
+  // state. `readOnly` (glossary): the board is inert when there's no self row, the
+  // game's terminal, I've solved / conceded, or I'm out of guesses. (De Morgan of
+  // the old positive `guessingAllowed`.)
+  // `!isMyTurn` folds in turn-order (coop only): a waiting player's board is
+  // inert. Always true for free-for-all / solo, so it only tightens a turn
+  // game. Unlike psychicnum, wordle has no coop "locally done" look
+  // (isLocallyDone is compete-only), so a waiting coop player sees no false
+  // "out" — just the disabled keyboard + the whose-turn note below.
+  const readOnly =
+    !self || isTerminal || mySolved || myConceded || guessesUsed >= maxGuesses || !isMyTurn
 
-  // ─── The three standing conditions of the local slot ───
-  // Each is an effect on a primitive edge that shows on true and retracts in
-  // its cleanup — the slot draws whichever ranks highest. Above the early
-  // returns because effects must be.
+  // ─── The local slot, and its three standing conditions ─
+  // Each condition is an effect on a primitive edge that shows on true and
+  // retracts in its cleanup — the slot draws whichever ranks highest. The
+  // local slot is the one for messages about ME; a peer's go in the header's.
+
+  // The local feedback slot — the fixed-height slot between the board and the
+  // keyboard. A soft reject or an RPC not-ok is shown into it by BoardCol, the
+  // End / Concede races by InfoCol's actions, and the three standing
+  // conditions below are effects on it. Accepted guesses get NO message — the
+  // colored row that lands IS the feedback.
+  const localFeedbackSlot = useFeedbackSlot('local')
 
   // The per-status terminal message. Memoized on its inputs so the verdict
   // effect sees one object per outcome, not one per render. The compete
@@ -305,17 +287,7 @@ export function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, terminalMessage])
 
-  // Locally terminal (compete only): I'm done — solved, or out of my own
-  // guesses, or conceded — but the game continues for the others still racing.
-  // Coop has no such state (one shared board: over for me ⇒ over for everyone).
-  // Solving is the GOOD way to be done: compete is won by fewest guesses,
-  // decided when everyone finishes, so a solver may well be winning, and the
-  // default "Lost — race continues" would be flatly wrong for them.
-  const isLocallyDone =
-    !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses || myConceded)
-  // May I still submit? Gates the help line and the row's line; read by the
-  // Reveal binding, so its button and its menu row agree.
-  const showInput = !isTerminal && !isLocallyDone
+  // Out of the race while the others play on.
   useEffect(function showOutOfRace() {
     if (!isLocallyDone) return
     const id = localFeedbackSlot.show(
@@ -341,12 +313,75 @@ export function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, waiting, holderName, holderColor])
 
-  // ─── End / Concede / Replay — the shared trio ──────────
-  // The byte-identical shared handlers (useStandardGameActions); wordle's own
-  // bits are the replay sentence and the post-replay cleanup (leave the
-  // history view, dismiss a lingering result — a restart is the player's next
-  // action; the verdict leaves by its own effect). New game + Reveal solution
-  // stay below — their paths diverge (new game is a direct create_game).
+  // ─── Narration — what a PEER did, in the header slot ───
+  // About somebody else, which is what puts it in the global slot rather than
+  // the local one (docs/ui.md → the two feedback slots). Each mode has one
+  // peer event it can see.
+
+  // Coop: a teammate's ACCEPTED guess is narrated in the GamePage header: "● moth
+  // guessed CRANE", in the row's own outcome (`neutral` for an ordinary guess,
+  // `won` for the one that solves it) with their identity dot. Only accepted
+  // guesses reach here — `wordle.events` holds nothing else (a soft reject
+  // writes no row). My own guesses are excluded (they land on the shared
+  // board). Compete never narrates a guess: RLS scopes the log to the caller,
+  // and we gate on coop besides. The shared hook's seen-set (not "the last
+  // row") is what handles two coop players' rows arriving interleaved.
+  usePeerFeedback({
+    enabled: mode === 'coop',
+    items: guesses,
+    keyOf: (g) => String(g.id),
+    messageFor: (g) => {
+      if (g.user_id === session.user.id) return null // mine → board, no narration
+      const member = memberById(members, g.user_id)
+      // The row is somebody else's — the line above returned for my own — so
+      // its answer is the `_peer` one.
+      const { outcome, text } = peerAnswerMessage(g)
+      return FeedbackMessage.peer(member, outcome, text)
+    },
+    globalFeedbackSlot,
+  })
+
+  // Compete: RLS hides opponents' guesses, so the only peer event we can surface
+  // is a SOLVE (the public `players.solved` flag flips): "● moth solved it". It
+  // wears the word a solving guess wears anywhere — a solve is a solve regardless
+  // of whose it is; the OUTCOME follows the event, not my competitive stake
+  // (docs/ui.md → Feedback pill, "Outcome follows the event, not the viewer's
+  // stake"). My own solve is excluded (covered by the terminal feedback).
+  usePeerFeedback({
+    enabled: mode === 'compete',
+    items: solvedIds,
+    keyOf: (id) => id,
+    messageFor: (id) => {
+      if (id === session.user.id) return null // my own solve → terminal handling
+      const member = memberById(members, id)
+      const { outcome, text } = answerMessage({ answerType: 'solved_peer' })
+      return FeedbackMessage.peerMilestone(member, outcome, text)
+    },
+    globalFeedbackSlot,
+  })
+
+  // ─── The turn-history viewer ───────────────────────────
+  // Click an event-log #N to replay that turn's board (the guess rows up to that turn,
+  // with that turn's row ringed in the history blue), addressed by the row's id. Exit is
+  // intrinsic to the hook (a click anywhere / the banner ✕); a keystroke also exits —
+  // BoardCol freezes its capture while viewing, so the viewer's own any-key
+  // action (bound by the hook) has the keys to itself.
+  const { isViewingHistory, historyId, historyN, showHistory, exitHistory } =
+    useHistoryViewer<number>()
+
+  // ─── The commands, bound ───────────────────────────────
+  // Every command this game offers, in one order that three readers keep: this
+  // block, the info column's prop list, and the menu's rows. A binding is what
+  // the button, the menu row and the key all read, so none of them can drift
+  // from another — and `pending` grays every surface of one for the length of
+  // its run, so no handler keeps an in-flight flag of its own.
+
+  // End / Concede / Replay — the byte-identical shared handlers
+  // (useStandardGameActions); wordle's own bits are the replay sentence and the
+  // post-replay cleanup (leave the history view, dismiss a lingering result — a
+  // restart is the player's next action; the verdict leaves by its own
+  // effect). New game + Reveal solution stay below — their paths diverge (new
+  // game is a direct create_game).
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -477,6 +512,7 @@ export function PlayArea({
     },
   })
 
+  // ─── The menu ──────────────────────────────────────────
   // The FULL wordle menu. `buildGameMenu` supplies the framing (Help + chat
   // above, Back to club below); the middle is this game's own rows, each one a
   // binding it already made — so a row's words, glyph, key and availability come
@@ -499,6 +535,14 @@ export function PlayArea({
     )
     return () => menu.setGameSections([])
   }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
+
+  // ─── Render ────────────────────────────────────────────
+  // Everything below is derived fresh each render and read only by the JSX —
+  // nothing here is a hook, which is why it may sit after the menu effect.
+
+  // Who has bowed out of the race — the opponent strip's "out" cell. From the
+  // common roster, like `myConceded`.
+  const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
 
   const rows = myGuesses.map((g) => ({ guess: g.guess, colors: g.colors }))
 
@@ -526,19 +570,6 @@ export function PlayArea({
     isCompete && historyRow && historyRow.user_id !== session.user.id
       ? memberById(members, historyRow.user_id)
       : undefined
-
-  // The GAME-STATE half of the board gate — BoardCol ORs in its own mid-submit
-  // state. `readOnly` (glossary): the board is inert when there's no self row, the
-  // game's terminal, I've solved / conceded, or I'm out of guesses. (De Morgan of
-  // the old positive `guessingAllowed`.)
-  // `!isMyTurn` folds in turn-order (coop only): a waiting player's board is
-  // inert. Always true for free-for-all / solo, so it only tightens a turn
-  // game. Unlike psychicnum, wordle has no coop "locally done" look
-  // (isLocallyDone is compete-only), so a waiting coop player sees no false
-  // "out" — just the disabled keyboard + the whose-turn note below.
-  const readOnly =
-    !self || isTerminal || mySolved || myConceded || guessesUsed >= maxGuesses || !isMyTurn
-
 
   // The verdict in the slot is the terse verdict ALONE. The answer is NOT
   // folded in — the pill is a one-line, ellipsizing row (~48 chars on a phone)
