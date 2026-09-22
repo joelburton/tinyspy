@@ -48,18 +48,16 @@
   gap: 0.4rem;
 }
 
-/* A thin reserved line above the keyboard for a soft-reject pill — reserved
- * height so showing/hiding it doesn't shift the keys. */
+/* The reserved line above the keyboard, for whichever pill is in it — a
+ * soft-reject while playing, the verdict once the game is over. One slot for
+ * both, because the keyboard below it is WITHDRAWN at terminal rather than
+ * removed, so there is no vacated area for a second slot to move into.
+ *
+ * The floor is about one pill's own height (a line of text plus its 0.3rem
+ * padding), which is what makes showing and hiding one not shift the keys —
+ * the same reserve a terminal pill lands in. */
 /* @@ */ .kbFeedback {
   min-height: 2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* At terminal the keyboard is gone; the verdict fills its place. */
-/* @@ */ .verdictSlot {
-  min-height: 3.6rem;
   display: flex;
   align-items: center;
   justify-content: center;

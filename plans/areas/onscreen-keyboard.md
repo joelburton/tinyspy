@@ -93,7 +93,28 @@ bindings, and that is why one of them can be gray while letters are live.
 
 ### F-onscreen-keyboard-2 · `wordiply-drops-the-keyboard` · The prop that stops the page moving has one caller
 
-**The finding with a real consequence.** `gameOver` exists so a finished game
+**SHIPPED, 2026-09-22** (Joel ruled it an oversight, not a deliberate second
+arrangement). wordiply passes `gameOver={isTerminal}` and the branch is gone:
+one arrangement, played or finished, with the keyboard withdrawn at terminal
+instead of unmounted. `.verdictSlot` went with it — dead the moment the branch
+did — and `.kbFeedback` now says it serves both pills, its floor being about one
+pill's own height, which is the same reserve a mid-game soft-reject lands in.
+
+A forward-fix in a game folder: not blessed.
+
+**The test planted twice, and the first version was wrong.** Asserting the
+keyboard is still in the document catches the old branch — but PASSES with
+`gameOver` dropped entirely, which leaves the keyboard fully visible under a
+finished game. The name said "withdrawn" and only "not removed" was pinned. It
+now also asserts the withdraw class, and both plants bite. What the class DOES
+is CSS, and vitest parses none, so that is as far as a unit test reaches.
+
+**The headless measurement was not needed in the end.** It was owed to size the
+jump before deciding; the ruling made the fix the same either way, and the fix
+removes the swap rather than reserving space for it — there is now one subtree
+in both states, differing by a `visibility`.
+
+**The finding as read:** `gameOver` exists so a finished game
 withdraws the keyboard while KEEPING its box — the stylesheet argues it inside a
 drawn box, in capitals, ending *"layout must never move on a state change"*:
 

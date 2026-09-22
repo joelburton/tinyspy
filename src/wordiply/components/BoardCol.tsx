@@ -128,23 +128,23 @@ export function BoardCol({
         {isViewingHistory && (
           <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
         )}
-        {isTerminal ? (
-          <div className={styles.verdictSlot}>
-            <FeedbackPill slot={localFeedbackSlot} />
-          </div>
-        ) : (
-          <>
-            <div className={styles.kbFeedback}>
-              <FeedbackPill slot={localFeedbackSlot} />
-            </div>
-            <GuessKeyboard
-              onKey={typeLetter}
-              actSubmit={actSubmitEntry}
-              actDelete={actDeleteLast}
-              disabled={entryDisabled}
-            />
-          </>
-        )}
+        {/* One arrangement, played or finished. At terminal the keyboard is
+            WITHDRAWN by its own `gameOver` — invisible, and its box kept — so
+            the column does not rise by the ten-odd rem of cap rows at the frame
+            a player is reading their verdict. Branching here instead, and
+            unmounting it, was `display: none` by another road: the pill's slot
+            reserved 3.6rem where the keyboard and its own slot had taken about
+            12.4rem. See GuessKeyboard.module.css → `.gameOver`. */}
+        <div className={styles.kbFeedback}>
+          <FeedbackPill slot={localFeedbackSlot} />
+        </div>
+        <GuessKeyboard
+          onKey={typeLetter}
+          actSubmit={actSubmitEntry}
+          actDelete={actDeleteLast}
+          disabled={entryDisabled}
+          gameOver={isTerminal}
+        />
       </div>
     </div>
   )

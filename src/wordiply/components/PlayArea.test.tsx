@@ -21,6 +21,7 @@ import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
+import kb from '@/shared/onscreen-keyboard/GuessKeyboard.module.css'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
@@ -244,6 +245,24 @@ describe('wordiply PlayArea — terminal reveal', () => {
       status: { reason: 'complete', length_score: 71, letter_count: 8 },
     })
   }
+
+  it('KEEPS the keyboard at terminal, withdrawn rather than removed', () => {
+    // It used to unmount here, swapping a 3.6rem verdict slot in for the
+    // keyboard and the slot above it — about 12.4rem of column, gone on the
+    // frame a player starts reading their verdict. The shared component has a
+    // prop for exactly this: `gameOver` hides it and KEEPS its box.
+    //
+    // Asserted through the container's own label, which is what the e2e and the
+    // wordle spec reach the caps by. BOTH halves are pinned: still in the
+    // document, and wearing the withdraw class — asserting only the first
+    // passes with `gameOver` dropped entirely, which planting showed. What the
+    // class then DOES is CSS (`visibility: hidden`, never `display: none`) and
+    // vitest parses none, so the class is as far as a unit test reaches.
+    render(<PlayArea {...ended()} />)
+    const keyboard = screen.getByLabelText('Keyboard')
+    expect(keyboard).toBeInTheDocument()
+    expect(keyboard).toHaveClass(kb.gameOver)
+  })
 
   it('scores the game WITHOUT naming the best word', () => {
     // The point of the change: the two readouts say how well you did, and the
