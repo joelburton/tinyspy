@@ -112,7 +112,6 @@ export function PlayArea({
   players: members,
   playState,
   isTerminal,
-  timer,
   isMyTurn,
   currentTurnUserId,
   setup,
@@ -243,6 +242,7 @@ export function PlayArea({
   // tie-break is inferred here (no backend flag needed): the server picks the
   // winner by fewest guesses, then earliest solved_at, so if any OTHER solver
   // used the same guess count as the winner, the clock broke the tie.
+  const reason = status?.reason as string | undefined
   const winnerId = status?.winner_user_id as string | undefined
   const selfWon = winnerId === session.user.id
   const winnerState = playerStates.find((p) => p.user_id === winnerId)
@@ -265,9 +265,9 @@ export function PlayArea({
   const terminalMessage = useMemo(
     () =>
       isTerminal
-        ? buildTerminalMessage({ mode, playState, timerExpired: timer.expired, selfWon, wonByClock, selfTiedWinner })
+        ? buildTerminalMessage({ mode, playState, reason, selfWon, wonByClock, selfTiedWinner })
         : null,
-    [isTerminal, mode, playState, timer.expired, selfWon, wonByClock, selfTiedWinner],
+    [isTerminal, mode, playState, reason, selfWon, wonByClock, selfTiedWinner],
   )
   useEffect(function showTerminalVerdict() {
     if (!terminalMessage) return

@@ -684,7 +684,33 @@ at `common/game-page/todo.md`). Recommendation: wire it — but this is a
 cross-game question with a shared todo behind it, so the ruling may belong
 to `game-page` rather than here.
 
-### F-wordle-3 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, not `status.reason`
+### SHIPPED · F-wordle-3 · `terminal-reads-the-clock` · the terminal message decides the reason from the client clock, not `status.reason`
+
+**Joel, 2026-09-22: read `status.reason`, and take connections' words.** The
+builder's inputs are `mode · playState · reason · selfWon · wonByClock ·
+selfTiedWinner` — `timerExpired` out, `reason` in, arity unchanged. The call
+site reads `status?.reason` beside the `status?.winner_user_id` it already
+read, and the **`timer` prop is gone from `PlayArea`**, the verdict having been
+its only reader. `lost_compete` gained *All conceded — no winner* / *All
+conceded*, connections' words verbatim so the two games read alike; a MIXED
+table stays "Nobody solved", which is `_maybe_finish_compete`'s own call
+(`exhausted` unless EVERY player conceded) and what the club-list label says
+from the same word.
+
+The fallback branch is the exhausted one, so a row carrying no `reason` — one
+written before the status key was renamed — still fills both texts rather than
+going blank. `lib/terminal.test.ts` walks every word the column can hold plus
+`undefined` instead of a boolean, and `PlayArea.test.tsx` gained the WIRE: an
+all-conceded race whose clock is still running reads the server's word on both
+surfaces.
+
+**Verified by planting two faults**: the builder blind to `conceded` (2 red —
+the unit table and the wire) and the call site passing `reason: undefined`
+(1 red, the wire alone, which is the split that says each test is pinning its
+own half). `tsc -b` clean, eslint clean, 398 unit tests green. `doc.md`'s *The
+play states* said the verdict does not read the reason; it says the two
+surfaces name one ending, and that the clock-vs-count win is what the builder
+still works out for itself.
 
 `buildTerminalMessage` takes `timerExpired` off `timer.expired` — the
 browser's clock — where the RPC that ended the game wrote WHY into

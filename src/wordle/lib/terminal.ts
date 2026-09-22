@@ -6,8 +6,8 @@ import {
 } from '@/common/terminal/terminalMessage'
 
 /**
- * What wordle says once the game is over, for a play state, a mode and what
- * the caller's own row shows.
+ * What wordle says once the game is over, for a play state, a mode, the
+ * server's reason and what the caller's own row shows.
  *
  * `pillText` + `outcome` are the below-board verdict; `infoColText` + `outcome`
  * are the short, bold, color-coded line in the info column (won = green,
@@ -24,15 +24,18 @@ import {
 export function buildTerminalMessage({
   mode,
   playState,
-  timerExpired,
+  reason,
   selfWon,
   wonByClock,
   selfTiedWinner,
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  // Did the clock run out? Tells a timeout loss from a guesses loss.
-  timerExpired: boolean
+  // WHY it ended — `common.games.status.reason`, written by whichever RPC
+  // ended the game: `timeout` (submit_timeout), `conceded` (every racer walked
+  // away), `exhausted` (the guesses were spent), `solved`. The club-list label
+  // reads the same column, so the two surfaces name one reason.
+  reason: string | undefined
   // Compete: is the caller the winner? (Coop verdicts ignore it.)
   selfWon: boolean
   // Compete: the winner tied another solver on guesses, so the clock decided it.
@@ -48,10 +51,10 @@ export function buildTerminalMessage({
     if (playState === 'won') {
       return { pillText: 'Won: solved it', infoColText: 'Solved it!', outcome: 'won' }
     }
-    // lost: the clock, or the guesses.
+    // lost: the clock, or the guesses (coop cannot concede — End ends it).
     return {
-      pillText: timerExpired ? 'Lost: out of time' : 'Lost: out of guesses',
-      infoColText: timerExpired ? 'Out of time' : 'Out of guesses',
+      pillText: reason === 'timeout' ? 'Lost: out of time' : 'Lost: out of guesses',
+      infoColText: reason === 'timeout' ? 'Out of time' : 'Out of guesses',
       outcome: 'lost',
     }
   }
@@ -66,11 +69,20 @@ export function buildTerminalMessage({
       ? { pillText: 'Lost: beaten on the clock', infoColText: 'Opponent won (faster)', outcome: 'lost' }
       : { pillText: 'Lost: beaten on guesses', infoColText: 'Opponent won', outcome: 'lost' }
   }
-  // lost_compete: nobody solved it, or the clock. No `Lost:` prefix — nobody
-  // was beaten, the board just ran out.
+  // lost_compete: the clock, every racer conceded, or the guesses. A MIXED
+  // table — one quit, one played it out — is `exhausted`, the server's own call
+  // (`_maybe_finish_compete`); the club-list label says the same from the same
+  // word. No `Lost:` prefix on any of them — nobody was beaten, the race just
+  // ran out.
   return {
-    pillText: timerExpired ? 'Out of time — no winner' : 'Nobody solved',
-    infoColText: timerExpired ? 'Out of time' : 'No winner',
+    pillText:
+      reason === 'timeout' ? 'Out of time — no winner'
+      : reason === 'conceded' ? 'All conceded — no winner'
+      : 'Nobody solved',
+    infoColText:
+      reason === 'timeout' ? 'Out of time'
+      : reason === 'conceded' ? 'All conceded'
+      : 'No winner',
     outcome: 'lost',
   }
 }

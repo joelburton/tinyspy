@@ -128,9 +128,10 @@ WHY it ended is written into `common.games.status.reason` by the RPC that ends
 the game — `solved`, `exhausted`, `timeout`, `conceded` (every racer walked
 away), or `manual` — and the club-list label reads it. A compete win also
 freezes the winner's name and guess count onto `status`, since the winning
-number is a secret until then. The below-board verdict does not read the
-reason: `lib/terminal.ts` tells a timeout from a spent budget by the clock the
-page holds, and a clock win from a count win by comparing the players' rows.
+number is a secret until then. The below-board verdict reads the same word, so
+the two surfaces cannot name the ending differently; what `lib/terminal.ts`
+works out for itself is a clock win from a count win, by comparing the players'
+rows, which `status` does not say.
 
 ## Schema
 

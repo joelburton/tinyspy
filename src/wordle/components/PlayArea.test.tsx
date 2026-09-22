@@ -481,6 +481,27 @@ describe('wordle PlayArea — terminal flow', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.getByText('You won!')).toBeInTheDocument()
   })
+
+  // THE WIRE, end to end: the verdict names the reason the SERVER wrote, not
+  // one the page infers from its own clock. An all-conceded race is the case
+  // where the two part company — the clock never ran out, so a clock-reading
+  // verdict has nothing to say and falls back to "Nobody solved".
+  it('an all-conceded race reads status.reason, with the clock still running', () => {
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [me, moth])
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          players: twoMembers,
+          isTerminal: true,
+          playState: 'lost_compete',
+          status: { reason: 'conceded' },
+          timer: { displaySeconds: 30, expired: false },
+        })}
+      />,
+    )
+    expect(screen.getByText('All conceded — no winner')).toBeInTheDocument()
+    expect(screen.getByText('All conceded')).toBeInTheDocument()
+  })
 })
 
 /**
