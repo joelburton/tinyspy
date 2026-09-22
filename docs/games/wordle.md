@@ -170,29 +170,7 @@ and the model refuses to emit it before terminal regardless.
 
 ## Deferred
 
-- **`wordle-keyboard.e2e.ts` reads a token that no longer exists.** Line 162 does
-  `token('--ink-on-dark-color')` for the ink a JUDGED key wears; that token was
-  deleted in `8e546cae` (the theme.css chain work), so it resolves to nothing and
-  the assertion compares the page's default near-black against the key's actual
-  white — "yellow key at rest" fails while the keyboard is painted correctly.
-  **The spec is wrong, not the keyboard.** Whoever fixes it should name the token
-  the keycap actually reads rather than re-deriving one. Found by the first e2e
-  run of the CSS sprint's `forms` area (2026-08-26); it predates that area.
-
-- **Stop HIDING the keyboard at terminal; dim it instead.** Reversed 2026-08-17
-  after losing a real game (to FAVOR): `<GuessKeyboard>`'s `gameOver` prop
-  currently sets `visibility: hidden`, which reserves the space but takes the
-  keyboard away — and the keyboard is where the alphabet's state lives. Black
-  letters are untried, white ones tried, each tried one carrying its color, so
-  it is a summary of the game you just played, and hiding it removes that
-  summary at exactly the moment you want to study it.
-
-  Only what the prop *does* changes, so wordiply moves with wordle (it shares
-  the component). The treatment is the open part: it has to read as inactive
-  without dulling the very letter colors it exists to show — the same tension
-  the board's own game-over mark had, and the reason that one ended up a frame
-  rather than a dim. See [tile-feedback.md](../../plans/tile-feedback.md) → "An input
-  surface that is also a READOUT stays visible when the game ends", where the
-  general rule now lives: ask whether an input surface is *only* an input. A
-  rack you can no longer play says nothing once the game is over; a keyboard
-  that has been recording your guesses for six turns is a record.
+The register lives in [`src/wordle/todo.md`](../../src/wordle/todo.md) since the
+area opened, won't-dos included. The keyboard-at-terminal item went to
+[`src/shared/onscreen-keyboard/todo.md`](../../src/shared/onscreen-keyboard/todo.md),
+which owns the file the work would touch.

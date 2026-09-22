@@ -35,6 +35,10 @@ nothing and every cap stays neutral.
   **keeps its box**, so the column does not lurch upward at the moment a player
   is reading their verdict. `visibility: hidden`, never `display: none`; the
   stylesheet argues it at length because the difference is the whole rule.
+  **Whether it should be hidden at all is open** — a keyboard that has recorded
+  six guesses is a readout, not only an input, and taking it away removes the
+  summary at the moment you want to study it. `todo.md` has the item; what is
+  settled here is only that the box stays.
 - **A cap refuses the focus a click would give it.** Canceling `mousedown` on
   every cap: nothing here needs focus — this exists so a player without a
   physical keyboard can type, and a player with one just types — and a focused

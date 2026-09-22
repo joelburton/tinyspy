@@ -199,7 +199,8 @@ So: **dim or fade it to say the keys are spent, but leave it readable.** Exact
 treatment still to pick — it has to read as inactive without dulling the letter
 colors it exists to show, which is the tension worth looking at rather than
 guessing. `<GuessKeyboard>` keeps its `gameOver` prop; only what the prop does
-changes, so wordle and wordiply move together (see wordle.md → Deferred).
+changes, so wordle and wordiply move together (the item is
+`src/shared/onscreen-keyboard/todo.md` → Soon).
 
 The general form, and the part that survives the reversal: **ask whether an input
 surface is only an input.** A rack of tiles you can no longer play says nothing
