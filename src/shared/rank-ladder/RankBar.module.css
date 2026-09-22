@@ -42,14 +42,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--spacer-4);
+  margin-bottom: var(--spacer-4);
 }
 
+/* The current rank's name. In em like the stat grid below it, so the pair
+ * scales together when both land in the mobile status bar — see
+ * Stats.module.css's scale note. */
 /* @@ */ .label {
-  font-size: 14px;
+  font-size: 0.85em;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--letter-spacing-label);
   text-transform: uppercase;
   color: var(--rank-text);
 }
@@ -69,25 +72,30 @@
   position: relative;
 }
 
-/* The rule connecting the squares, behind them; the squares draw on top. */
+/* The rule connecting the squares, behind them; the squares draw on top. It is
+ * the SAME line as a square's edge and reads the same token — drawn as a height
+ * here only because a pseudo-element's rule is a filled box rather than a
+ * border. Changing one and not the other is what the shared name prevents. */
 /* @@ */ .track::before {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
   top: 50%;
-  height: 2px;
+  height: var(--border-width-line-thick);
   background: var(--rank-bar-edge-color);
   transform: translateY(-50%);
   z-index: 0;
 }
 
-/* One square. The four lengths below are BESPOKE by decision (Joel,
- * 2026-09-21), not unconverted: they are the dimensions of a seven-item
- * indicator sized to a ~280px track, tuned against each other rather than
- * chosen off a ramp. 14px is not a type size, and a 2px radius on a 14px
- * square is "stop the corner reading as a harsh pixel box" rather than an
- * amount of rounding — the same ruling `word-list`'s 7px got. */
+/* One square. Its BOX is bespoke by decision (Joel, 2026-09-21) — 14px is the
+ * dimension of a seven-item indicator sized to a ~280px track, and a 2px radius
+ * on a 14px square is "stop the corner reading as a harsh pixel box" rather
+ * than an amount of rounding off the radius ramp, which starts at 4px. The same
+ * ruling `word-list`'s 7px got.
+ *
+ * The EDGE is not bespoke: it is the app's thick line, and the rule connecting
+ * the squares below is the same line drawn as a height. */
 /* @@ */ .tier {
   position: relative;
   z-index: 1;
@@ -97,7 +105,7 @@
    * (see the header note). */
   border-radius: 2px;
   background: var(--default-bg-color);
-  border: 2px solid var(--rank-bar-edge-color);
+  border: var(--border-width-line-thick) solid var(--rank-bar-edge-color);
   cursor: default;
 }
 
@@ -124,8 +132,6 @@
   border-color: var(--page-text-color);
 }
 
-
-
 /* ── The mobile status bar's compressed shape ────────────────────────────────
  * ONE ROW: the rank name sits to the LEFT of the track ("GENIUS ▪-▪-▪…") rather
  * than stacked above it. The stack costs a whole line of height for one short
@@ -139,7 +145,7 @@
  * two can't drift apart the way a hand-passed flag can. */
 /* @@ */ [data-mobile-status] .rankBar {
   flex-direction: row;
-  gap: 0.5rem;
+  gap: var(--spacer-4);
   margin-bottom: 0;
 }
 
@@ -157,7 +163,7 @@
    * sit edge to edge, hiding the baseline rule that connects them; this keeps
    * a short piece of that line visible in every gap. Kept small so the row
    * still fits the rank name beside it on a phone. */
-  gap: 8px;
+  gap: var(--spacer-4);
   /* Takes the row's remaining width beside the label, up to the same cap. */
   flex: 1 1 auto;
   width: auto;

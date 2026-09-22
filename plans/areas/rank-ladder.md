@@ -317,7 +317,60 @@ disagrees, and only this area can see both readers.
 
 ### F-rank-ladder-10 · `css-literals` · Twenty values on eleven pending rows
 
-**GROUP A RULED BESPOKE, 2026-09-21** (Joel: *"group A: keep as bespoke"*) —
+**FULLY WORKED, 2026-09-21.** Groups A, B and C all ruled, and the folder's
+eleven pending rows are down to **three**: `.tier`'s radius, `.target`'s goal
+outline and `.cell`'s gap, each with its reason written beside it and in the
+guard row.
+
+**Group B ended somewhere better than it started, and the reasoning is Joel's.**
+It first went onto the type ramp where a step was close (`14px` and `13px` both
+landing on `--font-size-2`, which is also what answered the 1px-apart question).
+Then, working Group C, I argued the headline figure should be a bespoke `rem`
+because an `em` would draw 18px in the info column and 17.1px inside
+`<MobileStatusBar>`'s `.bar`, which sets `--font-size-packed`. **Joel: that is
+the point** — *"the status info on mobile on the main page SHOULD be smaller on
+mobile; that's the whole point of font-size-packed."* My premise was backwards:
+I had treated the ancestor's packed size as a hazard when it is the design.
+
+So every size in the readout is an em now — `0.75em` label and percent,
+`0.85em` denominator and rank name, `1.125em` figure — and the whole grid scales
+by the packed ratio on a phone (12.0/13.6/18.0px in the info column,
+11.4/12.9/17.1px in the bar) with its proportions intact. **The ramp could not
+express this**: its steps are rem, so they would have held their size while the
+figure beside them shrank, and the grid would have half-tracked. That reverses
+Group B's conversion for four values, and `em` is *allowed outright* by the
+font-size vocabulary rather than excused — which is that vocabulary's own
+rationale (*"a size RELATIVE to something… which a rem token cannot express and
+should not replace"*), so **the folder now has no font-size row at all**.
+`line-height` (unitless) and `--letter-spacing-label` (0.03em) already tracked.
+
+**Group C was mostly exact matches** — `8px`, `0.5rem`, `12px`, `0.25rem` and
+two `1px` borders all had a token and took it, moving nothing. Two rulings in
+it: **padding does not answer to the spacer ladder** (Joel — the same ruling
+`found-words` F-12 made, so `padding: 10px` became a bespoke `0.625rem`), and
+`.cell`'s `2px` gap stays bespoke because the ramp's smallest step reads as a
+break between a label and the figure it belongs to.
+
+**A mistake of mine inside Group A, corrected on Joel's word.** I framed the
+square's *"four lengths"* as tuned against each other and he ruled them bespoke
+on that framing — but `.tier`'s `border: 2px` is exactly
+`--border-width-line-thick`, so one of the four was never bespoke at all. Raised
+rather than quietly converted, since his ruling rested on it; converted at his
+*"fix .tier's border with the named size"*. The `.tier` note and the guard row
+now separate the BOX (bespoke) from the EDGE (the app's thick line), and the row
+lists only `.target`'s `3px`, which has no step and is defined relative to that
+edge.
+
+That fix immediately made a sibling inconsistent, which is worth recording as
+the pattern rather than the incident: the new note said the track's connecting
+rule *"is the same line drawn as a height"*, and `.track::before` was still a
+literal `2px`. Either the comment was wrong or the height had to follow. It
+follows (Joel's word) — `height: var(--border-width-line-thick)`, with the
+reason that a pseudo-element draws its rule as a filled box rather than a
+border, so the shared NAME is what keeps the two from being changed apart.
+Nothing governs `height`, so no guard would ever have said so.
+
+**GROUP A's remainder, ruled bespoke** (Joel: *"group A: keep as bespoke"*) —
 the seven-square indicator's own geometry: `.tier`'s `14px` box and `2px`
 radius, its `2px` edge and `.target`'s `3px`, and the track's `280px` cap.
 Recorded in both places the next reader looks: a `.tier` note in the

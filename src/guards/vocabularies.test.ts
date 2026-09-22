@@ -313,8 +313,11 @@ const VOCABULARIES: Vocabulary[] = [
       // against the dot's 0.85rem — between players, dot to name, and between
       // dots alone on a phone. See the file.
       'src/common/page-header/PageHeaderPlayersStrip.module.css': ['1.25rem', '0.4rem', '0.6rem'],
-      'src/shared/rank-ladder/RankBar.module.css': ['8px', '0.5rem'],
-      'src/shared/rank-ladder/Stats.module.css': ['8px', '12px', '2px', '0.25rem'],
+      // RECORDED, not unconverted (Joel, 2026-09-21): the gap between a label
+      // and the figure under it, INSIDE one cell. The two are one unit, and the
+      // ramp's smallest step (0.25rem) reads as a break between them rather
+      // than the hairline separation this is.
+      'src/shared/rank-ladder/Stats.module.css': ['2px'],
       // StrikeMarks was here with ['0.3rem', '0.4rem'] until the restructure
       // moved it into `src/connections/` — its only importer. A game's file is
       // a tuned surface and out of this vocabulary's scope, so the row cannot
@@ -376,8 +379,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/pause-suspend/PauseOverlay.module.css': ['1.05rem'],
       'src/common/info-sheet/infoCol.module.css': ['0.9rem'],
       'src/common/setup-form/SetupDisclosure.module.css': ['0.85rem'],
-      'src/shared/rank-ladder/RankBar.module.css': ['14px'],
-      'src/shared/rank-ladder/Stats.module.css': ['11px', '18px', '13px'],
       'src/common/devtools/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
       'src/common/scratchpad/GameScratchpadCompanion.module.css': ['max(16px,', '1em)'],
       'src/common/setup-form/SetupGameModal.module.css': ['0.9rem'],
@@ -414,7 +415,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.5'],
       'src/common/event-log/historyViewer.module.css': ['1'],
       'src/common/game-page/playArea.module.css': ['1.1'],
-      'src/shared/rank-ladder/Stats.module.css': ['1.2'],
       'src/common/devtools/PalettePage.module.css': ['1.35'],
       'src/common/core-css/patterns/badge.css': ['1.4'],
     },
@@ -453,8 +453,6 @@ const VOCABULARIES: Vocabulary[] = [
       // is the ramp for a LABEL — these are words to read, not a label to scan.
       'src/common/word-list/WordList.module.css': ['0.02em'],
       'src/common/game-page/playArea.module.css': ['0.03em'],
-      'src/shared/rank-ladder/RankBar.module.css': ['0.04em'],
-      'src/shared/rank-ladder/Stats.module.css': ['0.06em'],
       'src/common/devtools/PalettePage.module.css': ['0.03em'],
     },
     fix:
@@ -520,11 +518,10 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/event-log/historyViewer.module.css': ['2px'],
       'src/common/event-log/gameEventLog.module.css': ['1px'], //   `.divider`, the between-turns line
       'src/common/pause-suspend/PauseOverlay.module.css': ['1px'],
-      // RECORDED, not unconverted (Joel, 2026-09-21): the ordinary tier edge
-      // and the heavier goal outline, tuned against each other on a 14px
-      // square so the goal reads as heavier without going black.
-      'src/shared/rank-ladder/RankBar.module.css': ['2px', '3px'],
-      'src/shared/rank-ladder/Stats.module.css': ['1px'],
+      // RECORDED, not unconverted (Joel, 2026-09-21): the GOAL outline only.
+      // The ordinary tier edge is --border-width-line-thick; this is a step
+      // above it with no token, so the goal reads heavier without going black.
+      'src/shared/rank-ladder/RankBar.module.css': ['3px'],
       'src/common/devtools/PalettePage.module.css': ['1px'],
       'src/common/setup-form/SetupSection.module.css': ['1px'],
       'src/common/members/Dot.module.css': ['1px'],

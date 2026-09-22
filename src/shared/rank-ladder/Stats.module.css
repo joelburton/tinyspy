@@ -30,13 +30,21 @@
   column-gap: var(--stats-col-gap, 0);
   /* The rules band the state unit off from the opponent strip / action row
    * below it, so the figures read as their own readout. */
-  border-top: 1px solid var(--page-surface-border-color);
-  border-bottom: 1px solid var(--page-surface-border-color);
-  padding: 10px 0;
-  margin: 8px 0 12px;
+  border-top: var(--border-width-line) solid var(--page-surface-border-color);
+  border-bottom: var(--border-width-line) solid var(--page-surface-border-color);
+  /* Padding does not answer to the spacer ladder (Joel, 2026-09-21) — the
+   * ramp is for the gaps BETWEEN things, and this is the band's own breathing
+   * room above and below its figures. Bespoke, and in rem like every other
+   * length here. */
+  padding: 0.625rem 0;
+  margin: var(--spacer-4) 0 var(--spacer-3);
   text-align: center;
 }
 
+/* One cell: a label stacked over its figure. The gap is BESPOKE by decision
+ * (Joel, 2026-09-21) — the label and the figure under it are ONE unit, and the
+ * spacer ramp's smallest step (`--spacer-5`, 0.25rem) reads as a break between
+ * them rather than the hairline separation this is. */
 /* @@ */ .cell {
   display: flex;
   flex-direction: column;
@@ -44,23 +52,40 @@
   gap: 2px;
 }
 
-/* ONE type scale across every game that wears this grid. boggle's private copy
- * ran a notch smaller (10px/0.04em label, 12px muted) with nothing documenting
- * why; the larger scale won because these are figures the player reads at a
- * glance, and the mobile status bar has room for it (measured — see boggle's
- * --mobile-status-height). A label may be stacked on two lines (boggle's "REQ" /
- * "WORDS"), hence the explicit line-height. */
+/* ONE type scale across every game that wears this grid, and it is written in
+ * em on purpose — every size here is RELATIVE to the surface the grid landed
+ * in. In the info column the parent is the page's 1rem, so these are 12px,
+ * 13.6px and 18px. Inside `<MobileStatusBar>`'s `.bar` the parent is
+ * `--font-size-packed` (0.95rem) and the whole grid comes down with it, which
+ * is what packed is for: a phone's status row gives the board every pixel it
+ * can. The ramp cannot say this — its steps are rem, so they would hold their
+ * size while the figure beside them shrank, and the grid would half-track.
+ *
+ * A game wearing this grid once ran its own scale a notch smaller with nothing
+ * documenting why; the larger one won because these are figures the player
+ * reads at a glance. A label may be stacked on two lines, hence the explicit
+ * line-height — unitless, so it multiplies each element's own size and tracks
+ * along with it. */
 /* @@ */ .label {
-  font-size: 11px;
+  font-size: 0.75em;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--letter-spacing-label);
   text-transform: uppercase;
   color: var(--page-text-muted-color);
-  line-height: 1.2;
+  line-height: var(--line-height-2);
 }
 
+/* The headline figure, and the one size here that is RELATIVE on purpose. The
+ * type ramp's top step is `--font-size-1` at 1rem and a score is read at a
+ * glance from across a desk, so there is no step for it — but an em rather than
+ * a bespoke rem, because it should TRACK its surface: in the info column the
+ * parent is the page's 1rem and this draws 18px, while inside
+ * `<MobileStatusBar>`'s `.bar` the parent is `--font-size-packed` (0.95rem) and
+ * it comes down with it. That is what packed is for — a phone's status row
+ * gives the board every pixel it can — and it is why this is an em and not a
+ * number this file picked. */
 /* @@ */ .value {
-  font-size: 18px;
+  font-size: 1.125em;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--rank-text);
@@ -72,7 +97,7 @@
  * cost width nobody has. That matters most where the cells are narrowest, so a
  * grid with more of them needs it more, not less. */
 /* @@ */ .muted {
-  font-size: 13px;
+  font-size: 0.85em;
   font-weight: 500;
   color: var(--page-text-muted-color);
 }
@@ -80,11 +105,11 @@
 /* An OPTIONAL third line under the value — the found-share as a percent. Only
  * boggle passes one today; games that don't simply never render the element. */
 /* @@ */ .percent {
-  font-size: 11px;
+  font-size: 0.75em;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--page-text-muted-color);
-  line-height: 1.2;
+  line-height: var(--line-height-2);
 }
 
 /* ── The mobile status bar's compressed shape ────────────────────────────────
@@ -102,6 +127,6 @@
   border-top: none;
   border-bottom: none;
   padding: 0;
-  margin: 0.25rem 0 0;
+  margin: var(--spacer-5) 0 0;
   max-width: var(--stats-max-width, 20rem);
 }
