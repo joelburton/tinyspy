@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-onscreen-keyboard
 
 import { cls } from '@/common/utils/cls'
 import { actionSurface } from '@/common/actions/actionSurface'
@@ -11,10 +11,10 @@ const ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'] as const
 /**
  * Per-letter feedback tint for a key: the three JUDGED states of the wordle
  * palette, which is the palette these keys wear and say so by name. A game with
- * no per-letter feedback (wordiply) passes no `keyStates` and every key stays
- * neutral; a non-wordle game that ever tints keys adds its own classes rather
- * than borrowing these, because "gray" here means *not in the word* — a claim
- * only a wordle-family game can make.
+ * per-letter feedback passes `keyStates`; one without passes none, and every
+ * cap stays neutral. A game outside the wordle family that ever tints keys adds
+ * its own classes rather than borrowing these, because "gray" here means *not
+ * in the word* — a claim only a wordle-family game can make.
  *
  * Derived from `TileColor` rather than restated, so a key and the board tile
  * above it can never drift into two vocabularies. Excluding `blank` is the
@@ -25,23 +25,23 @@ export type KeyTone = Exclude<TileColor, 'blank'>
 
 type Props = {
   onKey: (letter: string) => void
-  /** Submit the guess, and delete its last letter. The SAME two bindings the
-   *  physical keyboard answers to (`useCaptureKeys` hands them back), so a cap
-   *  and its key can't disagree about whether the move is available — including
-   *  the empty-guess case, where both are gray.
-   *
-   *  The 26 letters are NOT actions and shouldn't be: a letter cap is a KEY,
-   *  not a command. The one action behind them is the pattern `act-type-letter`,
-   *  which is handed whichever letter fired it — twenty-six bindings each
-   *  hard-coding its own letter would be a registry entry per keycap. */
+  // Submit the guess, and delete its last letter. The SAME two bindings the
+  // physical keyboard answers to (`useCaptureKeys` hands them back), so a cap
+  // and its key can't disagree about whether the move is available — including
+  // the empty-guess case, where both are gray.
+  //
+  // The 26 letters are NOT actions and shouldn't be: a letter cap is a KEY, not
+  // a command. The one action behind them is the pattern `act-type-letter`,
+  // which is handed whichever letter fired it — twenty-six bindings each
+  // hard-coding its own letter would be a registry entry per keycap.
   actSubmit: BoundAction
   actDelete: BoundAction
   disabled?: boolean
-  /** The game is finished. The keyboard is WITHDRAWN rather than disabled — see
-   *  `.gameOver` in the stylesheet — while keeping the space it occupied, so the
-   *  board above it doesn't move on the frame the game ends. */
+  // The game is finished. The keyboard is WITHDRAWN rather than disabled — see
+  // `.gameOver` in the stylesheet — while keeping the space it occupied, so the
+  // board above it doesn't move on the frame the game ends.
   gameOver?: boolean
-  /** Best tone seen for each (lowercase) letter, or absent for neutral. */
+  // Best tone seen for each (lowercase) letter, or absent for neutral.
   keyStates?: ReadonlyMap<string, KeyTone>
 }
 
@@ -53,11 +53,11 @@ type Props = {
  * into the game's input path (the same path a physical key drives via
  * `useCaptureKeys`), so a game works on touch WITHOUT a physical keyboard.
  *
- * Shared by **wordle** (which tints keys with per-letter feedback via
- * `keyStates`) and **wordiply** (no tint). It is deliberately game-agnostic:
- * the keycap's own chrome is `--kbd-*` and the judged keys wear the shared
- * `--wordle-*` palette by name. No game-specific imports either way, so it
- * stays removable.
+ * Game-agnostic by construction: the keycap's own chrome is `--kbd-*`, the
+ * judged keys wear the shared `--wordle-*` palette by name, and there are no
+ * game-specific imports either way, so it stays removable. A game with
+ * per-letter feedback tints its caps by passing `keyStates`; one without passes
+ * none.
  */
 export function GuessKeyboard({
   onKey,

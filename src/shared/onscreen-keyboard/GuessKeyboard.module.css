@@ -1,4 +1,4 @@
-/* cs-unmet */
+/* cs-met-onscreen-keyboard */
 
 /* The shared on-screen keyboard. Its width is a DEFINITE size (not 100%),
  * because in the games that use it the keyboard is the widest board-column
@@ -11,8 +11,8 @@
    *
    * A tile is an object with thickness you pick up; a key is a cap you press, and
    * it should sit closer to the page. So against the tile's `1px 2px 6px / 30%`
-   * this is tighter and a touch sharper — a shorter drop, half the blur — and the
-   * hover deepens more than a tile's does, though — a keycap is small and packed
+   * this is tighter and a touch sharper — a shorter drop, half the blur. The
+   * hover deepens MORE than a tile's does, because a keycap is small and packed
    * against its neighbors, so a shadow alone has little surface to read against.
    * The lift matches the tile's 2px and the drop goes 1px → 4px, with the cap
    * going white underneath (see --kbd-key-hover-fill-color). Same light angle as everything else
@@ -188,27 +188,23 @@
   font-size: 0.85rem;
 }
 
-/* Each judged key declares what it looks like UNDER THE POINTER, which is simply
- * itself: the hover rule reads `--kbd-key-hover-fill-color` off the element, so a
- * tone re-setting that token wins without any specificity contest. Without it the
- * hover rule — `.key:hover` at (0,3,0) against a tone class at (0,1,0) — turned a
- * green key white while its ink stayed white, which is unreadable.
+/* THE JUDGED KEYS. They wear the WORDLE PALETTE directly and say so in their
+ * names, rather than reading a game-agnostic token that a game then has to set
+ * to the same value. A game outside the wordle family that ever tints keys adds
+ * its own classes: "this key has been used" needs a color of its own, never
+ * wordle-gray, which means "not in the word".
+ *
+ * Each re-sets `--kbd-key-hover-fill-color` to its own fill, and that is how it
+ * declares what it looks like UNDER THE POINTER — which is simply itself. The
+ * hover rule reads that token off the element, so a tone wins without any
+ * specificity contest. Without it the hover rule (`.key:hover`, (0,3,0)) beats
+ * a tone class ((0,1,0)) and turns a green key white while its ink stays white,
+ * which is unreadable.
  *
  * Only the UNTRIED cap lightens on hover, and that is the honest answer rather
  * than a workaround: the lightening exists because a near-white cap gives a drop
  * shadow almost nothing to read against, and a colored key doesn't have that
- * problem. It gets the lift and the deepened shadow like everything else. */
-
-/* The judged keys. They wear the WORDLE PALETTE directly and say so in their
- * names — this component used to read seven `--kbd-*` color tokens with
- * fallbacks, which wordle then overrode with seven declarations that set each one
- * to exactly the value its fallback already had. Three layers, one palette, and a
- * "game-agnostic default" that was the wordle palette in a disguise (wordiply,
- * the only other user, tints no keys at all).
- *
- * If a non-wordle game ever tints keys, it adds its own classes: "this key has
- * been used" would need its own generic color, never wordle-gray, which means
- * "not in the word" — a claim only a wordle-family game can make.
+ * problem. It gets the lift and the deepened shadow like everything else.
  *
  * Each carries a slightly DARKER edge of its own color, matching the board
  * tiles: the quiet definition the rest of the app gives a colored surface,
