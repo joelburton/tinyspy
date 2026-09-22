@@ -122,18 +122,19 @@ end the game hands the turn on.
 
 **Passed:** `{ "target_game": "3f2a…", "guess": "crane" }`
 
-**Returned — kind: `guess`.** Two shapes for an accepted guess, and today each
-carries its outcome in the envelope beside the fact (`won` · `neutral`):
+**Returned — kind: `guess`.** Four shapes; the fact only, and what each is
+worth — the words the two refusals show included — is the frontend's
+(`lib/answer.ts`). Two for an accepted guess:
 
 - solved — `{ "result": "correct", "colors": "ggggg", "guesses_used": 3, "solved": true, "terminal": true }`
 - not solved — `{ "result": "incorrect", "colors": "xgyxx", "guesses_used": 3, "solved": false, "terminal": false }`
 
 `colors` is five characters, one per letter: `g` in the right place, `y` in
-the word but elsewhere, `x` not in the word. A guess that wrote nothing has no
-colors, and today the server writes its words as well as its outcome:
+the word but elsewhere, `x` not in the word. And two for a guess that wrote
+nothing, which has no colors:
 
-- already on the board — `{ "result": "duplicate", "guesses_used": 2, "solved": false, "terminal": false }` — `warning`, *Already guessed*
-- not in the word list — `{ "result": "notAWord", "guesses_used": 2, "solved": false, "terminal": false }` — `lost`, *Not in word list*
+- already on the board — `{ "result": "duplicate", "guesses_used": 2, "solved": false, "terminal": false }`
+- not in the word list — `{ "result": "notAWord", "guesses_used": 2, "solved": false, "terminal": false }`
 
 A guess that arrives after the game has ended, out of turn, or from a racer
 who has already solved it or spent their budget is not an `ok` at all.
@@ -175,22 +176,24 @@ flips in place when its row lands. A solve shows nothing extra at the call
 site either — the verdict follows from the play state, which arrives the same
 way.
 
-**Where the words are today.** `lib/answer.ts` holds the two wire words an
-accepted guess can be and what each is worth — `correct` is `won`, `incorrect`
-is `neutral` — and the log bar and the two peer lines read that table. The two
-refusals are deliberately not in it: they write no row, so the pill and the
-board's reject mark are their only surfaces, and both read the envelope's
-`outcome` straight through. The words a player reads are written in four
-places:
+**Every answer this game gives is named, and `lib/answer.ts` says what it
+reads as.** A call site never picks a color or writes a sentence; the log
+draws the guess as five colored squares and takes the color alone. Holding a
+reply or its own refusal, `BoardCol` names an `answerType` and calls
+`answerMessage()`; holding a logged row, the log calls `eventToOutcome(row)`
+for its bar and `PlayArea` calls `peerAnswerMessage(row)` for a teammate's
+header line. One function underneath all of them, so the below-board pill,
+the board's reject mark, the log and the header cannot disagree about one
+move.
 
-| answer | said to | text | outcome | written in |
-|---|---|---|---|---|
-| solved / not solved | me | *(none — the colored row is the feedback)* | `won` / `neutral` | `lib/answer.ts` |
-| already on the board | me | `Already guessed` | `warning` | the SQL |
-| not in the word list | me | `Not in word list` | `lost` | the SQL |
-| too short | me | `Not enough letters` | `warning` | `BoardCol` |
-| a teammate's guess | about a coop teammate | `guessed CRANE` | `neutral` / `won` | `PlayArea` |
-| an opponent's solve | about a compete opponent | `solved it` | `won` | `PlayArea` |
+| answerType | said to | text | outcome |
+|---|---|---|---|
+| `correct` / `correct_peer` | me / about a coop teammate | *(none — the colored row is the feedback)* / `guessed CRANE` | `won` |
+| `incorrect` / `incorrect_peer` | me / about a coop teammate | *(none)* / `guessed CRANE` | `neutral` |
+| `solved_peer` | about a compete opponent | `solved it` | `won` |
+| `duplicate` | me | `Already guessed` | `warning` |
+| `not_a_word` | me | `Not in word list` | `lost` |
+| `too_short` | me | `Not enough letters` | `warning` |
 
 The two peer lines are the two modes' one visible peer event each. Coop
 narrates every teammate's accepted guess, in the row's own outcome; compete
@@ -198,7 +201,7 @@ cannot see an opponent's rows and narrates the one thing it can, the
 `players.solved` flag flipping — green, because the outcome follows the event
 and not the viewer's stake. The terminal verdict and the out-of-race lines are
 standing conditions of the local slot, not answers to a move; they are built
-in `PlayArea` and are Step 6's to move.
+in `PlayArea`.
 
 **New game is a plain `create_game`.** The play surface calls it directly with
 this game's setup, roster and mode, and the creator jumps to the new game

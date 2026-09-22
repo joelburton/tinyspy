@@ -8,7 +8,7 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
-import { ANSWER_OUTCOME } from '../lib/answer'
+import { answerMessage, peerAnswerMessage } from '../lib/answer'
 import { setupRows } from '../lib/setupSummary'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -230,11 +230,10 @@ export function PlayArea({
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → board, no narration
       const member = memberById(members, g.user_id)
-      return FeedbackMessage.peer(
-        member,
-        ANSWER_OUTCOME[g.is_correct ? 'correct' : 'incorrect'],
-        `guessed ${g.guess.toUpperCase()}`,
-      )
+      // The row is somebody else's — the line above returned for my own — so
+      // its answer is the `_peer` one.
+      const { outcome, text } = peerAnswerMessage(g)
+      return FeedbackMessage.peer(member, outcome, text)
     },
     globalFeedbackSlot,
   })
@@ -258,7 +257,8 @@ export function PlayArea({
     messageFor: (id) => {
       if (id === session.user.id) return null // my own solve → terminal handling
       const member = memberById(members, id)
-      return FeedbackMessage.peerMilestone(member, ANSWER_OUTCOME.correct, 'solved it')
+      const { outcome, text } = answerMessage({ answerType: 'solved_peer' })
+      return FeedbackMessage.peerMilestone(member, outcome, text)
     },
     globalFeedbackSlot,
   })

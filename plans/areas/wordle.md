@@ -7,8 +7,8 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/wordle/todo.md`, not here.
 
-**Status: OPEN** (2026-09-22). Pass 1, the restructure: Steps 0–3 done, Step
-4 (`AnswerMessage`) next. **Three passes back to back**, psychicnum's and
+**Status: OPEN** (2026-09-22). Pass 1, the restructure: Steps 0–4 done, Step
+5 (the actions and the row) next. **Three passes back to back**, psychicnum's and
 connections' shape: restructure → audit → tile-feedback.
 
 ## The roster
@@ -202,13 +202,75 @@ disagreed:**
   today's state with the words "today each carries its outcome in the envelope
   beside the fact" — the inventory Step 4 starts from.
 
-**What the doc records as it is TODAY, which Step 4 changes:** the
-`submit_guess` reply carries its outcome beside the fact, the two soft rejects
-carry the server's sentence as well, and the words a player reads are written
-in four places — `lib/answer.ts` (the two wire words and their outcomes), the
-SQL (the two refusals' sentences), `BoardCol` (the too-short refusal) and
-`PlayArea` (the two peer lines). The FE-submissions table lists all six with
-where each is written.
+**What the doc recorded as it was at Step 3, which Step 4 changed:** the
+`submit_guess` reply carried its outcome beside the fact, the two soft rejects
+carried the server's sentence as well, and the words a player reads were
+written in four places — `lib/answer.ts` (the two wire words and their
+outcomes), the SQL (the two refusals' sentences), `BoardCol` (the too-short
+refusal) and `PlayArea` (the two peer lines). The FE-submissions table listed
+all six with where each was written, which is the inventory Step 4 started from.
+
+### Step 4 — the `AnswerMessage` conversion — DONE 2026-09-22
+
+connections' Step 4 (`8b96d546`), copied: an `ok` from `submit_guess` returns
+the FACT and nothing else; a call site names an `answerType`; one function in
+`lib/answer.ts` turns that into the outcome and the text, with a `_peer` twin
+per answer, so the pill, the board's reject mark, the log bar and the header
+line read one table.
+
+**What shipped.** `lib/answer.ts`: `Answer` is the eight-member union
+(`correct` · `correct_peer` · `incorrect` · `incorrect_peer` · `solved_peer` ·
+`duplicate` · `not_a_word` · `too_short`), `answerMessage()`,
+`eventToOutcome(row)` and `peerAnswerMessage(row)` replace `ANSWER_OUTCOME`.
+My own accepted guess has an empty text — the colored row is the feedback —
+and the peer twin says `guessed CRANE`, as before; `solved_peer` is the
+compete opponent's `solved` flag, psychicnum's `found_peer` shape, since it is
+a flag and not a row. `BoardCol`'s `softReject` takes the answer's name, its
+too-short refusal reads the table, and its `res.message !== null` guards are
+gone; `PlayArea`'s two peer lines call `peerAnswerMessage` and `answerMessage`;
+`GameEventLog`'s bar calls `eventToOutcome`. The three `ok_envelope` calls in
+`submit_guess` dropped their outcome and message arguments, and the four
+gameplay pins assert `"outcome": null` — the two refusals `"message": null`
+too. `answer.test.ts` rewritten to walk the union; `doc.md`'s `submit_guess`
+entry and FE submissions say the new state.
+
+**Not a word changed.** Every text is the one the surface showed before:
+`Already guessed`, `Not in word list`, `Not enough letters`, `guessed CRANE`,
+`solved it`. Every outcome the same. Joel's three word decisions at
+connections had no counterpart here to make.
+
+**The one thing this game does that the two earlier conversions did not:**
+wordle is a game whose `ok` refusals carried a SERVER-written sentence — the
+two soft rejects are `ok` because the frontend holds no word list and cannot
+pre-check them, and `docs/envelopes.md` → Who writes the words says a server
+that can write the sentence does. The conversion moves those two sentences to
+`lib/answer.ts` all the same, by `docs/outcomes.md` → How a game does it: an
+`ok` that is one of the game's answers carries no outcome, a message requires
+an outcome, so the words go with it. That is the tension connections' Step 4
+recorded and left standing in `envelopes.md`; it stands here too, and is the
+shared doc's to resolve. **Joel's read is the check on this.**
+
+**One behavior change, stated now: the todo's Bug is fixed, and deleted
+there.** A `not-ok` bumped the reject nonce without setting `rejectOutcome`,
+so a race ("Game over", "Already solved", "Not your turn") marked the active
+row in whatever the last soft reject left — red after a not-a-word, under an
+amber pill. The `not-ok` branch was open for the conversion and now calls
+`setRejectOutcome(notOkOutcome(res))`, the same function the pill reads, so
+the two cannot disagree. The todo said the fix was that one line; it was. No
+test pins the mark's color; the mark itself is pass 3's.
+
+**Verified by planting the outcome back** on the duplicate branch: the whole
+pgTAP suite went red on exactly one test, `gameplay_test.sql`'s duplicate pin,
+naming `message: want null, got "Already guessed"` and `outcome: want null,
+got "warning"`; restored, green. `tsc -b` clean, lint clean over
+`src/wordle/`, 379 unit tests green (the game's and the guards), the whole
+pgTAP suite green (181 files, 2545 tests). The e2e specs have not run for
+Steps 2–4.
+
+**Seen with the SQL open, left for pass 2:** `submit_guess`'s coop terminal
+write says *"Every terminal write states its `outcome` explicitly"* while the
+key it writes is `reason` — the status-key rename left the comment behind. A
+stale-claims item for the audit, with `manifest.ts`'s two-player claim.
 
 ## Findings
 

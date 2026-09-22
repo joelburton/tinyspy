@@ -7,7 +7,7 @@ import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import type { Member } from '@/common/members/member'
-import { ANSWER_OUTCOME } from '../lib/answer'
+import { eventToOutcome } from '../lib/answer'
 import { tileColor } from '../lib/colors'
 import type { EventRow } from '../hooks/useGame'
 import styles from './GameEventLog.module.css'
@@ -93,8 +93,8 @@ export function GameEventLog({
       {shown.map((g, i) => (
         <tr key={g.id} className={gameEventLog.divider}>
           {/* The bar's word is `lib/answer.ts`'s, so the log has none of its
-              own to disagree with the pill about the same guess. */}
-          <EventLogOutcomeBar outcome={ANSWER_OUTCOME[g.is_correct ? 'correct' : 'incorrect']} />
+              own to disagree with the header line about the same guess. */}
+          <EventLogOutcomeBar outcome={eventToOutcome(g)} />
           <EventLogNumber
             n={i + 1}
             isOpenInHistory={historyId === g.id}

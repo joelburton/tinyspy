@@ -473,9 +473,8 @@ revoke execute on function wordle._maybe_finish_compete(uuid) from public;
 -- ============================================================
 -- Submit a 5-letter guess. Soft rejections (an `ok`: no guess consumed,
 -- no row written) are the word already guessed on this board
--- ('duplicate', `warning`) and the word not in the legal slice
--- ('notAWord', `lost`). A valid, fresh word is colored, logged, and
--- counts against the budget. Hard rejections (raised): not a player,
+-- ('duplicate') and the word not in the legal slice ('notAWord'). A
+-- valid, fresh word is colored, logged, and counts against the budget. Hard rejections (raised): not a player,
 -- game not playing, a malformed entry (PN256 — the client refuses a
 -- short word before it calls), the caller already solved, or out of
 -- guesses.
@@ -484,11 +483,11 @@ revoke execute on function wordle._maybe_finish_compete(uuid) from public;
 -- guesses against the shared budget.
 --
 -- The `ok` carries { result, colors, guesses_used, solved, terminal },
--- `result` ∈ correct | incorrect | notAWord | duplicate, and the
--- envelope's outcome is the word the pill and the board's ring wear:
--- `won` for a solve, `neutral` for an ordinary guess (the frontend's
--- lib/answer.ts says the same for the row), and the two above for the
--- soft rejects.
+-- `result` ∈ correct | incorrect | notAWord | duplicate — the FACT, and
+-- nothing about how it reads. No outcome and no message on any of the
+-- four: what each is worth, and the words the two soft rejects show, is
+-- decided once in the frontend's lib/answer.ts (docs/outcomes.md → How a
+-- game does it), and gameplay_test.sql pins the nulls.
 drop function if exists wordle.submit_guess(uuid, text);
 create or replace function wordle.submit_guess(
   target_game uuid,
@@ -594,12 +593,11 @@ begin
   end if;
   if is_dup then
     -- `ok`: a game-rule refusal is the rules being applied, and nothing was
-    -- burned. `data` still carries `result` — the board reads it for the shake,
-    -- independently of the pill.
+    -- burned. `result` names the case; the frontend picks its branch by it and
+    -- says the words.
     return common.ok_envelope(
       jsonb_build_object('result', 'duplicate', 'guesses_used', p_used,
-                         'solved', false, 'terminal', false),
-      'warning', 'Already guessed');
+                         'solved', false, 'terminal', false));
   end if;
 
   -- ─── Soft reject: not in the legal word slice (no burn) ──
@@ -620,8 +618,7 @@ begin
   ) then
     return common.ok_envelope(
       jsonb_build_object('result', 'notAWord', 'guesses_used', p_used,
-                         'solved', false, 'terminal', false),
-      'lost', 'Not in word list');
+                         'solved', false, 'terminal', false));
   end if;
 
   -- ─── Accept: color, log, count, resolve ──────────────────
@@ -715,9 +712,9 @@ begin
   -- sees the settled is_terminal.
   perform wordle._sync_title(target_game);
 
-  -- No message: what an accepted guess shows is composed from the colors and
-  -- the board, which the server cannot say as fully (docs/envelopes.md → Who
-  -- writes the words, per answer).
+  -- The fact alone. What an accepted guess shows is composed from the colors
+  -- and the board, and what it is worth is lib/answer.ts's for the row this
+  -- wrote.
   return common.ok_envelope(
     jsonb_build_object(
       'result',       case when did_solve then 'correct' else 'incorrect' end,
@@ -725,12 +722,7 @@ begin
       'guesses_used', new_used,
       'solved',       did_solve,
       'terminal',     out_terminal
-    ),
-    -- A guess that did not solve the board is `neutral`, not `lost`: you are
-    -- MEANT to spend guesses, and one that rules out four letters has done its
-    -- job. The frontend's lib/answer.ts says the same word for the row this
-    -- wrote.
-    case when did_solve then 'won' else 'neutral' end);
+    ));
 
 exception when others then
   get stacked diagnostics

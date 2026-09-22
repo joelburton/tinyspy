@@ -1,6 +1,6 @@
 // cs-met-wordle
 
-import { runRpc } from '@/common/supabase/dbResult'
+import { notOkOutcome, runRpc } from '@/common/supabase/dbResult'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { useEffect, useCallback, useState } from 'react'
@@ -9,6 +9,7 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { db } from '../db'
+import { answerMessage } from '../lib/answer'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
 import type { HistorySnapshotRow, HistorySnapshot } from '../lib/history'
 import { Board } from './Board'
@@ -41,9 +42,8 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 const REJECT_MARK_MS = 900
 
 /**
- * What `wordle.submit_guess` puts in `data`. The structural fact travels even
- * where the server also wrote the sentence: the board's shake is keyed on
- * `result`, and has nothing to do with the words.
+ * What `wordle.submit_guess` puts in `data` — the fact, and nothing about how
+ * it reads: the words and the color are `lib/answer.ts`'s, keyed on `result`.
  *
  * A UNION, because the two halves are not the same answer wearing one shape. A
  * soft reject burns no guess and carries no colors — there is no row to color —
@@ -53,7 +53,7 @@ const REJECT_MARK_MS = 900
  */
 type GuessAnswer =
   /** Soft rejects: the rules were applied, nothing was burned, the typed row
-   *  stays. Both come with the server's own sentence + outcome. */
+   *  stays. */
   | {
       result: 'duplicate' | 'notAWord'
       guesses_used: number | null
@@ -137,7 +137,8 @@ export function BoardCol({
    *  second attempt would look ignored. `<Board>` keys the row on it so the
    *  animation restarts. */
   const [rejectNonce, setRejectNonce] = useState(0)
-  /** The outcome of the last rejection, written by `softReject`. */
+  /** The outcome of the last rejection — written with the nonce, by every path
+   *  that bumps it, so the mark and the pill beside it read one value. */
   const [rejectOutcome, setRejectOutcome] = useState<Outcome>('lost')
   // The accepted-but-not-yet-rendered guess: kept on the board (uncolored) from the
   // moment we submit until its colored server row arrives via realtime, so the letters
@@ -223,17 +224,18 @@ export function BoardCol({
    * (docs/envelopes.md → The shape of a call site).
    *
    * The rules were applied and no guess was burned, so the typed row stays put
-   * and the board shakes instead. Takes the outcome and the sentence as ARGUMENTS
-   * because the server wrote both, per answer — this function is the shared
-   * mechanism, never the source of the words.
+   * and the board shakes instead. Takes the answer's NAME: `lib/answer.ts` says
+   * what it reads as, so this function is the shared mechanism and never the
+   * source of the words.
    *
-   * `outcome` reaches the ring UNTOUCHED: `Board` takes the word and looks its
-   * color up in the shared table, so this column narrows nothing and the ring
+   * The outcome reaches the mark UNTOUCHED: `Board` takes the word and looks its
+   * color up in the shared table, so this column narrows nothing and the mark
    * and the pill cannot say different things about one refusal. The nonce
    * beside it stays per game (docs/ui.md → "The verdict mark's state").
    */
   const softReject = useCallback(
-    (outcome: Outcome, text: string) => {
+    (answerType: 'duplicate' | 'not_a_word') => {
+      const { outcome, text } = answerMessage({ answerType })
       setPending(null)
       setRejectOutcome(outcome)
       setRejectNonce((n) => n + 1)
@@ -246,7 +248,8 @@ export function BoardCol({
   const doSubmit = useCallback(
     async (word: string) => {
       if (word.length !== 5) {
-        localFeedbackSlot.show(FeedbackMessage.result('warning', 'Not enough letters'))
+        const { outcome, text } = answerMessage({ answerType: 'too_short' })
+        localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
         return
       }
       setSubmitting(true)
@@ -259,14 +262,17 @@ export function BoardCol({
       setSubmitting(false)
       if (res.type === 'not-ok') {
         setPending(null)
+        // The mark wears the refusal's own outcome — the same word the pill
+        // reads off the envelope — not whatever the last soft reject left.
+        setRejectOutcome(notOkOutcome(res))
         setRejectNonce((n) => n + 1)
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
-      } else if (res.type === 'ok' && res.data.result === 'duplicate' && res.message !== null) {
-        softReject(res.outcome, res.message)
+      } else if (res.type === 'ok' && res.data.result === 'duplicate') {
+        softReject('duplicate')
         return
-      } else if (res.type === 'ok' && res.data.result === 'notAWord' && res.message !== null) {
-        softReject(res.outcome, res.message)
+      } else if (res.type === 'ok' && res.data.result === 'notAWord') {
+        softReject('not_a_word')
         return
       } else if (res.type === 'ok' && res.data.result === 'correct') {
         // Accepted: clear the typing buffer. `pending` holds the word in place

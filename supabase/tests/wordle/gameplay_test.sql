@@ -50,16 +50,15 @@ select pg_temp.envelope_is(
     "message":"BUG: guess that was not five letters"}'::jsonb,
   'too-short entry is a fault');
 
--- The WHOLE envelope, not just `result`. BoardCol reads three things off this
--- answer — the case, the sentence and the outcome — and guesses at none of
--- them: each soft reject has its own branch, so if the server ever stops
--- sending the pair, this answer matches no branch and screams. That is the
--- behavior worth pinning.
+-- Every `ok` here is asserted to carry NO outcome and NO message, which is
+-- half of one rule: an ok from this game is the FACT, and what it is worth —
+-- the words a soft reject shows included — is decided once, in
+-- src/wordle/lib/answer.ts (its test pins the other half).
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g), 'zzzzz'),
-  '{"type":"ok","outcome":"lost","message":"Not in word list",
+  '{"type":"ok","outcome":null,"message":null,
     "data":{"result":"notAWord","solved":false,"terminal":false}}'::jsonb,
-  'a 5-letter non-word → notAWord, with the words and the outcome the pill renders');
+  'a 5-letter non-word → notAWord, the case alone');
 
 reset role;
 select is(
@@ -72,16 +71,13 @@ select is(
   0::bigint, 'soft rejects wrote no guess row');
 
 -- ── A valid non-target guess: incorrect, burns one ─────────
--- `neutral`, not `lost`: you are MEANT to spend guesses, and one that comes back
--- with colors has done its job. src/wordle/lib/answer.ts says the same word for
--- the row this wrote — one rule, two languages.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table missres on commit drop as
 select wordle.submit_guess((select id from g), (select word from valw)) as res;
 select is((select res->'data'->>'result' from missres), 'incorrect',
   'a valid non-answer word → incorrect');
-select is((select res->>'outcome' from missres), 'neutral',
-  'a non-solving guess is neutral');
+select is((select res->>'outcome' from missres), null::text,
+  'a non-solving guess carries no outcome');
 
 reset role;
 select is(
@@ -113,9 +109,9 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g), (select word from valw)),
-  '{"type":"ok","outcome":"warning","message":"Already guessed",
+  '{"type":"ok","outcome":null,"message":null,
     "data":{"result":"duplicate","solved":false,"terminal":false}}'::jsonb,
-  'a word already on the shared board → duplicate, and it reads as a warning');
+  'a word already on the shared board → duplicate, the case alone');
 reset role;
 select is(
   (select max(guesses_used) from wordle.players where game_id = (select id from g)),
@@ -128,11 +124,8 @@ select wordle.submit_guess((select id from g), (select w from tgt)) as res;
 
 select is((select (res->'data'->>'result') from winres), 'correct',
   'guessing the target → correct');
--- The outcome is asserted with it. src/wordle/lib/answer.ts gives the row this
--- wrote the same word, and the log bar wears that — one rule, two languages,
--- a test in each.
-select is((select (res->>'outcome') from winres), 'won',
-  'a solving guess is won');
+select is((select (res->>'outcome') from winres), null::text,
+  'a solving guess carries no outcome');
 select is((select (res->'data'->>'terminal')::boolean from winres), true,
   'the solving guess is terminal');
 
