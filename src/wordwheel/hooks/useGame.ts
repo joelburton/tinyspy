@@ -13,11 +13,10 @@ import { makeBeeGame } from '@/shared/bee-games/makeBeeGame'
 export type Player = Member
 
 /**
- * wordwheel + spellingbee project the identical game shape, so the hook
- * body — the once-loaded header + the found_words realtime refetch — lives once
- * in `makeBeeGame`; this binds it to the wordwheel schema. The data types
- * are re-exported under wordwheel's local names; if wordwheel ever grows a
- * schema-specific column, that's the seam to fork (give it its own body).
+ * wordwheel's `useGame`: the shared bee-games hook body bound to this schema,
+ * with the data types re-exported under wordwheel's local names. What the bee
+ * games share, and when a game should stop sharing it, is `makeBeeGame`'s own
+ * docstring — this file is the seam that would change.
  */
 export type { BeeGame as WordwheelGame } from '@/shared/bee-games/makeBeeGame'
 export type {

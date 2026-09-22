@@ -13,13 +13,11 @@ import type { FoundWordsWord, FoundWordRow } from '@/shared/found-words/foundWor
  * Loads once (play state lives on common.games). Both word lists ship from game
  * start; the FE just doesn't RENDER the required list until terminal.
  *
- * This is the half of the found-words shape that spellingbee and wordwheel
- * share and boggle does not: a center letter, an outer-letters string, two
- * scored word lists and a rank-ladder denominator. The board differs at RENDER
- * time (a hex hive vs a 9-tile wheel) and in game logic (spellingbee's letter
- * SET vs wordwheel's letter MULTISET), but this data is the same, which is what
- * lets one factory answer for both. If either game grows a column, split the
- * type back out (per-game body, same name).
+ * This is the half of the found-words shape the bee games share and boggle does
+ * not: a center letter, an outer-letters string, two scored word lists and a
+ * rank-ladder denominator. The board differs at RENDER time (a hex hive vs a
+ * 9-tile wheel) and in game logic (a letter SET vs a letter MULTISET), but this
+ * data is the same, which is what lets one factory answer for both.
  */
 export type BeeGame = {
   id: string

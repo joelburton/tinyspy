@@ -142,6 +142,31 @@ widens `.from()` to `never`.
 
 ### F-bee-games-4 · `fork-ruling-four-homes` · One ruling, four places
 
+**RULED (1) AND SHIPPED, 2026-09-21** (Joel: *"i'll take your recs for both"*).
+One home in code: the factory's docstring. The copy on the `BeeGame` type is
+gone — forking the type and forking the body are not two decisions — and the two
+games' `useGame.ts` docstrings now say what a reader of THAT file needs (this
+binds the shared body to this schema; the file is the seam that would change)
+and point at `makeBeeGame` for the rest.
+
+**Pointed at `makeBeeGame`, not at `doc.md`**, though `doc.md` is where the
+DESIGN belongs (F-1). The intro is not written yet, and a pointer into a section
+that does not exist is worse than a short hop to the docstring that actually
+states the rule. When F-1 lands, the intro carries the narrative and the
+factory's one sentence stays as the caller's operational note.
+
+**The two games' files were edited although they are `cs-unmet` and belong to
+two unopened game areas**, on the argument the opening had just proved: a pair
+of files that mirror each other reads as a shared convention from inside either
+one, and only the area that sees both knows it is one sentence twice. Their
+stamps are untouched.
+
+The type docstring also lost two game names while it was open — *"the half of
+the found-words shape that spellingbee and wordwheel share"* became *"the bee
+games share"*, and the parenthetical naming whose letters are a set and whose a
+multiset became *"a letter SET vs a letter MULTISET"*, since which is which is
+each game's own doc's business.
+
 *"If either game grows a game-specific column, give it back its own `useGame`
 body"* is written at `makeBeeGame.ts:21–22` (on the type), again at `:86–87` (on
 the factory), and again in **both** games' `hooks/useGame.ts` (*"if spellingbee
