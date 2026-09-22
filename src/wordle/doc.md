@@ -110,8 +110,11 @@ a race nobody solved is a loss for everyone. A countdown running out resolves
 the race by the same rule among those who had solved it.
 
 Compete needs an opposing **player**, which is why its manifest takes 2–6
-where coop takes 1–6. That minimum is the manifest's rule: the server checks
-the maximum and the mode's spelling, nothing lower.
+where coop takes 1–6. `create_game` checks both ends of that: a race with
+fewer than two players is a fault, and so is one with more than six. Nothing a
+player can do reaches the lower one — the club page hides a gametype the
+roster cannot fill, and the players picker refuses a short selection — so it
+is the server-side catch rather than a refusal anyone sees.
 
 ### The play states
 

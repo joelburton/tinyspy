@@ -78,13 +78,13 @@ mechanism:
 |---|---|---|
 | at least 1 | every game | `common.create_game_row` raises **PN059** |
 | the max | 15 games | `common.require_player_count_max(ids, cap)` raises **PN041**; codenamesduet keeps its inline exactly-2 instead |
-| compete's min of 2 | 9 games | each `create_game`'s own `< 2` check. **setgame, stackdown, waffle and wordle have none** — their manifests say `[2, 6]` and their servers accept 1. bananagrams and scrabble need none (their min is 1) |
+| compete's min of 2 | 10 games | each `create_game`'s own `< 2` check. **setgame, stackdown and waffle have none** — their manifests say `[2, 6]` and their servers accept 1. bananagrams and scrabble need none (their min is 1) |
 
 Every manifest max agrees with its server cap; that half was measured, not
-assumed. The compete-minimum row is the gap — the FE hides those Start buttons
-in a solo club, so it is unreachable through the app and matches the
-friends-not-strangers trust model, but it is a client-only bound and the
-manifest's own docstring claims otherwise.
+assumed. The compete-minimum row is where the three are short — the FE hides
+those Start buttons in a solo club, so it is unreachable through the app and
+matches the friends-not-strangers trust model, but it is a client-only bound
+and all three manifests' own comments claim the RPC enforces it.
 
 ## Co-op interaction (games that have coop)
 This is the DEFAULT pacing; nine of the free-for-all games also offer opt-in

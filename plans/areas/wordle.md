@@ -729,7 +729,36 @@ walking every word the column can hold, and the call site reading `status`
 (a prop it already destructures for the winner); or **leave the clock**.
 Recommendation: read the server's word.
 
-### F-wordle-4 · `compete-min-unchecked` · the server accepts a one-player race
+### SHIPPED · F-wordle-4 · `compete-min-unchecked` · the server accepts a one-player race
+
+**Joel, 2026-09-22: "add the raise."** `wordle.create_game` gained the
+siblings' guard, verbatim in shape, after `require_valid_mode` (which has to
+run first, the guard branching on the mode): under two players in compete is
+`PN498`, `hint = 'fault'`, detail *compete needs >= 2 players*. **`PN498` is
+the next free code** from `raiseCodes.test.ts`'s own line — *480 allocated;
+next PN is 498*.
+
+`create_game_test.sql` gained two cases, plan 20 → 22: a solo race refused by
+its code, and — the half the siblings' tests do not pin — **two racers still
+created**, so a guard that over-rejects is as red as one that never fires.
+**Verified by planting** the condition to `false`: the whole suite goes red on
+exactly one test, `create_game_test`'s #13; restored, 181 files / 2547 tests
+PASS.
+
+**The finding undercounted the siblings.** It credited psychicnum and
+connections; it is **ten of the fifteen compete games**, and
+`docs/features.md` already tracked wordle in the gap by name. That row now
+says ten games and lists three, and its paragraph says all three remaining
+manifests claim an enforcement their servers do not have — setgame,
+stackdown and waffle, each that area's to fix, untouched here.
+
+Two prose fixes went with it: `manifest.ts`'s comment said *"Lower bound 2 —
+this manifest's rule; the RPC checks only the maximum"* (the prose pass wrote
+that, correctly, a day before it stopped being true) and now names both ends
+with the code; `doc.md`'s Compete paragraph says the server checks both, and
+that the lower one is unreachable through the app — the club page hides a
+gametype the roster cannot fill (`ClubPage.tsx:680`), and the players picker
+refuses a short selection (`PlayersSection.tsx:65`).
 
 `wordleCompeteGame` says `[2, 6]` and its comment now says the minimum is
 the manifest's rule, which is true: `wordle.create_game` checks the maximum

@@ -171,8 +171,8 @@ export const wordleCompeteGame: GameManifest = {
 
   help: helpLoader,
 
-  // Compete needs an opposing PLAYER. Lower bound 2 — this manifest's rule;
-  // the RPC checks only the maximum.
+  // Compete needs an opposing PLAYER. Must agree with create_game, which
+  // checks both ends for a race (PN498 below 2, require_player_count_max(6)).
   numberOfPlayers: [2, 6],
 
   PlayArea: playAreaLoader,

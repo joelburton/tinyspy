@@ -10,7 +10,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(20);
+select plan(22);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -79,6 +79,22 @@ select pg_temp.envelope_is(
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'solo'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN040"}'::jsonb,
   'an invalid mode is a fault');
+-- Compete on a single-player array is the degenerate "race yourself" case the
+-- club page and the players picker both hide; the server catches it too. Coop
+-- on the same array is fine, and the asserts above lean on that.
+select pg_temp.envelope_is(
+  wordle.create_game(
+    (select handle from club), pg_temp.wordle_setup(6),
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete'),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN498"}'::jsonb,
+  'a solo race is refused, and the picker is what to fix');
+select pg_temp.envelope_is(
+  wordle.create_game(
+    (select handle from club), pg_temp.wordle_setup(6),
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete'),
+  '{"type":"ok","data":{"result":"created"}}'::jsonb,
+  'two racers is the case the guard must not eat');
 
 -- ── Word bands: answer_source + legal_guess ─────────────────
 -- g used the default setup → answer_source 0 → target from the Wordle list.

@@ -215,6 +215,17 @@ begin
 
   perform common.require_valid_mode(mode);
 
+  if mode = 'compete' then
+    -- Compete needs an opposing PLAYER. A solo race is just a coop game with
+    -- a timer. The club page hides a gametype the roster cannot fill and the
+    -- players picker refuses a short one; this guard is the server-side catch.
+    if coalesce(array_length(player_user_ids, 1), 0) < 2 then
+      raise exception 'BUG: race with fewer than two players'
+        using errcode = 'PN498', hint = 'fault', column = '_',
+      detail = 'compete needs >= 2 players';
+    end if;
+  end if;
+
   -- ─── Validate setup.max_guesses ──────────────────────────
   s_max_guesses := coalesce((setup->>'max_guesses')::int, 6);
   if s_max_guesses < 5 or s_max_guesses > 8 then
