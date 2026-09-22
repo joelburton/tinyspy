@@ -234,6 +234,24 @@ remaining one a recorded decision; the guard file itself is not on this roster
 
 ### F-onscreen-keyboard-7 · `two-prefixes-for-three-locals` · `--key-*` and `--kb-*` in one stylesheet
 
+**SHIPPED, 2026-09-22** (Joel chose "pick one local prefix"). `--kb-gap` is
+`--key-gap`; the three locals are one family, and the FILE now states the
+boundary rather than leaving a reader to infer it:
+
+> `--kbd-*` comes from the theme and a rule here may only READ it — except
+> `--kbd-key-hover-fill-color`, which a tone re-sets on purpose. `--key-*` is
+> this file's own arithmetic, declared here and read nowhere else in the app.
+
+Collapsing all three into `--kbd-*` was the alternative and was rejected for
+losing exactly that: this file's hover mechanism turns on knowing which token a
+rule may re-set and which it may only read, and one family cannot say it.
+
+Verified the locals really are private — nothing outside the folder reads
+`--key-shadow`, `--key-hover-shadow` or the gap. **Planted a half-done rename**
+(one `var(--kb-gap)` left behind) and `cssTokens` catches it as a phantom token,
+so the rename cannot have left a dangling reader — which matters here, since an
+undefined `var()` voids its whole declaration rather than failing loudly.
+
 `--key-shadow` and `--key-hover-shadow` sit three lines above `--kb-gap`, all
 three local to `.keyboard` and invented by this file. Two prefixes for one
 component's private tokens, and neither matches the `--kbd-*` family the file

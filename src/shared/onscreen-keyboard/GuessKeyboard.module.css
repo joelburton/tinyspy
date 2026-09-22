@@ -21,7 +21,12 @@
 /* @@ */   --key-shadow: 1px 1px 3px rgb(0 0 0 / 26%);
 /* @@ */   --key-hover-shadow: 1px 4px 9px rgb(0 0 0 / 30%);
 
-/* @@ */   --kb-gap: 0.3rem;
+  /* TWO FAMILIES, and the prefix is the difference. `--kbd-*` comes from the
+   * theme and a rule here may only READ it — except `--kbd-key-hover-fill-color`,
+   * which a tone re-sets on purpose (see the judged keys). `--key-*` is this
+   * file's own arithmetic, declared here and read nowhere else in the app. A
+   * reader meeting both in adjacent declarations can tell which is which. */
+/* @@ */   --key-gap: 0.3rem;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
@@ -56,14 +61,14 @@
 /* @@ */ .row {
   display: flex;
   justify-content: center;
-  gap: var(--kb-gap);
+  gap: var(--key-gap);
 }
 
 /* Every letter key is exactly one tenth of the keyboard width (less the nine
  * gaps of the widest row), so keys line up at the same size across rows
  * instead of stretching to fill each row's leftover space. */
 /* @@ */ .key {
-  flex: 0 0 calc((100% - 9 * var(--kb-gap)) / 10);
+  flex: 0 0 calc((100% - 9 * var(--key-gap)) / 10);
   height: 3.2rem;
   padding: 0;
   /* Bigger than it looks like it needs to be. A keycap has plenty of dead space
