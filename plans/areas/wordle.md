@@ -12,9 +12,10 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 (`39ec69c5`) and the five findings the todo and that pass raised are answered —
 F-1, F-3, F-4 and F-5 shipped, F-2 ruled back to `game-page`. **The roster
 READ is done (2026-09-22, below) and recorded twelve more, F-6 to F-17**:
-eight with a decision in them, four prose, tests and small shapes. **F-6, F-7,
-F-10 and F-11 SHIPPED the same day** on Joel's word, in the working tree; F-8,
-F-9, F-12 and F-13 wait for his ruling, F-14 to F-17 for the prose pass.
+eight with a decision in them, four prose, tests and small shapes. **All eight
+decisions are answered** (2026-09-22): F-6, F-7, F-8, F-10 and F-11 shipped,
+F-9 and F-12 ruled no-change (F-12 opened `plans/spectating.md`), F-13 ruled
+pass 3's. **F-14 to F-17 — the prose pass — are what is left of pass 2.**
 `src/wordle/todo.md` is empty. Then pass 3, tile-feedback, then the closing
 re-read.
 **Three passes back to back**, psychicnum's and connections' shape:
@@ -1076,7 +1077,11 @@ column read as a player's would. Recommendation: file and keep; a lone honest
 sentence beats fifteen silences, and removing it here would be deciding the
 shell's question from one game.
 
-### F-wordle-13 · `reject-mark-hand-rolled` · the row's reject mark keeps its own clock beside a vocabulary that publishes one
+### RULED — PASS 3's · F-wordle-13 · `reject-mark-hand-rolled` · the row's reject mark keeps its own clock beside a vocabulary that publishes one
+
+**Joel, 2026-09-22: option 2 — leave it for pass 3.** Nothing changed. Pass 3
+reads this mark against tile-feedback.md and converts it to `useMark` in the
+same sitting, whatever channel it lands on; the shape is under option 1 below.
 
 `BoardCol.tsx`: `rejectNonce` + `rejectOutcome` as two `useState`s, a
 `useEffect` with a `setTimeout`, and `REJECT_MARK_MS = 900` — "a touch past
