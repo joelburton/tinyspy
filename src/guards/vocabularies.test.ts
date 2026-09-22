@@ -170,7 +170,10 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/buttons/ShuffleButton.module.css': ['999px'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['4px'],
       'src/common/event-log/EventLog.module.css': ['3px'],
-      'src/shared/rank-ladder/RankBar.module.css': ['2px', '4px'],
+      // RECORDED, not unconverted (Joel, 2026-09-21): a 2px radius on a 14px
+      // square stops the corner reading as a harsh pixel box — not an amount
+      // of rounding chosen off a ramp. See the `.tier` note in the file.
+      'src/shared/rank-ladder/RankBar.module.css': ['2px'],
     },
     fix:
       'Use `--radius-sm` / `-md` / `-lg`, chosen by what the thing IS — a card ' +
@@ -373,7 +376,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/pause-suspend/PauseOverlay.module.css': ['1.05rem'],
       'src/common/info-sheet/infoCol.module.css': ['0.9rem'],
       'src/common/setup-form/SetupDisclosure.module.css': ['0.85rem'],
-      'src/shared/rank-ladder/RankBar.module.css': ['14px', '12px'],
+      'src/shared/rank-ladder/RankBar.module.css': ['14px'],
       'src/shared/rank-ladder/Stats.module.css': ['11px', '18px', '13px'],
       'src/common/devtools/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
       'src/common/scratchpad/GameScratchpadCompanion.module.css': ['max(16px,', '1em)'],
@@ -479,7 +482,6 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/ClubGameDeleteButton.module.css': ['120ms', '160ms'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['80ms'],
       'src/common/game-page/playArea.module.css': ['80ms'],
-      'src/shared/rank-ladder/RankBar.module.css': ['80ms'],
     },
     fix:
       'Use `--transition-duration-paint` (a color settling), `-nudge` (a piece ' +
@@ -518,6 +520,9 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/event-log/historyViewer.module.css': ['2px'],
       'src/common/event-log/gameEventLog.module.css': ['1px'], //   `.divider`, the between-turns line
       'src/common/pause-suspend/PauseOverlay.module.css': ['1px'],
+      // RECORDED, not unconverted (Joel, 2026-09-21): the ordinary tier edge
+      // and the heavier goal outline, tuned against each other on a 14px
+      // square so the goal reads as heavier without going black.
       'src/shared/rank-ladder/RankBar.module.css': ['2px', '3px'],
       'src/shared/rank-ladder/Stats.module.css': ['1px'],
       'src/common/devtools/PalettePage.module.css': ['1px'],

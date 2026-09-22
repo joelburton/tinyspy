@@ -13,6 +13,24 @@ const SHOW_DELAY_MS = 400
  *  starts out indistinguishable from a tap, so the hold has to clear the
  *  ordinary-tap duration before it can mean something else. */
 const LONG_PRESS_MS = 450
+/**
+ * A READOUT's beat — `data-tooltip-on="readout"`. Near-instant, because every
+ * reason the two delays above exist is a reason about a CONTROL, and a readout
+ * is not one: nobody crosses a readout on the way to pressing something, so
+ * there is no flicker to prevent, and there is no tap to tax by claiming the
+ * gesture. The bubble IS the element's purpose — a rank square says nothing
+ * until it is asked — so asking has to cost nothing.
+ *
+ * It changes three behaviors together, which is why the attribute names the
+ * KIND of carrier rather than a number: the hover beat (here), the touch
+ * gesture (a tap reveals, where a control needs a hold), and whether a press
+ * dismisses (it does not, since pressing a readout changes nothing that could
+ * make the text stale).
+ */
+const READOUT_SHOW_DELAY_MS = 0
+/** Is this carrier a readout rather than a control? */
+const isReadout = (el: Element) => el.getAttribute('data-tooltip-on') === 'readout'
+
 /** A press that wanders further than this is a scroll, not a hold. */
 const MOVE_TOLERANCE_PX = 10
 /** Gap between the anchor and the bubble; margin kept from the viewport edge. */
@@ -38,7 +56,13 @@ type Anchor = { el: Element; text: string }
  * (`:focus-visible` only — a mouse click's focus doesn't count); hides
  * instantly on leave/blur/scroll/press. On a touch device, where there is no
  * hover, a press-and-hold shows the same bubble and the click that follows the
- * hold is swallowed; the touch block below owns that path. Delegated listeners
+ * hold is swallowed; the touch block below owns that path.
+ *
+ * **`data-tooltip-on="readout"` opts out of all three of those timings**, for a
+ * carrier that is not a control: the bubble appears at once on hover, a TAP
+ * reveals it instead of a hold, and a press leaves it up. See
+ * `READOUT_SHOW_DELAY_MS` for why a readout wants the opposite of what a button
+ * wants. Delegated listeners
  * on the document, so it costs one host regardless of how many buttons carry
  * the attribute. The bubble itself is `aria-hidden` — it
  * visually duplicates the control's accessible name (or enriches it; the name
@@ -68,7 +92,7 @@ export function TooltipHost() {
       timer = window.setTimeout(() => {
         const text = el.getAttribute('data-tooltip')
         if (text) setAnchor({ el, text })
-      }, SHOW_DELAY_MS)
+      }, isReadout(el) ? READOUT_SHOW_DELAY_MS : SHOW_DELAY_MS)
     }
 
     // Hover (delegated): entering anything inside a [data-tooltip] schedules
@@ -114,7 +138,14 @@ export function TooltipHost() {
     // survives, because position is measured fresh at show time and inner
     // containers scroll programmatically right after state transitions (which
     // would otherwise eat a tooltip scheduled in that window).
-    const onMouseDown = () => hide()
+    const onMouseDown = (e: MouseEvent) => {
+      // A readout keeps its bubble through a press: the text cannot go stale,
+      // and clicking the thing you are reading about should not take the
+      // reading away.
+      const el = (e.target as Element | null)?.closest?.('[data-tooltip]') ?? null
+      if (el && isReadout(el)) return
+      hide()
+    }
     const onScroll = () => {
       // `current` goes with the anchor. Leaving it set would make the control
       // you are still pointing at look like one you never left, so its own
@@ -158,6 +189,17 @@ export function TooltipHost() {
       const t = e.touches[0]
       const el = (e.target as Element | null)?.closest?.('[data-tooltip]') ?? null
       if (!el || !t) return
+      // A readout answers the TAP itself — there is no action to protect, so
+      // making someone hold would be a toll for nothing, and on a phone the
+      // tap is the only way to ask. `suppressClick` stays disarmed: a readout
+      // has no click to swallow, and arming it would eat the next real one.
+      if (isReadout(el)) {
+        const text = el.getAttribute('data-tooltip')
+        if (!text) return
+        current = el
+        setAnchor({ el, text })
+        return
+      }
       pressStart = { x: t.clientX, y: t.clientY }
       clearTimeout(pressTimer)
       pressTimer = window.setTimeout(() => {

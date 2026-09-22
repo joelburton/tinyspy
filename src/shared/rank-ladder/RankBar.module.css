@@ -1,8 +1,8 @@
 /* cs-met-rank-ladder */
 
-/* The Start..Genius progress bar — 7 squares on a horizontal line with a hover
- * tooltip per square showing the rank name + points needed. Shared by the
- * found-words rank-ladder games (spellingbee + wordwheel).
+/* The Start..Genius progress bar — 7 squares on a horizontal line, for a game
+ * with a rank ladder. Each square names its own tier through the shared tooltip
+ * host, which draws the bubble; nothing about it is here (see RankBar.tsx).
  *
  * We deliberately use SQUARES, not circles — across this app a colored circle
  * means "this player" (member list, chat labels, wordlist markers), so rank
@@ -17,8 +17,9 @@
  * distinction that wasn't there. It's defined once, here:
  *   --rank-bar-fill-color  the achieved-tier fill
  *   --rank-bar-edge-color  every rule + border on the track
- * (`--rank-text`, the label + tooltip color, is still aliased per game — it's
- * near-black in both, and it belongs to the game's type color, not the ladder.)
+ * (`--rank-text`, the rank LABEL's color, is still aliased per game — it's
+ * near-black in each, and it belongs to the game's type color, not the ladder.
+ * `Stats.module.css`'s figures read it too.)
  *
  * The track is intrinsically narrow (~280px) so it reads as a horizontal
  * indicator rather than a sticky band. Sits at the top of the side panel above
@@ -81,14 +82,19 @@
   z-index: 0;
 }
 
+/* One square. The four lengths below are BESPOKE by decision (Joel,
+ * 2026-09-21), not unconverted: they are the dimensions of a seven-item
+ * indicator sized to a ~280px track, tuned against each other rather than
+ * chosen off a ramp. 14px is not a type size, and a 2px radius on a 14px
+ * square is "stop the corner reading as a harsh pixel box" rather than an
+ * amount of rounding — the same ruling `word-list`'s 7px got. */
 /* @@ */ .tier {
   position: relative;
   z-index: 1;
   width: 14px;
   height: 14px;
   /* Squares, not circles — colored circles are reserved for player identity
-   * (see the header note). A small radius keeps the corners from reading as
-   * a harsh pixel box. */
+   * (see the header note). */
   border-radius: 2px;
   background: var(--default-bg-color);
   border: 2px solid var(--rank-bar-edge-color);
@@ -118,56 +124,7 @@
   border-color: var(--page-text-color);
 }
 
-/* Tooltip — hover only. On a phone that covers the tap too: touch devices apply
- * a sticky `:hover` to what you last touched (measured — the tap shows the
- * bubble with `:focus` false), so the gesture works without the square being
- * focusable. There is deliberately no `:focus-visible` rule: the tier carries no
- * tabIndex (see RankBar.tsx), and when it did, this selector is what made the
- * bubble stick — a click parked focus, the next keystroke promoted it, and
- * neither the pointer leaving nor Tab could clear it. */
-/* @@ */ .tooltip {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  z-index: 2;
-  transform: translateX(-50%);
-  background: var(--rank-text);
-  color: var(--default-bg-color);
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  white-space: nowrap;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 80ms ease;
-}
 
-/* @@ */ .tier:hover .tooltip {
-  opacity: 1;
-}
-
-/* MOBILE: hang the bubble BELOW the squares instead of above them.
- *
- * Both copies of this bar live near the top of their container on a phone, and
- * both are unusable with the bubble above:
- *   - the status bar above the board is a fixed-height `overflow: hidden` box
- *     (MobileStatusBar.module.css — fixed so the board beneath can't be pushed),
- *     so a bubble above the squares is clipped away entirely;
- *   - the info column, off-canvas in the <InfoSheet>, isn't clipped but puts the
- *     bubble over the sheet's close X, 14px from the top edge.
- * Below, both fit in open space (the Score/Words figures underneath), which the
- * bubble covers only while it's shown.
- *
- * A media query rather than a prop: the condition really is the breakpoint —
- * on desktop the info column has room above and the status bar isn't rendered
- * at all — so neither call site has a decision to make. */
-@media (--mobile) {
-/* @@ */   .tooltip {
-    bottom: auto;
-    top: calc(100% + 8px);
-  }
-}
 
 /* ── The mobile status bar's compressed shape ────────────────────────────────
  * ONE ROW: the rank name sits to the LEFT of the track ("GENIUS ▪-▪-▪…") rather

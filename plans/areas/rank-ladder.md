@@ -317,6 +317,87 @@ disagrees, and only this area can see both readers.
 
 ### F-rank-ladder-10 · `css-literals` · Twenty values on eleven pending rows
 
+**GROUP A RULED BESPOKE, 2026-09-21** (Joel: *"group A: keep as bespoke"*) —
+the seven-square indicator's own geometry: `.tier`'s `14px` box and `2px`
+radius, its `2px` edge and `.target`'s `3px`, and the track's `280px` cap.
+Recorded in both places the next reader looks: a `.tier` note in the
+stylesheet, and *"RECORDED, not unconverted"* comments on the two
+`vocabularies` rows that still list them, the same shape `word-list`'s `7px`
+got. **Groups B (type) and C (spacing) are still open** — Joel: *"we'll walk
+through groups B and C after the listed changes are done."*
+
+**The 80ms duration is gone rather than ruled, and F-11 with it** — see the
+tooltip move below, which deleted the rule that held both.
+
+### F-rank-ladder-12 · `hand-rolled-tooltip` · The bar drew its own bubble beside the app's one tooltip renderer
+
+**RAISED BY JOEL AND SHIPPED, 2026-09-21**, out of F-10's duration question:
+*"why would the tooltip here be any different from other tooltips?"* — and the
+answer was that it should not be.
+
+The app has one renderer, `common/tooltips/TooltipHost`, and opting in is a
+`data-tooltip` attribute with nothing imported. RankBar instead had 40 lines of
+its own: a `.tooltip` span per square, a `.tier:hover` rule, and a
+`@media (--mobile)` block flipping the bubble below the squares. **That media
+query is the failure `core-css/utilities.css` already names as the reason the
+shared host exists** — *"a pure-CSS bubble cannot measure the viewport, so it
+overflows at the edges and clips under overflow-hidden ancestors"* — rediscovered
+locally and worked around locally. The hand-rolled version still had no
+horizontal clamp: a `Genius · 76 pts · target` bubble centered on a 14px square
+at the end of a 280px track hangs well outside it.
+
+**But the host's defaults were wrong for a square, and that is Joel's find.**
+Three of its behaviors are premised on the carrier being a control:
+`SHOW_DELAY_MS = 400` (*"long enough not to flicker on a pass-through"*), touch
+being a 450ms HOLD rather than a tap (*"unlike a tap-to-reveal, which would tax
+every future tap"*), and `mousedown` hiding the bubble (*"a press means the user
+is acting… a stale bubble would lie"*). On a rank square each protects nothing:
+nobody crosses a readout on the way to pressing something, there is no tap to
+tax, and pressing a square changes nothing. Joel: *"people hover over them
+**just** to get the tooltip."*
+
+So the host learned one kind of carrier — **`data-tooltip-on="readout"`**, which
+changes all three together. The attribute names the KIND rather than a number
+(Joel took that rec) precisely because a numeric delay would express one third
+of the change and leave the other two to be rediscovered.
+
+**A regression this avoided, which Joel caught before it happened:** today a TAP
+shows the bubble on a phone, through the sticky `:hover` a touch leaves behind.
+Moving to the host as-is would have required a 450ms hold instead. He flagged
+it — *"needed for mobile, since there's no hovering"* — and tap-to-reveal is
+part of the readout kind.
+
+**Also corrected while presenting it:** I had described the change as making
+the bubble appear *faster*. There is no beat today at all — `.tier:hover`
+shows it immediately and the `80ms` was only the fade — so the readout delay is
+0, not "shorter".
+
+`TooltipHost.tsx` and its spec are `cs-blessed-common-hosts`, edited on Joel's
+word (*"fix it now"*) and NOT re-stamped. Five cases added there (12 → 17),
+each planted against: falling back to the control's beat fails two, letting a
+press dismiss fails one, and requiring a hold again fails two. The fifth case
+pins that a plain button's contract is untouched.
+
+**Three follow-ons the deletion forced**, each found by re-reading rather than
+by a check:
+
+- `RankBar.test.tsx`'s text case asserted the tooltip text was in the DOM. It
+  is an ATTRIBUTE now, so the case asserts that — and the split is cleaner:
+  naming its tiers is this component's contract, and whether a bubble appears
+  from the attribute is `TooltipHost.test.tsx`'s.
+- The stylesheet's header still advertised *"a hover tooltip per square"* and
+  called `--rank-text` *"the label + tooltip color"*. The bubble is not drawn
+  here any more and does not read that token; `--rank-text` is the rank
+  label's color, which `Stats.module.css` also reads.
+- `vocabularies` went red with *"these values are excused on the pending list
+  but are no longer written there"* — `4px`, `12px` and the whole `80ms` row
+  belonged to the deleted bubble. Three rows trimmed.
+
+Visually this is close to a no-op: the shared bubble is `--page-text-color` on
+`--default-bg-color` where RankBar's was `--rank-text` on the same background,
+and `--rank-text` is aliased to a near-black in both games. 3372 green,
+`tsc -b` and lint clean.
+
 `vocabularies.test.ts` carries eleven rows for these two stylesheets, twenty
 values in seven vocabularies — the largest CSS surface left in `shared/`:
 

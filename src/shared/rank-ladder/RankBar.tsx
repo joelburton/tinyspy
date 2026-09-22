@@ -20,11 +20,14 @@ type Props = {
  * Each square represents one rank tier. Squares at or below the player's current
  * rank fill with the accent color; remaining squares stay hollow. (Squares, not
  * circles — colored circles are reserved for player identity; see the CSS.)
- * Hovering a square reveals a tooltip with the rank name + points threshold —
- * and on a touch device a TAP does it, through the sticky `:hover` phones apply
- * until you touch something else (measured; it is not a focus state). The
- * current rank's name renders as a label above the track so the player has a
+ * The current rank's name renders as a label above the track so the player has a
  * vocabulary anchor ("you're at Solid; Genius is 35 points").
+ *
+ * Each square names its own tier through the shared tooltip host, as a READOUT
+ * rather than a control (`data-tooltip-on="readout"`): the bubble appears the
+ * moment you hover, a tap reveals it on a phone, and pressing a square leaves
+ * it up — because unlike a button, the bubble is the only thing a square has
+ * to say. See `common/tooltips/TooltipHost.tsx`.
  *
  * The ladder's own colors (`--rank-bar-fill-color` / `--rank-bar-edge-color`) are shared by both
  * games — see the CSS module; only the type color `--rank-text` is aliased per
@@ -66,11 +69,9 @@ export function RankBar({ score, total, targetIdx = null }: Props) {
             <li
               key={name}
               className={cls(styles.tier, i <= idx && styles.achieved, isTarget && styles.target)}
-            >
-              <span className={styles.tooltip}>
-                {name} · {pts} pts{isTarget ? ' · target' : ''}
-              </span>
-            </li>
+              data-tooltip={`${name} · ${pts} pts${isTarget ? ' · target' : ''}`}
+              data-tooltip-on="readout"
+            />
           )
         })}
       </ol>

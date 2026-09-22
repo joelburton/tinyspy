@@ -211,6 +211,75 @@ describe('TooltipHost', () => {
  * on an iPhone goes back to being unlearnable: the label appears under a system
  * menu covering it.
  */
+describe('a READOUT carrier — data-tooltip-on="readout"', () => {
+  // Not a control: nobody crosses it on the way to pressing something, and it
+  // has no action to protect. So every timing a button wants is the wrong one
+  // here — see READOUT_SHOW_DELAY_MS.
+  const readout = () =>
+    render(
+      <>
+        <li data-tooltip="Genius · 76 pts" data-tooltip-on="readout">
+          square
+        </li>
+        <TooltipHost />
+      </>,
+    )
+  const touch = (x = 0, y = 0) => ({ touches: [{ clientX: x, clientY: y }] })
+
+  it('shows at once on hover, with no beat to wait out', () => {
+    const { container } = readout()
+    fireEvent.mouseOver(container.querySelector('li')!)
+    // Zero delay still defers a tick; what matters is that it is not the
+    // control's 400ms.
+    act(() => void vi.advanceTimersByTime(1))
+    expect(screen.getByText('Genius · 76 pts')).toBeInTheDocument()
+  })
+
+  it('a TAP reveals it — a phone has no hover, and a hold would be a toll', () => {
+    const { container } = readout()
+    const li = container.querySelector('li')!
+    fireEvent.touchStart(li, touch())
+    // No timer advanced at all: the tap itself is the question.
+    expect(screen.getByText('Genius · 76 pts')).toBeInTheDocument()
+  })
+
+  it('the next touch anywhere dismisses it', () => {
+    const { container } = readout()
+    const li = container.querySelector('li')!
+    fireEvent.touchStart(li, touch())
+    expect(screen.getByText('Genius · 76 pts')).toBeInTheDocument()
+    fireEvent.touchStart(document.body, touch())
+    expect(screen.queryByText('Genius · 76 pts')).not.toBeInTheDocument()
+  })
+
+  it('a press LEAVES it up, where a control\'s press dismisses', () => {
+    const { container } = readout()
+    const li = container.querySelector('li')!
+    fireEvent.mouseOver(li)
+    act(() => void vi.advanceTimersByTime(1))
+    fireEvent.mouseDown(li)
+    expect(
+      screen.getByText('Genius · 76 pts'),
+      'pressing the thing you are reading about must not take the reading away',
+    ).toBeInTheDocument()
+  })
+
+  it('leaves the CONTROL contract alone — a button still waits out its beat', () => {
+    // The same host, the same render: the attribute is what differs.
+    render(
+      <>
+        <button data-tooltip="End the game">x</button>
+        <TooltipHost />
+      </>,
+    )
+    fireEvent.mouseOver(screen.getByRole('button'))
+    act(() => void vi.advanceTimersByTime(1))
+    expect(screen.queryByText('End the game')).not.toBeInTheDocument()
+    act(() => void vi.advanceTimersByTime(450))
+    expect(screen.getByText('End the game')).toBeInTheDocument()
+  })
+})
+
 describe('the iOS long-press callout is suppressed in CSS', () => {
   it('utilities.css turns the callout off on every [data-tooltip] target', async () => {
     const { readFileSync } = await import('node:fs')

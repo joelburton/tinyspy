@@ -35,16 +35,24 @@ describe('RankBar — a readout, not a control', () => {
   })
 
   it('still says everything it needs to in text', () => {
-    render(<RankBar score={12} total={40} targetIdx={6} />)
+    const { container } = render(<RankBar score={12} total={40} targetIdx={6} />)
     // The current rank as the label above the track…
     expect(screen.getByText('Solid')).toBeInTheDocument()
-    // …and every tier's own tooltip text, present in the DOM and revealed by
-    // hover (or, on a phone, by the sticky :hover a tap leaves behind).
-    for (const name of RANKS) {
-      expect(screen.getByText(new RegExp(`^${name} · \\d+ pts`))).toBeInTheDocument()
+    // …and every tier naming itself for the shared tooltip host, which is what
+    // draws the bubble — so what this component owes is the ATTRIBUTE, and
+    // whether a bubble appears from it is TooltipHost.test.tsx's.
+    const tips = [...container.querySelectorAll('[data-tooltip]')].map((el) =>
+      el.getAttribute('data-tooltip'),
+    )
+    expect(tips).toHaveLength(RANKS.length)
+    for (const [i, name] of RANKS.entries()) {
+      expect(tips[i]).toMatch(new RegExp(`^${name} · \\d+ pts`))
     }
-    // The target tier says so in its bubble, which is where that fact lived
+    // The target tier says so in its bubble, which is where that fact lives
     // besides the outline.
-    expect(screen.getByText(/· target$/)).toBeInTheDocument()
+    expect(tips.filter((t) => t?.endsWith('· target'))).toHaveLength(1)
+    // And it asks as a READOUT, which is what buys the instant reveal and the
+    // tap: a square's only purpose is the bubble.
+    expect(container.querySelectorAll('[data-tooltip-on="readout"]')).toHaveLength(RANKS.length)
   })
 })
