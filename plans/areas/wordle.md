@@ -639,7 +639,30 @@ the terms being stable and the comment naming them. Recommendation: compose
 it — three tokens, no new file, and the comment's arithmetic becomes the
 code's.
 
-### F-wordle-2 · `no-end-for-all` · a race can only be closed by every racer conceding
+### RULED · F-wordle-2 · `no-end-for-all` · a race can only be closed by every racer conceding
+
+**Joel, 2026-09-22: hand it over.** Not wordle's work, and not wordle's
+question: `common/game-page/todo.md` holds both halves already. The design was
+ruled on **2026-09-19** — *"yes, every race should offer it"* — and the shape
+of the work with it: *"Build it as one change, not fourteen"*, ending with
+`offersEndForAll` gone and bananagrams' opt-in going with it. So a
+`offersEndForAll: true` here would be the second opt-in that sweep has to
+unpick.
+
+**What this area owed and now answers: the reading.** The todo asked for the
+reading to be checked before any wiring, and Joel ruled the same day that
+`ended` is neutral in every mode, so a game whose prose or status line calls a
+compete `ended` a loss is part of that work. **wordle's three are clean**, each
+neutral and mode-blind: `manifest.ts`'s `labelFor` answers
+`verdict('Ended', null)` with no mode branch; `lib/terminal.ts` returns
+`gameEndedTerminalMessage(mode)` before it looks at the mode, and that message
+is `outcome: 'neutral'` / "Game ended — no winner"; `wordle.end_game` writes
+`'ended'` with every player `{"won": false}` and `reason: 'manual'`. The game
+is ready for the sweep and contributes nothing else to it.
+
+**`src/wordle/todo.md`'s copy is deleted** — one home per decision, and the
+home is the shared todo. See the note below: eight other games carry the same
+copy.
 
 Compete offers Concede alone. A table that has lost interest closes the game
 one concession at a time, each a loss on that player's record for a game
@@ -715,6 +738,15 @@ component makes about itself that is false.
 owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to `todo.md` or
 `src/wordle/doc.md` instead; a note here never stands in for either)*
+
+### Nine games carry a copy of the end-for-all item — 2026-09-22
+
+Found while answering F-2, and for `game-page` rather than for here: wordle,
+wordiply, wordwheel, crosswords, stackdown, spellingbee, letterboxed, waffle
+and boggle each hold the same paragraphs in their own `todo.md`, restating a
+decision whose home is `common/game-page/todo.md`. wordle's is deleted with
+F-2; the other eight are each that area's to drop, or the sweep's to clear
+when it ships. Nothing here proposes touching them.
 
 ### `<Board>`'s props are all required — 2026-09-22
 
