@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-rank-ladder
 
 import styles from './Stats.module.css'
 

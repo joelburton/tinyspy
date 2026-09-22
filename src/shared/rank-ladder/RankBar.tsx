@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-rank-ladder
 
 import { cls } from '@/common/utils/cls'
 import { currentRankIndex, rankPoints, RANKS } from './rankLadder'
