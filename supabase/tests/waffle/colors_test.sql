@@ -1,14 +1,14 @@
--- cs-met-wordle-style
+-- cs-audited-wordle-style
 
 -- ============================================================
 -- Test: waffle color-feedback algorithm
 -- ============================================================
 --
 -- The per-tile green/yellow/gray feedback (waffle.board_colors and
--- its per-word helper common.wordle_colors). This is the highest-
--- correctness-risk piece of the game — the Wordle duplicate-letter
--- accounting plus the intersection merge — so it gets pinned first,
--- before any tables or RPCs exist (Phase 1).
+-- its per-word helper common.wordle_colors). The highest-correctness-risk
+-- piece of the game — the Wordle duplicate-letter accounting plus the
+-- intersection merge — and one of two files pinning it: wordle's
+-- colors_test.sql holds the rest, on inputs that share nothing with these.
 --
 -- Pure functions of (board, solution); no game rows needed. Boards
 -- are 25-char strings, holes = '.', filled cells lowercase a–z.

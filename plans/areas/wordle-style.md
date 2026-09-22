@@ -4,8 +4,9 @@ The folders it reads: `shared/wordle-style`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-22). Read and audited; the prose pass (F-1, F-3,
-F-4, F-5) shipped.
+**Status: AUDITED** (2026-09-22) — every finding worked, the closing re-read
+done, the roster `cs-audited-wordle-style`. **NOT CLOSED:** an area closes when
+its files read `cs-blessed`, and only Joel sets that.
 
 ## The roster
 
@@ -98,9 +99,18 @@ a mono printer and a color one produce the same page.
 ### F-wordle-style-2 · `ts-port-half-pinned` · The port claims the oracle's vectors and copies five of twelve
 
 **SHIPPED, 2026-09-22** (Joel: *"we can copy all the tests"*). All seven wordle
-vectors are in `src/waffle/lib/colors.test.ts` under a second heading naming the
-file they came from, the docstring says the oracle is two files, and the plant
-that used to pass now fails. A forward-fix in a game folder: not blessed.
+vectors went into `src/waffle/lib/colors.test.ts` under a second heading naming
+the file they came from, the docstring stopped calling one file the oracle, and
+the plant that used to pass began to fail. A forward-fix in a game folder: not
+blessed.
+
+**And then the port itself went.** Later the same day waffle's swap log started
+storing each board's colors, so the history viewer reads them instead of
+recomputing — which deleted `wordleColors`, the board merge, and the copied
+vectors with them. The algorithm lives only in SQL now, pinned by the two pgTAP
+files. This finding's fix survived for one afternoon, and it was still the right
+fix: the port existed when it shipped, and the work that removed it started from
+this finding's evidence.
 
 **The severity was overstated when this was written, and the correction belongs
 here.** The two implementations do not disagree today — read line for line, they
@@ -195,6 +205,23 @@ values, and should stay.)
 
 ### F-wordle-style-6 · `strength-order-twice` · Green beats yellow beats gray, written twice in two games
 
+**CLOSED, no change, 2026-09-22 — and the finding is STALE as written.**
+Re-verified before acting on it, which is the only reason this was noticed:
+waffle's private `rank` went with the TypeScript port when the swap log started
+storing its colors, so the two spellings this finding was about are now one.
+
+What is left is `colorRank` in wordle and `waffle._color_rank` in SQL — the same
+ordering, but in two runtimes for two different jobs: the frontend picks the
+best color a letter has earned for the on-screen keyboard, the database merges
+an intersection cell's two per-word colors. They share no consumer and neither
+can drift into the other. Four values in a fixed order is also not the kind of
+duplication that hurt here; the algorithm was, and that one is now single.
+
+Moving `colorRank` into this folder was considered and rejected: `TileColor` is
+the shared vocabulary, but the ordering over it has two call sites and both are
+wordle's. wordiply mounts the same keyboard and passes no `keyStates` at all, so
+there is no second consumer waiting.
+
 `colorRank` (`src/wordle/lib/colors.ts:87`, over `TileColor`, four values with
 `blank` at 0) and `rank` (`src/waffle/lib/colors.ts:22`, over the raw `g`/`y`/`x`
 codes, with a fourth step for a hole). One ordering, two spellings, and the
@@ -206,6 +233,26 @@ evidence here, so any change is a forward-fix and neither gets blessed.
 
 ### F-wordle-style-7 · `indexers-listed-by-hand` · The palette guard's stylesheet list is hand-kept
 
+**SHIPPED, 2026-09-22.** The list is discovered, not written: every
+`*.module.css` under `src/` that defines any of the three judged classes is a
+sheet painting this palette, and has to define the rest. A game that starts
+indexing by `TileColor` tomorrow is covered by having done so.
+
+It keys on the JUDGED classes rather than on `blank`, because `blank` is a word
+other palettes spend — boggle's `PlayArea.module.css` defines one and has
+nothing to do with letter colors. The keyboard is the one sheet exempt from
+`blank`, and a TYPE says why: it is indexed by `KeyTone`, which is
+`Exclude<TileColor, 'blank'>`.
+
+A discovered set can also go quietly empty, so one assertion names the four
+sheets outright. That is the only hand-written list left and it fails loudly
+rather than silently.
+
+**Three plants, all bite:** renaming a judged class fails that sheet; removing
+`.blank` from a board fails it; and a stylesheet planted in `psychicnum` that
+defines `wordleGreen` alone fails three ways — the roster, the judged classes
+and the `blank` rule. **The last one is the finding**: the hand list passed it.
+
 `tileColor.test.ts:42` lists the four stylesheets indexed by a `TileColor`. The
 list is correct today — checked against every `styles[…]` site in `src` — but
 nothing relates it to the code: a game that starts indexing by `TileColor` is
@@ -216,6 +263,79 @@ exactly the silent one.
 The importers are discoverable — the files that import `tileColor` or `TileColor`
 and have a sibling `.module.css` — so the question is whether deriving the list
 is worth it or whether the hand list plus a comment is the honest answer.
+
+### The closing re-read — 2026-09-22
+
+**Five findings, F-wordle-style-8 to -12, all worked.** The whole area read in
+one sitting after the last group: both roster files, `doc.md`, `todo.md`, the
+two pgTAP files, the `common.wordle_colors` slice, and the two `docs/games/waffle.md`
+cites F-3 repointed. The docstring-marker pass ran here rather than only at the
+opening, which is how F-10 was caught.
+
+**Four of the five are the area's own work standing next door** — the prose
+written today, and one claim left behind by the change that came out of this
+area's evidence. That is the seventh area running to produce that shape.
+
+### F-wordle-style-8 · `own-faults-in-todays-prose` · The area's own two findings, in the prose it wrote hours later
+
+**SHIPPED, 2026-09-22.** `doc.md`, written at F-1, closed on *"`tileColor.test.ts`
+is half four assertions about the mapping and half a static guard"*. There are
+seven `expect`s across two cases in that half, so the count was wrong the day it
+was written — **F-4 exactly, in the file this area wrote to replace F-4's
+sentence.** It now says what the half DOES and counts nothing.
+
+The same paragraph also carried *"the same green reads the same in every game
+that has one"*, verbatim from `tileColor.ts`'s docstring — **F-5's one-home
+fault**, again in today's prose. The docstring keeps it, being where a caller
+reads it; `doc.md` drops it.
+
+### F-wordle-style-9 · `prose-describes-the-guard-f7-replaced` · Two places still described the hand-listed guard
+
+**SHIPPED, 2026-09-22.** F-7 changed the guard from "these four stylesheets,
+listed" to "every stylesheet that paints these classes, discovered". Two
+sentences did not move with it: `tileColor.ts`'s docstring still said the spec
+*"guards that every stylesheet indexed by a `TileColor` defines each class"*,
+and the guard's own docstring — four lines below its announcement that the set
+is discovered — still said *"a game that starts indexing by `TileColor`
+tomorrow"*. Indexing is no longer what the guard keys on; painting is.
+
+The rank-ladder signature, repeated: a roster surviving four lines below the fix
+that retired it.
+
+### F-wordle-style-10 · `marker-on-the-wrong-declaration` · The guard's docstring sat on `process.cwd()`
+
+**SHIPPED, 2026-09-22.** A thirty-line `/**` explaining the guard — why it must
+be static, what the vitest proxy hides — sat immediately above
+`const CWD = process.cwd()`, which it does not mention. The marker lights up in
+Joel's editor and pointed at the wrong thing.
+
+Each marker now sits on what it describes: the guard's rationale on the
+`describe`, the discovery on `PAINTERS`, the exception on
+`INDEXED_BY_KEY_TONE`, the line-anchor on `defines`. `CWD` needs no note.
+
+### F-wordle-style-11 · `sql-credits-a-deleted-port` · `common.wordle_colors` still named the TypeScript copy as its pin
+
+**SHIPPED, 2026-09-22.** The function's header read *"Pinned by wordle/waffle
+`colors_test.sql` + the oracle-checked TS port `src/waffle/lib/colors.ts`"*.
+That port was deleted hours earlier, by work this area's F-2 evidence started —
+so the commit that removed the file left the claim about it standing in a
+durable one. A sibling check, which is what the re-read is for.
+
+It now says what is true: the only implementation, pinned by a test per caller
+on inputs that share nothing. The copy is recorded as something that existed and
+drifted, in one sentence, because the lesson is the reason the rule is stated.
+
+(`supabase/sql/common.sql` is not this area's to stamp — it is read as a function
+slice and stays `cs-unmet`. Correcting a false sentence in it is the forward-fix
+an area is expected to ship.)
+
+### F-wordle-style-12 · `dead-phase-reference` · waffle's pgTAP header dates itself to a build order
+
+**SHIPPED, 2026-09-22.** *"so it gets pinned first, before any tables or RPCs
+exist (Phase 1)"* — archaeology about the order the game was built in, naming a
+"Phase 1" that means nothing now. Replaced with the fact a reader needs: this is
+one of two files pinning the algorithm, and wordle's holds the rest on inputs
+that share nothing with these.
 
 ## Notes
 
@@ -262,7 +382,13 @@ the closing re-read does not redo them:
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group — 2026-09-22,
+      five findings, all worked
+- [x] the folder's `doc.md` intro written; `shared/wordle-style` off
+      `INTROS_OWED` (F-1)
+- [x] `todo.md` holds everything still owed — which is nothing: no finding was
+      handed on, and nothing durable is left in this file
+- [ ] every file on the roster blessed, or its stamp says why not — **NOT DONE,
+      and not Claude's to do.** The four roster files read
+      `cs-audited-wordle-style` (set 2026-09-22 on Joel's instruction). Only
+      Joel sets `cs-blessed`

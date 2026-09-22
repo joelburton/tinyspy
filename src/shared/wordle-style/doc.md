@@ -16,13 +16,13 @@ Which is less than it sounds like. `tileColor` turns one code into one CSS class
 key and `pdfTiles` draws the same four states on paper — as border and fill
 weight rather than hue, so a mono printer and a color one produce the same page.
 Neither decides anything. The colors themselves are the `--wordle-*` tokens,
-which live with the rest of the palette rather than here, so that the same green
-reads the same in every game that has one.
+which live with the rest of the palette rather than here.
 
 The decision the folder does own is that the class keys are named for colors
 rather than for meanings — `wordleGreen`, not `correct`. docs/ui.md → The
 buckets carries the argument; the consequence is what matters at this level.
 These values ARE the class names, so a board indexes its stylesheet with them
 directly, and a class renamed on one side of that lookup fails silently — the
-tile simply draws with no color. `tileColor.test.ts` is half four assertions
-about the mapping and half a static guard against exactly that.
+tile simply draws with no color. That is what the second half of
+`tileColor.test.ts` guards, over every stylesheet it can find painting these
+classes.

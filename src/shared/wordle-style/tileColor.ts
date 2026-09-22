@@ -1,4 +1,4 @@
-// cs-met-wordle-style
+// cs-audited-wordle-style
 
 /**
  * A server per-letter color code → the CSS class key that paints it.
@@ -15,9 +15,10 @@
  *
  * **These values ARE the class names** — a board does `styles[tileColor(code)]`
  * — which is why the prefix lives in the type rather than only in the
- * stylesheet, and why `tileColor.test.ts` guards that every stylesheet indexed
- * by a `TileColor` defines each class: that lookup has no compiler behind it.
- * Why the names carry a game at all is docs/ui.md → The buckets.
+ * stylesheet, and why `tileColor.test.ts` goes looking for every stylesheet
+ * that paints them and checks each one defines the lot: that lookup has no
+ * compiler behind it. Why the names carry a game at all is docs/ui.md → The
+ * buckets.
  *
  * `blank` keeps no prefix, and the asymmetry is deliberate: the three judged
  * states are wordle's vocabulary, while "nothing has judged this tile yet" is

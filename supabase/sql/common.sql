@@ -894,10 +894,18 @@ revoke execute on function common._raise_game_over() from public;
 -- in the answer after greens are removed. Two passes — greens first (they claim
 -- their answer letter), yellows second from the leftover pool.
 --
--- The single source of truth for this algorithm: wordle.submit_guess and
--- waffle.board_colors (per word) both call this instead of keeping a copy. Pinned by wordle/waffle `colors_test.sql` + the oracle-checked
--- TS port `src/waffle/lib/colors.ts` — this is exactly the kind of subtle
--- duplicated algorithm that must live in one place.
+-- THE ONLY implementation of this algorithm, and it stays that way:
+-- wordle.submit_guess and waffle.board_colors (per word) both call it instead
+-- of keeping a copy, and no frontend recomputes feedback — each game reads the
+-- string the server stored. Pinned by a test per caller, `colors_test.sql`
+-- under both wordle/ and waffle/, on inputs that share nothing, so a change
+-- here answers to twelve assertions.
+--
+-- A TypeScript copy of it existed once, so waffle's turn-history viewer could
+-- color a past board; the two were held together by hand-copied vectors and
+-- had already drifted when `waffle.events` began storing each swap's colors
+-- and the copy went. The lesson is the obvious one: this is exactly the kind of
+-- subtle algorithm that must live in one place.
 create or replace function common.wordle_colors(guess text, answer text)
 returns text
 language plpgsql
