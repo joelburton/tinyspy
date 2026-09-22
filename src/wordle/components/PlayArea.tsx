@@ -25,7 +25,7 @@ import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
-import { useGame } from '../hooks/useGame'
+import { useGame, type WordleGame, type WordlePlayerState, type EventRow } from '../hooks/useGame'
 import { historySnapshot } from '../lib/history'
 import type { WordleSetup } from '../lib/setup'
 import { memberById } from '@/common/members/memberList'
@@ -34,6 +34,8 @@ import { InfoCol } from './InfoCol'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
+import { Loading } from '@/common/loading/Loading'
+import { NoSuchGamePage } from '@/common/game-page/NoSuchGamePage'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
@@ -58,6 +60,50 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *  and the on-screen one can't disagree. */
 const WORD_LENGTH = 5
 
+/**
+ * The GATES, and nothing else: the read, the three answers it can come back
+ * with, and the one narrowing of `setup`. Splitting them off is what lets
+ * `<PlayArea>` below start with a game in hand — no `game?.`, no `?? 'coop'`,
+ * no guard inside a handler for a row that cannot be missing by then.
+ */
+export function PlayAreaLoader(ctx: GamePageCtx) {
+  const { game, players: playerStates, guesses, loading, failure } = useGame(ctx.gameId)
+
+  if (loading) return <Loading />
+  // A failed read is NOT a missing game. Both leave `game` null, and saying
+  // "there's no game here" about a dead connection is a confident wrong answer
+  // — this is what remains once the fault modal is dismissed.
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  // Reaching this means the COMMON row exists — `GamePageGate` and
+  // `GamePageLoader` each checked — and wordle's does not: a torn write, or a
+  // game deleted while somebody had the board open. `detail` goes to the
+  // console, never to the page.
+  if (!game) return <NoSuchGamePage detail={`rows=0 view=wordle.games_state game=${ctx.gameId}`} />
+
+  return (
+    <PlayArea
+      {...ctx}
+      game={game}
+      playerStates={playerStates}
+      guesses={guesses}
+      // The one place the setup blob is narrowed. `GamePageCtx` types it
+      // `Record<string, unknown>` for every game; below, it is this game's.
+      setup={ctx.setup as unknown as WordleSetup}
+    />
+  )
+}
+
+type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
+  // The loaded game row. Non-null by construction — the loader holds the gates.
+  game: WordleGame
+  // Per-player guess counts and solved flags (`wordle.players_state`).
+  playerStates: WordlePlayerState[]
+  // The guess log, oldest first.
+  guesses: EventRow[]
+  // This game's setup, narrowed once by the loader.
+  setup: WordleSetup
+}
+
 export function PlayArea({
   session,
   gameId,
@@ -75,8 +121,11 @@ export function PlayArea({
   clubHandle,
   goToGame,
   menu,
-}: GamePageCtx) {
-  const { game, players: playerStates, guesses, loading, failure } = useGame(gameId)
+  game,
+  playerStates,
+  guesses,
+}: PlayAreaProps) {
+  const mode = game.mode
 
   // The guess is typed at the window rather than into an input, so nothing here
   // takes focus and Tab has nowhere to go; an empty ring keeps it from walking
@@ -87,8 +136,8 @@ export function PlayArea({
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
-    () => setupRows(setup as unknown as WordleSetup, game?.mode ?? 'coop', members),
-    [setup, game, members],
+    () => setupRows(setup, mode, members),
+    [setup, mode, members],
   )
 
   // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
@@ -133,8 +182,8 @@ export function PlayArea({
 
   // ─── Derived (null-safe; real values after the loading guard) ──
   const self = playerStates.find((p) => p.user_id === session.user.id)
-  const isCompete = game?.mode === 'compete'
-  const maxGuesses = game?.max_guesses ?? 6
+  const isCompete = mode === 'compete'
+  const maxGuesses = game.max_guesses
   const guessesUsed = self?.guesses_used ?? 0
   const mySolved = self?.solved ?? false
 
@@ -175,7 +224,7 @@ export function PlayArea({
   // seen-set (not "the last row") is what handles two coop players' rows arriving
   // interleaved.
   usePeerFeedback({
-    enabled: game?.mode === 'coop',
+    enabled: mode === 'coop',
     items: guesses,
     keyOf: (g) => String(g.id),
     messageFor: (g) => {
@@ -203,7 +252,7 @@ export function PlayArea({
     [playerStates],
   )
   usePeerFeedback({
-    enabled: game?.mode === 'compete',
+    enabled: mode === 'compete',
     items: solvedIds,
     keyOf: (id) => id,
     messageFor: (id) => {
@@ -243,13 +292,12 @@ export function PlayArea({
     self.solved &&
     !!winnerState &&
     self.guesses_used === winnerState.guesses_used
-  const gameMode = game?.mode
   const over = useMemo(
     () =>
-      isTerminal && gameMode
-        ? buildOver({ mode: gameMode, playState, timerExpired: timer.expired, selfWon, wonByClock, selfTiedWinner })
+      isTerminal
+        ? buildOver({ mode, playState, timerExpired: timer.expired, selfWon, wonByClock, selfTiedWinner })
         : null,
-    [isTerminal, gameMode, playState, timer.expired, selfWon, wonByClock, selfTiedWinner],
+    [isTerminal, mode, playState, timer.expired, selfWon, wonByClock, selfTiedWinner],
   )
   useEffect(function showTerminalVerdict() {
     if (!over) return
@@ -300,7 +348,7 @@ export function PlayArea({
     db,
     gameId,
     isTerminal,
-    mode: game?.mode === 'compete' ? 'compete' : 'coop',
+    mode: isCompete ? 'compete' : 'coop',
     myConceded,
     // Solved and waiting for the others: conceding would forfeit a win already
     // banked, so it goes gray and you leave via Back to club.
@@ -331,16 +379,15 @@ export function PlayArea({
   // time, so `setup` and `members` are whatever the last realtime refetch left,
   // and the action's own identity doesn't move when they do.
   const createNewGame = async () => {
-    if (!gameMode) return // menu exists pre-load, but there's no mode to copy yet
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
         // ctx.setup is Record<string,unknown> at the shell level; this game's
         // rows were created from a WordleSetup, so the cast is the usual
         // per-game narrowing (docs/common.md → GamePageCtx.setup).
-        setup: setup as WordleSetup,
+        setup,
         player_user_ids: members.map((m) => m.user_id),
-        mode: gameMode,
+        mode,
       }),
     )
     if (res.type === 'not-ok') {
@@ -359,7 +406,7 @@ export function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`wordle_${gameMode}`, res.data.id)
+      goToGame(`wordle_${mode}`, res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)
@@ -396,13 +443,12 @@ export function PlayArea({
   const actPrintBoard = useBoundAction('act-print-board', {
     describe: () => (game ? 'active' : 'hidden'),
     run: () => {
-      if (!game || !gameMode) return
       printWordlePdf(
         buildWordlePrintModel({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
-          mode: gameMode,
+          mode,
           isTerminal,
           maxGuesses,
           wordLength: WORD_LENGTH,
@@ -438,13 +484,6 @@ export function PlayArea({
     )
     return () => menu.setGameSections([])
   }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
-
-  if (loading) return <p>Loading game…</p>
-  // A failed read is NOT a missing game. Both leave `game` null, and saying
-  // "Game not found." about a dead connection is a confident wrong answer —
-  // this is what remains once the fault modal is dismissed.
-  if (failure) return <EnvelopeErrorPage envelope={failure} />
-  if (!game) return <p>Game not found.</p>
 
   const rows = myGuesses.map((g) => ({ guess: g.guess, colors: g.colors }))
 
@@ -485,7 +524,6 @@ export function PlayArea({
   const readOnly =
     !self || isTerminal || mySolved || myConceded || guessesUsed >= maxGuesses || !isMyTurn
 
-  const wordleSetup = setup as WordleSetup
 
   // The verdict in the slot is the terse verdict ALONE. The answer is NOT
   // folded in — the pill is a one-line, ellipsizing row (~48 chars on a phone)
@@ -544,7 +582,7 @@ export function PlayArea({
         actNewGame={actNewGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
-        setup={wordleSetup}
+        setup={setup}
         setupRows={summaryRows}
         // ── Terminal answer reveal (null while hidden — incl. on a loss) ──
         solution={answerShown ? game.target : null}

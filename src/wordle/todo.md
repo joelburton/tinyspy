@@ -30,10 +30,6 @@
   narrowing everyone took for the safety net only ever ran on the path that was
   already right. Filed rather than fixed because it is a behavior change, not
   an outcome one.
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
 
 ## Soon
 
@@ -109,10 +105,6 @@
   nobody won is not the same as everyone losing.
 
 ## Someday
-
-- `PlayArea.tsx` returns its own `<p>Loading game…</p>` while the read is
-  pending, where `src/common/loading`'s `<Loading>` is the word every page
-  shows for that moment. Swap it in, or say why this surface's is different.
 
 ## Maybe
 

@@ -120,7 +120,45 @@ while the doc carried two. It has a row now, pointing at `src/wordle/todo.md`.
 **`plans/tile-feedback.md` cited `wordle.md → Deferred`** for the item that
 moved; repointed.
 
-**`src/wordle/todo.md` is unchanged.** It already held two bugs (the reject ring
+### Step 2 — the loader / loaded split (readability 3.1) — DONE 2026-09-22
+
+The shape psychicnum settled and connections confirmed: `PlayAreaLoader` owns
+`useGame` and the three gates — `<Loading>`, `<EnvelopeErrorPage>`,
+`<NoSuchGamePage>` (its `detail` names the read that came back empty,
+`rows=0 view=wordle.games_state`, since this hook reads the view and not the
+table) — and hands `PlayArea` a non-null game, the player states, the guess log
+and a narrowed `setup`. The cast happens once, in the loader's JSX; the inner
+component takes `setup: WordleSetup` through `Omit<GamePageCtx, 'setup'>`. The
+manifest's lazy line names the loader; the test file mounts it at all 51 sites,
+`useGame` mocked exactly as before.
+
+**What went with it**, all in this commit: six `game?.` reads, `game?.mode ??
+'coop'`, `game?.max_guesses ?? 6`, the `gameMode` variable and its three
+readers, `if (!gameMode) return // menu exists pre-load`, `if (!game ||
+!gameMode) return` inside Print's run, the three `setup as WordleSetup` casts
+and the `wordleSetup` local, and the inline `<p>Loading game…</p>` and
+`<p>Game not found.</p>`. Every mode read is `mode` now, bound once at the top
+from a row that cannot be null.
+
+**Two `todo.md` items are closed by construction** and deleted there: the
+`<Loading>` swap (Someday), and the Bug that `act-new-game` answered `active`
+before the row had loaded — the component it lives in does not render until the
+row is in hand, so `describe: () => 'active'` is now true rather than optimistic.
+
+**One behavior change, stated now**, the same one both earlier games made:
+while the read is out the header menu has no game rows and `+` does nothing,
+where before the rows were published pre-load and `+` asked the new-game
+question and then could not act. That IS the bug above; the split is its fix.
+
+**Caught by the net rather than by reading:** the setup-recap memo still listed
+`game` in its deps after its body stopped reading it, which lint called as a
+missing `mode`. Step 0's lint was clean, so the warning was this step's — the
+deps are what the body reads now.
+
+Verified: `tsc -b` clean, lint clean over `src/wordle/`, 369 unit tests and the
+guards green. The e2e specs have not run for this step.
+
+**`src/wordle/todo.md`'s remaining items are unchanged.** It already held two bugs (the reject ring
 reading the previous refusal's outcome; `act-new-game` answering `active`
 pre-load), three Soons (the hand-tuned `--avail-h`, the action row's branches,
 no whole-table stop for a race) and one Someday (the `<Loading>` swap). Three of

@@ -27,7 +27,7 @@ const helpLoader = lazy(() =>
 )
 
 const playAreaLoader = lazy(() =>
-  import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+  import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
 
 const setupFormLoader = lazy(() =>
