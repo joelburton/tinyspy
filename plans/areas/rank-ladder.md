@@ -154,7 +154,7 @@ indexing a stylesheet for a key that no longer exists yields `undefined`, which
 
 **And a third plant caught an overclaim in my own comment** — the third time
 this session that planting AFTER writing has found the prose wrong rather than
-the code. I had labelled the full-clear assertion "the CLAMP", and an unclamped
+the code. I had labeled the full-clear assertion "the CLAMP", and an unclamped
 index passes it: `i <= idx` caps at seven whatever `idx` is, because there are
 seven squares. The clamp belongs to `currentRankIndex` and
 `rankLadder.test.ts:138` already pins it. The comment now says what the
@@ -180,6 +180,31 @@ items, so the case is the count of `.achieved` against `currentRankIndex` at a
 couple of scores, including 0 (only Start) and a full clear (all seven, clamped).
 
 ### F-rank-ladder-3 · `stats-untested` · `Stats` has no spec at all
+
+**SHIPPED, 2026-09-21** (Joel: *"do it"*). A new `Stats.test.tsx`, three cases,
+no production code touched — and the file joins the roster as
+`cs-met-rank-ladder` (created files join the roster), so the census is ten.
+
+Each case pins a decision that was broken or disagreed with before it was
+written down: the pair is written TIGHT (boggle's grid on the same stylesheet
+wrote it with spaces until F-9 the same day), the denominator wears `.muted`
+(what makes the pair read as one figure), and every size is RELATIVE (today's
+ruling — the grid tracks `--font-size-packed` in the status bar).
+
+The third is a STATIC read of the stylesheet, not a render assertion: `css:
+false` means nothing computes a size under vitest. It asserts the UNIT rather
+than the numbers — every `font-size` ends in `em` — which is the shape
+`TooltipHost.test.tsx` uses to check `utilities.css` still carries the rule only
+CSS can carry.
+
+All three planted: spaces round the slash fails two of them, unmuting the
+denominator fails one, and putting a single size back on the rem ramp fails the
+static one.
+
+**The americanSpelling guard caught me twice in one commit** — `labelled` in
+this file and `neighbour` in the new spec. Both are in prose I wrote today, and
+CLAUDE.md's first prior is that the rule holds in comments and docs as much as
+in identifiers.
 
 There is no `Stats.test.tsx`. The component derives nothing, so what is worth
 pinning is narrow but real: the tight `12/93` format — which is a DECISION with
@@ -585,7 +610,8 @@ resolves; `docLinks` passes.
 ## Predicted test breaks
 
 - ~~F-2: `RankBar.test.tsx` gains a case (2 → 3).~~ Shipped, exactly 2 → 3.
-- F-3: a new `Stats.test.tsx`, two assertions.
+- ~~F-3: a new `Stats.test.tsx`, two assertions.~~ Shipped — three, the third a
+  static read of the stylesheet.
 - F-1: `src/guards/folderDocs.test.ts` — `shared/rank-ladder` comes off
   `INTROS_OWED` in the same commit as the intro, or the guard fails either way.
 - F-10: `src/guards/vocabularies.test.ts` — eleven rows shrink or go as values
