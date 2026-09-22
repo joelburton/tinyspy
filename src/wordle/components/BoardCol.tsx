@@ -21,21 +21,17 @@ import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
- * wordle's board column — the `<Board>` plus the below-board region under it
- * (the turn-viewer banner, the fixed-height local-feedback pill slot, and the
- * on-screen `<Keyboard>`).
+ * wordle's board column — the `<Board>` plus the region under it: the
+ * turn-viewer banner, the local-feedback pill slot, and the on-screen keyboard.
  *
- * This is the **input engine**: the pending guess (`current`), the in-flight word
- * (`pending`), and — because a guess is a keyboard/tile gesture whose result arrives
- * via realtime (Pattern A, no deep entangled state) — the `submit_guess` RPC itself,
- * kept beside the input it commits (like psychicnum's BoardCol). The physical
- * `useCaptureKeys` + the on-screen keyboard drive the same `current`. It does NOT own
- * the game state: PlayArea hands it **the board to render** (the live `rows` + the
- * `historySnap` override) + `readOnly` (the game-state half of "is the board
- * inert", which this column ORs with its own mid-submit state). The local
- * feedback slot is PlayArea's (its standing conditions and InfoCol's End /
- * Concede show into it too); this column shows the soft rejects and draws it.
- * See docs/playarea.md.
+ * It owns the guess being typed (`current`), the one out for judgment
+ * (`pending`) and the `submit_guess` RPC that turns the first into the second.
+ * The physical keys and the on-screen caps drive that same `current`.
+ *
+ * Everything else is handed down: the board to draw (the live `rows`, or
+ * `historySnap` when a past turn is open), and `readOnly`, which this column
+ * ORs with its own mid-submit state. The feedback slot belongs to PlayArea —
+ * this column shows its soft rejects into it and draws it. See docs/playarea.md.
  */
 /** How long the rejected row keeps its ring — a touch past the shake, so
  *  the mark is still there when the movement stops. */
@@ -47,9 +43,7 @@ const REJECT_MARK_MS = 900
  *
  * A UNION, because the two halves are not the same answer wearing one shape. A
  * soft reject burns no guess and carries no colors — there is no row to color —
- * while an accepted guess always has them. Written as one object with `colors?`
- * that distinction was invisible, and `?` said "sometimes missing" where the
- * truth is "missing in exactly these two cases".
+ * while an accepted guess always has them.
  */
 type GuessAnswer =
   /** Soft rejects: the rules were applied, nothing was burned, the typed row
@@ -98,8 +92,8 @@ export function BoardCol({
   // when live. Non-null exactly when viewing, so this column derives `isViewingHistory` from
   // it.
   historySnap: HistorySnapshot | null
-  /** Whose board is on screen, when it is not the viewer's own — at terminal a
-   *  compete log can open an opponent's row. */
+  // Whose board is on screen, when it is not the viewer's own — at terminal a
+  // compete log can open an opponent's row.
   historyActor?: Actor | null
   maxGuesses: number
   // Brand name (manifest) for the grid's screen-reader label.
@@ -146,13 +140,12 @@ export function BoardCol({
   // soft-reject, or once it lands.
   const [pending, setPending] = useState<string | null>(null)
 
-  // Replay-board resets the live rows. A `pending` left over from the finished
-  // run would then resurrect (its row is no longer in `rows`, so the "landed"
-  // check below stops absorbing it): the old word reappears as an uncolored top
-  // row AND blocks input via `canGuess`. Rows can only SHRINK on a reset —
-  // guesses are append-only otherwise — so drop the stale pending right there.
-  // Adjusted DURING render behind a transition guard (the endorsed
-  // previous-render pattern, same as useCelebration) — not an effect.
+  // A restart resets the live rows, and a `pending` left over from the finished
+  // run would resurrect: its row is no longer in `rows`, so the "landed" check
+  // below stops absorbing it, and the old word reappears as an uncolored top row
+  // that also blocks input. Rows only SHRINK on a reset — guesses are
+  // append-only otherwise — so that is the signal, read during render behind a
+  // transition guard rather than in an effect.
   const [prevRowCount, setPrevRowCount] = useState(rows.length)
   if (rows.length !== prevRowCount) {
     setPrevRowCount(rows.length)
@@ -164,20 +157,17 @@ export function BoardCol({
     }
   }
 
-  // The pending word, shown until its colored server row actually lands. Once it's in
-  // the live `rows` we stop showing it (the real row flips in its place) — `pending`
-  // state may linger stale, but `pendingWord` is the value everything reads, so that's
-  // harmless while rows only grow (the reset case is handled above). Deriving it (vs.
-  // clearing `pending` in an effect) also dodges a one-frame double-render.
+  // The pending word, shown until its colored row lands and takes its place.
+  // `pending` may linger stale after that, but this is the value everything
+  // reads — harmless while rows only grow, and the reset case is handled above.
   const pendingLanded = pending != null && rows.some((r) => r.guess === pending)
   const pendingWord = pending && !pendingLanded ? pending : ''
 
   // Typing a letter is the player's "next move", so it dismisses a
   // gesture-cleared soft reject. Both keyboards route through here — the
-  // physical one via `act-type-letter` inside the capture hook, an on-screen
-  // cap by calling it — so the dismiss lives in one place. Backspace needs no
-  // twin: the ⌫ cap IS `act-delete-last`, and that binding already dismisses
-  // on the way through. The slot is stable, so this stays effectively constant.
+  // physical one via `act-type-letter` inside the capture hook, an on-screen cap
+  // by calling it — so the dismiss lives in one place. Delete needs no twin: its
+  // cap IS `act-delete-last`, which dismisses on the way through.
   const typeLetter = useCallback((ch: string) => {
     localFeedbackSlot.dismiss()
     setCurrent((c) => (c.length < 5 ? c + ch.toLowerCase() : c))
@@ -186,20 +176,17 @@ export function BoardCol({
   // ─── The marks this column owns ────────────────────────
   // The reject mark on the active row — raised by a refusal, ended by a timer.
 
-  /** Bumped on every soft reject — the active row shakes and rings in the
-   *  refusal's outcome for a beat (amber for a duplicate, red for a word the
-   *  dictionary refused). A NONCE rather than a boolean, because rejecting the same word twice
-   *  must replay the shake: a boolean already `true` changes nothing, and the
-   *  second attempt would look ignored. `<Board>` keys the row on it so the
-   *  animation restarts. */
+  // Bumped on every soft reject — the active row shakes and rings in the
+  // refusal's outcome for a beat. A NONCE rather than a boolean because
+  // rejecting the same word twice must shake twice: `<Board>` keys the row on
+  // this value, and a boolean already `true` would remount nothing.
   const [rejectNonce, setRejectNonce] = useState(0)
-  /** The outcome of the last rejection — written with the nonce, by every path
-   *  that bumps it, so the mark and the pill beside it read one value. */
+  // The outcome of the last rejection — written with the nonce, by every path
+  // that bumps it, so the mark and the pill beside it read one value.
   const [rejectOutcome, setRejectOutcome] = useState<Outcome>('lost')
 
-  // The mark is transient: clear it once the shake has played. Dropping back to
-  // zero is also what lets the next rejection replay — the row is keyed on this
-  // value, so 0 → 1 remounts it even if the same word is rejected twice.
+  // The mark is transient: clear it once the shake has played. Back at zero the
+  // next rejection can replay it.
   useEffect(() => {
     if (rejectNonce === 0) return
     const timer = setTimeout(() => setRejectNonce(0), REJECT_MARK_MS)
@@ -208,7 +195,7 @@ export function BoardCol({
 
   // ─── Committing a guess ────────────────────────────────
   // The move RPC and the two commands beside it, kept with the entry they
-  // commit; the physical keys and the on-screen caps drive the same `current`.
+  // commit.
 
   const [submitting, setSubmitting] = useState(false)
   // The live gate: the game permits guessing (PlayArea) AND I'm not mid-submit / with a
@@ -216,20 +203,13 @@ export function BoardCol({
   const canGuess = !readOnly && !submitting && !pendingWord
 
   /**
-   * What BOTH soft rejects do — `duplicate` and `notAWord`. They are separate
-   * answers with separate branches; this is the work they happen to share, named
-   * rather than left as a statement two branches fall into
-   * (docs/envelopes.md → The shape of a call site).
+   * What BOTH soft rejects do — `duplicate` and `notAWord`. The rules were
+   * applied and no guess was burned, so the typed row stays put and the board
+   * shakes instead.
    *
-   * The rules were applied and no guess was burned, so the typed row stays put
-   * and the board shakes instead. Takes the answer's NAME: `lib/answer.ts` says
-   * what it reads as, so this function is the shared mechanism and never the
-   * source of the words.
-   *
-   * The outcome reaches the mark UNTOUCHED: `Board` takes the word and looks its
-   * color up in the shared table, so this column narrows nothing and the mark
-   * and the pill cannot say different things about one refusal. The nonce
-   * beside it stays per game (docs/ui.md → "The verdict mark's state").
+   * Takes the answer's NAME and asks `lib/answer.ts` how it reads, so the words
+   * have one source. The outcome then reaches the mark and the pill untouched,
+   * and neither can say a different thing about one refusal.
    */
   const softReject = useCallback(
     (answerType: 'duplicate' | 'not_a_word') => {
@@ -280,10 +260,8 @@ export function BoardCol({
         setCurrent('')
         return
       } else if (res.type === 'ok' && res.data.result === 'incorrect') {
-        // Identical to `correct` on purpose, and a separate branch anyway: the
-        // two differ in what they did to the GAME, not in what this column has
-        // to do about it, and merging them would be a branch matching two
-        // answers.
+        // Deliberately identical to `correct`, and still its own branch: one
+        // branch per answer (docs/envelopes.md → The shape of a call site).
         setCurrent('')
         return
       } else {
@@ -297,24 +275,18 @@ export function BoardCol({
     [gameId, localFeedbackSlot, softReject],
   )
 
-  // The physical keyboard. Drives the same pending-guess state (`current`) as
-  // the on-screen <Keyboard> below,
-  // off the shared capture CORE — so wordle can't drift from the modifier bail /
-  // focused-input guard / any-key-dismiss that the WordEntryInput games get. wordle has no
-  // WordEntryInput (letters land on the Board, not a box), so it uses useCaptureKeys
-  // ALONE â no arrows, since a played guess is on the board in front of you.
+  // The physical keyboard, driving the same `current` the on-screen one does.
+  // wordle has no text box — letters land on the board — so it takes the shared
+  // capture core alone; `useCaptureKeys` says what that core handles.
   const { actDeleteLast, actSubmitEntry } = useCaptureKeys({
     value: current,
     onChange: setCurrent,
     onSubmit: () => void doSubmit(current),
     charFor: asciiLetters('lower'),
     onAnyKey: localFeedbackSlot.dismiss,
-    // Hard-off when the player can't act (loading / terminal / out of guesses /
-    // mid-submit) OR while viewing history — no dispatch AND no dismissal.
-    // Freezing capture while viewing lets a keystroke fall through to
-    // `act-exit-history` (return to live) instead of typing behind the banner.
-    // (A stray key could never remove the verdict anyway: it leaves only by
-    // its owner.)
+    // Hard-off when the player can't act, and while viewing history — no
+    // dispatch and no dismissal. Frozen capture is what lets a keystroke fall
+    // through to `act-exit-history` instead of typing behind the banner.
     disabled: !canGuess || isViewingHistory,
     maxLength: 5, // a guess is one 5-letter word
   })
@@ -359,17 +331,13 @@ export function BoardCol({
         notMyTurn={notMyTurn}
         myTurnJustStarted={myTurnJustStarted}
       />
-      {/* The below-board region (universal). wordle is NON-SWAP: the feedback and the
-          keyboard are separate and both always present, so the local feedback slot sits
-          BETWEEN the board and the keyboard (Joel's call). `.localFeedback` reserves its
-          own height so neither the board above nor the keyboard below reflows as the
-          slot's top message comes and goes — a soft reject, "you're out", the
-          whose-turn note, the verdict, whichever ranks highest. */}
+      {/* The below-board region. The feedback slot sits BETWEEN the board and
+          the keyboard, both of which are always present, and `.localFeedback`
+          reserves its own height so neither reflows as the slot's top message
+          comes and goes. */}
       <div className={styles.belowBoard}>
-        {/* The shared banner overlays the whole below-board region while a past turn
-            is open — the feedback slot + the keyboard stay mounted underneath, their
-            capture frozen, and the banner covers the keyboard so a stray key can't
-            type. */}
+        {/* The banner overlays the whole region while a past turn is open: the
+            slot and the keyboard stay mounted underneath, capture frozen. */}
         {isViewingHistory && historySnap && (
           <HistoryBanner
             label={historySnap.historyLabel}

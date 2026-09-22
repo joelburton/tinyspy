@@ -33,9 +33,8 @@ type Props = {
   // Whether the active typing row should show (game still in play for
   // this player).
   active: boolean
-  // Brand name (from the manifest, via `ctx.brand`) for the grid's
-  // screen-reader label — kept out of this chunk's source so the brand
-  // lives only in the manifest.
+  // Brand name (via `ctx.brand`) for the grid's label — a prop because the
+  // brand lives in the manifest and nowhere in this chunk's source.
   brand: string
   // Wear the shared viewing frame and make the board
   // click-through (so a board click falls to the document exit listener).
@@ -55,8 +54,8 @@ type Props = {
   // vocabulary, so the caller narrows nothing on the way down.
   rejectOutcome: Outcome
   // The game is finished, and how it ended — the board takes a band in that
-  // outcome's gray (neutral for a game merely ended), null while it's live. The
-  // same mark waffle wears; see plans/tile-feedback.md.
+  // outcome's gray (neutral for a game merely ended), null while it's live.
+  // The shared board-scope mark; see common/board-marks/doc.md.
   gameOver: TerminalOutcome | null
   // A teammate holds the move (turn-order coop): dim the whole board.
   notMyTurn: boolean
@@ -65,21 +64,16 @@ type Props = {
 }
 
 /**
- * The Wordle board: `maxGuesses` rows of 5 tiles. A submitted row shows
- * each letter on its server-computed color (green/yellow/gray); the
- * active row shows the player's in-progress typing (uncolored); the
- * rest are empty. Colors come from `common.wordle_colors` server-side
- * — the FE only renders them (it never holds the target).
+ * The wordle board: `maxGuesses` rows of five tiles. A submitted row shows each
+ * letter on its server-computed color; the active row shows what is being
+ * typed, uncolored; the rest are empty. The colors are `common.wordle_colors`'s
+ * — this board draws them and never holds the target.
  *
- * **Reveal animation.** When a guess lands, its row's tiles flip over
- * one at a time (NYT-style), each painting its color at the midpoint of
- * the flip. We animate only rows that *appear after this component
- * mounts* — rows already present at mount (a mid-game refresh, or the
- * opponent's revealed history) render in their final color without
- * re-flipping. `firstRows` captures that initial count once; any row at
- * an index ≥ it is "new" and flips. The static color class is omitted on
- * flipping tiles — the keyframes (with `forwards`) hold the final color —
- * so each tile reads blank until its flip reaches halfway.
+ * **The reveal flip.** A row that LANDS while you are watching turns its tiles
+ * over one at a time, each painting its color at the midpoint of its own flip.
+ * Rows that were already on the board when this mounted — a mid-game refresh,
+ * an opponent's history — draw in their final color without flipping, and
+ * `flipBaseline` is the line between the two.
  */
 export function Board({
   rows,
@@ -97,21 +91,18 @@ export function Board({
   myTurnJustStarted,
 }: Props) {
   const activeIndex = active ? rows.length : -1
-  // Rows that were ALREADY THERE don't flip — only guesses that land while you
-  // are watching. The baseline is the row count we consider "already there", and
-  // it starts at whatever was on the board when this mounted (a mid-game refresh,
-  // or an opponent's revealed history, shouldn't re-play six flips at you).
+  // The row count that was already on the board, so anything past it is a guess
+  // that landed while you were watching.
   //
-  // It has to MOVE BACK when the board is re-dealt, which is the whole reason
-  // this isn't a mount-time constant: a restart deletes the guesses, so a
-  // replayed game's first guesses would sit below a stale baseline and land with
-  // no flip at all. The cause is right there in the data — the log SHRANK, which
-  // nothing but a re-deal does — so the baseline follows it down, adjusted during
-  // render (React's adjust-state-when-input-changes shape).
+  // It MOVES BACK, which is why it is state and not a mount-time count: a
+  // restart deletes the guesses, and the replayed game's first rows would sit
+  // below a stale baseline and never flip. Rows only shrink on a re-deal, so
+  // that is the signal — adjusted during render, React's
+  // adjust-state-when-input-changes shape.
   //
-  // `!viewing` is load-bearing: while a past turn is open, `rows` is that
-  // snapshot and is often shorter than the live board. Letting the baseline drop
-  // to a snapshot's length would flip half the board on the way back to live.
+  // `!isViewingHistory` is load-bearing: a past turn's `rows` is usually
+  // shorter than the live board, and letting the baseline drop to it would flip
+  // half the board on the way back to live.
   const [flipBaseline, setFlipBaseline] = useState(rows.length)
   if (!isViewingHistory && rows.length < flipBaseline) setFlipBaseline(rows.length)
 
@@ -143,9 +134,8 @@ export function Board({
           const flipping = !isViewingHistory && !!submitted && r >= flipBaseline
           return (
             <div
-              // The nonce rides in the KEY of the active row: a CSS animation
-              // only replays if the element is remounted, and rejecting the
-              // same word twice must shake twice.
+              // The nonce rides in the active row's KEY: a CSS animation only
+              // replays if its element is remounted.
               key={isActive ? `${r}-${rejectNonce}` : r}
               className={cls(
                 styles.row,

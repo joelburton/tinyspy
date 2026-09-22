@@ -7,9 +7,10 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/wordle/todo.md`, not here.
 
-**Status: OPEN** (2026-09-22). Pass 1, the restructure: Steps 0–7 done, Step
-8 (the comment pass) next. **Three passes back to back**, psychicnum's and
-connections' shape: restructure → audit → tile-feedback.
+**Status: OPEN** (2026-09-22). **Pass 1, the restructure, is DONE** (Steps
+0–8); pass 2, the audit, opens with the prose pass. **Three passes back to
+back**, psychicnum's and connections' shape: restructure → audit →
+tile-feedback.
 
 ## The roster
 
@@ -423,6 +424,61 @@ adjustment and a render, with nothing to section.
 
 Verified: `tsc -b` clean, lint clean over `src/wordle/`, 396 unit tests green
 (the game's and the guards). The e2e specs have not run for Steps 2–7.
+
+### Step 8 — the comment pass (readability 3.5) — DONE 2026-09-22
+
+psychicnum's Step 6 rules, connections' four files: `PlayArea.tsx`,
+`BoardCol.tsx`, `Board.tsx`, `InfoCol.tsx`. **627 comment lines in, 515 out**
+(316 lines removed, 204 written). **Proved a pure comment pass** — with every
+comment form stripped (block, line, and the JSX `{/* … */}` whose continuation
+lines a naive grep reads as code), all four files are byte-identical before and
+after.
+
+**Two comments were FALSE, not stale.** `Board.tsx`'s docstring explained the
+reveal by a `firstRows` that "captures that initial count once": there is no
+such identifier, and the thing that exists — `flipBaseline` — is state
+precisely BECAUSE it moves, which the comment twelve lines below it says. The
+same docstring credited `forwards` for holding the final color where the
+keyframes use `both`, and `Board.module.css` explains at length why the
+difference is load-bearing. **And the surface's docstring said the PlayArea
+"owns the game data (`useGame`)"**, which Step 2 made false — the loader holds
+the hook and hands the rows down as props.
+
+**Joel's three rules did the cutting.** Rule 3 (a product ruling is not a
+comment): the turn-flash's "a removal is a poor signal — you have been waiting,
+so you are looking somewhere else", `isLocallyDone`'s "the default 'Lost — race
+continues' would be flatly wrong", the reveal's "no irreversible thing sits
+behind a menu item that reads like a display toggle", the action row's "the
+row's few slots belong to playing, and moving on is a thing you go looking
+for", the below-board slot's "(Joel's call)". Rule 2 (why-here): `createNewGame`'s
+"A plain function, rebuilt every render" paragraph, which psychicnum cut in the
+same words. Rule 1 reached one comment only — `typeLetter`'s "the ⌫ cap" — this
+game's chords having stayed in the registry.
+
+**Archaeology:** `readOnly`'s "(De Morgan of the old positive
+`guessingAllowed`)", the celebration's "(the waffle loading-race lesson)",
+`GuessAnswer`'s "Written as one object with `colors?` that distinction was
+invisible", New game's "(waffle's 'same again!' feature)". **Call sites to a
+sentence and a pointer:** the envelope paragraph in `createNewGame`
+(docs/envelopes.md), `useCaptureKeys`'s four-clause list of what the shared core
+handles, `softReject`'s three paragraphs. **The two orphan comments Step 7
+parked are gone** — the Reveal block after New game and the verdict block before
+the JSX, both describing things that had moved.
+
+**`plans/tile-feedback.md` is cited nowhere in the four files now** — `gameOver`
+points at `common/board-marks/doc.md`, a plan being deleted when it ships. It is
+still cited twice in `Board.module.css`, which is pass 3's.
+
+**`InfoCol.tsx`'s prop notes were `/**`, and are `//`** — the marker rule, the
+same fix connections' column needed. `BoardCol`'s `historyActor` was the only
+other one.
+
+**One defect found by reading:** `BoardCol.tsx` carried a mojibake em dash
+(`â` + `\u0080\u0094\u0094`) mid-comment, which is why that block had to be
+rewritten through a script rather than an edit.
+
+Verified: `tsc -b` clean, lint clean over `src/wordle/`, 396 unit tests green.
+**The restructure is complete.** The e2e specs have not run for Steps 2–8.
 
 ## Findings
 
