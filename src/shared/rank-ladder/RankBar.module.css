@@ -109,9 +109,11 @@
   cursor: default;
 }
 
-/* Achieved tiers take the fill; the border is already the shared dark gold, so
- * the bright square stands out against the white track without the heaviness of
- * a near-black outline (which is reserved for the goal marker below). */
+/* Achieved tiers take the fill and NOTHING else — no border of their own, which
+ * is what lets the goal marker below sit on top of this state rather than
+ * fight it. The edge is already the shared dark gold, so the bright square
+ * stands out against the white track without the heaviness of a near-black
+ * outline (which is reserved for that marker). */
 /* @@ */ .achieved {
   background: var(--rank-bar-fill-color);
 }
@@ -126,7 +128,13 @@
  *
  * `box-sizing: border-box` is global, so the thicker border eats inward and
  * the square's 14px footprint is unchanged — no reflow of the track.
- * Declared after `.achieved` so it wins the border-color cascade. */
+ *
+ * WHAT IT OVERRIDES IS `.tier`, not `.achieved`. The two rules here are equal
+ * specificity — both a single class — so the only thing making this one win the
+ * edge is that it is declared LATER in this file. Move it above `.tier` and the
+ * goal outline silently disappears; nothing guards that. `.achieved` is not in
+ * the contest at all, since it sets a background and no border, which is why a
+ * reached goal square wears the fill AND the outline rather than one of them. */
 /* @@ */ .target {
   border-width: 3px;
   border-color: var(--page-text-color);

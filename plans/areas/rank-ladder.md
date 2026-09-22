@@ -627,6 +627,30 @@ ruling `WordList.module.css`'s `7px` got.
 
 ### F-rank-ladder-11 · `target-wins-by-source-order` · A load-bearing claim held up by line order alone
 
+**SHIPPED, 2026-09-21** (Joel: *"do it"*). Both sites, prose only.
+
+**The finding was right that the claim was wrong, and wrong about why.** It
+said the comment described "a cascade contest that is not happening" and that
+the real reason both show is that the rules style different properties. Half of
+that holds: `.achieved` declares `background` and nothing else, so there is no
+border contest with it, and the fill plus the outline coexist for exactly that
+reason. But a contest IS happening one rule up — `.target` overrides `.tier`'s
+`border` shorthand, equal specificity, decided purely by `.target` being
+declared later at line 130 against `.tier` at 99. **Move it above `.tier` and
+the goal outline silently disappears, and nothing guards that.** So the comment
+was pointing a reader at the wrong pair while a real fragility sat unnamed.
+
+`.achieved`'s own comment gained a clause saying what it does NOT do — it takes
+the fill and no border — since it was the sentence that made it sound like it
+was in the outline business.
+
+**This is the folder's THIRD comment today to describe a cascade wrongly**,
+after `.tier`'s edge (called bespoke when it was the app's thick line) and
+`.track::before`'s height (the same line, left unnamed). All three were prose
+about which rule beats which, and all three were found by reading the
+declarations in source order rather than by any check. A stylesheet's cascade
+claims are exactly the kind nothing can verify for you.
+
 `RankBar.tsx:43–45`: *"The goal square keeps its outline after you reach it
 (`.target` wins over `.achieved`), so the bar still reads 'this is what we were
 playing to' at terminal."*

@@ -48,11 +48,12 @@ export function RankBar({ score, total, targetIdx = null }: Props) {
       <ol className={styles.track}>
         {RANKS.map((name, i) => {
           const pts = rankPoints(i, total)
-          // The goal square keeps its outline after you reach it (`.target`
-          // wins over `.achieved`), so the bar still reads "this is what we
-          // were playing to" at terminal — and the ranks BEYOND the target
-          // stay on the track rather than being cropped, since a single big
-          // word can carry the score past the goal that ended the game.
+          // The goal square keeps its outline after it fills — the fill and
+          // the outline style different properties, so neither replaces the
+          // other — and the bar still reads "this is what we were playing to"
+          // at terminal. Ranks BEYOND the target stay on the track rather than
+          // being cropped, since a single big word can carry the score past
+          // the goal that ended the game.
           const isTarget = i === targetIdx
           return (
             // POINTER-ONLY — no tabIndex, no role, nothing focusable. A tier is
