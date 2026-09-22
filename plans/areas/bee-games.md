@@ -21,7 +21,8 @@ four coordinate numbers `.boardCol` reads), both `PlayArea.tsx`'s two
 folder since it was created (§4's shell-commit check is empty). Baseline at the
 read: `tsc -b` clean, lint clean, 7 of 7 green in the folder. **Seven findings,
 F-bee-games-1 to -7; nothing in the code moved at the read.** Shipped since:
-F-7, F-4, then the prose pass (F-1, F-2, F-3, F-6). **F-5 is the only one open.** One is the prose
+F-7, F-4, the prose pass (F-1, F-2, F-3, F-6) and F-5. **All seven are worked.**
+What the area owes now is its closing re-read and the bless. One is the prose
 pass (F-1); one is the effect-name convention (F-2); two are docstrings that
 describe history or repeat a ruling (F-3, F-4); one is a spec gap confirmed by
 planting (F-5); one is a count and an imprecise reader (F-6); **and one is a
@@ -213,6 +214,29 @@ sentence about the other game's future.
 
 ### F-bee-games-5 · `failure-path-unpinned` · Nothing pins either failure slot, and the plant is clean
 
+**SHIPPED, 2026-09-21** (Joel: *"i'll take your rec"*). Four cases, 7 → 11, and
+no production code touched — `git diff` on `makeBeeGame.ts` is empty. The spec's
+mock gained two error holders, so either read can be made to fail, and a
+`clearFaultsForTest()` in `beforeEach`, since a failed read raises the modal
+centrally and the cases would otherwise leak one into each other.
+
+**Each case was planted against, and the fourth exists because a plant got
+through.** The first pass wrote three cases covering what looked like four
+properties, and three plants each failed exactly the case written for them:
+collapsing the two slots (the thing the docstring forbids) fails *"keeps the
+header's failure even after a rows load succeeds"*; never clearing an ended rows
+failure fails *"a load that WORKS clears it"*; reporting no failure at all fails
+three of them.
+
+Then a fourth plant — **reversing the priority to `rowsFailure ?? headerFailure`
+— PASSED**, because the priority only decides anything when BOTH slots are set
+and no case set both. So the rule the docstring states in its last sentence was
+still unpinned after the pass that was supposed to pin it. The fourth case sets
+both errors and asserts the header's `detail` comes back; the same plant now
+fails it. **Worth recording as method: a plant that passes after the fix is
+written is the useful one — it says the case list was wrong, not that the code
+is.**
+
 The file's subtlest decision has no spec. Planted twice, with the folder's spec
 run after each:
 
@@ -370,7 +394,8 @@ row and writes no governed literal; no `/**` marker survives inside a type body;
 - ~~F-1: `src/guards/folderDocs.test.ts` — `shared/bee-games` comes off
   `INTROS_OWED` in the same commit as the intro, or the guard fails either
   way.~~ Shipped together; the in-shape case passes.
-- F-5: four cases more in `makeBeeGame.test.ts` (7 → 11).
+- ~~F-5: four cases more in `makeBeeGame.test.ts` (7 → 11).~~ Shipped, exactly
+  7 → 11 — though the fourth was found by a plant, not by the case list.
 - ~~F-7 (1): a new case in `game-page`'s gate spec, not in this folder.~~
   Shipped — `GamePage.test.tsx` 14 → 15, written red first.
 

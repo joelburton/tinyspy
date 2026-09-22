@@ -17,13 +17,19 @@
 import { renderHook, waitFor, act } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { headerResult, rowsResult, fromMock, schemaMock, refetchMock } = vi.hoisted(() => ({
-  headerResult: { value: null as Record<string, unknown> | null },
-  rowsResult: { value: null as Record<string, unknown>[] | null },
-  fromMock: vi.fn(),
-  schemaMock: vi.fn(),
-  refetchMock: vi.fn(),
-}))
+const { headerResult, rowsResult, headerError, rowsError, fromMock, schemaMock, refetchMock } =
+  vi.hoisted(() => ({
+    headerResult: { value: null as Record<string, unknown> | null },
+    rowsResult: { value: null as Record<string, unknown>[] | null },
+    // Either read can be made to fail. `readRows` folds a PostgREST `error`
+    // into a fault envelope, so `details` is what comes back out in `detail` —
+    // which is how a case tells the two failures apart below.
+    headerError: { value: null as { message: string; details: string } | null },
+    rowsError: { value: null as { message: string; details: string } | null },
+    fromMock: vi.fn(),
+    schemaMock: vi.fn(),
+    refetchMock: vi.fn(),
+  }))
 
 vi.mock('@/common/supabase/supabase', () => {
   // `.eq()` is BOTH awaitable and chainable, which is what separates the two
@@ -32,8 +38,16 @@ vi.mock('@/common/supabase/supabase', () => {
   // while the found list calls `.order()` first and gets the word rows.
   const eqResult = {
     then: (resolve: (r: unknown) => unknown) =>
-      resolve({ data: headerResult.value ? [headerResult.value] : [], error: null }),
-    order: vi.fn(async () => ({ data: rowsResult.value, error: null })),
+      resolve(
+        headerError.value
+          ? { data: null, error: headerError.value }
+          : { data: headerResult.value ? [headerResult.value] : [], error: null },
+      ),
+    order: vi.fn(async () =>
+      rowsError.value
+        ? { data: null, error: rowsError.value }
+        : { data: rowsResult.value, error: null },
+    ),
   }
   const chain = {
     select: vi.fn(() => chain),
@@ -57,6 +71,7 @@ vi.mock('@/common/realtime/useRealtimeRefetch', () => ({
   useRealtimeRefetch: (config: unknown) => refetchMock(config),
 }))
 
+import { clearFaultsForTest } from '@/common/faults/faultStore'
 import { makeBeeGame } from './makeBeeGame'
 
 // The factory param is a schema-name union; spellingbee is a real member.
@@ -74,9 +89,14 @@ const lastConfig = () => refetchMock.mock.calls.at(-1)![0] as RefetchConfig
 beforeEach(() => {
   headerResult.value = null
   rowsResult.value = null
+  headerError.value = null
+  rowsError.value = null
   fromMock.mockClear()
   schemaMock.mockClear()
   refetchMock.mockClear()
+  // A failed read raises the fault modal centrally, so the cases below leave
+  // one behind; clearing keeps them independent.
+  clearFaultsForTest()
 })
 
 describe('makeBeeGame — header', () => {
@@ -122,6 +142,49 @@ describe('makeBeeGame — header', () => {
     expect(result.current.game).toBeNull()
   })
 
+  it('surfaces a failed header read, and stops loading — it is never retried', async () => {
+    // A failed read is NOT a missing game: `game` is null either way, and only
+    // one of them means there is nothing to play. The surface reads `failure`
+    // to tell them apart.
+    headerError.value = { message: 'boom', details: 'header-boom' }
+    const { result } = renderHook(() => useBeeGame('g1'))
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.failure?.detail).toContain('header-boom')
+    expect(result.current.game).toBeNull()
+  })
+
+  it("keeps the header's failure even after a rows load succeeds", async () => {
+    // The reason there are TWO failure slots. The header is fetched once and
+    // never retried, so its failure is permanent; the found list refetches on
+    // every event. Sharing one slot would let this good refetch erase a
+    // failure that is still true, and the board would look fine with no board.
+    headerError.value = { message: 'boom', details: 'header-boom' }
+    rowsResult.value = []
+    const { result } = renderHook(() => useBeeGame('g1'))
+    await waitFor(() => expect(result.current.failure).not.toBeNull())
+
+    await act(async () => { await lastConfig().load({ mounted: () => true }) })
+
+    expect(result.current.rowsLoaded).toBe(true) // the rows really did load
+    expect(result.current.failure?.detail).toContain('header-boom')
+  })
+
+  it("reports the HEADER's failure when both reads have failed", async () => {
+    // Which one is reported decides which read the diagnostic names, and that
+    // is the fact nobody can recover afterwards. The header's wins because it
+    // is never retried: once it has failed the board is not coming back,
+    // however the found list is doing.
+    headerError.value = { message: 'boom', details: 'header-boom' }
+    rowsError.value = { message: 'boom', details: 'rows-boom' }
+    const { result } = renderHook(() => useBeeGame('g1'))
+    await waitFor(() => expect(result.current.failure).not.toBeNull())
+
+    await act(async () => { await lastConfig().load({ mounted: () => true }) })
+
+    expect(result.current.failure?.detail).toContain('header-boom')
+  })
+
   it('defaults the word lists to [] when the columns are null', async () => {
     headerResult.value = {
       id: 'g1', club_handle: 'c', mode: 'compete', outer_letters: 'cabdon',
@@ -161,6 +224,23 @@ describe('makeBeeGame — found_words realtime', () => {
     expect(result.current.foundWords).toHaveLength(1)
     expect(result.current.foundWords[0].word).toBe('bead')
     expect(result.current.rowsLoaded).toBe(true)
+  })
+
+  it('surfaces a failed rows read, and a load that WORKS clears it', async () => {
+    rowsError.value = { message: 'boom', details: 'rows-boom' }
+    const { result } = renderHook(() => useBeeGame('g1'))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    await act(async () => { await lastConfig().load({ mounted: () => true }) })
+    expect(result.current.failure?.detail).toContain('rows-boom')
+
+    // This list refetches on every realtime event, so an outage that ends has
+    // to take its sentence with it — otherwise the surface sits behind an
+    // explanation that stopped being true.
+    rowsError.value = null
+    rowsResult.value = []
+    await act(async () => { await lastConfig().load({ mounted: () => true }) })
+    expect(result.current.failure).toBeNull()
   })
 
   it('honors the mounted() guard — a superseded load never commits', async () => {
