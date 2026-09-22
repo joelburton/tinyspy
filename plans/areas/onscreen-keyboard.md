@@ -199,6 +199,33 @@ Three things in one file, all prose:
 
 ### F-onscreen-keyboard-6 · `css-literals` · Five pending rows in the vocabularies guard
 
+**SHIPPED, 2026-09-22.** Three converted, three recorded — Joel ruled each.
+
+| literal | outcome |
+|---|---|
+| `4px` radius | `--radius-sm`, the same value under its name |
+| `80ms` transition | `--transition-duration-nudge` — a cap answering the pointer by moving a little, which is what that token is for |
+| `0.6` disabled | **`--chrome-disabled-opacity`**, and it is a visible change: `0.75`, so a disabled key fades LESS than it used to |
+| `0.4rem` row gap | recorded |
+| `1.2rem` / `0.85rem` cap sizes | recorded |
+
+The opacity is the one that moved the pixels, and it follows a decision the
+file had already made one rule above: the cursor comment settles that a key is
+a CONTROL when disabled — *"a refusal, not the key ceasing to be a key"* — and
+this is the same call applied to the fade.
+
+**Both recorded rows are PAIRS**, which is what the guard entries now say. The
+two gaps are chosen against each other (0.4rem down, 0.3rem across, so the
+keyboard runs tighter across than down) and the ramp has a step for neither;
+moving one alone would break the pair. The two cap sizes likewise: 1.2rem is
+deliberately bigger than a letter needs because the glyph is the cap's whole
+content and it is what rescues ⌫, and 0.85rem is what "Enter" has to shrink to
+so a WORD fits. **That 0.85rem equals `--font-size-2` is a coincidence of
+arithmetic** (Joel, explicitly) — it was reached by fitting a word to a key and
+would follow the key, not the ramp, if either moved.
+
+Planted: a `5px` radius put back fails the guard.
+
 `4px` (the cap radius), `0.4rem` (the row gap), `1.2rem` / `0.85rem` (the cap
 and the Enter word), `0.6` (the disabled opacity) and `80ms` (the transition)
 are all unconverted. `rank-ladder` took eleven such rows down to three, each

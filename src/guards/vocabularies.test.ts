@@ -168,7 +168,6 @@ const VOCABULARIES: Vocabulary[] = [
       // leaning on a number the browser clamps. (The chat count was the other;
       // it is a lozenge that grows with its digits, so it took `--radius-round`.)
       'src/common/buttons/ShuffleButton.module.css': ['999px'],
-      'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['4px'],
       'src/common/event-log/EventLog.module.css': ['3px'],
       // RECORDED, not unconverted (Joel, 2026-09-21): a 2px radius on a 14px
       // square stops the corner reading as a harsh pixel box — not an amount
@@ -286,6 +285,11 @@ const VOCABULARIES: Vocabulary[] = [
       // smallest step is 0.25rem, which beside a 2px bar is a gap rather
       // than a hairline, so no step can express it.
       'src/common/word-entry/WordEntryInput.module.css': ['1px'],
+      // RECORDED, not unconverted (Joel, 2026-09-22): the keyboard's two gaps
+      // are a PAIR, chosen against each other — 0.4rem between the rows and
+      // 0.3rem between the caps, so it runs tighter across than down. A step
+      // off the ramp for one of them breaks the pair, and the ramp has no step
+      // for the other to move to.
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.4rem'],
       'src/common/lists/FilterSelect.module.css': ['0.35rem'],
       'src/common/game-page/GamePage.module.css': ['0.1rem'],
@@ -371,6 +375,14 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/club/CreateClubModal.module.css': ['0.8rem'],
       'src/common/terminal/CelebrationBlockingModal.module.css': ['2.4rem', '1.5rem'],
       'src/common/game-page/DeviceBlockNotice.module.css': ['1.25rem'],
+      // RECORDED, not unconverted (Joel, 2026-09-22): the two cap sizes are a
+      // PAIR sized against each other, not steps. 1.2rem is deliberately bigger
+      // than a letter needs — the glyph is the cap's whole content, and it is
+      // what rescues ⌫ from reading as noise — and 0.85rem is what "Enter" has
+      // to shrink to so a WORD fits a cap barely wider than a letter's. That
+      // 0.85rem equals `--font-size-2` is a coincidence of arithmetic: it was
+      // reached by fitting a word to a key, and would follow the key rather
+      // than the ramp if either moved.
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1.2rem', '0.85rem'],
       'src/common/lists/FilterSelect.module.css': ['0.8rem'],
       'src/common/event-log/historyViewer.module.css': ['1rem'],
@@ -431,7 +443,6 @@ const VOCABULARIES: Vocabulary[] = [
     pending: {
       'src/common/buttons/ShuffleButton.module.css': ['0.45'],
       'src/common/setup-form/SetupTimerSection.module.css': ['0.5'],
-      'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['0.6'],
     },
     fix:
       'Use `--opacity-1` / `-2` — or say why this one is a ROLE rather than a ' +
@@ -478,7 +489,6 @@ const VOCABULARIES: Vocabulary[] = [
     pending: {
       'src/common/buttons/ShuffleButton.module.css': ['120ms'],
       'src/common/club/ClubGameDeleteButton.module.css': ['120ms', '160ms'],
-      'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['80ms'],
       'src/common/game-page/playArea.module.css': ['80ms'],
     },
     fix:
