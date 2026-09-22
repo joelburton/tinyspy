@@ -11,8 +11,10 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 0–8). **Pass 2, the audit, is IN PROGRESS**: the prose pass shipped
 (`39ec69c5`) and the five findings the todo and that pass raised are answered —
 F-1, F-3, F-4 and F-5 shipped, F-2 ruled back to `game-page`. **The roster
-READ is done (2026-09-22, below) and recorded twelve more, F-6 to F-17, none
-worked**: eight with a decision in them, four prose, tests and small shapes.
+READ is done (2026-09-22, below) and recorded twelve more, F-6 to F-17**:
+eight with a decision in them, four prose, tests and small shapes. **F-6, F-7,
+F-10 and F-11 SHIPPED the same day** on Joel's word, in the working tree; F-8,
+F-9, F-12 and F-13 wait for his ruling, F-14 to F-17 for the prose pass.
 `src/wordle/todo.md` is empty. Then pass 3, tile-feedback, then the closing
 re-read.
 **Three passes back to back**, psychicnum's and connections' shape:
@@ -835,7 +837,19 @@ against (F-7, F-13); decisions this game never made where its siblings have
 Twelve findings: eight with a decision in them (F-6 to F-13), then prose,
 tests and small shapes (F-14 to F-17).
 
-### F-wordle-6 · `race-winner-celebration` · the race's winner gets no confetti
+### SHIPPED · F-wordle-6 · `race-winner-celebration` · the race's winner gets no confetti
+
+**Joel, 2026-09-22: "do it."** The gate is `playState === 'won' || (playState
+=== 'won_compete' && selfWon)`; `winnerId` and `selfWon` moved up into Page
+hooks beside the hook that reads them (the local slot's tie-break reads the
+names from there). The modal keeps *Solved! 🎉* and gains a body per mode —
+*You solved it in the fewest guesses.* / *The team found the word.* — my words,
+not ruled. Three cases in `PlayArea.test.tsx` replace the one that pinned
+coop-only: the race I won celebrates as it lands, a race somebody else won does
+not, and a race opened already won does not. **Verified by planting** the gate
+back to coop-only: the first case red, the other two green, restored. `doc.md`
+said "a coop solve celebrates" in three places and its Tests row said "mine
+only"; all four say the rule now.
 
 `useCelebration(playState === 'won')` — coop only, and the comment beside it
 says so "by the states vocabulary (compete writes `won_compete`)", which is a
@@ -854,7 +868,20 @@ choice with a comment that says it is one. Recommendation: the same here, for
 the reason connections gave — a race's winner has more to celebrate than a
 team, and the pill alone says "Won: fewest guesses" in the corner.
 
-### F-wordle-7 · `restart-defenses-dead` · two render-phase guards, two specs and a doc sentence defend against a restart that cannot reach them
+### SHIPPED · F-wordle-7 · `restart-defenses-dead` · two render-phase guards, two specs and a doc sentence defend against a restart that cannot reach them
+
+**Joel, 2026-09-22: "delete them."** `BoardCol`'s `prevRowCount` state and its
+branch are gone, and the `pendingLanded` comment says why a stale `pending` is
+harmless (rows only grow; a Restart remounts). `Board`'s `flipBaseline` is a
+plain `useState(rows.length)` seed — the mount-time line still tells a landed
+row from one already there — with the move-back branch and its three
+paragraphs gone; `!isViewingHistory` stays in `flipping`, since a snapshot's
+rows never flip. The two specs are deleted. **One case was kept, rewritten
+without the restart**: the flip rule still has a pin — a row that lands during
+the session flips, the rows present at mount do not — because deleting the
+restart spec would have left the flip with no test at all, and its comment says
+why no restart appears in it. `doc.md` → Frontend says a Restart remounts the
+surface. 399 tests green.
 
 **§4's standing trap, checked here as it asks.** `GamePage` renders
 `<PlayArea key={commonGame.restarts}>` (`GamePage.tsx:442`), so a Restart
@@ -940,7 +967,16 @@ lapse) with the reason written where the table is. Recommendation: `warning`;
 the vocabulary's own definition names this case, and a player who mistypes a
 word did not lose anything.
 
-### F-wordle-10 · `help-text` · the Help modal assumes two players and omits two rules
+### SHIPPED · F-wordle-10 · `help-text` · the Help modal assumes two players and omits two rules
+
+**Joel, 2026-09-22: "fix it."** My words, since none were given: the guess
+paragraph reads *A guess must be a real 5-letter word that isn't already on the
+board; anything else is refused and costs nothing. How obscure a word may be is
+a setup choice.* — the duplicate rule and the band in one paragraph — and the
+modes read *anyone can guess, and everyone sees every guess* / *the same
+hidden word on a board of your own — nobody sees your guesses until the game
+ends*. The countdown is not mentioned: every game's timer is the shell's. No
+block was added, so the size stays 460×380.
 
 Player-facing text, so a finding rather than a fix (Joel's words):
 
@@ -958,7 +994,15 @@ Player-facing text, so a finding rather than a fix (Joel's words):
 The size (460×380) sits with the mid-sized siblings and was chosen, not
 measured; nothing here moves it unless the text grows a block.
 
-### F-wordle-11 · `word-length-two-homes` · `WORD_LENGTH` exists so screen and paper agree, and the screen does not read it
+### SHIPPED · F-wordle-11 · `word-length-two-homes` · `WORD_LENGTH` exists so screen and paper agree, and the screen does not read it
+
+**Joel, 2026-09-22: "do it."** `WORD_LENGTH` lives in `lib/setup.ts` beside
+`GUESS_OPTIONS`, read by `PlayArea` (the print model), `Board` (the tile loop,
+and `--cols` set inline beside `--rows`), `BoardCol` (all four), `SetupForm`
+(both band fields) and `printWordlePdf` (the fallback). `Board.module.css`
+lost its `--cols: 5` declaration and its two "5" comments say `--cols`. The
+player-facing "5-letter" in Help and the info column stays as text. `tsc -b`,
+lint, 399 tests green.
 
 `PlayArea.tsx` declares `const WORD_LENGTH = 5` with the docstring *"Named
 here so the printed grid and the on-screen one can't disagree"*, and hands it

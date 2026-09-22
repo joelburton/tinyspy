@@ -27,17 +27,18 @@ export function Help({ onClose, brand }: Props) {
       </ul>
 
       <p>
-        A guess must be a real 5-letter word, or it won't be accepted (and
-        won't cost you a guess). You get a limited number of guesses
-        (5–8, set at start; 6 is classic).
+        A guess must be a real 5-letter word that isn't already on the board;
+        anything else is refused and costs nothing. How obscure a word may be
+        is a setup choice. You get a limited number of guesses (5–8, set at
+        start; 6 is classic).
       </p>
 
       <p>
-        <strong>Coop:</strong> one shared board and budget — either of you
-        can guess, and you both see every guess. <strong>Compete:</strong>{' '}
-        same hidden word, your own board — you don't see each other's
-        guesses, and whoever solves it in the fewest guesses wins (ties
-        go to whoever got there first).
+        <strong>Coop:</strong> one shared board and budget — anyone can
+        guess, and everyone sees every guess. <strong>Compete:</strong>{' '}
+        the same hidden word on a board of your own — nobody sees your guesses
+        until the game ends, and whoever solves it in the fewest guesses wins
+        (ties go to whoever got there first).
       </p>
 
     </GameHelpCompanion>

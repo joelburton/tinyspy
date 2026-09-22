@@ -27,7 +27,7 @@ import { db } from '../db'
 import { useGame, type WordleGame, type WordlePlayerState, type EventRow } from '../hooks/useGame'
 import { historySnapshot } from '../lib/history'
 import { buildTerminalMessage } from '../lib/terminal'
-import type { WordleSetup } from '../lib/setup'
+import { WORD_LENGTH, type WordleSetup } from '../lib/setup'
 import { memberById } from '@/common/members/memberList'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -39,11 +39,6 @@ import { NoSuchGamePage } from '@/common/game-page/NoSuchGamePage'
 import styles from './PlayArea.module.css'
 import '../theme.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-
-/** Every wordle answer is five letters — the board renders a fixed 5 columns
- *  (Board.tsx) and the word lists are 5-letter. Named here so the printed grid
- *  and the on-screen one can't disagree. */
-const WORD_LENGTH = 5
 
 /**
  * The GATES, and nothing else: the read, the three answers it can come back
@@ -143,12 +138,15 @@ export function PlayArea({
   // always fits — is in Board.module.css, not here.
   const infoSheet = useInfoSheet()
 
-  // Confetti at the MOMENT the team solves it — the winning guess flips
-  // `playState` on every connected client. Gated on `playState` alone: it is
-  // coop-only by the states vocabulary (compete writes `won_compete`) and,
-  // unlike anything from `useGame`, correct on the very first render, which is
-  // what `useCelebration` requires.
-  const celebration = useCelebration(playState === 'won')
+  // Confetti at the MOMENT the game is won — the team's solve in coop, and in a
+  // race MY win, `status.winner_user_id` being the server's word on who won.
+  // Both gates read the common row, so both are correct on the very first
+  // render, which is what `useCelebration` requires.
+  const winnerId = status?.winner_user_id as string | undefined
+  const selfWon = winnerId === session.user.id
+  const celebration = useCelebration(
+    playState === 'won' || (playState === 'won_compete' && selfWon),
+  )
 
   // The board frame flashes yellow the moment the move becomes mine. Never
   // fires in a free-for-all game (`isMyTurn` is permanently true there), so it
@@ -243,8 +241,6 @@ export function PlayArea({
   // winner by fewest guesses, then earliest solved_at, so if any OTHER solver
   // used the same guess count as the winner, the clock broke the tie.
   const reason = status?.reason as string | undefined
-  const winnerId = status?.winner_user_id as string | undefined
-  const selfWon = winnerId === session.user.id
   const winnerState = playerStates.find((p) => p.user_id === winnerId)
   const wonByClock =
     !!winnerState &&
@@ -580,7 +576,13 @@ export function PlayArea({
       {/* The win moment. The verdict itself stays in-page — the below-board
           pill and the action-row outcome line (docs/ui.md → Terminal
           results). */}
-      {celebration.show && <CelebrationBlockingModal title="Solved! 🎉" onClose={celebration.close} />}
+      {celebration.show && (
+        <CelebrationBlockingModal
+          title="Solved! 🎉"
+          body={isCompete ? 'You solved it in the fewest guesses.' : 'The team found the word.'}
+          onClose={celebration.close}
+        />
+      )}
     </div>
   )
 }

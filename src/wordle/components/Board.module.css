@@ -1,7 +1,8 @@
 /* cs-met-wordle */
 
 /* The board wrapper: no border or background, it holds the tile-size knobs and
- * centers the grid, which drives its own size (see below). */
+ * centers the grid, which drives its own size (see below). `--rows` and
+ * `--cols` are set inline by Board.tsx — the budget and the word length. */
 /* @@ */ .board {
   /* ─── Tile size cap — TINKER HERE ────────────────────────────────────────
    * The board grows to fill the space, but a tile never exceeds this width.
@@ -10,18 +11,17 @@
    * --avail-w).  */
 /* @@ */   --max-tile-width: 3.7rem;
 /* @@ */   --grid-gap: 0.35rem;
-/* @@ */   --cols: 5;
   display: flex;
   justify-content: center;
 }
 
-/* The board grid: --rows rows of 5 square tiles. HUGS its WIDTH — as wide as 5
- * tiles + gaps need, capped per tile by --max-tile-width, never past --avail-w
+/* The board grid: --rows rows of --cols square tiles. HUGS its WIDTH — as wide
+ * as a row of tiles + gaps needs, capped per tile by --max-tile-width, never past --avail-w
  * (the shared scaffold token on .layout, the width left beside the info
  * column). `aspect-ratio` then derives the HEIGHT so the tiles stay SQUARE —
  * wordle's iconic look
  * (a keyboard shares this column below the board, so the board hugs its height
- * rather than filling the column). Each row is its own 5-col grid (`.row`). */
+ * rather than filling the column). Each row is its own --cols grid (`.row`). */
 /* @@ */ .grid {
   /* The TILE TOKENS for this board. wordle's tiles are the shared `.tile` (box,
    * radius, token plumbing — see common PlayArea.module.css), and these are the

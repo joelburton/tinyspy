@@ -6,6 +6,7 @@ import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
+import { WORD_LENGTH } from '../lib/setup'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import tileColors from '@/shared/wordle-style/tileColors.module.css'
@@ -91,23 +92,18 @@ export function Board({
   myTurnJustStarted,
 }: Props) {
   const activeIndex = active ? rows.length : -1
-  // The row count that was already on the board, so anything past it is a guess
-  // that landed while you were watching.
-  //
-  // It MOVES BACK, which is why it is state and not a mount-time count: a
-  // restart deletes the guesses, and the replayed game's first rows would sit
-  // below a stale baseline and never flip. Rows only shrink on a re-deal, so
-  // that is the signal — adjusted during render, React's
-  // adjust-state-when-input-changes shape.
-  //
-  // `!isViewingHistory` is load-bearing: a past turn's `rows` is usually
-  // shorter than the live board, and letting the baseline drop to it would flip
-  // half the board on the way back to live.
-  const [flipBaseline, setFlipBaseline] = useState(rows.length)
-  if (!isViewingHistory && rows.length < flipBaseline) setFlipBaseline(rows.length)
+  // The row count that was already on the board when it mounted, so anything
+  // past it is a guess that landed while you were watching. A mount-time count
+  // is enough: the live rows only grow, and a Restart remounts the whole
+  // surface (GamePage keys it on `restarts`), so a replayed game starts at zero.
+  const [flipBaseline] = useState(rows.length)
 
   return (
-    <div className={cls(shared.boardSeal, styles.board)} style={{ ['--rows' as string]: maxGuesses }}>
+    <div
+      className={cls(shared.boardSeal, styles.board)}
+      // The grid's shape, for the stylesheet's aspect ratio and row template.
+      style={{ ['--rows' as string]: maxGuesses, ['--cols' as string]: WORD_LENGTH }}
+    >
       <div
         className={cls(
           shared.hugRectWidth,
@@ -149,7 +145,7 @@ export function Board({
               )}
               role="row"
             >
-              {Array.from({ length: 5 }, (_, c) => {
+              {Array.from({ length: WORD_LENGTH }, (_, c) => {
                 let letter = ''
                 let color = tileColor(undefined)
                 if (submitted) {

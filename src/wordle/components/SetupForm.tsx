@@ -8,7 +8,7 @@ import { SetupCoopStyleSection } from '@/common/setup-form/SetupCoopStyleSection
 import { SetupSection } from '@/common/setup-form/SetupSection'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import type { SetupBodyProps, SetupSetter } from '@/common/setup-form/setupForm'
-import { answerMaxBand, GUESS_OPTIONS, type WordleValues } from '../lib/setup'
+import { answerMaxBand, GUESS_OPTIONS, WORD_LENGTH, type WordleValues } from '../lib/setup'
 
 /**
  * wordle's setup form, rendered inside the common SetupGameModal.
@@ -84,7 +84,7 @@ export function SetupForm({
           name="answer_source"
           error={errors.answer_source}
           label="Answer source"
-          length={5}
+          length={WORD_LENGTH}
           extraLowOption={{ value: 0, label: 'Wordle' }}
           minBand={1}
           maxBand={6}
@@ -95,7 +95,7 @@ export function SetupForm({
           name="legal_guess"
           error={errors.legal_guess}
           label="Legal guesses"
-          length={5}
+          length={WORD_LENGTH}
           minBand={answerMaxBand(s)}
           maxBand={6}
           value={s.legal_guess}

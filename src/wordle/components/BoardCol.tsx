@@ -10,6 +10,7 @@ import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useCaptureKeys, asciiLetters } from '@/common/keyboard/useCaptureKeys'
 import { db } from '../db'
 import { answerMessage } from '../lib/answer'
+import { WORD_LENGTH } from '../lib/setup'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
 import type { HistorySnapshotRow, HistorySnapshot } from '../lib/history'
 import { Board } from './Board'
@@ -140,26 +141,10 @@ export function BoardCol({
   // soft-reject, or once it lands.
   const [pending, setPending] = useState<string | null>(null)
 
-  // A restart resets the live rows, and a `pending` left over from the finished
-  // run would resurrect: its row is no longer in `rows`, so the "landed" check
-  // below stops absorbing it, and the old word reappears as an uncolored top row
-  // that also blocks input. Rows only SHRINK on a reset — guesses are
-  // append-only otherwise — so that is the signal, read during render behind a
-  // transition guard rather than in an effect.
-  const [prevRowCount, setPrevRowCount] = useState(rows.length)
-  if (rows.length !== prevRowCount) {
-    setPrevRowCount(rows.length)
-    if (rows.length < prevRowCount) {
-      // "Replay should start entirely blank": drop the stale in-flight word AND
-      // any half-typed buffer from the previous run.
-      if (pending !== null) setPending(null)
-      if (current !== '') setCurrent('')
-    }
-  }
-
   // The pending word, shown until its colored row lands and takes its place.
   // `pending` may linger stale after that, but this is the value everything
-  // reads — harmless while rows only grow, and the reset case is handled above.
+  // reads — harmless, since `rows` only grows: a Restart remounts the whole
+  // surface (GamePage keys it on `restarts`), so nothing here outlives a run.
   const pendingLanded = pending != null && rows.some((r) => r.guess === pending)
   const pendingWord = pending && !pendingLanded ? pending : ''
 
@@ -170,7 +155,7 @@ export function BoardCol({
   // cap IS `act-delete-last`, which dismisses on the way through.
   const typeLetter = useCallback((ch: string) => {
     localFeedbackSlot.dismiss()
-    setCurrent((c) => (c.length < 5 ? c + ch.toLowerCase() : c))
+    setCurrent((c) => (c.length < WORD_LENGTH ? c + ch.toLowerCase() : c))
   }, [localFeedbackSlot])
 
   // ─── The marks this column owns ────────────────────────
@@ -225,7 +210,7 @@ export function BoardCol({
   // Submit a guess (stable across keystrokes).
   const doSubmit = useCallback(
     async (word: string) => {
-      if (word.length !== 5) {
+      if (word.length !== WORD_LENGTH) {
         const { outcome, text } = answerMessage({ answerType: 'too_short' })
         localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
         return
@@ -288,7 +273,7 @@ export function BoardCol({
     // dispatch and no dismissal. Frozen capture is what lets a keystroke fall
     // through to `act-exit-history` instead of typing behind the banner.
     disabled: !canGuess || isViewingHistory,
-    maxLength: 5, // a guess is one 5-letter word
+    maxLength: WORD_LENGTH,
   })
 
   // ─── The keyboard's letters ────────────────────────────
@@ -299,7 +284,7 @@ export function BoardCol({
   // board (drives the on-screen keyboard tinting).
   const keyStates = new Map<string, TileColor>()
   for (const r of rows) {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < WORD_LENGTH; i++) {
       const ch = r.guess[i]
       const col = tileColor(r.colors[i])
       const prev = keyStates.get(ch)

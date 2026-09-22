@@ -322,11 +322,11 @@ describe('wordle PlayArea — icon-only action row', () => {
 
 /**
  * Terminal flow (the waffle treatment — docs/ui.md → Terminal results). No
- * modal carries the verdict; a coop solve pops the CelebrationBlockingModal at
- * the MOMENT of the win (the playState flip), never on mounting an
- * already-won game. And the word stays HIDDEN at every terminal, win
- * included, until THIS viewer asks for it — a local, reversible display
- * toggle (useSolutionReveal), no RPC and no peer affected.
+ * modal carries the verdict; a win pops the CelebrationBlockingModal at the
+ * MOMENT it lands (the playState flip) — the team's in coop, mine in a race —
+ * never on mounting an already-won game. And the word stays HIDDEN at a
+ * terminal this viewer did not solve until they ask for it — a local,
+ * reversible display toggle (useSolutionReveal), no RPC and no peer affected.
  */
 describe('wordle PlayArea — terminal flow', () => {
   /** The game sections most recently pushed to the menu, as the ROWS the menu
@@ -418,35 +418,6 @@ describe('wordle PlayArea — terminal flow', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
   })
 
-  it('restart resets the board fully — no stale pending row from the finished run', async () => {
-    // The bug: BoardCol's `pending` (the submitted word held on the board through
-    // the RPC round-trip) lingered after its row landed; when replay reset `rows`
-    // to empty, the stale word resurrected as an uncolored top row AND held
-    // `canGuess` false. Rows shrinking must clear it.
-    rpc.mockResolvedValue({ data: { result: 'incorrect' }, error: null })
-    const game = { id: 'g1', mode: 'coop' as const, max_guesses: 6, target: null }
-    h.result = loaded(game)
-    const user = userEvent.setup()
-    const { rerender } = render(<WithKeys {...makeCtx()} />)
-
-    // Submit "crane" — BoardCol holds it as the pending row...
-    await user.keyboard('crane{Enter}')
-    await waitFor(() => expect(rpc).toHaveBeenCalled())
-    // ...its colored server row lands...
-    h.result = loaded(game, [
-      { user_id: 'u1', id: 1, guess: 'crane', colors: 'xxxxx', is_correct: false },
-    ])
-    rerender(<WithKeys {...makeCtx()} />)
-    // ...then replay wipes the guesses (rows shrink to empty).
-    h.result = loaded(game, [])
-    rerender(<WithKeys {...makeCtx()} />)
-
-    // Entirely blank board, and input is live again.
-    const grid = screen.getByRole('grid', { name: /board/i })
-    expect(grid.textContent?.trim()).toBe('')
-    expect(screen.getByRole('button', { name: /^a$/i })).toBeEnabled()
-  })
-
   it('pops the celebration when the coop win lands mid-session, not on mount', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
     const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
@@ -464,7 +435,10 @@ describe('wordle PlayArea — terminal flow', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('does not celebrate a compete win', () => {
+  // The race's winner celebrates too — MY win, read off the server's
+  // `status.winner_user_id`, never "someone won". The dialog's handle is its
+  // title: the pill and the row's line say the verdict in their own words.
+  it('celebrates the race I won, at the moment it ends', () => {
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     const base = { players: twoMembers }
     const { rerender } = render(<PlayAreaLoader {...makeCtx(base)} />)
@@ -478,8 +452,40 @@ describe('wordle PlayArea — terminal flow', () => {
         {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { winner_user_id: 'u1' } })}
       />,
     )
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: 'Solved! 🎉' })).toBeInTheDocument()
+    expect(screen.getByText('You solved it in the fewest guesses.')).toBeInTheDocument()
     expect(screen.getByText('You won!')).toBeInTheDocument()
+  })
+
+  it('does not celebrate a race somebody else won', () => {
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
+    const base = { players: twoMembers }
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(base)} />)
+
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
+      me,
+      { ...moth, solved: true },
+    ])
+    rerender(
+      <PlayAreaLoader
+        {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { winner_user_id: 'u2' } })}
+      />,
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByText('Opponent won')).toBeInTheDocument()
+  })
+
+  it('does not celebrate when mounted into a race already won', () => {
+    h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: 'crane' }, [], [
+      { ...me, solved: true },
+      moth,
+    ])
+    render(
+      <PlayAreaLoader
+        {...makeCtx({ players: twoMembers, isTerminal: true, playState: 'won_compete', status: { winner_user_id: 'u1' } })}
+      />,
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   // THE WIRE, end to end: the verdict names the reason the SERVER wrote, not
@@ -822,37 +828,28 @@ describe('wordle PlayArea — the board-scope marks', () => {
   })
 })
 
-describe('wordle Board — the reveal flip is keyed to the CAUSE', () => {
+describe('wordle Board — the reveal flip', () => {
   const tiles = () => screen.getAllByRole('gridcell')
 
-  // The bug this pins: if "which rows are new?" is answered by a row count
-  // captured at mount, a restart — which DELETES the guesses — leaves a replayed
-  // game's first guesses below a stale baseline, landing with no flip at all,
-  // silently, for as many rows as the finished game had. The baseline follows
-  // the log down instead, which is the same read-the-cause rule the attention
-  // flash uses.
-  it('still flips the first guess of a replayed board', () => {
+  // A row already on the board when it mounted arrived before anyone was
+  // watching, so it draws settled; a row that lands during the session flips.
+  // No restart case here on purpose: a Restart remounts the whole surface, so
+  // the replayed game's first row is a landing on a fresh board like any other.
+  it('flips a row that lands while watching, not the rows present at mount', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
       { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxgyx', is_correct: false },
-      { user_id: 'u1', id: 2, guess: 'crane', colors: 'ggggg', is_correct: true },
     ])
-    const { rerender } = render(<WithKeys {...makeCtx()} />)
-    // Rows already on the board at mount don't flip — they arrived before anyone
-    // was watching.
+    const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(tiles()[0].className).not.toMatch(/reveal/)
 
-    // Restart: the guesses are gone.
-    h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [])
-    rerender(<PlayAreaLoader {...makeCtx()} />)
-
-    // A guess on the replayed board flips, exactly as the first guess of any
-    // other game does.
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', id: 1, guess: 'moths', colors: 'xxyxg', is_correct: false },
+      { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxgyx', is_correct: false },
+      { user_id: 'u1', id: 2, guess: 'moths', colors: 'xxyxg', is_correct: false },
     ])
     rerender(<PlayAreaLoader {...makeCtx()} />)
 
-    expect(tiles()[0].className).toMatch(/reveal/)
+    expect(tiles()[0].className).not.toMatch(/reveal/)
+    expect(tiles()[5].className).toMatch(/reveal/)
   })
 })
 

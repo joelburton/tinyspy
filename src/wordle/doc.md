@@ -38,8 +38,9 @@ below-board pill says it, the finished board keeps its colors, and the keyboard
 stays under it, disabled, since its caps hold what every letter earned. The
 word stays hidden until this viewer asks for it — unless they typed it, in
 which case they are already looking at it — and Restart replays the same word
-from a blank board, the word hiding itself again on the way. A coop solve
-celebrates once, at the moment the winning row lands.
+from a blank board, the word hiding itself again on the way. A win celebrates
+once, at the moment it lands: the team's solve in coop, and in a race the
+winner's own.
 
 ## Game rules
 
@@ -363,7 +364,7 @@ then `PlayArea` in the eight sections.
         │           ├── the answer line  terminal, and only once this viewer asks
         │           ├── SetupDisclosure ←
         │           └── GameEventLog     one row per guess: five colored squares
-        └── CelebrationBlockingModal ←   the coop win, at the moment it lands
+        └── CelebrationBlockingModal ←   the win — the team's, or mine in a race — as it lands
 
   ← belongs to common/ ; ⇐ to shared/ ; everything else is this folder's
 ```
@@ -383,10 +384,10 @@ What is wordle's own:
   a phone-height window (`Board.module.css`).
 - **A row that lands flips.** Each tile turns over in turn and paints its
   color at the midpoint; rows already on the board when it mounted — a
-  mid-game refresh, an opponent's finished board — draw settled, and a
-  Restart moves the line so the replayed game's first row flips too. The
-  submitted word stays on the board through the round trip, dimmed, and flips
-  in place when its row arrives.
+  mid-game refresh, an opponent's finished board — draw settled. A Restart
+  remounts the whole surface, so the replayed game's first row flips like any
+  other landing. The submitted word stays on the board through the round trip,
+  dimmed, and flips in place when its row arrives.
 - **The keyboard is the alphabet's record.** Each cap wears the strongest
   color its letter has earned across the live rows; Enter and ⌫ are the same
   bound actions the physical keys answer to, so a cap and its key cannot
@@ -407,7 +408,8 @@ What is wordle's own:
   frozen board banded in its outcome, and the disabled keyboard. The answer
   line under the action row appears when this viewer presses Reveal and goes
   away when they press Hide; a solver sees it unasked, being the one who typed
-  it. A coop solve celebrates, once, on the flip to `won`.
+  it. A win celebrates, once, on the flip: coop's on `won`, a race's for the
+  winner alone, read off `status.winner_user_id`.
 - **No mobile status bar.** The board is the count — every used guess is a
   colored row — so a bar would restate it and shorten the board for nothing.
 - **The printer** (`pdf/`) is one track per board: the grid, the keyboard in
@@ -448,7 +450,7 @@ Vitest, beside the code:
 | `lib/history.test` · `lib/colors.test` | the inclusive boundary and the ringed row, by id; the keyboard's strength order |
 | `lib/setup.test` · `components/SetupForm.test` | the Start gate names `legal_guess`, and the floor the answer source sets; the form's three controls and where a refusal lands |
 | `pdf/model.test` | the target never prints before it shows on screen; the keyboard is derived per player, never pooled |
-| `components/PlayArea.test` | the surface mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration, mine only; peer narration in both modes; the picker's labels; Concede vs End per mode; the board-scope marks; the flip keyed to its cause; the physical keys and the two caps |
+| `components/PlayArea.test` | the surface mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration — the team's win, my race win, never a race I lost or a game opened already won; peer narration in both modes; the picker's labels; Concede vs End per mode; the board-scope marks; a landed row flips and a mounted one does not; the physical keys and the two caps |
 
 Playwright, in `e2e/`: `wordle-history` (the viewer's overlay and the exits),
 `wordle-keyboard` (the caps' computed colors, resting and hovered),

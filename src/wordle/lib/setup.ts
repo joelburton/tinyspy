@@ -56,6 +56,11 @@ export const DEFAULT_WORDLE_SETUP: WordleSetup = {
 /** The guess-budget choices the form offers (5–8; 6 is classic). */
 export const GUESS_OPTIONS: ReadonlyArray<number> = [5, 6, 7, 8]
 
+/** Every wordle word is five letters: the target, a guess, a board row, and
+ *  the dictionary slice the two band controls offer. One home, so the board,
+ *  the entry, the form and the printer cannot disagree. */
+export const WORD_LENGTH = 5
+
 /**
  * The hardest band a possible answer can be, given the source. The curated
  * Wordle list (source 0) tops out at band 2; a difficulty band N tops out at N.
