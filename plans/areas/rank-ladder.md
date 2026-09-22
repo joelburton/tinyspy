@@ -64,6 +64,262 @@ committed, because git tracked none of it.
 *(`F-rank-ladder-1 · slug · title`, one heading each; a status prefix when it has
 one, no prefix means OPEN)*
 
+### The audit's findings — 2026-09-21
+
+**Eleven findings, F-rank-ladder-1 to -11; nothing in the code moved at the
+read.** Shipped since: F-8, and F-7 with it. Every roster file read end to end, plus the evidence: both bee games'
+nineteen import sites, boggle's `Stats.tsx`, the two `_rank_idx` copies,
+`docs/mobile.md` and the five spellingbee-doc cites. Baseline `tsc -b` clean,
+lint clean, 20 of 20 green.
+
+What the folder IS: three exports and two stylesheets. `rankLadder.ts` is the
+seven tiers, the 70% Genius mark, and three functions over them — the fraction
+that unlocks a tier, the absolute score that unlocks it, and the tier a score
+has reached. `RankBar` draws seven squares and fills the reached ones; `Stats`
+is a two-cell Score/Words grid. There is no data model, which is why any game
+with a ladder can take it — and one game takes only the stylesheet.
+
+**The maths held up, and the opening proved it numerically** (4,004,000 pairs,
+zero disagreements between the FE bar fill and the SQL win-check). The care in
+`rankPoints` is real: `Math.ceil((i * 7 * total) / 60)` exists because
+`rankThreshold(i) * total` can land at `63.00000000000001`, and the docstring
+names that case. The tab-order decision is right and the spec that pins it is
+one of the better ones in the repo.
+
+**What has drifted is everything around the maths.** Three docstrings roster the
+two games and explain what the code used to be; one gives the WRONG REASON for
+the lockstep the opening just proved; the SQL's own comment points at a file
+that does not exist. And under that: the bar's central behavior has no spec at
+all, `Stats` has no spec at all, and the two stylesheets carry twenty
+unconverted literals.
+
+### F-rank-ladder-1 · `doc-md` · The intro is owed
+
+`doc.md` is one sentence — *"The rank ladder, the bar that draws it, and the
+stat grid beside it. There is no data model behind it, so any game with a
+ladder can take it."* — and `shared/rank-ladder` is on `INTROS_OWED`. The lede
+is good and its second clause is the folder's whole justification, so the intro
+builds on it rather than replacing it. What it owes: **why there are two
+implementations of one ladder and why that is not duplication** (the FE needs a
+fraction to place a square, the SQL needs an integer to decide a win, and
+`(score * 60) / (total * 7)` is the algebraic rearrangement that lets them agree
+without sharing code — with the 4,004,000-pair result as the evidence that they
+do); **why `rankPoints` does integer arithmetic** where `currentRankIndex` does
+not; and **the readout rule** — a tier is not focusable, which is a decision
+with a scar behind it (F-5). `## Details` carries the call tree and the fact
+that the bar renders twice per game.
+
+### F-rank-ladder-2 · `achieved-unpinned` · Which squares fill has no spec, and the plant is clean
+
+The bar's entire job is unpinned. Planted:
+
+```
+i <= idx && styles.achieved   →   false && styles.achieved
+```
+
+**20 of 20 pass.** No square fills, for any score, and nothing notices.
+
+The spec's two cases are the tab-order rule and the text content, and the text
+case incidentally catches two OTHER regressions — planting `isTarget = false`
+fails it (the `· target` bubble), and an off-by-one on `idx` fails it (the
+label). So the file is not weakly tested; it simply never asserts the one thing
+a reader would assume it asserts first: that a square at or below the current
+rank is filled and the rest are hollow.
+
+No decision in it. `container.querySelectorAll` already gives the spec the list
+items, so the case is the count of `.achieved` against `currentRankIndex` at a
+couple of scores, including 0 (only Start) and a full clear (all seven, clamped).
+
+### F-rank-ladder-3 · `stats-untested` · `Stats` has no spec at all
+
+There is no `Stats.test.tsx`. The component derives nothing, so what is worth
+pinning is narrow but real: the tight `12/93` format — which is a DECISION with
+a stated reason (*"the pair is one figure, and the spaces cost width the mobile
+status area doesn't have"*) and which boggle's copy disagrees with (F-9) — and
+that the denominator wears `.muted` so it reads as the denominator. Two
+assertions.
+
+### F-rank-ladder-4 · `roster-archaeology` · Three docstrings roster the two games and date themselves to a refactor
+
+Each says who shares the file and what the code used to be:
+
+- `RankBar.tsx:17–18` — *"shared by spellingbee + wordwheel (their per-game
+  `RankBar` copies were identical bar the accent token)."*
+- `Stats.tsx:13–14` — *"Shared by spellingbee + wordwheel (their per-game
+  `Stats` copies were identical bar the text token)."*
+- `rankLadder.ts:4–5` — *"shared by the found-words rank-ladder games
+  (spellingbee + wordwheel — both ports of the NYT-Bee-style `*-ws`
+  originals)."*
+
+The parentheticals are how it used to work, which the comment rule excludes, and
+the rosters are wrong the moment a third game takes the ladder — which has
+already happened for the stylesheet, since boggle takes `Stats.module.css`
+(F-9). The condition is in the lede already: a game with a rank ladder. The
+`*-ws` provenance is worth keeping ONCE, and `doc.md` is where (F-1).
+
+### F-rank-ladder-5 · `tabindex-story-twice` · One scar, told twice at length, with a count in three places
+
+The `tabIndex={0}` incident of 2026-08-16 is told in ten lines at
+`RankBar.tsx:56–65` and told again in sixteen lines at `RankBar.test.tsx:9–25`.
+Both accounts are good; two are one too many, and the comment is the wrong one
+to keep — a comment explains the code in front of the reader, and what is in
+front of them is `<li>` with no `tabIndex`, which needs one sentence. **The
+spec's header is the right home**: it exists to explain why those assertions
+exist, which is exactly the scar.
+
+The count rides along in three places: *"fourteen in the DOM"*
+(`RankBar.tsx:52`), *"fourteen dead tab stops"* (`RankBar.test.tsx:24`), and
+*"renders TWICE per game… in both spellingbee and wordwheel"* (`:22–23`). Two
+games × two mounts is a number that rots on the next game to take the bar; the
+durable fact is that the bar renders more than once per page, so a tab stop in
+it multiplies.
+
+### F-rank-ladder-6 · `false-lockstep-reason` · The right claim with the wrong reason
+
+`RankBar.tsx:31–33`: *"Pure derivation from `score` + `total` via
+`currentRankIndex`; the FE never disagrees with the SQL `_rank_idx` because both
+compute from the same constants."*
+
+The claim is TRUE — the opening proved it over four million pairs. **The reason
+is false, and it is the kind of false reason that invites the break.** They do
+not compute from the same constants: `currentRankIndex` walks float
+thresholds (`ratio >= rankThreshold(i)`), `_rank_idx` does one integer division
+(`least(6, (score * 60) / (total * 7))`). They agree because the second is an
+algebraic rearrangement of the first, which is what `rankLadder.ts:11–14` says
+properly. A reader who believes "same constants" will feel free to change the
+loop, since the constants would be untouched.
+
+Say the real reason or point at `rankLadder.ts`, which already has it.
+
+### F-rank-ladder-7 · `sql-cites-a-missing-file` · The SQL comment names `ranks.ts`, which does not exist
+
+`supabase/sql/spellingbee.sql:150–154` and `wordwheel.sql`'s twin: *"Why integer
+math: avoiding floating point makes the result bit-for-bit reproducible across
+implementations (the FE port of this in `ranks.ts` uses the same expression)."*
+
+Two faults. **There is no `ranks.ts` anywhere in the repo** — the file is
+`src/shared/rank-ladder/rankLadder.ts`; `ranks.js` is the name in the
+`spellingbee-ws` original, which is not in this repo either. And *"uses the same
+expression"* is not true: the FE uses float thresholds, and the reason the two
+agree is the rearrangement, not sameness. The integer-math rationale itself is
+worth keeping — it is the best statement of it anywhere.
+
+Both files are `supabase/sql/`, so this is an in-place edit forever
+(CLAUDE.md → Schema vs code), not a migration.
+
+### F-rank-ladder-8 · `sql-twin-duplicated-and-untested` · One function, two copies, no pgTAP
+
+**RULED (1) AND SHIPPED, 2026-09-21** (Joel: *"q1. common._rank_idx / q2: both
+at once"*). One `common._rank_idx`, beside `common.wordle_colors` whose shape it
+follows exactly — same `immutable`, same `revoke execute … from public`, called
+from more than one game's SQL, pinned by a pgTAP per consumer. Both per-schema
+definitions are deleted and **20 call sites** rewritten (10 per game). Both
+files are `supabase/sql/`, re-applied in full on every deploy, and nothing in
+`supabase/migrations/` referenced the old names, so there is no migration and
+nothing to back-fill.
+
+**F-7 shipped with it.** The `ranks.ts` cite lived inside the two definition
+blocks this move deleted; the new comment points at
+`src/shared/rank-ladder/rankLadder.ts`, which exists. The only surviving
+`ranks.js` is `docs/games/spellingbee.md:540`, citing the `spellingbee-ws`
+ORIGINAL outside this repo — provenance, not a dead path.
+
+`supabase/tests/{spellingbee,wordwheel}/rank_idx_test.sql`, 11 cases each: the
+zero-total guard, score 0, five rank boundaries from both sides, the 63/108
+threshold, and the clamp. **Both join the roster** as `cs-met-rank-ladder`
+(created files join the roster), which is why the census is nine files rather
+than seven. 181 files / 2545 tests green.
+
+**A correction I had to make to my own work, and it is the useful part.** The
+tests' header — and the comment I wrote on the moved function — claimed integer
+math prevents a float implementation from landing a rank boundary a whole point
+off. **Planting the float form passed both tests**, so I searched for a
+`(score, total)` where a float form of THIS expression disagrees with the
+integer form: **none in 4,004,000 pairs.** The float trap `rankLadder.ts`
+documents is in the other direction — `rankPoints`, where `Math.ceil` over
+63.00000000000001 costs a point — and I had transplanted it onto a function it
+does not apply to. Both headers now say integer math here is determinism by
+construction rather than a fix for an observed bug, and say what the assertions
+actually earn: the ladder's clamp, guard and boundaries.
+
+Three real regressions DO fail them, each verified: raising the clamp to 7,
+shifting the ladder (60 → 61), and dropping the `total <= 0` guard (which dies
+on the division, which is the guard's whole point).
+
+**Correction to the finding as recorded:** it said 12 call sites per game. It is
+10 — `grep -c` counted the `create or replace` and `revoke` lines too.
+
+`_rank_idx` is **byte-identical** in `spellingbee.sql:156` and
+`wordwheel.sql:156` apart from the schema name and its `search_path`. And
+**nothing asserts it**: `_rank_idx` appears in `supabase/tests/` exactly once,
+in `wordwheel/setup.psql`, as fixture setup. So the integer half of the ladder —
+the half that decides a compete WIN — is pinned only by a TypeScript test that
+re-implements it (`rankLadder.test.ts:106`'s `sqlIdx`), which pins the FE
+against a copy of the SQL rather than against the SQL.
+
+Reported here at Joel's word rather than left to the two game areas. The
+decision is whose the function is: a `common._rank_idx` both schemas call, two
+copies with a pgTAP each, or two copies and one shared pgTAP. Each game's
+`submit_word` calls its own today.
+
+### F-rank-ladder-9 · `stats-format-disagreement` · Two readers of one stylesheet disagree about the figure it exists to draw tightly
+
+`Stats.tsx:16–20` states a decision: each cell is written *"tight as `12/93` (no
+spaces around the slash — the pair is one figure, and the spaces cost width the
+mobile status area doesn't have)."*
+
+boggle's `components/Stats.tsx:45` writes its denominator as `/ <count>` and
+renders it as `<span className={styles.muted}> {sub}</span>` — a space before
+the slash AND after it, so `12 / 93`. It is in the mobile status bar too
+(`boggle/components/BoardCol.tsx:253`), with **four** cells where the shared one
+has two, and its own docstring says the labels are stacked on two lines because
+*"four cells side by side are narrow — narrower still in the mobile status bar."*
+So boggle spends the width the shared component says is not there, at twice the
+cell count, and nothing in `docs/games/boggle.md` records the choice.
+
+The stylesheet KNOWS about boggle — `.percent` is documented as *"an OPTIONAL
+third line… Only boggle passes one today"* and `.stats` as *"boggle swings
+between 2 and 4"* — so this is not accidental coupling. Only the format
+disagrees, and only this area can see both readers.
+
+### F-rank-ladder-10 · `css-literals` · Twenty values on eleven pending rows
+
+`vocabularies.test.ts` carries eleven rows for these two stylesheets, twenty
+values in seven vocabularies — the largest CSS surface left in `shared/`:
+
+| vocabulary | RankBar.module.css | Stats.module.css |
+|---|---|---|
+| border-radius | `2px` `4px` | |
+| spacer | `8px` `0.5rem` | `8px` `12px` `2px` `0.25rem` |
+| font-size | `14px` `12px` | `11px` `18px` `13px` |
+| line-height | | `1.2` |
+| letter-spacing | `0.04em` | `0.06em` |
+| duration | `80ms` | |
+| border-width | `2px` `3px` | `1px` |
+
+Joel decides the values. Worth noting before he does: the bar is a
+seven-square track whose squares are small and whose tooltip type is smaller
+still, so some of these are plausibly bespoke rather than unconverted — the same
+ruling `WordList.module.css`'s `7px` got.
+
+### F-rank-ladder-11 · `target-wins-by-source-order` · A load-bearing claim held up by line order alone
+
+`RankBar.tsx:43–45`: *"The goal square keeps its outline after you reach it
+(`.target` wins over `.achieved`), so the bar still reads 'this is what we were
+playing to' at terminal."*
+
+`.achieved` (`RankBar.module.css:101`) sets `background`; `.target` (`:116`)
+sets `border-width` and `border-color`. They are the same specificity and do not
+actually collide on a property — so the comment's "wins over" describes a
+cascade contest that is not happening, and the real reason both show is that
+they style different things. If either ever set the other's property, the
+outcome would depend on which line came second, which nothing records or
+guards.
+
+No behavior to change; the sentence should say what is true — a reached goal
+square is filled AND outlined, because the two rules style different
+properties.
+
 ## Notes
 
 *(things worth remembering about this area that are neither a finding nor
@@ -71,13 +327,34 @@ owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to the folder's `doc.md`
 or `todo.md` instead; a note here never stands in for either)*
 
+## What checked out
+
+Claims re-verified against code rather than taken from the docstrings, listed so
+the closing re-read does not redo them: the FE↔SQL agreement (4,004,000 pairs,
+zero disagreements — see the opening); `rankPoints`'s integer arithmetic and the
+`63.00000000000001` case it names; the tab-order rule and its spec, which catch
+an `isTarget` regression and an off-by-one on the label as a side effect; the
+stylesheet's own account of boggle (`.percent` *"only boggle passes one today"*,
+`.stats` *"boggle swings between 2 and 4"*) is accurate; `Stats.module.css`
+declares six classes and boggle uses all six where the shared `Stats` uses five,
+so `.percent` has exactly one consumer and it is named; `_rank_idx` really is
+byte-identical across the two SQL files; `docs/mobile.md`'s RankBar cite
+resolves; `docLinks` passes.
+
 ## Predicted test breaks
 
-*(the spec names, written when the area starts changing things)*
+- F-2: `RankBar.test.tsx` gains a case (2 → 3).
+- F-3: a new `Stats.test.tsx`, two assertions.
+- F-1: `src/guards/folderDocs.test.ts` — `shared/rank-ladder` comes off
+  `INTROS_OWED` in the same commit as the intro, or the guard fails either way.
+- F-10: `src/guards/vocabularies.test.ts` — eleven rows shrink or go as values
+  convert; a row whose file stops writing any literal must be deleted.
+- ~~F-8: a pgTAP file for `_rank_idx` if that is the ruling — `supabase/tests/`
+  has none today.~~ Shipped: two files, 11 cases each, 2545 green.
 
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
+- [ ] the folder's `doc.md` intro written; its row off `INTROS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not

@@ -945,6 +945,55 @@ end;
 $$;
 revoke execute on function common.wordle_colors(text, text) from public;
 
+-- ============================================================
+-- common._rank_idx — the rank ladder (0..6) as integer math
+-- ============================================================
+-- 7 named ranks: Start(0), Good(1), Solid(2), Nice(3), Great(4),
+-- Amazing(5), Genius(6). Each unlocks at i/6 * 0.70 of the max score;
+-- Genius at 70%. The formula:
+--
+--   threshold_i = i / 6 * 0.7
+--   rank(score, total) = max i such that score >= threshold_i * total
+--                      = floor(score * 6 / (total * 0.7))
+--                      = floor(score * 60 / (total * 7))   (×100/×100 to clear the decimal)
+--
+-- LEAST(6, ...) caps the result: a full clear of the required set scores
+-- well past the 70% mark, so score*60/(total*7) can reach ≈8.57.
+--
+-- Why integer math: this decides a compete WIN, so it has to give the same
+-- answer everywhere it is computed, and integer division is bit-for-bit
+-- reproducible where floating point is a promise about a platform. No
+-- (score, total) is known where a float form of this expression actually
+-- disagrees — 4,004,000 pairs searched, none found — so this is determinism
+-- by construction rather than a fix for an observed bug. The float trap
+-- `rankLadder.ts` documents is in the other direction, where `Math.ceil` over
+-- a threshold of 63.00000000000001 costs a whole point.
+--
+-- The frontend agrees with this but does NOT run this expression: it walks
+-- float thresholds (`ratio >= rankThreshold(i)`), and the integer form above
+-- is the algebraic rearrangement of that comparison. `src/shared/rank-ladder/
+-- rankLadder.ts` carries the derivation, and its spec pins the two together at
+-- every rank boundary. Change one, walk the other.
+--
+-- Shared rather than per-schema because the ladder is one ladder: a game with
+-- a rank target calls this instead of keeping a copy. Pinned by each caller's
+-- `rank_idx_test.sql`.
+-- ============================================================
+
+create or replace function common._rank_idx(score int, total int)
+returns int
+language sql
+immutable
+set search_path = common, public, extensions
+as $$
+  select case
+           when total <= 0 then 0
+           else least(6, (score * 60) / (total * 7))
+         end;
+$$;
+
+revoke execute on function common._rank_idx(int, int) from public;
+
 create or replace function common.create_game(
   target_club text,
   gametype text,

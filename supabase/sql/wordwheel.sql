@@ -133,41 +133,6 @@ select
 grant select on wordwheel.games_state to authenticated;
 
 -- ============================================================
--- _rank_idx — the rank ladder (0..6) as integer math
--- ============================================================
--- 7 named ranks: Start(0), Good(1), Solid(2), Nice(3), Great(4),
--- Amazing(5), Genius(6). Each one unlocks at i/6 * 0.70 of the
--- max score; Genius at 70%. The formula:
---
---   threshold_i = i / 6 * 0.7
---   rank(score, total) = max i such that score >= threshold_i * total
---                      = floor(score * 6 / (total * 0.7))
---                      = floor(score * 60 / (total * 7))      (×100/×100 to remove the decimal)
---
--- LEAST(6, ...) caps the result — a 100%-of-max score yields
--- score*60/(total*7) ≈ 8.57, so we clamp.
---
--- Why integer math: avoiding floating point makes the result
--- bit-for-bit reproducible across implementations (the FE port
--- of this in ranks.ts uses the same expression). Numerical
--- correctness, not performance — the savings here are
--- nanoseconds, but the determinism matters.
-
-create or replace function wordwheel._rank_idx(score int, total int)
-returns int
-language sql
-immutable
-set search_path = wordwheel, common, public, extensions
-as $$
-  select case
-           when total <= 0 then 0
-           else least(6, (score * 60) / (total * 7))
-         end;
-$$;
-
-revoke execute on function wordwheel._rank_idx(int, int) from public;
-
--- ============================================================
 -- wordwheel.candidate_words — edge-function board-build helper
 -- ============================================================
 --
@@ -764,7 +729,7 @@ begin
       into team_score, team_found_words_count
       from wordwheel.found_words fw
      where fw.game_id = target_game;
-    team_rank_idx := wordwheel._rank_idx(team_score, g_row.required_words_score);
+    team_rank_idx := common._rank_idx(team_score, g_row.required_words_score);
 
     if current_target_rank is not null and team_rank_idx >= current_target_rank then
       -- Coop win: the TEAM reached the rank they set out for. Everyone wins
@@ -822,7 +787,7 @@ begin
       into caller_score, caller_found_words_count
       from wordwheel.found_words fw
      where fw.game_id = target_game and fw.user_id = caller_id;
-    caller_rank_idx := wordwheel._rank_idx(caller_score, g_row.required_words_score);
+    caller_rank_idx := common._rank_idx(caller_score, g_row.required_words_score);
 
     if caller_rank_idx >= current_target_rank then
       -- Compete win: caller hit the target rank first. Freeze the
@@ -831,7 +796,7 @@ begin
                jsonb_build_object(
                  'user_id', p.user_id,
                  'found_words_score', coalesce(p.found_words_score, 0),
-                 'rank_idx', wordwheel._rank_idx(coalesce(p.found_words_score, 0), g_row.required_words_score),
+                 'rank_idx', common._rank_idx(coalesce(p.found_words_score, 0), g_row.required_words_score),
                  'found_words_count', coalesce(p.found_words_count, 0)
                )
              )
@@ -886,7 +851,7 @@ begin
                jsonb_build_object(
                  'user_id', p.user_id,
                  'found_words_score', p.found_words_score,
-                 'rank_idx', wordwheel._rank_idx(p.found_words_score, g_row.required_words_score),
+                 'rank_idx', common._rank_idx(p.found_words_score, g_row.required_words_score),
                  'found_words_count', p.found_words_count
                )
              )
@@ -1027,7 +992,7 @@ begin
                'finished', true,
                'team_score', team_score,
                'team_rank_idx',
-                 wordwheel._rank_idx(team_score, g_row.required_words_score)
+                 common._rank_idx(team_score, g_row.required_words_score)
              )
            )
       into player_results
@@ -1042,7 +1007,7 @@ begin
         'mode', 'coop',
         'found_words_score', team_score,
         'required_words_score', g_row.required_words_score,
-        'rank_idx', wordwheel._rank_idx(team_score, g_row.required_words_score),
+        'rank_idx', common._rank_idx(team_score, g_row.required_words_score),
         'found_words_count', team_found_words_count,
         'required_words_count', g_row.required_words_count,
         'target_rank', current_target_rank
@@ -1062,7 +1027,7 @@ begin
              jsonb_build_object(
                'user_id', p.user_id,
                'found_words_score', p.found_words_score,
-               'rank_idx', wordwheel._rank_idx(p.found_words_score, g_row.required_words_score),
+               'rank_idx', common._rank_idx(p.found_words_score, g_row.required_words_score),
                'found_words_count', p.found_words_count
              )
            )
@@ -1208,7 +1173,7 @@ begin
                'finished', true,
                'team_score', team_score,
                'team_rank_idx',
-                 wordwheel._rank_idx(team_score, g_row.required_words_score)
+                 common._rank_idx(team_score, g_row.required_words_score)
              )
            )
       into player_results
@@ -1224,7 +1189,7 @@ begin
         'mode', 'coop',
         'found_words_score', team_score,
         'required_words_score', g_row.required_words_score,
-        'rank_idx', wordwheel._rank_idx(team_score, g_row.required_words_score),
+        'rank_idx', common._rank_idx(team_score, g_row.required_words_score),
         'found_words_count', team_found_words_count,
         'required_words_count', g_row.required_words_count,
         'target_rank', current_target_rank
@@ -1242,7 +1207,7 @@ begin
              jsonb_build_object(
                'user_id', p.user_id,
                'found_words_score', p.found_words_score,
-               'rank_idx', wordwheel._rank_idx(p.found_words_score, g_row.required_words_score),
+               'rank_idx', common._rank_idx(p.found_words_score, g_row.required_words_score),
                'found_words_count', p.found_words_count
              )
            )

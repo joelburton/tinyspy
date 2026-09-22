@@ -45,7 +45,7 @@
 --     incl. 'e', one of them a bonus-pangram.
 -- Total required: 13·1 + 5·5 + 24 = 62 points across 19 words.
 --
--- Scoring (mirrors the edge builder + wordwheel._rank_idx):
+-- Scoring (mirrors the edge builder + common._rank_idx):
 --   points = (len == 4 ? 1 : len == 9 pangram ? len + 15 : len)
 --   rank_idx(score, total) = LEAST(6, floor(score * 60 / (total * 7)))
 --
