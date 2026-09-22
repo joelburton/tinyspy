@@ -1,16 +1,14 @@
 /* cs-met-wordle */
 
-/* The board wrapper. NO border/background today — the colored tiles carry the
- * look (like psychicnum/connections); it exists so a future framed board adds
- * the frame in one place, and it holds the tile-size knobs. It just centers the
+/* The board wrapper. NO border/background today;
+it holds the tile-size knobs. It just centers the
  * grid; the grid drives its own size (see below). */
 /* @@ */ .board {
   /* ─── Tile size cap — TINKER HERE ────────────────────────────────────────
    * The board grows to fill the space, but a tile never exceeds this width.
    * Square tiles, so width is the only knob. Relative units (rem). To REMOVE
    * the cap, SET it to 999rem (the calc term goes huge → the grid fills
-   * --avail-w). Don't comment it out — the phantom-token guard
-   * (src/guards/cssTokens.test.ts) needs it defined. */
+   * --avail-w).  */
 /* @@ */   --max-tile-width: 3.7rem;
 /* @@ */   --grid-gap: 0.35rem;
 /* @@ */   --cols: 5;
@@ -22,7 +20,7 @@
  * tiles + gaps need, capped per tile by --max-tile-width, never past --avail-w
  * (the shared scaffold token on .layout, the width left beside the info
  * column). `aspect-ratio` then derives the HEIGHT so the tiles stay SQUARE —
- * wordle's iconic look — instead of the flex-fill the other v3 boards use
+ * wordle's iconic look
  * (a keyboard shares this column below the board, so the board hugs its height
  * rather than filling the column). Each row is its own 5-col grid (`.row`). */
 /* @@ */ .grid {
@@ -131,30 +129,16 @@
 /* @@ */   --tile-slot-ink-color: var(--page-text-color);
 }
 
-/* Server feedback colors, applied by RE-SETTING the shared `.tile`'s `--tile-*`
- * tokens, so a fill wins regardless of stylesheet order (the same pattern waffle
- * and codenamesduet use). The border is a slightly DARKER shade of the fill rather
- * than the fill itself — the quiet definition every other surface in this app has,
- * instead of a flat block of color. */
-/* @@ */ .wordleGreen {
-/* @@ */   --tile-slot-fill-color: var(--wordle-green-fill-color);
-/* @@ */   --tile-slot-edge-color: var(--wordle-green-edge-color);
-/* @@ */   --tile-slot-ink-color: var(--wordle-green-ink-color);
-}
-/* @@ */ .wordleYellow {
-/* @@ */   --tile-slot-fill-color: var(--wordle-yellow-fill-color);
-/* @@ */   --tile-slot-edge-color: var(--wordle-yellow-edge-color);
-/* @@ */   --tile-slot-ink-color: var(--wordle-yellow-ink-color);
-}
-/* @@ */ .wordleGray {
-/* @@ */   --tile-slot-fill-color: var(--wordle-gray-fill-color);
-/* @@ */   --tile-slot-edge-color: var(--wordle-gray-edge-color);
-/* @@ */   --tile-slot-ink-color: var(--wordle-gray-ink-color);
-}
+/* The three JUDGED colors are the shared ones
+ * (shared/wordle-style/tileColors.module.css, indexed by `tileColor`); waffle
+ * paints its lattice from the same sheet. What is left here is what only wordle
+ * says about a tile.
+ *
+ * An UNJUDGED one is wordle's own, and it is the board's default: an empty slot,
+ * transparent, with the `.grid`'s light edge and no letter in it. Stated as a
+ * class anyway because the board branches to it by name (`styles.blank`) — and
+ * because `.filled` above is the same tile once a letter is typed into it. */
 /* @@ */ .blank {
-  /* An empty tile is the board's default — stated anyway, because a color class
-   * is looked up by name (`styles[color]`) and a missing one would be a silent
-   * hole rather than a visible mistake. */
 /* @@ */   --tile-slot-fill-color: transparent;
 }
 

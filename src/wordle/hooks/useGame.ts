@@ -59,7 +59,7 @@ export type EventRow = {
  */
 export function useGame(gameId: string): {
   game: WordleGame | null
-  players: WordlePlayerState[]
+  playerStates: WordlePlayerState[]
   guesses: EventRow[]
   loading: boolean
   /** Set when a read FAILED, which is not the same as the game being absent.
@@ -67,7 +67,7 @@ export function useGame(gameId: string): {
   failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<WordleGame | null>(null)
-  const [players, setPlayers] = useState<WordlePlayerState[]>([])
+  const [playerStates, setPlayerStates] = useState<WordlePlayerState[]>([])
   const [guesses, setGuesses] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
@@ -138,7 +138,7 @@ export function useGame(gameId: string): {
       const row = gameRes.data[0]
       if (!row) {
         setGame(null)
-        setPlayers([])
+        setPlayerStates([])
         setGuesses([])
         setLoading(false)
         return
@@ -150,11 +150,11 @@ export function useGame(gameId: string): {
         max_guesses: row.max_guesses as number,
         target: (row.target as string | null) ?? null,
       })
-      setPlayers(playersRes.data as WordlePlayerState[])
+      setPlayerStates(playersRes.data as WordlePlayerState[])
       setGuesses(guessesRes.data as EventRow[])
       setLoading(false)
     },
   })
 
-  return { game, players, guesses, loading, failure }
+  return { game, playerStates, guesses, loading, failure }
 }

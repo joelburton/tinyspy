@@ -1,0 +1,45 @@
+/* cs-met-wordle */
+
+/* The three JUDGED tile colors, for the boards that draw a server verdict on a
+ * letter — wordle's guess rows and waffle's lattice. A board indexes this sheet
+ * with `tileColor(code)`, so these class NAMES are the contract between the two
+ * files; `tileColor.test.ts` is what holds them together, since the lookup has
+ * no compiler behind it.
+ *
+ * They work by RE-SETTING the shared `.tile`'s `--tile-slot-*` tokens rather
+ * than painting `background` and friends directly. A board declares the resting
+ * values on its GRID and these override them on the TILE, so the winner is
+ * element-level-beats-inherited rather than a race between two single-class
+ * rules in different modules — and the shared marks that must beat a color
+ * (`.tile.selected`, `.tileFace.verdictFill`) are doubly qualified for the same
+ * reason.
+ *
+ * The border is a slightly DARKER shade of the fill (~16%, the step the warm
+ * tile ramp takes between a shade and its border) rather than the fill itself —
+ * the quiet definition every other surface in this app has, instead of a flat
+ * block of color. It is also what makes waffle's selection legible: a picked-up
+ * tile thickens this edge, which needs the edge to be a different color from
+ * the fill in the first place.
+ *
+ * `blank` is deliberately NOT here, and each board keeps its own. The judged
+ * three are one palette saying one thing; an unjudged tile is the board's own
+ * business, and the two games mean different things by it — wordle's is a slot
+ * with no letter typed into it yet, waffle's is a tile whose colors have not
+ * arrived (or were taken back for a swap in flight).
+ *
+ * The color VALUES are the `--wordle-*` tokens in common/core-css/fixed.css. */
+/* @@ */ .wordleGreen {
+/* @@ */   --tile-slot-fill-color: var(--wordle-green-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-green-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-green-ink-color);
+}
+/* @@ */ .wordleYellow {
+/* @@ */   --tile-slot-fill-color: var(--wordle-yellow-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-yellow-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-yellow-ink-color);
+}
+/* @@ */ .wordleGray {
+/* @@ */   --tile-slot-fill-color: var(--wordle-gray-fill-color);
+/* @@ */   --tile-slot-edge-color: var(--wordle-gray-edge-color);
+/* @@ */   --tile-slot-ink-color: var(--wordle-gray-ink-color);
+}

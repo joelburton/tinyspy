@@ -54,13 +54,13 @@ const moth: WordlePlayerState = { user_id: 'u2', guesses_used: 0, solved: false,
 /** Two club members, for the peer-narration tests (the lookup is by ctx.players). */
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
-/** A loaded game-hook result; override the game header + players per test. */
+/** A loaded game-hook result; override the game header + player states per test. */
 function loaded(
   game: WordleGame,
   guesses: EventRow[] = [],
-  players: WordlePlayerState[] = [me],
+  playerStates: WordlePlayerState[] = [me],
 ): GameHook {
-  return { game, players, guesses, loading: false, failure: null }
+  return { game, playerStates, guesses, loading: false, failure: null }
 }
 
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {

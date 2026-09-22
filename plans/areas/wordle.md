@@ -23,6 +23,12 @@ opening, 46 with Step 6's two:
 | `supabase/sql/wordle.sql` | 1 | also `cs-fixed-outcome-fix` |
 | `supabase/tests/wordle/` | 11 | every pgTAP file but one |
 
+**`src/shared/wordle-style/tileColors.module.css` was created by this area**
+(2026-09-22, the judged-tile-colors move below) and is the 47th: it lives in a
+CLOSED folder, but a file nobody has read is not blessed by the folder around
+it, so it carries `cs-met-wordle` — the open area that wrote it is the one
+coming for it.
+
 `src/wordle/logo.svg` has nowhere to put a stamp (step 11's); `todo.md` is
 markdown and carries none. **`src/wordle/doc.md` was written at Step 3**
 (2026-09-22), markdown like the todo, roster all the same; `docs/games/wordle.md`
@@ -429,6 +435,45 @@ has one, no prefix means OPEN)*
 owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to `todo.md` or
 `docs/games/wordle.md` instead; a note here never stands in for either)*
+
+### The judged tile colors moved to `wordle-style` — 2026-09-22
+
+Out of Joel's question while reading `Board.module.css`: *"wouldn't this be in
+wordle-style because waffle would also need this?"* It was — `.wordleGreen` /
+`.wordleYellow` / `.wordleGray` were byte-identical in wordle's and waffle's
+`Board.module.css`, and nothing shared painted them. They are now
+`src/shared/wordle-style/tileColors.module.css`, imported as `tileColors` by
+both boards, which is the import both files already do twice (`shared`,
+`history`).
+
+**`blank` stayed with each board, and that is the decision in it.** The two
+games mean different things by an unjudged tile — wordle's is a slot nobody has
+typed into (transparent, the board's resting look), waffle's is a tile whose
+colors have not arrived (a light fill, since every other tile there has one) —
+so the boards branch: `color === 'blank' ? styles.blank : tileColors[color]`.
+That branch made the `blank` half MORE checked than it was: a computed
+`styles[color]` is invisible to `cssClasses.test.ts`, while a written
+`styles.blank` is not.
+
+**The two cascade questions were asked and answered before the move, not
+after.** (1) waffle's `.inFlight` and a judged color are never on the same tile:
+`PlayArea.tsx` sends `unjudgeCells(self.colors, pendingSwap)`, so a swapping
+cell is `blank`. (2) Everything shared that lands on a colored tile beats it on
+SPECIFICITY rather than order — `.tile.selected` and `.tileFace.verdictFill`
+are doubly qualified with that written in their comments, and `.dimInFlight` /
+`.attentionFlash` paint pseudo-element overlays. So no same-specificity race
+crossed a module boundary that wasn't already crossing one.
+
+`tileColor.test.ts` moved with it: its discovered PAINTERS are three sheets now
+(the shared one, the keyboard, wordle's event log), and the keyboard's lone
+`blank` exemption became a two-line list with the reason each gives. Planted
+both halves — a renamed class in the shared sheet fails the palette guard, a
+renamed `.blank` in waffle fails `cssClasses` twice.
+
+**Not the event log and not the keyboard.** `GameEventLog.module.css` and
+`GuessKeyboard.module.css` paint the same three names with different
+declarations (a chip's `background`/`color`; a key plus its hover token), so
+there was never one block for four files to share — only two.
 
 ## Predicted test breaks
 

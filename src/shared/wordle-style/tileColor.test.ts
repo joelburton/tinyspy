@@ -27,16 +27,25 @@ const CWD = process.cwd()
 const JUDGED = ['wordleGreen', 'wordleYellow', 'wordleGray'] as const
 
 /**
- * The one sheet that paints the judged three and no `blank`, and a TYPE says
- * why: the keyboard is indexed by `KeyTone`, which is
- * `Exclude<TileColor, 'blank'>` — an untried key carries no tone rather than an
- * unjudged one, so there is no class for it to be missing.
+ * The sheets that paint the judged three and no `blank`, each because something
+ * other than this guard says where `blank` went:
+ *
+ *   - the keyboard is indexed by `KeyTone`, which is
+ *     `Exclude<TileColor, 'blank'>` — an untried key carries no tone rather
+ *     than an unjudged one, so there is no class for it to be missing;
+ *   - the shared tile sheet is the judged palette wordle and waffle share, and
+ *     each board branches an unjudged tile to its OWN `.blank` (they mean
+ *     different things by it). That branch is a static `styles.blank`, which
+ *     `src/guards/cssClasses.test.ts` checks against the board's stylesheet.
  *
  * Every other painter is required to define `blank`, a newly discovered one
  * included. That is the safe default: the full `TileColor` is what a board
  * indexes with, and a sheet that genuinely does not need it says so here.
  */
-const INDEXED_BY_KEY_TONE = 'shared/onscreen-keyboard/GuessKeyboard.module.css'
+const NO_BLANK_OF_ITS_OWN = [
+  'shared/onscreen-keyboard/GuessKeyboard.module.css',
+  'shared/wordle-style/tileColors.module.css',
+]
 
 function walk(dir: string): string[] {
   const out: string[] = []
@@ -90,8 +99,7 @@ describe('the letter palette reaches the stylesheets', () => {
     // nothing to say. This is the one assertion that cannot.
     expect(PAINTERS.map((p) => p.path).sort()).toEqual([
       'shared/onscreen-keyboard/GuessKeyboard.module.css',
-      'waffle/components/Board.module.css',
-      'wordle/components/Board.module.css',
+      'shared/wordle-style/tileColors.module.css',
       'wordle/components/GameEventLog.module.css',
     ])
   })
@@ -102,7 +110,7 @@ describe('the letter palette reaches the stylesheets', () => {
       .toEqual([])
   })
 
-  it.each(PAINTERS.filter((p) => p.path !== INDEXED_BY_KEY_TONE))(
+  it.each(PAINTERS.filter((p) => !NO_BLANK_OF_ITS_OWN.includes(p.path)))(
     '$path defines blank too, being indexed by a whole TileColor',
     ({ path, css }) => {
       expect(defines(css, 'blank'), `${path} is indexed by TileColor but defines no .blank`)

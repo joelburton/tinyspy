@@ -8,6 +8,7 @@ import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
+import tileColors from '@/shared/wordle-style/tileColors.module.css'
 import styles from './Board.module.css'
 
 /** Per-tile stagger so a row's letters flip left-to-right, not at once. */
@@ -169,6 +170,9 @@ export function Board({
                 } else if (isActive) {
                   letter = current[c] ?? ''
                 }
+                // A judgment is the shared palette; an unjudged tile is this
+                // board's own (an empty slot) — see tileColors.module.css.
+                const colorClass = color === 'blank' ? styles.blank : tileColors[color]
                 return (
                   <div
                     key={c}
@@ -180,7 +184,7 @@ export function Board({
                       styles.tile,
                       // Flipping tiles take their color from the keyframes
                       // (via --reveal-bg), not the static color class.
-                      flipping ? styles.reveal : styles[color],
+                      flipping ? styles.reveal : colorClass,
                       letter && color === 'blank' && styles.filled,
                       // Sent, waiting on the server — the middle gray under the
                       // shared in-flight dim, matching waffle's two cells.

@@ -9,6 +9,7 @@ import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { CELLS, isHole } from '../lib/waffle'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
+import tileColors from '@/shared/wordle-style/tileColors.module.css'
 import styles from './Board.module.css'
 
 /** A render's board + colors + the swap it had in flight — what the next render
@@ -205,6 +206,10 @@ export function Board({
           }
           const letter = board[pos] ?? ' '
           const color = tileColor(colors?.[pos])
+          // A judgment is the shared palette; an uncolored tile is this board's
+          // own (no colors yet, or taken back for a swap in flight) — see
+          // tileColors.module.css.
+          const colorClass = color === 'blank' ? styles.blank : tileColors[color]
           return (
             <button
               key={pos}
@@ -212,7 +217,7 @@ export function Board({
               className={cls(
                 shared.tileFace,
                 shared.tile,
-                styles[color],
+                colorClass,
                 selected === pos && shared.selected,
                 pendingSwap?.includes(pos) && styles.inFlight,
                 pendingSwap?.includes(pos) && shared.dimInFlight,

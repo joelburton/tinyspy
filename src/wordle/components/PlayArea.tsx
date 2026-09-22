@@ -67,7 +67,7 @@ const WORD_LENGTH = 5
  * no guard inside a handler for a row that cannot be missing by then.
  */
 export function PlayAreaLoader(ctx: GamePageCtx) {
-  const { game, players: playerStates, guesses, loading, failure } = useGame(ctx.gameId)
+  const { game, playerStates, guesses, loading, failure } = useGame(ctx.gameId)
 
   if (loading) return <Loading />
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -443,11 +443,6 @@ export function PlayArea({
       // modal has already fired centrally — the modal escalates, it does not
       // replace (docs/envelopes.md), so dismissing it must not leave the board
       // silent about why the game didn't start.
-      //
-      // Unlike waffle's, everything this can answer is a FAULT — wordle's
-      // create_game raises no form-validation at all, since every value it
-      // refuses is one no control offers. PN057 was the last exception and
-      // became a fault on 2026-08-30.
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
@@ -640,10 +635,9 @@ export function PlayArea({
         />
       </InfoSheet>
 
-      {/* No modal carries the verdict (the waffle treatment — docs/ui.md →
-          Terminal results): it's in-page, on the below-board pill + the
-          action-row outcome line, and a coop solve gets the celebration
-          instead. */}
+      {/* The win moment. The verdict itself stays in-page — the below-board
+          pill and the action-row outcome line (docs/ui.md → Terminal
+          results). */}
       {celebration.show && <CelebrationBlockingModal title="Solved! 🎉" onClose={celebration.close} />}
     </div>
   )
