@@ -1,41 +1,25 @@
 // cs-met-wordle-style
 
 /**
- * Shared render-only mapping from a server per-letter color code to a
- * CSS-module class key, used by the letter-coloring games (wordle and
- * waffle). The server is the single source of truth for the colors —
- * it computes the feedback string from the hidden answer/solution and
- * the FE never recomputes them (it doesn't hold the secret). This just
- * turns each code into a class key the grid can style:
+ * A server per-letter color code → the CSS class key that paints it.
  *
  *   'g' wordleGreen  — right letter, right spot
  *   'y' wordleYellow — in the word, wrong spot
  *   'x' wordleGray   — not in the word
  *   anything else → 'blank' (an un-evaluated tile, or a hole/absent cell)
  *
- * The color *values* are the shared "Wordle colors" in common/core-css/fixed.css
- * (`--wordle-green-fill-color/yellow/gray/blank`) — one palette across the
- * letter-coloring games, so a player reads the same green/yellow/gray in
- * waffle and wordle. This code→key mapping is shared too; only each game's
- * own chrome (wordle's reveal-animation var + keyboard color-rank, waffle's
- * pickup ring) stays per-game.
+ * Render-only, and that is the whole of it. The server computes the feedback
+ * string from the answer it holds and the FE never recomputes it; the color
+ * VALUES are the `--wordle-*` tokens in `common/core-css/fixed.css`, one
+ * palette so the same green reads the same in every game that has one.
  *
- * ── WHY THE NAMES CARRY THE GAME ─────────────────────────────────────────
- * The color words are deliberate — "wordle green" is a phrase people say, and
- * a semantic name like `correct` would have to be translated back on every
- * read. The PREFIX is what keeps that honest: it says whose green this is. A
- * pink-mode wordle still has a wordle green, and "green" on its own is already
- * taken elsewhere in this codebase — it is a PLAYER'S IDENTITY COLOR
- * (common.profiles.color, memberColor.ts), which has nothing to do with
- * letters.
+ * **These values ARE the class names** — a board does `styles[tileColor(code)]`
+ * — which is why the prefix lives in the type rather than only in the
+ * stylesheet, and why `tileColor.test.ts` guards that every stylesheet indexed
+ * by a `TileColor` defines each class: that lookup has no compiler behind it.
+ * Why the names carry a game at all is docs/ui.md → The buckets.
  *
- * The prefix lives in the TYPE and not only in the stylesheet because these
- * values ARE the class names: every board does `styles[tileColor(code)]`, so
- * the union is the CSS vocabulary. Prefixing only the CSS would mean a
- * translation table at each of the four call sites — which is exactly what the
- * shared keyboard used to carry, and what this deletes.
- *
- * `blank` keeps no prefix, and that asymmetry is the point: the three judged
+ * `blank` keeps no prefix, and the asymmetry is deliberate: the three judged
  * states are wordle's vocabulary, while "nothing has judged this tile yet" is
  * not a claim about letters at all.
  */

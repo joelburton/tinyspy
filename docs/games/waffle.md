@@ -437,7 +437,7 @@ Mirrors the other game folders:
 - `hooks/useGame.ts` — projects `games_state` + `players_state` + the `swaps`
   log; three-table realtime subscription on `waffle.{games, players, swaps}`.
 - `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`. Color
-  rendering is the shared `common/lib/color/tileColor.ts` (server code → class key);
+  rendering is the shared `shared/wordle-style/tileColor.ts` (server code → class key);
   the server is authoritative for the actual colors.
 - `lib/colors.ts` — a TS port of `waffle.board_colors` / `common.wordle_colors`, pinned
   against the pgTAP oracle by `colors.test.ts`. The server stays authoritative for
@@ -596,7 +596,7 @@ The **six answer words are terminal-only**, twice over: the server gates
   terminal), `turn_order_test` (the opt-in turn-by-turn coop wiring: seating,
   out-of-turn reject, advance only on an accepted non-terminal swap).
 - **Vitest:** `waffle.ts` geometry, `manifest` (color rendering is the shared
-  `common/lib/color/tileColor.ts`, covered by its own test). The
+  `shared/wordle-style/tileColor.ts`, covered by its own test). The
   generator's `minSwaps` par lives in the edge function, covered by
   `deno test supabase/functions/waffle-build-board/gen_test.ts`.
 

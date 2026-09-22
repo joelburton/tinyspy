@@ -4,7 +4,8 @@ The folders it reads: `shared/wordle-style`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-22). Nothing read yet.
+**Status: OPEN** (2026-09-22). Read and audited; the prose pass (F-1, F-3,
+F-4, F-5) shipped.
 
 ## The roster
 
@@ -79,15 +80,20 @@ out at length in two places.
 
 ### F-wordle-style-1 · `doc-md` · The intro is owed
 
-`src/shared/wordle-style/doc.md` is a title and one sentence; the folder is on
-`INTROS_OWED` in `src/guards/folderDocs.test.ts`. Closing step 2.
+**SHIPPED, 2026-09-22** (Joel: *"go the prose pass"*). Written, and
+`shared/wordle-style` is off `INTROS_OWED`; planting a bolded opening paragraph
+fails `folderDocs`'s in-shape case, so it passes for the right reason.
 
-Two things for it beyond the intro. The sentence names its consumers — *"wordle
-and waffle"* — which is a roster of games and rots the way every roster in this
-sprint has. And the folder is the screen half of a subject whose other half is
-`common.wordle_colors`: what a reader needs is that **the server decides the
-colors and this only names them**, which is currently said in a docstring and
-nowhere durable.
+`doc.md` was a title and one sentence, and two things were owed beyond the
+intro. That sentence named its consumers — *"wordle and waffle"* — which is a
+roster of games and rots the way every roster in this sprint has. And the thing
+a reader most needs, that the server decides the colors and this folder only
+names them, lived in a docstring and nowhere durable. Both are in the intro now
+and no game is named.
+
+One claim was corrected while writing it: `pdfTiles` does NOT print the same
+colors. It draws the four states as border and fill WEIGHT rather than hue, so
+a mono printer and a color one produce the same page.
 
 ### F-wordle-style-2 · `ts-port-half-pinned` · The port claims the oracle's vectors and copies five of twelve
 
@@ -128,6 +134,8 @@ docstrings above are making a claim the code does not support.
 
 ### F-wordle-style-3 · `waffle-doc-cites-a-missing-folder` · `docs/games/waffle.md` names a path that does not exist, twice
 
+**SHIPPED, 2026-09-22.** Both cites are `shared/wordle-style/tileColor.ts` now.
+
 `docs/games/waffle.md:440` and `:599` both name **`common/lib/color/tileColor.ts`**.
 There is no `src/common/lib/` — the file is `src/shared/wordle-style/tileColor.ts`,
 and `common` may not import a family anyway, which `docs/common-folders.md:373`
@@ -138,6 +146,9 @@ architecture forbids.
 of these are backticked paths in prose.
 
 ### F-wordle-style-4 · `tilecolor-docstring-archaeology` · The mapper's docstring tells a refactor story and counts its call sites
+
+**SHIPPED, 2026-09-22**, with F-5 — one docstring, one rewrite. The keyboard
+sentence and the call-site count are gone.
 
 `tileColor.ts:35` — *"which is exactly what the shared keyboard used to carry,
 and what this deletes."* What the keyboard used to carry is not something a
@@ -150,6 +161,12 @@ two games' PDFs and `waffle.ts` among them. The sentence does not say which
 four it means, which is the second half of why a count in prose is a liability.
 
 ### F-wordle-style-5 · `prefix-rationale-twice` · Why the names carry the game is written out in full in two places
+
+**SHIPPED, 2026-09-22.** The docstring keeps the CONSEQUENCE a caller needs —
+these values are the class names, so the prefix lives in the type and the spec
+guards the lookup — and points at `docs/ui.md` → The buckets for the argument.
+`docs/naming.md:311` stays: it defends the SQL function's name, a different
+subject.
 
 `tileColor.ts:23-40` spends eighteen lines on why the union is
 `wordleGreen`/`wordleYellow`/`wordleGray` rather than `correct`/`present`/`absent`

@@ -82,7 +82,6 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
 const INTROS_OWED: string[] = [
   'shared/board-cursor', 'shared/dict-trie',
   'shared/grid-and-drag', 'shared/onscreen-keyboard',
-  'shared/wordle-style',
 ]
 
 /**
