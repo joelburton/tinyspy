@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import type { Outcome } from '@/common/outcomes/outcomes'
+import type { Mark } from '@/common/board-marks/useMark'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
 import { WORD_LENGTH } from '../lib/setup'
@@ -45,15 +46,11 @@ type Props = {
   // Ring this row (the guess the viewed turn added), or -1 = none.
   // The row keeps its g/y/x tile colors; the ring just marks which one.
   historyLitBoardRow: number
-  // Bumped by `<BoardCol>` on every soft reject — the active row shakes and
-  // rings. The pill says WHAT was wrong; this says WHERE. Keyed into the row so
-  // a repeat rejection replays the shake rather than doing nothing.
-  rejectNonce: number
-  // Which outcome that rejection carries. A default would be a second place
-  // naming a refusal's word, and the caller is the one holding the answer; the
-  // ring's color comes from the shared table, which is TOTAL over the
-  // vocabulary, so the caller narrows nothing on the way down.
-  rejectOutcome: Outcome
+  // `<BoardCol>`'s refusal mark, or null for a board saying nothing — the active
+  // row rings and shakes in the outcome the mark carries. The pill says WHAT was
+  // wrong; this says WHERE. The row keys on the mark's nonce so a repeat
+  // rejection replays the shake rather than doing nothing.
+  reject: Mark<Outcome> | null
   // The game is finished, and how it ended — the board takes a band in that
   // outcome's gray (neutral for a game merely ended), null while it's live.
   // The shared board-scope mark; see common/board-marks/doc.md.
@@ -85,8 +82,7 @@ export function Board({
   brand,
   isViewingHistory,
   historyLitBoardRow,
-  rejectNonce,
-  rejectOutcome,
+  reject,
   gameOver,
   notMyTurn,
   myTurnJustStarted,
@@ -130,18 +126,16 @@ export function Board({
           const flipping = !isViewingHistory && !!submitted && r >= flipBaseline
           return (
             <div
-              // The nonce rides in the active row's KEY: a CSS animation only
-              // replays if its element is remounted.
-              key={isActive ? `${r}-${rejectNonce}` : r}
+              // The mark's nonce rides in the active row's KEY: a CSS animation
+              // only replays if its element is remounted.
+              key={isActive && reject ? `${r}-${reject.nonce}` : r}
               className={cls(
                 styles.row,
                 r === historyLitBoardRow && styles.historyRow,
                 // The rejected word is still sitting in the active typing row —
                 // it was never accepted, so it never became a submitted one.
-                rejectNonce > 0 && isActive && shared.verdictRing,
-                rejectNonce > 0 &&
-                  isActive &&
-                  VERDICT_TONE[rejectOutcome],
+                isActive && reject && shared.verdictRing,
+                isActive && reject && VERDICT_TONE[reject.value],
               )}
               role="row"
             >
@@ -156,9 +150,10 @@ export function Board({
                 } else if (isActive) {
                   letter = current[c] ?? ''
                 }
-                // A judgment is the shared palette; an unjudged tile is this
-                // board's own (an empty slot) — see tileColors.module.css.
-                const colorClass = color === 'blank' ? styles.blank : tileColors[color]
+                // A judgment is the shared palette; an unjudged tile wears no
+                // color class at all — the grid's own tokens are what an empty
+                // slot looks like. See tileColors.module.css.
+                const colorClass = color === 'blank' ? undefined : tileColors[color]
                 return (
                   <div
                     key={c}

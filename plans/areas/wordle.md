@@ -16,9 +16,12 @@ eight with a decision in them, four prose, tests and small shapes. **All eight
 decisions are answered** (2026-09-22): F-6, F-7, F-8, F-10 and F-11 shipped,
 F-9 and F-12 ruled no-change (F-12 opened `plans/spectating.md`), F-13 ruled
 pass 3's. **F-14 to F-17, the prose pass, SHIPPED the same day** — pass 2 is done bar the
-closing re-read. Next: pass 3, tile-feedback (F-13's `useMark` conversion goes
-with it), then the closing re-read.
-`src/wordle/todo.md` is empty. Then pass 3, tile-feedback, then the closing
+closing re-read. **Pass 3, tile-feedback, is IN PROGRESS** (2026-09-22): the
+board was read against the plan as it stands now and held up, F-18 to F-22 are
+ruled and shipped (F-13's `useMark` conversion among them), and F-23 is ruled
+no-change — wordle is EXEMPT from the identity dot, recorded in
+`tile-feedback.md` → wordle. **One finding is open and it is Joel's**: F-24,
+the two dims that compound. `src/wordle/todo.md` is empty. Then the closing
 re-read.
 **Three passes back to back**, psychicnum's and connections' shape:
 restructure → audit → tile-feedback.
@@ -1335,6 +1338,104 @@ renamed `.blank` in waffle fails `cssClasses` twice.
 `GuessKeyboard.module.css` paint the same three names with different
 declarations (a chip's `background`/`color`; a key plus its hover token), so
 there was never one block for four files to share — only two.
+
+## Pass 3 — tile-feedback
+
+Read 2026-09-22 against `plans/tile-feedback.md` as it stands today, not as it
+stood at wordle's tf1 (2026-08-16). **The board held up.** Everything the
+framework has grown since is already right here: shape 1 with no attention mark
+(the plan's own §325 names wordle as the case), inert tiles taking the face and
+none of the interaction chrome, the verdict on a geographic unit (§546 is
+written about this row), a tone table total over `Outcome`, the three
+board-scope marks, and the restart question already settled at F-7. The
+`.historyRow` and `.verdictRing` outlines cannot collide: history forces
+`active={false}`, so no row is ever both.
+
+What the read found was one hook the game had written for itself and one dead
+declaration. Seven findings; five ruled by Joel and shipped, two open.
+
+### SHIPPED · F-wordle-18 · `reject-mark-to-usemark` · the refusal mark was `useMark` rewritten by hand
+
+**Joel, 2026-09-22: "yes."** Carried in from F-13, which deferred it to this
+pass so the channel could be weighed first; the channel did not change, so the
+conversion is all of it. `rejectNonce` + `rejectOutcome` + a `useEffect` with a
+`setTimeout` + `REJECT_MARK_MS` become `useMark<Outcome>(WORD_ANSWER_MS)`.
+`board-marks/doc.md` already described `useMark`'s callers as "every game that
+marks something of its own" and its marks as including "a refused word's
+answer" — a sentence that was false for wordle and needed no edit to become
+true.
+
+### SHIPPED · F-wordle-19 · `reject-beat-is-the-vocabularys` · 900ms hand-tuned beside a published beat
+
+**Joel, 2026-09-22: "take vocab beat."** `REJECT_MARK_MS = 900` claimed in its
+docstring to be "a touch past the shake"; the shake is `VERDICT_SHAKE_MS = 400`,
+so it was two and a quarter times it. `feedbackTiming.ts` already names this
+beat — `WORD_ANSWER_MS = 600`, "how long a word's ANSWER stays up… an entry
+slot, **a guess row**" — so the mark is 300ms shorter now and the number is
+gone from this folder.
+
+### SHIPPED · F-wordle-20 · `reject-outcome-seed-goes` · a seeded outcome nothing ever rendered
+
+**Joel, 2026-09-22: "ok."** `useState<Outcome>('lost')` was an arbitrary value
+for a state read only when the nonce was non-zero, which every raise path set
+first. `useMark` carries the outcome with the raise, so there is nothing left to
+seed. `outcome-fix` had made the PROP required for this reason; the seed behind
+it survived that pass.
+
+### SHIPPED · F-wordle-21 · `board-takes-one-mark-prop` · two props for one mark
+
+**Joel, 2026-09-22: "ok."** `<Board>`'s `rejectNonce: number` +
+`rejectOutcome: Outcome` are one `reject: Mark<Outcome> | null`. The row's key
+and its two classes read the mark, so the three places that tested
+`rejectNonce > 0 && isActive` test `isActive && reject` once each.
+
+### SHIPPED · F-wordle-22 · `blank-class-is-redundant` · a class whose body restated the grid
+
+**Joel, 2026-09-22: "ok."** `.blank` set `--tile-slot-fill-color: transparent`,
+which `.grid` had already set four rules above and which inherits. An unjudged
+tile now wears no color class at all, which is the truer statement: it is what a
+tile looks like when nothing has spoken. `tile-feedback.md` → "a converted game
+should have LESS CSS".
+
+### The refusal mark had NO test, and two plants proved it
+
+Worth recording because the suite was green throughout. Disabling
+`shared.verdictRing` entirely left all 117 wordle tests passing — nothing in the
+folder had ever asserted the ring, the shake, the outcome it wears or its
+lifetime. Two cases were written (`PlayArea.test.tsx` → "the refusal mark") and
+both were planted against afterward: a fixed `VERDICT_TONE.lost` and a
+`NO_TIMER` lifetime each turn one red.
+
+**The first draft of the first case would have passed the fixed-outcome plant.**
+It pinned a `notAWord`, whose outcome is `lost` — the same word a defaulting
+mark would land on. It pins a `duplicate` (`warning`) instead, and the comment
+says why the red case cannot carry this claim.
+
+### RULED — NO CHANGE · F-wordle-23 · `coop-row-attribution` · a shared coop board that names nobody
+
+**Joel, 2026-09-22: "the event log is fine, so it's exempt from this
+requirement."** Nothing changed in the code. The shared-board rule
+(`tile-feedback.md` → Identity) would have each coop row carry the guesser's
+`<Dot>`; the rows do carry `user_id` (`hooks/useGame.ts:42`) and only
+`<Board>`'s `SubmittedRow` type drops it, so the data was never the obstacle.
+The exemption is written into `tile-feedback.md` → wordle, which is where a
+game's exemption belongs, with the reason: the log is one row per guess with
+the guesser's `<ActorDot>`, aligned and in the same order as the board's rows,
+so it answers "who got that one?" by counting down a list. psychicnum ships the
+dot and has a log too — what separates them is the board, where its decided
+tiles are scattered.
+
+Two things noted there for the next game that asks: wordle's unit of
+attribution is a ROW, which the rule's geometry has no answer for, and its tiles
+already spend three exact colors on their backgrounds.
+
+### OPEN · F-wordle-24 · `two-dims-compound` · two dims that can land together, never chosen as a pair
+
+Not ruled. `tile-feedback.md` §169: where the tile dim and the board dim can
+co-occur, "their values must be chosen as a pair". In turn-order coop they can —
+a submitted row is still `pending` when the turn passes — and 18% over 12% is
+27.8% black on those tiles. Needs a look; if the pair is wrong the tokens are
+`base.css`'s, so the note goes to the shared area rather than here.
 
 ## Predicted test breaks
 

@@ -3,7 +3,7 @@
 import { notOkOutcome, runRpc } from '@/common/supabase/dbResult'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
-import { useEffect, useCallback, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackPill } from '@/common/feedback/FeedbackPill'
@@ -17,13 +17,11 @@ import { Board } from './Board'
 import { GuessKeyboard, type KeyTone } from '@/shared/onscreen-keyboard/GuessKeyboard'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import type { Actor } from '@/common/members/member'
+import { useMark } from '@/common/board-marks/useMark'
+import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import shared from '@/common/game-page/playArea.module.css'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-
-/** How long the rejected row keeps its ring — a touch past the shake, so
- *  the mark is still there when the movement stops. */
-const REJECT_MARK_MS = 900
 
 /**
  * What `wordle.submit_guess` puts in `data` — the fact, and nothing about how
@@ -159,24 +157,13 @@ export function BoardCol({
   }, [localFeedbackSlot])
 
   // ─── The marks this column owns ────────────────────────
-  // The reject mark on the active row — raised by a refusal, ended by a timer.
 
-  // Bumped on every soft reject — the active row shakes and rings in the
-  // refusal's outcome for a beat. A NONCE rather than a boolean because
-  // rejecting the same word twice must shake twice: `<Board>` keys the row on
-  // this value, and a boolean already `true` would remount nothing.
-  const [rejectNonce, setRejectNonce] = useState(0)
-  // The outcome of the last rejection — written with the nonce, by every path
-  // that bumps it, so the mark and the pill beside it read one value.
-  const [rejectOutcome, setRejectOutcome] = useState<Outcome>('lost')
-
-  // The mark is transient: clear it once the shake has played. Back at zero the
-  // next rejection can replay it.
-  useEffect(() => {
-    if (rejectNonce === 0) return
-    const timer = setTimeout(() => setRejectNonce(0), REJECT_MARK_MS)
-    return () => clearTimeout(timer)
-  }, [rejectNonce])
+  // The refusal mark on the active row — it rings and shakes in the refusal's
+  // outcome, which `<Board>` reads off the mark so the ring and the pill beside
+  // it cannot name two different words. `WORD_ANSWER_MS` is the beat for a word
+  // wearing its answer, and the row keys on the mark's nonce, so refusing the
+  // same word twice shakes twice.
+  const [reject, showReject] = useMark<Outcome>(WORD_ANSWER_MS)
 
   // ─── Committing a guess ────────────────────────────────
   // The move RPC and the two commands beside it, kept with the entry they
@@ -200,11 +187,10 @@ export function BoardCol({
     (answerType: 'duplicate' | 'not_a_word') => {
       const { outcome, text } = answerMessage({ answerType })
       setPending(null)
-      setRejectOutcome(outcome)
-      setRejectNonce((n) => n + 1)
+      showReject(outcome)
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
     },
-    [localFeedbackSlot],
+    [localFeedbackSlot, showReject],
   )
 
   // Submit a guess (stable across keystrokes).
@@ -227,8 +213,7 @@ export function BoardCol({
         setPending(null)
         // The mark wears the refusal's own outcome — the same word the pill
         // reads off the envelope — not whatever the last soft reject left.
-        setRejectOutcome(notOkOutcome(res))
-        setRejectNonce((n) => n + 1)
+        showReject(notOkOutcome(res))
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'duplicate') {
@@ -257,7 +242,7 @@ export function BoardCol({
         return
       }
     },
-    [gameId, localFeedbackSlot, softReject],
+    [gameId, localFeedbackSlot, softReject, showReject],
   )
 
   // The physical keyboard, driving the same `current` the on-screen one does.
@@ -310,8 +295,7 @@ export function BoardCol({
         brand={brand}
         isViewingHistory={isViewingHistory}
         historyLitBoardRow={historySnap ? historySnap.historyLitBoardRow : -1}
-        rejectNonce={rejectNonce}
-        rejectOutcome={rejectOutcome}
+        reject={reject}
         gameOver={gameOver}
         notMyTurn={notMyTurn}
         myTurnJustStarted={myTurnJustStarted}

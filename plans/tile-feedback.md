@@ -923,6 +923,25 @@ adjudicated there. Nothing to race: a guess is a whole row of your own.
 - Nothing. This is the plan's worked case for "a change appended into empty
   space announces itself", and the board is already quiet where it should be.
 
+**EXEMPT from the identity dot** (Joel, 2026-09-22: *"the event log is fine, so
+it's exempt from this requirement"*). The shared-board rule above would have
+wordle attribute each coop row — the rows carry `user_id` and only `<Board>`'s
+prop type drops it — and it does not, because the log answers the question the
+dot exists for. wordle's log is one row per guess with the guesser's
+`<ActorDot>` in a right-aligned who-column, so the discs line up down a list
+that sits beside the board and runs in the same order as the rows; "who got that
+one?" is read off it by counting down, not by hunting a grid. psychicnum, which
+ships the dot, has a log too — the difference is its board, where the decided
+tiles are scattered and nothing aligns them with anything.
+
+Recorded here rather than assumed: this row said only "Nothing" for five weeks
+after the identity channel was written, which is not the same as a decision.
+Two things about wordle's board make it the one to exempt, and both are worth
+holding if another game asks — the unit of attribution is a **row**, not a tile,
+so the rule's geometry ("inside the piece, clear of every edge") has no answer
+ready; and the tiles' backgrounds are already spending three colors that mean
+something exact, so a disc inside one competes with the game's own vocabulary.
+
 ### waffle · shape 1
 
 **Today.** Selecting a tile takes the selection border; the two tiles of a swap

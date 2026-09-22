@@ -133,13 +133,10 @@
  * paints its lattice from the same sheet. What is left here is what only wordle
  * says about a tile.
  *
- * An UNJUDGED one is wordle's own, and it is the board's default: an empty slot,
- * transparent, with the `.grid`'s light edge and no letter in it. Stated as a
- * class anyway because the board branches to it by name (`styles.blank`) — and
- * because `.filled` above is the same tile once a letter is typed into it. */
-/* @@ */ .blank {
-/* @@ */   --tile-slot-fill-color: transparent;
-}
+ * An UNJUDGED tile has no class of its own, because it needs none: the `.grid`
+ * tokens above already describe it — transparent, with the light edge — and it
+ * is what a tile looks like when nothing else has spoken. `.filled` above is
+ * that same tile once a letter is typed into it. */
 
 /* In flight — the row you just submitted, while the server works out its colors.
  * The SHARED `.dimInFlight` dim (common PlayArea.module.css), applied per TILE

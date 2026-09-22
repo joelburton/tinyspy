@@ -27,6 +27,7 @@ import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
+import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import type { WordleGame, WordlePlayerState, EventRow } from '../hooks/useGame'
 import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
@@ -1039,5 +1040,52 @@ describe('wordle PlayArea — the ⌫ and Enter caps follow the entry', () => {
     await user.keyboard('cr')
     expect(control('act-delete-last')).toBeEnabled()
     expect(control('act-submit-entry')).toBeEnabled()
+  })
+})
+
+describe('wordle Board — the refusal mark', () => {
+  const rows = () => screen.getAllByRole('row')
+  /** The active typing row: the one after every submitted guess. */
+  const activeRow = (submitted: number) => rows()[submitted]
+
+  /** A soft reject from `submit_guess` — the rules ran and burned no guess. */
+  const softReject = (result: 'duplicate' | 'notAWord') =>
+    rpc.mockResolvedValue({
+      data: { data: { guesses_used: 0, result, solved: false, terminal: false }, type: 'ok' },
+      error: null,
+    })
+
+  // A DUPLICATE, deliberately: `not_a_word` is `lost` and `duplicate` is
+  // `warning` (lib/answer.ts), and `lost` is what a mark with a default of its
+  // own would land on. Asserting the amber is what proves the ring reads the
+  // answer rather than a seed — a case pinned with the red passes either way.
+  it("rings the active row in the refusal's own outcome, not a default", async () => {
+    softReject('duplicate')
+    h.result = loaded({ id: 'g1', max_guesses: 6, mode: 'coop', target: null })
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    expect(activeRow(0).className).not.toMatch(/verdictRing/)
+
+    await user.keyboard('crane{Enter}')
+
+    await waitFor(() => expect(activeRow(0).className).toMatch(/verdictRing/))
+    expect(activeRow(0).className).toMatch(/verdictWarning/)
+    expect(activeRow(0).className).not.toMatch(/verdictLost/)
+  })
+
+  it('takes itself off after the word-answer beat', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    softReject('duplicate')
+    h.result = loaded({ id: 'g1', max_guesses: 6, mode: 'coop', target: null })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<WithKeys {...makeCtx()} />)
+
+    await user.keyboard('crane{Enter}')
+    await waitFor(() => expect(activeRow(0).className).toMatch(/verdictWarning/))
+
+    await act(async () => void vi.advanceTimersByTime(WORD_ANSWER_MS + 1))
+
+    expect(activeRow(0).className).not.toMatch(/verdictRing/)
+    vi.useRealTimers()
   })
 })
