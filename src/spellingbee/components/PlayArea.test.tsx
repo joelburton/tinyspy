@@ -243,6 +243,21 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
     await user.keyboard('{Enter}')
     expect(usedHexes()).toEqual([])
   })
+
+  it('a conceded racer types nothing: the entry is closed as the engine is', async () => {
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <WithKeys
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
+          setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } },
+        })}
+      />,
+    )
+    await user.keyboard('bed')
+    expect(usedHexes()).toEqual([])
+  })
 })
 
 describe('spellingbee PlayArea — compete terminal verdicts', () => {

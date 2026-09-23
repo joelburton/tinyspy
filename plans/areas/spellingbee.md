@@ -477,10 +477,10 @@ puts committing a guess in the BoardCol; spellingbee's engine lives in the
 PlayArea, because the engine's answers drive the hive's shake and marks and
 its slot is the PlayArea's. It stands after the local slot, which every answer
 lands in — where readability 3.2's first proposal had it ("5. The move — the
-input engine's coordinator half, where the game has one"). **Joel's to rule:**
-the doc gains the section, or the engine moves into `BoardCol` (a real change,
-not a reorder — it would take `foundWords`, the lookup and the RPC down with
-it). There is no turn-history viewer section: the game has no viewer.
+input engine's coordinator half, where the game has one"). **Ruled the same
+day: the engine moves into `BoardCol`** — see "The engine moves into BoardCol"
+below, which removed the section again. There is no turn-history viewer
+section: the game has no viewer.
 
 `BoardCol.tsx` reads in three: **The pending guess** (the letters the word is
 using, the letter click) · **The board's display order** (the shuffle's seed,
@@ -507,6 +507,58 @@ surface docstring's nonexistent verdicts (Step 3's note).
 
 Verified: `tsc -b` clean, lint clean over `src/spellingbee/`, 353 unit tests
 green (the game's and the guards). The e2e specs have not run for Steps 2–7.
+
+### The engine moves into BoardCol — DONE 2026-09-22
+
+Joel, on Step 7's extra section: *"in general, if pieces can be pushed down,
+that seems like a good thing?"* — then *"do this"*. Everything the engine
+produced (`word`, `setWord`, `lastWord`, `submit`, the shake nonce, the
+answered mark) was read only in `<BoardCol>`'s props, so the PlayArea was
+computing it to hand it down. **This makes spellingbee match wordle,
+connections and psychicnum**, whose BoardCols already own their submit RPC and
+its `answerMessage`.
+
+**What moved into `BoardCol`:** the `useFoundWordSubmit` call, `legalIndex`,
+`allowedLetters` (its readers are all BoardCol's now), `center`, the shake
+nonce and the answered mark, `commit` with the `submit_word` call and the
+`SubmittedWord` reply type, and `onAnswer`. BoardCol **gains** `gameId`,
+`mode`, `selfId`, `myConceded`, `foundWords`, `requiredWords`, `bonusWords`;
+it **loses** `word`, `onChange`, `onSubmit`, `lastWord`, `shakeNonce`,
+`answered`, `allowedLetters`. **What stayed:** the local feedback slot (the
+standing conditions, the shared trio and New game write it too — it comes
+down as a prop, as before) and `foundWords` (the score, the word list, the
+print and the peer line read it). **InfoCol is untouched** — it reads none of
+the engine's outputs.
+
+**The sections now match the doc.** The PlayArea is back to eight (no "The
+move"). `BoardCol` reads **Committing a guess** · **The pending guess** ·
+**The board's display order** · **Render** — the doc's order less its first
+section, with one swap: committing comes first, because the engine returns the
+pending word the next section reads, where wordle's pending guess is state the
+column keeps itself.
+
+**One behavior change, Joel's ruling (*"do the fix"*):** the entry was
+disabled on `isTerminal` alone while the engine refused on `isTerminal ||
+myConceded`, so a conceded racer's keys filled a word nobody could see (the
+out-of-race line holds the slot) and lit its hexes, and Enter did nothing.
+Both now read one `entryClosed = isTerminal || myConceded`. A new test — a
+conceded racer types `bed` and no hex lights — went red with the old gate
+planted back and green restored. **Still open: hive TAPS are gated nowhere,**
+at terminal or after conceding — `Letters` has no disabled state and
+`handleLetterClick` always appends — so a tap still fills the hidden word.
+Joel's to rule; it changes the terminal board too.
+
+**The family diverges for now:** boggle, wordwheel and wordiply keep their
+engines in their PlayAreas until their areas open. Wordiply's is the one that
+needs a decision — its row mark is shared between my own answers (the engine)
+and a teammate's word (the narration).
+
+Verified: `tsc -b` clean, lint clean over `src/spellingbee/`, 353 unit tests
+green (the game's and the guards) — the submit tests render the whole
+`PlayAreaLoader`, so they cover the new wiring without change. The old
+`docs/games/spellingbee.md`'s file-tree entries for `PlayArea.tsx` and
+`BoardCol.tsx` say where the engine is. The e2e specs have not run for Steps
+2–7.
 
 ## Findings
 

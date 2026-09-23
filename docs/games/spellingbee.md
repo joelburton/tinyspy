@@ -362,22 +362,21 @@ src/spellingbee/
                           which takes the loaded game as a prop and so never asks whether it is
                           there. The thin two-column coordinator on the shared scaffold (.boardCol /
                           .infoCol). **Decomposed** into BoardCol + InfoCol (no-op verified; no
-                          history viewer — a WordList isn't chronological). PlayArea keeps the
-                          word-entry ENGINE — the shared `useFoundWordSubmit` (the typed word, the
-                          `submit_word` dispatch, the sticky own-move feedback, a shared
-                          <FeedbackPill> dismissed on the next move, no timer) — in the
-                          coordinator, because its feedback channel is ALSO written by InfoCol's
-                          End / Concede; it passes the entry primitives (word / setWord / submit /
-                          localFeedback / …) DOWN to BoardCol (a thin-input game, like
-                          boggle/connections). Wires the common usePeerFeedback to the header slot
+                          history viewer — a WordList isn't chronological). The word-entry
+                          ENGINE — the shared `useFoundWordSubmit` — is BoardCol's; PlayArea
+                          keeps the local feedback slot (InfoCol's End / Concede and the
+                          standing conditions write it too) and passes it DOWN, with the found
+                          words and both lists. Wires the common usePeerFeedback to the header slot
                           for peer/opponent events. lib/terminal.ts branches mode → terminal verdict
                           message (a TerminalMessage the verdict + the info-column row share), and pops the
                           shared CelebrationBlockingModal on a coop win via useCelebration.
     BoardCol.tsx          The board column: the honeycomb <Letters> + a floating Shuffle over its
                           top-right + the below-board <WordEntryArea> (the typed-word input + capture
                           keyboard, whose <WordEntryInput> renders the per-character illegal-letter dim
-                          via <TypedWord>). Owns the local outer-letter shuffle (per-player,
-                          view-only, never persisted) and a letter-click appending to the word.
+                          via <TypedWord>). Owns the move — the word-entry engine, the
+                          `submit_word` commit, each answer's pill and the hive's shake + hex
+                          marks — and the local outer-letter shuffle (per-player, view-only,
+                          never persisted) and a letter-click appending to the word.
                           The shuffle is a bound action (act-shuffle, ⌥Z), so the pill and the
                           key are one thing (letters stored uppercase; ArrowUp=recall /
                           ArrowDown=clear are the shared built-ins).
