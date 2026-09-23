@@ -913,7 +913,16 @@ one value, which a reader has to check is the same. Options: **read
 `selfRankIdx`** and drop `rankIdx`, or leave it. Recommendation: read
 `selfRankIdx`.
 
-### F-spellingbee-4 · `empty-letters-guard` · `BoardCol` guards against outer letters that cannot be empty
+### SHIPPED · F-spellingbee-4 · `empty-letters-guard` · `BoardCol` guards against outer letters that cannot be empty
+
+**Joel, 2026-09-22: "fix."** The line is gone. The prop is `game.outer_letters`
+off a row the loader has already held the surface for, and `create_game`
+refuses anything but six distinct lowercase letters; had it ever been empty,
+`Array.from('')` is `[]` too, so the output could not change. Seen on the
+way: the migration's column comment says a narrower string raises at insert,
+which `char(n)` does not (it pads); `create_game`'s length check is what
+refuses it. The migration is frozen, so it stays. `tsc -b` and eslint clean;
+spellingbee + guards, 36 files, 363 tests green.
 
 The `outerShuffled` memo opens with `if (!outerLetters) return []`.
 `outerLetters` is `game.outer_letters`, which is `char(6) not null` in the

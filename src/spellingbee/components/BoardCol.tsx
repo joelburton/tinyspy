@@ -232,7 +232,6 @@ export function BoardCol({
   // would re-shuffle on every submit.
   const [shuffleSeed, setShuffleSeed] = useState(0)
   const outerShuffled = useMemo(() => {
-    if (!outerLetters) return []
     void shuffleSeed
     return shuffled(Array.from(outerLetters))
   }, [outerLetters, shuffleSeed])
