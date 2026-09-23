@@ -1,6 +1,6 @@
 # codenamesduet: one `events` table
 
-**Status: BUILDING on branch `codenamesduet-events` — Steps 1–3 done (see
+**Status: BUILDING on branch `codenamesduet-events` — Steps 1–4 done (see
 Progress, at the end); the six questions answered.**
 Joel, 2026-09-23: *"make a plan for this in plans/. once i've read that plan,
 we do this."* Worked inside the
@@ -366,3 +366,27 @@ mine has no answer and why. `hint` / `hint_peer` arrive with Step 4.
 `lib/answer.test.ts`, new (7): the union walked for words and outcome, and
 `turnAnswer` over the four phases, sudden death and game over. 370 unit tests
 green.
+
+### Step 4 — the hint — DONE 2026-09-23
+
+- **The writer is called.** `codenamesduet-suggest-clue` calls `log_hint` as
+  the caller once a suggestion has parsed, and relays a refusal untouched —
+  the same race `get_clue_context` could lose, arriving late. Its header lists
+  the new step, and loses the two stale claims pass 2 had recorded (the
+  "BoardScreen's 'Need a clue?' button", and a refusal "forwarded as 403").
+- **`lib/answer.ts` gains `hint` / `hint_peer`**, both `warning`: mine has no
+  text (the dialog is the feedback), the partner's reads `got hint`, as
+  psychicnum's does.
+- **The log's mark:** `hintedTurnsOf(events)` in `lib/events.ts`; a hinted
+  turn's clue row carries the AI glyph (`IconAI`, `1em`) wearing
+  `VERDICT_TONE[hint's outcome]`, with the tooltip `AI hint`.
+- **The partner's line:** `usePeerFeedback` over the events — a partner's
+  hint row, new since load, becomes a `peer` message in the header.
+
+**Tests:** the answer union walk gains the two; the log spec marks one turn and
+not the other; the PlayArea spec says what the partner is doing and narrates a
+partner's hint that lands, not one already there on load — planted off, it
+went red. 375 unit tests green; `deno check` clean.
+
+**Not proven live:** the edge function's `log_hint` call. The e2e stubs the
+function, and a real call spends an Anthropic request — Joel's to allow.

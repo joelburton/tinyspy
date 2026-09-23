@@ -242,6 +242,37 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
 })
 
 /**
+ * The header's lines about the partner: where the turn stands, held for as long
+ * as it holds, and — once, as it lands — the partner asking the AI for a clue.
+ */
+describe('codenamesduet PlayArea — the partner, in the header', () => {
+  const texts = (ctx: GamePageCtx) =>
+    ctx.globalFeedbackSlot.peek().map((entry) => entry.message.text)
+
+  it('says what the partner is doing now', () => {
+    const ctx = makeCtx() // peer A gave the clue; I guess
+    render(<PlayAreaLoader {...ctx} />)
+    expect(texts(ctx)).toContain('waiting for you')
+  })
+
+  it('narrates a partner’s hint as it lands, and not the ones already there on load', () => {
+    const ctx = makeCtx()
+    const hint = (id: number) => ({
+      kind: 'hint' as const, id, user_id: 'peer', took_turn: false,
+      created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat: 'A' as const,
+    })
+    g.events = [g.PEER_CLUE, hint(2)]
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
+    expect(texts(ctx)).not.toContain('got hint')
+
+    g.events = [g.PEER_CLUE, hint(2), hint(3)]
+    rerender(<PlayAreaLoader {...ctx} />)
+    expect(texts(ctx)).toContain('got hint')
+    g.events = [g.PEER_CLUE]
+  })
+})
+
+/**
  * The two role-specific controls. Stopping your guesses is an ordinary
  * every-turn decision in duet, so the guesser's Pass is a plain primary button
  * — `act-end-turn`, whose registry row carries no tone, rather than scrabble's

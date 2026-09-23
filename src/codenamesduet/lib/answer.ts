@@ -26,8 +26,16 @@ export type Answer =
   //   I am guessing from their clue; they wait for me
   | { answerType: 'waiting_for_you_peer' }
 
+  // I asked the AI for a clue. Nothing is SAID — the suggestion dialog is the
+  // feedback — and the answer's job is its outcome, which the event log's
+  // hint mark wears.
+  | { answerType: 'hint' }
+  // My partner asked the AI for one.
+  | { answerType: 'hint_peer' }
+
 /**
- * How an answer reads — **the one place this game decides that.**
+ * How an answer reads — **the one place this game decides that.** An empty
+ * `text` means nothing is shown.
  *
  * **Telegraphic on purpose** ("waiting for you", not "is waiting for your turn
  * to complete"): the header shares its row with the logo and chat bubble, so
@@ -46,6 +54,11 @@ export function answerMessage(answer: Answer): AnswerMessage {
       return { outcome: 'neutral', text: 'waiting for clue' }
     case 'waiting_for_you_peer':
       return { outcome: 'neutral', text: 'waiting for you' }
+
+    case 'hint':
+      return { outcome: 'warning', text: '' }
+    case 'hint_peer':
+      return { outcome: 'warning', text: 'got hint' }
   }
 }
 

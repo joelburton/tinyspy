@@ -11,16 +11,18 @@
 import { describe, expect, it } from 'vitest'
 import { answerMessage, turnAnswer, type Answer } from './answer'
 
-const EVERY: Array<[Answer['answerType'], string]> = [
-  ['writing_clue_peer', 'writing clue'],
-  ['guessing_peer', 'guessing'],
-  ['waiting_for_clue_peer', 'waiting for clue'],
-  ['waiting_for_you_peer', 'waiting for you'],
+const EVERY: Array<[Answer['answerType'], string, string]> = [
+  ['writing_clue_peer', 'writing clue', 'neutral'],
+  ['guessing_peer', 'guessing', 'neutral'],
+  ['waiting_for_clue_peer', 'waiting for clue', 'neutral'],
+  ['waiting_for_you_peer', 'waiting for you', 'neutral'],
+  ['hint', '', 'warning'],
+  ['hint_peer', 'got hint', 'warning'],
 ]
 
 describe('answerMessage', () => {
-  it.each(EVERY)('%s reads "%s", neutral', (answerType, text) => {
-    expect(answerMessage({ answerType })).toEqual({ outcome: 'neutral', text })
+  it.each(EVERY)('%s reads "%s", %s', (answerType, text, outcome) => {
+    expect(answerMessage({ answerType })).toEqual({ outcome, text })
   })
 })
 

@@ -20,6 +20,14 @@
   letter-spacing: 0.03em;
 }
 
+/* The mark after a clue the giver asked the AI for. Its color is the hint's
+ * outcome, read off the `VERDICT_TONE` class it wears beside this one. */
+/* @@ */ .hintMark {
+  margin-inline-start: 0.35em;
+  color: var(--verdict-ink);
+  vertical-align: -0.125em;
+}
+
 /* Each guessed word (row 2), colored by what it REVEALED — the same agent-green
  * / neutral-tan / assassin-red key-card vocabulary the board uses for revealed
  * tiles, which is not the outcome vocabulary. */

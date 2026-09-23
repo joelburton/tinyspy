@@ -92,3 +92,8 @@ export function guessesOf(
     .filter((e): e is GuessEvent => e.kind === 'guess')
     .map((e) => ({ ...e, word: wordAt.get(e.guess_position) ?? '' }))
 }
+
+/** The turns on which the clue-giver asked the AI for a clue. */
+export function hintedTurnsOf(events: ReadonlyArray<DuetEvent>): Set<number> {
+  return new Set(events.filter((e) => e.kind === 'hint').map((e) => e.turn_number))
+}

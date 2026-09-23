@@ -5,10 +5,16 @@ import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/c
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import { cls } from '@/common/utils/cls'
+import { IconAI } from '@/common/icons/icons'
+import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import type { ClueEvent, WordedGuess } from '../lib/events'
+import { answerMessage } from '../lib/answer'
 import type { Player } from '../hooks/useGame'
 import { turnOutcome } from '../lib/turnOutcome'
 import styles from './GameEventLog.module.css'
+
+/** The color a hint mark wears. */
+const HINT_OUTCOME = answerMessage({ answerType: 'hint' }).outcome
 
 type Props = {
   clues: ClueEvent[]
@@ -16,6 +22,9 @@ type Props = {
    *  twice, once per seat, which is why this is the guess log, not per-word
    *  board state.) */
   guesses: WordedGuess[]
+  /** The turns whose clue-giver asked the AI for a clue; each wears a mark on
+   *  its clue row. */
+  hintedTurns: ReadonlySet<number>
   /** Both seated players, with usernames + profile colors — used to resolve a
    *  clue's seat letter ('A'/'B') back to the human-facing clue-giver. */
   players: Player[]
@@ -76,6 +85,7 @@ type Props = {
 export function GameEventLog({
   clues,
   guesses,
+  hintedTurns,
   players,
   selfId,
   currentTurn,
@@ -160,6 +170,16 @@ export function GameEventLog({
                 <span className={styles.clueWord}>
                   {clue.clue_count} {clue.clue_word.toUpperCase()}
                 </span>
+                {hintedTurns.has(t) && (
+                  // The clue-giver asked the AI this turn — in the hint's own
+                  // outcome, which `lib/answer.ts` decides.
+                  <span
+                    className={cls(styles.hintMark, VERDICT_TONE[HINT_OUTCOME])}
+                    data-tooltip="AI hint"
+                  >
+                    <IconAI size="1em" aria-hidden />
+                  </span>
+                )}
               </td>
               <EventLogActor actor={clueGiver} fallback={clue.seat} />
             </tr>

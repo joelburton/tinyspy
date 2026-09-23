@@ -15,6 +15,7 @@ import { db } from '../db'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
+import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
@@ -29,7 +30,7 @@ import type { GameRow, Player } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
 import type { WordRow } from '../hooks/useBoard'
 import { useBoard } from '../hooks/useBoard'
-import { cluesOf, guessesOf, type ClueEvent, type DuetEvent } from '../lib/events'
+import { cluesOf, guessesOf, hintedTurnsOf, type ClueEvent, type DuetEvent } from '../lib/events'
 import { answerMessage, turnAnswer } from '../lib/answer'
 import type { KeyLabel } from '../lib/labels'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
@@ -289,6 +290,7 @@ export function PlayArea({
   // the PDF read: every clue, and every guess with the word on its tile.
   const clues = useMemo(() => cluesOf(events), [events])
   const guesses = useMemo(() => guessesOf(events, words), [events, words])
+  const hintedTurns = useMemo(() => hintedTurnsOf(events), [events])
 
   // The board is worked by clicks, so the page itself has nowhere for Tab to go
   // and an empty ring keeps it from walking out to the browser. While a clue is
@@ -537,6 +539,23 @@ export function PlayArea({
     globalFeedbackSlot,
   })
 
+  // My partner asking the AI for a clue is narrated in the header, once, as it
+  // lands — my own hint is not, since the suggestion dialog is its feedback.
+  // The shared seen-set producer seeds silently on load, so opening a game does
+  // not replay its old hints.
+  usePeerFeedback({
+    enabled: true,
+    items: events,
+    keyOf: (e) => String(e.id),
+    messageFor: (e) => {
+      if (e.kind !== 'hint' || e.user_id === session.user.id) return null
+      const member = players.find((p) => p.user_id === e.user_id)
+      const { outcome, text } = answerMessage({ answerType: 'hint_peer' })
+      return FeedbackMessage.peer(member, outcome, text)
+    },
+    globalFeedbackSlot,
+  })
+
   // ─── The one standing condition of the local slot ───
   // The verdict, memoized on `playState` so the effect sees one object per
   // outcome, shown on the terminal edge and retracted by its owner on Restart
@@ -665,6 +684,7 @@ export function PlayArea({
         // ── Turn-history log ──
         clues={clues}
         guesses={guesses}
+        hintedTurns={hintedTurns}
         players={players}
         selfId={session.user.id}
         gameOver={gameOver}

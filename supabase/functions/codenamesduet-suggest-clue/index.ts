@@ -1,18 +1,19 @@
 // cs-met-codenamesduet
 
 /**
- * suggest-clue — Edge Function called from the BoardScreen's "Need a clue?"
- * button when the active clue-giver is stuck.
+ * suggest-clue — Edge Function called from the clue form's AI button when the
+ * active clue-giver is stuck.
  *
  * Architecture:
- *   1. Verify the caller's JWT and pull the board context via the
- *      `get_clue_context` RPC. The RPC enforces "you are the current
- *      clue-giver in an active game" — if it rejects, we forward 403.
+ *   1. Pull the board context as the caller via the `get_clue_context` RPC.
+ *      The RPC enforces "you are the current clue-giver in an active game";
+ *      if it refuses, the refusal is relayed as it came.
  *   2. Ask Claude for a clue with structured outputs (output_config.format),
  *      so the response arrives as schema-valid JSON. Dropping the forced tool
  *      lets us enable native adaptive thinking — the model deliberates in its
  *      own thinking channel, which we log but never send to the player.
- *   3. Answer `ok({ result: 'suggested', suggestion })`, which the FE fills
+ *   3. Log the hint with `log_hint`, once there is a suggestion to hand over.
+ *   4. Answer `ok({ result: 'suggested', suggestion })`, which the FE fills
  *      into the existing clue inputs for the user to review + edit before
  *      submitting.
  *
@@ -247,6 +248,17 @@ serve(async (req) => {
     }
 
     console.log('[suggest-clue] parsed suggestion:', JSON.stringify(suggestion))
+
+    // Step 3: log the hint — only now, so a model that declined or was cut off
+    // above leaves no row for a hint nobody received. `log_hint` asks the same
+    // gate `get_clue_context` did; the model was thinking in between, so a
+    // refusal here is that race arriving late, and is relayed like the first.
+    const logged = await runRpc<{ result: 'logged' }>(
+      supabase.schema('codenamesduet').rpc('log_hint', { target_game: gameId }),
+      'log_hint',
+    )
+    if (logged.type === 'not-ok') return json(logged)
+
     return ok({ result: 'suggested', suggestion })
   } catch (e) {
     console.error('suggest-clue failed', e)

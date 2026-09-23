@@ -84,6 +84,7 @@ const turnRows = () => screen.getAllByRole('row')
 function renderLog(props: {
   clues: ClueEvent[]
   guesses: WordedGuess[]
+  hintedTurns?: ReadonlySet<number>
   currentTurn?: number
   gameOver?: boolean
 }) {
@@ -91,6 +92,7 @@ function renderLog(props: {
     <GameEventLog
       clues={props.clues}
       guesses={props.guesses}
+      hintedTurns={props.hintedTurns ?? new Set()}
       players={PLAYERS}
       selfId="ada"
       currentTurn={props.currentTurn ?? 99}
@@ -177,6 +179,18 @@ describe('GameEventLog', () => {
     renderLog({ clues, guesses: [], currentTurn: 2, gameOver: false })
     expect(screen.getByText('(no guesses)')).toBeInTheDocument()
     expect(screen.queryByText('(clue given)')).not.toBeInTheDocument()
+  })
+
+  it('marks the clue row of a turn whose clue-giver asked the AI, and no other', () => {
+    const clues = [
+      clue({ id: 1, turn_number: 1 }),
+      clue({ id: 2, turn_number: 2, seat: 'B' }),
+    ]
+    renderLog({ clues, guesses: [], hintedTurns: new Set([2]) })
+
+    const rows = turnRows()
+    expect(rows[0]!.querySelector('[data-tooltip="AI hint"]')).toBeNull()
+    expect(rows[2]!.querySelector('[data-tooltip="AI hint"]')).not.toBeNull()
   })
 
   it('reads "(no guesses)" for a guess-less current turn once the game is over', () => {
