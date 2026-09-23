@@ -14,7 +14,8 @@
 --      words that say sudden death rather than game over
 --   3. submit_guess works for either player (no turn enforcement), and a
 --      green reveal keeps the game going
---   4. ANY non-green reveal ends the game in lost_clock
+--   4. a bystander ends the game in lost_clock
+--   5. an assassin ends it in lost_assassin, as it does in ordinary play
 --
 -- For the reveal label, sudden_death uses the *partner's* view
 -- (the seat opposite the guesser). So when ada guesses, we
@@ -28,7 +29,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(10);
+select plan(12);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -148,6 +149,39 @@ select is(
   (select play_state from common.games where id = (select id from g)),
   'lost_clock',
   'a non-green reveal in sudden death sets play_state = lost_clock'
+);
+
+-- ============================================================
+-- (5) An assassin in sudden death is still the assassin's loss
+-- ============================================================
+-- A second game, brought to sudden death the same real way.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g2 on commit drop as
+select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
+reset role;
+update codenamesduet.games set turns_remaining = 1, turn_number = 9
+  where id = (select id from g2);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select submit_clue((select id from g2), 'LAST', 1);
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select pass_turn((select id from g2));
+
+-- Ada guesses; the reveal uses bea's view, so an assassin on bea's side.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  submit_guess(
+    (select id from g2),
+    pg_temp.find_position((select id from g2), 'B', 'A')
+  ),
+  '{"type":"ok","outcome":null,"data":{"result":"lost_assassin","revealed":"A"}}'::jsonb,
+  'an assassin in sudden death answers ok/lost_assassin, not lost_clock'
+);
+
+select is(
+  (select status->>'reason' from common.games where id = (select id from g2)),
+  'assassin',
+  'and its reason is the assassin, not the spent budget'
 );
 
 -- ============================================================

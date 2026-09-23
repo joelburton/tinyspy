@@ -1272,7 +1272,16 @@ and stays when chat has the header — with a comment at `PeerActivity`; drop
 the strip's; or drop the header's for these two states. Recommendation: keep
 both. Joel's call.
 
-### F-codenamesduet-22 · `sudden-death-assassin` · `doc.md` says a sudden-death assassin is `lost_clock`
+### SHIPPED · F-codenamesduet-22 · `sudden-death-assassin` · `doc.md` says a sudden-death assassin is `lost_clock`
+
+**Joel, 2026-09-23: "i'll take your rec."** `doc.md`'s play-state table, the
+`submit_guess` section and the Tests row say a bystander in sudden death is
+`lost_clock` and an assassin `lost_assassin`; Game rules' *"Anything but an
+agent loses"* was true and stays. `sudden_death_test.sql` adds a second game
+brought to sudden death the real way, where an assassin answers
+`lost_assassin` with the reason `assassin`. **Planted** the sudden-death check
+ahead of the assassin's — both new assertions red; restored, PASS, 182 files,
+2646 tests. Closes F-27's sudden-death assassin survivor.
 
 `submit_guess` checks the assassin first, so an assassin in sudden death ends
 `lost_assassin` (reason `assassin`). The prose pass's Game rules, play-state
@@ -1316,8 +1325,8 @@ leave it to pass 3 if it is judged tile-feedback's.
 Planted and restored in all three layers; each survived:
 
 - **SQL:** ~~sudden death entered a turn late, and its status written as
-  `playing`~~ (closed by F-11's real entry); an assassin
-  in sudden death as `lost_clock` (F-22); a won game's results as
+  `playing`~~ (closed by F-11's real entry); ~~an assassin
+  in sudden death as `lost_clock`~~ (F-22); a won game's results as
   `{won:false}`, a timeout's as `{won:true}`; `turns_used` wrong at a timeout
   and a guess ending; the mid-game `greens_found` update dropped; the seeded
   status wrong; `log_hint`'s seat always A; `get_clue_context` with no

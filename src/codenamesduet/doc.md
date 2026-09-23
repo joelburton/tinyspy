@@ -122,7 +122,7 @@ loses.
 |---|---|---|
 | `won` | the fifteenth agent is contacted | `solved` |
 | `lost_assassin` | an assassin is hit | `assassin` |
-| `lost_clock` | anything but an agent in sudden death | `exhausted` |
+| `lost_clock` | a bystander in sudden death (an assassin there is still `lost_assassin`) | `exhausted` |
 | `lost_timeout` | the wall-clock countdown ran out | `timeout` |
 | `ended` | somebody pressed End — neutral, not a loss | `manual` |
 
@@ -252,8 +252,8 @@ goes on; a bystander in ordinary play ends the turn, and the seat that clues
 next is the partner's unless the partner's agents are all found. In sudden
 death every guess is a turn of its own: an agent moves the turn number on, so
 the next guess — by either player — is the next turn. Three guesses
-end the game: the fifteenth agent (`won`), any assassin (`lost_assassin`), and
-anything but an agent in sudden death (`lost_clock`). Each ending records its
+end the game: the fifteenth agent (`won`), any assassin (`lost_assassin`),
+sudden death included, and a bystander in sudden death (`lost_clock`). Each ending records its
 reason, the turns used and the agents found, and both players get the same
 result.
 
@@ -488,7 +488,7 @@ test finds a position by its label), `pg_temp.codenamesduet_setup()` and
 | `clue_giver_handoff_test` | a finished player gives no more clues, from either seat, and two live seats still alternate |
 | `cross_direction_test` | a bystander locks the guesser's side only; the partner can still contact the word; the two locks answer in different words |
 | `win_test` | the fourteenth agent plays on and the fifteenth wins |
-| `sudden_death_test` | a real last pass enters it, with nobody holding the clue seat; a clue, a pass and the AI refused in its own words; an agent goes on, anything else is `lost_clock` |
+| `sudden_death_test` | a real last pass enters it, with nobody holding the clue seat; a clue, a pass and the AI refused in its own words; an agent goes on, a bystander is `lost_clock` and an assassin `lost_assassin` |
 | `submit_timeout_test` | `lost_timeout` from both running states, the reason, and a second call refused |
 | `end_game_test` | `ended` with the reason `manual`, nobody winning, and a second call refused |
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
