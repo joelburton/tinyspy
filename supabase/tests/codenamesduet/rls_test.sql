@@ -28,7 +28,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(8);
+select plan(7);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -71,7 +71,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
 -- RLS shape changed: visibility is now club-wide (not
 -- player-restricted). Dee is a non-club-member, so she sees nothing
--- from codenamesduet.games / codenamesduet.words / codenamesduet.clues — gated by
+-- from codenamesduet.games / codenamesduet.words / codenamesduet.events — gated by
 -- is_club_member(club_handle), which fails for her.
 select is(
   (select count(*) from games where id = (select id from g)),
@@ -86,15 +86,9 @@ select is(
 );
 
 select is(
-  (select count(*) from clues where game_id = (select id from g)),
+  (select count(*) from events where game_id = (select id from g)),
   0::bigint,
-  'dee cannot SELECT clues for a club she is not in'
-);
-
-select is(
-  (select count(*) from guesses where game_id = (select id from g)),
-  0::bigint,
-  'dee cannot SELECT guesses for a club she is not in'
+  'dee cannot SELECT events for a club she is not in'
 );
 
 -- ============================================================

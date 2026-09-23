@@ -53,10 +53,10 @@ select codenamesduet.submit_guess((select id from g1), 0);
 reset role;
 
 select isnt(
-  (select count(*) from codenamesduet.clues where game_id = (select id from g1)),
+  (select count(*) from codenamesduet.events where game_id = (select id from g1) and kind = 'clue'),
   0::bigint, 'precondition — a clue was given');
 select isnt(
-  (select count(*) from codenamesduet.guesses where game_id = (select id from g1)),
+  (select count(*) from codenamesduet.events where game_id = (select id from g1) and kind = 'guess'),
   0::bigint, 'precondition — a guess was made');
 
 -- ─── Run it back, mid-game ───
@@ -67,10 +67,10 @@ select lives_ok(
 reset role;
 
 select is(
-  (select count(*) from codenamesduet.clues where game_id = (select id from g1)),
+  (select count(*) from codenamesduet.events where game_id = (select id from g1) and kind = 'clue'),
   0::bigint, 'restart → the clue log is wiped');
 select is(
-  (select count(*) from codenamesduet.guesses where game_id = (select id from g1)),
+  (select count(*) from codenamesduet.events where game_id = (select id from g1) and kind = 'guess'),
   0::bigint, 'restart → the guess log is wiped');
 select is(
   (select count(*) from codenamesduet.words

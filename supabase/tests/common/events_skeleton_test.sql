@@ -4,16 +4,16 @@
 -- Test: the `<game>.events` skeleton — one shape for every log
 -- ============================================================
 --
--- Ten games keep a chronological log of what happened in a game, and the
--- shape of that log is a convention rather than anything the type system
--- can hold: a table named `events`, keyed by a `bigint identity` whose
+-- Every game with a log keeps a chronological one of what happened in a
+-- game, and the shape of that log is a convention rather than anything the
+-- type system can hold: a table named `events`, keyed by a `bigint identity` whose
 -- order IS the order of play, carrying the game, the actor, what kind of
 -- event it was, whether it used up one of the actor's goes, and when. The
 -- game's own payload columns sit beside those six and are its business.
 --
 -- The convention decays silently. Nothing breaks the day a new game's log
 -- keys on a uuid or spells its timestamp `guessed_at`; it just stops being
--- the same table as the other nine, and the next thing that wants to read
+-- the same table as the others, and the next thing that wants to read
 -- all of them has to special-case it. So the skeleton is asserted here,
 -- once, over a roster.
 --
@@ -26,8 +26,6 @@
 -- reshape.
 --
 -- Deliberately NOT here:
---   codenamesduet    its log is `clues` + `guesses`, addressed by turn
---                    number rather than by row; a different shape, kept
 --   spellingbee · boggle · wordwheel   `found_words` is a SET, not a log
 --   bananagrams · crosswords           no log at all
 --
@@ -56,7 +54,8 @@ insert into roster values
   ('scrabble',    'events',      true),
   ('strands',     'events',      true),
   ('letterboxed', 'events',      true),
-  ('setgame',     'events',      true);
+  ('setgame',     'events',      true),
+  ('codenamesduet', 'events',    true);
 
 -- 1. The six columns, with the right types. Bidirectional: a game that
 --    grows the skeleton without flipping its roster row shows up as an

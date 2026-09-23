@@ -76,8 +76,7 @@ select set_eq(
       -- codenamesduet (useGame + useBoard + useClues)
       ('codenamesduet', 'games'),
       ('codenamesduet', 'words'),
-      ('codenamesduet', 'clues'),
-      ('codenamesduet', 'guesses'),
+      ('codenamesduet', 'events'),
       -- psychicnum
       ('psychicnum', 'games'),
       ('psychicnum', 'players'),

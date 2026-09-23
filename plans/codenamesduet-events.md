@@ -1,6 +1,7 @@
 # codenamesduet: one `events` table
 
-**Status: AGREED, nothing built — the six questions answered (at the end).**
+**Status: BUILDING on branch `codenamesduet-events` — Step 1 done (see
+Progress, at the end); the six questions answered.**
 Joel, 2026-09-23: *"make a plan for this in plans/. once i've read that plan,
 we do this."* Worked inside the
 `codenamesduet` area, which pauses at its restructure's Step 5 until this is
@@ -220,11 +221,17 @@ pass inference.
 
 - **pgTAP:** each writer's row, `kind` and `took_turn`; the one-clue index; the
   payload CHECK refusing a clue with a position and a guess with a word; RLS;
-  `replay_board` clearing events; and a backfill test seeding `clues` /
-  `guesses` for a game with a mid-turn pass, a bystander-ended turn, an empty
-  pass and an ending turn, then asserting the rows the backfill produced.
-  Every existing file that reads `clues` or `guesses` — eight of them —
-  changes with the table.
+  `replay_board` clearing events. Every existing file that reads `clues` or
+  `guesses` changes with the table.
+- **The backfill is NOT a pgTAP test** — the plan first said it would be, and
+  it cannot be: the migration drops `clues` and `guesses`, so after it there is
+  nothing to seed. Proved instead by running the migration's OWN backfill and
+  checks, extracted from the file, inside a transaction that rolls back: three
+  local games, the two old tables recreated, seeded with a pass after agents,
+  a bystander-ended turn, an empty pass, the current turn, nine bystanders
+  into sudden death with an agent and a losing bystander there, and a game
+  ended on its first turn. Then planted wrong (the current turn counted) —
+  the migration's own check raised. The script is in Step 1's record below.
 - **Unit:** the mapper, the turn fold, `answer.ts` walked by its union, and the
   existing history / log / PDF / turnOutcome specs on the new rows.
 - **e2e:** the five specs, before and after — they are the check that the log
@@ -263,3 +270,45 @@ Each a commit Joel reads, as the area's steps are.
   `plans/spectating.md`.
 - `submit_clue` judging nothing about the clue, and `get_clue_context`
   admitting sudden death — pass 2 findings of the area, recorded there.
+
+## Progress
+
+### Step 1 — the migration and the writers — DONE 2026-09-23
+
+`supabase/migrations/20260923000001_codenamesduet_events.sql` creates the table
+as specified, backfills it, checks itself (clue and guess counts unchanged;
+every game's turn-taking events equal to its `turn_number - 1`; ids in time
+order) and drops `clues` and `guesses`. `supabase/sql/codenamesduet.sql`:
+
+- `submit_clue`, `submit_guess` and `pass_turn` write their event; their "is
+  there a clue this turn" checks read `kind = 'clue'`. `submit_clue`'s
+  parameters share their names with the new columns and keep them — they are
+  the API the frontend calls — so its body reads them qualified.
+- **`_require_clue_giver`, new** — the gate `get_clue_context` had inline,
+  moved out so `log_hint` asks the same one. Same codes (PN387–389), same
+  sentences.
+- **`log_hint`, new** — the hint writer; answers `ok` / `logged`.
+- `replay_board` deletes the game's events; `get_clue_context` reads its
+  `previous_clues` from them; the policies and grants name `events`.
+
+**Applied locally over real rows** (`supabase migration up --local`): ten
+games, six clues and five guesses became twelve events, one of them an
+inferred pass — `PAGE-CHAIN-EGG` turn 3, B, after an agent.
+
+**The backfill proof** (see Tests): the scratch script recreates the two old
+tables inside `begin … rollback`, seeds three games, and `\i`s the
+migration's backfill and its `do` block verbatim. All three games came out as
+expected; planting `<=` for `<` on the current-turn exclusion made the
+migration raise *"game … has 4 turn-taking events for 3 ended turns"*.
+
+**Tests:** `events_test.sql`, new, 14 — each writer's row, the hint gate, the
+order, the turn count, the one-clue index and the payload CHECK three ways,
+sudden death. `cross_direction`, `rls` (the two table checks became one) and
+`replay` read `events`. The two shared guards moved with the table:
+`events_skeleton_test.sql` rosters codenamesduet, and
+`realtime_publication_test.sql` expects `events` where it expected `clues`
+and `guesses`. The whole suite green, 182 files, 2597 tests.
+
+**The frontend is broken at runtime until Step 2** — `useClues` and `useBoard`
+still read the dropped tables. `tsc` is clean only because the generated types
+have not been regenerated yet; that is Step 2's first move.

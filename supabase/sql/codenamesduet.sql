@@ -36,24 +36,13 @@ create policy words_select on codenamesduet.words
     )
   );
 
-drop policy if exists clues_select on codenamesduet.clues;
-create policy clues_select on codenamesduet.clues
+drop policy if exists events_select on codenamesduet.events;
+create policy events_select on codenamesduet.events
   for select to authenticated
   using (
     exists (
       select 1 from codenamesduet.games g
-       where g.id = clues.game_id
-         and common.is_club_member(g.club_handle)
-    )
-  );
-
-drop policy if exists guesses_select on codenamesduet.guesses;
-create policy guesses_select on codenamesduet.guesses
-  for select to authenticated
-  using (
-    exists (
-      select 1 from codenamesduet.games g
-       where g.id = guesses.game_id
+       where g.id = events.game_id
          and common.is_club_member(g.club_handle)
     )
   );
@@ -64,8 +53,7 @@ create policy guesses_select on codenamesduet.guesses
 
 grant select on codenamesduet.games to authenticated;
 grant select on codenamesduet.words to authenticated;
-grant select on codenamesduet.clues to authenticated;
-grant select on codenamesduet.guesses to authenticated;
+grant select on codenamesduet.events to authenticated;
 
 -- ============================================================
 -- codenamesduet._end_turn — internal helper
@@ -446,11 +434,9 @@ grant execute on function codenamesduet.create_game(text, jsonb, uuid[]) to auth
 -- ============================================================
 -- codenamesduet.submit_clue
 -- ============================================================
--- Parameters are named clue_word / clue_count (not "word" / "count") to
--- avoid shadowing the codenamesduet.clues columns of those names (and, for
--- count, the SQL aggregate function). The matching columns stay "word" /
--- "count" since they're only ever referenced in column lists, never
--- ambiguously — the prefixed params keep the INSERT's VALUES unambiguous.
+-- The parameters share their names with the `codenamesduet.events` columns
+-- they fill, so the body reads them qualified — `submit_clue.clue_word` — and a
+-- bare `clue_word` in a query could never mean the parameter by accident.
 --
 -- Three of its four rejections are RACES, because every one of them turns on
 -- state the clue form cannot see change under it. The form is rendered from
@@ -530,19 +516,24 @@ begin
   end if;
 
   if exists (
-    select 1 from codenamesduet.clues
-    where game_id = target_game and turn_number = g_row.turn_number
+    select 1 from codenamesduet.events e
+    where e.game_id = target_game and e.kind = 'clue'
+      and e.turn_number = g_row.turn_number
   ) then
     -- A race, and this one is the caller's own: the first clue landed, the
-    -- button unlocked on the reply, and the clues row that would have swapped
+    -- button unlocked on the reply, and the clue row that would have swapped
     -- the panel to the guess view has not arrived yet.
     raise exception 'A clue is already in for this turn'
       using errcode = 'PN372', hint = 'race', column = '_',
       detail = 'one clue per turn';
   end if;
 
-  insert into codenamesduet.clues (game_id, turn_number, by_seat, word, count)
-  values (target_game, g_row.turn_number, caller_seat, clue_word, clue_count);
+  insert into codenamesduet.events (
+    game_id, user_id, kind, took_turn, turn_number, seat, clue_word, clue_count
+  ) values (
+    target_game, caller_id, 'clue', false, g_row.turn_number, caller_seat,
+    submit_clue.clue_word, submit_clue.clue_count
+  );
 
   -- `result` NAMES the answer; the rest is the clue as it was recorded. The
   -- word and count are the caller's own, echoed back from the row that now
@@ -550,8 +541,8 @@ begin
   -- "here is what you sent" and "here is what is stored".
   return common.ok_envelope(jsonb_build_object(
     'result', 'clued',
-    'word', clue_word,
-    'count', clue_count,
+    'word', submit_clue.clue_word,
+    'count', submit_clue.clue_count,
     'turn_number', g_row.turn_number,
     'by_seat', caller_seat
   ));
@@ -686,8 +677,9 @@ begin
         detail = 'the clue-giver may not also guess';
     end if;
     if not exists (
-      select 1 from codenamesduet.clues
-      where game_id = target_game and turn_number = g_row.turn_number
+      select 1 from codenamesduet.events e
+      where e.game_id = target_game and e.kind = 'clue'
+        and e.turn_number = g_row.turn_number
     ) then
       -- The same window one step further on: the turn rolled over, and the new
       -- one has no clue yet.
@@ -740,10 +732,17 @@ begin
 
   revealed_label := key_card ->> target_position;
 
-  -- Log every guess (full per-guess history for the Game Log; a word can be
-  -- guessed twice — once per seat).
-  insert into codenamesduet.guesses (game_id, position, guesser_seat, result, turn_number)
-  values (target_game, target_position, caller_seat, revealed_label, g_row.turn_number);
+  -- Log every guess; a word can be guessed twice, once per seat. It took a
+  -- turn exactly when it ends one: a bystander in ordinary play, which runs
+  -- _end_turn below. Everything else — an agent, an assassin, any guess in
+  -- sudden death — spends nothing from the budget.
+  insert into codenamesduet.events (
+    game_id, user_id, kind, took_turn, turn_number, seat, guess_position, guess_result
+  ) values (
+    target_game, caller_id, 'guess',
+    revealed_label = 'N' and current_play_state = 'playing',
+    g_row.turn_number, caller_seat, target_position, revealed_label
+  );
 
   -- Denormalize the board state onto codenamesduet.words. Green (agent contacted) and
   -- assassin are GLOBAL — true for both players. A neutral only marks the
@@ -1055,8 +1054,7 @@ begin
      set revealed_as = null, neutral_a = false, neutral_b = false
    where game_id = target_game;
 
-  delete from codenamesduet.clues   where game_id = target_game;
-  delete from codenamesduet.guesses where game_id = target_game;
+  delete from codenamesduet.events where game_id = target_game;
 
   update codenamesduet.games
      set turns_remaining = s_turns,
@@ -1258,8 +1256,9 @@ begin
   end if;
 
   if not exists (
-    select 1 from codenamesduet.clues
-    where game_id = target_game and turn_number = g_row.turn_number
+    select 1 from codenamesduet.events e
+    where e.game_id = target_game and e.kind = 'clue'
+      and e.turn_number = g_row.turn_number
   ) then
     -- The same window one step on: the turn rolled over under a panel that is
     -- still showing the last turn's clue.
@@ -1268,7 +1267,11 @@ begin
       detail = 'no clue has been submitted for this turn';
   end if;
 
-  -- _end_turn hands back the turn state it wrote, which is the whole of what
+  -- The pass is recorded against the turn it ends, before _end_turn moves it.
+  insert into codenamesduet.events (game_id, user_id, kind, took_turn, turn_number, seat)
+  values (target_game, caller_id, 'pass', true, g_row.turn_number, caller_seat);
+
+  -- _end_turn hands back the turn state it wrote, which is the rest of what
   -- passing does.
   turn_state := codenamesduet._end_turn(target_game);
 
@@ -1304,31 +1307,22 @@ grant execute on function codenamesduet.pass_turn(uuid) to authenticated;
 -- player_results) in one place.
 
 -- ============================================================
--- codenamesduet.get_clue_context — read-only RPC for the suggester
+-- codenamesduet._require_clue_giver — who may ask the AI
 -- ============================================================
--- Returns a jsonb object with:
---   greens:         text[]  — caller's unrevealed green agents
---   neutrals:       text[]  — caller's unrevealed neutrals (avoid)
---   assassins:      text[]  — caller's still-unrevealed assassins (avoid).
---                              A Duet key card carries THREE assassins, so
---                              this is an ARRAY of the 0..3 not-yet-revealed
---                              ones — never a single word. Empty [] once all
---                              three are revealed.
---   previous_clues: array of {word, count, by_seat, turn_number}
+-- The gate `get_clue_context` and `log_hint` share, so the two can never
+-- disagree about who may ask: the game exists, the caller is one of its
+-- players, it is still running, and the caller holds the clue seat. Returns
+-- that seat. Raises; the calling RPC's handler turns the raise into the
+-- envelope.
 --
--- Authorization: caller must be the current clue-giver of an
--- active (or sudden-death) game. We do the check here so the
--- Edge Function can stay a thin orchestrator; it gets back either
--- a clean context or a clean rejection.
---
--- ONE `ok`, and both refusals are the clue form's own races said again: the
--- AI button sits on that form, one line from Submit, and loses exactly the
--- races Submit loses. The sentences are submit_clue's, word for word — hearing
--- two different ones for a single event would be the tell that they were
--- written twice.
+-- Both refusals are the clue form's own races said again: the AI button sits
+-- on that form, one line from Submit, and loses exactly the races Submit
+-- loses. The sentences are submit_clue's, word for word — hearing two
+-- different ones for a single event would be the tell that they were written
+-- twice.
 
-create or replace function codenamesduet.get_clue_context(target_game uuid)
-returns jsonb
+create or replace function codenamesduet._require_clue_giver(target_game uuid)
+returns text
 language plpgsql
 security definer
 set search_path = codenamesduet, common, public, extensions
@@ -1338,9 +1332,6 @@ declare
   g_row codenamesduet.games%rowtype;
   current_play_state text;
   caller_seat text;
-  caller_key jsonb;
-  ctx jsonb;
-  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select * into g_row from codenamesduet.games where id = target_game;
   if not found then
@@ -1354,10 +1345,6 @@ begin
                    when g_row.user_a_id then 'A'
                    when g_row.user_b_id then 'B'
                  end;
-  caller_key := case caller_seat
-                  when 'A' then g_row.key_card_a
-                  when 'B' then g_row.key_card_b
-                end;
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1373,7 +1360,7 @@ begin
   -- `is distinct from` rather than `<>`, and load-bearing: a caller seated in
   -- neither column gets NULL from the `case` above, and `NULL <> 'A'` is NULL,
   -- which `if` reads as false. The NULL-safe form rejects them instead — which
-  -- is why this RPC needs no seat check of its own, where the three turn-loop
+  -- is why this gate needs no seat check of its own, where the three turn-loop
   -- RPCs each grew one (PN384-PN386).
   if caller_seat is distinct from g_row.current_clue_giver then
     -- The same race as submit_clue's PN371: the giver flips inside _end_turn,
@@ -1383,6 +1370,50 @@ begin
       using errcode = 'PN389', hint = 'race', column = '_',
       detail = 'only the clue-giver may ask the AI';
   end if;
+
+  return caller_seat;
+end;
+$$;
+
+revoke execute on function codenamesduet._require_clue_giver(uuid) from public;
+
+-- ============================================================
+-- codenamesduet.get_clue_context — read-only RPC for the suggester
+-- ============================================================
+-- Returns a jsonb object with:
+--   greens:         text[]  — caller's unrevealed green agents
+--   neutrals:       text[]  — caller's unrevealed neutrals (avoid)
+--   assassins:      text[]  — caller's still-unrevealed assassins (avoid).
+--                              A Duet key card carries THREE assassins, so
+--                              this is an ARRAY of the 0..3 not-yet-revealed
+--                              ones — never a single word. Empty [] once all
+--                              three are revealed.
+--   previous_clues: array of {word, count, by_seat, turn_number}
+--
+-- Authorization is `_require_clue_giver`, above, so the Edge Function can stay
+-- a thin orchestrator: it gets back either a clean context or a clean
+-- rejection. ONE `ok`.
+
+create or replace function codenamesduet.get_clue_context(target_game uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+declare
+  g_row codenamesduet.games%rowtype;
+  caller_seat text;
+  caller_key jsonb;
+  ctx jsonb;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+begin
+  caller_seat := codenamesduet._require_clue_giver(target_game);
+
+  select * into g_row from codenamesduet.games where id = target_game;
+  caller_key := case caller_seat
+                  when 'A' then g_row.key_card_a
+                  when 'B' then g_row.key_card_b
+                end;
 
   -- Build the context object. Each of the three category lookups
   -- uses the caller's key view (caller_key) indexed by w.position.
@@ -1412,14 +1443,14 @@ begin
     'previous_clues', coalesce((
       select jsonb_agg(
         jsonb_build_object(
-          'word', c.word,
-          'count', c.count,
-          'by_seat', c.by_seat,
-          'turn_number', c.turn_number
-        ) order by c.turn_number
+          'word', e.clue_word,
+          'count', e.clue_count,
+          'by_seat', e.seat,
+          'turn_number', e.turn_number
+        ) order by e.id
       )
-      from codenamesduet.clues c
-      where c.game_id = target_game
+      from codenamesduet.events e
+      where e.game_id = target_game and e.kind = 'clue'
     ), '[]'::jsonb)
   ) into ctx;
 
@@ -1443,3 +1474,56 @@ $$;
 
 revoke execute on function codenamesduet.get_clue_context(uuid) from public;
 grant execute on function codenamesduet.get_clue_context(uuid) to authenticated;
+
+-- ============================================================
+-- codenamesduet.log_hint — record that the clue-giver asked the AI
+-- ============================================================
+-- Called by the `codenamesduet-suggest-clue` edge function AFTER the model has
+-- returned a suggestion, so only a hint somebody actually received is logged —
+-- a model that declines, or is cut off, leaves no row. The row carries no
+-- payload: the suggestion names the agents it targets, and stored where the
+-- partner's client can read it, it would spoil their guessing.
+--
+-- The gate is `_require_clue_giver`, the same one `get_clue_context` asked a
+-- moment earlier; between the two the model was thinking, so a refusal here is
+-- the same race arriving late. ONE `ok`. A hint spends no turn.
+
+create or replace function codenamesduet.log_hint(target_game uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+declare
+  g_row codenamesduet.games%rowtype;
+  caller_seat text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+begin
+  caller_seat := codenamesduet._require_clue_giver(target_game);
+
+  select * into g_row from codenamesduet.games where id = target_game;
+
+  insert into codenamesduet.events (game_id, user_id, kind, took_turn, turn_number, seat)
+  values (
+    target_game,
+    case caller_seat when 'A' then g_row.user_a_id else g_row.user_b_id end,
+    'hint', false, g_row.turn_number, caller_seat
+  );
+
+  return common.ok_envelope(jsonb_build_object('result', 'logged'));
+
+-- One block, and it has never heard of any specific condition: it reads the
+-- SQLSTATE, re-raises anything that isn't ours, and lets the raise itself carry
+-- the message, the kind and the field.
+exception when others then
+  get stacked diagnostics
+    v_msg = message_text, v_detail = pg_exception_detail,
+    v_hint = pg_exception_hint, v_code = returned_sqlstate,
+    v_col = column_name, v_out = constraint_name;
+  if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
+end;
+$$;
+
+revoke execute on function codenamesduet.log_hint(uuid) from public;
+grant execute on function codenamesduet.log_hint(uuid) to authenticated;

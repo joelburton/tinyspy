@@ -15,7 +15,7 @@
 --   2. The partner can still guess the same word — and it can be their agent.
 --   3. Once contacted as an agent (global 'G'), it's locked for both.
 --   4. Both seats hitting a word as neutral locks it for both.
---   5. Every guess is logged to codenamesduet.guesses (a word can appear twice).
+--   5. Every guess is logged to codenamesduet.events (a word can appear twice).
 --
 -- The two locks answer DIFFERENTLY, which is the point of 3 vs 4: a globally
 -- contacted agent is "That word is already revealed" (PN382), while your own
@@ -83,11 +83,12 @@ select is(
   'a neutral is NOT a global reveal (revealed_as stays null)'
 );
 select is(
-  (select count(*)::int from codenamesduet.guesses
-    where game_id = (select id from g1) and position = (select p_ng from cells)
-      and guesser_seat = 'B' and result = 'N'),
+  (select count(*)::int from codenamesduet.events
+    where game_id = (select id from g1) and kind = 'guess'
+      and guess_position = (select p_ng from cells)
+      and seat = 'B' and guess_result = 'N'),
   1,
-  'the guess was logged to codenamesduet.guesses'
+  'the guess was logged to codenamesduet.events'
 );
 
 -- ─── Turn 2: bea clues, ada guesses P → GREEN on bea's view (the fix!) ───
@@ -143,7 +144,8 @@ select is(
 );
 
 select is(
-  (select count(*)::int from codenamesduet.guesses where game_id = (select id from g1)),
+  (select count(*)::int from codenamesduet.events
+    where game_id = (select id from g1) and kind = 'guess'),
   4,
   'every guess is logged (P×2, Q×2); the rejected re-guess inserted nothing'
 );
