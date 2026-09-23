@@ -370,7 +370,7 @@ src/spellingbee/
                           End / Concede; it passes the entry primitives (word / setWord / submit /
                           localFeedback / …) DOWN to BoardCol (a thin-input game, like
                           boggle/connections). Wires the common usePeerFeedback to the header slot
-                          for peer/opponent events. buildOver branches mode → terminal verdict
+                          for peer/opponent events. lib/terminal.ts branches mode → terminal verdict
                           message (a TerminalMessage the verdict + the info-column row share), and pops the
                           shared CelebrationBlockingModal on a coop win via useCelebration.
     BoardCol.tsx          The board column: the honeycomb <Letters> + a floating Shuffle over its
@@ -550,7 +550,7 @@ src/spellingbee/
 
 ### Routes & shell
 
-Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `<GamePage>`, which builds the play surface around `spellingbee`'s shared `PlayArea`. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the terminal copy (`buildOver`) and the coop-win `<CelebrationBlockingModal>` — same pattern as connections / psychicnum / codenamesduet, since the verdict copy needs game-specific context.
+Standard PuzPuzPuz route: `/g/spellingbee_coop/<gameId>` or `/g/spellingbee_compete/<gameId>` (the gametype URL segment is the sibling-manifest's full string, not the `baseGametype`). Mounted by `<GamePage>`, which builds the play surface around `spellingbee`'s shared `PlayArea`. `GamePage` owns the cross-cutting chrome (header / timer / pause overlay / chat / Back-to-club / common menu items). `PlayArea` owns everything per-game, including the terminal copy (`buildTerminalMessage` in `lib/terminal.ts`) and the coop-win `<CelebrationBlockingModal>` — same pattern as connections / psychicnum / codenamesduet, since the verdict copy needs game-specific context.
 
 ### State flow for one submission
 
@@ -575,7 +575,7 @@ When `isTerminal` flips true:
 4. `game.requiredWords` is already present (both word lists ship from game start — see [The word lists ship to the FE](#the-word-lists-ship-to-the-fe-not-hidden)); the terminal reveal is the client-side `(required ∪ bonus) − found`, no refetch needed.
 5. The rows handed to `<WordList>` already carry the reveal: `buildWordListRows` folds in every word nobody found — required **and** bonus — and they render as gray rows interleaved alphabetically among the found ones.
 
-The verdict copy is computed by `buildOver({mode, playState, status, targetRankIdx, ...})`. Rank names come straight off the shared ladder — `RANKS[idx]` from [`rankLadder`](../../src/shared/rank-ladder/rankLadder.ts) — and a rank naming the GOAL is quoted (`"Amazing"`); the neutral `Ended:` verdict names the rank reached, unquoted.
+The verdict copy is computed by `buildTerminalMessage({mode, playState, reason, targetRankIdx, ...})` in `lib/terminal.ts`. Rank names come straight off the shared ladder — `RANKS[idx]` from [`rankLadder`](../../src/shared/rank-ladder/rankLadder.ts) — and a rank naming the GOAL is quoted (`"Amazing"`); the neutral `Ended:` verdict names the rank reached, unquoted.
 
 **Coop** (`targetRankIdx` = `setup.target_rank`, null for the open-ended hunt):
 - `won` → outcome `won`, verdict `Won: "<target rank>" N/M points` — the rank NAMED is the one they set out for; the score can overshoot it.
@@ -640,7 +640,7 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 | asking… | look at… |
 |---|---|
 | Everything server-side — schema, column grants, RLS, the `games_state` view, `candidate_words`, the RPCs (`create_game` / `submit_word` / `submit_timeout` / `end_game`), the `submit_timeout` Realtime-touch, the `mode` column + mode-aware RLS, and the `spellingbee_coop`/`spellingbee_compete` gametype rows | [`supabase/migrations/20260617000000_spellingbee.sql`](../../supabase/migrations/20260617000000_spellingbee.sql) |
-| Compete-specific FE rendering (OpponentStrip, mode-aware buildOver) | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
+| Compete-specific FE rendering (OpponentStrip, mode-aware terminal message) | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx), [`src/spellingbee/lib/terminal.ts`](../../src/spellingbee/lib/terminal.ts) |
 | Target-rank picker + word-difficulty (required/legal band) fields + custom-letters fields in the setup dialog | [`src/spellingbee/components/SetupForm.tsx`](../../src/spellingbee/components/SetupForm.tsx); the shared dropdown is [`src/common/fields/DictBandField.tsx`](../../src/common/fields/DictBandField.tsx); the combined Start gate (`legal ≥ required` + custom-letter rules) is `spellingbeeSetupError` in [`src/spellingbee/lib/setup.ts`](../../src/spellingbee/lib/setup.ts) |
 | How the word list is populated | `common.words` via [`supabase/scripts/import-words.ts`](../../supabase/scripts/import-words.ts) (read live from `~/src/gamelist/words.tsv`) — see [common.md](../common.md#the-word-list-commonwords) |
 | How the pangram seed pool is built | [`supabase/scripts/import-spellingbee-pangrams.ts`](../../supabase/scripts/import-spellingbee-pangrams.ts) (derives `spellingbee.pangrams` from `common.words`) |

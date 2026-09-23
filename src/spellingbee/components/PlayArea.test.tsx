@@ -209,7 +209,7 @@ describe('spellingbee PlayArea — render smoke', () => {
  * The compete collective losses both land on play_state `lost_compete` and are
  * told apart only by `status.reason` — the two-places trap's third surface
  * (labelFor and the report fixtures assert the club card; nothing else asserts
- * the in-game verdict). These pin buildOver to the terminals the server
+ * the in-game verdict). These pin buildTerminalMessage to the terminals the server
  * actually writes: common.concede → 'lost_compete' + outcome 'conceded',
  * submit_timeout → 'lost_compete' + outcome 'timeout'.
  */

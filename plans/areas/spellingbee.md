@@ -423,6 +423,37 @@ Restart / New game menu-only. **Verified by planting** New game's old
 restored from scratchpad copies, green. `tsc -b` clean, lint clean over
 `src/spellingbee/`, 345 unit tests green (the game's and the guards).
 
+### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-22
+
+wordle's Step 6, copied, names and all: the builder is **`buildTerminalMessage`**
+in `lib/terminal.ts`, the value it produces is `terminalMessage`, and InfoCol's
+`over` prop is `terminalMessage` too. `PlayArea.tsx` no longer imports
+`gameEndedTerminalMessage`, the `TerminalMessage` type or `Actor`; the
+`useMemo` on primitives that feeds the verdict effect stays there. The body
+moved unchanged — same branches, same words.
+
+**One rename on the way out, which wordle's did not need:** the input was
+`statusOutcome`, a name left from before `status.outcome` became
+`status.reason`. It is `reason` now, as wordle's builder has it, and the three
+docstring lines that said "`lost_compete` + outcome `conceded`" say "reason".
+The value is the same `status.reason` it always was.
+
+`lib/terminal.test.ts` walks the whole input space — every terminal play state
+in both modes (`won` · `lost` · `ended` · `won_compete` · `lost_compete`), the
+caller winning and beaten, the winner known to the roster and not, both
+collective losses told apart by reason — and the last case is a TABLE: no cell
+pairs a winning sentence with a losing outcome, and both texts are filled. Both
+files join the roster at `cs-met-spellingbee`. The old
+`docs/games/spellingbee.md`'s four mentions of `buildOver` and one test comment
+name the new function.
+
+**Still standing for Step 8:** `PlayArea`'s surface docstring describes
+verdicts that do not exist ("You won the race!", "Beaten to the punch.") — the
+Step 3 note above; the builder's own docstring, which moved with it, is right.
+
+Verified: `tsc -b` clean, lint clean over `src/spellingbee/`, 353 unit tests
+green (the game's and the guards). The e2e specs have not run for Steps 2–6.
+
 ## Findings
 
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it
