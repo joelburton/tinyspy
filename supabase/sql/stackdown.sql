@@ -285,14 +285,15 @@ declare
   player_results jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first, before the membership gate: a friend deleting the game
+  -- takes every membership with it (docs/envelopes.md → a missing game row
+  -- is PN485).
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN286', hint = 'fault', column = '_',
-      detail = 'no stackdown.games row for target_game';
+    perform common._raise_game_deleted('stackdown');
   end if;
+
+  caller_id := common.require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
@@ -494,16 +495,17 @@ declare
   next_word text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first, before the membership gate: a friend deleting the game
+  -- takes every membership with it (docs/envelopes.md → a missing game row
+  -- is PN485).
   -- `for update` serializes the request-logging insert below against
   -- concurrent submits / spoilers on this game.
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN293', hint = 'fault', column = '_',
-      detail = 'no stackdown.games row for target_game';
+    perform common._raise_game_deleted('stackdown');
   end if;
+
+  caller_id := common.require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
@@ -598,16 +600,17 @@ declare
   hint_text text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first, before the membership gate: a friend deleting the game
+  -- takes every membership with it (docs/envelopes.md → a missing game row
+  -- is PN485).
   -- `for update` serializes the request-logging insert below (see
   -- reveal_next_word).
   select * into g_row from stackdown.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN295', hint = 'fault', column = '_',
-      detail = 'no stackdown.games row for target_game';
+    perform common._raise_game_deleted('stackdown');
   end if;
+
+  caller_id := common.require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then

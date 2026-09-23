@@ -459,7 +459,7 @@ living on `common.games` where no scrabble version tracks it, and that is why
 | `PN454` `BUG: a pass in a coop game` | `fault` | see Deferred — the rule itself is in question |
 | `PN443` / `PN451` / `PN458` `BUG: a move/swap/pass from a player with no seat` | `fault` | the human wrappers |
 | `PN444` / `PN452` / `PN459` `BUG: an AI move/swap/pass on a human seat` | `fault` | the AI wrappers |
-| `PN435` / `PN445` / `PN453` "That game no longer exists" | `fault` | |
+| `PN485` "That game was already deleted" | `race` | `common._raise_game_deleted`, asked in every wrapper before the membership gate — a friend may delete the game from the club list |
 
 There is **no instant-win threshold** — Scrabble is decided at game end, not by
 crossing a score. So `play_word` only *ends* the game via the natural triggers.
@@ -885,9 +885,11 @@ commit), not the TS-owned geometry/scoring:
   (out-of-bounds / occupied square / tile-not-in-rack rejects), the **dictionary
   free reject** (no row, no state change, no version bump), the happy path (board
   applied, rack drawn from bag, score added, version bumped), compete turn advance,
-  and the **title** becoming the first word played.
+  the **title** becoming the first word played, and a word into a game a friend
+  just deleted answering the shared race (PN485).
 - `exchange_pass` — both move RPCs in one file: bag-≥7 gate, version CAS, the
-  pass streak (pass feeds it, exchange clears it), turn advance.
+  pass streak (pass feeds it, exchange clears it), turn advance, and each into
+  a deleted game answering the shared race.
 - `auto_finish` — the game-ends-**itself** paths (`_finish`): going-out + the
   all-passed blocked trigger, final scoring (leftover subtraction + the
   going-out bonus, compete; the neutral score report, coop), winner
@@ -918,9 +920,11 @@ commit), not the TS-owned geometry/scoring:
 - `ai_players` — AI seats ([§12](#12-the-ai-opponent-compete)): `create_game`
   seats them (and rejects a dictionary narrower than the AI's band, bad counts,
   and coop), `get_ai_context` is the member-gated, AI-seat-only, its-turn-only
-  door to the AI's hidden rack, and the `ai_*` RPCs act for the seat.
+  door to the AI's hidden rack, and the `ai_*` RPCs act for the seat; each of
+  the four on a deleted game answers the shared race.
 - `get_suggest_context` — the move suggester's definer door ([§11](#11-the-move-suggester-ai)):
-  membership + `playing` + coop-only gates; the happy path returns its five
+  a deleted game (the shared race, asked first), membership + `playing` +
+  coop-only gates; the happy path returns its five
   keys atomically.
 - `rls` — own rack only mid-game / peers' revealed at terminal; bag never
   revealed (only `bag_count`); board + plays public; club-membership gates.
@@ -975,7 +979,8 @@ POST /functions/v1/scrabble-suggest-move   { game_id }
 **`scrabble.get_suggest_context(uuid)`** is the function's one read — a
 SECURITY DEFINER RPC (the `codenamesduet.get_clue_context` shape), because the
 dictionary bands are **grant-hidden** on `scrabble.games` and this is the one
-sanctioned door. It enforces membership (`require_game_player`), `play_state =
+sanctioned door. It asks that the game still exists (a friend may have deleted
+it: the shared race), then enforces membership (`require_game_player`), `play_state =
 'playing'`, and **coop only** (in compete the rack is private — the gate is
 also what keeps the suggester from becoming a rack-reading side channel), then
 returns `{board, rack, dict_2, dict_3plus, version}` from one SELECT — an

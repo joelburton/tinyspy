@@ -373,7 +373,8 @@ prettier title here.
 | `PN287` · `PN294` · `PN296` "Game over" · `PN288` "Already conceded" | `race` | |
 | `PN289` `BUG: submit after solving` · `PN290` `BUG: word that was not five distinct tiles` · `PN292` `BUG: word using a covered tile` | `fault` | the board only ever offers exposed, unremoved tiles, five at a time |
 | `PN298` · `PN299` `BUG: reveal/hint after the stack was cleared` · `PN297` `BUG: no hint for a band-N word` | `fault` | both buttons disappear at terminal |
-| `PN286` · `PN293` · `PN295` "That game no longer exists" · `PN051` (`create_game`) | `fault` | |
+| `PN485` "That game was already deleted" | `race` | from `common._raise_game_deleted`, asked before the membership gate: a friend may delete the game from the club list mid-move |
+| `PN051` (`create_game`) | `fault` | |
 
 ### The one outcome decision (`lib/answer.ts`)
 

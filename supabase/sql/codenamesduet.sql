@@ -443,9 +443,9 @@ grant execute on function codenamesduet.create_game(text, jsonb, uuid[]) to auth
 -- count from zero up are all recorded. The players police their own clues, as
 -- they would at a table (CLAUDE.md → Trust model); the form allows one digit.
 --
--- Three of its five raises are RACES, because every one of them turns on
--- state the clue form cannot see change under it (the other two, PN369 and
--- PN384, are faults). The form is rendered from
+-- Five of its six raises are RACES, because every one of them turns on
+-- state the clue form cannot see change under it (the sixth, PN384, is a
+-- fault). The form is rendered from
 -- `current_clue_giver` and the turn's clue event, both of which arrive by
 -- subscription, while the Submit button unlocks the moment this RPC replies —
 -- so the window between "my move landed" and "my form knows" is real.
@@ -476,11 +476,9 @@ begin
   select * into g_row from codenamesduet.games
    where id = target_game for update;
   if not found then
-    -- The id came from the FE's own route; there is no second player who could
-    -- have deleted the game out from under this call.
-    raise exception 'That game no longer exists'
-      using errcode = 'PN369', hint = 'fault', column = '_',
-      detail = 'no codenamesduet.games row for target_game';
+    -- Any club member may delete the game while the form is up; that is a
+    -- race, not a broken client (docs/envelopes.md → a missing game row).
+    perform common._raise_game_deleted('codenamesduet');
   end if;
 
   select play_state into current_play_state
@@ -643,9 +641,7 @@ begin
   select * into g_row from codenamesduet.games
    where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN378', hint = 'fault', column = '_',
-      detail = 'no codenamesduet.games row for target_game';
+    perform common._raise_game_deleted('codenamesduet');
   end if;
 
   select play_state into current_play_state
@@ -1238,9 +1234,7 @@ begin
   select * into g_row from codenamesduet.games
    where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN373', hint = 'fault', column = '_',
-      detail = 'no codenamesduet.games row for target_game';
+    perform common._raise_game_deleted('codenamesduet');
   end if;
 
   select play_state into current_play_state
@@ -1365,9 +1359,7 @@ declare
 begin
   select * into g_row from codenamesduet.games where id = target_game;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN387', hint = 'fault', column = '_',
-      detail = 'no codenamesduet.games row for target_game';
+    perform common._raise_game_deleted('codenamesduet');
   end if;
 
   caller_id := common.require_game_player(target_game);

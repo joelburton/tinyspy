@@ -569,14 +569,15 @@ declare
   k            int;
   out_terminal boolean := false;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first, before the membership gate: a friend deleting the game
+  -- takes every membership with it (docs/envelopes.md → a missing game row
+  -- is PN485).
   select * into g_row from setgame.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN273', hint = 'fault', column = '_',
-      detail = 'no setgame.games row for target_game';
+    perform common._raise_game_deleted('setgame');
   end if;
+
+  caller_id := common.require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   if cur_state <> 'playing' then
@@ -765,8 +766,6 @@ declare
   v_used    int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
   -- FOR UPDATE, even though nothing here writes the games row.
   --
   -- It is the LOCK ORDER that matters. This function updates a players row and
@@ -782,12 +781,15 @@ begin
   -- the same order, so the cycle cannot form regardless of what the client
   -- fires concurrently. (The client also awaits this call before claiming —
   -- belt and braces, and the causal order anyway.)
+  --
+  -- And the row before the membership gate: a friend deleting the game takes
+  -- every membership with it (docs/envelopes.md → a missing game row is PN485).
   select * into g_row from setgame.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN279', hint = 'fault', column = '_',
-      detail = 'no setgame.games row for target_game';
+    perform common._raise_game_deleted('setgame');
   end if;
+
+  caller_id := common.require_game_player(target_game);
 
   if g_row.mode <> 'coop' then
     -- Mode is fixed at create_game and never changes, so no unbroken client

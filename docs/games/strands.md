@@ -283,7 +283,7 @@ somebody else overtook:
 | `PN421` "Crosses a found word" | `race` | the one path check a TEAMMATE can cause: their find consumed tiles you were drawing through. The FE drops a trace when a peer's find touches it, but a find landing mid-flight beats that |
 | `PN419` "Game over" · `PN420` "Already conceded" · `PN243` "Not your turn" | `race` | |
 | `PN422`–`PN427` `BUG: …` | `fault` | not a path, empty, a cell that isn't `[row, col]`, off the board, a jump, a self-crossing |
-| `PN418` "That game no longer exists" | `fault` | |
+| `PN485` "That game was already deleted" | `race` | a friend deleted the game from the club list; `common._raise_game_deleted`, asked before the membership gate — `spend_hint` answers the same |
 
 The six faults share one justification: **the frontend BUILDS the trace**, cell
 by cell, through `clickTile` — which only ever appends an adjacent, unvisited,
@@ -692,9 +692,9 @@ ambiguous-ABBA board that pins the match-by-placement fix):
 
 | file | pins |
 |---|---|
-| `gameplay_test.sql` | the classification order, the hint bar's fill/cap/dedup, coop terminal = board consumed |
+| `gameplay_test.sql` | the classification order, the hint bar's fill/cap/dedup, coop terminal = board consumed, a trace into a deleted game |
 | `validation_test.sql` | every malformed-path shape gets its **designed** P0001 (planted one by one — the original guard used `rs @> array[null]`, which can never match, so this file exists to fail on a regression to that); integral floats normalize instead |
-| `hint_test.sql` | spend semantics: random pick persisted, coords only, one at a time, cleared by placement |
+| `hint_test.sql` | spend semantics: random pick persisted, coords only, one at a time, cleared by placement, a hint asked of a deleted game |
 | `turn_order_test.sql` | the opt-in turns coop: pointer seating, `'not your turn'`, advance on accepted moves only |
 | `compete_test.sql` | the race: per-player boards, the privacy line, fewest-hints ranking, concede-with-a-solver |
 | `conceded_test.sql` | a conceder gets no more moves and can't win (the forfeit ruling, incl. solve-then-concede); all-conceded → `'conceded'`; the mid-race `active_hint_coords` shield |

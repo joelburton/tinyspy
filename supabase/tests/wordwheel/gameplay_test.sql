@@ -28,12 +28,13 @@
 --   7. coop has NO auto-terminal past required_words_count.
 --   8. submit_timeout / end_game terminal transitions + idempotency + auth.
 --   9. games_state exposes required_words during play + at terminal.
+--  10. a word into a game deleted under it is the shared race (PN485).
 
 begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(49);
+select plan(50);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -517,6 +518,23 @@ select is(
     where game_id = (select id from dup_g) and word = 'egged'),
   1::bigint,
   'submit_word: the repeat-letter word inserts one found_words row'
+);
+
+-- ============================================================
+-- (10) A call into a game a friend just deleted
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so the call
+-- is answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+
+reset role;
+delete from common.games where id = (select id from g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  wordwheel.submit_word((select id from g), 'bead', 1, false, false),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'a word into a game deleted under it is the shared race'
 );
 
 -- ============================================================

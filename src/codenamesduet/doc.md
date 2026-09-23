@@ -478,7 +478,7 @@ test finds a position by its label), `pg_temp.codenamesduet_setup()` and
 | file | pins |
 |---|---|
 | `create_game_test` | the refusals — no sign-in, an outsider, a roster that is not two, a bad turn budget, a bad timer — the rows written, and the key card's joint table exactly |
-| `game_loop_test` | who may clue, guess and pass in which phase; an agent goes on, a bystander ends the turn and hands the clue over, a pass spends a turn; the assassin ends the game; no answer carries an outcome |
+| `game_loop_test` | who may clue, guess and pass in which phase; an agent goes on, a bystander ends the turn and hands the clue over, a pass spends a turn; the assassin ends the game; no answer carries an outcome; a clue, a guess and a pass into a deleted game are the shared race |
 | `clue_giver_handoff_test` | a finished player gives no more clues, from either seat, and two live seats still alternate |
 | `cross_direction_test` | a bystander locks the guesser's side only; the partner can still contact the word; the two locks answer in different words |
 | `win_test` | the fourteenth agent plays on and the fifteenth wins |
@@ -487,7 +487,7 @@ test finds a position by its label), `pg_temp.codenamesduet_setup()` and
 | `end_game_test` | `ended` with the reason `manual`, nobody winning, and a second call refused |
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
 | `events_test` | what each move writes to the log, `took_turn` included; the one-clue index and the payload CHECK |
-| `clue_context_test` | `get_clue_context`'s gate, and every agent, bystander and assassin in its answer |
+| `clue_context_test` | `get_clue_context`'s gate, and every agent, bystander and assassin in its answer; a deleted game is the shared race through it and `log_hint` |
 | `rls_test` | an outsider sees no row of any table and cannot move; a direct insert is refused |
 
 The edge function has no tests; `deno check` is its only net.

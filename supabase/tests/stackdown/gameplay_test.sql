@@ -6,7 +6,7 @@
 -- Coop: one shared board, any player advances it. Unreachable tiles are
 -- rejected hard; a reachable non-word is a soft "invalid" (logged, not
 -- removed); six accepted words clear the board and win, revealing the
--- solution.
+-- solution. Last, a word into a game a friend just deleted is the shared race.
 
 begin;
 set search_path = stackdown, common, public, extensions;
@@ -14,7 +14,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(15);
+select plan(16);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -106,6 +106,20 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
   (select array_length(solution, 1) from stackdown.games_state where id = (select id from g)),
   6, 'post-terminal: the solution (six words) is revealed');
+
+-- ── A word into a game a friend just deleted ──
+-- The delete takes the game's rows and every membership together, so this is
+-- the shared race rather than a fault, or "You are not in this game"
+-- (docs/envelopes.md → a missing game row is PN485).
+reset role;
+delete from common.games where id = (select id from g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  stackdown.submit_word((select id from g), pg_temp.sd_seq(1)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'submit_word into a deleted game is the shared race, not a fault'
+);
 
 select * from finish();
 rollback;

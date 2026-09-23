@@ -12,13 +12,14 @@
 --
 -- What a hint publishes is COORDS, never the word: it rings the tiles and
 -- leaves the player to work out the order. Test (5) is that distinction, and it
--- is a real leak if it ever regresses.
+-- is a real leak if it ever regresses. A hint asked of a game a friend just
+-- deleted is the shared race (PN485).
 
 begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(18);
+select plan(19);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -253,6 +254,29 @@ select is(
   (select count(*) from strands.events where game_id = (select id from game)),
   0::bigint,
   'a replay clears the hint rows too — a restart is indistinguishable from a fresh game'
+);
+
+-- ============================================================
+-- A move into a game a friend just deleted
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so the move
+-- is answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gdel on commit drop as
+select (strands.create_game(
+  (select handle from club), pg_temp.strands_setup((select puzzle_id from fix)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gdel);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  strands.spend_hint((select id from gdel)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'spend_hint on a deleted game is the shared race (PN485)'
 );
 
 select * from finish();

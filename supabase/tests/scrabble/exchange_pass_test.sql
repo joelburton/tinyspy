@@ -6,7 +6,8 @@
 -- Exchange returns tiles to the bag, reshuffles, redraws the same count
 -- (needs bag ≥ 7). Pass forfeits a compete turn. Both bump version and
 -- advance the turn (coop has no pass), but they treat the blocked-end
--- streak oppositely: a pass feeds it, an exchange clears it.
+-- streak oppositely: a pass feeds it, an exchange clears it. Either one into
+-- a game a friend just deleted is the shared race (PN485).
 
 begin;
 set search_path = scrabble, common, public, extensions;
@@ -14,7 +15,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(18);
+select plan(20);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -165,6 +166,30 @@ select is((select count(*)::int from
                    || (select bag from scrabble.games where id = (select id from gbk))) t
            where t = '?'),
   1, 'the `?` is conserved in the rack+bag pool (neither lost nor duplicated)');
+
+-- ─── A move into a game a friend just deleted ────────────
+-- The delete takes the game's rows and every membership together, so the move
+-- is answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gdel on commit drop as
+  select (scrabble.create_game((select handle from cl),
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gdel);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  scrabble.exchange_tiles((select id from gdel), 0, array['A']),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'exchange_tiles into a deleted game is the shared race (PN485)');
+select pg_temp.envelope_is(
+  scrabble.pass_turn((select id from gdel), 0),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'pass_turn into a deleted game is the shared race (PN485)');
 
 select * from finish();
 rollback;

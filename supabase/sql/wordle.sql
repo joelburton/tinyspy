@@ -548,14 +548,16 @@ declare
   player_results     jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first: a friend may have deleted the game, and the delete takes
+  -- every membership with it, so the membership gate would answer "You are
+  -- not in this game" to a player who was (docs/envelopes.md → a missing game
+  -- row is PN485).
   select * into g_row from wordle.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN254', hint = 'fault', column = '_',
-      detail = 'no wordle.games row for target_game';
+    perform common._raise_game_deleted('wordle');
   end if;
+
+  caller_id := common.require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;

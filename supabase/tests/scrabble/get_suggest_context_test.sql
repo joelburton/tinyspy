@@ -6,7 +6,8 @@
 -- The move suggester's context RPC (docs/scrabble-ai.md S4): SECURITY
 -- DEFINER, so it can hand the edge function the grant-hidden dictionary
 -- bands — which makes its own gates the whole security story:
---   membership (require_game_player), play_state = playing, mode = coop.
+--   a deleted game (the shared race, PN485, asked first), membership
+--   (require_game_player), play_state = playing, mode = coop.
 -- The happy path must return all five keys atomically.
 
 begin;
@@ -15,7 +16,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(9);
+select plan(10);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table cl on commit drop as
@@ -90,6 +91,25 @@ select is((select jsonb_array_length(c->'board') from ctx), 225,
   'board is the flat 225-cell array');
 select is((select c->'rack' from ctx), '["A","B","C","D","E","F","?"]'::jsonb,
   'rack is the shared coop rack, blanks included');
+
+-- ─── A move into a game a friend just deleted ────────────
+-- The delete takes the game's rows and every membership together, so the move
+-- is answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gdel on commit drop as
+  select (scrabble.create_game((select handle from cl),
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gdel);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  scrabble.get_suggest_context((select id from gdel)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'get_suggest_context on a deleted game is the shared race (PN485), not "not in this game"');
 
 select * from finish();
 rollback;

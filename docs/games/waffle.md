@@ -205,8 +205,8 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   common turn rotation via `common._assign_turn_order` — after validating that
   `setup.first_turn_user_id` is one of the players — so `submit_swap` can gate
   each swap.
-- **`submit_swap(game, pos_a, pos_b) → jsonb`** — the core move. Guards: playing
-  state, `require_game_player`, both positions filled (non-hole) and distinct,
+- **`submit_swap(game, pos_a, pos_b) → jsonb`** — the core move. Guards: the
+  game still exists, `require_game_player`, playing state, both positions filled (non-hole) and distinct,
   swaps remaining. Then:
   - **coop:** apply the swap to **all** players' rows (lock-step), `swaps_used++`,
     and append a `waffle.events` log row (swapper, positions, pre-swap
@@ -217,10 +217,11 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
     shows the swapper nothing until the colors reach everyone together over the
     realtime refetch, which is why the reply is deliberately ignored (see the
     PlayArea comment). The payload travels anyway — the fact is structural.
-  - Every refusal is a raise, and only two are races: `PN261` "Game over" (a
-    teammate ended it, or the clock ran out) and `PN262` "Already conceded".
-    The rest are faults, because the board cannot produce them: `PN260` no such
-    game, `PN263` a square swapped with itself, `PN264` an empty square, `PN265` already
+  - Every refusal is a raise, and only three are races: `PN485` "That game was
+    already deleted" (a friend deleted it from the club list; asked before the
+    membership gate), `PN261` "Game over" (a teammate ended it, or the clock ran
+    out) and `PN262` "Already conceded". The rest are faults, because the board
+    cannot produce them: `PN263` a square swapped with itself, `PN264` an empty square, `PN265` already
     solved and `PN266` no swaps left. The last two look like shared-budget races
     and are not — spending the last coop swap, or solving, ENDS the game, so a
     later swap meets the play_state guard instead; only compete keeps playing

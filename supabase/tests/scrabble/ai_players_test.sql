@@ -20,6 +20,7 @@
 --     (member-gated, AI-seat-only, its-turn-only)
 --   - ai_play_word / ai_pass_turn drive the AI seat through the shared commit core
 --   - _finish crowns an AI winner by uuid and handle, like any other winner
+--   - each AI move, and get_ai_context, into a deleted game is the shared race
 -- ============================================================
 
 begin;
@@ -36,7 +37,7 @@ begin execute sql into result; return result; end;
 $envfn$ language plpgsql;
 \ir setup.psql
 
-select plan(27);
+select plan(31);
 
 -- A compete game: ada (human, seat 0) + one best AI (seat 1), full dictionary.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -181,6 +182,40 @@ select is((select result->>'won' from common.game_players
   'false', 'the out-scored human is recorded a loss');
 select is((select play_state from common.games where id = (select id from gwin)),
   'won_compete', 'an AI win still crowns a winner (won_compete)');
+
+-- ─── A move into a game a friend just deleted ────────────
+-- The delete takes the game's rows and every membership together, so the move
+-- is answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gdel on commit drop as
+  select (scrabble.create_game((select handle from cl),
+    '{"dict_2": 6, "dict_3plus": 6, "ai_count": 1, "ai_level": "best", "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid], 'compete')->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gdel);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  scrabble.get_ai_context((select id from gdel)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'get_ai_context on a deleted game is the shared race (PN485)');
+select pg_temp.envelope_is(
+  scrabble.ai_play_word((select id from gdel), 1, 0,
+    '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['C'], 1),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'ai_play_word into a deleted game is the shared race (PN485)');
+select pg_temp.envelope_is(
+  scrabble.ai_exchange_tiles((select id from gdel), 1, 0, array['A']),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'ai_exchange_tiles into a deleted game is the shared race (PN485)');
+select pg_temp.envelope_is(
+  scrabble.ai_pass_turn((select id from gdel), 1, 0),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'ai_pass_turn into a deleted game is the shared race (PN485)');
 
 select * from finish();
 rollback;

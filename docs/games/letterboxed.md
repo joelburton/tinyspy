@@ -508,7 +508,7 @@ at the site that knows the condition. What the four turn RPCs can say:
 | `PN411` "BUG: a clear in turn-by-turn coop" | `fault` | |
 | `PN414` "BUG: a hint or spoiler in a compete game" | `fault` | |
 | `PN415` "BUG: a rung of an unknown kind" | `fault` | |
-| `PN396` / `PN404` / `PN408` / `PN412` "That game no longer exists" | `fault` | one per RPC |
+| `PN485` "That game was already deleted" | `race` | from `common._raise_game_deleted`, asked before the membership gate |
 
 **The split runs through `submit_word`'s five shape checks, and it is the one
 judgment worth understanding here.** `rejectReason` (`lib/board.ts`) checks all
@@ -783,7 +783,7 @@ genuinely unpartitionable pair), `isPlayable`, `isOneWordSolvable`,
   that union. Its absence from the UI is a decision rather than an oversight
   (§5 → "Undo and clear"), which is why it was left standing — but an
   unreachable RPC still has to be designed, converted, tested and carried, and
-  it now has four raise codes of its own (PN408–PN411). Removing it would take
+  it now has three raise codes of its own (PN409–PN411). Removing it would take
   the function, its grant, the union member and its roster row together;
   keeping it means keeping all four.
 

@@ -1155,14 +1155,15 @@ declare
   v_note     text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  v_caller := common.require_game_player(target_game);
+  -- The row first: a friend may delete the game from the club list at any
+  -- moment, and the delete takes the memberships with it (docs/envelopes.md →
+  -- a missing game row is PN485).
   select mode, meta, solution into v_mode, v_meta, v_solution
     from crosswords.games where id = target_game;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN479', hint = 'fault', column = '_',
-      detail = 'no crosswords.games row for target_game';
+    perform common._raise_game_deleted('crosswords');
   end if;
+  v_caller := common.require_game_player(target_game);
   v_owner := case when v_mode = 'coop' then null else v_caller end;
   v_note := v_meta ->> 'note';
 
@@ -1243,21 +1244,19 @@ set search_path = crosswords, common, public, extensions
 as $$
 declare
   v_solution jsonb;
-  v_found boolean;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common.require_game_player(target_game);
-
-  -- `found` separately from the blob: a missing game and a game whose solution
-  -- is null used to be one answer (a bare null), and the two call sites could
-  -- not tell them apart.
-  select true, g.solution into v_found, v_solution
+  -- The row first, read by `found` rather than by the blob, so a missing game
+  -- is never a null solution: a friend may delete the game from the club list
+  -- at any moment, and the delete takes the memberships with it
+  -- (docs/envelopes.md → a missing game row is PN485).
+  select g.solution into v_solution
     from crosswords.games g where g.id = target_game;
-  if not v_found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN477', hint = 'fault', column = '_',
-      detail = 'no crosswords.games row for target_game';
+  if not found then
+    perform common._raise_game_deleted('crosswords');
   end if;
+
+  perform common.require_game_player(target_game);
 
   return common.ok_envelope(jsonb_build_object(
     'result', 'exported', 'solution', v_solution));

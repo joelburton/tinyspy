@@ -3,6 +3,7 @@
 -- ============================================================
 -- Test: waffle.submit_swap (coop) — validation, lock-step, win, lose
 -- ============================================================
+-- Last, a swap into a game a friend just deleted is the shared race.
 
 begin;
 
@@ -12,7 +13,7 @@ set search_path = waffle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(22);
+select plan(23);
 
 -- ── Game 1: validation + lock-step + win ────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -182,6 +183,20 @@ select is(
   (select play_state from common.games where id = (select id from g2)),
   'lost',
   'running out of swaps without solving → play_state lost');
+
+-- ── A swap into a game a friend just deleted ──
+-- The delete takes the game's rows and every membership together, so this is
+-- the shared race rather than a fault, or "You are not in this game"
+-- (docs/envelopes.md → a missing game row is PN485).
+reset role;
+delete from common.games where id = (select id from g2);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  waffle.submit_swap((select id from g2), 2, 3),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'submit_swap into a deleted game is the shared race, not a fault'
+);
 
 select * from finish();
 rollback;

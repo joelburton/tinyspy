@@ -813,9 +813,8 @@ begin
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN435', hint = 'fault', column = '_',
-      detail = 'no scrabble.games row for target_game';
+    -- Deleted since the wrapper asked, which only a delete between the two can do.
+    perform common._raise_game_deleted('scrabble');
   end if;
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
@@ -1030,6 +1029,12 @@ declare
   v_seat    int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
+  -- A friend may delete the game from the club list at any moment, and the
+  -- delete takes the memberships with it — so the missing row is asked first
+  -- (docs/envelopes.md → a missing game row is PN485).
+  if not exists (select 1 from scrabble.games where id = target_game) then
+    perform common._raise_game_deleted('scrabble');
+  end if;
   caller_id := common.require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
@@ -1074,6 +1079,12 @@ as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
+  -- A friend may delete the game from the club list at any moment, and the
+  -- delete takes the memberships with it — so the missing row is asked first
+  -- (docs/envelopes.md → a missing game row is PN485).
+  if not exists (select 1 from scrabble.games where id = target_game) then
+    perform common._raise_game_deleted('scrabble');
+  end if;
   perform common.require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
@@ -1129,9 +1140,8 @@ begin
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN445', hint = 'fault', column = '_',
-      detail = 'no scrabble.games row for target_game';
+    -- Deleted since the wrapper asked, which only a delete between the two can do.
+    perform common._raise_game_deleted('scrabble');
   end if;
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
@@ -1252,6 +1262,12 @@ declare
   v_seat    int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
+  -- A friend may delete the game from the club list at any moment, and the
+  -- delete takes the memberships with it — so the missing row is asked first
+  -- (docs/envelopes.md → a missing game row is PN485).
+  if not exists (select 1 from scrabble.games where id = target_game) then
+    perform common._raise_game_deleted('scrabble');
+  end if;
   caller_id := common.require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
@@ -1283,6 +1299,12 @@ as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
+  -- A friend may delete the game from the club list at any moment, and the
+  -- delete takes the memberships with it — so the missing row is asked first
+  -- (docs/envelopes.md → a missing game row is PN485).
+  if not exists (select 1 from scrabble.games where id = target_game) then
+    perform common._raise_game_deleted('scrabble');
+  end if;
   perform common.require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
@@ -1329,9 +1351,8 @@ begin
 
   select * into g from scrabble.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN453', hint = 'fault', column = '_',
-      detail = 'no scrabble.games row for target_game';
+    -- Deleted since the wrapper asked, which only a delete between the two can do.
+    perform common._raise_game_deleted('scrabble');
   end if;
   if g.mode <> 'compete' then
     -- A fault because the FE renders PassButton in compete only, so nothing
@@ -1426,6 +1447,12 @@ declare
   v_seat    int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
+  -- A friend may delete the game from the club list at any moment, and the
+  -- delete takes the memberships with it — so the missing row is asked first
+  -- (docs/envelopes.md → a missing game row is PN485).
+  if not exists (select 1 from scrabble.games where id = target_game) then
+    perform common._raise_game_deleted('scrabble');
+  end if;
   caller_id := common.require_game_player(target_game);
   v_seat    := scrabble._seat_of(target_game, caller_id);
   if v_seat is null then
@@ -1457,6 +1484,12 @@ as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
+  -- A friend may delete the game from the club list at any moment, and the
+  -- delete takes the memberships with it — so the missing row is asked first
+  -- (docs/envelopes.md → a missing game row is PN485).
+  if not exists (select 1 from scrabble.games where id = target_game) then
+    perform common._raise_game_deleted('scrabble');
+  end if;
   perform common.require_game_player(target_game);
   if not exists (select 1 from scrabble.players
                   where game_id = target_game and seat = p_seat and ai_level is not null) then
@@ -1755,18 +1788,15 @@ declare
   current_play_state text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  -- Membership is the FIRST gate: a non-member gets the same "not your game"
-  -- regardless of whether the game exists, so they can't probe game IDs. (Moot
-  -- under the friends trust model, but membership-is-the-first-gate is the
-  -- house convention — docs/scrabble-ai-fixes.md §8.)
-  perform common.require_game_player(target_game);
-
+  -- The row first: a friend may delete the game from the club list at any
+  -- moment, and the delete takes the memberships with it (docs/envelopes.md →
+  -- a missing game row is PN485).
   select * into g from scrabble.games where id = target_game;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN460', hint = 'fault', column = '_',
-      detail = 'no scrabble.games row for target_game';
+    perform common._raise_game_deleted('scrabble');
   end if;
+
+  perform common.require_game_player(target_game);
 
   select play_state into current_play_state
     from common.games where id = target_game;
@@ -1841,14 +1871,15 @@ declare
   cur_state  text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  perform common.require_game_player(target_game);
-
+  -- The row first: a friend may delete the game from the club list at any
+  -- moment, and the delete takes the memberships with it (docs/envelopes.md →
+  -- a missing game row is PN485).
   select * into g from scrabble.games where id = target_game;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN463', hint = 'fault', column = '_',
-      detail = 'no scrabble.games row for target_game';
+    perform common._raise_game_deleted('scrabble');
   end if;
+
+  perform common.require_game_player(target_game);
 
   select play_state into cur_state from common.games where id = target_game;
   -- TWO `ok`s, and `done` is the ordinary one rather than an exception: every

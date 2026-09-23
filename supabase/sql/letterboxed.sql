@@ -898,14 +898,16 @@ declare
   winner_results jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first, before the membership gate: a friend deleting the game
+  -- takes every membership with it (docs/envelopes.md → a missing game row
+  -- is PN485).
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN396', hint = 'fault', column = '_',
-      detail = 'no letterboxed.games row for target_game';
+    perform common._raise_game_deleted('letterboxed');
   end if;
+
+  caller_id := common.require_game_player(target_game);
+
   if (select is_terminal from common.games where id = target_game) then
     -- A race: a teammate solved it or ended it, or the clock ran out, while
     -- this word was in flight.
@@ -1129,14 +1131,16 @@ declare
   v_covered int;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first, before the membership gate: a friend deleting the game
+  -- takes every membership with it (docs/envelopes.md → a missing game row
+  -- is PN485).
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN404', hint = 'fault', column = '_',
-      detail = 'no letterboxed.games row for target_game';
+    perform common._raise_game_deleted('letterboxed');
   end if;
+
+  caller_id := common.require_game_player(target_game);
+
   if (select is_terminal from common.games where id = target_game) then
     raise exception 'Game over'
       using errcode = 'PN405', hint = 'race', column = '_',
@@ -1237,14 +1241,16 @@ declare
   g_row letterboxed.games;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first, before the membership gate: a friend deleting the game
+  -- takes every membership with it (docs/envelopes.md → a missing game row
+  -- is PN485).
   select * into g_row from letterboxed.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN408', hint = 'fault', column = '_',
-      detail = 'no letterboxed.games row for target_game';
+    perform common._raise_game_deleted('letterboxed');
   end if;
+
+  caller_id := common.require_game_player(target_game);
+
   if (select is_terminal from common.games where id = target_game) then
     raise exception 'Game over'
       using errcode = 'PN409', hint = 'race', column = '_',
@@ -1338,14 +1344,16 @@ declare
   v_chain text[];
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first, before the membership gate: a friend deleting the game
+  -- takes every membership with it (docs/envelopes.md → a missing game row
+  -- is PN485).
   select * into g_row from letterboxed.games where id = target_game;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN412', hint = 'fault', column = '_',
-      detail = 'no letterboxed.games row for target_game';
+    perform common._raise_game_deleted('letterboxed');
   end if;
+
+  caller_id := common.require_game_player(target_game);
+
   if g_row.mode <> 'coop' then
     -- A fault: the mode is fixed at create_game and the FE renders neither
     -- rung's button in compete, so this arriving means a broken client.

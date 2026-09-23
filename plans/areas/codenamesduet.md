@@ -1004,7 +1004,42 @@ rather than game over, and the fixture uses the real transition; (b) gate the
 AI only; (c) leave it as unreachable. Recommendation: (a), checking first that
 nothing reads `clue_giver` from the sudden-death answer.
 
-### F-codenamesduet-12 · `deleted-game-four` · this game's moves answer a deleted game as a fault
+### SHIPPED · F-codenamesduet-12 · `deleted-game-four` · this game's moves answer a deleted game as a fault
+
+**Widened to the whole roster.** Joel, 2026-09-23, asked first whether
+wordle, psychicnum and connections had been fixed (no — the ruling postdates
+their closes), then: *"let's do it as a sweep now (it doesn't matter if we've
+opened those areas or have closed them); this is a mix of forward-fix and
+retro-fix."* **Every move in every game** now answers a missing game row with
+`common._raise_game_deleted`, before `require_game_player` — the 33 on
+`deferred.md`'s entry, plus scrabble's six player-callable wrappers
+(`play_word`, `exchange_tiles`, `pass_turn` and their `ai_*` twins), which
+gated membership before their `_commit_*` helpers could ask. By shape:
+nineteen needed only the raise swapped; fourteen had the membership gate
+first and moved the row check up (so a deleted game there no longer says
+*"You are not in this game"*); `crosswords.export_solution`'s row check was
+dead (`if not v_found` over a NULL) and uses `found` now; five handlers
+(`bananagrams.dump`/`.peel`, `boggle.submit_word`, `wordiply.submit_guess`,
+`wordwheel.submit_word`) learned to read `constraint_name`. Every old code
+retired, and `raiseCodes.test.ts`'s excuse for *"That game no longer exists"*
+went with the last raise of it. Comments that argued the fault
+(`submit_clue`'s, scrabble's `get_suggest_context`'s) say the rule instead.
+`wordle/gameplay_test.sql`'s old "no such game" block, which pinned the
+fault and the old order, was rewritten rather than added to. The three AI
+edge functions relay a race not-ok untouched (read). `gameDeletedFirst.test.ts`
+lists all 88 callers; `docs/deferred.md`'s entry is deleted and
+`docs/envelopes.md`'s ruling says the moves converted; each game's doc names
+PN485 where it listed the old refusal.
+
+**Verified:** 36 new pgTAP cases, one per player-callable path — the whole
+suite PASS, 182 files, 2642 tests. **Planted** each of the 40 conversions out
+against the whole suite: 37 red on their own case; scrabble's three
+`_commit_*` pass, as they must — every path reaches them through a wrapper that
+now asks first, and each wrapper's plant is red. Restored, byte-identical to
+the pre-plant copy, PASS. Guards 31 files / 285 tests; all 362 unit files /
+3578 tests; `tsc -b` and eslint clean. **Six blessed files were edited** —
+psychicnum's, connections' and wordle's SQL and one test file each — and keep
+their stamps; re-blessing is Joel's.
 
 `submit_clue` (PN369), `submit_guess` (PN378), `pass_turn` (PN373) and
 `_require_clue_giver` (PN387, behind `get_clue_context` and `log_hint`) raise

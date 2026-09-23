@@ -16,13 +16,14 @@
 --   5. Can't dump a tile you don't hold
 --   6. Can't dump when bunch + bag is too small (< dump_count)
 --   7. Non-players rejected
+--   8. A dump into a game deleted under it is the shared race (PN485)
 -- ============================================================
 
 begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(21);
+select plan(22);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -256,6 +257,23 @@ select pg_temp.envelope_is(
   bananagrams.dump((select id from g1), 'A'),
   '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN347","message":"Bunch too low to dump"}'::jsonb,
   'cannot dump when bunch + bag is smaller than dump_count'
+);
+
+-- ============================================================
+-- (8) A call into a game a friend just deleted
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so the call
+-- is answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+
+reset role;
+delete from common.games where id = (select id from g1);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  bananagrams.dump((select id from g1), 'A'),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'a dump into a game deleted under it is the shared race'
 );
 
 select * from finish();

@@ -12,13 +12,14 @@
 --   5. Race: a peel after the game is over is rejected
 --   6. Active-player math: a CONCEDED player neither draws on a continuing
 --      peel nor counts toward the refill threshold — and cannot peel at all
+--   7. A peel into a game deleted under it is the shared race (PN485)
 -- ============================================================
 
 begin;
 
 set search_path = bananagrams, common, public, extensions;
 
-select plan(20);
+select plan(21);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -237,6 +238,23 @@ select is(
   (select length(bunch) from bananagrams.games where id = (select id from g3)),
   79,
   'the bunch advanced by ACTIVE count × peel_count (81 → 79, not 78)'
+);
+
+-- ============================================================
+-- (7) A call into a game a friend just deleted
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so the call
+-- is answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+
+reset role;
+delete from common.games where id = (select id from g1);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  bananagrams.peel((select id from g1)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'a peel into a game deleted under it is the shared race'
 );
 
 select * from finish();

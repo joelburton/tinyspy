@@ -13,6 +13,8 @@
 --      guess (turn ends), pass (zero-guess turn ends).
 --   2. A fresh game where the first guess hits an assassin —
 --      the game ends immediately in `lost_assassin` play_state.
+--   3. A game a friend deletes mid-turn: a clue, a guess and a pass into
+--      it are each the shared race (PN485), not a fault.
 --
 -- See `create_game_test.sql` for the pgTAP primer.
 -- ============================================================
@@ -21,7 +23,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(18);
+select plan(21);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -214,6 +216,45 @@ select is(
   (select play_state from common.games where id = (select id from g2)),
   'lost_assassin',
   'assassin reveal sets play_state = lost_assassin'
+);
+
+-- ============================================================
+-- Game 3 — deleted mid-turn
+-- ============================================================
+-- Any club member may delete a game, and the delete takes the game's rows and
+-- every membership together, so each move into it answers the shared race
+-- rather than a fault or "You are not in this game" (docs/envelopes.md → a
+-- missing game row is PN485).
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g3 on commit drop as
+select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
+select submit_clue((select id from g3), 'GONE', 1);
+
+reset role;
+delete from common.games where id = (select id from g3);
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  submit_clue((select id from g3), 'LATE', 1),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'submit_clue into a deleted game is the shared race (PN485)'
+);
+
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select pg_temp.envelope_is(
+  submit_guess((select id from g3), 0),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'submit_guess into a deleted game is the shared race (PN485)'
+);
+
+select pg_temp.envelope_is(
+  pass_turn((select id from g3)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'pass_turn into a deleted game is the shared race (PN485)'
 );
 
 -- ============================================================

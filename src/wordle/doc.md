@@ -432,7 +432,7 @@ winning guess or five that miss:
 | file | pins |
 |---|---|
 | `create_game_test` | both modes; every setup fault by the field it names; the target picked from the list or the band; `target` denied by the grant and null in the view mid-game; an empty word pool is a fault |
-| `gameplay_test` | `submit_guess` in coop: a short word is a fault; the two soft rejects spend nothing and write nothing; every accepted row carries colors and spent a go; every `ok` carries no outcome; the title reads the latest guess, then the answer on a win |
+| `gameplay_test` | `submit_guess` in coop: a short word is a fault; the two soft rejects spend nothing and write nothing; every accepted row carries colors and spent a go; every `ok` carries no outcome; the title reads the latest guess, then the answer on a win; a guess into a deleted game is the shared race, asked before membership |
 | `compete_test` | independent rows; an opponent's guesses hidden mid-race and open at terminal; the title and the status leak nothing mid-race; fewest guesses wins once everyone is done, the earlier solve breaking a tie |
 | `loss_test` | coop's last wrong guess is the loss and reveals the target; a racer spending their own budget ends nothing, and their next guess is a fault |
 | `concede_test` | a conceder counts as done and forfeits; the last one out ends the race; everyone out is `conceded`, a mixed table is `exhausted`; coop is refused |

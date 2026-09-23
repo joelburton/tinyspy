@@ -921,14 +921,15 @@ declare
   player_results jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first: a friend may delete the game from the club list at any
+  -- moment, and the delete takes the memberships with it (docs/envelopes.md →
+  -- a missing game row is PN485).
   select * into g_row from strands.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN418', hint = 'fault', column = '_',
-      detail = 'no strands.games row for target_game';
+    perform common._raise_game_deleted('strands');
   end if;
+
+  caller_id := common.require_game_player(target_game);
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then
@@ -1288,14 +1289,15 @@ declare
   coords    jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  caller_id := common.require_game_player(target_game);
-
+  -- The row first: a friend may delete the game from the club list at any
+  -- moment, and the delete takes the memberships with it (docs/envelopes.md →
+  -- a missing game row is PN485).
   select * into g_row from strands.games where id = target_game for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN428', hint = 'fault', column = '_',
-      detail = 'no strands.games row for target_game';
+    perform common._raise_game_deleted('strands');
   end if;
+
+  caller_id := common.require_game_player(target_game);
 
   select play_state into play from common.games where id = target_game;
   if play <> 'playing' then

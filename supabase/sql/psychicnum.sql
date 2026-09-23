@@ -466,9 +466,7 @@ begin
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN267', hint = 'fault', column = '_',
-      detail = 'no psychicnum.games row for target_game';
+    perform common._raise_game_deleted('psychicnum');
   end if;
 
   -- Normalize, and require the guess to be one of the board words: the board
@@ -924,9 +922,7 @@ begin
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN393', hint = 'fault', column = '_',
-      detail = 'no psychicnum.games row for target_game';
+    perform common._raise_game_deleted('psychicnum');
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -1022,9 +1018,7 @@ begin
    where psychicnum.games.id = target_game
    for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN390', hint = 'fault', column = '_',
-      detail = 'no psychicnum.games row for target_game';
+    perform common._raise_game_deleted('psychicnum');
   end if;
 
   caller_id := common.require_game_player(target_game);

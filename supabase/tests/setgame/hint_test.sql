@@ -11,6 +11,8 @@
 -- Which means the cards arrive FROM the client, and are checked — not against
 -- cheating (a hint costs nothing, and the trust model answers that anyway) but
 -- to keep a nonsense row out of a log people read.
+--
+-- Last: a hint asked of a game a friend just deleted is the shared race.
 
 begin;
 set search_path = setgame, common, public, extensions;
@@ -18,7 +20,7 @@ set search_path = setgame, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(12);
+select plan(13);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -125,6 +127,20 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"fault","dbcode":"PN280",
     "message":"BUG: hint request in a race"}'::jsonb,
   'a hint in a race would be a win button, so there are none');
+
+-- ── A hint asked of a game a friend just deleted ──
+-- The delete takes the game's rows and every membership together, so this is
+-- the shared race rather than a fault, or "You are not in this game"
+-- (docs/envelopes.md → a missing game row is PN485).
+reset role;
+delete from common.games where id = (select id from g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  setgame.record_hint((select id from g), array[0]::smallint[]),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'record_hint into a deleted game is the shared race, not a fault'
+);
 
 select * from finish();
 rollback;

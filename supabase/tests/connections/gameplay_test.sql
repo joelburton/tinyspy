@@ -18,6 +18,7 @@
 --     is_current_view flipped via common.end_game
 --   - 4 matched categories flips play_state to 'won', clears
 --     is_current_view flipped via common.end_game
+--   - a guess into a game a friend just deleted is the shared race (PN485)
 --
 -- Every envelope is asserted to carry NO outcome, which is half of one rule:
 -- an ok from this game is the FACT, and what it is worth is decided once, in
@@ -30,7 +31,7 @@ begin;
 
 set search_path = connections, common, public, extensions;
 
-select plan(24);
+select plan(25);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -375,6 +376,31 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'submit_timeout: rejects on already-terminal games');
+
+-- ============================================================
+-- A guess into a game a friend deleted
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so the
+-- guess answers the shared race rather than a fault or "You are not in this
+-- game" (docs/envelopes.md → a missing game row is PN485).
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gone_g on commit drop as
+select (connections.create_game(
+  (select handle from club),
+  pg_temp.connections_setup((select id from puzzle)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid, 'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gone_g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+
+select pg_temp.envelope_is(
+  connections.submit_guess((select id from gone_g),
+                           array['ALPHA','ANGEL','APPLE','ARROW']::text[], 'wrong', null),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'submit_guess into a deleted game is the shared race (PN485)'
+);
 
 -- ============================================================
 select * from finish();

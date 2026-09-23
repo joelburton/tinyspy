@@ -1059,10 +1059,8 @@ friend tidying the club list really does delete a game under somebody's open
 page, and a word or a guess in flight is the likeliest thing to meet it. That
 is a race, not a broken client: `_raise_game_deleted`, asked before
 `require_game_player`, since the delete takes the membership too
-(`gameDeletedFirst.test.ts` pins the order). Ruled 2026-09-23 at spellingbee's
-F-10, where `submit_word` converted. The other move RPCs still answer with a
-fault of their own and are owed the same change —
-[deferred.md → Common / architecture](deferred.md#common--architecture).
+(`gameDeletedFirst.test.ts` pins the order, and lists every caller). Ruled
+2026-09-23 at spellingbee's F-10; every game's moves converted the same day.
 
 ## How edge functions build one
 

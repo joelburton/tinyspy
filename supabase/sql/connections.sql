@@ -690,9 +690,7 @@ begin
    where connections.games.id = target_game
    for update;
   if not found then
-    raise exception 'That game no longer exists'
-      using errcode = 'PN244', hint = 'fault', column = '_',
-      detail = 'no connections.games row for target_game';
+    perform common._raise_game_deleted('connections');
   end if;
 
   -- Auth + game-player gate (deferred to after the lock). See

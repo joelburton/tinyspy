@@ -28,12 +28,13 @@
 --   6. Coop 5th shared guess auto-terminates (ended/complete; scores in status).
 --   7. RLS: compete opponent's guesses hidden mid-game, visible at terminal;
 --      coop everyone sees all.
+--   8. A guess into a game deleted under it is the shared race (PN485).
 
 begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(29);
+select plan(30);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -377,6 +378,23 @@ select is(
   (select count(*) from wordiply.events where game_id = (select id from coop_rls)),
   1::bigint,
   'rls (coop mid-game): bea sees ada''s guess (coop is a shared board)'
+);
+
+-- ============================================================
+-- (8) A call into a game a friend just deleted
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so the call
+-- is answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+
+reset role;
+delete from common.games where id = (select id from g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  wordiply.submit_guess((select id from g), 'arxxxxy'),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'a guess into a game deleted under it is the shared race'
 );
 
 -- ============================================================

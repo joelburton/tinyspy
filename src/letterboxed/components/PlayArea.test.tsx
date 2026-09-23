@@ -406,11 +406,11 @@ describe('letterboxed PlayArea — a refused undo, and who wrote the words', () 
     // The escalation rule (docs/envelopes.md): the modal is dismissable, so the
     // surface still has to say what happened once it is gone.
     await undoAnswering(refusal({
-      severity: 'fault', dbcode: 'PN404', message: 'That game no longer exists',
+      severity: 'fault', dbcode: 'PN253', message: 'You are not in this game',
     }))
     await waitFor(() =>
-      expect(peekFaultsForTest().map((f) => f.text)).toContain('That game no longer exists'))
-    expect(screen.getByText('That game no longer exists')).toBeInTheDocument()
+      expect(peekFaultsForTest().map((f) => f.text)).toContain('You are not in this game'))
+    expect(screen.getByText('You are not in this game')).toBeInTheDocument()
   })
 
   it('a transport failure never shows the browser wording', async () => {

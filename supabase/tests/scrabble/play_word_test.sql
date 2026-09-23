@@ -7,7 +7,8 @@
 -- server does only what it alone can: the optimistic-concurrency version
 -- check, the integrity guards (in-bounds / empty square / tile-in-rack),
 -- the dictionary check, the bag draw, and the bookkeeping. Geometry +
--- scoring are NOT re-checked here (that's lib/play.test.ts).
+-- scoring are NOT re-checked here (that's lib/play.test.ts). A word into a
+-- game a friend just deleted is the shared race (PN485).
 
 begin;
 set search_path = scrabble, common, public, extensions;
@@ -15,7 +16,7 @@ set search_path = scrabble, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(35);
+select plan(36);
 
 -- ─── Game A (coop) — happy path + stale + occupied ───────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -260,6 +261,26 @@ select is((select shared_rack from scrabble.games where id = (select id from gd)
   'the `?` glyph (not C) is consumed from the rack, then refilled from the bag');
 select is((select version from scrabble.games where id = (select id from gd)), 1,
   'the accepted blank play bumps version');
+
+-- ─── A move into a game a friend just deleted ────────────
+-- The delete takes the game's rows and every membership together, so the move
+-- is answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gdel on commit drop as
+  select (scrabble.create_game((select handle from ca),
+    '{"dict_2": 6, "dict_3plus": 6, "timer": {"kind": "none"}}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid,
+          'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gdel);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  scrabble.play_word((select id from gdel), 0,
+    '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['C'], 1),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'play_word into a deleted game is the shared race (PN485)');
 
 select * from finish();
 rollback;

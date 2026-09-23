@@ -47,12 +47,15 @@
 --   - all-exhausted → play_state='lost_compete', and a spent budget
 --     sets common.game_players.locally_terminal so the presence-pause
 --     stops waiting on that racer
+--
+-- A deleted game: a guess, a hint and a spoiler into a game a friend just
+-- deleted are each the shared race (PN485), not a fault.
 
 begin;
 
 set search_path = psychicnum, common, public, extensions;
 
-select plan(42);
+select plan(45);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -577,6 +580,47 @@ select is(
   (select play_state from common.games where id = (select id from coop_to)),
   'lost',
   'coop: submit_timeout flips play_state to lost'
+);
+
+-- ============================================================
+-- A game a friend deleted
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so each
+-- move into it answers the shared race rather than a fault or "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gone_g on commit drop as
+select (psychicnum.create_game(
+  (select handle from club),
+  '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'coop'
+)->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gone_g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+
+select pg_temp.envelope_is(
+  psychicnum.submit_guess((select id from gone_g), 'zalpha'),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'submit_guess into a deleted game is the shared race (PN485)'
+);
+
+select pg_temp.envelope_is(
+  psychicnum.request_hint((select id from gone_g)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'request_hint on a deleted game is the shared race (PN485)'
+);
+
+select pg_temp.envelope_is(
+  psychicnum.request_spoiler((select id from gone_g)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'request_spoiler on a deleted game is the shared race (PN485)'
 );
 
 -- ============================================================

@@ -417,7 +417,7 @@ fixture puzzle whose date and source id are alien to the real archive:
 | file | pins |
 |---|---|
 | `create_game_test` | both modes' gates (players, the timer, a bad or missing puzzle), the board shape, the title, the seeded status |
-| `gameplay_test` | `submit_guess` in coop: the payload faults, the two verdicts that cost a mistake, the band, the two races (a matched rank, a repeated set), the two endings, and every `ok` carrying no outcome |
+| `gameplay_test` | `submit_guess` in coop: the payload faults, the two verdicts that cost a mistake, the band, the two races (a matched rank, a repeated set), the two endings, every `ok` carrying no outcome, and a guess into a deleted game answered as the shared race |
 | `compete_test` | the compete delta: per-player mistakes and bands, first to four ends it, elimination and the collective loss, an eliminated racer's guess is a race, timeout, and the RLS that scopes rows to the caller |
 | `concede_test` | a conceder counts as not alive; the last one out ends the race as `conceded` |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, a fresh guess advances, a race does not |

@@ -6,7 +6,9 @@
 -- Coop: one shared board + budget; either player guesses. A not-a-word or
 -- duplicate guess is soft-rejected without burning a guess; a malformed
 -- one is a fault, the frontend having refused it first. The target is
--- random, so we read it back as the superuser to craft the winning guess.
+-- random, so we read it back as the superuser to craft the winning guess. A
+-- guess into a game a friend deleted is the shared race (PN485), and so is one
+-- naming a game that never existed: the row is asked before membership.
 
 begin;
 set search_path = wordle, common, public, extensions;
@@ -152,33 +154,31 @@ select is(
   'the title reads the winning guess');
 
 -- ============================================================
--- No such game — the guard that needs constructing
+-- A guess into a game a friend deleted
 -- ============================================================
--- `require_game_player` runs BEFORE the games lookup, and it reads
--- common.game_players — so passing a random uuid raises "not in this game",
--- never this. The only state that reaches PN254 is a caller who IS a player of
--- a common.games row whose wordle.games row is missing, which `create_game`
--- writes together and nothing deletes. Constructed here on purpose: the guard
--- is defensive, and a defensive guard nothing exercises is a guard nobody knows
--- is wrong.
-delete from wordle.games where id = (select id from g);
+-- Any club member may delete a game, and the delete takes the game's rows and
+-- every membership together — so the row is asked BEFORE membership, and the
+-- guess answers the shared race rather than a fault or "You are not in this
+-- game" (docs/envelopes.md → a missing game row is PN485).
+reset role;
+delete from common.games where id = (select id from g);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordle.submit_guess((select id from g), (select word from valw)),
-  '{"type":"not-ok","severity":"fault","dbcode":"PN254",
-    "message":"That game no longer exists"}'::jsonb,
-  'a common.games row with no wordle.games row is a fault'
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'a guess into a deleted game is the shared race (PN485)'
 );
 
--- And the ordering that makes the above the only route: a stranger asking about
--- a game that does not exist is told the thing that is true of THEM.
+-- The order, from the other side: a stranger naming a game that does not
+-- exist hears that it is gone, since the row is asked before membership.
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
   wordle.submit_guess('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid, 'zzzzz'),
-  '{"type":"not-ok","severity":"fault","dbcode":"PN253",
-    "message":"You are not in this game"}'::jsonb,
-  'a non-player on a nonexistent game is told they are not in it'
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'a game that does not exist is answered as gone, before membership is asked'
 );
 
 select * from finish();

@@ -626,14 +626,14 @@ declare
   v_dict_2 int;
   v_dict_3plus int;
   v_blockers int[];
-  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Serialize concurrent peels on the gametype row (see header).
   perform 1 from bananagrams.games where id = target_game for update;
+  -- A friend deleted the game while this call was in flight: the shared race,
+  -- asked before the membership gate, which the delete took with it.
   if not found then
-    raise exception 'BUG: a peel for a game with no bananagrams row'
-      using errcode = 'PN338', hint = 'fault', column = '_',
-      detail = 'no bananagrams.games row for target_game';
+    perform common._raise_game_deleted('bananagrams');
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -800,9 +800,9 @@ exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
-    v_col = column_name;
+    v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
@@ -968,14 +968,14 @@ declare
   caller_tiles text;
   drawn text;
   pos int;
-  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Serialize against concurrent peels/dumps on the shared bunch.
   perform 1 from bananagrams.games where id = target_game for update;
+  -- A friend deleted the game while this call was in flight: the shared race,
+  -- asked before the membership gate, which the delete took with it.
   if not found then
-    raise exception 'BUG: a dump for a game with no bananagrams row'
-      using errcode = 'PN343', hint = 'fault', column = '_',
-      detail = 'no bananagrams.games row for target_game';
+    perform common._raise_game_deleted('bananagrams');
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -1082,9 +1082,9 @@ exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
-    v_col = column_name;
+    v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

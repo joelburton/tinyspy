@@ -225,7 +225,8 @@ races are all against the game ENDING under you.
 | `PN339` · `PN344` "Game over" | `race` | peel and dump, against a game a peer just ended |
 | `PN340` · `PN345` "Already conceded" | `race` | your own concede landing first |
 | `PN347` "Bunch too low to dump" · `PN348` "You don't have that tile" | `race` | both are the FE's own gates losing to a peer's peel or to its own in-flight state |
-| `PN337`–`PN338`, `PN341`–`PN343`, `PN346`, `PN349`–`PN350` `BUG: …` | `fault` | a peel with tiles still in hand, a dump of something that is not a tile, a board save with the wrong grid size — each is a shape the board itself cannot produce |
+| `PN485` "That game was already deleted" | `race` | peel and dump, against a game a friend deleted mid-call — the shared race (`common._raise_game_deleted`), asked before the membership gate |
+| `PN337`, `PN341`–`PN342`, `PN346`, `PN349`–`PN350` `BUG: …` | `fault` | a peel with tiles still in hand, a dump of something that is not a tile, a board save with the wrong grid size — each is a shape the board itself cannot produce |
 | `PN094`–`PN103` `BUG: …` | `fault` | `create_game`'s ten, all composed by the setup dialog |
 
 ### New game — a fresh deal; Restart — the same deal again

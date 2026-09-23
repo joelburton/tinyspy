@@ -2,7 +2,7 @@
 
 begin;
 set search_path = crosswords, common, public, extensions;
-select plan(43);
+select plan(45);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -280,6 +280,30 @@ select is(
 select is(
   (crosswords.reveal_solved_word(:'gn_id', '[]'::jsonb) -> 'data' ->> 'answer'),
   '', 'reveal_solved_word: empty p_cells yields an empty answer');
+reset role;
+
+-- ── A game a friend just deleted ─────────────────────────────────────
+-- The delete takes the game's rows and every membership together, so the
+-- explainer's read and the export are answered by the shared race rather than
+-- by a fault, or by "You are not in this game" (docs/envelopes.md → a missing
+-- game row is PN485).
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select (crosswords.create_game(
+  :'club_handle', pg_temp.xw_setup(:'pz_id'),
+  array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as gdel_id \gset
+reset role;
+delete from common.games where id = :'gdel_id';
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  crosswords.reveal_solved_word(:'gdel_id', '[{"row":0,"col":0}]'::jsonb),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'reveal_solved_word on a deleted game is the shared race (PN485)');
+select pg_temp.envelope_is(
+  crosswords.export_solution(:'gdel_id'),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'export_solution on a deleted game is the shared race (PN485)');
 reset role;
 
 -- ── _matches (mirror ws.ts fillMatchesSolution) ──────────────────────

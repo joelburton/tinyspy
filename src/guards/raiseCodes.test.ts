@@ -268,7 +268,6 @@ describe('the raise codes', () => {
       // something the frontend could have prevented.
       'No club with that name',
       'You are not in this game',
-      'That game no longer exists',
       'No guesses left',
       'No swaps left',
       'Already solved',

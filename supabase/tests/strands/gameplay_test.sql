@@ -16,12 +16,13 @@
 -- duplicates earn nothing, and structurally impossible paths RAISE rather than
 -- being logged — the FE reducer can't produce one, so it means a broken or
 -- hostile client, and an event log that players read shouldn't fill with them.
+-- A trace into a game a friend just deleted is the shared race (PN485).
 
 begin;
 
 set search_path = strands, common, public, extensions;
 
-select plan(28);
+select plan(29);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -302,6 +303,29 @@ select is(
     (select id from ambgame2), '[[2,5],[2,4],[2,3],[2,2],[2,1],[2,0]]'::jsonb) -> 'data' ->> 'result',
   'invalid',
   'but cells alone are not enough — KLMNOP''s tiles read backwards are not a find'
+);
+
+-- ============================================================
+-- A move into a game a friend just deleted
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so the move
+-- is answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gdel on commit drop as
+select (strands.create_game(
+  (select handle from club), pg_temp.strands_setup((select puzzle_id from fix)),
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gdel);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  strands.submit_path((select id from gdel), pg_temp.strands_row_path(0)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'submit_path into a deleted game is the shared race (PN485)'
 );
 
 select * from finish();

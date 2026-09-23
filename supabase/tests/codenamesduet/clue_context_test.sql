@@ -7,7 +7,8 @@
 -- The RPC's job is to enforce "you are the current clue-giver in an
 -- active game" so the Edge Function can stay thin. This file checks
 -- the three rejection paths plus one happy path that returns a shape
--- with the expected keys.
+-- with the expected keys, and a deleted game: the gate `get_clue_context`
+-- and `log_hint` share answers it with the shared race (PN485).
 --
 -- See create_game_test.sql for the pgTAP primer.
 -- ============================================================
@@ -16,7 +17,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(7);
+select plan(9);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -117,6 +118,34 @@ select is(
   (select jsonb_array_length(data->'previous_clues') from ctx),
   0,
   'previous_clues array is empty before any clue submitted'
+);
+
+-- ============================================================
+-- (8)–(9) A game a friend deleted, through both callers of the gate
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so the
+-- gate answers the shared race rather than a fault or "You are not in this
+-- game" (docs/envelopes.md → a missing game row is PN485).
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table gone_game on commit drop as
+select (codenamesduet.create_game((select handle from club), pg_temp.codenamesduet_setup(), pg_temp.codenamesduet_players())->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gone_game);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+
+select pg_temp.envelope_is(
+  get_clue_context((select id from gone_game)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'get_clue_context on a deleted game is the shared race (PN485)'
+);
+
+select pg_temp.envelope_is(
+  log_hint((select id from gone_game)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'log_hint on a deleted game is the shared race (PN485)'
 );
 
 -- ============================================================

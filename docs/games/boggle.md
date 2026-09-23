@@ -348,7 +348,7 @@ game is terminal, then all.
   | `PN359` `<WORD> — already found` | `race` | **not a verdict.** `useFoundWordSubmit` dedups locally first, so reaching this means that list was stale — a teammate found it between the render and the submit (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses. The server composes the whole `WORD — body` line here, because this is the one rejection reachable by BOTH routes and the two must not read differently |
   | `PN368` "Game over" | `race` | it used to be an `ok` named `gameOver`, which was wrong the whole time: the word is not recorded on that path, so an `ok` left the optimistic `+N` pill standing over a word that never landed. `useFoundWordSubmit`'s contract has no way to say *"ok, but release the word"*, and that absence is what surfaced it ([envelopes.md → How SQL builds one](../envelopes.md#how-sql-builds-one)) |
   | `PN352` "Already conceded" | `race` | a raise rather than a soft return, deliberately: a refusal is what releases the optimistically-accepted word |
-  | `PN351` `BUG: a word submitted to a game with no boggle row` | `fault` | |
+  | `PN485` "That game was already deleted" | `race` | a friend deleted the game mid-call — the shared race (`common._raise_game_deleted`), asked before the membership gate |
 
   `create_game`'s eleven refusals (**PN136**–**PN146**) are all faults, and all
   `BUG:` — the setup dialog composes every field and the edge function builds the

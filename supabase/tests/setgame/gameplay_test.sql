@@ -6,7 +6,8 @@
 -- The opening board is legal by construction, a real set is accepted, and the
 -- three ways a claim can be refused each raise their own error key. The
 -- refill assertions are the interesting half: a claim replaces cards IN PLACE,
--- so every card a player was already looking at keeps its slot.
+-- so every card a player was already looking at keeps its slot. Last, a claim
+-- into a game a friend just deleted is the shared race.
 
 begin;
 set search_path = setgame, common, public, extensions;
@@ -14,7 +15,7 @@ set search_path = setgame, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(20);
+select plan(21);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -160,6 +161,20 @@ select is(
   (select took_turn from setgame.events
     where game_id = (select id from g) order by id desc limit 1),
   true, 'a claim spends a turn');
+
+-- ── A claim into a game a friend just deleted ──
+-- The delete takes the game's rows and every membership together, so this is
+-- the shared race rather than a fault, or "You are not in this game"
+-- (docs/envelopes.md → a missing game row is PN485).
+reset role;
+delete from common.games where id = (select id from g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  setgame.submit_set((select id from g), array[0,1,2]::smallint[]),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'submit_set into a deleted game is the shared race, not a fault'
+);
 
 select * from finish();
 rollback;

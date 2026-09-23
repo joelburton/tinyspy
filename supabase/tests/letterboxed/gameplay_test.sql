@@ -21,12 +21,14 @@
 --   5. Covering all twelve wins the coop game outright.
 --   6. Compete moves only the actor's chain, and a rival's chain is
 --      hidden through players_state while their word count is not.
+--   7. Each of the four moves, into a game a friend just deleted, is the
+--      shared race (PN485).
 
 begin;
 
 set search_path = letterboxed, common, public, extensions;
 
-select plan(33);
+select plan(37);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -345,6 +347,41 @@ select pg_temp.envelope_is(
   letterboxed.submit_word((select id from gt), 'gjb'),
   '{"type":"ok","data":{"result":"accepted"}}'::jsonb,
   'undo refunds against the cap — the slot reopens'
+);
+
+-- ============================================================
+-- (7) The four moves, into a game a friend just deleted
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so each is
+-- answered by the shared race rather than by a fault, or by "You are not in
+-- this game" (docs/envelopes.md → a missing game row is PN485).
+
+reset role;
+delete from common.games where id = (select id from gt);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  letterboxed.submit_word((select id from gt), 'beh'),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'submit_word into a deleted game is the shared race, not a fault'
+);
+select pg_temp.envelope_is(
+  letterboxed.undo_word((select id from gt)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'undo_word into a deleted game is the shared race, not a fault'
+);
+select pg_temp.envelope_is(
+  letterboxed.clear_chain((select id from gt)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'clear_chain into a deleted game is the shared race, not a fault'
+);
+select pg_temp.envelope_is(
+  letterboxed.log_hint_or_spoiler((select id from gt), 'beh', 'hint'),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'log_hint_or_spoiler into a deleted game is the shared race, not a fault'
 );
 
 select * from finish();

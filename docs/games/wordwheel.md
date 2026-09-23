@@ -209,7 +209,7 @@ as spellingbee, under wordwheel's own codes:
 | `PN361` `<WORD> — already found` | `race` | **not a verdict.** `useFoundWordSubmit` dedups locally first, so reaching this means that list was stale — a teammate found it mid-flight (coop), or the caller's own row had not landed (compete). Nothing is recorded, so it refuses |
 | `PN357` "Game over" | `race` | |
 | `PN358` "Already conceded" | `race` | a raise rather than a soft return: a refusal is what releases the optimistically-accepted word |
-| `PN356` `BUG: a word submitted to a game with no wordwheel row` | `fault` | |
+| `PN485` "That game was already deleted" | `race` | a friend deleted the game mid-call — the shared race (`common._raise_game_deleted`), asked before the membership gate |
 
 `create_game`'s refusals are **PN178**–**PN191**, and all but one are `BUG:` faults — the setup dialog composes every
 field and the edge function builds the wheel, so each means a broken client or

@@ -741,16 +741,16 @@ declare
   is_term boolean;
   result jsonb;
   reject_reason text;   -- set iff this submission is being recorded as invalid
-  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Lock the gametype row; mode rides along.
   select * into g_row from wordiply.games
    where wordiply.games.id = target_game
    for update;
+  -- A friend deleted the game while this call was in flight: the shared race,
+  -- asked before the membership gate, which the delete took with it.
   if not found then
-    raise exception 'BUG: a guess submitted to a game with no wordiply row'
-      using errcode = 'PN362', hint = 'fault', column = '_',
-      detail = 'no wordiply.games row for target_game';
+    perform common._raise_game_deleted('wordiply');
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -970,9 +970,9 @@ exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
-    v_col = column_name;
+    v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 

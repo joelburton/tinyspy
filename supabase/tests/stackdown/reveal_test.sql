@@ -6,7 +6,8 @@
 -- Returns the next solution word the caller still has to clear, tracking
 -- the words cleared so far (coop = shared). Gated like a move: game
 -- player only, in-progress only. Defeats the hidden-solution invariant
--- on purpose — it's a playtest/verification aid.
+-- on purpose — it's a playtest/verification aid. Last, both reveals asked of
+-- a game a friend just deleted are the shared race.
 
 begin;
 set search_path = stackdown, common, public, extensions;
@@ -14,7 +15,7 @@ set search_path = stackdown, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(15);
+select plan(17);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -134,6 +135,26 @@ select pg_temp.envelope_is(
 select is(
   (select solution[6] from stackdown.games_state where id = (select id from g)),
   'lemon', 'post-terminal: the full solution is readable via games_state');
+
+-- ── Both reveals, asked of a game a friend just deleted ──
+-- The delete takes the game's rows and every membership together, so this is
+-- the shared race rather than a fault, or "You are not in this game"
+-- (docs/envelopes.md → a missing game row is PN485).
+reset role;
+delete from common.games where id = (select id from g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  stackdown.reveal_next_word((select id from g)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'reveal_next_word into a deleted game is the shared race, not a fault'
+);
+select pg_temp.envelope_is(
+  stackdown.reveal_next_hint((select id from g)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'reveal_next_hint into a deleted game is the shared race, not a fault'
+);
 
 select * from finish();
 rollback;

@@ -143,7 +143,7 @@ produced**.
 | `PN467` / `PN472` `BUG: a write/mark on a block or a given` | `fault` | the grid renders those non-focusable |
 | `PN470` / `PN471` `BUG: a mark on an unknown edge / of an unknown kind` | `fault` | both values come from the FE's own typed union |
 | `PN475` `BUG: a reveal in a compete game` | `fault` | mode is fixed at `create_game`; the FE hides the items |
-| `PN477` / `PN479` "That game no longer exists" | `fault` | |
+| `PN485` "That game was already deleted" | `race` | `export_solution` and `reveal_solved_word`: a friend deleted the game from the club list; `common._raise_game_deleted`, asked before the membership gate |
 | `PN478` "You've played every one of those" | `form-validation` on `source` | see below |
 
 Three answers gained a NAME rather than being read off an absence:
@@ -154,8 +154,8 @@ Three answers gained a NAME rather than being read off an absence:
 - **`reveal_solved_word` answers `solved` or `unsolved`** by name, not by
   `answer` being null. `unsolved` stays an `ok`: the menu item
   is live on any clue because the FE cannot see which are solved.
-- **`export_solution` says `exported`**, and a missing game is now `PN477`
-  rather than the same bare `null` a solution-less game returned.
+- **`export_solution` says `exported`**, and a missing game is the shared
+  race (`PN485`) rather than the same bare `null` a solution-less game returned.
 
 **`next_nyt_date_for_club`'s empty answer moved into the RPC.** Running out of
 unplayed dates for a weekday is `PN478`, a `form-validation` naming `source` —
@@ -572,7 +572,8 @@ opt-in so non-game menus keep standard Esc-restores-focus a11y.)
 ## 8. Tests
 
 - pgTAP `supabase/tests/crosswords/` — create (library + inline board) / gameplay
-  (set_cell, check, reveal, set_mark, `_matches`) / win (solve, pencil-counts,
+  (set_cell, check, reveal, set_mark, `_matches`, the explainer's read and the
+  export on a deleted game) / win (solve, pencil-counts,
   first-correct-wins) / rls (compete privacy) / concede + give-up / timeout
   (countdown expiry → a loss for everyone, coop `lost` / compete `lost_compete`
   with `outcome: 'timeout'`; idempotent by no-op on a second call) /
