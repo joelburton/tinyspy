@@ -934,7 +934,12 @@ seat ids and `ctx.players`, deleting the read, its branch and the fallback;
 keep the read and delete only the fallback; or leave it. Recommendation:
 derive.
 
-### F-codenamesduet-9 · `suggestion-error-fault-color` · the AI panel's refusal line is fault-red
+### RULED — NO CHANGE · F-codenamesduet-9 · `suggestion-error-fault-color` · the AI panel's refusal line is fault-red
+
+**Joel, 2026-09-23: "these are service-failed errors, and should be in
+fault-red. so 'leave it'."** The suggester failing to produce a clue is a
+service failure, and fault-red is its color. Unchanged, as scrabble's
+suggester is.
 
 `.suggestionError` wears `--chrome-fault-color` over a refusal or a declined
 suggestion. The token's own definition covers "validation failures, RPC/API
