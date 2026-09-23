@@ -15,8 +15,10 @@ type Props = {
   /** The 1 mandatory center letter. */
   centerLetter: string
   /** Called when any letter is clicked. The caller appends the
-   *  letter to the typed word. */
-  onLetterClick: (letter: string) => void
+   *  letter to the typed word. Absent when the board is read-only — the game
+   *  is over, or I conceded — and then no hex takes a click, a hover or a
+   *  press, as psychicnum's tiles do without their `onPick`. */
+  onLetterClick?: (letter: string) => void
   /** The letters the word being typed is using, uppercase — those hexes wear the
    *  selected edge. */
   usedLetters: Set<string>
@@ -83,7 +85,7 @@ export function Letters({
               answer={
                 answered?.letters.has(letter.toUpperCase()) ? answered.outcome : undefined
               }
-              onClick={() => onLetterClick(letter)}
+              onClick={onLetterClick && (() => onLetterClick(letter))}
             />
           ))}
         </svg>

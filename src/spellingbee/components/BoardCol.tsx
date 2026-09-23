@@ -75,12 +75,11 @@ export function BoardCol({
   gameId,
   mode,
   selfId,
-  myConceded,
+  readOnly,
   foundWords,
   requiredWords,
   bonusWords,
   localFeedbackSlot,
-  isTerminal,
 }: {
   // ── Mobile-only status block ──
   /** The four figures behind the RankBar + Stats unit — the SAME components the
@@ -105,8 +104,11 @@ export function BoardCol({
   gameId: string
   mode: 'coop' | 'compete'
   selfId: string
-  /** I conceded a race — the engine takes no more words from me. */
-  myConceded: boolean
+  /** No more words from me: the game is over, or I conceded a race the others
+   *  play on. The board-only "visible but inert" flag (docs/playarea.md) — the
+   *  engine refuses, the entry closes and the hive goes inert, all on this one
+   *  answer. */
+  readOnly: boolean
   /** The committed rows, the engine's dedup source (mode-aware: the team's in
    *  coop, mine in compete). */
   foundWords: FoundWordRow[]
@@ -117,18 +119,11 @@ export function BoardCol({
    *  draws its top in place of the controls, and a letter click is the player's
    *  next action, so it dismisses a gesture-cleared result. */
   localFeedbackSlot: FeedbackSlot
-  /** The game is over for everyone. */
-  isTerminal: boolean
 }) {
   // ─── Committing a guess ────────────────────────────────
   // The shared engine owns the typed word, the dedup and the optimistic commit;
   // this game supplies the lookup, the RPC and what it shows for each answer.
   // First, because the engine owns the pending word the sections below read.
-
-  // No more words from me: the game is over, or I conceded a race the others
-  // play on. The engine and the entry read this one answer, so a conceder's
-  // keys cannot fill a word the engine will refuse.
-  const entryClosed = isTerminal || myConceded
 
   // The hive's seven letters, lower-cased — the typed word's illegal-letter dim,
   // and why a word missed.
@@ -168,7 +163,7 @@ export function BoardCol({
     useFoundWordSubmit({
       mode,
       userId: selfId,
-      isTerminal: entryClosed,
+      isTerminal: readOnly,
       minWordLength: 4,
       localFeedbackSlot,
       foundWords,
@@ -224,7 +219,12 @@ export function BoardCol({
 
   // The hexes the typed word is using. A Set of its letters is the whole of it:
   // a hive letter can be typed more than once and there is nothing to count.
-  const usedLetters = useMemo(() => new Set(word.toUpperCase()), [word])
+  // None once the board is read-only: a word left half-typed when the game
+  // ended, or when I conceded, is no longer a move, so its marks go with it.
+  const usedLetters = useMemo(
+    () => new Set(readOnly ? '' : word.toUpperCase()),
+    [readOnly, word],
+  )
 
   const handleLetterClick = useCallback(
     (letter: string) => {
@@ -280,7 +280,7 @@ export function BoardCol({
         answered={answered?.value ?? null}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
-        onLetterClick={handleLetterClick}
+        onLetterClick={readOnly ? undefined : handleLetterClick}
         usedLetters={usedLetters}
         // Shuffle floats over the hive's top-right — a fresh visual scan of the
         // SAME board, not a turn action. Always clickable, even when locked (a
@@ -307,7 +307,7 @@ export function BoardCol({
             onChange={setWord}
             onSubmit={submit}
             placeholder="Type or click letters"
-            disabled={entryClosed}
+            disabled={readOnly}
             onAnyKey={localFeedbackSlot.dismiss}
             charFor={asciiLetters('upper')}
             recall={lastWord}

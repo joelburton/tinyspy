@@ -89,14 +89,20 @@
   filter: var(--spellingbee-hex-shadow);
   transition: transform 80ms ease, filter 80ms ease;
 }
-/* @@ */ .hex:hover {
+/* A read-only board (the game is over, or I conceded): the hex keeps its
+ * resting shadow and full color, and loses the pointer, the rise and the press
+ * — the shared `.tile:disabled`'s answer, for a hex that is not a button. */
+/* @@ */ .inert {
+  cursor: default;
+}
+/* @@ */ .hex:hover:not(.inert) {
   transform: translateY(-1.3px);
   filter: var(--spellingbee-hex-hover-shadow);
 }
 /* Pressed: back down, slightly smaller, slightly darker — 0.96, the same shrink
  * every other board presses by. (It was 0.9, which on a hex this size read as
  * the tile jumping away from the finger rather than taking the press.) */
-/* @@ */ .hex:active {
+/* @@ */ .hex:active:not(.inert) {
   transform: translateY(0) scale(0.96);
   filter: var(--spellingbee-hex-shadow) brightness(0.92);
 }
@@ -106,8 +112,8 @@
 
 /* Reduced motion: the movement goes, the depth stays. */
 @media (prefers-reduced-motion: reduce) {
-/* @@ */   .hex:hover,
-/* @@ */   .hex:active {
+/* @@ */   .hex:hover:not(.inert),
+/* @@ */   .hex:active:not(.inert) {
     transform: none;
   }
 }

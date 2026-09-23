@@ -237,6 +237,10 @@ export function PlayArea(props: PlayAreaProps) {
   // so conceding is the only way to reach it.
   const isLocallyDone = isCompete && myConceded && !isTerminal
 
+  // The board is inert once I can add nothing: the game is over, or I am out
+  // of a race the others play on.
+  const readOnly = isTerminal || isLocallyDone
+
   // ─── The local slot, and its two standing conditions ───
   // Each condition is an effect on a primitive edge that shows on true and
   // retracts in its cleanup — the slot draws whichever ranks highest. The
@@ -548,7 +552,7 @@ export function PlayArea(props: PlayAreaProps) {
         gameId={gameId}
         mode={game.mode}
         selfId={session.user.id}
-        myConceded={myConceded}
+        readOnly={readOnly}
         foundWords={foundWords}
         requiredWords={game.requiredWords}
         bonusWords={game.bonusWords}
@@ -557,7 +561,6 @@ export function PlayArea(props: PlayAreaProps) {
         // rule, docs/playarea.md, and on a phone the InfoCol is off-canvas, so
         // this is the ONLY copy the player sees), the verdict.
         localFeedbackSlot={localFeedbackSlot}
-        isTerminal={isTerminal}
       />
 
       {/* The info column. Its top region — the readouts + action row + setup — is

@@ -258,6 +258,56 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
     await user.keyboard('bed')
     expect(usedHexes()).toEqual([])
   })
+
+  /** Tap the hexes for these letters, in order. */
+  const tap = async (user: ReturnType<typeof userEvent.setup>, letters: string) => {
+    for (const l of letters) await user.click(document.querySelector(`[data-hex="${l}"]`)!)
+  }
+  const inertHexes = () =>
+    [...document.querySelectorAll('[data-hex]')].filter((t) =>
+      (t.getAttribute('class') ?? '').includes('_inert_'),
+    )
+
+  it('a tapped hex adds its letter while I can play', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    expect(inertHexes()).toEqual([])
+    await tap(user, 'BED')
+    expect(new Set(usedHexes())).toEqual(new Set(['B', 'E', 'D']))
+  })
+
+  it('a conceded racer\'s hive is inert: a tap adds nothing', async () => {
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <WithKeys
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
+          setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } },
+        })}
+      />,
+    )
+    expect(inertHexes()).toHaveLength(7)
+    await tap(user, 'BED')
+    expect(usedHexes()).toEqual([])
+  })
+
+  it('a half-typed word loses its marks when the game ends under it', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('bed')
+    expect(new Set(usedHexes())).toEqual(new Set(['B', 'E', 'D']))
+    rerender(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    expect(usedHexes()).toEqual([])
+  })
+
+  it('a finished game\'s hive is inert too', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    expect(inertHexes()).toHaveLength(7)
+    await tap(user, 'BED')
+    expect(usedHexes()).toEqual([])
+  })
 })
 
 describe('spellingbee PlayArea — compete terminal verdicts', () => {

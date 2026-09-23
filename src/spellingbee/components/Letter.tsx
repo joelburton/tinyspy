@@ -11,7 +11,9 @@ type Props = {
   isCenter?: boolean
   /** Top-left of this hex's box, in the flower's coordinate units. */
   pos: { left: number; top: number }
-  onClick: () => void
+  /** Absent when the board is read-only: the hex takes no click and wears no
+   *  hover or press. */
+  onClick?: () => void
   /** This letter is in the word being typed — the hex wears the selected edge. */
   used?: boolean
   /** A refused word used this letter: the hex wears that answer's fill + white
@@ -54,6 +56,7 @@ export function Letter({ letter, isCenter, pos, onClick, used, answer }: Props) 
     <g
       className={cls(
         styles.hex,
+        !onClick && styles.inert,
         isCenter && styles.center,
         used && styles.used,
         // The tone class sets nothing but the two custom properties the shape

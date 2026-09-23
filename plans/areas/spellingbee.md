@@ -543,10 +543,37 @@ myConceded`, so a conceded racer's keys filled a word nobody could see (the
 out-of-race line holds the slot) and lit its hexes, and Enter did nothing.
 Both now read one `entryClosed = isTerminal || myConceded`. A new test — a
 conceded racer types `bed` and no hex lights — went red with the old gate
-planted back and green restored. **Still open: hive TAPS are gated nowhere,**
-at terminal or after conceding — `Letters` has no disabled state and
-`handleLetterClick` always appends — so a tap still fills the hidden word.
-Joel's to rule; it changes the terminal board too.
+planted back and green restored.
+
+**Then the whole board, psychicnum's shape (Joel: *"locally-terminal or
+terminal, the board should be inert"* — *"do it"*).** Hive TAPS had been gated
+nowhere, at terminal or after conceding, so a tap filled the hidden word and
+lit its hex, and every hex still rose on hover and pressed. Now `PlayArea`'s
+Derived computes `readOnly = isTerminal || isLocallyDone` and hands BoardCol
+that one flag — the name `docs/playarea.md` gives the board-only "visible but
+inert" prop — in place of `isTerminal` and `myConceded`; `entryClosed` is gone
+into it. BoardCol passes `onLetterClick={readOnly ? undefined : …}`, as
+psychicnum passes no `onPick`; `Letters` and `Letter` take the click as
+optional, and a hex without one wears `.inert`: `cursor: default`, and the
+hover rise and the press gated `:not(.inert)` — the shared `.tile:disabled`'s
+answer for a hex that is not a button. Full color and the resting shadow stay.
+**Shuffle stays live** (the post-game fidget, deliberately). **A spectator
+with no seat is not folded in** — wordle's `readOnly` includes `!self`, but
+what a watcher sees is `plans/spectating.md`'s, undecided.
+
+Three tests: a tap adds its letter while I can play; a conceded racer's hive is
+inert (all seven hexes `.inert`) and a tap adds nothing; the same at terminal.
+The last two went red with the ungated tap planted back and green restored.
+**The CSS is not visually verified** — jsdom has no hover; the class is
+asserted, the look is not.
+
+**Joel, reading it: *"selection should be cleared when the game is
+terminal/locally-terminal"*** — a word half-typed when the game ended kept its
+hexes marked. `usedLetters` is empty while `readOnly`, derived rather than
+cleared, as psychicnum's `selected` is (`pending === '' || !isStillPlaying ?
+null : pending`): terminal and conceding are both one-way, and a restart
+remounts the board. A test types `bed`, ends the game under it, and finds no
+marked hex; red with the old derivation planted back, green restored.
 
 **The family diverges for now:** boggle, wordwheel and wordiply keep their
 engines in their PlayAreas until their areas open. Wordiply's is the one that
