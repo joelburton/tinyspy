@@ -1155,7 +1155,23 @@ it**, on the ground that a delete mid-word is rare enough that the modal does
 no harm. Recommendation: the ruling first — the question is identical in nine
 RPCs and the answer should be written once — then convert this one here.
 
-### F-spellingbee-11 · `leaderboard-four-times` · the compete leaderboard query is written out four times
+### SHIPPED · F-spellingbee-11 · `leaderboard-four-times` · the compete leaderboard query is written out four times
+
+**Joel, 2026-09-23: "1"** — the leaderboard alone. `spellingbee._leaderboard
+(target_game, required_score) returns jsonb`, `language sql stable`, beside
+`candidate_words`, revoked from public with no grant (only the schema's
+definer RPCs call it). The four sites are one assignment each; the win's two
+redundant `coalesce`s went with its copy. The three re-keys into
+`common.end_game`'s per-player shape stay inline. wordwheel's four copies are
+a Soon entry in `wordwheel/todo.md`.
+
+**Verified:** `npm run test:db`, 181 files, 2579 tests, PASS; guards green.
+**Planted** every score in the helper as 0: `compete_test`'s mid-game score
+and both frozen-leaderboard cases red. The timeout and manual-end sites are
+held only by `compete_test`'s entry-count checks, which a wrong score would
+pass; since they call the same helper, its content is pinned by the other
+two sites, and a lost call would empty the leaderboard, which those checks
+do catch. Restored.
 
 The subquery that sums each player's `found_words` into `{ user_id,
 found_words_score, rank_idx, found_words_count }` appears in `submit_word`

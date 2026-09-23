@@ -9,6 +9,11 @@
 
 ## Soon
 
+- **The compete leaderboard query is written out four times** in
+  `supabase/sql/wordwheel.sql` — `submit_word` twice, `submit_timeout`,
+  `end_game`. spellingbee made it one helper, `spellingbee._leaderboard`
+  (its F-11, 2026-09-23); the same helper here.
+
 - **Collapse the info-column action row's branches.** This game still FORKS on
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these
