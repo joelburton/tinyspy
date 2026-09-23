@@ -660,35 +660,5 @@ language + helpers live in [common/pdf/doc.md](../../src/common/pdf/doc.md).
 
 ## Deferred
 
-- **The custom-letters e2e fills two boxes that are now one.**
-  `spellingbee.e2e.ts` → "spellingbee custom letters" (line 99) fills
-  `Center letter` then `Six other letters`; the form takes `A-CHIROT` in a single
-  `<ManualBoardField>` and splits on the hyphen, which is the form the section's
-  own summary has always printed. The spec times out waiting for a box that no
-  longer exists. **Left red on purpose** (Joel, 2026-08-26): the single-box shape
-  is a real UI change and belongs in front of him during spellingbee's own pass,
-  not certified by a spec edit from the `forms` area that made it.
-
-**The two setup stylesheets are the same file.** `spellingbee/components/SetupForm.module.css`
-and `wordwheel/components/SetupForm.module.css` are 42 lines each, six rules each,
-and `diff` reports **two changed lines, both inside comments** —
-"spellingbee-local" vs "wordwheel-local", and "read like the honeycomb" vs "read
-like the wheel". Every value is identical.
-
-That is the sibling-pair relationship showing up as copied CSS, and most of it
-belongs to a component nobody has written: `.letterInput` / `.centerInput` /
-`.outerInput` are one unnamed field type shared with wordiply and letterboxed,
-and `.field` / `.field > span` are a third copy of "a small bold label above a
-control" that `<SelectField>` already owns. What would be left is `.customRow`, a
-flex row with a gap.
-
-Moved here from the CSS sprint's `forms` area on 2026-08-25 (it was F32,
-`freebee-twins-byte-identical`) — the shared field vocabulary is that area's, but
-deleting these two files is the pair's own work. The related shared findings, if
-you want the evidence, are the `forms` area's `letter-input-unnamed`,
-`label-above-control` and `stack-repeated`.
-
-Two shared items also touch this game:
-
-- The **`Letters.module.css` / `Wheel.module.css` fold** with wordwheel — full entry in [`wordwheel.md → Deferred`](wordwheel.md#deferred) (wordwheel is the fork, and owns the pair's shared-vs-not ledger).
-- The **`WordList` marker vocabulary** (◐, ⦻) — the work is in `common/`, so it lives with [`word-list`](../../src/common/word-list/doc.md).
+The register lives in [`src/spellingbee/todo.md`](../../src/spellingbee/todo.md),
+the game folder's own, as connections', psychicnum's and wordle's do.

@@ -54,6 +54,7 @@ Only these games have open items today; the rest have none.
 | [letterboxed](games/letterboxed.md#deferred) | rare-letter seed weighting · won't-do: trimming the seed table (measured — 55 MB against a 500 MB tier) |
 | [psychicnum](../src/psychicnum/todo.md) | the register lives in the game folder's `todo.md`, won't-dos included — it has a `## Won't do` section of its own |
 | [setgame](games/setgame.md#deferred) | a coop `target_sets` · an `undefined` lost into a `\| null` slot · won't-do: calling "no set", a wrong-claim penalty |
+| [spellingbee](../src/spellingbee/todo.md) | the register lives in the game folder's `todo.md` since its area opened 2026-09-22 |
 | [stackdown](games/stackdown.md#7-deferred) | `tile-gone` should be a pill · a `data[0]` cast standing in for a compiler flag |
 | [wordle](../src/wordle/todo.md) | the register lives in the game folder's `todo.md` since its area opened 2026-09-22 |
 | [wordwheel](games/wordwheel.md#deferred) | the `Letters`/`Wheel` CSS fold (owns the spellingbee pair's ledger) · `s`-heavy seeds |

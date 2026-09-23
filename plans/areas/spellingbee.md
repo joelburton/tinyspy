@@ -47,6 +47,87 @@ in pass 2, as the three earlier games' docs were.
   `spellingbee-mobile`, `spellingbee-print`) — `cs-unmet`, off the roster as
   every game's have been.
 
+## The reading
+
+### The folder's `todo.md` — read 2026-09-22
+
+One Bug (`act-new-game` answers `active` before the game row has loaded), three
+Soon (the info-column action row's branches; the two hand-written Fisher–Yates
+shuffles, one FE and one in the edge function; compete's missing end-for-all),
+one Someday (the refused-word letter color, a live experiment with wordwheel as
+its control — hands off both sides until it comes back). Maybe and Won't do are
+empty. Nothing is converted into a finding yet; that is the restructure's
+Step 1.
+
+**One item is already stale in a detail:** the action-row item names
+`shared.actionsDivider` in `common/game-page/playArea.module.css`. The info
+column got its own stylesheet (`2badb0f2`), so the class is
+`common/info-sheet/infoCol.module.css` now — and `InfoCol.tsx` already imports
+`shared` from there. The prose is stale, not the code.
+
+### The two standing registers, reconciled — 2026-09-22
+
+Joel: *"look for todos in the games/spellingbee file or deferred.md … move
+[the useful ones] to the area's todo. delete ones that are stale."*
+
+`docs/games/spellingbee.md` → Deferred held four entries; `docs/deferred.md`
+holds one that names this game and three that only mention it. Where each
+went:
+
+| entry | verdict |
+|---|---|
+| the custom-letters e2e "fills two boxes that are now one" | **moved to `todo.md` → Soon, then RULED.** The spec is no longer red: the UI shipped 2026-08-26 (`1599b751`) and `ec12c73a` repaired the spec on 2026-09-01 — the exact certification the deferral said not to accept, so the look still owed Joel the pass it was held for. He gave it the same day: *"i looked at it, it looks fine. no change needed."* Struck through in `todo.md`, not deleted — nothing shipped for it, the question closed |
+| the two `SetupForm.module.css` files are byte-identical | **stale, deleted.** Both files are gone (`1599b751`, `ManualBoardField`). `wordwheel.md` → Deferred's cross-reference to it went with it — the pointer would have dangled, and a Deferred section listing shipped work is wrong |
+| the `Letters.module.css` / `Wheel.module.css` fold | **still true, copied to `todo.md` → Won't do** as a pointer. wordwheel owns the ruling and keeps the governing copy |
+| the `WordList` marker vocabulary (◐, ⦻) | **still true, copied to `todo.md` → Someday** as a pointer. The entries live in `common/word-list/todo.md` |
+| deferred.md: ungated `:hover` on tappable board elements, three games | **still true here, verified, moved to `todo.md` → Soon.** `.hex:hover` lifts the hex and lightens its shadow with no `@media (hover: hover)`, so a tap leaves it risen. deferred.md keeps the item for stackdown and wordwheel; this game comes off that list when it ships |
+| deferred.md: `touch-action` zoom suppression, confirm on a real iOS device | **left.** A cross-cutting device check that names the hive among five surfaces; not this game's to close |
+| deferred.md: two struck-through DONE items mentioning spellingbee | **left.** History, correctly marked |
+
+`docs/deferred.md`'s per-game table also had **no spellingbee row** under a
+headline that says only the listed games have open items — while the game's doc
+carried four. It has one now, pointing at the folder's `todo.md`, the way
+connections, psychicnum and wordle do.
+
+### What moved under the area — read 2026-09-22
+
+§4's window is empty by construction here: the opening commit (`a9a5695c`)
+stamped all 23 FE files, so "since the area's files last changed" is today. The
+honest anchor is **`5f69e95b` (2026-09-15, "the hive behaves like a board")**,
+the last commit that wrote this game's code for its own sake — everything since
+is a shared area reaching in. In that window **32 commits touch
+`src/common/game-page/`**, and the cumulative diff rewrites
+`playArea.module.css` (392 lines), `GamePage.tsx`, `GamePageGate.tsx`,
+`useCommonGame.ts`, `gamePageCtx.ts` and `verdictTone.ts`, and adds
+`readLeaderboard.ts`.
+
+**What that makes a FALSE finding here:**
+
+- *"This state survives a restart"* — and now also *"survives a game→game
+  navigation"*: `GamePageGate` derives `exists` from `{ id, exists }`, so a
+  different `gameId` says `checking` and unmounts the subtree (`e3d8f969`).
+- *"A finished player wedges the pause"* — `activePlayers` is now `players`
+  minus conceded, minus `locally_terminal`, minus `ai_member` (`624c8dc2`).
+  **Checked, and there is nothing owed here:** spellingbee's SQL sets no
+  `locally_terminal` and it is right not to — conceding is this game's only
+  per-player done state (`PlayArea.tsx`'s `isLocallyDone`), and a conceder was
+  already out of the roster. It has no bots either.
+- *"`computePause` also answers who is absent"* — it answers a boolean
+  (`197d455a`), and the suspend confirm is `askConfirmation(suspendConfirm(…))`,
+  not a mounted modal (`b5f21539`).
+
+**What the game already reads, so a finding has to be about what it wrote
+ITSELF:** `useMark` (`PlayArea.tsx`, the word answer), `VERDICT_TONE`
+(`Letter.tsx`), `shared.boardSeal` (`Letters.tsx`), `--avail-h` composed rather
+than hand-summed (`BoardCol.tsx`, `PlayArea.module.css`), and `InfoCol.tsx`'s
+import off the info column's own stylesheet.
+
+**One candidate the window produced** (for the prose pass, not worked):
+`Letter.tsx`'s tone-class comment says the class "sets nothing but the two
+custom properties". `verdictTone` carries three since `7cca2427` —
+`--verdict-fill`, `--verdict-ink` and `--verdict-edge` — so the count is wrong,
+and whether the hex should wear the edge is a real question rather than a typo.
+
 ## Findings
 
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it
@@ -66,8 +147,9 @@ a dependency listed and left. Anything durable goes to `todo.md` or
 ## Closing
 
 - [ ] the whole area re-read in one sitting after the last group
-- [ ] `docs/games/spellingbee.md` reconciled with `todo.md`: its Deferred
-      section moved into the todo, or deliberately kept as the standing register
+- [x] `docs/games/spellingbee.md` reconciled with `todo.md`: its Deferred
+      section moved into the todo (2026-09-22, above), and `docs/deferred.md`
+      points at the folder's register
 - [ ] the tile-feedback pass done, and the game's tf level updated there
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
