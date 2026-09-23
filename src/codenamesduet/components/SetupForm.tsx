@@ -17,12 +17,14 @@ import { SetupSection } from '@/common/setup-form/SetupSection'
  *
  *   - **Turns** — the starting turn budget, one of {9, 10, 11}. 9 is the
  *     standard game; 10 and 11 are the rulebook's easier missions.
- *   - **First clue** — which member gives it. `create_game` seats the chosen
- *     player as A, since A always opens the game, and the other as B.
+ *   - **First clue** — which of the selected players gives it. `create_game`
+ *     seats the chosen player as A, since A always opens the game, and the
+ *     other as B.
  *
  * and the timer. The manifest's defaults can't carry a member id (they are
- * evaluated before any club is known), so the first member is seeded here as
- * the first clue-giver; the radio can still be flipped before Start.
+ * evaluated before any club is known), so the first selected player is seeded
+ * here as the first clue-giver, and again whenever the chosen one is
+ * unticked; the radio can still be flipped before Start.
  *
  * Controlled: the shared form owns the values, and the two casts at the top
  * narrow them to codenamesduet's shape (see `SetupBodyProps` in
@@ -34,20 +36,24 @@ export function SetupForm({
   const s = values as CodenamesduetValues
   const set = setValue as SetupSetter<CodenamesduetValues>
 
-  // Auto-pick the first member as first-clue-giver when the form
-  // first sees a populated member list with an empty selection.
-  // Once first_clue_giver_user_id is set, the inner condition is
-  // false and this is a no-op — including on s-change reruns.
-  useEffect(function seedFirstClueGiver() {
-    if (s.first_clue_giver_user_id === '' && members.length > 0) {
-      set('first_clue_giver_user_id', members[0].user_id)
-    }
-  }, [s, members, set])
+  // The selected players, not the whole club: the first clue-giver must be one
+  // of them, or `create_game` refuses the setup.
+  const players = members.filter((m) => s.player_user_ids.has(m.user_id))
 
-  // The summary says WHO, not which uuid. The `?? '—'` covers the first render
-  // before the seeding effect above has picked a default; no user sees it.
+  // Re-seed to the first selected player whenever the current pick isn't one:
+  // the initial empty string, or a chosen player since unticked. Converges, as
+  // `SetupCoopStyleSection`'s first-player seeding does.
+  useEffect(function seedFirstClueGiver() {
+    const stillSelected = players.some((p) => p.user_id === s.first_clue_giver_user_id)
+    if (!stillSelected && players.length > 0) {
+      set('first_clue_giver_user_id', players[0].user_id)
+    }
+  }, [players, s.first_clue_giver_user_id, set])
+
+  // The summary says WHO, not which uuid. The `?? '—'` covers the render
+  // before the seeding effect above has picked one; no user sees it.
   const firstClueGiverName =
-    members.find((m) => m.user_id === s.first_clue_giver_user_id)?.username ?? '—'
+    players.find((p) => p.user_id === s.first_clue_giver_user_id)?.username ?? '—'
 
   return (
     <>
@@ -75,7 +81,7 @@ export function SetupForm({
           help="The first clue-giver is seated as A; the other player opens as the guesser."
           name="first_clue_giver_user_id"
           error={errors.first_clue_giver_user_id}
-          options={members.map((m) => ({ value: m.user_id, label: m.username }))}
+          options={players.map((p) => ({ value: p.user_id, label: p.username }))}
           value={s.first_clue_giver_user_id}
           onChange={(id) => set('first_clue_giver_user_id', id)}
         />

@@ -11,6 +11,7 @@
  * `inField: 'game-inputs'`); this pins that the actual clue inputs carry the tag.
  */
 import { fireEvent, render, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
@@ -47,6 +48,28 @@ describe('codenamesduet CluePanel — input tagging', () => {
     // The clue-giver's clue phase shows exactly the count + word fields.
     expect(inputs).toHaveLength(2)
     inputs.forEach((input) => expect(input).toHaveAttribute('data-game-input'))
+  })
+})
+
+// A longer number overflows `submit_clue`'s int and would come back as a fault.
+describe('codenamesduet CluePanel — the count', () => {
+  it('takes one digit, and nothing else', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <CluePanel
+        gameId="g1"
+        isClueGiver
+        isGuessPhase={false}
+        currentClue={null}
+        inSuddenDeath={false}
+        peer={undefined}
+        localFeedbackSlot={createFeedbackSlot('local')}
+        onSuggestionChange={vi.fn()}
+      />,
+    )
+    const count = container.querySelector('input[placeholder="#"]') as HTMLInputElement
+    await user.type(count, 'x12')
+    expect(count.value).toBe('1')
   })
 })
 

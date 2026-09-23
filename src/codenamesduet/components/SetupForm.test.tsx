@@ -16,9 +16,12 @@ import { DEFAULT_CODENAMESDUET_SETUP } from '../lib/setup'
 import type { Member } from '@/common/members/member'
 import type { FormErrors } from '@/common/forms/formState'
 
+// Three club members, two of them selected by default: the third is who a
+// club-wide picker would wrongly offer.
 const MEMBERS = [
   { user_id: 'self', username: 'joel', color: 'red' },
   { user_id: 'moth', username: 'moth', color: 'blue' },
+  { user_id: 'dee', username: 'dee', color: 'green' },
 ] as Member[]
 
 function draw({ values = {}, errors = {} as FormErrors } = {}) {
@@ -34,7 +37,7 @@ function draw({ values = {}, errors = {} as FormErrors } = {}) {
       values={{
         ...DEFAULT_CODENAMESDUET_SETUP,
         first_clue_giver_user_id: 'self',
-        player_user_ids: new Set(MEMBERS.map((m) => m.user_id)),
+        player_user_ids: new Set(['self', 'moth']),
         ...values,
       }}
       set={set}
@@ -66,13 +69,33 @@ describe('codenamesduet setup — what it offers', () => {
     expect(fieldNames(draw().container)).not.toContain('coop_style')
   })
 
-  it('offers only the two players as first clue-giver', () => {
-    // A radio row rather than a menu: two options, both worth seeing at once.
+  it('offers only the selected players as first clue-giver, not the whole club', () => {
     // Read by LABEL, because <RadioRow> carries no `value` attribute — it
     // tracks the selection through `checked` and reports it through onChange.
     const { container } = draw()
     const rows = container.querySelectorAll('[name="first_clue_giver_user_id"]')
     expect([...rows].map((r) => r.closest('label')?.textContent)).toEqual(['joel', 'moth'])
+  })
+})
+
+describe('codenamesduet setup — seeding the first clue-giver', () => {
+  it('picks the first selected player when none is chosen', () => {
+    const { set } = draw({
+      values: { first_clue_giver_user_id: '', player_user_ids: new Set(['moth', 'dee']) },
+    })
+    expect(set).toHaveBeenCalledWith('first_clue_giver_user_id', 'moth')
+  })
+
+  it('re-picks when the chosen clue-giver is unticked', () => {
+    const { set } = draw({
+      values: { first_clue_giver_user_id: 'self', player_user_ids: new Set(['moth', 'dee']) },
+    })
+    expect(set).toHaveBeenCalledWith('first_clue_giver_user_id', 'moth')
+  })
+
+  it('leaves a chosen clue-giver who is still selected', () => {
+    const { set } = draw({ values: { first_clue_giver_user_id: 'moth' } })
+    expect(set).not.toHaveBeenCalledWith('first_clue_giver_user_id', expect.anything())
   })
 })
 

@@ -795,6 +795,362 @@ green (`docLinks` included); `gmake db-sql ENV=local` then `npm run test:db`,
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it
 has one, no prefix means OPEN)*
 
+F-1 to F-14 empty the lists already made — the prose pass's "left for the
+findings", Step 3's and Step 8's, and `todo.md`'s Bug and Soon entries — each
+re-checked against the code before it was written here. The audit's read
+follows F-14 and raised F-15 to F-27.
+
+### SHIPPED · F-codenamesduet-1 · `first-giver-picker` · the first clue-giver picker offers every club member
+
+**Joel, 2026-09-23: "do f1."** Asked first whether other games share it: no —
+the nine games with a first-player picker all use `SetupCoopStyleSection`,
+which is handed the selected players and re-seeds when the chosen one is
+unticked; this form was the only one building its own. It now does both:
+`players = members.filter(…selected…)` feeds the radio row and the summary,
+and the seeding effect picks `players[0]` whenever the current pick is not a
+selected player (the shared section's shape, which its docstring already
+claimed this form followed). The docstring says which players it offers.
+**The spec's club has a third member now**, unselected by default, and three
+seeding cases: none chosen, the chosen one unticked, a still-selected one
+left alone. **Planted** the club-wide options (the offers case red), the old
+seed-only-when-empty (the unticked case red) and seeding from the club (two
+red); restored, green. `tsc -b` and eslint clean; 45 files, 399 tests green.
+No e2e.
+
+`SetupForm.tsx` fills the radio row from `members.map(…)` and seeds it with
+`members[0]` — the club roster, not the players chosen above it. In a club of
+three, the default or a pick can be someone not in the game, and `create_game`
+answers PN092, *"BUG: first clue-giver who is not in the game"*, a fault: the
+red modal on Start. Ten siblings filter first
+(`members.filter((m) => s.player_user_ids.has(m.user_id))`). The spec *"offers
+only the two players"* passes because its fixture club has two members.
+Options: **filter to the players**, as the siblings do, re-seeding when the
+seeded giver is deselected, and give the spec a third member; or leave it.
+Recommendation: filter.
+
+### SHIPPED · F-codenamesduet-2 · `help-copy` · Help is wrong in five places
+
+**Joel, 2026-09-23: "rewrite."** The draft presented with the finding, as
+written: What you see names the corner square and the card's 9 / 13 / 3;
+Turns says one word, the three outcomes, and Pass & End Turn spending a turn;
+then the per-side bystander and the finished-player hand-off, and the setup's
+9–11 turns into sudden death. The docstring says what the text covers. No test
+pins Help's words (none did before); `tsc -b`, eslint, 45 files / 400 tests
+green.
+
+`Help.tsx`, quoted: *"a 5×5 grid, tinted with your view of each card"* (the
+corner squares carry it; tiles are not tinted); *"the assassin"* and
+*"different assassin"* (each card holds three); *"a count + a word or
+phrase"* (the rules say one word); *"You have 9 turns"* (9, 10 or 11); and
+nothing on the finished-player hand-off, on stopping to spend a turn, or on a
+bystander locking only your side. Options: **rewrite from `doc.md` → Game
+rules**, as spellingbee's F-13 did; or fix only the false sentences.
+Recommendation: rewrite.
+
+### F-codenamesduet-3 · `unread-first-clue-giver` · `InfoCol` takes a `firstClueGiver` it never reads
+
+`PlayArea.tsx` derives `firstClueGiver` and passes it; `InfoCol`'s props type
+declares it and the destructure never takes it (the setup echo is
+`SetupDisclosure`'s rows). wordle's F-5 and spellingbee's F-2 exactly.
+Options: **delete it** (the derivation, the pass-through, the member); or keep
+it. Recommendation: delete.
+
+### F-codenamesduet-4 · `show-history-param-name` · `onShowHistory`'s parameter is named `turnNumber` and is an event id
+
+`InfoCol.tsx`: `onShowHistory: (turnNumber: number, n: number) => void`. Since
+the events table the link is an event id, and `GameEventLog` already calls it
+`eventId`. Options: **rename it `eventId`**; or leave it. Recommendation:
+rename.
+
+### F-codenamesduet-5 · `myseat-optional` · `mySeat` is optional where the loader guarantees a seat
+
+`Board` and `BoardCol` type `mySeat: Seat | undefined`, and `Board` carries a
+`: false` arm for each neutral flag. The loader renders the no-such-game page
+unless `myKey` is set, and `useBoard` sets `myKey` only when the caller is
+`user_a_id` or `user_b_id` — so a mounted surface always has a seat. Options:
+**narrow the seat in the loader and make the prop required**, dropping the
+dead arms; or leave it. Recommendation: narrow.
+
+### F-codenamesduet-6 · `double-history-gate` · `Board` ANDs `!isViewingHistory` a second time
+
+`BoardCol` passes `cellsClickable={cellsClickable && !isViewingHistory}`, and
+`Board` computes `clickable = cellsClickable && … && !isViewingHistory`
+again. Options: **drop `Board`'s** (it still takes `isViewingHistory` for the
+frame); or leave it. Recommendation: drop.
+
+### F-codenamesduet-7 · `phase-status-type` · two definitions of "over", reached through casts
+
+`lib/phase.ts`'s `GameStatus` has no `ended`, and `PlayArea` casts
+`playState as GameStatus` twice. `derivePhase` works it out as
+`gameOver = status !== 'playing' && status !== 'sudden_death'`, which no
+caller reads — both take the shell's `isTerminal` instead — and its
+`status === 'playing' && isGuessPhase` term is dead (planted out, 396 green).
+`useTurnStatus` runs `derivePhase` a second time on the body's inputs.
+Options: **take `gameOver` from `isTerminal`** and `inSuddenDeath` from the
+play state, dropping `GameStatus`, both casts and the dead term, with
+`useTurnStatus` reading the one derived phase; or **add `'ended'`** and keep
+the rest. Recommendation: `isTerminal`, the shell's one answer.
+
+### F-codenamesduet-8 · `profiles-read-twice` · `useGame` fetches the profiles the shell already hands over
+
+`useGame` reads `common.profiles` for the two seated players, with its own
+failure branch and a fallback `{ username: '?', color: 'blue' }`.
+`GamePageCtx.players` is the game's `common.game_players` with each profile,
+and the fallback is unreachable (the seat columns reference `profiles` on
+delete cascade). **Step 2 of this file calls `ctx.players` "the club roster";
+it is the game's players.** Options: **derive the seated players** from the
+seat ids and `ctx.players`, deleting the read, its branch and the fallback;
+keep the read and delete only the fallback; or leave it. Recommendation:
+derive.
+
+### F-codenamesduet-9 · `suggestion-error-fault-color` · the AI panel's refusal line is fault-red
+
+`.suggestionError` wears `--chrome-fault-color` over a refusal or a declined
+suggestion. The token's own definition covers "validation failures, RPC/API
+errors", and scrabble's suggester does the same. Options: **leave it**, the
+token and the sibling agreeing; or a roster-wide ruling that a not-ok in a
+panel is not red. Recommendation: leave it — listed so the ruling is recorded.
+
+### SHIPPED · F-codenamesduet-10 · `clue-unjudged` · `submit_clue` judges nothing, and a long count faults
+
+**Joel, 2026-09-23: "cap and comment."** The count input takes `maxLength={1}`
+beside its digits-only filter, and its comment says why (past 9 covers more
+agents than a side has; longer overflows the int). `submit_clue`'s header
+says it judges nothing about the clue — a board word, several words, any count
+— and that the players police their own clues under the trust model.
+`doc.md`'s `submit_clue` section and FE submissions say the same. The AI's
+suggestion fills the count programmatically, which `maxLength` does not trim;
+the schema asks the model to match its agents list, so it stays small, and an
+absurd one would be a model fault, not a typed one. A `CluePanel` case types
+`x12` and reads `1`; **planted** the cap out — red; restored, green. `tsc -b`
+and eslint clean; 45 files, 400 tests green; the SQL re-applied locally.
+
+The body inserts what it is given. The frontend blocks an empty word and
+allows only digits in the count, so a board word or several words are
+accepted, and a count like `99999999999` overflows `int` — a raw 22003 error,
+not an envelope: the fault modal, reachable by typing. The rulebook forbids a
+board word as a clue. Options: **cap the count on the frontend** (one digit)
+and say in `submit_clue` that the words are the players' to police, under the
+trust model; refuse a board word and a count over 9 as validations (new codes);
+or leave it. Recommendation: the cap and the comment.
+
+### F-codenamesduet-11 · `sudden-death-gates` · the clue seat outlives the clues
+
+`_end_turn` enters sudden death with `current_clue_giver = next_giver`, not
+null. `_require_clue_giver` admits `sudden_death`, so that seat can call
+`get_clue_context` and `log_hint`; `submit_clue` and `pass_turn` refuse sudden
+death with *"Game over"*, which is false there. `sudden_death_test.sql` forces
+the state with `current_clue_giver = null`, which real play never produces.
+None of it is reachable from the UI (nothing clue-shaped is drawn in sudden
+death). Options: **(a) sudden death has no clue-giver** — `_end_turn` nulls
+it, `_require_clue_giver` admits `playing` only, the refusals say sudden death
+rather than game over, and the fixture uses the real transition; (b) gate the
+AI only; (c) leave it as unreachable. Recommendation: (a), checking first that
+nothing reads `clue_giver` from the sudden-death answer.
+
+### F-codenamesduet-12 · `deleted-game-four` · this game's moves answer a deleted game as a fault
+
+`submit_clue` (PN369), `submit_guess` (PN378), `pass_turn` (PN373) and
+`_require_clue_giver` (PN387, behind `get_clue_context` and `log_hint`) raise
+*"That game no longer exists"* as a fault; `end_game`, `submit_timeout` and
+`replay_board` already call `common._raise_game_deleted`. `submit_clue`'s
+comment says no second player could have deleted it — `common.delete_game` is
+open to any club member. The ruling is `docs/envelopes.md`'s (spellingbee
+F-10). Converting: the helper at the four sites, the four codes retired, no
+handler change (all read `constraint_name`), four names into
+`gameDeletedFirst.test.ts`, a pgTAP case each, and this game's four out of
+`docs/deferred.md`'s entry. Options: **convert here**; or leave it to the
+entry. Recommendation: convert.
+
+### F-codenamesduet-13 · `todo-clue-label` · `.clueLabel` is read by nothing
+
+`todo.md`'s Bug: `CluePanel.module.css`'s `.clueLabel`, on
+`cssClasses.test.ts`'s `DEAD_CLASS_PENDING`. Options: **delete the rule and
+the allowlist row**; or give it a reader. Recommendation: delete.
+
+### F-codenamesduet-14 · `todo-soon-three` · `todo.md`'s three Soon items
+
+- **The banners** put the actor mid-sentence, so both pass `show="both"`;
+  Joel's wording (2026-09-12) leads with the actor. The read adds that their
+  two CSS rules are identical but for the colors, with `6px` where
+  `--radius-md` is meant. Recommendation: the wording, and one base rule with
+  two color classes.
+- **`CluePanel` needs a name.** It is the below-board clue strip. Candidates:
+  `ClueStrip`, `BelowBoardClue`. Recommendation: `ClueStrip`, the word
+  `doc.md` already uses. Joel's to name.
+- **The clue-arrival bell**: `playSound('bell')` where a clue lands for the
+  guesser. Recommendation: build it here.
+
+### The audit's read — 2026-09-23
+
+**The READ is DONE.** Every roster file end to end, React, SQL and CSS
+together: the manifest, `db.ts`, both hooks, the eleven `lib/` files, the
+printer, `theme.css`, `InfoDisclosure` and its stylesheet and spec; all twelve
+components, their nine stylesheets and five specs; the repeatable SQL whole,
+both migrations, `setup.psql` and all twelve pgTAP files; the edge function.
+
+**The checks beside the files:** the shell commits since the area opened
+(`ad4c4e48..HEAD` touches `src/common`, `src/shared` and `docs` only through
+this area's own steps and the tab-ring fix it caused); what `common.end_game`
+(merges), `update_state`, `reset_game`, `_raise_game_over` and
+`_raise_game_deleted` do, against every call site; the siblings' answers to the
+same questions (the setup picker, `replay_board`'s lock, the terminal builder,
+the club label's lead); the remount on `restarts` (nothing written for a
+restart is dead); the shared hooks' contracts (`useRealtimeRefetch`,
+`readRows`, the loader's gates); every token's reader; and **the edge function
+BOOTS** — probed locally, it answered PN315 in an envelope with a 200. No real
+game was sent through it (that spends a request). Plants were run in all three
+layers; the survivors are F-27.
+
+What the game IS, for the record: the rules are right and pinned where they
+are subtle. The finished-player hand-off holds from both seats (the two cards'
+agents total fifteen, so "both finished" can only be a win); the key-card
+table and shuffle are exact; `took_turn` matches the rule everywhere; every
+terminal status write states what it adds; the race hints are right for how a
+player reaches them; the below-board slot is one fixed-height swap; RLS is the
+documented trust model. What the read found is: a lock the siblings take and
+this game does not (F-15), two raw errors that escape the envelope (F-16,
+F-10's count), the AI prompt asking for a rule about words it was not given
+(F-17), two things that say the same fact two ways (F-18 to F-21), a doc
+sentence of mine that was wrong (F-22), and the tests (F-27).
+
+### F-codenamesduet-15 · `replay-no-lock` · `replay_board` takes no row lock
+
+`replay_board` checks `if not exists (select 1 from codenamesduet.games …)`
+and updates `words`, then `games`, with no `for update`; psychicnum's,
+wordle's and spellingbee's lock the row first. `submit_guess` locks `games`
+then updates a word, so a restart and a guess landing together can each hold
+what the other needs — a deadlock (40P01), a raw error and a fault modal.
+Reasoned from the lock order, not reproduced. Options: **lock first**, as the
+siblings do; or leave it. Recommendation: lock.
+
+### F-codenamesduet-16 · `create-game-nonnumeric-turns` · a non-numeric turn budget escapes the envelope
+
+`s_turns := (setup->>'turns')::int` — probed with `"nine"`, a raw
+`invalid input syntax for type integer`. Only a broken client reaches it;
+spellingbee closed the same class for its bands (PN499, PN500). Options:
+**catch it into a fault** (the next free code from `raiseCodes.test.ts`); or
+leave it. Recommendation: catch it.
+
+### F-codenamesduet-17 · `suggest-prompt-board-words` · the AI is told to avoid board words it is never shown
+
+The prompt says the clue must share no root with *"any of the 25 board
+words"*, but `buildPrompt` sends only the caller's still-hidden agents,
+bystanders and assassins — not the words already turned over. The model can
+suggest a contacted word. `count` and `agents` are not checked against the
+agents after parsing. Options: **(a) send all 25** — `get_clue_context` adds a
+`board` list, which is not secret; (b) soften the prompt to "the words
+listed"; (c) leave it. Recommendation: (a).
+
+### F-codenamesduet-18 · `sudden-death-status-lead` · the club label leads "Sudden death"
+
+`STATUS_LABEL.sudden_death = 'Sudden death'` renders `Sudden death · 12/15
+agents` — the one lead in the roster's 157 generated lines that is not
+Playing / Won / Lost / Ended, which `statusLabel.ts`'s docstring requires (*"a
+game does not get a flavor word of its own"*). The same docstring asks for an
+exhaustive `switch`; this is a `Record` lookup. Options: **`Playing · sudden
+death · 12/15 agents`**, as a `switch`, and regenerate
+`docs/game-status-labels.md`; or keep it with a comment calling it an
+exception. Recommendation: Playing.
+
+### F-codenamesduet-19 · `print-summary-drifts` · the PDF counts turns differently from the screen
+
+`pdf/model.ts` prints `turn ${turnNumber}/${turnCap}` — "turn 4/9", and "turn
+10/9" in sudden death — where `StateLine` says "3/9 turns spent" and then
+"sudden death". `model.test.ts`'s *"mirrors the on-screen readout"* pins
+`turn 4/9`. Options: **print what the screen says**, and make the test pin it;
+or handle sudden death alone. Recommendation: what the screen says.
+
+### F-codenamesduet-20 · `total-agents-four-homes` · `TOTAL_AGENTS` claims a unity it does not have
+
+`PlayArea.tsx`'s `TOTAL_AGENTS = 15` is *"named so the print model and the
+readout can't disagree"*, but `StateLine` writes `/15 agents`, the manifest
+`tally(…, 15, …)`, and the celebration *"All 15 agents contacted."* Options:
+**one constant in `lib/`** read in all four; or say only the printer reads
+it. Recommendation: one constant.
+
+### F-codenamesduet-21 · `partner-said-twice` · the partner's activity is said in two slots at once
+
+The giver, in the guess phase, reads *"● moth guessing"* in the header
+(`lib/answer.ts`) and *"WORD · N ● moth guessing"* below the board
+(`PeerActivity`); the guesser, before the clue, *"● moth writing clue"* and
+*"Waiting for moth to give a clue…"*. spellingbee's F-12 asked the same and
+was ruled no change. Options: **keep both** — the strip is the player's own
+and stays when chat has the header — with a comment at `PeerActivity`; drop
+the strip's; or drop the header's for these two states. Recommendation: keep
+both. Joel's call.
+
+### F-codenamesduet-22 · `sudden-death-assassin` · `doc.md` says a sudden-death assassin is `lost_clock`
+
+`submit_guess` checks the assassin first, so an assassin in sudden death ends
+`lost_assassin` (reason `assassin`). The prose pass's Game rules, play-state
+table and `submit_guess` section say *"anything but an agent"* is `lost_clock`.
+Options: **fix the doc** and pin the ending (F-27); or change the code.
+Recommendation: fix the doc — an assassin is an assassin.
+
+### F-codenamesduet-23 · `terminal-default-is-timeout` · any unnamed ending reads "Lost: out of time"
+
+`buildTerminalMessage` reaches `lost_timeout` by fallthrough, *"and any future
+terminal state"*. All five are known. Options: **name it**, as a `switch`
+over the five; or leave it. Recommendation: name it.
+
+### F-codenamesduet-24 · `print-legend-omits-triangles` · the printed legend leaves out the triangles
+
+The legend explains the three marks and the corners; the bystander triangles,
+which the printer's own docstring calls *"not decoration"*, appear nowhere in
+it. Options: **add a line**, drawing the triangles inline as the marks are
+(the legend is WinAnsi-only); or leave it. Recommendation: add it.
+
+### F-codenamesduet-25 · `game-row-read-twice` · the game row is read by both hooks
+
+`useGame` selects nine columns of `codenamesduet.games`, and outside the hook
+only `turn_number` and `current_clue_giver` are read; `useBoard` reads the
+same row again for the seats and both key cards, on its own channel. Options:
+**narrow `useGame`'s select** (and `GameRow`) to what is read; one read, with
+`useBoard` taking the cards from `useGame`; or leave it. Recommendation: narrow
+now; the one-read version changes `useBoard`'s signature and is F-8's
+neighbor, so weigh them together.
+
+### F-codenamesduet-26 · `log-neutral-token` · the log's three guess colors mix two token families
+
+`.guessWord_G` and `.guessWord_A` read the fill tokens, `.guessWord_N` the
+`-text` one (the tan fill is too faint on the page); the comment says it is
+the board's vocabulary. Help uses `-text` for all three. Options: **all three
+on `-text`**; or a comment saying why N differs. Recommendation: `-text`, or
+leave it to pass 3 if it is judged tile-feedback's.
+
+### F-codenamesduet-27 · `test-gaps` · rules nothing exercises
+
+Planted and restored in all three layers; each survived:
+
+- **SQL:** sudden death entered a turn late, and its status written as
+  `playing` (nothing drives `_end_turn` into it — F-11's fixture); an assassin
+  in sudden death as `lost_clock` (F-22); a won game's results as
+  `{won:false}`, a timeout's as `{won:true}`; `turns_used` wrong at a timeout
+  and a guess ending; the mid-game `greens_found` update dropped; the seeded
+  status wrong; `log_hint`'s seat always A; `get_clue_context` with no
+  bystanders or no previous clues; `end_game`'s realtime touch removed.
+- **FE logic:** `useGame` has no spec — seats A and B swapped, and a
+  zero-row load keeping the old game, both green; `useBoard`'s zero-row
+  branch (`setMyKey(null)`, which shows the no-such-game page) dropped.
+- **Components:** the own-bystander click lock; my key square shown while I
+  guess; the partner's square without its game-over gate; the partner's
+  triangle never drawn; the finished banner never shown, shown in sudden
+  death, or reading the partner's flag; the sudden-death strip never drawn; a
+  refused guess not shown; New game sending no players; the clue form not
+  clearing; the first-giver seeding off (F-1).
+
+Options: **a case for each**, planted again after it is written; or only those
+a player would see. Recommendation: each — spellingbee's F-17 found that a
+case list written without re-planting passes the plant.
+
+### Left for pass 3
+
+- The history ring's offset (`-3px` here, `2px` psychicnum, `0` connections)
+  and `.tilePending`'s outline in the action button's blue — the roster row
+  already records the second.
+- F-26, if judged tile-feedback's.
+
 ## Notes
 
 *(things worth remembering about this area that are neither a finding nor

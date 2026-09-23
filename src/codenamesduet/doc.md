@@ -222,8 +222,9 @@ turn has no clue yet — each of which the partner's move or the caller's own
 can change while the form is on screen, so a refusal here is a race. It
 logs the clue as an event of the turn and the seat, with whether it is exactly
 the AI's suggestion — the client says so, being the only side that saw the
-suggestion. It does not judge the clue: the word is whatever was typed and the
-count any whole number from zero up.
+suggestion. It does not judge the clue: the word is whatever was typed — a
+board word included — and the count any whole number from zero up. The players
+police their own clues, as they would at a table.
 
 **Passed:** `{ "target_game": "88ae6f5a…", "clue_word": "WORD", "clue_count": 2, "clue_from_ai": false }` — `clue_from_ai` defaults to `false`.
 
@@ -336,7 +337,7 @@ game is coop, and the shared Concede hides itself.
 ## FE submissions
 
 What the frontend sends, and what it says about the answers. **It judges
-nothing**: the clue form checks only that there is a word and a count, and a
+nothing**: the clue form checks only that there is a word and a one-digit count, and a
 tile click sends a position. Every sentence a player reads about their own move
 is the server's.
 

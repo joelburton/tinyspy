@@ -439,6 +439,10 @@ grant execute on function codenamesduet.create_game(text, jsonb, uuid[]) to auth
 -- word and count unedited. Only the client saw the suggestion, so it is taken
 -- as said — provenance, not a move to adjudicate. It defaults to false.
 --
+-- It judges nothing about the clue itself: a board word, several words, any
+-- count from zero up are all recorded. The players police their own clues, as
+-- they would at a table (CLAUDE.md → Trust model); the form allows one digit.
+--
 -- Three of its five raises are RACES, because every one of them turns on
 -- state the clue form cannot see change under it (the other two, PN369 and
 -- PN384, are faults). The form is rendered from

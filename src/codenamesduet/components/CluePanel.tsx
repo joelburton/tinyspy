@@ -328,12 +328,15 @@ function ClueForm({
           arrow) make it obvious you're composing a clue, and the header pill
           already says whose turn it is. */}
       <div className={styles.clueLine}>
-        {/* Digit-only text input (not type=number — no spinner chrome). */}
+        {/* One digit, text not type=number (no spinner chrome). A count past 9
+            covers more agents than a side has, and a long one overflows
+            `submit_clue`'s int. */}
         <input
           ref={countRef}
           type="text"
           inputMode="numeric"
           placeholder="#"
+          maxLength={1}
           value={count}
           onChange={(e) => setCount(e.target.value.replace(/\D/g, ''))}
           disabled={eitherBusy}

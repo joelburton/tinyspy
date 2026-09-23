@@ -10,8 +10,9 @@ type Props = {
 
 /**
  * codenamesduet's help / rules modal — opened from the "Help" item in the
- * GamePage menu; the manifest's `help` contract. The two views of the board,
- * and how a turn runs, in the shared `<GameHelpCompanion>` scaffold.
+ * GamePage menu; the manifest's `help` contract. What your key card shows, how
+ * a turn runs, the finished-player hand-off and sudden death, in the shared
+ * `<GameHelpCompanion>` scaffold.
  */
 export function Help({ onClose, brand }: Props) {
   return (
@@ -28,31 +29,36 @@ export function Help({ onClose, brand }: Props) {
 
       <h3>What you see</h3>
       <p>
-        You see a 5×5 grid, tinted with <em>your</em> view of each card:
+        Each word has a small square in its corner showing what <em>your</em> key
+        card says about it:
       </p>
       <ul>
         <li><strong className={styles.hintAgent}>Green</strong> — an agent (you're hunting these)</li>
         <li><strong className={styles.hintNeutral}>Tan</strong> — a bystander</li>
-        <li><strong className={styles.hintAssassin}>Red</strong> — the assassin (revealing one ends the game)</li>
+        <li><strong className={styles.hintAssassin}>Red</strong> — an assassin (revealing one ends the game)</li>
       </ul>
       <p>
-        Your partner sees the same 25 words but with their <em>own</em> color view — different
-        agents, different assassin. Together you have 15 unique agents to find.
+        Your card has 9 agents, 13 bystanders and 3 assassins. Your partner sees the
+        same words with a different card; between you there are 15 agents to find.
       </p>
 
       <h3>Turns</h3>
       <ol>
-        <li>The clue-giver types a clue: a <strong>count</strong> + a <strong>word or phrase</strong>.</li>
-        <li>The partner guesses one card at a time on the board.</li>
-        <li>Hitting a green agent? Keep going.</li>
-        <li>Hitting a tan? Your turn ends — one of your turns is used.</li>
-        <li>Hitting an assassin? Game over.</li>
+        <li>The clue-giver types a <strong>count</strong> and <strong>one word</strong>.</li>
+        <li>The partner guesses one word at a time.</li>
+        <li>An agent — keep going. A bystander — the turn ends and one turn is spent. An assassin — game over.</li>
+        <li>The guesser can stop at any time with <strong>Pass &amp; End Turn</strong>; that spends a turn too.</li>
       </ol>
       <p>
-        You have <strong>9 turns</strong>. When they run out, you enter sudden death —
-        any wrong reveal loses the game.
+        A bystander you hit is closed to you, but your partner can still guess it — it
+        may be their agent. Once all your agents are found, your partner gives every
+        clue from then on.
       </p>
-
+      <p>
+        You have the turns chosen at setup (9, 10 or 11). When they run out, it's{' '}
+        <strong>sudden death</strong>: no more clues, either of you guesses from
+        memory, and anything but an agent loses.
+      </p>
     </GameHelpCompanion>
   )
 }
