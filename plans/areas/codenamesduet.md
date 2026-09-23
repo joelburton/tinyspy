@@ -646,6 +646,40 @@ green (45 files, the game's and the guards). **The restructure's comment pass
 is complete; the stylesheet split is next.** The e2e specs have not run for
 Steps 2–8.
 
+### The stylesheet split — nothing to split, 2026-09-23
+
+The per-importer rule (app-audit.md row 53) finds **nothing to split here**:
+the split was already in place, as it was at wordle. Each of the nine
+stylesheets in `components/` has one importer, the component it is named for,
+and every class it declares is read there:
+
+| stylesheet | importer | what it holds |
+|---|---|---|
+| `PlayArea.module.css` | `PlayArea.tsx` | the one `.layout` rule, declaring `--info-col-width` — what the rule says the file should hold |
+| `BoardCol.module.css` | `BoardCol.tsx` | `.belowBoard` and `.moveArea`, both worn in its render |
+| `Board.module.css` | `Board.tsx` | the board, the grid, the tile states, the key squares and the triangles; `.keyAgent` / `.keyNeutral` / `.keyAssassin` are read through the `KEY_SQUARE` lookup |
+| `CluePanel.module.css` | `CluePanel.tsx` | the panel, the clue display, the waiting line and the clue form, read across the file's six components; `.clueLabel` is read by nothing — `todo.md`'s Bug, on `cssClasses.test.ts`'s allowlist |
+| `InfoCol.module.css` | `InfoCol.tsx` | the sudden-death tag and the two finished-player banners |
+| `KeyCard`, `GameEventLog`, `Help`, `CodenamesduetAISuggestCompanion` | each its own | one component each |
+
+`CluePanel.tsx` is one importer holding six components (`CluePanel`,
+`ClueDisplay`, `PeerActivity`, `PeerWaiting`, `ClueForm`, `PassButton`).
+The rule splits by importer, so the file's one stylesheet stands; whether those
+components want files of their own is the `CluePanel` name item in `todo.md`,
+not the split's.
+
+**No file moved, so no header was rewritten.** Three headers are wrong and are
+the prose pass's: `Board.module.css`'s opening paragraph is archaeology
+(*"previously co-located in PlayArea.module.css"*); `CluePanel.module.css`
+puts the panel in *"PlayArea's `.belowBoard`"* (it is `BoardCol`'s — the false
+note Step 8 fixed in `CluePanel.tsx`) and ends in three orphaned comments,
+one saying *"MOVED to CodenamesduetAISuggestCompanion.module.css"* and two
+headers for rules that are no longer there; `PlayArea.module.css`'s header
+has an overlong line and ends *"Nothing mobile-specific left"*. Every
+pointer elsewhere that names one of these files still points where it did.
+
+**The restructure is complete.** Pass 2 opens with the prose pass.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it
