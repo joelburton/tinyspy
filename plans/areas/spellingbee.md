@@ -1230,7 +1230,22 @@ two modes), and `doc.md`'s sentence with it; or **fix the false sentence only**.
 Recommendation: the rewrite, with the words shown before it ships since it is
 UI copy.
 
-### F-spellingbee-14 · `status-merges` · six comments and two docs say `common.end_game` replaces the status, and it merges
+### SHIPPED · F-spellingbee-14 · `status-merges` · six comments and two docs say `common.end_game` replaces the status, and it merges
+
+**Joel, 2026-09-23: "1"** — the prose. **A correction presented with it:**
+the finding's reason for keeping the re-emission (the recount lists every
+player where the mid-game leaderboard is `[]`) changes nothing a player
+sees — the strip reads a missing player as rank 0 and the label never reads
+the leaderboard. What keeps it is `common.end_game`'s own header: a terminal
+write states what the ending adds, a final tally among them.
+
+The two SQL comments now say exactly that; `compete_test`'s comment says what
+the carried keys are for; `coop_target_test`'s label drops the claim; the
+manifest's comment says the conceded status keeps the race's last readout and
+that its early return is about its own sentence; `doc.md`'s two sentences say
+the conceded ending adds its reason over the last readout. wordwheel's two
+comments are a Soon entry in its todo. No behavior changed: `npm run
+test:db` PASS, `tsc -b` and eslint clean, spellingbee + guards 364 green.
 
 `common.end_game` MERGES its `status` over the row's (`coalesce(status,
 '{}') || end_game.status`; only `common.reset_game` assigns). Written when it

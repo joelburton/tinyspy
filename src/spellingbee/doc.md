@@ -135,7 +135,8 @@ Every ending this game writes itself publishes the final figures beside the
 reason — coop's score, count and rank, compete's leaderboard and the winner's
 name — which is what the club-list label and the Rank strip read after the
 game. The one ending it does not write, every racer conceding, is
-`common.concede`'s and carries only its reason.
+`common.concede`'s: it adds only its reason, and the status merges, so the
+race's last readout stays under it.
 
 ## Schema
 
@@ -340,8 +341,8 @@ the target rank carried over, so the same letters are played again from
 nothing. Every ending this game writes itself publishes the final score, count
 and rank — coop's team figures, compete's leaderboard — beside the reason,
 which is what the club-list label and the opponent strip read after the game.
-The one ending it does not write, every racer conceding, is `common.concede`'s
-and carries only its reason.
+The one ending it does not write, every racer conceding, is `common.concede`'s,
+which adds only its reason over the race's last readout.
 
 Three of them end by touching `found_words` in place. A compete client cannot
 see an opponent's finds until the game is over, and `common.end_game` writes

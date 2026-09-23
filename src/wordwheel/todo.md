@@ -14,6 +14,11 @@
   `end_game`. spellingbee made it one helper, `spellingbee._leaderboard`
   (its F-11, 2026-09-23); the same helper here.
 
+- **Two SQL comments say `common.end_game` replaces the status**
+  (`submit_timeout`'s and `end_game`'s compete branches); it merges. The
+  re-emitted keys stay — the ending states its final tally — and the
+  comments say so, as spellingbee's F-14 did (2026-09-23).
+
 - **Collapse the info-column action row's branches.** This game still FORKS on
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these
