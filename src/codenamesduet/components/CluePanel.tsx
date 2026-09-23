@@ -38,7 +38,8 @@ type PassAnswer = {
   result: 'passed'
   turn_number: number
   turns_remaining: number
-  clue_giver: Seat
+  // Null once the pass drops the game into sudden death: nobody clues there.
+  clue_giver: Seat | null
   play_state: 'playing' | 'sudden_death'
 }
 

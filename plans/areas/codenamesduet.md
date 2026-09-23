@@ -970,7 +970,27 @@ and say in `submit_clue` that the words are the players' to police, under the
 trust model; refuse a board word and a count over 9 as validations (new codes);
 or leave it. Recommendation: the cap and the comment.
 
-### F-codenamesduet-11 · `sudden-death-gates` · the clue seat outlives the clues
+### SHIPPED · F-codenamesduet-11 · `sudden-death-gates` · the clue seat outlives the clues
+
+**Joel, 2026-09-23: "i'll take your rec"** — (a), the wording mine. `_end_turn`
+enters sudden death with `current_clue_giver = null` and answers `"clue_giver":
+null`. Each gate refuses sudden death first, as a race, in its own words:
+`submit_clue` **PN502** and `_require_clue_giver` **PN504** *"Sudden death — no
+more clues"* (word for word, as the gate's comment requires), `pass_turn`
+**PN503** *"Sudden death — no turn to pass"*; *"Game over"* is left to the
+terminal states. `_require_clue_giver` now admits ordinary play only, and its
+header says so. **`sudden_death_test.sql` reaches sudden death the real way**:
+the budget set to turn 9 of 9, then a clue and a pass, with three new
+assertions on the entry (the answer, the play state, the null seat) and three
+on the refusals — which closes F-27's two SQL sudden-death survivors. The
+pass answer's type in `CluePanel.tsx` is `Seat | null`; nothing reads it.
+`doc.md`: the bystander and pass answers, the suggester's gate, the refusal
+table's two rows, the vocabulary, the Tests row. **Planted** in the whole
+suite (a one-folder run cannot find the shared setup and fails every file —
+the first round of plants was invalid for that and was redone): the seat kept,
+sudden death a turn late, its status written as `playing`, the AI gate
+admitting it — each red on the new cases; restored, PASS, 182 files, 2606
+tests. `tsc -b`, eslint, 46 files / 402 tests green.
 
 `_end_turn` enters sudden death with `current_clue_giver = next_giver`, not
 null. `_require_clue_giver` admits `sudden_death`, so that seat can call
@@ -1159,8 +1179,8 @@ leave it to pass 3 if it is judged tile-feedback's.
 
 Planted and restored in all three layers; each survived:
 
-- **SQL:** sudden death entered a turn late, and its status written as
-  `playing` (nothing drives `_end_turn` into it — F-11's fixture); an assassin
+- **SQL:** ~~sudden death entered a turn late, and its status written as
+  `playing`~~ (closed by F-11's real entry); an assassin
   in sudden death as `lost_clock` (F-22); a won game's results as
   `{won:false}`, a timeout's as `{won:true}`; `turns_used` wrong at a timeout
   and a guess ending; the mid-game `greens_found` update dropped; the seeded

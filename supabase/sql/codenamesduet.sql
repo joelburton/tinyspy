@@ -125,12 +125,12 @@ begin
 
   if remaining <= 1 then
     -- Last turn spent. Transition to sudden_death on common.games
-    -- (the play_state authority); zero out turns_remaining + flip
-    -- clue-giver on codenamesduet.games.
+    -- (the play_state authority) and zero out turns_remaining. Sudden death
+    -- has no clues, so nobody holds the clue seat.
     update codenamesduet.games
       set turns_remaining = 0,
           turn_number = turn_number + 1,
-          current_clue_giver = next_giver
+          current_clue_giver = null
       where id = target_game
       returning turn_number into new_turn_number;
     perform common.update_state(
@@ -144,7 +144,7 @@ begin
     return jsonb_build_object(
       'turn_number', new_turn_number,
       'turns_remaining', 0,
-      'clue_giver', next_giver,
+      'clue_giver', null,
       'play_state', 'sudden_death'
     );
   else
@@ -486,6 +486,13 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
 
+  if current_play_state = 'sudden_death' then
+    -- A race: the last turn was spent while this clue was being composed, and
+    -- sudden death has no clues.
+    raise exception 'Sudden death — no more clues'
+      using errcode = 'PN502', hint = 'race', column = '_',
+      detail = 'no clues in sudden_death';
+  end if;
   if current_play_state <> 'playing' then
     -- A race: the partner pressed End, or the countdown expired, while this
     -- clue was being composed. Their action reaches this client by
@@ -1239,6 +1246,13 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
 
+  if current_play_state = 'sudden_death' then
+    -- A race: the last turn was spent while the Pass button was on screen. In
+    -- sudden death every guess is a turn of its own, so there is none to pass.
+    raise exception 'Sudden death — no turn to pass'
+      using errcode = 'PN503', hint = 'race', column = '_',
+      detail = 'no passing in sudden_death';
+  end if;
   if current_play_state <> 'playing' then
     -- A race: the partner ended the game, or the countdown expired, while the
     -- Pass button was still on screen.
@@ -1326,11 +1340,12 @@ grant execute on function codenamesduet.pass_turn(uuid) to authenticated;
 -- ============================================================
 -- The gate `get_clue_context` and `log_hint` share, so the two can never
 -- disagree about who may ask: the game exists, the caller is one of its
--- players, it is still running, and the caller holds the clue seat. Returns
+-- players, it is in ordinary play (sudden death has no clues), and the caller
+-- holds the clue seat. Returns
 -- that seat. Raises; the calling RPC's handler turns the raise into the
 -- envelope.
 --
--- Both refusals are the clue form's own races said again: the AI button sits
+-- Its refusals are the clue form's own races said again: the AI button sits
 -- on that form, one line from Submit, and loses exactly the races Submit
 -- loses. The sentences are submit_clue's, word for word — hearing two
 -- different ones for a single event would be the tell that they were written
@@ -1364,7 +1379,14 @@ begin
   select play_state into current_play_state
     from common.games where id = target_game;
 
-  if current_play_state not in ('playing', 'sudden_death') then
+  if current_play_state = 'sudden_death' then
+    -- A race, and submit_clue's PN502 word for word: the last turn was spent
+    -- while the form was still up.
+    raise exception 'Sudden death — no more clues'
+      using errcode = 'PN504', hint = 'race', column = '_',
+      detail = 'the AI suggester has no clue to give in sudden_death';
+  end if;
+  if current_play_state <> 'playing' then
     -- A race, and submit_clue's PN370 word for word: the partner ended the
     -- game, or the clock ran out, while the form was still up.
     raise exception 'Game over'

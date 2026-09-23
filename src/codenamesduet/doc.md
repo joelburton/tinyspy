@@ -107,7 +107,7 @@ loses.
 | **key card** · **side** · **seat** | the two sides are `key_card_a` and `key_card_b`; a player's seat, A or B, says which side is theirs. The first clue-giver is seated as A |
 | **agent** · **bystander** · **assassin** | the three labels, stored as `G`, `N` and `A`. The code's `neutral` is a bystander, and the rulebook's "green" is an agent |
 | **contacted** | an agent turned over; the same for both players |
-| **clue-giver** · **guesser** | who holds the clue this turn, `current_clue_giver`, and the other seat |
+| **clue-giver** · **guesser** | who holds the clue this turn, `current_clue_giver` — nobody, in sudden death — and the other seat |
 | **turn budget** | `setup.turns`, counted down in `turns_remaining`. Distinct from the wall-clock timer, which is an optional setup of its own |
 | **sudden death** | the budget spent with agents left |
 | **finished player** | a player whose own agents are all contacted; they stop giving clues |
@@ -267,8 +267,9 @@ in this game:
   (SMOKE, position 5; the turn goes on)
 - a bystander — `{ "result": "bystander", "revealed": "N", "greens_found": 1,
   "turn_number": 2, "turns_remaining": 8, "clue_giver": "B", "play_state": "playing" }`
-  (PAGE, position 0; the turn ended). `play_state` is `sudden_death` when that
-  spent the last turn.
+  (PAGE, position 0; the turn ended). When that spent the last turn,
+  `play_state` is `sudden_death` and `clue_giver` is null — sudden death has no
+  clues, so nobody holds the seat.
 
 The three that end the game are named for the play state they set, and carry
 the label turned over, the agents found and the turns used:
@@ -293,14 +294,14 @@ ends the turn exactly as a bystander does.
 keys the bystander answer carries:
 
 ```json
-{ "result": "passed", "turn_number": …, "turns_remaining": …, "clue_giver": "A" | "B", "play_state": "playing" | "sudden_death" }
+{ "result": "passed", "turn_number": …, "turns_remaining": …, "clue_giver": "A" | "B" | null, "play_state": "playing" | "sudden_death" }
 ```
 
 ### `codenamesduet-suggest-clue` — the edge function behind the AI button
 
 Asks Claude for a clue for the caller's board. It reads the board through
 `codenamesduet.get_clue_context` as the caller — the RPC refuses anyone but the
-current clue-giver of a running game, and those refusals are relayed as they
+current clue-giver of a game in ordinary play, and those refusals are relayed as they
 came — and gets back the caller's still-hidden agents, bystanders and
 assassins by word, and every clue given so far. It sends those to the model
 with a JSON schema for the answer (a clue, a count, the agents it targets, a
@@ -358,6 +359,7 @@ since the clue was never recorded:
 | move | said to | text | outcome | written in |
 |---|---|---|---|---|
 | a clue, the game ended under it | me | `Game over` | `warning` | `submit_clue` |
+| a clue or an AI ask, the last turn spent under it | me | `Sudden death — no more clues` | `warning` | `submit_clue`, `get_clue_context` |
 | a clue, the seat moved | me | `Your partner is giving the clue now` | `warning` | `submit_clue` |
 | a clue, one already in | me | `A clue is already in for this turn` | `warning` | `submit_clue` |
 | a guess, the game ended under it | me | `Game over` | `warning` | `submit_guess` |
@@ -366,6 +368,7 @@ since the clue was never recorded:
 | a guess, the word is turned over | me | `That word is already revealed` | `warning` | `submit_guess` |
 | a guess, my own bystander | me | `You already tried that word` | `warning` | `submit_guess` |
 | a pass, the game ended under it | me | `Game over` | `warning` | `pass_turn` |
+| a pass, the last turn spent under it | me | `Sudden death — no turn to pass` | `warning` | `pass_turn` |
 | a pass, I became the giver | me | `You're giving the clue this turn` | `warning` | `pass_turn` |
 
 **The partner is narrated in the header**: what they are doing right now,
@@ -479,7 +482,7 @@ test finds a position by its label), `pg_temp.codenamesduet_setup()` and
 | `clue_giver_handoff_test` | a finished player gives no more clues, from either seat, and two live seats still alternate |
 | `cross_direction_test` | a bystander locks the guesser's side only; the partner can still contact the word; the two locks answer in different words |
 | `win_test` | the fourteenth agent plays on and the fifteenth wins |
-| `sudden_death_test` | no clues; an agent goes on, anything else is `lost_clock` |
+| `sudden_death_test` | a real last pass enters it, with nobody holding the clue seat; a clue, a pass and the AI refused in its own words; an agent goes on, anything else is `lost_clock` |
 | `submit_timeout_test` | `lost_timeout` from both running states, the reason, and a second call refused |
 | `end_game_test` | `ended` with the reason `manual`, nobody winning, and a second call refused |
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
