@@ -1079,7 +1079,11 @@ handler change (all read `constraint_name`), four names into
 `docs/deferred.md`'s entry. Options: **convert here**; or leave it to the
 entry. Recommendation: convert.
 
-### F-codenamesduet-13 · `todo-clue-label` · `.clueLabel` is read by nothing
+### SHIPPED · F-codenamesduet-13 · `todo-clue-label` · `.clueLabel` is read by nothing
+
+**Joel, 2026-09-23: "i'll take your rec."** The rule and its comment, the
+`DEAD_CLASS_PENDING` row, and `todo.md`'s Bug, deleted. **Planted** an unread
+class into the stylesheet: `cssClasses` red naming it; removed, green.
 
 `todo.md`'s Bug: `CluePanel.module.css`'s `.clueLabel`, on
 `cssClasses.test.ts`'s `DEAD_CLASS_PENDING`. Options: **delete the rule and

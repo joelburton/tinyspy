@@ -31,11 +31,6 @@
   padding: 0.6rem 1rem;
 }
 
-/* "Your clue:" lead-in, muted so the WORD beside it carries the emphasis. */
-/* @@ */ .clueLabel {
-  color: var(--page-text-muted-color);
-}
-
 /* The active clue, inline — prominent but sized to sit on the control line. */
 /* @@ */ .clueDisplay {
   font-size: 1.2rem;

@@ -2,9 +2,6 @@
 
 ## Bugs
 
-- `.clueLabel` in `CluePanel.module.css` is read by nothing
-  (`cssClasses.test.ts` holds it in `DEAD_CLASS_PENDING`).
-
 ## Soon
 
 - **`CluePanel` needs a name that says what it is.** Joel: *"'CluePanel' is a
