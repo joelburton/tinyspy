@@ -490,6 +490,32 @@ buttons at the end; the menu's order. **Verified by planting** New game's old
 restored from scratchpad copies, green. `tsc -b` and eslint clean; the game's
 108 unit specs green. No e2e for this step.
 
+### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-23
+
+wordle's and spellingbee's Step 6, names and all: `buildOver` is
+**`buildTerminalMessage`** in `lib/terminal.ts`, the value it produces is
+`terminalMessage`, and InfoCol's `over` prop is `terminalMessage` too.
+`PlayArea.tsx` no longer imports `gameEndedTerminalMessage` or the
+`TerminalMessage` type; the `useMemo` that feeds the verdict effect stays there.
+The body moved unchanged — same branches, same words — its docstring with it.
+duet's builder takes the play state alone: the game is coop-only and its
+verdicts name no one.
+
+`lib/terminal.test.ts` walks the whole input space — the five play states a duet
+game ends in — as a table, pins the manual end to the shared neutral ending,
+and checks that every case fills both texts and says "Lost" only beside a loss.
+**Planted** a `neutral` outcome on the timeout loss: two of the three cases
+red; restored, green. Both files join the roster at `cs-met-codenamesduet`.
+
+**The mentions that named the old function** — `lib/answer.ts`'s docstring and
+the old game doc's manual-end paragraph — name the new one. **Two lines of
+PlayArea's surface docstring** named `over.pillText` / `over.infoColText` and
+described the Step 5 fork's button swap; they now name `terminalMessage` and say
+the row carries the line. The rest of that docstring is Step 8's.
+
+Verified: `tsc -b` clean, lint clean over `src/codenamesduet/`, 396 unit tests
+green (the game's and the guards). No e2e for this step.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it

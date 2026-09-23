@@ -261,7 +261,7 @@ The friends' explicit "we're done" button — `act-end-game`, placed as both the
 
 Same shape as `submit_timeout` — accepts both active states (`playing` / `sudden_death`), same `require_game_player` gate, same idempotency (a second call raises `P0001 'game is not in progress'`, swallowed by the FE). Differences: it writes `play_state = 'ended'` with `status->>'outcome' = 'manual'`, and every player's `common.game_players.result = {won: false}` (cooperative game: nobody wins a manually-stopped game — agreeing to stop is a valid outcome, not a loss).
 
-The terminal renders **neutral**, not as a loss: `buildOver('ended')` returns the shared `gameEndedTerminalMessage('coop')` — a neutral below-board verdict reading "Game ended" — and the manifest's `STATUS_LABEL` map renders the club-card line as `Ended` (`ended: outcome('Ended')`).
+The terminal renders **neutral**, not as a loss: `buildTerminalMessage('ended')` (`lib/terminal.ts`) returns the shared `gameEndedTerminalMessage('coop')` — a neutral below-board verdict reading "Game ended" — and the manifest's `STATUS_LABEL` map renders the club-card line as `Ended` (`ended: outcome('Ended')`).
 
 **Realtime touch at the tail**: a no-op self-write on `codenamesduet.games` (`set turn_number = turn_number`) so the FE's schema-scoped `useGame` subscription wakes to refetch and flip into review mode — the uniform trick documented at [common.md → Manual end, step 6](../common.md#manual-end--every-gametypes-end_gametarget_game). (`submit_timeout`'s `current_clue_giver = null` write provides the same wake incidentally.) Tested in `tests/codenamesduet/end_game_test.sql`.
 

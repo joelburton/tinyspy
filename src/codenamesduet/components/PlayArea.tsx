@@ -25,7 +25,6 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { setupRows } from '../lib/setupSummary'
-import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import type { GameRow, Player } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
 import type { WordRow } from '../hooks/useBoard'
@@ -35,6 +34,7 @@ import { answerMessage, turnAnswer } from '../lib/answer'
 import type { KeyLabel } from '../lib/labels'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { historySnapshot } from '../lib/history'
+import { buildTerminalMessage } from '../lib/terminal'
 import type { CodenamesduetSetup } from '../lib/setup'
 import { CodenamesduetAISuggestCompanion } from './CodenamesduetAISuggestCompanion'
 import { type SuggestState } from './CluePanel'
@@ -71,10 +71,9 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * surfaces plus one celebration:
  *
  *   1. The below-board slot swaps the CluePanel for the filled verdict
- *      carrying `over.pillText`, and the info-column action row swaps the
- *      End button for a bold `over.infoColText` line + a compact Back-to-club
- *      button (`ctx.menu.actBackToClub`). Both persist until the user
- *      navigates away.
+ *      carrying `terminalMessage.pillText` (`lib/terminal.ts`), and the
+ *      info-column action row carries the bold `terminalMessage.infoColText`
+ *      line. Both persist until the user navigates away.
  *   2. A **win** — and only a win — also pops `<CelebrationBlockingModal>`, at the
  *      MOMENT the 15th agent is contacted. `useCelebration` deliberately never
  *      fires on mount, so opening an already-won game is quiet review, not a
@@ -85,49 +84,6 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * derives phase (who clicks what, when) via `derivePhase`, and hands each
  * piece to the right sub-component. Realtime keeps everything in sync.
  */
-
-/** The per-status terminal message for codenamesduet. `playState` is the
- *  authoritative input — only terminal states appear here. Returns the shared
- *  `TerminalMessage` shape (the same psychicnum/connections use): `pillText` +
- *  `outcome` are the below-board verdict; `infoColText` + `outcome` the
- *  short, bold, color-coded line in the info-column action row (won = green,
- *  lost = red, manual end = neutral). Detail-on-page intentionally: the
- *  agents-found counter sits in the info-column state line, the board carries
- *  the revealed tiles.
- *
- *  The loss verdicts are terse ("Lost: assassin") rather than sentences: the pill
- *  is a fixed-height below-board slot, and on a phone a long verdict wraps and
- *  grows it. */
-function buildOver(playState: string): TerminalMessage {
-  if (playState === 'won') {
-    return { pillText: 'You win!', infoColText: 'You won!', outcome: 'won' }
-  }
-  if (playState === 'lost_assassin') {
-    return {
-      pillText: 'Lost: assassin',
-      infoColText: 'Assassin revealed',
-      outcome: 'lost',
-    }
-  }
-  if (playState === 'lost_clock') {
-    return {
-      pillText: 'Lost: out of turns',
-      infoColText: 'Out of turns',
-      outcome: 'lost',
-    }
-  }
-  // Manual end (codenamesduet.end_game): the friends stopped the game on purpose
-  // — the uniform neutral terminal shared with the other games, owned by the
-  // shared gameEndedTerminalMessage(). codenamesduet is coop-only.
-  if (playState === 'ended') return gameEndedTerminalMessage('coop')
-  // lost_timeout (and any future terminal state that doesn't match above —
-  // falls back to a generic timer-out message rather than crashing).
-  return {
-    pillText: 'Lost: out of time',
-    infoColText: 'Out of time',
-    outcome: 'lost',
-  }
-}
 
 /**
  * Keep the current turn-state in the header — the global slot — for as long
@@ -559,12 +515,15 @@ export function PlayArea({
   // The verdict, memoized on `playState` so the effect sees one object per
   // outcome, shown on the terminal edge and retracted by its owner on Restart
   // (a Duet mulligan un-terminals the game).
-  const over = useMemo(() => (isTerminal ? buildOver(playState) : null), [isTerminal, playState])
+  const terminalMessage = useMemo(
+    () => (isTerminal ? buildTerminalMessage(playState) : null),
+    [isTerminal, playState],
+  )
   useEffect(function showTerminalVerdict() {
-    if (!over) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(over))
+    if (!terminalMessage) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(terminalMessage))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, over])
+  }, [localFeedbackSlot, terminalMessage])
 
   const firstClueGiver = players.find(
     (p) => p.user_id === setup.first_clue_giver_user_id,
@@ -658,7 +617,7 @@ export function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
-        over={over}
+        terminalMessage={terminalMessage}
         inSuddenDeath={inSuddenDeath}
         // ── State readout ──
         greenFound={greenFound}

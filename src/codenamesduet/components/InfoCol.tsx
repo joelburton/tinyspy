@@ -33,7 +33,7 @@ export function InfoCol({
   // "what is this prop for?" is answerable by eye; the `// ── … ──` headers on the type
   // block below name each group. Names are shared with the other games' columns for the
   // same idea — see docs/playarea.md.
-  over,
+  terminalMessage,
   inSuddenDeath,
   greenFound,
   turnNumber,
@@ -59,7 +59,7 @@ export function InfoCol({
 }: {
   // ── Mode + phase ──
   /** The terminal message when the game is over (drives the action row), else null. */
-  over: TerminalMessage | null
+  terminalMessage: TerminalMessage | null
   /** Turn budget spent — the state line reads "sudden death" and the help swaps to
    *  the sudden-death rules. */
   inSuddenDeath: boolean
@@ -168,13 +168,13 @@ export function InfoCol({
             Concede never (duet is coop). The only thing that varies here is the
             line: the verdict once the game is over. No divider: nothing sits left
             of it — this game's hint, the AI, is on the clue form. */}
-        <InfoActionsRow message={over ? { text: over.infoColText, outcome: over.outcome } : undefined}>
+        <InfoActionsRow message={terminalMessage ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome } : undefined}>
           <ActionButton action={actReveal} show="icon" />
           <ActionButton action={actRestart} show="icon" />
           <ActionButton action={actNewGame} show="icon" />
           <ActionButton action={actConcede} show="icon" />
           <ActionButton action={actEndGame} show="icon" />
-          <ActionButton action={actBackToClub} show="icon" weight={over ? 'primary' : 'secondary'} />
+          <ActionButton action={actBackToClub} show="icon" weight={terminalMessage ? 'primary' : 'secondary'} />
         </InfoActionsRow>
 
         {/* Help — a stable orienting line during play (the per-phase guidance lives
@@ -182,7 +182,7 @@ export function InfoCol({
             sudden-death rules; the help is muted and easily skimmed-past as
             "unchanged", so it leads with a RED "SUDDEN DEATH:" tag to flag that it's
             different now. */}
-        {!over && (
+        {!terminalMessage && (
           <p className={shared.infoHelp}>
             {inSuddenDeath ? (
               <>

@@ -11,7 +11,7 @@ import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
  *
  * A guess of mine has no answer here: the tile turning over says it, and a
  * pill would only repeat the board. The terminal verdicts are not answers
- * either — they are the shared shape every game's `buildOver` returns.
+ * either — they are the shared shape every game's `buildTerminalMessage` returns.
  */
 export type Answer =
   // Where the turn stands after my partner's latest move, or mine: what my
