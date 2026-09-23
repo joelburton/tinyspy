@@ -50,8 +50,9 @@ celebrates once, at the moment they cross it, and so does a race's winner.
 A **hive** of seven distinct letters: one **center** and six **outer**. No
 board contains an S. A word counts when it is four letters or more, spelled
 from the hive's letters (a letter may repeat), includes the center, and is in
-the board's **legal list**. Every board has at least one **pangram** — a word
-that uses all seven letters.
+the board's **legal list**. A **pangram** is a word that uses all seven
+letters. Every random board has at least one, being grown from a pangram
+seed; a board built from letters the player chose need not.
 
 Scoring: a four-letter word is one point, a longer word scores its length, and
 a pangram adds ten. The **required words** are the goal — their count and their

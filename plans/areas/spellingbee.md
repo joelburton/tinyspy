@@ -1189,7 +1189,17 @@ surface, so nothing needs seeding for the game coming back); or **leave it**, th
 Recommendation: gate it — the verdict is the news, and it already names the
 winner and the rank.
 
-### F-spellingbee-13 · `help-text` · the Help modal promises a pangram a custom board need not have, and omits the modes and bonus words
+### SHIPPED · F-spellingbee-13 · `help-text` · the Help modal promises a pangram a custom board need not have, and omits the modes and bonus words
+
+**Joel, 2026-09-23: "1"** — the body as proposed. The pangram line says a
+random board always has one and picked letters may not; a paragraph on
+bonus words (the dot, and the score passing the total); a paragraph on the
+two modes. **One formatting choice not in the shown copy:** *Coop:* and
+*Compete:* are bold, as wordle's Help writes its two labels. The default
+height is 500, from 420. The docstring names the new topics and says the
+modal is not told which mode is on. `doc.md` → Game rules says every
+*random* board has a pangram. `tsc -b`, eslint, spellingbee + guards green.
+Not looked at in a browser.
 
 `Help.tsx` says of the pangram *"Every board has at least one."* True of a
 random board (it is grown from a pangram seed), false of a custom one: the
