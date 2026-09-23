@@ -105,8 +105,6 @@ export function InfoCol({
   setup: CodenamesduetSetup
   // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
   setupRows: SetupRow[]
-  // The player seated as the first clue-giver.
-  firstClueGiver: Player | undefined
 
   // ── Turn-history log (GameEventLog) ──
   clues: ClueEvent[]

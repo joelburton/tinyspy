@@ -519,10 +519,6 @@ export function PlayArea({
   // Everything below is derived fresh each render and read only by the JSX —
   // nothing here is a hook, which is why it may sit after the menu effect.
 
-  const firstClueGiver = players.find(
-    (p) => p.user_id === setup.first_clue_giver_user_id,
-  )
-
   // Duet's finished-player rule (enforced in `_end_turn`): once a seat's agents
   // are all contacted it gives no more clues, and its partner takes every
   // remaining turn. Both players are told, so the lopsided turn flow does not
@@ -592,7 +588,6 @@ export function PlayArea({
         myKey={myKey}
         setup={setup}
         setupRows={summaryRows}
-        firstClueGiver={firstClueGiver}
         // ── Turn-history log ──
         clues={clues}
         guesses={guesses}

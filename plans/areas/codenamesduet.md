@@ -848,7 +848,12 @@ bystander locking only your side. Options: **rewrite from `doc.md` → Game
 rules**, as spellingbee's F-13 did; or fix only the false sentences.
 Recommendation: rewrite.
 
-### F-codenamesduet-3 · `unread-first-clue-giver` · `InfoCol` takes a `firstClueGiver` it never reads
+### SHIPPED · F-codenamesduet-3 · `unread-first-clue-giver` · `InfoCol` takes a `firstClueGiver` it never reads
+
+**Joel, 2026-09-23: "delete it."** The derivation in `PlayArea`'s Render
+section, the pass-through, and `InfoCol`'s member with its note. Nothing to
+plant: a prop with no reader is invisible to every test, which is the
+finding. `tsc -b` and eslint clean; 46 files, 402 tests.
 
 `PlayArea.tsx` derives `firstClueGiver` and passes it; `InfoCol`'s props type
 declares it and the destructure never takes it (the setup echo is
