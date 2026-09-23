@@ -1226,7 +1226,15 @@ death · 12/15 agents`**, as a `switch`, and regenerate
 `docs/game-status-labels.md`; or keep it with a comment calling it an
 exception. Recommendation: Playing.
 
-### F-codenamesduet-19 · `print-summary-drifts` · the PDF counts turns differently from the screen
+### SHIPPED · F-codenamesduet-19 · `print-summary-drifts` · the PDF counts turns differently from the screen
+
+**Joel, 2026-09-23: "Print what the screen says."** The model takes
+`inSuddenDeath`, the flag `StateLine` reads, and its summary is the screen's:
+`3/9 turns spent`, or `sudden death` once the budget is gone. `model.test.ts`'s
+*"mirrors the on-screen readout"* now pins the spent count, and a second case
+pins sudden death; **planted** the old `turn N/9` and the flag ignored, each
+red. `tsc -b` and eslint clean; 47 files, 413 tests. Seen while wiring it:
+F-28.
 
 `pdf/model.ts` prints `turn ${turnNumber}/${turnCap}` — "turn 4/9", and "turn
 10/9" in sudden death — where `StateLine` says "3/9 turns spent" and then
@@ -1316,6 +1324,20 @@ Planted and restored in all three layers; each survived:
 Options: **a case for each**, planted again after it is written; or only those
 a player would see. Recommendation: each — spellingbee's F-17 found that a
 case list written without re-planting passes the plant.
+
+### F-codenamesduet-28 · `terminal-turns-over-budget` · a game that ended in sudden death reads "11/9 turns spent"
+
+Raised at F-19. `StateLine` says "sudden death" only while the play state IS
+`sudden_death`; once a sudden-death game ends (`lost_clock`, `lost_assassin`,
+`won`, `lost_timeout`, `ended`), it falls back to `turn_number − 1` over the
+budget — past it, since every sudden-death guess is a turn — so the finished
+game's info column reads e.g. *"12/15 agents · 11/9 turns spent"*, and the
+printout, which now copies the screen, says the same. Options: **sudden death
+by the turn count** — `StateLine` (and the print) say "sudden death" whenever
+the turn number is past the budget (`isSuddenDeathTurn`), terminal or not;
+cap the count at the budget (*"9/9 turns spent"*); or leave it.
+Recommendation: by the turn count — the game did reach sudden death, and the
+line should keep saying so.
 
 ### Left for pass 3
 

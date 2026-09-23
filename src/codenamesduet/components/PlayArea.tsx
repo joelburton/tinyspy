@@ -497,6 +497,7 @@ export function PlayArea({
           totalAgents: TOTAL_AGENTS,
           turnNumber: game.turn_number,
           turnCap: setup.turns,
+          inSuddenDeath,
           mode: 'coop' as const,
           setup: summaryRows,
         }),

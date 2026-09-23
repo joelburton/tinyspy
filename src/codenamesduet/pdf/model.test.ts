@@ -59,6 +59,7 @@ const base = {
   totalAgents: 15,
   turnNumber: 4,
   turnCap: 9,
+  inSuddenDeath: false,
   mode: 'coop' as const,
   setup: [{ key: 'turns', label: 'Turns', value: '9' }],
 }
@@ -174,9 +175,15 @@ describe('buildDuetPrintModel — the clue log', () => {
 })
 
 describe('buildDuetPrintModel — summary', () => {
-  it('mirrors the on-screen readout', () => {
+  it('mirrors the on-screen readout: the turns SPENT, during turn 4', () => {
     expect(buildDuetPrintModel({ ...base }).summary).toBe(
-      '3/15 agents contacted · turn 4/9',
+      '3/15 agents contacted · 3/9 turns spent',
+    )
+  })
+
+  it('says sudden death once the budget is gone, as the screen does', () => {
+    expect(buildDuetPrintModel({ ...base, turnNumber: 11, inSuddenDeath: true }).summary).toBe(
+      '3/15 agents contacted · sudden death',
     )
   })
 })
