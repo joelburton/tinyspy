@@ -387,6 +387,42 @@ restored, green. `tsc -b` clean, eslint clean over the five folders, 651 unit
 tests green (the four games, found-words, the guards), the whole pgTAP suite
 green (181 files, 2567 tests). The e2e specs have not run.
 
+### Step 5 — the actions and the row (readability 3.6, 3.7) — DONE 2026-09-22
+
+wordle's Step 5, copied. **The row is one `<InfoActionsRow>` now**, in the
+order `docs/playarea.md` states: Restart · New game · Concede · End | Back to
+club, Back to club filled only at terminal. The three-way fork (`over ? … :
+isLocallyDone ? … : …`) is gone; the only thing that varies is the row's line
+— the verdict, "You conceded", nothing while you can play. The InfoCol's
+destructure, its prop-type block and the PlayArea's prop list read in that
+order, and so does the menu. **No divider**: spellingbee has no hint and no
+spoiler, so nothing sits left of it.
+
+**The conventions, per binding:** New game is a button only at terminal,
+`(asker) => asker === 'button' && !isTerminal ? 'hidden' : 'active'`, a menu
+row and `+` all game; Restart, Concede and End were already the shared hook's.
+`createNewGame` was already a plain `async function`, and no in-flight flag
+existed to remove. **One `useCallback` dropped:** BoardCol's `handleShuffle`
+had the shuffle binding as its only reader, so the binding's `run` is the
+setter call itself; `handleLetterClick` keeps its wrap, since a child reads it.
+**Every binding in one section, in one order:** Print moved from above the
+derived state to after New game — the shared trio, New game, Print — unchanged
+in body.
+
+**Two behavior changes, stated now.** *A conceded racer gets Back to club* —
+the conceded row held only the grayed Concede, which is what the todo named as
+the fork's loss. *The menu lists Restart · New game above Print*, where Print
+came first, so the menu and the row read alike. Back to club keeps `weight={over
+? 'primary' : 'secondary'}`.
+
+**The todo's Soon item is deleted.** Two tests pin the conventions: Restart
+and New game are menu rows all game and buttons only at the end; and the
+conceded racer's test now asserts Concede grayed, Back to club present, and
+Restart / New game menu-only. **Verified by planting** New game's old
+`'active'` and the old row's missing Back to club: exactly those two tests red;
+restored from scratchpad copies, green. `tsc -b` clean, lint clean over
+`src/spellingbee/`, 345 unit tests green (the game's and the guards).
+
 ## Findings
 
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it

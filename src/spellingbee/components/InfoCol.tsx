@@ -3,7 +3,7 @@
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
+import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
 import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -46,10 +46,10 @@ export function InfoCol({
   selfRankIdx,
   metricByUser,
   concededIds,
-  actEndGame,
-  actConcede,
   actRestart,
   actNewGame,
+  actConcede,
+  actEndGame,
   actBackToClub,
   setupRows,
   wordRows,
@@ -58,9 +58,9 @@ export function InfoCol({
   // ── Mode + phase ──
   isCompete: boolean
   isTerminal: boolean
-  /** The terminal message when the game is over (drives the action row), else null. */
+  /** The terminal message when the game is over (the action row's line), else null. */
   over: TerminalMessage | null
-  /** I conceded a compete race — the terminal LOOK while the others race on. */
+  /** I conceded a compete race while the others race on — the action row says so. */
   isLocallyDone: boolean
 
   // ── State (RankBar + Stats — one unit) ──
@@ -82,21 +82,19 @@ export function InfoCol({
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
 
-  // ── Action row (ICON-ONLY buttons — the waffle arrangement; tooltips
-  //    carry the labels. Playing: End/Concede + back-to-club. Terminal:
-  //    Restart + New game + back-to-club.) ──
-  /** End the game for the whole table — coop's exit; it hides itself in a race. */
-  actEndGame: BoundAction
+  // ── Action row — the same bindings, in the order the menu lists them ──
+  /** Restart THIS board — same letters, finds wiped. A button only at terminal. */
+  actRestart: BoundAction
+  /** Start a fresh follow-up game — same setup, new board + id. A button only
+   *  at terminal; disables itself while the create is in flight, so a slow
+   *  network reads as "working". */
+  actNewGame: BoundAction
   /** Drop out of a race while the others play on — hidden outside compete. */
   actConcede: BoundAction
-  /** Restart THIS board — same letters, finds wiped. */
-  actRestart: BoundAction
-  /** Start a fresh follow-up game — same setup, new board + id. Disables itself
-   *  while the create is in flight, so a slow network reads as "working". */
-  actNewGame: BoundAction
-  /** Leave for the club — the shell's own action, off `ctx.menu`. ONE binding
-   *  for both rows: it navigates directly at terminal and routes through the
-   *  suspend-confirm flow mid-game. */
+  /** End the game for the whole table — coop's exit; it hides itself in a race. */
+  actEndGame: BoundAction
+  /** Leave for the club — the shell's own action, off `ctx.menu`. It navigates
+   *  directly at terminal and routes through the suspend-confirm flow mid-game. */
   actBackToClub: BoundAction
 
   // ── Setup disclosure ──
@@ -109,6 +107,14 @@ export function InfoCol({
   /** Does this board have a bonus word list? Drops the list's KIND filter when not. */
   hasBonus: boolean
 }) {
+  // The row's one varying part: the verdict at terminal, a line while a race
+  // runs on without you, nothing while you can play.
+  const rowMessage: InfoActionsMessage | undefined = over
+    ? { text: over.infoColText, outcome: over.outcome }
+    : isLocallyDone
+      ? { text: 'You conceded', outcome: 'neutral' }
+      : undefined
+
   return (
     <div className={shared.infoCol}>
       <div className={shared.noShrinkRow}>
@@ -148,34 +154,22 @@ export function InfoCol({
           />
         )}
 
-        {/* Action row — ICON-ONLY (the waffle arrangement; the styled tooltips
-            carry the labels). TERMINAL: the bold outcome line + Restart /
-            New game / back-to-club (primary). CONCEDED (the others race on):
-            the terminal LOOK — a status line + the now-disabled Concede.
-            PLAYING: End/Concede + back-to-club (via the suspend-confirm flow). */}
-        {over ? (
-          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
-            {/* Stay-here options left of the leave option (Club): run this
-                board back, or spin up the next one. */}
-            <ActionButton action={actRestart} show="icon" />
-            <ActionButton action={actNewGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </InfoActionsRow>
-        ) : isLocallyDone ? (
-          <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
-            {/* Concede disables itself once conceded — the row keeps its shape
-                and the button says why it can't be pressed again. */}
-            <ActionButton action={actConcede} show="icon" />
-          </InfoActionsRow>
-        ) : (
-          <InfoActionsRow>
-            {/* Both exits are placed; each hides itself in the mode that isn't
-                its own, so this row asks nothing about coop vs compete. */}
-            <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" />
-          </InfoActionsRow>
-        )}
+        {/* ONE row, one order, every action listed once: which of them is on
+            screen is each action's own answer, since `<ActionButton>` draws
+            nothing for one that says it is hidden. The game menu lists the same
+            bindings in the same order (docs/playarea.md). spellingbee has
+            nothing to the left of the divider — no hint, no spoiler — so it
+            draws none. ICON-ONLY: the styled tooltips carry the labels. */}
+        <InfoActionsRow message={rowMessage}>
+          <ActionButton action={actRestart} show="icon" />
+          <ActionButton action={actNewGame} show="icon" />
+          <ActionButton action={actConcede} show="icon" />
+          <ActionButton action={actEndGame} show="icon" />
+          {/* `weight` is the placement's to choose, not the action's — filled
+              at terminal, outline while the game runs (docs/ui.md → Back to
+              club). */}
+          <ActionButton action={actBackToClub} show="icon" weight={over ? 'primary' : 'secondary'} />
+        </InfoActionsRow>
 
         {/* Setup options — what was picked at create time, behind the shared
             disclosure. Closed by default so it doesn't crowd the status above. */}

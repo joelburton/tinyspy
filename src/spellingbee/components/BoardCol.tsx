@@ -116,7 +116,6 @@ export function BoardCol({
     void shuffleSeed
     return shuffled(Array.from(outerLetters))
   }, [outerLetters, shuffleSeed])
-  const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
 
   // The hexes the typed word is using. A Set of its letters is the whole of it:
   // a hive letter can be typed more than once and there is nothing to count.
@@ -136,7 +135,7 @@ export function BoardCol({
   // post-game fidget is deliberate — the round pill below is this same binding.
   const actShuffle = useBoundAction('act-shuffle', {
     describe: () => 'active',
-    run: handleShuffle,
+    run: () => setShuffleSeed((s) => s + 1),
   })
 
   return (

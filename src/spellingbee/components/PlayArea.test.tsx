@@ -276,14 +276,26 @@ describe('spellingbee PlayArea — compete terminal verdicts', () => {
 })
 
 /**
- * The icon-only action rows (the waffle arrangement — labels live in
- * tooltips): PLAYING = End/Concede + Back-to-club (the shell's
- * suspend-confirm flow); TERMINAL = Restart + New game + Back-to-club.
- * Restart = spellingbee.replay_board (unconfirmed at terminal); New game =
- * the spellingbee-build-board edge function with THIS game's setup/roster/
- * mode, then ctx.goToGame.
+ * The icon-only action row (the waffle arrangement — labels live in tooltips):
+ * one row listing every action, each deciding for itself whether it is on
+ * screen. Restart = spellingbee.replay_board (unconfirmed at terminal); New
+ * game = the spellingbee-build-board edge function with THIS game's setup/
+ * roster/mode, then ctx.goToGame.
  */
 describe('spellingbee PlayArea — icon-only action rows', () => {
+  it('Restart and New game are menu rows all game, and buttons only at the end', () => {
+    const { unmount } = render(<PlayAreaLoader {...makeCtx()} />)
+    for (const id of ['act-restart', 'act-new-game'] as const) {
+      expect(bound(id).describe('button').state).toBe('hidden')
+      expect(bound(id).describe('menu').state).not.toBe('hidden')
+    }
+    unmount()
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    for (const id of ['act-restart', 'act-new-game'] as const) {
+      expect(bound(id).describe('button').state).toBe('active')
+    }
+  })
+
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
     // ONE binding for both rows: it navigates directly at terminal and routes
     // through the suspend-confirm flow mid-game, so the game no longer picks
@@ -575,6 +587,13 @@ describe('spellingbee PlayArea — concede', () => {
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
+    // Possible here, not right now: the button stays and says why.
+    expect(bound('act-concede').describe('button').state).toBe('disabled')
+    // The one row cannot lose the way out, which the conceded row used to.
+    expect(screen.getByRole('button', { name: 'Back to club' })).toBeInTheDocument()
+    // Moving on is still a menu thing until the game is over.
+    expect(bound('act-restart').describe('button').state).toBe('hidden')
+    expect(bound('act-new-game').describe('button').state).toBe('hidden')
   })
 
   it('distinguishes Quit / Lost / Won at terminal in the strip', () => {

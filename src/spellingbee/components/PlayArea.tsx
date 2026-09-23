@@ -225,56 +225,6 @@ export function PlayArea(props: PlayAreaProps) {
     return { foundWordsScore: s, foundWordsCount: myFoundRows.length }
   }, [myFoundRows])
 
-  // Print the board — the plain-data print model built from the live state (RLS +
-  // the explicit compete filter already scope what I may see) and handed to the
-  // jsPDF renderer. Built inside `run`, so it is a snapshot at CLICK time and the
-  // menu needn't rebuild as words are found. See common/pdf/doc.md.
-  const actPrintBoard = useBoundAction('act-print-board', {
-    describe: () => 'active',
-    run: () => {
-      // The same call the on-screen list makes: at terminal, every missed word —
-      // required AND bonus — folds in (the rows call dedups the found and appends
-      // the unfound). The print deliberately follows the screen here: the missed-word
-      // list IS the post-game artifact, so a printout that quietly dropped the bonus
-      // half would be a different document from the one on screen.
-      const words = buildWordListRows({
-        foundWords,
-        requiredWords: game.requiredWords,
-        bonusWords: game.bonusWords,
-        hasBonus: hasBonus,
-        isTerminal,
-      }).map((r) => ({
-        word: r.word.toUpperCase(),
-        pangram: r.isPangram ?? false, // spellingbee's own difference: pangrams print bold
-        bonus: r.isBonus ?? false,
-        found:
-          r.kind === 'found'
-            ? { points: r.points ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
-            : null,
-      }))
-      const rankIdx = currentRankIndex(foundWordsScore, game.required_words_score)
-      printSpellingbeePdf({
-        brand,
-        gameTitle: title,
-        date: new Date().toLocaleDateString(),
-        // Coop's rank + totals are the TEAM's, so the header states them. Compete's
-        // are per-player — each section carries its own — so the header states only
-        // the shared targets rather than reporting the viewer's as the table's.
-        summary:
-          game.mode === 'compete'
-            ? `Target: ${game.required_words_score} pts · ${game.required_words_count} words`
-            : `${RANKS[rankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
-        outerLetters: game.outer_letters.split(''),
-        centerLetter: game.center_letter,
-        mode: game.mode,
-        setup: summaryRows,
-        // Coop prints one shared list; compete a section per player, each with its
-        // own score, plus a trailing "Not found" for the terminal reveal.
-        sections: buildWordSections(words, game.mode, players, session.user.id),
-      })
-    },
-  })
-
   // ─── Allowed-letter set (drives illegal-letter dim) ────
   const allowedLetters = useMemo(() => {
     const s = new Set<string>()
@@ -440,11 +390,62 @@ export function PlayArea(props: PlayAreaProps) {
   // create_game clears the club's current-view flag, so it stays resumable — the
   // copy says shelved, not ended) and goes straight through at terminal, where
   // there is nothing to interrupt. The shared run's single flight is what stops a
-  // second press building a second board.
+  // second press building a second board. A menu row and a key all game, a
+  // button only at the end, as Restart is.
   const actNewGame = useBoundAction('act-new-game', {
     terminal: isTerminal,
-    describe: () => 'active',
+    describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
     run: createNewGame,
+  })
+
+  // Print the board — the plain-data print model built from the live state (RLS +
+  // the explicit compete filter already scope what I may see) and handed to the
+  // jsPDF renderer. Built inside `run`, so it is a snapshot at CLICK time and the
+  // menu needn't rebuild as words are found. See common/pdf/doc.md.
+  const actPrintBoard = useBoundAction('act-print-board', {
+    describe: () => 'active',
+    run: () => {
+      // The same call the on-screen list makes: at terminal, every missed word —
+      // required AND bonus — folds in (the rows call dedups the found and appends
+      // the unfound). The print deliberately follows the screen here: the missed-word
+      // list IS the post-game artifact, so a printout that quietly dropped the bonus
+      // half would be a different document from the one on screen.
+      const words = buildWordListRows({
+        foundWords,
+        requiredWords: game.requiredWords,
+        bonusWords: game.bonusWords,
+        hasBonus: hasBonus,
+        isTerminal,
+      }).map((r) => ({
+        word: r.word.toUpperCase(),
+        pangram: r.isPangram ?? false, // spellingbee's own difference: pangrams print bold
+        bonus: r.isBonus ?? false,
+        found:
+          r.kind === 'found'
+            ? { points: r.points ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
+            : null,
+      }))
+      const rankIdx = currentRankIndex(foundWordsScore, game.required_words_score)
+      printSpellingbeePdf({
+        brand,
+        gameTitle: title,
+        date: new Date().toLocaleDateString(),
+        // Coop's rank + totals are the TEAM's, so the header states them. Compete's
+        // are per-player — each section carries its own — so the header states only
+        // the shared targets rather than reporting the viewer's as the table's.
+        summary:
+          game.mode === 'compete'
+            ? `Target: ${game.required_words_score} pts · ${game.required_words_count} words`
+            : `${RANKS[rankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
+        outerLetters: game.outer_letters.split(''),
+        centerLetter: game.center_letter,
+        mode: game.mode,
+        setup: summaryRows,
+        // Coop prints one shared list; compete a section per player, each with its
+        // own score, plus a trailing "Not found" for the terminal reveal.
+        sections: buildWordSections(words, game.mode, players, session.user.id),
+      })
+    },
   })
 
   // The FULL spellingbee menu. `buildGameMenu` supplies the framing (Help + chat
@@ -460,9 +461,9 @@ export function PlayArea(props: PlayAreaProps) {
         // its own, so this list is the same in coop and compete.
         exits: [actConcede, actEndGame],
         extra: [
-          { items: [actPrintBoard] },
-          // Same board, wiped finds / same setup, fresh board + id.
+          // The same two the terminal action row offers, reachable mid-game too.
           { items: [actRestart, actNewGame] },
+          { items: [actPrintBoard] },
         ],
       }),
     )
@@ -665,11 +666,11 @@ export function PlayArea(props: PlayAreaProps) {
         selfRankIdx={selfRankIdx}
         metricByUser={rankByUser}
         concededIds={concededIds}
-        // ── Action row ──
-        actEndGame={actEndGame}
-        actConcede={actConcede}
+        // ── Action row — the same bindings, in the order the menu lists them ──
         actRestart={actRestart}
         actNewGame={actNewGame}
+        actConcede={actConcede}
+        actEndGame={actEndGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setup={setup}
