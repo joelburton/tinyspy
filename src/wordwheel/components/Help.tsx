@@ -27,7 +27,7 @@ export function Help({ onClose, brand }: Props) {
       <ul>
         <li>Be at least 4 letters long.</li>
         <li>
-          Include the <strong>center letter</strong> (the red one).
+          Include the <strong>center letter</strong> (the purple one).
         </li>
         <li>
           Use each tile <strong>at most once</strong> — the same letter can

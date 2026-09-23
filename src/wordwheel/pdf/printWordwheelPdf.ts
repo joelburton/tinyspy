@@ -12,7 +12,7 @@ import { BOX_H, BOX_W, TILE_POSITIONS } from '../lib/wheel'
  * shape with a different board: all that's wordwheel-specific is the **wheel** — the
  * 9-circle board drawn from the same `lib/wheel.ts` geometry the on-screen board uses.
  *
- * On the clean-printable page we can't lean on the on-screen red center tile (the
+ * On the clean-printable page we can't lean on the on-screen purple center tile (the
  * palette is three-shade grayscale — color only for meaning; see common/pdf/doc.md), so the
  * center tile is distinguished the two ways that survive grayscale: it's LARGER (from
  * the geometry) and drawn with a thicker border.

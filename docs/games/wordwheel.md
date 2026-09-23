@@ -16,7 +16,7 @@ first, then this for the deltas.
 ### Rules
 
 - The board is **nine tiles — a MULTISET of letters**: one **center** (drawn bigger,
-  red) and **eight outer** tiles on a ring. The same letter may appear on two (or
+  purple) and **eight outer** tiles on a ring. The same letter may appear on two (or
   more) tiles — a wheel with two `B` tiles is an ordinary board, and the center may
   duplicate an outer.
 - A word is legal when it:
@@ -80,7 +80,7 @@ to spellingbee.
 | term | meaning |
 |---|---|
 | **wheel** | the nine-tile board: one center + eight outer tiles — a **multiset** (a letter may sit on two tiles) |
-| **center tile** | the mandatory tile (bigger, red); every word must use it — and when its letter is duplicated, the center is spent first |
+| **center tile** | the mandatory tile (bigger, purple); every word must use it — and when its letter is duplicated, the center is spent first |
 | **outer tiles** | the eight ring tiles |
 | **pangram** | a word using all nine tiles (any 9-letter word fitting the wheel's multiset); +15 bonus |
 | **required / legal bands** | vocabulary difficulty bands (see `src/spellingbee/doc.md` → *Vocabulary*): `required` (default 3) = the displayed goal words; `legal` (default 5) = the wider accepted set. Words above `required` but ≤ `legal` are **bonus** (accepted + scored, but not part of the goal). |
@@ -333,7 +333,7 @@ into three buckets:
   shared; see [`src/spellingbee/doc.md`](../../src/spellingbee/doc.md) for the full behavior. The
   ladder's own palette (`--rank-bar-fill-color` / `--rank-bar-edge-color` in `common/theme.css`) is
   shared too — freebee yellow with dark-gold rules, in BOTH games: a rank ladder
-  means the same thing wherever it appears, so wordwheel's red stays the
+  means the same thing wherever it appears, so wordwheel's purple stays the
   wheel's accent and doesn't recolor the bar.
 - **Deliberately forked — per-game siblings.** `PlayArea`,
   `BoardCol`, `InfoCol`, `SetupForm`, and `lib/setup.ts` are 85–98% identical to
@@ -393,7 +393,7 @@ The genuinely wordwheel-only parts (no spellingbee counterpart):
   `<circle>`: a mustard **seat** placed by its own center, and the **face** that sits
   in it. Only the face is the piece. The nine seats are tangent by construction, so
   their color merges into one continuous flower — that is the board's TRAY, like
-  boggle's dice box, and it stays put. The center face gets the red
+  boggle's dice box, and it stays put. The center face gets the purple
   `--wordwheel-accent` fill + white glyph, the outer faces the warm
   `--wordwheel-tile` ramp; the seat carries the click, so the mustard is part of the
   hit area. Clicking a tile appends its letter (no validation — the shipped-list
@@ -406,9 +406,9 @@ The genuinely wordwheel-only parts (no spellingbee counterpart):
   lifting face in a wheel whose seats TOUCH could only ever rise *behind* its
   neighbors. The seat's visible width is `RING_W`, from the geometry, because that
   is what makes two touching seats merge.
-- **Theme tokens** (`theme.css`): `--wordwheel-accent` (moderately-saturated red, the
-  center tile + the achieved RankBar tier), `--wordwheel-accent-edge`,
-  `--wordwheel-center-text` (white), `--wordwheel-tile` / `--wordwheel-tile-text`,
+- **Theme tokens** (`theme.css`): `--wordwheel-accent` (a dusty, low-saturation
+  purple, the center tile — not red, which is the `lost` outcome a refused word's
+  tiles wear), `--wordwheel-center-text` (white), `--wordwheel-tile` / `--wordwheel-tile-text`,
   and `--wordwheel-seat` (the mustard the flower is made of).
 
 ### Tile-spend affordances

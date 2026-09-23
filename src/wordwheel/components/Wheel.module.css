@@ -1,9 +1,9 @@
 /* cs-unmet */
 
-/* The word wheel: 9 circular tiles — 1 center (bigger, red) + 8 outer (warm
+/* The word wheel: 9 circular tiles — 1 center (bigger, purple) + 8 outer (warm
  * tile-2) evenly spaced on a ring, clockwise from the top. The center tile is
  * used in every word, so it's the visual hub: larger radius (from the geometry)
- * and a saturated-red fill.
+ * and a muted-purple fill.
  *
  * Rendered as ONE inline <svg> (Wheel.tsx), viewBox 0 0 300 300 — the wheel's
  * coordinate units. The svg is sized in --u (set on .boardCol in
@@ -118,9 +118,9 @@
 }
 
 /* The center tile is used in every word, so it is the hub: bigger (its diameter
- * comes inline from the geometry) and the saturated red, in the SAME seat as the
+ * comes inline from the geometry) and the muted purple, in the SAME seat as the
  * outer tiles so all nine read as one set and only the fill says "center". White
- * ink, where black would fight the red. */
+ * ink on it. */
 /* @@ */ .center .face {
   background: var(--wordwheel-accent);
   color: var(--wordwheel-center-text);

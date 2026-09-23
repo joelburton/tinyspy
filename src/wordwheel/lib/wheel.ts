@@ -8,7 +8,7 @@
  *
  * Word wheel's board is one central tile (used in every word) ringed by eight outer
  * tiles — circles, not spellingbee's hexagons. The center tile is drawn LARGER (a
- * separate radius) and, on screen, filled a saturated red; the eight outer tiles sit
+ * separate radius) and, on screen, filled a muted purple; the eight outer tiles sit
  * on a ring evenly spaced, clockwise from the top.
  *
  * Coordinates live in the wheel's own square unit box; a renderer scales that box

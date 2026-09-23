@@ -30,7 +30,7 @@ type Props = {
  * it carries the letter, the shadow, the lift and the press; the seats are
  * tangent by construction and merge into the flower the board reads as, so they
  * stay put. The center tile is larger (its radius comes from the geometry) and
- * red (via the `.center` class); the eight outer faces are the warm tile color.
+ * purple (via the `.center` class); the eight outer faces are the warm tile color.
  *
  * Boxes rather than SVG circles, so the depth can be the shared `--tile-shadow`
  * pair rather than a `drop-shadow` filter with every length divided by the

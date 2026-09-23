@@ -4,7 +4,7 @@
  * (imported from PlayArea.tsx) so they only ship when wordwheel
  * is being played.
  *
- * Word wheel's visual identity is the wheel: a saturated-red center tile (the
+ * Word wheel's visual identity is the wheel: a muted-purple center tile (the
  * letter used in EVERY word) ringed by warm neutral outer tiles.
  *
  *   --wordwheel-seat         The mustard the nine tiles sit in. Their seats are
@@ -14,11 +14,9 @@
  *   --wordwheel-tile         The resting outer-tile fill. Soft warm neutral
  *                            (the shared tile-2 ramp).
  *   --wordwheel-tile-text    Near-black glyph on the light outer tiles.
- *   --wordwheel-accent       The center tile fill — a moderately-saturated red,
- *                            the single "used in every word" cue. Also the
- *                            achieved-tier fill on the RankBar.
- *   --wordwheel-center-text  White glyph on the red center tile (black would
- *                            fight the saturated fill).
+ *   --wordwheel-accent       The center tile fill — a dusty, low-saturation
+ *                            purple, the single "used in every word" cue.
+ *   --wordwheel-center-text  White glyph on the purple center tile.
  *
  * Two-vocabularies rule (see docs/ui.md): tokens use semantic
  * names tied to wordwheel's vocabulary (`tile`, `accent`) rather
@@ -30,19 +28,18 @@
 /* @@ */   --wordwheel-tile:          var(--tile-2-fill-color); /* the shared warm ramp */
 /* @@ */   --wordwheel-tile-text:     #1a1a1a;
 
-  /* Moderately-saturated red — the center tile. */
-/* @@ */   --wordwheel-accent:        #d6494f;
+  /* A dusty purple — the center tile. NOT red: red is the `lost` outcome, and a
+   * refused word's tiles take that fill, so a red center read as a verdict. Kept
+   * low in saturation (and away from the vivid member purple and strands'
+   * theme purple) so it marks the center without shouting. White on it is
+   * 4.7:1. */
+/* @@ */   --wordwheel-accent:        #7e6aa3;
 /* @@ */   --wordwheel-center-text:   #ffffff;
-
-  /* (A spent tile has no fill of its own any more: it keeps its resting color
-   * and takes the app's SELECTED border, the same black ring boggle's tiles and
-   * spellingbee's hexes wear for a letter that is in your word. The two darkened
-   * fills that used to say it are gone.) */
 
   /* Shared-component token: the common <RankBar> / <Stats> read this generic
    * name so one copy serves both hive-family games. Only the TEXT color is
    * per-game now — the ladder's own fill + edge are shared (`--rank-bar-fill-color` /
-   * `--rank-bar-edge-color` in common/themes/daylight.css). wordwheel's red stays the WHEEL's
+   * `--rank-bar-edge-color` in common/themes/daylight.css). wordwheel's purple stays the WHEEL's
    * accent; the ladder is yellow in both games on purpose. */
 /* @@ */   --rank-text:               var(--wordwheel-tile-text);
 }

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <!-- wordwheel logo: the word wheel, mirroring the on-screen board. A large
-     saturated-red center tile ringed by eight warm-neutral outer tiles, each with
+     muted-purple center tile ringed by eight warm-neutral outer tiles, each with
      a thick gold border (the tile-5-border token) and each TANGENT to the center +
      its neighbors (the same tangency the board geometry uses). The tiles sit
      directly on a dark rounded-rect card — no inner ground, matching the board's
@@ -101,12 +101,12 @@
        r="227"
        id="circle8" />
   </g>
-  <!-- Center hub (saturated red, same thick gold border), drawn last so it reads crisp. -->
+  <!-- Center hub (muted purple, same thick gold border), drawn last so it reads crisp. -->
   <circle
      cx="1000"
      cy="1000"
      r="366"
-     fill="#d6494f"
+     fill="#7e6aa3"
      stroke="#d2b060"
      stroke-width="79"
      id="circle9" />
