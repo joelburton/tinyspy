@@ -51,8 +51,10 @@ describe('a deleted game says so', () => {
 
   it('finds the callers at all', () => {
     // A guard that finds nothing passes just as quietly as one that works.
-    // Three RPCs × sixteen games: every player-callable path that reaches for a
-    // game's own row and can find it gone.
+    // Three RPCs × sixteen games, plus each move RPC converted to the shared
+    // race so far (docs/envelopes.md → a missing game row is PN485): every
+    // player-callable path that reaches for a game's own row and can find it
+    // gone.
     expect(callers.map((f) => f.name).sort()).toEqual([
       'bananagrams.end_game', 'bananagrams.replay_board', 'bananagrams.submit_timeout',
       'boggle.end_game', 'boggle.replay_board', 'boggle.submit_timeout',
@@ -64,6 +66,7 @@ describe('a deleted game says so', () => {
       'scrabble.end_game', 'scrabble.replay_board', 'scrabble.submit_timeout',
       'setgame.end_game', 'setgame.replay_board', 'setgame.submit_timeout',
       'spellingbee.end_game', 'spellingbee.replay_board', 'spellingbee.submit_timeout',
+      'spellingbee.submit_word',
       'stackdown.end_game', 'stackdown.replay_board', 'stackdown.submit_timeout',
       'strands.end_game', 'strands.replay_board', 'strands.submit_timeout',
       'waffle.end_game', 'waffle.replay_board', 'waffle.submit_timeout',

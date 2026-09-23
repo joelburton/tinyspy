@@ -289,8 +289,9 @@ both.
 The only mid-game move, and a trusting commit: the word arrives already judged
 and scored by the frontend, and the server does not re-check its letters, its
 length or the dictionary. What it does check, under a lock on the game row, is
-that the game is still playing and the caller has not conceded — a word in
-flight when either changed is a race — and that the word is not already found
+that the game still exists, is still playing and the caller has not conceded —
+a word in flight when any of those changed is a race, a deleted game answering
+with the shared *"That game was already deleted"* — and that the word is not already found
 under this mode's rule: anyone's in coop, the caller's own in compete. A
 duplicate is also a race, since the frontend dedups first and reaching the
 server means its list was stale; the server writes the whole line for that one
@@ -502,7 +503,7 @@ checks shape, not spelling) and three bonus ones, and
 | `create_game_test` | both modes' rows, the gametype suffix and the denormalized mode; the title formula; the status seeded per mode; an outsider, a bad mode, a short race, a missing or out-of-range target, a bad band, every board-shape fault, and seven players refused |
 | `custom_letters_test` | a hand-picked board is accepted under thirty words and refused at zero; the custom letters are stripped from the saved default; a random board still needs thirty |
 | `coop_target_test` | reaching the target is `won` with reason `target` and everyone winning, and the game is really over; the clock with a target unreached is `lost`; with no target it is `ended`; End with a target unreached is `ended` |
-| `gameplay_test` | each of the four `ok`s, none carrying an outcome; the row stores what was sent; the score and count include bonus finds; the coop duplicate; coop has no end at a full clear; the timeout and the manual end, each idempotent and each touching the rows; the lists un-gated throughout |
+| `gameplay_test` | each of the four `ok`s, none carrying an outcome; the row stores what was sent; the score and count include bonus finds; the coop duplicate; coop has no end at a full clear; the timeout and the manual end, each idempotent and each touching the rows; the lists un-gated throughout; a word into a game deleted under it is the shared race |
 | `compete_test` | per-player ownership of a word, and a racer's own duplicate refused with the frontend's line; the leaderboard's shape; the target hit answers `won`, ends the race, names the winner, freezes the leaderboard as it stood and writes every result; a post-win submit is refused; the timeout and the manual end with nobody winning |
 | `concede_test` | refused in coop; a conceder is out while the others race and cannot submit a word; the last one out ends the race as a collective loss, and only that concede touches the found rows |
 | `replay_test` | the found list cleared, the status reseeded, the clock zeroed, the board kept, the `games` row touched; any player may, mid-game or after; a non-player may not |

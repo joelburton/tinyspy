@@ -1053,6 +1053,17 @@ under a single code, because what a code distinguishes is WHICH QUESTION
 failed — not which file asked it. A caller always knows which RPC it called.
 Sixteen codes for one fact says the fact is sixteen things, and it is not.
 
+**A missing game row is PN485, in every game RPC that looks for one — the
+moves included.** `common.delete_game` is open to any club member, so a
+friend tidying the club list really does delete a game under somebody's open
+page, and a word or a guess in flight is the likeliest thing to meet it. That
+is a race, not a broken client: `_raise_game_deleted`, asked before
+`require_game_player`, since the delete takes the membership too
+(`gameDeletedFirst.test.ts` pins the order). Ruled 2026-09-23 at spellingbee's
+F-10, where `submit_word` converted. The other move RPCs still answer with a
+fault of their own and are owed the same change —
+[deferred.md → Common / architecture](deferred.md#common--architecture).
+
 ## How edge functions build one
 
 **An edge function answers 200 whenever it ran**, faults included. The status

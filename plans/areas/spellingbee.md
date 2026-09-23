@@ -1093,7 +1093,43 @@ that the shell moved under (F-14, `common.end_game` learned to merge); and the
 usual drift, tests and small shapes (F-15 to F-17). Eight findings: F-10 to
 F-13 with a decision in them, then F-14 to F-17.
 
-### F-spellingbee-10 · `submit-word-deleted-game` · a word typed into a game a friend just deleted is answered as a BUG
+### SHIPPED · F-spellingbee-10 · `submit-word-deleted-game` · a word typed into a game a friend just deleted is answered as a BUG
+
+**Joel, 2026-09-23: "i'll take your rec on this"** — the ruling first, then
+this game's conversion. Asked first: does the page learn of the delete before
+anyone acts? It subscribes (`useCommonGame` listens to every event on its
+`common.games` row, and `replica identity full` puts the id on a delete), so
+usually the page leaves on its own; nothing tests it, and a word already in
+flight meets the missing row regardless.
+
+**The finding undercounted, and I said so before building.** It named nine
+move RPCs; the roster has **thirty-four** functions that answer a missing row
+with a fault of their own, in fifteen games, including reads the AI edge
+functions make and scrabble's `_commit_*` helpers — the first grep matched
+only the `BUG:` wording and missed *"That game no longer exists"*. Several
+also gate on membership first, so a deleted game there says *"You are not in
+this game"*. The ruling did not change; where the other games' work is
+recorded did, from a copy per game's register to one cross-cutting entry.
+
+- **The ruling** is in `docs/envelopes.md` → How SQL builds one: a missing
+  game row is PN485, in every game RPC that looks for one, the moves
+  included, asked before `require_game_player`.
+- **`submit_word`** calls `common._raise_game_deleted('spellingbee')`; PN353
+  is retired. **The handler had to change too**: it did not read
+  `constraint_name`, so the helper's `lost` would have been dropped —
+  `raiseCodes.test.ts` refused it, and the pgTAP case failed on the missing
+  outcome until the handler read it.
+- **`gameDeletedFirst.test.ts`** lists `spellingbee.submit_word` among its
+  callers, and its comment says the list grows as move RPCs convert.
+- **The other thirty-three** are one entry in `docs/deferred.md` → Common /
+  architecture, naming each function and what a conversion takes.
+- **`doc.md`**: `submit_word`'s checks and the Tests row.
+
+**Verified:** a `gameplay_test` case deletes the game and submits: PN485,
+`race`, `lost`. **Planted** the old fault back — that case red; planted the
+membership gate above the row check — `gameDeletedFirst` red naming
+`spellingbee.submit_word`. Restored. `npm run test:db`, 181 files, 2579
+tests, PASS; guards, 285 green.
 
 `submit_word` opens by locking its `spellingbee.games` row, and when there is
 none it raises its own `'BUG: a word submitted to a game with no spellingbee

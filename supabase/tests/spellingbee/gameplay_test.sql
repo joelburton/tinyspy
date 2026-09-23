@@ -27,6 +27,7 @@
 --      and games_state still exposing the required list.
 --  11. end_game: terminal, reason 'manual', the live tally, idempotent, the rows
 --      touched, and a non-player refused.
+--  12. a word into a game deleted under it is the shared race (PN485).
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
@@ -34,7 +35,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(49);
+select plan(50);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -511,6 +512,22 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
   'end_game: non-player (dee, outsider) is rejected (PN253)');
+
+-- ============================================================
+-- (12) A word typed into a game a friend just deleted
+-- ============================================================
+-- The delete takes the game's rows and every membership together, so the
+-- word is answered by the shared race rather than by a fault, or by
+-- "You are not in this game" (docs/envelopes.md → a missing game row is PN485).
+
+reset role;
+delete from common.games where id = (select id from auth_g);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  spellingbee.submit_word((select id from auth_g), 'bead', 1, false, false),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'submit_word: a game deleted under the word says so');
 
 -- ============================================================
 select * from finish();

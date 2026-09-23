@@ -594,10 +594,9 @@ grant execute on function spellingbee.create_game(text, jsonb, uuid[], text, jso
 -- no outcome: the pill is shown from the FE's own table before this call
 -- is made (docs/envelopes.md → Who writes the words, per answer).
 --
--- Refused (each a not-ok envelope): a game with no spellingbee row (a
--- fault), a game no longer playing, a caller who has conceded, and the
--- duplicate below (each a race); a non-player is refused by
--- require_game_player.
+-- Refused (each a not-ok envelope, each a race): a game deleted out from
+-- under the word, a game no longer playing, a caller who has conceded, and
+-- the duplicate below; a non-player is refused by require_game_player.
 --
 -- ───────────────────────────────────────────────────────────
 -- Concurrency
@@ -640,17 +639,17 @@ declare
   caller_found_words_count int;   -- caller's all-rows count (display + leaderboard)
   caller_rank_idx int;
   player_results jsonb;
-  v_msg text; v_detail text; v_hint text; v_code text; v_col text;
+  v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Lock the gametype row. Mode is on it, so we pick it up "for
   -- free" in the same SELECT.
   select * into g_row from spellingbee.games
    where spellingbee.games.id = target_game
    for update;
+  -- A friend deleted the game while this word was in flight: the shared race,
+  -- asked before the membership gate, which the delete took with it.
   if not found then
-    raise exception 'BUG: a word submitted to a game with no spellingbee row'
-      using errcode = 'PN353', hint = 'fault', column = '_',
-      detail = 'no spellingbee.games row for target_game';
+    perform common._raise_game_deleted('spellingbee');
   end if;
 
   caller_id := common.require_game_player(target_game);
@@ -900,9 +899,9 @@ exception when others then
   get stacked diagnostics
     v_msg = message_text, v_detail = pg_exception_detail,
     v_hint = pg_exception_hint, v_code = returned_sqlstate,
-    v_col = column_name;
+    v_col = column_name, v_out = constraint_name;
   if v_code !~ '^P[AN][0-9]{3}$' then raise; end if;
-  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col);
+  return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
 
