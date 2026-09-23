@@ -1210,7 +1210,12 @@ agents after parsing. Options: **(a) send all 25** — `get_clue_context` adds a
 `board` list, which is not secret; (b) soften the prompt to "the words
 listed"; (c) leave it. Recommendation: (a).
 
-### F-codenamesduet-18 · `sudden-death-status-lead` · the club label leads "Sudden death"
+### RULED — NO CHANGE · F-codenamesduet-18 · `sudden-death-status-lead` · the club label leads "Sudden death"
+
+**Joel, 2026-09-23: "keep 'Sudden death'."** The lead stays; a comment at the
+entry names it as the one exception to `statusLabel.ts`'s four words, by
+decision. `labelFor` stays a `Record` lookup (the `switch` rode on the other
+option). The generated table is unchanged.
 
 `STATUS_LABEL.sudden_death = 'Sudden death'` renders `Sudden death · 12/15
 agents` — the one lead in the roster's 157 generated lines that is not

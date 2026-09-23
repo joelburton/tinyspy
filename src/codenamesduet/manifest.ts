@@ -127,6 +127,8 @@ export const codenamesduetGame: GameManifest = {
 // ClubPage renders these verbatim. Other games define their own.
 const STATUS_LABEL: Record<string, string> = {
   playing: verdict('Playing'),
+  // The one lead outside statusLabel.ts's four words, by decision: sudden death
+  // is the thing to scan a club list for.
   sudden_death: 'Sudden death',
   won: verdict('Won'),
   lost_assassin: verdict('Lost', 'assassin'),
