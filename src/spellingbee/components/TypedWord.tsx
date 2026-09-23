@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 import { cls } from '@/common/utils/cls'
 import styles from '@/shared/found-words/typedWord.module.css'

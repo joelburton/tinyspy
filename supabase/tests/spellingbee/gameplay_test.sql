@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-spellingbee
 
 -- ============================================================
 -- Test: spellingbee.submit_word + spellingbee.submit_timeout + end_game

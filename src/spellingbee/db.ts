@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 import { supabase } from '@/common/supabase/supabase'
 

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 /**
  * Render + behavior tests for spellingbee's PlayArea.

@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-spellingbee
 
 -- ============================================================
 -- Test: spellingbee post-terminal reveal — the cat-A / cat-B data

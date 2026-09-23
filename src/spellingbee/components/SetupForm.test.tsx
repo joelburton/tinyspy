@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 /**
  * spellingbee's setup form — what it offers, and where a refusal lands.

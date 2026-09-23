@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 

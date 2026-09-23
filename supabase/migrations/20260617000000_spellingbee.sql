@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-spellingbee
 
 -- ============================================================
 -- spellingbee — NYT-Spelling-Bee-style word finder (consolidated)

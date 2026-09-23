@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-spellingbee
 
 -- ============================================================
 -- Test: a game played by a SUBSET of club members

@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-spellingbee
 
 -- ============================================================
 -- Test: spellingbee.replay_board (restart this board from scratch)

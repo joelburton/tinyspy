@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-spellingbee
 
 -- ============================================================
 -- Test: spellingbee.create_game — custom (player-specified) letters

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 /**
  * spellingbee-build-board — Edge Function that produces a fresh

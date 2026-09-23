@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-spellingbee
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { WordSubmitAnswer } from '@/shared/found-words/useFoundWordSubmit'

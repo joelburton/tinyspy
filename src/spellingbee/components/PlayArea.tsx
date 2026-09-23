@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { cls } from '@/common/utils/cls'

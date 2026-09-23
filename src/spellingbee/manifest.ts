@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 import type { ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'

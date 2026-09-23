@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'

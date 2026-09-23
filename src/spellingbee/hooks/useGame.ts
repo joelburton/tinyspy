@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-spellingbee
 
 import type { Member } from '@/common/members/member'
 import { makeBeeGame } from '@/shared/bee-games/makeBeeGame'
