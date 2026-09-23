@@ -1,6 +1,6 @@
 # codenamesduet: one `events` table
 
-**Status: BUILDING on branch `codenamesduet-events` — Steps 1–2 done (see
+**Status: BUILDING on branch `codenamesduet-events` — Steps 1–3 done (see
 Progress, at the end); the six questions answered.**
 Joel, 2026-09-23: *"make a plan for this in plans/. once i've read that plan,
 we do this."* Worked inside the
@@ -344,3 +344,25 @@ predicted it. Joel chose the class fix: rings are ordered by first render.
 
 **Noticed, not changed:** the log returns nothing for a turn without a clue, so
 sudden-death guesses have never appeared in it.
+
+### Step 3 — `lib/answer.ts` and the peer phrases — DONE 2026-09-23
+
+`lib/answer.ts`, new: the four turn answers (`writing_clue_peer` ·
+`guessing_peer` · `waiting_for_clue_peer` · `waiting_for_you_peer`),
+`answerMessage()` with their words and outcome, and `turnAnswer(phase)`, which
+picks the one that holds from `derivePhase`'s phase and answers `null` in
+sudden death or once the game is over. `PlayArea`'s `useTurnStatus` keeps the
+`peerStatus` message and its owner effect — the lifetime is the kind's — and
+takes the words and the outcome from the file, passed as `{ outcome }`. The
+phone-width note moved to the words it governs. Every text and outcome is the
+one on screen before (`neutral`, the kind's default until now).
+
+**Deviation from the plan, stated at the step:** my own `agent` / `bystander`
+answers were to be in the union with empty text "so the union is the whole
+roster". Nothing would read them — the pill is silent on a guess and the log
+colors turns — so they are not written; the file's docstring says a guess of
+mine has no answer and why. `hint` / `hint_peer` arrive with Step 4.
+
+`lib/answer.test.ts`, new (7): the union walked for words and outcome, and
+`turnAnswer` over the four phases, sudden death and game over. 370 unit tests
+green.

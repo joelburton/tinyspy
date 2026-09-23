@@ -30,6 +30,7 @@ import { useGame } from '../hooks/useGame'
 import type { WordRow } from '../hooks/useBoard'
 import { useBoard } from '../hooks/useBoard'
 import { cluesOf, guessesOf, type ClueEvent, type DuetEvent } from '../lib/events'
+import { answerMessage, turnAnswer } from '../lib/answer'
 import type { KeyLabel } from '../lib/labels'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { historySnapshot } from '../lib/history'
@@ -130,21 +131,11 @@ function buildOver(playState: string): TerminalMessage {
 /**
  * Keep the current turn-state in the header — the global slot — for as long
  * as it holds. The header describes **what the PEER is doing** — never what
- * YOU should do (your own to-do is conveyed by the below-board clue UI). So
- * all four turn states read as "● {peer} {doing}", a `peerStatus` that stays
- * up until the state changes, when its owner effect swaps it.
- *
- * **Telegraphic on purpose** ("waiting for you", not "is waiting for your turn to
- * complete"): the header shares its row with the logo and chat bubble, so on
- * a 390px phone it fits ~26 characters and silently ELLIPSIZES the rest — and the
- * dot alone eats two of them. Anything longer than a few words is a message the
- * phone player never finishes reading. Keep additions this short.
- *
- * **Sudden death says nothing here.** It is not a peer action, and the header
- * is the wrong place to park a message that holds for the rest of the game:
- * while one sits there, chat lines and narrations are outranked and the
- * players strip stays hidden. The CluePanel notice below the board carries it
- * in full instead, and the info column leads its help with the red tag.
+ * YOU should do (your own to-do is conveyed by the below-board clue UI) — as a
+ * `peerStatus` that stays up until the state changes, when its owner effect
+ * swaps it. Which state holds, and its words, are `lib/answer.ts`'s
+ * (`turnAnswer`, `answerMessage`); nothing shows in sudden death or once the
+ * game is over.
  */
 function useTurnStatus(args: {
   game: { current_clue_giver: string | null; turn_number: number }
@@ -157,47 +148,37 @@ function useTurnStatus(args: {
 }) {
   const { game, players, clues, playState, gameOver, sessionUserId, globalFeedbackSlot } = args
 
-  // Derived to PRIMITIVES — the phrase, and the peer's name + color — so the
-  // effect below re-runs only when one of them changes, not on every fresh
-  // `players` array a realtime refetch brings.
-  let doing: string | null = null
-  const peer = players.find((p) => p.user_id !== sessionUserId)
-  const peerName = peer?.username
-  const peerColor = peer?.color
-  if (!gameOver) {
-    const me = players.find((p) => p.user_id === sessionUserId)
-    const { isGuessPhase, isClueGiver, inSuddenDeath } = derivePhase({
+  const me = players.find((p) => p.user_id === sessionUserId)
+  const answer = turnAnswer({
+    ...derivePhase({
       status: playState as GameStatus,
       currentClueGiver: game.current_clue_giver as Seat | null,
       mySeat: me?.seat,
       hasCurrentTurnClue: clues.some((c) => c.turn_number === game.turn_number),
-    })
-    // In sudden death there are no more clues, so none of the four phases
-    // describes anything: `doing` stays null and the header shows nothing.
-    if (!inSuddenDeath) {
-      // What the peer is doing — the phrase WITHOUT their name (the pill draws
-      // "● moth" ahead of it), and without a verb ("● moth guessing"): see
-      // the phone-width note above.
-      doing = !isGuessPhase
-        ? isClueGiver
-          ? 'waiting for clue'
-          : 'writing clue'
-        : isClueGiver
-          ? 'guessing'
-          : 'waiting for you'
-    }
-  }
+    }),
+    gameOver,
+  })
+  // Derived to PRIMITIVES — the words, their outcome, and the peer's name +
+  // color — so the effect below re-runs only when one of them changes, not on
+  // every fresh `players` array a realtime refetch brings.
+  const message = answer === null ? null : answerMessage(answer)
+  const text = message?.text ?? null
+  const outcome = message?.outcome ?? null
+  const peer = players.find((p) => p.user_id !== sessionUserId)
+  const peerName = peer?.username
+  const peerColor = peer?.color
 
   useEffect(function showTurnStatus() {
-    if (doing === null) return
+    if (text === null || outcome === null) return
     const id = globalFeedbackSlot.show(
       FeedbackMessage.peerStatus(
         peerName === undefined ? undefined : { username: peerName, color: peerColor ?? '' },
-        doing,
+        text,
+        { outcome },
       ),
     )
     return () => globalFeedbackSlot.retract(id)
-  }, [globalFeedbackSlot, doing, peerName, peerColor])
+  }, [globalFeedbackSlot, text, outcome, peerName, peerColor])
 }
 
 /** Every duet board has fifteen green agents (the StateLine prints the same
