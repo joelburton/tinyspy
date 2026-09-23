@@ -557,6 +557,95 @@ remaining lines.
 Verified: `tsc -b` clean, lint clean, 396 unit tests green (the game's and the
 guards). No e2e for this step.
 
+### Step 8 — the comment pass (readability 3.5) — DONE 2026-09-23
+
+psychicnum's Step 6 rules, over six files: `PlayArea.tsx`, `BoardCol.tsx`,
+`InfoCol.tsx`, and the board column's three — `Board.tsx`, `CluePanel.tsx`
+(the below-board form, spellingbee's `TypedWord` here) and `StateLine.tsx`
+(the readout both columns render). **733 comment lines in, 572 out.** **Proved
+a pure comment pass** — with every comment form stripped (block, line,
+trailing, and the JSX `{/* … */}`), blank lines dropped, all six files are
+byte-identical before and after. The `console.log` lines stay.
+
+**Fourteen comments were FALSE, not stale.** `Board.tsx`'s docstring and two
+prop notes said the guess dispatch, the pending state and "the own-action error
+flash" live in PlayArea — BoardCol owns the guess, and there is no flash, the
+slot's pill is the feedback; its `isViewingHistory` note said "the board column
+catches a click to exit" (the frame is click-through, and the exit is the
+viewer's own document listener); its my-key comment told the guesser to "press
+Done when you're through" (the button is Pass & End Turn). `BoardCol.tsx`'s
+docstring said PlayArea hands it `isViewingHistory` (derived from
+`historyLabel`, which the body's own comment says). `InfoCol.tsx`'s docstring
+named an order with no key-card disclosure and said "PlayArea owns the RPCs"
+(BoardCol and CluePanel do); its `historyId` note said "(by turn_number)" and
+`onShowHistory`'s said "both arguments are that number" — an event id since the
+events table. `CluePanel.tsx`'s docstring put the slot in "PlayArea's
+`.belowBoard`" (BoardCol's), and `peer` "may be undefined briefly during the
+initial roster fetch" (the loader waits for the roster). In `PlayArea.tsx`: the
+surface docstring's "Action row: End game while playing; at terminal … a
+compact Back-to-club button" and "GameEventLog: the shared EventLog table";
+the history comment's "the effect below re-arms" (no effect); the phase
+comment's `src/lib/phase.test.ts` (it is `lib/phase.ts`, whose docstring now
+takes the pointer) and "the one-per-turn unique constraint" (the partial
+unique index `codenamesduet_events_one_clue_per_turn`); the trio's "the
+post-replay cleanup is covering the partner's key again" (there is no cleanup —
+the reveal is local state, and the remount a restart causes resets it).
+
+**Step 7 parked "Duet deliberately has none", and it was not there.** The
+sentence appears nowhere in the folder; the reveal comment had already lost
+it. What stood in its place was the three-paragraph post-mortem argument
+("wait, I was about to pick APPLE"), which is rule 3.
+
+**Joel's three rules did the cutting.** Rule 3 (a product ruling is not a
+comment): the reveal's post-mortem paragraphs; Restart's "the deliberate trade
+(a first-guess assassin ends a game nobody got to play)"; the count input's
+"defaulting to a digit would tempt a Submit"; PassButton's "not scrabble's
+`act-pass` … a plain primary button rather than an amber one … it says what it
+costs"; the AI button's "sparkles + amber warning tone: 'use AI', distinct from
+a built-in hint" (the registry's); the mobile status bar's "deliberate trade"
+(psychicnum's cut, in the same words); `StateLine`'s turn-spent paragraph,
+shrunk to its rule. Rule 2 (why-here): `Board.tsx`'s "It's its own component
+for read-locality"; `BoardCol`'s "Owned here (beside the board it gates)" and
+"the natural home"; `createNewGame`'s "A plain function, rebuilt every render"
+(psychicnum's, wordle's and spellingbee's cut). Rule 1 reached one comment: the
+clue form's ring note said "Submit is Enter".
+
+**Archaeology:** "(An earlier attempt SHRANK the board to fit above the
+keyboard)"; "(so the wait is obvious — the subtle button change wasn't)";
+`cellsClickable`'s "Reintroduced … so … stay byte-identical — the prop-name
+unification can't change behavior"; "(The guess dispatch … moved into
+BoardCol)"; "Destructured (not `viewer.x`) to match the other games'
+PlayAreas". **Call sites to a sentence and a pointer:** the envelope paragraph
+in `createNewGame` (docs/envelopes.md); `useCelebration`; the field gate at
+`useDismissLocalFeedbackOnKey`; the seen-set at `usePeerFeedback`; the three
+exits at `useHistoryViewer`; `MobileStatusBar`, at both its call sites;
+`useSolutionReveal`. **The react-rnd reason was in FIVE places** — PlayArea's
+state and its JSX, BoardCol's prop, CluePanel's prop, ClueForm's state — and
+is in one now, the render that places the panel; the other four say whose the
+state is.
+
+**The marker rule:** the prop notes in `InfoCol`, `CluePanel` (the panel's,
+the form's and the pass button's) and `StateLine` were `/**` and are `//`.
+`InfoCol`'s destructure carried a paragraph about the type block's group
+headers; the destructure has the headers now, as wordle's does. **One
+docstring sat on the wrong declaration:** `CluePanel`'s was above the
+`SuggestedClue` type, an entry on `orphanedDocstrings`' allowlist; it sits on
+`CluePanel` now, and the guard's row is deleted — the guard went red on the
+stale row first, as it did for wordle's `labelFor`.
+
+**Seen with the code open, left for pass 2 — code, not comments:** `InfoCol`
+types and is passed `firstClueGiver` but never destructures or reads it (the
+setup echo it was for is `SetupDisclosure`'s); `onShowHistory`'s parameter is
+named `turnNumber` and is an event id; `mySeat: Seat | undefined` on `Board`
+and `BoardCol`, where the loader's key-card gate means the caller is seated;
+`Board`'s `clickable` ANDs in `!isViewingHistory` a second time after `BoardCol`
+already folded it into `cellsClickable`.
+
+Verified: `tsc -b` clean, lint clean over `src/codenamesduet/`, 396 unit tests
+green (45 files, the game's and the guards). **The restructure's comment pass
+is complete; the stylesheet split is next.** The e2e specs have not run for
+Steps 2–8.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it

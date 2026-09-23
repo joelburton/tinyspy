@@ -19,36 +19,37 @@ import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './InfoCol.module.css'
 
 /**
- * codenamesduet's info column — near-zero state, an arrangement of the shared
- * scaffold pieces in the fixed order (docs/playarea.md → Info-column readouts):
- * agent/turn state readout → finished-player banners → action row → help → setup
- * disclosure → event log. codenamesduet has NO opponent strip (peer status rides the
- * GamePage header pill) and its finished-player banners sit right under the state
- * line they explain. Every command arrives as a bound action this column places; the
- * one callback up is `onShowHistory`. PlayArea owns the RPCs + coordination. Prop names match the other
- * games' columns for the same idea (see docs/playarea.md).
+ * codenamesduet's info column — stateless, an arrangement of the shared
+ * scaffold pieces in the fixed order (docs/playarea.md → Info-column
+ * readouts): the state line → the finished-player banners → the action row →
+ * help → the key-card and setup disclosures → the event log. There is no
+ * opponent strip: the partner's status rides the header pill. Every command
+ * arrives as a bound action this column places; the one callback up is
+ * `onShowHistory`. Prop names are the other games' for the same idea.
  */
 export function InfoCol({
-  // Props are grouped by the region they drive (mirroring the render order below), so
-  // "what is this prop for?" is answerable by eye; the `// ── … ──` headers on the type
-  // block below name each group. Names are shared with the other games' columns for the
-  // same idea — see docs/playarea.md.
+  // ── Mode + phase ──
   terminalMessage,
   inSuddenDeath,
+  // ── State readout ──
   greenFound,
   turnNumber,
+  // ── Finished-player banners ──
   viewerFinished,
   peerFinished,
   peer,
+  // ── Action row ──
   actReveal,
   actRestart,
   actNewGame,
   actConcede,
   actEndGame,
   actBackToClub,
+  // ── Key card + setup disclosures ──
   myKey,
   setup,
   setupRows,
+  // ── Turn-history log ──
   clues,
   guesses,
   players,
@@ -58,81 +59,75 @@ export function InfoCol({
   onShowHistory,
 }: {
   // ── Mode + phase ──
-  /** The terminal message when the game is over (drives the action row), else null. */
+  // The verdict once the game is over — the action row's line — else null.
   terminalMessage: TerminalMessage | null
-  /** Turn budget spent — the state line reads "sudden death" and the help swaps to
-   *  the sudden-death rules. */
+  // Turn budget spent: the state line reads "sudden death" and the help swaps
+  // to the sudden-death rules.
   inSuddenDeath: boolean
 
   // ── State readout (agents found + the turn counter) ──
-  /** Green agents contacted, out of 15. */
+  // Green agents contacted, out of 15.
   greenFound: number
-  /** The current turn number (`games.turn_number`); paired with `setup.turns`. */
+  // The current turn (`games.turn_number`); paired with `setup.turns`.
   turnNumber: number
 
   // ── Finished-player banners (Duet's finished-seat hand-off, shown to BOTH) ──
-  /** I've found all my agents → my partner gives every remaining clue. */
+  // I have found all my agents → my partner gives every remaining clue.
   viewerFinished: boolean
-  /** My partner has found all theirs → I give every remaining clue now. */
+  // My partner has found all theirs → I give every remaining clue now.
   peerFinished: boolean
-  /** The other seated player — names the clue-giver in the banners. */
+  // The other seated player — named in the banners.
   peer: Player | undefined
 
   // ── Action row — every action, in the row's order; each one's own
   //    `describe` decides whether its button is there ──
-  /** Open the partner's key card at game-over — or cover it up again. A local
-   *  display toggle carrying its own two faces: nothing is written, and the
-   *  partner's own card stays covered until THEY ask. A button only at the end. */
+  // Show the partner's key card, or cover it again — a local display toggle.
+  // A button only at the end.
   actReveal: BoundAction
-  /** Run this board back — same words, same key cards (a mulligan). A button
-   *  only at the end; the menu and its key all game. */
+  // Run this board back — same words, same key cards. A button only at the end;
+  // the menu and its key all game.
   actRestart: BoundAction
-  /** Start a fresh follow-up game — same setup + roster, a newly sampled board.
-   *  A button only at the end; the menu and `+` all game. */
+  // A fresh game with this setup and roster, on a new board. A button only at
+  // the end; the menu and `+` all game.
   actNewGame: BoundAction
-  /** Placed for symmetry with every other game's row and never drawn here: duet
-   *  is coop, so this hides itself. */
+  // Placed as every game's row places it, and never drawn: duet is coop, so it
+  // hides itself.
   actConcede: BoundAction
-  /** End the game for the whole table — the mutual "we're done". Gone at the
-   *  end. */
+  // End the game for the whole table. Gone at the end.
   actEndGame: BoundAction
-  /** Leave for the club — the shell's own action, off `ctx.menu`. */
+  // Leave for the club — the shell's own action, off `ctx.menu`.
   actBackToClub: BoundAction
 
-  // ── Key card disclosure ──
-  /** My key card, in board order. */
+  // ── Key card + setup disclosures ──
+  // My key card, in board order.
   myKey: KeyLabel[]
-
-  // ── Setup disclosure ──
+  // Read for its turn budget.
   setup: CodenamesduetSetup
-  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
   setupRows: SetupRow[]
-  /** The player seated as the first clue-giver (setup echo). */
+  // The player seated as the first clue-giver.
   firstClueGiver: Player | undefined
 
   // ── Turn-history log (GameEventLog) ──
   clues: ClueEvent[]
   guesses: WordedGuess[]
   players: Player[]
-  /** The viewer — the log's player picker orders them first. */
+  // The viewer — the log's player picker orders them first.
   selfId: string
   gameOver: boolean
-  /** The turn currently open in the board viewer (by turn_number), or null. */
+  // The event whose turn is open in the board viewer, or null.
   historyId: number | null
-  /** Straight through to the log. A duet turn is addressed by its `turn_number`,
-   *  which is also the `#N` the log prints, so both arguments are that number. */
+  // Straight through to the log, which addresses a turn by an event id — its
+  // clue, or a sudden-death guess — and hands back the `#N` it printed.
   onShowHistory: (turnNumber: number, n: number) => void
 }) {
   return (
     <div className={shared.infoCol}>
-      {/* Info-column readouts in the shared canonical order (docs/playarea.md
-          → Info-column readouts): STATE → [no opponent strip — peer status rides the header
-          pill] → ACTIONS → HELP → SETUP disclosure, then the event log below.
-          codenamesduet's finished-player banners are a loud live-state announcement,
-          so they sit right under the state line. */}
+      {/* The readouts, in the shared order (docs/playarea.md → Info-column
+          readouts); the finished-player banners sit under the state line they
+          explain. */}
       <div className={shared.noShrinkRow}>
-        {/* The same `<StateLine>` the mobile status bar renders above the board
-            (BoardCol) — one component so the two copies can't drift. */}
+        {/* The same `<StateLine>` the phone's status bar renders above the board. */}
         <p className={shared.infoState}>
           <StateLine
             greenFound={greenFound}
@@ -142,9 +137,8 @@ export function InfoCol({
           />
         </p>
 
-        {/* Duet's finished-player rule, surfaced to BOTH players so neither reads the
-            lopsided turn flow as a bug — a prominent colored banner right under the
-            live state it explains. */}
+        {/* Duet's finished-player rule, told to BOTH players so the lopsided turn
+            flow does not read as a bug. */}
         {viewerFinished && (
           <div className={styles.finishedNote}>
             All your agents have been found! From here{' '}
@@ -162,12 +156,11 @@ export function InfoCol({
           </div>
         )}
 
-        {/* The action row: every action, placed once, in the order the menu
-            lists them (docs/playarea.md). Which buttons show is each action's own
-            answer — Reveal, Restart and New game at the end, End while it runs,
-            Concede never (duet is coop). The only thing that varies here is the
-            line: the verdict once the game is over. No divider: nothing sits left
-            of it — this game's hint, the AI, is on the clue form. */}
+        {/* The action row: every action, placed once, in the menu's order
+            (docs/playarea.md); which buttons show is each action's own answer.
+            The only thing that varies here is the line — the verdict once the
+            game is over. No divider, since nothing sits left of it: this game's
+            hint, the AI, is on the clue form. */}
         <InfoActionsRow message={terminalMessage ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome } : undefined}>
           <ActionButton action={actReveal} show="icon" />
           <ActionButton action={actRestart} show="icon" />
@@ -177,11 +170,10 @@ export function InfoCol({
           <ActionButton action={actBackToClub} show="icon" weight={terminalMessage ? 'primary' : 'secondary'} />
         </InfoActionsRow>
 
-        {/* Help — a stable orienting line during play (the per-phase guidance lives
-            below the board + in the header pill). In sudden death it switches to the
-            sudden-death rules; the help is muted and easily skimmed-past as
-            "unchanged", so it leads with a RED "SUDDEN DEATH:" tag to flag that it's
-            different now. */}
+        {/* Help — one standing line during play; the per-phase guidance is below
+            the board and in the header pill. In sudden death the rules change,
+            and the red tag is what says so on a line that is otherwise skimmed
+            past as unchanged. */}
         {!terminalMessage && (
           <p className={shared.infoHelp}>
             {inSuddenDeath ? (
@@ -196,9 +188,9 @@ export function InfoCol({
           </p>
         )}
 
-        {/* The two disclosures, LAST before the event log: closed by default so
-            they claim a line each, and opening one grows the column — the
-            allowed exception, since it closes again. */}
+        {/* The two disclosures, last before the event log: closed by default, a
+            line each; opening one grows the column, the allowed exception since
+            it closes again. */}
         <InfoDisclosure title="Key card">
           <KeyCard labels={myKey} />
         </InfoDisclosure>

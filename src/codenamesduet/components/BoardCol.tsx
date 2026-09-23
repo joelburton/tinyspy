@@ -49,21 +49,16 @@ type GuessAnswer =
     }
 
 /**
- * codenamesduet's board column — the 5×5 `Board` plus the fixed-height
- * below-board slot under it (the turn-viewer banner, the CluePanel during play, or
- * the local feedback slot's top message — a not-ok, the terminal verdict).
+ * codenamesduet's board column — the 5×5 `Board`, and under it the fixed-height
+ * below-board slot: the `CluePanel` during play, or the local slot's top message
+ * (a not-ok, the terminal verdict), with the turn viewer's banner over either.
  *
- * This is codenamesduet's **input engine**, and it's a two-input game: guessing is a
- * board click (a tile → `submit_guess`) and cluing is the below-board `CluePanel`
- * form (which owns `submit_clue` / `pass_turn` / the AI suggest itself). So this
- * column owns the **guess** RPC directly — the guess has no deep entangled state (the
- * reveal arrives via realtime), but keeping the `pendingPos` + in-flight guard beside
- * the board it gates is the natural home — while `CluePanel` keeps the clue RPCs.
- * Like the other games' BoardCol it does NOT own the game state: PlayArea hands it
- * **the board to render** (live OR a historical snapshot) + `isViewingHistory`, which is what
- * makes the turn-history viewer a drop-in. Not-oks show into PlayArea's local
- * slot (the slot InfoCol's End shows into too), and the AI-suggestion dialog
- * state lives in PlayArea (it must mount high in the tree). See docs/playarea.md.
+ * A two-input game: a guess is a tile click, and this column owns `submit_guess`
+ * with the pending tile it marks; a clue is the `CluePanel` form, which owns
+ * `submit_clue`, `pass_turn` and the AI suggestion. Neither owns game state —
+ * the reveal arrives by Realtime, and PlayArea hands this column the board to
+ * render, live or a viewed turn's snapshot. Not-oks show into PlayArea's local
+ * slot, the one InfoCol's End shows into too. See docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status strip (above the board) ──
@@ -91,10 +86,8 @@ export function BoardCol({
   onSuggestionChange,
 }: {
   // ── Mobile-only status strip ──
-  // The core state readout (the `<StateLine>` the InfoCol also renders), shown
-  // above the board ONLY below the `--mobile` breakpoint — where the info
-  // column is off-canvas in the InfoSheet and would otherwise take a tap to
-  // read. Hidden by CSS on desktop; see `<MobileStatusBar>`.
+  // The `<StateLine>` the InfoCol also renders, shown above the board only on a
+  // phone; see `<MobileStatusBar>`.
   mobileStatus: ReactNode
 
   // ── Board to render ──
@@ -102,14 +95,14 @@ export function BoardCol({
   words: WordRow[]
   // The caller's own key view.
   myKey: KeyLabel[]
-  // The partner's key view, once the game's over (post-game reveal); else null.
+  // The partner's key view — null until the caller chooses to see it.
   peerKey: KeyLabel[] | null
-  // Caller's seat, or undefined if watching.
+  // The caller's seat.
   mySeat: Seat | undefined
   gameOver: boolean
-  // The board-gate (glossary `readOnly`): tiles are inert. Derived in PlayArea
-  // from the phase (`!derivePhase().cellsClickable`); this column ORs in
-  // `isViewingHistory` before handing the leaf `<Board>` its `cellsClickable`.
+  // The board gate (glossary `readOnly`): tiles are inert. Derived in PlayArea
+  // from the phase; this column ORs in `isViewingHistory` before handing the
+  // leaf `<Board>` its `cellsClickable`.
   readOnly: boolean
   // The positions the viewed turn decided — ringed (undefined while live).
   historyLitTiles: ReadonlySet<number> | undefined
@@ -135,25 +128,20 @@ export function BoardCol({
   currentClue: ClueEvent | null
   inSuddenDeath: boolean
   peer: Player | undefined
-  // Open / update / close the AI clue-suggestion dialog (state lives in PlayArea,
-  // which renders the panel high in the tree so react-rnd positions it on-screen).
+  // Open / update / close the AI clue-suggestion dialog; its state is PlayArea's.
   onSuggestionChange: (state: SuggestState | null) => void
 }) {
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
   // conventions: one prop says so, and the flag is derived, never passed).
   const isViewingHistory = historyLabel !== null
-  // Phase-clickability, the positive of the `readOnly` gate. Reintroduced (rather
-  // than flipping every internal use) so the leaf `<Board>`'s `cellsClickable`
-  // prop + the `isViewingHistory` interplay below stay byte-identical — the prop-name
-  // unification can't change behavior.
+  // The positive of the `readOnly` gate, which is what the leaf `<Board>` takes.
   const cellsClickable = !readOnly
 
-  // The guess move — a board click. Owned here (beside the board it gates). The
-  // reveal arrives via realtime, so there's no optimistic state; the only own-move
-  // feedback is a NOT-OK (a rejected guess), shown into the slot.
-  //
-  // `pendingPos` says WHICH tile is committing — Board marks that one pending
-  // and disables it — so the single-flight flag below can't stand in for it.
+  // The guess move — a board click. The reveal arrives by realtime, so there is
+  // no optimistic state; the only own-move feedback is a not-ok, shown into the
+  // slot. `pendingPos` says WHICH tile is committing — Board marks that one
+  // pending and disables it — so the single-flight flag below can't stand in
+  // for it.
   const [pendingPos, setPendingPos] = useState<number | null>(null)
   const submitGuess = useCallback(
     async (position: number) => {
@@ -210,10 +198,7 @@ export function BoardCol({
 
   return (
     <div className={shared.boardCol}>
-      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
-          the live agents/turns readout, above the board. It's a fixed-height
-          row, so on a phone the board is that much shorter — the deliberate
-          trade for keeping the core state on the play surface. */}
+      {/* The live readout above the board, on a phone only; see `MobileStatusBar`. */}
       <MobileStatusBar>{mobileStatus}</MobileStatusBar>
       <Board
         words={words}
@@ -227,15 +212,10 @@ export function BoardCol({
         isViewingHistory={isViewingHistory}
         historyLitTiles={historyLitTiles}
       />
-      {/* The below-board slot — codenamesduet's move-input zone
-          (docs/playarea.md → Board sizing). Two states, in the same
-          fixed-height slot so the top-anchored board never shifts as it swaps:
-            - the slot holds something → its pill: the filled verdict at
-              terminal (the terminal state always also lands as local feedback,
-              alongside the info-column outcome line), or a not-ok (a rejected
-              guess / clue / pass / failed End — the LOCAL half of the feedback
-              split; turn-state changes go to the header);
-            - else → the CluePanel (clue form / clue display + Pass / waiting). */}
+      {/* The below-board slot (docs/playarea.md → Board sizing). Two states in
+          one fixed-height slot, so the board above never shifts as they swap:
+          the slot's pill when it holds anything — a not-ok, the verdict — else
+          the CluePanel. */}
       <div className={styles.belowBoard}>
         <div className={cls(shared.moveAreaOrLocalFeedback, isViewingHistory && history.historyBannerHost)}>
           {/* The shared banner overlays this below-board slot while a past turn is
@@ -246,9 +226,6 @@ export function BoardCol({
           )}
           {top !== null ? (
             <div className={shared.localFeedback}>
-              {/* Own-action feedback is not-ok-only here (a rejected guess /
-                  failed End); the success path shows on the board + event log
-                  instead. */}
               <FeedbackPill slot={localFeedbackSlot} />
             </div>
           ) : (
@@ -260,9 +237,7 @@ export function BoardCol({
                 currentClue={currentClue}
                 inSuddenDeath={inSuddenDeath}
                 peer={peer}
-                // Its not-oks go into the same slot. The AI clue suggestion
-                // opens its own draggable panel (rendered at the .layout level)
-                // — the requester's helper output.
+                // Its not-oks go into the same slot.
                 localFeedbackSlot={localFeedbackSlot}
                 onSuggestionChange={onSuggestionChange}
               />

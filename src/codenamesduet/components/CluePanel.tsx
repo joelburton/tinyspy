@@ -44,51 +44,24 @@ type PassAnswer = {
 
 type CluePanelProps = {
   gameId: string
-  /** True if the current user's seat == games.current_clue_giver. */
+  // My seat is `games.current_clue_giver`.
   isClueGiver: boolean
-  /** True if a clue has been submitted for the current turn_number. */
+  // A clue is in for the current turn.
   isGuessPhase: boolean
-  /** The current turn's clue, if it exists. */
+  // The current turn's clue, if one is in.
   currentClue: ClueEvent | null
-  /** True if game.status === 'sudden_death'. */
+  // The turn budget is spent.
   inSuddenDeath: boolean
-  /** The other seated player. Used to render "Clue for <name>" /
-   *  "Waiting for <name>…". May be undefined briefly during the initial roster
-   *  fetch, in which case the copy falls back to "your partner". */
+  // The other seated player, named in the waiting and guessing lines; the
+  // lines fall back to "your partner".
   peer: Player | undefined
-  /** PlayArea's below-board slot, for a refused clue submit / pass — shown as
-   *  a `notOk` in the slot, NOT an inline line, so the slot height (and the
-   *  board above) never changes. */
+  // PlayArea's below-board slot: a refused clue or pass is shown into it as a
+  // not-ok rather than inline, so the row's height never changes.
   localFeedbackSlot: FeedbackSlot
-  /** Open / update / close the AI clue-suggestion dialog. PlayArea owns the
-   *  state and renders the <CodenamesduetAISuggestCompanion> HIGH in the tree: the board
-   *  column is a flex column, and <FloatingPanel> (react-rnd) positions from its
-   *  static flow position, so a panel rendered deep in the column lands
-   *  off-screen. Rendered up at the `.layout` level it sits where its
-   *  coordinates intend. */
+  // Open / update / close the AI clue-suggestion dialog; its state is PlayArea's.
   onSuggestionChange: (state: SuggestState | null) => void
 }
 
-/**
- * The codenamesduet clue UI, rendered in the below-board input slot (PlayArea's
- * `.belowBoard`). Each state is a single horizontal line — the slot is board-wide,
- * so there's room to lay the pieces out in a row rather than stacking them.
- * Which line shows depends on who's looking + where in the turn cycle we are:
- *
- *   sudden death    → "Sudden death — any non-green reveal loses" notice
- *   guess phase &&
- *     guesser       → "WORD · N" + Pass button
- *     clue-giver    → "WORD · N" + "● <peer> guessing"
- *   clue phase &&
- *     clue-giver    → "Clue for <peer>" + count + word + Submit + AI
- *     guesser       → "waiting for <peer> to give a clue"
- *
- * Every state is exactly ONE line, so the reserved-height slot is constant and
- * the board above never shifts (docs/ui.md → "Layout stability"). A refused
- * submit / pass shows into the local feedback slot (a `notOk`) rather than
- * rendering inline; the AI suggestion's reasoning opens in its own floating
- * panel (see ClueForm) — neither grows the row.
- */
 /** What `codenamesduet-suggest-clue` puts in `data`. Nullable because its
  *  not-ok arms carry none — including `get_clue_context`'s own refusals, which
  *  the function relays untouched rather than re-wording. */
@@ -97,6 +70,24 @@ type SuggestedClue = {
   suggestion: { clue: string; count: number; reasoning: string }
 } | null
 
+/**
+ * The codenamesduet clue UI, rendered in BoardCol's below-board slot. Which line
+ * shows depends on who is looking and where in the turn we are:
+ *
+ *   sudden death    → the "Sudden death" notice
+ *   guess phase &&
+ *     guesser       → "WORD · N" + the Pass button
+ *     clue-giver    → "WORD · N" + "● <peer> guessing"
+ *   clue phase &&
+ *     clue-giver    → the clue form: count + word + Submit + AI
+ *     guesser       → "Waiting for <peer> to give a clue…"
+ *
+ * Every state is exactly ONE line, so the fixed-height slot holds and the board
+ * above never shifts (docs/ui.md → Layout stability). A refused submit or pass
+ * shows into the local feedback slot rather than inline, and the AI
+ * suggestion's reasoning opens in its own floating panel — neither grows the
+ * row.
+ */
 export function CluePanel({
   gameId,
   isClueGiver,
@@ -152,11 +143,10 @@ function ClueDisplay({ clue }: { clue: ClueEvent }) {
   )
 }
 
-/** "● moth guessing" — the peer's identity via the shared <DotActor> (colored
- *  disc + name) followed by what they're doing. Telegraphic, matching the header
- *  pill's vocabulary: this shares the below-board row with the clue display and
- *  the Pass button, so a sentence ("Waiting for moth to guess…") crowded it on a
- *  phone. Falls back to "Your partner" when the peer hasn't loaded yet. */
+/** "● moth guessing" — the peer as a `<DotActor>` (colored disc + name), then
+ *  what they are doing. Telegraphic, because it shares the below-board row
+ *  with the clue display and the Pass button, where a sentence crowds a phone.
+ *  Falls back to "Your partner". */
 function PeerActivity({
   peer,
   activity,
@@ -173,10 +163,9 @@ function PeerActivity({
   )
 }
 
-/** "Waiting for <peer> to <action>…" — the peer's identity via the shared
- *  <ActorDot> (name + colored disc); falls back to "your partner" when the peer
- *  hasn't loaded yet. Still the sentence form: this state OWNS the whole
- *  below-board row (no clue display, no buttons beside it), so it has the room. */
+/** "Waiting for <peer> to <action>…" — the peer as an `<ActorDot>` (name +
+ *  colored disc); falls back to "your partner". A sentence, because this state
+ *  owns the whole below-board row and has the room. */
 function PeerWaiting({
   peer,
   action,
@@ -202,20 +191,16 @@ export type SuggestState =
   | { status: 'ready'; word: string; count: number; reasoning: string }
 
 /**
- * The clue-giver's inline clue form: "[#]  [word]  [△ Submit]  [✨ AI]"
- * on ONE line (the submit's up-triangle "sends" the clue to the partner). A
+ * The clue-giver's clue form — count, word, Submit and AI on ONE line. A
  * refused submit shows into the local feedback slot, so the row never grows a
- * second line; an AI suggestion fills the inputs AND opens a
- * draggable/resizable <FloatingPanel> with its reasoning (it's the requester's
- * own helper output — too long for, and the wrong channel for, the header pill).
+ * second line; an AI suggestion fills the inputs AND opens a floating panel
+ * with its reasoning.
  *
- * The server (submit_clue RPC) enforces the real preconditions (right seat, no
- * existing clue this turn, game active); we only do lightweight UX validation —
- * a non-empty word + a count.
+ * The server (`submit_clue`) judges the move — the right seat, no clue in yet,
+ * the game running; this form checks only that both fields are filled.
  *
- * **Uppercase as typed.** Codenames convention shows clues in all-caps ("BIRD
- * 3"); the word input uppercases on every change (and so does the Claude
- * suggestion) to match.
+ * **Uppercase as typed.** Clues are shown in capitals ("BIRD · 3"), so the word
+ * input uppercases on every change, and so does the AI's suggestion.
  */
 function ClueForm({
   gameId,
@@ -223,19 +208,17 @@ function ClueForm({
   onSuggestionChange,
 }: {
   gameId: string
-  /** The slot a refused clue submit is shown into, as a `notOk`. */
+  // The slot a refused clue submit is shown into, as a not-ok.
   localFeedbackSlot: FeedbackSlot
   onSuggestionChange: (state: SuggestState | null) => void
 }) {
-  // Count is a string (not a number) so the input can start empty — defaulting
-  // to a digit would tempt a Submit before the giver consciously picks one. The
-  // submit guard rejects empty.
+  // A string, not a number, so the input can start empty; the submit guard
+  // rejects empty.
   const [count, setCount] = useState('')
   const [word, setWord] = useState('')
   const [busy, setBusy] = useState(false)
-  // Whether a suggest request is in flight (disables the button). The dialog
-  // STATE itself lives in PlayArea (via onSuggestionChange) so the panel renders
-  // high in the tree where react-rnd positions it on-screen.
+  // A suggest request is in flight — the button's `disabled`. The dialog's
+  // state itself is PlayArea's, through `onSuggestionChange`.
   const [suggesting, setSuggesting] = useState(false)
   // The last clue the AI filled in, as filled in. A clue submitted exactly as
   // this — word and count unedited — is logged as the AI's; editing either makes
@@ -247,8 +230,7 @@ function ClueForm({
 
   // The two fields ARE this form's ring, so Tab toggles between them and goes
   // nowhere else. It is innermost while the form is up, which is why it beats
-  // the page's empty ring below it. Submit is Enter (the form's submit button);
-  // the AI button is a click.
+  // the page's empty ring below it.
   const countRef = useRef<HTMLInputElement>(null)
   const wordRef = useRef<HTMLInputElement>(null)
   useTabRing([countRef, wordRef])
@@ -288,13 +270,11 @@ function ClueForm({
     }
   }
 
-  // Calls the codenamesduet-suggest-clue Edge Function (which enforces the
-  // "you are the clue-giver in an active game" check, then asks Claude for a
-  // structured clue — a few seconds). The dialog opens IMMEDIATELY in `loading`
-  // (so the wait is obvious — the subtle button change wasn't), then resolves to
-  // the suggestion (filling the inputs too) or the API error, in the dialog. The
-  // giver moves/resizes/closes it. The button is disabled while in flight, so
-  // there's no double-request to guard against.
+  // Calls the `codenamesduet-suggest-clue` edge function, which checks that I am
+  // the clue-giver in a running game and then asks Claude — a few seconds. The
+  // dialog opens at once in `loading`, then resolves to the suggestion (which
+  // also fills the inputs) or to the sentence for a refusal. The button is
+  // disabled while in flight, so there is no double request to guard against.
   async function onSuggest() {
     console.log('[ClueHint] button clicked → open dialog (loading)')
     setSuggesting(true)
@@ -385,10 +365,8 @@ function ClueForm({
           disabled={eitherBusy || !submittable}
           className={styles.submitBtn}
         />
-        {/* AI clue suggestion — sparkles + amber warning tone: asking Claude
-            for a clue is "use AI", distinct from a built-in "hint". It says
-            "Thinking…" while the edge function runs, which is the action's
-            doing. */}
+        {/* The AI clue suggestion; its "Thinking…" while the edge function
+            runs is the action's `describe`. */}
         <ActionButton
           action={actSuggestClue}
           show={isPhone ? 'icon' : 'both'}
@@ -400,25 +378,21 @@ function ClueForm({
 }
 
 /**
- * Voluntarily end the turn without making (another) guess. Rule-legal at any
- * point during the guess phase — even before the first guess. Costs one turn
- * like any other turn end.
+ * End the turn without another guess — legal at any point in the guess phase,
+ * even before the first guess, and it spends the turn like any other turn end.
  */
 function PassButton({
   gameId,
   localFeedbackSlot,
 }: {
   gameId: string
-  /** The slot a refused pass is shown into, as a `notOk`. */
+  // The slot a refused pass is shown into, as a not-ok.
   localFeedbackSlot: FeedbackSlot
 }) {
-  // Icon-only on a phone (the below-board row is tight); the label rides in the
-  // tooltip either way. No `busy` flag of its own: the action's run is
+  // Icon-only on a phone, where the below-board row is tight; the label rides
+  // in the tooltip either way. No `busy` flag of its own: the action's run is
   // single-flight, so a second press while the first is out is dropped.
   const isPhone = useIsPhone()
-  // `act-end-turn`, not scrabble's `act-pass`: stopping your guesses is an
-  // ordinary every-turn decision here, so it is a plain primary button rather
-  // than an amber one. It says what it costs — the turn, not just the guess.
   const actEndTurn = useBoundAction('act-end-turn', {
     describe: () => ({ state: 'active', label: 'Pass & End Turn' }),
     run: async () => {

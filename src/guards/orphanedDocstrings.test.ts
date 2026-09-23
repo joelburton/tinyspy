@@ -53,8 +53,6 @@ const KNOWN: string[] = [
   // → boggle
   'src/boggle/manifest.ts › coopLabel',
   'src/boggle/manifest.ts › competeLabel',
-  // → codenamesduet
-  'src/codenamesduet/components/CluePanel.tsx › SuggestedClue',
   // → crosswords
   'src/crosswords/components/PlayArea.tsx › CheckAnswer',
   'src/crosswords/components/PuzzleSourceField.tsx › NextDateAnswer',

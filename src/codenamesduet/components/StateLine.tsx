@@ -1,26 +1,18 @@
 // cs-met-codenamesduet
 
 /**
- * codenamesduet's core live-state readout — "3/15 agents · 3/9 turns spent" (or
- * "3/15 agents · sudden death" once the turn budget is spent).
+ * codenamesduet's live-state readout — "3/15 agents · 3/9 turns spent", or
+ * "3/15 agents · sudden death" once the turn budget is spent.
  *
- * Its own component because it's rendered TWICE, in two places that must never
- * drift: the info column's `.infoState` line (desktop) and the mobile
- * `<MobileStatusBar>` above the board (below the `--mobile` breakpoint, where
- * the info column is off-canvas in the InfoSheet). Bare inline content — each
- * caller supplies its own wrapper element + text styling.
+ * Rendered in two places that must not drift — the info column's state line
+ * and the phone's `<MobileStatusBar>` above the board — so it is one
+ * component. Bare inline content: each caller supplies the wrapper and its
+ * text style.
  *
- * The counters are bold and the labels aren't: the numbers are what's being
- * read at a glance.
- *
- * **The turn counter reports turns SPENT, which is one less than the turn
- * you're on.** Printing `turn_number` under a bare "turns" label — "4/10
- * turns" while you are partway through the fourth — reads as four turns used
- * when only three are gone, and the two numbers on this line would then
- * disagree about what they count: the agents are a tally of things DONE, so
- * the turns beside them have to be as well. `turn_number` starts at 1, so
- * spent starts at 0 and the last thing shown before sudden death is
- * "9/10 turns spent" — correct, since the tenth is still being played.
+ * **The turn counter reports turns SPENT**, one less than the turn you are on:
+ * the agents beside it are a tally of things done, so the turns are too.
+ * `turn_number` starts at 1, so spent starts at 0, and the last thing shown
+ * before sudden death is "9/10 turns spent" while the tenth is being played.
  */
 export function StateLine({
   greenFound,
@@ -28,14 +20,14 @@ export function StateLine({
   turns,
   inSuddenDeath,
 }: {
-  /** Green agents contacted, out of the fixed 15. */
+  // Green agents contacted, out of the fixed 15.
   greenFound: number
-  /** The current turn number (`games.turn_number`, 1-based). Rendered as turns
-   *  SPENT — see the docstring; callers pass the raw column. */
+  // The current turn (`games.turn_number`, 1-based) — the raw column; this
+  // component renders it as turns spent.
   turnNumber: number
-  /** The game's turn budget (`setup.turns`). */
+  // The game's turn budget (`setup.turns`).
   turns: number
-  /** Budget spent — the turn counter is replaced by the standing warning. */
+  // Budget spent — the turn counter gives way to the standing warning.
   inSuddenDeath: boolean
 }) {
   return (
@@ -45,8 +37,8 @@ export function StateLine({
         'sudden death'
       ) : (
         <>
-          {/* `max(0, …)` is belt-and-braces for a turn_number of 0, which the
-              schema's `default 1` means we shouldn't see. */}
+          {/* `max(0, …)` guards a turn_number of 0, which the schema's
+              `default 1` rules out. */}
           <strong>{Math.max(0, turnNumber - 1)}</strong>/{turns} turns spent
         </>
       )}

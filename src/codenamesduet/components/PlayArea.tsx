@@ -50,39 +50,22 @@ import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with 
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
- * codenamesduet's play surface — two-column viewport-bound composition:
+ * codenamesduet's play surface — the coordinator under `PlayAreaLoader`. It
+ * holds no board and draws no control of its own: `BoardCol` renders the 5×5
+ * board with the below-board slot (the clue panel, or the local slot's pill),
+ * and `InfoCol` the readout, the banners, the action row, the disclosures and
+ * the event log. This component derives the phase (`derivePhase` — who may
+ * click what, and when), binds the commands both columns place, and decides
+ * what each column is handed: the live board or a viewed turn's snapshot, the
+ * slots, the flags. Every move is judged by the server, and the columns own
+ * their RPCs — `BoardCol` the guess, `CluePanel` the clue and the pass — with
+ * Realtime bringing the result back to every client. Cross-cutting chrome
+ * (logo, chat, pause, timer, the players strip) is `<GamePage>`'s, above this.
  *
- *   - **Board column** (left, flex) — the 5×5 Board, with the fixed-height
- *     `belowBoard` slot under it (the CluePanel during play, or the local
- *     feedback slot's pill — a not-ok, the terminal verdict).
- *   - **Info column** (fixed-width):
- *       - Status: "{greenFound}/15 agents · {turn-1}/{turns} turns spent"
- *       - Action row: End game while playing; at terminal the bold
- *         outcome line + a compact Back-to-club button. Fixed minimum height so
- *         swapping between them doesn't shift the log below.
- *       - GameEventLog: the shared EventLog table, scrolls internally.
- *
- * Cross-cutting chrome (logo, chat, pause, timer, the players strip)
- * lives on `<GamePage>` above this component.
- *
- * **Terminal handling.** No modal carries the verdict (docs/ui.md → Terminal
- * results): a dialog saying what the below-board verdict already says — same
- * string, same moment — would only cost a dismiss. So it's two in-page
- * surfaces plus one celebration:
- *
- *   1. The below-board slot swaps the CluePanel for the filled verdict
- *      carrying `terminalMessage.pillText` (`lib/terminal.ts`), and the
- *      info-column action row carries the bold `terminalMessage.infoColText`
- *      line. Both persist until the user navigates away.
- *   2. A **win** — and only a win — also pops `<CelebrationBlockingModal>`, at the
- *      MOMENT the 15th agent is contacted. `useCelebration` deliberately never
- *      fires on mount, so opening an already-won game is quiet review, not a
- *      re-run of the moment.
- *
- * Most of the game logic is server-side (in plpgsql RPCs); this
- * component is handed the game row, the board and its events by the loader,
- * derives phase (who clicks what, when) via `derivePhase`, and hands each
- * piece to the right sub-component. Realtime keeps everything in sync.
+ * **The end of a game is in-page** (docs/ui.md → Terminal results): the
+ * below-board slot carries `terminalMessage.pillText` and the action row its
+ * `infoColText`, both until the player leaves. A win — only a win — also pops
+ * `<CelebrationBlockingModal>` at the moment the last agent is contacted.
  */
 
 /**
@@ -253,29 +236,21 @@ export function PlayArea({
   // being given, the clue form's own ring is innermost and Tab is its (CluePanel).
   useTabRing([])
 
-  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
-  // fills the screen and the info column moves into an off-canvas <InfoSheet>,
-  // reached by the header's page switch. The clue-giver's divergence —
-  // the below-board clue input raises the OS keyboard, and the giver needs the
-  // board's key colors visible while composing — is handled by NOT fighting it:
-  // the board stays full-size and the page scrolls (scroll up to read the board,
-  // down to the clue field). (An earlier attempt SHRANK the board to fit above
-  // the keyboard; it crunched the board too small and scrolled badly.)
+  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the info
+  // column is an off-canvas <InfoSheet>, reached from the header. The clue
+  // field raises the OS keyboard, and the giver needs the board's key colors
+  // while composing, so the board keeps its size and the page scrolls.
   const infoSheet = useInfoSheet()
 
-  // The win's celebration.
-  // Confetti at the MOMENT the pair contacts the 15th agent (the winning guess
-  // flips playState to 'won' on every connected client via realtime, so both
-  // players celebrate together); opening an already-won game stays quiet
-  // (useCelebration never pops on mount). Gated on `playState` alone — duet is
-  // coop-only, so 'won' is unambiguous. This is the ONLY terminal
-  // modal duet shows: losses and the manual end land in-page only.
+  // The win's celebration — at the MOMENT the pair contacts the 15th agent, on
+  // every client at once since the win arrives by realtime, and never on mount,
+  // so an already-won game opens quietly (`useCelebration`). Gated on
+  // `playState` alone: duet is coop-only, so 'won' is unambiguous.
   const celebration = useCelebration(playState === 'won')
 
-  // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
-  // so the <CodenamesduetAISuggestCompanion> renders at the `.layout` level — a panel
-  // rendered deep in the flex-column board lands off-screen (react-rnd positions
-  // from the static flow position). ClueForm drives it via onSuggestionChange.
+  // The AI clue-suggestion dialog's state — held here, not in the clue form, so
+  // its panel renders at the layout's level (see the render). The form drives
+  // it through `onSuggestionChange`.
   const [clueSuggestion, setClueSuggestion] = useState<SuggestState | null>(null)
   console.log('[ClueHint] PlayArea render — clueSuggestion:', clueSuggestion)
 
@@ -299,9 +274,8 @@ export function PlayArea({
     [setup, players],
   )
 
-  // `gameOver` mirrors common.games.is_terminal. `playState` carries the
-  // gametype-specific value ('playing', 'sudden_death', 'won', ...)
-  // for the phase derivation and the terminal copy.
+  // `gameOver` is the shell's `isTerminal`; `playState` carries this game's own
+  // value ('playing', 'sudden_death', 'won', …) for the phase and the verdict.
   const gameOver = isTerminal
 
   // Seat/roster derivations, read by the print model (built in the binding's
@@ -311,15 +285,13 @@ export function PlayArea({
   const peer = players.find((p) => p.user_id !== session.user.id)
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
 
-  // Phase derivation: a turn is in "guess phase" iff a clue already
-  // exists for games.turn_number. The submit_clue RPC enforces the
-  // one-per-turn unique constraint, so we can trust this at the
-  // client level.
+  // A turn is in its guess phase iff a clue exists for `games.turn_number`.
+  // `submit_clue` and the one-clue-per-turn index keep that true, so the client
+  // may read it off the events.
   const currentTurnClue =
     clues.find((c) => c.turn_number === game.turn_number) ?? null
 
-  // derivePhase is pure and unit-tested in src/lib/phase.test.ts —
-  // see there for the full clickability / phase matrix.
+  // Who may click what, and when — `lib/phase.ts` carries the matrix.
   const { isGuessPhase, isClueGiver, inSuddenDeath, cellsClickable } =
     derivePhase({
       status: playState as GameStatus,
@@ -334,16 +306,15 @@ export function PlayArea({
   // local slot is the one for messages about ME; my partner's go in the
   // header's.
 
-  // The below-board slot — the LOCAL half of the feedback split (own action →
-  // this slot; peer/turn-state news → the header via useTurnStatus). Born
-  // HERE, in the coordinator, because BOTH columns show into it: BoardCol's
-  // guess dispatch and clue panel (a rejected guess / clue / pass) AND
-  // InfoCol's End (a failed end-game). It's NOT-OK-ONLY (a successful guess
-  // shows on the board + event log), plus the terminal verdict.
+  // The below-board slot. Born here because BOTH columns show into it —
+  // BoardCol's guess and clue panel (a refused guess / clue / pass) and
+  // InfoCol's End — and while it holds anything the pill takes the clue
+  // panel's place. Not-ok only, plus the terminal verdict: a guess that lands
+  // shows on the board and in the log.
   const localFeedbackSlot = useFeedbackSlot('local')
-  // Any key is the player's next move → dismiss a gesture-cleared message. The
-  // dispatcher's field gate keeps a keystroke aimed at the clue field from
-  // reaching it — only a key with nothing focused does.
+  // Any key is the player's next move, so it dismisses a gesture-cleared
+  // message; a keystroke aimed at the clue field never reaches it (see
+  // `useDismissLocalFeedbackOnKey`).
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // The verdict, memoized on `playState` so the effect sees one object per
@@ -363,8 +334,6 @@ export function PlayArea({
   // About somebody else, which is what puts it in the global slot rather than
   // the local one (docs/ui.md → Feedback pill).
 
-  // Keep the turn state in the header — it's easy to miss "the other player
-  // ended their turn, it's your turn now" otherwise.
   useTurnStatus({
     game,
     players,
@@ -376,9 +345,8 @@ export function PlayArea({
   })
 
   // My partner asking the AI for a clue is narrated in the header, once, as it
-  // lands — my own hint is not, since the suggestion dialog is its feedback.
-  // The shared seen-set producer seeds silently on load, so opening a game does
-  // not replay its old hints.
+  // lands; my own hint is not, since the suggestion dialog is its feedback. Old
+  // hints are not replayed on load; see `usePeerFeedback`.
   usePeerFeedback({
     enabled: true,
     items: events,
@@ -396,25 +364,20 @@ export function PlayArea({
   // Opening an event-log #N replays that turn's board, addressed by an event
   // id and folded by its turn. Exit is the hook's own.
 
-  // Click a turn's `#N` in the event log to replay that turn's board (the reveal
-  // state after that turn's guesses, with those cells ringed in the history
-  // blue). Keyed by an event id — the turn's clue, or a sudden-death guess — as
-  // every game's log is; the fold below resolves it to its turn.
-  // Destructured (not `viewer.x`) to match the other games' PlayAreas and to keep
-  // the effect deps honest: `exitHistory` is a stable useCallback, so the effect
-  // below re-arms only when `isViewingHistory` flips.
+  // Click a turn's `#N` in the event log to replay that turn's board. The id is
+  // an EVENT's — the turn's clue, or a sudden-death guess — as every game's log
+  // addresses a row; the fold below resolves it to its turn. The exits — a bare
+  // keystroke, a click away from the log, the banner's ✕ — are the hook's own
+  // (`useHistoryViewer`), and a keystroke aimed at the clue field is not one of
+  // them.
   const { historyId, historyN, showHistory, exitHistory } =
     useHistoryViewer<number>()
-  // A bare keystroke (nothing focused) returns to the live board — the shared
-  // "type anywhere to exit" — the hook binds `act-exit-history` itself, and the
-  // dispatcher never offers an action a keystroke aimed at a focused field, so
-  // typing a clue can't kick you out of the viewer.
 
-  // When a past turn is open in the viewer, `historySnap` is that turn's board
-  // (else null = live). `historySnapshot` folds the guess log up to the viewed
-  // turn onto the fixed words and rings that turn's own cells; the turn's clue
-  // feeds the banner label. Snapshots are stable — a later realtime guess only
-  // grows later turns, so viewing a past turn never shifts under you.
+  // When a past turn is open, `historySnap` is that turn's board (else null =
+  // live): `historySnapshot` folds the guesses up to the viewed turn onto the
+  // fixed words and rings that turn's own tiles, and the turn's clue feeds the
+  // banner's label. A later realtime guess only grows later turns, so a viewed
+  // turn never shifts under you.
   const historyTurn = historyId === null
     ? null
     : events.find((e) => e.id === historyId)?.turn_number ?? null
@@ -434,17 +397,11 @@ export function PlayArea({
   // from another — and `pending` grays every surface of one for the length of
   // its run, so no handler keeps an in-flight flag of its own.
 
-  // (The guess dispatch — submit_guess + the pending-tile state + the in-flight
-  // guard — moved into BoardCol, beside the board it gates.)
-
-  // End / Restart — the shared pair.
-  // codenamesduet is coop-only, so Concede hides itself and only End is ever
-  // placed. Restart runs the SAME board back with the same key cards — a
-  // MULLIGAN, not a fresh puzzle: the second run is played knowing where the
-  // assassin sits, which is the deliberate trade (a first-guess assassin ends a
-  // game nobody got to play; a blind board is New game, below). Since duet's
-  // whole board is the secret, the post-replay cleanup is covering the
-  // partner's key again: nothing on the server remembers the reveal.
+  // End / Restart — the shared pair. Duet is coop-only, so Concede hides itself
+  // and only End is ever placed. Restart is a MULLIGAN: `replay_board` deals
+  // the same board and key cards again (a blind board is New game, below), and
+  // the reveal being local state, the remount a restart causes covers the
+  // partner's key again.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -454,24 +411,10 @@ export function PlayArea({
     localFeedbackSlot,
   })
 
-  // The terminal partner-key reveal.
-  // The partner's key card is NOT opened the instant the game ends. The seconds
-  // right after an assassin are the best part of a Duet post-mortem — "wait, I
-  // was about to pick APPLE" — and that conversation only happens while the card
-  // is still covered. Reveal opens it, and the post-mortem continues with
-  // everything on the table.
-  //
-  // The ask is LOCAL and reversible (useSolutionReveal). Sharing it — on the
-  // reasoning that the partner is the person you're doing the post-mortem
-  // WITH — cuts the other way: a Duet post-mortem is two people thinking out
-  // loud, and one of them opening the card ends the other's thinking
-  // mid-sentence. Each of you looks when you're ready, and Hide covers it up
-  // again. Not a shield either way: both key columns are readable
-  // by every club member under the friends trust model.
-  //
-  // Reveal the partner's key — a LOCAL display toggle: it shows their card to me
-  // alone, writes nothing, and affects nobody else. Terminal-only, because
-  // mid-game the partner's card IS the game.
+  // Reveal the partner's key — a LOCAL display toggle (`useSolutionReveal`): it
+  // shows their card to me alone and writes nothing, so the partner's own stays
+  // covered until they ask. Terminal-only, because mid-game the partner's card
+  // IS the game.
   const actReveal = useBoundAction('act-reveal', {
     // "key cards" rather than the bare default: what this game withholds is not
     // a solution at all, it is the half of the key only your partner could see.
@@ -484,19 +427,12 @@ export function PlayArea({
     run: togglePeerKey,
   })
 
-  // New game.
-  // A FRESH game (new id, a newly sampled board) with THIS game's setup +
-  // roster, in the same club — the "same again!" action after a solve, without
-  // a trip through the club page's setup dialog. codenamesduet's create_game
-  // samples its board inline, so this is a direct RPC (no edge function) and
-  // takes no `mode` (the game is coop-only, one gametype). Non-destructive —
-  // common.create_game un-currents THIS game into the club's list, so it stays
-  // resumable; the registry still asks NEW_GAME_CONFIRM mid-game. The creator
-  // jumps in via ctx.goToGame, the peer arrives via the game-invitation toast.
-  //
-  // A plain function, rebuilt every render: the binding below reads it at click
-  // time, so the setup and roster are whatever the last realtime refetch left,
-  // and the action's own identity doesn't move when they do.
+  // New game — a FRESH game (a new id, a newly sampled board) with THIS game's
+  // setup and roster, in the same club. `create_game` samples its board inline,
+  // so this is a direct RPC, and it takes no `mode` (the game is coop-only).
+  // `common.create_game` un-currents THIS game into the club's list, so it
+  // stays resumable. The creator jumps in via `goToGame`; the partner arrives
+  // via the game-invitation toast.
   const createNewGame = async () => {
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
@@ -506,16 +442,10 @@ export function PlayArea({
       }),
     )
     if (res.type === 'not-ok') {
-      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
-      // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the slot as it reads, over
-      // the verdict, until its × is pressed. Shown even for a fault whose
-      // modal has already fired centrally — the modal escalates, it does not
-      // replace (docs/envelopes.md), so dismissing it must not leave the board
-      // silent about why the game didn't start. Every answer this RPC can give
-      // is a fault — there is no form-validation among them — so in practice
-      // the modal has already been raised and this is what remains once it is
-      // dismissed.
+      // No field to land on here, so the answer goes in the slot as it reads,
+      // over the verdict, until dismissed — even for a fault whose modal has
+      // already fired, since the modal escalates and does not replace
+      // (docs/envelopes.md).
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
@@ -527,12 +457,10 @@ export function PlayArea({
     }
   }
 
-  // New game — its `+`, its menu row and its terminal button, from one binding.
-  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
-  // create_game clears the club's current-view flag, so it stays resumable — the
-  // copy says shelved, not ended) and goes straight through at terminal. The
-  // shared run's single flight is what stops a second press sampling a second
-  // board.
+  // Its `+`, its menu row and its terminal button, from one binding. The
+  // registry asks NEW_GAME_CONFIRM mid-play (starting one shelves this game,
+  // not ends it) and goes straight through at the end. The shared run's single
+  // flight is what stops a second press sampling a second board.
   const actNewGame = useBoundAction('act-new-game', {
     terminal: isTerminal,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
@@ -540,9 +468,9 @@ export function PlayArea({
     run: createNewGame,
   })
 
-  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). The peer's key is
-  // a secret mid-game; `useBoard` only hands it over post-game and the model
-  // refuses it before terminal regardless, so it can't reach paper early.
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). The peer's
+  // key reaches the model only once revealed, and the model refuses it before
+  // terminal regardless, so it cannot reach paper early.
   const actPrintBoard = useBoundAction('act-print-board', {
     describe: () => 'active',
     run: () => {
@@ -603,16 +531,11 @@ export function PlayArea({
     (p) => p.user_id === setup.first_clue_giver_user_id,
   )
 
-  // Duet's finished-player rule, surfaced to BOTH players so neither
-  // reads the lopsided turn flow as a bug (enforced server-side in
-  // `_end_turn`): once a seat's agents are all contacted it gives no
-  // more clues and its partner takes every remaining turn. The flags
-  // come from `useBoard`. Only meaningful in normal play — not sudden
-  // death (nobody clues then) nor once the game is over.
-  //   - viewerFinished: I'm done → my partner now gives every clue.
-  //   - peerFinished:   my partner's done → I now give every clue
-  //     (so I'm always the clue-giver — without this banner, "why does
-  //     the clue never come back to me to guess?" looks broken).
+  // Duet's finished-player rule (enforced in `_end_turn`): once a seat's agents
+  // are all contacted it gives no more clues, and its partner takes every
+  // remaining turn. Both players are told, so the lopsided turn flow does not
+  // read as a bug. Only in normal play — nobody clues in sudden death, and
+  // nothing is owed once the game is over.
   const bannerEligible = !gameOver && !inSuddenDeath
   const viewerFinished = bannerEligible && myAgentsDone
   const peerFinished = bannerEligible && peerAgentsDone
@@ -620,8 +543,7 @@ export function PlayArea({
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
-        // ── Mobile-only status strip (the SAME StateLine the InfoCol renders;
-        //    on a phone the info column is off-canvas in the InfoSheet) ──
+        // ── Mobile-only status strip — the SAME StateLine the InfoCol renders ──
         mobileStatus={
           <StateLine
             greenFound={greenFound}
@@ -690,9 +612,9 @@ export function PlayArea({
         />
       </InfoSheet>
 
-      {/* The AI clue-suggestion dialog. Rendered HERE — a child of `.layout`
-          (a flex row), like the other dialogs — so react-rnd places it on-screen.
-          (Deep inside the flex-column board column it lands below the viewport.) */}
+      {/* The AI clue-suggestion dialog — a child of `.layout`, like the other
+          dialogs: react-rnd positions from the static flow position, and deep
+          in the flex-column board column a panel lands below the viewport. */}
       {clueSuggestion && (
         <CodenamesduetAISuggestCompanion
           state={clueSuggestion}
@@ -700,9 +622,8 @@ export function PlayArea({
         />
       )}
 
-      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
-          in-page by the below-board slot + the info-column outcome line, and a
-          win gets the celebration instead — once, at the moment it happens. */}
+      {/* The win's celebration — the one modal this game shows at the end; the
+          verdict itself is in-page. */}
       {celebration.show && (
         <CelebrationBlockingModal
           title="You win! 🎉"

@@ -29,28 +29,25 @@ type Props = {
   words: WordRow[]
   // The caller's own key view (a 25-element array of G/N/A).
   myKey: KeyLabel[]
-  // The partner's key view. Null while the game is in play; populated
-  // post-game so the peer's keycard square can be shown.
+  // The partner's key view — null until the caller chooses to see it, which
+  // the reveal allows only once the game is over.
   peerKey: KeyLabel[] | null
-  // Caller's seat ('A' | 'B') or undefined if not seated. Picks which
-  // per-seat neutral flag is "mine" for the background + click gate.
+  // The caller's seat. Picks which per-seat neutral flag is "mine" for the
+  // triangles and the click gate.
   mySeat: Seat | undefined
-  // Whether the game has reached a terminal status. Gates the peer keycard
-  // square (shown only once the game is over).
+  // Gates the peer's key-card square, shown only once the game is over.
   gameOver: boolean
-  // Whether the caller should be able to click cells right now.
-  // Computed by derivePhase against game.status + seat + clue
-  // state.
+  // Whether the caller may click tiles right now — the phase's answer
+  // (`derivePhase`), with the viewer ORed in by BoardCol.
   cellsClickable: boolean
-  // The tile whose guess RPC is in flight (the pending "…" + accent ring), or
-  // null. Owned by PlayArea, which dispatches the guess.
+  // The tile whose guess is in flight (the pending "…" + accent ring), or
+  // null. BoardCol's, which dispatches the guess.
   pendingPos: number | null
-  // Fire a guess on the given board position. PlayArea owns the submit_guess
-  // RPC + the own-action error flash; this component just reports the click.
+  // A click on a clickable tile. BoardCol owns `submit_guess`; this component
+  // only reports the position.
   onGuess: (position: number) => void
-  // Render read-only under the viewer frame (a past turn's board). `words` is then
-  // the historical snapshot; PlayArea gates clicks off and the board column catches
-  // a click to exit. Off during live play.
+  // A past turn's board is open: `words` is then its snapshot, the frame rings
+  // the board, and clicks fall through to the viewer's own exit.
   isViewingHistory?: boolean
   // The board positions the viewed turn decided — ringed in the history blue
   // ("added this turn"). Empty / omitted when live.
@@ -58,18 +55,11 @@ type Props = {
 }
 
 /**
- * The 5×5 codenamesduet board — presentational. It owns only the per-tile render
- * logic (the result fill, the keycard/triangle/pending overlays, the click
- * gate); the guess DISPATCH (the submit_guess RPC, the pending-tile state, the
- * own-action error flash) lives in PlayArea, so the flash can sit in the
- * below-board slot next to the clue UI and match psychicnum/connections (the
- * host owns the move + its local feedback). A click calls `onGuess`; the reveal
- * arrives via Realtime → `useBoard` refetches → the tile re-renders with its
- * result color.
- *
- * It's its own component for **read-locality**: the per-tile tint/overlay/click
- * logic is busy enough that inlining it would clutter PlayArea, which stays
- * readable as "board → clue slot → info column."
+ * The 5×5 codenamesduet board — presentational. It owns the per-tile render
+ * alone: the result fill, the key-card, triangle and pending overlays, the
+ * click gate. A click calls `onGuess`; BoardCol dispatches the guess, and the
+ * reveal arrives by Realtime — `useBoard` refetches and the tile re-renders in
+ * its result color.
  */
 export function Board({
   words,
@@ -83,20 +73,16 @@ export function Board({
   isViewingHistory = false,
   historyLitTiles = NO_TILES,
 }: Props) {
-  // .board wrapper + .grid mirror psychicnum/connections (the shared "board"
-  // shape — the single place a future framed board would live); the tiles
-  // themselves are the shared `.tile`/`.tileWord` chrome, with the
-  // keycard/triangle/pending OVERLAYS layered on via `.overlayTile` (which makes
-  // the tile a positioning context for them).
+  // The tiles are the shared `.tile` / `.tileWord` chrome; the key-card,
+  // triangle and pending overlays are layered on through `.overlayTile`, which
+  // makes the tile their positioning context.
   return (
-    // data-board: a stable handle for the e2e layout-stability test, which
-    // measures this element's height across below-board states (it must not
-    // change as the clue UI swaps). See e2e/codenamesduet.e2e.ts.
+    // data-board: the e2e handle for the layout-stability test, which measures
+    // this element's height across the below-board states.
     <div className={cls(shared.boardSeal, styles.board)} data-board>
-      {/* While viewing a past turn the history `.historyFrame` rings the board AND
-          makes it click-through (pointer-events: none), so a click anywhere on the
-          board falls through to the viewer's document click-to-exit — no per-game
-          handler needed. */}
+      {/* While a past turn is open the shared `.historyFrame` rings the board and
+          makes it click-through (pointer-events: none), so a click on it reaches
+          the viewer's own document-level exit. */}
       <div
         className={cls(
           shared.hugRectWidth,
@@ -108,31 +94,31 @@ export function Board({
           const myLabel = myKey[w.position]
           const peerLabel = peerKey?.[w.position] ?? null
 
-          // Per-seat bystander marks. A neutral I made locks the cell for ME;
-          // one my partner made does NOT — the word may be my agent in the
-          // other direction (the Duet rule). Both are PUBLIC events (a neutral
-          // guess is visible on the shared board), so both triangles show
-          // during play; only the peer's KEY (the square) stays secret.
+          // Per-seat bystander marks. A neutral I made locks the tile for ME;
+          // one my partner made does not — the word may be my agent in the
+          // other direction (the Duet rule). Both are public, so both
+          // triangles show during play; only the peer's KEY (the square) is
+          // withheld.
           const iNeutraled =
             mySeat === 'A' ? w.neutral_a : mySeat === 'B' ? w.neutral_b : false
           const partnerNeutraled =
             mySeat === 'A' ? w.neutral_b : mySeat === 'B' ? w.neutral_a : false
           const revealed = w.revealed_as !== null
 
-          // The tile BACKGROUND is what HAPPENED on this cell:
-          //   green  — we contacted an agent (global)
-          //   red    — the assassin was hit (global)
-          //   tan    — SOMEONE guessed it as a neutral (which player → triangles)
-          //   white  — no one has guessed it
+          // The tile background is what HAPPENED on this tile:
+          //   green  — an agent was contacted (by either seat)
+          //   red    — the assassin was hit
+          //   tan    — someone guessed it as a neutral (who → the triangles)
+          //   white  — nobody has guessed it
           const bgCls =
             w.revealed_as === 'G' ? styles.bgAgent
             : w.revealed_as === 'A' ? styles.bgAssassin
             : (w.neutral_a || w.neutral_b) ? styles.bgNeutral
             : styles.bgWhite
 
-          // Clickable unless globally revealed or *I* already neutraled it. A
-          // partner-only neutral stays clickable (it may be my agent). Never while
-          // viewing a past turn (the board is read-only then).
+          // Clickable unless revealed, or *I* already neutraled it — a
+          // partner-only neutral stays clickable, since it may be my agent —
+          // and never while a past turn is open.
           const clickable = cellsClickable && !revealed && !iNeutraled && !isViewingHistory
           const isPending = pendingPos === w.position
 
@@ -152,18 +138,17 @@ export function Board({
               disabled={!clickable || isPending}
               onClick={() => clickable && onGuess(w.position)}
             >
-              {/* Peer's keycard — top-right, only once the game's over (their
-                  view is secret during play). */}
+              {/* The peer's key-card square — top-right, once the game is over
+                  and the caller has asked to see it. */}
               {gameOver && peerLabel !== null && (
                 <span
                   className={cls(styles.keySquare, styles.keyPeer, styles[KEY_SQUARE[peerLabel]])}
                   aria-hidden
                 />
               )}
-              {/* "Peer guessed this neutral" — triangle above the word,
-                  pointing up toward where they sit. Dropped once the cell is
-                  contacted (agent/assassin) — markers are only for live
-                  neutrals. */}
+              {/* "My partner guessed this neutral" — a triangle above the word,
+                  pointing up toward them. Both triangles go once the tile is
+                  revealed: a mark is for a live neutral only. */}
               {partnerNeutraled && !revealed && (
                 <span className={cls(styles.triangle, styles.triPeer)} aria-hidden />
               )}
@@ -174,16 +159,14 @@ export function Board({
               >
                 {w.word}
               </span>
-              {/* "I guessed this neutral" — triangle below the word, pointing
+              {/* "I guessed this neutral" — a triangle below the word, pointing
                   down toward me. */}
               {iNeutraled && !revealed && (
                 <span className={cls(styles.triangle, styles.triMine)} aria-hidden />
               )}
-              {/* My keycard — bottom-left. Hidden while I'm actively guessing
-                  the peer's clue (cellsClickable): my own key is irrelevant to
-                  a guess, and its absence is a big visual "you're still
-                  guessing — press Done when you're through" reminder. Shown the
-                  rest of the time (clue-giving, waiting, game over). */}
+              {/* My key-card square — bottom-left. Hidden while I am the one
+                  guessing (my own key says nothing about my partner's clue);
+                  shown the rest of the time — cluing, waiting, game over. */}
               {!cellsClickable && (
                 <span
                   className={cls(styles.keySquare, styles.keyMine, styles[KEY_SQUARE[myLabel]])}
