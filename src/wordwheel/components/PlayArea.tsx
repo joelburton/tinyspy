@@ -1,6 +1,6 @@
 // cs-fixed-outcome-fix
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { cls } from '@/common/utils/cls'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
@@ -41,6 +41,9 @@ import styles from './PlayArea.module.css'
 
 import '../theme.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
+import { useMark } from '@/common/board-marks/useMark'
+import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
+import type { Outcome } from '@/common/outcomes/outcomes'
 
 /**
  * wordwheel's play surface — shared between the coop and compete
@@ -263,12 +266,10 @@ export function PlayArea(ctx: GamePageCtx) {
     return m
   }, [game?.requiredWords, game?.bonusWords])
 
-  // A refused word shakes the wheel — the head-shake "no" every board gives a
-  // move that wasn't a winning one. A bumping nonce, because it is the WHOLE
-  // board that shakes and a board is always mounted: the nonce keys the wheel so
-  // each refusal remounts it and the animation plays again (a CSS animation
-  // restarts on a remount, not on a state change under it).
-  const [shakeNonce, setShakeNonce] = useState(0)
+  // A refused word's tiles shake and wear its answer for a beat — as many of
+  // each letter as the word used, since a letter can sit on two tiles and only
+  // the ones the word would have spent should answer (the Wheel picks them).
+  const [refused, showRefused] = useMark<{ counts: Map<string, number>; outcome: Outcome }>(WORD_ANSWER_MS)
 
   const center = game?.center_letter.toLowerCase() ?? ''
   const { word, setWord, lastWord, submit } =
@@ -311,13 +312,16 @@ export function PlayArea(ctx: GamePageCtx) {
         }
       },
       // Every answer shows in the pill, in `lib/answer.ts`'s words. Any answer
-      // but an accept is also a move that didn't win, which is the whole of
-      // what the shake says. The actor's alone: a peer is never told about
-      // somebody else's miss.
+      // but an accept is also a move that didn't win: the tiles the word used
+      // shake and take the same outcome, so the two cannot disagree.
+      // The actor's alone: a peer is never told about somebody else's miss.
       onAnswer: (report) => {
         const { outcome, text } = answerMessage(answerOf(report, center))
         localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
-        if (report.answer !== 'accepted') setShakeNonce((n) => n + 1)
+        if (report.answer === 'accepted') return
+        const counts = new Map<string, number>()
+        for (const ch of report.word.toLowerCase()) counts.set(ch, (counts.get(ch) ?? 0) + 1)
+        showRefused({ counts, outcome })
       },
     })
 
@@ -575,7 +579,7 @@ export function PlayArea(ctx: GamePageCtx) {
   return (
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
       <BoardCol
-        shakeNonce={shakeNonce}
+        refused={refused}
         // ── Mobile-only status block (the SAME RankBar + Stats the InfoCol
         //    renders; on a phone the info column is off-canvas in the InfoSheet) ──
         foundWordsScore={foundWordsScore}

@@ -4,13 +4,6 @@
 
 ## Soon
 
-- **Look at two things on a phone.** A tapped hex should sit flat afterwards
-  (its hover is gated on `(hover: hover)`) and still lift under a mouse; and a
-  refused word's hexes shake by 5 of the hive's own units, which scales with
-  the board — about 7.5px at full size. The keyframes are shared by every
-  game, so a shake that reads wrong here wants a hex-only adjustment, not an
-  edit to them. Neither has been seen outside jsdom.
-
 - ~~**The custom-letters field became one box, and nobody has looked at it.**~~
   The setup form once took a center letter and six others in two boxes; it now
   takes the hyphenated string both the summary and the recap print (`A-CHIROT`)
@@ -22,22 +15,7 @@
   "ten specs described the DOM the CSS sprint replaced"), so the red flag came
   off without the look it was holding open.
 
-  **Closed 2026-09-22, no change** — Joel looked at the one box: *"it looks
-  fine."* The entry stays struck rather than deleted because nothing shipped for
-  it; what closed is the question. It reopens only on a report from a real
-  setup — someone typing seven letters without the hyphen, or a letter set with
-  no obvious center to put first.
-
 ## Someday
-
-- **The outcome color on a refused word's letters is a live experiment, and
-  wordwheel is its control.** Here the letters the word used take the outcome's
-  fill; wordwheel's tiles deliberately do NOT, so friends can play both and say
-  whether coloring a letter tile helps at all (Joel, 2026-09-15). The doubt that
-  started it: a refused TETE colors two hexes, because a hive letter stands for
-  every use of it in the word, and a word has as many letters as it likes.
-  **Whatever comes back decides it for both** — do not bring wordwheel into line
-  to match. Its twin is in `wordwheel/todo.md`.
 
 - **The `WordList` marker vocabulary** — ◐ ("more than one player found this
   word", in the first finder's color) and ⦻ ("scored zero because more than one

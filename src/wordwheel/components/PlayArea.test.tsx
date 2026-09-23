@@ -33,6 +33,7 @@ import type { WordwheelGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { pickFilter } from '@/common/lists/filterSelectHelpers'
+import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { PlayArea } from './PlayArea'
 
 /** A ctx whose global slot is real, with a spy on its one door. */
@@ -341,19 +342,85 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('shakes the wheel on a refusal, and holds still on an accept', async () => {
-    // The head-shake for a move that wasn't a winning one. It is the whole
-    // wheel, keyed so a second refusal remounts it and plays again.
+  it("shakes the refused word's own tiles, not the wheel, and holds still on an accept", async () => {
+    // The shared head-shake, on each face the word used and no other.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    const shaking = () =>
+    const shakingTiles = () =>
+      [...document.querySelectorAll('[data-tile]')]
+        .filter((t) => (t.firstElementChild?.getAttribute('class') ?? '').includes('verdictShake'))
+        .map((t) => t.getAttribute('data-tile'))
+    const wheelShakes = () =>
       (document.querySelector('[data-wheel]')?.getAttribute('class') ?? '').includes('verdictShake')
 
     await user.keyboard('bead{Enter}') // a required word
-    expect(shaking()).toBe(false)
+    expect(shakingTiles()).toEqual([])
 
     await user.keyboard('bcdf{Enter}') // fits the wheel, but has no center E
-    expect(shaking()).toBe(true)
+    expect(new Set(shakingTiles())).toEqual(new Set(['B', 'C', 'D', 'F']))
+    expect(wheelShakes()).toBe(false)
+  })
+
+  it('shakes the same tiles again when the same word is refused twice', async () => {
+    // A CSS animation plays once per mount, so the word's tiles are keyed on
+    // the mark's nonce: a second refusal is a new element, and a new shake.
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    const tileB = () => document.querySelector('[data-tile="B"]')
+
+    await user.keyboard('bcdf{Enter}')
+    const first = tileB()
+    await user.keyboard('bcdf{Enter}')
+    expect(tileB()).not.toBe(first)
+    expect(tileB()?.firstElementChild?.getAttribute('class')).toMatch(/verdictShake/)
+  })
+
+  /** The tiles wearing a refused word's answer. */
+  const answeredTiles = () =>
+    [...document.querySelectorAll('[data-tile]')].filter((t) =>
+      (t.getAttribute('class') ?? '').includes('_answered_'),
+    )
+
+  // A TOO-SHORT word, deliberately: it is `warning` (lib/answer.ts), and a mark
+  // with a default of its own would land on `lost` — the amber is what proves
+  // the tiles read the answer.
+  it("fills the refused word's tiles in its own outcome, and no others", async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('bed{Enter}')
+
+    const marked = answeredTiles()
+    expect(new Set(marked.map((t) => t.getAttribute('data-tile')))).toEqual(new Set(['B', 'E', 'D']))
+    for (const tile of marked) {
+      expect(tile.getAttribute('class')).toMatch(/verdictWarning/)
+      expect(tile.getAttribute('class')).not.toMatch(/verdictLost/)
+    }
+  })
+
+  it('fills one tile per use of a letter, never both twins', async () => {
+    // Two E tiles (the center and an outer one); the word uses E once, so one
+    // tile takes the color — the one a typed E spends, the center.
+    h.result = loaded(loadedGame({ outer_letters: 'bacdfghe' }))
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('bed{Enter}')
+
+    const es = answeredTiles().filter((t) => t.getAttribute('data-tile') === 'E')
+    expect(es).toHaveLength(1)
+    expect(es[0]?.hasAttribute('data-center')).toBe(true)
+  })
+
+  it("takes the fill off after the word-answer beat", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('bed{Enter}')
+    expect(answeredTiles()).toHaveLength(3)
+
+    await act(async () => void vi.advanceTimersByTime(WORD_ANSWER_MS + 1))
+
+    expect(answeredTiles()).toEqual([])
+    vi.useRealTimers()
   })
 
   it('blocks submitting a word that over-uses a tile (two e, one e-tile)', async () => {

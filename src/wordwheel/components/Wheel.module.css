@@ -174,3 +174,14 @@
 /* @@ */ .tile.used .face {
   border-color: var(--tile-spent-edge-color);
 }
+
+/* THE ANSWER on a refused word's tiles: the outcome's own fill, its edge a step
+ * darker, and white ink — the three colors a verdict-filled piece wears on every
+ * board (`.tileFace.verdictFill`), and spellingbee's hexes the same. The tone
+ * class beside this one sets only the verdict tokens. After `.used`, and more
+ * specific than `.center .face`, so the answer wins on the center tile too. */
+/* @@ */ .tile.answered .face {
+  background: var(--verdict-fill);
+  border-color: var(--verdict-edge);
+  color: var(--verdict-ink);
+}

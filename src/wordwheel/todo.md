@@ -88,13 +88,6 @@
 
 ## Someday
 
-- **No outcome color on a refused word's tiles, and that is the POINT.**
-  spellingbee colors the letters a refused word used with the outcome's fill;
-  this board deliberately does not, so friends can play both and say whether
-  coloring a letter tile helps at all (Joel, 2026-09-15). **Whatever comes back
-  decides it for both** — do not add the color here to match. Its twin, with
-  the doubt that started it, is in `spellingbee/todo.md`.
-
 ## Maybe
 
 ## Won't do

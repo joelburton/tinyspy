@@ -1250,9 +1250,9 @@ The channels); there is no input flash. An accepted word says nothing on the
 board: the pill shows the optimistic `+N` / `pangram +N`, the server's sentence
 replacing it when a commit loses. **A refused word answers ON the board**: the
 hexes the word used shake, each on its own, and wear the refusal's outcome — its fill, its edge
-and white ink, for `WORD_ANSWER_MS`. That is a live experiment
-with wordwheel as the control (its tiles do not take the fill; `todo.md` →
-Someday in both games). Rank milestones raise a peer pill; coop shares one
+and white ink, for `WORD_ANSWER_MS`. wordwheel's tiles take the same fill
+(Joel, 2026-09-23, ending the experiment that kept it off there as a
+control). Rank milestones raise a peer pill; coop shares one
 found list, compete gives each player their own. A finished board, or a
 conceder's, is inert: no hover, no press, no used edges.
 
@@ -1266,17 +1266,18 @@ coordinate units (`Letter.module.css`).
 
 **Today.** A spellingbee fork: a letter in the word wears the khaki selected
 edge, verdicts in the pill, finds in the shared list, rank milestones as peer
-pills. It is the control for spellingbee's on-board refusal answer, so its tiles
-do not take the refusal's fill. The wheel is a multiset, so a letter can be
-used more than once — which is why the used edge marks a TILE, each worth one
-use, rather than a letter.
+pills. **A refused word answers on the board as spellingbee's does**: the
+tiles the word used shake, each on its own, and wear the refusal's fill, edge
+and white ink for `WORD_ANSWER_MS`. The wheel is a multiset, so a letter can be
+used more than once — which is why both the used edge and the refusal's fill
+mark TILES, each worth one use, chosen by the same spend order: a word using
+one E colors one of two E tiles, never both.
 
 **Trust + race.** Trusting-commit, like spellingbee.
 
 **What we want** (proposals):
-- **Nothing more on the board** until the refusal experiment reports, and
-  then its answer applies to both — the two are deliberately apart only for
-  that question.
+- **Nothing more on the board.** The refusal now reads the same on both bee
+  boards (Joel, 2026-09-23).
 
 ### wordiply · shape 1
 

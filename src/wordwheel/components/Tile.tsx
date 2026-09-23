@@ -2,6 +2,9 @@
 
 import type { CSSProperties } from 'react'
 import { cls } from '@/common/utils/cls'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import shared from '@/common/game-page/playArea.module.css'
 import { RING_W } from '../lib/wheel'
 import styles from './Wheel.module.css'
 
@@ -15,6 +18,10 @@ type Props = {
    *  each tile ONCE per word, so a used tile is inert — it wears the selected
    *  border, is not clickable, and takes no hover or press. */
   disabled?: boolean
+  /** A refused word used this tile: its face wears that answer's fill, edge and
+   *  white ink for as long as the answer is up, and shakes once as it arrives
+   *  (the Wheel remounts it per refusal, which is what replays the shake). */
+  answer?: Outcome
 }
 
 /**
@@ -43,11 +50,19 @@ type Props = {
  * `onMouseDown` is still intercepted, now only to stop a click selecting the
  * letter text.
  */
-export function Tile({ letter, isCenter, pos, onClick, disabled }: Props) {
+export function Tile({ letter, isCenter, pos, onClick, disabled, answer }: Props) {
   const up = letter.toUpperCase()
   return (
     <div
-      className={cls(styles.tile, isCenter && styles.center, disabled && styles.used)}
+      className={cls(
+        styles.tile,
+        isCenter && styles.center,
+        disabled && styles.used,
+        // The tone class sets only the verdict tokens (`VERDICT_TONE`);
+        // `.answered` maps them onto the face.
+        answer && styles.answered,
+        answer && VERDICT_TONE[answer],
+      )}
       // The tile's own place on the wheel, in the geometry's units scaled by
       // `--u` — the same numbers the PDF draws by. `--d` is the outer diameter
       // (the circle plus its ring), and the stylesheet's negative margins pull
@@ -66,7 +81,9 @@ export function Tile({ letter, isCenter, pos, onClick, disabled }: Props) {
       onClick={disabled ? undefined : onClick}
       onMouseDown={(e) => e.preventDefault()}
     >
-      <div className={styles.face}>{up}</div>
+      {/* The shared head-shake, on the FACE — the piece; the seats are the
+          flower and stay put. Every answer a tile can wear is a refusal. */}
+      <div className={cls(styles.face, answer && shared.verdictShake)}>{up}</div>
     </div>
   )
 }

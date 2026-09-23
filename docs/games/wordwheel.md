@@ -312,8 +312,8 @@ gives each answer its words and outcome together: `accepted` and its
 `missing_center` and `not_a_word` (`lost`) · `reached_peer`, an opponent's rank
 climb (`noted`). The shared `useFoundWordSubmit` reports what it decided to
 `onAnswer`, `answerOf` splits its one "not legal" by the center letter, and the
-pill reads the result (the wheel shakes on a miss and shows no color of its
-own). No RPC carries an outcome or a message: the frontend decides, once. The
+pill reads the result (on a miss, the tiles the word used shake and take the
+same outcome's color for a beat). No RPC carries an outcome or a message: the frontend decides, once. The
 same readings as spellingbee's, for the same reasons ([`src/spellingbee/doc.md`](../../src/spellingbee/doc.md);
 [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
 
@@ -383,10 +383,12 @@ The genuinely wordwheel-only parts (no spellingbee counterpart):
   tiles kiss each other (`OUTER_R = RING_R·sin(π/8)`) and each touches the center
   (`CENTER_R = RING_R − OUTER_R`), making the center ≈1.6× an outer tile.
 - **`Wheel.tsx`** lays the tiles out on a 300×300 square sized in `--u`, so the whole
-  board scales with the column. A refused word makes the whole wheel head-shake (the
-  shared `.verdictShake`, keyed by a nonce so a second refusal remounts the wheel and
-  replays it) — the whole board rather than a tile, because the refusal is about the
-  WORD and its letters are all legal tiles that did nothing wrong. The actor's alone,
+  board scales with the column. A refused word's tiles answer it: one tile per
+  use of a letter, by the same spend order as a typed word (so one E in the word
+  marks one of two E tiles), each face taking the shared `.verdictShake` and the
+  answer's fill, edge and white ink for `WORD_ANSWER_MS`. The mark's nonce keys
+  those tiles, so refusing the same letters again remounts them and shakes
+  again. The actor's alone,
   and a peer is never told about somebody else's miss. **`Tile.tsx`** is two round boxes, not an SVG
   `<circle>`: a mustard **seat** placed by its own center, and the **face** that sits
   in it. Only the face is the piece. The nine seats are tangent by construction, so

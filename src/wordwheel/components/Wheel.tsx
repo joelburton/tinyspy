@@ -2,6 +2,8 @@
 
 import type { ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import type { Mark } from '@/common/board-marks/useMark'
 import shared from '@/common/game-page/playArea.module.css'
 import { spentTiles, type Claim } from '../lib/spend'
 import { TILE_POSITIONS } from '../lib/wheel'
@@ -25,10 +27,13 @@ type Props = {
   /** The tiles the player CLICKED, oldest first. They are spent before any
    *  fallback, so a clicked tile is always the one that goes dark. */
   claims: readonly Claim[]
-  /** Bumped on every refused word. It keys the wheel, so a refusal remounts it
-   *  and the head-shake plays again — a CSS animation restarts on a remount, not
-   *  on a state change under it. */
-  shakeNonce: number
+  /** A refused word's mark, while its answer is up: how many of each letter it
+   *  used, and the outcome. The tiles it would have spent — by the same spend
+   *  order as a typed word — shake and wear that outcome. The nonce keys those
+   *  tiles, so refusing the same letters again remounts them and the shake
+   *  plays again — a CSS animation restarts on a remount, not on a class that
+   *  is already there. */
+  refused: Mark<{ counts: Map<string, number>; outcome: Outcome }> | null
   /** A control floated over the wheel's top-right (the Shuffle button). Rendered
    *  inside the shrink-wrapped `.floatAnchor` around the svg, so it hugs the
    *  VISUAL wheel. Anchoring to the column instead would strand it at the
@@ -64,11 +69,14 @@ export function Wheel({
   onLetterClick,
   typedCounts,
   claims,
-  shakeNonce,
+  refused,
   floatingControl,
 }: Props) {
   const letters = [centerLetter, ...outerLetters]
   const spent = spentTiles(letters, typedCounts, claims)
+  // The refused word's tiles: as many of each letter as it used, never both
+  // twins for one use. A letter off the wheel has no tile and takes nothing.
+  const answered = refused ? spentTiles(letters, refused.value.counts, []) : new Set<number>()
   // Each tile's ordinal among same-letter tiles, in render order — what a click
   // reports, so the claim survives a shuffle (a tile INDEX wouldn't).
   const ordinals: number[] = []
@@ -84,24 +92,22 @@ export function Wheel({
   return (
     <div className={cls(shared.boardSeal, styles.board)}>
       <div className={styles.floatAnchor}>
-        {/* The whole wheel takes the head-shake, not a tile: wordwheel's
-            refusal is about the WORD, and its letters are all legal tiles that
-            did nothing wrong. */}
-        <div
-          key={shakeNonce}
-          className={cls(styles.grid, shakeNonce > 0 && shared.verdictShake)}
-          data-wheel
-        >
-          {letters.map((letter, i) => (
-            <Tile
-              key={`${letter}-${i}`}
-              letter={letter}
-              isCenter={i === 0}
-              pos={TILE_POSITIONS[i] ?? TILE_POSITIONS[0]}
-              disabled={spent.has(i)}
-              onClick={() => onLetterClick(letter, ordinals[i] ?? 0)}
-            />
-          ))}
+        <div className={styles.grid} data-wheel>
+          {letters.map((letter, i) => {
+            // The refusal's mark, when this tile is one the word used.
+            const mark = refused && answered.has(i) ? refused : null
+            return (
+              <Tile
+                key={mark ? `${letter}-${i}#${mark.nonce}` : `${letter}-${i}`}
+                letter={letter}
+                isCenter={i === 0}
+                pos={TILE_POSITIONS[i] ?? TILE_POSITIONS[0]}
+                disabled={spent.has(i)}
+                answer={mark?.value.outcome}
+                onClick={() => onLetterClick(letter, ordinals[i] ?? 0)}
+              />
+            )
+          })}
         </div>
         {floatingControl}
       </div>

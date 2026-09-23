@@ -3,6 +3,8 @@
 import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import type { Outcome } from '@/common/outcomes/outcomes'
+import type { Mark } from '@/common/board-marks/useMark'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
@@ -51,7 +53,7 @@ export function BoardCol({
   foundWordsCount,
   requiredWordsCount,
   // ── Board to render ──
-  shakeNonce,
+  refused,
   outerLetters,
   centerLetter,
   letterCounts,
@@ -78,9 +80,9 @@ export function BoardCol({
   targetRankIdx: number | null
 
   // ── Board to render ──
-  /** Bumped by PlayArea on every refused word — keys the wheel, so it remounts
-   *  and replays the head-shake. */
-  shakeNonce: number
+  /** A refused word's mark, while its answer is up: how many of each letter it
+   *  used, and the outcome those tiles wear as they shake. */
+  refused: Mark<{ counts: Map<string, number>; outcome: Outcome }> | null
   /** The board's outer letters (a string) — the local shuffle rearranges this. */
   outerLetters: string
   centerLetter: string
@@ -181,7 +183,7 @@ export function BoardCol({
         </div>
       </MobileStatusBar>
       <Wheel
-        shakeNonce={shakeNonce}
+        refused={refused}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
         onLetterClick={handleLetterClick}

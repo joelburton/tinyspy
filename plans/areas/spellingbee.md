@@ -11,7 +11,11 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 then close the area. then commit."*). Forty-three files
 `cs-blessed-spellingbee`: the forty agreed at the opening and three the area
 created (`Letter.module.css`, `lib/terminal.ts` and its test). Closed without
-an e2e run.
+an e2e run; **run after the close, 2026-09-23, on Joel's word: 17 spec files,
+41 tests, all green** — spellingbee's four, boggle's, wordwheel's and
+wordiply's three each (Step 4 reshaped the engine they share), and the three
+cross-game specs that name spellingbee (`board-geometry`, `restart-resets`,
+`tap-targets`). Still not seen on a device (`todo.md` → Soon).
 
 **Three passes back to back**, psychicnum's, connections' and
 wordle's shape: the restructure ([playarea-readability.md](../playarea-readability.md)
