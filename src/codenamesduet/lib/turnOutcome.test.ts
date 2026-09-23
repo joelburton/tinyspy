@@ -43,3 +43,21 @@ describe('turnOutcome', () => {
     expect(turnOutcome([g('G'), g('A')])).toBe('lost')
   })
 })
+
+describe('turnOutcome — sudden death', () => {
+  const sd = { suddenDeath: true }
+
+  it('is a WIN while every guess is an agent', () => {
+    expect(turnOutcome([g('G'), g('G')], sd)).toBe('won')
+  })
+
+  it('is a LOSS on any non-agent — where an ordinary turn would read near', () => {
+    expect(turnOutcome([g('G'), g('N')], sd)).toBe('lost')
+    expect(turnOutcome([g('N')], sd)).toBe('lost')
+    expect(turnOutcome([g('A')], sd)).toBe('lost')
+  })
+
+  it('is neutral before its first guess', () => {
+    expect(turnOutcome([], sd)).toBe('neutral')
+  })
+})

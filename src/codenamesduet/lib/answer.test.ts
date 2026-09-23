@@ -16,8 +16,8 @@ const EVERY: Array<[Answer['answerType'], string, string]> = [
   ['guessing_peer', 'guessing', 'neutral'],
   ['waiting_for_clue_peer', 'waiting for clue', 'neutral'],
   ['waiting_for_you_peer', 'waiting for you', 'neutral'],
-  ['hint', '', 'warning'],
   ['hint_peer', 'got hint', 'warning'],
+  ['clue_ai', '', 'warning'],
 ]
 
 describe('answerMessage', () => {

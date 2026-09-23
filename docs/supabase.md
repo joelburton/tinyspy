@@ -164,7 +164,7 @@ Every game with a chronological log of what happened keeps it in one shape.
 have no log at all.) codenamesduet stores its events in this shape too, and
 differs only in how it SHOWS them: its log draws a table of turns — a clue and
 the guesses under it — so it groups the events on its `turn_number` payload
-column, and its history handle is that turn number rather than a row's id.
+column, and a turn's history handle is the id of the clue that heads it.
 
 ```sql
 create table <game>.events (

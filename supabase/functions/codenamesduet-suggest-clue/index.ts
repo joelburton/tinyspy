@@ -27,7 +27,8 @@
  * over — are RELAYED untouched. Nothing here knows the board better than the
  * raise that read it. The call goes through `runRpc`, so "the RPC never ran"
  * and "it answered something we cannot read" are its faults to name, not this
- * function's.
+ * function's. `log_hint`'s races are relayed the same way; its other failures
+ * are logged here and the suggestion goes out regardless.
  *
  * Secrets:
  *   - ANTHROPIC_API_KEY  required; set via `supabase secrets set` in prod
@@ -250,14 +251,21 @@ serve(async (req) => {
     console.log('[suggest-clue] parsed suggestion:', JSON.stringify(suggestion))
 
     // Step 3: log the hint — only now, so a model that declined or was cut off
-    // above leaves no row for a hint nobody received. `log_hint` asks the same
-    // gate `get_clue_context` did; the model was thinking in between, so a
-    // refusal here is that race arriving late, and is relayed like the first.
+    // above leaves no row for a hint nobody received. What a failure costs
+    // turns on its severity. `log_hint` asks the same gate `get_clue_context`
+    // did, and the model was thinking in between, so a RACE is that refusal
+    // arriving late — the game ended or the seat moved, the suggestion is moot,
+    // and it is relayed like the first. Anything else is our side failing to
+    // write a log row, and the player has already paid for the suggestion, so
+    // they get it; the failure is logged here, where someone can look.
     const logged = await runRpc<{ result: 'logged' }>(
       supabase.schema('codenamesduet').rpc('log_hint', { target_game: gameId }),
       'log_hint',
     )
-    if (logged.type === 'not-ok') return json(logged)
+    if (logged.type === 'not-ok' && logged.severity === 'race') return json(logged)
+    if (logged.type === 'not-ok') {
+      console.error('[suggest-clue] log_hint failed; the suggestion goes out unlogged:', JSON.stringify(logged))
+    }
 
     return ok({ result: 'suggested', suggestion })
   } catch (e) {

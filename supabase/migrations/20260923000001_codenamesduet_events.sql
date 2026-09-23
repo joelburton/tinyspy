@@ -51,6 +51,10 @@ create table codenamesduet.events (
   seat            text not null check (seat in ('A', 'B')),
   clue_word       text,
   clue_count      int  check (clue_count >= 0),
+  -- The clue is exactly the one the AI suggested — word and count unedited.
+  -- Said by the client, which is the only side that saw the suggestion; the
+  -- log marks such a clue.
+  clue_from_ai    boolean,
   guess_position  int  check (guess_position between 0 and 24),
   -- The label the guess turned over as, from the key it was judged against.
   guess_result    text check (guess_result in ('G', 'N', 'A')),
@@ -61,10 +65,13 @@ create table codenamesduet.events (
   constraint events_payload_by_kind check (
     case kind
       when 'clue'  then clue_word is not null and clue_count is not null
+                        and clue_from_ai is not null
                         and guess_position is null and guess_result is null
       when 'guess' then guess_position is not null and guess_result is not null
                         and clue_word is null and clue_count is null
+                        and clue_from_ai is null
       else              clue_word is null and clue_count is null
+                        and clue_from_ai is null
                         and guess_position is null and guess_result is null
     end
   )
@@ -89,9 +96,10 @@ alter publication supabase_realtime add table codenamesduet.events;
 -- by time, then clue before guess before pass at the same instant, then the
 -- old uuid, which is arbitrary but stable.
 --
--- `took_turn` is true exactly where `_end_turn` ran: a bystander in ordinary
--- play, and a pass. A turn is ordinary play while `turn_number` has not passed
--- the budget — the turn after the last one spent is sudden death.
+-- `took_turn` is true exactly where the turn number moved on: a bystander in
+-- ordinary play and a pass (both run `_end_turn`), and a sudden-death agent
+-- that did not win. A turn is ordinary play while `turn_number` has not passed
+-- the budget; past it is sudden death, renumbered below.
 --
 -- PASSES ARE INFERRED — the one kind of row this backfill makes up, because
 -- `pass_turn` never wrote one. A turn below the game's current one that ended
@@ -103,16 +111,18 @@ alter publication supabase_realtime add table codenamesduet.events;
 -- so it takes the turn's last recorded time and sorts after it.
 insert into codenamesduet.events (
   game_id, user_id, kind, took_turn, created_at, turn_number, seat,
-  clue_word, clue_count, guess_position, guess_result
+  clue_word, clue_count, clue_from_ai, guess_position, guess_result
 )
 select game_id, user_id, kind, took_turn, created_at, turn_number, seat,
-       clue_word, clue_count, guess_position, guess_result
+       clue_word, clue_count, clue_from_ai, guess_position, guess_result
   from (
     select c.game_id,
            case c.by_seat when 'A' then g.user_a_id else g.user_b_id end as user_id,
            'clue' as kind, false as took_turn, c.submitted_at as created_at,
            c.turn_number, c.by_seat as seat,
            c.word as clue_word, c.count as clue_count,
+           -- Nothing recorded whether an old clue was the AI's, so none is.
+           false as clue_from_ai,
            null::int as guess_position, null::text as guess_result,
            0 as kind_order, c.id::text as tiebreak
       from codenamesduet.clues c
@@ -120,16 +130,30 @@ select game_id, user_id, kind, took_turn, created_at, turn_number, seat,
 
     union all
 
-    select gu.game_id,
-           case gu.guesser_seat when 'A' then g.user_a_id else g.user_b_id end,
+    select sg.game_id,
+           case sg.guesser_seat when 'A' then g.user_a_id else g.user_b_id end,
            'guess',
-           gu.result = 'N' and gu.turn_number <= (cg.setup->>'turns')::int,
-           gu.guessed_at, gu.turn_number, gu.guesser_seat,
-           null, null, gu.position, gu.result,
-           1, gu.id::text
-      from codenamesduet.guesses gu
-      join codenamesduet.games g on g.id = gu.game_id
-      join common.games cg on cg.id = gu.game_id
+           (sg.result = 'N' and not sg.sudden)
+             or (sg.result = 'G' and sg.sudden and sg.greens_so_far < 15),
+           sg.guessed_at,
+           case when sg.sudden then sg.budget + sg.sudden_seq else sg.turn_number end,
+           sg.guesser_seat,
+           null, null, null, sg.position, sg.result,
+           1, sg.id::text
+      from (
+        select gu.*, b.budget, b.sudden,
+               row_number() over (partition by gu.game_id, b.sudden
+                                  order by gu.guessed_at, gu.id) as sudden_seq,
+               count(*) filter (where gu.result = 'G')
+                 over (partition by gu.game_id order by gu.guessed_at, gu.id) as greens_so_far
+          from codenamesduet.guesses gu
+          join common.games cg on cg.id = gu.game_id
+          cross join lateral (
+            select (cg.setup->>'turns')::int as budget,
+                   gu.turn_number > (cg.setup->>'turns')::int as sudden
+          ) b
+      ) sg
+      join codenamesduet.games g on g.id = sg.game_id
 
     union all
 
@@ -139,7 +163,7 @@ select game_id, user_id, kind, took_turn, created_at, turn_number, seat,
            greatest(c.submitted_at, coalesce(last_guess.guessed_at, c.submitted_at)),
            c.turn_number,
            case c.by_seat when 'A' then 'B' else 'A' end,
-           null, null, null, null,
+           null, null, null, null, null,
            2, c.id::text
       from codenamesduet.clues c
       join codenamesduet.games g on g.id = c.game_id
@@ -154,6 +178,35 @@ select game_id, user_id, kind, took_turn, created_at, turn_number, seat,
        and last_guess.result is distinct from 'N'
   ) s
  order by created_at, kind_order, tiebreak;
+
+-- ── sudden death, one turn per guess ────────────────────────
+-- Every sudden-death guess shared the one turn past the budget, so the backfill
+-- above numbered them budget+1, budget+2, … in the order they were made, and
+-- marked each agent that did not win the game as taking a turn — what
+-- `submit_guess` does from here on. A game that reached sudden death moves its
+-- turn number on to match: one past the budget, plus each of those agents.
+with moved as (
+  select g.id,
+         (cg.setup->>'turns')::int + 1
+           + count(*) filter (where e.took_turn and e.turn_number > (cg.setup->>'turns')::int)
+           as turn_number
+    from codenamesduet.games g
+    join common.games cg on cg.id = g.id
+    join codenamesduet.events e on e.game_id = g.id and e.kind = 'guess'
+   group by g.id, cg.setup
+  having bool_or(e.turn_number > (cg.setup->>'turns')::int)
+)
+update codenamesduet.games g
+   set turn_number = moved.turn_number
+  from moved
+ where moved.id = g.id;
+
+update common.games cg
+   set status = coalesce(cg.status, '{}'::jsonb) || jsonb_build_object('turn_number', g.turn_number)
+  from codenamesduet.games g
+ where g.id = cg.id
+   and cg.status ? 'turn_number'
+   and (cg.status->>'turn_number')::int <> g.turn_number;
 
 -- ── did it all land? ────────────────────────────────────────
 do $$

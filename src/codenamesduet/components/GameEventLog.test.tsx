@@ -15,10 +15,15 @@
  *      (the box is always present, unlike the old GameLog which rendered null).
  *   2. Per-turn grouping: each turn's clue (row 1) lines up with the guesses made
  *      that turn (row 2), oldest turn first.
- *   3. Guess sort order: within a turn, guesses list by guessed_at.
+ *   3. Guess order: within a turn, guesses show in the order given — the events
+ *      arrive `order by id` and the log keeps it.
  *   4. A guess-less turn reads "(clue given)" while it's the current, live turn,
  *      and "(no guesses)" once it's ended (or the game is over).
  *   5. The per-turn outcome verdict — tested on the pure `turnOutcome` helper.
+ *   6. Sudden death: each guess past the budget is its own row, "Sudden death:
+ *      WORD", filed under its guesser.
+ *   7. The history link: a turn's clue id and the `#N` printed, renumbered by a
+ *      filter.
  *
  * NOT covered: the color hookup (the key-card color on guessed words, and the
  * outcome bar). With CSS Modules the class name is hashed and Vitest runs with css:false
@@ -28,8 +33,8 @@
  * themselves are a visual contract checked in the browser.
  */
 
-import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { GameEventLog } from './GameEventLog'
 import type { ClueEvent, WordedGuess } from '../lib/events'
 import type { Player } from '../hooks/useGame'
@@ -54,6 +59,7 @@ function clue(overrides: Partial<ClueEvent>): ClueEvent {
     seat: 'A',
     clue_word: 'BREAD',
     clue_count: 2,
+    clue_from_ai: false,
     ...overrides,
   }
 }
@@ -84,7 +90,6 @@ const turnRows = () => screen.getAllByRole('row')
 function renderLog(props: {
   clues: ClueEvent[]
   guesses: WordedGuess[]
-  hintedTurns?: ReadonlySet<number>
   currentTurn?: number
   gameOver?: boolean
 }) {
@@ -92,11 +97,11 @@ function renderLog(props: {
     <GameEventLog
       clues={props.clues}
       guesses={props.guesses}
-      hintedTurns={props.hintedTurns ?? new Set()}
       players={PLAYERS}
       selfId="ada"
       currentTurn={props.currentTurn ?? 99}
       gameOver={props.gameOver ?? false}
+      turnBudget={9}
       historyId={null}
       onShowHistory={() => {}}
     />,
@@ -146,15 +151,15 @@ describe('GameEventLog', () => {
     expect(within(rows[3]).getByText('COFFEE', { exact: false })).toBeInTheDocument()
   })
 
-  it('sorts guesses within a turn by the order they were made — their id', () => {
+  it('shows a turn\'s guesses in the order given', () => {
     const clues = [clue({ turn_number: 1 })]
     const guesses = [
       guess({
-        id: 2, guess_position: 2, word: 'LATER',
+        id: 1, guess_position: 1, word: 'FIRST',
         guess_result: 'G', seat: 'B', turn_number: 1,
       }),
       guess({
-        id: 1, guess_position: 1, word: 'FIRST',
+        id: 2, guess_position: 2, word: 'LATER',
         guess_result: 'G', seat: 'B', turn_number: 1,
       }),
     ]
@@ -181,16 +186,16 @@ describe('GameEventLog', () => {
     expect(screen.queryByText('(clue given)')).not.toBeInTheDocument()
   })
 
-  it('marks the clue row of a turn whose clue-giver asked the AI, and no other', () => {
+  it('marks a clue given exactly as the AI suggested it, and no other', () => {
     const clues = [
       clue({ id: 1, turn_number: 1 }),
-      clue({ id: 2, turn_number: 2, seat: 'B' }),
+      clue({ id: 2, turn_number: 2, seat: 'B', clue_from_ai: true }),
     ]
-    renderLog({ clues, guesses: [], hintedTurns: new Set([2]) })
+    renderLog({ clues, guesses: [] })
 
     const rows = turnRows()
-    expect(rows[0]!.querySelector('[data-tooltip="AI hint"]')).toBeNull()
-    expect(rows[2]!.querySelector('[data-tooltip="AI hint"]')).not.toBeNull()
+    expect(rows[0]!.querySelector('[data-tooltip="AI clue"]')).toBeNull()
+    expect(rows[2]!.querySelector('[data-tooltip="AI clue"]')).not.toBeNull()
   })
 
   it('reads "(no guesses)" for a guess-less current turn once the game is over', () => {
@@ -235,5 +240,64 @@ describe('GameEventLog — the clue-giver picker', () => {
     await pickFilter('bea')
     // Coop hides nothing, so the honest line is the plain empty one.
     expect(screen.getByText('No clues yet.')).toBeInTheDocument()
+  })
+})
+
+/**
+ * Sudden death: every guess past the budget (9 here) is a turn of its own, made
+ * by either player, with no clue.
+ */
+describe('GameEventLog — sudden death', () => {
+  const clues = [clue({ id: 1, turn_number: 9, seat: 'A', clue_word: 'LAST' })]
+  const guesses = [
+    guess({ id: 2, turn_number: 10, seat: 'A', user_id: 'ada', guess_position: 3, word: 'STEEL' }),
+    guess({ id: 3, turn_number: 11, seat: 'B', user_id: 'bea', guess_position: 4, word: 'COFFEE', guess_result: 'N' }),
+  ]
+
+  it('draws each guess as one row — "Sudden death: WORD", the guesser in the actor column', () => {
+    renderLog({ clues, guesses })
+    const rows = turnRows()
+    // The clue's two rows, then one row per sudden-death guess.
+    expect(rows).toHaveLength(4)
+    expect(rows[2]).toHaveTextContent('Sudden death: STEEL')
+    expect(rows[2]).toHaveTextContent('ada')
+    expect(rows[3]).toHaveTextContent('Sudden death: COFFEE')
+    expect(rows[3]).toHaveTextContent('bea')
+  })
+
+  it('files each sudden-death row under its guesser', async () => {
+    renderLog({ clues, guesses })
+    await pickFilter('bea')
+    expect(screen.queryByText('STEEL')).not.toBeInTheDocument()
+    expect(screen.getByText('COFFEE')).toBeInTheDocument()
+  })
+})
+
+/**
+ * The history link: a turn is LINKED by an event id — its clue's, or a
+ * sudden-death guess's — and the `#N` it prints is its place in what is shown.
+ */
+describe('GameEventLog — the history link', () => {
+  it('hands up the clue\'s id and the number printed, which a filter renumbers', async () => {
+    const onShowHistory = vi.fn()
+    render(
+      <GameEventLog
+        clues={[
+          clue({ id: 7, turn_number: 1, seat: 'A', clue_word: 'MINE' }),
+          clue({ id: 12, turn_number: 2, seat: 'B', clue_word: 'THEIRS' }),
+        ]}
+        guesses={[]}
+        players={PLAYERS}
+        selfId="ada"
+        currentTurn={99}
+        gameOver={false}
+        turnBudget={9}
+        historyId={null}
+        onShowHistory={onShowHistory}
+      />,
+    )
+    await pickFilter('bea')
+    fireEvent.click(screen.getByText('#1'))
+    expect(onShowHistory).toHaveBeenCalledWith(12, 1)
   })
 })

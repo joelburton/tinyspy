@@ -477,8 +477,8 @@ rows. Two of them need care:
   psychicnum's was added when it got the picker.
 - **The number and the link are different values.** `#N` counts the rows on
   show — under a filter it numbers what you are looking at, which from your seat
-  is honest — while the handle carries the row's own `id` (codenamesduet's a
-  `turn_number`, since its log is a table of turns). So every handle is live
+  is honest — while the handle carries the row's own `id` (for a codenamesduet
+  turn, which groups several rows, its clue's). So every handle is live
   whatever the filter, and a builder resolves the id against the list it folds:
   ask for a row that list does not hold and it replays nothing.
 
@@ -546,8 +546,8 @@ holds it as its one cross-column "am I viewing" state. What stays **per-game** i
 a snapshot is *computed* from the viewed turn (each game's **`lib/history.ts`** — the
 board shape and even the boundary differ: an ADD-style board shows the turn's own
 move *included*, a removal-style board like stackdown/connections shows the fuller
-*pre-move* board) and how a turn is *identified* (the row's own id, or
-codenamesduet's `turn_number`). See
+*pre-move* board) and how a turn is *identified* (the row's own id — for a
+codenamesduet turn, its clue's). See
 [Per-game history-viewer specifics](#per-game-history-viewer-specifics) below for the
 full seam and the per-game keying.
 
@@ -862,8 +862,8 @@ everywhere: viewing a past turn is just "hand `BoardCol` a historical snapshot +
 The viewer is one shared machine (`useHistoryViewer` + the `#N` handle + the shared
 exit paths — see [What building it taught us](#what-building-it-taught-us)). What
 stays per-game is **snapshot computation** (each game's `lib/history.ts`) and **turn
-identity** — which is the row's own id everywhere now except codenamesduet,
-whose log is a table of turns and addresses a `turn_number`. The variations that matter when
+identity** — which is the row's own id everywhere; codenamesduet's log groups
+rows into turns and a turn is named by its clue's id. The variations that matter when
 adding a viewer to a new game:
 
 - **stackdown** — keyed by the **row's id**; **strictly-before** snapshot: the board
@@ -889,8 +889,10 @@ adding a viewer to a new game:
   green/red outcome color + a ring in the history blue.
 - **strands** — keyed by the **row's id**; **inclusive** fold over the rows so far;
   `historyLitTiles` = the viewed word's tiles, ringed in the history blue.
-- **codenamesduet** — keyed by **`turn_number`**, because its log is a table of
-  turns rather than of rows; the snapshot (`src/codenamesduet/lib/history.ts`) folds the
+- **codenamesduet** — keyed by an **event id** — a turn's clue, or a
+  sudden-death guess, which is a turn of its own — and resolved to that event's
+  `turn_number`, because its log is a table of turns; the snapshot
+  (`src/codenamesduet/lib/history.ts`) folds the
   guess log onto the fixed board (global `revealed_as` + per-seat `neutral_a/b`) and
   rings that turn's own cells. A two-input game — its `BoardCol` owns the **guess** RPC
   (the guess is a board click; `CluePanel` keeps the clue RPCs).
@@ -938,7 +940,7 @@ unchanged. The actor is passed **only** in compete and **only** for a row that
 isn't yours: coop is one shared board, and naming a teammate there would claim a
 board everyone played on. Three games pass no actor at all — setgame's table is
 contended (every row stores its own `board_after`), scrabble's label already names
-the player, and codenamesduet addresses a `turn_number`.
+the player, and codenamesduet's rows name their own actor.
 
 **The banner prints the `#N` you clicked, not one it works out.** The log numbers
 the rows IT is showing; a game's label builder is folding the other list and would
@@ -1002,8 +1004,8 @@ already knew. Drift here causes real head-scratching.
     swaps / conceded); the different name flags the different meaning. Don't "unify"
     these — the split is the point.
   - **Same name, different id, on purpose:** `historyId` is the events row's own
-    id in every game but codenamesduet, which addresses a `turn_number`, and
-    scrabble, whose id is a union (a turn, or a teammate's shared move). The
+    id in every game — codenamesduet's being the clue that heads a turn, or a
+    sudden-death guess — but scrabble, whose id is a union (a turn, or a teammate's shared move). The
     hook is generic over `Id`, so the name is shared and what it resolves is each
     game's `lib/history` (scrabble's `historyBoard`). The viewed turn's marks are
     `historyLit…` everywhere — `historyLitTiles` in stackdown and waffle alike,
@@ -1115,7 +1117,7 @@ extracting `InfoCol`/`BoardCol` for the next game.
   coordination itself (the `historyId` + "am I viewing" flags + the enter/exit
   affordances) lifted into `src/common/event-log/useHistoryViewer.ts`, pulling that growth
   back out of `PlayArea`. What stays per-game is snapshot *computation* (each game's
-  `lib/history.ts`) and turn *identity* (the row's id, or a `turn_number`). See
+  `lib/history.ts`) and turn *identity* (the row's id). See
   the hook's own docstring.
 - **bananagrams**: handled via its own shape — the cross-column engine hook
   `usePlayerBoard` + the `BoardArena` / `HandCard` views (NOT `BoardCol` / `InfoCol`,

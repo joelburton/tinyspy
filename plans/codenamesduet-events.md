@@ -1,7 +1,10 @@
 # codenamesduet: one `events` table
 
-**Status: BUILDING on branch `codenamesduet-events` — Steps 1–5 done and rehearsed (see
-Progress, at the end); the deploy waits on Joel; the six questions answered.**
+**Status: BUILDING on branch `codenamesduet-events` — Steps 1–6 done, then
+three rounds on top (the AI's clue, the audit, sudden death — see the end).
+**The design has moved since the top of this file was written**: the passages
+it superseded are struck through with a pointer. The rehearsal was rerun on the
+final migration and is green (see the end); commit, deploy and merge are Joel's.**
 Joel, 2026-09-23: *"make a plan for this in plans/. once i've read that plan,
 we do this."* Worked inside the
 `codenamesduet` area, which pauses at its restructure's Step 5 until this is
@@ -105,11 +108,14 @@ Nothing writes to it but the RPCs.
   `user_a_id` / `user_b_id`, but the key a guess is judged against,
   `turnOutcome`, the history fold and the PDF all think in seats, and a seat
   never changes after `create_game`. Kept to spare every reader the join.
-- **`took_turn` is true exactly when `_end_turn` runs** — a bystander guess in
+- ~~**`took_turn` is true exactly when `_end_turn` runs** — a bystander guess in
   ordinary play, and a pass. So `count(*) where took_turn` is the turns spent,
   which is today's `setup.turns − turns_remaining`. A clue, an agent, a hint,
   a sudden-death guess and a game-ending guess are all `false`: none spends
-  the budget.
+  the budget.~~ **Superseded by "Sudden death, one turn per guess" below:**
+  `took_turn` is true exactly when the turn number moves on — a bystander in
+  ordinary play, a pass, and a sudden-death agent that does not win — so
+  `count(*) where took_turn` is `turn_number − 1`.
 - **A `hint` row carries no payload.** The suggestion is the clue-giver's
   private help and its reasoning names the agents it targets; stored where the
   partner's client can read it, it would spoil their guessing. The row records
@@ -131,7 +137,7 @@ happened; the game row says where the turn stands. **The board state stays on
 | RPC | writes |
 |---|---|
 | `submit_clue` | a `clue` row, `took_turn` false |
-| `submit_guess` | a `guess` row; `took_turn` true on a bystander in ordinary play, false otherwise |
+| `submit_guess` | a `guess` row; `took_turn` true on a bystander in ordinary play, ~~false otherwise~~ and on a sudden-death agent that does not win (see "Sudden death, one turn per guess") |
 | `pass_turn` | a `pass` row, `took_turn` true |
 | `log_hint`, new — called by the edge function after the model returns a suggestion | a `hint` row, `took_turn` false. Its gate is `get_clue_context`'s, so the two cannot disagree about who may ask — including that one admits sudden death, the area's pass-2 finding |
 | `replay_board` | deletes the game's events instead of its clues and guesses |
@@ -159,11 +165,13 @@ before every call, as the convention requires.
 A fold groups the events by `turn_number` into the shape the log reads today —
 a turn is its clue and the guesses under it — so `GameEventLog`, the history
 viewer and the PDF keep reading turns, the `#N` still counts turns, and
-`turnOutcome` still colors each turn's bar from its guesses. The history
+`turnOutcome` still colors each turn's bar from its guesses. ~~The history
 viewer keeps keying a turn on `turn_number` — a sudden-death turn has guesses
 and no clue, so no row id names every turn. A hint is a mark on its turn's
-clue row; a pass is drawn as today, "(no guesses)" only for a turn that ended
-empty.
+clue row;~~ **Superseded:** the history viewer is linked by an event id (a
+turn's clue, or a sudden-death guess), and the log's mark sits on a clue given
+exactly as the AI suggested it — see the two sections at the end. A pass is
+drawn as today, "(no guesses)" only for a turn that ended empty.
 
 ## `lib/answer.ts`
 
@@ -175,9 +183,10 @@ screen today:
   `derivePhase` computes (the event alone cannot say who clues next):
   `writing_clue_peer` · `guessing_peer` · `waiting_for_clue_peer` ·
   `waiting_for_you_peer`. Sudden death answers with empty text, as today.
-- **`hint` / `hint_peer`** — mine empty (the dialog is the feedback); the
-  partner's a header line, as psychicnum's `got hint` is — the one new line a
-  player sees.
+- ~~**`hint` / `hint_peer`** — mine empty (the dialog is the feedback);~~ the
+  partner's `hint_peer`, a header line, as psychicnum's `got hint` is — the one
+  new line a player sees. **Superseded in part:** my own `hint` went when the
+  mark moved to `clue_ai` (see "the AI's clue is marked").
 - **my own `agent` / `bystander`** — empty text, since the tile says it; they
   exist so the union is the whole roster of what the game says.
 
@@ -258,11 +267,11 @@ Each a commit Joel reads, as the area's steps are.
 | # | question | answer |
 |---|---|---|
 | 1 | who writes the hint row | **a new `log_hint` RPC**, called by the edge function after the model returns a suggestion — only a delivered hint is logged. (Rejected: writing it in `get_clue_context`, which would log a hint the model then declined.) |
-| 2 | where a hint shows in the grouped log | **a mark on its turn's clue row** — the turn stays one clue row and one guesses row. (Rejected: a `Hint:` row of its own.) |
+| 2 | where a hint shows in the grouped log | **a mark on its turn's clue row** — the turn stays one clue row and one guesses row. (Rejected: a `Hint:` row of its own.) **Superseded:** the mark moved to a clue given exactly as the AI suggested it (Joel, later the same day). |
 | 3 | whether a pass is shown | **leave it as today** — "(no guesses)" only for a turn that ended empty. (Rejected: "— passed" on a turn that had guesses.) |
 | 4 | whether a partner's hint is narrated | **yes, like psychicnum** — a `hint_peer` line in the header. (Rejected: log only.) |
 | 5 | drop `clues` and `guesses` when | **in the same migration** — `db-rehearse` proves the backfill first. (Rejected: a release later.) |
-| 6 | what the history viewer keys on | **`turn_number`, as now.** Found while asking: a sudden-death turn has guesses but no clue row, so a clue's `id` cannot name every turn. (Rejected: the clue row's `id`.) |
+| 6 | what the history viewer keys on | **`turn_number`, as now.** Found while asking: a sudden-death turn has guesses but no clue row, so a clue's `id` cannot name every turn. (Rejected: the clue row's `id`.) **Reversed:** once every sudden-death guess became a turn of its own, an event id names every turn — a turn's clue, or a sudden-death guess — so the link is the id, like every other game (Joel, later the same day). |
 
 ## Out of scope
 
@@ -377,9 +386,11 @@ green.
 - **`lib/answer.ts` gains `hint` / `hint_peer`**, both `warning`: mine has no
   text (the dialog is the feedback), the partner's reads `got hint`, as
   psychicnum's does.
-- **The log's mark:** `hintedTurnsOf(events)` in `lib/events.ts`; a hinted
+- ~~**The log's mark:** `hintedTurnsOf(events)` in `lib/events.ts`; a hinted
   turn's clue row carries the AI glyph (`IconAI`, `1em`) wearing
-  `VERDICT_TONE[hint's outcome]`, with the tooltip `AI hint`.
+  `VERDICT_TONE[hint's outcome]`, with the tooltip `AI hint`.~~ **Superseded**
+  by "the AI's clue is marked": the mark is on a clue given exactly as the AI
+  suggested it.
 - **The partner's line:** `usePeerFeedback` over the events — a partner's
   hint row, new since load, becomes a `peer` message in the header.
 
@@ -436,3 +447,352 @@ edge functions and the FE; a short read-side window while Netlify catches up,
 so when nobody is mid-game) — then the post-deploy checks: row counts, the
 sequence, `db-drift ENV=prod`, and one game opened in a browser. Whether to
 merge into `app-audit` first is Joel's.
+
+### Added after the rehearsal — the AI's clue is marked, not the hint (2026-09-23)
+
+Joel: when the AI's suggestion is submitted **as suggested** — word and count
+unedited — the log should mark that clue as the AI's; if the giver changed it,
+nothing. He weighed a `clue_ai` kind against a field and chose the **field**
+(`kind` is what the player did; where the words came from is how it went, and a
+second clue kind would have to be remembered by every "is there a clue this
+turn" check). The partner's `got hint` line stays at asking time.
+
+- **The migration** (edited in place — prod has not applied it): `clue_from_ai
+  boolean`, non-null on a clue and null on every other kind by the CHECK; the
+  backfill sets `false` on every old clue.
+- **`submit_clue`** takes `clue_from_ai boolean default false` and stores it —
+  the client's word, since only the client saw the suggestion.
+- **The clue form** remembers the suggestion it filled in and sends `true` only
+  when the trimmed word and the count match it.
+- **The log's mark** moves from "a hint happened this turn" to the clue's own
+  flag (`.aiClueMark`, tooltip `AI clue`); `hintedTurnsOf` is gone. Hint rows
+  are still written — they record that the AI was asked — and nothing draws
+  them now.
+- **`lib/answer.ts`:** `clue_ai` (no text, `warning`) is the mark's outcome;
+  my own `hint` lost its only reader and is gone. `hint_peer` stays.
+- **The mark's color** was invisible as first built — `--verdict-ink` is the
+  white ink for a filled piece; it wears `--verdict-tone` now.
+
+**Tests:** `events_test.sql` 16 (an AI clue; a clue without the flag refused);
+the mapper, the log's mark, and four CluePanel cases — as suggested, word
+edited, count edited, no suggestion — two of which went red with the rule
+planted off. pgTAP 2599, unit 379. **The prod rehearsal above is now STALE**
+(the migration changed) and has to be run again before the deploy.
+
+## Audit of the branch — 2026-09-23
+
+A read of the plan against the working tree (the six commits plus the
+uncommitted AI-clue change), for correctness and for clarity. Nothing was
+changed; this section is the record, and each item is Joel's to accept or
+strike.
+
+### What was verified
+
+- `tsc -b`, `eslint` on the game folder and the edge function, and the unit
+  tests for `src/codenamesduet`, `common/realtime` and `common/keyboard`: green
+  on the working tree. The whole pgTAP suite: green, 182 files, 2599 tests.
+- **The backfill, re-proved from scratch.** The plan's proof was a scratch
+  script that is not in the repo, so a new one ran the migration's own backfill
+  and `do` block (extracted verbatim) over three seeded games inside a
+  rolled-back transaction: a game on turn 4 with a pass after two agents, a
+  bystander-ended turn, an empty pass and a live current turn; a game nine
+  bystanders into sudden death with an agent and a losing bystander there; and
+  a game ended by the assassin on turn 1. Every row came out as the plan says —
+  the two passes inferred where they belong and nowhere else, `took_turn` true
+  on exactly the turn-enders, the pass sorted after its turn's last guess. With
+  the current-turn exclusion planted off (`<=` for `<`), the migration's own
+  check raised *"has 4 turn-taking events for 3 ended turns"*.
+- `drop function if exists codenamesduet.submit_clue(uuid, text, int)` does
+  what the signature change now needs: the local database holds only the
+  four-parameter function. (Finding 1 is about its comment.)
+- The e2e specs were **not** run for this audit.
+
+### Findings — the code
+
+1. **`supabase/sql/codenamesduet.sql` → `submit_clue`: the `drop function`'s
+   comment gives the wrong reason.** It says the drop exists because "`create
+   or replace` cannot change a function's return type", which was true when
+   the function became `jsonb`. Now the drop is load-bearing for a different
+   reason: the signature grew `clue_from_ai`, and without the drop the old
+   three-parameter function would survive on prod as a second overload whose
+   body still reads the dropped `clues` table. The comment should say that,
+   and it is the one place a reader would learn why `(uuid, text, int)` is
+   named while the grants below name `(uuid, text, int, boolean)`.
+
+2. **`submit_clue`'s answer says it echoes the stored row, and it does not.**
+   The comment on the `ok` reads "echoed back from the row that now exists
+   rather than from the request", and the doc tables repeat it ("what the
+   partner will see, not what this form sent"), but the values are
+   `submit_clue.clue_word` and `submit_clue.clue_count` — the parameters. The
+   wording predates this branch, but the insert was rewritten here and the
+   claim sits on it. Either `returning … into` and echo the row, or say it is
+   the request. (The answer also does not carry `clue_from_ai`; nothing reads
+   it, so that is fine, but "the clue as it was recorded" is now short a
+   column.)
+
+3. **`log_hint` reads the game row a second time to find a user id the gate
+   already had.** `_require_clue_giver` calls `common.require_game_player`,
+   which returns the caller's id, and then returns only the seat; `log_hint`
+   re-selects the row and maps the seat back to `user_a_id` / `user_b_id`.
+   Correct, but roundabout — three reads of `codenamesduet.games` across the
+   gate and the two callers. The gate could return `(caller_id, seat)`, or
+   `log_hint` could take the id from `auth.uid()` as `require_game_player`
+   does. Low.
+
+4. **Three readers re-sort by `id` what the mapper promises is already in
+   order.** `cluesOf` and `guessesOf` document "in the order given / made",
+   and `useBoard` reads `order by id`; yet `GameEventLog` (`sortedGuesses`),
+   `lib/history.ts`'s `describe` and `pdf/model.ts` (twice) each sort by `id`
+   again. Either the promise is trusted and the sorts go, or one reader keeps
+   its sort and says why (the log's unit test does feed guesses out of order
+   — `sorts guesses within a turn by … their id` — so that test would go with
+   them). Joel's call; a clarity question, not a bug.
+
+5. **Test gap: nothing pins that my OWN hint is not narrated.** `PlayArea`'s
+   `messageFor` returns null for `e.user_id === session.user.id`; the spec
+   narrates a partner's hint landing and not one already there on load, but
+   never a hint of mine. Planting that condition off goes green.
+
+### Findings — stale prose left behind by the move
+
+Each of these still describes the two-table world, or the hint mark the
+addendum replaced. Found by grepping for the dropped names and the retired
+design; the list is what the grep found, not a roster.
+
+6. `src/codenamesduet/lib/turnOutcome.ts`, docstring: *"This is the whole of
+   the game's outcome decision, which is why there is no `lib/answer.ts` here
+   as there is in the other games."* There is one now. The sentence after it
+   (the pill stays silent on a guess) is still true and is the part worth
+   keeping.
+7. `src/codenamesduet/hooks/useGame.ts`, docstring: *"Hook split (useGame here
+   + useBoard + useClues, three hooks) … three SUBSCRIBED refetches on
+   reconnect"* — two hooks, two refetches.
+8. `src/codenamesduet/components/GameEventLog.test.tsx`, header: *"Guess sort
+   order: within a turn, guesses list by guessed_at"* — the test below it
+   already says `id`.
+9. `docs/code-conventions.md` → the `Row`-suffix table names `ClueRow` among
+   the generated aliases; it is gone (`ClueEvent` is not a `Row`).
+10. `docs/naming.md` → the `created_at` row: *"every game with a log except
+    codenamesduet: psychicnum, wordle, …"* and *"`guessed_at` (codenamesduet)"*.
+    codenamesduet's log has `created_at` and no `guessed_at`. While it is
+    open: the row lists the games with a log by name, which is a roster that
+    rots; "every log table named `events`" says it.
+11. `src/codenamesduet/lib/history.ts`, docstring: *"under a game-wide
+    `unique (game_id, turn_number)`"* — it is a partial unique index on
+    `kind = 'clue'` now; a sudden-death turn has guesses under that
+    `turn_number` and no clue. Small, but the docstring is making a claim
+    about the schema.
+12. `src/codenamesduet/components/GameEventLog.tsx`, docstring: the row-1
+    anatomy `[bar] | # | count WORD | clue-giver` does not mention the AI
+    mark that now sits after the word.
+13. `docs/games/codenamesduet.md` → the rules table: *"Every move replayable in
+    the Game Log — one `codenamesduet.events` row per clue, guess, pass and
+    hint"*. The rows exist; the log draws neither a pass (beyond "(no
+    guesses)" on an empty turn) nor a hint. "Every move is logged" is the true
+    half.
+14. **This plan file reads top-down as the superseded design.** "The writers"
+    table, "The log looks the same" (*"A hint is a mark on its turn's clue
+    row"*), "`lib/answer.ts`" (`hint` / `hint_peer`) and Step 4's record
+    (`hintedTurnsOf`, the mark on a hinted turn) all describe what the
+    addendum replaced, and the status line still says "rehearsed" while the
+    addendum says the rehearsal is stale. A reader who stops before the
+    addendum builds the wrong picture. Suggest the status line point at the
+    addendum, and the superseded lines be struck or footnoted to it.
+
+### Questions the audit raises — Joel's
+
+15. **`clue_from_ai = false` means two things.** On a new clue it means "the
+    giver's own"; on the 126 prod clues the backfill sets it to `false` meaning
+    "nobody recorded it", and the CHECK makes the column non-null on a clue,
+    so there is no unknown state. The migration's comment says as much
+    (*"Nothing recorded whether an old clue was the AI's, so none is"*). If
+    the distinction matters — a stat, a "how often is the AI's clue taken as
+    given" read — it is lost at the migration; if it does not, nothing to do.
+16. **A failed `log_hint` costs the suggestion.** The edge function relays a
+    `log_hint` not-ok and returns nothing else, so a suggestion the model
+    already produced (an Anthropic request spent) is discarded if the logging
+    write fails — right for the race (the game ended; the suggestion is
+    moot), arguable for a fault (a transient database error). The alternative
+    is to return the suggestion and report the logging failure separately.
+    Design choice; recorded so it is a decision rather than an accident.
+
+### Seen in passing — pre-existing, in files this branch touched
+
+Not this branch's, and not fixed here; listed because the audit read past
+them and they sit beside the rewritten code.
+
+- `submit_clue`'s docstring: *"Three of its four rejections are RACES"* — it
+  has five raises now (PN369 and PN384 faults, PN370–PN372 races).
+- `_end_turn`'s docstring: *"pass_turn (after a clue was given but no guesses
+  taken)"* — a pass can follow guesses, which is the very case the backfill
+  infers (a pass after an agent).
+- `GameEventLog` returns nothing for a turn with guesses and no clue, so
+  sudden-death guesses have never appeared in the log (Step 2 noted it). The
+  turn still counts toward `shown`, so such a game shows neither rows nor the
+  empty placeholder for those guesses.
+- `docs/games/codenamesduet.md` links `submit_guess` to the original
+  migration file, where it no longer lives.
+
+## Addressing the audit — the plan (2026-09-23)
+
+Every item above was re-checked against the tree before this was written, and
+each holds as stated. One refinement: in **3**, `log_hint` needs the game row
+anyway, for `turn_number`, so the second read stays; only the seat → user-id
+mapping is roundabout.
+
+### A. Code — fixed without a decision
+
+- **1** — rewrite the comment on `drop function if exists
+  codenamesduet.submit_clue(uuid, text, int)`: the drop now exists because the
+  signature grew `clue_from_ai`, and without it the three-parameter overload
+  would survive on prod reading the dropped `clues` table.
+- **3** — `log_hint` takes the caller's id from `auth.uid()` (what
+  `require_game_player` checked inside the gate) instead of mapping the seat
+  back through `user_a_id` / `user_b_id`. The row read stays, for
+  `turn_number`.
+- **5** — a PlayArea case: a hint of MINE landing after load is not narrated.
+  Planted (the `user_id` condition removed), it must go red.
+
+### B. Code — a choice, recommended
+
+- **2** — `submit_clue`'s answer claims to echo the stored row and echoes the
+  request. **Recommended: make the claim true** — `insert … returning
+  clue_word, clue_count, clue_from_ai into …` and answer from those, adding
+  `clue_from_ai` to the `ok` so "the clue as it was recorded" is whole. The
+  alternative is to reword the comment and the two doc lines to "the request".
+- **4** — the redundant `id` sorts. **Recommended: trust the order** — the
+  events arrive `order by id` and `cluesOf` / `guessesOf` keep it — and drop
+  the sorts in `GameEventLog`, `lib/history.ts` and `pdf/model.ts` (both),
+  turning the log spec's "sorts … by their id" into "shows guesses in the
+  order given". The alternative keeps one sort with a comment saying why.
+
+### C. Prose — fixed without a decision
+
+- **6** `turnOutcome.ts`: drop "which is why there is no `lib/answer.ts`";
+  keep the pill-is-silent sentence.
+- **7** `useGame.ts`: two hooks, two refetches.
+- **8** `GameEventLog.test.tsx` header: `id`, not `guessed_at` (and "the order
+  given" if 4 lands as recommended).
+- **9** `docs/code-conventions.md`: `ClueRow` out of the `Row`-alias list.
+- **10** `docs/naming.md` `created_at` row: codenamesduet is no longer the
+  exception and has no `guessed_at`; the game roster becomes "every log table
+  named `events`".
+- **11** `history.ts`: the one-clue rule is a partial unique index on
+  `kind = 'clue'`, and a sudden-death turn has guesses and no clue.
+- **12** `GameEventLog.tsx`: row 1's anatomy names the AI mark after the word.
+- **13** `docs/games/codenamesduet.md` rules table: "every move is logged" —
+  not "replayable in the Game Log", which draws neither a pass nor a hint.
+- **The seen-in-passing prose**, since these files are open and each is a
+  one-line truth: `submit_clue`'s raise count (five: two faults, three races),
+  `_end_turn`'s "no guesses taken" (a pass can follow guesses), and the old
+  doc's link for `submit_guess` (to `supabase/sql/codenamesduet.sql`).
+
+### D. This plan file — 14
+
+The status line points at the addendum and says the rehearsal is stale. The
+superseded passages — "The writers" `log_hint` row's mark, "The log looks the
+same" (*a hint is a mark on its turn's clue row*), `lib/answer.ts` (`hint`),
+Step 4's `hintedTurnsOf` and hinted-turn mark — are struck through with a
+pointer to the addendum rather than rewritten, so the record of what was built
+when stays readable.
+
+### E. Questions — Joel's
+
+- **15** — `clue_from_ai = false` on the 126 backfilled clues means "nobody
+  recorded it". **Recommended: accept** — nothing reads a rate of AI clues, and
+  a nullable-on-old-rows column would put an unknown state into every reader
+  for the sake of a stat nobody has asked for.
+- **16** — a failed `log_hint` discards a suggestion already paid for.
+  **Recommended: split by severity** — a race (the game ended, the seat moved)
+  is relayed as now, since the suggestion is moot; a fault returns the
+  suggestion anyway and logs the failure in the function, so a transient
+  database error does not cost the player the clue. The alternative is to
+  leave it as it is.
+- **The sudden-death log gap** (seen in passing) — not this branch's; it goes
+  to `src/codenamesduet/todo.md` → Soon for the area, unless Joel wants it
+  here.
+
+### F. Then
+
+1. Tests: pgTAP whole suite, unit + guards, `tsc`, lint, `deno check`.
+2. **Commit — only on Joel's word.** Today's uncommitted work (the hint-mark
+   color, the AI-clue flag) and this round would be one or two commits.
+3. **Re-rehearse** — the migration changed after the last one: a prod backup
+   (a read) and `db-rehearse`, then `db-reset ENV=local`. Joel's to allow.
+4. **The e2e specs** — they have not run on the AI-clue change. Joel's to allow.
+5. The deploy and the merge — Joel's, as before.
+
+### Joel's answers to the audit's questions — 2026-09-23
+
+| # | answer |
+|---|---|
+| 2 | asked for an explanation; open (the answer echoes the parameters, which today equal the stored row, since the insert stores them unchanged) |
+| 4 | **drop the sorts** — `GameEventLog`, `lib/history.ts`, `pdf/model.ts`; the log spec becomes "shown in the order given" |
+| 15 | **accept** — `false` on the backfilled clues stands |
+| 16 | **split by severity** — a race from `log_hint` is relayed; a fault returns the suggestion and the function logs the failure |
+| — | the sudden-death guesses ARE in `codenamesduet.events` (one `guess` row each, under the sudden-death turn number); only the log's drawing skips a turn with no clue. A display gap, for the area's `todo.md` |
+
+
+### Sudden death, one turn per guess; the history link is an event id (2026-09-23)
+
+Joel, on the audit's seen-in-passing item: sudden-death guesses were in
+`codenamesduet.events` all along and the log never drew them. First built as
+one grouped turn with a dot per guesser, then — his call, *"sudden death
+guesses switch between guessers, and losing them under a player filter isn't
+good"* — **every sudden-death guess is a turn of its own**:
+
+- **`submit_guess`:** an agent in sudden death that does not win moves the turn
+  number on, and takes a turn. The event is now written after the agent count
+  is known, so `took_turn` can say so. The losing guess moves nothing.
+- **The backfill** numbers prod's sudden-death guesses budget+1, budget+2, … in
+  the order made, marks those agents as taking a turn, and moves each such
+  game's `turn_number` (and its status blob's) to match. The migration's check
+  still holds: turn-taking events = `turn_number − 1`. Re-proved in the
+  rolled-back script, now making its own three games; planted with the games
+  update off, it raised.
+- **The log:** a sudden-death guess is ONE row — "Sudden death: WORD", the word
+  in its key-card color, the guesser in the actor column, the bar `won` for an
+  agent and `lost` otherwise (`turnOutcome`'s sudden-death rule) — filed under
+  its guesser by the picker. The PDF prints the same, a row per guess.
+- **The history link is an event id** (Joel: a turn-number key could never
+  address a row that shares its turn, like a hint, should one ever be drawn).
+  A turn's handle is its clue's id — the row that exists as soon as the turn
+  does and never moves as guesses land — and a sudden-death row's its guess's.
+  `turn_number` stays, for grouping. `#N` is the on-screen ordinal, as in every
+  game, and the banner shows it back (`historySnapshot` takes `n`).
+- **Kept from the grouped version:** `isSuddenDeathTurn`, `turnOutcome`'s
+  sudden-death rule, the history label "Sudden death → WORD".
+
+**The audit's items, as fixed:** 1 (the drop's reason), 2 (the answer is read
+back with `returning` and carries `from_ai`), 3 (`log_hint` uses `auth.uid()`;
+the row read stays, for the turn), 4 (the redundant sorts gone), 5 (a hint of
+mine is not narrated — planted, red), 6–13 and the seen-in-passing prose, 14
+(this file), 16 (a race from `log_hint` is relayed; anything else is logged and
+the suggestion goes out). 15 accepted as is.
+
+**Not asked for, decided in passing, and Joel's to overrule:** `took_turn`
+counts a sudden-death agent as a turn; `docs/naming.md`'s `created_at` row lost
+its roster of games along with codenamesduet's exception.
+
+**Tests:** pgTAP 2601 (the sudden-death turns, the stored-row answer); unit 430
+across the game, the guards and keyboard (sudden-death rows, the id link — the
+old turn-number link planted back went red — the history number, the PDF
+rows, `turnOutcome`'s sudden-death rule).
+
+### The rehearsal, rerun on the final migration — 2026-09-23
+
+- **The cut:** prod still lacks only `20260923000001`; it holds 19 games, 126
+  clues and 240 guesses, 2 of those in sudden death.
+- **`gmake db-rehearse`** over `backups/prod-20260923-134838.dump`: the
+  migration applied and its own checks passed; `-clues 126`, `-guesses 240`,
+  `+events 434` — 126 clues (`clue_from_ai` false on all), 240 guesses (45
+  taking a turn), 68 inferred passes. **Prod's two sudden-death games each
+  ended on their FIRST sudden-death guess**, a bystander, so nothing was
+  renumbered: each sits at budget + 1, `took_turn` false, the game's turn
+  number unchanged. The whole pgTAP suite passed against prod's rows (182
+  files, 2601 tests); the id sequence stands past the highest id.
+- **`gmake db-drift`:** none. Local reset to the dev seed afterwards.
+- **e2e:** the nine codenamesduet tests green (the new `codenamesduet-events`
+  spec among them), before the rehearsal.
+
+**Left:** commit, then the deploy and the merge — all Joel's.

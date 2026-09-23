@@ -5,7 +5,7 @@ import type { TurnRow } from '@/common/pdf/eventLog'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
 import type { WordRow } from '../hooks/useBoard'
-import type { ClueEvent, WordedGuess } from '../lib/events'
+import { isSuddenDeathTurn, type ClueEvent, type WordedGuess } from '../lib/events'
 
 /**
  * Build the codenamesduet print model — the pure half, away from jsPDF so the
@@ -121,11 +121,10 @@ export function buildDuetPrintModel(o: {
     rows.push(g)
     byTurn.set(g.turn_number, rows)
   }
-  const turns: TurnRow[] = [...o.clues]
-    .sort((a, b) => a.id - b.id)
+  // Both lists arrive in the order things happened, and keep it.
+  const turns: TurnRow[] = o.clues
     .map((c) => {
       const got = (byTurn.get(c.turn_number) ?? [])
-        .sort((a, b) => a.id - b.id)
         .map((g) => g.word.toUpperCase())
       return {
         seq: c.turn_number,
@@ -142,6 +141,17 @@ export function buildDuetPrintModel(o: {
         text: `${c.clue_word.toUpperCase()} ${c.clue_count}${got.length ? ` » ${got.join(', ')}` : ''}`,
       }
     })
+
+  // Sudden death has no clue, and each guess there is a turn of its own, made
+  // by either player — so each prints as its own row, under its guesser.
+  for (const g of o.guesses) {
+    if (!isSuddenDeathTurn(g.turn_number, o.turnCap)) continue
+    turns.push({
+      seq: g.turn_number,
+      who: o.nameForSeat(g.seat),
+      text: `SUDDEN DEATH » ${g.word.toUpperCase()}`,
+    })
+  }
 
   return {
     brand: o.brand,

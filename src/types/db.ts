@@ -277,6 +277,7 @@ export type Database = {
       events: {
         Row: {
           clue_count: number | null
+          clue_from_ai: boolean | null
           clue_word: string | null
           created_at: string
           game_id: string
@@ -291,6 +292,7 @@ export type Database = {
         }
         Insert: {
           clue_count?: number | null
+          clue_from_ai?: boolean | null
           clue_word?: string | null
           created_at?: string
           game_id: string
@@ -305,6 +307,7 @@ export type Database = {
         }
         Update: {
           clue_count?: number | null
+          clue_from_ai?: boolean | null
           clue_word?: string | null
           created_at?: string
           game_id?: string
@@ -430,7 +433,12 @@ export type Database = {
       pass_turn: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
       submit_clue: {
-        Args: { clue_count: number; clue_word: string; target_game: string }
+        Args: {
+          clue_count: number
+          clue_from_ai?: boolean
+          clue_word: string
+          target_game: string
+        }
         Returns: Json
       }
       submit_guess: {

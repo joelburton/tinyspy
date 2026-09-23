@@ -237,6 +237,10 @@ function ClueForm({
   // STATE itself lives in PlayArea (via onSuggestionChange) so the panel renders
   // high in the tree where react-rnd positions it on-screen.
   const [suggesting, setSuggesting] = useState(false)
+  // The last clue the AI filled in, as filled in. A clue submitted exactly as
+  // this — word and count unedited — is logged as the AI's; editing either makes
+  // it the giver's own.
+  const [aiClue, setAiClue] = useState<{ word: string; count: number } | null>(null)
   // On a phone the below-board row is tight, so the Submit + AI buttons go
   // icon-only (label → aria-label/title). Desktop/tablet keep the labels.
   const isPhone = useIsPhone()
@@ -252,10 +256,13 @@ function ClueForm({
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
     setBusy(true)
+    const clueWord = word.trim()
+    const clueCount = parseInt(count, 10)
     const res = await runRpc<ClueAnswer>(db.rpc('submit_clue', {
       target_game: gameId,
-      clue_word: word.trim(),
-      clue_count: parseInt(count, 10),
+      clue_word: clueWord,
+      clue_count: clueCount,
+      clue_from_ai: aiClue !== null && clueWord === aiClue.word && clueCount === aiClue.count,
     }))
     setBusy(false)
     // Three of the four refusals are RACES (orange), because this form is drawn
@@ -272,6 +279,7 @@ function ClueForm({
       // propagates the new clue row. Also dismiss any open suggestion dialog.
       setCount('')
       setWord('')
+      setAiClue(null)
       onSuggestionChange(null)
       return
     } else {
@@ -311,6 +319,7 @@ function ClueForm({
       const upper = s.clue.toUpperCase()
       setWord(upper)
       setCount(String(s.count))
+      setAiClue({ word: upper.trim(), count: s.count })
       console.log('[ClueHint] response = ready:', upper, s.count)
       onSuggestionChange({ status: 'ready', word: upper, count: s.count, reasoning: s.reasoning })
     } else {

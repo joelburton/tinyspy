@@ -57,10 +57,10 @@ export type Player = Member & {
  * cross-schema FKs (the user_a_id/user_b_id → common.profiles.user_id
  * relationships exist in Postgres but aren't embeddable).
  *
- * Hook split (useGame here + useBoard + useClues, three hooks):
- * deliberate, matches the per-concern PlayArea decomposition. The
- * tradeoff is three SUBSCRIBED refetches on reconnect (one per
- * channel) instead of one batched fetch — accepted as the cost of
+ * Hook split (useGame here + useBoard, two hooks): deliberate, matches
+ * the per-concern PlayArea decomposition. The tradeoff is two
+ * SUBSCRIBED refetches on reconnect (one per channel) instead of one
+ * batched fetch — accepted as the cost of
  * keeping each concern's data lifecycle independent. Don't
  * consolidate without rethinking the PlayArea component split.
  * psychicnum + connections use the alternative one-hook-many-tables

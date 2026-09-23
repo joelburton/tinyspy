@@ -1217,6 +1217,29 @@ export async function createCodenamesduetGame(
   return { id: createdGameId(res, 'codenamesduet.create_game'), gametype: 'codenamesduet' }
 }
 
+/**
+ * Put a fresh codenamesduet game straight into sudden death, through psql as
+ * the superuser: the budget spent (9 turns, so this is turn 10), nobody holding
+ * the clue. Playing nine real turns to get there would make a display spec
+ * about sudden death mostly about everything else.
+ */
+export function putCodenamesduetInSuddenDeath(gameId: string): void {
+  if (!/^[0-9a-f-]{36}$/i.test(gameId)) throw new Error(`bad game id: ${gameId}`)
+  execFileSync(
+    'psql',
+    [
+      process.env.SUPABASE_DB_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
+      '-v', 'ON_ERROR_STOP=1', '-q',
+      '-c',
+      `update common.games set play_state = 'sudden_death' where id = '${gameId}';
+       update codenamesduet.games
+          set turns_remaining = 0, turn_number = 10, current_clue_giver = null
+        where id = '${gameId}';`,
+    ],
+    { stdio: 'ignore' },
+  )
+}
+
 /** Read `member`'s own dealt tiles (the letters they hold). RLS scopes the
  *  select to their own player_boards row. Useful when a test needs to place a
  *  player's REAL tiles (the FE derives the hand by letter, so placing arbitrary

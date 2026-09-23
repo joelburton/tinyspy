@@ -678,7 +678,7 @@ The alternative — camelCase everywhere, translate at the hook layer — buys c
 
 | name | what it is |
 |---|---|
-| `WordRow`, `GameRow`, `ClueRow`, `ClubRow`, `ClubMessage` | Aliases of generated `Database[…]['Row']` types. The `Row` suffix matches what Supabase itself emits. |
+| `WordRow`, `GameRow`, `ClubRow`, `ClubMessage` | Aliases of generated `Database[…]['Row']` types. The `Row` suffix matches what Supabase itself emits. |
 | `PlayerRow`, `MemberRow` | Hand-rolled DB-shape types — not aliases of generated types but they mirror a row shape. |
 | `ClubListEntry`, `ListedGame` | FE-built normalizations for list rendering. No `Row` suffix. "Entry" / "Listed" describes their role. |
 | `CommonGameListRow` | A camelCase-fielded narrow projection of `common.games` used as the input to `manifest.labelFor`. The `Row` suffix is honest: the fields name DB columns even though TS sees them as a structural shape. |

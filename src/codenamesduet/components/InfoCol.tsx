@@ -47,7 +47,6 @@ export function InfoCol({
   setupRows,
   clues,
   guesses,
-  hintedTurns,
   players,
   selfId,
   gameOver,
@@ -103,7 +102,6 @@ export function InfoCol({
   // ── Turn-history log (GameEventLog) ──
   clues: ClueEvent[]
   guesses: WordedGuess[]
-  hintedTurns: ReadonlySet<number>
   players: Player[]
   /** The viewer — the log's player picker orders them first. */
   selfId: string
@@ -208,11 +206,11 @@ export function InfoCol({
       <GameEventLog
         clues={clues}
         guesses={guesses}
-        hintedTurns={hintedTurns}
         players={players}
         selfId={selfId}
         currentTurn={turnNumber}
         gameOver={gameOver}
+        turnBudget={setup.turns}
         historyId={historyId}
         onShowHistory={onShowHistory}
       />

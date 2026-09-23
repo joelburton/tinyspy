@@ -109,7 +109,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
         readRows(
           db
             .from('events')
-            .select('id, user_id, kind, took_turn, created_at, turn_number, seat, clue_word, clue_count, guess_position, guess_result')
+            .select('id, user_id, kind, took_turn, created_at, turn_number, seat, clue_word, clue_count, clue_from_ai, guess_position, guess_result')
             .eq('game_id', gameId)
             .order('id'),
         ),

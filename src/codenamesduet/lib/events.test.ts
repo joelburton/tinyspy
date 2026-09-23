@@ -17,16 +17,16 @@ import { cluesOf, guessesOf, toDuetEvent, type EventsRow } from './events'
 const row = (over: Partial<EventsRow>): EventsRow => ({
   id: 1, user_id: 'u', kind: 'pass', took_turn: false, created_at: 't',
   turn_number: 1, seat: 'A',
-  clue_word: null, clue_count: null, guess_position: null, guess_result: null,
+  clue_word: null, clue_count: null, clue_from_ai: null, guess_position: null, guess_result: null,
   ...over,
 })
 
 const BASE = { id: 1, user_id: 'u', took_turn: false, created_at: 't', turn_number: 1, seat: 'A' }
 
 describe('toDuetEvent', () => {
-  it('keeps a clue\'s word and count, and nothing of a guess', () => {
-    expect(toDuetEvent(row({ kind: 'clue', clue_word: 'TOOLS', clue_count: 2 })))
-      .toEqual({ ...BASE, kind: 'clue', clue_word: 'TOOLS', clue_count: 2 })
+  it('keeps a clue\'s word, count and provenance, and nothing of a guess', () => {
+    expect(toDuetEvent(row({ kind: 'clue', clue_word: 'TOOLS', clue_count: 2, clue_from_ai: true })))
+      .toEqual({ ...BASE, kind: 'clue', clue_word: 'TOOLS', clue_count: 2, clue_from_ai: true })
   })
 
   it('keeps a guess\'s tile and label, and nothing of a clue', () => {
@@ -41,6 +41,7 @@ describe('toDuetEvent', () => {
 
   it('throws on a row the table\'s own CHECK would have refused', () => {
     expect(() => toDuetEvent(row({ kind: 'clue', clue_word: 'TOOLS' }))).toThrow(/BUG/)
+    expect(() => toDuetEvent(row({ kind: 'clue', clue_word: 'TOOLS', clue_count: 2 }))).toThrow(/BUG/)
     expect(() => toDuetEvent(row({ kind: 'guess', guess_position: 3 }))).toThrow(/BUG/)
     expect(() => toDuetEvent(row({ kind: 'nonsense' }))).toThrow(/BUG/)
   })
@@ -48,7 +49,7 @@ describe('toDuetEvent', () => {
 
 describe('cluesOf / guessesOf', () => {
   const events = [
-    row({ id: 1, kind: 'clue', clue_word: 'TOOLS', clue_count: 2 }),
+    row({ id: 1, kind: 'clue', clue_word: 'TOOLS', clue_count: 2, clue_from_ai: false }),
     row({ id: 2, kind: 'hint' }),
     row({ id: 3, kind: 'guess', seat: 'B', guess_position: 4, guess_result: 'G' }),
     row({ id: 4, kind: 'guess', seat: 'B', guess_position: 9, guess_result: 'N' }),

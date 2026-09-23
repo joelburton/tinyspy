@@ -26,12 +26,14 @@ export type Answer =
   //   I am guessing from their clue; they wait for me
   | { answerType: 'waiting_for_you_peer' }
 
-  // I asked the AI for a clue. Nothing is SAID — the suggestion dialog is the
-  // feedback — and the answer's job is its outcome, which the event log's
-  // hint mark wears.
-  | { answerType: 'hint' }
-  // My partner asked the AI for one.
+  // My partner asked the AI for a clue. (My own asking has no answer: the
+  // suggestion dialog is its feedback.)
   | { answerType: 'hint_peer' }
+
+  // A clue given exactly as the AI suggested it. Nothing is SAID — the answer's
+  // job is its outcome, which the event log's mark on that clue wears. A clue
+  // the giver edited, or thought of alone, has no answer here.
+  | { answerType: 'clue_ai' }
 
 /**
  * How an answer reads — **the one place this game decides that.** An empty
@@ -55,10 +57,11 @@ export function answerMessage(answer: Answer): AnswerMessage {
     case 'waiting_for_you_peer':
       return { outcome: 'neutral', text: 'waiting for you' }
 
-    case 'hint':
-      return { outcome: 'warning', text: '' }
     case 'hint_peer':
       return { outcome: 'warning', text: 'got hint' }
+
+    case 'clue_ai':
+      return { outcome: 'warning', text: '' }
   }
 }
 

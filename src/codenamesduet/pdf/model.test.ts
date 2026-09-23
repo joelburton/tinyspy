@@ -26,7 +26,7 @@ const word = (position: number, over: Partial<WordRow> = {}): WordRow => ({
 /** A clue event; the log reads its word, count, seat and turn. */
 const clue = (seat: 'A' | 'B', clue_word: string, clue_count: number): ClueEvent => ({
   kind: 'clue', id: 1, user_id: 'u', took_turn: false,
-  created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat, clue_word, clue_count,
+  created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat, clue_word, clue_count, clue_from_ai: false,
 })
 
 /** A guess on turn 1; `id` is the order it was made in. */
@@ -139,9 +139,9 @@ describe('buildDuetPrintModel — the clue log', () => {
     const m = buildDuetPrintModel({
       ...base,
       clues: [clue('A', 'ocean', 2)],
-      guesses: [guess(2, 'wave'), guess(1, 'salt')],
+      guesses: [guess(1, 'salt'), guess(2, 'wave')],
     })
-    // Guesses in the order they were made, not the order they arrived.
+    // Guesses in the order given — the events arrive in the order they were made.
     // '»', not '→': jsPDF's core fonts are WinAnsi, which has the guillemet but
     // not the arrow (U+2192 printed as `!'`). Verified by rendering.
     expect(m.turns[0].text).toBe('OCEAN 2 » SALT, WAVE')
@@ -156,6 +156,20 @@ describe('buildDuetPrintModel — the clue log', () => {
     })
     expect(m.turns[0].text).toBe('OCEAN 2')
     expect(m.turns[0].who).toBe('moth')
+  })
+
+  it('prints each sudden-death guess as its own row, after the clues, under its guesser', () => {
+    const past = (id: number, turn: number, seat: 'A' | 'B', word: string) =>
+      ({ ...guess(id, word), turn_number: turn, seat })
+    const m = buildDuetPrintModel({
+      ...base,
+      clues: [clue('A', 'ocean', 2)],
+      guesses: [past(2, 10, 'A', 'steel'), past(3, 11, 'B', 'coffee')],
+    })
+    expect(m.turns.slice(1)).toEqual([
+      { seq: 10, who: 'me', text: 'SUDDEN DEATH » STEEL' },
+      { seq: 11, who: 'moth', text: 'SUDDEN DEATH » COFFEE' },
+    ])
   })
 })
 

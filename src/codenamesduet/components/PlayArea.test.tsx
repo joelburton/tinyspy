@@ -35,7 +35,7 @@ const g = vi.hoisted(() => {
   const PEER_CLUE = {
     kind: 'clue' as const, id: 1, user_id: 'peer', took_turn: false,
     created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat: 'A' as const,
-    clue_word: 'fruit', clue_count: 2,
+    clue_word: 'fruit', clue_count: 2, clue_from_ai: false,
   }
   return {
     PEER_CLUE,
@@ -268,6 +268,18 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
     g.events = [g.PEER_CLUE, hint(2), hint(3)]
     rerender(<PlayAreaLoader {...ctx} />)
     expect(texts(ctx)).toContain('got hint')
+    g.events = [g.PEER_CLUE]
+  })
+
+  it('does not narrate a hint of MINE, however it lands', () => {
+    const ctx = makeCtx()
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
+    g.events = [g.PEER_CLUE, {
+      kind: 'hint' as const, id: 2, user_id: 'me', took_turn: false,
+      created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat: 'B' as const,
+    }]
+    rerender(<PlayAreaLoader {...ctx} />)
+    expect(texts(ctx)).not.toContain('got hint')
     g.events = [g.PEER_CLUE]
   })
 })

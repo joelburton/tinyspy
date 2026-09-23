@@ -61,7 +61,7 @@ grant select on codenamesduet.events to authenticated;
 -- Advances the turn counter and swaps the clue-giver. Also handles
 -- the "last turn spent → sudden death" transition. Called
 -- by submit_guess (after a non-green-non-assassin reveal) and
--- pass_turn (after a clue was given but no guesses taken).
+-- pass_turn (the guesser stopping, before or after guesses).
 --
 -- The clue-giver doesn't always strictly alternate. Per the Duet
 -- rulebook: "If all 9 words that you see as green have been covered
@@ -438,18 +438,28 @@ grant execute on function codenamesduet.create_game(text, jsonb, uuid[]) to auth
 -- they fill, so the body reads them qualified — `submit_clue.clue_word` — and a
 -- bare `clue_word` in a query could never mean the parameter by accident.
 --
--- Three of its four rejections are RACES, because every one of them turns on
--- state the clue form cannot see change under it. The form is rendered from
+-- `clue_from_ai` is the client saying this clue is exactly the AI's suggestion,
+-- word and count unedited. Only the client saw the suggestion, so it is taken
+-- as said — provenance, not a move to adjudicate. It defaults to false.
+--
+-- Three of its five raises are RACES, because every one of them turns on
+-- state the clue form cannot see change under it (the other two, PN369 and
+-- PN384, are faults). The form is rendered from
 -- `current_clue_giver` and the turn's clue row, both of which arrive by
 -- subscription, while the Submit button unlocks the moment this RPC replies —
 -- so the window between "my move landed" and "my form knows" is real.
 
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
+-- The THREE-parameter signature is dropped because the function grew
+-- `clue_from_ai`: `create or replace` with a new parameter list makes a second
+-- overload rather than replacing the first, and the old one would survive on
+-- every database it was ever created on, still reading the dropped `clues`
+-- table. `if exists` because this file is re-applied in full on every deploy,
+-- so the drop has to be a no-op the second time.
 drop function if exists codenamesduet.submit_clue(uuid, text, int);
 
-create or replace function codenamesduet.submit_clue(target_game uuid, clue_word text, clue_count int)
+create or replace function codenamesduet.submit_clue(
+  target_game uuid, clue_word text, clue_count int, clue_from_ai boolean default false
+)
 returns jsonb
 language plpgsql
 security definer
@@ -460,6 +470,7 @@ declare
   g_row codenamesduet.games%rowtype;
   current_play_state text;
   caller_seat text;
+  stored codenamesduet.events%rowtype;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   select * into g_row from codenamesduet.games
@@ -529,22 +540,25 @@ begin
   end if;
 
   insert into codenamesduet.events (
-    game_id, user_id, kind, took_turn, turn_number, seat, clue_word, clue_count
+    game_id, user_id, kind, took_turn, turn_number, seat,
+    clue_word, clue_count, clue_from_ai
   ) values (
     target_game, caller_id, 'clue', false, g_row.turn_number, caller_seat,
-    submit_clue.clue_word, submit_clue.clue_count
-  );
+    submit_clue.clue_word, submit_clue.clue_count, submit_clue.clue_from_ai
+  )
+  returning * into stored;
 
-  -- `result` NAMES the answer; the rest is the clue as it was recorded. The
-  -- word and count are the caller's own, echoed back from the row that now
-  -- exists rather than from the request — which is the difference between
-  -- "here is what you sent" and "here is what is stored".
+  -- `result` NAMES the answer; the rest is the clue as it was recorded, read
+  -- back from the row that now exists rather than from the request — which is
+  -- the difference between "here is what you sent" and "here is what is
+  -- stored".
   return common.ok_envelope(jsonb_build_object(
     'result', 'clued',
-    'word', submit_clue.clue_word,
-    'count', submit_clue.clue_count,
-    'turn_number', g_row.turn_number,
-    'by_seat', caller_seat
+    'word', stored.clue_word,
+    'count', stored.clue_count,
+    'from_ai', stored.clue_from_ai,
+    'turn_number', stored.turn_number,
+    'by_seat', stored.seat
   ));
 
 -- One block, and it has never heard of any specific condition: it reads the
@@ -560,8 +574,8 @@ exception when others then
 end;
 $$;
 
-revoke execute on function codenamesduet.submit_clue(uuid, text, int) from public;
-grant execute on function codenamesduet.submit_clue(uuid, text, int) to authenticated;
+revoke execute on function codenamesduet.submit_clue(uuid, text, int, boolean) from public;
+grant execute on function codenamesduet.submit_clue(uuid, text, int, boolean) to authenticated;
 
 -- ============================================================
 -- codenamesduet.submit_guess
@@ -732,18 +746,6 @@ begin
 
   revealed_label := key_card ->> target_position;
 
-  -- Log every guess; a word can be guessed twice, once per seat. It took a
-  -- turn exactly when it ends one: a bystander in ordinary play, which runs
-  -- _end_turn below. Everything else — an agent, an assassin, any guess in
-  -- sudden death — spends nothing from the budget.
-  insert into codenamesduet.events (
-    game_id, user_id, kind, took_turn, turn_number, seat, guess_position, guess_result
-  ) values (
-    target_game, caller_id, 'guess',
-    revealed_label = 'N' and current_play_state = 'playing',
-    g_row.turn_number, caller_seat, target_position, revealed_label
-  );
-
   -- Denormalize the board state onto codenamesduet.words. Green (agent contacted) and
   -- assassin are GLOBAL — true for both players. A neutral only marks the
   -- guesser's own seat, so the partner can still guess the word.
@@ -765,6 +767,20 @@ begin
   -- branches, because the win check turns on it AND every answer reports it.
   select count(*) into green_total from codenamesduet.words
     where game_id = target_game and revealed_as = 'G';
+
+  -- Log every guess; a word can be guessed twice, once per seat. It takes a
+  -- turn exactly when the turn number moves on after it: a bystander in
+  -- ordinary play (which runs _end_turn below), and an agent in sudden death
+  -- that does not win the game — each sudden-death guess is a turn of its own.
+  -- An agent in ordinary play, and any guess that ends the game, move nothing.
+  insert into codenamesduet.events (
+    game_id, user_id, kind, took_turn, turn_number, seat, guess_position, guess_result
+  ) values (
+    target_game, caller_id, 'guess',
+    (revealed_label = 'N' and current_play_state = 'playing')
+      or (revealed_label = 'G' and current_play_state = 'sudden_death' and green_total < 15),
+    g_row.turn_number, caller_seat, target_position, revealed_label
+  );
 
   -- Terminal-transition check. The three terminal cases share a
   -- common.end_game call shape — building player_results once and
@@ -867,6 +883,15 @@ begin
     );
   end if;
 
+  -- An agent in sudden death is a turn of its own: the turn number moves on so
+  -- the next guess — by either player — is the next row of the log. In ordinary
+  -- play an agent does not end the turn, and the number stays.
+  if current_play_state = 'sudden_death' then
+    update codenamesduet.games set turn_number = turn_number + 1
+      where id = target_game
+      returning * into g_row;
+  end if;
+
   -- Green reveal mid-game: bump greens_found in the listing
   -- snapshot. play_state stays 'playing' or 'sudden_death'
   -- depending on the current state.
@@ -880,9 +905,10 @@ begin
     )
   );
 
-  -- The turn does NOT end on an agent, so this answer reports the turn state
-  -- unchanged — the same four keys the bystander answer carries, which is what
-  -- lets a reader compare the two answers rather than the two shapes.
+  -- In ordinary play the turn does NOT end on an agent, so this answer reports
+  -- the turn state unchanged — the same four keys the bystander answer carries,
+  -- which is what lets a reader compare the two answers rather than the two
+  -- shapes. In sudden death the number it reports is the next one.
   return common.ok_envelope(
     jsonb_build_object(
       'result', 'agent',
@@ -1503,12 +1529,10 @@ begin
 
   select * into g_row from codenamesduet.games where id = target_game;
 
+  -- The row is read for the turn number alone; the caller is the one the gate
+  -- just checked, and `auth.uid()` names them.
   insert into codenamesduet.events (game_id, user_id, kind, took_turn, turn_number, seat)
-  values (
-    target_game,
-    case caller_seat when 'A' then g_row.user_a_id else g_row.user_b_id end,
-    'hint', false, g_row.turn_number, caller_seat
-  );
+  values (target_game, auth.uid(), 'hint', false, g_row.turn_number, caller_seat);
 
   return common.ok_envelope(jsonb_build_object('result', 'logged'));
 

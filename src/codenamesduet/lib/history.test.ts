@@ -37,7 +37,7 @@ function clue(clue_word: string, clue_count: number): ClueEvent {
   return {
     kind: 'clue', id: 1, user_id: 'ada', took_turn: false,
     created_at: '2026-06-12T18:00:00Z', turn_number: 1, seat: 'A',
-    clue_word, clue_count,
+    clue_word, clue_count, clue_from_ai: false,
   }
 }
 
@@ -53,7 +53,7 @@ describe('historySnapshot', () => {
   ]
 
   it('folds only guesses up to and including the viewed turn (inclusive)', () => {
-    const snap = historySnapshot(WORDS, guesses, clue('x', 1), 2)
+    const snap = historySnapshot(WORDS, guesses, clue('x', 1), 2, 2)
     // Turn 1's green is in; turn 2's own neutral is in (inclusive); turn 3's
     // assassin is NOT yet.
     expect(at(snap.words, 0).revealed_as).toBe('G')
@@ -62,7 +62,7 @@ describe('historySnapshot', () => {
   })
 
   it('keeps a neutral per-seat — never global, only the guesser side', () => {
-    const snap = historySnapshot(WORDS, guesses, null, 2)
+    const snap = historySnapshot(WORDS, guesses, null, 2, 2)
     const bravo = at(snap.words, 1)
     expect(bravo.revealed_as).toBeNull() // a neutral is not a global reveal
     expect(bravo.neutral_a).toBe(true) // seat A guessed it as a bystander
@@ -70,18 +70,27 @@ describe('historySnapshot', () => {
   })
 
   it('lights exactly the positions decided during the viewed turn', () => {
-    expect([...historySnapshot(WORDS, guesses, null, 1).historyLitTiles]).toEqual([0])
-    expect([...historySnapshot(WORDS, guesses, null, 2).historyLitTiles]).toEqual([1])
+    expect([...historySnapshot(WORDS, guesses, null, 1, 1).historyLitTiles]).toEqual([0])
+    expect([...historySnapshot(WORDS, guesses, null, 2, 2).historyLitTiles]).toEqual([1])
     // Nothing decided on a turn with no guesses in the log.
-    expect(historySnapshot(WORDS, guesses, null, 9).historyLitTiles.size).toBe(0)
+    expect(historySnapshot(WORDS, guesses, null, 9, 9).historyLitTiles.size).toBe(0)
   })
 
   it('describes the turn name-free: clue then guessed words, or "passed"', () => {
-    expect(historySnapshot(WORDS, guesses, clue('bread', 2), 1).historyLabel).toBe(
+    expect(historySnapshot(WORDS, guesses, clue('bread', 2), 1, 1).historyLabel).toBe(
       '#1: 2 BREAD → ALPHA',
     )
-    expect(historySnapshot(WORDS, guesses, clue('wait', 1), 5).historyLabel).toBe(
+    expect(historySnapshot(WORDS, guesses, clue('wait', 1), 5, 5).historyLabel).toBe(
       '#5: 1 WAIT — passed',
     )
+  })
+
+  it('shows back the number the log printed, which a filter can make differ from the turn', () => {
+    expect(historySnapshot(WORDS, guesses, clue('bread', 2), 1, 4).historyLabel).toBe('#4: 2 BREAD → ALPHA')
+    expect(historySnapshot(WORDS, guesses, clue('bread', 2), 1, null).historyLabel).toBe('2 BREAD → ALPHA')
+  })
+
+  it('labels a turn with no clue as sudden death', () => {
+    expect(historySnapshot(WORDS, guesses, null, 3, 3).historyLabel).toBe('#3: Sudden death → ALPHA')
   })
 })

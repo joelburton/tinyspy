@@ -14,11 +14,11 @@
  * bystander on one seat's key may be the other's agent, so a neutral only locks the
  * guesser's direction — the Duet per-direction rule; see docs/games/codenamesduet.md).
  *
- * **Keyed by `turn_number`, not by a row's id.** Every other game's log lists
- * ROWS and addresses one by its `events.id`; duet's lists TURNS, and a turn is
- * one clue plus however many guesses answered it, under a game-wide
- * `unique (game_id, turn_number)`. The log renders "#N" = turn_number, so here
- * the number on screen and the handle behind it really are the same value.
+ * **Folded by `turn_number`.** duet's log lists TURNS — a clue plus however many
+ * guesses answered it, or in sudden death a single guess with no clue — and the
+ * table holds at most one clue per turn (a partial unique index on
+ * `kind = 'clue'`). The log LINKS a turn by an event id, as every game does;
+ * the caller resolves that id to its turn before asking for the snapshot.
  *
  * **The boundary is INCLUSIVE**: viewing turn N shows the board AFTER turn N's
  * guesses, with those cells ringed — "this is what turn N did" (a green/neutral
@@ -53,6 +53,9 @@ export function historySnapshot(
   guesses: ReadonlyArray<WordedGuess>,
   clue: ClueEvent | null,
   turnNumber: number,
+  // The `#N` the log printed for the turn, so the banner shows back the number
+  // that was clicked; null for an opening that came from no numbered row.
+  n: number | null,
 ): HistorySnapshot {
   const revealedAs = new Map<number, 'G' | 'A'>()
   const neutralA = new Set<number>()
@@ -78,22 +81,24 @@ export function historySnapshot(
     neutral_b: neutralB.has(w.position),
   }))
 
-  return { words: snapWords, historyLitTiles, historyLabel: describe(clue, guesses, turnNumber) }
+  return { words: snapWords, historyLitTiles, historyLabel: describe(clue, guesses, turnNumber, n) }
 }
 
-/** "#3: 2 BREAD → STEEL, COFFEE" — the clue given that turn, then the words guessed
- *  in order (name-free; the log row already shows the clue-giver). A guess-less turn
- *  reads "…— passed". */
+/** "#3: 2 BREAD → STEEL, COFFEE" — the number the log printed, the clue given that
+ *  turn, then the words guessed in order (name-free; the log row already shows who).
+ *  A guess-less turn reads "…— passed". A turn with no clue is sudden death:
+ *  "#10: Sudden death → STEEL". */
 function describe(
   clue: ClueEvent | null,
   guesses: ReadonlyArray<WordedGuess>,
   turnNumber: number,
+  n: number | null,
 ): string {
-  const cluePart = clue ? `${clue.clue_count} ${clue.clue_word.toUpperCase()}` : '(no clue)'
+  const cluePart = clue ? `${clue.clue_count} ${clue.clue_word.toUpperCase()}` : 'Sudden death'
   const guessed = guesses
     .filter((g) => g.turn_number === turnNumber)
-    .sort((a, b) => a.id - b.id)
     .map((g) => g.word.toUpperCase())
-  if (guessed.length === 0) return `#${turnNumber}: ${cluePart} — passed`
-  return `#${turnNumber}: ${cluePart} → ${guessed.join(', ')}`
+  const head = n === null ? cluePart : `#${n}: ${cluePart}`
+  if (guessed.length === 0) return `${head} — passed`
+  return `${head} → ${guessed.join(', ')}`
 }

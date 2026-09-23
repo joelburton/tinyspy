@@ -30,7 +30,7 @@ import type { GameRow, Player } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
 import type { WordRow } from '../hooks/useBoard'
 import { useBoard } from '../hooks/useBoard'
-import { cluesOf, guessesOf, hintedTurnsOf, type ClueEvent, type DuetEvent } from '../lib/events'
+import { cluesOf, guessesOf, type ClueEvent, type DuetEvent } from '../lib/events'
 import { answerMessage, turnAnswer } from '../lib/answer'
 import type { KeyLabel } from '../lib/labels'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
@@ -290,7 +290,6 @@ export function PlayArea({
   // the PDF read: every clue, and every guess with the word on its tile.
   const clues = useMemo(() => cluesOf(events), [events])
   const guesses = useMemo(() => guessesOf(events, words), [events, words])
-  const hintedTurns = useMemo(() => hintedTurnsOf(events), [events])
 
   // The board is worked by clicks, so the page itself has nowhere for Tab to go
   // and an empty ring keeps it from walking out to the browser. While a clue is
@@ -342,15 +341,14 @@ export function PlayArea({
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // ─── Turn-history viewer ───────────────────────────────
-  // Click an event-log row to replay that turn's board (the reveal state after that
-  // turn's guesses, with those cells ringed in the history blue). Keyed by turn_number
-  // — one clue per turn, a stable game-wide ordinal (like scrabble's seq). Feature
-  // added on the still-monolithic PlayArea ahead of the BoardCol/InfoCol
-  // decomposition; see docs/playarea.md.
+  // Click a turn's `#N` in the event log to replay that turn's board (the reveal
+  // state after that turn's guesses, with those cells ringed in the history
+  // blue). Keyed by an event id — the turn's clue, or a sudden-death guess — as
+  // every game's log is; the fold below resolves it to its turn.
   // Destructured (not `viewer.x`) to match the other games' PlayAreas and to keep
   // the effect deps honest: `exitHistory` is a stable useCallback, so the effect
   // below re-arms only when `isViewingHistory` flips.
-  const { historyId, showHistory, exitHistory } =
+  const { historyId, historyN, showHistory, exitHistory } =
     useHistoryViewer<number>()
   // A bare keystroke (nothing focused) returns to the live board — the shared
   // "type anywhere to exit" — the hook binds `act-exit-history` itself, and the
@@ -591,19 +589,17 @@ export function PlayArea({
   // (else null = live). `historySnapshot` folds the guess log up to the viewed
   // turn onto the fixed words and rings that turn's own cells; the turn's clue
   // feeds the banner label. Snapshots are stable — a later realtime guess only
-  // grows turns > historyId, so viewing a past turn never shifts under you.
+  // grows later turns, so viewing a past turn never shifts under you.
+  const historyTurn = historyId === null
+    ? null
+    : events.find((e) => e.id === historyId)?.turn_number ?? null
   const historyClue =
-    historyId !== null
-      ? clues.find((c) => c.turn_number === historyId) ?? null
+    historyTurn !== null
+      ? clues.find((c) => c.turn_number === historyTurn) ?? null
       : null
   const historySnap =
-    historyId !== null
-      ? historySnapshot(
-          words,
-          guesses,
-          historyClue,
-          historyId,
-        )
+    historyTurn !== null
+      ? historySnapshot(words, guesses, historyClue, historyTurn, historyN)
       : null
 
   // Duet's finished-player rule, surfaced to BOTH players so neither
@@ -684,7 +680,6 @@ export function PlayArea({
         // ── Turn-history log ──
         clues={clues}
         guesses={guesses}
-        hintedTurns={hintedTurns}
         players={players}
         selfId={session.user.id}
         gameOver={gameOver}

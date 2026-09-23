@@ -56,8 +56,8 @@ a game's own class, which is why the default sits on `:where(.eventLogTable) td`
 **What stays the game's, on the viewer's side of the seam.** How a snapshot is
 computed from the open turn (the board shape differs per game, and it is derived
 after the loading guard where the log lives); how a row is identified, which is
-why the hook is generic — every game names one by the events row's own id, and
-codenamesduet by a turn number; and where the banner hangs, since the below-board region each game gives it is its
+why the hook is generic — every game names one by the events row's own id,
+codenamesduet's turns by the id of the clue that heads each; and where the banner hangs, since the below-board region each game gives it is its
 own.
 
 **Every handle is live, under every filter.** A filtered log renumbers what it

@@ -35,13 +35,15 @@ turn's clue.
 Everything a player does — a clue, a guess, a pass, asking the AI — is one row
 of `codenamesduet.events`, the log every game keeps. Only the log's drawing is
 this game's own: it shows those rows as a table of turns, each a clue with the
-guesses under it.
+guesses under it — and, in sudden death, where every guess is a turn of its
+own, one row per guess.
 
 A stuck clue-giver can ask Claude. The `codenamesduet-suggest-clue` edge
 function reads the board through an RPC that checks the caller is the
 clue-giver, asks the model for a clue, and fills the clue form with it; the
-player still presses Submit. That a hint was asked is logged — the log marks
-the turn, and the partner is told.
+player still presses Submit. That a hint was asked is logged and the partner is
+told; a clue submitted exactly as the AI suggested it is marked as the AI's in
+the log, and one the giver edited is not.
 
 *The rest of the intro is owed — pass 2 of this area's audit.*
 
@@ -105,10 +107,12 @@ The clue-giver's move. Under a lock on the game row it checks that the game is
 still in ordinary play, that the caller holds the clue seat, and that this
 turn has no clue yet — each of which the partner's move or the caller's own
 can change while the form is on screen, so a refusal here is a race. It
-logs the clue as an event of the turn and the seat. It does not judge the clue:
-the word is whatever was typed and the count any whole number from zero up.
+logs the clue as an event of the turn and the seat, with whether it is exactly
+the AI's suggestion — the client says so, being the only side that saw the
+suggestion. It does not judge the clue: the word is whatever was typed and the
+count any whole number from zero up.
 
-**Passed:** `{ "target_game": "88ae6f5a…", "clue_word": "WORD", "clue_count": 2 }`
+**Passed:** `{ "target_game": "88ae6f5a…", "clue_word": "WORD", "clue_count": 2, "clue_from_ai": false }` — `clue_from_ai` defaults to `false`.
 
 **Returned** — one answer, the clue as it was stored:
 
@@ -127,10 +131,12 @@ word this seat already hit as a bystander; all four are races. A bystander
 marks only the guesser's side of the word, so the partner can still guess it
 — the same word may be their agent.
 
-Every guess is logged as an event, and it takes a turn from the budget exactly
-when it ends one. An agent is turned over for both players and the turn
+Every guess is logged as an event, and it takes a turn exactly when the turn
+number moves on after it. An agent is turned over for both players and the turn
 goes on; a bystander in ordinary play ends the turn, and the seat that clues
-next is the partner's unless the partner's agents are all found. Three guesses
+next is the partner's unless the partner's agents are all found. In sudden
+death every guess is a turn of its own: an agent moves the turn number on, so
+the next guess — by either player — is the next turn. Three guesses
 end the game: the fifteenth agent (`won`), any assassin (`lost_assassin`), and
 anything but an agent in sudden death (`lost_clock`). Each ending records its
 reason, the turns used and the agents found, and both players get the same
@@ -259,8 +265,10 @@ pressed, in its loading state. A suggestion fills the clue form's two fields
 and shows the reasoning in the dialog; a relayed refusal or the model
 declining shows its sentence in the dialog, which stays; a fault closes it,
 since the fault's own modal has already said why. A clue that lands closes the
-dialog with it. A delivered suggestion marks its turn's clue row in the log
-with the AI glyph, in the hint's outcome.
+dialog with it. The form remembers the suggestion it filled in, and sends
+`clue_from_ai` true only if the word and count are submitted unchanged; the log
+then marks that clue with the AI glyph, in the outcome `lib/answer.ts` gives
+`clue_ai`. An edited clue, or one the giver thought of alone, wears nothing.
 
 **New game** calls `create_game` directly, with this game's setup and roster.
 The creator jumps to the new game and the partner arrives by the invitation

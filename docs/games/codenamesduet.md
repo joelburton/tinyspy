@@ -98,9 +98,9 @@ Green (agent contacted) and assassin are **global** — true for both players th
 | Win: 15 greens revealed | `submit_guess` counts global `revealed_as = 'G'` after every green reveal |
 | Lose on assassin | `submit_guess` flips `play_state = 'lost_assassin'` on `revealed_label = 'A'` |
 | Lose on clock | `submit_guess` flips `play_state = 'lost_clock'` on any non-green during `sudden_death` |
-| Every move replayable in the Game Log | one `codenamesduet.events` row per clue, guess, pass and hint (a word can be guessed twice) |
+| Every move is logged | one `codenamesduet.events` row per clue, guess, pass and hint (a word can be guessed twice) |
 
-The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`codenamesduet.submit_guess`](../../supabase/migrations/20260615000001_codenamesduet.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../../supabase/tests/codenamesduet/game_loop_test.sql) and [`win_test.sql`](../../supabase/tests/codenamesduet/win_test.sql).
+The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`codenamesduet.submit_guess`](../../supabase/sql/codenamesduet.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../../supabase/tests/codenamesduet/game_loop_test.sql) and [`win_test.sql`](../../supabase/tests/codenamesduet/win_test.sql).
 
 ## Schema: `codenamesduet.*`
 
@@ -111,7 +111,7 @@ The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not 
 | `games` | One row per match. `club_handle` (not null) ties to `common.clubs`. Tracks `turn_number`, `turns_remaining`, `current_clue_giver`. **Seats live on this row as columns** (`user_a_id`, `user_b_id`) alongside each seat's key view (`key_card_a`, `key_card_b` — jsonb arrays of 25 `'G' \| 'N' \| 'A'` labels matching `words.position`). Play-state (`play_state` + `is_terminal`) lives on `common.games`. |
 | `word_pool` | The static Duet word list (390 words, seeded by migration). Read only by security-definer RPCs; clients have no SELECT grant. |
 | `words` | 25 rows per game — the board, with denormalized reveal state. `revealed_as` (`'G'`/`'A'`/null) is the **global** reveal (agent contacted / assassin); `neutral_a` / `neutral_b` are **per-seat** bystander marks (a neutral on the giver's key may be the partner's agent, so it only locks the guesser's seat). |
-| `events` | The log, in the shape every game's log takes ([supabase.md → Every game's log is `<game>.events`](../supabase.md#every-games-log-is-gameevents)): one row per `clue`, `guess`, `pass` and `hint`, `order by id`. Beside the skeleton: `turn_number`, `seat`, and payload columns named for the kind that owns them — `clue_word` / `clue_count`, `guess_position` / `guess_result` — with a CHECK tying each kind to exactly its own. One clue per turn is a partial unique index. A word can be guessed twice (once per seat), which is why this is separate from the per-word `words` row. `took_turn` is true exactly where `_end_turn` runs — a bystander in ordinary play, and a pass. |
+| `events` | The log, in the shape every game's log takes ([supabase.md → Every game's log is `<game>.events`](../supabase.md#every-games-log-is-gameevents)): one row per `clue`, `guess`, `pass` and `hint`, `order by id`. Beside the skeleton: `turn_number`, `seat`, and payload columns named for the kind that owns them — `clue_word` / `clue_count` / `clue_from_ai` (the clue is exactly the AI's suggestion, as the client says), `guess_position` / `guess_result` — with a CHECK tying each kind to exactly its own. One clue per turn is a partial unique index. A word can be guessed twice (once per seat), which is why this is separate from the per-word `words` row. `took_turn` is true exactly where the turn number moves on: a bystander in ordinary play and a pass (both run `_end_turn`), and an agent in sudden death, where every guess is a turn of its own. |
 
 There's no `codenamesduet.game_players` table. The "who played this game" record lives at the common layer in `common.game_players` (cross-game, used for the player roster + RLS membership checks). Seat *assignment* — which player is in seat A vs B, and what each seat's key view is — is gameplay state and lives as columns on `codenamesduet.games` directly. The two roles don't overlap: `common.game_players` answers "did this user participate"; `codenamesduet.games`'s seat columns answer "in which seat, with what key view."
 
@@ -164,9 +164,9 @@ The key-card generation is the algorithmically interesting bit: build the 25-ele
 
 The words are on the shared board every player sees, so the title leaks nothing (the key card is what stays secret); three words are enough to tell one game from another in a club's history.
 
-### `codenamesduet.submit_clue(target_game uuid, clue_word text, clue_count int)`
+### `codenamesduet.submit_clue(target_game uuid, clue_word text, clue_count int, clue_from_ai boolean default false)`
 
-Logs a `clue` event for the current turn.
+Logs a `clue` event for the current turn, with `clue_from_ai` as the client said it.
 
 The parameters share their names with the `codenamesduet.events` columns they fill (`clue_word`, `clue_count`), so the body reads them qualified — `submit_clue.clue_word` — and a bare name in a query can never mean the parameter by accident.
 

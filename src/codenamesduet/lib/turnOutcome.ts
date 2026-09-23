@@ -13,9 +13,12 @@ import type { GuessEvent } from './events'
  *   - **all agents** (≥1) → `won`;
  *   - **no guesses** (passed) → `neutral`.
  *
- * **This is the whole of the game's outcome decision**, which is why there is no
- * `lib/answer.ts` here as there is in the other games. Nothing shows a single
- * guess's outcome: a guess answers with a REVEAL and the board says it, so the
+ * **Sudden death reads differently**, as the game does: any guess that is not
+ * an agent loses it, so a sudden-death turn is `lost` the moment it holds one,
+ * `won` while it holds only agents, and `neutral` before its first guess.
+ *
+ * **This is the whole of a guess's outcome.** Nothing shows a single guess's
+ * outcome: a guess answers with a REVEAL and the board says it, so the
  * pill deliberately stays silent, and where the log prints the guessed words it
  * draws them in the key-card palette (`--codenamesduet-agent` and its two
  * siblings) rather than in outcome colors. The TURN is the only thing wearing
@@ -28,8 +31,12 @@ import type { GuessEvent } from './events'
  * not about what a guess was worth. `submit_guess`'s answers carry no outcome:
  * they state what was turned over, and this is the only place it becomes one.
  */
-export function turnOutcome(guesses: ReadonlyArray<GuessEvent>): Outcome {
+export function turnOutcome(
+  guesses: ReadonlyArray<GuessEvent>,
+  { suddenDeath = false }: { suddenDeath?: boolean } = {},
+): Outcome {
   if (guesses.length === 0) return 'neutral'
+  if (suddenDeath) return guesses.every((g) => g.guess_result === 'G') ? 'won' : 'lost'
   if (guesses.some((g) => g.guess_result === 'A')) return 'lost'
   const hasAgent = guesses.some((g) => g.guess_result === 'G')
   const hasNeutral = guesses.some((g) => g.guess_result === 'N')

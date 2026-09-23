@@ -10,7 +10,7 @@ import type { Seat } from './phase'
 export type EventsRow = Pick<
   Database['codenamesduet']['Tables']['events']['Row'],
   | 'id' | 'user_id' | 'kind' | 'took_turn' | 'created_at' | 'turn_number' | 'seat'
-  | 'clue_word' | 'clue_count' | 'guess_position' | 'guess_result'
+  | 'clue_word' | 'clue_count' | 'clue_from_ai' | 'guess_position' | 'guess_result'
 >
 
 /** The columns every event has. */
@@ -32,7 +32,9 @@ type EventBase = {
  * table's CHECK, restated as a type. The column names are the table's.
  */
 export type DuetEvent =
-  | (EventBase & { kind: 'clue'; clue_word: string; clue_count: number })
+  // `clue_from_ai`: the clue is exactly the AI's suggestion, word and count
+  // unedited.
+  | (EventBase & { kind: 'clue'; clue_word: string; clue_count: number; clue_from_ai: boolean })
   | (EventBase & { kind: 'guess'; guess_position: number; guess_result: KeyLabel })
   | (EventBase & { kind: 'pass' })
   | (EventBase & { kind: 'hint' })
@@ -61,8 +63,11 @@ export function toDuetEvent(row: EventsRow): DuetEvent {
   }
   switch (row.kind) {
     case 'clue':
-      if (row.clue_word === null || row.clue_count === null) break
-      return { ...base, kind: 'clue', clue_word: row.clue_word, clue_count: row.clue_count }
+      if (row.clue_word === null || row.clue_count === null || row.clue_from_ai === null) break
+      return {
+        ...base, kind: 'clue',
+        clue_word: row.clue_word, clue_count: row.clue_count, clue_from_ai: row.clue_from_ai,
+      }
     case 'guess':
       if (row.guess_position === null || row.guess_result === null) break
       return {
@@ -93,7 +98,12 @@ export function guessesOf(
     .map((e) => ({ ...e, word: wordAt.get(e.guess_position) ?? '' }))
 }
 
-/** The turns on which the clue-giver asked the AI for a clue. */
-export function hintedTurnsOf(events: ReadonlyArray<DuetEvent>): Set<number> {
-  return new Set(events.filter((e) => e.kind === 'hint').map((e) => e.turn_number))
+/**
+ * Whether a turn was played in sudden death: past the game's turn budget
+ * (`setup.turns`). The turn after the last one spent is sudden death, and it is
+ * the only turn with guesses and no clue. Derived rather than stored — the
+ * budget and the turn number already say it.
+ */
+export function isSuddenDeathTurn(turnNumber: number, turnBudget: number): boolean {
+  return turnNumber > turnBudget
 }

@@ -139,10 +139,10 @@ describe('useBoard', () => {
   it('hands back the events typed by kind, in the order the table returned them', async () => {
     events = [
       { id: 1, user_id: USER_ID, kind: 'clue', took_turn: false, created_at: 't1',
-        turn_number: 1, seat: 'A', clue_word: 'TOOLS', clue_count: 2,
+        turn_number: 1, seat: 'A', clue_word: 'TOOLS', clue_count: 2, clue_from_ai: false,
         guess_position: null, guess_result: null },
       { id: 2, user_id: 'peer', kind: 'guess', took_turn: false, created_at: 't2',
-        turn_number: 1, seat: 'B', clue_word: null, clue_count: null,
+        turn_number: 1, seat: 'B', clue_word: null, clue_count: null, clue_from_ai: null,
         guess_position: 4, guess_result: 'G' },
     ]
     const { result } = renderHook(() => useBoard(GAME_ID, USER_ID, false))
@@ -150,7 +150,7 @@ describe('useBoard', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.events).toEqual([
       { id: 1, user_id: USER_ID, kind: 'clue', took_turn: false, created_at: 't1',
-        turn_number: 1, seat: 'A', clue_word: 'TOOLS', clue_count: 2 },
+        turn_number: 1, seat: 'A', clue_word: 'TOOLS', clue_count: 2, clue_from_ai: false },
       { id: 2, user_id: 'peer', kind: 'guess', took_turn: false, created_at: 't2',
         turn_number: 1, seat: 'B', guess_position: 4, guess_result: 'G' },
     ])
