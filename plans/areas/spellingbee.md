@@ -161,6 +161,50 @@ Run on the untouched tree with the roster stamped `cs-met-spellingbee` (Joel:
 
 **A later red is the step's.**
 
+### Step 1 — gather this game's owed work into `todo.md` — DONE 2026-09-22
+
+Two sources were already emptied above, before the step had a number: the
+doc's Deferred section and `docs/deferred.md`. What the rest held:
+
+**`src/common/game-page/todo.md`'s end-for-all item — the copy here is
+DELETED.** wordle's F-2 found nine games carrying a copy of it; the shared
+entry ends *"build it as one change, not fourteen"*, so a per-game copy is
+exactly the thing it warns about — fifteen places for the fifteenth to be
+forgotten in. The copy's own contribution was a check rather than work: *"what
+to check first is the READING … that this game's `labelFor` and its in-game
+verdict treat `ended` in COMPETE as neutral."* **Checked, and it does** —
+`manifest.ts`'s compete arm answers `verdict('Ended', …)` with `nobody reached
+"<rank>"` beside it, never a loss, and the all-conceded terminal is caught
+ahead of it on `status.reason` so it cannot fall through and print the wrong
+rank. Nothing owed; the shared item keeps the work.
+
+**`plans/tile-feedback.md` holds two spellingbee entries, and neither is
+`todo.md`'s.** The roster row (tf0 — *"a pass through the MARKS, not the
+framework"*) and the shared-accent decision with wordwheel (*"one decision
+covering both, at whichever converts first"* — this game converts first). Both
+are pass 3's, read against the board when it opens. Recorded here so pass 3
+starts with them rather than rediscovering them.
+
+**`docs/mobile.md` → TODO has one open item, and this game appears to have
+done it already.** The feedback-message length audit (~26 characters in the
+header pill on a 390px phone, ~48 below-board) lists three games as done and
+not this one — but `PlayArea.tsx`'s peer line is written to that budget and
+says so, naming the string it replaced. Not moved to `todo.md`: the audit pass
+reads the rest of this game's strings, and claiming the pass before that would
+be the overclaim. If they hold, mobile.md's list is what needs the edit.
+
+**Checked and holding nothing owed:** `plans/keyboard-nav-plan.md`,
+`plans/dark-mode.md` and `plans/spectating.md` cite this game as evidence, not
+as work, and each is a plan with its own home; `docs/ui.md` → Explicitly
+deferred is entirely cross-cutting; `plans/found-words.md`'s call about
+`buildDisplayRows` still matches the tree (it lives in
+`shared/found-words/foundWordsDisplayRows.ts`, and the doc's mention of it is
+true).
+
+**What `todo.md` holds after the step:** one Bug, three Soon (the action-row
+collapse, the two Fisher–Yates shuffles, the ungated hive hover) plus the
+struck custom-letters ruling, two Someday, one Won't do.
+
 ## Findings
 
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it
