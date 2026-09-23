@@ -7,16 +7,19 @@
  */
 import { describe, expect, it } from 'vitest'
 import { turnOutcome } from './turnOutcome'
-import type { GuessRow } from '../hooks/useBoard'
+import type { GuessEvent } from './events'
 
 /** A guess with just the field turnOutcome reads; the rest is filler. */
-const g = (result: GuessRow['result']): GuessRow => ({
-  position: 0,
-  word: 'WORD',
-  guesser_seat: 'B',
-  result,
+const g = (guess_result: GuessEvent['guess_result']): GuessEvent => ({
+  kind: 'guess',
+  id: 1,
+  user_id: 'bea',
+  took_turn: false,
+  created_at: '2026-06-12T18:00:00Z',
   turn_number: 1,
-  guessed_at: '2026-06-12T18:00:00Z',
+  seat: 'B',
+  guess_position: 0,
+  guess_result,
 })
 
 describe('turnOutcome', () => {

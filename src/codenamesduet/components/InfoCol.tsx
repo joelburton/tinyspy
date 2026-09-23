@@ -8,8 +8,7 @@ import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import type { CodenamesduetSetup } from '../lib/setup'
-import type { ClueRow } from '../hooks/useClues'
-import type { GuessRow } from '../hooks/useBoard'
+import type { ClueEvent, WordedGuess } from '../lib/events'
 import type { Player } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
 import { StateLine } from './StateLine'
@@ -101,8 +100,8 @@ export function InfoCol({
   firstClueGiver: Player | undefined
 
   // ── Turn-history log (GameEventLog) ──
-  clues: ClueRow[]
-  guesses: GuessRow[]
+  clues: ClueEvent[]
+  guesses: WordedGuess[]
   players: Player[]
   /** The viewer — the log's player picker orders them first. */
   selfId: string

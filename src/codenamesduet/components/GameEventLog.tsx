@@ -5,18 +5,17 @@ import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/c
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import { cls } from '@/common/utils/cls'
-import type { ClueRow } from '../hooks/useClues'
-import type { GuessRow } from '../hooks/useBoard'
+import type { ClueEvent, WordedGuess } from '../lib/events'
 import type { Player } from '../hooks/useGame'
 import { turnOutcome } from '../lib/turnOutcome'
 import styles from './GameEventLog.module.css'
 
 type Props = {
-  clues: ClueRow[]
+  clues: ClueEvent[]
   /** Every guess, in any order — grouped by turn below. (A word can appear
    *  twice, once per seat, which is why this is the guess log, not per-word
    *  board state.) */
-  guesses: GuessRow[]
+  guesses: WordedGuess[]
   /** Both seated players, with usernames + profile colors — used to resolve a
    *  clue's seat letter ('A'/'B') back to the human-facing clue-giver. */
   players: Player[]
@@ -95,15 +94,13 @@ export function GameEventLog({
     emptyLabel: 'No clues yet.',
   })
   // seat letter → Player, so each clue row resolves to its clue-giver's
-  // identity. Key type `string` (not the narrower 'A'|'B') so it matches the
-  // db-derived `by_seat` without a cast. Both seats are always populated.
+  // identity. Both seats are always populated.
   const playerBySeat = new Map<string, Player>(
     players.map((p) => [p.seat, p] as const),
   )
 
   const sortedGuesses = [...guesses].sort((a, b) =>
-    (a.turn_number - b.turn_number)
-    || a.guessed_at.localeCompare(b.guessed_at),
+    (a.turn_number - b.turn_number) || (a.id - b.id),
   )
 
   // Turns may exist in the clue list, the guess list, or both. Union + sort
@@ -122,7 +119,7 @@ export function GameEventLog({
   // selection the hook owns without inventing a row shape to satisfy it.
   const shownTurns = turnNumbers.filter((t) => {
     if (eventLogPicker.showsEveryone) return true
-    const seat = clues.find((c) => c.turn_number === t)?.by_seat
+    const seat = clues.find((c) => c.turn_number === t)?.seat
     return playerBySeat.get(seat ?? '')?.user_id === eventLogPicker.picked
   })
 
@@ -139,7 +136,7 @@ export function GameEventLog({
       {shownTurns.map((t) => {
         const clue = clues.find((c) => c.turn_number === t)
         if (!clue) return null
-        const clueGiver = playerBySeat.get(clue.by_seat)
+        const clueGiver = playerBySeat.get(clue.seat)
         const turnGuesses = sortedGuesses.filter((g) => g.turn_number === t)
         // A guess-less turn is still "in progress" (clue given, guesser yet to
         // act) only while it's the current turn AND the game is live; otherwise
@@ -161,10 +158,10 @@ export function GameEventLog({
               />
               <td className={gameEventLog.main}>
                 <span className={styles.clueWord}>
-                  {clue.count} {clue.word.toUpperCase()}
+                  {clue.clue_count} {clue.clue_word.toUpperCase()}
                 </span>
               </td>
-              <EventLogActor actor={clueGiver} fallback={clue.by_seat} />
+              <EventLogActor actor={clueGiver} fallback={clue.seat} />
             </tr>
             {/* Row 2: the turn's guesses, spanning the three content columns
                 (#, clue, clue-giver) beneath the clue line. No divider class — the
@@ -178,14 +175,14 @@ export function GameEventLog({
                   </span>
                 ) : (
                   turnGuesses.map((g, idx) => (
-                    <span key={g.position}>
+                    <span key={g.id}>
                       {idx > 0 && ' '}
                       <span
                         className={cls(
                           styles.guessWord,
-                          g.result === 'G' && styles.guessWord_G,
-                          g.result === 'N' && styles.guessWord_N,
-                          g.result === 'A' && styles.guessWord_A,
+                          g.guess_result === 'G' && styles.guessWord_G,
+                          g.guess_result === 'N' && styles.guessWord_N,
+                          g.guess_result === 'A' && styles.guessWord_A,
                         )}
                       >
                         {g.word.toUpperCase()}

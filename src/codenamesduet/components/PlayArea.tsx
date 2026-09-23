@@ -25,12 +25,11 @@ import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { setupRows } from '../lib/setupSummary'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
-import type { ClueRow } from '../hooks/useClues'
 import type { GameRow, Player } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
-import type { GuessRow, WordRow } from '../hooks/useBoard'
+import type { WordRow } from '../hooks/useBoard'
 import { useBoard } from '../hooks/useBoard'
-import { useClues } from '../hooks/useClues'
+import { cluesOf, guessesOf, type ClueEvent, type DuetEvent } from '../lib/events'
 import type { KeyLabel } from '../lib/labels'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { historySnapshot } from '../lib/history'
@@ -80,10 +79,9 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *      re-run of the moment.
  *
  * Most of the game logic is server-side (in plpgsql RPCs); this
- * component's job is to load the row + board + clues via the three
- * hooks, derive phase (who clicks what, when) via `derivePhase`, and
- * hand each piece to the right sub-component. Realtime keeps
- * everything in sync.
+ * component is handed the game row, the board and its events by the loader,
+ * derives phase (who clicks what, when) via `derivePhase`, and hands each
+ * piece to the right sub-component. Realtime keeps everything in sync.
  */
 
 /** The per-status terminal message for codenamesduet. `playState` is the
@@ -151,7 +149,7 @@ function buildOver(playState: string): TerminalMessage {
 function useTurnStatus(args: {
   game: { current_clue_giver: string | null; turn_number: number }
   players: Player[]
-  clues: ClueRow[]
+  clues: ClueEvent[]
   playState: string
   gameOver: boolean
   sessionUserId: string
@@ -207,8 +205,8 @@ function useTurnStatus(args: {
 const TOTAL_AGENTS = 15
 
 /**
- * The play surface's loader: runs the three reads — the game row, the board,
- * the clues — and renders `<PlayArea>` only once all three have answered with
+ * The play surface's loader: runs the two reads — the game row, and the board
+ * with its events — and renders `<PlayArea>` only once both have answered with
  * a game to draw. Named by the manifest's lazy line.
  */
 export function PlayAreaLoader(ctx: GamePageCtx) {
@@ -217,15 +215,14 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   // it into `peerKey`, so the choice is held here, above the read.
   const peerKeyReveal = useSolutionReveal()
   const board = useBoard(ctx.gameId, ctx.session.user.id, peerKeyReveal.revealed)
-  const { clues, loading: cluesLoading, failure: cluesFailure } = useClues(ctx.gameId)
 
-  if (gameLoading || board.loading || cluesLoading) return <Loading />
+  if (gameLoading || board.loading) return <Loading />
   // A failed read is NOT a missing game. Both leave the board with nothing to
   // draw, and saying "there's no game here" about a dead connection is a
   // confident wrong answer — this is what remains once the fault modal is
-  // dismissed. The three reads are equally fatal, so the FIRST failure wins;
-  // each envelope names its own read in `detail`.
-  const failure = gameFailure ?? board.failure ?? cluesFailure
+  // dismissed. The reads are equally fatal, so the FIRST failure wins; each
+  // envelope names its own read in `detail`.
+  const failure = gameFailure ?? board.failure
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   // Reaching this means the COMMON row exists — `GamePageGate` and
   // `GamePageLoader` each checked. A missing duet row is a torn write or a game
@@ -245,12 +242,11 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
       game={game}
       seatedPlayers={players}
       words={board.words}
-      guesses={board.guesses}
+      events={board.events}
       myKey={board.myKey}
       peerKey={board.peerKey}
       myAgentsDone={board.myAgentsDone}
       peerAgentsDone={board.peerAgentsDone}
-      clues={clues}
       peerKeyShown={peerKeyReveal.revealed}
       togglePeerKey={peerKeyReveal.toggle}
       // The one place the setup blob is narrowed. `GamePageCtx` types it
@@ -267,17 +263,16 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
   // The two seated players, each with a `seat`. Distinct from the context's
   // `players`, the club roster the shell passes every game.
   seatedPlayers: Player[]
-  // The 25 words with their reveal state, and every guess, for the log.
+  // The 25 words with their reveal state.
   words: WordRow[]
-  guesses: GuessRow[]
+  // Everything that has happened, in order: clues, guesses, passes, hints.
+  events: DuetEvent[]
   // My key card, and my partner's — null until I choose to see it.
   myKey: KeyLabel[]
   peerKey: KeyLabel[] | null
   // Whether each seat has contacted all its agents; drives the banners.
   myAgentsDone: boolean
   peerAgentsDone: boolean
-  // Every clue given, one per turn.
-  clues: ClueRow[]
   // The partner-key reveal, held by the loader because `useBoard` reads it.
   peerKeyShown: boolean
   togglePeerKey: () => void
@@ -301,15 +296,19 @@ export function PlayArea({
   game,
   seatedPlayers: players,
   words,
-  guesses,
+  events,
   myKey,
   peerKey,
   myAgentsDone,
   peerAgentsDone,
-  clues,
   peerKeyShown,
   togglePeerKey,
 }: PlayAreaProps) {
+  // The two views of the events the log, the history viewer, the clue panel and
+  // the PDF read: every clue, and every guess with the word on its tile.
+  const clues = useMemo(() => cluesOf(events), [events])
+  const guesses = useMemo(() => guessesOf(events, words), [events, words])
+
   // The board is worked by clicks, so the page itself has nowhere for Tab to go
   // and an empty ring keeps it from walking out to the browser. While a clue is
   // being given, the clue form's own ring is innermost and Tab is its (CluePanel).
@@ -602,7 +601,7 @@ export function PlayArea({
       ? historySnapshot(
           words,
           guesses,
-          historyClue ? { word: historyClue.word, count: historyClue.count } : null,
+          historyClue,
           historyId,
         )
       : null

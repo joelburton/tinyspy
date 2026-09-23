@@ -229,7 +229,7 @@ useRealtimeRefetch({
 })
 ```
 
-The `tables` field accepts one subscription or an array — psychicnum's useGame subscribes to `games`, `players` AND `events` with the same `load()`; codenamesduet splits across three hooks (`useGame`, `useBoard`, `useClues`) each with its own factory call. Either shape is fine; the deciding question is whether the PlayArea component splits the data the same way.
+The `tables` field accepts one subscription or an array — psychicnum's useGame subscribes to `games`, `players` AND `events` with the same `load()`; codenamesduet splits across two hooks (`useGame`, `useBoard`) each with its own factory call. Either shape is fine; the deciding question is whether the PlayArea component splits the data the same way.
 
 The channel name is UUID-suffixed (`<prefix>:<id>:<uuid>`) — every peer's tab gets its own room. That's safe because there's no peer-coordination state on this channel.
 

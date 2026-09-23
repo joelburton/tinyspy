@@ -10,7 +10,7 @@
  * `guessInFlight` ref closes both windows; this test exercises the second (click a
  * different tile while the first guess is in flight).
  *
- * `useGame` / `useBoard` / `useClues` / `db` are mocked; the game state is set up
+ * `useGame` / `useBoard` / `db` are mocked; the game state is set up
  * as "my turn to guess" (I'm the guesser seat B; peer seat A gave the clue), so the
  * tiles are clickable.
  */
@@ -31,10 +31,18 @@ import { PlayAreaLoader } from './PlayArea'
 // Whose turn it is, and whether the clue is in — mutable holders so a test can
 // seat me as the GUESSER (the default: peer A gave the clue, I'm B) or as the
 // CLUE-GIVER (I'm the giver and no clue is written yet).
-const g = vi.hoisted(() => ({
-  game: { current_clue_giver: 'A', turn_number: 1 },
-  clues: [{ turn_number: 1, word: 'fruit', count: 2 }] as { turn_number: number; word: string; count: number }[],
-}))
+const g = vi.hoisted(() => {
+  const PEER_CLUE = {
+    kind: 'clue' as const, id: 1, user_id: 'peer', took_turn: false,
+    created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat: 'A' as const,
+    clue_word: 'fruit', clue_count: 2,
+  }
+  return {
+    PEER_CLUE,
+    game: { current_clue_giver: 'A', turn_number: 1 },
+    events: [PEER_CLUE] as unknown[],
+  }
+})
 vi.mock('../hooks/useGame', () => ({
   useGame: () => ({
     game: g.game,
@@ -60,7 +68,7 @@ vi.mock('../hooks/useBoard', () => ({
       neutral_a: false,
       neutral_b: false,
     })),
-    guesses: [],
+    events: g.events,
     myKey: Array.from({ length: 25 }, () => 'N'),
     peerKey: null,
     myAgentsDone: false,
@@ -69,9 +77,6 @@ vi.mock('../hooks/useBoard', () => ({
   }
   ),
 }))
-vi.mock('../hooks/useClues', () => ({
-  useClues: () => ({ clues: g.clues }),
-}))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
@@ -79,7 +84,7 @@ const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 /** Seat me as the clue-giver with the clue still to write. */
 function asClueGiver() {
   g.game = { current_clue_giver: 'B', turn_number: 1 }
-  g.clues = []
+  g.events = []
 }
 
 /** An `ok` envelope in the shape `runRpc` unwraps — `data.result` is what the
@@ -147,7 +152,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
 
 beforeEach(() => {
   g.game = { current_clue_giver: 'A', turn_number: 1 }
-  g.clues = [{ turn_number: 1, word: 'fruit', count: 2 }]
+  g.events = [g.PEER_CLUE]
   rpc.mockReset()
   // Never resolves → the first guess stays "in flight" so we can test the guard.
   rpc.mockReturnValue(new Promise(() => {}))

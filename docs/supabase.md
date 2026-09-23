@@ -610,7 +610,7 @@ All of these are commented at the site; this table is the index.
 
 | divergence | where | why |
 |---|---|---|
-| Three data hooks instead of one | codenamesduet (`useGame`/`useBoard`/`useClues`) | per-concern lifecycles; PlayArea splits the same way |
+| Two data hooks instead of one | codenamesduet (`useGame`/`useBoard`) | per-concern lifecycles; PlayArea splits the same way |
 | Two data hooks instead of one | bananagrams (`useGame`/`useProgress`) | RLS boundary: owner-only board vs club-readable progress |
 | Broadcast-coupled hand-rolled channel | connections `useGame` | shared-selection Broadcast needs the stable room; CDC rides along |
 | Ephemeral broadcast on a second stable channel | scrabble `useSharedMove` | staged-move preview is never stored; a missed broadcast just means no preview |

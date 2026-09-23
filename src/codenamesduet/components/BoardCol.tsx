@@ -11,7 +11,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { db } from '../db'
 import type { WordRow } from '../hooks/useBoard'
-import type { ClueRow } from '../hooks/useClues'
+import type { ClueEvent } from '../lib/events'
 import type { Player } from '../hooks/useGame'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
@@ -132,7 +132,7 @@ export function BoardCol({
   // ── Clue panel ──
   isClueGiver: boolean
   isGuessPhase: boolean
-  currentClue: ClueRow | null
+  currentClue: ClueEvent | null
   inSuddenDeath: boolean
   peer: Player | undefined
   // Open / update / close the AI clue-suggestion dialog (state lives in PlayArea,

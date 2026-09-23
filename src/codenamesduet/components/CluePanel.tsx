@@ -14,11 +14,10 @@ import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { db } from '../db'
 import type { Seat } from '../lib/phase'
+import type { ClueEvent } from '../lib/events'
 import type { Player } from '../hooks/useGame'
 import styles from './CluePanel.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-
-type Clue = { word: string; count: number }
 
 /** What `submit_clue` answers: one `ok`, the clue as it was recorded. The word
  *  and count are echoed from the stored row, so they say what the partner will
@@ -50,7 +49,7 @@ type CluePanelProps = {
   /** True if a clue has been submitted for the current turn_number. */
   isGuessPhase: boolean
   /** The current turn's clue, if it exists. */
-  currentClue: Clue | null
+  currentClue: ClueEvent | null
   /** True if game.status === 'sudden_death'. */
   inSuddenDeath: boolean
   /** The other seated player. Used to render "Clue for <name>" /
@@ -145,10 +144,10 @@ export function CluePanel({
 }
 
 /** The active clue, inline: "WORD · N" (the word bold + prominent). */
-function ClueDisplay({ clue }: { clue: Clue }) {
+function ClueDisplay({ clue }: { clue: ClueEvent }) {
   return (
     <span className={styles.clueDisplay}>
-      <strong>{clue.word.toUpperCase()}</strong> · {clue.count}
+      <strong>{clue.clue_word.toUpperCase()}</strong> · {clue.clue_count}
     </span>
   )
 }

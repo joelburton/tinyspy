@@ -1,7 +1,7 @@
 // cs-met-codenamesduet
 
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { GuessRow } from '../hooks/useBoard'
+import type { GuessEvent } from './events'
 
 /**
  * A codenamesduet turn = one clue + its 0..N guesses, rendered as ONE event-log
@@ -28,11 +28,11 @@ import type { GuessRow } from '../hooks/useBoard'
  * not about what a guess was worth. `submit_guess`'s answers carry no outcome:
  * they state what was turned over, and this is the only place it becomes one.
  */
-export function turnOutcome(guesses: GuessRow[]): Outcome {
+export function turnOutcome(guesses: ReadonlyArray<GuessEvent>): Outcome {
   if (guesses.length === 0) return 'neutral'
-  if (guesses.some((g) => g.result === 'A')) return 'lost'
-  const hasAgent = guesses.some((g) => g.result === 'G')
-  const hasNeutral = guesses.some((g) => g.result === 'N')
+  if (guesses.some((g) => g.guess_result === 'A')) return 'lost'
+  const hasAgent = guesses.some((g) => g.guess_result === 'G')
+  const hasNeutral = guesses.some((g) => g.guess_result === 'N')
   if (hasAgent && hasNeutral) return 'near'
   return hasAgent ? 'won' : 'lost'
 }

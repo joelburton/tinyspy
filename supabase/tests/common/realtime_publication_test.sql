@@ -33,7 +33,7 @@
 --   common     useCommonGame / useGameInvitations / useScratchpad /
 --              useClubChat / ClubPage / HomePage
 --   <game>     each game's hooks/useGame.ts (codenamesduet also
---              useBoard + useClues; crosswords via useCells; spellingbee
+--              useBoard; crosswords via useCells; spellingbee
 --              + wordwheel via the shared makeFoundWordsGame factory)
 --
 -- Deliberately NOT subscribed, therefore NOT published (their absence
@@ -73,7 +73,7 @@ select set_eq(
       ('common', 'game_scratchpads'),
       ('common', 'messages'),
       ('common', 'clubs_members'),
-      -- codenamesduet (useGame + useBoard + useClues)
+      -- codenamesduet (useGame + useBoard)
       ('codenamesduet', 'games'),
       ('codenamesduet', 'words'),
       ('codenamesduet', 'events'),

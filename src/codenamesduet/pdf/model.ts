@@ -4,8 +4,8 @@ import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
-import type { ClueRow } from '../hooks/useClues'
-import type { GuessRow, WordRow } from '../hooks/useBoard'
+import type { WordRow } from '../hooks/useBoard'
+import type { ClueEvent, WordedGuess } from '../lib/events'
 
 /**
  * Build the codenamesduet print model — the pure half, away from jsPDF so the
@@ -81,8 +81,8 @@ export function buildDuetPrintModel(o: {
   peerKey: KeyLabel[] | null
   mySeat: Seat | undefined
   isTerminal: boolean
-  clues: ClueRow[]
-  guesses: GuessRow[]
+  clues: ClueEvent[]
+  guesses: WordedGuess[]
   /** Seat → the human's name, for the log's Player column. */
   nameForSeat: (seat: Seat) => string
   greenFound: number
@@ -115,21 +115,21 @@ export function buildDuetPrintModel(o: {
 
   // One row per TURN: the clue, then the words it actually produced. That's how
   // the game reads — a clue is only meaningful through what it got.
-  const byTurn = new Map<number, GuessRow[]>()
+  const byTurn = new Map<number, WordedGuess[]>()
   for (const g of o.guesses) {
     const rows = byTurn.get(g.turn_number) ?? []
     rows.push(g)
     byTurn.set(g.turn_number, rows)
   }
   const turns: TurnRow[] = [...o.clues]
-    .sort((a, b) => a.turn_number - b.turn_number)
+    .sort((a, b) => a.id - b.id)
     .map((c) => {
       const got = (byTurn.get(c.turn_number) ?? [])
-        .sort((a, b) => a.guessed_at.localeCompare(b.guessed_at))
+        .sort((a, b) => a.id - b.id)
         .map((g) => g.word.toUpperCase())
       return {
         seq: c.turn_number,
-        who: o.nameForSeat(c.by_seat as Seat),
+        who: o.nameForSeat(c.seat),
         // The clue leads; it's the part that can't be reconstructed from the
         // board, and drawEventLog truncates the tail.
         //
@@ -139,7 +139,7 @@ export function buildDuetPrintModel(o: {
         // the encoding offers, and beats a hand-made '->'. Check the same way
         // before putting any new symbol in printed text; that's also why
         // marks.ts DRAWS its check and cross rather than typing them.
-        text: `${c.word.toUpperCase()} ${c.count}${got.length ? ` » ${got.join(', ')}` : ''}`,
+        text: `${c.clue_word.toUpperCase()} ${c.clue_count}${got.length ? ` » ${got.join(', ')}` : ''}`,
       }
     })
 

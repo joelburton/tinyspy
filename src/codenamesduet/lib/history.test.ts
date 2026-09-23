@@ -11,7 +11,8 @@
  */
 import { describe, expect, it } from 'vitest'
 import { historySnapshot } from './history'
-import type { GuessRow, WordRow } from '../hooks/useBoard'
+import type { WordRow } from '../hooks/useBoard'
+import type { ClueEvent, WordedGuess } from './events'
 
 // A tiny fixed board — positions 0..4 with placeholder words. Reveal state starts
 // clean; the snapshot recomputes it from the guess log.
@@ -23,10 +24,20 @@ const WORDS: WordRow[] = [
   { position: 4, word: 'EAGLE', revealed_as: null, neutral_a: false, neutral_b: false },
 ]
 
-function guess(o: Partial<GuessRow>): GuessRow {
+function guess(o: Partial<WordedGuess>): WordedGuess {
   return {
-    position: 0, word: 'ALPHA', guesser_seat: 'B', result: 'G',
-    turn_number: 1, guessed_at: '2026-06-12T18:00:00Z', ...o,
+    kind: 'guess', id: 1, user_id: 'bea', took_turn: false,
+    created_at: '2026-06-12T18:00:00Z', turn_number: 1, seat: 'B',
+    guess_position: 0, guess_result: 'G', word: 'ALPHA', ...o,
+  }
+}
+
+/** The clue a turn was given, for the banner's label. */
+function clue(clue_word: string, clue_count: number): ClueEvent {
+  return {
+    kind: 'clue', id: 1, user_id: 'ada', took_turn: false,
+    created_at: '2026-06-12T18:00:00Z', turn_number: 1, seat: 'A',
+    clue_word, clue_count,
   }
 }
 
@@ -35,14 +46,14 @@ const at = (words: WordRow[], pos: number) => words.find((w) => w.position === p
 describe('historySnapshot', () => {
   // Turn 1: B contacts ALPHA (green). Turn 2: A neutrals BRAVO. Turn 3: B hits
   // the assassin on CIDER.
-  const guesses: GuessRow[] = [
-    guess({ position: 0, result: 'G', guesser_seat: 'B', turn_number: 1 }),
-    guess({ position: 1, result: 'N', guesser_seat: 'A', turn_number: 2 }),
-    guess({ position: 2, result: 'A', guesser_seat: 'B', turn_number: 3 }),
+  const guesses: WordedGuess[] = [
+    guess({ id: 1, guess_position: 0, guess_result: 'G', seat: 'B', turn_number: 1 }),
+    guess({ id: 2, guess_position: 1, guess_result: 'N', seat: 'A', turn_number: 2 }),
+    guess({ id: 3, guess_position: 2, guess_result: 'A', seat: 'B', turn_number: 3 }),
   ]
 
   it('folds only guesses up to and including the viewed turn (inclusive)', () => {
-    const snap = historySnapshot(WORDS, guesses, { word: 'x', count: 1 }, 2)
+    const snap = historySnapshot(WORDS, guesses, clue('x', 1), 2)
     // Turn 1's green is in; turn 2's own neutral is in (inclusive); turn 3's
     // assassin is NOT yet.
     expect(at(snap.words, 0).revealed_as).toBe('G')
@@ -66,10 +77,10 @@ describe('historySnapshot', () => {
   })
 
   it('describes the turn name-free: clue then guessed words, or "passed"', () => {
-    expect(historySnapshot(WORDS, guesses, { word: 'bread', count: 2 }, 1).historyLabel).toBe(
+    expect(historySnapshot(WORDS, guesses, clue('bread', 2), 1).historyLabel).toBe(
       '#1: 2 BREAD → ALPHA',
     )
-    expect(historySnapshot(WORDS, guesses, { word: 'wait', count: 1 }, 5).historyLabel).toBe(
+    expect(historySnapshot(WORDS, guesses, clue('wait', 1), 5).historyLabel).toBe(
       '#5: 1 WAIT — passed',
     )
   })

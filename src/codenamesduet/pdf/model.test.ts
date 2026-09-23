@@ -11,8 +11,8 @@
 
 import { describe, expect, it } from 'vitest'
 import { buildDuetPrintModel } from './model'
-import type { WordRow, GuessRow } from '../hooks/useBoard'
-import type { ClueRow } from '../hooks/useClues'
+import type { WordRow } from '../hooks/useBoard'
+import type { ClueEvent, WordedGuess } from '../lib/events'
 
 const word = (position: number, over: Partial<WordRow> = {}): WordRow => ({
   position,
@@ -21,6 +21,19 @@ const word = (position: number, over: Partial<WordRow> = {}): WordRow => ({
   neutral_a: false,
   neutral_b: false,
   ...over,
+})
+
+/** A clue event; the log reads its word, count, seat and turn. */
+const clue = (seat: 'A' | 'B', clue_word: string, clue_count: number): ClueEvent => ({
+  kind: 'clue', id: 1, user_id: 'u', took_turn: false,
+  created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat, clue_word, clue_count,
+})
+
+/** A guess on turn 1; `id` is the order it was made in. */
+const guess = (id: number, word: string): WordedGuess => ({
+  kind: 'guess', id, user_id: 'u', took_turn: false,
+  created_at: '2026-01-01T00:00:00Z', turn_number: 1, seat: 'B',
+  guess_position: id, guess_result: 'G', word,
 })
 
 /** 25 plain words, so a test only has to describe the ones it cares about. */
@@ -39,8 +52,8 @@ const base = {
   peerKey: key({ 0: 'A', 2: 'G' }),
   mySeat: 'A' as const,
   isTerminal: false,
-  clues: [] as ClueRow[],
-  guesses: [] as GuessRow[],
+  clues: [] as ClueEvent[],
+  guesses: [] as WordedGuess[],
   nameForSeat: (s: 'A' | 'B') => (s === 'A' ? 'me' : 'moth'),
   greenFound: 3,
   totalAgents: 15,
@@ -125,11 +138,8 @@ describe('buildDuetPrintModel — the clue log', () => {
   it('reads a turn as its clue plus what the clue actually got', () => {
     const m = buildDuetPrintModel({
       ...base,
-      clues: [{ id: 'c1', turn_number: 1, by_seat: 'A', word: 'ocean', count: 2 }],
-      guesses: [
-        { position: 0, word: 'wave', guesser_seat: 'B', result: 'G', turn_number: 1, guessed_at: '2026-01-01T00:00:02Z' },
-        { position: 1, word: 'salt', guesser_seat: 'B', result: 'G', turn_number: 1, guessed_at: '2026-01-01T00:00:01Z' },
-      ],
+      clues: [clue('A', 'ocean', 2)],
+      guesses: [guess(2, 'wave'), guess(1, 'salt')],
     })
     // Guesses in the order they were made, not the order they arrived.
     // '»', not '→': jsPDF's core fonts are WinAnsi, which has the guillemet but
@@ -142,7 +152,7 @@ describe('buildDuetPrintModel — the clue log', () => {
   it('shows a clue that got nothing as just the clue', () => {
     const m = buildDuetPrintModel({
       ...base,
-      clues: [{ id: 'c1', turn_number: 1, by_seat: 'B', word: 'ocean', count: 2 }],
+      clues: [clue('B', 'ocean', 2)],
     })
     expect(m.turns[0].text).toBe('OCEAN 2')
     expect(m.turns[0].who).toBe('moth')

@@ -31,9 +31,8 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { GameEventLog } from './GameEventLog'
-import type { GuessRow } from '../hooks/useBoard'
+import type { ClueEvent, WordedGuess } from '../lib/events'
 import type { Player } from '../hooks/useGame'
-import type { Database } from '@/types/db'
 import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
 
 // Stable two-seat roster for every render. Colors aren't asserted on (they ride
@@ -44,29 +43,33 @@ const PLAYERS: Player[] = [
   { user_id: 'bea', seat: 'B', username: 'bea', color: 'blue' },
 ]
 
-type ClueRow = Database['codenamesduet']['Tables']['clues']['Row']
-
-function clue(overrides: Partial<ClueRow>): ClueRow {
+function clue(overrides: Partial<ClueEvent>): ClueEvent {
   return {
-    id: 'clue-id',
-    game_id: 'game-id',
+    kind: 'clue',
+    id: 1,
+    user_id: 'ada',
+    took_turn: false,
+    created_at: '2026-06-12T18:00:00Z',
     turn_number: 1,
-    by_seat: 'A',
-    word: 'BREAD',
-    count: 2,
-    submitted_at: '2026-06-12T18:00:00Z',
+    seat: 'A',
+    clue_word: 'BREAD',
+    clue_count: 2,
     ...overrides,
   }
 }
 
-function guess(overrides: Partial<GuessRow>): GuessRow {
+function guess(overrides: Partial<WordedGuess>): WordedGuess {
   return {
-    position: 0,
-    word: 'STEEL',
-    guesser_seat: 'B',
-    result: 'G',
+    kind: 'guess',
+    id: 1,
+    user_id: 'bea',
+    took_turn: false,
+    created_at: '2026-06-12T18:00:00Z',
     turn_number: 1,
-    guessed_at: '2026-06-12T18:00:00Z',
+    seat: 'B',
+    guess_position: 0,
+    guess_result: 'G',
+    word: 'STEEL',
     ...overrides,
   }
 }
@@ -79,8 +82,8 @@ const turnRows = () => screen.getAllByRole('row')
  *  fixture clue uses, so a guess-less turn reads "(no guesses)" unless a test
  *  opts into the live-turn case explicitly. */
 function renderLog(props: {
-  clues: ClueRow[]
-  guesses: GuessRow[]
+  clues: ClueEvent[]
+  guesses: WordedGuess[]
   currentTurn?: number
   gameOver?: boolean
 }) {
@@ -107,19 +110,17 @@ describe('GameEventLog', () => {
 
   it('groups guesses under the turn whose clue they belong to, oldest turn first', () => {
     const clues = [
-      clue({ id: 'c1', turn_number: 1, by_seat: 'A', word: 'TOOLS', count: 2 }),
-      clue({ id: 'c2', turn_number: 2, by_seat: 'B', word: 'DRINK', count: 1 }),
+      clue({ id: 1, turn_number: 1, seat: 'A', clue_word: 'TOOLS', clue_count: 2 }),
+      clue({ id: 2, turn_number: 2, seat: 'B', clue_word: 'DRINK', clue_count: 1 }),
     ]
     const guesses = [
       guess({
-        position: 5, word: 'HAMMER',
-        result: 'G', guesser_seat: 'B',
-        guessed_at: '2026-06-12T18:01:00Z', turn_number: 1,
+        id: 1, guess_position: 5, word: 'HAMMER',
+        guess_result: 'G', seat: 'B', turn_number: 1,
       }),
       guess({
-        position: 11, word: 'COFFEE',
-        result: 'N', guesser_seat: 'A',
-        guessed_at: '2026-06-12T18:03:00Z', turn_number: 2,
+        id: 2, guess_position: 11, word: 'COFFEE',
+        guess_result: 'N', seat: 'A', turn_number: 2,
       }),
     ]
 
@@ -143,18 +144,16 @@ describe('GameEventLog', () => {
     expect(within(rows[3]).getByText('COFFEE', { exact: false })).toBeInTheDocument()
   })
 
-  it('sorts guesses within a turn by guessed_at', () => {
+  it('sorts guesses within a turn by the order they were made — their id', () => {
     const clues = [clue({ turn_number: 1 })]
     const guesses = [
       guess({
-        position: 2, word: 'LATER',
-        result: 'G', guesser_seat: 'B',
-        guessed_at: '2026-06-12T18:00:20Z', turn_number: 1,
+        id: 2, guess_position: 2, word: 'LATER',
+        guess_result: 'G', seat: 'B', turn_number: 1,
       }),
       guess({
-        position: 1, word: 'FIRST',
-        result: 'G', guesser_seat: 'B',
-        guessed_at: '2026-06-12T18:00:10Z', turn_number: 1,
+        id: 1, guess_position: 1, word: 'FIRST',
+        guess_result: 'G', seat: 'B', turn_number: 1,
       }),
     ]
 
@@ -167,21 +166,21 @@ describe('GameEventLog', () => {
   })
 
   it('reads "(clue given)" for the current, still-live turn with no guesses yet', () => {
-    const clues = [clue({ id: 'c1', turn_number: 3, by_seat: 'A', word: 'WAIT', count: 1 })]
+    const clues = [clue({ id: 1, turn_number: 3, seat: 'A', clue_word: 'WAIT', clue_count: 1 })]
     renderLog({ clues, guesses: [], currentTurn: 3, gameOver: false })
     expect(screen.getByText('(clue given)')).toBeInTheDocument()
     expect(screen.queryByText('(no guesses)')).not.toBeInTheDocument()
   })
 
   it('reads "(no guesses)" once a guess-less turn has ended (no longer current)', () => {
-    const clues = [clue({ id: 'c1', turn_number: 1, by_seat: 'A', word: 'PASS', count: 1 })]
+    const clues = [clue({ id: 1, turn_number: 1, seat: 'A', clue_word: 'PASS', clue_count: 1 })]
     renderLog({ clues, guesses: [], currentTurn: 2, gameOver: false })
     expect(screen.getByText('(no guesses)')).toBeInTheDocument()
     expect(screen.queryByText('(clue given)')).not.toBeInTheDocument()
   })
 
   it('reads "(no guesses)" for a guess-less current turn once the game is over', () => {
-    const clues = [clue({ id: 'c1', turn_number: 4, by_seat: 'A', word: 'DONE', count: 1 })]
+    const clues = [clue({ id: 1, turn_number: 4, seat: 'A', clue_word: 'DONE', clue_count: 1 })]
     renderLog({ clues, guesses: [], currentTurn: 4, gameOver: true })
     expect(screen.getByText('(no guesses)')).toBeInTheDocument()
   })
@@ -194,8 +193,8 @@ describe('GameEventLog', () => {
  */
 describe('GameEventLog — the clue-giver picker', () => {
   const clues = [
-    clue({ id: 'c1', turn_number: 1, by_seat: 'A', word: 'MINE' }),
-    clue({ id: 'c2', turn_number: 2, by_seat: 'B', word: 'THEIRS' }),
+    clue({ id: 1, turn_number: 1, seat: 'A', clue_word: 'MINE' }),
+    clue({ id: 2, turn_number: 2, seat: 'B', clue_word: 'THEIRS' }),
   ]
 
   it('lists Team plus both players by handle, and defaults to Team', async () => {

@@ -1,6 +1,6 @@
 # codenamesduet: one `events` table
 
-**Status: BUILDING on branch `codenamesduet-events` — Step 1 done (see
+**Status: BUILDING on branch `codenamesduet-events` — Steps 1–2 done (see
 Progress, at the end); the six questions answered.**
 Joel, 2026-09-23: *"make a plan for this in plans/. once i've read that plan,
 we do this."* Worked inside the
@@ -312,3 +312,35 @@ and `guesses`. The whole suite green, 182 files, 2597 tests.
 **The frontend is broken at runtime until Step 2** — `useClues` and `useBoard`
 still read the dropped tables. `tsc` is clean only because the generated types
 have not been regenerated yet; that is Step 2's first move.
+
+### Step 2 — the readers — DONE 2026-09-23
+
+- **`lib/events.ts`, new:** `DuetEvent`, the union on `kind` with the table's
+  own column names; `toDuetEvent`, the one mapper from the generated row (it
+  throws on a row the CHECK would have refused); `cluesOf` and `guessesOf`,
+  the latter joining each guess to the word on its tile (`WordedGuess`).
+- **`useBoard` reads the events** in place of the guesses, `order by id`,
+  subscribed to `events`. **`useClues` is deleted** — the game has two data
+  hooks now, not three. `PlayArea` derives the clues and the worded guesses
+  from the events it is handed.
+- Every reader — `history.ts`, `turnOutcome.ts`, `GameEventLog`, `InfoCol`,
+  `BoardCol`, `CluePanel`, `pdf/model.ts` — reads the event types. **Two sorts
+  changed meaning:** the log and the PDF ordered a turn's guesses by
+  `guessed_at`; they order by `id` now, the convention's rule.
+- `src/types/db.ts` regenerated (stamp restored). The docs that named the
+  deleted hook — the old game doc, `code-conventions.md`, `supabase.md`'s
+  divergence register, the publication guard's comments — say two hooks.
+- **Tests:** `lib/events.test.ts`, new (6); `useBoard.test.ts` gains a case
+  for the typed events; the log, history, turnOutcome, PDF and PlayArea specs
+  build events. 363 unit tests green. **All five e2e specs green** (7 tests),
+  once the tab-ring fix below was in.
+
+**Found by the e2e, and fixed in its own commit (`keyboard: rings are
+ordered by render`):** the clue form's Tab ring had regressed at the area's
+Step 2 — the loader/loaded split made the clue form mount in the same commit
+as the page's empty ring, and `useTabRing` picked the innermost by mount order,
+which a child's effect running first gets backwards. The keyboard todo had
+predicted it. Joel chose the class fix: rings are ordered by first render.
+
+**Noticed, not changed:** the log returns nothing for a turn without a clue, so
+sudden-death guesses have never appeared in it.

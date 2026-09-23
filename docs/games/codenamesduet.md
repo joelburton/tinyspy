@@ -318,7 +318,7 @@ Behaviors per `setup.timer.kind`:
 
 ## Pause-on-disconnect
 
-Inherited unchanged from the common shell. The only codenamesduet-relevant note: PauseBoundary's child-unmount means codenamesduet's per-tab postgres-changes channel tears down and reconnects on every pause cycle, with the on-SUBSCRIBED refetch in `useBoard` / `useGame` / `useClues` covering the gap. See [`states.md → paused`](../states.md#paused) for the canonical write-up.
+Inherited unchanged from the common shell. The only codenamesduet-relevant note: PauseBoundary's child-unmount means codenamesduet's per-tab postgres-changes channel tears down and reconnects on every pause cycle, with the on-SUBSCRIBED refetch in `useBoard` / `useGame` covering the gap. See [`states.md → paused`](../states.md#paused) for the canonical write-up.
 
 ## Edge Function: `codenamesduet-suggest-clue`
 
@@ -493,12 +493,11 @@ src/codenamesduet/
                           on its own per-tab UUID-suffixed channel for postgres-changes only.
                           (Members, presence, manual-pause, timer are NOT here — they live in
                           common's useCommonGame, consumed by GamePage.)
-    useBoard.ts           Loads words (denormalized board state) + the guess
-                          log + the caller's key; subscribes to realtime on
-                          both `words` and `guesses`. Returns `failure` — the
-                          envelope of a read that died.
+    useBoard.ts           Loads words (denormalized board state) + every
+                          event (lib/events.ts types them) + the caller's key;
+                          subscribes to realtime on both `words` and `events`.
+                          Returns `failure` — the envelope of a read that died.
     useBoard.test.ts
-    useClues.ts           Loads the clue history. Returns `failure` too.
 
   lib/
     phase.ts              Pure derivation: from (game state, caller seat) → 'clue' | 'guess' | 'over' | 'wait'.
@@ -551,13 +550,13 @@ One gap, known and left: the below-board notice and the local feedback pill shar
 
 ### Hooks: realtime patterns
 
-All three codenamesduet data hooks ([`useGame`](../../src/codenamesduet/hooks/useGame.ts), [`useBoard`](../../src/codenamesduet/hooks/useBoard.ts), [`useClues`](../../src/codenamesduet/hooks/useClues.ts)) drive off the shared [`useRealtimeRefetch`](../../src/common/realtime/useRealtimeRefetch.ts) factory — the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, the cleanup flag are all owned there. Each hook just declares its tables + writes its `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract and when to reach for it (vs hand-rolling) when porting a new game.
+Both codenamesduet data hooks ([`useGame`](../../src/codenamesduet/hooks/useGame.ts), [`useBoard`](../../src/codenamesduet/hooks/useBoard.ts)) drive off the shared [`useRealtimeRefetch`](../../src/common/realtime/useRealtimeRefetch.ts) factory — the per-effect UUID-suffixed channel name, the SUBSCRIBED-driven refetch, the cleanup flag are all owned there. Each hook just declares its tables + writes its `load({ mounted })` callback. See `code-conventions.md` → "Realtime data hooks" for the factory contract and when to reach for it (vs hand-rolling) when porting a new game.
 
 One codenamesduet-specific wrinkle worth knowing: the roster query in `useGame.ts` fetches profiles in a **separate** PostgREST call rather than via embedded-resource syntax — PostgREST's schema cache doesn't resolve cross-schema FKs (the `codenamesduet.games.user_a_id → common.profiles.user_id` embed fails with PGRST200), so we fetch the (≤ 2) profiles in a second query inside the same `load()` and merge in JS. See the inline comment.
 
-**Every read goes through [`readRows`](../envelopes.md), and each hook returns the `failure` envelope of its own.** All six reads across the three hooks share one shape: one branch per read (the envelope's `detail` names WHICH one died, the only fact nobody can recover afterwards), a `setFailure(null)` on a load that works — these refetch on every realtime event, so an outage that ends takes its sentence with it — and zero rows handled as its own answer rather than as an error. PlayArea takes the first of the three failures and renders `<EnvelopeErrorPage>` in place of the board: a failed read is NOT a missing game, and "Game not found." about a dead connection is a confident wrong answer.
+**Every read goes through [`readRows`](../envelopes.md), and each hook returns the `failure` envelope of its own.** All five reads across the two hooks share one shape: one branch per read (the envelope's `detail` names WHICH one died, the only fact nobody can recover afterwards), a `setFailure(null)` on a load that works — these refetch on every realtime event, so an outage that ends takes its sentence with it — and zero rows handled as its own answer rather than as an error. The loader takes the first of the failures and renders `<EnvelopeErrorPage>` in place of the board: a failed read is NOT a missing game, and "Game not found." about a dead connection is a confident wrong answer.
 
-Two of the six deserve their own note. `useBoard`'s `games` read dropped its `.single()` — that treats zero rows as an error, so a game this pair cannot see arrived looking exactly like a broken connection; now zero rows clears the key cards, which is what makes the PlayArea say "Game not found." instead of drawing from the last load. And in `useClues`, zero rows is the ORDINARY case — turn 1 before the giver has spoken looks identical — which is precisely why a failed read had to stop being an empty list.
+Two of them deserve their own note. `useBoard`'s `games` read dropped its `.single()` — that treats zero rows as an error, so a game this pair cannot see arrived looking exactly like a broken connection; now zero rows clears the key cards, which is what makes the loader render the no-such-game page instead of drawing from the last load. And for the events read, zero rows is the ORDINARY case — turn 1 before the giver has spoken looks identical — which is precisely why a failed read had to stop being an empty list.
 
 ### Phase derivation
 
@@ -692,6 +691,6 @@ spellingbee's and wordle's do.
 | What does an RPC say it does | this file + [`supabase/tests/codenamesduet/*_test.sql`](../../supabase/tests/codenamesduet/) |
 | What does the board look like | [`src/codenamesduet/components/Board.tsx`](../../src/codenamesduet/components/Board.tsx) (presentational per-tile render + corner overlays; calls `onGuess`) |
 | What does the page composition look like | [`src/codenamesduet/components/PlayArea.tsx`](../../src/codenamesduet/components/PlayArea.tsx) (mounted as `<GamePage>`'s play surface; owns the `submit_guess` dispatch, the header pill, and the in-page terminal verdict + win celebration) |
-| How does state flow on the FE | [`src/codenamesduet/hooks/useGame.ts`](../../src/codenamesduet/hooks/useGame.ts), `useBoard.ts`, `useClues.ts` |
+| How does state flow on the FE | [`src/codenamesduet/hooks/useGame.ts`](../../src/codenamesduet/hooks/useGame.ts), `useBoard.ts` |
 | What's the phase logic | [`src/codenamesduet/lib/phase.ts`](../../src/codenamesduet/lib/phase.ts) |
 | How does the AI clue suggestion work | [`supabase/functions/codenamesduet-suggest-clue/index.ts`](../../supabase/functions/codenamesduet-suggest-clue/index.ts) |

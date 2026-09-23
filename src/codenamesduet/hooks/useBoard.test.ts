@@ -63,12 +63,11 @@ function buildSupabaseMock() {
     const chain: Record<string, unknown> & { _table: string } = {
       _table: table,
       select() { return chain },
-      // `.eq()` is the terminal for guesses AND games — both read rows and
-      // neither orders them. Only words chains further, off `.order()`.
+      // `.eq()` is the terminal for games, which reads one row and orders
+      // nothing. Words and events chain further, off `.order()`.
       // The games row carries no `.single()`: `readRows` hands back rows, so
       // zero of them is an answer rather than an error.
       eq() {
-        if (table === 'guesses') return Promise.resolve({ data: [], error: null })
         if (table === 'games') {
           // Caller (USER_ID) is in seat A; the other seat belongs to a sentinel
           // uuid. Both key columns come back and the hook picks by comparing
@@ -87,7 +86,8 @@ function buildSupabaseMock() {
       },
       neq() { return chain },
       order() {
-        // Only words uses .order() — return 25 word rows.
+        if (table === 'events') return Promise.resolve({ data: events, error: null })
+        // Otherwise it is words — return 25 word rows.
         return Promise.resolve({
           data: Array.from({ length: 25 }, (_, position) => ({
             game_id: GAME_ID,
@@ -113,7 +113,11 @@ function buildSupabaseMock() {
   mockChannel.mockReturnValue(channelChain)
 }
 
+// The events rows the next load returns, as the table hands them back.
+let events: unknown[] = []
+
 beforeEach(() => {
+  events = []
   buildSupabaseMock()
 })
 
@@ -130,6 +134,26 @@ describe('useBoard', () => {
     expect(result.current.myKey).toEqual(ownKey)
     // Peer key not fetched while the game is still in progress.
     expect(result.current.peerKey).toBeNull()
+  })
+
+  it('hands back the events typed by kind, in the order the table returned them', async () => {
+    events = [
+      { id: 1, user_id: USER_ID, kind: 'clue', took_turn: false, created_at: 't1',
+        turn_number: 1, seat: 'A', clue_word: 'TOOLS', clue_count: 2,
+        guess_position: null, guess_result: null },
+      { id: 2, user_id: 'peer', kind: 'guess', took_turn: false, created_at: 't2',
+        turn_number: 1, seat: 'B', clue_word: null, clue_count: null,
+        guess_position: 4, guess_result: 'G' },
+    ]
+    const { result } = renderHook(() => useBoard(GAME_ID, USER_ID, false))
+
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(result.current.events).toEqual([
+      { id: 1, user_id: USER_ID, kind: 'clue', took_turn: false, created_at: 't1',
+        turn_number: 1, seat: 'A', clue_word: 'TOOLS', clue_count: 2 },
+      { id: 2, user_id: 'peer', kind: 'guess', took_turn: false, created_at: 't2',
+        turn_number: 1, seat: 'B', guess_position: 4, guess_result: 'G' },
+    ])
   })
 
   it('exposes the peer key only when revealPeer is true — from the single load, no second fetch', async () => {
@@ -186,7 +210,7 @@ describe('useBoard', () => {
       const chain: Record<string, unknown> = {
         select() { return chain },
         eq() {
-          return table === 'words'
+          return table === 'words' || table === 'events'
             ? chain
             : Promise.resolve({ data: [], error: null })
         },

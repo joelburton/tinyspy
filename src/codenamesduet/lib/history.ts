@@ -29,7 +29,8 @@
  * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
  * See docs/playarea.md for why turn-history drives the decomposition.
  */
-import type { GuessRow, WordRow } from '../hooks/useBoard'
+import type { WordRow } from '../hooks/useBoard'
+import type { ClueEvent, WordedGuess } from './events'
 
 export interface HistorySnapshot {
   /** The 25 board words with reveal state as of the END of the viewed turn — feed
@@ -49,8 +50,8 @@ export interface HistorySnapshot {
  */
 export function historySnapshot(
   words: WordRow[],
-  guesses: ReadonlyArray<GuessRow>,
-  clue: { word: string; count: number } | null,
+  guesses: ReadonlyArray<WordedGuess>,
+  clue: ClueEvent | null,
   turnNumber: number,
 ): HistorySnapshot {
   const revealedAs = new Map<number, 'G' | 'A'>()
@@ -60,14 +61,14 @@ export function historySnapshot(
 
   for (const g of guesses) {
     if (g.turn_number > turnNumber) continue
-    if (g.turn_number === turnNumber) historyLitTiles.add(g.position)
+    if (g.turn_number === turnNumber) historyLitTiles.add(g.guess_position)
     // A green / assassin reveal is GLOBAL + permanent; a neutral marks only the
     // guesser's own seat (the Duet per-direction rule — the partner can still
     // contact the word as their agent).
-    if (g.result === 'G') revealedAs.set(g.position, 'G')
-    else if (g.result === 'A') revealedAs.set(g.position, 'A')
-    else if (g.guesser_seat === 'A') neutralA.add(g.position)
-    else neutralB.add(g.position)
+    if (g.guess_result === 'G') revealedAs.set(g.guess_position, 'G')
+    else if (g.guess_result === 'A') revealedAs.set(g.guess_position, 'A')
+    else if (g.seat === 'A') neutralA.add(g.guess_position)
+    else neutralB.add(g.guess_position)
   }
 
   const snapWords = words.map((w) => ({
@@ -84,14 +85,14 @@ export function historySnapshot(
  *  in order (name-free; the log row already shows the clue-giver). A guess-less turn
  *  reads "…— passed". */
 function describe(
-  clue: { word: string; count: number } | null,
-  guesses: ReadonlyArray<GuessRow>,
+  clue: ClueEvent | null,
+  guesses: ReadonlyArray<WordedGuess>,
   turnNumber: number,
 ): string {
-  const cluePart = clue ? `${clue.count} ${clue.word.toUpperCase()}` : '(no clue)'
+  const cluePart = clue ? `${clue.clue_count} ${clue.clue_word.toUpperCase()}` : '(no clue)'
   const guessed = guesses
     .filter((g) => g.turn_number === turnNumber)
-    .sort((a, b) => a.guessed_at.localeCompare(b.guessed_at))
+    .sort((a, b) => a.id - b.id)
     .map((g) => g.word.toUpperCase())
   if (guessed.length === 0) return `#${turnNumber}: ${cluePart} — passed`
   return `#${turnNumber}: ${cluePart} → ${guessed.join(', ')}`

@@ -274,37 +274,52 @@ export type Database = {
   }
   codenamesduet: {
     Tables: {
-      clues: {
+      events: {
         Row: {
-          by_seat: string
-          count: number
+          clue_count: number | null
+          clue_word: string | null
+          created_at: string
           game_id: string
-          id: string
-          submitted_at: string
+          guess_position: number | null
+          guess_result: string | null
+          id: number
+          kind: string
+          seat: string
+          took_turn: boolean
           turn_number: number
-          word: string
+          user_id: string
         }
         Insert: {
-          by_seat: string
-          count: number
+          clue_count?: number | null
+          clue_word?: string | null
+          created_at?: string
           game_id: string
-          id?: string
-          submitted_at?: string
+          guess_position?: number | null
+          guess_result?: string | null
+          id?: never
+          kind: string
+          seat: string
+          took_turn?: boolean
           turn_number: number
-          word: string
+          user_id: string
         }
         Update: {
-          by_seat?: string
-          count?: number
+          clue_count?: number | null
+          clue_word?: string | null
+          created_at?: string
           game_id?: string
-          id?: string
-          submitted_at?: string
+          guess_position?: number | null
+          guess_result?: string | null
+          id?: never
+          kind?: string
+          seat?: string
+          took_turn?: boolean
           turn_number?: number
-          word?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "clues_game_id_fkey"
+            foreignKeyName: "events_game_id_fkey"
             columns: ["game_id"]
             isOneToOne: false
             referencedRelation: "games"
@@ -350,44 +365,6 @@ export type Database = {
           user_b_id?: string
         }
         Relationships: []
-      }
-      guesses: {
-        Row: {
-          game_id: string
-          guessed_at: string
-          guesser_seat: string
-          id: string
-          position: number
-          result: string
-          turn_number: number
-        }
-        Insert: {
-          game_id: string
-          guessed_at?: string
-          guesser_seat: string
-          id?: string
-          position: number
-          result: string
-          turn_number: number
-        }
-        Update: {
-          game_id?: string
-          guessed_at?: string
-          guesser_seat?: string
-          id?: string
-          position?: number
-          result?: string
-          turn_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "guesses_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       word_pool: {
         Row: {
@@ -442,12 +419,14 @@ export type Database = {
     }
     Functions: {
       _end_turn: { Args: { target_game: string }; Returns: Json }
+      _require_clue_giver: { Args: { target_game: string }; Returns: string }
       create_game: {
         Args: { player_user_ids: string[]; setup: Json; target_club: string }
         Returns: Json
       }
       end_game: { Args: { target_game: string }; Returns: Json }
       get_clue_context: { Args: { target_game: string }; Returns: Json }
+      log_hint: { Args: { target_game: string }; Returns: Json }
       pass_turn: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
       submit_clue: {

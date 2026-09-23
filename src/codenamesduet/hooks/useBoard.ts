@@ -8,7 +8,7 @@ import { db } from '../db'
 import type { Database } from '@/types/db'
 import type { KeyLabel } from '../lib/labels'
 import { agentsAllContacted } from '../lib/agents'
-import type { Seat } from '../lib/phase'
+import { toDuetEvent, type DuetEvent } from '../lib/events'
 
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
 // SELECT *". Adding a new column to codenamesduet.words requires explicitly listing
@@ -23,38 +23,27 @@ export type WordRow = Pick<
   'position' | 'word' | 'revealed_as' | 'neutral_a' | 'neutral_b'
 >
 
-/** One logged guess, joined with its word text for the Game Log. A word can
- *  appear twice (once per seat). */
-export type GuessRow = {
-  position: number
-  word: string
-  guesser_seat: Seat
-  result: KeyLabel
-  turn_number: number
-  guessed_at: string
-}
-
 /**
  * Subscribes to a game's board state for the current player.
  *
- * Returns the 25 word rows (with denormalized reveal state), the full
- * per-guess log (`guesses`, for the Game Log), the caller's own key view
- * (`myKey`), and optionally the partner's key view (`peerKey`) for post-game
- * review.
+ * Returns the 25 word rows (with denormalized reveal state), every event in the
+ * order it happened (`events` — clues, guesses, passes, hints; see
+ * `lib/events.ts`), the caller's own key view (`myKey`), and optionally the
+ * partner's key view (`peerKey`) for post-game review.
  *
- * Why a separate guess log: a word can be guessed by BOTH players (a bystander
- * on one key may be the other's agent), so the per-word row can't hold the
- * history — `codenamesduet.guesses` does. The board reads the denormalized `words`
- * state; the log reads `guesses`.
+ * Why the board and the log are read separately: a word can be guessed by BOTH
+ * players (a bystander on one key may be the other's agent), so the per-word
+ * row can't hold the history — `codenamesduet.events` does. The board reads the
+ * denormalized `words` state; the log reads the events.
  *
  * The partner's key is read as part of the same `games` row the main load
  * already pulls, so no extra fetch is needed; the returned `peerKey` stays null
  * until `revealPeer` is true (the post-game "show both keys" view).
  *
  * Realtime: drives off `useRealtimeRefetch`, watching both `words` (the board)
- * and `guesses` (the log) — full refetch on any event. Every guess updates
- * `words` (denormalization) and inserts into `guesses`, so either event lands
- * the same fresh state.
+ * and `events` (the log) — full refetch on any change. A guess updates `words`
+ * (denormalization) and inserts an event, so either change lands the same
+ * fresh state; a clue, a pass or a hint inserts an event alone.
  *
  * `failure` is the envelope behind a failed read, for the PlayArea to render in
  * place of the board. A read that returns NOTHING is a different answer from a
@@ -63,7 +52,7 @@ export type GuessRow = {
  */
 export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   const [words, setWords] = useState<WordRow[]>([])
-  const [guesses, setGuesses] = useState<GuessRow[]>([])
+  const [events, setEvents] = useState<DuetEvent[]>([])
   const [myKey, setMyKey] = useState<KeyLabel[] | null>(null)
   // "Has this seat found all its agents?" for BOTH seats — drives the
   // finished-player banners. The main load already pulls both key
@@ -91,16 +80,15 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   useRealtimeRefetch({
     tables: [
       { schema: 'codenamesduet', table: 'words', filter: `game_id=eq.${gameId}` },
-      { schema: 'codenamesduet', table: 'guesses', filter: `game_id=eq.${gameId}` },
+      { schema: 'codenamesduet', table: 'events', filter: `game_id=eq.${gameId}` },
     ],
     channelPrefix: 'codenamesduet:board',
     id: gameId,
     load: async ({ mounted }) => {
       // Seats + key cards are columns on codenamesduet.games (not a separate
       // game_players table). Pull the row, pick the column matching the
-      // caller's seat. The guess log joins word text in JS (the guesses table
-      // stores positions, not words).
-      const [wordsRes, gameRes, guessesRes] = await Promise.all([
+      // caller's seat.
+      const [wordsRes, gameRes, eventsRes] = await Promise.all([
         readRows(
           db
             .from('words')
@@ -117,11 +105,13 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
             .select('user_a_id, user_b_id, key_card_a, key_card_b')
             .eq('id', gameId),
         ),
+        // `order by id`, never the timestamp: the log's meaning is its order.
         readRows(
           db
-            .from('guesses')
-            .select('position, guesser_seat, result, turn_number, guessed_at')
-            .eq('game_id', gameId),
+            .from('events')
+            .select('id, user_id, kind, took_turn, created_at, turn_number, seat, clue_word, clue_count, guess_position, guess_result')
+            .eq('game_id', gameId)
+            .order('id'),
         ),
       ])
       if (!mounted()) return
@@ -141,8 +131,8 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
         setLoading(false)
         return
       }
-      if (guessesRes.type === 'not-ok') {
-        setFailure(guessesRes)
+      if (eventsRes.type === 'not-ok') {
+        setFailure(eventsRes)
         setLoading(false)
         return
       }
@@ -153,17 +143,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
 
       const wordRows = wordsRes.data
       setWords(wordRows)
-      const wordAt = new Map(wordRows.map((w) => [w.position, w.word]))
-      setGuesses(
-        guessesRes.data.map((g) => ({
-          position: g.position,
-          word: wordAt.get(g.position) ?? '',
-          guesser_seat: g.guesser_seat as Seat,
-          result: g.result as KeyLabel,
-          turn_number: g.turn_number,
-          guessed_at: g.guessed_at,
-        })),
-      )
+      setEvents(eventsRes.data.map(toDuetEvent))
 
       // ZERO ROWS is its own answer, and here it says the game is gone — a
       // server-side delete, or one this pair cannot see. Clearing the key is
@@ -213,5 +193,5 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
     },
   })
 
-  return { words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading, failure }
+  return { words, events, myKey, peerKey, myAgentsDone, peerAgentsDone, loading, failure }
 }
