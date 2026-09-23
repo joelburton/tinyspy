@@ -2,7 +2,7 @@
 
 ## Bugs
 
-- `.clueLabel` in the AI companion's stylesheet is read by nothing
+- `.clueLabel` in `CluePanel.module.css` is read by nothing
   (`cssClasses.test.ts` holds it in `DEAD_CLASS_PENDING`).
 - `act-new-game` answers `active` before the game row has loaded, so an
   early `+` asks the new-game question and then can do nothing. By the rule
@@ -76,3 +76,10 @@
 ## Maybe
 
 ## Won't do
+
+- **Mission / campaign mode** (2026-08-02). The rulebook's mission maps —
+  variable starting turn counts. Cheap to build; nobody wants it, and a
+  campaign implies cross-session persistence the club model doesn't carry.
+- **Tile `aria-label`s** (2026-08-02). Screen readers are out of scope
+  project-wide — see [`CLAUDE.md`](../../CLAUDE.md). The tiles keep their
+  `aria-hidden`.

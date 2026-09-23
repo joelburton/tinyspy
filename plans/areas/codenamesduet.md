@@ -70,6 +70,31 @@ Its "your turn" is an event, not the shared `current_turn_user_id` — the game
 neither reads nor writes that column — so the bell in `GamePage` never rings
 here, and `playSound('bell')` goes where the clue arrives for the guesser.
 
+### The two standing registers, reconciled — 2026-09-23
+
+`docs/games/codenamesduet.md` held one Deferred entry and two Won't do;
+`docs/deferred.md` names this game in its per-game table and in four
+cross-cutting items. Where each went:
+
+| entry | verdict |
+|---|---|
+| BUG — restart leaves the CLUES in the event log (Joel, prod, 2026-08-30, *"may already be fixed locally"*) | **fixed, deleted.** Both halves are closed in the tree, by reading rather than by a two-player run. The server: `replay_board` has deleted `codenamesduet.clues` since it was written (`a7075588`, 2026-08-03), and `replay_test.sql` asserts *"restart → the clue log is wiped"*. So on 2026-08-30 the rows were gone and what showed was the CLIENT's copy — `useClues` keeps what it holds, and a DELETE did not clear it. The client: since `24664a0a` (2026-09-15) `GamePage` keys the play surface on `common.games.restarts`, which `common.reset_game` bumps, and `useClues` is called in `PlayArea` — so a restart unmounts the old clue list and fetches an empty one, for both players, since each sees the bump |
+| Won't do: mission / campaign mode | **moved to `todo.md` → Won't do**, text unchanged |
+| Won't do: tile `aria-label`s | **moved to `todo.md` → Won't do**, text unchanged |
+| deferred.md: the per-game table's row | **repointed** at the folder's `todo.md`, as connections', psychicnum's, spellingbee's and wordle's are |
+| deferred.md: thirty-three RPCs answer a deleted game as a fault — four are this game's (`get_clue_context`, `pass_turn`, `submit_clue`, `submit_guess`) | **left.** The shared entry keeps the work; spellingbee converted its own one as a finding (F-spellingbee-10), and these four are the same candidate for pass 2 |
+| deferred.md: `cell` vs `tile` (codenamesduet 51 / 62) | **left.** Filed as its own sweep (Joel, 2026-09-16) |
+| deferred.md: hide-the-solution-on-loss, crosswords replay | **left.** Struck through, DONE — history |
+
+The doc's two sections are now one `## Deferred` pointing at the todo, as
+spellingbee's was.
+
+**One candidate for the prose pass, found here:** `docs/ui.md` → the reveal
+section says codenamesduet *"has no replay to protect (its board is the
+secret)"*. It has had one since 2026-08-03 — `replay_board`, the mulligan on
+the same key cards, whose own comment argues the case against exactly that
+sentence.
+
 ### What moved under the area — read 2026-09-23
 
 §4's window is empty by construction (the opening commit stamped the folder).

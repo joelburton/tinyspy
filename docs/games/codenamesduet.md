@@ -681,31 +681,9 @@ a printout gets read where nothing else explains them.
 
 ## Deferred
 
-- **BUG — restart leaves the CLUES in the event log.** Observed on prod by Joel,
-  2026-08-30; **may already be fixed locally** — hard to confirm, since restart
-  needs a second player.
-
-  On restarting a game, the reset is partial in a way that shows: every **guess**
-  is gone and the turn counter reads **0/11 turns spent**, but the **clues
-  themselves are still listed in the event log**. So the log carries clues from a
-  game whose guesses and counter say it never happened.
-
-  Not investigated; filed only. The shape to check first is which tables the
-  restart path clears — a reset that takes the guesses and the counter but leaves
-  the clue rows would produce exactly this. See
-  [testing.md](../testing.md) on checking every mark against BOTH restart and
-  game-end, which is the class of bug this belongs to.
-
-## Won't do
-
-Decided against, not queued — listed only so reviews don't re-propose them.
-
-- **Mission / campaign mode** (2026-08-02). The rulebook's mission maps —
-  variable starting turn counts. Cheap to build; nobody wants it, and a
-  campaign implies cross-session persistence the club model doesn't carry.
-- **Tile `aria-label`s** (2026-08-02). Screen readers are out of scope
-  project-wide — see [`CLAUDE.md`](../../CLAUDE.md). The tiles keep their
-  `aria-hidden`.
+The register lives in [`src/codenamesduet/todo.md`](../../src/codenamesduet/todo.md),
+the game folder's own, won't-dos included, as connections', psychicnum's,
+spellingbee's and wordle's do.
 
 ## File locations
 

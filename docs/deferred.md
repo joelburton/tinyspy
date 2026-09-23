@@ -48,7 +48,7 @@ Only these games have open items today; the rest have none.
 |---|---|
 | [bananagrams](games/bananagrams.md#deferred) | the peel pill's peer case · won't-do: touch input, replay |
 | [boggle](games/boggle.md#12-wont-do) | won't-do only: word-list freshness via Storage, a "check board" helper |
-| [codenamesduet](games/codenamesduet.md#wont-do) | won't-do only: missions, tile `aria-label`s |
+| [codenamesduet](../src/codenamesduet/todo.md) | the register lives in the game folder's `todo.md` since its area opened 2026-09-23 |
 | [connections](../src/connections/todo.md) | the register lives in the game folder's `todo.md` since its area opened 2026-09-19 |
 | [crosswords](games/crosswords.md#9-deferred) | the fullest register — ⌥M, `fetch-nyt-range`, NYT dedup, the library picker bound before the bulk import, standing schema flags, unpinned tests |
 | [letterboxed](games/letterboxed.md#deferred) | rare-letter seed weighting · won't-do: trimming the seed table (measured — 55 MB against a 500 MB tier) |
