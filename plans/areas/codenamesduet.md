@@ -1325,7 +1325,19 @@ Options: **a case for each**, planted again after it is written; or only those
 a player would see. Recommendation: each — spellingbee's F-17 found that a
 case list written without re-planting passes the plant.
 
-### F-codenamesduet-28 · `terminal-turns-over-budget` · a game that ended in sudden death reads "11/9 turns spent"
+### SHIPPED · F-codenamesduet-28 · `terminal-turns-over-budget` · a game that ended in sudden death reads "11/9 turns spent"
+
+**Joel, 2026-09-23: "fix f28 with 'sudden death' label."** `StateLine` decides
+by the turn count, `isSuddenDeathTurn(turnNumber, turns)` — the rule the log
+and the history viewer use — so it says "sudden death" past the budget, live
+or after the game ended, and takes no flag; `InfoCol` and the mobile bar stop
+passing one. The printout uses the same rule, so F-19's `inSuddenDeath` input
+is gone again. The phase's `inSuddenDeath` (clicks, the strip, the banners, the
+bell) is untouched: a finished game is already over. **`StateLine.test.tsx` is
+new** (the spent count through the last ordinary turn; sudden death at and far
+past the budget), and `model.test.ts` adds a terminal-after-sudden-death case
+and the last-ordinary-turn boundary. **Planted** the screen ignoring the count
+and the print deciding only while live — each red. 48 files, 417 tests.
 
 Raised at F-19. `StateLine` says "sudden death" only while the play state IS
 `sudden_death`; once a sudden-death game ends (`lost_clock`, `lost_assassin`,

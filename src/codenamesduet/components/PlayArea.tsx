@@ -497,7 +497,6 @@ export function PlayArea({
           totalAgents: TOTAL_AGENTS,
           turnNumber: game.turn_number,
           turnCap: setup.turns,
-          inSuddenDeath,
           mode: 'coop' as const,
           setup: summaryRows,
         }),
@@ -551,7 +550,6 @@ export function PlayArea({
             greenFound={greenFound}
             turnNumber={game.turn_number}
             turns={setup.turns}
-            inSuddenDeath={inSuddenDeath}
           />
         }
         // ── Board to render (live OR the historical snapshot — picked here) ──

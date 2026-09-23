@@ -1,8 +1,11 @@
 // cs-met-codenamesduet
 
+import { isSuddenDeathTurn } from '../lib/events'
+
 /**
  * codenamesduet's live-state readout — "3/15 agents · 3/9 turns spent", or
- * "3/15 agents · sudden death" once the turn budget is spent.
+ * "3/15 agents · sudden death" once the turn budget is spent, and still after
+ * a game that reached sudden death has ended (`isSuddenDeathTurn`).
  *
  * Rendered in two places that must not drift — the info column's state line
  * and the phone's `<MobileStatusBar>` above the board — so it is one
@@ -18,7 +21,6 @@ export function StateLine({
   greenFound,
   turnNumber,
   turns,
-  inSuddenDeath,
 }: {
   // Green agents contacted, out of the fixed 15.
   greenFound: number
@@ -27,13 +29,11 @@ export function StateLine({
   turnNumber: number
   // The game's turn budget (`setup.turns`).
   turns: number
-  // Budget spent — the turn counter gives way to the standing warning.
-  inSuddenDeath: boolean
 }) {
   return (
     <>
       <strong>{greenFound}</strong>/15 agents ·{' '}
-      {inSuddenDeath ? (
+      {isSuddenDeathTurn(turnNumber, turns) ? (
         'sudden death'
       ) : (
         <>

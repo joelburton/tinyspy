@@ -132,7 +132,6 @@ export function InfoCol({
             greenFound={greenFound}
             turnNumber={turnNumber}
             turns={setup.turns}
-            inSuddenDeath={inSuddenDeath}
           />
         </p>
 

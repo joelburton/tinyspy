@@ -59,7 +59,6 @@ const base = {
   totalAgents: 15,
   turnNumber: 4,
   turnCap: 9,
-  inSuddenDeath: false,
   mode: 'coop' as const,
   setup: [{ key: 'turns', label: 'Turns', value: '9' }],
 }
@@ -182,8 +181,20 @@ describe('buildDuetPrintModel — summary', () => {
   })
 
   it('says sudden death once the budget is gone, as the screen does', () => {
-    expect(buildDuetPrintModel({ ...base, turnNumber: 11, inSuddenDeath: true }).summary).toBe(
+    expect(buildDuetPrintModel({ ...base, turnNumber: 11 }).summary).toBe(
       '3/15 agents contacted · sudden death',
+    )
+  })
+
+  it('still says sudden death after such a game has ended, never "10/9"', () => {
+    expect(buildDuetPrintModel({ ...base, turnNumber: 11, isTerminal: true }).summary).toBe(
+      '3/15 agents contacted · sudden death',
+    )
+  })
+
+  it('counts the last ordinary turn as spent-but-one, not as sudden death', () => {
+    expect(buildDuetPrintModel({ ...base, turnNumber: 9 }).summary).toBe(
+      '3/15 agents contacted · 8/9 turns spent',
     )
   })
 })

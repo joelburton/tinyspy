@@ -89,9 +89,6 @@ export function buildDuetPrintModel(o: {
   totalAgents: number
   turnNumber: number
   turnCap: number
-  // The same flag the on-screen `StateLine` reads, so the summary says what the
-  // screen does: turns spent, or "sudden death" once the budget is gone.
-  inSuddenDeath: boolean
   setup: SetupRow[]
   mode: 'coop' | 'compete'
 }): DuetPrintModel {
@@ -158,9 +155,11 @@ export function buildDuetPrintModel(o: {
     brand: o.brand,
     gameTitle: o.gameTitle,
     date: o.date,
+    // What the on-screen `StateLine` says, by the same rule: turns spent, or
+    // sudden death once the budget is gone — still, after such a game ends.
     summary:
       `${o.greenFound}/${o.totalAgents} agents contacted · ` +
-      (o.inSuddenDeath
+      (isSuddenDeathTurn(o.turnNumber, o.turnCap)
         ? 'sudden death'
         : `${Math.max(0, o.turnNumber - 1)}/${o.turnCap} turns spent`),
     setup: o.setup,
