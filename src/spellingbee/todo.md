@@ -14,7 +14,7 @@
   component's copy is `wordwheel`'s character for character.
 - **The hive's hover is not gated, so a tap leaves a hex risen.** A touchscreen
   keeps `:hover` on the last-tapped element until you tap elsewhere, so
-  `.hex:hover`'s lift + lighter shadow (`Letters.module.css`) sits there after
+  `.hex:hover`'s lift + lighter shadow (`Letter.module.css`) sits there after
   every letter looking like state. strands hit this and was fixed by wrapping
   the rule in `@media (hover: hover)` — the same gate, for the same reason, as
   the tooltip bubble (`docs/ui.md` → Tooltips). The shared item in
@@ -62,9 +62,10 @@
 
 ## Won't do
 
-- **`Letters.module.css` and `Wheel.module.css` are deliberately NOT folded**
-  with wordwheel's. The two are structurally parallel — `.board`, `.grid`,
-  `.floatAnchor`, a tile — so a fold looks mechanically easy, and the reason
+- **`Letters.module.css` + `Letter.module.css` and `Wheel.module.css` are
+  deliberately NOT folded** with wordwheel's. The two sides are structurally
+  parallel — `.board`, `.grid`, `.floatAnchor`, a tile — so a fold looks
+  mechanically easy, and the reason
   not to is that it means picking ONE vocabulary for the shared names when a
   honeycomb has hexes where a wheel has tiles. The full entry, with what a
   revisit would tractably share, is [`wordwheel.md →

@@ -587,6 +587,133 @@ green (the game's and the guards) — the submit tests render the whole
 `BoardCol.tsx` say where the engine is. The e2e specs have not run for Steps
 2–7.
 
+### Step 8 — the comment pass (readability 3.5) — DONE 2026-09-22
+
+psychicnum's Step 6 rules, over six files: `PlayArea.tsx`, `BoardCol.tsx`,
+`InfoCol.tsx`, and the board's three — `Letters.tsx`, `Letter.tsx`,
+`TypedWord.tsx` (wordle's pass took its `Board.tsx`; the hive is three files).
+**501 comment lines in, 386 out.** **Proved a pure comment pass** — with every
+comment form stripped (block, line, trailing, and the JSX `{/* … */}`), blank
+lines dropped, all six files are byte-identical before and after. One
+whitespace change on purpose: `Letters.tsx` had a blank line between its
+docstring and `export function Letters`, which the proof's blank-line drop
+covers.
+
+**Seven comments were FALSE, not stale.** The surface docstring's verdicts
+("You won the race!", "Beaten to the punch.", Genius-vs-Stopped) — Step 3's
+note, now rewritten around the decomposition, as wordle's was. The shared
+trio's "only the replay sentence is spellingbee's" — the call passes no
+sentence at all. The celebration's reason for compete not celebrating
+("telling the winner from the losers needs data that isn't right on the first
+render") — `status.winner_user_id` is on the common row, so it IS right on the
+first render; the fact stays (a race's `won_compete` is not celebrated), the
+reason is gone, and **the race winner's confetti is pass 2's finding**, as it
+was connections' F-1 and wordle's F-6. `Letters.tsx`'s docstring said "the
+parent (PlayArea) controls the shuffle" (BoardCol does), "sets us up for a
+future PDF export" (the PDF exists and shares `lib/honeycomb.ts`), and "server
+validates on submit" (the FE validates; the server records). `Letter.tsx`'s
+tone-class comment said "the two custom properties" where `VERDICT_TONE`
+carries three — the candidate the shell-commit read flagged; **its twin in
+`Letters.module.css` says "two" as well and is left for the stylesheet pass**,
+CSS being outside this step. `TypedWord.tsx` named the refusal `"badLetters"`;
+the answer is `bad_letters`. And Print's "RLS + the explicit compete filter
+already scope what I may see" — the filter is `myFoundRows`, and the print
+reads `foundWords`; RLS alone scopes it.
+
+**Joel's three rules did the cutting.** Rule 3 (a product ruling is not a
+comment): End's "a valid outcome, not a punishment", the shuffle's "the
+post-game fidget is deliberate" and "Always clickable, even when locked",
+InfoCol's "the thing you watch" and "the honeycomb makes the move obvious",
+`onAnswer`'s "you know what you just typed, and a peer is never told about
+somebody else's miss", and the slot prop's "this is the ONLY copy the player
+sees". Rule 2 (why-here): the shuffle's "Bound HERE rather than in the
+PlayArea", the Committing header's "First, because the engine owns the pending
+word", and `createNewGame`'s "A plain function, rebuilt every render"
+paragraph, which psychicnum and wordle cut in the same words. Rule 1 reached
+one comment: the shuffle's ⌥Z.
+
+**Archaeology:** "(the engine is BoardCol's)" on the JSX group is a present
+fact now, wordle's "(BoardCol owns submit_guess)" shape; the celebration's
+"(the waffle loading-race lesson)"; `Letter.tsx`'s whole history — the
+`clip-path` div it replaced, "the whole button costume was unreachable
+scaffolding", "the test hooks that replaced `role="button"`", "`onMouseDown` is
+still intercepted, now only"; two citations of `spellingbee-ws`, the port's
+source (provenance); "Same rule as boggle's". **Call sites to a sentence and a
+pointer:** the envelope paragraph in `createNewGame` (docs/envelopes.md), the
+`ready` gate (`usePeerFeedback`'s docstring explains it), `commit`'s
+four-branch paragraph (the engine's `commit` contract says what `null` means),
+the NEW_GAME_CONFIRM paragraph. **The four Step 7 parked comments are gone:**
+the "(… moved into BoardCol)" line, the narration paragraph that repeated its
+header, the trio's "New game stays below", the surface docstring.
+
+**One pointer repointed:** `createNewGame`'s "(docs/games/spellingbee.md)" —
+a doc pass 2 deletes — now cites `doc.md → FE submissions`, which already
+says a custom board is a one-off.
+
+**The marker rule:** every prop note in `BoardCol`, `InfoCol`, `Letters`,
+`Letter` and `TypedWord` was `/**` and is `//`. `InfoCol`'s destructure
+carried a paragraph explaining that the type block below has group headers;
+the destructure has the headers now, as wordle's does.
+
+**Seen with the code open, left for pass 2 — code, not comments:** Print's
+`rankIdx` recomputes `selfRankIdx`; `BoardCol`'s `if (!outerLetters) return
+[]` guards a string prop the loader never leaves empty; `InfoCol`'s unread
+`setup` (Step 3's list); `Help.tsx`'s docstring says "Phase 3 copy … the rank
+ladder (which the UI doesn't render yet — that's Phase 4)", which the prose
+pass takes with the rest of the roster; `createNewGame` is a `const` arrow
+where wordle's is a function declaration.
+
+Verified: `tsc -b` clean, lint clean over `src/spellingbee/`, 358 unit tests
+green (36 files, the game's and the guards). The e2e specs have not run for
+Steps 2–8.
+
+### The stylesheet split — DONE 2026-09-22
+
+The per-importer rule (app-audit.md row 53), and the survey needed no
+judgment: `Letters.module.css` had two importers, and no class was read by
+both. `Letters.tsx` reads `.board` / `.floatAnchor` / `.grid`; `Letter.tsx`
+reads `.hex` / `.inert` / `.center` / `.used` / `.answered` / `.hexShape` /
+`.hexText`. So **`Letter.module.css` is new**, holding every rule from `.hex`
+down — the depth trio, the reduced-motion block, the shape, the three states,
+the text — and `Letters.module.css` keeps the wrapper, the anchor and the svg
+with its touch behavior. **Rule bodies and `/* @@ */` markers moved verbatim**;
+both headers are rewritten (the old one credited `PlayArea.module.css` with
+`--u`, which `beeBoard.module.css` declares, and called the PDF export
+"future"). One rule comment changed with them: `.answered`'s "the two custom
+properties" — `VERDICT_TONE` carries three, so it says "the verdict tokens".
+The two pieces of archaeology in the rule comments ("Hover used to DIM",
+"It was 0.9") are the prose pass's, untouched here.
+
+**Prose pointers chased:** `theme.css` (the center hex's stroke), `todo.md`'s
+hover item and its Won't-do fold entry, `docs/deferred.md`'s ungated-hover
+item, `docs/code-conventions.md`'s fold pointer, `docs/games/wordwheel.md`'s
+two fold entries, and the old `docs/games/spellingbee.md`'s file tree and
+pointer table. Each now names the file the rule lives in.
+
+**Verified in the EMITTED css:** `vite build` to the scratchpad, and the
+game's chunk carries two module hashes (`_grid_y4wns` beside `_hex_n3e9l`)
+with the `prefers-reduced-motion` block once. `cssClasses` and `csStamps` green
+with the file staged (`git add`, the guards reading the index); `cs-stamp.mjs
+list met-spellingbee` shows the new file. `tsc -b` clean, lint clean, 358 unit
+tests green.
+
+**Joel's second question: should anything in `PlayArea.module.css` be in a
+`BoardCol.module.css`? No.** The file is one `.layout` rule, worn by
+`PlayArea.tsx`'s root, declaring six custom properties — and by the importer
+test that is exactly what the file should hold. By the who-reads-it test the
+answer is the same: two of the six are READ on `.layout` itself —
+`--board-reserve` by the shell's `.responsiveInfoCol`, `--mobile-status-height`
+by the family's `--avail-h` rule under `@media (--mobile)` — so they cannot
+move down. The other four (`--board-units-w/h/cap`, `--max-board-size`) are
+read on `.boardCol` by `beeBoard.module.css`, and could in principle be
+declared there; but `--board-reserve` is derived from the same numbers (256 ×
+30rem/320), the bee-games contract (CLOSED) says "each game's own
+`PlayArea.module.css` sets four numbers on `.layout`", and wordwheel does the
+same — so moving spellingbee's alone splits one geometry across two files and
+diverges the fork pair. `BoardCol.tsx` wears no class of its own
+(`shared.boardCol` + `bee.boardCol`), so it needs no module. **The restructure
+is complete.**
+
 ## Findings
 
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it

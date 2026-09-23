@@ -25,7 +25,7 @@
 /* @@ */   --spellingbee-hex-text:      #1a1a1a;
 
   /* A darker-amber edge for the yellow accent — the center hex's stroke
-   * (`Letters.module.css`), so the bright-yellow cell reads as outlined rather
+   * (`Letter.module.css`), so the bright-yellow cell reads as outlined rather
    * than floating. (Was incidentally reusing the old
    * feedback-warning amber; now its own token, since that feedback palette is
    * gone — the submission pill is the shared <FeedbackPill> off the common

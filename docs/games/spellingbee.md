@@ -409,7 +409,8 @@ src/spellingbee/
                           bottom → lower-left → upper-left, positioned from lib/honeycomb.ts.
                           Takes the set of letters the typed word is USING, and passes each
                           hex its own flag.
-    Letters.module.css    Flat-top hexes as SVG <polygon>s (a real fill + stroke — a
+    Letters.module.css    The hive's svg (Letters.tsx wears it); Letter.module.css is one hex
+    Letter.module.css     Flat-top hexes as SVG <polygon>s (a real fill + stroke — a
                           clip-path div takes no border), positioned in the flower's own
                           coordinate units — the ~/spellingbee-ws §7 layout RE-BASED to the
                           flower's top-left so .grid hugs its real 256×267 box and sits FLUSH
@@ -645,7 +646,7 @@ Standard — spellingbee's `PlayArea`, `setupForm.Component`, and `help` all shi
 | How the pangram seed pool is built | [`supabase/scripts/import-spellingbee-pangrams.ts`](../../supabase/scripts/import-spellingbee-pangrams.ts) (derives `spellingbee.pangrams` from `common.words`) |
 | The board-builder edge function | [`supabase/functions/spellingbee-build-board/index.ts`](../../supabase/functions/spellingbee-build-board/index.ts) |
 | The play surface | [`src/spellingbee/components/PlayArea.tsx`](../../src/spellingbee/components/PlayArea.tsx) |
-| The honeycomb layout (CSS lifted from spellingbee-ws) | [`src/spellingbee/components/Letters.module.css`](../../src/spellingbee/components/Letters.module.css) |
+| The honeycomb layout (CSS lifted from spellingbee-ws) | [`src/spellingbee/components/Letters.module.css`](../../src/spellingbee/components/Letters.module.css) (the hive) and [`Letter.module.css`](../../src/spellingbee/components/Letter.module.css) (one hex) |
 | The rank ladder math | the SHARED [`src/common/lib/game/rankLadder.ts`](../../src/shared/rank-ladder/rankLadder.ts) |
 | The found-words list | the SHARED [`src/common/word-list/WordList.tsx`](../../src/common/word-list/WordList.tsx) (spellingbee builds its rows via the shared [`src/shared/found-words/wordListRows.ts`](../../src/shared/found-words/wordListRows.ts)) |
 | The per-gametype data hook | [`src/spellingbee/hooks/useGame.ts`](../../src/spellingbee/hooks/useGame.ts) |

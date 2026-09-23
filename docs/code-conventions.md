@@ -622,7 +622,7 @@ them instead of re-filing them.
   "do NOT remove" at the site.
 
 One deliberate non-fold lives with its game rather than here, because it's a fork-pair
-question: `Letters.module.css` / `Wheel.module.css` in
+question: spellingbee's `Letters.module.css` + `Letter.module.css` / wordwheel's `Wheel.module.css` in
 [`wordwheel.md → Deferred`](games/wordwheel.md#deferred).
 
 ### TypeScript naming conventions

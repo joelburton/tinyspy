@@ -361,7 +361,8 @@ into three buckets:
   (the dimming *rule* was always one line; the multiset-vs-set logic that decides
   *what* to dim stays per-game), and `.checkRow` moved to the shared
   `setupForm.module.css` it shares with bananagrams.
-  **`Letters.module.css` / `Wheel.module.css` are deliberately NOT folded** —
+  **spellingbee's `Letters.module.css` + `Letter.module.css` / `Wheel.module.css`
+  are deliberately NOT folded** —
   they're structurally parallel (`.board`, `.grid`, `.floatAnchor`, the tile), but
   folding them means picking one vocabulary, and a honeycomb has hexes where a
   wheel has tiles. Renaming one to match the other trades [ui.md's
@@ -539,9 +540,10 @@ border. See [common/pdf/doc.md](../../src/common/pdf/doc.md).
 
 ## Deferred
 
-- **`Letters.module.css` / `Wheel.module.css` are deliberately NOT folded**
+- **spellingbee's `Letters.module.css` + `Letter.module.css` / `Wheel.module.css`
+  are deliberately NOT folded**
   (2026-07-31, the CSS audit's §2.1). The rest of the fork pair's CSS is shared
-  with spellingbee (this doc, [Frontend](#frontend)) — but these two remain
+  with spellingbee (this doc, [Frontend](#frontend)) — but these remain
   separate copies. They're
   structurally parallel in their skeletons (`.board`, `.grid`, `.floatAnchor`, a
   tile), so a fold looks mechanically easy. The reason not to: it means picking ONE
