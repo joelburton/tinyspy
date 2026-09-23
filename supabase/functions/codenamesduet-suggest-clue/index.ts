@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 /**
  * suggest-clue — Edge Function called from the BoardScreen's "Need a clue?"

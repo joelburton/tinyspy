@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 import { Companion } from '@/common/floating-panels/Companion'
 import type { SuggestState } from './CluePanel'

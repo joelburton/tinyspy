@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 /**
  * Unit test for the codenamesduet turn-history snapshot (lib/history.ts). Pure —

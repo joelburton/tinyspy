@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-codenamesduet
 
 -- ============================================================
 -- Test: the turn loop (submit_clue, submit_guess, pass_turn)

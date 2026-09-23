@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-codenamesduet
 
 -- ============================================================
 -- Test: clue-giver hand-off when one seat's agents are all found

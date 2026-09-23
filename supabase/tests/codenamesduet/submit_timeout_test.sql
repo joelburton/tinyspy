@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-codenamesduet
 
 -- ============================================================
 -- Test: codenamesduet.submit_timeout — wall-clock countdown expired

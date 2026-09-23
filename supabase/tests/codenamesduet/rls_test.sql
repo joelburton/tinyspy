@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-codenamesduet
 
 -- ============================================================
 -- Test: row-level security boundaries

@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-codenamesduet
 
 -- ============================================================
 -- Test: codenamesduet.create_game(target_club, setup)

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 import styles from './Help.module.css'

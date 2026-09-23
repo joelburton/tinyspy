@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 import { useEffect } from 'react'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'

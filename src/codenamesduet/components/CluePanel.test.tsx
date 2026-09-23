@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 /**
  * Regression guard for the two-kinds-of-text-input contract (docs/common.md →

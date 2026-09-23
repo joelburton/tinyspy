@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-codenamesduet
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { GuessRow } from '../hooks/useBoard'

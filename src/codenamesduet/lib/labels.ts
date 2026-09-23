@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 /**
  * Shared types for tile labels.

@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-codenamesduet
 
 import { cls } from '@/common/utils/cls'
 import type { WordRow } from '../hooks/useBoard'

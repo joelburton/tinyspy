@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 /**
  * Pure derivation of the in-game UI state from the bits of server

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 /**
  * Guard test for codenamesduet's guess dispatch: a second

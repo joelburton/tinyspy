@@ -1,4 +1,4 @@
-// cs-fixed-outcome-fix
+// cs-met-codenamesduet
 
 import { Fragment } from 'react'
 import { EventLog, EventLogActor, EventLogOutcomeBar, EventLogNumber } from '@/common/event-log/EventLog'

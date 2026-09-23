@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 /**
  * Tests for GameEventLog. A pure presentational component — it takes `clues` +

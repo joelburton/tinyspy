@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 import { supabase } from '@/common/supabase/supabase'
 

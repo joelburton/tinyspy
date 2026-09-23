@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 /**
  * codenamesduet's setup form — the only single-mode game, and the only one

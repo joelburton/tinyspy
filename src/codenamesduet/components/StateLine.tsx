@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 /**
  * codenamesduet's core live-state readout — "3/15 agents · 3/9 turns spent" (or

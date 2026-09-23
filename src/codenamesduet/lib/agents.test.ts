@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-codenamesduet
 
 import { describe, expect, it } from 'vitest'
 import { agentsAllContacted } from './agents'
