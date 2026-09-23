@@ -1301,7 +1301,9 @@ case pins it; **planted** the old fallthrough — red. 48 files, 418 tests.
 terminal state"*. All five are known. Options: **name it**, as a `switch`
 over the five; or leave it. Recommendation: name it.
 
-### F-codenamesduet-24 · `print-legend-omits-triangles` · the printed legend leaves out the triangles
+### RULED — NO CHANGE · F-codenamesduet-24 · `print-legend-omits-triangles` · the printed legend leaves out the triangles
+
+**Joel, 2026-09-23: "leave it."** The legend stays as it is.
 
 The legend explains the three marks and the corners; the bystander triangles,
 which the printer's own docstring calls *"not decoration"*, appear nowhere in
