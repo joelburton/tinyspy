@@ -871,7 +871,17 @@ the events table the link is an event id, and `GameEventLog` already calls it
 `eventId`. Options: **rename it `eventId`**; or leave it. Recommendation:
 rename.
 
-### F-codenamesduet-5 · `myseat-optional` · `mySeat` is optional where the loader guarantees a seat
+### SHIPPED · F-codenamesduet-5 · `myseat-optional` · `mySeat` is optional where the loader guarantees a seat
+
+**Joel, 2026-09-23: "i'll take your rec."** The loader reads the viewer's seat
+off the players it seated, sends a missing one to the no-such-game page beside
+the missing key card, and hands `PlayArea` `mySeat: Seat`; `PlayArea`'s `me`
+lookup is gone. `Board` and `BoardCol` take `mySeat: Seat`, and each neutral
+flag is one lookup. `derivePhase` and the print model keep `Seat | undefined`,
+which a `Seat` satisfies. **Planted** the rewritten flag swapped: it
+**passed** — F-27's untested own-bystander lock — so `components/Board.test.tsx`
+is new, pinning the lock from both seats; the swap and the lock removed are
+each red on both cases. `tsc -b` and eslint clean; 47 files, 404 tests.
 
 `Board` and `BoardCol` type `mySeat: Seat | undefined`, and `Board` carries a
 `: false` arm for each neutral flag. The loader renders the no-such-game page
@@ -1232,7 +1242,7 @@ Planted and restored in all three layers; each survived:
 - **FE logic:** `useGame` has no spec — seats A and B swapped, and a
   zero-row load keeping the old game, both green; `useBoard`'s zero-row
   branch (`setMyKey(null)`, which shows the no-such-game page) dropped.
-- **Components:** the own-bystander click lock; my key square shown while I
+- **Components:** ~~the own-bystander click lock~~ (F-5's `Board.test.tsx`); my key square shown while I
   guess; the partner's square without its game-over gate; the partner's
   triangle never drawn; the finished banner never shown, shown in sudden
   death, or reading the partner's flag; the sudden-death strip never drawn; a

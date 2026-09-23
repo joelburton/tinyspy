@@ -98,7 +98,7 @@ export function BoardCol({
   // The partner's key view — null until the caller chooses to see it.
   peerKey: KeyLabel[] | null
   // The caller's seat.
-  mySeat: Seat | undefined
+  mySeat: Seat
   gameOver: boolean
   // The board gate (glossary `readOnly`): tiles are inert. Derived in PlayArea
   // from the phase; this column ORs in `isViewingHistory` before handing the

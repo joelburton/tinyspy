@@ -138,11 +138,12 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   if (failure) return <EnvelopeErrorPage envelope={failure} />
   // Reaching this means the COMMON row exists — `GamePageGate` and
   // `GamePageLoader` each checked. A missing duet row is a torn write or a game
-  // deleted while open. A missing key card is also a viewer who holds no seat.
-  // A seat id missing from the shell's players is a torn write too.
+  // deleted while open. A missing key card or seat is also a viewer who holds
+  // no seat. A seat id missing from the shell's players is a torn write too.
   // `detail` goes to the console, never to the page.
   const seated = game && seatPlayers(game, ctx.players)
-  if (!game || !seated || !board.myKey || board.words.length < 25) {
+  const mySeat = seated?.find((p) => p.user_id === ctx.session.user.id)?.seat
+  if (!game || !seated || !mySeat || !board.myKey || board.words.length < 25) {
     return (
       <NoSuchGamePage
         detail={`rows=${game ? 1 : 0} table=codenamesduet.games seats=${seated ? 2 : 'missing'} key=${board.myKey ? 'seated' : 'none'} words=${board.words.length} game=${ctx.gameId}`}
@@ -155,6 +156,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
       {...ctx}
       game={game}
       seatedPlayers={seated}
+      mySeat={mySeat}
       words={board.words}
       events={board.events}
       myKey={board.myKey}
@@ -177,6 +179,9 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
   // The two seated players, A then B, each with a `seat`. The context's
   // `players` are the same two, with no seat; they are read as `members`.
   seatedPlayers: Player[]
+  // The viewer's own seat. Always one — the loader shows the no-such-game page
+  // to a viewer who holds none.
+  mySeat: Seat
   // The 25 words with their reveal state.
   words: WordRow[]
   // Everything that has happened, in order: clues, guesses, passes, hints.
@@ -209,6 +214,7 @@ export function PlayArea({
   title,
   game,
   seatedPlayers: players,
+  mySeat,
   words,
   events,
   myKey,
@@ -274,8 +280,6 @@ export function PlayArea({
 
   // Seat/roster derivations, read by the print model (built in the binding's
   // run) and the render alike, so both see the SAME values.
-  const me = players.find((p) => p.user_id === session.user.id)
-  const mySeat = me?.seat
   const peer = players.find((p) => p.user_id !== session.user.id)
   const greenFound = words.filter((w) => w.revealed_as === 'G').length
 

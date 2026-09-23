@@ -34,7 +34,7 @@ type Props = {
   peerKey: KeyLabel[] | null
   // The caller's seat. Picks which per-seat neutral flag is "mine" for the
   // triangles and the click gate.
-  mySeat: Seat | undefined
+  mySeat: Seat
   // Gates the peer's key-card square, shown only once the game is over.
   gameOver: boolean
   // Whether the caller may click tiles right now — the phase's answer
@@ -99,10 +99,8 @@ export function Board({
           // other direction (the Duet rule). Both are public, so both
           // triangles show during play; only the peer's KEY (the square) is
           // withheld.
-          const iNeutraled =
-            mySeat === 'A' ? w.neutral_a : mySeat === 'B' ? w.neutral_b : false
-          const partnerNeutraled =
-            mySeat === 'A' ? w.neutral_b : mySeat === 'B' ? w.neutral_a : false
+          const iNeutraled = mySeat === 'A' ? w.neutral_a : w.neutral_b
+          const partnerNeutraled = mySeat === 'A' ? w.neutral_b : w.neutral_a
           const revealed = w.revealed_as !== null
 
           // The tile background is what HAPPENED on this tile:
