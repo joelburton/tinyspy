@@ -861,7 +861,10 @@ declares it and the destructure never takes it (the setup echo is
 Options: **delete it** (the derivation, the pass-through, the member); or keep
 it. Recommendation: delete.
 
-### F-codenamesduet-4 · `show-history-param-name` · `onShowHistory`'s parameter is named `turnNumber` and is an event id
+### SHIPPED · F-codenamesduet-4 · `show-history-param-name` · `onShowHistory`'s parameter is named `turnNumber` and is an event id
+
+**Joel, 2026-09-23: "rename it."** `eventId`, as `GameEventLog` names it. One
+word in a function type; `tsc -b` and eslint clean.
 
 `InfoCol.tsx`: `onShowHistory: (turnNumber: number, n: number) => void`. Since
 the events table the link is an event id, and `GameEventLog` already calls it

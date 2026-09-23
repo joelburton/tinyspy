@@ -117,7 +117,7 @@ export function InfoCol({
   historyId: number | null
   // Straight through to the log, which addresses a turn by an event id — its
   // clue, or a sudden-death guess — and hands back the `#N` it printed.
-  onShowHistory: (turnNumber: number, n: number) => void
+  onShowHistory: (eventId: number, n: number) => void
 }) {
   return (
     <div className={shared.infoCol}>
