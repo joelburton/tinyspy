@@ -30,9 +30,10 @@ Agreed with Joel 2026-09-22 (*"agree to the list"*), `cs-met-spellingbee` —
 | `supabase/functions/spellingbee-build-board/` | 3 | `index.ts`, `board.ts`, `board_test.ts` — **the first edge function on a game roster.** This game's own code, so it is read here; nothing in the shape the earlier games settled covers a Deno chunk, so what its read looks like is this area's to work out |
 
 `src/spellingbee/logo.svg` has nowhere to put a stamp; `todo.md` is markdown
-and carries none. `src/spellingbee/doc.md` does not exist yet — it is written
-at the restructure's Step 3, and `docs/games/spellingbee.md` is deleted into it
-in pass 2, as the three earlier games' docs were.
+and carries none. **`src/spellingbee/doc.md` was written at Step 3**
+(2026-09-22), markdown like the todo, roster all the same;
+`docs/games/spellingbee.md` is deleted into it in pass 2, as the three earlier
+games' docs were.
 
 ### What is NOT on it
 
@@ -248,6 +249,89 @@ optimistic, since the component holding the binding does not render until the
 row is in hand.
 
 **Verified:** `tsc -b` and eslint clean; 4 files, 56 tests green.
+
+### Step 3 — the `doc.md` skeleton, with the RPCs and FE submissions written — DONE 2026-09-22
+
+As wordle's `bee4cf95`: `src/spellingbee/doc.md`, seven headings, with the
+lede, a short intro (three things that are high-level about this game: the
+frontend knows the answer key, the board is built outside the database, and
+what separates the modes is whose list a word lands on), the RPCs and the FE
+submissions written from `supabase/sql/spellingbee.sql`, the edge function
+and the call sites — not from the old doc — and Game rules, Schema, Frontend
+and Tests marked owed to pass 2. The RPC section is the `ok` answers only; a
+refusal that is part of the story is a clause without a code. The intro's
+paragraphs open in plain prose, the rule `docs/common-folders.md` states.
+
+**This game's own question, answered in the RPC section:** the edge function
+is what starting a game actually calls, so it is listed first, under RPCs,
+as *"the edge function in front of `create_game`"* — what it samples, what
+`candidate_words` returns, how a word is scored and partitioned, the body it
+takes, and that its answer is `create_game`'s envelope relayed untouched. The
+board example is a REAL board, not an invented one: `A·CHIORT` run through
+`candidate_words` on the local stack (81 required words for 385 points, 122
+bonus; `chariot` the required pangram, `trochaic` a bonus one, `airt` a
+four-letter bonus word), and every example word in the FE-submissions table
+was checked against the same lists — `chit` lacks the center, `chait` is not
+in the dictionary, `cat` is three letters.
+
+**Written against the code, and where the old doc and the code's own words
+disagreed:**
+
+- The old doc's `submit_word` section says the answer carries `won: true` on
+  the winning commit and lists `accepted` / `bonus` as the two `ok`s; the SQL
+  answers four `result`s (`accepted` · `bonus` · `pangram` · `won`), `won`
+  taking precedence, and the call site treats all four alike. The doc says
+  the four.
+- The old doc's `submit_timeout` says a second call "raises P0001, which the
+  FE swallows"; the SQL answers a race envelope through the boundary. Not in
+  the new doc at all — a refusal is not game logic.
+- `docs/games/spellingbee.md` → Play states says a compete timeout is
+  `lost_compete` because "a compete race always carries a target rank"; the
+  SQL writes `lost_compete` only when `target_rank` is not null, and `ended`
+  otherwise. The two agree in practice (`create_game` refuses a race with no
+  target), and the doc says "always `lost_compete` in a race".
+
+**What the doc records as it is TODAY, which Step 4 changes:** the words a
+player reads are written in three places plus the server — the engine's
+`line()` (`+N`, `pangram +N`, `too short`, `already found`), this game's
+`explainReject` (`bad letters`, `missing "A"`, `not a word`), `PlayArea`'s two
+peer narrations (`found WORD +N` / `pangram 🐝 WORD +N`, `reached <rank>`),
+and `submit_word`'s duplicate race, which composes the whole
+`WORD — already found` line so both routes to it read alike. `lib/answer.ts`
+holds only the outcome table. The FE-submissions table lists all six with
+where each is written, which is the inventory Step 4 starts from. **The
+duplicate is the thing Step 4 has to reckon with that connections and wordle
+did not**: it is the one answer this game deliberately writes twice (Joel,
+2026-09-01, in the SQL), so the conversion cannot simply move its words.
+
+**Seen with the code open, left for pass 2** (stale claims, the prose pass's):
+
+- `lib/setup.ts`'s docstring says `create_game` "rejects a `mode` field on
+  setup with a loud P0001"; no such check exists in the SQL, and the old doc
+  records its removal on 2026-08-02.
+- `manifest.ts`'s docstring cites "hidden wordlists via the games_state view"
+  (both lists ship), and `startGameInClubFactory` says the edge function
+  "strips `setup.mode` if present" — `parseBuildBoardRequest` strips nothing.
+- `spellingbee.sql`'s `create_game` header gives the title example as
+  `E·CABDNO`, which is not alphabetized; the code sorts. The `submit_word`
+  duplicate comment names `useWordSubmit`, a hook that is `useFoundWordSubmit`;
+  and the `submit_timeout` / `end_game` headers say `status.outcome` where the
+  key written is `reason` — the same rename residue wordle's prose pass found.
+- The edge function's header says "all ~3.5k rows" of `spellingbee.pangrams`
+  where the old doc and the importer say ~2.1k, and its step 6 lists
+  `create_game`'s arguments without `mode`.
+- `PlayArea`'s surface docstring describes verdicts that do not exist ("You
+  won the race!", "Beaten to the punch.", Genius-vs-Stopped on `ended`);
+  `buildOver` writes `You won!`, `<name> won`, and one `Ended:` sentence at
+  every rank. Step 8's comment pass will reach it before pass 2 does.
+- **`InfoCol` takes a `setup` prop it never reads** — declared in its props
+  type, passed by `PlayArea`, not destructured. wordle's F-5, again.
+
+**One thing the step corrected in the pickup notes:** `folderDocs` does NOT
+guard a game folder's intro — its walk is one level under `src/common/` and
+`src/shared/` only — so the plain-prose rule holds here by hand, not by test.
+
+**Verified:** the guards green with the file in place (31 files, 285 tests).
 
 ## Findings
 
