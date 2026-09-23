@@ -9,8 +9,9 @@
 -- clue-giver bookkeeping advances at turn end.
 --
 -- Plays two short games:
---   1. A full active-play loop with clue, green guess, neutral
---      guess (turn ends), pass (zero-guess turn ends).
+--   1. A full active-play loop with clue, green guess (the club-list
+--      agent count moving with it), neutral guess (turn ends), pass
+--      (zero-guess turn ends).
 --   2. A fresh game where the first guess hits an assassin —
 --      the game ends immediately in `lost_assassin` play_state.
 --   3. A game a friend deletes mid-turn: a clue, a guess and a pass into
@@ -23,7 +24,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(21);
+select plan(22);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -106,6 +107,13 @@ select pg_temp.envelope_is(
     "greens_found":1,"turn_number":1,"turns_remaining":9,
     "clue_giver":"A","play_state":"playing"}}'::jsonb,
   'a green guess answers ok/agent, turn state unchanged'
+);
+
+-- The club list's agent count moves with it.
+select is(
+  (select (status->>'greens_found')::int from common.games where id = (select id from g1)),
+  1,
+  'a green guess mid-game updates the club-list status greens_found'
 );
 
 -- Green keeps the turn alive: no turn spent, clue-giver unchanged.

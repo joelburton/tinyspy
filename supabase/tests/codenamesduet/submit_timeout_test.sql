@@ -16,6 +16,8 @@
 --   - happy path from sudden_death (the other non-terminal state)
 --   - idempotency: second call on a terminal game answers the race
 --   - require_game_player: non-player is rejected
+--   - after a turn is spent: both players' results are {won: false}, and
+--     status.turns_used is the budget less what is left
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 -- ============================================================
@@ -24,7 +26,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(8);
+select plan(10);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -141,6 +143,38 @@ select is(
   (select play_state from common.games where id = (select id from g2)),
   'lost_timeout',
   'submit_timeout: sudden_death → lost_timeout (not lost_clock)'
+);
+
+-- ============================================================
+-- (5) What a timeout records, one turn in
+-- ============================================================
+-- A game with one turn spent the real way (a clue, then a pass), so the
+-- turns spent are not simply zero.
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+create temp table g3 on commit drop as
+select (codenamesduet.create_game(
+  (select handle from club),
+  pg_temp.codenamesduet_setup(9),
+  pg_temp.codenamesduet_players()
+)->'data'->>'id')::uuid as id;
+select codenamesduet.submit_clue((select id from g3), 'ONE', 1);
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select codenamesduet.pass_turn((select id from g3));
+select codenamesduet.submit_timeout((select id from g3));
+
+reset role;
+select is(
+  (select count(*) from common.game_players
+    where game_id = (select id from g3) and result = '{"won": false}'::jsonb),
+  2::bigint,
+  'submit_timeout: a coop loss writes {won: false} for BOTH players'
+);
+
+select is(
+  (select (status->>'turns_used')::int from common.games where id = (select id from g3)),
+  1,
+  'submit_timeout: turns_used is the budget less what is left (1 of 9)'
 );
 
 -- ============================================================

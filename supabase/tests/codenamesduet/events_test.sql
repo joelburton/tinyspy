@@ -12,6 +12,7 @@
 --      guess that ends the game, move nothing;
 --   3. a hint — `log_hint`, only for the clue-giver, `took_turn` false, and no
 --      payload at all (the suggestion would spoil the partner's guessing);
+--      its seat is the caller's, from either side of the table;
 --   4. a pass — `took_turn` true;
 --   5. so a game on turn N holds N - 1 events that took a turn;
 --   6. the table holds its own shape: one clue per turn, and each kind only
@@ -22,7 +23,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(18);
+select plan(19);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -111,7 +112,15 @@ select is(
   'a pass is logged against the turn it ended, and takes a turn'
 );
 
--- ─── Turn 2: bea gives the AI's clue, ada turns over a bystander ───
+-- ─── Turn 2: bea asks the AI, gives its clue, ada turns over a bystander ───
+-- The hint is filed under the seat that ASKED — B here, where turn 1's was A.
+select log_hint((select id from g1));
+select isnt(
+  pg_temp.event_of((select id from g1), 'hint', 2, 'B'),
+  null,
+  'a hint from seat B is logged under seat B — the caller''s seat, not a fixed one'
+);
+
 select pg_temp.envelope_is(
   submit_clue((select id from g1), 'HAMMER', 1, true),
   '{"type":"ok","data":{"result":"clued","word":"HAMMER","count":1,
@@ -138,7 +147,7 @@ reset role;
 select is(
   (select array_agg(kind order by id) from codenamesduet.events
     where game_id = (select id from g1)),
-  array['clue', 'guess', 'hint', 'pass', 'clue', 'guess'],
+  array['clue', 'guess', 'hint', 'pass', 'hint', 'clue', 'guess'],
   'the events are in the order the moves were made'
 );
 select is(

@@ -18,7 +18,8 @@
 --
 -- We drive that exact sequence with PL/pgSQL loops over the
 -- positions found by `find_position_set` and assert the win check
--- fires only on the 15th reveal — not the 14th.
+-- fires only on the 15th reveal — not the 14th — and that the win
+-- records both players as winners and the one turn spent.
 --
 -- See `create_game_test.sql` for the pgTAP primer.
 -- ============================================================
@@ -27,7 +28,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(5);
+select plan(7);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -176,6 +177,23 @@ select is(
   (select (status->>'greens_found')::int from common.games where id = (select id from g)),
   15,
   'the winning reveal records the 15th agent in the listing status'
+);
+
+-- (6) A coop win is both players' — each result is {won: true}.
+select is(
+  (select count(*) from common.game_players
+    where game_id = (select id from g) and result = '{"won": true}'::jsonb),
+  2::bigint,
+  'the win writes {won: true} for BOTH players'
+);
+
+-- (7) …and the listing records the turns spent: the budget less what is left.
+-- Turn 1 ended on bea's pass; turn 2 is the one the win came in, and a win
+-- spends nothing — so one turn of nine.
+select is(
+  (select (status->>'turns_used')::int from common.games where id = (select id from g)),
+  1,
+  'a guess that ends the game records turns_used = budget − turns_remaining (1 of 9)'
 );
 
 -- ============================================================

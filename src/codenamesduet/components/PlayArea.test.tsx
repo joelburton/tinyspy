@@ -177,6 +177,26 @@ describe('codenamesduet PlayArea — guess in-flight guard', () => {
 })
 
 /**
+ * A refused guess is said where I am looking: the server's own sentence in the
+ * local slot under the board.
+ */
+describe('codenamesduet PlayArea — a refused guess', () => {
+  it('shows the server’s sentence in the local slot', async () => {
+    rpc.mockReturnValue(Promise.resolve({
+      data: {
+        type: 'not-ok', data: null, outcome: 'warning', severity: 'race',
+        message: 'That word is already revealed', field: null, meta: null,
+        dbcode: 'PN382', detail: null,
+      },
+      error: null,
+    }))
+    render(<PlayAreaLoader {...makeCtx()} />)
+    fireEvent.click(screen.getByRole('button', { name: /apple/i }))
+    expect(await screen.findByText('That word is already revealed')).toBeInTheDocument()
+  })
+})
+
+/**
  * The tiles' input gate, by its observable effect — clickable during my guess
  * turn, blocked at terminal — so a flip that inverts the gate fails here.
  */
@@ -451,8 +471,13 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
     await press({ key: '+' })
     // No <ConfirmationHost/> is mounted, so a question would have been answered
     // "no" — the RPC firing proves none was asked.
+    // The next board is for this game's two players, on this game's setup.
     await waitFor(() =>
-      expect(rpc).toHaveBeenCalledWith('create_game', expect.objectContaining({ target_club: 'testclub' })),
+      expect(rpc).toHaveBeenCalledWith('create_game', expect.objectContaining({
+        target_club: 'testclub',
+        player_user_ids: ['me', 'peer'],
+        setup: expect.objectContaining({ turns: 9 }),
+      })),
     )
     await waitFor(() => expect(ctx.goToGame).toHaveBeenCalledWith('codenamesduet', 'next-game-id'))
   })

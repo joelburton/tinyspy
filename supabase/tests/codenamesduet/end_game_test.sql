@@ -14,6 +14,7 @@
 -- Coverage:
 --   - happy path from playing: play_state → ended, is_terminal=true,
 --     status.reason='manual', both players' result = {won:false}
+--   - the realtime wake: the codenamesduet.games row is written
 --   - idempotency: a second call on the now-terminal game answers the
 --     shared game-over race
 --   - require_game_player: a non-player is rejected
@@ -26,7 +27,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(8);
+select plan(9);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -49,12 +50,28 @@ select (codenamesduet.create_game(
   pg_temp.codenamesduet_players()
 )->'data'->>'id')::uuid as id;
 
+-- The row's physical address before the end — see the wake assertion below.
+create temp table ctid_before on commit drop as
+select ctid::text as row_address from codenamesduet.games where id = (select id from g);
+
 select lives_ok(
   format(
     $$ select codenamesduet.end_game(%L::uuid) $$,
     (select id from g)
   ),
   'end_game: playing game accepts the call'
+);
+
+-- The realtime wake: end_game writes codenamesduet.games (a self-set of
+-- turn_number) so a client subscribed to that table refetches into the ended
+-- game — the end itself is written only to common.games. The write changes no
+-- value, so it shows as a new row version: an UPDATE always moves the tuple,
+-- while the `for update` lock end_game also takes does not. (`xmin` cannot
+-- tell: the whole test is one transaction, create_game's write included.)
+select isnt(
+  (select ctid::text from codenamesduet.games where id = (select id from g)),
+  (select row_address from ctid_before),
+  'end_game: writes the codenamesduet.games row, the realtime wake'
 );
 
 reset role;

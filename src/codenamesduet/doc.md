@@ -483,17 +483,17 @@ test finds a position by its label), `pg_temp.codenamesduet_setup()` and
 
 | file | pins |
 |---|---|
-| `create_game_test` | the refusals — no sign-in, an outsider, a roster that is not two, a bad turn budget, a bad timer — the rows written, and the key card's joint table exactly |
-| `game_loop_test` | who may clue, guess and pass in which phase; an agent goes on, a bystander ends the turn and hands the clue over, a pass spends a turn; the assassin ends the game; no answer carries an outcome; a clue, a guess and a pass into a deleted game are the shared race |
+| `create_game_test` | the refusals — no sign-in, an outsider, a roster that is not two, a bad turn budget, a bad timer — the rows written, the club-list status seeded at turn 1, and the key card's joint table exactly |
+| `game_loop_test` | who may clue, guess and pass in which phase; an agent goes on and the club-list agent count with it, a bystander ends the turn and hands the clue over, a pass spends a turn; the assassin ends the game; no answer carries an outcome; a clue, a guess and a pass into a deleted game are the shared race |
 | `clue_giver_handoff_test` | a finished player gives no more clues, from either seat, and two live seats still alternate |
 | `cross_direction_test` | a bystander locks the guesser's side only; the partner can still contact the word; the two locks answer in different words |
-| `win_test` | the fourteenth agent plays on and the fifteenth wins |
+| `win_test` | the fourteenth agent plays on and the fifteenth wins, both players winning, with the turns spent recorded |
 | `sudden_death_test` | a real last pass enters it, with nobody holding the clue seat; a clue, a pass and the AI refused in its own words; an agent goes on, a bystander is `lost_clock` and an assassin `lost_assassin` |
-| `submit_timeout_test` | `lost_timeout` from both running states, the reason, and a second call refused |
-| `end_game_test` | `ended` with the reason `manual`, nobody winning, and a second call refused |
+| `submit_timeout_test` | `lost_timeout` from both running states, the reason, both players losing, the turns spent, and a second call refused |
+| `end_game_test` | `ended` with the reason `manual`, nobody winning, the game row written for the realtime wake, and a second call refused |
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
-| `events_test` | what each move writes to the log, `took_turn` included; the one-clue index and the payload CHECK |
-| `clue_context_test` | `get_clue_context`'s gate, every agent, bystander and assassin in its answer, and the whole board; a deleted game is the shared race through it and `log_hint` |
+| `events_test` | what each move writes to the log, `took_turn` included, a hint under the seat that asked; the one-clue index and the payload CHECK |
+| `clue_context_test` | `get_clue_context`'s gate, every agent, bystander and assassin in its answer, the whole board and the clues given so far; a deleted game is the shared race through it and `log_hint` |
 | `rls_test` | an outsider sees no row of any table and cannot move; a direct insert is refused |
 
 The edge function has no tests; `deno check` is its only net.
@@ -505,9 +505,10 @@ Vitest, beside the code:
 | `lib/phase.test` · `lib/agents.test` | every branch of the phase; when a seat's agents are all found |
 | `lib/turnOutcome.test` · `lib/terminal.test` · `lib/answer.test` | a turn's outcome, sudden death's included; every ending's words; the header's words about the partner |
 | `lib/events.test` · `lib/history.test` | the log's rows typed by kind; a past turn's board, its bystanders per side and its own tiles ringed |
-| `hooks/useBoard.test` | the reads, the partner's card only when asked for, and a failed read kept as a failure rather than an empty board |
-| `components/PlayArea.test` | a second guess while one is in flight sends nothing; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the keys |
-| `components/GameEventLog.test` · `components/ClueStrip.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows and history link; the clue inputs' tag and when a clue counts as the AI's; the key card's grid; the setup form's fields |
+| `hooks/useGame.test` · `hooks/useBoard.test` | the game row, a vanished row dropped rather than drawn on, a failed read kept and later cleared; the board's reads, the partner's card only when asked for, a gone game clearing my key (the no-such-game page), and a failed read kept as a failure rather than an empty board |
+| `components/PlayArea.test` | a second guess while one is in flight sends nothing; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the keys, New game's players and setup included |
+| `components/Board.test` · `components/StateLine.test` | the per-seat bystander lock, my key card hidden while I guess, the partner's only at the end and when asked, and the two triangles, above and below the word; the readout's turns spent and sudden death |
+| `components/GameEventLog.test` · `components/ClueStrip.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows and history link; the clue inputs' tag, the one-digit count, when a clue counts as the AI's, the form clearing when the clue lands, and the sudden-death notice; the key card's grid; the setup form's fields |
 | `pdf/model.test` | the partner's card never printed mid-game; each cell's mark and triangles; the clue log |
 
 Playwright, in `e2e/`: `codenamesduet` (the board holds its height through

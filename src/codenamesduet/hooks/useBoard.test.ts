@@ -10,7 +10,7 @@
  * one look identical from `words` alone.
  */
 
-import { renderHook, waitFor } from '@testing-library/react'
+import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const ownKey = ['G', 'N', 'A', 'G', 'N', 'A', 'G', 'N', 'A', 'G', 'N', 'A', 'G', 'N', 'A', 'G', 'N', 'A', 'G', 'N', 'A', 'G', 'N', 'A', 'G']
@@ -62,7 +62,7 @@ function buildSupabaseMock() {
           // uuid. Both key columns come back and the hook picks by comparing
           // user_a_id / user_b_id.
           return Promise.resolve({
-            data: [{
+            data: gameGone ? [] : [{
               user_a_id: USER_ID,
               user_b_id: '00000000-0000-0000-0000-00000000cccc',
               key_card_a: ownKey,
@@ -97,16 +97,27 @@ function buildSupabaseMock() {
   // `mockReturnThis` (via the chainable object) keeps the chain alive.
   const channelChain = {
     on: vi.fn().mockReturnThis(),
-    subscribe: vi.fn().mockReturnThis(),
+    // Keeps the status callback, so a test can announce SUBSCRIBED — the
+    // refetch `useRealtimeRefetch` runs on every (re)subscribe.
+    subscribe: vi.fn(function (this: unknown, cb: (status: string) => void) {
+      onStatus = cb
+      return this
+    }),
   }
   mockChannel.mockReturnValue(channelChain)
 }
 
 // The events rows the next load returns, as the table hands them back.
 let events: unknown[] = []
+// True once the games row is gone: the next read of it answers zero rows.
+let gameGone = false
+// The subscription's status callback, kept by the channel mock.
+let onStatus: ((status: string) => void) | null = null
 
 beforeEach(() => {
   events = []
+  gameGone = false
+  onStatus = null
   buildSupabaseMock()
 })
 
@@ -182,6 +193,18 @@ describe('useBoard', () => {
     // derivation evaluate to null on the next render — no clear-state
     // action needed inside the hook.
     await waitFor(() => expect(result.current.peerKey).toBeNull())
+  })
+
+  it('clears my key when a refetch finds the game row gone — the no-such-game path', async () => {
+    const { result } = renderHook(() => useBoard(GAME_ID, USER_ID, false))
+    await waitFor(() => expect(result.current.myKey).toEqual(ownKey))
+
+    gameGone = true
+    await act(async () => {
+      onStatus!('SUBSCRIBED')
+    })
+    await waitFor(() => expect(result.current.myKey).toBeNull())
+    expect(result.current.failure).toBeNull()
   })
 
   it('keeps the envelope of a failed read instead of an empty board', async () => {

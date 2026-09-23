@@ -7,7 +7,8 @@
 -- The RPC's job is to enforce "you are the current clue-giver in an
 -- active game" so the Edge Function can stay thin. This file checks
 -- the three rejection paths plus one happy path that returns a shape
--- with the expected keys and the whole board, and a deleted game: the gate `get_clue_context`
+-- with the expected keys and the whole board, the bystanders and the clues
+-- given so far, and a deleted game: the gate `get_clue_context`
 -- and `log_hint` share answers it with the shared race (PN485).
 --
 -- See create_game_test.sql for the pgTAP primer.
@@ -17,7 +18,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(10);
+select plan(12);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -83,7 +84,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (4)–(8) Happy path: ada gets a context with the expected keys,
+-- (4)–(10) Happy path: ada gets a context with the expected keys,
 -- the greens array has exactly 9 entries (one per A-side green),
 -- the assassins array has exactly 3 (a Duet key card carries
 -- three, and every one of them is returned), and the board is all 25.
@@ -115,6 +116,12 @@ select is(
 );
 
 select is(
+  (select jsonb_array_length(data->'neutrals') from ctx),
+  13,
+  'neutrals array has 13 entries (the A-side bystander count at start)'
+);
+
+select is(
   (select jsonb_array_length(data->'previous_clues') from ctx),
   0,
   'previous_clues array is empty before any clue submitted'
@@ -133,8 +140,16 @@ select is(
   'board is all 25 words in board order, a turned-over one included'
 );
 
+-- Once a clue is in, it is what the model is told not to repeat.
+select submit_clue((select id from g), 'WAVE', 2);
+select is(
+  (select get_clue_context((select id from g)) -> 'data' -> 'previous_clues'),
+  '[{"word": "WAVE", "count": 2, "by_seat": "A", "turn_number": 1}]'::jsonb,
+  'previous_clues carries a clue given, as word, count, seat and turn'
+);
+
 -- ============================================================
--- (9)–(10) A game a friend deleted, through both callers of the gate
+-- (11)–(12) A game a friend deleted, through both callers of the gate
 -- ============================================================
 -- The delete takes the game's rows and every membership together, so the
 -- gate answers the shared race rather than a fault or "You are not in this

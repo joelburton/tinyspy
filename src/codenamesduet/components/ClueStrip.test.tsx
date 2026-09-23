@@ -12,6 +12,7 @@
  */
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ComponentProps } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
@@ -135,5 +136,40 @@ describe('codenamesduet ClueStrip — a clue from the AI', () => {
     fireEvent.change(count, { target: { value: '2' } })
     fireEvent.change(word, { target: { value: 'WAVE' } })
     expect(await submitted(container)).toBe(false)
+  })
+})
+
+describe('codenamesduet ClueStrip — what it shows', () => {
+  const draw = (over: Partial<ComponentProps<typeof ClueStrip>> = {}) =>
+    render(
+      <ClueStrip
+        gameId="g1"
+        isClueGiver
+        isGuessPhase={false}
+        currentClue={null}
+        inSuddenDeath={false}
+        peer={undefined}
+        localFeedbackSlot={createFeedbackSlot('local')}
+        onSuggestionChange={vi.fn()}
+        {...over}
+      />,
+    ).container
+
+  // Sudden death wins over every other state: no clue form, no Pass — the
+  // strip says what the phase is instead.
+  it('is the sudden-death notice in sudden death, whoever holds the clue seat', () => {
+    const container = draw({ inSuddenDeath: true })
+    expect(container).toHaveTextContent('Sudden death.')
+    expect(container.querySelector('form')).toBeNull()
+  })
+
+  it('clears the clue form once the clue lands', async () => {
+    const container = draw()
+    const [count, word] = Array.from(container.querySelectorAll('input'))
+    fireEvent.change(count!, { target: { value: '2' } })
+    fireEvent.change(word!, { target: { value: 'WAVE' } })
+    fireEvent.submit(container.querySelector('form')!)
+    await waitFor(() => expect(word).toHaveValue(''))
+    expect(count).toHaveValue('')
   })
 })

@@ -1341,7 +1341,26 @@ the board's vocabulary. Help uses `-text` for all three. Options: **all three
 on `-text`**; or a comment saying why N differs. Recommendation: `-text`, or
 leave it to pass 3 if it is judged tile-feedback's.
 
-### F-codenamesduet-27 · `test-gaps` · rules nothing exercises
+### SHIPPED · F-codenamesduet-27 · `test-gaps` · rules nothing exercises
+
+**Joel, 2026-09-23: "write tests for these."** All seventeen still open, each
+written and then **planted** — every plant red on its own new case, every source
+restored byte-identical. **pgTAP (ten cases, 2656 tests):** a win's results
+`{won:true}` and a timeout's `{won:false}` for both players (`win_test`,
+`submit_timeout_test`); `turns_used` at a timeout and at a guess that ends the
+game; the mid-game club-list `greens_found` (`game_loop_test`); the seeded
+status (`create_game_test`); a hint logged under seat B (`events_test`);
+`get_clue_context`'s thirteen bystanders and a clue in `previous_clues`;
+`end_game`'s realtime touch, proved by the row's `ctid` moving (an UPDATE
+writes a new row version even when no value changes; `xmin` could not tell,
+the whole test being one transaction). **Vitest (49 files, 432 tests):**
+`hooks/useGame.test.ts` is new (the row, a zero-row refetch dropping the old
+game, a failure kept and then cleared); `useBoard`'s zero-row key; `Board`'s
+key squares (mine hidden while I guess; the partner's only at the end and when
+asked) and triangles (above and below, dropped once turned over), found by
+their CSS-module class; `ClueStrip`'s sudden-death notice and the form clearing
+on `clued`; a refused guess in the local slot; New game's players and setup.
+`doc.md`'s Tests rows name them.
 
 Planted and restored in all three layers; each survived:
 

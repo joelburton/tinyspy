@@ -26,6 +26,8 @@
 --     original setup)
 --   - turns_remaining initialized from setup.turns (a non-9
 --     test value pins the link)
+--   - the club-list status seeded at turn 1, the whole budget left and
+--     no agents found
 --   - the roster in common.game_players is exactly the two players
 --   - the title is the first three words in board order
 --   - first-clue-giver lands in seat A (ada when she's chosen,
@@ -43,7 +45,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(37);
+select plan(38);
 
 -- Cast: ada + bea form the 2-member club used for the happy
 -- path. cade is the in-club third member for the wrong-size
@@ -334,6 +336,18 @@ select is(
   (select play_state from common.games where id = (select id from created)),
   'playing',
   'create_game: new game starts in playing status (no lobby)'
+);
+
+-- The club list reads this before any move: turn 1, the whole budget (11
+-- here), no agents yet.
+select is(
+  (select jsonb_build_object(
+            'turn_number', status->'turn_number',
+            'turns_remaining', status->'turns_remaining',
+            'greens_found', status->'greens_found')
+     from common.games where id = (select id from created)),
+  '{"turn_number": 1, "turns_remaining": 11, "greens_found": 0}'::jsonb,
+  'create_game: seeds the club-list status at turn 1, the whole budget, no agents'
 );
 
 select is(
