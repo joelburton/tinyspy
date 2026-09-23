@@ -98,7 +98,7 @@ Green (agent contacted) and assassin are **global** — true for both players th
 | Win: 15 greens revealed | `submit_guess` counts global `revealed_as = 'G'` after every green reveal |
 | Lose on assassin | `submit_guess` flips `play_state = 'lost_assassin'` on `revealed_label = 'A'` |
 | Lose on clock | `submit_guess` flips `play_state = 'lost_clock'` on any non-green during `sudden_death` |
-| Every guess replayable in the Game Log | one row per guess in `codenamesduet.guesses` (a word can be guessed twice) |
+| Every move replayable in the Game Log | one `codenamesduet.events` row per clue, guess, pass and hint (a word can be guessed twice) |
 
 The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not the guesser's."** This sits in [`codenamesduet.submit_guess`](../../supabase/migrations/20260615000001_codenamesduet.sql) as a single line that picks `key_owner_seat`, and the test for it is in [`game_loop_test.sql`](../../supabase/tests/codenamesduet/game_loop_test.sql) and [`win_test.sql`](../../supabase/tests/codenamesduet/win_test.sql).
 
@@ -111,8 +111,7 @@ The most subtle rule in Duet is **"reveal label uses the clue-giver's view, not 
 | `games` | One row per match. `club_handle` (not null) ties to `common.clubs`. Tracks `turn_number`, `turns_remaining`, `current_clue_giver`. **Seats live on this row as columns** (`user_a_id`, `user_b_id`) alongside each seat's key view (`key_card_a`, `key_card_b` — jsonb arrays of 25 `'G' \| 'N' \| 'A'` labels matching `words.position`). Play-state (`play_state` + `is_terminal`) lives on `common.games`. |
 | `word_pool` | The static Duet word list (390 words, seeded by migration). Read only by security-definer RPCs; clients have no SELECT grant. |
 | `words` | 25 rows per game — the board, with denormalized reveal state. `revealed_as` (`'G'`/`'A'`/null) is the **global** reveal (agent contacted / assassin); `neutral_a` / `neutral_b` are **per-seat** bystander marks (a neutral on the giver's key may be the partner's agent, so it only locks the guesser's seat). |
-| `guesses` | One row per guess — the append-only history the Game Log replays. A word can appear twice (once per seat), which is why this is separate from the per-word `words` row. Holds `position`, `guesser_seat`, `result` (`'G'`/`'N'`/`'A'` — named `result`, not `outcome`, to stay clear of the status-jsonb `outcome` key), `turn_number`. |
-| `clues` | One row per turn, enforced by `unique (game_id, turn_number)`. Holds the clue word + count + which seat gave it. |
+| `events` | The log, in the shape every game's log takes ([supabase.md → Every game's log is `<game>.events`](../supabase.md#every-games-log-is-gameevents)): one row per `clue`, `guess`, `pass` and `hint`, `order by id`. Beside the skeleton: `turn_number`, `seat`, and payload columns named for the kind that owns them — `clue_word` / `clue_count`, `guess_position` / `guess_result` — with a CHECK tying each kind to exactly its own. One clue per turn is a partial unique index. A word can be guessed twice (once per seat), which is why this is separate from the per-word `words` row. `took_turn` is true exactly where `_end_turn` runs — a bystander in ordinary play, and a pass. |
 
 There's no `codenamesduet.game_players` table. The "who played this game" record lives at the common layer in `common.game_players` (cross-game, used for the player roster + RLS membership checks). Seat *assignment* — which player is in seat A vs B, and what each seat's key view is — is gameplay state and lives as columns on `codenamesduet.games` directly. The two roles don't overlap: `common.game_players` answers "did this user participate"; `codenamesduet.games`'s seat columns answer "in which seat, with what key view."
 
@@ -167,9 +166,9 @@ The words are on the shared board every player sees, so the title leaks nothing 
 
 ### `codenamesduet.submit_clue(target_game uuid, clue_word text, clue_count int)`
 
-Inserts a clue for the current turn.
+Logs a `clue` event for the current turn.
 
-Both parameters are prefixed — `clue_word` (not `word`) and `clue_count` (not `count`, which would shadow the SQL aggregate); the matching columns on `codenamesduet.clues` stay `word` / `count` since they're only referenced in column lists.
+The parameters share their names with the `codenamesduet.events` columns they fill (`clue_word`, `clue_count`), so the body reads them qualified — `submit_clue.clue_word` — and a bare name in a query can never mean the parameter by accident.
 
 **What it answers.** [An envelope](../envelopes.md):
 
@@ -178,7 +177,7 @@ Both parameters are prefixed — `clue_word` (not `word`) and `clue_count` (not 
 | `ok` · `{result: 'clued', word, count, turn_number, by_seat}` | | the clue as it was recorded — what the partner will see, not what this form sent |
 | `PN370` "Game over" | `race` | the partner ended it, or the clock expired, while you composed |
 | `PN371` "Your partner is giving the clue now" | `race` | the giver flips inside `_end_turn`, which the PARTNER's guess runs |
-| `PN372` "A clue is already in for this turn" | `race` | your own clue landed and the `clues` row hasn't arrived |
+| `PN372` "A clue is already in for this turn" | `race` | your own clue landed and its event row hasn't arrived |
 | `PN369` "That game no longer exists" | `fault` | nothing to race against |
 | `PN384` "BUG: a clue from a player with no seat" | `fault` | `create_game` seats both players |
 
@@ -198,7 +197,7 @@ Logic in order:
    - During `playing`: the clue-giver's view. Also rejects "you are the clue-giver" and "no clue yet."
    - During `sudden_death`: the partner's view (the seat opposite the caller).
 6. Verify the cell isn't already resolved **for this guesser** — blocked if it's globally revealed (`revealed_as` set) OR this seat already hit it as a neutral. A *partner's* neutral does not block the caller (it may be the caller's agent). Those are two separate raises, because they are two different sentences: one is the board's, the other is only yours.
-7. Log the guess into `codenamesduet.guesses`, then denormalize onto `codenamesduet.words`: green → global `revealed_as = 'G'`, assassin → `revealed_as = 'A'`, neutral → the guesser's `neutral_a`/`neutral_b` flag.
+7. Log a `guess` event (`took_turn` true on a bystander in ordinary play), then denormalize onto `codenamesduet.words`: green → global `revealed_as = 'G'`, assassin → `revealed_as = 'A'`, neutral → the guesser's `neutral_a`/`neutral_b` flag.
 8. Resolve the outcome:
    - Assassin → `common.end_game(target_game, 'lost_assassin', …)`.
    - Sudden death + non-green → `common.end_game(target_game, 'lost_clock', …)`.
@@ -229,7 +228,7 @@ Terminal transitions write `common.games.play_state` + `is_terminal = true` + th
 
 ### `codenamesduet.pass_turn(target_game uuid)`
 
-Voluntary turn-end during the guess phase. Spends one turn, swaps the clue-giver.
+Voluntary turn-end during the guess phase. Logs a `pass` event (`took_turn` true) against the turn it ends, then spends that turn and swaps the clue-giver.
 
 **What it answers.** [An envelope](../envelopes.md), with ONE `ok`:
 
@@ -281,7 +280,11 @@ Read-only RPC for the [`codenamesduet-suggest-clue`](#edge-function-codenamesdue
 
 **The two races are `submit_clue`'s PN370 and PN371, word for word.** The AI button and the Submit button share the below-board row and lose exactly the same races, so a player must not be able to tell which one they hit by the sentence.
 
-Its seat check reads `caller_seat is distinct from current_clue_giver` — NULL-safe, so a caller seated in neither column is rejected here rather than waved through. That is why this RPC needed no seat check of its own where the three turn-loop RPCs each grew one (PN384–PN386).
+Its gate is `_require_clue_giver`, which `log_hint` shares, so the two cannot disagree about who may ask. The seat check there reads `caller_seat is distinct from current_clue_giver` — NULL-safe, so a caller seated in neither column is rejected rather than waved through. That is why the gate needs no seat check of its own where the three turn-loop RPCs each grew one (PN384–PN386). `previous_clues` is read from the `clue` events.
+
+### `codenamesduet.log_hint(target_game uuid)`
+
+Called by the edge function **after** the model has returned a suggestion, so a hint the model declined or was cut off on leaves no row. Logs a `hint` event (`took_turn` false) with no payload — the suggestion names the agents it targets, and stored where the partner's client can read it, it would spoil their guessing. Same gate as `get_clue_context`; one `ok`, `{result: 'logged'}`, and a refusal is the edge function's to relay untouched.
 
 The edge function **unwraps** the `ok` rather than relaying it — the board is the first step of its work, not its answer — and relays any `not-ok` untouched. Both go through `runRpc` (`supabase/functions/_shared/dbResult.ts`), which also owns "the RPC never ran" and "it answered something unreadable", so the function has no codes of its own for either.
 
@@ -289,6 +292,7 @@ The edge function **unwraps** the `ok` rather than relaying it — the board is 
 
 | function | role |
 |---|---|
+| `codenamesduet._require_clue_giver(target_game uuid) → text` | The gate `get_clue_context` and `log_hint` share: the game exists, the caller plays in it, it is running, and the caller holds the clue seat. Returns that seat; raises PN387–PN389 otherwise. |
 | `codenamesduet._end_turn(target_game uuid) → jsonb` | Shared by `submit_guess` (on neutral) and `pass_turn`. Decrements `turns_remaining`, increments `turn_number`, advances `current_clue_giver` to the partner **unless the partner has no unfound agents left** (in which case the current giver keeps the clue — the finished-player hand-off rule), calls `common.update_state(target_game, 'sudden_death', …)` when turns_remaining hits zero. **Returns the turn state it wrote** — `{turn_number, turns_remaining, clue_giver, play_state}` — which both callers put in their answer's `data`; it is the only place that knows the next giver and whether the budget ran out. Underscore-prefixed by convention to signal "internal." |
 
 codenamesduet doesn't define its own `is_player_in_game` helper — authorization in the RPCs uses `common.require_game_player(target_game)` (which checks `common.game_players` for the caller). Seat derivation after the membership check is inline: `case caller_id when g_row.user_a_id then 'A' when g_row.user_b_id then 'B' end` reads off the games row.
@@ -595,12 +599,13 @@ See [`testing.md`](../testing.md) for the theory and shared setup. codenamesduet
 | `tests/codenamesduet/create_game_test.sql` | Auth, membership, happy path, club-size check, `setup.turns` validation, `setup.timer` shape spot-checks (full grid lives in connections' test), active-flag tracking via common.games, key-card distribution. Doubles as the pgTAP primer for the rest of the suite. |
 | `tests/codenamesduet/game_loop_test.sql` | The active-play turn loop: clue/guess/pass phase rejections, green-continues, neutral-ends-turn, turn decrement, clue-giver swap, turn-number advance, assassin reveal flips to `lost_assassin`. |
 | `tests/codenamesduet/clue_giver_handoff_test.sql` | The finished-player hand-off rule: when one seat's agents are all contacted, `_end_turn` keeps the clue with the seat that still has agents instead of swapping to the finished one (both directions), with a both-seats-live control swap. Forces "seat done" by marking its greens `revealed_as = 'G'` (via `reset role`, same poke as `sudden_death_test`). |
-| `tests/codenamesduet/cross_direction_test.sql` | The per-seat neutral rule: a neutral sets the guesser's `neutral_*` flag (not global `revealed_as`); the partner can still guess the word and contact it as their agent; a globally-contacted agent is locked for both; both-neutral locks for both; the guess log records each guess. Also pins the two locks' DIFFERENT answers — PN382 for the board's reveal, PN383 for your own bystander. |
+| `tests/codenamesduet/cross_direction_test.sql` | The per-seat neutral rule: a neutral sets the guesser's `neutral_*` flag (not global `revealed_as`); the partner can still guess the word and contact it as their agent; a globally-contacted agent is locked for both; both-neutral locks for both; each guess is logged as an event. Also pins the two locks' DIFFERENT answers — PN382 for the board's reveal, PN383 for your own bystander. |
 | `tests/codenamesduet/win_test.sql` | The 15-greens-found win check. Drives through revealing greens via PL/pgSQL loops over positions. |
 | `tests/codenamesduet/sudden_death_test.sql` | Sudden-death rules: no more clues, green continues, any non-green is `lost_clock`. Forces the game into sudden_death directly via UPDATE rather than playing nine real turns. |
 | `tests/codenamesduet/submit_timeout_test.sql` | `submit_timeout` happy path from both `playing` and `sudden_death` → `lost_timeout`; idempotency on terminal state; non-player rejection via `require_game_player`; status.reason plumbing. |
 | `tests/codenamesduet/end_game_test.sql` | `end_game` happy path: `playing` → `ended`, `is_terminal=true`, `status.reason='manual'`, both players' `result={won:false}`; idempotency on terminal state; non-player rejection via `require_game_player`. |
 | `tests/codenamesduet/rls_test.sql` | The single highest-value security check: dee (not a player) sees zero rows from every game-scoped table, mutating RPCs refuse her (PN253, a fault), direct INSERTs are blocked at the grant layer. Includes a positive baseline (ada CAN see the game) so "dee sees nothing" is meaningful. |
+| `tests/codenamesduet/events_test.sql` | What each move writes to `codenamesduet.events`: a clue, an agent, a hint (and `log_hint`'s gate), a pass, a bystander — each row's payload and `took_turn`; the order; a game on turn N holding N − 1 turn-taking events; the one-clue index and the payload CHECK; sudden death spending nothing. |
 | `tests/codenamesduet/clue_context_test.sql` | `get_clue_context` auth gates as envelope assertions (PN253 fault, PN388/PN389 races) + the shape check: `result: 'context'`, 9 greens, 3 assassins (the regression guard for the old `limit 1` that hid two). |
 
 ### codenamesduet-specific test helpers
@@ -631,7 +636,7 @@ The test produces a deterministic array via `array_agg(... order by a_label, b_l
 | `src/codenamesduet/lib/phase.test.ts` | Every branch of phase derivation. Pure, no DOM. |
 | `src/codenamesduet/lib/turnOutcome.test.ts` | Every branch of the per-turn outcome verdict (assassin / only-neutrals / mixed / all-agents / passed). Pure, no DOM. |
 | `src/codenamesduet/hooks/useBoard.test.ts` | The board hook's data flow — initial fetch, realtime append, refetch on resubscribe — plus the failed read: the envelope is kept rather than left as an empty board (verified by planting a swallowed not-ok). |
-| `src/codenamesduet/components/GameEventLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `guessed_at`, the guess-line state ("(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended, or the game is over), and the shared player picker (Team + both handles, defaulting to Team; picking a player narrows to the turns they CLUED). |
+| `src/codenamesduet/components/GameEventLog.test.tsx` | Per-turn grouping (each turn = two `<tr>`s), oldest-first chronological order, within-turn guess sort by `id`, the guess-line state ("(clue given)" while the turn is the current live one vs "(no guesses)" once it has ended, or the game is over), and the shared player picker (Team + both handles, defaulting to Team; picking a player narrows to the turns they CLUED). |
 | `src/codenamesduet/components/PlayArea.test.tsx` | The synchronous `guessInFlight` guard — a second tile click while a guess is in flight fires no second `submit_guess` (the pending-tile disable is async, so it misses a same-tick double-tap, and only disables the one clicked tile) — plus tile input gating: clickable on my guess turn, blocked at terminal. |
 | `src/codenamesduet/components/CluePanel.test.tsx` | The two-kinds-of-text-input contract: both clue inputs (count + word) carry `data-game-input`, so the global `/ ? ~` shortcuts still fire while typing a clue. (`isNonGameField`'s logic is covered in `common/keyboard/editableField.test.ts`; this pins that the actual inputs carry the tag.) |
 

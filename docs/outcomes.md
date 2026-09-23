@@ -231,12 +231,12 @@ that the four games sharing `useFoundWordSubmit` converted together, since the
 engine's shape changed under all of them; the rule that the outcome is decided
 once has not changed.
 
-**Two games deliberately have no answer file, and that is not an oversight.**
-codenamesduet shows no single guess's outcome — a guess is one tile, it answers
-with a reveal, and the board says it — so the only thing wearing an outcome is
-the TURN, folded in `lib/turnOutcome.ts`. waffle has one move kind whose bar is
-always `neutral`. One move, one word, one reader: a file of its own would be
-ceremony.
+**waffle deliberately has no answer file, and that is not an oversight.** It
+has one move kind whose bar is always `neutral`. One move, one word, one reader:
+a file of its own would be ceremony. codenamesduet has one, but no answer about a
+guess of its own: a guess is one tile, it answers with a reveal, and the board
+says it — so a guess's outcome is worn only by its TURN, folded in
+`lib/turnOutcome.ts`.
 
 **An event that writes no row stays out of it.** A duplicate wordle guess,
 scrabble's dictionary refusal, psychicnum's "already guessed" — none reaches a

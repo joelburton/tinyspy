@@ -1,7 +1,7 @@
 # codenamesduet: one `events` table
 
-**Status: BUILDING on branch `codenamesduet-events` — Steps 1–4 done (see
-Progress, at the end); the six questions answered.**
+**Status: BUILDING on branch `codenamesduet-events` — Steps 1–5 done (see
+Progress, at the end); Step 6 left; the six questions answered.**
 Joel, 2026-09-23: *"make a plan for this in plans/. once i've read that plan,
 we do this."* Worked inside the
 `codenamesduet` area, which pauses at its restructure's Step 5 until this is
@@ -390,3 +390,24 @@ went red. 375 unit tests green; `deno check` clean.
 
 **Not proven live:** the edge function's `log_hint` call. The e2e stubs the
 function, and a real call spends an Anthropic request — Joel's to allow.
+
+### Step 5 — the docs — DONE 2026-09-23
+
+- `docs/supabase.md` → Every game's log: codenamesduet is in; the exception
+  shrinks to how it SHOWS its events — grouped on `turn_number`, which is also
+  its history handle.
+- `docs/outcomes.md`: waffle is the one game with no answer file; codenamesduet
+  has one, and a guess's outcome is still worn only by its turn.
+- `src/codenamesduet/doc.md`: an intro paragraph on the log, the hint logged;
+  `submit_clue`, `submit_guess` and `pass_turn` log their events; the edge
+  function logs the hint last; `replay_board` wipes the events; FE submissions
+  name `lib/answer.ts` for the header's words, and the hint's line and mark.
+- `docs/games/codenamesduet.md` (absorbed into `doc.md` at pass 2, current
+  until then): the schema table's `events` row replaces `clues` and `guesses`;
+  the RPC sections say what each logs, `log_hint` and `_require_clue_giver`
+  are added; the pgTAP table lists `events_test.sql`.
+- `CLAUDE.md`'s plans row says built through Step 5.
+
+Descriptions of the log's DISPLAY — "a table of turns", keyed by
+`turn_number` (`docs/playarea.md`, `common/event-log/doc.md`) — are unchanged,
+because the display is.

@@ -32,10 +32,16 @@ shell's turn machinery does not reach this game: it never writes
 and the board and clue strip are drawn from the seat on the game row and the
 turn's clue.
 
+Everything a player does — a clue, a guess, a pass, asking the AI — is one row
+of `codenamesduet.events`, the log every game keeps. Only the log's drawing is
+this game's own: it shows those rows as a table of turns, each a clue with the
+guesses under it.
+
 A stuck clue-giver can ask Claude. The `codenamesduet-suggest-clue` edge
 function reads the board through an RPC that checks the caller is the
 clue-giver, asks the model for a clue, and fills the clue form with it; the
-player still presses Submit.
+player still presses Submit. That a hint was asked is logged — the log marks
+the turn, and the partner is told.
 
 *The rest of the intro is owed — pass 2 of this area's audit.*
 
@@ -99,7 +105,7 @@ The clue-giver's move. Under a lock on the game row it checks that the game is
 still in ordinary play, that the caller holds the clue seat, and that this
 turn has no clue yet — each of which the partner's move or the caller's own
 can change while the form is on screen, so a refusal here is a race. It
-records the clue against the turn and the seat. It does not judge the clue:
+logs the clue as an event of the turn and the seat. It does not judge the clue:
 the word is whatever was typed and the count any whole number from zero up.
 
 **Passed:** `{ "target_game": "88ae6f5a…", "clue_word": "WORD", "clue_count": 2 }`
@@ -121,7 +127,8 @@ word this seat already hit as a bystander; all four are races. A bystander
 marks only the guesser's side of the word, so the partner can still guess it
 — the same word may be their agent.
 
-Every guess is logged. An agent is turned over for both players and the turn
+Every guess is logged as an event, and it takes a turn from the budget exactly
+when it ends one. An agent is turned over for both players and the turn
 goes on; a bystander in ordinary play ends the turn, and the seat that clues
 next is the partner's unless the partner's agents are all found. Three guesses
 end the game: the fifteenth agent (`won`), any assassin (`lost_assassin`), and
@@ -157,8 +164,8 @@ board shows it when the words row arrives.
 
 The guesser stops guessing and spends the turn — legal before the first guess
 too, for a clue that makes no sense. It refuses a pass from the clue-giver and
-a pass before this turn's clue, both races, and otherwise ends the turn exactly
-as a bystander does.
+a pass before this turn's clue, both races, and otherwise logs the pass and
+ends the turn exactly as a bystander does.
 
 **Passed:** `{ "target_game": "88ae6f5a…" }`
 
@@ -178,8 +185,11 @@ came — and gets back the caller's still-hidden agents, bystanders and
 assassins by word, and every clue given so far. It sends those to the model
 with a JSON schema for the answer (a clue, a count, the agents it targets, a
 sentence of reasoning), appends the targeted agents to the reasoning as their
-own line, and returns the suggestion. The model declining, or its answer being
-cut off, comes back as a sentence for the dialog to show.
+own line, logs the hint with `codenamesduet.log_hint`, and returns the
+suggestion. Logging comes last, so a model that declines or is cut off — which
+comes back as a sentence for the dialog to show — leaves no hint behind.
+`log_hint` asks the same gate `get_clue_context` did, and a refusal from it is
+relayed the same way.
 
 **Passed:** `{ "gameId": "88ae6f5a…" }`
 
@@ -190,8 +200,8 @@ cut off, comes back as a sentence for the dialog to show.
 ```
 
 `get_clue_context`'s own `ok` is `{ "result": "context", "greens": […],
-"neutrals": […], "assassins": […], "previous_clues": […] }`, read only by the
-edge function.
+"neutrals": […], "assassins": […], "previous_clues": […] }`, and `log_hint`'s is
+`{ "result": "logged" }`; both are read only by the edge function.
 
 ### The rest
 
@@ -200,8 +210,8 @@ has, doing here what they do everywhere. What is this game's: `end_game` is
 the neutral `ended` with the reason `manual`; `submit_timeout` is
 `lost_timeout`, a loss distinct from `lost_clock`, which is the budget running
 out; both reach sudden death as well as ordinary play. `replay_board` is a
-mulligan: the same twenty-five words and the same two key cards, every reveal,
-clue and guess wiped, seat A clueing turn 1 again. There is no `concede` — the
+mulligan: the same twenty-five words and the same two key cards, every reveal
+and every event wiped, seat A clueing turn 1 again. There is no `concede` — the
 game is coop, and the shared Concede hides itself.
 
 ## FE submissions
@@ -238,18 +248,19 @@ since the clue was never recorded:
 | a pass, the game ended under it | me | `Game over` | `warning` | `pass_turn` |
 | a pass, I became the giver | me | `You're giving the clue this turn` | `warning` | `pass_turn` |
 
-**The partner is narrated in the header**, not per move: what they are doing
-right now, held for as long as it is true — `writing clue`, `guessing`,
-`waiting for clue`, `waiting for you` — written in `PlayArea`'s
-`useTurnStatus`. Sudden death narrates nothing there; the clue strip carries
-it.
+**The partner is narrated in the header**: what they are doing right now,
+held for as long as it is true — `writing clue`, `guessing`, `waiting for
+clue`, `waiting for you` — and, once as it lands, their asking the AI — `got
+hint`. The words and outcomes are [`lib/answer.ts`](lib/answer.ts)'s; sudden
+death narrates nothing there, and the clue strip carries it.
 
 **The AI suggestion** opens a floating dialog the moment the button is
 pressed, in its loading state. A suggestion fills the clue form's two fields
 and shows the reasoning in the dialog; a relayed refusal or the model
 declining shows its sentence in the dialog, which stays; a fault closes it,
 since the fault's own modal has already said why. A clue that lands closes the
-dialog with it.
+dialog with it. A delivered suggestion marks its turn's clue row in the log
+with the AI glyph, in the hint's outcome.
 
 **New game** calls `create_game` directly, with this game's setup and roster.
 The creator jumps to the new game and the partner arrives by the invitation

@@ -159,11 +159,12 @@ for one readable file per game, which is the property
 
 ## Every game's log is `<game>.events`
 
-Ten games keep a chronological log of what happened in a game, and they all keep
-it in one shape. (codenamesduet is out: its log is a table of TURNS, each holding
-a clue and the guesses under it, which is a different thing. The bee games'
-`found_words` is a set, not a log, and bananagrams and crosswords have no log at
-all.)
+Every game with a chronological log of what happened keeps it in one shape.
+(The bee games' `found_words` is a set, not a log, and bananagrams and crosswords
+have no log at all.) codenamesduet stores its events in this shape too, and
+differs only in how it SHOWS them: its log draws a table of turns — a clue and
+the guesses under it — so it groups the events on its `turn_number` payload
+column, and its history handle is that turn number rather than a row's id.
 
 ```sql
 create table <game>.events (
