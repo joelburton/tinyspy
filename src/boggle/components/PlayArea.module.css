@@ -226,15 +226,17 @@
   border-width: var(--tile-selected-edge-width);
 }
 
-/* A tile on the current traced path, in the app's ordinary SELECTED channel: a
- * black border, thicker than the resting one
- * (common/game-page/playArea.module.css → `.tile.selected`).
+/* A tile on the current traced path, in the SELECTED channel: a border thicker
+ * than the resting one, in the khaki the word-finding games wear for it rather
+ * than the usual black — a traced word lights several dice at once, and a crowd
+ * of black edges distracts. spellingbee's hexes and wordwheel's spent tiles
+ * read the same token.
  *
  * It used to be a blue fill — the action BUTTON's blue, which is a control
  * color on a game piece, and it was reached for because the tray behind the
  * board is dark. The tray is behind the TILES though, and a tile here is the
- * app's normal tile face: the border sits on that, black on shade 3, exactly
- * as it does on every other board.
+ * app's normal tile face: the border sits on that, on shade 3, as it does on
+ * every other board.
  *
  * The resting border is drawn transparent so selecting one changes only the
  * color and the width — a border appearing from nothing would move the letter. */

@@ -12,7 +12,7 @@ its findings are folded into each area's audit instead, while that area is
 already open and loaded in your head. So this file is the design target an
 audit checks a board against, not a queue waiting its turn.
 
-**Where we are: 2 of 16 games at tf2** (psychicnum and connections, both 2026-09-19). The sprint restarted after the color and
+**Where we are: 4 of 16 games at tf2** (psychicnum and connections 2026-09-19, wordle 2026-09-22, spellingbee 2026-09-23). The sprint restarted after the color and
 button mini-sprints changed the ground underneath it, so every game — including
 the four converted in the first round — needs a pass against the current
 framework. Games carry a **tf level**; see
@@ -77,6 +77,14 @@ ordering rule.
 
 **Width and color are separate channels on the same border**, which is what
 lets "selected *and* just rejected" render without deciding which wins.
+
+**The selected border is black — except in the word-finding games**, where it
+is the khaki `--tile-spent-edge-color` at the same selected width: boggle's
+traced dice, spellingbee's hexes, wordwheel's spent tiles. A word being typed
+there lights several letters at once, often most of the board, and a crowd of
+black edges is distracting where one black edge is not (Joel, 2026-09-23,
+ruling on `9c2080da`). The three games share the one token, so they cannot
+drift apart.
 
 **On an INERT piece the border is free, and state may take it.** A decided tile —
 psychicnum's guessed word, waffle's finished board — cannot be selected and cannot
@@ -682,6 +690,11 @@ precisely because it is *not* saying inactive: it is momentary, it tracks the
 pointer, and hover carries no meaning anyway. Case by case, only where the
 shadow demonstrably doesn't read.
 
+**spellingbee: not needed** (its tf2, 2026-09-23). Its hexes are not packed
+edge to edge any more — each is drawn 3% inside its cell (`HEX_SHRINK`), so the
+drop shadow has a gap to fall into, and the hover keeps the shared lift and
+shadow alone. Revisit only if a hovered hex is seen not to lift.
+
 ### Position splits in two: the cursor, and where my move ends
 
 The doc left "position" unassigned for a long time because its three claimants
@@ -1231,31 +1244,39 @@ optimistic pill.
 
 ### spellingbee · shape 1 (nothing changes on the board)
 
-**Today.** Same as boggle's shape: the hexes never change state, and a letter
-flashes for 260ms as you type or click it — input feedback, not a verdict.
-Verdicts are pill-only, optimistic `+N` / `pangram +N`, with the server's
-sentence replacing it when a commit loses. Rank milestones raise a peer pill;
-coop shares one found list, compete gives each player their own.
+**Today** (tf2, 2026-09-23). The hexes never change state. A letter in the word
+being typed wears the SELECTED edge, khaki like every word-finding game's (see
+The channels); there is no input flash. An accepted word says nothing on the
+board: the pill shows the optimistic `+N` / `pangram +N`, the server's sentence
+replacing it when a commit loses. **A refused word answers ON the board**: the
+whole hive shakes, and the hexes the word used wear the refusal's outcome — its
+fill, its edge and white ink, for `WORD_ANSWER_MS`. That is a live experiment
+with wordwheel as the control (its tiles do not take the fill; `todo.md` →
+Someday in both games). Rank milestones raise a peer pill; coop shares one
+found list, compete gives each player their own. A finished board, or a
+conceder's, is inert: no hover, no press, no used edges.
 
 **Trust + race.** Trusting-commit. Same race, same resolution as boggle.
 
-**What we want** (proposals):
-- **Nothing on the board**, for the same reason.
-- The 260ms letter flash is the input channel and should be named as such, so it
-  is never read as a verdict beat.
+**Its tile is its own**: an SVG polygon cannot wear the shared `.tileFace`, a
+CSS box, so the hex re-states the face's rest, hover and press in its
+coordinate units (`Letter.module.css`).
 
 ### wordwheel · shape 1 (nothing changes on the board)
 
-**Today.** A spellingbee fork, and the marks are the same: a 260ms tile flash on
-input, verdicts in the pill, finds in the shared list, rank milestones as peer
-pills. The wheel is a multiset, so a letter can be used more than once — which
-the input flash has to survive.
+**Today.** A spellingbee fork: a letter in the word wears the khaki selected
+edge, verdicts in the pill, finds in the shared list, rank milestones as peer
+pills. It is the control for spellingbee's on-board refusal answer, so its tiles
+do not take the refusal's fill. The wheel is a multiset, so a letter can be
+used more than once — which is why the used edge marks a TILE, each worth one
+use, rather than a letter.
 
 **Trust + race.** Trusting-commit, like spellingbee.
 
 **What we want** (proposals):
-- **Nothing on the board**, and whatever spellingbee settles about the input
-  flash applies here unchanged — these two should never diverge.
+- **Nothing more on the board** until the refusal experiment reports, and
+  then its answer applies to both — the two are deliberately apart only for
+  that question.
 
 ### wordiply · shape 1
 
@@ -1297,7 +1318,8 @@ is a fact about history, not a destination.
 
 ### Where each game stands
 
-**0 of 16 at tf2** — 12 at tf0, 4 at tf1.
+**4 of 16 at tf2** (wordle, psychicnum, connections, spellingbee) — 1 at tf1,
+11 at tf0.
 
 The order is chosen by which decisions a game forces, not by size: in the first
 round wordle needed the fewest, waffle moved the framework into shared code,
@@ -1319,7 +1341,7 @@ the background. Pick the next one up from the "forces" column.
 | bananagrams | tf0 | — | drag-and-drop, its own grid cursor, and the one documented desktop-only layout. **Chrome borrow to settle:** the dashed dump zone takes the action BUTTON's blue for both text and border (`PlayerBoard.module.css:281-282`) — and a dashed outline is the HINT channel, so the treatment wants a look too |
 | crosswords | tf0 | — | printed notation on the cell (circles, shades, break marks), `.peerFrame`, and the position channel's other half |
 | boggle | tf0 | — | packed tiles where a hover shadow may not read; its own tile |
-| spellingbee | tf0 | — | hexes: not squares, packed edge to edge. Its press, hover and selected edge are the shared ones now, and a refused word answers on the board (the hive head-shakes, the word's letters take the outcome's fill) — but that was a pass through the MARKS, not the framework |
+| **spellingbee** | **tf2** | **tf2 2026-09-23** | **Passed as pass 3 of its app-audit area**, and the board held up: shape 1, the hex's rest / hover / press the shared gesture re-stated in coordinate units (an SVG polygon cannot wear `.tileFace`), a finished or conceded board inert, the refusal answer on `useMark` at `WORD_ANSWER_MS`, restart a remount. **Three rulings (Joel):** the khaki selected edge stays for all three word-finding games, and is now written into The channels; the refusal's hexes take `--verdict-edge` for their stroke, as every verdict-filled piece does (they had worn the fill twice); the center yellow and its amber edge are BRAND tokens. **The refusal mark had no test that could fail on its outcome or its lifetime** — the one case pinned a `lost` refusal, which a hard-wired red passes; a `warning` case and a lifetime case were added and each planted red |
 | wordwheel | tf0 | — | circles, packed edge to edge in a mustard tray. Its press, hover and spent-tile mark are the shared ones now, and its board left SVG for boxes — but that was a pass through the MARKS, not the framework |
 | wordiply | tf0 | — | OPEN: at terminal its verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorizing until its turn |
 
@@ -1391,7 +1413,7 @@ rule splits down the middle.
 | **setgame** | `-leaving-bg` / `-arriving-bg` / `-held-veil` are the pre-vocabulary ancestors of attention and the in-flight dim. They fold in here, not before |
 | **strands** | `--strands-missed` and `--strands-hint-ring` are UI grays wearing brand names — they would not change if strands' purple changed. Candidates for common; its purples are genuinely brand |
 | **bananagrams** | its tile palette sits *near* the warm ramp without being it. `--bananagrams-error` is marked in the token, and the drop-target greens are the prospective-verdict colors this vocabulary will want |
-| **spellingbee + wordwheel** | near-twins by design: one accent is byte-identical to a shared rank fill, the other a red near `--member-red-dot-color`, and both carry `-used` / `-edge` variants that look like the `-edge` tier by another name. **One decision covering both**, at whichever converts first |
+| **spellingbee + wordwheel** | **Ruled 2026-09-23 at spellingbee's tf2 (Joel): BRAND tokens, both games.** One accent is byte-identical to a shared rank fill and the other a red near `--member-red-dot-color`, and both carry `-edge` variants; the center letter is each game's identity, and a rank bar borrowing its yellow is kinship, not one meaning. Nothing folds into the shared tiers |
 | **letterboxed** | **may a `-wash` fill a game piece?** Its already-used letter is the only piece wearing one, and the entire wash tier rests on that single consumer. The likely answer is yes — a way to tint a piece with a very subtle outcome color — but it is undecided |
 | **boggle · wordiply · stackdown** | nothing to decide. One brand color each, or (stackdown) none at all |
 
@@ -1408,7 +1430,7 @@ roll their own:
 | board | its own tile lives in |
 |---|---|
 | boggle | `PlayArea.module.css` |
-| spellingbee | `Letters.module.css` (hexes) |
+| spellingbee | `Letter.module.css` (hexes — an SVG polygon, which cannot wear the CSS-box face) |
 | wordwheel | `Wheel.module.css` (circles in a tray) |
 | stackdown | `Board.module.css` |
 | strands | `Board.module.css` |

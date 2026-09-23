@@ -93,9 +93,10 @@
   stroke: var(--spellingbee-accent-edge);
 }
 
-/* A letter the typed word is USING, in the app's ordinary SELECTED channel: the
- * black edge, thicker (boggle's tiles, letterboxed's letters, every board's
- * `.tile.selected`). Here it does a second job the others don't — hunting a
+/* A letter the typed word is USING, in the SELECTED channel: the thicker edge,
+ * in the khaki the word-finding games wear for it rather than the usual black —
+ * a word lights several hexes at once, and a crowd of black edges distracts.
+ * boggle's traced dice and wordwheel's spent tiles read the same token. Here it does a second job — hunting a
  * pangram is exactly the question "which of the seven have I not used yet?", and
  * this answers it without counting the word.
  *
@@ -110,8 +111,9 @@
 }
 
 
-/* THE ANSWER on a refused word's letters: the outcome's own fill and white ink,
- * the same two colors a piece wears anywhere. The tone classes beside this one
+/* THE ANSWER on a refused word's letters: the outcome's own fill, its edge a
+ * step darker, and white ink — the three colors a verdict-filled piece wears on
+ * every board (`.tileFace.verdictFill`). The tone classes beside this one
  * are the shared vocabulary's and set nothing but the verdict tokens read
  * here, which is why a hex can take one without being a `.tileFace`.
  *
@@ -120,7 +122,7 @@
  * the answer is what should win if the two ever overlap. */
 /* @@ */ .answered .hexShape {
   fill: var(--verdict-fill);
-  stroke: var(--verdict-fill);
+  stroke: var(--verdict-edge);
 }
 /* @@ */ .answered .hexText {
   fill: var(--verdict-ink);

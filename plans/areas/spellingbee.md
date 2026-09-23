@@ -1428,7 +1428,55 @@ it can fail; or pick. Recommendation: all four.
 The refused word's hexes take `--verdict-fill` for both the fill and the
 stroke; the shared verdict tones also publish `--verdict-edge` (the fill
 stepped toward black) for a piece's own border. Whether a hex should wear it
-is a tile-feedback question, and pass 3 is where it gets asked.
+is a tile-feedback question, and pass 3 is where it gets asked. **Answered
+there: T-2.**
+
+## Pass 3 — tile-feedback
+
+Read 2026-09-23 against `plans/tile-feedback.md` as it stands. **The board
+held up**, much of the work having been done by the restructure and the
+audit: shape 1 (a hex never changes state, so no attention case), the shared
+rest / hover / press gesture re-stated in coordinate units, a finished or
+conceded board inert, a refused word answered on the board through `useMark`
+at `WORD_ANSWER_MS`, and restart a remount. Six proposals, all ruled (Joel,
+2026-09-23): four shipped, two no change.
+
+- **SHIPPED · T-1 · `used-edge-color`** — *"we're keeping khaki — for the
+  word-finding games, it's distracting to have a bunch of letters in black."*
+  The ruling on `9c2080da` is written into `tile-feedback.md` → The channels.
+  Three comments said "black" over a khaki rule: `Letter.module.css`'s
+  `.used`, boggle's `.selected` and wordwheel's `.tile.used`; each now gives
+  the family's reason itself, since a durable file does not cite the plan.
+  **Seen on the way:** `docs/ui.md` → Interactive tile states still describes
+  selection as a dark FILL and hover as a ring, neither of which any board
+  draws — not this area's, and left there.
+- **SHIPPED · T-2 · `refusal-edge`** — the answered hex strokes
+  `--verdict-edge`, as `.tileFace.verdictFill` does; the comment names the
+  three colors. Every tone class defines the token.
+- **SHIPPED · T-3 · `refusal-mark-test`** — `PlayArea.test` gains a
+  too-short (`warning`) refusal asserting its letters wear `verdictWarning`
+  and not `verdictLost`, and a lifetime case on `WORD_ANSWER_MS` with fake
+  timers. **Planted**: the outcome hard-wired to `lost` (the first red) and the
+  lifetime ×100 (the second red). Restored.
+- **SHIPPED · T-4 · `plan-section`** — spellingbee's section rewritten to
+  today (no input flash; the refusal answer on the board, as the experiment
+  with wordwheel as control); wordwheel's two sentences about a flash
+  corrected; the roster row at **tf2**; both progress counts (4 of 16); the
+  own-tile table points at `Letter.module.css` and says why a polygon cannot
+  wear `.tileFace`.
+- **RULED · T-5 · `bee-colors`** — BRAND tokens, both games; recorded in the
+  plan's color-decision table. No code.
+- **RULED — NO CHANGE · T-6 · `own-tile-exempt`** — Joel, after it was
+  explained: *"i'll take your recs on t6."* Two halves. The hex cannot be the
+  shared tile — an SVG polygon takes `fill` / `stroke` / `filter`, not the
+  box properties `.tileFace` sets — so it is recorded as unable, not as owed
+  (T-4's table row). And the plan's hover brightening for packed boards is not
+  applied: the hexes are inset by `HEX_SHRINK`, so the shadow has room, and
+  the plan says so in its packed-boards section. Revisit only if a hovered hex
+  is seen not to lift.
+
+**Verified:** spellingbee + guards, 366 tests; `tsc -b` and eslint clean over
+spellingbee, boggle and wordwheel. Not looked at in a browser.
 
 ## Notes
 

@@ -28,6 +28,7 @@ import type { SpellingbeeGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { pickFilter } from '@/common/lists/filterSelectHelpers'
+import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { PlayAreaLoader } from './PlayArea'
 
 /** A ctx whose global slot is real, with a spy on its one door. */
@@ -570,6 +571,42 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     await user.keyboard('bcdf{Enter}') // real letters, but no center E
     expect(shaking()).toBe(true)
     expect(new Set(answered())).toEqual(new Set(['B', 'C', 'D', 'F']))
+  })
+
+  /** The hexes wearing a refused word's answer, with their class strings. */
+  const answeredHexes = () =>
+    [...document.querySelectorAll('[data-hex]')].filter((t) =>
+      (t.getAttribute('class') ?? '').includes('_answered_'),
+    )
+
+  // A TOO-SHORT word, deliberately: it is `warning` (lib/answer.ts), where the
+  // missing-center case above is `lost` — and `lost` is what a mark with a
+  // default of its own would land on. The amber is what proves the letters
+  // read the answer.
+  it("wears the refusal's own outcome on its letters, not a default", async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('bed{Enter}')
+
+    const marked = answeredHexes()
+    expect(new Set(marked.map((t) => t.getAttribute('data-hex')))).toEqual(new Set(['B', 'E', 'D']))
+    for (const hex of marked) {
+      expect(hex.getAttribute('class')).toMatch(/verdictWarning/)
+      expect(hex.getAttribute('class')).not.toMatch(/verdictLost/)
+    }
+  })
+
+  it('takes the mark off its letters after the word-answer beat', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('bed{Enter}')
+    expect(answeredHexes()).toHaveLength(3)
+
+    await act(async () => void vi.advanceTimersByTime(WORD_ANSWER_MS + 1))
+
+    expect(answeredHexes()).toEqual([])
+    vi.useRealTimers()
   })
 
   it('names the missing center letter', async () => {

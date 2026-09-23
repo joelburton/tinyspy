@@ -158,8 +158,10 @@
  * each tile is worth one use; a spent one is inert, and `pointer-events: none`
  * takes it out of hover and press as well as click.
  *
- * The face wears the app's ordinary SELECTED border: black, with the fill and the
- * letter exactly where they were. That reads as "this tile is in your word"
+ * The face wears the SELECTED border, in the khaki the word-finding games wear
+ * for it rather than the usual black (a word lights several letters at once,
+ * and a crowd of black edges distracts), with the fill and the letter exactly
+ * where they were. That reads as "this tile is in your word"
  * rather than as the tile being taken away, and it is the mark boggle's tiles and
  * spellingbee's hexes use for the same thing. (It was a DARKENED FILL, which is
  * the in-flight dim's channel — and two darkened reds are harder to tell apart
