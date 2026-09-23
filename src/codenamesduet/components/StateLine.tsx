@@ -1,6 +1,7 @@
 // cs-met-codenamesduet
 
 import { isSuddenDeathTurn } from '../lib/events'
+import { TOTAL_AGENTS } from '../lib/agents'
 
 /**
  * codenamesduet's live-state readout — "3/15 agents · 3/9 turns spent", or
@@ -22,7 +23,7 @@ export function StateLine({
   turnNumber,
   turns,
 }: {
-  // Green agents contacted, out of the fixed 15.
+  // Green agents contacted, out of `TOTAL_AGENTS`.
   greenFound: number
   // The current turn (`games.turn_number`, 1-based) — the raw column; this
   // component renders it as turns spent.
@@ -32,7 +33,7 @@ export function StateLine({
 }) {
   return (
     <>
-      <strong>{greenFound}</strong>/15 agents ·{' '}
+      <strong>{greenFound}</strong>/{TOTAL_AGENTS} agents ·{' '}
       {isSuddenDeathTurn(turnNumber, turns) ? (
         'sudden death'
       ) : (

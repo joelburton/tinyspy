@@ -34,6 +34,7 @@ import { cluesOf, guessesOf, type DuetEvent } from '../lib/events'
 import { answerMessage, turnAnswer } from '../lib/answer'
 import type { KeyLabel } from '../lib/labels'
 import { derivePhase, type Seat } from '../lib/phase'
+import { TOTAL_AGENTS } from '../lib/agents'
 import { seatPlayers, type Player } from '../lib/seats'
 import { historySnapshot } from '../lib/history'
 import { buildTerminalMessage } from '../lib/terminal'
@@ -111,10 +112,6 @@ function useTurnStatus(args: {
     return () => globalFeedbackSlot.retract(id)
   }, [globalFeedbackSlot, text, outcome, peerName, peerColor])
 }
-
-/** Every duet board has fifteen green agents (the StateLine prints the same
- *  fixed total); named so the print model and the readout can't disagree. */
-const TOTAL_AGENTS = 15
 
 /**
  * The play surface's loader: runs the two reads — the game row, and the board
@@ -626,7 +623,7 @@ export function PlayArea({
       {celebration.show && (
         <CelebrationBlockingModal
           title="You win! 🎉"
-          body="All 15 agents contacted."
+          body={`All ${TOTAL_AGENTS} agents contacted.`}
           onClose={celebration.close}
         />
       )}

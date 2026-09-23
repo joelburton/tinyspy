@@ -1242,7 +1242,15 @@ F-28.
 `turn 4/9`. Options: **print what the screen says**, and make the test pin it;
 or handle sudden death alone. Recommendation: what the screen says.
 
-### F-codenamesduet-20 · `total-agents-four-homes` · `TOTAL_AGENTS` claims a unity it does not have
+### SHIPPED · F-codenamesduet-20 · `total-agents-four-homes` · `TOTAL_AGENTS` claims a unity it does not have
+
+**Joel, 2026-09-23: "i'll take your rec."** `TOTAL_AGENTS` lives in
+`lib/agents.ts` beside `agentsAllContacted`, its docstring saying where fifteen
+comes from, and all four read it: `StateLine`, the manifest's club line, the
+celebration body and the printout. Help's "15 agents" is prose and stays.
+**Planted** the constant as 14: `StateLine`'s spec and `gameStatusLabels` go
+red; the printout's input and the celebration body read the constant directly
+and have no spec of their own. `tsc -b` and eslint clean; 48 files, 417 tests.
 
 `PlayArea.tsx`'s `TOTAL_AGENTS = 15` is *"named so the print model and the
 readout can't disagree"*, but `StateLine` writes `/15 agents`, the manifest

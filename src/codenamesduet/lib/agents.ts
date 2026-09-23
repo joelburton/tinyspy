@@ -3,6 +3,13 @@
 import type { KeyLabel } from './labels'
 
 /**
+ * The agents a pair has to find: fifteen on every board, the key-card table's
+ * nine per side less the three that are agents on both. Every count out of it
+ * — the readout, the club line, the celebration, the printout — reads this.
+ */
+export const TOTAL_AGENTS = 15
+
+/**
  * Has a seat found all of its agents?
  *
  * A seat's agents are the `'G'` cells on its **own** key view; an agent

@@ -7,6 +7,7 @@ import { db } from './db'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { count, verdict, statusLine, tally } from '@/common/manifest/statusLabel'
 import { DEFAULT_CODENAMESDUET_SETUP, type CodenamesduetSetup } from './lib/setup'
+import { TOTAL_AGENTS } from './lib/agents'
 import logoUrl from './logo.svg?url'
 
 // The single source of truth for this game's user-facing brand name —
@@ -104,7 +105,7 @@ export const codenamesduetGame: GameManifest = {
     const st = (row.status ?? {}) as { greens_found?: number; turns_remaining?: number }
     // The agent tally is the useful "should I come back to this?" fact, so it
     // rides on every line. Mid-game the turn budget rides too.
-    const agents = tally(st.greens_found, 15, 'agents')
+    const agents = tally(st.greens_found, TOTAL_AGENTS, 'agents')
     const verdict = STATUS_LABEL[row.play_state]
     if (!verdict) return row.play_state
     return row.play_state === 'playing'
