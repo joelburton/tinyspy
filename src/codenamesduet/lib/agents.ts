@@ -14,10 +14,7 @@ import type { KeyLabel } from './labels'
  *
  * Per the Duet rulebook that seat then gives no more clues — its partner
  * takes every remaining turn (enforced server-side in `codenamesduet._end_turn`;
- * surfaced to both players as a banner in `PlayArea`).
- *
- * Pure so the predicate is unit-tested directly rather than through the
- * hook's fetch/realtime machinery — same rationale as `phase.ts`.
+ * surfaced to both players as a banner in the info column).
  */
 export function agentsAllContacted(
   key: KeyLabel[],

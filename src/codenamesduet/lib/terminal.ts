@@ -4,7 +4,7 @@ import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/termina
 
 /** The per-status terminal message for codenamesduet. `playState` is the
  *  authoritative input — only terminal states appear here. Returns the shared
- *  `TerminalMessage` shape (the same psychicnum/connections use): `pillText` +
+ *  `TerminalMessage` shape: `pillText` +
  *  `outcome` are the below-board verdict; `infoColText` + `outcome` the
  *  short, bold, color-coded line in the info-column action row (won = green,
  *  lost = red, manual end = neutral). Detail-on-page intentionally: the

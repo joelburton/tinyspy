@@ -2,7 +2,7 @@
 
 How we write code in this repo. The cross-cutting rules that aren't tied to any one gametype. Read this before writing or reviewing code in `src/` or `supabase/`.
 
-For terminology and the architectural backdrop see [`naming.md`](naming.md). For feature-specific conventions see [`codenamesduet.md`](games/codenamesduet.md), [`common.md`](common.md), and [`testing.md`](testing.md); a game's own conventions live in its folder's `doc.md`.
+For terminology and the architectural backdrop see [`naming.md`](naming.md). For feature-specific conventions see [`common.md`](common.md) and [`testing.md`](testing.md); a game's own conventions live in its folder's `doc.md`.
 
 ## Code clarity & docstrings
 

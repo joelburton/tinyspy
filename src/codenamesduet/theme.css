@@ -4,23 +4,19 @@
  * codenamesduet/theme.css — color tokens specific to codenamesduet.
  *
  * The three Duet roles (agent, neutral bystander, assassin) each
- * get a small palette of opacities + a "hint" soft variant and a
- * "revealed" solid variant. Components reference these via
- * var(--codenamesduet-agent) etc. from their own *.module.css.
+ * get a solid fill for a revealed tile, a translucent soft
+ * background, a dark text color, and a key-square fill.
+ * Components reference these via var(--codenamesduet-agent) etc.
+ * from their own *.module.css.
  *
  * Token names are semantic to Duet's vocabulary, not to colors:
  * `--codenamesduet-agent` (green-ish) rather than `--codenamesduet-green`,
  * since "agent" is the *role* the token paints. See docs/ui.md
  * for the wider rationale.
  *
- * Tuned for the light common theme (off-white bg). When dark mode
- * lands as a user option, this file gets a sibling [data-theme]
- * block — the names stay the same, the values shift.
- *
- * Loaded with the codenamesduet chunk (imported from src/codenamesduet/components/PlayArea.tsx).
- * When Boggle / Crosswords / etc. land, they bring their own
- * theme.css with whatever palette makes sense for their gameplay
- * surface — no cross-game token bleed.
+ * Tuned for the light common theme (off-white bg). Loaded with the
+ * codenamesduet chunk (imported from components/PlayArea.tsx), so
+ * no other game sees these tokens.
  * ============================================================ */
 
 /* @@ */ :root {
@@ -36,7 +32,7 @@
 /* @@ */   --codenamesduet-neutral-text:        #6b5832;  /* dark tan; readable on soft-bright bg */
 
   /* Assassin — the "you lose" red. Also drives the sudden-death
-     wrapper border and the in-board error banner. */
+     panel's border and the info column's SUDDEN DEATH lead-in. */
 /* @@ */   --codenamesduet-assassin:            #be3c3c;
 /* @@ */   --codenamesduet-assassin-soft:       rgb(190 60 60 / 16%);
 /* @@ */   --codenamesduet-assassin-text:       #8b1a1a;  /* dark red; readable on soft-bright bg */
@@ -50,7 +46,6 @@
 /* @@ */   --codenamesduet-neutral-key:         #d4b483;
 /* @@ */   --codenamesduet-assassin-key:        #e06666;
 
-  /* Named during the palette sweep: the hairline between a tile's two halves on
-   * the keycard. Value unchanged. */
+  /* The hairline border around a key square on a board tile. */
 /* @@ */   --codenamesduet-tile-rule-color: rgb(0 0 0 / 28%);
 }

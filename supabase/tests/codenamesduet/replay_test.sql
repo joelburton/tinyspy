@@ -3,16 +3,10 @@
 -- ============================================================
 -- Test: codenamesduet.replay_board(target_game)
 -- ============================================================
--- Added 2026-08-03, reversing duet's long-standing "no replay" opt-out. The
--- reasoning it overturns is worth restating, because this test is the place
--- someone will come looking: duet's board IS its secret, so a replay keeps the
--- key cards and the second run is played knowing where the assassin sits. The
--- case that wins anyway is the accident — a first-guess assassin ends a game
--- nobody got to play. This is a MULLIGAN, deliberately.
---
--- So what's pinned here is exactly that shape:
+-- A restart is a MULLIGAN: the same board, played again by players who keep
+-- whatever they learned of the key cards. What's pinned here is that shape:
 --   1. the key cards and the 25 words SURVIVE (it's the same board);
---   2. every reveal, neutral flag, clue and guess is wiped;
+--   2. every reveal, neutral flag and event is wiped;
 --   3. the turn budget is re-read from setup (turns_remaining has been
 --      decremented all game, so the row can't say what it was) and seat A
 --      clues again;

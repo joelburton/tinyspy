@@ -61,10 +61,8 @@ select pg_temp.envelope_is(
 -- ============================================================
 -- (3) Non-active game is rejected
 -- ============================================================
--- The old test used a 'lobby' state game; that state is gone with
--- clubs (create_game now goes directly to 'active'). To exercise
--- the "no suggestions outside active play" path, force a fresh
--- game's status to a terminal value via direct UPDATE (RLS-free
+-- To exercise the "no suggestions outside active play" path, force a
+-- fresh game's status to a terminal value via direct UPDATE (RLS-free
 -- because tests run as postgres by default — reset role first).
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -87,12 +85,12 @@ select pg_temp.envelope_is(
 -- (4)–(7) Happy path: ada gets a context with the expected keys,
 -- the greens array has exactly 9 entries (one per A-side green),
 -- and the assassins array has exactly 3 (a Duet key card carries
--- three — the regression guard for the old `limit 1` that hid two).
+-- three, and every one of them is returned).
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
--- The four lists live in the envelope's `data` now, beside the `result` that
+-- The four lists live in the envelope's `data`, beside the `result` that
 -- names the answer.
 create temp table ctx on commit drop as
   select get_clue_context((select id from g)) -> 'data' as data;

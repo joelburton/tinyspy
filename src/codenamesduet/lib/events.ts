@@ -18,8 +18,9 @@ type EventBase = {
   // The row's own id, and the order of play.
   id: number
   user_id: string
-  // Did this event use up a turn from the budget? A bystander in ordinary play
-  // and a pass; nothing else.
+  // Did the turn number move on after this event? A bystander in ordinary
+  // play, a pass, and an agent in sudden death that does not win; nothing
+  // else.
   took_turn: boolean
   created_at: string
   // The turn it belongs to; the log groups on it.
@@ -39,7 +40,9 @@ export type DuetEvent =
   | (EventBase & { kind: 'pass' })
   | (EventBase & { kind: 'hint' })
 
+/** A clue: the word, the count, and whether it was the AI's suggestion unedited. */
 export type ClueEvent = Extract<DuetEvent, { kind: 'clue' }>
+/** A guess: the tile's position and the key label it turned over as. */
 export type GuessEvent = Extract<DuetEvent, { kind: 'guess' }>
 
 /** A guess with its board word beside it, for the surfaces that print it —
@@ -100,9 +103,8 @@ export function guessesOf(
 
 /**
  * Whether a turn was played in sudden death: past the game's turn budget
- * (`setup.turns`). The turn after the last one spent is sudden death, and it is
- * the only turn with guesses and no clue. Derived rather than stored — the
- * budget and the turn number already say it.
+ * (`setup.turns`). Every such turn holds no clue and at most one guess. Derived rather
+ * than stored — the budget and the turn number already say it.
  */
 export function isSuddenDeathTurn(turnNumber: number, turnBudget: number): boolean {
   return turnNumber > turnBudget

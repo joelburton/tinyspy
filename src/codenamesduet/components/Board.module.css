@@ -2,23 +2,17 @@
 
 /* The 5×5 codenamesduet board.
  *
- * Styles were previously co-located in PlayArea.module.css; moved
- * here when PlayArea was restructured into the two-column layout
- * so the board's chrome stays with the Board component itself.
- *
- * On reveal each tile commits to a solid label color (agent /
- * neutral / assassin). Pre-reveal, the clue-giver's tiles show a
- * tinted hint background that previews the seat's key label
- * without committing. The grid uses `aspect-ratio: 5/3` per tile
- * so a 5×5 board fits a typical laptop screen without
- * shouting-wide tiles.
+ * A tile's fill is what HAPPENED to it: untouched, or turned over as an agent,
+ * a bystander or the assassin. What a key card SAYS about a cell is a corner
+ * square, and a bystander guessed from one side is a triangle — overlays on the
+ * tile, not its fill. Each tile is capped in size (below) so the board fits a
+ * laptop screen without shouting-wide tiles.
  */
 
 /* --------- the 5×5 board + tiles ---------
  *
- * The board wrapper + grid mirror psychicnum/connections (the shared "board"
- * shape every game carries — the single place a future framed board would
- * live). The grid fills the column on both axes (`repeat(5, 1fr)` each), so the
+ * The board wrapper + grid are the shared "board" shape every game carries.
+ * The grid fills the column on both axes (`repeat(5, 1fr)` each), so the
  * tiles get taller on a tall viewport and wider on a wide one — the page-height-
  * fits-the-viewport rule (docs/ui.md → "Page-height fits the viewport"). The
  * tile CHROME (fill / border / shadow / hover ring / centering / the word
@@ -78,10 +72,9 @@
 
 /* codenamesduet tiles carry corner OVERLAYS (keycard squares, neutral triangles,
  * the pending "…") that absolutely-position against the tile, so the tile must
- * be a positioning context. The shared `.tile` doesn't set `position: relative`
- * (psychicnum/connections have no such children), so we add it here as a
- * per-game composition — `cls(shared.tile, styles.overlayTile)` — keeping the
- * shared tile's contract narrow. (The shared `.tile` already sets
+ * be a positioning context. The shared `.tile` doesn't set `position: relative`,
+ * so it is added here as a per-game composition —
+ * `cls(shared.tile, styles.overlayTile)`. (The shared `.tile` already sets
  * `container-type: inline-size`, which the cqi-sized overlays below rely on.) */
 /* @@ */ .overlayTile {
   position: relative;
@@ -103,8 +96,8 @@
  * --tile-* tokens (so the fill wins regardless of stylesheet order — the same
  * pattern psychicnum's .correct/.incorrect use). The keycard squares (below)
  * carry the "what does a key SAY" signal; the fill carries "what happened":
- *   white  — no one has guessed it (explicit #fff so it doesn't inherit the
- *            shared beige --tile-slot-fill-color)
+ *   white  — no one has guessed it (the lightest tile shade, not the shared
+ *            resting beige, which reads too close to the bystander tan)
  *   tan    — someone guessed it as a neutral (which player → triangles)
  *   green  — we contacted an agent (global)
  *   red    — the assassin was hit (global)
@@ -156,15 +149,14 @@
 /* Keycard squares — small corner chips showing what a key card SAYS about the
  * cell, always in the soft/unrevealed palette (independent of what's been
  * guessed). My own is bottom-left and always shown (it's how I read which cells
- * to clue for); the peer's is top-right and shown only once the game is over
- * (their view is secret during play). Bottom/top placement mirrors a
- * tabletop: my card near me, my opponent's across the table. */
+ * to clue for); the partner's is top-right and shown only once the game is over
+ * and I have chosen to reveal it. Bottom/top placement mirrors a tabletop: my
+ * card near me, my partner's across the table. */
 /* @@ */ .keySquare {
   position: absolute;
   /* Scale with the tile (cqi = % of the tile's width, via the shared tile's
    * container-type) so the square shrinks on small tiles instead of crowding the
-   * word. A low floor is the key fix: the old 24px min held the square too big on
-   * a small-laptop board, where it collided with longer words. */
+   * word; the low floor keeps it clear of long words on a small-laptop board. */
   width: clamp(12px, 13cqi, 28px);
   height: clamp(12px, 13cqi, 28px);
   border-radius: 4px;

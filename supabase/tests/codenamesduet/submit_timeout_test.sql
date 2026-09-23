@@ -4,17 +4,17 @@
 -- Test: codenamesduet.submit_timeout — wall-clock countdown expired
 -- ============================================================
 --
--- Mirrors connections / psychicnum: the FE fires this RPC when its
--- count-down timer hits 0. The server-side gate is the
--- non-terminal-play_state check; play_state flips to 'lost_timeout' and
--- common.end_game records play_state='lost_timeout' + outcome='timeout'. Idempotent on
--- the gate — a second call (e.g. a peer's racing tab) raises
--- a clean P0001 the FE silently swallows.
+-- The FE fires this RPC when its count-down timer hits 0. The
+-- server-side gate is the non-terminal-play_state check; common.end_game
+-- records play_state='lost_timeout' + status.reason='timeout'. Idempotent
+-- on the gate — a second call (the partner's timer hitting 0 too) answers
+-- the shared game-over race.
 --
 -- Coverage:
---   - happy path from playing: play_state → lost_timeout, ended_at set
+--   - happy path from playing: play_state → lost_timeout, is_terminal,
+--     status.reason
 --   - happy path from sudden_death (the other non-terminal state)
---   - idempotency: second call on a terminal game is rejected
+--   - idempotency: second call on a terminal game answers the race
 --   - require_game_player: non-player is rejected
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
@@ -43,9 +43,8 @@ select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 create temp table g on commit drop as
 select (codenamesduet.create_game(
   (select handle from club),
-  -- Setup includes a 10-minute countdown timer so the
-  -- gametype-specific row reflects "timer was configured";
-  -- the RPC itself doesn't actually wait for time to pass.
+  -- Setup includes a 10-minute countdown timer, the only kind that
+  -- expires; the RPC itself doesn't wait for time to pass.
   jsonb_build_object(
     'turns', 9,
     'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111',
@@ -76,7 +75,7 @@ select is(
   'submit_timeout: end_game sets is_terminal=true on the common header'
 );
 
--- Status outcome carried through to common.games.
+-- Status reason carried through to common.games.
 select is(
   (select status->>'reason' from common.games
     where id = (select id from g)),

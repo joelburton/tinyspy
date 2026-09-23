@@ -1,9 +1,9 @@
 // cs-met-codenamesduet
 
 /**
- * Tests for GameEventLog. A pure presentational component — it takes `clues` +
- * `guesses` and renders the shared <EventLog> table, one row per turn. No
- * supabase mocking; just RTL render with props.
+ * Tests for GameEventLog. A presentational component — it takes `clues` +
+ * `guesses` and renders the shared <EventLog> table. No supabase mocking; just
+ * RTL render with props.
  *
  * Each turn renders as TWO `<tr>`s (codenamesduet's own row markup — a clue row
  * + a guess row, with the shared `<EventLogOutcomeBar>` rowSpanning both): row 1 is
@@ -11,8 +11,7 @@
  * => 2N rows in DOM order, clue row then guess row.
  *
  * What matters here:
- *   1. Empty-state: the shared EventLog shows its "No clues yet." placeholder
- *      (the box is always present, unlike the old GameLog which rendered null).
+ *   1. Empty-state: the shared EventLog shows its "No clues yet." placeholder.
  *   2. Per-turn grouping: each turn's clue (row 1) lines up with the guesses made
  *      that turn (row 2), oldest turn first.
  *   3. Guess order: within a turn, guesses show in the order given — the events
@@ -26,9 +25,8 @@
  *      filter.
  *
  * NOT covered: the color hookup (the key-card color on guessed words, and the
- * outcome bar). With CSS Modules the class name is hashed and Vitest runs with css:false
- * (the styles object is empty at test time), so asserting a specific variant
- * class is meaningless. The word/clue presence + text is asserted in the DOM;
+ * outcome bar). Under Vitest a CSS module is a proxy that names any key it is
+ * asked for, so asserting a specific variant class proves nothing. The word/clue presence + text is asserted in the DOM;
  * the outcome-bar mapping is verified via `turnOutcome` directly; the colors
  * themselves are a visual contract checked in the browser.
  */
@@ -206,7 +204,7 @@ describe('GameEventLog', () => {
 })
 
 /**
- * The shared "whose turns?" picker (2026-08-02). duet is coop-only, so the list
+ * The shared "whose turns?" picker. duet is coop-only, so the list
  * is Team + both players — and a turn is filed under its **clue-giver**, since
  * that's the person the row's actor column names. See the component docstring.
  */

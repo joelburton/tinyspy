@@ -19,11 +19,8 @@
 -- explicitly, so a reader can see both dependencies at the top of
 -- the file without having to chase down what `setup.psql` pulls in.
 --
--- Promotion from inlined helpers per the threshold in
--- docs/testing.md: codenamesduet now uses four shared helpers
--- (find_position, find_position_set, codenamesduet_setup,
--- codenamesduet_players) — past the "three or more" trigger — so they
--- live here rather than being copy-pasted into each test.
+-- The helpers live here rather than being copy-pasted into each test,
+-- per the "three or more" threshold in docs/testing.md.
 
 -- ─── find_position ─────────────────────────────────────
 -- "Find the first board position whose label on seat `s`'s view
@@ -31,8 +28,7 @@
 -- hardcode positions for a green / neutral / assassin reveal.
 --
 -- Reads the key view from the corresponding column on codenamesduet.games
--- (key_card_a or key_card_b) — seats are columns now, not a side
--- table.
+-- (key_card_a or key_card_b).
 create function pg_temp.find_position(g uuid, s text, target text) returns int
 language sql as $$
   select (ord - 1)::int
@@ -91,8 +87,7 @@ $$;
 
 -- ─── codenamesduet_players ──────────────────────────────────
 -- The standard 2-player roster for codenamesduet tests: ada + bea.
--- Tests use this as the third arg to create_game (which now takes
--- player_user_ids: uuid[] per the Phase 2c refactor).
+-- Tests use this as the third arg to create_game (player_user_ids).
 --
 --   codenamesduet_players()                            -- [ada, bea]
 create function pg_temp.codenamesduet_players() returns uuid[]

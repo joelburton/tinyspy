@@ -1,8 +1,8 @@
 // cs-met-codenamesduet
 
 /**
- * Regression guard for the two-kinds-of-text-input contract (docs/common.md →
- * keyboard shortcuts): codenamesduet's clue inputs must be tagged
+ * Regression guard for the two-kinds-of-text-input contract
+ * (docs/keyboard-shortcuts.md): codenamesduet's clue inputs must be tagged
  * `data-game-input` so the global `/ ? ~` shortcuts still fire while you're
  * typing a clue (you can hit `/` to chat without clicking away). This is the
  * counterpart to the chat box being `data-chat-input` (NOT a game input), so

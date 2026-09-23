@@ -9,9 +9,9 @@
  *      The RPC enforces "you are the current clue-giver in an active game";
  *      if it refuses, the refusal is relayed as it came.
  *   2. Ask Claude for a clue with structured outputs (output_config.format),
- *      so the response arrives as schema-valid JSON. Dropping the forced tool
- *      lets us enable native adaptive thinking — the model deliberates in its
- *      own thinking channel, which we log but never send to the player.
+ *      so the response arrives as schema-valid JSON, with native adaptive
+ *      thinking on — the model deliberates in its own thinking channel, which
+ *      we log but never send to the player.
  *   3. Log the hint with `log_hint`, once there is a suggestion to hand over.
  *   4. Answer `ok({ result: 'suggested', suggestion })`, which the FE fills
  *      into the existing clue inputs for the user to review + edit before
@@ -34,11 +34,9 @@
  *   - ANTHROPIC_API_KEY  required; set via `supabase secrets set` in prod
  *                        or in `supabase/functions/.env` locally.
  *   - SUPABASE_URL       auto-injected by the Edge Runtime.
- *   - SUPABASE_ANON_KEY  auto-injected by the Edge Runtime; older runtime
- *                        builds use this name even after the publishable/
- *                        secret-key rename on the FE side, so we read it
- *                        directly here (no `PUBLISHABLE_KEY` fallback —
- *                        anon has been universal since day one).
+ *   - SUPABASE_ANON_KEY  auto-injected by the Edge Runtime, under this name
+ *                        whatever the FE calls its key; read directly, with
+ *                        no `PUBLISHABLE_KEY` fallback.
  */
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
@@ -46,8 +44,8 @@ import { createClient } from 'jsr:@supabase/supabase-js@2'
 import Anthropic from 'npm:@anthropic-ai/sdk@0.109.0'
 
 type ClueContext = {
-  /** Names the answer. One `ok` today; asserted here so a second one cannot be
-   *  read as this one. */
+  // Names the answer. One `ok` today; asserted here so a second one cannot be
+  // read as this one.
   result: 'context'
   greens: string[]
   neutrals: string[]
@@ -89,16 +87,14 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization') ?? ''
 
     // Step 1: pull the board context as the calling user. The RPC enforces
-    // membership + turn + status; if any fails we forward the message.
+    // membership + turn + status; if any fails its refusal is relayed.
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } },
     )
     // `.schema('codenamesduet')` is required — the RPC lives in that schema, and
-    // supabase-js defaults to `public` (where it doesn't exist → a "function not
-    // found" error that this handler would forward as a misleading 403). Matches
-    // every sibling build-board function.
+    // supabase-js defaults to `public`, where it doesn't exist.
     const res = await runRpc<ClueContext>(
       supabase.schema('codenamesduet').rpc('get_clue_context', { target_game: gameId }),
       'get_clue_context',
@@ -114,17 +110,15 @@ serve(async (req) => {
     // the first step of this function's work, not its answer.
     const ctx = res.data
     if (!ctx.greens || ctx.greens.length === 0) {
-      // The FE grays the suggest button once every agent is revealed, so
-      // reaching this means the button was live when it should not have been.
+      // The clue seat only ever passes to a player with an agent left, so a
+      // clue-giver always has one; reaching this means that rule broke.
       return fault('PN317', 'BUG: a clue request for a board with every agent revealed', 'codenamesduet-suggest-clue: greens is empty')
     }
 
     // Step 2: ask Claude. Structured outputs (`output_config.format`) constrains
-    // the reply to our JSON schema — the same typed-JSON guarantee the old
-    // forced-tool call gave us, but without a tool. Dropping the forced tool is
-    // what lets us turn on NATIVE adaptive thinking: the model deliberates in
-    // real `thinking` blocks (logged below, never sent to the player) instead of
-    // the discarded scratchpad field the tool schema used to carry.
+    // the reply to our JSON schema without a tool, which leaves NATIVE adaptive
+    // thinking free to run: the model deliberates in real `thinking` blocks
+    // (logged below, never sent to the player).
     const apiKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!apiKey) {
       // An operator's missing env var is still OUR bug — the same reading as
@@ -149,8 +143,7 @@ serve(async (req) => {
         // dodge the assassin + neutrals, calibrate the count). It fires rarely
         // and a stuck player will happily wait a beat, so we spend on depth.
         effort: 'high',
-        // Structured outputs: the model must emit JSON matching this schema —
-        // the same typed-JSON guarantee the forced tool gave us, minus the tool.
+        // Structured outputs: the model must emit JSON matching this schema.
         // `additionalProperties: false` is required on every object.
         format: {
           type: 'json_schema',
@@ -218,8 +211,7 @@ serve(async (req) => {
       .join('\n')
     if (thinking) console.log('[suggest-clue] model thinking:', thinking)
 
-    // Structured outputs deliver the schema-valid JSON as a text block — there's
-    // no tool_use block to dig out anymore.
+    // Structured outputs deliver the schema-valid JSON as a text block.
     // Two codes, one sentence — the same shape as PN319/PN320 above. A player
     // cannot act differently on "no text block" and "text that would not
     // parse", but they are different things to go and look at, and a code names
@@ -239,8 +231,8 @@ serve(async (req) => {
     // which board words the clue is for (e.g. "Agents: BRAZIL, MARACAS"). Built
     // here rather than asked of the model: `agents` is already the ground truth,
     // so formatting it deterministically guarantees uppercase labels that always
-    // match the clue. The blank line renders as a separate paragraph — CluePanel's
-    // reasoning <p> uses `white-space: pre-line`.
+    // match the clue. The blank line renders as a separate paragraph — the AI
+    // companion's reasoning uses `white-space: pre-line`.
     if (suggestion.agents?.length) {
       const agentsLine = `Agents: ${suggestion.agents
         .map((a) => a.toUpperCase())

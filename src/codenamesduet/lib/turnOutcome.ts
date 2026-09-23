@@ -22,9 +22,8 @@ import type { GuessEvent } from './events'
  * pill deliberately stays silent, and where the log prints the guessed words it
  * draws them in the key-card palette (`--codenamesduet-agent` and its two
  * siblings) rather than in outcome colors. The TURN is the only thing wearing
- * one, and this fold is where it is decided — kept per Joel's ruling
- * (2026-09-16) that the bar reads the turn rather than its last guess, `near`
- * for a mixed turn being a rule the turn owns and no single guess can express.
+ * one, and this fold is where it is decided: the bar reads the turn rather
+ * than its last guess, and `near` for a mixed turn is a rule the turn owns.
  *
  * It folds over the key LETTERS because its three questions are about the key
  * card — did anything end the game, did we advance, did we waste a word — and

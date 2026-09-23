@@ -680,6 +680,116 @@ pointer elsewhere that names one of these files still points where it did.
 
 **The restructure is complete.** Pass 2 opens with the prose pass.
 
+## The audit — pass 2
+
+### The prose pass — 2026-09-23, one sitting
+
+In the working tree for Joel's read, before any finding is presented:
+
+- **`src/codenamesduet/doc.md` is whole.** The intro's last paragraph (the end
+  of a game is on the board; Restart is a mulligan); Game rules with the
+  joint key-card table, a Vocabulary table and the play states with their
+  reasons; Schema; Frontend, with the render tree and what is this game's own;
+  Tests, pgTAP and Vitest as tables and the six Playwright specs named. Written
+  from the code, not the old doc, and where they disagreed the code won: the
+  old doc's two-stripe peer reveal (the board draws corner squares), its
+  "every game starts with 9 turns" (9, 10 or 11), its "your own key hidden
+  mid-guess, always printed" (hidden only while I am guessing), its
+  "`status.outcome`" and "friends-alpha", and its claim that every terminal
+  states `greens_found` (the three a guess causes do). **`docs/games/codenamesduet.md`
+  is deleted**; CLAUDE.md's row, `docs/ui.md`'s tile-color link and
+  `docs/code-conventions.md`'s pointer are repointed or dropped, and
+  `lib/history.ts`'s citation names the folder's doc. The old doc's one durable
+  item with no other home — in sudden death a not-ok hides the notice — is
+  `todo.md` → Someday.
+- **Two docs outside the folder:** `docs/ui.md`'s *"no replay to protect"* now
+  says Restart is a mulligan that keeps both key cards; `docs/common.md`'s
+  `common.end_game` row said every terminal "should state its own `outcome`" —
+  it is `reason`.
+- **`todo.md`:** the monospace item said the board is set in monospace; it is
+  `.tileKey`, the pending "…", alone.
+- **SQL (`codenamesduet.sql`, all thirteen pgTAP files, the edge function)** —
+  comments only, the SQL byte-identical once they are stripped. `outcome` →
+  `reason` wherever the key is meant; the swallowed-`P0001` lines in
+  `submit_timeout`, `end_game` and their tests are the shared race; `end_game`'s
+  header, split in two by `replay_board`'s banner, is whole again, and its
+  `ctx.menu.setGameItems` is `act-end-game`; the dropped pointer to
+  `deferred.md → Setup-shape evolution` (decided there); the edge function's
+  PN317 note said the frontend grays the AI button once every agent is found
+  (nothing does), and the "old forced-tool call" history in four places.
+  pgTAP headers now say what each file asserts — `rls_test`'s outsider is
+  outside the CLUB, its inserts are refused by the missing grant, its RPCs
+  answer not-ok rather than throw; `create_game_test`'s coverage list matched
+  neither its checks nor their order; `submit_timeout_test` claimed an
+  `ended_at` it never asserts. Archaeology and rule 3: `replay_board`'s
+  reversal story (header and test), `end_game`'s Zoom-call argument, the
+  "Phase 2c", "seats are columns now" and "(the fix!)" lines.
+- **lib, hooks, manifest, pdf, theme** — `manifest.ts`'s "the outcome names the
+  cause", its two pointers at the applied migration for `create_game`, and a
+  `BRAND` reader that does not read it; `db.ts`'s example selected a column
+  `games` does not have; `useGame`'s `Player` said the seats "swap each turn";
+  `useBoard.test`'s header said the partner's key is fetched only at the end,
+  and its flip-back comment said the transition is unreachable (the Reveal
+  toggle reaches it); `lib/events.ts`'s `took_turn` left out the sudden-death
+  agent; `pdf/model.ts` said a clean win reveals the partner's card; `theme.css`
+  named an "in-board error banner" and a tile "hairline" that do not exist.
+  **Markers:** field and argument notes to `//` in `phase.ts`, `setup.ts`,
+  `history.ts` and `pdf/model.ts`; three docstrings moved onto the declaration
+  they describe (`derivePhase`, `KeyLabel`, `buildDuetPrintModel`), and
+  `manifest.ts`'s past the `BRAND` comment; docstrings added on ten exported
+  types.
+- **Components and stylesheets** — the three CSS headers the split listed;
+  `CluePanel.module.css`'s three orphans deleted and its `.icon-button`,
+  "label" and "submit error" claims; `Board.module.css`'s clue-giver tint and
+  `#fff` that are not there; `Help.tsx`'s docstring described a Got-it button
+  and an unpersisted position (neither true); `SetupForm.tsx`'s "two choices"
+  (four settings); `GameEventLog`'s "stateless" (the picker holds its choice);
+  the AI companion's dated two-paragraph argument, to one sentence;
+  `PlayArea.test`'s header described one of its seven groups and a
+  `guessInFlight` ref (it is `useSingleFlight`). Prop notes to `//`.
+
+**Proved a pure prose pass:** every touched `.ts` / `.tsx` is identical to its
+before-copy with comments stripped; every stylesheet parses identically with
+comments removed and keeps its `/* @@ */` count; the SQL is byte-identical
+stripped.
+
+**Seen on the way and left for the findings**, none of it prose:
+
+- **The first clue-giver picker offers every club member**, not the two
+  players (`SetupForm.tsx` maps `members`); in a club of three, choosing the
+  third gets `create_game`'s PN092 fault. The spec "offers only the two
+  players" passes only because its club has two members.
+- **Help's text is wrong four ways:** tiles "tinted with your view" (the
+  squares are), one assassin where each card holds three, "You have 9 turns"
+  (9–11), and nothing on the finished-player hand-off or Pass.
+- `.suggestionError` wears `--chrome-fault-color` over a refusal or a
+  declined suggestion, neither a fault.
+- `lib/phase.ts`'s `GameStatus` has no `ended`, and `PlayArea` casts
+  `playState as GameStatus` twice; it works because `gameOver` is "not
+  running".
+- `useGame` fills a missing profile with `{ username: '?', color: 'blue' }`.
+- `end_game_test` never asserts the realtime touch.
+- ~~The applied `20260615000001` migration's comments~~ — **fixed in this
+  pass**, text only (Joel: *"do fix migrations if the changes are just
+  textual"*); stripped of comments it is byte-identical. The header no longer
+  claims the functions and policies and points at `src/codenamesduet/doc.md`
+  (not the never-existing `docs/codenamesduet.md`); the timer is not
+  "(future)"; the play-state list has `ended`; `clues` and `guesses` each say
+  the events migration drops them, and the `guesses` comment's garbled
+  sentence reads; `words` points at `events`; the RLS note says where the
+  policies live; `hides_solution` says the 2026-08-15 migration dropped it.
+  **The dangling `deferred.md → codenamesduet` pointer on the key-card policy
+  is now "accepted under the trust model"** — the old doc's own "not planned"
+  — which reads Step 1's open question as a Won't do. Joel's to overturn.
+- Already recorded: Step 8's four (`firstClueGiver`, `turnNumber`, `mySeat`,
+  the double gate), Step 3's `submit_clue` judging nothing and
+  `get_clue_context` admitting sudden death, and the four RPCs answering a
+  deleted game as a fault.
+
+**Verified:** `tsc -b` and eslint clean; 49 files, 409 unit and guard tests
+green (`docLinks` included); `gmake db-sql ENV=local` then `npm run test:db`,
+182 files, 2601 tests, PASS; `deno check` clean on the edge function. No e2e.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it

@@ -1,5 +1,9 @@
 /* cs-met-codenamesduet */
 
+/* The AI suggestion's panel content: the waiting line, a refusal's sentence,
+ * the suggested clue, and its reasoning. The panel itself is the shared
+ * <Companion>. */
+
 /* @@ */ .suggestionLoading {
   margin: 0;
   color: var(--page-text-muted-color);

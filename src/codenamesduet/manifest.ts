@@ -9,6 +9,12 @@ import { count, verdict, statusLine, tally } from '@/common/manifest/statusLabel
 import { DEFAULT_CODENAMESDUET_SETUP, type CodenamesduetSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
+// The single source of truth for this game's user-facing brand name —
+// `name` reads it, so a fork rebrands by editing this one line. The
+// codename (`codenamesduet`) is unrelated and stays lowercase everywhere
+// in code.
+const BRAND = 'TinySpy'
+
 /**
  * codenamesduet's registration with the shell. Exported as the only thing
  * outside `src/codenamesduet/` needs to know about this gametype —
@@ -22,7 +28,7 @@ import logoUrl from './logo.svg?url'
  * lazy-loaded so that Vite emits codenamesduet's code into its own chunk.
  * The main bundle ships only the shell + common + this manifest (a
  * tiny constant); the actual game code arrives the first time a user
- * navigates into codenamesduet in a session. App.tsx wraps the mount in
+ * navigates into codenamesduet in a session. `GamePage` wraps the mount in
  * `<Suspense>` so the brief between-chunk-fetch render is handled
  * cleanly.
  *
@@ -31,12 +37,6 @@ import logoUrl from './logo.svg?url'
  * a default export. We keep `PlayAreaLoader` (and friends) named exports
  * for symmetry with everything else.
  */
-// The single source of truth for this game's user-facing brand name —
-// `name` and the start-game error both read it, so a fork rebrands by
-// editing this one line. The codename (`codenamesduet`) is unrelated and
-// stays lowercase everywhere in code.
-const BRAND = 'TinySpy'
-
 export const codenamesduetGame: GameManifest = {
   gametype: 'codenamesduet',
   schema: 'codenamesduet',
@@ -55,7 +55,7 @@ export const codenamesduetGame: GameManifest = {
 
   // Codenames Duet is intrinsically 2-player. Must agree with
   // the player-count check in codenamesduet.create_game (in
-  // supabase/migrations/20260615000001_codenamesduet.sql). See
+  // supabase/sql/codenamesduet.sql). See
   // docs/code-conventions.md → "Per-game player counts" for the
   // cross-reference convention.
   numberOfPlayers: [2, 2],
@@ -80,7 +80,7 @@ export const codenamesduetGame: GameManifest = {
   // RPC validates the setup shape server-side and uses it to
   // initialize the game (turns_remaining from s.turns; seat A
   // assigned to s.first_clue_giver_user_id). See
-  // supabase/migrations/20260615000001_codenamesduet.sql.
+  // supabase/sql/codenamesduet.sql.
   //
   // The `unknown` → CodenamesduetSetup cast is safe because we own
   // both ends of the boundary (this manifest's setupForm
@@ -96,13 +96,10 @@ export const codenamesduetGame: GameManifest = {
     )
   },
 
-  // Render the per-row label from a common.games row. codenamesduet's
-  // play_state vocabulary is rich enough to label every row
-  // without reading status jsonb (won / lost_assassin /
-  // lost_clock / lost_timeout each get their own copy). Map
-  // misses fall back to the raw play_state, so a future
-  // play_state value renders something sensible until we add
-  // its copy.
+  // Render the per-row label from a common.games row. The verdict is
+  // the play state's own (STATUS_LABEL, below); the status adds the
+  // agent tally and, mid-game, the turns left. A play state missing
+  // from the map renders as its raw name.
   labelFor: (row) => {
     const st = (row.status ?? {}) as { greens_found?: number; turns_remaining?: number }
     // The agent tally is the useful "should I come back to this?" fact, so it
@@ -119,7 +116,7 @@ export const codenamesduetGame: GameManifest = {
   // submit_timeout flips play_state to 'lost_timeout' (distinct from
   // 'lost_clock', the Duet rulebook's turns-exhausted ending) + writes
   // common.games.status.reason='timeout' — the play_state carries the verdict,
-  // the outcome names the cause. Idempotent, so peers racing to
+  // the reason names the cause. Idempotent, so peers racing to
   // fire it is fine. end_game is the irreversible in-game "End game" button.
   // Both are the shared one-arg dispatchers (see common/manifest/manifestRpcs).
   submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),

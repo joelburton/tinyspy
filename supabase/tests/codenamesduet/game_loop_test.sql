@@ -62,8 +62,8 @@ select pg_temp.envelope_is(
 );
 
 -- Ada (the clue-giver) can't guess either, even after a clue exists —
--- but right now there's no clue either, so the error she'd hit is
--- "you are the clue-giver this turn" (checked first in the RPC).
+-- but right now there's no clue either, so what she hits is the
+-- clue-giver check (made first in the RPC), not the no-clue one.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   submit_guess((select id from g1), 0),
@@ -82,8 +82,8 @@ select pg_temp.envelope_is(
   'submit_clue succeeds for the current clue-giver in the clue phase'
 );
 
--- Ada can't double up — the unique (game_id, turn_number) constraint
--- on `clues` is enforced by the RPC ahead of the actual insert.
+-- Ada can't double up — the one-clue-per-turn partial unique index on
+-- `events` is checked by the RPC ahead of the actual insert.
 select pg_temp.envelope_is(
   submit_clue((select id from g1), 'OTHER', 1),
   '{"type":"not-ok","severity":"race","dbcode":"PN372",
@@ -154,7 +154,7 @@ select is(
 );
 
 -- ----- pass_turn -----
--- Bea is now the clue-giver. He submits a clue, Ada passes immediately
+-- Bea is now the clue-giver. Bea submits a clue, Ada passes immediately
 -- (a zero-guess turn — rulebook-legal). Turn ends just like a neutral.
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

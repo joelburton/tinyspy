@@ -9,18 +9,9 @@ type Props = {
 }
 
 /**
- * codenamesduet's help / rules modal — opened from the "Help" item in
- * the GamePage menu. Implements the common
- * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
- *
- * Renders into the shared `<GameHelpCompanion>` (the FloatingPanel frame + title +
- * Got-it): draggable + resizable so a user can shrink it into a corner while
- * reading the chat or watching the board, no backdrop so other UI stays
- * interactable.
- *
- * The parent (`GamePage`) mounts this component only when the
- * help companion is open, so there's no `open` prop — `onClose`
- * unmounts it. Each open lands centered; position isn't persisted.
+ * codenamesduet's help / rules modal — opened from the "Help" item in the
+ * GamePage menu; the manifest's `help` contract. The two views of the board,
+ * and how a turn runs, in the shared `<GameHelpCompanion>` scaffold.
  */
 export function Help({ onClose, brand }: Props) {
   return (

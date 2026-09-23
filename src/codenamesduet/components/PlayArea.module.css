@@ -1,16 +1,16 @@
 /* cs-met-codenamesduet */
 
-/* codenamesduet play surface (the thin coordinator). The two-column SHELL
- * (.layout / .boardCol) and the tile chrome come from the shared
+/* codenamesduet's play surface root. The two-column shell (.layout /
+ * .boardCol) and the tile chrome are the shared
  * common/game-page/playArea.module.css, the info column (.infoCol and its rows)
- * from common/info-sheet/infoCol.module.css (imported as `shared`). The only class left here is the layout var; the column-specific bits
- * live with their columns (BoardCol.module.css / InfoCol.module.css).
+ * common/info-sheet/infoCol.module.css; each column's own classes live with it
+ * (BoardCol.module.css / InfoCol.module.css). What is left here is the layout's
+ * one variable.
  *
- * Mobile is the shared recipe (docs/mobile.md): `shared.mobileFill` on `.layout`
- * (board fills the width) + `<InfoSheet>` around the InfoCol (off-canvas sheet) +
- * `useInfoSheet` (the open flag) — all in PlayArea.tsx. The clue-giver
- * keyboard is handled by NOT fighting it (the board stays full-size, the page
- * scrolls) — again nothing CSS-specific here. Nothing mobile-specific left. */
+ * Mobile is the shared recipe (docs/mobile.md), all of it in PlayArea.tsx:
+ * `shared.mobileFill` on `.layout`, `<InfoSheet>` around the InfoCol, and
+ * `useInfoSheet`. The clue-giver's on-screen keyboard is not fought — the board
+ * stays full-size and the page scrolls — so no rule here is mobile's. */
 
 /* The info column's width — game-specific (the shared scaffold has no default, so
  * each game declares its own). codenamesduet's right column (setup + agent/turn

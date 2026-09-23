@@ -1,7 +1,7 @@
 -- cs-met-codenamesduet
 
 -- ============================================================
--- Test: codenamesduet.create_game(target_club, setup)
+-- Test: codenamesduet.create_game(target_club, setup, player_user_ids)
 -- ============================================================
 --
 -- create_game is the one entry-point RPC for starting a codenamesduet
@@ -14,20 +14,25 @@
 -- Coverage:
 --   - rejection: not authenticated
 --   - rejection: caller is not a member of the target club
---   - rejection: club has != 2 members
---   - rejection: setup.turns out of {9, 10, 11}
---   - rejection: setup.first_clue_giver_user_id not a uuid
---   - rejection: setup.first_clue_giver_user_id not in club
---   - happy path: returns one row, play_state='playing', club_handle
+--   - rejection: player_user_ids is not exactly 2 players
+--   - rejection: setup.turns missing, or out of {9, 10, 11}
+--   - rejection: setup.first_clue_giver_user_id missing, not a uuid,
+--     or not one of the players
+--   - rejection: a bad setup.timer (the helper is wired up)
+--   - happy path: answers ok/created, play_state='playing', club_handle
 --     correct, both seats filled, 25 words inserted,
 --     common.games row created with is_current_view=true
 --   - setup is persisted on the row (game review can see the
 --     original setup)
 --   - turns_remaining initialized from setup.turns (a non-9
 --     test value pins the link)
+--   - the roster in common.game_players is exactly the two players
+--   - the title is the first three words in board order
 --   - first-clue-giver lands in seat A (ada when she's chosen,
 --     bea when she's chosen — exercises both directions)
 --   - key-card distribution matches the Duet rulebook
+--   - the saved club default drops first_clue_giver_user_id
+--   - an unseeded word pool is a fault
 --
 -- Doubles as the pgTAP primer for the rest of the test suite —
 -- the as_user helper + begin/rollback structure are introduced
@@ -47,9 +52,8 @@ select plan(37);
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
 
--- `throws_ok` took a SQL STRING because the call had to be deferred; an
--- envelope is a VALUE, and these build their SQL with `format`. This runs one
--- and returns what it gave.
+-- An envelope is a VALUE, and these tests build their SQL with `format`. This
+-- runs one and returns what it gave.
 create function pg_temp.envelope_of(sql text) returns jsonb as $envfn$
 declare result jsonb;
 begin execute sql into result; return result; end;
@@ -187,8 +191,7 @@ select pg_temp.envelope_is(
 
 -- first_clue_giver_user_id is a uuid, but it's dee — who isn't in
 -- player_user_ids (dee is also not in club2, but the
--- "must be one of player_user_ids" check fires first under the
--- new validation order).
+-- "must be one of player_user_ids" check fires first).
 select pg_temp.envelope_is(
   pg_temp.envelope_of(format(
     $q$ select codenamesduet.create_game(
@@ -387,7 +390,7 @@ select results_eq(
 );
 
 -- Ada is the chosen first clue-giver → seat A column. Bea → seat B
--- column. (Seats are now columns on codenamesduet.games, not a side table.)
+-- column.
 select is(
   (select user_a_id from codenamesduet.games where id = (select id from created)),
   'ada11111-1111-1111-1111-111111111111'::uuid,
@@ -426,9 +429,9 @@ select is(
 
 -- Title shape: "WORD1-WORD2-WORD3" — the first three words IN BOARD ORDER
 -- (positions 0/1/2), i.e. the top-left three cells as everyone sees them.
--- Board order, not alphabetical (2026-08-02): a duet board is never shuffled or
+-- Board order, not alphabetical: a duet board is never shuffled or
 -- rotated, so the first three cells are a stable handle you can match by
--- glancing at the grid. Words are randomly drawn from a 390-word pool so we
+-- glancing at the grid. Words are randomly drawn from the pool so we
 -- can't pin the exact words; assert the shape and that they're positions 0-2.
 -- Three parts, two dashes, all uppercase. NOT `^[A-Z]+-[A-Z]+-[A-Z]+$`: the
 -- pool holds multi-word entries ("BIG BANG", "ST.PATRICK"), so a per-part

@@ -9,12 +9,13 @@
 -- it writes a NEUTRAL terminal (play_state='ended',
 -- status.reason='manual') with every player {won:false} — stopping
 -- on purpose is a valid outcome, not a loss. Same lock / auth /
--- active-state gate / Realtime-touch shape as submit_timeout.
+-- active-state gate as submit_timeout.
 --
 -- Coverage:
 --   - happy path from playing: play_state → ended, is_terminal=true,
 --     status.reason='manual', both players' result = {won:false}
---   - idempotency: a second call on the now-terminal game is rejected
+--   - idempotency: a second call on the now-terminal game answers the
+--     shared game-over race
 --   - require_game_player: a non-player is rejected
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer and
@@ -70,7 +71,7 @@ select is(
   'end_game: end_game sets is_terminal=true on the common header'
 );
 
--- Status outcome carried through to common.games.
+-- Status reason carried through to common.games.
 select is(
   (select status->>'reason' from common.games
     where id = (select id from g)),

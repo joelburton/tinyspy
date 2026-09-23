@@ -46,7 +46,7 @@ Each game doc carries that game's rules, schema, RPCs, FE shape, and tests; the 
 
 | file | what's distinctive |
 |---|---|
-| [docs/games/codenamesduet.md](docs/games/codenamesduet.md) | Codenames Duet: the AI clue-suggester edge function |
+| [src/codenamesduet/doc.md](src/codenamesduet/doc.md) | Brand **TinySpy**: the server decides every guess, per-side bystanders and the finished-player hand-off, the AI clue-suggester edge function. **Its doc lives in its own folder** — `docs/games/codenamesduet.md` is gone, absorbed by its area audit |
 | [src/psychicnum/doc.md](src/psychicnum/doc.md) | The deliberately minimal toy game; the hidden-secrets pattern. **The first game whose doc lives in its own folder** — `docs/games/psychicnum.md` is gone, absorbed by its area audit |
 | [src/connections/doc.md](src/connections/doc.md) | The FE-knows decision, peer selection via Broadcast, pause-on-disconnect. **Its doc lives in its own folder** — `docs/games/connections.md` is gone, absorbed by its area audit |
 | [src/spellingbee/doc.md](src/spellingbee/doc.md) | Brand **FreeBee**: required + bonus word lists, trusting-commit local scoring, the rank ladder, the board built in an edge function. **Its doc lives in its own folder** — `docs/games/spellingbee.md` is gone, absorbed by its area audit |

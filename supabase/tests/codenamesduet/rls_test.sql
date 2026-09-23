@@ -4,18 +4,18 @@
 -- Test: row-level security boundaries
 -- ============================================================
 --
--- The single highest-value security check: a user who is not in a
--- game must not be able to see anything about it, and must not be
+-- The single highest-value security check: a user outside the game's
+-- club must not be able to see anything about it, and must not be
 -- able to write to its state through any path.
 --
 -- Three users:
 --   ada + bea — play a game together
---   dee       — signed in, but outside the game
+--   dee       — signed in, but outside the club
 --
 -- For dee, we check:
 --   - SELECTs on every game-scoped table return zero rows
---   - RPCs that mutate the game throw
---   - direct INSERTs to game tables are blocked by RLS
+--   - RPCs that mutate the game answer not-ok
+--   - direct INSERTs to game tables are refused
 --
 -- And one positive check: ada (a player) CAN see the games row.
 -- Without it, "dee returns 0 rows" wouldn't actually prove RLS is
@@ -62,17 +62,13 @@ select is(
 
 -- ============================================================
 -- Dee's SELECTs against game-scoped tables must return zero rows.
--- The `is_player_in_game(game_id)` helper used by the RLS policies
--- evaluates false for her, hiding the row entirely (no error,
--- empty result — the standard RLS behavior).
+-- Visibility is club-wide: every policy gates on
+-- is_club_member(club_handle), which is false for her, hiding the row
+-- entirely (no error, empty result — the standard RLS behavior).
 -- ============================================================
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 
--- RLS shape changed: visibility is now club-wide (not
--- player-restricted). Dee is a non-club-member, so she sees nothing
--- from codenamesduet.games / codenamesduet.words / codenamesduet.events — gated by
--- is_club_member(club_handle), which fails for her.
 select is(
   (select count(*) from games where id = (select id from g)),
   0::bigint,
@@ -92,7 +88,7 @@ select is(
 );
 
 -- ============================================================
--- Dee's mutating RPCs must throw.
+-- Dee's mutating RPCs are refused.
 -- ============================================================
 -- The RPCs use common.require_game_player as the auth gate.
 -- Since dee isn't in common.game_players for this game, she's rejected there —
@@ -116,8 +112,8 @@ select pg_temp.envelope_is(
 -- ============================================================
 -- Dee can't write directly to game tables either.
 -- ============================================================
--- This is defense-in-depth: the baseline migration only `grant
--- select` to the authenticated role on every game table — no
+-- This is defense-in-depth: supabase/sql/codenamesduet.sql only `grant
+-- select`s to the authenticated role on every game table — no
 -- INSERT/UPDATE/DELETE grants. PostgreSQL blocks the write at
 -- the grant layer ("permission denied") *before* RLS even gets
 -- to evaluate it. The RLS policies are still there as a second

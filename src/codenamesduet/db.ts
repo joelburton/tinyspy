@@ -9,7 +9,7 @@ import { supabase } from '@/common/supabase/supabase'
  *
  *     import { db } from '../db'
  *
- *     const { data } = await db.from('games').select('id, status')...
+ *     db.from('words').select('position, word').eq('game_id', gameId)
  *     await db.rpc('submit_clue', { ... })
  *
  * Equivalent to `supabase.schema('codenamesduet').from(...)` at every call

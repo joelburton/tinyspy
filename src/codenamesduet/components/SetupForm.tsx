@@ -12,35 +12,21 @@ import {
 import { SetupSection } from '@/common/setup-form/SetupSection'
 
 /**
- * codenamesduet's per-game setup form, rendered inside the common
- * `SetupGameModal`. Two choices for the players:
+ * codenamesduet's setup form, rendered inside the common `SetupGameModal`:
+ * the two players, then
  *
- *   - **Turns** — starting turn count, one of {9, 10, 11}
- *     (matches the Duet rulebook's mission counts). 9 is the
- *     standard game; 10 and 11 are easier warm-ups.
- *   - **Who gives the first clue** — radio with the two club
- *     members. `create_game` seats the chosen user as A
- *     (since A always opens the game), the other as B.
+ *   - **Turns** — the starting turn budget, one of {9, 10, 11}. 9 is the
+ *     standard game; 10 and 11 are the rulebook's easier missions.
+ *   - **First clue** — which member gives it. `create_game` seats the chosen
+ *     player as A, since A always opens the game, and the other as B.
  *
- * On mount we auto-seed `first_clue_giver_user_id` to the first
- * club member. The manifest's defaults can't carry a member id
- * (defaults are evaluated before any club is known), so the
- * resolution happens here. The user can still flip the radio
- * before clicking Start.
+ * and the timer. The manifest's defaults can't carry a member id (they are
+ * evaluated before any club is known), so the first member is seeded here as
+ * the first clue-giver; the radio can still be flipped before Start.
  *
- * Controlled component pattern: state lives in the wrapper,
- * we render from `value` and signal via `onChange`. The single
- * `value as CodenamesduetSetup` cast at the top is the boundary
- * between the manifest's `unknown` setup type and codenamesduet's
- * narrow shape — see the SetupBodyProps doc in
- * src/common/setup-form/setupForm.ts.
- *
- * Component name `SetupForm` matches the file + the
- * `manifest.setupForm` field — this is the *form definition*,
- * distinct from `CodenamesduetSetup` (the *data shape* the form
- * produces, stored on `common.games.setup`). The folder path
- * (`codenamesduet/components/SetupForm.tsx`) disambiguates from the
- * other games' SetupForm components.
+ * Controlled: the shared form owns the values, and the two casts at the top
+ * narrow them to codenamesduet's shape (see `SetupBodyProps` in
+ * `common/setup-form/setupForm.ts`).
  */
 export function SetupForm({
   members, selfId, numberOfPlayers, values, set: setValue, errors,

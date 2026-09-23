@@ -37,10 +37,16 @@
   right (`docs/ui.md` → Floating panels); every companion's pair is listed in
   `src/common/floating-panels/todo.md`, to be settled one game at a time.
 
-- `Board.module.css` sets `ui-monospace, Menlo, monospace` on the board — the
-  most consequential of the app's monospace uses, because it is a play
-  surface rather than a form. Decide with the setup forms' mono question
-  (`src/common/setup-form/todo.md`), not piecemeal.
+- `Board.module.css` sets `ui-monospace, Menlo, monospace` on `.tileKey`, the
+  pending "…" in a tile's corner — the one monospace on this play surface.
+  Decide with the setup forms' mono question (`src/common/setup-form/todo.md`),
+  not piecemeal.
+
+- **In sudden death, a not-ok hides the sudden-death notice.** The notice and
+  the local feedback pill share the slot under the board, so while a not-ok is
+  open the info column is the only place sudden death shows — and on a phone
+  that column is off-canvas. The notice comes back when the pill's × is
+  pressed.
 
 ## Maybe
 

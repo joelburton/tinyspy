@@ -69,7 +69,7 @@ begin
 end $$;
 
 -- ============================================================
--- Turn 2: Bea (now clue-giver) reveals his unique greens.
+-- Turn 2: Bea (now clue-giver) clues, and Ada reveals Bea's unique greens.
 -- ============================================================
 -- These are positions where Ada's view is *not* green but Bea's
 -- view is green — i.e., the 5 N/G + 1 A/G cells from the rulebook
@@ -92,9 +92,8 @@ declare
   bob_unique int[];
   p int;
 begin
-  -- Positions where Ada's view != G but Bea's view = G. Both
-  -- key views are now columns on codenamesduet.games (key_card_a,
-  -- key_card_b), not rows in a side table.
+  -- Positions where Ada's view != G but Bea's view = G, read off
+  -- the two key columns on codenamesduet.games (key_card_a, key_card_b).
   with a as (
     select t.label as la, t.ord
     from codenamesduet.games g,
@@ -171,8 +170,8 @@ select is(
 -- takes the end_game branch instead. end_game MERGES its status object, so a
 -- blob that doesn't mention greens_found leaves the previous value — 14 — and
 -- the club page reads "Won · 14/15 agents" on a game where all fifteen were
--- found. Terminal writes state their own numbers (docs/supabase.md → the status
--- blob), which is what makes this assertable at all.
+-- found. Terminal writes state their own numbers (docs/common.md →
+-- `common.end_game`), which is what makes this assertable at all.
 select is(
   (select (status->>'greens_found')::int from common.games where id = (select id from g)),
   15,

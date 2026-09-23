@@ -252,7 +252,7 @@ One implementation note that is easy to get wrong, and it is recorded in the hoo
 
 **The club-list title follows the same rule**: a title that spells the answer spoils the game from the outside, which is exactly what wordle's `_sync_title` did until 2026-08-02. It can't key on the reveal either — that's one player's private click, and the title is club-wide — so every game's title-writer names only what the players actually earned (wordle: the last guess, which on a win *is* the answer; stackdown: the words they cleared; waffle: the best board's correct words; psychicnum + codenamesduet: board words, never the key).
 
-**codenamesduet is gated for a different reason**, and it's the clearest illustration of why the reveal is personal. It has no replay to protect (its board *is* the secret). The seconds right after an assassin are the post-mortem — "wait, I was about to pick APPLE" — and that conversation only happens while the partner's card is still covered. When the reveal was shared, one player opening the card ended the other's half of that conversation mid-sentence.
+**codenamesduet is gated for a different reason**, and it's the clearest illustration of why the reveal is personal. Its Restart is a mulligan that keeps both key cards, so the gate is not protecting a replay. The seconds right after an assassin are the post-mortem — "wait, I was about to pick APPLE" — and that conversation only happens while the partner's card is still covered. When the reveal was shared, one player opening the card ended the other's half of that conversation mid-sentence.
 
 **Restart** (`act-restart` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's event log.
 
@@ -1634,7 +1634,7 @@ to the beige that an unrevealed beige tile would read as "guessed neutral," so i
 sets never-revealed tiles to `--tile-1-fill-color`, the lightest shade of the ramp —
 still in the tile family, just clearly distinct from the tan. Default everywhere
 else stays the shared beige; deviate only when a result color forces it. See
-[codenamesduet.md → Board tile colors](games/codenamesduet.md#board-tile-colors).
+[codenamesduet's doc.md → Frontend](../src/codenamesduet/doc.md#frontend).
 
 **Peer-identity frame.** In a shared-selection game (connections coop), a
 *teammate's* selected tile is the resting beige + an inset ring in their member

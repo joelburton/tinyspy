@@ -10,14 +10,17 @@ import type { KeyLabel } from '../lib/labels'
 import { agentsAllContacted } from '../lib/agents'
 import { toDuetEvent, type DuetEvent } from '../lib/events'
 
-// Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
-// SELECT *". Adding a new column to codenamesduet.words requires explicitly listing
-// it here AND in the select() below.
-//
-// `revealed_as` is the GLOBAL reveal ('G' agent contacted / 'A' assassin / null
-// still in play). Neutrals are NOT global — `neutral_a` / `neutral_b` record
-// which seat hit this word as a bystander, so a word can stay guessable by the
-// partner (Duet: a bystander on one key may be the other's agent).
+/**
+ * One of the board's 25 words, with its reveal state.
+ *
+ * `revealed_as` is the GLOBAL reveal ('G' agent contacted / 'A' assassin / null
+ * still in play). Neutrals are NOT global — `neutral_a` / `neutral_b` record
+ * which seat hit this word as a bystander, so a word can stay guessable by the
+ * partner (a bystander on one key may be the other's agent).
+ *
+ * Narrower than the generated row (code-conventions.md → "Avoid SELECT *"): a
+ * new column is listed here AND in `useBoard`'s select().
+ */
 export type WordRow = Pick<
   Database['codenamesduet']['Tables']['words']['Row'],
   'position' | 'word' | 'revealed_as' | 'neutral_a' | 'neutral_b'
@@ -45,7 +48,7 @@ export type WordRow = Pick<
  * (denormalization) and inserts an event, so either change lands the same
  * fresh state; a clue, a pass or a hint inserts an event alone.
  *
- * `failure` is the envelope behind a failed read, for the PlayArea to render in
+ * `failure` is the envelope behind a failed read, for the loader to render in
  * place of the board. A read that returns NOTHING is a different answer from a
  * read that FAILED, and the board cannot tell them apart from `words` alone —
  * both leave it empty.
@@ -57,19 +60,15 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
   // "Has this seat found all its agents?" for BOTH seats — drives the
   // finished-player banners. The main load already pulls both key
   // columns (to pick the caller's), so the partner's flag is free to
-  // derive here. We return two booleans rather than the peer key not
-  // for secrecy (the trust model doesn't care — see CLAUDE.md) but
-  // because `peerKey` has a dedicated terminal-gated role feeding the
-  // board's post-game reveal; the banner just needs "are they done?".
+  // derive here. Two booleans rather than the peer key, because `peerKey`
+  // is gated on the reveal and the banner only needs "are they done?".
   const [myAgentsDone, setMyAgentsDone] = useState(false)
   const [peerAgentsDone, setPeerAgentsDone] = useState(false)
   // `load` stashes the partner's key into `fetchedPeerKey`, tagged with
-  // the gameId+userId it was loaded for. The publicly-returned `peerKey`
-  // (derived below) is null unless the caller currently wants the peer
-  // key AND the cached value matches the active game/user — this keeps
-  // the reveal a pure derivation (no "clear peerKey in an effect body"
-  // anti-pattern when revealPeer flips off) even though the key is now
-  // loaded eagerly.
+  // the gameId+userId it was loaded for. The returned `peerKey` (derived
+  // below) is null unless the caller currently wants the peer key AND the
+  // cached value matches the active game/user — so the reveal is a pure
+  // derivation, with no effect clearing `peerKey` when revealPeer flips off.
   const [fetchedPeerKey, setFetchedPeerKey] = useState<KeyLabel[] | null>(null)
   const [fetchedFor, setFetchedFor] = useState<string | null>(null)
   const peerKey =
@@ -172,9 +171,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
       // The load already has the partner's key column in hand, so stash
       // it here rather than firing a second games fetch at game-over.
       // It's only exposed once `revealPeer` is true (the derived
-      // `peerKey` above gates on it), so holding it in state during play
-      // is invisible to the board — and the trust model doesn't treat
-      // the FE as the secrecy boundary anyway (see CLAUDE.md).
+      // `peerKey` above gates on it).
       if (peerKeyJson) {
         setFetchedPeerKey(peerKeyJson as unknown as KeyLabel[])
         setFetchedFor(`${gameId}:${userId}`)

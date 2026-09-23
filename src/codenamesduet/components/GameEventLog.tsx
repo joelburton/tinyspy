@@ -13,28 +13,27 @@ import type { Player } from '../hooks/useGame'
 import { turnOutcome } from '../lib/turnOutcome'
 import styles from './GameEventLog.module.css'
 
-/** The color the AI mark wears. */
+/** The outcome the AI mark wears. */
 const AI_CLUE_OUTCOME = answerMessage({ answerType: 'clue_ai' }).outcome
 
 type Props = {
   clues: ClueEvent[]
-  /** Every guess, in any order — grouped by turn below. (A word can appear
-   *  twice, once per seat, which is why this is the guess log, not per-word
-   *  board state.) */
+  // Every guess, in any order — grouped by turn below. A word can appear twice,
+  // once per seat, which is why this is the guess log, not per-word board state.
   guesses: WordedGuess[]
-  /** Both seated players, with usernames + profile colors — used to resolve a
-   *  clue's seat letter ('A'/'B') back to the human-facing clue-giver. */
+  // Both seated players, with usernames + profile colors — used to resolve a
+  // row's seat letter ('A'/'B') back to the person.
   players: Player[]
-  /** The viewer, so the picker can order them first. */
+  // The viewer, so the picker can order them first.
   selfId: string
-  /** The game's current (in-progress) turn number (`games.turn_number`). Lets a
-   *  guess-less turn read "(clue given)" while it's still live vs "(no guesses)"
-   *  once it's ended — see the guess-line note below. */
+  // The game's current turn number (`games.turn_number`). Lets a guess-less
+  // turn read "(clue given)" while it's still live vs "(no guesses)" once it
+  // has ended.
   currentTurn: number
-  /** Whether the game has ended. A guess-less *current* turn at terminal is no
-   *  longer "in progress," so it reads "(no guesses)", not "(clue given)". */
+  // Whether the game has ended. A guess-less *current* turn at terminal is no
+  // longer in progress, so it reads "(no guesses)", not "(clue given)".
   gameOver: boolean
-  /** The game's turn budget (`setup.turns`): a turn past it is sudden death. */
+  // The game's turn budget (`setup.turns`): a turn past it is sudden death.
   turnBudget: number
   // The event whose turn is open in the board viewer — a turn's clue, or a
   // sudden-death guess — or null when live. Its `#N` handle wears the shared
@@ -48,8 +47,7 @@ type Props = {
 
 /**
  * codenamesduet's event log — its turns rendered with the shared `<EventLog>`
- * table (same chrome psychicnum + connections use). The outcome bar carries the
- * turn verdict (see {@link turnOutcome}).
+ * table. The outcome bar carries the turn's outcome (see {@link turnOutcome}).
  *
  * **Whose turns** are shown is the shared `useEventLogPlayerPicker` dropdown, one
  * vocabulary across every event-log game — here "Team" plus each of the two
@@ -64,8 +62,8 @@ type Props = {
  * its guess's. The `#N` it prints is the turn's place in what is shown, so
  * filtering renumbers it without changing which turn a handle opens.
  *
- * Stateless + presentational. codenamesduet *chooses* a **two-`<tr>`** turn (the
- * row anatomy is the game's — see EventLog.tsx) so the pieces sit in real table
+ * Presentational: the only state is the picker's selection. A turn is **two
+ * `<tr>`s** (the row anatomy is the game's — see EventLog.tsx) so the pieces sit in real table
  * columns: row 1 is `[bar] | # | count WORD [AI mark] | clue-giver` (the bar
  * `rowSpan`s the whole turn; the AI mark only on a clue given exactly as the AI
  * suggested it; the `<ActorDot>` right-aligned via the shared `.who` column), and
@@ -128,10 +126,9 @@ export function GameEventLog({
   ).sort((a, b) => a - b)
 
   // Filtered by CLUE-GIVER (see the docstring), or for a sudden-death turn,
-  // which has none, by its guesser — the person its actor column names. Filtered by hand rather than through
-  // `eventLogPicker.filter`, because the log's unit is a turn number, not a row
-  // with a `user_id` — reading `picked` / `showsEveryone` keeps the one
-  // selection the hook owns without inventing a row shape to satisfy it.
+  // which has none, by its guesser — the person its actor column names. By hand
+  // rather than through `eventLogPicker.filter`, because the log's unit is a
+  // turn number, not a row with a `user_id`.
   const shownTurns = turnNumbers.filter((t) => {
     if (eventLogPicker.showsEveryone) return true
     if (isSuddenDeathTurn(t, turnBudget)) {
@@ -160,9 +157,9 @@ export function GameEventLog({
       heading="Clues"
       picker={eventLogPicker}
       shown={shownTurns}
-      // The one game that overrides the count: an entry here is a TURN, and
-      // guesses land inside a turn that already exists (they grow its second row
-      // rather than adding one), so counting turns alone would miss the snap.
+      // An entry here is a TURN, and guesses land inside a turn that already
+      // exists (they grow its second row rather than adding one), so counting
+      // turns alone would miss the snap.
       entryCount={clues.length + guesses.length}
     >
       {shownTurns.map((t, index) => {

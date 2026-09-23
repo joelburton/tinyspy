@@ -91,7 +91,7 @@ select is(
   'the guess was logged to codenamesduet.events'
 );
 
--- ─── Turn 2: bea clues, ada guesses P → GREEN on bea's view (the fix!) ───
+-- ─── Turn 2: bea clues, ada guesses P → GREEN on bea's view ───
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select submit_clue((select id from g1), 'CLUE2', 1);
 

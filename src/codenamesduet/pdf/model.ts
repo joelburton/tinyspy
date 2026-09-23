@@ -7,6 +7,45 @@ import type { Seat } from '../lib/phase'
 import type { WordRow } from '../hooks/useBoard'
 import { isSuddenDeathTurn, type ClueEvent, type WordedGuess } from '../lib/events'
 
+/** What a mark means. Renders as ✓ / – / ✗. */
+export type Mark = 'agent' | 'neutral' | 'assassin'
+
+/** One printed board cell. */
+export type PrintCell = {
+  word: string
+  // What was REVEALED here — null while the word is untouched. A `Mark`, which
+  // is this game's key-card vocabulary and not the app's outcome one: a
+  // bystander is neither a good move nor a bad one, it is a bystander.
+  revealed: Mark | null
+  // My key's label. Always present: the print exists to be thought about.
+  mine: Mark
+  // The partner's label — terminal only, null during play.
+  peer: Mark | null
+  // I burned this as a bystander (locked to me, still open to my partner).
+  burnedByMe: boolean
+  // My partner burned it (still open to ME — the Duet asymmetry).
+  burnedByPeer: boolean
+}
+
+/** What the renderer draws: the frame's header, the 25 cells, and the clue log. */
+export type DuetPrintModel = PrintHeader & {
+  // 25 cells in board order (row-major, 5×5).
+  cells: PrintCell[]
+  // True once both keys print — drives the legend and the second inset.
+  showsBothKeys: boolean
+  turns: TurnRow[]
+}
+
+const MARK_OF: Record<KeyLabel, Mark> = { G: 'agent', N: 'neutral', A: 'assassin' }
+
+/** The global reveal: 'G' contacted an agent, 'A' hit the assassin. A bystander
+ *  is NOT global (it's per-seat), so it's derived from the two burn flags. */
+function revealedOf(w: WordRow): Mark | null {
+  if (w.revealed_as === 'G') return 'agent'
+  if (w.revealed_as === 'A') return 'assassin'
+  return w.neutral_a || w.neutral_b ? 'neutral' : null
+}
+
 /**
  * Build the codenamesduet print model — the pure half, away from jsPDF so the
  * judgment is testable without a renderer.
@@ -29,61 +68,22 @@ import { isSuddenDeathTurn, type ClueEvent, type WordedGuess } from '../lib/even
  * locked to me. That asymmetry is exactly what you want when planning a clue on
  * paper, so it isn't decoration.
  */
-
-/** What a mark means. Renders as ✓ / – / ✗. */
-export type Mark = 'agent' | 'neutral' | 'assassin'
-
-/** One printed board cell. */
-export type PrintCell = {
-  word: string
-  /** What was REVEALED here — null while the word is untouched. A `Mark`, which
-   *  is this game's key-card vocabulary and not the app's outcome one: a
-   *  bystander is neither a good move nor a bad one, it is a bystander. */
-  revealed: Mark | null
-  /** My key's label. Always present: the print exists to be thought about. */
-  mine: Mark
-  /** The partner's label — terminal only, null during play. */
-  peer: Mark | null
-  /** I burned this as a bystander (locked to me, still open to my partner). */
-  burnedByMe: boolean
-  /** My partner burned it (still open to ME — the Duet asymmetry). */
-  burnedByPeer: boolean
-}
-
-export type DuetPrintModel = PrintHeader & {
-  /** 25 cells in board order (row-major, 5×5). */
-  cells: PrintCell[]
-  /** True once both keys print — drives the legend and the second inset. */
-  showsBothKeys: boolean
-  turns: TurnRow[]
-}
-
-const MARK_OF: Record<KeyLabel, Mark> = { G: 'agent', N: 'neutral', A: 'assassin' }
-
-/** The global reveal: 'G' contacted an agent, 'A' hit the assassin. A bystander
- *  is NOT global (it's per-seat), so it's derived from the two burn flags. */
-function revealedOf(w: WordRow): Mark | null {
-  if (w.revealed_as === 'G') return 'agent'
-  if (w.revealed_as === 'A') return 'assassin'
-  return w.neutral_a || w.neutral_b ? 'neutral' : null
-}
-
 export function buildDuetPrintModel(o: {
   brand: string
   gameTitle: string
   date: string
   words: WordRow[]
-  /** The caller's key — 25 labels, indexed by board position. */
+  // The caller's key — 25 labels, indexed by board position.
   myKey: KeyLabel[]
-  /** The partner's key. The FE only holds this once the game is over AND it's
-   *  been revealed (a clean win, or the Reveal control) — so a print of a lost,
-   *  unrevealed game carries no peer column. */
+  // The partner's key: null until the player presses Reveal, which only a
+  // finished game offers — so a print of an unrevealed game carries no peer
+  // column.
   peerKey: KeyLabel[] | null
   mySeat: Seat | undefined
   isTerminal: boolean
   clues: ClueEvent[]
   guesses: WordedGuess[]
-  /** Seat → the human's name, for the log's Player column. */
+  // Seat → the human's name, for the log's clue-giver column.
   nameForSeat: (seat: Seat) => string
   greenFound: number
   totalAgents: number
@@ -93,11 +93,11 @@ export function buildDuetPrintModel(o: {
   mode: 'coop' | 'compete'
 }): DuetPrintModel {
   // The peer's key is a SECRET while the game is live, and post-game it's held
-  // back until someone presses Reveal (useBoard's `revealPeer` is PlayArea's
-  // win-or-asked `peerKeyShown`) — so `o.peerKey` is already null in both cases
-  // and a printout can't spoil the post-mortem either. This terminal check is
-  // the second lock: a printer that asked for the key regardless would be one
-  // refactor away from putting the answer on paper mid-game.
+  // back until someone presses Reveal (`useBoard` gates it on the loader's
+  // reveal) — so `o.peerKey` is already null in both cases and a printout
+  // can't spoil the post-mortem either. This terminal check is the second
+  // lock: a printer that asked for the key regardless would be one refactor
+  // away from putting the answer on paper mid-game.
   const peerKey = o.isTerminal ? o.peerKey : null
 
   const cells: PrintCell[] = [...o.words]
@@ -133,11 +133,9 @@ export function buildDuetPrintModel(o: {
         // board, and drawEventLog truncates the tail.
         //
         // The separator is '»' (U+00BB), not '→' (U+2192): jsPDF's core fonts
-        // are WinAnsi, which HAS the guillemet but not the arrow — U+2192 came
-        // out as mojibake (`!'`). It's the closest real character to an arrow
-        // the encoding offers, and beats a hand-made '->'. Check the same way
-        // before putting any new symbol in printed text; that's also why
-        // marks.ts DRAWS its check and cross rather than typing them.
+        // are WinAnsi, which HAS the guillemet but not the arrow (U+2192
+        // prints as `!'`). It's the closest real character to an arrow the
+        // encoding offers.
         text: `${c.clue_word.toUpperCase()} ${c.clue_count}${got.length ? ` » ${got.join(', ')}` : ''}`,
       }
     })

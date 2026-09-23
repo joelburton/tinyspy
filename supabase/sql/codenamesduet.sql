@@ -83,9 +83,9 @@ grant select on codenamesduet.events to authenticated;
 -- them: it decides the next giver and whether the budget ran out. Returning
 -- them beats re-reading the row it just updated.
 
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
+-- Dropped first because `create or replace` cannot change a function's return
+-- type; `if exists` because this file is re-applied in full on every deploy,
+-- so the drop has to be a no-op the second time.
 drop function if exists codenamesduet._end_turn(uuid);
 
 create or replace function codenamesduet._end_turn(target_game uuid)
@@ -126,7 +126,7 @@ begin
   if remaining <= 1 then
     -- Last turn spent. Transition to sudden_death on common.games
     -- (the play_state authority); zero out turns_remaining + flip
-    -- clue-giver on foo.games.
+    -- clue-giver on codenamesduet.games.
     update codenamesduet.games
       set turns_remaining = 0,
           turn_number = turn_number + 1,
@@ -192,24 +192,22 @@ revoke execute on function codenamesduet._end_turn(uuid) from public;
 -- Setup shape:
 --   {
 --     "turns": 9 | 10 | 11,
---     "first_clue_giver_user_id": "<uuid; must be one of player_user_ids>"
+--     "first_clue_giver_user_id": "<uuid; must be one of player_user_ids>",
+--     "timer": { "kind": ... }   (common.require_valid_timer)
 --   }
 --
--- Why a jsonb setup column rather than discrete columns
--- (`starting_turns int`): the mutable counter `turns_remaining`
--- decrements during play. Looking at a finished game later, the
--- counter at 0 doesn't tell you whether the game started with 9,
--- 10, or 11. A typed-by-the-game jsonb column preserves intent
--- for end-of-game review without per-feature column churn.
+-- The starting budget is read back from setup wherever it is needed
+-- (turns_used, replay_board): turns_remaining counts down during play and
+-- cannot say what it started at.
 --
 -- Validation is server-side: this RPC inspects the jsonb shape
 -- and rejects malformed payloads. The FE's CodenamesduetSetup type is
 -- advisory only — a curious client could fire any payload, and
 -- the server is the only thing protecting state correctness.
 
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
+-- Dropped first because `create or replace` cannot change a function's return
+-- type; `if exists` because this file is re-applied in full on every deploy,
+-- so the drop has to be a no-op the second time.
 drop function if exists codenamesduet.create_game(text, jsonb, uuid[]);
 
 create or replace function codenamesduet.create_game(
@@ -313,7 +311,7 @@ begin
   -- the top-left three cells as everyone actually sees them (position 0/1/2 map
   -- to picked_words[1..3] at the insert below).
   --
-  -- Board order, not alphabetical (changed 2026-08-02): a duet board is never
+  -- Board order, not alphabetical: a duet board is never
   -- shuffled or rotated, so the first three cells are a stable, recognizable
   -- handle — you can glance at the grid and know which game this is. Games whose
   -- boards DO get reordered sort the title words instead, because there the
@@ -334,8 +332,7 @@ begin
   -- not a per-club preference. The two fields that ARE per-club
   -- preferences (turns count, timer mode) round-trip cleanly. The
   -- dialog's auto-pick logic for first_clue_giver_user_id fills the
-  -- gap on next open. See docs/deferred.md → "Setup-shape
-  -- evolution" for the policy on saved-shape changes.
+  -- gap on next open.
   new_id := common.create_game(
     target_club, 'codenamesduet', player_user_ids, game_title, setup,
     setup - 'first_clue_giver_user_id'
@@ -377,7 +374,7 @@ begin
   end loop;
 
   -- Insert the game row using the canonical id. Seats and key
-  -- cards live here as columns now (not in a side table). Setup
+  -- cards are columns of this row. Setup
   -- and play_state live on common.games (the latter defaults to
   -- 'playing'), not duplicated here.
   insert into codenamesduet.games (
@@ -445,16 +442,15 @@ grant execute on function codenamesduet.create_game(text, jsonb, uuid[]) to auth
 -- Three of its five raises are RACES, because every one of them turns on
 -- state the clue form cannot see change under it (the other two, PN369 and
 -- PN384, are faults). The form is rendered from
--- `current_clue_giver` and the turn's clue row, both of which arrive by
+-- `current_clue_giver` and the turn's clue event, both of which arrive by
 -- subscription, while the Submit button unlocks the moment this RPC replies —
 -- so the window between "my move landed" and "my form knows" is real.
 
--- The THREE-parameter signature is dropped because the function grew
--- `clue_from_ai`: `create or replace` with a new parameter list makes a second
--- overload rather than replacing the first, and the old one would survive on
--- every database it was ever created on, still reading the dropped `clues`
--- table. `if exists` because this file is re-applied in full on every deploy,
--- so the drop has to be a no-op the second time.
+-- The retired THREE-parameter signature is dropped: `create or replace` with a
+-- new parameter list makes a second overload rather than replacing the first,
+-- and this file is re-applied, not diffed, so the old one would survive on
+-- every database it was ever created on. `if exists` because the drop has to be
+-- a no-op the second time.
 drop function if exists codenamesduet.submit_clue(uuid, text, int);
 
 create or replace function codenamesduet.submit_clue(
@@ -500,7 +496,7 @@ begin
   -- clues, but can still watch via club-wide RLS.
   caller_id := common.require_game_player(target_game);
 
-  -- Seat lookup is now a column read on codenamesduet.games.
+  -- The seat is a column read on codenamesduet.games.
   caller_seat := case caller_id
                    when g_row.user_a_id then 'A'
                    when g_row.user_b_id then 'B'
@@ -532,7 +528,7 @@ begin
       and e.turn_number = g_row.turn_number
   ) then
     -- A race, and this one is the caller's own: the first clue landed, the
-    -- button unlocked on the reply, and the clue row that would have swapped
+    -- button unlocked on the reply, and the clue event that would have swapped
     -- the panel to the guess view has not arrived yet.
     raise exception 'A clue is already in for this turn'
       using errcode = 'PN372', hint = 'race', column = '_',
@@ -599,9 +595,9 @@ grant execute on function codenamesduet.submit_clue(uuid, text, int, boolean) to
 -- one — either player may guess, so the partner can turn a word over, or lose
 -- the game outright, while your guess is in flight.
 
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
+-- Dropped first because `create or replace` cannot change a function's return
+-- type; `if exists` because this file is re-applied in full on every deploy,
+-- so the drop has to be a no-op the second time.
 drop function if exists codenamesduet.submit_guess(uuid, int);
 
 create or replace function codenamesduet.submit_guess(target_game uuid, target_position int)
@@ -784,8 +780,8 @@ begin
 
   -- Terminal-transition check. The three terminal cases share a
   -- common.end_game call shape — building player_results once and
-  -- branching on the outcome string keeps the branches focused.
-  -- Each branch nulls out current_clue_giver on foo.games but the
+  -- branching on end_state keeps the branches focused.
+  -- Each branch nulls out current_clue_giver on codenamesduet.games but the
   -- play_state write goes through common.end_game.
   end_state := null;
 
@@ -824,10 +820,10 @@ begin
       target_game,
       end_state,
       jsonb_build_object(
-        -- `outcome` names the CAUSE; play_state already carries the verdict, so
-        -- it must not just repeat it (docs/states.md → the outcome vocabulary).
-        -- 'exhausted' is the roster's noun for a spent budget — here the Duet
-        -- turn counter, the same shape as psychicnum/wordle/waffle's guesses.
+        -- `reason` names the CAUSE; play_state already carries the verdict, so
+        -- it must not just repeat it (docs/states.md → `status.reason` names
+        -- the CAUSE). 'exhausted' is the roster's noun for a spent budget —
+        -- here the Duet turn counter.
         'reason', case end_state
                      when 'lost_assassin' then 'assassin'
                      when 'lost_clock'    then 'exhausted'
@@ -836,13 +832,10 @@ begin
         'turns_used', turns_used,
         -- Stated here rather than left to the merge. This branch can BE a green
         -- reveal — the 15th agent is what wins — and it returns before the
-        -- update_state below that would otherwise have bumped the count. Since
-        -- common.end_game MERGES its status object, omitting this left the
-        -- previous value standing and a won game listed as "14/15 agents".
-        -- The other two endings (assassin, spent clock) were right only by
-        -- luck, the last green having bumped it on its way past; now every
-        -- terminal write states its own number, which is the convention
-        -- (docs/supabase.md → the status blob).
+        -- update_state below that bumps the count. common.end_game MERGES its
+        -- status object, so leaving this out would keep the previous value and
+        -- list a won game as "14/15 agents". Every terminal write states its
+        -- own number (docs/common.md → `common.end_game`).
         'greens_found', green_total
       ),
       player_results
@@ -944,16 +937,16 @@ grant execute on function codenamesduet.submit_guess(uuid, int) to authenticated
 -- the countdown derived from it hits zero, the FE fires this. We flip the game to
 -- `lost_timeout` (distinct from `lost_clock`, which is the
 -- turns-exhausted Duet ending) and call common.end_game
--- with outcome='timeout' (the play_state carries the verdict;
--- the outcome names only the cause — states.md).
+-- with reason='timeout' (the play_state carries the verdict;
+-- the reason names only the cause — states.md).
 --
--- Idempotency: the active-state guard means a second concurrent
--- call from another tab raises P0001 'game is not active'. The
--- FE swallows that — losing once is enough.
+-- Idempotency: both clients' timers hit zero together, and the lock
+-- serializes them. The second finds the game already over and answers
+-- common._raise_game_over()'s race — its partner's call beat it, and
+-- realtime carries the loss to both.
 --
--- Mirrors connections.submit_timeout / psychicnum.submit_timeout —
--- see those for the rationale on the FE-fired, idempotent
--- server flip.
+-- Its `current_clue_giver = null` write is also what wakes the
+-- codenamesduet.games subscription, which end_game has to do on purpose.
 
 drop function if exists codenamesduet.submit_timeout(uuid);
 
@@ -1026,23 +1019,15 @@ revoke execute on function codenamesduet.submit_timeout(uuid) from public;
 grant execute on function codenamesduet.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- codenamesduet.end_game — manual stop
--- ============================================================
 -- codenamesduet.replay_board — run this board back from scratch
 -- ============================================================
 -- The "Restart" game-menu item / terminal-row Restart: reset the working state
 -- on the SAME game row. The frozen puzzle stays — the same 25 words and the
--- same two key cards — with every reveal, neutral, clue and guess wiped, the
+-- same two key cards — with every reveal, neutral and event wiped, the
 -- turn counter back to 1 and seat A clueing again.
 --
--- **This is a mulligan, not a fresh puzzle, and that's the point.** Duet was
--- the one game deliberately left without a replay, on the grounds that its
--- board IS the secret: you keep the key cards, so the second run is played
--- with knowledge of where the assassin sits. The case that overrules it is the
--- accident — a first-guess assassin ends a game nobody got to play, and "let's
--- just run it back" is what the friends actually say (2026-08-03). Under the
--- friends trust model that's a fine trade; someone who wants a genuinely blind
--- board has **New game**, one item below it in the same menu.
+-- **A mulligan, not a fresh puzzle:** the players keep whatever they learned
+-- of the key cards. A blind board is **New game**.
 --
 -- Any game player may call it, from a finished game OR mid-game (no play_state
 -- guard — it's a restart; the FE confirms mid-game). Resets BOTH players, per
@@ -1067,8 +1052,8 @@ begin
   -- The row check comes BEFORE the membership gate, and the order is the whole
   -- point: `delete_game` takes this row, `common.games` and every
   -- `game_players` row together, so a caller whose game was just deleted has no
-  -- membership left either. Gate-first told them "You are not in this game",
-  -- which is both wrong and unhelpful — they WERE in it; it is gone.
+  -- membership left either. Gate-first would tell them "You are not in this
+  -- game", which is wrong — they WERE in it; it is gone.
   perform common.require_game_player(target_game);
 
   -- The turn budget is re-read from setup, not from the row: turns_remaining
@@ -1108,32 +1093,31 @@ revoke execute on function codenamesduet.replay_board(uuid) from public;
 grant execute on function codenamesduet.replay_board(uuid) to authenticated;
 
 -- ============================================================
---
+-- codenamesduet.end_game — manual stop
+-- ============================================================
 -- The friends' explicit "we're done here" button. codenamesduet has
 -- plenty of *automatic* terminals (won / lost_assassin / lost_clock
 -- / lost_timeout) — but the friends
--- may still want to abandon an in-progress game early (a clue went
--- sideways, someone has to leave the Zoom call). This RPC is that
+-- may still want to abandon an in-progress game early. This RPC is that
 -- escape hatch.
 --
--- The FE's GamePage menu has an "End game" item (per-game, declared
--- by codenamesduet's PlayArea via ctx.menu.setGameItems) that fires this.
+-- Fired by `act-end-game`, the End button in the info column's action row
+-- and the End game row of the header menu.
 -- Distinct from suspend (which leaves play_state untouched and is the
 -- path "back to club" + start-a-new-game takes): end_game writes a
--- terminal play_state='ended' with status.outcome='manual', so the
--- game lands in the club's "completed" section forever after and the
--- the terminal verdict reads a neutral "Ended" (not a "you lost").
+-- terminal play_state='ended' with status.reason='manual', so the
+-- game lands in the club's "completed" section and the
+-- terminal verdict reads a neutral "Game ended" (not a "you lost").
 --
 -- Modeled on submit_timeout above — same lock / auth / active-state
--- gate / cooperative-loss player_results / Realtime-touch shape. Two
--- differences: it writes play_state='ended' + outcome='manual' (vs
+-- gate / cooperative player_results shape. Two
+-- differences: it writes play_state='ended' + reason='manual' (vs
 -- 'lost_timeout'), and it's fired by a player's deliberate click
 -- rather than the FE's timer.
 --
--- Idempotency: the active-state guard means a second click (or a
--- click racing a timer/assassin terminal) raises P0001, which the FE
--- swallows the same way it does for submit_timeout's "already
--- terminal" race.
+-- Idempotency: a second click, or a click racing a timer or assassin
+-- terminal, finds the game already over and answers
+-- common._raise_game_over()'s race, as submit_timeout does.
 
 drop function if exists codenamesduet.end_game(uuid);
 
@@ -1183,7 +1167,8 @@ begin
     player_results
   );
 
-  -- Realtime touch — same trick as submit_timeout. common.end_game
+  -- Realtime touch — submit_timeout gets the same wake from its
+  -- current_clue_giver write. common.end_game
   -- writes to common.games, but the FE's useGame subscription listens
   -- on the `codenamesduet` schema (codenamesduet.games), so without a write here
   -- it would never wake up to refetch and flip into review mode. The
@@ -1220,9 +1205,9 @@ grant execute on function codenamesduet.end_game(uuid) to authenticated;
 -- to "did my pass go through", so it rides in `data` rather than splitting the
 -- answer in two.
 
--- `create or replace` cannot change a function's return type, and this one
--- became jsonb. `if exists` because this file is re-applied in full on every
--- deploy, so the drop has to be a no-op the second time.
+-- Dropped first because `create or replace` cannot change a function's return
+-- type; `if exists` because this file is re-applied in full on every deploy,
+-- so the drop has to be a no-op the second time.
 drop function if exists codenamesduet.pass_turn(uuid);
 
 create or replace function codenamesduet.pass_turn(target_game uuid)
@@ -1325,8 +1310,8 @@ $$;
 revoke execute on function codenamesduet.pass_turn(uuid) from public;
 grant execute on function codenamesduet.pass_turn(uuid) to authenticated;
 
--- Terminal-transition cleanup happens inline: submit_guess
--- (and submit_timeout) call common.end_game explicitly at the
+-- Terminal-transition cleanup happens inline: submit_guess,
+-- submit_timeout and end_game call common.end_game explicitly at the
 -- moment the game is decided over. No trigger-on-status-change
 -- side effect — single write path keeps the termination
 -- coordination (ended_at, play_state, is_terminal, status,

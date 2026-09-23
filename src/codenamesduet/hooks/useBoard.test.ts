@@ -1,23 +1,13 @@
 // cs-met-codenamesduet
 
 /**
- * Tests for useBoard, specifically the peerKey toggle.
+ * Tests for useBoard: the load (the words, the caller's own key, the events
+ * typed by kind), the peerKey gate, and a failed read.
  *
- * The peer key (the partner's view of the board) is sensitive during
- * play and is only fetched once the game is over (`revealPeer === true`).
- * If `revealPeer` ever flips BACK to false — for instance when the
- * player navigates to a fresh game via Play-again — `peerKey` must
- * clear, or the previous game's partner-key would leak into the new
- * game's render.
- *
- * Other shapes (initial load of words + own key, the channel
- * subscription) are exercised here as a side effect but not asserted
- * deeply; those paths are covered by the pgTAP suite at the RPC
- * layer plus integration testing in a browser.
- *
- * The last test covers the read half of the envelope conversion: a failed read
- * has to arrive as its own answer, because an empty board and an unreadable one
- * look identical from `words` alone.
+ * The partner's key is loaded with the games row but exposed only while
+ * `revealPeer` is true; hiding it again must clear `peerKey`. A failed read
+ * has to arrive as its own answer, because an empty board and an unreadable
+ * one look identical from `words` alone.
  */
 
 import { renderHook, waitFor } from '@testing-library/react'
@@ -51,9 +41,8 @@ const GAME_ID = '00000000-0000-0000-0000-00000000aaaa'
 const USER_ID = '00000000-0000-0000-0000-00000000bbbb'
 
 // Build a supabase chain mock that recognizes the patterns the hook uses.
-// With seats now as columns on codenamesduet.games, both the own-key and
-// peer-key queries read from `games` — the hook picks the right column
-// (key_card_a vs key_card_b) based on whether userId === user_a_id.
+// Both key cards are columns on codenamesduet.games — the hook picks the
+// right one (key_card_a vs key_card_b) by whether userId === user_a_id.
 //
 // In these tests USER_ID plays seat A by construction, so:
 //   - key_card_a = the caller's own key (ownKey)
@@ -166,27 +155,20 @@ describe('useBoard', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.peerKey).toBeNull()
 
-    // Game ends → revealPeer flips true → the peer key (loaded eagerly
-    // as part of the same games row, held back by the derivation) appears.
+    // The player shows the key → revealPeer flips true → the peer key (loaded
+    // with the same games row, held back by the derivation) appears.
     rerender({ revealPeer: true })
     await waitFor(() => expect(result.current.peerKey).toEqual(peerKey))
 
-    // Regression guard for the removed lazy `loadPeerKey` effect: the peer
-    // key rides along on the ONE games row the main load already reads, so
-    // revealing it must not trigger a second `.from('games')` round-trip.
+    // The peer key rides along on the ONE games row the main load already
+    // reads, so revealing it must not trigger a second `.from('games')`
+    // round-trip.
     const gamesFetches = mockFrom.mock.calls.filter(([table]) => table === 'games')
     expect(gamesFetches).toHaveLength(1)
   })
 
   it('clears the peer key when revealPeer flips back to false', async () => {
-    // The contract: if revealPeer ever flips back to false, peerKey
-    // must clear so a previous game's partner-key can't leak into a
-    // re-rendered view. In today's FE this transition isn't reached
-    // in practice (App.tsx keys each game's Root by gameId, so
-    // navigating between games remounts the hook from scratch
-    // rather than rerendering it with new props). The test stays
-    // as a guard against future refactors that retain the hook
-    // across game changes.
+    // The player hides the partner's key again: peerKey must clear.
     const { result, rerender } = renderHook(
       ({ revealPeer }: { revealPeer: boolean }) => useBoard(GAME_ID, USER_ID, revealPeer),
       { initialProps: { revealPeer: true } },

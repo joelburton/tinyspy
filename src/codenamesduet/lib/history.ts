@@ -3,16 +3,16 @@
 /**
  * codenamesduet — the turn-history replay. Given the fixed 25 board words, the
  * append-only guess log, and a turn's clue, reconstruct what the board looked like
- * at the END of any past turn plus which cells that turn decided — so PlayArea can
- * hand `<Board>` a historical board the same way it hands it the live one.
+ * at the END of any past turn plus which cells that turn decided — so the play
+ * surface can hand `<Board>` a historical board the same way it hands it the live one.
  *
- * ADD-style replay (like scrabble's `historyBoard` / waffle's `historyBoardAfter`, unlike
- * stackdown's removal): a guess only ever ADDS a reveal, so a past board is the
+ * ADD-style replay: a guess only ever ADDS a reveal, so a past board is the
  * fixed words with every guess up to that turn folded onto them. The reveal alphabet
  * is codenamesduet's denormalized board state — the GLOBAL `revealed_as` ('G' agent
  * contacted / 'A' assassin) plus the PER-SEAT `neutral_a` / `neutral_b` marks (a
  * bystander on one seat's key may be the other's agent, so a neutral only locks the
- * guesser's direction — the Duet per-direction rule; see docs/games/codenamesduet.md).
+ * guesser's direction — the Duet per-direction rule; see the folder's doc.md →
+ * Game rules).
  *
  * **Folded by `turn_number`.** duet's log lists TURNS — a clue plus however many
  * guesses answered it, or in sudden death a single guess with no clue — and the
@@ -22,24 +22,22 @@
  *
  * **The boundary is INCLUSIVE**: viewing turn N shows the board AFTER turn N's
  * guesses, with those cells ringed — "this is what turn N did" (a green/neutral
- * reveal IS the event, so we show it, then light it). Matches waffle/scrabble;
- * contrast stackdown's strictly-before boundary (its cleared tiles vanish, so it
- * shows the pre-move, fuller board).
+ * reveal IS the event, so we show it, then light it).
  *
- * Pure (no React / supabase) + unit-tested, parallel to the other games' lib/history.
- * See docs/playarea.md for why turn-history drives the decomposition.
+ * Pure (no React / supabase) + unit-tested.
  */
 import type { WordRow } from '../hooks/useBoard'
 import type { ClueEvent, WordedGuess } from './events'
 
+/** One past turn, ready for the board and the viewer banner. */
 export interface HistorySnapshot {
-  /** The 25 board words with reveal state as of the END of the viewed turn — feed
-   *  straight to `<Board words>`. */
+  // The 25 board words with reveal state as of the END of the viewed turn — feed
+  // straight to `<Board words>`.
   words: WordRow[]
-  /** The board positions this turn's guesses decided — ring these in the history
-   *  blue ("added this turn"). Empty for a passed (guess-less) turn. */
+  // The board positions this turn's guesses decided — ring these in the history
+  // blue ("added this turn"). Empty for a passed (guess-less) turn.
   historyLitTiles: Set<number>
-  /** A short, name-free turn label for the viewer banner (the log row shows *who*). */
+  // A short, name-free turn label for the viewer banner (the log row shows *who*).
   historyLabel: string
 }
 

@@ -1,18 +1,14 @@
 // cs-met-codenamesduet
 
 /**
- * Guard test for codenamesduet's guess dispatch: a second
- * guess while one is already in flight must NOT fire a second `submit_guess`.
+ * Render + behavior tests for codenamesduet's play surface, mounted through the
+ * loader: the guess in-flight guard, the tiles' input gate, the partner-key
+ * reveal, the action row and the menu, the header's lines about the partner,
+ * the two role-specific controls, and the commands through the dispatcher.
  *
- * The board disables the *pending* tile once `setPendingPos` re-renders, but that
- * (a) is async — it misses a same-tick double-tap — and (b) only disables the ONE
- * clicked tile, so clicking a DIFFERENT tile mid-guess still fires. The synchronous
- * `guessInFlight` ref closes both windows; this test exercises the second (click a
- * different tile while the first guess is in flight).
- *
- * `useGame` / `useBoard` / `db` are mocked; the game state is set up
- * as "my turn to guess" (I'm the guesser seat B; peer seat A gave the clue), so the
- * tiles are clickable.
+ * `useGame` / `useBoard` / `db` are mocked; by default the game is "my turn to
+ * guess" (I'm the guesser seat B; peer seat A gave the clue), so the tiles are
+ * clickable.
  */
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
@@ -158,6 +154,11 @@ beforeEach(() => {
   rpc.mockReturnValue(new Promise(() => {}))
 })
 
+/**
+ * A second guess while one is in flight fires no second `submit_guess`. A
+ * tile's `disabled` follows `pendingPos` a render late, and covers only the tile
+ * clicked; `useSingleFlight` closes both. This clicks a DIFFERENT tile.
+ */
 describe('codenamesduet PlayArea — guess in-flight guard', () => {
   it('a second guess while one is in flight does not fire a second submit_guess', () => {
     render(<PlayAreaLoader {...makeCtx()} />)
@@ -171,10 +172,8 @@ describe('codenamesduet PlayArea — guess in-flight guard', () => {
 })
 
 /**
- * Input-gating characterization. The board-gate prop (being unified to
- * `readOnly`) controls whether board tiles accept clicks. Pinning the OBSERVABLE
- * effect — tiles clickable during my guess turn, blocked at terminal — so a
- * polarity flip that inverts the gate fails here instead of silently shipping.
+ * The tiles' input gate, by its observable effect — clickable during my guess
+ * turn, blocked at terminal — so a flip that inverts the gate fails here.
  */
 describe('codenamesduet PlayArea — input gating', () => {
   it('tiles are clickable during my guess turn', () => {
@@ -189,11 +188,8 @@ describe('codenamesduet PlayArea — input gating', () => {
 })
 
 /**
- * The terminal partner-key reveal. Duet's post-mortem is two people thinking out
- * loud — "wait, I was about to pick APPLE" — and that conversation only happens
- * while the card is still covered, so nothing opens it automatically, a win
- * included. The ask is LOCAL: opening the card on both screens at once would
- * end the partner's thinking mid-sentence.
+ * The terminal partner-key reveal: nothing opens the card automatically, a win
+ * included, and the ask is LOCAL — it opens only on my screen.
  *
  * `useBoard`'s third argument IS the reveal (it's what produces `peerKey`), so
  * that's what these assert on — the hook itself is mocked.
@@ -319,10 +315,9 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
 })
 
 /**
- * The two role-specific controls. Stopping your guesses is an ordinary
- * every-turn decision in duet, so the guesser's Pass is a plain primary button
- * — `act-end-turn`, whose registry row carries no tone, rather than scrabble's
- * amber `act-pass`. Asking Claude for a clue is the clue-giver's alone.
+ * The two role-specific controls: the guesser's Pass is a plain primary button
+ * (`act-end-turn`, whose registry row carries no tone), and asking Claude for a
+ * clue is the clue-giver's alone.
  */
 describe('codenamesduet PlayArea — the guesser’s Pass and the giver’s AI', () => {
   it('the guesser’s Pass is a primary, normal-toned button', () => {

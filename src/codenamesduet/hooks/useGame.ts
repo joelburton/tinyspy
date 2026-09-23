@@ -9,9 +9,13 @@ import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import type { Member } from '@/common/members/member'
 import type { Database } from '@/types/db'
 
-// Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
-// SELECT *". Adding a new column to codenamesduet.games requires
-// explicitly listing it here AND in the select() below.
+/**
+ * The `codenamesduet.games` row as the play surface reads it: the turn
+ * pointer, the budget, both seats and both key cards.
+ *
+ * Narrower than the generated row (code-conventions.md → "Avoid SELECT *"): a
+ * new column is listed here AND in `useGame`'s select().
+ */
 export type GameRow = Pick<
   Database['codenamesduet']['Tables']['games']['Row'],
   | 'id'
@@ -26,12 +30,10 @@ export type GameRow = Pick<
 >
 
 /**
- * One player in a codenamesduet game. Extends the shared `Member`
- * shape with a `seat` field — codenamesduet is intrinsically 2-seat
- * (A is the next clue-giver, B is the next guesser; they swap
- * each turn). Other games re-export Member as Player without
- * extending; codenamesduet's seat is the legitimate per-game
- * enrichment that justifies the type-level distinction. */
+ * One of the game's two seated players: the shared `Member` plus the
+ * `seat` they hold. Seat A gives the first clue; after that the seat on
+ * the game row's `current_clue_giver` gives it.
+ */
 export type Player = Member & {
   seat: 'A' | 'B'
 }
@@ -40,32 +42,24 @@ export type Player = Member & {
  * Subscribes to a single game's row and its player roster.
  *
  * Returns:
- *  - `game`: the `games` row (current_clue_giver, turn_number,
- *    seat user_ids, key cards, etc. — play_state moved to
- *    common.games and arrives via GamePageCtx)
- *  - `players`: the 2 seated players, with usernames embedded
+ *  - `game`: the `games` row (`GameRow`); null once the load finds no row.
+ *    The play state is `common.games`', and arrives via GamePageCtx
+ *  - `players`: the 2 seated players, each with username, color and seat
  *  - `loading`: true until the first load completes
+ *  - `failure`: the envelope behind a failed read, for the loader to render
  *
  * Realtime: drives off `useRealtimeRefetch` — full refetch on
  * any `codenamesduet.games` event, plus on every SUBSCRIBED status.
  *
  * Roster query: the user_ids come straight off the `games` row
- * (user_a_id + user_b_id columns; seats are columns now, not a side
- * table). We then fetch the (≤ 2) profiles for those uids in a
+ * (`user_a_id` + `user_b_id`). We then fetch the two profiles in a
  * second query and merge in JS. We don't use PostgREST's
  * embedded-resource syntax because its schema cache doesn't discover
  * cross-schema FKs (the user_a_id/user_b_id → common.profiles.user_id
  * relationships exist in Postgres but aren't embeddable).
  *
- * Hook split (useGame here + useBoard, two hooks): deliberate, matches
- * the per-concern PlayArea decomposition. The tradeoff is two
- * SUBSCRIBED refetches on reconnect (one per channel) instead of one
- * batched fetch — accepted as the cost of
- * keeping each concern's data lifecycle independent. Don't
- * consolidate without rethinking the PlayArea component split.
- * psychicnum + connections use the alternative one-hook-many-tables
- * shape, which is the right choice when the data flows back to a
- * single PlayArea component.
+ * `useBoard` reads the words and the events on a channel of its own; the
+ * loader runs both.
  */
 export function useGame(gameId: string) {
   const [game, setGame] = useState<GameRow | null>(null)
@@ -102,9 +96,8 @@ export function useGame(gameId: string) {
       }
       if (!gameRes.data[0]) {
         // Explicit null on not-found — without this, a server-side
-        // delete (e.g. db:reset during dev) leaves the previously-
-        // loaded game state in place and the PlayArea keeps
-        // rendering it. Matches psychicnum / connections useGame.
+        // delete leaves the previously-loaded game state in place and
+        // the surface keeps rendering it.
         setGame(null)
         setPlayers([])
         setLoading(false)
@@ -133,9 +126,8 @@ export function useGame(gameId: string) {
       // every realtime event, so an outage that ends should take its sentence
       // with it rather than leaving the surface behind a stale explanation.
       setFailure(null)
-      // Single lookup map carrying both fields — the seats
-      // assembly below needs username AND color per uid, and
-      // building one map is cheaper to read than two.
+      // One lookup map carrying both fields — the seats assembly below
+      // needs username AND color per uid.
       const profileByUserId = new Map<
         string,
         { username: string; color: string }

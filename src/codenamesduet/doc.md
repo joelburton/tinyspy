@@ -45,17 +45,130 @@ player still presses Submit. That a hint was asked is logged and the partner is
 told; a clue submitted exactly as the AI suggested it is marked as the AI's in
 the log, and one the giver edited is not.
 
-*The rest of the intro is owed — pass 2 of this area's audit.*
+The end of a game is on the board. No modal carries the verdict: the pill
+under the board says it, the action row's line repeats it, and a win alone
+celebrates, once, as it lands. The partner's key card stays covered until
+each player chooses to look, since the talk after an assassin — *"I was about
+to pick that one"* — happens only while it is. Restart is a mulligan: the
+same words and the same key cards, played again from nothing, for the
+first-guess assassin that ended a game nobody got to play. A player who wants
+a board they have not seen yet uses New game.
 
 ## Game rules
 
-*Owed — pass 2. Absorbs what
-[`docs/games/codenamesduet.md`](../../docs/games/codenamesduet.md) says that
-the code does not.*
+The rules are the [Codenames Duet
+rulebook](https://filemanager.czechgames.com/storage/files/codenames-duet/rules/codenames-duet-rules-en.pdf)'s,
+without its mission and campaign modes.
+
+Twenty-five words on a 5×5 board, and one **key card** with two sides, A and
+B. Each side labels every word an **agent**, a **bystander** or an
+**assassin**, and the two sides are dealt from one fixed joint table:
+
+| A \ B | agent | bystander | assassin |
+|---|:-:|:-:|:-:|
+| **agent** | 3 | 5 | 1 |
+| **bystander** | 5 | 7 | 1 |
+| **assassin** | 1 | 1 | 1 |
+
+So each player sees nine agents, thirteen bystanders and three assassins, and
+the pair has fifteen agents to find between them.
+
+**A turn** is a clue and the guesses it earns. The **clue-giver** gives one
+word and a number, about words that are agents on their own side. The
+**guesser** turns words over one at a time, and each is read off the
+**clue-giver's** side, since the guess answers their clue. An agent is
+contacted and the guesser may go on, with no cap at the clue's number plus one
+as in ordinary Codenames. A bystander ends the turn. An assassin loses the
+game. The guesser may also stop at any point, a first guess included, and that
+ends the turn too.
+
+**The turn budget** is the setup's 9, 10 or 11 turns. A turn is spent each
+time one ends, on a bystander or a stop, and never on an agent. Seat A gives
+the first clue. After that the seats alternate, except that **a player whose
+agents are all found gives no more clues**: the partner takes every clue from
+then on (the rulebook's own words). Both players are told this happened, so
+neither reads the lopsided turns as a bug.
+
+**A bystander marks one direction only.** It is a bystander on the clue-giver's
+side, and the same word may be the partner's agent, so it locks the word for
+the guesser alone and the partner may still guess it. Only a word both players
+have hit as a bystander is dead for both. An agent contacted and an assassin
+hit are the same for both players.
+
+**Sudden death** starts when the budget is spent with agents left. There are
+no more clues: either player guesses from memory, a guess is read off the
+PARTNER's side, and every agent is a turn of its own. Anything but an agent
+loses.
+
+### Vocabulary
+
+| term | what it means |
+|---|---|
+| **key card** · **side** · **seat** | the two sides are `key_card_a` and `key_card_b`; a player's seat, A or B, says which side is theirs. The first clue-giver is seated as A |
+| **agent** · **bystander** · **assassin** | the three labels, stored as `G`, `N` and `A`. The code's `neutral` is a bystander, and the rulebook's "green" is an agent |
+| **contacted** | an agent turned over; the same for both players |
+| **clue-giver** · **guesser** | who holds the clue this turn, `current_clue_giver`, and the other seat |
+| **turn budget** | `setup.turns`, counted down in `turns_remaining`. Distinct from the wall-clock timer, which is an optional setup of its own |
+| **sudden death** | the budget spent with agents left |
+| **finished player** | a player whose own agents are all contacted; they stop giving clues |
+
+### The play states
+
+`playing` and `sudden_death` run; the rest are terminal. WHY a game ended is
+`common.games.status.reason`:
+
+| play state | when | reason |
+|---|---|---|
+| `won` | the fifteenth agent is contacted | `solved` |
+| `lost_assassin` | an assassin is hit | `assassin` |
+| `lost_clock` | anything but an agent in sudden death | `exhausted` |
+| `lost_timeout` | the wall-clock countdown ran out | `timeout` |
+| `ended` | somebody pressed End — neutral, not a loss | `manual` |
+
+Every ending is the same for both players, and only `won` is a win.
 
 ## Schema
 
-*Owed — pass 2.*
+Four tables, in `supabase/migrations/20260615000001_codenamesduet.sql` and
+`20260923000001_codenamesduet_events.sql` (shape) and
+`supabase/sql/codenamesduet.sql` (behavior).
+
+| | |
+|---|---|
+| `codenamesduet.games` | one row per game: the two seats (`user_a_id`, `user_b_id`), both key cards (`key_card_a`, `key_card_b`, each 25 labels indexed by board position), the turn state (`turn_number`, `turns_remaining`, `current_clue_giver`). The play state is on `common.games` |
+| `codenamesduet.word_pool` | the word list a board is drawn from, seeded by the migration. No policy and no grant: only `create_game` reads it |
+| `codenamesduet.words` | the board, 25 rows per game: the word, and what has happened to it — `revealed_as` (`G` or `A`, the same for both players) and `neutral_a` / `neutral_b` (a bystander hit by that seat) |
+| `codenamesduet.events` | the log ([supabase.md → Every game's log](../../docs/supabase.md#every-games-log-is-gameevents)): one row per `clue`, `guess`, `pass` and `hint`, `order by id`. Beside the skeleton, `turn_number`, `seat`, and payload columns named for the kind that owns them — `clue_word` / `clue_count` / `clue_from_ai`, `guess_position` / `guess_result` — with a CHECK tying each kind to its own. A partial unique index allows one clue per turn. `took_turn` is true where the turn number moves on: a bystander in ordinary play, a pass, and an agent in sudden death |
+
+**The seats are columns, not a table.** `common.game_players` says who played;
+which seat each holds, and what that seat's key card says, is game state and
+lives on the game row, so one read returns the whole game.
+
+**Both key cards are readable by either player.** Every table's select policy
+is club membership, and the grant covers both columns. The frontend reads its
+own card for play and the partner's only once the game is over and the player
+asks; nothing stronger is owed between friends (CLAUDE.md → Trust model).
+There are no insert, update or delete policies: every write is an RPC.
+
+**The board is `words`, and the log is `events`.** A word can be guessed twice,
+once from each side, so the log cannot be the board. The board's three columns
+are what the tiles draw; the history viewer rebuilds a past board by folding
+the logged guesses onto the words.
+
+**The club-list readout is `common.games.status`**: `turn_number`,
+`turns_remaining` and `greens_found` during play, and at the end the
+`reason` and `turns_used`. The three endings a guess causes state
+`greens_found` themselves, because the status merges and the winning guess ends
+the game before the ordinary update would have counted it.
+
+**The club-list title** is the board's first three words in board order,
+`PAGE-CHAIN-EGG`. A duet board never moves, so the top-left three cells always
+match the title, and the words are on every player's screen, so the title
+gives nothing away.
+
+**Realtime** is two rooms per client: the game row, and the board and the log
+together. `end_game` touches the game row on the way out, so a client wakes
+into the finished game.
 
 ## RPCs
 
@@ -276,8 +389,119 @@ toast; mid-game the shell asks first, since starting another shelves this one.
 
 ## Frontend
 
-*Owed — pass 2.*
+The play surface is the shape [`docs/playarea.md`](../../docs/playarea.md)
+describes: a loader that gates on the three ways a game can fail to load, then
+`PlayArea` in the eight sections.
+
+```
+<PlayAreaLoader {...GamePageCtx}>        useGame, useBoard, the events; the three gates
+  └── PlayArea                           the coordinator: draws no board, no control
+        ├── BoardCol                     the board column, and submit_guess
+        │     ├── MobileStatusBar ←      phone only: StateLine, above the board
+        │     ├── Board                  the 5×5 tiles and their marks
+        │     └── below the board        one of: HistoryBanner ←, the local slot's
+        │                                FeedbackPill ←, or CluePanel — the clue form,
+        │                                the clue and Pass, or who we're waiting for
+        ├── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
+        │     └── InfoCol                the readouts and the action row
+        │           ├── StateLine        agents found, turns spent or sudden death
+        │           ├── the finished-player banner
+        │           ├── InfoActionsRow ← one row, every action, in the menu's order
+        │           ├── InfoDisclosure ← "Key card", holding KeyCard
+        │           ├── SetupDisclosure ←
+        │           └── GameEventLog     the log, a table of turns
+        ├── CodenamesduetAISuggestCompanion   the AI's suggestion, a floating panel
+        └── CelebrationBlockingModal ←   a win, as it lands
+
+  ← belongs to common/ ; everything else is this folder's
+```
+
+`GamePage` mounts the loader and owns everything above it — members, the timer,
+the play state, pause, chat — and unmounts this surface on pause. `Help` and
+`SetupForm` are the shell's to mount, from the menu and the start-game dialog.
+`useGame` reads the game row and the two seated players; `useBoard` reads the
+words, the events and the key cards, and hands back the partner's card only
+when the player has asked to see it.
+
+What is codenamesduet's own:
+
+- **The board draws what happened, and the marks draw what the cards say.** A
+  tile's fill is what happened to it: untouched, a bystander hit by either
+  player, an agent contacted, the assassin. The untouched tile is lighter than
+  every other game's, because the shared resting shade is too close to the
+  bystander tan. In the corners are the key-card squares: mine bottom-left,
+  shown except while I am guessing, since my own card says nothing about my
+  partner's clue; my partner's top-right, once the game is over and I have
+  asked. A bystander hit from one side is a triangle pointing at the player who
+  hit it: my partner's above the word, mine below. The phase decides which
+  tiles take a click (`lib/phase.ts`), and a word I hit as a bystander stays
+  locked to me alone.
+- **The clue strip under the board** is one line in every state, so the board
+  above never moves: the clue form for the giver, the clue and Pass & End Turn
+  for the guesser, who we are waiting for otherwise, and the sudden-death
+  notice. The clue form keeps Tab on its two inputs.
+- **The AI button** is on the clue form. It opens the suggestion in a floating
+  panel and fills the form with it; the player still presses Submit.
+- **The partner in the header.** The shell's turn line does not reach this game
+  (see the intro), so `useTurnStatus` says what the partner is doing, in
+  `lib/answer.ts`'s words.
+- **The finished-player banner** tells each player, in the info column, when
+  one of them has found all their agents: in green to the one who finished,
+  in tan to their partner, who now gives every clue.
+- **The key card** is a disclosure in the info column: my side as a 5×5 grid of
+  colors, with no words, for a player who wants to see the whole card at once.
+- **The event log is a table of turns**: the clue, who gave it and whether it
+  was the AI's, then the guesses under it in their key-card colors — or, in
+  sudden death, one row per guess. Its bar is the turn's outcome
+  (`lib/turnOutcome.ts`), and its number opens that turn on the board
+  (`lib/history.ts`). The picker filters by who gave the clue.
+- **The terminal** is the pill and the row's line (`lib/terminal.ts`). Reveal
+  uncovers the partner's card for this player alone, and Hide covers it again.
+- **The club label** (`manifest.ts`) is the play state, the agents found and,
+  mid-game, the turns left.
+- **The printer** (`pdf/`) is the board with both players' marks drawn — mine
+  always, my partner's only at terminal — above the clue log, with a legend,
+  since a printout has nothing else to explain the marks.
 
 ## Tests
 
-*Owed — pass 2.*
+pgTAP, in `supabase/tests/codenamesduet/`. `setup.psql` gives every file
+`pg_temp.find_position` and `find_position_set` (the key card is random, so a
+test finds a position by its label), `pg_temp.codenamesduet_setup()` and
+`pg_temp.codenamesduet_players()`:
+
+| file | pins |
+|---|---|
+| `create_game_test` | the refusals — no sign-in, an outsider, a roster that is not two, a bad turn budget, a bad timer — the rows written, and the key card's joint table exactly |
+| `game_loop_test` | who may clue, guess and pass in which phase; an agent goes on, a bystander ends the turn and hands the clue over, a pass spends a turn; the assassin ends the game; no answer carries an outcome |
+| `clue_giver_handoff_test` | a finished player gives no more clues, from either seat, and two live seats still alternate |
+| `cross_direction_test` | a bystander locks the guesser's side only; the partner can still contact the word; the two locks answer in different words |
+| `win_test` | the fourteenth agent plays on and the fifteenth wins |
+| `sudden_death_test` | no clues; an agent goes on, anything else is `lost_clock` |
+| `submit_timeout_test` | `lost_timeout` from both running states, the reason, and a second call refused |
+| `end_game_test` | `ended` with the reason `manual`, nobody winning, and a second call refused |
+| `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
+| `events_test` | what each move writes to the log, `took_turn` included; the one-clue index and the payload CHECK |
+| `clue_context_test` | `get_clue_context`'s gate, and every agent, bystander and assassin in its answer |
+| `rls_test` | an outsider sees no row of any table and cannot move; a direct insert is refused |
+
+The edge function has no tests; `deno check` is its only net.
+
+Vitest, beside the code:
+
+| file | pins |
+|---|---|
+| `lib/phase.test` · `lib/agents.test` | every branch of the phase; when a seat's agents are all found |
+| `lib/turnOutcome.test` · `lib/terminal.test` · `lib/answer.test` | a turn's outcome, sudden death's included; every ending's words; the header's words about the partner |
+| `lib/events.test` · `lib/history.test` | the log's rows typed by kind; a past turn's board, its bystanders per side and its own tiles ringed |
+| `hooks/useBoard.test` | the reads, the partner's card only when asked for, and a failed read kept as a failure rather than an empty board |
+| `components/PlayArea.test` | a second guess while one is in flight sends nothing; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the keys |
+| `components/GameEventLog.test` · `components/CluePanel.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows and history link; the clue inputs' tag and when a clue counts as the AI's; the key card's grid; the setup form's fields |
+| `pdf/model.test` | the partner's card never printed mid-game; each cell's mark and triangles; the clue log |
+
+Playwright, in `e2e/`: `codenamesduet` (the board holds its height through
+every below-board state, the AI panel lands on screen, New game),
+`codenamesduet-clueform` (Tab stays in the clue form), `codenamesduet-history`
+(a past turn opens on the board without moving it), `codenamesduet-events` (the
+log a real game writes), `codenamesduet-mobile` (the phone layout) and
+`codenamesduet-print` (a real PDF downloads).

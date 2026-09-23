@@ -1,15 +1,10 @@
 // cs-met-codenamesduet
 
 /**
- * codenamesduet's setup form — the only single-mode game, and the only one
- * whose first-player question is asked of a fixed pair.
- *
- * Every refusal `create_game` can make is a fault: turns come from a closed
- * list, the clue-giver picker offers only the two players, and the game is
- * exactly two people. The one thing that is not a fault is `PN093` — the word
- * pool being too small to build a board — and it is an `error` on the form's
- * own line rather than a validation, because no control the player can reach
- * would change it.
+ * codenamesduet's setup form: what it offers, in what order, what it writes,
+ * and where a message naming one of its fields lands. Every refusal
+ * `create_game` can make is a fault, so none of them is a validation the form
+ * has to show.
  */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -61,8 +56,7 @@ describe('codenamesduet setup — what it offers', () => {
   })
 
   it('names the clue-giver field for the setup key it writes', () => {
-    // It was `firstClueGiver` — matching neither the key nor anything a raise
-    // could name, so PN089/PN090/PN092 had nowhere to land.
+    // So a message naming the key lands under this field.
     const { container } = draw()
     expect(container.querySelector('[name="first_clue_giver_user_id"]')).toBeInTheDocument()
     expect(container.querySelector('[name="firstClueGiver"]')).not.toBeInTheDocument()

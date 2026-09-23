@@ -2,13 +2,11 @@
 
 /**
  * Tests for `derivePhase` — the pure function that decides which UI
- * state BoardScreen is in given a game's status, the seats, and
+ * state the play surface is in given a game's status, the seats, and
  * whether a clue exists.
  *
  * The matrix of inputs is small enough (status × seat × clue presence)
- * that we can enumerate every interesting combination here, which is
- * easier to read and faster to run than rendering BoardScreen with
- * mocked hooks.
+ * that every interesting combination is enumerated here.
  */
 
 import { describe, expect, it } from 'vitest'
