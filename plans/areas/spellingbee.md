@@ -1032,7 +1032,14 @@ in `board.ts` reads it. `board_test.ts`'s row builder sets it too. Options:
 comment on `CandidateRow` then saying the rows are legal by construction; or
 leave it. Recommendation: drop it.
 
-### F-spellingbee-9 · `common-md-fixed-bands` · `docs/common.md` states spellingbee's word bands as fixed
+### SHIPPED · F-spellingbee-9 · `common-md-fixed-bands` · `docs/common.md` states spellingbee's word bands as fixed
+
+**Joel, 2026-09-22: "do it."** The sentence now says `candidate_words` takes
+the game's two bands from its setup, 3 and 5 by default, and states legal and
+required against "legal band" / "required band"; the required set's filters
+are unchanged. Checked against `candidate_words`' arguments, the edge
+function's `setup.required ?? 3` / `setup.legal ?? 5` and both default setups
+in `lib/setup.ts`. Guards green.
 
 `docs/common.md` → the word list → "How a game uses it" says spellingbee's
 slice is "legal = `difficulty ≤ 5`, required = `difficulty ≤ 3` …". The
