@@ -183,6 +183,70 @@ claim as `docs/ui.md`'s. `replay_board` has been exactly that mulligan since
 
 **A later red is the step's.**
 
+### Step 1 — gather this game's owed work into `todo.md` — DONE 2026-09-23
+
+The doc's register was emptied above, before the step had a number. Every
+other `todo.md`, every plan, and the docs were grepped for the game. What they
+held:
+
+**Moved into `todo.md`:**
+
+- **The clue-arrival bell** → Soon. `src/common/sounds/todo.md` says *"At
+  codenamesduet's own area"*; the work is this game's own code, so the todo
+  carries it and the sounds entry stays as the rollout's record.
+- **The AI companion's minimum size** → Someday. `floating-panels/todo.md`
+  lists every companion's eyeballed pair, and Joel's word there is *"as we get
+  to these individually in areas, we can figure out"*. The shared entry keeps
+  the list.
+
+**`plans/tile-feedback.md` holds three codenamesduet entries, and none is
+`todo.md`'s** — all are pass 3's, read against the board when it opens:
+the shape-1 section (proposals: **the turn marks first** — the plan records it
+drawing neither the dim nor the flash, to be re-checked at pass 3 since the
+turn frame moved into the shell — the in-flight dim on a guessed tile, and
+attention on the tile your partner just guessed); the roster row (tf0, the
+`.triPeer` / `.triMine` triangles, and the tile outline painted with the action
+button's blue, `Board.module.css`); and the token row (*do not collapse*
+`--codenamesduet-agent` into `--outcome-won-ink-color` though the hex is
+identical — confirm and say so in the token).
+
+**Two things for the audit, not the todo** — both are faults in files on this
+roster, so they are findings when pass 2 opens:
+
+- `supabase/migrations/20260615000001_codenamesduet.sql` → the RLS comment on
+  the key cards ends *"Deferred — see docs/deferred.md → codenamesduet"*. No
+  such entry exists, and the per-game row never carried it. It is an APPLIED
+  migration, so the fix is not an edit there; whether the hardening is owed
+  at all (under the friends-trust model it reads as a Won't do) is Joel's.
+- `supabase/sql/codenamesduet.sql` → `create_game`'s comment points at
+  *"docs/deferred.md → Setup-shape evolution"*, which is struck through there
+  as decided (YAGNI). The pointer lands, but on a ruling, not an open item.
+
+**Checked and holding nothing owed:**
+
+- `common/game-page/todo.md`'s whole-table stop for races — codenamesduet has
+  no compete mode.
+- Its per-game `tone`-for-outcome sweep — the game's five uses of `tone` are
+  all a BUTTON's tone, which is correct.
+- `common/info-sheet/todo.md` (a shared `<InfoCol>`) — shared work, and it
+  cites this game only as having drifted once.
+- `common/keyboard/todo.md`'s nested-ring bug — this game is its evidence that
+  nothing hits it today.
+- `common/setup-form/todo.md`'s mono question — the todo already carries the
+  board's half, in Someday.
+- `common/actions/todo.md`'s Help-lists-`hidden` question — shared, and it
+  changes all games at once.
+- `plans/keyboard-nav-plan.md`, `plans/dark-mode.md`, `plans/turn-bell.md`
+  and `plans/playarea-readability.md` cite this game as evidence or as a row in
+  their own survey. Each is a plan with its own home, and the readability
+  survey is what pass 1's steps are.
+- `docs/mobile.md` → TODO, `docs/ui.md` → Explicitly deferred — nothing
+  that names this game.
+
+**What `todo.md` holds after the step:** two Bugs, four Soon (the action-row
+collapse, the `CluePanel` name, the banners, the bell), two Someday (the
+companion's size, the board's monospace), two Won't do.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it
