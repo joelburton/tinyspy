@@ -115,9 +115,9 @@ export function Board({
             : styles.bgWhite
 
           // Clickable unless revealed, or *I* already neutraled it — a
-          // partner-only neutral stays clickable, since it may be my agent —
-          // and never while a past turn is open.
-          const clickable = cellsClickable && !revealed && !iNeutraled && !isViewingHistory
+          // partner-only neutral stays clickable, since it may be my agent.
+          // (A past turn open is already in `cellsClickable`.)
+          const clickable = cellsClickable && !revealed && !iNeutraled
           const isPending = pendingPos === w.position
 
           return (

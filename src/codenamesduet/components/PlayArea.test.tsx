@@ -185,6 +185,12 @@ describe('codenamesduet PlayArea — input gating', () => {
     expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
   })
 
+  it('tiles are blocked while a past turn is open on the board', () => {
+    render(<PlayAreaLoader {...makeCtx()} />) // my guess turn: the gate is open
+    fireEvent.click(screen.getByText('#1'))
+    expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
+  })
+
   it('in sudden death, tiles are open to either seat — the one holding the clue too', () => {
     asClueGiver()
     render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)

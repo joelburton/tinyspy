@@ -890,7 +890,15 @@ unless `myKey` is set, and `useBoard` sets `myKey` only when the caller is
 **narrow the seat in the loader and make the prop required**, dropping the
 dead arms; or leave it. Recommendation: narrow.
 
-### F-codenamesduet-6 · `double-history-gate` · `Board` ANDs `!isViewingHistory` a second time
+### SHIPPED · F-codenamesduet-6 · `double-history-gate` · `Board` ANDs `!isViewingHistory` a second time
+
+**Joel, 2026-09-23: "i'll take your rec."** `Board`'s per-tile gate drops its
+`!isViewingHistory`; `BoardCol`'s fold into `cellsClickable` is the one place,
+and the tile comment says so. `Board` keeps the prop for the frame. **Planted**
+after: `BoardCol`'s fold removed **passed** — nothing tested that a past turn
+locks the tiles — so a PlayArea case opens `#1` from the log and finds the
+tiles disabled; the plant is red on it. `tsc -b` and eslint clean; 47 files,
+405 tests.
 
 `BoardCol` passes `cellsClickable={cellsClickable && !isViewingHistory}`, and
 `Board` computes `clickable = cellsClickable && … && !isViewingHistory`
