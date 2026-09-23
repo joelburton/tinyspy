@@ -1178,7 +1178,10 @@ what the other needs — a deadlock (40P01), a raw error and a fault modal.
 Reasoned from the lock order, not reproduced. Options: **lock first**, as the
 siblings do; or leave it. Recommendation: lock.
 
-### F-codenamesduet-16 · `create-game-nonnumeric-turns` · a non-numeric turn budget escapes the envelope
+### RULED — NO CHANGE · F-codenamesduet-16 · `create-game-nonnumeric-turns` · a non-numeric turn budget escapes the envelope
+
+**Joel, 2026-09-23: "leave it."** Only a broken client sends a turn budget
+that is not a number; it keeps the generic fault.
 
 `s_turns := (setup->>'turns')::int` — probed with `"nine"`, a raw
 `invalid input syntax for type integer`. Only a broken client reaches it;
