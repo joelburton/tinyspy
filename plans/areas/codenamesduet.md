@@ -143,6 +143,46 @@ the info column's own stylesheet and `<InfoActionsRow>`,
 answer, and whether a reveal wants a verdict mark is tile-feedback's question —
 but each is a place for the read to look.
 
+## The restructure
+
+Each step is one commit Joel reads; that reading is his careful read of the
+code, made on the shape that will stay. Every step is behavior-preserving
+unless its heading says otherwise, verified by the net below.
+
+### Step 0 — the baseline — DONE 2026-09-23
+
+Run on the untouched tree with the roster stamped `cs-met-codenamesduet`
+(Joel: *"do next"*, then *"both"* to the e2e question):
+
+- `tsc -b` clean; lint clean over `src/codenamesduet/` **and**
+  `supabase/functions/codenamesduet-suggest-clue/`.
+- The game's unit tests and the guards: 41 files, 356 tests, green.
+- The edge function: **it has no tests**, so the net there is `deno check`
+  alone — clean. That proves it type-checks, not that it boots.
+- pgTAP, the whole suite: `gmake db-sql ENV=local` then `npm run test:db` —
+  181 files, 2584 tests, PASS.
+- The geometry harness re-seeded with `BASELINE=1`: 21 boards written, and the
+  new file **byte-identical to the one it replaced**, so no board had drifted
+  since the last seed. (Nothing to commit — the file is gitignored.)
+- codenamesduet's five e2e specs: **7 tests, green in 17.8s** — the clue
+  form's Tab ring, the history viewer, mobile (two), print, below-board layout
+  stability, and New game.
+
+**What the net does not cover, so a step touching it needs its own check:** no
+e2e plays a game through to a win or a loss, and none restarts. The AI clue
+suggester is reached only through a STUBBED edge function (`codenamesduet.e2e.ts`
+routes it to a refusal and a fault), so no run calls the real one. The restart
+and the terminal paths are pinned only by pgTAP on the server side and the unit
+specs on the client.
+
+**A second candidate for the prose pass:** `codenamesduet.e2e.ts` → the New
+game spec's header says there is *"deliberately no 'Restart' twin"* because
+replaying the board *"would hand both"* players the secret — the same stale
+claim as `docs/ui.md`'s. `replay_board` has been exactly that mulligan since
+2026-08-03.
+
+**A later red is the step's.**
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it
