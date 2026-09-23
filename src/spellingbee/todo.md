@@ -4,14 +4,6 @@
 
 ## Soon
 
-- **Two hand-written Fisher–Yates shuffles, one per side** — `shuffled` in
-  `components/BoardCol.tsx` and `shuffled` in
-  `supabase/functions/spellingbee-build-board/index.ts`. Both become
-  `src/common/utils/shuffle.ts`: the component calls `shuffle(items)` (the
-  default rng is `Math.random` and a copy comes back, so behavior is
-  unchanged), and the edge function imports the util by relative path with an
-  explicit `.ts`, the way `scrabble-ai-move` imports `mulberry32`. The
-  component's copy is `wordwheel`'s character for character.
 - **The hive's hover is not gated, so a tap leaves a hex risen.** A touchscreen
   keeps `:hover` on the last-tapped element until you tap elsewhere, so
   `.hex:hover`'s lift + lighter shadow (`Letter.module.css`) sits there after

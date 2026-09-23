@@ -51,9 +51,6 @@
   transform: translateY(0) scale(0.96);
   filter: var(--spellingbee-hex-shadow) brightness(0.92);
 }
-/* @@ */ .hex:focus {
-  outline: none;
-}
 
 /* Reduced motion: the movement goes, the depth stays. */
 @media (prefers-reduced-motion: reduce) {

@@ -930,17 +930,40 @@ migration, and the prop's type is `string`, so the guard's case never occurs.
 Options: **delete the line**, or keep it as a defense. Recommendation: delete
 it; a guard for a state the column forbids tells the reader that state exists.
 
-### F-spellingbee-5 · `hex-focus-rule` · `.hex:focus { outline: none }` styles an element that cannot take focus
+### SHIPPED · F-spellingbee-5 · `hex-focus-rule` · `.hex:focus { outline: none }` styles an element that cannot take focus
+
+**Joel, 2026-09-22: "delete it."** The rule is gone from `Letter.module.css`;
+nothing else in the repo named it. Nothing to plant: jsdom renders no outline,
+and the rule never matched. spellingbee + guards, 36 files, 363 tests green.
 
 `Letter.tsx` renders the hex as a `<g>` and its docstring says it is
 pointer only (no `tabIndex`, no `role`), so `:focus` never matches and the
-rule does nothing. Options: **delete the rule**, or keep it in case a hex ever
-becomes focusable (`plans/keyboard-nav-plan.md` rules this game out: the
-hive is a reference you read, not a route to a piece).
-Recommendation: delete it; if the hex ever takes focus, the board focus rule
-decides what it shows then, and it would not be "nothing".
+rule does nothing. The group's `onMouseDown` `preventDefault()` also keeps a
+click from moving focus, and the page's tab ring is empty. Options: **delete
+the rule**, or keep it in case a hex ever becomes focusable
+(`plans/keyboard-nav-plan.md` rules this game out: the hive is a reference you
+read, not a route to a piece). Recommendation: delete it; the board focus rule
+is that a tile never holds focus at all, so "in case" defends against what the
+design rules out.
 
-### F-spellingbee-6 · `two-shuffles` · two hand-written Fisher–Yates shuffles, one per side
+### SHIPPED · F-spellingbee-6 · `two-shuffles` · two hand-written Fisher–Yates shuffles, one per side
+
+**Joel, 2026-09-22: "do both."** Both private `shuffled`s are gone. `BoardCol`
+imports `shuffle` from `@/common/utils/shuffle`; the edge function imports it
+as `'../../../src/common/utils/shuffle.ts'`, the way `scrabble-ai-move` imports
+`mulberry32`. The edge function's deleted docstring carried the reason the
+centers are shuffled (repeated boards on one seed vary their center), so that
+line moved to the call site as a comment. Same algorithm, same `Math.random`,
+on both sides. `todo.md`'s Soon entry is deleted; wordwheel's twin stays in
+`wordwheel/todo.md`, where it stands on its own.
+
+**Verified:** `tsc -b` and eslint clean; spellingbee, the guards and
+`common/utils`, 40 files, 391 tests green; `deno check` clean and `deno test`,
+11 green. **Booted:** a POST to the local function with the anon key came back
+as the function's own envelope (`PN112`, no club), so the module graph loads
+and the cross-folder import resolves at runtime. That probe returns before
+the center loop, so no board was built; `e2e/spellingbee.e2e.ts` builds one
+and has not run.
 
 From `todo.md` → Soon. `shuffled` in `components/BoardCol.tsx` and `shuffled`
 in `supabase/functions/spellingbee-build-board/index.ts` are both the same

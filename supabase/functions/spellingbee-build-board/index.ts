@@ -81,6 +81,7 @@ import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { preflight } from '../_shared/http.ts'
 import { crash, fault, formValidation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
+import { shuffle } from '../../../src/common/utils/shuffle.ts'
 import {
   type Board,
   type CandidateRow,
@@ -144,17 +145,6 @@ const ING_MASK = I_BIT | N_BIT | G_BIT
 // ───────────────────────────────────────────────────────────
 // Sampling (impure — uses Math.random)
 // ───────────────────────────────────────────────────────────
-
-/** Fisher–Yates shuffle of a copy — used to try a seed's 7 candidate centers
- *  in random order (so repeated boards on the same seed vary their center). */
-function shuffled<T>(arr: T[]): T[] {
-  const out = [...arr]
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[out[i], out[j]] = [out[j], out[i]]
-  }
-  return out
-}
 
 /** ING dampening: if the mask has all of {i, n, g}, accept it
  *  only ING_ACCEPT_RATE of the time. Reduces the corpus's
@@ -410,7 +400,9 @@ serve(async (req) => {
         const seed = sampleMask(weighted)
         const mask = BigInt(seed.mask)
         const letters = maskLetters(mask)
-        for (const center of shuffled([...letters])) {
+        // The seven candidate centers in random order, so repeated boards on
+        // the same seed vary their center.
+        for (const center of shuffle([...letters])) {
           const centerBit = 1n << BigInt(center.charCodeAt(0) - 97)
           const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
           const cand = buildBoard(letters.replace(center, ''), center, candidates)
