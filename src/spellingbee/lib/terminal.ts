@@ -12,8 +12,9 @@ import { RANKS } from '@/shared/rank-ladder/rankLadder'
  * the short bold line in the info-column action row. Both come back in one
  * object so the two surfaces cannot disagree. Call it only when the game IS
  * terminal; it has no answer for a live one.
- * No modal carries the verdict — a coop WIN pops `<CelebrationBlockingModal>`
- * and everything else lives in-page.
+ * No modal carries the verdict — a WIN pops `<CelebrationBlockingModal>` (the
+ * team's in coop, the winner's own in a race) and everything else lives
+ * in-page.
  *
  * Verdicts lead with the OUTCOME WORD — "Won:" / "Lost:" / "Ended:" — so the
  * result reads before the detail does, and they stay short enough for the

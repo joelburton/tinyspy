@@ -43,7 +43,7 @@ below-board pill says it, the action row's line repeats it, and the word list
 fills in every word nobody found — the bonus words too, being the same shipped
 data. The hive stays on screen, inert, with Shuffle still live, and Restart
 replays the same letters from an empty list. A coop team that set a target
-celebrates once, at the moment they cross it.
+celebrates once, at the moment they cross it, and so does a race's winner.
 
 ## Game rules
 
@@ -431,7 +431,7 @@ then `PlayArea` in the eight sections.
         │           ├── InfoActionsRow ← one row, every action, in the menu's order
         │           ├── SetupDisclosure ←
         │           └── WordList ←       the found words, and at terminal the missed ones
-        └── CelebrationBlockingModal ←   a coop win, as it lands
+        └── CelebrationBlockingModal ←   a win, as it lands — the team's, or mine in a race
 
   ← belongs to common/ ; ⇐ to shared/ ; everything else is this folder's
 ```
@@ -470,8 +470,9 @@ What is spellingbee's own:
   play surface when the info column is off-canvas. Coop shows the team's;
   compete the caller's own, with the Rank strip for the rivals.
 - **The terminal** is the pill and the row's line (`lib/terminal.ts`), the
-  inert hive, and the list with its missed words. A coop win celebrates once,
-  on the flip; nothing pops for any other ending.
+  inert hive, and the list with its missed words. A win celebrates once, on
+  the flip — the team's in coop, and in a race only the winner's screen, read
+  off `status.winner_user_id`; nothing pops for any other ending.
 - **The setup form** offers the target rank — *Win at* in coop with a *None*,
   *Target rank* in compete — the two dictionary bands, and one box for custom
   letters that writes both setup keys, split after the first letter. Start is
@@ -523,7 +524,7 @@ Vitest, beside the code:
 |---|---|
 | `lib/answer.test` · `lib/terminal.test` | every answer's words and outcome, and the three-way split of a miss; every terminal sentence per mode, play state and reason, as a table with no cell pairing a win with a loss |
 | `lib/setup.test` · `components/SetupForm.test` | the letter rules and the band rule, each refusal under the field it names; the form's settings in order, the compete caption, the solo club's missing picker, and where a server refusal lands |
-| `components/PlayArea.test` | the surface mounts in every mode and state; the hexes a word is using, marked and cleared; the inert board after a concede or an ending; a required, bonus and pangram word accepted with the right call, a miss refused with its reason and answered on the board; the two peer narrations; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; the keys — New game, End, Concede, Shuffle, Restart |
+| `components/PlayArea.test` | the surface mounts in every mode and state; the hexes a word is using, marked and cleared; the inert board after a concede or an ending; a required, bonus and pangram word accepted with the right call, a miss refused with its reason and answered on the board; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; the keys — New game, End, Concede, Shuffle, Restart |
 
 Playwright, in `e2e/`: `spellingbee` (the play loop on screen — a required
 word lands, a bonus word dots, a pangram flourishes, custom letters), 

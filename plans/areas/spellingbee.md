@@ -829,6 +829,149 @@ files, 2567 tests, PASS.
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it
 has one, no prefix means OPEN)*
 
+The todo emptied, 2026-09-22: the prose pass's "left for the findings" list
+and `todo.md`'s two Soon entries, each re-checked against the code before it
+was written here. Nine findings. The two reads the list also named (the edge
+function's and the SQL's) are not findings but the audit's read, which is
+below them and still owed.
+
+### SHIPPED · F-spellingbee-1 · `race-winner-celebration` · the race's winner gets no confetti
+
+**Joel, 2026-09-22: "do f1."** The gate is `playState === 'won' ||
+(playState === 'won_compete' && winnerId === session.user.id)`; `winnerId`
+moved up into Page hooks beside the hook that reads it (the terminal message
+reads it from there). The modal keeps *You win! 🎉* and its body reads the
+target rank for both modes, adding *first* in a race: *Reached "Amazing" first
+— 17/18 points.* The old body read `setup.target_rank` directly; it reads the
+derived `targetRankIdx` now, which is the same value. The wording is mine, not
+ruled. `PlayArea.test.tsx` had no celebration test in either mode; a new block
+has five: the coop win pops as it lands, a coop game opened already won does
+not, my race win pops, somebody else's does not, and a race opened already won
+does not. **Verified by planting** the gate back to coop only (the race-win
+case red, the rest green) and to any `won_compete` (the somebody-else case
+red), then restored. `doc.md` stated the coop-only rule in three places and its
+Tests row said nothing about it; all four say the rule now, as does
+`lib/terminal.ts`'s docstring. `tsc -b` and eslint clean; spellingbee plus the
+guards, 36 files, 363 tests green. **No e2e has run for this.**
+
+`useCelebration(playState === 'won')` in `PlayArea.tsx` is coop only, and the
+comment above it states that as a fact with no reason. The reason it once gave
+("the winner isn't known on the first render") was false and came out in
+Step 8: `status.winner_user_id` is on the common row, which `PlayArea` already
+reads as `winnerId`, so the gate is right on the first render, as
+`useCelebration` requires. The modal's title is *You win! 🎉* and its body
+reads `setup.target_rank`, which a race does not have (a race is won by
+reaching the shared target, `submit_word` writing `winner_user_id` for the
+caller). No test pins the current behavior either way.
+
+connections' F-1, psychicnum's F-6 and wordle's F-6 all asked this question,
+and all three gave the race's winner the celebration. Options: **the same
+here**: the gate becomes `playState === 'won' || (playState === 'won_compete'
+&& winnerId === session.user.id)`, the body reads per mode (the compete one
+naming the target, not a rank), and `PlayArea.test.tsx` gains wordle's three
+cases (my win celebrates as it lands, somebody else's does not, a race opened
+already won does not); `doc.md`'s "A coop team that set a target celebrates
+once" and its two other statements of the rule change with it. Or **keep coop
+only**, with a comment that says it is a choice. Recommendation: the same
+here, for the reason the three siblings gave.
+
+### F-spellingbee-2 · `unused-setup-prop` · `InfoCol` takes a `setup` it never reads
+
+`InfoCol`'s props type declares `setup: SpellingbeeSetup` under the setup
+disclosure, `PlayArea` passes `setup={setup}`, and the component destructures
+only `setupRows` beside it. The `SpellingbeeSetup` import keeps the lint quiet,
+since an unused member of a props type is not an unused variable. This is
+wordle's F-5 exactly. `PlayArea`'s own `setup` stays; it is read by the
+setup rows and the celebration's body. Options: **delete it** (the member, the
+pass-through, the import), or keep it for a reader nobody has named.
+Recommendation: delete it.
+
+### F-spellingbee-3 · `print-recomputes-rank` · the print handler works out the rank the component already has
+
+`PlayArea.tsx` computes `selfRankIdx = currentRankIndex(foundWordsScore,
+game.required_words_score)` once, in Derived. The print handler computes
+`rankIdx` from the same call with the same two inputs, and only its coop
+branch reads it. The two cannot disagree today; the cost is a second name for
+one value, which a reader has to check is the same. Options: **read
+`selfRankIdx`** and drop `rankIdx`, or leave it. Recommendation: read
+`selfRankIdx`.
+
+### F-spellingbee-4 · `empty-letters-guard` · `BoardCol` guards against outer letters that cannot be empty
+
+The `outerShuffled` memo opens with `if (!outerLetters) return []`.
+`outerLetters` is `game.outer_letters`, which is `char(6) not null` in the
+migration, and the prop's type is `string`, so the guard's case never occurs.
+Options: **delete the line**, or keep it as a defense. Recommendation: delete
+it; a guard for a state the column forbids tells the reader that state exists.
+
+### F-spellingbee-5 · `hex-focus-rule` · `.hex:focus { outline: none }` styles an element that cannot take focus
+
+`Letter.tsx` renders the hex as a `<g>` and its docstring says it is
+pointer only (no `tabIndex`, no `role`), so `:focus` never matches and the
+rule does nothing. Options: **delete the rule**, or keep it in case a hex ever
+becomes focusable (`plans/keyboard-nav-plan.md` rules this game out: the
+hive is a reference you read, not a route to a piece).
+Recommendation: delete it; if the hex ever takes focus, the board focus rule
+decides what it shows then, and it would not be "nothing".
+
+### F-spellingbee-6 · `two-shuffles` · two hand-written Fisher–Yates shuffles, one per side
+
+From `todo.md` → Soon. `shuffled` in `components/BoardCol.tsx` and `shuffled`
+in `supabase/functions/spellingbee-build-board/index.ts` are both the same
+loop over `Math.random`, and `src/common/utils/shuffle.ts` already exports
+`shuffle` (default rng `Math.random`, returns a new array). The component
+imports it by alias; the edge function imports it by relative path with an
+explicit `.ts`, as `scrabble-ai-move` imports `mulberry32`. The component's
+copy is also wordwheel's character for character, which is wordwheel's to fix,
+not this area's. Options: **both call the shared util**, or leave them.
+Recommendation: both call it; the edge function's `deno test` confirms the
+import resolves.
+
+### F-spellingbee-7 · `ungated-hover` · a tap leaves a hex raised on a touchscreen
+
+From `todo.md` → Soon. `.hex:hover:not(.inert)` in `Letter.module.css` lifts
+the hex and lightens its shadow; a touchscreen keeps `:hover` on the last
+element tapped, so after every letter one hex stays raised and looks like it
+means something. strands fixed the same thing by wrapping the rule in
+`@media (hover: hover)`, the gate `docs/ui.md` → Tooltips uses for the same
+reason. The reduced-motion block names `.hex:hover:not(.inert)` too, and needs
+the same gate or it keeps a selector for a rule that no longer applies on a
+touchscreen. Options: **gate it**, and take this game's name off the shared
+item in `docs/deferred.md` (stackdown and wordwheel stay on it); or leave it.
+Recommendation: gate it, and check it on a phone.
+
+### F-spellingbee-8 · `is-legal-is-always-true` · the board builder carries a field that is always `true` and that nothing reads
+
+The prose pass's note said the edge function reads `is_legal` as
+always-true. The code is plainer than that: `spellingbee.candidate_words`
+returns `(word, letter_mask, is_required)`, having already filtered to the
+legal band; `fetchCandidateWords` in `index.ts` adds `is_legal: true` to every
+row "for the consumer"; `CandidateRow` in `board.ts` declares it; and no line
+in `board.ts` reads it. `board_test.ts`'s row builder sets it too. Options:
+**drop the field** from the type, the mapping and the test helper, the
+comment on `CandidateRow` then saying the rows are legal by construction; or
+leave it. Recommendation: drop it.
+
+### F-spellingbee-9 · `common-md-fixed-bands` · `docs/common.md` states spellingbee's word bands as fixed
+
+`docs/common.md` → the word list → "How a game uses it" says spellingbee's
+slice is "legal = `difficulty ≤ 5`, required = `difficulty ≤ 3` …". The
+bands have been per-game setup since they shipped: `candidate_words` takes
+`required_band` and `legal_band`, and the edge function passes the game's own
+(3 and 5 are the defaults). Options: **say they are setup**, with 3 / 5 as the
+defaults; or drop the numbers and point at `src/spellingbee/doc.md`.
+Recommendation: say they are setup, with the defaults; the paragraph's point
+is that a game picks its bands, and this makes the example show it.
+
+### The audit's read — OWED
+
+Not a finding: the READ of every roster file end to end, as wordle's "The
+audit's read" was. The list named two parts of it that no earlier step
+touched: **the edge function** (`index.ts`, `board.ts`, `board_test.ts`), whose
+first read this is, and which no earlier area's shape covers since it is a Deno
+chunk; and **the SQL** (`supabase/sql/spellingbee.sql`, 1383 lines, and its
+pgTAP). What the read turns up joins the list above from F-spellingbee-10.
+
 ## Notes
 
 *(things worth remembering about this area that are neither a finding nor

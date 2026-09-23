@@ -129,11 +129,15 @@ export function PlayArea(props: PlayAreaProps) {
   // the info column moves into an off-canvas `<InfoSheet>`.
   const infoSheet = useInfoSheet()
 
-  // Confetti at the MOMENT the team crosses the rank it set out for. The gate
-  // reads the common row, so it is right on the very first render, which is
-  // what `useCelebration` requires. Only coop reaches `won`; a race's
-  // `won_compete` is not celebrated.
-  const celebration = useCelebration(playState === 'won')
+  // Confetti at the MOMENT the game is won — the team crossing the rank it set
+  // out for in coop, and in a race MY reaching the target first,
+  // `status.winner_user_id` being the server's word on who won. Both gates
+  // read the common row, so both are correct on the very first render, which
+  // is what `useCelebration` requires.
+  const winnerId = (status?.winner_user_id as string | undefined) ?? null
+  const celebration = useCelebration(
+    playState === 'won' || (playState === 'won_compete' && winnerId === session.user.id),
+  )
 
   // ─── Derived ───────────────────────────────────────────
   // Who I am in this game and what I may still do, read off the props and the
@@ -219,7 +223,6 @@ export function PlayArea(props: PlayAreaProps) {
   // The per-status terminal message, memoized on primitives so the verdict
   // effect sees one object per outcome, not one per render. The winner is
   // read as name + color rather than as the member object for the same reason.
-  const winnerId = (status?.winner_user_id as string | undefined) ?? null
   const winner = players.find((p) => p.user_id === winnerId)
   const winnerName = winner?.username
   const winnerColor = winner?.color
@@ -531,11 +534,12 @@ export function PlayArea(props: PlayAreaProps) {
       </InfoSheet>
       {/* The win moment. The verdict itself stays in-page — the below-board
           pill and the action-row line (docs/ui.md → Terminal results). Only a
-          coop game with a target rank can reach it. */}
+          game with a target rank can reach it: a coop that set one, or a race,
+          which always has one. */}
       {celebration.show && (
         <CelebrationBlockingModal
           title="You win! 🎉"
-          body={`Reached "${RANKS[setup.target_rank ?? 6]}" — ${foundWordsScore}/${game.required_words_score} points.`}
+          body={`Reached "${RANKS[targetRankIdx ?? 6]}"${isCompete ? ' first' : ''} — ${foundWordsScore}/${game.required_words_score} points.`}
           onClose={celebration.close}
         />
       )}
