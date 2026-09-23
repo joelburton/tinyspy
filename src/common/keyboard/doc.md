@@ -63,8 +63,9 @@ declares both; a board, which navigates by clicks and typing and has nowhere for
 Tab to go, declares nothing — and an empty ring is still a ring, because a Tab
 that is caught and consumed cannot escape while one that is merely ignored can.
 Reachability becomes a list you edit rather than a set of elements you remember
-to mark unfocusable. Rings stack by mount order, so a dialog opened over a page
-is innermost and wins until it closes, and nobody writes that ordering down.
+to mark unfocusable. Rings stack by render order, so a form nested in a surface
+is innermost even when both mount at once, a dialog opened over a page is
+innermost and wins until it closes, and nobody writes that ordering down.
 Crosswords is the exception, and it is an exception because there Tab is a
 MOVE — it walks the clues — so it is an action like any other move.
 

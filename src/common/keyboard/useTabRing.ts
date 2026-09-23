@@ -1,6 +1,6 @@
 // cs-blessed-keyboard
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
 
 /**
@@ -27,19 +27,30 @@ export type TabStop = RefObject<HTMLElement | null>
 export type Ring = TabStop[] | { within: RefObject<HTMLElement | null> }
 
 /**
- * THE STACK OF LIVE RINGS, innermost last.
+ * THE LIVE RINGS, and which one is innermost: the one that RENDERED last.
  *
- * Ordered by mount, which is the ordering we actually want and which React
- * maintains for us: a page mounts, then a dialog opens over it, so the dialog is
- * last and wins until it unmounts. Two overlays open at once and the newer one
- * wins, which is also right.
+ * Each ring takes a number from `renderSeq` on its first render. React renders a
+ * parent before its children, so a ring nested inside another always has the
+ * higher number — even when both mount in the same commit, where mount order
+ * would get it backwards (a child's effect runs before its parent's). And a
+ * surface opened later renders later: a dialog opened over a page outranks it
+ * until it unmounts, and of two overlays the newer wins.
  *
  * Module-level rather than a context because the thing that has to make the
  * decision is a window listener, and a window listener sits in no subtree — so
  * context nesting, which is the obvious way to express "innermost", cannot
- * reach it. Mount order carries the same information here.
+ * reach it. Render order carries the same information here.
  */
-const rings: Array<{ ring: RefObject<Ring> }> = []
+const rings: Array<{ ring: RefObject<Ring>; order: number }> = []
+let renderSeq = 0
+
+/** The live ring that rendered last. */
+function innermost(): (typeof rings)[number] | undefined {
+  return rings.reduce<(typeof rings)[number] | undefined>(
+    (best, r) => (best === undefined || r.order > best.order ? r : best),
+    undefined,
+  )
+}
 
 /** A stop that is not currently on screen is not a stop. The club page renders
  *  one column at a time on mobile, and Tab must not park the keyboard on the
@@ -111,9 +122,12 @@ export function useTabRing(ring: Ring): void {
   useEffect(() => {
     ringRef.current = ring
   })
+  // Taken once, on the first render — see `rings` for why render order and not
+  // mount order.
+  const [order] = useState(() => ++renderSeq)
 
-  useEffect(function joinTheRingStack() {
-    const me = { ring: ringRef }
+  useEffect(function joinTheRings() {
+    const me = { ring: ringRef, order }
     rings.push(me)
 
     function onKeyDown(e: KeyboardEvent) {
@@ -122,7 +136,7 @@ export function useTabRing(ring: Ring): void {
       if (e.metaKey || e.ctrlKey || e.altKey) return
       if (e.key !== 'Tab') return
       // Every live ring hears this; only the innermost answers.
-      if (rings[rings.length - 1] !== me) return
+      if (innermost() !== me) return
 
       // Something closer to the key has already answered it, and the ring does
       // not overrule that: this is how a panel's text field STEPS OUT of its
@@ -153,5 +167,5 @@ export function useTabRing(ring: Ring): void {
       window.removeEventListener('keydown', onKeyDown)
       rings.splice(rings.indexOf(me), 1)
     }
-  }, [])
+  }, [order])
 }

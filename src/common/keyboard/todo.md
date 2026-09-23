@@ -9,17 +9,6 @@
   game-page area on 2026-09-14 and arrived stamped `cs-audited-game-page`; the
   test is this folder's to write, not that area's.
 
-- **A ring nested inside another loses when the two mount in the SAME commit.**
-  The stack is ordered by mount and the innermost is the last on it, but React
-  fires a child's effect BEFORE its parent's — so the OUTER ring is pushed last
-  and answers Tab. Measured 2026-09-11 (a parent `useTabRing([])` around a child
-  `useTabRing([ref])`: the parent consumed the key and the child's stop never
-  took focus). Nothing hits it today, because every nested ring in the app opens
-  a commit later than the surface under it — a floating panel is opened, and
-  codenamesduet's clue form renders only after its PlayArea's loading pass. The
-  fix, if it is ever wanted: a `within` ring knows an element, so innermost could
-  be decided by DOM containment rather than by mount order.
-
 ## Someday
 
 ## Maybe

@@ -9,7 +9,7 @@
  * below makes `getClientRects()` report one rect for every element except the
  * ones a case deliberately hides.
  */
-import { renderHook } from '@testing-library/react'
+import { render, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useTabRing, type TabStop } from './useTabRing'
 
@@ -145,6 +145,29 @@ describe('useTabRing — innermost wins', () => {
     page[0]!.current!.focus()
     pressTab()
     expect(document.activeElement).toBe(page[1]!.current)
+  })
+
+  it('a ring nested inside another wins even when both mount in the same commit', () => {
+    // React runs a child's effect BEFORE its parent's, so an order taken at
+    // mount would put the outer ring last and let it answer. A form rendered
+    // by a surface that mounts whole — a game's clue form, under a page ring —
+    // is exactly this.
+    const form = stops(2)
+    function Form() {
+      useTabRing(form)
+      return null
+    }
+    function Page() {
+      useTabRing([])
+      return <Form />
+    }
+    render(<Page />)
+
+    form[0]!.current!.focus()
+    pressTab()
+    expect(document.activeElement).toBe(form[1]!.current)
+    pressTab()
+    expect(document.activeElement).toBe(form[0]!.current)
   })
 })
 
