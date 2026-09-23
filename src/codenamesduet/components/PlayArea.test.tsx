@@ -35,18 +35,14 @@ const g = vi.hoisted(() => {
   }
   return {
     PEER_CLUE,
-    game: { current_clue_giver: 'A', turn_number: 1 },
+    game: { current_clue_giver: 'A', turn_number: 1, user_a_id: 'peer', user_b_id: 'me' },
     events: [PEER_CLUE] as unknown[],
   }
 })
+// The game row seats peer as A and me as B; the names come from the shell's
+// `players` (makeCtx's), as they do on the page.
 vi.mock('../hooks/useGame', () => ({
-  useGame: () => ({
-    game: g.game,
-    players: [
-      { user_id: 'me', seat: 'B', username: 'me', color: 'red' },
-      { user_id: 'peer', seat: 'A', username: 'peer', color: 'blue' },
-    ],
-  }),
+  useGame: () => ({ game: g.game }),
 }))
 // The third argument is "show me the partner's key card" — the ONE thing the
 // terminal reveal does, since useBoard is what turns it into `peerKey`. Recorded
@@ -79,7 +75,7 @@ const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
 /** Seat me as the clue-giver with the clue still to write. */
 function asClueGiver() {
-  g.game = { current_clue_giver: 'B', turn_number: 1 }
+  g.game = { current_clue_giver: 'B', turn_number: 1, user_a_id: 'peer', user_b_id: 'me' }
   g.events = []
 }
 
@@ -125,7 +121,10 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     session: { user: { id: 'me' } } as unknown as GamePageCtx['session'],
     gameId: 'g1',
     brand: 'TinySpy',
-    players: [],
+    players: [
+      { user_id: 'me', username: 'me', color: 'red' },
+      { user_id: 'peer', username: 'peer', color: 'blue' },
+    ],
     playState: 'playing',
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
@@ -147,7 +146,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
 }
 
 beforeEach(() => {
-  g.game = { current_clue_giver: 'A', turn_number: 1 }
+  g.game = { current_clue_giver: 'A', turn_number: 1, user_a_id: 'peer', user_b_id: 'me' }
   g.events = [g.PEER_CLUE]
   rpc.mockReset()
   // Never resolves → the first guess stays "in flight" so we can test the guard.

@@ -25,7 +25,7 @@ import { buildGameMenu } from '@/common/menu/gameMenu'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { setupRows } from '../lib/setupSummary'
-import type { GameRow, Player } from '../hooks/useGame'
+import type { GameRow } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
 import type { WordRow } from '../hooks/useBoard'
 import { useBoard } from '../hooks/useBoard'
@@ -33,6 +33,7 @@ import { cluesOf, guessesOf, type DuetEvent } from '../lib/events'
 import { answerMessage, turnAnswer } from '../lib/answer'
 import type { KeyLabel } from '../lib/labels'
 import { derivePhase, type Seat } from '../lib/phase'
+import { seatPlayers, type Player } from '../lib/seats'
 import { historySnapshot } from '../lib/history'
 import { buildTerminalMessage } from '../lib/terminal'
 import type { CodenamesduetSetup } from '../lib/setup'
@@ -116,11 +117,12 @@ const TOTAL_AGENTS = 15
 
 /**
  * The play surface's loader: runs the two reads — the game row, and the board
- * with its events — and renders `<PlayArea>` only once both have answered with
- * a game to draw. Named by the manifest's lazy line.
+ * with its events — seats the game's two players from the profiles the shell
+ * holds, and renders `<PlayArea>` only once there is a game to draw. Named by
+ * the manifest's lazy line.
  */
 export function PlayAreaLoader(ctx: GamePageCtx) {
-  const { game, players, loading: gameLoading, failure: gameFailure } = useGame(ctx.gameId)
+  const { game, loading: gameLoading, failure: gameFailure } = useGame(ctx.gameId)
   // Showing the partner's key is a display choice, but `useBoard` is what turns
   // it into `peerKey`, so the choice is held here, above the read.
   const peerKeyReveal = useSolutionReveal()
@@ -137,11 +139,13 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
   // Reaching this means the COMMON row exists — `GamePageGate` and
   // `GamePageLoader` each checked. A missing duet row is a torn write or a game
   // deleted while open. A missing key card is also a viewer who holds no seat.
+  // A seat id missing from the shell's players is a torn write too.
   // `detail` goes to the console, never to the page.
-  if (!game || !board.myKey || board.words.length < 25) {
+  const seated = game && seatPlayers(game, ctx.players)
+  if (!game || !seated || !board.myKey || board.words.length < 25) {
     return (
       <NoSuchGamePage
-        detail={`rows=${game ? 1 : 0} table=codenamesduet.games key=${board.myKey ? 'seated' : 'none'} words=${board.words.length} game=${ctx.gameId}`}
+        detail={`rows=${game ? 1 : 0} table=codenamesduet.games seats=${seated ? 2 : 'missing'} key=${board.myKey ? 'seated' : 'none'} words=${board.words.length} game=${ctx.gameId}`}
       />
     )
   }
@@ -150,7 +154,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
     <PlayArea
       {...ctx}
       game={game}
-      seatedPlayers={players}
+      seatedPlayers={seated}
       words={board.words}
       events={board.events}
       myKey={board.myKey}
@@ -170,8 +174,8 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
   // The loaded game row: the turn pointer, the budget, both seats and both key
   // cards. Non-null by construction — the loader holds the gates.
   game: GameRow
-  // The two seated players, each with a `seat`. Distinct from the context's
-  // `players`, the club roster the shell passes every game.
+  // The two seated players, A then B, each with a `seat`. The context's
+  // `players` are the same two, with no seat; they are read as `members`.
   seatedPlayers: Player[]
   // The 25 words with their reveal state.
   words: WordRow[]

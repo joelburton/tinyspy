@@ -35,7 +35,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { GameEventLog } from './GameEventLog'
 import type { ClueEvent, WordedGuess } from '../lib/events'
-import type { Player } from '../hooks/useGame'
+import type { Player } from '../lib/seats'
 import { filterOptions, pickFilter } from '@/common/lists/filterSelectHelpers'
 
 // Stable two-seat roster for every render. Colors aren't asserted on (they ride

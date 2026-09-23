@@ -15,7 +15,7 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import { db } from '../db'
 import type { Seat } from '../lib/phase'
 import type { ClueEvent } from '../lib/events'
-import type { Player } from '../hooks/useGame'
+import type { Player } from '../lib/seats'
 import styles from './CluePanel.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 

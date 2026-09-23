@@ -9,7 +9,7 @@ import { IconAI } from '@/common/icons/icons'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import { isSuddenDeathTurn, type ClueEvent, type WordedGuess } from '../lib/events'
 import { answerMessage } from '../lib/answer'
-import type { Player } from '../hooks/useGame'
+import type { Player } from '../lib/seats'
 import { turnOutcome } from '../lib/turnOutcome'
 import styles from './GameEventLog.module.css'
 

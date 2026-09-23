@@ -266,9 +266,10 @@ surface decides whether to show it) would put the toggle back in the surface;
 that is a change to the hook's contract, not part of a split, and is left for
 the audit to weigh.
 
-**The two rosters are two props.** The context's `players` is the club roster
-every game gets (read as `members` by New game); `useGame`'s `players` are the
-two SEATED players, each with a `seat`. The loaded component takes the second
+**The two rosters are two props.** The context's `players` is the game's
+`common.game_players` (read as `members` by New game — *"the club roster"*
+here until F-8 corrected it); `useGame`'s `players` were the same two, SEATED,
+each with a `seat` (the loader seats them itself since F-8). The loaded component takes the second
 as `seatedPlayers` and reads it as `players` in its body, so no line below the
 destructuring changed.
 
@@ -905,7 +906,23 @@ play state, dropping `GameStatus`, both casts and the dead term, with
 `useTurnStatus` reading the one derived phase; or **add `'ended'`** and keep
 the rest. Recommendation: `isTerminal`, the shell's one answer.
 
-### F-codenamesduet-8 · `profiles-read-twice` · `useGame` fetches the profiles the shell already hands over
+### SHIPPED · F-codenamesduet-8 · `profiles-read-twice` · `useGame` fetches the profiles the shell already hands over
+
+**Joel, 2026-09-23: "Derive from the shell."** `useGame` reads the game row
+alone — the profiles read, its failure branch, the `'?'` / blue fallback and
+the `players` state are gone. **`lib/seats.ts` is new**: `seatPlayers(row,
+ctx.players)` returns A then B from the row's ids, or null when either id is
+not among the shell's players, and `Player` moved there from the hook that no
+longer builds it (six importers repointed). The loader calls it and sends a
+null to the no-such-game page, its `detail` naming `seats=missing`. The
+`seatedPlayers` prop note, `doc.md`'s Frontend and Step 2's "club roster"
+sentence say what `ctx.players` is. The PlayArea spec's `useGame` mock returns
+the row with its seat ids, and the names come from `makeCtx`'s players, as on
+the page. `lib/seats.test.ts` pins the order and the null. **Planted:** the
+seats swapped (six red, the spec's and five PlayArea cases), a missing B
+allowed (red), the loader skipping the null (`tsc` refuses it); restored,
+green. F-25 was not asked for and is left. `tsc -b` and eslint clean; 46
+files, 402 tests.
 
 `useGame` reads `common.profiles` for the two seated players, with its own
 failure branch and a fallback `{ username: '?', color: 'blue' }`.

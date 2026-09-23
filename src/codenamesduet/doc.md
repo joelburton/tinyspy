@@ -420,7 +420,8 @@ describes: a loader that gates on the three ways a game can fail to load, then
 `GamePage` mounts the loader and owns everything above it — members, the timer,
 the play state, pause, chat — and unmounts this surface on pause. `Help` and
 `SetupForm` are the shell's to mount, from the menu and the start-game dialog.
-`useGame` reads the game row and the two seated players; `useBoard` reads the
+`useGame` reads the game row; the loader seats its two players from the
+profiles `GamePage` already holds (`lib/seats.ts`). `useBoard` reads the
 words, the events and the key cards, and hands back the partner's card only
 when the player has asked to see it.
 
