@@ -47,6 +47,8 @@ type ClueContext = {
   // Names the answer. One `ok` today; asserted here so a second one cannot be
   // read as this one.
   result: 'context'
+  // All 25 words in board order, turned over or not — the clue may be none of them.
+  board: string[]
   greens: string[]
   neutrals: string[]
   // ALL still-unrevealed assassins. A Duet key card has THREE, so this is an
@@ -294,6 +296,8 @@ YOUR PARTNER WILL GUESS BASED ON YOUR CLUE. Their job is to find agents you poin
 Your unrevealed AGENTS (you want them to find these): ${greens}
 Your unrevealed NEUTRALS (do not hint at these — guessing one ends the turn): ${neutrals}
 Your ASSASSINS (there are up to THREE — NEVER suggest a clue that could point at ANY of these; guessing even one loses the game instantly): ${assassins}
+
+The 25 words on the board — your clue must not be, contain, or share a root with ANY of these, including the ones already turned over: ${ctx.board.join(', ')}
 
 Clues already given this game (avoid repeating themes):
 ${prevClues}

@@ -304,7 +304,8 @@ Asks Claude for a clue for the caller's board. It reads the board through
 `codenamesduet.get_clue_context` as the caller — the RPC refuses anyone but the
 current clue-giver of a game in ordinary play, and those refusals are relayed as they
 came — and gets back the caller's still-hidden agents, bystanders and
-assassins by word, and every clue given so far. It sends those to the model
+assassins by word, all 25 board words (the clue may be none of them, turned
+over or not), and every clue given so far. It sends those to the model
 with a JSON schema for the answer (a clue, a count, the agents it targets, a
 sentence of reasoning), appends the targeted agents to the reasoning as their
 own line, logs the hint with `codenamesduet.log_hint`, and returns the
@@ -321,7 +322,7 @@ relayed the same way.
 { "result": "suggested", "suggestion": { "clue": "…", "count": 2, "agents": ["…", "…"], "reasoning": "…\n\nAgents: …" } }
 ```
 
-`get_clue_context`'s own `ok` is `{ "result": "context", "greens": […],
+`get_clue_context`'s own `ok` is `{ "result": "context", "board": […], "greens": […],
 "neutrals": […], "assassins": […], "previous_clues": […] }`, and `log_hint`'s is
 `{ "result": "logged" }`; both are read only by the edge function.
 
@@ -492,7 +493,7 @@ test finds a position by its label), `pg_temp.codenamesduet_setup()` and
 | `end_game_test` | `ended` with the reason `manual`, nobody winning, and a second call refused |
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
 | `events_test` | what each move writes to the log, `took_turn` included; the one-clue index and the payload CHECK |
-| `clue_context_test` | `get_clue_context`'s gate, and every agent, bystander and assassin in its answer; a deleted game is the shared race through it and `log_hint` |
+| `clue_context_test` | `get_clue_context`'s gate, every agent, bystander and assassin in its answer, and the whole board; a deleted game is the shared race through it and `log_hint` |
 | `rls_test` | an outsider sees no row of any table and cannot move; a direct insert is refused |
 
 The edge function has no tests; `deno check` is its only net.

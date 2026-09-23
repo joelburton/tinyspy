@@ -7,7 +7,7 @@
 -- The RPC's job is to enforce "you are the current clue-giver in an
 -- active game" so the Edge Function can stay thin. This file checks
 -- the three rejection paths plus one happy path that returns a shape
--- with the expected keys, and a deleted game: the gate `get_clue_context`
+-- with the expected keys and the whole board, and a deleted game: the gate `get_clue_context`
 -- and `log_hint` share answers it with the shared race (PN485).
 --
 -- See create_game_test.sql for the pgTAP primer.
@@ -17,7 +17,7 @@ begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(9);
+select plan(10);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -83,15 +83,15 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (4)–(7) Happy path: ada gets a context with the expected keys,
+-- (4)–(8) Happy path: ada gets a context with the expected keys,
 -- the greens array has exactly 9 entries (one per A-side green),
--- and the assassins array has exactly 3 (a Duet key card carries
--- three, and every one of them is returned).
+-- the assassins array has exactly 3 (a Duet key card carries
+-- three, and every one of them is returned), and the board is all 25.
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
--- The four lists live in the envelope's `data`, beside the `result` that
+-- The five lists live in the envelope's `data`, beside the `result` that
 -- names the answer.
 create temp table ctx on commit drop as
   select get_clue_context((select id from g)) -> 'data' as data;
@@ -120,8 +120,21 @@ select is(
   'previous_clues array is empty before any clue submitted'
 );
 
+-- The board is every word, turned over or not: the clue may be none of them,
+-- and the three lists above drop the ones already turned over.
+reset role;
+update codenamesduet.words set revealed_as = 'G'
+  where game_id = (select id from g) and position = 0;
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select is(
+  (select get_clue_context((select id from g)) -> 'data' -> 'board'),
+  (select jsonb_agg(word order by position) from codenamesduet.words
+    where game_id = (select id from g)),
+  'board is all 25 words in board order, a turned-over one included'
+);
+
 -- ============================================================
--- (8)–(9) A game a friend deleted, through both callers of the gate
+-- (9)–(10) A game a friend deleted, through both callers of the gate
 -- ============================================================
 -- The delete takes the game's rows and every membership together, so the
 -- gate answers the shared race rather than a fault or "You are not in this

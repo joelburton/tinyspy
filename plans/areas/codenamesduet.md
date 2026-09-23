@@ -1189,7 +1189,18 @@ spellingbee closed the same class for its bands (PN499, PN500). Options:
 **catch it into a fault** (the next free code from `raiseCodes.test.ts`); or
 leave it. Recommendation: catch it.
 
-### F-codenamesduet-17 · `suggest-prompt-board-words` · the AI is told to avoid board words it is never shown
+### SHIPPED · F-codenamesduet-17 · `suggest-prompt-board-words` · the AI is told to avoid board words it is never shown
+
+**Joel, 2026-09-23: "send all 25."** `get_clue_context` adds `board`, every
+word in board order, turned over or not; its header says why. The edge
+function's `ClueContext` takes it, and the prompt lists it before the clue
+history, saying the clue may not be, contain or share a root with any of them,
+"including the ones already turned over". A `clue_context_test` case turns a
+word over first and compares `board` with the table; **planted** a board that
+drops turned-over words, and one alphabetized — each red; restored, PASS, 182
+files, 2644 tests. `deno check` clean; the function was not probed booting
+(the change is a type field and a template line) and no real request was
+sent. `doc.md`'s suggester paragraph, the `ok` shape and the Tests row.
 
 The prompt says the clue must share no root with *"any of the 25 board
 words"*, but `buildPrompt` sends only the caller's still-hidden agents,

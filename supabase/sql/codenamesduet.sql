@@ -1414,6 +1414,10 @@ revoke execute on function codenamesduet._require_clue_giver(uuid) from public;
 -- codenamesduet.get_clue_context — read-only RPC for the suggester
 -- ============================================================
 -- Returns a jsonb object with:
+--   board:          text[]  — all 25 words in board order, turned over or not:
+--                              the clue must not be, or share a root with, any
+--                              of them (the rulebook's rule; nothing else
+--                              enforces it)
 --   greens:         text[]  — caller's unrevealed green agents
 --   neutrals:       text[]  — caller's unrevealed neutrals (avoid)
 --   assassins:      text[]  — caller's still-unrevealed assassins (avoid).
@@ -1452,6 +1456,11 @@ begin
   -- uses the caller's key view (caller_key) indexed by w.position.
   -- `->>` returns the label as text ('G' | 'N' | 'A').
   select jsonb_build_object(
+    'board', coalesce((
+      select jsonb_agg(w.word order by w.position)
+      from codenamesduet.words w
+      where w.game_id = target_game
+    ), '[]'::jsonb),
     'greens', coalesce((
       select jsonb_agg(w.word order by w.position)
       from codenamesduet.words w
@@ -1487,7 +1496,7 @@ begin
     ), '[]'::jsonb)
   ) into ctx;
 
-  -- `result` NAMES the answer, beside the four lists that ARE it. The edge
+  -- `result` NAMES the answer, beside the five lists that ARE it. The edge
   -- function unwraps this rather than relaying it: the board is the first step
   -- of its work, not its answer.
   return common.ok_envelope(ctx || jsonb_build_object('result', 'context'));
