@@ -316,6 +316,74 @@ still quiet.
 **Verified:** `tsc -b` and eslint clean; 41 files, 356 tests green. No e2e
 run for this step.
 
+### Step 3 — the `doc.md` skeleton, with the RPCs and FE submissions written — DONE 2026-09-23
+
+As spellingbee's `52d6897c`: `src/codenamesduet/doc.md`, the same seven
+headings, with the lede, a short intro, the RPCs and the FE submissions
+written from `supabase/sql/codenamesduet.sql`, the edge function and the call
+sites — not from the old doc — and Game rules, Schema, Frontend and Tests
+marked owed to pass 2. The RPC section is the `ok` answers only; a refusal
+that is part of the story is a clause without a code.
+
+**The intro's four things:** the server decides every guess, the opposite of
+spellingbee and connections; a turn is a clue and the guesses it earns, with
+the finished-player hand-off and sudden death; the shell's turn machinery does
+not reach this game because "your turn" is a clue arriving, not
+`current_turn_user_id` moving; and the AI clue suggester.
+
+**The examples are one REAL game**, `PAGE-CHAIN-EGG` on the local stack
+(club `joel-moth`, the two `deadbeef-…` seed players, 9 turns, no timer): its
+one clue (`WORD` · 2, seat A, turn 1) and B's two guesses in order — SMOKE, an
+agent on A's key, then PAGE, a bystander that ended the turn at 2 / 8 with B
+to clue. Where no real row exists — the three terminal answers, a pass — the
+doc shows the keys with `…` rather than invented numbers.
+
+**This game's own question, answered in the FE-submissions section:** there is
+nothing for the frontend to decide, so the section is short. Every sentence a
+player reads about their own move is the server's — ten refusal lines, all
+races, all `warning` — and the table lists each with the RPC that writes it.
+The only words the frontend writes are the header's four peer phrases
+(`useTurnStatus`) and the terminal verdicts, which are a standing condition,
+not an answer. **Step 4 therefore has less to convert here than at any game
+so far** — a finding for that step to confirm, not a conclusion.
+
+**The edge function is listed after the moves, not first.** spellingbee's
+stood in front of `create_game` and was what starting a game actually called;
+this one is a helper beside the clue form, and `get_clue_context` is described
+inside it rather than as an RPC of its own, since only the edge function reads
+it.
+
+**Written against the code, and where the old doc disagreed:**
+
+- `create_game` is headed `→ table(id uuid)` and `end_game` `→ void`; both
+  answer an envelope.
+- `submit_timeout` and `end_game` say a second call raises `P0001` *"which the
+  FE swallows"*; both answer `common._raise_game_over()`'s race.
+- `status->>'outcome'` throughout, where the key is `reason`.
+- The RLS section's *"not planned for the friends-alpha posture"* — the project
+  is not alpha.
+
+**Seen with the code open, left for pass 2:**
+
+- **`submit_clue` judges nothing about the clue.** Any word — empty, several
+  words, or a word on the board — and any count from zero up. The frontend
+  checks only that both are filled. The rulebook forbids a board word as a
+  clue; under the trust model that may be exactly right, but nothing says so.
+- **`get_clue_context` admits sudden death, where `submit_clue` does not.** The
+  clue form is not drawn in sudden death, so the gap is unreachable today;
+  the two gates still disagree.
+- Comments in `codenamesduet.sql` with the same rename and envelope residue as
+  the old doc: `submit_guess`'s *"`outcome` names the CAUSE"* over a `reason`
+  key; `submit_timeout`'s and `end_game`'s `P0001` swallowed by the FE;
+  `end_game`'s `status.outcome='manual'` and *"`ctx.menu.setGameItems`"*. The
+  manifest's `submitTimeout` comment says *"the outcome names the cause"*.
+- The edge function's header calls the caller *"the BoardScreen's 'Need a
+  clue?' button"* (it is the AI button on the clue form) and says a refusal is
+  *"forward[ed as] 403"* (it relays the envelope, as the body's own comment
+  says).
+
+**Verified:** the guards green with the file in place (31 files, 285 tests).
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it
