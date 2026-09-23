@@ -304,10 +304,10 @@ create policy timers_select on common.timers
   );
 
 -- No UPDATE policy on profiles. `username` is immutable in v1 (change
--- it by delete-and-recreate). `color` IS changeable, but only through
--- the security-definer `common.update_profile_color` RPC (caller-
--- scoped), so no direct-UPDATE policy is needed — writes go through the
--- RPC like every other mutation.
+-- it by delete-and-recreate). `color` and `sounds_enabled` ARE changeable,
+-- but only through the security-definer `common.update_profile` RPC
+-- (caller-scoped), so no direct-UPDATE policy is needed — writes go
+-- through the RPC like every other mutation.
 
 drop policy if exists clubs_select on common.clubs;
 create policy clubs_select on common.clubs
@@ -2744,19 +2744,26 @@ revoke execute on function common.claim_username(text, text) from public;
 grant execute on function common.claim_username(text, text) to authenticated;
 
 -- ============================================================
--- common.update_profile_color — change your own player color
+-- common.update_profile — save your own profile settings
 -- ============================================================
--- The one mutable profile field today (username is still immutable in
--- v1). Security-definer + caller-scoped (only ever writes auth.uid()'s
--- own row), so there's no UPDATE policy on common.profiles — this RPC
--- is the single write path, like every other mutation in the app. The
--- FE surface is the "Edit profile" dialog off the user menu.
--- Outcomes: `ok` with {"result": "saved"}, or one of three faults. Nothing here
--- is a validation — the picker offers the eight palette swatches and nothing
--- else, so every way this can refuse is a bug or a dead session rather than a
--- choice a player made.
+-- The profile's editable fields, saved together: your player color and
+-- whether the app plays sounds for you (username is still immutable in v1).
+-- One call because the "Edit profile" dialog saves them with one button,
+-- and a half-saved profile is not a state worth having to explain.
+-- Security-definer + caller-scoped (only ever writes auth.uid()'s own row),
+-- so there's no UPDATE policy on common.profiles — this RPC is the single
+-- write path, like every other mutation in the app.
+-- Outcomes: `ok` with {"result": "saved"}, or one of four faults. Nothing here
+-- is a validation — the picker offers the eight palette swatches and the sound
+-- setting is a checkbox, so every way this can refuse is a bug or a dead
+-- session rather than a choice a player made.
+--
+-- RETIRED: `update_profile_color(text)`, the color-only write this replaced.
+-- Dropped here because this file is re-applied rather than diffed, so a
+-- retired signature has to say so.
 drop function if exists common.update_profile_color(text);
-create or replace function common.update_profile_color(new_color text)
+drop function if exists common.update_profile(text, boolean);
+create or replace function common.update_profile(new_color text, new_sounds_enabled boolean)
 returns jsonb
 language plpgsql
 security definer
@@ -2785,7 +2792,18 @@ begin
       detail = 'color must be one of the member palette';
   end if;
 
-  update common.profiles set color = new_color where user_id = caller_id;
+  -- PN501. The checkbox always sends true or false; a null would otherwise
+  -- escape as the column's raw not-null violation rather than an envelope.
+  if new_sounds_enabled is null then
+    raise exception 'BUG: sound setting missing'
+      using errcode = 'PN501', hint = 'fault', column = '_',
+      detail = 'new_sounds_enabled must be true or false';
+  end if;
+
+  update common.profiles
+     set color = new_color,
+         sounds_enabled = new_sounds_enabled
+   where user_id = caller_id;
   -- PN034. The profile row behind this JWT is gone — a db:reset under a live
   -- tab, or a deleted account. The same condition claim_username reports as
   -- PN018, and what `useProfile` raises for itself when its read finds no row.
@@ -2795,8 +2813,9 @@ begin
       detail = 'no profiles row for the caller';
   end if;
 
-  -- No message: the dialog closes and the dot repaints, which says it. `result`
-  -- is what a call site branches on (docs/envelopes.md → How SQL builds one).
+  -- No message: the dialog closes and the settings take effect, which says it.
+  -- `result` is what a call site branches on (docs/envelopes.md → How SQL
+  -- builds one).
   return common.ok_envelope(jsonb_build_object('result', 'saved'));
 
 exception when others then
@@ -2809,8 +2828,8 @@ exception when others then
 end;
 $$;
 
-revoke execute on function common.update_profile_color(text) from public;
-grant execute on function common.update_profile_color(text) to authenticated;
+revoke execute on function common.update_profile(text, boolean) from public;
+grant execute on function common.update_profile(text, boolean) to authenticated;
 -- GRANTED to authenticated: read through security_invoker views (the
 -- letter-mask filter the word games' pickers use), so the caller needs it.
 revoke execute on function common.word_letter_mask(text) from public;

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { BlockingModal } from '../floating-panels/BlockingModal'
 import styles from './CelebrationBlockingModal.module.css'
 import { StandardButton } from '../buttons/StandardButton'
+import { playSound } from '../sounds/playSound'
 
 // Festive glyphs the keyframes animate in. Mixed sizes/rotations (via the
 // per-piece stagger) keep the cluster feeling chaotic rather than tidy.
@@ -17,7 +18,8 @@ type Props = {
   body?: string
   // Dismiss the dialog — Esc or a button, never the scrim; see `BlockingModal`.
   onClose: () => void
-  // Play the celebratory jingle on mount. Defaults to true.
+  // Play the celebratory jingle on mount. Defaults to true; the player's
+  // "Enable sounds" setting still has the last word (`sounds/playSound`).
   playSound?: boolean
 }
 
@@ -37,41 +39,22 @@ type Props = {
  * strip with a ✕ would (docs/ui.md → Floating panels).
  *
  * Focus moves to the "Nice!" button on mount so a keyboard player can Enter
- * through it; Esc dismisses. The jingle is best-effort —
- * browsers block autoplay outside a user-gesture window, and jsdom doesn't
- * implement media playback at all, so any failure is swallowed and the
- * visual celebration still happens.
+ * through it; Esc dismisses. The jingle goes through `playSound`, so it is
+ * best-effort and obeys the player's "Enable sounds" setting; the visual
+ * celebration happens either way.
  */
-export function CelebrationBlockingModal({ title, body, onClose, playSound = true }: Props) {
+export function CelebrationBlockingModal({ title, body, onClose, playSound: withSound = true }: Props) {
   const focusRef = useRef<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     focusRef.current?.focus()
-
-    // Best-effort jingle. Wrapped defensively: autoplay may be blocked
-    // (rejected promise) and jsdom throws "not implemented" synchronously —
-    // either way, the visual celebration is the point, so swallow.
-    let audio: HTMLAudioElement | null = null
-    if (playSound) {
-      try {
-        audio = new Audio('/audio/tada.mp3')
-        audio.volume = 0.8
-        void audio.play()?.catch(() => {})
-      } catch {
-        audio = null
-      }
-    }
+    const stopJingle = withSound ? playSound('tada') : () => {}
 
     // No Escape handler of its own — `usePanelEscape` owns the key for every
     // floating panel, so a celebration over anything else dismisses only itself.
-    return () => {
-      // Stop the jingle if the dialog is dismissed early.
-      if (audio) {
-        audio.pause()
-        audio.currentTime = 0
-      }
-    }
-  }, [playSound])
+    // Dismissed early, the jingle stops with it.
+    return stopJingle
+  }, [withSound])
 
   return (
     <BlockingModal

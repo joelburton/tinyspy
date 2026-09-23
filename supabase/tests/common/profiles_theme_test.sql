@@ -12,14 +12,14 @@
 --      "use the app default" looks like.
 --   2. A player cannot write it directly. `common.profiles` has no UPDATE
 --      policy or grant, so every profile write goes through an RPC — the
---      pattern `update_profile_color` sets, and the one a theme picker will
+--      pattern `update_profile` sets, and the one a theme picker will
 --      follow. Worth pinning on a reserved column: it is exactly where
 --      someone reaches for a plain `.update()` from the FE and finds it works.
 --   3. Free-form at the schema level — no CHECK, no enum, because the real
 --      theme names do not exist yet. Constrain it when they do.
 --
--- The RPC that writes the one column a player CAN change is next door, in
--- `update_profile_color_test.sql`.
+-- The RPC that writes the columns a player CAN change is next door, in
+-- `update_profile_test.sql`.
 
 begin;
 

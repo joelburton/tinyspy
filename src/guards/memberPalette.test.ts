@@ -6,7 +6,7 @@
  * The eight color NAMES are written out in `MEMBER_COLORS` and in four separate
  * SQL sites: the CHECK on `common.profiles.color`, the array
  * `common.color_for_username` picks from, and the allow-lists that
- * `claim_username` (PN015) and `update_profile_color` (PN033) reject against.
+ * `claim_username` (PN015) and `update_profile` (PN033) reject against.
  * Two of them carried a comment asking a human to keep them in sync — the
  * arrangement that works right up until it doesn't, and the reason this is a
  * test rather than a sixth comment.
@@ -55,7 +55,7 @@ const SPELLINGS = [
     anchor: 'if chosen_color not in',
   },
   {
-    what: "update_profile_color's PN033 allow-list",
+    what: "update_profile's PN033 allow-list",
     file: BEHAVIOR,
     anchor: 'if new_color not in',
   },

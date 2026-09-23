@@ -16,9 +16,9 @@
 
 import { renderHook, act } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { setProfile, setProfileColor, useProfile } from './useProfile'
+import { currentProfile, setProfile, setProfileFields, useProfile } from './useProfile'
 
-const ADA = { username: 'ada', color: '#c0392b', can_edit_words: false }
+const ADA = { username: 'ada', color: '#c0392b', can_edit_words: false, sounds_enabled: true }
 
 beforeEach(() => {
   setProfile(null)
@@ -54,7 +54,7 @@ describe('the profile store', () => {
     expect(greeting.result.current).toBeNull()
   })
 
-  it('repaints a saved color everywhere, leaving the rest of the row alone', () => {
+  it('repaints a saved profile everywhere, leaving the rest of the row alone', () => {
     const menu = renderHook(() => useProfile())
     const greeting = renderHook(() => useProfile())
     act(() => {
@@ -62,22 +62,30 @@ describe('the profile store', () => {
     })
 
     act(() => {
-      setProfileColor('#2980b9')
+      setProfileFields({ color: '#2980b9', sounds_enabled: false })
     })
 
-    expect(menu.result.current).toEqual({ ...ADA, color: '#2980b9' })
-    expect(greeting.result.current).toEqual({ ...ADA, color: '#2980b9' })
+    const saved = { ...ADA, color: '#2980b9', sounds_enabled: false }
+    expect(menu.result.current).toEqual(saved)
+    expect(greeting.result.current).toEqual(saved)
   })
 
-  it('ignores a color save when there is no profile to save it into', () => {
-    // Nothing on screen can reach the color picker in this state; the guard is
-    // there so a stray call cannot invent a profile out of a color.
+  it('ignores a save when there is no profile to save it into', () => {
+    // Nothing on screen can reach the dialog in this state; the guard is there
+    // so a stray call cannot invent a profile out of two fields.
     const reader = renderHook(() => useProfile())
 
     act(() => {
-      setProfileColor('#2980b9')
+      setProfileFields({ color: '#2980b9', sounds_enabled: false })
     })
 
     expect(reader.result.current).toBeNull()
+  })
+
+  it('answers a read from outside a render with what the store holds', () => {
+    // `playSound` runs from effects and handlers, where no hook can be called.
+    expect(currentProfile()).toBeNull()
+    setProfile(ADA)
+    expect(currentProfile()).toEqual(ADA)
   })
 })

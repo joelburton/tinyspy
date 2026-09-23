@@ -40,7 +40,9 @@ definition looking somewhere else when it happens, because you have been
 waiting. The dim lifting off the board is a real signal, but a removal is a
 poor one — you notice things that appear far better than things that stop — so
 `useTurnStartFlash` fires a frame around the board on the rising edge, and
-never on mount.
+never on mount. The edge itself is `useTurnArrival`'s, a count of arrivals,
+and the turn bell (`sounds/useTurnBell`) reads the same count, so the frame and
+the sound mark the same moment.
 
 The third is the general case: something that should be up for a moment for a
 reason this folder has no opinion about. That is `useMark`, and it is one hook
@@ -68,7 +70,8 @@ something unmarked is made.
 |---|---|---|
 | `useMoveAttention` (over `useChangeCause`) | waffle, connections and psychicnum `Board` | the attention flash on pieces a move changed |
 | `useMark` | every game that marks something of its own, most more than once | a refused word's answer, a teammate's word announced then answered, a head-shake, an ambiguous letter, an arrival, a placement outline |
-| `useTurnStartFlash` | waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives |
+| `useTurnStartFlash` (over `useTurnArrival`) | waffle, wordle, connections and psychicnum `PlayArea` | the frame around the board as the turn arrives |
+| `useTurnArrival` | `useTurnStartFlash`, and `sounds/useTurnBell` | the turn becoming mine, as a count — the one edge both read |
 
 setgame is on `useChangeCause` underneath as well, keyed on the last claim's id.
 Its mark is not a flash for a beat — a claim substitutes cards in place, so the

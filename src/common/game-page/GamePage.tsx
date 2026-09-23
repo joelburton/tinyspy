@@ -5,6 +5,7 @@ import { useFeedbackSlot } from '../feedback/useFeedbackSlot'
 import { FeedbackMessage } from '../feedback/FeedbackMessage'
 import type { MenuApi } from '../menu/menuModel'
 import { useAccountMenuSection } from '../account/useAccountMenuSection'
+import { useTurnBell } from '../sounds/useTurnBell'
 import { useAppAction, useBoundAction } from '../actions/useBoundAction'
 import { useIsMobile } from '../mobile/useIsMobile'
 import { setInfoSheetOpen, useIsInfoSheetOpen } from '../info-sheet/infoSheetStore'
@@ -138,6 +139,13 @@ export function GamePage({
   // The FULL club roster (not just this game's players) — chat is club-wide, so
   // naming a sender (chat window + the feedback pill) needs every member.
   const { members: clubMembers } = useClubRoster(clubHandle)
+
+  // ─── The turn's arrival ─────────────────────────────────────────────────
+  // The bell when the turn becomes mine, rung here once for every game that
+  // moves the common turn pointer — the turn is the shell's to know, so no
+  // game has to remember it. A game whose turn is its own rings from its own
+  // code. Silent once the game is over, when the pointer may still move.
+  useTurnBell(isMyTurn && !gameOver)
 
   // ─── The shell's own state ──────────────────────────────────────────────
   // Whether the per-game Help companion is mounted. Opened by `act-help`,

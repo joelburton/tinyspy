@@ -86,10 +86,12 @@ repaints at once with no refetch.
   answer for, and an event about that same person only updates the stored
   session — no round trips. A lookup that failed records nobody, so the next
   event tries again.
-- **`Profile` is three columns** of `common.profiles`: `username`, `color`,
-  `can_edit_words`. Add a column when a consumer arrives. `can_edit_words` has
-  no UI for granting it; it is set by hand in SQL and gates the dictionary
-  editing entry points.
+- **`Profile` is four columns** of `common.profiles`: `username`, `color`,
+  `can_edit_words`, `sounds_enabled`. Add a column when a consumer arrives.
+  `can_edit_words` has no UI for granting it; it is set by hand in SQL and
+  gates the dictionary editing entry points. `sounds_enabled` is read by
+  `sounds/playSound` through `currentProfile()`, the store's plain read for
+  code that is not rendering.
 - **An empty store reads as "signed out or unclaimed"**, which every consumer
   renders as the absence it is — no username, no color, no dictionary editing
   link. That is the safe reading, and it is also the true one: the store is

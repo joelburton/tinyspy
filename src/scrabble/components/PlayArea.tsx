@@ -36,6 +36,7 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
+import { useTurnBell } from '@/common/sounds/useTurnBell'
 
 /**
  * scrabble's play surface (coop + compete). PlayArea is the **coordinator**: it holds
@@ -169,6 +170,11 @@ export function PlayArea({
   // uses the COMMON turn pointer via ctx `isMyTurn` (true for free-for-all coop,
   // so nothing changes there; false when a turn-order coop game isn't your turn).
   const myTurn = isCompete ? game?.currentUserId === session.user.id : isMyTurn
+  // The turn bell for a race: the shell rings for the common pointer, which
+  // compete leaves empty, so the seat's own turn rings here (`sounds/useTurnBell`).
+  // Coop passes false — the shell has it. `null` until the row loads, so the
+  // load itself is not an arrival.
+  useTurnBell(game ? isCompete && myTurn && !isTerminal : null)
   const nameOf = useCallback(
     (userId: string | null) => players.find((m: Member) => m.user_id === userId)?.username ?? 'someone',
     [players],

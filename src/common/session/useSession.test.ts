@@ -45,7 +45,7 @@ vi.mock('../supabase/supabase', () => ({
       getUser: mockGetUser,
     },
     // The query being stood in for: `supabase.schema('common').from('profiles')
-    //   .select('username, color, can_edit_words').eq('user_id', X)`.
+    //   .select('username, color, can_edit_words, sounds_enabled').eq('user_id', X)`.
     schema: () => ({
       from: () => ({
         select: () => ({
@@ -64,7 +64,7 @@ const fakeSession = {
 } as unknown as Session
 
 /** What the probe reads — the whole profile, since it seeds the store too. */
-const PROFILE_ROW = { username: 'ada', color: '#c0392b', can_edit_words: false }
+const PROFILE_ROW = { username: 'ada', color: '#c0392b', can_edit_words: false, sounds_enabled: true }
 
 /** Captures the callback the hook subscribes with so tests can fire events. */
 let authCb: ((event: string, session: Session | null) => void) | null = null

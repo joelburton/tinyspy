@@ -1,7 +1,8 @@
 // cs-blessed-account
 
 /**
- * YOUR COLOR — and where a refusal from `common.update_profile_color` lands.
+ * YOUR COLOR AND YOUR SOUNDS — what a save sends, and where a refusal from
+ * `common.update_profile` lands.
  *
  * The field this form routes to is a GROUP of swatches with no single control,
  * so it carries its name as `data-field`. That is the third shape `errorUnder`
@@ -17,14 +18,14 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { mockRpc } = vi.hoisted(() => ({ mockRpc: vi.fn() }))
+const { mockRpc, mockSetFields } = vi.hoisted(() => ({ mockRpc: vi.fn(), mockSetFields: vi.fn() }))
 vi.mock('../supabase/db', () => ({ db: { rpc: mockRpc } }))
 vi.mock('../session/useProfile', () => ({
   // A palette NAME, not a hex — `common.profiles.color` stores the name and
   // the picker selects by it, so a hex here means no swatch starts chosen and
   // the form under test never has the shape the app gives it.
-  useProfile: () => ({ username: 'joel', color: 'red', can_edit_words: false }),
-  setProfileColor: vi.fn(),
+  useProfile: () => ({ username: 'joel', color: 'red', can_edit_words: false, sounds_enabled: true }),
+  setProfileFields: mockSetFields,
 }))
 
 import { EditProfileModal } from './EditProfileModal'
@@ -43,6 +44,7 @@ async function save() {
 
 beforeEach(() => {
   mockRpc.mockReset()
+  mockSetFields.mockReset()
 })
 
 describe('EditProfileModal — where a refusal lands', () => {
@@ -97,8 +99,23 @@ describe('EditProfileModal — saving', () => {
 
     await waitFor(() => expect(onSaved).toHaveBeenCalled())
     expect(mockRpc).toHaveBeenCalledWith(
-      'update_profile_color',
-      expect.objectContaining({ new_color: expect.any(String) }),
+      'update_profile',
+      expect.objectContaining({ new_color: expect.any(String), new_sounds_enabled: true }),
     )
+  })
+
+  it('starts "Enable sounds" on your setting, and saves it turned off', async () => {
+    mockRpc.mockResolvedValue({ data: { type: 'ok', data: { result: 'saved' } }, error: null })
+    const { onSaved } = draw()
+
+    const box = screen.getByRole('checkbox', { name: 'Enable sounds' })
+    expect(box).toBeChecked()
+    await userEvent.setup().click(box)
+    await save()
+
+    await waitFor(() => expect(onSaved).toHaveBeenCalled())
+    expect(mockRpc).toHaveBeenCalledWith('update_profile', { new_color: 'red', new_sounds_enabled: false })
+    // The store learns what the server now holds, so the next sound obeys it.
+    expect(mockSetFields).toHaveBeenCalledWith({ color: 'red', sounds_enabled: false })
   })
 })

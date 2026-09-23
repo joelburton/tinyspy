@@ -12,6 +12,10 @@ export type Profile = {
    *  DefinitionView + the account menu's "Add word" (granted by hand in SQL
    *  — see the column's comment in the common migration). */
   can_edit_words: boolean
+  /** May the app play sounds for this user — the bell when a turn becomes
+   *  theirs, the win jingle, every sound. `common/sounds/playSound` reads it,
+   *  so no caller decides for itself. Set from the Edit profile dialog. */
+  sounds_enabled: boolean
 }
 
 /**
@@ -67,14 +71,24 @@ export function useProfile(): Profile | null {
 }
 
 /**
- * Reflect a just-saved color across every consumer in the tab. The
- * `common.update_profile_color` RPC has already answered `ok`, so this is not
+ * The profile as it stands right now, for code that runs OUTSIDE a render — an
+ * effect, a handler, a module-level helper like `playSound` — where a hook
+ * cannot be called. A component reads `useProfile()` instead, so it re-renders
+ * when the profile changes.
+ */
+export function currentProfile(): Profile | null {
+  return current
+}
+
+/**
+ * Reflect a just-saved profile across every consumer in the tab. The
+ * `common.update_profile` RPC has already answered `ok`, so this is not
  * optimistic — it tells the store what the server already holds, and every
  * reader repaints at once.
  */
-export function setProfileColor(color: string) {
+export function setProfileFields(fields: Pick<Profile, 'color' | 'sounds_enabled'>) {
   if (current) {
-    current = { ...current, color }
+    current = { ...current, ...fields }
     notify()
   }
 }

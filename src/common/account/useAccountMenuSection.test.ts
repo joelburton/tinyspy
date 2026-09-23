@@ -28,6 +28,7 @@ vi.mock('../session/useProfile', () => ({
     username: 'joel',
     color: 'red',
     can_edit_words: false,
+    sounds_enabled: true,
   }),
 }))
 

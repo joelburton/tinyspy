@@ -18,8 +18,9 @@
 import { useEffect } from 'react'
 import { act, render, screen } from '@testing-library/react'
 import type { Session } from '@supabase/supabase-js'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GameManifest } from '../manifest/gameManifest'
+import { setProfile } from '../session/useProfile'
 import type { Member } from '../members/member'
 import { liveBindings, type BoundAction } from '../actions/useBoundAction'
 import type { ActionId } from '../actions/registry'
@@ -357,4 +358,65 @@ describe('act-back-to-club', () => {
     expect(mockNavigate).not.toHaveBeenCalled()
   })
 
+})
+
+/**
+ * The turn bell, rung by the shell for every game on the common turn pointer —
+ * here a two-player psychicnum coop game in turn order, which needs no code of
+ * its own to ring. `playSound` is left REAL and the audio element spied, so the
+ * player's "Enable sounds" setting is exercised end to end.
+ */
+describe('GamePage — the turn bell', () => {
+  const PROFILE = { username: 'ada', color: 'red', can_edit_words: false, sounds_enabled: true }
+  let play: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined)
+    setProfile(PROFILE)
+  })
+  afterEach(() => {
+    play.mockRestore()
+    setProfile(null)
+  })
+
+  /** A turn-order game whose pointer names `holder`. */
+  const turnState = (holder: string, game: Partial<CommonGame> = {}) => ({
+    ...commonGameState({ players: [ADA, BEA], game: { current_turn_user_id: holder, ...game } }),
+    isMyTurn: holder === 'ada',
+  })
+
+  /** Hand the page a new common row, as a realtime refetch would. */
+  function moveTo(view: Awaited<ReturnType<typeof mount>>['view'], next: CommonGameState) {
+    mockUseCommonGame.mockReturnValue(next)
+    view.rerender(<GamePageGate urlGametype={GAMETYPE} gameId={GAME_ID} session={session} />)
+  }
+
+  it('rings once when the turn passes to me', async () => {
+    const { view } = await mount(turnState('bea'))
+    expect(play).not.toHaveBeenCalled()
+
+    moveTo(view, turnState('ada'))
+    expect(play).toHaveBeenCalledTimes(1)
+
+    moveTo(view, turnState('ada')) // a refetch that keeps it mine
+    expect(play).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not ring when I open a game that is already my turn', async () => {
+    await mount(turnState('ada'))
+    expect(play).not.toHaveBeenCalled()
+  })
+
+  it('does not ring for a turn arriving in a finished game', async () => {
+    const { view } = await mount(turnState('bea'))
+    moveTo(view, turnState('ada', { ended_at: '2026-09-10T01:00:00Z', is_terminal: true }))
+    expect(play).not.toHaveBeenCalled()
+  })
+
+  it('does not ring when I have turned sounds off', async () => {
+    setProfile({ ...PROFILE, sounds_enabled: false })
+    const { view } = await mount(turnState('bea'))
+    moveTo(view, turnState('ada'))
+    expect(play).not.toHaveBeenCalled()
+  })
 })

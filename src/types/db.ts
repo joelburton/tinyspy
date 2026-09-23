@@ -806,6 +806,7 @@ export type Database = {
           can_edit_words: boolean
           color: string
           created_at: string
+          sounds_enabled: boolean
           theme: string | null
           user_id: string
           username: string
@@ -815,6 +816,7 @@ export type Database = {
           can_edit_words?: boolean
           color: string
           created_at?: string
+          sounds_enabled?: boolean
           theme?: string | null
           user_id: string
           username: string
@@ -824,6 +826,7 @@ export type Database = {
           can_edit_words?: boolean
           color?: string
           created_at?: string
+          sounds_enabled?: boolean
           theme?: string | null
           user_id?: string
           username?: string
@@ -1079,7 +1082,10 @@ export type Database = {
       slugify_club_name: { Args: { name: string }; Returns: string }
       tick_timer: { Args: { target_game: string }; Returns: Json }
       unset_current_view: { Args: { target_game: string }; Returns: Json }
-      update_profile_color: { Args: { new_color: string }; Returns: Json }
+      update_profile: {
+        Args: { new_color: string; new_sounds_enabled: boolean }
+        Returns: Json
+      }
       update_state: {
         Args: { play_state: string; status: Json; target_game: string }
         Returns: undefined
@@ -2764,6 +2770,10 @@ export type Database = {
       }
     }
     Functions: {
+      _leaderboard: {
+        Args: { required_score: number; target_game: string }
+        Returns: Json
+      }
       candidate_words: {
         Args: {
           center_bit: number
@@ -4020,6 +4030,10 @@ export type Database = {
       }
     }
     Functions: {
+      _finish_compete: {
+        Args: { clock_ran_out: boolean; target_game: string }
+        Returns: undefined
+      }
       _maybe_finish_compete: { Args: { target_game: string }; Returns: boolean }
       _sync_title: { Args: { g_id: string }; Returns: undefined }
       _target_for: { Args: { g_id: string }; Returns: string }
