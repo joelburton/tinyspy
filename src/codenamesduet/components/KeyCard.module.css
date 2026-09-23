@@ -1,0 +1,29 @@
+/* cs-met-codenamesduet */
+
+/* The key card: a small 5×5 of key colors, the board's shape without its
+ * words. Its colors are the board's own key markers' (`--codenamesduet-*-key`),
+ * so the card and the board cannot disagree. */
+/* @@ */ .card {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  width: 7.5rem;
+  margin: 0.3rem 0 0;
+}
+
+/* @@ */ .cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+}
+
+/* @@ */ .agent {
+  background: var(--codenamesduet-agent-key);
+}
+
+/* @@ */ .neutral {
+  background: var(--codenamesduet-neutral-key);
+}
+
+/* @@ */ .assassin {
+  background: var(--codenamesduet-assassin-key);
+}

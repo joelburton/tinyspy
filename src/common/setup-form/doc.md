@@ -26,8 +26,9 @@ pacing, which puzzle — and a game writes the rest itself.
 
 The same choices are read back later. `setupRows.ts` is the recap the in-game
 info column and the printed board both draw from one array, and
-`<SetupDisclosure>` is the "Setup options" wrapper the info column puts around
-it — the one thing here that renders during play rather than before it.
+`<SetupDisclosure>` is the "Setup options" list the info column shows inside
+an `info-sheet` `<InfoDisclosure>` — the one thing here that renders during
+play rather than before it.
 
 ## Details
 

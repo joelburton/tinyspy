@@ -73,6 +73,9 @@ GamePage (shell)                      ── mobile only ──▶  <InfoSwitchB
                     ├── <InfoActionsRow message?>{buttons}</InfoActionsRow>
                     │                                  root classes .infoActions
                     │                                  / .terminalActions
+                    ├── <InfoDisclosure title>{…}</InfoDisclosure>
+                    │                                  closed on load; common/setup-form's
+                    │                                  <SetupDisclosure> is one
                     └── EventLog · WordList · HandCard    ← other folders and a
                             game, each wearing infoPanel.heading / .headerRow / .box
 
@@ -104,6 +107,7 @@ that grows a per-player metric grows a strip the same day.
 | `OpponentStrip` | the game has a per-player metric worth showing inline | `metricFor`, a `metricLabel`, an optional `leading` row |
 | `TurnStatusLine` | the game has a turn pointer to point at | the pointer, the roster, `isTerminal` |
 | `InfoActionsRow` | always — it IS the action slot | the buttons, plus a `message` when there is something to say |
+| `InfoDisclosure` | a section the player opens when they want it — "Setup options" in every game, codenamesduet's "Key card" | a `title` and the children it reveals |
 | `MobileStatusBar` | the game's core state is invisible once the column slides away | the same state node the info column renders |
 
 `InfoSwitchButton` is the exception: no game places it. `GamePage` renders it on

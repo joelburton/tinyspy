@@ -7,10 +7,13 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
+import { InfoDisclosure } from '@/common/info-sheet/InfoDisclosure'
 import type { CodenamesduetSetup } from '../lib/setup'
 import type { ClueEvent, WordedGuess } from '../lib/events'
+import type { KeyLabel } from '../lib/labels'
 import type { Player } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
+import { KeyCard } from './KeyCard'
 import { StateLine } from './StateLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
 import styles from './InfoCol.module.css'
@@ -43,6 +46,7 @@ export function InfoCol({
   actReveal,
   actNewGame,
   actBackToClub,
+  myKey,
   setup,
   setupRows,
   clues,
@@ -91,6 +95,10 @@ export function InfoCol({
   actNewGame: BoundAction
   /** Leave for the club — the shell's own action, off `ctx.menu`. */
   actBackToClub: BoundAction
+
+  // ── Key card disclosure ──
+  /** My key card, in board order. */
+  myKey: KeyLabel[]
 
   // ── Setup disclosure ──
   setup: CodenamesduetSetup
@@ -197,9 +205,12 @@ export function InfoCol({
           </p>
         )}
 
-        {/* Setup — a disclosure, LAST before the event log (closed by default so it
-            doesn't claim space; opening it grows the slot, the one allowed exception
-            since it's closable). */}
+        {/* The two disclosures, LAST before the event log: closed by default so
+            they claim a line each, and opening one grows the column — the
+            allowed exception, since it closes again. */}
+        <InfoDisclosure title="Key card">
+          <KeyCard labels={myKey} />
+        </InfoDisclosure>
         <SetupDisclosure rows={setupRows} />
       </div>
 

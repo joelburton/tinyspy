@@ -673,7 +673,8 @@ export function PlayArea({
         actReveal={actReveal}
         actNewGame={actNewGame}
         actBackToClub={menu.actBackToClub}
-        // ── Setup disclosure ──
+        // ── Key card + setup disclosures ──
+        myKey={myKey}
         setup={setup}
         setupRows={summaryRows}
         firstClueGiver={firstClueGiver}

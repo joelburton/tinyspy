@@ -796,3 +796,22 @@ rows, `turnOutcome`'s sudden-death rule).
   spec among them), before the rehearsal.
 
 **Left:** commit, then the deploy and the merge — all Joel's.
+
+### Deployed to production — 2026-09-23
+
+From branch `codenamesduet-events` at `fa99b43d`, pushed (Joel: *"commit, then
+push and deploy (from this branch)"*). No duet game on prod had a move in play.
+
+- `gmake deploy ENV=prod`: the migration and the repeatable SQL landed, then
+  the edge-functions step failed on its LAST function, `wordwheel-build-board`,
+  with Supabase's *"Function deploy failed due to an internal error"* (500) —
+  `codenamesduet-suggest-clue` had already gone out. The frontend step never
+  ran, so the old frontend was reading the dropped tables: `gmake deploy-fe`
+  went straight after, then `gmake deploy-funcs` again, which deployed all
+  thirteen cleanly. The 500 was transient.
+- **Checked on prod:** `clues` and `guesses` gone; 434 events — 126 clues, 240
+  guesses (45 taking a turn), 68 passes — as rehearsed; the id sequence at 434,
+  `is_called`, so the next row is 435; one `submit_clue` overload; the
+  migration recorded; `db-drift ENV=prod` none.
+- **Owed:** one game opened in a browser on prod — the new table, the RPCs and
+  the realtime subscription in one path, which no query checks.

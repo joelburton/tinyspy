@@ -390,7 +390,7 @@ const VOCABULARIES: Vocabulary[] = [
       'src/common/event-log/gameEventLog.module.css': ['1rem'], //  `.primary`, the row's lead value
       'src/common/pause-suspend/PauseOverlay.module.css': ['1.05rem'],
       'src/common/info-sheet/infoCol.module.css': ['0.9rem'],
-      'src/common/setup-form/SetupDisclosure.module.css': ['0.85rem'],
+      'src/common/info-sheet/InfoDisclosure.module.css': ['0.85rem'],
       'src/common/devtools/PalettePage.module.css': ['0.85rem', '0.8rem', '0.95rem'],
       'src/common/scratchpad/GameScratchpadCompanion.module.css': ['max(16px,', '1em)'],
       'src/common/setup-form/SetupGameModal.module.css': ['0.9rem'],

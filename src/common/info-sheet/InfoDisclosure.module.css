@@ -1,0 +1,14 @@
+/* cs-met-codenamesduet */
+
+/* The info column's closed-by-default disclosures (`InfoDisclosure`). Closed
+ * it claims one line; opening it grows the column — the allowed exception to
+ * the no-growth rule, because it closes and reclaims the space. */
+/* @@ */ .disclosure {
+  color: var(--page-text-color);
+  font-size: 0.85rem;
+}
+
+/* @@ */ .disclosure summary {
+  cursor: pointer;
+  user-select: none;
+}

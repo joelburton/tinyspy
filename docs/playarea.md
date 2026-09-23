@@ -156,10 +156,12 @@ That dual placement is the rule, not redundancy to trim.
   PDF prints, so the panel and the paper can't drift apart. See
   [setup-form/doc.md → Setup rows](../src/common/setup-form/doc.md#setup-rows) for the rules that shape it (the recap is
   the setup dialog read back; the roster leads; values are plain strings).
-- **Setup is the one allowed growth-during-play.** It's a closable `<details>`,
-  so opening it grows the column but it *reclaims* the space — the rationale
-  that earns the exception to [Layout stability](ui.md#layout-stability): "what did I
-  pick at setup? — but I don't want it taking room the whole game."
+- **A disclosure is the allowed growth-during-play.** "Setup options" in every
+  game, and codenamesduet's "Key card", are closable `<InfoDisclosure>`s
+  (`common/info-sheet`), closed on every load, so opening one grows the column
+  but it *reclaims* the space — the rationale that earns the exception to
+  [Layout stability](ui.md#layout-stability): "what did I pick at setup? — but I
+  don't want it taking room the whole game."
 - **Action row = turn/game-altering actions only.** Hint, Reveal, End (all
   change the game/turn). A control that's *purely visual and about the board
   itself* does **not** go here — psychicnum's **Shuffle** (reorders the same

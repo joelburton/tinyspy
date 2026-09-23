@@ -1,27 +1,8 @@
 /* cs-blessed-setup-form */
 
-/* The info-column "Setup options" disclosure. Three rules, and they are this
- * component's alone — no game names them and nothing else in the app does.
- *
- * Not one of the info-column readout kinds in `game-page/playArea.module.css`
- * (`.infoState`, `.infoHelp`, `.infoActions`): those are shared because a
- * game's own InfoCol applies them to its own markup, and nothing applies this
- * but the component. Drawn in the same column is not the same thing. */
-
-/* Closed by default so it doesn't claim space; opening it grows the slot — an
- * allowed exception to the no-growth rule precisely because it's closable and
- * reclaims the space. */
-/* @@ */ .disclosure {
-  color: var(--page-text-color);
-  font-size: 0.85rem;
-}
-
-/* @@ */ .disclosure summary {
-  cursor: pointer;
-  user-select: none;
-}
-
-/* @@ */ .disclosure ul {
+/* The "Setup options" recap's list. The disclosure around it — its closed
+ * default, its summary, its type size — is `info-sheet/InfoDisclosure`'s. */
+/* @@ */ .rows {
   margin: 0.3rem 0 0;
   padding-left: 1.25rem;
 }
