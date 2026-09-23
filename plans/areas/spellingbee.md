@@ -128,6 +128,39 @@ custom properties". `verdictTone` carries three since `7cca2427` —
 `--verdict-fill`, `--verdict-ink` and `--verdict-edge` — so the count is wrong,
 and whether the hex should wear the edge is a real question rather than a typo.
 
+## The restructure
+
+Each step is one commit Joel reads; that reading is his careful read of the
+code, made on the shape that will stay. Every step is behavior-preserving
+unless its heading says otherwise, verified by the net below.
+
+### Step 0 — the baseline — DONE 2026-09-22
+
+Run on the untouched tree with the roster stamped `cs-met-spellingbee` (Joel:
+*"do step 0"*, then *"Both"* to the e2e question):
+
+- `tsc -b` clean; lint clean over `src/spellingbee/` **and**
+  `supabase/functions/spellingbee-build-board/` — the edge function is on this
+  roster, so it is in the net from the start.
+- The game's unit tests and the guards: 35 files, 341 tests, green.
+- The edge function under `deno test`: 11 tests, green — the letter masks,
+  pangram scoring, the overlap cap and the custom-letters validator. **This is
+  the piece no earlier game area had**, and it is a second runner, not a vitest
+  project: `deno test --allow-all supabase/functions/spellingbee-build-board/`.
+  `deno check` is not a substitute — it does not run them, and a chunk that
+  type-checks can still fail to boot.
+- pgTAP, the whole suite: `gmake db-sql ENV=local` then `npm run test:db` —
+  181 files, 2559 tests, PASS. Twelve of spellingbee's thirteen files are the
+  roster's; `rank_idx_test.sql` is `rank-ladder`'s and ran with them.
+- The geometry harness re-seeded with `BASELINE=1`: 21 boards written, and the
+  new file **byte-identical to the one it replaced**, so no board had drifted
+  since the last seed. (Nothing to commit — the file is gitignored.)
+- spellingbee's four e2e specs: **7 tests, green in 15.1s** (`spellingbee`,
+  `spellingbee-coop-win`, `spellingbee-mobile`, `spellingbee-print`). The
+  custom-letters spec is among them, which is the last of the entry ruled above.
+
+**A later red is the step's.**
+
 ## Findings
 
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it
