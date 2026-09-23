@@ -1052,7 +1052,11 @@ declare
   s_turns int;
 begin
 
-  if not exists (select 1 from codenamesduet.games where id = target_game) then
+  -- Locked first, as every move takes it: a restart takes the game row before
+  -- the words, the order `submit_guess` takes them in, so the two cannot each
+  -- hold what the other waits for.
+  perform 1 from codenamesduet.games where id = target_game for update;
+  if not found then
     perform common._raise_game_deleted('codenamesduet');
   end if;
 

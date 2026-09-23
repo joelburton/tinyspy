@@ -11,14 +11,15 @@
 --      decremented all game, so the row can't say what it was) and seat A
 --      clues again;
 --   4. it works mid-game AND at terminal — no play_state guard, it's a
---      restart — and a non-player is rejected.
+--      restart — and a non-player is rejected;
+--   5. a game deleted under it is the shared race (PN485).
 -- ============================================================
 
 begin;
 
 set search_path = codenamesduet, common, public, extensions;
 
-select plan(11);
+select plan(12);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -102,6 +103,16 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
   'a non-player cannot restart');
+reset role;
+
+-- ─── A game a friend just deleted ───
+delete from common.games where id = (select id from g1);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  codenamesduet.replay_board((select id from g1)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'restarting a deleted game is the shared race (PN485)');
 reset role;
 
 select * from finish();

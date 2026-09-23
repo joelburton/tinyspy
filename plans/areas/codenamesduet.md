@@ -1160,7 +1160,15 @@ F-10's count), the AI prompt asking for a rule about words it was not given
 (F-17), two things that say the same fact two ways (F-18 to F-21), a doc
 sentence of mine that was wrong (F-22), and the tests (F-27).
 
-### F-codenamesduet-15 · `replay-no-lock` · `replay_board` takes no row lock
+### SHIPPED · F-codenamesduet-15 · `replay-no-lock` · `replay_board` takes no row lock
+
+**Joel, 2026-09-23: "lock first."** `replay_board` opens with `perform 1 …
+for update` and `if not found`, before `require_game_player`, so it takes the
+game row before the words, the order `submit_guess` takes them in. The lock
+itself cannot be tested (a deadlock needs two sessions). **Planted** the
+rewritten `found` check out: it **passed** — no case restarted a deleted duet
+game — so `replay_test.sql` gains one (PN485); the plant is red on it. Whole
+suite PASS, 182 files, 2643 tests; the guards green.
 
 `replay_board` checks `if not exists (select 1 from codenamesduet.games …)`
 and updates `words`, then `games`, with no `for update`; psychicnum's,
