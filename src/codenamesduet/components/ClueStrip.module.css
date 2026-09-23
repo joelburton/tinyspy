@@ -1,6 +1,6 @@
 /* cs-met-codenamesduet */
 
-/* The CluePanel renders inside BoardCol's below-board `.belowBoard` slot, which
+/* The ClueStrip renders inside BoardCol's below-board `.belowBoard` slot, which
  * reserves a single control-row's height + vertical-centers its child (so
  * swapping clue states doesn't shift the board). The slot is board-wide, so each
  * state lays its pieces out on ONE horizontal line rather than stacking them.
@@ -13,7 +13,7 @@
  * (docs/ui.md → "Layout stability"). The clue-giver's guess-phase line ("Your
  * clue: WORD · N  Waiting for X to guess…") is the longest, and stays on one row
  * on a desktop-width board. */
-/* @@ */ .cluePanel {
+/* @@ */ .clueStrip {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -24,7 +24,7 @@
 
 /* Sudden death is the one state that still carries its own visual — a tinted
  * background + accent border — to drive the "things just got real" beat. */
-/* @@ */ .cluePanel.suddenDeath {
+/* @@ */ .clueStrip.suddenDeath {
   border: 1px solid var(--codenamesduet-assassin);
   background: var(--codenamesduet-assassin-soft);
   border-radius: var(--radius-md);

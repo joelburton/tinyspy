@@ -15,7 +15,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
-import { CluePanel } from './CluePanel'
+import { ClueStrip } from './ClueStrip'
 
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 // The two envelope readers the form calls: the AI answers with one suggestion,
@@ -30,10 +30,10 @@ vi.mock('@/common/supabase/dbResult', async (importOriginal) => ({
   runRpc: vi.fn(async () => ({ type: 'ok', data: { result: 'clued' } })),
 }))
 
-describe('codenamesduet CluePanel — input tagging', () => {
+describe('codenamesduet ClueStrip — input tagging', () => {
   it('marks both clue inputs (# and word) data-game-input', () => {
     const { container } = render(
-      <CluePanel
+      <ClueStrip
         gameId="g1"
         isClueGiver
         isGuessPhase={false}
@@ -52,11 +52,11 @@ describe('codenamesduet CluePanel — input tagging', () => {
 })
 
 // A longer number overflows `submit_clue`'s int and would come back as a fault.
-describe('codenamesduet CluePanel — the count', () => {
+describe('codenamesduet ClueStrip — the count', () => {
   it('takes one digit, and nothing else', async () => {
     const user = userEvent.setup()
     const { container } = render(
-      <CluePanel
+      <ClueStrip
         gameId="g1"
         isClueGiver
         isGuessPhase={false}
@@ -78,10 +78,10 @@ describe('codenamesduet CluePanel — the count', () => {
  * suggested it — word and count unedited. Editing either makes it the giver's
  * own, and a clue with no suggestion behind it never is.
  */
-describe('codenamesduet CluePanel — a clue from the AI', () => {
+describe('codenamesduet ClueStrip — a clue from the AI', () => {
   async function renderAsGiver() {
     const { container } = render(
-      <CluePanel
+      <ClueStrip
         gameId="g1"
         isClueGiver
         isGuessPhase={false}

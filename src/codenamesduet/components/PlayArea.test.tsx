@@ -71,6 +71,10 @@ vi.mock('../hooks/useBoard', () => ({
   ),
 }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+// What PlayArea tells the bell, per state; the ring on arrival is
+// `useTurnBell`'s own spec.
+const turnBell = vi.hoisted(() => vi.fn())
+vi.mock('@/common/sounds/useTurnBell', () => ({ useTurnBell: turnBell }))
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
@@ -197,6 +201,41 @@ describe('codenamesduet PlayArea — input gating', () => {
     asClueGiver()
     render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
     expect(screen.getByRole('button', { name: /apple/i })).toBeEnabled()
+  })
+})
+
+/**
+ * The bell: it is my turn when there is something for me to do — a clue to
+ * give, or one to guess from — and never in sudden death or once it is over.
+ */
+describe('codenamesduet PlayArea — the turn bell', () => {
+  const lastTurn = () => turnBell.mock.calls.at(-1)?.[0]
+
+  it('is my turn as the guesser once the clue is in', () => {
+    render(<PlayAreaLoader {...makeCtx()} />) // peer A clued; I guess
+    expect(lastTurn()).toBe(true)
+  })
+
+  it('is my turn as the clue-giver before my clue, and not after it', () => {
+    asClueGiver()
+    const view = render(<PlayAreaLoader {...makeCtx()} />)
+    expect(lastTurn()).toBe(true)
+    g.events = [{ ...g.PEER_CLUE, user_id: 'me', seat: 'B' }]
+    view.rerender(<PlayAreaLoader {...makeCtx()} />)
+    expect(lastTurn()).toBe(false)
+  })
+
+  it('is not my turn while my partner writes the clue', () => {
+    g.events = []
+    render(<PlayAreaLoader {...makeCtx()} />) // peer A holds the clue seat
+    expect(lastTurn()).toBe(false)
+  })
+
+  it('is nobody’s turn in sudden death, or once the game is over', () => {
+    const view = render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
+    expect(lastTurn()).toBe(false)
+    view.rerender(<PlayAreaLoader {...makeCtx({ playState: 'won', isTerminal: true })} />)
+    expect(lastTurn()).toBe(false)
   })
 })
 

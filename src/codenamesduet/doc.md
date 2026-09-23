@@ -29,8 +29,9 @@ any word that is not an agent loses the game.
 Because "your turn" is the clue arriving, not a shared pointer moving, the
 shell's turn machinery does not reach this game: it never writes
 `current_turn_user_id`. The header says what the partner is doing instead,
-and the board and clue strip are drawn from the seat on the game row and the
-turn's clue.
+the board and clue strip are drawn from the seat on the game row and the
+turn's clue, and the game rings its own bell when a clue is yours to give or
+to guess from.
 
 Everything a player does — a clue, a guess, a pass, asking the AI — is one row
 of `codenamesduet.events`, the log every game keeps. Only the log's drawing is
@@ -404,7 +405,7 @@ describes: a loader that gates on the three ways a game can fail to load, then
         │     ├── MobileStatusBar ←      phone only: StateLine, above the board
         │     ├── Board                  the 5×5 tiles and their marks
         │     └── below the board        one of: HistoryBanner ←, the local slot's
-        │                                FeedbackPill ←, or CluePanel — the clue form,
+        │                                FeedbackPill ←, or ClueStrip — the clue form,
         │                                the clue and Pass, or who we're waiting for
         ├── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
         │     └── InfoCol                the readouts and the action row
@@ -450,6 +451,10 @@ What is codenamesduet's own:
 - **The partner in the header.** The shell's turn line does not reach this game
   (see the intro), so `useTurnStatus` says what the partner is doing, in
   `lib/answer.ts`'s words.
+- **The bell rings from here.** `GamePage`'s rings off the shared turn
+  pointer, which this game never moves, so `PlayArea` calls `useTurnBell`
+  itself: it is my turn when there is a clue for me to give or one to guess
+  from, and nobody's in sudden death or once the game is over.
 - **The finished-player banner** tells each player, in the info column, when
   one of them has found all their agents: in green to the one who finished,
   in tan to their partner, who now gives every clue.
@@ -501,7 +506,7 @@ Vitest, beside the code:
 | `lib/events.test` · `lib/history.test` | the log's rows typed by kind; a past turn's board, its bystanders per side and its own tiles ringed |
 | `hooks/useBoard.test` | the reads, the partner's card only when asked for, and a failed read kept as a failure rather than an empty board |
 | `components/PlayArea.test` | a second guess while one is in flight sends nothing; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the keys |
-| `components/GameEventLog.test` · `components/CluePanel.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows and history link; the clue inputs' tag and when a clue counts as the AI's; the key card's grid; the setup form's fields |
+| `components/GameEventLog.test` · `components/ClueStrip.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows and history link; the clue inputs' tag and when a clue counts as the AI's; the key card's grid; the setup form's fields |
 | `pdf/model.test` | the partner's card never printed mid-game; each cell's mark and triangles; the clue log |
 
 Playwright, in `e2e/`: `codenamesduet` (the board holds its height through

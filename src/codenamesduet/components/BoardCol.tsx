@@ -16,7 +16,7 @@ import type { Player } from '../lib/seats'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
 import { Board } from './Board'
-import { CluePanel, type SuggestState } from './CluePanel'
+import { ClueStrip, type SuggestState } from './ClueStrip'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
@@ -50,11 +50,11 @@ type GuessAnswer =
 
 /**
  * codenamesduet's board column — the 5×5 `Board`, and under it the fixed-height
- * below-board slot: the `CluePanel` during play, or the local slot's top message
+ * below-board slot: the `ClueStrip` during play, or the local slot's top message
  * (a not-ok, the terminal verdict), with the turn viewer's banner over either.
  *
  * A two-input game: a guess is a tile click, and this column owns `submit_guess`
- * with the pending tile it marks; a clue is the `CluePanel` form, which owns
+ * with the pending tile it marks; a clue is the `ClueStrip` form, which owns
  * `submit_clue`, `pass_turn` and the AI suggestion. Neither owns game state —
  * the reveal arrives by Realtime, and PlayArea hands this column the board to
  * render, live or a viewed turn's snapshot. Not-oks show into PlayArea's local
@@ -215,11 +215,11 @@ export function BoardCol({
       {/* The below-board slot (docs/playarea.md → Board sizing). Two states in
           one fixed-height slot, so the board above never shifts as they swap:
           the slot's pill when it holds anything — a not-ok, the verdict — else
-          the CluePanel. */}
+          the ClueStrip. */}
       <div className={styles.belowBoard}>
         <div className={cls(shared.moveAreaOrLocalFeedback, isViewingHistory && history.historyBannerHost)}>
           {/* The shared banner overlays this below-board slot while a past turn is
-              open — the CluePanel / pill stays mounted underneath, so an in-progress
+              open — the ClueStrip / pill stays mounted underneath, so an in-progress
               clue survives. */}
           {isViewingHistory && (
             <HistoryBanner label={historyLabel} onExit={onExitHistory} />
@@ -230,7 +230,7 @@ export function BoardCol({
             </div>
           ) : (
             <div className={styles.moveArea}>
-              <CluePanel
+              <ClueStrip
                 gameId={gameId}
                 isClueGiver={isClueGiver}
                 isGuessPhase={isGuessPhase}

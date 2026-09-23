@@ -9,6 +9,7 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
+import { useTurnBell } from '@/common/sounds/useTurnBell'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { cls } from '@/common/utils/cls'
 import { db } from '../db'
@@ -38,7 +39,7 @@ import { historySnapshot } from '../lib/history'
 import { buildTerminalMessage } from '../lib/terminal'
 import type { CodenamesduetSetup } from '../lib/setup'
 import { CodenamesduetAISuggestCompanion } from './CodenamesduetAISuggestCompanion'
-import { type SuggestState } from './CluePanel'
+import { type SuggestState } from './ClueStrip'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
@@ -59,7 +60,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * click what, and when), binds the commands both columns place, and decides
  * what each column is handed: the live board or a viewed turn's snapshot, the
  * slots, the flags. Every move is judged by the server, and the columns own
- * their RPCs — `BoardCol` the guess, `CluePanel` the clue and the pass — with
+ * their RPCs — `BoardCol` the guess, `ClueStrip` the clue and the pass — with
  * Realtime bringing the result back to every client. Cross-cutting chrome
  * (logo, chat, pause, timer, the players strip) is `<GamePage>`'s, above this.
  *
@@ -232,7 +233,7 @@ export function PlayArea({
 
   // The board is worked by clicks, so the page itself has nowhere for Tab to go
   // and an empty ring keeps it from walking out to the browser. While a clue is
-  // being given, the clue form's own ring is innermost and Tab is its (CluePanel).
+  // being given, the clue form's own ring is innermost and Tab is its (ClueStrip).
   useTabRing([])
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the info
@@ -298,6 +299,14 @@ export function PlayArea({
     mySeat,
     hasCurrentTurnClue: currentTurnClue !== null,
   })
+
+  // The bell, when there is something for me to do. This game never moves the
+  // shared turn pointer `GamePage` rings from, so it rings its own; sudden death
+  // has no arrival to ring for.
+  const cluesStillGiven = !gameOver && !inSuddenDeath
+  const myClueToGive = isClueGiver && !isGuessPhase
+  const myClueToGuess = !isClueGiver && isGuessPhase
+  useTurnBell(cluesStillGiven && (myClueToGive || myClueToGuess))
 
   // ─── The local slot, and its standing condition ─────
   // A condition is an effect on a primitive edge that shows on true and

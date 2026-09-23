@@ -1,7 +1,7 @@
 // cs-met-codenamesduet
 
 import { Companion } from '@/common/floating-panels/Companion'
-import type { SuggestState } from './CluePanel'
+import type { SuggestState } from './ClueStrip'
 import styles from './CodenamesduetAISuggestCompanion.module.css'
 
 /**

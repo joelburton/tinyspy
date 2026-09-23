@@ -16,7 +16,7 @@ import { db } from '../db'
 import type { Seat } from '../lib/phase'
 import type { ClueEvent } from '../lib/events'
 import type { Player } from '../lib/seats'
-import styles from './CluePanel.module.css'
+import styles from './ClueStrip.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /** What `submit_clue` answers: one `ok`, the clue as it was recorded. The word
@@ -43,7 +43,7 @@ type PassAnswer = {
   play_state: 'playing' | 'sudden_death'
 }
 
-type CluePanelProps = {
+type ClueStripProps = {
   gameId: string
   // My seat is `games.current_clue_giver`.
   isClueGiver: boolean
@@ -89,7 +89,7 @@ type SuggestedClue = {
  * suggestion's reasoning opens in its own floating panel — neither grows the
  * row.
  */
-export function CluePanel({
+export function ClueStrip({
   gameId,
   isClueGiver,
   isGuessPhase,
@@ -98,10 +98,10 @@ export function CluePanel({
   peer,
   localFeedbackSlot,
   onSuggestionChange,
-}: CluePanelProps) {
+}: ClueStripProps) {
   if (inSuddenDeath) {
     return (
-      <div className={cls(styles.cluePanel, styles.suddenDeath)}>
+      <div className={cls(styles.clueStrip, styles.suddenDeath)}>
         <strong>Sudden death.</strong> No more clues — any non-green reveal loses.
       </div>
     )
@@ -109,7 +109,7 @@ export function CluePanel({
 
   if (isGuessPhase && currentClue) {
     return (
-      <div className={styles.cluePanel}>
+      <div className={styles.clueStrip}>
         {/* No "Your clue:" label — the bold WORD · N beside the Pass button is
             self-evidently the clue, and the row is tight on a phone. */}
         <ClueDisplay clue={currentClue} />
@@ -129,7 +129,7 @@ export function CluePanel({
     )
   }
   return (
-    <div className={styles.cluePanel}>
+    <div className={styles.clueStrip}>
       <PeerWaiting peer={peer} action="give a clue" />
     </div>
   )

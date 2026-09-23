@@ -1108,11 +1108,24 @@ the allowlist row**; or give it a reader. Recommendation: delete.
   two CSS rules are identical but for the colors, with `6px` where
   `--radius-md` is meant. Recommendation: the wording, and one base rule with
   two color classes.
-- **`CluePanel` needs a name.** It is the below-board clue strip. Candidates:
+- ~~**`CluePanel` needs a name.**~~ **SHIPPED** (Joel, 2026-09-23:
+  *"ClueStrip is fine"*). `git mv` of the component, its stylesheet and its
+  spec; `ClueStripProps`, the root class `.clueStrip` (markers kept), and every
+  reference — `BoardCol`, `PlayArea`, the AI companion, `doc.md`,
+  `docs/playarea.md`, `docs/code-conventions.md` (twice),
+  `common/keyboard/todo.md`. The todo's Soon item is deleted. Was: `CluePanel`
+  needs a name. It is the below-board clue strip. Candidates:
   `ClueStrip`, `BelowBoardClue`. Recommendation: `ClueStrip`, the word
   `doc.md` already uses. Joel's to name.
-- **The clue-arrival bell**: `playSound('bell')` where a clue lands for the
-  guesser. Recommendation: build it here.
+- ~~**The clue-arrival bell**~~ **SHIPPED** (Joel, 2026-09-23: *"both"* —
+  the guesser when a clue arrives AND the clue-giver when the seat passes to
+  them). `PlayArea` calls `useTurnBell(!gameOver && !inSuddenDeath &&
+  (isClueGiver ? !isGuessPhase : isGuessPhase))`, `useTurnBell` giving the
+  rising edge, the preload and the "Enable sounds" check. Four PlayArea cases
+  on what the bell is told (the ring itself is `useTurnBell`'s spec); planted
+  the guesser-only form, the sudden-death gate and the game-over gate out,
+  each red. Both todos' items are deleted; `common/sounds/doc.md` and this
+  game's `doc.md` (intro and Frontend) say it rings.
 
 ### The audit's read — 2026-09-23
 
