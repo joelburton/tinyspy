@@ -242,22 +242,16 @@ export function PlayArea({
   peerKeyShown,
   togglePeerKey,
 }: PlayAreaProps) {
-  // The two views of the events the log, the history viewer, the clue panel and
-  // the PDF read: every clue, and every guess with the word on its tile.
-  const clues = useMemo(() => cluesOf(events), [events])
-  const guesses = useMemo(() => guessesOf(events, words), [events, words])
+  // ─── Page hooks ─────────────────────────────────────
+  // What this surface IS, before anything this game knows: where Tab may go,
+  // where the info column sits on a phone, the one thing that fires at a moment
+  // rather than describing a state — the win's confetti — and the AI dialog,
+  // whose state lives here so its panel renders at the layout's level.
 
   // The board is worked by clicks, so the page itself has nowhere for Tab to go
   // and an empty ring keeps it from walking out to the browser. While a clue is
   // being given, the clue form's own ring is innermost and Tab is its (CluePanel).
   useTabRing([])
-  // The setup recap, built ONCE and handed to both consumers — the info column
-  // renders it as <li>s, the print model prints the same array object
-  // (common/setup-form/doc.md → Setup rows).
-  const summaryRows = useMemo(
-    () => setupRows(setup, 'coop' as const, players),
-    [setup, players],
-  )
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
@@ -269,12 +263,7 @@ export function PlayArea({
   // the keyboard; it crunched the board too small and scrolled badly.)
   const infoSheet = useInfoSheet()
 
-  // `gameOver` mirrors common.games.is_terminal. `playState` carries the
-  // gametype-specific value ('playing', 'sudden_death', 'won', ...)
-  // for the phase derivation and the terminal copy.
-  const gameOver = isTerminal
-
-  // ─── Win celebration ───────────────────────────────────
+  // The win's celebration.
   // Confetti at the MOMENT the pair contacts the 15th agent (the winning guess
   // flips playState to 'won' on every connected client via realtime, so both
   // players celebrate together); opening an already-won game stays quiet
@@ -283,7 +272,68 @@ export function PlayArea({
   // modal duet shows: losses and the manual end land in-page only.
   const celebration = useCelebration(playState === 'won')
 
-  // ─── Own-action feedback (local) ───────────────────────
+  // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
+  // so the <CodenamesduetAISuggestCompanion> renders at the `.layout` level — a panel
+  // rendered deep in the flex-column board lands off-screen (react-rnd positions
+  // from the static flow position). ClueForm drives it via onSuggestionChange.
+  const [clueSuggestion, setClueSuggestion] = useState<SuggestState | null>(null)
+  console.log('[ClueHint] PlayArea render — clueSuggestion:', clueSuggestion)
+
+  // ─── Derived ────────────────────────────────────────
+  // Who I am in this game and what I may still do, read off the props and the
+  // loader's rows. Named here because the sections below share them: the
+  // standing condition, the bindings' `describe`s, the print model and both
+  // columns all ask the same questions, and they must not answer them
+  // differently.
+
+  // The two views of the events the log, the history viewer, the clue panel and
+  // the PDF read: every clue, and every guess with the word on its tile.
+  const clues = useMemo(() => cluesOf(events), [events])
+  const guesses = useMemo(() => guessesOf(events, words), [events, words])
+
+  // The setup recap, built ONCE and handed to both consumers — the info column
+  // renders it as <li>s, the print model prints the same array object
+  // (common/setup-form/doc.md → Setup rows).
+  const summaryRows = useMemo(
+    () => setupRows(setup, 'coop' as const, players),
+    [setup, players],
+  )
+
+  // `gameOver` mirrors common.games.is_terminal. `playState` carries the
+  // gametype-specific value ('playing', 'sudden_death', 'won', ...)
+  // for the phase derivation and the terminal copy.
+  const gameOver = isTerminal
+
+  // Seat/roster derivations, read by the print model (built in the binding's
+  // run) and the render alike, so both see the SAME values.
+  const me = players.find((p) => p.user_id === session.user.id)
+  const mySeat = me?.seat
+  const peer = players.find((p) => p.user_id !== session.user.id)
+  const greenFound = words.filter((w) => w.revealed_as === 'G').length
+
+  // Phase derivation: a turn is in "guess phase" iff a clue already
+  // exists for games.turn_number. The submit_clue RPC enforces the
+  // one-per-turn unique constraint, so we can trust this at the
+  // client level.
+  const currentTurnClue =
+    clues.find((c) => c.turn_number === game.turn_number) ?? null
+
+  // derivePhase is pure and unit-tested in src/lib/phase.test.ts —
+  // see there for the full clickability / phase matrix.
+  const { isGuessPhase, isClueGiver, inSuddenDeath, cellsClickable } =
+    derivePhase({
+      status: playState as GameStatus,
+      currentClueGiver: game.current_clue_giver as Seat | null,
+      mySeat,
+      hasCurrentTurnClue: currentTurnClue !== null,
+    })
+
+  // ─── The local slot, and its standing condition ─────
+  // A condition is an effect on a primitive edge that shows on true and
+  // retracts in its cleanup — the slot draws whichever ranks highest. The
+  // local slot is the one for messages about ME; my partner's go in the
+  // header's.
+
   // The below-board slot — the LOCAL half of the feedback split (own action →
   // this slot; peer/turn-state news → the header via useTurnStatus). Born
   // HERE, in the coordinator, because BOTH columns show into it: BoardCol's
@@ -296,7 +346,56 @@ export function PlayArea({
   // reaching it — only a key with nothing focused does.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  // ─── Turn-history viewer ───────────────────────────────
+  // The verdict, memoized on `playState` so the effect sees one object per
+  // outcome, shown on the terminal edge and retracted by its owner on Restart
+  // (a Duet mulligan un-terminals the game).
+  const terminalMessage = useMemo(
+    () => (isTerminal ? buildTerminalMessage(playState) : null),
+    [isTerminal, playState],
+  )
+  useEffect(function showTerminalVerdict() {
+    if (!terminalMessage) return
+    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(terminalMessage))
+    return () => localFeedbackSlot.retract(id)
+  }, [localFeedbackSlot, terminalMessage])
+
+  // ─── Narration — what my PARTNER is doing, in the header slot ───
+  // About somebody else, which is what puts it in the global slot rather than
+  // the local one (docs/ui.md → Feedback pill).
+
+  // Keep the turn state in the header — it's easy to miss "the other player
+  // ended their turn, it's your turn now" otherwise.
+  useTurnStatus({
+    game,
+    players,
+    clues,
+    playState,
+    gameOver: isTerminal,
+    sessionUserId: session.user.id,
+    globalFeedbackSlot,
+  })
+
+  // My partner asking the AI for a clue is narrated in the header, once, as it
+  // lands — my own hint is not, since the suggestion dialog is its feedback.
+  // The shared seen-set producer seeds silently on load, so opening a game does
+  // not replay its old hints.
+  usePeerFeedback({
+    enabled: true,
+    items: events,
+    keyOf: (e) => String(e.id),
+    messageFor: (e) => {
+      if (e.kind !== 'hint' || e.user_id === session.user.id) return null
+      const member = players.find((p) => p.user_id === e.user_id)
+      const { outcome, text } = answerMessage({ answerType: 'hint_peer' })
+      return FeedbackMessage.peer(member, outcome, text)
+    },
+    globalFeedbackSlot,
+  })
+
+  // ─── The turn-history viewer ────────────────────────
+  // Opening an event-log #N replays that turn's board, addressed by an event
+  // id and folded by its turn. Exit is the hook's own.
+
   // Click a turn's `#N` in the event log to replay that turn's board (the reveal
   // state after that turn's guesses, with those cells ringed in the history
   // blue). Keyed by an event id — the turn's clue, or a sudden-death guess — as
@@ -311,17 +410,34 @@ export function PlayArea({
   // dispatcher never offers an action a keystroke aimed at a focused field, so
   // typing a clue can't kick you out of the viewer.
 
-  // The AI clue-suggestion dialog. State lives HERE (not in the deep ClueForm)
-  // so the <CodenamesduetAISuggestCompanion> renders at the `.layout` level — a panel
-  // rendered deep in the flex-column board lands off-screen (react-rnd positions
-  // from the static flow position). ClueForm drives it via onSuggestionChange.
-  const [clueSuggestion, setClueSuggestion] = useState<SuggestState | null>(null)
-  console.log('[ClueHint] PlayArea render — clueSuggestion:', clueSuggestion)
+  // When a past turn is open in the viewer, `historySnap` is that turn's board
+  // (else null = live). `historySnapshot` folds the guess log up to the viewed
+  // turn onto the fixed words and rings that turn's own cells; the turn's clue
+  // feeds the banner label. Snapshots are stable — a later realtime guess only
+  // grows later turns, so viewing a past turn never shifts under you.
+  const historyTurn = historyId === null
+    ? null
+    : events.find((e) => e.id === historyId)?.turn_number ?? null
+  const historyClue =
+    historyTurn !== null
+      ? clues.find((c) => c.turn_number === historyTurn) ?? null
+      : null
+  const historySnap =
+    historyTurn !== null
+      ? historySnapshot(words, guesses, historyClue, historyTurn, historyN)
+      : null
+
+  // ─── The commands, bound ────────────────────────────
+  // Every command this game offers, in one order that three readers keep: this
+  // block, the info column's prop list, and the menu's rows. A binding is what
+  // the button, the menu row and the key all read, so none of them can drift
+  // from another — and `pending` grays every surface of one for the length of
+  // its run, so no handler keeps an in-flight flag of its own.
 
   // (The guess dispatch — submit_guess + the pending-tile state + the in-flight
   // guard — moved into BoardCol, beside the board it gates.)
 
-  // ─── End / Restart — the shared pair ───────────────────
+  // End / Restart — the shared pair.
   // codenamesduet is coop-only, so Concede hides itself and only End is ever
   // placed. Restart runs the SAME board back with the same key cards — a
   // MULLIGAN, not a fresh puzzle: the second run is played knowing where the
@@ -338,7 +454,7 @@ export function PlayArea({
     localFeedbackSlot,
   })
 
-  // ─── Terminal partner-key reveal ─────────────────────────────────
+  // The terminal partner-key reveal.
   // The partner's key card is NOT opened the instant the game ends. The seconds
   // right after an assassin are the best part of a Duet post-mortem — "wait, I
   // was about to pick APPLE" — and that conversation only happens while the card
@@ -368,7 +484,7 @@ export function PlayArea({
     run: togglePeerKey,
   })
 
-  // ─── New game ───────────────────────────────────────────
+  // New game.
   // A FRESH game (new id, a newly sampled board) with THIS game's setup +
   // roster, in the same club — the "same again!" action after a solve, without
   // a trip through the club page's setup dialog. codenamesduet's create_game
@@ -424,13 +540,6 @@ export function PlayArea({
     run: createNewGame,
   })
 
-  // Seat/roster derivations, read by the print model (built in the binding's
-  // run) and the render alike, so both see the SAME values.
-  const me = players.find((p) => p.user_id === session.user.id)
-  const mySeat = me?.seat
-  const peer = players.find((p) => p.user_id !== session.user.id)
-  const greenFound = words.filter((w) => w.revealed_as === 'G').length
-
   // Print the board — a snapshot at CLICK time (common/pdf/doc.md). The peer's key is
   // a secret mid-game; `useBoard` only hands it over post-game and the model
   // refuses it before terminal regardless, so it can't reach paper early.
@@ -462,10 +571,14 @@ export function PlayArea({
     },
   })
 
-  // The FULL codenamesduet menu. `buildGameMenu` supplies the framing (Help +
-  // chat above, Back to club below); the middle is this game's own rows, each
-  // one a binding it already made. The game is coop-only, so Concede hides
-  // itself and the exits list draws as End alone.
+  // ─── The menu ───────────────────────────────────────
+  // `buildGameMenu` supplies the framing (Help and chat above, Back to club
+  // below); the middle is this game's own rows, each one a binding made above,
+  // so a row's words, glyph, key and availability come from the action rather
+  // than being typed a second time here.
+
+  // The game is coop-only, so Concede hides itself and the exits list draws
+  // as End alone.
   useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
@@ -482,85 +595,13 @@ export function PlayArea({
     return () => menu.setGameSections([])
   }, [menu, actConcede, actEndGame, actReveal, actRestart, actNewGame, actPrintBoard])
 
-  // Keep the turn state in the header — it's easy to miss "the other player
-  // ended their turn, it's your turn now" otherwise.
-  useTurnStatus({
-    game,
-    players,
-    clues,
-    playState,
-    gameOver: isTerminal,
-    sessionUserId: session.user.id,
-    globalFeedbackSlot,
-  })
-
-  // My partner asking the AI for a clue is narrated in the header, once, as it
-  // lands — my own hint is not, since the suggestion dialog is its feedback.
-  // The shared seen-set producer seeds silently on load, so opening a game does
-  // not replay its old hints.
-  usePeerFeedback({
-    enabled: true,
-    items: events,
-    keyOf: (e) => String(e.id),
-    messageFor: (e) => {
-      if (e.kind !== 'hint' || e.user_id === session.user.id) return null
-      const member = players.find((p) => p.user_id === e.user_id)
-      const { outcome, text } = answerMessage({ answerType: 'hint_peer' })
-      return FeedbackMessage.peer(member, outcome, text)
-    },
-    globalFeedbackSlot,
-  })
-
-  // ─── The one standing condition of the local slot ───
-  // The verdict, memoized on `playState` so the effect sees one object per
-  // outcome, shown on the terminal edge and retracted by its owner on Restart
-  // (a Duet mulligan un-terminals the game).
-  const terminalMessage = useMemo(
-    () => (isTerminal ? buildTerminalMessage(playState) : null),
-    [isTerminal, playState],
-  )
-  useEffect(function showTerminalVerdict() {
-    if (!terminalMessage) return
-    const id = localFeedbackSlot.show(FeedbackMessage.terminalVerdict(terminalMessage))
-    return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, terminalMessage])
+  // ─── Render ─────────────────────────────────────────
+  // Everything below is derived fresh each render and read only by the JSX —
+  // nothing here is a hook, which is why it may sit after the menu effect.
 
   const firstClueGiver = players.find(
     (p) => p.user_id === setup.first_clue_giver_user_id,
   )
-  // Phase derivation: a turn is in "guess phase" iff a clue already
-  // exists for games.turn_number. The submit_clue RPC enforces the
-  // one-per-turn unique constraint, so we can trust this at the
-  // client level.
-  const currentTurnClue =
-    clues.find((c) => c.turn_number === game.turn_number) ?? null
-
-  // derivePhase is pure and unit-tested in src/lib/phase.test.ts —
-  // see there for the full clickability / phase matrix.
-  const { isGuessPhase, isClueGiver, inSuddenDeath, cellsClickable } =
-    derivePhase({
-      status: playState as GameStatus,
-      currentClueGiver: game.current_clue_giver as Seat | null,
-      mySeat,
-      hasCurrentTurnClue: currentTurnClue !== null,
-    })
-
-  // When a past turn is open in the viewer, `historySnap` is that turn's board
-  // (else null = live). `historySnapshot` folds the guess log up to the viewed
-  // turn onto the fixed words and rings that turn's own cells; the turn's clue
-  // feeds the banner label. Snapshots are stable — a later realtime guess only
-  // grows later turns, so viewing a past turn never shifts under you.
-  const historyTurn = historyId === null
-    ? null
-    : events.find((e) => e.id === historyId)?.turn_number ?? null
-  const historyClue =
-    historyTurn !== null
-      ? clues.find((c) => c.turn_number === historyTurn) ?? null
-      : null
-  const historySnap =
-    historyTurn !== null
-      ? historySnapshot(words, guesses, historyClue, historyTurn, historyN)
-      : null
 
   // Duet's finished-player rule, surfaced to BOTH players so neither
   // reads the lopsided turn flow as a bug (enforced server-side in

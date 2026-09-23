@@ -516,6 +516,47 @@ the row carries the line. The rest of that docstring is Step 8's.
 Verified: `tsc -b` clean, lint clean over `src/codenamesduet/`, 396 unit tests
 green (the game's and the guards). No e2e for this step.
 
+### Step 7 — the section order (readability 3.2) — DONE 2026-09-23
+
+wordle's and spellingbee's Step 7, header words taken from spellingbee's so the
+two files read alike. `PlayArea.tsx` reads in the eight sections
+`docs/playarea.md` names:
+
+1. **Page hooks** — the tab ring, the info sheet, the win's celebration, the AI
+   suggestion dialog's state (it lives here so its panel renders at the
+   layout's level)
+2. **Derived** — the clues and worded guesses, the setup recap, `gameOver`, the
+   seat and roster derivations, the current turn's clue and `derivePhase`
+3. **The local slot, and its standing condition** — the slot, and the
+   terminal verdict (duet has one condition, not spellingbee's two)
+4. **Narration — what my PARTNER is doing, in the header slot** — the turn
+   status and the partner's hint
+5. **The turn-history viewer** — the hook and the fold
+6. **The commands, bound** — the shared trio, Reveal, New game, Print
+7. **The menu**
+8. **Render** — the setup echo's first clue-giver, the finished-player banner
+   flags, then the columns
+
+**Every code line is a pure move, checked by diff** — the non-comment lines of
+the file before and after, sorted, are identical (390). The old `// ───`
+sub-headers are plain comments now (the win's celebration, the shared pair,
+the partner-key reveal, New game), or folded into the section header that now
+says the same (the local slot's two, the history viewer's, the menu's first
+sentences). The phase derivation moved from after the verdict to Derived,
+where the sections that ask "may I still act?" can read it.
+
+**Left for Step 8, the comment pass:** the archaeological "(The guess dispatch
+… moved into BoardCol …)"; the history viewer's "the effect below re-arms",
+which names an effect not there; the reveal's "Not about protecting a replay:
+Duet deliberately has none" (the restart has existed since 2026-08-03 — the
+same stale claim as `docs/ui.md`'s); the phase comment's "`src/lib/phase.test.ts`"
+(it is `src/codenamesduet/lib/`) and "the one-per-turn unique constraint" (a
+partial unique index on `kind = 'clue'` now); and the surface docstring's
+remaining lines.
+
+Verified: `tsc -b` clean, lint clean, 396 unit tests green (the game's and the
+guards). No e2e for this step.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it
