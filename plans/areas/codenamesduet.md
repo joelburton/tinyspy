@@ -1328,7 +1328,12 @@ same row again for the seats and both key cards, on its own channel. Options:
 now; the one-read version changes `useBoard`'s signature and is F-8's
 neighbor, so weigh them together.
 
-### F-codenamesduet-26 · `log-neutral-token` · the log's three guess colors mix two token families
+### RULED — NO CHANGE · F-codenamesduet-26 · `log-neutral-token` · the log's three guess colors mix two token families
+
+**Joel, 2026-09-23**, having tried all three on `-text`: *"those are too dark
+in the event-log. let's go back to what it was."* Reverted to the mix: agent
+and assassin on the fill tokens, the bystander on `-text`, since its tan fill
+is too faint as text.
 
 `.guessWord_G` and `.guessWord_A` read the fill tokens, `.guessWord_N` the
 `-text` one (the tan fill is too faint on the page); the comment says it is
