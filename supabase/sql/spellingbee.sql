@@ -41,8 +41,8 @@ create policy pangrams_select on spellingbee.pangrams
   using (true);
 
 
--- Column-level grant. The word lists are no longer hidden (the FE needs them to
--- validate guesses locally), so all columns are readable — but we keep the
+-- Column-level grant. Nothing is hidden (the FE judges every word against
+-- the lists), so all columns are readable — but we keep the
 -- explicit column list per docs/code-conventions.md → "Avoid SELECT *". `mode` is
 -- included so the games_state view's `g.mode` and the found_words_select RLS
 -- policy's `fg.mode` resolve for `authenticated` (both run in the caller's context).
@@ -105,15 +105,14 @@ create policy found_words_select on spellingbee.found_words
 -- ============================================================
 -- The FE's read path for a spellingbee game header. `security_invoker = true` so
 -- RLS on the base table evaluates as the caller (games_select still gates row
--- visibility). The word lists are no longer hidden — required_words + bonus_words
--- ship to the FE from game start so it can validate + score guesses locally — so
--- the view exposes both directly (no terminal-gated reveal helper anymore; the
--- missed-words reveal is a client-side `required − found` computed at terminal).
+-- visibility). Both word lists ship to the FE from game start, so it can judge
+-- and score a word locally and compute the missed-words reveal itself at
+-- terminal; the view exposes them directly.
 --
--- So this is now a PURE PASS-THROUGH, and deliberately kept as one: every
--- game's FE reads `<schema>.games_state`, so the uniform seam is worth a view
--- that currently adds nothing but `security_invoker`. If a column ever needs
--- hiding again, it goes here and no FE changes.
+-- So this is a PURE PASS-THROUGH, and deliberately kept as one: every game's
+-- FE reads `<schema>.games_state`, so the uniform seam is worth a view that
+-- adds nothing but `security_invoker`. If a column ever needs hiding, it goes
+-- here and no FE changes.
 
 drop view if exists spellingbee.games_state;
 create view spellingbee.games_state with (security_invoker = true) as
@@ -243,7 +242,7 @@ grant execute on function spellingbee.candidate_words(bigint, bigint, int, int) 
 --       { "word": text, "points": int, "is_pangram": bool },
 --       …
 --     ],
---     "bonus_words":   [text, …]            -- the bonus set (legal − required)
+--     "bonus_words":   [ { "word", "points", "is_pangram" }, … ]  -- legal − required, same shape
 --   }
 --
 -- The board's wordlists are taken at face value: they were
@@ -252,7 +251,7 @@ grant execute on function spellingbee.candidate_words(bigint, bigint, int, int) 
 -- gates still applied). The RPC just sanity-checks structure, not
 -- content.
 --
--- Title formula:  "<CENTER>·<OUTER-SORTED>"  e.g.,  "E·CABDNO".
+-- Title formula:  "<CENTER>·<OUTER-SORTED>"  e.g.,  "E·ABCDNO".
 -- The center letter, dot, then the 6 outer letters alphabetized.
 -- Identifies a board at a glance in the club's history list.
 --
@@ -582,10 +581,10 @@ grant execute on function spellingbee.create_game(text, jsonb, uuid[], text, jso
 -- no outcome: the pill is shown from the FE's own table before this call
 -- is made (docs/envelopes.md → Who writes the words, per answer).
 --
--- Throws (hard rejections):
---   42501 not authenticated, not a game player
---   P0001 'game is not in progress'  (post-terminal call)
---   P0002 'game not found'
+-- Refused (each a not-ok envelope): a game with no spellingbee row (a
+-- fault), a game no longer playing, a caller who has conceded, and the
+-- duplicate below (each a race); a non-player is refused by
+-- require_game_player.
 --
 -- ───────────────────────────────────────────────────────────
 -- Concurrency
@@ -600,7 +599,7 @@ grant execute on function spellingbee.create_game(text, jsonb, uuid[], text, jso
 -- list (required ∪ bonus) and scored it, so this trusts word + points +
 -- is_pangram + is_bonus and only enforces the live-game check, dedups, records,
 -- and recomputes aggregates / the compete win. It does NOT re-validate letters /
--- center / min length / dictionary membership. (See docs/games/spellingbee.md.)
+-- center / min length / dictionary membership (src/spellingbee/doc.md → RPCs).
 create or replace function spellingbee.submit_word(
   target_game uuid,
   word text,
@@ -698,8 +697,8 @@ begin
     -- the only one that can arrive by BOTH routes — caught locally, or lost as
     -- a race — and the two must not read differently, so the server composes
     -- the same string rather than a sentence of its own. The phrase is
-    -- deliberately written twice (Joel, 2026-09-01): it is not going to change,
-    -- and machinery to share it would cost more than it saves.
+    -- deliberately written twice: it is not going to change, and machinery to
+    -- share it would cost more than it saves.
     raise exception '% — already found', upper(w_lower) || case when coalesce(is_bonus, false) then ' •' else '' end
       using errcode = 'PN360', hint = 'race', column = '_',
       detail = 'the word is already in found_words under this mode''s dedup rule';
@@ -717,8 +716,7 @@ begin
   -- word carried them to it. Without a target (the open-ended hunt) coop still
   -- only ends via timer expiry or the manual End button: players keep finding
   -- bonus words past the displayed `Y / required_words_count` denominator and
-  -- the score overshoots `required_words_score` (the spellingbee-ws design —
-  -- see the bonus-scoring write-up above).
+  -- the score overshoots `required_words_score`.
   if g_row.mode = 'coop' then
     -- Alias `fw` so `points` resolves to the column, not the same-named function
     -- parameter (PL/pgSQL would otherwise raise "column reference is ambiguous").
@@ -751,10 +749,8 @@ begin
         (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', true))
            from common.game_players gp
           where gp.game_id = target_game));
-      -- Its OWN answer, in both modes. "This word ended the game and you won"
-      -- used to be a `won: true` field here and nothing at all on the compete
-      -- path, so the same event was reported two different ways depending on
-      -- mode. It is one case, so it gets one name.
+      -- Its OWN answer, in both modes: "this word ended the game and you won"
+      -- is one case, so it gets one name.
       return common.ok_envelope(jsonb_build_object(
         'result', 'won', 'points', coalesce(points, 0)));
     end if;
@@ -774,13 +770,9 @@ begin
 
   else
     -- compete: per-player aggregates. caller_found_words_count counts
-    -- ALL of caller's rows (required + bonus) — matches the
-    -- spellingbee-ws "found.length" stat. The target-rank check
-    -- below uses caller_score (which already includes bonus
-    -- points after the bonus-scoring fix in the validation
-    -- block above), so a player who finds bonus pangrams can
-    -- legitimately rocket past target faster than the displayed
-    -- max score would suggest.
+    -- ALL of caller's rows (required + bonus), matching the Stats card, and
+    -- caller_score includes bonus points, so a player who finds bonus
+    -- pangrams can reach the target faster than the displayed max suggests.
     select coalesce(sum(fw.points), 0),
            count(*)
       into caller_score, caller_found_words_count
@@ -803,10 +795,8 @@ begin
         from (
           select gp.user_id,
                  coalesce(sum(fw.points), 0)::int as found_words_score,
-                 -- All rows (required + bonus) to mirror spellingbee-ws's
-                 -- found.length stat surfaced in the leaderboard
-                 -- display. Scoring-only count would diverge from
-                 -- what the player sees in their own Stats card.
+                 -- All rows (required + bonus): a required-only count would
+                 -- diverge from what the player sees in their own Stats card.
                  count(fw.word)::int as found_words_count
             from common.game_players gp
             left join spellingbee.found_words fw
@@ -858,10 +848,8 @@ begin
         from (
           select gp.user_id,
                  coalesce(sum(fw.points), 0)::int as found_words_score,
-                 -- All rows (required + bonus) to mirror spellingbee-ws's
-                 -- found.length stat surfaced in the leaderboard
-                 -- display. Scoring-only count would diverge from
-                 -- what the player sees in their own Stats card.
+                 -- All rows (required + bonus): a required-only count would
+                 -- diverge from what the player sees in their own Stats card.
                  count(fw.word)::int as found_words_count
             from common.game_players gp
             left join spellingbee.found_words fw
@@ -912,19 +900,17 @@ grant execute on function spellingbee.submit_word(uuid, text, int, boolean, bool
 -- spellingbee.submit_timeout
 -- ============================================================
 -- Fired by the FE when the count-down timer hits 0. Flips the game terminal
--- with outcome='timeout' — play_state 'lost' in a COOP game that set a target
+-- with reason='timeout' — play_state 'lost' in a COOP game that set a target
 -- rank and didn't reach it (the clock beat them), 'lost_compete' in compete
 -- (a race always has a target rank to miss), and 'ended' (neutral) only in
 -- the open-ended coop hunt with no target. Multiple peers may
 -- race the expiry; the SELECT ... FOR UPDATE serializes them
--- and the post-lock play_state check rejects everyone after
--- the first with P0001 (which the FE swallows silently).
+-- and the post-lock play_state check answers everyone after
+-- the first with the shared game-over race.
 --
--- Mode comes off spellingbee.games.mode. This is identical in shape
--- to connections / psychicnum's submit_timeout, just with spellingbee's
--- status payload.
--- common.end_game flips common.games to ended/terminal; the FE's useCommonGame
--- hook (subscribed to common.games) sees that and enters review mode.
+-- Mode comes off spellingbee.games.mode. common.end_game flips common.games
+-- to terminal; the FE's useCommonGame hook (subscribed to common.games) sees
+-- that and enters review mode.
 --
 -- A spellingbee-table "realtime touch" on found_words IS needed for compete:
 -- opponents' found_words rows are RLS-hidden during play and become SELECT-able
@@ -969,9 +955,7 @@ begin
   end if;
 
   if g_row.mode = 'coop' then
-    -- Status display uses the ALL-rows count to match the
-    -- live Stats card (spellingbee-ws semantics — see submit_word
-    -- for the rationale).
+    -- The ALL-rows count, matching the live Stats card.
     select coalesce(sum(points), 0),
            count(*)
       into team_score, team_found_words_count
@@ -1092,26 +1076,18 @@ grant execute on function spellingbee.submit_timeout(uuid) to authenticated;
 -- spellingbee.end_game — manual stop
 -- ============================================================
 --
--- Unlike codenamesduet / psychicnum / connections, spellingbee has no
--- intrinsic "you lost" or "you won" terminal state in coop: the
--- only automatic terminals are the compete first-to-target-rank
--- (handled inside submit_word: play_state 'won_compete', outcome
--- 'target') and the countdown timer expiring (handled by
--- submit_timeout with outcome='timeout'). For all other cases the friends are
--- expected to play until they're satisfied with their rank and
--- then explicitly stop the game.
---
--- This RPC is that explicit stop. The FE's GamePage menu has an
--- "End game" item (per-game, declared by spellingbee's PlayArea via
--- ctx.menu.setGameItems) that fires this. Distinct from suspend
--- (which leaves play_state='playing' and is the path "back to
--- club" + start-a-new-game takes): end_game writes a terminal
--- play_state='ended' with status.outcome='manual', so the game
--- appears in the club's "completed" section forever after and the
--- terminal verdict renders.
+-- The only automatic terminals are a target rank reached (inside
+-- submit_word, in either mode) and the countdown expiring
+-- (submit_timeout). A coop hunt with no target, and any game the friends
+-- are done with, is stopped explicitly — this RPC, the End action the
+-- play surface binds. Distinct from suspend (which leaves
+-- play_state='playing' and is the path "back to club" takes): end_game
+-- writes a terminal play_state='ended' with status.reason='manual', so
+-- the game appears in the club's "completed" section forever after and
+-- the terminal verdict renders.
 --
 -- Same shape as submit_timeout, with two differences:
---   - status.outcome='manual' (vs 'timeout')
+--   - status.reason='manual' (vs 'timeout')
 --   - any game player can fire it (vs the FE's timer-driven
 --     dispatch)
 -- Ends with a found_words realtime touch, same as submit_timeout: the compete
@@ -1149,14 +1125,13 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    -- Idempotency: a second click (or a concurrent click + timer
-    -- expiry) raises this and the FE swallows it the same way
-    -- it does for submit_timeout's "already terminal" race.
+    -- A second click, or a click racing the timer's expiry: the shared
+    -- game-over race, as submit_timeout answers it.
     perform common._raise_game_over();
   end if;
 
   if g_row.mode = 'coop' then
-    -- All-rows count for display, matching spellingbee-ws.
+    -- The ALL-rows count, matching the live Stats card.
     select coalesce(sum(points), 0),
            count(*)
       into team_score, team_found_words_count
@@ -1263,8 +1238,8 @@ grant execute on function spellingbee.end_game(uuid) to authenticated;
 -- ============================================================
 -- spellingbee.replay_board — restart this board from scratch
 -- ============================================================
--- The "Replay board" game-menu item / terminal RestartButton (the waffle
--- feature — docs/celebration-ideas.md). Restarts the SAME board — same
+-- The Restart action — a menu row all game, a button at terminal.
+-- Restarts the SAME board — same
 -- letters + word lists — for everyone: the found-words log (the game's
 -- only working state) is cleared, and common.reset_game un-terminals the
 -- row with the same initial status create_game seeds (mode-branched; the

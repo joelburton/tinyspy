@@ -5,13 +5,14 @@
 --       contract the WordList + PlayArea rely on
 -- ============================================================
 --
--- The FE's post-game WordList stops using per-finder colors and
--- splits every word into two stylable buckets (see
--- src/spellingbee/components/WordList.tsx):
+-- The post-game list (the shared common/word-list, rows from
+-- shared/found-words/wordListRows) draws every word by who found it,
+-- and the words nobody found in gray. Two buckets, named here for the
+-- assertions:
 --
 --   cat A — words *I* (the viewer) found.
---   cat B — everything else, merged: words found by *other*
---           players + the non-bonus required words nobody found.
+--   cat B — everything else: words found by *other* players + the
+--           required words nobody found.
 --
 -- That render is only correct if the DB hands each player, at
 -- game end, exactly the rows it needs to compute the split:
@@ -20,8 +21,8 @@
 --   2. Their PEERS' found_words (cat B "found by others" source) —
 --      which RLS hides mid-game and opens only once is_terminal.
 --   3. games_state.required_words (cat B "nobody found" source) —
---      the answer key, gated to terminal by the same reveal as
---      coop.
+--      the answer key, which ships from the start; the frontend
+--      shows the missed words only at terminal.
 --
 -- The existing rls_test.sql proves the RLS branches in isolation
 -- with direct INSERTs. This file proves the *end-to-end contract*

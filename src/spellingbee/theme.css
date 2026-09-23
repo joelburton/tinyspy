@@ -4,11 +4,8 @@
  * (imported from PlayArea.tsx) so they only ship when spellingbee
  * is being played.
  *
- * Ported from ~/spellingbee-ws/src/globals.css — same palette as
- * the standalone codebase so the visual identity carries over:
- *
- *   --spellingbee-hex          The resting hex (outer letter) fill.
- *                          Soft gray-tan; NYT-Bee-adjacent.
+ *   --spellingbee-hex          The resting hex (outer letter) fill —
+ *                          the shared warm tile ramp's second step.
  *   --spellingbee-accent       The center letter fill. Yellow, the
  *                          single "mandatory" letter cue.
  *   --spellingbee-hex-text     Black on both colors — both
@@ -20,16 +17,13 @@
  * walk every consumer.
  */
 /* @@ */ :root {
-/* @@ */   --spellingbee-hex:           var(--tile-2-fill-color); /* trying the shared warm ramp (was #e6e6e6) */
+/* @@ */   --spellingbee-hex:           var(--tile-2-fill-color);
 /* @@ */   --spellingbee-accent:        #f7da21;
 /* @@ */   --spellingbee-hex-text:      #1a1a1a;
 
   /* A darker-amber edge for the yellow accent — the center hex's stroke
    * (`Letter.module.css`), so the bright-yellow cell reads as outlined rather
-   * than floating. (Was incidentally reusing the old
-   * feedback-warning amber; now its own token, since that feedback palette is
-   * gone — the submission pill is the shared <FeedbackPill> off the common
-   * --outcome-* colors.) */
+   * than floating. */
 /* @@ */   --spellingbee-accent-edge:   #a86b00;
 
   /* DEPTH, in the hive's own coordinate units. A `<polygon>` takes no

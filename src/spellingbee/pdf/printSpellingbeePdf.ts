@@ -7,22 +7,23 @@ import { drawWordListBody } from '@/common/pdf/wordListBody'
 import { BOX_H, BOX_W, HEX_H, HEX_POSITIONS, HEX_SHRINK, HEX_VERTS, HEX_W } from '../lib/honeycomb'
 
 /**
- * spellingbee's print-to-PDF, composed from the shared `common/pdf` helpers (common/pdf/doc.md):
- * the frame (header / Setup / save) + `wordColumns` (the found-words list). It's boggle's
- * shape with a different board: all that's spellingbee-specific is the **honeycomb** — the
- * 7-hex flower drawn from the same `lib/honeycomb.ts` geometry the on-screen board uses.
+ * spellingbee's print-to-PDF, composed from the shared `common/pdf` helpers
+ * (common/pdf/doc.md): the frame (header / Setup / save) + `drawWordListBody`
+ * (the board beside the setup, the word list below). All that is
+ * spellingbee's is the **honeycomb** — the 7-hex flower drawn from the same
+ * `lib/honeycomb.ts` geometry the on-screen board uses.
  *
- * The word list uses both `wordColumns` per-row flags: `pangram` → bold (spellingbee's
- * pangrams), `bonus` → a dot (bonus-band finds). At terminal the required-but-missed words
- * fold in as bare rows (`found: null`), from the same reveal the on-screen list uses.
+ * The word list reads both per-row flags: `pangram` → bold, `bonus` → a dot.
+ * At terminal every missed word — required and bonus — folds in as a bare row
+ * (`found: null`), from the same rows call the on-screen list makes.
  */
 
 /** The print payload — plain data, built by the caller from the live game state. */
 export type SpellingbeePrintModel = PrintHeader & {
-  /** The 6 outer letters + the mandatory center letter (the honeycomb's flower). */
+  // The 6 outer letters + the mandatory center letter (the honeycomb's flower).
   outerLetters: string[]
   centerLetter: string
-  /** The word list, ALREADY sorted alphabetically. */
+  // The word list, ALREADY sorted alphabetically.
   sections: WordSection[]
 }
 

@@ -17,36 +17,19 @@ import logoUrl from './logo.svg?url'
 
 /**
  * spellingbee's registration with the shell — **two manifests, one
- * schema, one folder.**
+ * schema, one folder.** "spellingbee" is the codename; the brand is `BRAND`
+ * below. The game itself is `doc.md`.
  *
- * "spellingbee" is the codename for our NYT-Spelling-Bee-style word
- * finder. The user-facing brand lives in `name` below; gametype /
- * schema / folder are all `spellingbee`. See docs/games/spellingbee.md for the
- * rules + the wider architectural decisions (hidden wordlists
- * via the games_state view, the diverse builder in the edge
- * function, sibling-manifest split).
+ * Both manifests share the same `PlayArea`, `SetupForm`, `Help`, `useGame`
+ * and CSS; the mode branches at render time on `game.mode`, which
+ * `create_game` writes onto `spellingbee.games` from its own `mode`
+ * argument. Two rows in `common.gametypes`, one set of tables — the
+ * sibling-manifest pattern (docs/common.md → The sibling-manifest pattern).
  *
- * Both manifests share the same `PlayArea`, `SetupForm`, `Help`,
- * `useGame`, and CSS. The mode branches at render time on
- * `game.mode` (read from `spellingbee.games_state.mode`, denormalized
- * for RLS + RPC branching). The DB inserts **two rows in
- * `common.gametypes`** but a **single set of spellingbee tables**;
- * the `spellingbee.create_game` RPC takes a `mode text` param and
- * routes accordingly. The edge function passes mode through.
- *
- * The sibling-manifest pattern's canonical write-up is in
- * [`docs/common.md`](../../docs/common.md#the-sibling-manifest-pattern);
- * spellingbee follows it line-for-line.
- *
- * Differences between the two manifests:
- *   - `gametype` string, used as the URL segment + registry key.
- *   - `name` shown in titles and Start-button copy.
- *   - `mode` declaration (the canonical axis for downstream code
- *     that wants to distinguish behavior).
- *   - `numberOfPlayers`: coop allows solo (`[1, 6]`), compete
- *     requires an opposing player (`[2, 6]`).
- *   - `setupForm.defaults`: compete seeds `target_rank: 5`.
- *   - `labelFor`: per-mode club-page label vocabulary.
+ * What differs between the two: the `gametype` string (the URL segment and
+ * registry key), `mode`, `numberOfPlayers` (compete needs an opponent), the
+ * setup defaults (compete seeds a target rank), the dialog's intro, and
+ * `labelFor`'s vocabulary.
  */
 
 // Help loader is shared — both modes link to the same rules modal.
@@ -61,17 +44,16 @@ const playAreaLoader = lazy(() =>
   import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
 
-// SetupForm is shared — surfaces the target-rank picker iff
-// `mode === 'compete'` via the SetupBodyProps.mode prop.
+// SetupForm is shared — the target-rank picker's caption and its "None"
+// option follow the SetupBodyProps.mode prop.
 const setupFormLoader = lazy(() =>
   import('./components/SetupForm').then((m) => ({ default: m.SetupForm })),
 )
 
 /**
  * Shared start-game caller. Forwards `mode` as a top-level body field to the
- * edge function, which strips `setup.mode` if present (defense against a stale
- * FE), builds the board, and calls `spellingbee.create_game(target_club, setup,
- * players, mode, board)`. The shared helper owns the error-context unwrap.
+ * edge function, which builds the board and calls
+ * `spellingbee.create_game(target_club, setup, players, mode, board)`.
  */
 function startGameInClubFactory(mode: 'coop' | 'compete') {
   return (clubHandle: string, setup: unknown, playerUserIds: string[]) =>
@@ -136,12 +118,8 @@ export const spellingbeeCoopGame: GameManifest = {
       s.found_words_count as number | undefined,
       s.required_words_count as number | undefined, 'words')
 
-    // Terminal coop outcomes: 'target' (the team reached the rank they set out
-    // for — the only coop WIN), 'timeout' (countdown ran out) or 'manual'
-    // (someone hit End game). Without a target there's still no auto-end at
-    // 100%-found — players keep going past the displayed denominator (bonus
-    // words climb the score past required_words_score, the Words counter past
-    // required_words_count).
+    // The rank a coop win names is the one the team set out for; a status with
+    // none is not a won game, so the fallback is never read there.
     const rank = RANKS[(s.target_rank as number | undefined) ?? 6]
     switch (row.play_state) {
       case 'playing':
@@ -191,14 +169,8 @@ export const spellingbeeCompeteGame: GameManifest = {
 
   startGameInClub: startGameInClubFactory('compete'),
 
-  /**
-   * Compete labels read from the status jsonb's target_rank +
-   * leaderboard payload (mid-game) or winner_user_id +
-   * winner_username (terminal). Numeric per-player scores are
-   * intentionally NOT surfaced in the club-page label — the
-   * "opponents see rank only" decision applies to the listing
-   * row as well.
-   */
+  // Compete's label reads the status's target rank mid-game and its
+  // winner_username at the end; no player's score reaches the listing row.
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
     const rank = RANKS[(s.target_rank as number | undefined) ?? 0] ?? '?'

@@ -4,11 +4,11 @@
 
 A Guardian-*Word-Wheel*-style word finder: nine letters arranged on a wheel — one
 central letter used in **every** word, eight outer letters around it — and you make
-as many words as you can. It is a **targeted fork of [`spellingbee`](spellingbee.md)**;
+as many words as you can. It is a **targeted fork of [`spellingbee`](../../src/spellingbee/doc.md)**;
 the two games share almost all of their machinery (trusting-commit scoring, the
 required/bonus/legal word bands, the diverse board builder, the rank ladder, the
 sibling coop/compete manifest split). This doc documents wordwheel's **rules and
-code**, and leans on spellingbee.md for the parts that are identical — read that
+code**, and leans on `src/spellingbee/doc.md` for the parts that are identical — read that
 first, then this for the deltas.
 
 ## What the game is
@@ -58,7 +58,7 @@ spellingbee). See [`candidate_words`](#why-candidate_words-does-not-enforce-tile
 
 ### Coop vs compete
 
-Same sibling pattern as spellingbee (see spellingbee.md → *Coop vs compete* and
+Same sibling pattern as spellingbee (see `src/spellingbee/doc.md` → *Game rules* and
 *Sibling-manifest at a glance*):
 
 - **coop** (`wordwheel_coop`, 1–6 players): one shared find-list; everyone's words
@@ -83,7 +83,7 @@ to spellingbee.
 | **center tile** | the mandatory tile (bigger, red); every word must use it — and when its letter is duplicated, the center is spent first |
 | **outer tiles** | the eight ring tiles |
 | **pangram** | a word using all nine tiles (any 9-letter word fitting the wheel's multiset); +15 bonus |
-| **required / legal bands** | vocabulary difficulty bands (see spellingbee.md → *Vocabulary*): `required` (default 3) = the displayed goal words; `legal` (default 5) = the wider accepted set. Words above `required` but ≤ `legal` are **bonus** (accepted + scored, but not part of the goal). |
+| **required / legal bands** | vocabulary difficulty bands (see `src/spellingbee/doc.md` → *Vocabulary*): `required` (default 3) = the displayed goal words; `legal` (default 5) = the wider accepted set. Words above `required` but ≤ `legal` are **bonus** (accepted + scored, but not part of the goal). |
 | **rank ladder** | Start · Good · Solid · Nice · Great · Amazing · Genius (7 tiers); Genius at 70% of the required score. Shared with spellingbee: `src/common/lib/game/rankLadder.ts`. |
 
 ## Schema: `wordwheel.*`
@@ -182,12 +182,12 @@ both a fitting word *and* an over-demanding word come back).
   `<CENTER>·<OUTER-SORTED>`, e.g. `E·ABCDFGHI`), including the **opt-in coop win**:
   `setup.target_rank` is required in compete and optional in coop, where reaching it
   writes `won` / missing it on the clock writes `lost` (see
-  [spellingbee.md](spellingbee.md) → play states).
+  [`src/spellingbee/doc.md`](../../src/spellingbee/doc.md) → The play states).
 
 ## RPCs
 
 Signatures and behavior match spellingbee one-for-one (only the schema name + the
-board shape differ). See spellingbee.md → *RPCs* for the full contracts.
+board shape differ). See `src/spellingbee/doc.md` → *RPCs* for the full contracts.
 
 - `wordwheel.create_game(target_club text, setup jsonb, player_user_ids uuid[], mode text, board jsonb) → table(id uuid)`
 - `wordwheel.submit_word(target_game uuid, word text, points int, is_pangram boolean, is_bonus boolean) → jsonb`
@@ -274,7 +274,7 @@ decision). Runs after `all-words` in the `gmake db-data` chain (empty until
 
 Identical to spellingbee: membership-gated reads; coop shows the shared find-list,
 compete restricts opponents to rank-only mid-game and reveals at terminal. See
-spellingbee.md → *Row-level security*.
+`src/spellingbee/doc.md` → *Schema*.
 
 ## Realtime: the live-update invariant
 
@@ -314,7 +314,7 @@ climb (`noted`). The shared `useFoundWordSubmit` reports what it decided to
 `onAnswer`, `answerOf` splits its one "not legal" by the center letter, and the
 pill reads the result (the wheel shakes on a miss and shows no color of its
 own). No RPC carries an outcome or a message: the frontend decides, once. The
-same readings as spellingbee's, for the same reasons ([spellingbee.md](spellingbee.md);
+same readings as spellingbee's, for the same reasons ([`src/spellingbee/doc.md`](../../src/spellingbee/doc.md);
 [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
 
 `src/wordwheel/` mirrors spellingbee's layout. The two games' code splits cleanly
@@ -330,7 +330,7 @@ into three buckets:
   each game's `theme.css` aliases). The RankBar marks the game's
   `target_rank` square with a heavy near-black outline — deliberately NOT a
   per-game hue, since a goal is neither good nor bad and the component is
-  shared; see [spellingbee.md](spellingbee.md) for the full behavior. The
+  shared; see [`src/spellingbee/doc.md`](../../src/spellingbee/doc.md) for the full behavior. The
   ladder's own palette (`--rank-bar-fill-color` / `--rank-bar-edge-color` in `common/theme.css`) is
   shared too — freebee yellow with dark-gold rules, in BOTH games: a rank ladder
   means the same thing wherever it appears, so wordwheel's red stays the
@@ -555,7 +555,7 @@ border. See [common/pdf/doc.md](../../src/common/pdf/doc.md).
   the hive's depth is a filter in user units and the wheel's is the shared
   box-shadow. **If it's ever revisited**, the tractable middle is the interaction
   layer under neutral names, leaving each game's shape rules local. Don't fold the
-  whole file just because the skeletons rhyme. *(Lives here rather than in spellingbee.md because wordwheel is
+  whole file just because the skeletons rhyme. *(Lives here rather than in spellingbee's doc because wordwheel is
   the fork and this doc owns the pair's shared-vs-not ledger.)*
 - **`s`-heavy seeds**: an `s` tile lets each word pluralize once — the classic
   wheel's behavior, kept deliberately. If wheels with an `s` (especially an `s`

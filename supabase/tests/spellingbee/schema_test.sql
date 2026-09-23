@@ -4,12 +4,10 @@
 -- Test: spellingbee baseline schema invariants
 -- ============================================================
 --
--- Phase-1 tests: the migration laid down the tables, grants,
--- helpers, and view. There are no RPCs yet (those land in
--- Phase 2), so this file exercises the schema *directly* —
--- inserting rows as the postgres superuser (bypassing the
--- "no INSERT grant on authenticated" rule) to set up the
--- state we want to assert about.
+-- The tables, grants and view, exercised *directly* — rows inserted
+-- as the postgres superuser (bypassing the "no INSERT grant on
+-- authenticated" rule) to set up the state to assert about, so
+-- what is pinned is the shape and not any RPC's behavior.
 --
 -- What this file covers:
 --   1. The gametype is registered in common.gametypes.
@@ -88,7 +86,7 @@ select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 reset role;
 
 -- common.games first — the FK target. Setup is the canonical
--- coop shape we expect from create_game (Phase 2). Using a CTE
+-- coop shape create_game writes. Using a CTE
 -- with the INSERT…RETURNING wrapped inside a `with ins as (...)`
 -- because `CREATE TEMP TABLE ... AS INSERT` isn't valid syntax
 -- in Postgres (only AS SELECT is).
@@ -136,9 +134,9 @@ values (
 );
 
 -- ============================================================
--- The word lists are readable directly (no longer hidden)
+-- The word lists are readable directly (nothing hidden)
 -- ============================================================
--- The grant on spellingbee.games to authenticated now includes
+-- The grant on spellingbee.games to authenticated includes
 -- required_words + bonus_words — the FE needs them to validate
 -- guesses locally, and the trust model doesn't withhold them.
 
@@ -185,8 +183,8 @@ select is(
 -- ============================================================
 -- games_state view: still exposed at terminal
 -- ============================================================
--- Flip is_terminal to true; required_words stays exposed (it always was) — the
--- terminal transition no longer changes what the view returns.
+-- Flip is_terminal to true; required_words stays exposed — the terminal
+-- transition changes nothing about what the view returns.
 
 reset role;
 update common.games set is_terminal = true, play_state = 'ended'

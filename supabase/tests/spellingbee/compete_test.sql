@@ -4,21 +4,20 @@
 -- Test: spellingbee compete mode (sibling-manifest era)
 -- ============================================================
 --
--- Coverage for the compete-specific behavior added in the
--- 20260621 spellingbee_compete migration. The shared coop contract
--- is exercised by create_game_test.sql + gameplay_test.sql +
--- rls_test.sql — this file focuses on the compete delta:
+-- The compete delta. The shared coop contract is exercised by
+-- create_game_test.sql + gameplay_test.sql + rls_test.sql; this
+-- file covers what a race adds:
 --
 --   - First-to-target-rank ends the race with the caller as the
 --     winner (status.winner_user_id) and play_state=won_compete.
 --     Survivors with sub-target ranks can no longer submit.
 --   - Per-player duplicate rule: bea finding a word ada already
---     found is fresh-for-bea (not 'alreadyFound').
+--     found is fresh for bea; ada's own repeat is the race refusal.
 --   - Mid-game status carries the leaderboard with per-player
 --     score + rank_idx + found_words_count.
 --   - submit_timeout in compete: everyone {won: false}, status
---     outcome='timeout'.
---   - end_game in compete: everyone {won: false}, outcome='manual'.
+--     reason='timeout'.
+--   - end_game in compete: everyone {won: false}, reason='manual'.
 --   - RLS mid-game scopes guesses to caller; post-terminal opens
 --     the reveal (branch c of the policy).
 --
@@ -77,7 +76,7 @@ select is(
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
--- A RACE: useWordSubmit dedups locally and returns before committing, so
+-- A RACE: useFoundWordSubmit dedups locally and returns before committing, so
 -- reaching this means its foundWords list was stale.
 select pg_temp.envelope_is(
   spellingbee.submit_word((select id from g), 'bead', 1, false, false),

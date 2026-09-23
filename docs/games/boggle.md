@@ -445,7 +445,7 @@ gives each answer its words and outcome together: `accepted` and its
 the board spells the word; the pill and the board's answer mark read that one
 call. No RPC carries an outcome or a message: the frontend decides, once. The
 same readings as spellingbee's, for the same reasons
-([spellingbee.md](spellingbee.md); [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
+([`src/spellingbee/doc.md`](../../src/spellingbee/doc.md); [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
 
 **v3 layout** — the shared two-column scaffold (`common/game-page/playArea.module.css`,
 imported as `shared`): a board column + a fixed info column, no full-page scroll

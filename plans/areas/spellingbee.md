@@ -714,6 +714,116 @@ diverges the fork pair. `BoardCol.tsx` wears no class of its own
 (`shared.boardCol` + `bee.boardCol`), so it needs no module. **The restructure
 is complete.**
 
+## The audit — pass 2
+
+### The prose pass — shipped 2026-09-22, one sitting
+
+In the working tree for Joel's read, before any finding is presented
+(the order [app-audit.md](../app-audit.md) §4 sets):
+
+- **`src/spellingbee/doc.md` is whole.** The intro's fourth paragraph (the
+  end of a game is on the board); Game rules with a Vocabulary table, Coop,
+  Compete and The play states; Schema; Frontend, with the render tree and what
+  is spellingbee's own; Tests, both suites as tables, the Deno runner and the
+  four Playwright specs named. Written from the code, as Step 3's sections
+  were, not from the old doc — and where the old doc and the code disagreed,
+  the code won: its "the seeds table is built from band-1 pangrams … ~2.1k
+  rows" (the local pool is smaller and the count is nobody's to state), its
+  "missed **required** words" reveal (bonus words fold in too), its "Solid..
+  Genius" picker (Good..Genius), and its file tree naming a `WordList.tsx`
+  this folder does not have. **`docs/games/spellingbee.md` is deleted**;
+  CLAUDE.md's row, the manifest's docstring, `submit_word`'s comment,
+  `docs/naming.md`'s vocabulary pointer, `docs/common.md`'s COPY pointer (now
+  at `lib/copyLoad.ts`, which carries the reason) and the eleven links in
+  `docs/games/wordwheel.md` and `docs/games/boggle.md` (the `docLinks` guard
+  found five of them) are repointed. The frozen migration's five
+  `See docs/games/spellingbee.md` stay, an applied migration being nobody's to
+  edit.
+- **The marker pass**, in the shape [[docs/code-conventions.md]] → Code
+  clarity states: a note on a field or an argument is `//` (`lib/setup.ts`'s
+  values, `lib/terminal.ts`'s input, `pdf/`'s model, `setupSummary`'s `board`,
+  the edge function's `Setup`, `board.ts`'s three row types). The compete
+  manifest's `labelFor` carried a `/**` inside the object literal. One
+  docstring sat on the wrong declaration: `board.ts`'s
+  `validateCustomLetters` docstring was above the `LetterFault` type, with a
+  stale `//` block between them describing a return shape the function does
+  not have; the type and the function each have their own now.
+- **The stale claims.** `lib/setup.ts` said `create_game` "rejects a `mode`
+  field on setup with a loud P0001" (no such check); `setup.psql` said the
+  same. `manifest.ts` cited "hidden wordlists via the games_state view" (both
+  ship), said the edge function "strips `setup.mode` if present" (it strips
+  nothing), and said the form shows the target-rank picker "iff compete" (coop
+  has *Win at*). `SetupForm.tsx`'s docstring said the compete picker "covers
+  Solid..Genius — Start and Good drop out" against a `TARGET_RANK_CHOICES` of
+  1..6, named a "short paragraph" the form does not render, and a cast to a
+  type it does not use. `db.ts` described a view that "conditionally exposes
+  the hidden `required_words`" behind a column grant that blocks it — the
+  grant lists both lists. `lib/setupSummary.ts` said its order "mirrors
+  `SetupForm.tsx`" (the target rank sits after the bands here, before them
+  there). `lib/terminal.ts` named `rankLabel` as still used (nothing in the
+  file calls it). `pdf/` named `wordColumns` (the body is `drawWordListBody`)
+  and "required-but-missed" (bonus fold in). `Help.tsx` said "Phase 3 copy …
+  Phase 4". The edge function's header said "all ~3.5k rows" (the count is
+  not stated anywhere now), listed `create_game`'s arguments without `mode`,
+  and said it returns `{ id }` (it relays the envelope); `board.ts`'s row
+  types said "band ≤ 3" and "band ≤ 5" where the bands are the game's. In the
+  SQL: `create_game`'s header gave `E·CABDNO` unalphabetized and `bonus_words`
+  as `[text, …]`; `submit_word`'s header listed "P0001 'game is not in
+  progress'" and "P0002 'game not found'" where the raises are PN353–PN360
+  envelopes; `submit_timeout`'s and `end_game`'s headers said `outcome`,
+  "P0001 (which the FE swallows silently)", `ctx.menu.setGameItems`, and
+  "spellingbee has no intrinsic 'you won' terminal state in coop" — the coop
+  target win exists; `replay_board`'s cited `docs/celebration-ideas.md`, a
+  file that does not exist. `gameplay_test`'s header listed `alreadyFound`
+  among the `result`s (it is a race not-ok) and "post-terminal P0001;
+  non-player 42501"; `compete_test`'s said `outcome='timeout'` and credited a
+  "20260621 spellingbee_compete migration"; `rls_test`'s cited
+  "docs/spellingbee.md → Designing for compete" and `setup.mode` (the policy
+  reads `games.mode`); `reveal_partition_test`'s cited
+  `src/spellingbee/components/WordList.tsx` and a list that "stops using
+  per-finder colors" (it keeps them). `PlayArea.test.tsx`'s header cited a
+  memory file by name.
+- **The archaeology.** `spellingbee-ws`, the port's source, cited in
+  `theme.css`, `submit_word` (four times), `submit_timeout`, `end_game` and
+  `gameplay_test`; `submit_word`'s "used to be a `won: true` field",
+  "after the bonus-scoring fix"; the dup comment's "(Joel, 2026-09-01)"; the
+  SQL's and `schema_test`'s "no longer hidden" (four places); `coop_target_test`'s
+  "Coop used to have no win at all"; `rls_test`'s "written for both modes from
+  day one even though v1 ships co-op only", its and `schema_test`'s "Phase 1"
+  / "Phase 2"; `theme.css`'s "(was #e6e6e6)" and the accent-edge's old
+  feedback-amber story; `Letter.module.css`'s "Hover used to DIM" and "It was
+  0.9"; `Letters.module.css`'s "focus rings" (no hex focuses);
+  `PlayArea.module.css`'s "the same cap the old square box used"; the edge
+  function's "Earlier shape pulled the full word list" and "the old 'pick
+  center uniformly' path"; `SetupForm.tsx`'s "Only the input shape moved";
+  `PlayArea.test.tsx`'s "no longer picks between two callbacks" and "which the
+  conceded row used to". Rule 3: `DEFAULT_SPELLINGBEE_SETUP_COMPETE`'s "the
+  'decisive race without being a slog' pick from the design conversation", and
+  `answerMessage`'s paragraph arguing each outcome (psychicnum's cut, in the
+  same words).
+- **Not touched, on purpose:** the migration (frozen); the four e2e headers
+  (`cs-unmet`, off the roster — `spellingbee-coop-win.e2e.ts` opens "Coop
+  used to have no win at all"); `Help.tsx`'s body names ⌥Z, which is UI copy
+  and a finding's question, not a comment's; `todo.md`'s attributions, a
+  register being where they belong; `honeycomb.ts`, `useGame.ts`,
+  `lib/answer.ts`'s type and `InfoCol.tsx`, which needed nothing.
+
+**Seen on the way and left for the findings**, none of it prose: the race
+winner's confetti (Step 8's note); `InfoCol`'s unread `setup` (Step 3's);
+Print's `rankIdx` recomputing `selfRankIdx` and `BoardCol`'s empty-string
+guard (Step 8's); `.hex:focus { outline: none }` on an element that cannot
+focus; the two Fisher–Yates shuffles and the ungated hover (`todo.md`); the
+edge function reads `common.words`'s `is_legal` as always-true and could drop
+the field; and `common.md`'s "How a game uses it" still states spellingbee's
+bands as the fixed 5 / 3 where they are per-game setup since the bands
+shipped.
+
+**Verified:** `tsc -b` and eslint clean over `src/spellingbee/` and the edge
+function; the game's unit tests and the guards green (36 files, 358 tests —
+`docLinks` caught the five markdown links to the deleted doc, repointed);
+`deno test`, 11 green; `gmake db-sql ENV=local` then `npm run test:db`, 181
+files, 2567 tests, PASS.
+
 ## Findings
 
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it

@@ -16,8 +16,7 @@
  *
  * It rests with a shadow, rises on hover while the shadow falls away, and
  * presses back down — the shared piece gesture every other board's tiles wear
- * (common/game-page/playArea.module.css → `.tile`). Hover used to DIM the hex
- * instead, which is the one thing hover never means anywhere else in the app.
+ * (common/game-page/playArea.module.css → `.tile`).
  *
  * Both halves are in the hive's coordinate units, not pixels: an SVG transform
  * length and a filter length are user units, so the lift and the shadow scale
@@ -47,8 +46,7 @@
   filter: var(--spellingbee-hex-hover-shadow);
 }
 /* Pressed: back down, slightly smaller, slightly darker — 0.96, the same shrink
- * every other board presses by. (It was 0.9, which on a hex this size read as
- * the tile jumping away from the finger rather than taking the press.) */
+ * every other board presses by. */
 /* @@ */ .hex:active:not(.inert) {
   transform: translateY(0) scale(0.96);
   filter: var(--spellingbee-hex-shadow) brightness(0.92);

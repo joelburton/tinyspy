@@ -8,11 +8,7 @@ import { supabase } from '@/common/supabase/supabase'
  * and RPC call (.rpc('submit_word', ...)) so the schema is
  * applied uniformly without each call site repeating it.
  *
- * Note that `spellingbee.games_state` is a VIEW that conditionally
- * exposes the hidden `required_words` answer key based on
- * common.games.is_terminal. The base `spellingbee.games` table has a
- * column-level grant that blocks it for the `authenticated` role;
- * the view is the only path to it. The FE never queries
- * `spellingbee.games` directly.
+ * The header is read through the `games_state` view, never the table — the
+ * uniform seam every game reads, even though this one hides no column.
  */
 export const db = supabase.schema('spellingbee')

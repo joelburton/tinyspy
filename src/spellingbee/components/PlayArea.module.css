@@ -11,9 +11,9 @@
  *
  * ─── Board size — TINKER HERE ────────────────────────────────────────────────
  * The flower's bounding box is 256 (wide) × 267 (tall) coordinate units (see
- * Letters.module.css). The cap is expressed as a 320-unit square edge — the same
- * cap the old square box used, so the max on-screen size is unchanged, which is
- * why the cap divisor (320) is NOT the width divisor (256). Raise/lower
+ * Letters.module.css). The cap is expressed as a 320-unit square edge — the
+ * square the flower sits in — which is why the cap divisor (320) is NOT the
+ * width divisor (256). Raise/lower
  * `--max-board-size` to taste; to REMOVE the cap, SET it to 999rem (don't
  * comment the knob OUT: the token must stay defined, or the cssTokens guard
  * trips on the now-undefined var() reference in the shared module). */

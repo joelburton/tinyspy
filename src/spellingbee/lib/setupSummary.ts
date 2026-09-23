@@ -8,23 +8,22 @@ import type { SpellingbeeSetup } from './setup'
 
 /**
  * spellingbee's setup recap — ONE array, rendered by the info column and the
- * PDF alike (common/setup-form/doc.md → Setup rows). Order mirrors
- * `components/SetupForm.tsx`.
- *
- * Target rank appears only when one was chosen — a control that didn't apply
- * produces no row, rather than a row saying "none".
+ * PDF alike (common/setup-form/doc.md → Setup rows): the roster, the board's
+ * letters, the two dictionary bands, the target rank when one was chosen (a
+ * control that didn't apply produces no row, rather than a row saying
+ * "none"), and the timer.
  *
  * The `Letters` row is the documented board-identity exception (setupRows.ts →
  * BOARD_KEY): it prints the board this game was actually built on, random or
- * hand-picked, in the same `A-CHIROT` shape the dialog's custom-letters fields
- * take back. It leads, right under the roster — on a kept record, WHICH board
+ * hand-picked, in the same `A-CHIROT` shape the dialog's custom-letters field
+ * takes back. It leads, right under the roster — on a kept record, WHICH board
  * this was outranks how it was configured.
  */
 export function setupRows(
   setup: SpellingbeeSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
-  /** The board's letters, or null while the game row is still loading. */
+  // The board's letters; null draws no Letters row.
   board: { center: string; outer: string } | null = null,
 ): SetupRow[] {
   const rows: SetupRow[] = [

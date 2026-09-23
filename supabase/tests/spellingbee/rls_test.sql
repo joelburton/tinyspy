@@ -9,16 +9,14 @@
 --   1. Outer gate: must be a club member of the game's club.
 --      (Same shape as every other gametype's SELECT RLS.)
 --
---   2. Inner gate, written for both modes from day one even
---      though v1 ships co-op only — see docs/spellingbee.md →
---      "Designing for compete." Three OR branches:
---         (a) setup.mode = 'coop'         — everyone sees all
+--   2. Inner gate, three OR branches (src/spellingbee/doc.md → Schema):
+--         (a) games.mode = 'coop'         — everyone sees all
 --         (b) user_id = auth.uid()        — see your own
 --         (c) is_terminal = true          — post-game reveal
 --
--- This file exercises every branch with direct-INSERT setup
--- (no RPCs in phase 1; the test sets state by switching to
--- postgres and writing rows directly).
+-- This file exercises every branch with direct-INSERT setup: the
+-- test sets state by switching to postgres and writing rows
+-- directly, so each branch is proved on its own, apart from the RPCs.
 --
 -- Personas: ada + bea + cade in the test club; dee is the
 -- outsider. (Naming convention: see ../_shared/setup.psql.)
@@ -137,9 +135,9 @@ select is(
 -- ============================================================
 -- Direct INSERT into spellingbee tables is blocked at the grant layer
 -- ============================================================
--- No INSERT grant for authenticated. Writes go through RPCs
--- (Phase 2). This test pins the grant boundary now so a future
--- migration doesn't accidentally widen it.
+-- No INSERT grant for authenticated: writes go through the RPCs.
+-- This pins the grant boundary so a future migration doesn't
+-- accidentally widen it.
 
 select throws_ok(
   format(

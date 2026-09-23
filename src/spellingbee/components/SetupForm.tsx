@@ -25,11 +25,8 @@ const cleanLetters = (raw: string, max: number) =>
  * first letter is the center and the rest are the outer ring — because the
  * hyphen is punctuation in a display form, not data. `cleanLetters` drops it
  * either way; this just decides where the cut falls, which is always after the
- * first letter.
- *
- * The KEYS do not change. `custom_center` and `custom_letters` stay separate in
- * the setup blob, because `create_game` validates them server-side and
- * `customLettersError` already pins the rules. Only the input shape moved.
+ * first letter. The two keys stay separate in the setup blob, since
+ * `create_game` and `customLettersError` each validate them by name.
  */
 function splitCustomLetters(raw: string): { center?: string; letters?: string } {
   const letters = cleanLetters(raw, 1 + 6)
@@ -56,24 +53,19 @@ const TARGET_RANK_CHOICES = [1, 2, 3, 4, 5, 6] as const
 const NO_TARGET = -1
 
 /**
- * spellingbee's per-game setup form. Mode is locked at the gametype
- * level (coop or compete — picked by which Start button the
- * player clicked), so this body never renders a mode radio.
+ * spellingbee's per-game setup form. Mode is locked at the gametype level
+ * (coop or compete — picked by which Start button the player clicked), so
+ * this body never renders a mode radio.
  *
- * Coop: a short paragraph, an OPTIONAL win-rank picker ("None" by default —
- * the open-ended hunt), and the shared `<SetupTimerSection>`. "None" is stored as an
- * absent `target_rank`, not a sentinel: the RPC treats absent and null the same
- * and the FE reads `target_rank === undefined` as "no win condition".
+ * In order: the players, the target rank — coop's "Win at" with a "None" that
+ * is stored as an ABSENT `target_rank`, compete's "Target rank" with no
+ * "None" — the two dictionary bands, the optional custom letters in one box,
+ * and the shared `<SetupTimerSection>`. Both pickers offer Good..Genius;
+ * Start is withheld (`TARGET_RANK_CHOICES`).
  *
- * Compete: adds a target-rank picker. The default seed comes
- * from the compete manifest's `setupForm.defaults.target_rank`
- * (5 = Amazing), and the picker covers Solid..Genius — Start and
- * Good drop out because a target rank below Solid is a no-race.
- *
- * Controlled component pattern: state lives in the wrapping
- * `SetupGameModal`, this body renders `value` and signals via
- * `onChange`. The `value as SpellingbeeSetup` cast at the top is the
- * boundary between the manifest's `unknown` setup type and
+ * Controlled: state lives in the wrapping `SetupGameModal`, this body renders
+ * `values` and signals via `set`. The `values as SpellingbeeValues` cast at the
+ * top is the boundary between the manifest's `unknown` setup type and
  * spellingbee's narrow shape.
  */
 export function SetupForm({

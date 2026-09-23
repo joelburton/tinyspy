@@ -29,7 +29,7 @@
 /* The grid: the flower's bounding box, 256 wide × 267 tall in coordinate units,
  * now the <svg> itself. `--u` (one unit) is defined on .boardCol so the below-board
  * input row reads the board width from the same source. `overflow: visible` lets
- * the outermost hexes' strokes / focus rings paint past the viewBox edge. */
+ * the outermost hexes' strokes paint past the viewBox edge. */
 /* @@ */ .grid {
   display: block;
   width: calc(256 * var(--u));

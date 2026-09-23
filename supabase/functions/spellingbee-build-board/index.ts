@@ -18,7 +18,7 @@
  * Architecture:
  *   1. Verify the caller's JWT, read the inputs.
  *   2. As the caller, fetch:
- *        - spellingbee.pangrams (all ~3.5k rows — small, cheap)
+ *        - spellingbee.pangrams (the whole pool — small, cheap)
  *        - the club's most-recent spellingbee.games row (for the
  *          overlap cap)
  *   3. Run the diverse-builder strategy in-process:
@@ -37,9 +37,9 @@
  *      mask AND uses the center letter. Compute points per required
  *      word (length score + 10 if pangram).
  *   6. Call spellingbee.create_game(target_club, setup,
- *      player_user_ids, board) over PostgREST — the RPC
- *      validates everything end-to-end and returns the new id.
- *   7. Return { id } to the FE.
+ *      player_user_ids, mode, board) over PostgREST — the RPC
+ *      validates everything end-to-end and creates the game.
+ *   7. Relay its envelope to the FE, untouched.
  *
  * Secrets / env:
  *   - SUPABASE_URL       auto-injected
@@ -99,17 +99,17 @@ import {
 // ───────────────────────────────────────────────────────────
 
 type Setup = {
-  /** Required when `mode === 'compete'` (validated server-side). */
+  // Required when `mode === 'compete'` (validated server-side).
   target_rank?: number
-  /** Vocabulary bands for this board's word lists (validated server-side by
-   *  spellingbee.create_game). `required` (1..6, default 3) = the displayed goal
-   *  set; `legal` (required..6, default 5) = the wider accepted set. */
+  // Vocabulary bands for this board's word lists (validated server-side by
+  // spellingbee.create_game). `required` (1..6, default 3) = the displayed goal
+  // set; `legal` (required..6, default 5) = the wider accepted set.
   required?: number
   legal?: number
-  /** Optional custom board — the player's own letters. `custom_center` = the
-   *  center letter, `custom_letters` = the six other letters. When both are set
-   *  (and valid) we build a board from exactly these letters instead of sampling
-   *  a random pangram seed. Both create_game and this function re-validate. */
+  // Optional custom board — the player's own letters. `custom_center` = the
+  // center letter, `custom_letters` = the six other letters. When both are set
+  // (and valid) we build a board from exactly these letters instead of sampling
+  // a random pangram seed. Both create_game and this function re-validate.
   custom_center?: string
   custom_letters?: string
   timer:
@@ -200,8 +200,8 @@ function sampleMask(weighted: PangramRow[]): PangramRow {
  *  Keep ≤ config.toml's [api] max_rows for fewest round-trips. */
 const PAGE_SIZE = 10_000
 
-/** Fetches the entire pangram pool. ~3.5k rows × ~30 bytes each
- *  = ~100 KB JSON — a single round-trip at the 10k page size. */
+/** Fetches the entire pangram pool — a few thousand short rows, one
+ *  round-trip at the 10k page size. */
 async function fetchPangrams(supabase: SupabaseClient): Promise<PangramRow[]> {
   const out: PangramRow[] = []
   for (let from = 0; ; ) {
@@ -250,14 +250,10 @@ async function fetchPreviousMask(
 /** Fetches every legal word that uses only puzzle letters AND
  *  contains the center letter. The bitmask intersection (and
  *  spellingbee's difficulty/dialect/length slice of common.words) runs
- *  server-side via `spellingbee.candidate_words(puzzle_mask,
- *  center_bit)`, so the response is only the matching ~hundreds of
- *  rows (well under max_rows). One round-trip per board.
- *
- *  Earlier shape pulled the full word list and filtered in JS; that
- *  ran into PostgREST's max_rows = 1000 cap (silent truncation to
- *  the alphabetically-first 1000 words). The RPC pattern fixes the
- *  truncation without bumping the global cap. */
+ *  server-side via `spellingbee.candidate_words`, so the response is only
+ *  the matching ~hundreds of rows — well under PostgREST's `max_rows`, which
+ *  silently truncates a query that pulls the whole list to filter here.
+ *  One round-trip per board. */
 async function fetchCandidateWords(
   supabase: SupabaseClient,
   puzzleMask: bigint,
@@ -402,11 +398,9 @@ serve(async (req) => {
 
       // 3-4. Sample a seed AND a center that clears the word gate.
       // A seed's stored `required_words_count` is over its whole 7-letter SET, but the
-      // puzzle only counts words that CONTAIN THE CENTER. So a poorly-chosen
-      // center can land a real board below the ≥30 gate even though the set is
-      // fine — which the old "pick center uniformly, then reject if short" path
-      // surfaced as an error when create_game re-checked the gate. Fix: try the
-      // seed's 7 centers in random order and keep the first that clears the gate;
+      // puzzle only counts words that CONTAIN THE CENTER, so one center can land
+      // a board below the ≥30 gate even though the set is fine. Try the seed's 7
+      // centers in random order and keep the first that clears the gate;
       // re-sample the seed only if NONE of its centers do (rare).
       for (
         let seedAttempt = 0;

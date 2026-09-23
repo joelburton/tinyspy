@@ -24,35 +24,33 @@ export type Board = {
   center_letter: string
   required_words_score: number
   required_words_count: number
-  /** The required set: words in the smaller list (the displayed goal). */
+  // The required set: words in the smaller list (the displayed goal).
   required_words: Array<{ word: string; points: number; is_pangram: boolean }>
-  /** The bonus set (legal − required): accepted + scored, not the goal. Same
-   *  { word, points, is_pangram } shape as required so the FE scores it locally. */
+  // The bonus set (legal − required): accepted + scored, not the goal. Same
+  // { word, points, is_pangram } shape as required so the FE scores it locally.
   bonus_words: Array<{ word: string; points: number; is_pangram: boolean }>
 }
 
 export type PangramRow = {
   mask: string                // bigint comes through PostgREST as string
-  /** How many required words fit this 7-letter seed — the ≥30 gate. */
+  // How many required words fit this 7-letter seed — the ≥30 gate.
   required_words_count: number
-  /**
-   * Whether the seed's 7 letters include a rare one — {j, q, x, z}
-   * (very rare) or {k, v, w, y} (somewhat rare). The diverse builder
-   * gives these masks a ×RARE_LETTER_WEIGHT sampling boost so boards
-   * aren't dominated by common-letter seeds (e, a, i, r, t, …).
-   * Precomputed at import time.
-   */
+  // Whether the seed's 7 letters include a rare one — {j, q, x, z}
+  // (very rare) or {k, v, w, y} (somewhat rare). The diverse builder
+  // gives these masks a ×RARE_LETTER_WEIGHT sampling boost so boards
+  // aren't dominated by common-letter seeds (e, a, i, r, t, …).
+  // Precomputed at import time.
   has_rare_letters: boolean
 }
 
 export type CandidateRow = {
   word: string
   letter_mask: string
-  /** In the required set (band ≤ 3, american, no slang, clean: slur 0 +
-   *  crude 0) — counts toward the goal. */
+  // In the required set (at or below the required band, american, no slang,
+  // clean) — counts toward the goal.
   is_required: boolean
-  /** In the legal set (band ≤ 5) — enterable. Always true here
-   *  (candidate_words already pre-filters to legal). */
+  // In the legal set (at or below the legal band) — enterable. Always true
+  // here (candidate_words already pre-filters to legal).
   is_legal: boolean
 }
 
@@ -127,7 +125,7 @@ export function applyOverlapCap(
 
 /** Build the weighted candidate array. A mask appears
  *  RARE_LETTER_WEIGHT times if has_rare_letters; otherwise once.
- *  Cheap given pool size (~3.5k → ~7-10k after weighting). */
+ *  Cheap: the pool is a few thousand rows. */
 export function buildWeightedPool(pool: PangramRow[]): PangramRow[] {
   const weighted: PangramRow[] = []
   for (const row of pool) {
@@ -188,16 +186,6 @@ export function buildBoard(
   }
 }
 
-/** Validate a custom (player-specified) letter set, or null if it's fine.
- *  Mirrors spellingbee.create_game's letter rules + the FE's `customLettersError`:
- *  a single center + six OTHER letters, all seven distinct lowercase a–z, none
- *  being 's' (the Spelling Bee rule). Both inputs are already lowercased/trimmed
- *  by the caller. */
-// Returns the fe-error-key for the failed rule, or null when the letters are
-// valid. Keys, not sentences: the FE pre-validates the same rules in the setup
-// form (customLettersError in src/spellingbee/lib/setup.ts), so reaching one
-// of these means a broken client — they carry no copy and render as faults
-// (docs/supabase.md → Server errors).
 /** Which of the three letter rules broke. Named, not coded: this file knows
  *  spellingbee's spelling rules and nothing about how a refusal is carried, so
  *  the SQLSTATE and the severity are the caller's to attach — and keeping them
@@ -205,6 +193,11 @@ export function buildBoard(
  *  one place. */
 export type LetterFault = 'center' | 'letters' | 'duplicates'
 
+/** Validate a custom (player-specified) letter set: which rule broke, or null
+ *  if it's fine. Mirrors spellingbee.create_game's letter rules + the FE's
+ *  `customLettersError`: a single center + six OTHER letters, all seven
+ *  distinct lowercase a–z, none being 's' (the Spelling Bee rule). Both inputs
+ *  are already lowercased/trimmed by the caller. */
 export function validateCustomLetters(center: string, letters: string): LetterFault | null {
   if (!/^[a-z]$/.test(center) || center === 's') return 'center'
   if (!/^[a-z]{6}$/.test(letters) || letters.includes('s')) return 'letters'

@@ -4,12 +4,11 @@
 -- Test: spellingbee COOP target rank (the coop win condition)
 -- ============================================================
 --
--- Coop used to have no win at all — it only ever reached 'ended', via the clock
--- or the End button. It can now carry the same `setup.target_rank` compete uses,
--- meaning "reach this rank TOGETHER and you win". Absent/null keeps the old
--- open-ended hunt.
+-- Coop may carry the same `setup.target_rank` compete uses, meaning "reach
+-- this rank TOGETHER and you win"; absent/null is the open-ended hunt, which
+-- only the clock or the End button stops.
 --
--- Coverage (the four coop terminals this creates):
+-- Coverage (the coop terminals a target creates):
 --   1. target reached  → play_state 'won',  outcome 'target',  everyone {won:true}
 --   2. …and the game is really over: a later submit_word is rejected
 --   3. clock expires with a target set + unreached → 'lost', outcome 'timeout'

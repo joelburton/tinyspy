@@ -8,14 +8,9 @@ type Props = {
 }
 
 /**
- * spellingbee's help / rules modal — opened from the "Help" item
- * in the GamePage menu. Implements the common
- * `help: ComponentType<{ onClose }>` contract on `GameManifest`.
- *
- * Phase 3 copy: the rules-of-the-game in 4 short bullets, plus
- * a footnote on the rank ladder (which the UI doesn't render
- * yet — that's Phase 4). Renders into the shared `<GameHelpCompanion>`
- * scaffold every game uses.
+ * spellingbee's help / rules modal — opened from the "Help" item in the
+ * GamePage menu; the manifest's `help` contract. The word rules, the scoring
+ * and how to enter a word, in the shared `<GameHelpCompanion>` scaffold.
  */
 export function Help({ onClose, brand }: Props) {
   return (

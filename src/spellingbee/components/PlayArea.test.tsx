@@ -1,18 +1,13 @@
 // cs-met-spellingbee
 
 /**
- * Render + behavior tests for spellingbee's PlayArea.
- *
- * Why this exists: the trusting-commit refactor rewired the whole submit path
- * (the shared `useFoundWordSubmit` hook, the un-gated word lists, the client-side
- * reveal), and spellingbee's PlayArea (the largest FE file in that change) had NO
- * component coverage — a blank-page runtime error wouldn't be caught by `tsc`
- * (the root tsconfig checks nothing — see memory project_typecheck_use_tsc_b).
- * These prove the tree mounts in every mode AND that the spellingbee-specific
- * glue works: the local lookup accepts a required/bonus/pangram word (optimistic
- * pill + `submit_word` call) and rejects a non-legal one with the right reason.
- * Deep game logic still lives in pgTAP + the lib Vitest suites (ranks, the
- * answer table, the display rows); here we cover the composition.
+ * Render + behavior tests for spellingbee's play surface: the tree mounts in
+ * every mode and state, and the spellingbee-specific glue works — the local
+ * lookup accepts a required, bonus or pangram word (the optimistic pill and the
+ * `submit_word` call) and refuses a non-legal one with the right reason, on the
+ * board as well as in the pill. The game logic itself is pgTAP's and the lib
+ * suites' (the answer table, the terminal sentences); here we cover the
+ * composition.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the honeycomb, RankBar, entry row, word list — renders
@@ -363,8 +358,8 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
 
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
     // ONE binding for both rows: it navigates directly at terminal and routes
-    // through the suspend-confirm flow mid-game, so the game no longer picks
-    // between two callbacks and no longer can pick wrong.
+    // through the suspend-confirm flow mid-game, so the game picks nothing
+    // and cannot pick wrong.
     const user = userEvent.setup()
     const ctx = makeCtx()
     render(<PlayAreaLoader {...ctx} />)
@@ -654,7 +649,7 @@ describe('spellingbee PlayArea — concede', () => {
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     // Possible here, not right now: the button stays and says why.
     expect(bound('act-concede').describe('button').state).toBe('disabled')
-    // The one row cannot lose the way out, which the conceded row used to.
+    // The one row always keeps the way out.
     expect(screen.getByRole('button', { name: 'Back to club' })).toBeInTheDocument()
     // Moving on is still a menu thing until the game is over.
     expect(bound('act-restart').describe('button').state).toBe('hidden')
