@@ -55,10 +55,10 @@ const helpLoader = lazy(() =>
   import('./components/Help').then((m) => ({ default: m.Help })),
 )
 
-// PlayArea is shared — branches on `game.mode` for the compete-
-// only OpponentStrip + win-vs-loss verdict copy.
+// One surface for both modes — it branches on `game.mode` for the
+// compete-only OpponentStrip and the win-vs-loss verdict.
 const playAreaLoader = lazy(() =>
-  import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+  import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
 )
 
 // SetupForm is shared — surfaces the target-rank picker iff

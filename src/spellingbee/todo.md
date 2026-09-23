@@ -2,11 +2,6 @@
 
 ## Bugs
 
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
-
 ## Soon
 
 - **Collapse the info-column action row's branches.** This game still FORKS on

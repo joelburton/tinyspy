@@ -205,6 +205,50 @@ true).
 collapse, the two Fisher–Yates shuffles, the ungated hive hover) plus the
 struck custom-letters ruling, two Someday, one Won't do.
 
+### Step 2 — the loader / loaded split (readability 3.1) — DONE 2026-09-22
+
+The shape psychicnum settled and connections and wordle confirmed:
+`PlayAreaLoader` owns `useGame` and the three gates — `<Loading>`,
+`<EnvelopeErrorPage>`, `<NoSuchGamePage>` (its `detail` names the read that
+came back empty, `rows=0 view=spellingbee.games_state`) — and hands `PlayArea`
+a non-null game, the found-words rows, `rowsLoaded`, and a narrowed `setup`.
+The cast happens once, in the loader's JSX; the inner component takes
+`setup: SpellingbeeSetup` through `Omit<GamePageCtx, 'setup'>`. The manifest's
+lazy line names the loader, and the test file mounts it at all 28 sites with
+`useGame` mocked exactly as before.
+
+**What went with it**, all in this commit: `spellingbeeSetup` and its cast,
+`game?.mode ?? 'coop'` twice, `game ? {center, outer} : null`, `if (!game)
+return` inside Print's run and its `describe: () => (game ? 'active' :
+'hidden')`, `if (!game) return new Set<string>()`, `game?.requiredWords ?? []`
+and its bonus twin, `game?.center_letter.toLowerCase() ?? ''`, `game?.mode ===
+'compete' ? 'compete' : 'coop'`, the `gameMode` variable with its three
+readers and its `if (!gameMode) return // menu exists pre-load`,
+`game?.required_words_score ?? 0` twice, and the two inline gates
+(`surface.loading` / `surface.empty`) — wordwheel and boggle still read both
+classes, so nothing went dead in the shared sheet.
+
+**One narrowing the split exposed rather than removed:** `explainReject`'s
+`if (center && !w.includes(center))`. The `center &&` was guarding the `?? ''`
+that no longer exists — a board always has a center letter — so it is gone
+too.
+
+**A docstring that documented nothing is now on its component.** The
+play-surface docstring sat above `type SubmittedWord`, which has its own — so
+the surface's description was attached to the type and `PlayArea` had none.
+`orphanedDocstrings` does not catch this shape; the split put it back where it
+belongs, and the guard's blind spot is worth a finding of its own.
+
+**One behavior change, stated now**, the same one the three earlier games
+made: while the read is out the header menu has no game rows and `+` does
+nothing, where before the rows were published pre-load and `+` asked the
+new-game question and then could not act. **That IS the Bug in `todo.md`**,
+which is deleted there — `describe: () => 'active'` is now true rather than
+optimistic, since the component holding the binding does not render until the
+row is in hand.
+
+**Verified:** `tsc -b` and eslint clean; 4 files, 56 tests green.
+
 ## Findings
 
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it

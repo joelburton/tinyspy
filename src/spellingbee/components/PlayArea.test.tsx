@@ -33,7 +33,7 @@ import type { SpellingbeeGame, FoundWordRow } from '../hooks/useGame'
 import { db } from '../db'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { pickFilter } from '@/common/lists/filterSelectHelpers'
-import { PlayArea } from './PlayArea'
+import { PlayAreaLoader } from './PlayArea'
 
 /** A ctx whose global slot is real, with a spy on its one door. */
 function narrationCtx(over: Partial<GamePageCtx> = {}) {
@@ -122,9 +122,9 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
  *  Any test that TYPES needs it: the entry's letters, Backspace and Enter are
  *  bound actions now, and a bare `render` binds them with nothing feeding them
  *  keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+function WithKeys(props: React.ComponentProps<typeof PlayAreaLoader>) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** A keystroke as the app-root listener sees it: from the body, with nothing
@@ -175,7 +175,7 @@ beforeEach(() => {
 
 describe('spellingbee PlayArea — render smoke', () => {
   it('renders the honeycomb + RankBar + Stats in coop play', () => {
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
     expect(document.querySelector('[data-hive]')).toBeInTheDocument()
     // The center hex. Selected by its data hook rather than a role + aria-label:
     // a hex is pointer-only (see Letter.tsx), so dressing it as a button just to
@@ -187,7 +187,7 @@ describe('spellingbee PlayArea — render smoke', () => {
 
   it('renders the OpponentStrip (Rank) in compete play', () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
-    render(<PlayArea {...makeCtx({ players: twoMembers, setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } } })} />)
+    render(<PlayAreaLoader {...makeCtx({ players: twoMembers, setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } } })} />)
     expect(screen.getByText('Rank:')).toBeInTheDocument()
   })
 
@@ -195,7 +195,7 @@ describe('spellingbee PlayArea — render smoke', () => {
     // The missed words are in the rows the moment the game ends; the WHO
     // filter's terminal default, Found, is what holds them one select back.
     render(
-      <PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />,
+      <PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'ended' })} />,
     )
     // 'bead' was never submitted, so it is a missed word and not on show.
     expect(screen.queryByText(/bead/i)).toBeNull()
@@ -260,17 +260,17 @@ describe('spellingbee PlayArea — compete terminal verdicts', () => {
   })
 
   it('all-conceded (lost_compete + outcome conceded) says so', () => {
-    render(<PlayArea {...competeCtx('lost_compete', 'conceded')} />)
+    render(<PlayAreaLoader {...competeCtx('lost_compete', 'conceded')} />)
     expect(screen.getByText('Lost: all conceded')).toBeInTheDocument()
   })
 
   it('timeout (lost_compete + outcome timeout) blames the clock', () => {
-    render(<PlayArea {...competeCtx('lost_compete', 'timeout')} />)
+    render(<PlayAreaLoader {...competeCtx('lost_compete', 'timeout')} />)
     expect(screen.getByText('Lost: ran out of time')).toBeInTheDocument()
   })
 
   it('manual end (ended + outcome manual) stays neutral', () => {
-    render(<PlayArea {...competeCtx('ended', 'manual')} />)
+    render(<PlayAreaLoader {...competeCtx('ended', 'manual')} />)
     expect(screen.getByText(/game ended/i)).toBeInTheDocument()
   })
 })
@@ -290,14 +290,14 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
     // between two callbacks and no longer can pick wrong.
     const user = userEvent.setup()
     const ctx = makeCtx()
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'Back to club' }))
     expect(ctx.menu.actBackToClub.run).toHaveBeenCalled()
   })
 
   it('terminal Restart calls replay_board WITHOUT confirming', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
     await user.click(screen.getByRole('button', { name: 'Restart' }))
     // No <ConfirmationHost/> is mounted, so a question would have been answered
     // "no" — the RPC firing proves none was asked.
@@ -308,7 +308,7 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
     startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
     const user = userEvent.setup()
     const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
     await user.click(screen.getByRole('button', { name: 'New game' }))
     await waitFor(() =>
       expect(startEdgeFn).toHaveBeenCalledWith(
@@ -340,7 +340,7 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
     startEdgeFn.mockImplementation(() => new Promise((resolve) => (release = resolve)))
     const user = userEvent.setup()
     const ctx = makeCtx({ isTerminal: true, playState: 'ended' })
-    render(<PlayArea {...ctx} />)
+    render(<PlayAreaLoader {...ctx} />)
 
     const button = screen.getByRole('button', { name: 'New game' })
     await user.click(button)
@@ -443,9 +443,9 @@ describe('spellingbee PlayArea — coop peer narration (global header)', () => {
 
   it("narrates a teammate's find with the word + points, the actor leading", () => {
     const { ctx, shown } = narrationCtx({ players: twoMembers })
-    const { rerender } = render(<PlayArea {...ctx} />)
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'bead', points: 1 })])
-    rerender(<PlayArea {...ctx} />)
+    rerender(<PlayAreaLoader {...ctx} />)
     const feedbackMsg = shown.mock.calls.at(-1)![0]
     expect(feedbackMsg.kind).toBe('peer')
     expect(feedbackMsg.actor?.username).toBe('moth')
@@ -455,25 +455,25 @@ describe('spellingbee PlayArea — coop peer narration (global header)', () => {
 
   it('adds the pangram flourish for a peer pangram', () => {
     const { ctx, shown } = narrationCtx({ players: twoMembers })
-    const { rerender } = render(<PlayArea {...ctx} />)
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'abcdefg', points: 17, is_pangram: true })])
-    rerender(<PlayArea {...ctx} />)
+    rerender(<PlayAreaLoader {...ctx} />)
     expect(shown.mock.calls.at(-1)![0].text).toBe('pangram 🐝 ABCDEFG +17')
   })
 
   it('shows the bonus dot after a peer bonus find', () => {
     const { ctx, shown } = narrationCtx({ players: twoMembers })
-    const { rerender } = render(<PlayArea {...ctx} />)
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ word: 'bcdfge', points: 6, is_bonus: true })])
-    rerender(<PlayArea {...ctx} />)
+    rerender(<PlayAreaLoader {...ctx} />)
     expect(shown.mock.calls.at(-1)![0].text).toBe('found BCDFGE • +6')
   })
 
   it('does not narrate your own find (that goes to the local slot)', () => {
     const { ctx, shown } = narrationCtx({ players: twoMembers })
-    const { rerender } = render(<PlayArea {...ctx} />)
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
     h.result = loaded(loadedGame(), [foundRow({ user_id: 'u1', word: 'bead', points: 1 })])
-    rerender(<PlayArea {...ctx} />)
+    rerender(<PlayAreaLoader {...ctx} />)
     expect(shown).not.toHaveBeenCalled()
   })
 })
@@ -502,9 +502,9 @@ describe('spellingbee PlayArea — compete opponent rank climb', () => {
     const globalFeedbackSlot = createFeedbackSlot('global')
     const shown = vi.spyOn(globalFeedbackSlot, 'show')
     const props = competeCtx(1, { globalFeedbackSlot })
-    const { rerender } = render(<PlayArea {...props} />)
+    const { rerender } = render(<PlayAreaLoader {...props} />)
     // Same slot + players, new leaderboard with u2 climbing 1 → 2.
-    rerender(<PlayArea {...props} status={{ leaderboard: [entry(2)] }} />)
+    rerender(<PlayAreaLoader {...props} status={{ leaderboard: [entry(2)] }} />)
     const feedbackMsg = shown.mock.calls.at(-1)![0]
     expect(feedbackMsg.kind).toBe('peerMilestone')
     expect(feedbackMsg.actor?.username).toBe('moth')
@@ -520,7 +520,7 @@ describe('spellingbee PlayArea — concede', () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
       <>
-        <PlayArea {...makeCtx({ players: twoMembers, setup: competeSetup })} />
+        <PlayAreaLoader {...makeCtx({ players: twoMembers, setup: competeSetup })} />
         <ConfirmationHost />
       </>,
     )
@@ -536,7 +536,7 @@ describe('spellingbee PlayArea — concede', () => {
     const user = userEvent.setup()
     render(
       <>
-        <PlayArea {...makeCtx()} />
+        <PlayAreaLoader {...makeCtx()} />
         <ConfirmationHost />
       </>,
     )
@@ -554,7 +554,7 @@ describe('spellingbee PlayArea — concede', () => {
   it('marks a conceded opponent "out" in the strip (mid-game)', () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })],
           setup: competeSetup,
@@ -567,7 +567,7 @@ describe('spellingbee PlayArea — concede', () => {
   it('shows the "You conceded" locally-terminal look after I concede', () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
           setup: competeSetup,
@@ -580,7 +580,7 @@ describe('spellingbee PlayArea — concede', () => {
   it('distinguishes Quit / Lost / Won at terminal in the strip', () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
-      <PlayArea
+      <PlayAreaLoader
         {...makeCtx({
           isTerminal: true,
           playState: 'ended',
@@ -729,7 +729,7 @@ describe('spellingbee PlayArea — the keys', () => {
       const user = userEvent.setup()
       render(
         <>
-          <PlayArea {...makeCtx()} />
+          <PlayAreaLoader {...makeCtx()} />
           <ConfirmationHost />
         </>,
       )
@@ -745,7 +745,7 @@ describe('spellingbee PlayArea — the keys', () => {
       const user = userEvent.setup()
       render(
         <>
-          <PlayArea {...makeCtx()} />
+          <PlayAreaLoader {...makeCtx()} />
           <ConfirmationHost />
         </>,
       )

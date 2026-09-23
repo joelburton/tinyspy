@@ -359,7 +359,10 @@ src/spellingbee/
   logo.svg                Bee glyph (copied from spellingbee-ws).
 
   components/
-    PlayArea.tsx          The thin two-column coordinator on the shared scaffold (.boardCol /
+    PlayArea.tsx          Two components: `PlayAreaLoader` (what the manifest mounts — the read,
+                          its three answers, and the one narrowing of `setup`) and `PlayArea`,
+                          which takes the loaded game as a prop and so never asks whether it is
+                          there. The thin two-column coordinator on the shared scaffold (.boardCol /
                           .infoCol). **Decomposed** into BoardCol + InfoCol (no-op verified; no
                           history viewer — a WordList isn't chronological). PlayArea keeps the
                           word-entry ENGINE — the shared `useFoundWordSubmit` (the typed word, the
