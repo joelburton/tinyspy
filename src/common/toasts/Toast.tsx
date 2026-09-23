@@ -36,11 +36,12 @@ export function Toast({ toast }: { toast: ToastEntry }) {
     return () => clearTimeout(t)
   }, [toast])
 
-  const close = () => {
+  function close() {
     onClose?.()
     dismissToast(id)
   }
-  const act = () => {
+
+  function act() {
     action?.onClick()
     if (!action?.keepOpen) dismissToast(id)
   }
