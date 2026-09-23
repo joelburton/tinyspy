@@ -442,6 +442,54 @@ Joel: *"once i've read that plan, we do this."* **Step 4's "no answer file" is
 overtaken by it**; its SQL half — no outcome on a guess's `ok` — stands either
 way. Step 5 resumes after.
 
+**Resumed 2026-09-23.** The events plan was built, rehearsed, deployed to prod
+from branch `codenamesduet-events` (`fa99b43d`) and fast-forwarded into
+`app-audit` — its record is the plan's own. Three things came with it that
+this area now inherits as done: the log marks a clue given exactly as the AI
+suggested it; every sudden-death guess is a turn of its own and a row of the
+log; the history link is an event id. After it, and not deployed yet, the key
+card (`b579e9a8`): a "Key card" disclosure above "Setup options", both on a new
+shared `common/info-sheet/InfoDisclosure`. **Created files join the roster** —
+`lib/events.ts`, `lib/answer.ts`, `components/KeyCard.tsx` and their specs and
+stylesheets, the new migration, `events_test.sql`,
+`e2e/codenamesduet-events.e2e.ts`, and `InfoDisclosure` (with its spec and
+stylesheet), all stamped `cs-met-codenamesduet`.
+
+### Step 5 — the actions and the row (readability 3.6, 3.7) — DONE 2026-09-23
+
+wordle's and spellingbee's Step 5, copied. **The row is one `<InfoActionsRow>`
+now**, in the order `docs/playarea.md` states: Reveal · Restart · New game ·
+Concede · End | Back to club — no divider, since nothing sits left of it (this
+game's hint, the AI, is on the clue form). The two-way fork (`over ? … : …`)
+is gone; the only thing that varies is the row's line, the verdict once the
+game is over. Back to club keeps `weight={over ? 'primary' : 'secondary'}`.
+
+**The per-asker rules:** Reveal gets the button guard readability 3.6 calls
+for — no button while the game runs, the menu row all game (grayed), because
+`describeReveal` has no hidden case; New game is a button only at the end,
+`(asker) => asker === 'button' && !isTerminal ? 'hidden' : 'active'`, the menu
+and `+` all game. Restart, Concede and End were already the shared hook's.
+
+**Every binding in one section, in one order:** the shared trio, then Reveal
+(moved up from after New game, its long comment with it), New game, Print. The
+InfoCol's destructure, its prop-type block (each doc now saying when its
+button shows), PlayArea's prop list and the menu all read Reveal · Restart ·
+New game | Concede · End. `createNewGame` was already a plain function; no
+in-flight flag existed; `BoardCol`'s one `useCallback` feeds `useSingleFlight`,
+a second reader, and stays.
+
+**Behavior changes, stated now:** mid-game, the row's buttons are End and Back
+to club, as before; the menu now lists Reveal · Restart · New game (was Restart
+· New game · Reveal). At the end, the row is Reveal · Restart · New game · Back
+to club, as before. Nothing a player sees in the row changed; the fork did.
+
+**The todo's Soon item is deleted.** Three new PlayArea cases pin the row: the
+buttons while running (End, Back to club) with the rest still menu rows; the
+buttons at the end; the menu's order. **Verified by planting** New game's old
+`'active'` and Reveal without its guard: each turned the running-row case red;
+restored from scratchpad copies, green. `tsc -b` and eslint clean; the game's
+108 unit specs green. No e2e for this step.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it

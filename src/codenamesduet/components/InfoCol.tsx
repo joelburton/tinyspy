@@ -40,11 +40,11 @@ export function InfoCol({
   viewerFinished,
   peerFinished,
   peer,
-  actEndGame,
-  actConcede,
-  actRestart,
   actReveal,
+  actRestart,
   actNewGame,
+  actConcede,
+  actEndGame,
   actBackToClub,
   myKey,
   setup,
@@ -78,21 +78,24 @@ export function InfoCol({
   /** The other seated player — names the clue-giver in the banners. */
   peer: Player | undefined
 
-  // ── Action row (End during play; back-to-club at terminal) ──
-  /** End the game for the whole table — the mutual "we're done". */
-  actEndGame: BoundAction
+  // ── Action row — every action, in the row's order; each one's own
+  //    `describe` decides whether its button is there ──
+  /** Open the partner's key card at game-over — or cover it up again. A local
+   *  display toggle carrying its own two faces: nothing is written, and the
+   *  partner's own card stays covered until THEY ask. A button only at the end. */
+  actReveal: BoundAction
+  /** Run this board back — same words, same key cards (a mulligan). A button
+   *  only at the end; the menu and its key all game. */
+  actRestart: BoundAction
+  /** Start a fresh follow-up game — same setup + roster, a newly sampled board.
+   *  A button only at the end; the menu and `+` all game. */
+  actNewGame: BoundAction
   /** Placed for symmetry with every other game's row and never drawn here: duet
    *  is coop, so this hides itself. */
   actConcede: BoundAction
-  /** Run this board back — same words, same key cards (a mulligan). */
-  actRestart: BoundAction
-  /** Open the partner's key card at game-over — or cover it up again. A local
-   *  display toggle carrying its own two faces: nothing is written, and the
-   *  partner's own card stays covered until THEY ask. */
-  actReveal: BoundAction
-  /** Start a fresh follow-up game — same setup + roster, a newly sampled board.
-   *  Disables itself while the create is in flight. */
-  actNewGame: BoundAction
+  /** End the game for the whole table — the mutual "we're done". Gone at the
+   *  end. */
+  actEndGame: BoundAction
   /** Leave for the club — the shell's own action, off `ctx.menu`. */
   actBackToClub: BoundAction
 
@@ -159,32 +162,20 @@ export function InfoCol({
           </div>
         )}
 
-        {/* Action row. Playing: End. Terminal: the bold, outcome-colored result line +
-            a compact back-to-club button (the shared swap). */}
-        {over ? (
-          <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
-            {/* Stay-here options, left of the leave option (Club): open the
-                partner's key card (the post-mortem, once you've talked through
-                what you'd have played next), run the same board back, or deal a
-                fresh one. */}
-            <ActionButton action={actReveal} show="icon" />
-            <ActionButton action={actRestart} show="icon" />
-            <ActionButton action={actNewGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" weight="primary" />
-          </InfoActionsRow>
-        ) : (
-          <InfoActionsRow>
-            {/* Manual "we're done" stop — flag + error/red tone, the canonical
-                "End game" label. Both exits are placed, as in every other game's
-                row; duet is coop, so Concede hides itself and only End is drawn.
-                It reads distinctly from this game's "Pass & end turn" below the
-                board (a different glyph), so it keeps the same wording as every
-                other v3 game. */}
-            <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
-            <ActionButton action={actBackToClub} show="icon" />
-          </InfoActionsRow>
-        )}
+        {/* The action row: every action, placed once, in the order the menu
+            lists them (docs/playarea.md). Which buttons show is each action's own
+            answer — Reveal, Restart and New game at the end, End while it runs,
+            Concede never (duet is coop). The only thing that varies here is the
+            line: the verdict once the game is over. No divider: nothing sits left
+            of it — this game's hint, the AI, is on the clue form. */}
+        <InfoActionsRow message={over ? { text: over.infoColText, outcome: over.outcome } : undefined}>
+          <ActionButton action={actReveal} show="icon" />
+          <ActionButton action={actRestart} show="icon" />
+          <ActionButton action={actNewGame} show="icon" />
+          <ActionButton action={actConcede} show="icon" />
+          <ActionButton action={actEndGame} show="icon" />
+          <ActionButton action={actBackToClub} show="icon" weight={over ? 'primary' : 'secondary'} />
+        </InfoActionsRow>
 
         {/* Help — a stable orienting line during play (the per-phase guidance lives
             below the board + in the header pill). In sudden death it switches to the

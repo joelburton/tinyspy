@@ -382,6 +382,36 @@ export function PlayArea({
     localFeedbackSlot,
   })
 
+  // ─── Terminal partner-key reveal ─────────────────────────────────
+  // The partner's key card is NOT opened the instant the game ends. The seconds
+  // right after an assassin are the best part of a Duet post-mortem — "wait, I
+  // was about to pick APPLE" — and that conversation only happens while the card
+  // is still covered. Reveal opens it, and the post-mortem continues with
+  // everything on the table.
+  //
+  // The ask is LOCAL and reversible (useSolutionReveal). Sharing it — on the
+  // reasoning that the partner is the person you're doing the post-mortem
+  // WITH — cuts the other way: a Duet post-mortem is two people thinking out
+  // loud, and one of them opening the card ends the other's thinking
+  // mid-sentence. Each of you looks when you're ready, and Hide covers it up
+  // again. Not a shield either way: both key columns are readable
+  // by every club member under the friends trust model.
+  //
+  // Reveal the partner's key — a LOCAL display toggle: it shows their card to me
+  // alone, writes nothing, and affects nobody else. Terminal-only, because
+  // mid-game the partner's card IS the game.
+  const actReveal = useBoundAction('act-reveal', {
+    // "key cards" rather than the bare default: what this game withholds is not
+    // a solution at all, it is the half of the key only your partner could see.
+    describe: (asker) => {
+      // No BUTTON while the game runs; the menu row keeps it all game, grayed,
+      // because the menu is where its glyph is taught.
+      if (!isTerminal && asker === 'button') return 'hidden'
+      return describeReveal({ noun: 'key cards', revealed: peerKeyShown, isTerminal })
+    },
+    run: togglePeerKey,
+  })
+
   // ─── New game ───────────────────────────────────────────
   // A FRESH game (new id, a newly sampled board) with THIS game's setup +
   // roster, in the same club — the "same again!" action after a solve, without
@@ -433,39 +463,9 @@ export function PlayArea({
   // board.
   const actNewGame = useBoundAction('act-new-game', {
     terminal: isTerminal,
-    describe: () => 'active',
+    // Reachable all game from the menu and `+`, but a BUTTON only at the end.
+    describe: (asker) => (asker === 'button' && !isTerminal ? 'hidden' : 'active'),
     run: createNewGame,
-  })
-
-  // ─── Terminal partner-key reveal ─────────────────────────────────
-  // The partner's key card is NOT opened the instant the game ends. The seconds
-  // right after an assassin are the best part of a Duet post-mortem — "wait, I
-  // was about to pick APPLE" — and that conversation only happens while the card
-  // is still covered. Reveal opens it, and the post-mortem continues with
-  // everything on the table.
-  //
-  // Not about protecting a replay: Duet deliberately has none (its board IS the
-  // secret — docs/ui.md → Restart).
-  //
-  // Not on a win either, where the pair contacted all fifteen and the card has
-  // nothing left to say.
-  //
-  // The ask is LOCAL and reversible (useSolutionReveal). Sharing it — on the
-  // reasoning that the partner is the person you're doing the post-mortem
-  // WITH — cuts the other way: a Duet post-mortem is two people thinking out
-  // loud, and one of them opening the card ends the other's thinking
-  // mid-sentence. Each of you looks when you're ready, and Hide covers it up
-  // again. Not a shield either way: both key columns are readable
-  // by every club member under the friends trust model.
-  //
-  // Reveal the partner's key — a LOCAL display toggle: it shows their card to me
-  // alone, writes nothing, and affects nobody else. Terminal-only, because
-  // mid-game the partner's card IS the game.
-  const actReveal = useBoundAction('act-reveal', {
-    // "key cards" rather than the bare default: what this game withholds is not
-    // a solution at all, it is the half of the key only your partner could see.
-    describe: () => describeReveal({ noun: 'key cards', revealed: peerKeyShown, isTerminal }),
-    run: togglePeerKey,
   })
 
   // Seat/roster derivations, read by the print model (built in the binding's
@@ -516,14 +516,15 @@ export function PlayArea({
         menu,
         exits: [actConcede, actEndGame],
         extra: [
-          // The same actions the terminal row offers, reachable mid-game too.
-          { items: [actRestart, actNewGame, actReveal] },
+          // The same actions the info column's row offers, in its order,
+          // reachable mid-game too.
+          { items: [actReveal, actRestart, actNewGame] },
           { items: [actPrintBoard] },
         ],
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
+  }, [menu, actConcede, actEndGame, actReveal, actRestart, actNewGame, actPrintBoard])
 
   // Keep the turn state in the header — it's easy to miss "the other player
   // ended their turn, it's your turn now" otherwise.
@@ -667,11 +668,11 @@ export function PlayArea({
         peerFinished={peerFinished}
         peer={peer}
         // ── Action row ──
-        actEndGame={actEndGame}
-        actConcede={actConcede}
-        actRestart={actRestart}
         actReveal={actReveal}
+        actRestart={actRestart}
         actNewGame={actNewGame}
+        actConcede={actConcede}
+        actEndGame={actEndGame}
         actBackToClub={menu.actBackToClub}
         // ── Key card + setup disclosures ──
         myKey={myKey}

@@ -242,6 +242,40 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
 })
 
 /**
+ * The info column's ONE action row: every action placed once, each deciding
+ * for itself whether its button shows. While the game runs: End and Back to
+ * club. At the end: Reveal, Restart, New game and Back to club. Restart, New
+ * game and Reveal stay menu rows all game — "not in the menu" would be
+ * `?.hidden === true`, and these are not hidden there.
+ */
+describe('codenamesduet PlayArea — the action row', () => {
+  const ROW = ['act-reveal', 'act-restart', 'act-new-game', 'act-concede', 'act-end-game', 'act-back-to-club']
+  const buttons = () => ROW.filter((id) => control(id) !== null)
+
+  it('while the game runs: End and Back to club — the rest are the menu\u2019s', () => {
+    const live = makeCtx()
+    render(<PlayAreaLoader {...live} />)
+    expect(buttons()).toEqual(['act-end-game', 'act-back-to-club'])
+    for (const id of ['act-reveal', 'act-restart', 'act-new-game']) {
+      expect(menuItems(live).get(id)?.hidden).not.toBe(true)
+    }
+  })
+
+  it('at the end: Reveal, Restart, New game and Back to club — End is gone', () => {
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    expect(buttons()).toEqual(['act-reveal', 'act-restart', 'act-new-game', 'act-back-to-club'])
+  })
+
+  it('the menu lists them in the row\u2019s order', () => {
+    const live = makeCtx()
+    render(<PlayAreaLoader {...live} />)
+    const ids = [...menuItems(live).keys()]
+    const order = ['act-reveal', 'act-restart', 'act-new-game'].map((id) => ids.indexOf(id))
+    expect(order).toEqual([...order].sort((x, y) => x - y))
+  })
+})
+
+/**
  * The header's lines about the partner: where the turn stands, held for as long
  * as it holds, and — once, as it lands — the partner asking the AI for a clue.
  */
