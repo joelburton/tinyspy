@@ -106,16 +106,9 @@ export function BoardCol({
   /** Freeze the entry controls at terminal (the engine also blocks a conceder). */
   isTerminal: boolean
 }) {
-  // Local visual shuffle of the outer letters — a `shuffleSeed` counter drives a memo
-  // (avoids storing the order in state + a sync effect). Keyed on the outer-letters
-  // STRING (not the game object — a realtime refetch returns a fresh object even when
-  // the letters didn't change, which would re-shuffle on every submit).
-  const [shuffleSeed, setShuffleSeed] = useState(0)
-  const outerShuffled = useMemo(() => {
-    if (!outerLetters) return []
-    void shuffleSeed
-    return shuffled(Array.from(outerLetters))
-  }, [outerLetters, shuffleSeed])
+  // ─── The pending guess ─────────────────────────────────
+  // The typed word is the engine's, in the PlayArea; what this column reads
+  // off it, and the letter click that adds to it, sit here.
 
   // The hexes the typed word is using. A Set of its letters is the whole of it:
   // a hive letter can be typed more than once and there is nothing to count.
@@ -129,6 +122,20 @@ export function BoardCol({
     [localFeedbackSlot, onChange],
   )
 
+  // ─── The board's display order ─────────────────────────
+  // The shuffle — purely visual, touches nothing else.
+
+  // Local visual shuffle of the outer letters — a `shuffleSeed` counter drives a memo
+  // (avoids storing the order in state + a sync effect). Keyed on the outer-letters
+  // STRING (not the game object — a realtime refetch returns a fresh object even when
+  // the letters didn't change, which would re-shuffle on every submit).
+  const [shuffleSeed, setShuffleSeed] = useState(0)
+  const outerShuffled = useMemo(() => {
+    if (!outerLetters) return []
+    void shuffleSeed
+    return shuffled(Array.from(outerLetters))
+  }, [outerLetters, shuffleSeed])
+
   // ⌥Z shuffles — a fresh visual scan of the SAME letters, never a move. Bound
   // HERE rather than in the PlayArea because this column owns the display order,
   // and plainly active: shuffling writes nothing and reaches nobody else, so the
@@ -138,6 +145,7 @@ export function BoardCol({
     run: () => setShuffleSeed((s) => s + 1),
   })
 
+  // ─── Render ────────────────────────────────────────────
   return (
     <div className={cls(shared.boardCol, bee.boardCol)}>
       {/* Mobile only (CSS-hidden on desktop, where the info column carries it):

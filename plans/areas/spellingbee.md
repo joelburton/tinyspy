@@ -454,6 +454,60 @@ Step 3 note above; the builder's own docstring, which moved with it, is right.
 Verified: `tsc -b` clean, lint clean over `src/spellingbee/`, 353 unit tests
 green (the game's and the guards). The e2e specs have not run for Steps 2–6.
 
+### Step 7 — the section order (readability 3.2) — DONE 2026-09-22
+
+wordle's Step 7, copied, header words and all. `PlayArea.tsx` reads:
+
+1. Page hooks — `useTabRing`, `useInfoSheet`, `useCelebration`
+2. Derived — `summaryRows`, `hasBonus`, `myConceded`, `isCompete`, the found
+   rows and their score + count, `selfRankIdx`, `targetRankIdx`,
+   `isLocallyDone`
+3. The local slot, and its two standing conditions — the slot, the terminal
+   message and its winner derivations, out-of-race
+4. **The move — a typed word, and its answer** — `allowedLetters`,
+   `legalIndex`, the shake nonce, the answered mark, `center`, the engine
+5. Narration — the coop peer-word line and the compete rank climb
+6. The commands, bound — the shared trio, New game, Print
+7. The menu
+8. Render — `concededIds`, the leaderboard and `rankByUser`, `wordRows`, then
+   the columns
+
+**One section the doc's eight do not have: The move.** `docs/playarea.md`
+puts committing a guess in the BoardCol; spellingbee's engine lives in the
+PlayArea, because the engine's answers drive the hive's shake and marks and
+its slot is the PlayArea's. It stands after the local slot, which every answer
+lands in — where readability 3.2's first proposal had it ("5. The move — the
+input engine's coordinator half, where the game has one"). **Joel's to rule:**
+the doc gains the section, or the engine moves into `BoardCol` (a real change,
+not a reorder — it would take `foundWords`, the lookup and the RPC down with
+it). There is no turn-history viewer section: the game has no viewer.
+
+`BoardCol.tsx` reads in three: **The pending guess** (the letters the word is
+using, the letter click) · **The board's display order** (the shuffle's seed,
+memo and binding) · **Render** — the doc's five less the two it has no need
+of, since the board never shows a past turn and the commit is the PlayArea's.
+
+**Every code line in both files is a pure move, checked by diff** — the
+non-comment lines of each file before and after, sorted, are identical (446
+in `PlayArea.tsx`, 172 in `BoardCol.tsx`). The old `// ───` sub-headers are
+plain comments now (the celebration, the allowed letters, the slot, the
+engine, the shared trio, New game, the two narrations); the "two standing
+conditions" block's header became the section's. Three comments moved or
+split with their code: `myConceded`'s kept its first sentence and
+`concededIds` got its own (it went to Render); the parenthetical "`selfRankIdx`
+is derived above, beside the verdict" became `selfRankIdx`'s own comment in
+Derived, since the move made its location claim false; the menu's comment is
+its section's header text.
+
+**Left for Step 8, the comment pass:** the archaeological "(The local
+outer-letter shuffle + the letter-click input moved into BoardCol)"; the
+narration's "Peer/opponent activity → header feedback pills" paragraph, which
+repeats the new header; the shared trio's "New game stays below"; and the
+surface docstring's nonexistent verdicts (Step 3's note).
+
+Verified: `tsc -b` clean, lint clean over `src/spellingbee/`, 353 unit tests
+green (the game's and the guards). The e2e specs have not run for Steps 2–7.
+
 ## Findings
 
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it
