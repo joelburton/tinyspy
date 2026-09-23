@@ -3,6 +3,7 @@
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import shared from '@/common/game-page/playArea.module.css'
 import { HEX_W, HEX_H, HEX_VERTS, HEX_SHRINK } from '../lib/honeycomb'
 import styles from './Letter.module.css'
 
@@ -16,8 +17,9 @@ type Props = {
   onClick?: () => void
   // This letter is in the word being typed — the hex wears the selected edge.
   used?: boolean
-  // A refused word used this letter: the hex wears that answer's fill + white
-  // ink for as long as the answer is up.
+  // A refused word used this letter: the hex wears that answer's fill, edge and
+  // white ink for as long as the answer is up, and shakes once as it arrives
+  // (the parent remounts it per refusal, which is what replays the shake).
   answer?: Outcome
 }
 
@@ -56,6 +58,8 @@ export function Letter({ letter, isCenter, pos, onClick, used, answer }: Props) 
         // maps them onto the shape and the text.
         answer && styles.answered,
         answer && VERDICT_TONE[answer],
+        // The shared head-shake: every answer this hex can wear is a refusal.
+        answer && shared.verdictShake,
       )}
       data-hex={up}
       data-center={isCenter || undefined}

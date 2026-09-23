@@ -364,8 +364,8 @@ found — by anyone in coop, by me in compete, plus the words accepted but not
 yet landed — then not in the list, which this game splits into a letter off
 the hive, the center letter missing, and simply not a word.
 Each is refused locally, writes nothing, and answers on the board as well as
-in the pill: the hive shakes, and the hexes the word used take the answer's
-color for a beat.
+in the pill: the hexes the word used shake and take the answer's color for a
+beat.
 
 **An accepted word is shown before it is sent.** The pill says `WORD — +N` the
 moment the lookup succeeds, the points and flags read off the shipped entry,
@@ -460,10 +460,10 @@ What is spellingbee's own:
   the letters not yet used. A letter off the hive dims as it is typed
   (`TypedWord`). Once the game is over, or I conceded a race, the board is
   read-only: the entry closes, the hexes go inert and drop their marks.
-- **A refused word answers on the board.** The whole hive shakes — the refusal
-  is about the word, not a letter — and the hexes the word used wear the
-  answer's color for a beat, the same outcome the pill reads
-  (`common/board-marks`).
+- **A refused word answers on the board.** The hexes the word used shake, each
+  on its own and no others, and wear the answer's color for a beat, the same
+  outcome the pill reads (`common/board-marks`). Refusing the same letters again
+  shakes them again: they are keyed on the mark's nonce.
 - **Two lists, one reveal.** Both word lists ship at load; the engine looks a
   word up in their union and the missed words fold into the list at terminal —
   bonus included, unless the bands are equal and there is no bonus list worth

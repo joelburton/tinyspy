@@ -153,8 +153,8 @@ rather than for when it may run: it is a move-gated differ over
 **A mark that must fire twice in a row needs a key that changes**, because a CSS
 animation runs once per mount. The counter comes with the mark; what a board
 chooses is the GRAIN, and both answers are right where they are used: the pieces
-a word used (boggle, letterboxed, connections), or the board itself where the
-whole board shakes (spellingbee, wordwheel). A whole-board key keeps a counter
+a word used (boggle, letterboxed, connections, spellingbee), or the board itself
+where the whole board shakes (wordwheel). A whole-board key keeps a counter
 of its own, since a mark is null most of the time and keying on it would remount
 a second time as the mark ends. The rule and its reason live beside
 `.verdictShake` in `game-page/playArea.module.css`, which is where someone adding

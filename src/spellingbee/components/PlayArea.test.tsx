@@ -551,26 +551,41 @@ describe('spellingbee PlayArea — submit behavior (shared useFoundWordSubmit)',
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('answers a refusal on the board: the hive shakes, the letters go red', async () => {
+  it("answers a refusal on the board: the word's own letters shake and go red", async () => {
     // The head-shake for a move that wasn't a winning one, and the outcome's own
-    // fill on the letters the word used — one table (lib/answer.ts) decides
-    // which color, and the pill reads the same one.
+    // fill, on the letters the word used and no others — one table
+    // (lib/answer.ts) decides which color, and the pill reads the same one.
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    const shaking = () =>
-      (document.querySelector('[data-hive]')?.getAttribute('class') ?? '').includes('verdictShake')
-    const answered = () =>
+    const hexesWith = (cls: string) =>
       [...document.querySelectorAll('[data-hex]')]
-        .filter((t) => (t.getAttribute('class') ?? '').includes('_answered_'))
+        .filter((t) => (t.getAttribute('class') ?? '').includes(cls))
         .map((t) => t.getAttribute('data-hex'))
+    const hiveShakes = () =>
+      (document.querySelector('[data-hive]')?.getAttribute('class') ?? '').includes('verdictShake')
 
     await user.keyboard('bead{Enter}') // a required word: nothing is refused
-    expect(shaking()).toBe(false)
-    expect(answered()).toEqual([])
+    expect(hexesWith('verdictShake')).toEqual([])
+    expect(hexesWith('_answered_')).toEqual([])
 
     await user.keyboard('bcdf{Enter}') // real letters, but no center E
-    expect(shaking()).toBe(true)
-    expect(new Set(answered())).toEqual(new Set(['B', 'C', 'D', 'F']))
+    expect(new Set(hexesWith('verdictShake'))).toEqual(new Set(['B', 'C', 'D', 'F']))
+    expect(new Set(hexesWith('_answered_'))).toEqual(new Set(['B', 'C', 'D', 'F']))
+    expect(hiveShakes()).toBe(false)
+  })
+
+  it('shakes the same letters again when the same word is refused twice', async () => {
+    // A CSS animation plays once per mount, so the word's hexes are keyed on
+    // the mark's nonce: a second refusal is a new element, and a new shake.
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    const hexB = () => document.querySelector('[data-hex="B"]')
+
+    await user.keyboard('bcdf{Enter}')
+    const first = hexB()
+    await user.keyboard('bcdf{Enter}')
+    expect(hexB()).not.toBe(first)
+    expect(hexB()?.getAttribute('class')).toMatch(/verdictShake/)
   })
 
   /** The hexes wearing a refused word's answer, with their class strings. */

@@ -132,14 +132,8 @@ export function BoardCol({
     return m
   }, [requiredWords, bonusWords])
 
-  // A refused word shakes the WHOLE hive. A bumping nonce, because the hive is
-  // always mounted: it keys the hive, so each refusal remounts it and the
-  // animation plays again — a CSS animation restarts on a remount, not on a
-  // state change under it (`.verdictShake`).
-  const [shakeNonce, setShakeNonce] = useState(0)
-
-  // The letters the refused word used, wearing its answer. Captured here
-  // because the entry has already cleared by the time the answer shows.
+  // The letters the refused word used: they wear its answer and shake. Captured
+  // here because the entry has already cleared by the time the answer shows.
   const [answered, showAnswer] = useMark<{ letters: Set<string>; outcome: Outcome }>(WORD_ANSWER_MS)
 
   const center = centerLetter.toLowerCase()
@@ -181,13 +175,12 @@ export function BoardCol({
         }
       },
       // Every answer shows in the pill, in `lib/answer.ts`'s words. A refused
-      // word also answers ON the board: the hive shakes, and the hexes the word
-      // used take the same outcome, so the two cannot disagree.
+      // word also answers ON the board: the hexes the word used shake and take
+      // the same outcome, so the two cannot disagree.
       onAnswer: (report) => {
         const { outcome, text } = answerMessage(answerOf(report, { letters: allowedLetters, center }))
         localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
         if (report.answer === 'accepted') return
-        setShakeNonce((n) => n + 1)
         showAnswer({ letters: new Set(report.word.toUpperCase()), outcome })
       },
     })
@@ -252,8 +245,7 @@ export function BoardCol({
         </div>
       </MobileStatusBar>
       <Letters
-        shakeNonce={shakeNonce}
-        answered={answered?.value ?? null}
+        answered={answered}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
         onLetterClick={readOnly ? undefined : handleLetterClick}

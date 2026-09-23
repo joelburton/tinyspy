@@ -535,8 +535,8 @@
  * starts the animation again. The counter to key on comes with the mark —
  * `useMark`'s `nonce`, which bumps per raise and survives a clear. What the
  * board picks is the GRAIN: per piece where a word's own tiles are marked
- * (boggle, letterboxed, connections), or on the board itself where the whole
- * board shakes (spellingbee, wordwheel). A whole-board key keeps a counter of
+ * (boggle, letterboxed, connections, spellingbee), or on the board itself where
+ * the whole board shakes (wordwheel). A whole-board key keeps a counter of
  * its own instead, since a mark is null most of the time and keying on it would
  * change the key a second time as the mark ends. */
 /* @@ */ .verdictShake {

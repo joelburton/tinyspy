@@ -1249,8 +1249,8 @@ being typed wears the SELECTED edge, khaki like every word-finding game's (see
 The channels); there is no input flash. An accepted word says nothing on the
 board: the pill shows the optimistic `+N` / `pangram +N`, the server's sentence
 replacing it when a commit loses. **A refused word answers ON the board**: the
-whole hive shakes, and the hexes the word used wear the refusal's outcome — its
-fill, its edge and white ink, for `WORD_ANSWER_MS`. That is a live experiment
+hexes the word used shake, each on its own, and wear the refusal's outcome — its fill, its edge
+and white ink, for `WORD_ANSWER_MS`. That is a live experiment
 with wordwheel as the control (its tiles do not take the fill; `todo.md` →
 Someday in both games). Rank milestones raise a peer pill; coop shares one
 found list, compete gives each player their own. A finished board, or a

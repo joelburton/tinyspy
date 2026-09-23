@@ -1478,6 +1478,30 @@ at `WORD_ANSWER_MS`, and restart a remount. Six proposals, all ruled (Joel,
 **Verified:** spellingbee + guards, 366 tests; `tsc -b` and eslint clean over
 spellingbee, boggle and wordwheel. Not looked at in a browser.
 
+### SHIPPED · the refusal shakes the word's own hexes, not the hive — 2026-09-23
+
+**Joel: "make it so that we shake the lost/warning individual tiles."** Every
+refusal this game has is `warning` or `lost`, so every refusal shakes; what
+moved is WHERE. The hive `<svg>` no longer shakes or carries a key; each hex
+the refused word used wears the shared `.verdictShake` alongside its answer,
+keyed on the `useMark` nonce so a repeat refusal of the same letters remounts
+those hexes and shakes again — the per-piece grain letterboxed, boggle and
+connections already use, from the rule beside `.verdictShake`. `BoardCol`'s
+own `shakeNonce` counter is gone; `Letters` takes the whole mark.
+
+**One visible difference to expect:** the shake's 5px is now in the hive's
+coordinate units, since it moves an SVG group rather than the svg's box, so it
+scales with the board — about 7.5px at full size, less on a phone.
+
+**Tests:** the refusal case asserts the word's four hexes shake and the hive
+does not; a new case refuses the same word twice and asserts the hex is a new
+element still shaking. **Planted:** the nonce left out of the key (the repeat
+case red); the shake class removed from the hex (both red). Restored. Prose:
+`doc.md` twice, the grain list beside `.verdictShake` and its twin in
+`board-marks/doc.md` (spellingbee moves to the per-piece side; wordwheel alone
+shakes a whole board now), and the plan's spellingbee section. spellingbee +
+guards, 367 green; `tsc -b` and eslint clean. **Not seen in a browser.**
+
 ## Notes
 
 *(things worth remembering about this area that are neither a finding nor
