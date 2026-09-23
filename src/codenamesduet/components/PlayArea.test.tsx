@@ -37,6 +37,7 @@ const g = vi.hoisted(() => {
     PEER_CLUE,
     game: { current_clue_giver: 'A', turn_number: 1, user_a_id: 'peer', user_b_id: 'me' },
     events: [PEER_CLUE] as unknown[],
+    agentsDone: { mine: false, peer: false },
   }
 })
 // The game row seats peer as A and me as B; the names come from the shell's
@@ -63,8 +64,8 @@ vi.mock('../hooks/useBoard', () => ({
     events: g.events,
     myKey: Array.from({ length: 25 }, () => 'N'),
     peerKey: null,
-    myAgentsDone: false,
-    peerAgentsDone: false,
+    myAgentsDone: g.agentsDone.mine,
+    peerAgentsDone: g.agentsDone.peer,
     loading: false,
   }
   ),
@@ -148,6 +149,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
 beforeEach(() => {
   g.game = { current_clue_giver: 'A', turn_number: 1, user_a_id: 'peer', user_b_id: 'me' }
   g.events = [g.PEER_CLUE]
+  g.agentsDone = { mine: false, peer: false }
   rpc.mockReset()
   // Never resolves → the first guess stays "in flight" so we can test the guard.
   rpc.mockReturnValue(new Promise(() => {}))
@@ -195,6 +197,33 @@ describe('codenamesduet PlayArea — input gating', () => {
     asClueGiver()
     render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
     expect(screen.getByRole('button', { name: /apple/i })).toBeEnabled()
+  })
+})
+
+/**
+ * The finished-player banner: each player told, in the info column, when one
+ * of them has found all their agents — and only while clues are still given.
+ */
+describe('codenamesduet PlayArea — the finished-player banner', () => {
+  it('tells me my partner now gives every clue, when my agents are all found', () => {
+    g.agentsDone = { mine: true, peer: false }
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(screen.getByText(/gives every remaining\s+clue — your agents are all found/)).toBeInTheDocument()
+    expect(screen.queryByText(/has no agents left/)).not.toBeInTheDocument()
+  })
+
+  it('tells me I now give every clue, when my partner’s are', () => {
+    g.agentsDone = { mine: false, peer: true }
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(screen.getByText(/has no agents left — you\s+give every remaining clue/)).toBeInTheDocument()
+    expect(screen.queryByText(/your agents are all found/)).not.toBeInTheDocument()
+  })
+
+  it('says nothing in sudden death, where nobody clues', () => {
+    g.agentsDone = { mine: true, peer: true }
+    render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
+    expect(screen.queryByText(/your agents are all found/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/has no agents left/)).not.toBeInTheDocument()
   })
 })
 

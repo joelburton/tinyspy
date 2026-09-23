@@ -11,28 +11,26 @@
   color: var(--codenamesduet-assassin);
 }
 
-/* Finished-player banner. Shown to a player whose agents are all contacted,
- * explaining that their partner gives every remaining clue (Duet's finished-player
- * rule). Painted in the "agent" green soft-banner fill so it reads as an
- * accomplishment ("you're done!"), not a warning. */
+/* The finished-player banner, told to both players once one of them has found
+ * all their agents (Duet's finished-player rule) — its box, shared by both
+ * sides; the two colors below say whose news it is. */
 /* @@ */ .finishedNote {
   font-size: 0.9rem;
   line-height: 1.45;
   padding: 0.55rem 0.7rem;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
+}
+
+/* To the player who finished: the "agent" green soft-banner fill, so it reads
+ * as an accomplishment, not a warning. */
+/* @@ */ .finishedNote.viewerFinished {
   background: var(--codenamesduet-agent-soft-banner);
   color: var(--codenamesduet-agent-text);
 }
 
-/* The mirror banner for the OTHER player — "your partner is done, you give all the
- * clues now." Informational rather than celebratory, so it's painted in the calm
- * neutral (bystander tan) tones instead of the agent green, keeping the two notes
- * visually distinct. */
-/* @@ */ .peerDoneNote {
-  font-size: 0.9rem;
-  line-height: 1.45;
-  padding: 0.55rem 0.7rem;
-  border-radius: 6px;
+/* To their partner, who now gives every clue: informational rather than
+ * celebratory, so the calm bystander tan instead of the green. */
+/* @@ */ .finishedNote.peerFinished {
   background: var(--codenamesduet-neutral-soft-bright);
   color: var(--codenamesduet-neutral-text);
 }

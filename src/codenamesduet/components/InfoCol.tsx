@@ -1,6 +1,7 @@
 // cs-met-codenamesduet
 
 import { DotActor } from '@/common/members/ActorMention'
+import { cls } from '@/common/utils/cls'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow } from '@/common/info-sheet/InfoActionsRow'
 import { ActionButton } from '@/common/actions/ActionButton'
@@ -138,19 +139,15 @@ export function InfoCol({
         {/* Duet's finished-player rule, told to BOTH players so the lopsided turn
             flow does not read as a bug. */}
         {viewerFinished && (
-          <div className={styles.finishedNote}>
-            All your agents have been found! From here{' '}
-            {/* `show="both"` on both banners: they are sentences, and a phone
-                dropping the name would leave "From here ● gives every…". */}
-            {peer ? <DotActor actor={peer} show="both" /> : 'your partner'}{' '}
-            gives every remaining clue — keep guessing to find theirs.
+          <div className={cls(styles.finishedNote, styles.viewerFinished)}>
+            <DotActor actor={peer} fallback="Your partner" /> gives every remaining
+            clue — your agents are all found.
           </div>
         )}
         {peerFinished && (
-          <div className={styles.peerDoneNote}>
-            {peer ? <DotActor actor={peer} show="both" /> : 'Your partner'}{' '}
-            has found all their agents — you give every remaining clue now, and they do
-            the guessing.
+          <div className={cls(styles.finishedNote, styles.peerFinished)}>
+            <DotActor actor={peer} fallback="Your partner" /> has no agents left — you
+            give every remaining clue.
           </div>
         )}
 

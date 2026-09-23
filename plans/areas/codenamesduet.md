@@ -1091,7 +1091,19 @@ the allowlist row**; or give it a reader. Recommendation: delete.
 
 ### F-codenamesduet-14 · `todo-soon-three` · `todo.md`'s three Soon items
 
-- **The banners** put the actor mid-sentence, so both pass `show="both"`;
+- ~~**The banners**~~ **SHIPPED** (Joel, 2026-09-23: *"do it"*). Both lead
+  with the partner and take `DotActor`'s default `show`: *"● gives every
+  remaining clue — your agents are all found."* (green) and *"● has no agents
+  left — you give every remaining clue."* (tan). **Two deviations, said before
+  building:** the tan line I had proposed, *"●'s agents are all found"*, reads
+  wrong once a phone drops the name, so it says *"has no agents left"*; and the
+  hand-written `peer ? … : 'your partner'` fallbacks became `DotActor`'s own
+  `fallback` prop rather than going, since `peer` is typed optional through
+  three components. The two CSS rules are one `.finishedNote` base (with
+  `--radius-md`) and two color classes, markers kept. PlayArea gains three
+  cases (each side's line, none in sudden death), which close F-27's three
+  banner survivors; each re-planted red. The todo's Soon item is deleted.
+  Was: the banners put the actor mid-sentence, so both pass `show="both"`;
   Joel's wording (2026-09-12) leads with the actor. The read adds that their
   two CSS rules are identical but for the colors, with `6px` where
   `--radius-md` is meant. Recommendation: the wording, and one base rule with
@@ -1256,8 +1268,8 @@ Planted and restored in all three layers; each survived:
   branch (`setMyKey(null)`, which shows the no-such-game page) dropped.
 - **Components:** ~~the own-bystander click lock~~ (F-5's `Board.test.tsx`); my key square shown while I
   guess; the partner's square without its game-over gate; the partner's
-  triangle never drawn; the finished banner never shown, shown in sudden
-  death, or reading the partner's flag; the sudden-death strip never drawn; a
+  triangle never drawn; ~~the finished banner never shown, shown in sudden
+  death, or reading the partner's flag~~ (F-14); the sudden-death strip never drawn; a
   refused guess not shown; New game sending no players; the clue form not
   clearing; the first-giver seeding off (F-1).
 
