@@ -21,10 +21,10 @@ import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
 import { memberById } from '@/common/members/memberList'
-import { useFoundWordSubmit, wordWithBonusDot, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
+import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
 import { boardToDisplay, DICE_BY_NAME } from '../lib/dice'
-import { traceableStr, tracePathStr, traceCellsStr } from '../lib/boardTrace'
-import { ANSWER_OUTCOME } from '../lib/answer'
+import { tracePathStr, traceCellsStr } from '../lib/boardTrace'
+import { answerMessage, answerOf, peerAnswerMessage } from '../lib/answer'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { useMark } from '@/common/board-marks/useMark'
 import type { Outcome } from '@/common/outcomes/outcomes'
@@ -140,17 +140,16 @@ export function PlayArea(ctx: GamePageCtx) {
   const hasBonusDifficulty = boggleSetup.legal_band !== boggleSetup.band
 
   // ─── The local feedback slot ────
-  // The below-board slot every own-move result lands in: the word engine's
-  // results, End / Concede's not-oks, and the two standing conditions below.
+  // The below-board slot every own-move result lands in: the answer to each
+  // word, a commit's not-ok, End / Concede's not-oks, and the two standing
+  // conditions below.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // ─── Move entry + own-move results (shared engine) ────
   // The board ships with its full legal list (required ∪ bonus), so a guess is
   // validated + scored locally — index it by word for O(1) lookup. `useFoundWordSubmit`
-  // owns the typed-word state, the results it shows into the slot, and the
-  // optimistic commit + dedup; boggle only supplies the lookup, the RPC, the
-  // reject reason (not-on-board vs not-a-word, client-side via `traceableStr`),
-  // and the success label. See docs/games/boggle.md.
+  // owns the typed-word state and the optimistic commit + dedup; boggle
+  // supplies the lookup, the RPC, and what it shows for each answer.
   const legalIndex = useMemo(() => {
     const m = new Map<string, LegalWord>()
     for (const r of game?.required_words ?? []) {
@@ -210,26 +209,23 @@ export function PlayArea(ctx: GamePageCtx) {
           return null
         }
       },
-      // A miss is either untraceable ("not on board") or traceable-but-not-a-word
-      // — the distinction boggle keeps, computed from the board on the FE. The
-      // hook wraps the reason as `WORD — reason`.
-      explainReject: (w) => (game && traceableStr(game.board, w) ? 'not a word' : 'not on board'),
-      // What each refusal means HERE, read by the pill and by the tiles below —
-      // one table, so they cannot say different things about one word.
-      outcomeFor: (_w, answer) => ANSWER_OUTCOME[answer],
-      // A refused word wears its answer on the tiles it used. The path has to be
-      // WORKED OUT: a typed word says nothing about which of two Es it meant, so
-      // the board is walked for a route that spells it. A word that traces
-      // nowhere ("not on board") has no tiles to mark, and the pill carries it
-      // alone.
+      // Every answer shows in the pill, in `lib/answer.ts`'s words. A refused
+      // word also wears that answer's outcome on the tiles it used. The path has
+      // to be WORKED OUT: a typed word says nothing about which of two Es it
+      // meant, so the board is walked for a route that spells it. A word that
+      // traces nowhere ("not on board") has no tiles to mark, and the pill
+      // carries it alone.
       //
       // The actor's alone, and no attention flash with it: you know what you
       // just typed, and a peer is never told about somebody else's miss.
-      onAnswer: (w, answer) => {
-        if (answer === 'accepted' || !game) return
-        const cells = tracePathStr(game.board, w)
+      onAnswer: (report) => {
+        if (!game) return // no board is drawn to type at until the game loads
+        const { outcome, text } = answerMessage(answerOf(report, game.board))
+        localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
+        if (report.answer === 'accepted') return
+        const cells = tracePathStr(game.board, report.word)
         if (cells === null) return
-        showAnswer({ cells, outcome: ANSWER_OUTCOME[answer] })
+        showAnswer({ cells, outcome })
       },
     })
 
@@ -445,16 +441,8 @@ export function PlayArea(ctx: GamePageCtx) {
     messageFor: (r) => {
       if (r.user_id === myId) return null // own word → the local slot
       const member = players.find((p) => p.user_id === r.user_id)
-      const wow = r.word.length >= 7
-      const label = wordWithBonusDot(r.word, r.is_bonus)
-      // A long find leads with the flourish (spellingbee's "pangram 🐝 WORD
-      // +14" shape) so the headline reads before the word does — and so the
-      // line fits the header's ~26 phone characters.
-      return FeedbackMessage.peer(
-        member,
-        ANSWER_OUTCOME.accepted,
-        `${wow ? 'wow!' : 'found'} ${label} +${r.points}`,
-      )
+      const { outcome, text } = peerAnswerMessage(r)
+      return FeedbackMessage.peer(member, outcome, text)
     },
     globalFeedbackSlot,
   })

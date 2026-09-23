@@ -35,8 +35,8 @@ function shuffled<T>(arr: readonly T[]): T[] {
  *
  * It owns the **local outer-letter shuffle** (a per-player view-only rearrange — never
  * persisted or shared) and a click on an outer/center letter appending to the word.
- * The word-entry ENGINE (`useFoundWordSubmit`: the typed word, the submit RPC, the
- * results) stays in PlayArea, as does the local feedback slot it shows into —
+ * The word-entry ENGINE (`useFoundWordSubmit`: the typed word and the submit RPC)
+ * stays in PlayArea, as does the local feedback slot each answer shows into —
  * InfoCol's End / Concede and PlayArea's standing conditions show into the
  * same slot — so PlayArea passes the entry primitives (`word` / `onChange` /
  * `onSubmit` / the slot / …) DOWN and this column renders them (a thin-input

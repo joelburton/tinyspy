@@ -304,14 +304,17 @@ publication membership (both `wordwheel.games` and `wordwheel.found_words`) so a
 
 ## Frontend
 
-### The one outcome decision (`lib/answer.ts`)
+### What a word says (`lib/answer.ts`)
 
-Four answers — `accepted` · `already_found` · `not_legal` · `too_short` —
-mapped to `won` · `warning` · `lost` · `warning`, read by the pill through
-`outcomeFor`, which the shared `useFoundWordSubmit` calls for every answer,
-`accepted` included (the wheel shakes on a miss and shows no color of its
-own). No RPC carries an outcome: the frontend decides, once. The same table as
-spellingbee's, for the same reasons ([spellingbee.md](spellingbee.md);
+Everything this game says about a word is one function, `answerMessage`, which
+gives each answer its words and outcome together: `accepted` and its
+`accepted_peer` twin (`won`) · `already_found` and `too_short` (`warning`) ·
+`missing_center` and `not_a_word` (`lost`) · `reached_peer`, an opponent's rank
+climb (`noted`). The shared `useFoundWordSubmit` reports what it decided to
+`onAnswer`, `answerOf` splits its one "not legal" by the center letter, and the
+pill reads the result (the wheel shakes on a miss and shows no color of its
+own). No RPC carries an outcome or a message: the frontend decides, once. The
+same readings as spellingbee's, for the same reasons ([spellingbee.md](spellingbee.md);
 [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
 
 `src/wordwheel/` mirrors spellingbee's layout. The two games' code splits cleanly
@@ -442,7 +445,7 @@ The tile-spend rule is surfaced in the UI two ways, both driven by per-letter
   (`WordEntryArea`'s `submitDisabled`) — editing stays live so you can fix it. So a
   word like `FOOD` on a wheel without F/O can't submit and read as "not a word"
   (i.e. "not in the dictionary"), which was the misleading old behavior.
-  Consequently `explainReject` only ever fires for a *fitting* word: it names the
+  Consequently a miss is only ever a *fitting* word: `answerOf` names the
   `missing center letter` or falls back to `not a word` — the earlier `bad
   letters` / `not enough tiles` reasons are now unreachable (the veto caught them
   first) and were dropped.

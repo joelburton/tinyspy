@@ -333,6 +333,60 @@ guard a game folder's intro — its walk is one level under `src/common/` and
 
 **Verified:** the guards green with the file in place (31 files, 285 tests).
 
+### Step 4 — the `AnswerMessage` conversion — DONE 2026-09-22
+
+**The shape is not connections' and wordle's, because the words were not all
+this game's.** Three of them — `+N`, `too short`, `already found` — were
+written by the shared engine `useFoundWordSubmit`, for all four games that use
+it. Joel's ruling, reached over the design: **the engine decides what
+happened, and the game decides what to say about it.** The engine reports each
+answer to a REQUIRED `onAnswer` as a `WordSubmitReport` (the answer, the
+normalized word, its entry where there is one) and names no word of its own;
+`outcomeFor`, `explainReject`, `hideAccepted` and `line()` are gone. The one
+thing it still shows is a commit's `not-ok` — the server's sentence, which
+every game in the family showed identically, and which is always a race or a
+bug, so it is no game's answer. Each game writes its own format strings (Joel:
+*"we'll just do a format string in the game"*). Because the engine's contract
+changed under all four, **boggle, wordwheel and wordiply converted in this same
+step** — shared and spellingbee first, for Joel to read, then the rollout.
+
+**What shipped, per game** — each `lib/answer.ts` is the `Answer` union,
+`answerMessage()`, `answerOf(report, …)` (the engine's one `not_legal` split by
+what the board knows) and `peerAnswerMessage(row)`:
+
+- **spellingbee** — eight answers: `accepted` · `accepted_peer` ·
+  `already_found` · `too_short` · `bad_letters` · `missing_center` ·
+  `not_a_word` · `reached_peer` (the compete rank climb). `PlayArea`'s
+  `onAnswer` shows the pill and drives the shake and the hex mark from one call.
+- **wordwheel** — the same less `bad_letters` (the wheel's submit gate vetoes
+  an unspellable word before the engine sees it).
+- **boggle** — `not_on_board` / `not_a_word` by whether a path spells it; the
+  7+ letter `wow!` peer line moved in with the rest.
+- **wordiply** — `accepted` has empty text (what `hideAccepted` did);
+  `eventToOutcome(row)` replaces the log bar's `ANSWER_OUTCOME` index. The log,
+  the PDF and the history banner keep their own terse words, as wordle's did.
+
+**The SQL half.** No `submit_word` / `submit_guess` `ok` carried an outcome
+already, so nothing was stripped; what was missing was the test. Each game's
+pgTAP now pins `outcome` and `message` null on the accepted answer, and on
+both wins (spellingbee, wordwheel) and the recorded rejection (wordiply). The
+four duplicate-race comments named `useWordSubmit`'s `line()`; they now point at
+the game's `already_found` answer.
+
+**Not a word changed.** Every text and outcome a player sees is the one before;
+the component tests that read the pill's text are green untouched.
+`wordWithBonusDot` stays exported from the engine file — three games' own-move
+and peer lines use it (Joel: *"fine to keep there"*). wordiply's
+`eventToOutcome` builds `missing_base` with an empty base, since a logged row
+has none and the color needs none (Joel: *"it's ok"*).
+
+**Verified by planting.** An outcome planted into every `ok` of the four
+submit functions (from scratchpad copies) turned exactly the new pins red and
+nothing else but the plant's own helper tripping the PUBLIC-execute guard;
+restored, green. `tsc -b` clean, eslint clean over the five folders, 651 unit
+tests green (the four games, found-words, the guards), the whole pgTAP suite
+green (181 files, 2567 tests). The e2e specs have not run.
+
 ## Findings
 
 *(`F-spellingbee-1 · slug · title`, one heading each; a status prefix when it

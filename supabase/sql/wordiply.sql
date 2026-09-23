@@ -812,13 +812,14 @@ begin
       from wordiply.events fw
      where fw.game_id = target_game and fw.user_id = caller_id and fw.word = w_lower;
   end if;
-  -- A RACE, and the one branch here that records NOTHING: `useWordSubmit` dedups
-  -- locally (the log plus a synchronous pending set) and returns before calling
-  -- either call site, so reaching this means its list was stale. Same wording
-  -- and same severity as the other three word games.
+  -- A RACE, and the one branch here that records NOTHING: `useFoundWordSubmit`
+  -- dedups locally (the log plus a synchronous pending set) and returns before
+  -- calling either call site, so reaching this means its list was stale. Same
+  -- wording and same severity as the other three word games.
   if dup_count > 0 then
-    -- The MESSAGE is the whole line, `WORD — already found`, matching
-    -- `useWordSubmit`'s `line()` exactly (bonus dot included). This rejection is
+    -- The MESSAGE is the whole line, `WORD — already found`, matching the
+    -- frontend's `already_found` answer exactly (src/wordiply/lib/answer.ts;
+    -- wordiply has no bonus words, so no dot). This rejection is
     -- the only one that can arrive by BOTH routes — caught locally, or lost as
     -- a race — and the two must not read differently, so the server composes
     -- the same string rather than a sentence of its own. The phrase is

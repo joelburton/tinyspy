@@ -221,19 +221,17 @@ Builds the title (per the formula above), calls `common.create_game` with the `'
 The FE-side validation happens in `useFoundWordSubmit` + `lib/` before the commit fires, in the spellingbee-ws order (friendliest message wins when several things are wrong):
 
 1. `too_short` — length < `minWordLength` (4)
-2. `not_legal` — not in the shipped `required ∪ bonus` list; `explainReject` says which rule it broke (a letter off the board, the center letter missing, or simply not a word)
+2. `not_legal` — not in the shipped `required ∪ bonus` list; `answerOf` says which rule it broke (a letter off the board, the center letter missing, or simply not a word)
 3. `already_found` — deduped against `foundWords` (+ the in-flight `pendingRef`) per mode rule (coop: any `(game_id, word)`; compete: `(game_id, user_id, word)`)
 4. otherwise `accepted`: the FE reads `points` + `isPangram` + `isBonus` straight off the shipped list entry and sends them. `pangram` (all 7 letters) is a display flourish; bonus words **score normally** (length + pangram bonus, same as a required word).
 
-**What each of those five is WORTH is `lib/answer.ts`'s** — four answers
-(`accepted` · `already_found` · `not_legal` · `too_short`) mapped to `won` ·
-`warning` · `lost` · `warning`, read by the pill and by the refused word's hexes
-through the one table. The shared engine names no word of its own: it routes
-every answer, `accepted` included, through this game's `outcomeFor`. Until
-2026-09-17 an accepted word was a flat `'won'` inside the engine — the one
-answer a game could not have an opinion about, even though all four already
-carried one here. boggle and wordwheel hold the same table for the same reasons;
-wordiply's differs deliberately, since a word its list does not know is a
+**What each of those is WORTH, and what it says, is `lib/answer.ts`'s** —
+`answerMessage` gives every answer its words and outcome together, read by the
+pill and by the refused word's hexes (the table is in
+[src/spellingbee/doc.md → FE submissions](../../src/spellingbee/doc.md#fe-submissions)).
+The shared engine names no word of its own: it reports what it decided to this
+game's `onAnswer`. boggle and wordwheel read the same events the same way;
+wordiply differs deliberately, since a word its list does not know is a
 `warning` there rather than a loss (it is asking you to try strange words). See
 [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 

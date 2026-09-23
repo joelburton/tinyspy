@@ -187,8 +187,9 @@ takes precedence over them:
 - a pangram, required or bonus — `{ "result": "pangram", "points": 17 }`
 - the word that reached the target rank and ended the game — `{ "result": "won", "points": 17 }`
 
-The frontend reads none of the four for their own sake: the pill was shown
-before the call went out, and any `ok` leaves it standing.
+None carries an outcome or a message, and the frontend reads none of the four
+for their own sake: the pill was shown before the call went out, and any `ok`
+leaves it standing.
 
 ### The rest
 
@@ -218,17 +219,15 @@ reliably see a delete.
 ## FE submissions
 
 What the frontend decides before a word reaches the server, and what it says
-about the answers that come back. This section records where each sentence a
-player reads is written today, which is the inventory the `AnswerMessage`
-conversion starts from.
+about the answers that come back.
 
 **Everything about legality is decided here, and never reaches the server.**
 The game's legal list is `required_words ∪ bonus_words`, indexed by word, and
 the shared `useFoundWordSubmit` engine walks a typed word through it in the
 order that gives the friendliest answer: shorter than four letters, already
 found — by anyone in coop, by me in compete, plus the words accepted but not
-yet landed — then not in the list, which `PlayArea`'s `explainReject` splits
-into a letter off the hive, the center letter missing, and simply not a word.
+yet landed — then not in the list, which this game splits into a letter off
+the hive, the center letter missing, and simply not a word.
 Each is refused locally, writes nothing, and answers on the board as well as
 in the pill: the hive shakes, and the hexes the word used take the answer's
 color for a beat.
@@ -243,21 +242,27 @@ server's own sentence and frees the word to be tried again. The end of the
 game, when this word was the one that ended it, arrives by realtime like every
 other terminal.
 
-**What each answer is worth is one table, `ANSWER_OUTCOME` in
-[`lib/answer.ts`](lib/answer.ts)**, keyed by the engine's four answers; the
-pill and the refused word's hexes both read it. The words, though, are written
-in three places — the engine's own line format, this game's `explainReject`,
-and the two peer narrations in `PlayArea` — and one of them, the duplicate
-race, is composed by the server:
+**Everything this game says about a word is [`lib/answer.ts`](lib/answer.ts)**
+— the words and the outcome together, one answer each. The engine names no
+word of its own: it reports what it decided, `answerOf` turns that into one of
+this game's answers (the hive says why a word missed), and `answerMessage`
+says it. The pill and the refused word's hexes read the same call, and the two
+peer lines read the same file:
 
-| answer | said to | text | outcome | words written in |
-|---|---|---|---|---|
-| `accepted` | me | `CHAT — +1` · `AIRT • — +1` (a bonus word) · `CHARIOT — pangram +17` | `won` | the engine (`useFoundWordSubmit`) |
-| `accepted`, a teammate's | about a coop teammate | `found CHAT +1` · `pangram 🐝 CHARIOT +17` | `won` | `PlayArea`'s peer narration |
-| `too_short` | me | `CAT — too short` | `warning` | the engine |
-| `already_found` | me | `CHAT — already found` | `warning` | the engine — and the server, for the race that slips past it |
-| `not_legal` | me | `CAXT — bad letters` · `CHIT — missing "A"` · `CHAIT — not a word` | `lost` | `PlayArea`'s `explainReject`, wrapped by the engine |
-| a rank climb | about a compete opponent | `reached Amazing` | `noted` | `PlayArea`'s leaderboard effect |
+| answer | said to | text | outcome |
+|---|---|---|---|
+| `accepted` | me | `CHAT — +1` · `AIRT • — +1` (a bonus word) · `CHARIOT — pangram +17` | `won` |
+| `accepted_peer` | about a coop teammate | `found CHAT +1` · `pangram 🐝 CHARIOT +17` | `won` |
+| `already_found` | me | `CHAT — already found` | `warning` |
+| `too_short` | me | `CAT — too short` | `warning` |
+| `bad_letters` | me | `CAXT — bad letters` | `lost` |
+| `missing_center` | me | `CHIT — missing "A"` | `lost` |
+| `not_a_word` | me | `CHAIT — not a word` | `lost` |
+| `reached_peer` | about a compete opponent | `reached Amazing` | `noted` |
+
+The already-found line is written twice on purpose: the server composes the
+same `WORD — already found` for the duplicate that slips past the local check,
+so the two routes to it read alike.
 
 Coop narrates every teammate's accepted word in the header, in the same
 outcome the finder saw; a refused word never becomes a row, so there is

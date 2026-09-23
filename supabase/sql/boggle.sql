@@ -398,13 +398,14 @@ begin
       where fw.game_id = target_game and fw.user_id = caller_id and fw.word = w_lower;
   end if;
   if dup_count > 0 then
-    -- A RACE, not an answer: `useWordSubmit` dedups locally and returns BEFORE
-    -- committing, so reaching this means its `foundWords` was stale — a
+    -- A RACE, not an answer: `useFoundWordSubmit` dedups locally and returns
+    -- BEFORE committing, so reaching this means its `foundWords` was stale — a
     -- teammate found the word between the render and the submit (coop), or the
     -- caller's own row had not landed yet (compete, a second tab). Nothing was
     -- recorded, so this REFUSES; it is not a verdict on a move.
-    -- The MESSAGE is the whole line, `WORD — already found`, matching
-    -- `useWordSubmit`'s `line()` exactly (bonus dot included). This rejection is
+    -- The MESSAGE is the whole line, `WORD — already found`, matching the
+    -- frontend's `already_found` answer exactly (src/boggle/lib/answer.ts,
+    -- bonus dot included). This rejection is
     -- the only one that can arrive by BOTH routes — caught locally, or lost as
     -- a race — and the two must not read differently, so the server composes
     -- the same string rather than a sentence of its own. The phrase is

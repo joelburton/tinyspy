@@ -15,12 +15,12 @@ import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
-import { useFoundWordSubmit, wordWithBonusDot, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
+import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
 import { memberById } from '@/common/members/memberList'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import type { LeaderboardEntry } from '@/shared/bee-games/beeLeaderboard'
 import { currentRankIndex, RANKS } from '@/shared/rank-ladder/rankLadder'
-import { ANSWER_OUTCOME } from '../lib/answer'
+import { answerMessage, answerOf, peerAnswerMessage } from '../lib/answer'
 import type { WordwheelSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -242,17 +242,16 @@ export function PlayArea(ctx: GamePageCtx) {
   // beside the wheel + entry.)
 
   // ─── The local feedback slot ────
-  // The below-board slot every own-move result lands in: the word engine's
-  // results, End / Concede's not-oks, and the two standing conditions below.
+  // The below-board slot every own-move result lands in: the answer to each
+  // word, a commit's not-ok, End / Concede's not-oks, and the two standing
+  // conditions below.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // ─── Move entry + own-move results (shared engine) ────
   // Both word lists ship to the FE, so a guess is validated + scored locally —
-  // index required ∪ bonus by word. useFoundWordSubmit owns the typed-word state,
-  // the results it shows into the slot, and the optimistic commit + dedup;
-  // wordwheel supplies the lookup, the RPC, the reject reason (missing-center /
-  // not-a-word), and the success label (with the pangram flourish). See
-  // docs/games/wordwheel.md.
+  // index required ∪ bonus by word. useFoundWordSubmit owns the typed-word state
+  // and the optimistic commit + dedup; wordwheel supplies the lookup, the RPC,
+  // and what it shows for each answer.
   const legalIndex = useMemo(() => {
     const m = new Map<string, LegalWord>()
     for (const r of game?.requiredWords ?? []) {
@@ -311,30 +310,14 @@ export function PlayArea(ctx: GamePageCtx) {
           return null
         }
       },
-      // A miss at/above min length. Words that don't fit the wheel's tiles (an
-      // off-wheel letter, or a letter over its tile count) can't reach here —
-      // BoardCol's `submitDisabled` gate vetoes their submit — so the only
-      // reasons left are the missing center or simply not-a-word. The hook wraps
-      // the reason as `WORD — reason`.
-      // What each refusal means HERE. Required, and no engine decides it: a word
-      // the list does not know is a WRONG MOVE in this game — the letters are in
-      // front of you and the list is the ordinary one. (wordiply reads the same
-      // event as a `warning`, because it is asking you to try strange words.)
-      // Too short is a slip rather than a wrong move; a word you already found
-      // is nothing happening.
-      outcomeFor: (_w, answer) => ANSWER_OUTCOME[answer],
-      // Any answer but an accept is a move that didn't win, which is the whole
-      // of what the shake says. The actor's alone: a peer is never told about
+      // Every answer shows in the pill, in `lib/answer.ts`'s words. Any answer
+      // but an accept is also a move that didn't win, which is the whole of
+      // what the shake says. The actor's alone: a peer is never told about
       // somebody else's miss.
-      onAnswer: (_w, answer) => {
-        if (answer !== 'accepted') setShakeNonce((n) => n + 1)
-      },
-      explainReject: (w) => {
-        // Name the letter rather than the rule: "missing \"A\"" is both shorter
-        // and more actionable than "missing center letter" (the quotes are
-        // literal — they mark the letter as a quoted character, not a word).
-        if (center && !w.includes(center)) return `missing "${center.toUpperCase()}"`
-        return 'not a word'
+      onAnswer: (report) => {
+        const { outcome, text } = answerMessage(answerOf(report, center))
+        localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
+        if (report.answer !== 'accepted') setShakeNonce((n) => n + 1)
       },
     })
 
@@ -455,11 +438,8 @@ export function PlayArea(ctx: GamePageCtx) {
     messageFor: (r) => {
       if (r.user_id === session.user.id) return null // own word → the local slot
       const member = players.find((p) => p.user_id === r.user_id)
-      // A pangram leads with the label + the moose, so the headline reads before
-      // the word does — and so the line fits the header's ~26 phone characters,
-      // which "found WORD +14 — pangram! 🦌" did not.
-      const what = `${r.is_pangram ? 'pangram 🦌' : 'found'} ${wordWithBonusDot(r.word, r.is_bonus)} +${r.points}`
-      return FeedbackMessage.peer(member, ANSWER_OUTCOME.accepted, what)
+      const { outcome, text } = peerAnswerMessage(r)
+      return FeedbackMessage.peer(member, outcome, text)
     },
     globalFeedbackSlot,
   })
@@ -489,9 +469,11 @@ export function PlayArea(ctx: GamePageCtx) {
       if (row.user_id === session.user.id) continue // own rank → RankBar
       if (row.rank_idx > was) {
         const member = players.find((p) => p.user_id === row.user_id)
-        globalFeedbackSlot.show(
-          FeedbackMessage.peerMilestone(member, 'noted', `reached ${RANKS[row.rank_idx] ?? 'a new rank'}`),
-        )
+        const { outcome, text } = answerMessage({
+          answerType: 'reached_peer',
+          rank: RANKS[row.rank_idx] ?? 'a new rank',
+        })
+        globalFeedbackSlot.show(FeedbackMessage.peerMilestone(member, outcome, text))
       }
     }
   }, [game, status, players, session.user.id, globalFeedbackSlot])

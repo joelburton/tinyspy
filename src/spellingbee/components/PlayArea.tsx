@@ -15,7 +15,7 @@ import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
-import { useFoundWordSubmit, wordWithBonusDot, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
+import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
 import { memberById } from '@/common/members/memberList'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import type { LeaderboardEntry } from '@/shared/bee-games/beeLeaderboard'
@@ -23,7 +23,7 @@ import { currentRankIndex, RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { useMark } from '@/common/board-marks/useMark'
-import { ANSWER_OUTCOME } from '../lib/answer'
+import { answerMessage, answerOf, peerAnswerMessage } from '../lib/answer'
 import type { SpellingbeeSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
@@ -287,17 +287,16 @@ export function PlayArea(props: PlayAreaProps) {
   // beside the honeycomb + entry.)
 
   // ─── The local feedback slot ────
-  // The below-board slot every own-move result lands in: the word engine's
-  // results, End / Concede's not-oks, and the two standing conditions below.
+  // The below-board slot every own-move result lands in: the answer to each
+  // word, a commit's not-ok, End / Concede's not-oks, and the two standing
+  // conditions below.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // ─── Move entry + own-move results (shared engine) ────
   // Both word lists ship to the FE, so a guess is validated + scored locally —
-  // index required ∪ bonus by word. useFoundWordSubmit owns the typed-word state,
-  // the results it shows into the slot, and the optimistic commit + dedup;
-  // spellingbee supplies the lookup, the RPC, the reject reason (bad-letters /
-  // missing-center / not-a-word), and the success label (with the pangram
-  // flourish). See docs/games/spellingbee.md.
+  // index required ∪ bonus by word. useFoundWordSubmit owns the typed-word state
+  // and the optimistic commit + dedup; spellingbee supplies the lookup, the RPC,
+  // and what it shows for each answer.
   const legalIndex = useMemo(() => {
     const m = new Map<string, LegalWord>()
     for (const r of game.requiredWords) {
@@ -360,30 +359,18 @@ export function PlayArea(props: PlayAreaProps) {
           return null
         }
       },
-      // A miss at/above min length: name why (a letter off the board, or the
-      // center letter missing) else it's simply not a word. The hook wraps the
-      // reason as `WORD — reason`.
-      // What each refusal means HERE, read by the pill and by the hexes below —
-      // one table, so they cannot say different things about one word.
-      outcomeFor: (_w, answer) => ANSWER_OUTCOME[answer],
-      // A refused word answers ON the board: the hive shakes its head, and the
-      // hexes the word used take that answer's fill and white ink. The actor's
-      // alone, and no attention flash with it — you know what you just typed,
-      // and a peer is never told about somebody else's miss.
-      onAnswer: (w, answer) => {
-        if (answer === 'accepted') return
+      // Every answer shows in the pill, in `lib/answer.ts`'s words. A refused
+      // word also answers ON the board: the hive shakes its head, and the hexes
+      // the word used take that answer's fill and white ink — the same outcome
+      // as the pill, so the two cannot disagree. The actor's alone, and no
+      // attention flash with it — you know what you just typed, and a peer is
+      // never told about somebody else's miss.
+      onAnswer: (report) => {
+        const { outcome, text } = answerMessage(answerOf(report, { letters: allowedLetters, center }))
+        localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
+        if (report.answer === 'accepted') return
         setShakeNonce((n) => n + 1)
-        showAnswer({ letters: new Set(w.toUpperCase()), outcome: ANSWER_OUTCOME[answer] })
-      },
-      explainReject: (w) => {
-        for (const ch of w) {
-          if (!allowedLetters.has(ch)) return 'bad letters'
-        }
-        // Name the letter rather than the rule: "missing \"A\"" is both shorter
-        // and more actionable than "missing center letter" (the quotes are
-        // literal — they mark the letter as a quoted character, not a word).
-        if (!w.includes(center)) return `missing "${center.toUpperCase()}"`
-        return 'not a word'
+        showAnswer({ letters: new Set(report.word.toUpperCase()), outcome })
       },
     })
 
@@ -499,11 +486,8 @@ export function PlayArea(props: PlayAreaProps) {
     messageFor: (r) => {
       if (r.user_id === session.user.id) return null // own word → the local slot
       const member = players.find((p) => p.user_id === r.user_id)
-      // A pangram leads with the label + the bee, so the headline reads before
-      // the word does — and so the line fits the header's ~26 phone characters,
-      // which "found WORD +14 — pangram! 🐝" did not.
-      const what = `${r.is_pangram ? 'pangram 🐝' : 'found'} ${wordWithBonusDot(r.word, r.is_bonus)} +${r.points}`
-      return FeedbackMessage.peer(member, ANSWER_OUTCOME.accepted, what)
+      const { outcome, text } = peerAnswerMessage(r)
+      return FeedbackMessage.peer(member, outcome, text)
     },
     globalFeedbackSlot,
   })
@@ -533,9 +517,11 @@ export function PlayArea(props: PlayAreaProps) {
       if (row.user_id === session.user.id) continue // own rank → RankBar
       if (row.rank_idx > was) {
         const member = players.find((p) => p.user_id === row.user_id)
-        globalFeedbackSlot.show(
-          FeedbackMessage.peerMilestone(member, 'noted', `reached ${RANKS[row.rank_idx] ?? 'a new rank'}`),
-        )
+        const { outcome, text } = answerMessage({
+          answerType: 'reached_peer',
+          rank: RANKS[row.rank_idx] ?? 'a new rank',
+        })
+        globalFeedbackSlot.show(FeedbackMessage.peerMilestone(member, outcome, text))
       }
     }
   }, [game.mode, status, players, session.user.id, globalFeedbackSlot])

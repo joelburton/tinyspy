@@ -33,7 +33,7 @@ begin;
 
 set search_path = wordiply, common, public, extensions;
 
-select plan(27);
+select plan(29);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -76,6 +76,12 @@ select is(
   7,
   'submit_guess: returns the guess length (the one live readout)'
 );
+-- No outcome and no message: the frontend says what a guess is worth
+-- (src/wordiply/lib/answer.ts, whose test names this folder).
+select is((select ret->>'outcome' from first_ret), null::text,
+  'submit_guess: an accepted guess carries no outcome');
+select is((select ret->>'message' from first_ret), null::text,
+  'submit_guess: an accepted guess carries no message');
 
 select is(
   (select (ret->'data'->>'is_terminal')::boolean from first_ret),
@@ -111,7 +117,8 @@ select is(
 -- there is a fault — asserted below.
 select pg_temp.envelope_is(
   wordiply.submit_guess((select id from g), 'ar', false),
-  '{"type":"ok","data":{"result":"rejected","reason":"too_short"}}'::jsonb,
+  -- The reason is the fact; its outcome and words are the frontend's too.
+  '{"type":"ok","data":{"result":"rejected","reason":"too_short"},"outcome":null,"message":null}'::jsonb,
   'submit_guess: a word not longer than the base → rejected/too_short'
 );
 

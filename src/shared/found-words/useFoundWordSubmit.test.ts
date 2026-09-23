@@ -3,18 +3,24 @@
 /**
  * Tests for the shared word validate/submit engine. The cases that matter are the
  * ones a hand-rolled submit path gets wrong or duplicates: an accepted word fires the
- * commit exactly once and shows the pill (with the bonus dot); the optimistic
- * in-flight guard stops a same-word re-submit from double-committing during the
- * realtime-lag window; dedup is mode-aware; a non-legal word is rejected with the
- * per-game reason and NEVER hits the RPC; and a failed commit releases the word so
- * a retry works. The answers a caller can act on — which of them record a
- * rejection, which reach `onAnswer` — are pinned at the bottom.
+ * commit exactly once; the optimistic in-flight guard stops a same-word re-submit
+ * from double-committing during the realtime-lag window; dedup is mode-aware; a
+ * non-legal word NEVER hits the RPC; and a failed commit shows the server's
+ * sentence and releases the word so a retry works. The engine says nothing of its
+ * own, so what it decided is read off `onAnswer`; the answers a caller can act on
+ * — which of them record a rejection, which reach `onAnswer` — are pinned at the
+ * bottom.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { clearFaultsForTest, peekFaultsForTest } from '@/common/faults/faultStore'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
-import { useFoundWordSubmit, type FoundWordSubmitConfig, type LegalWord } from './useFoundWordSubmit'
+import {
+  useFoundWordSubmit,
+  type FoundWordSubmitConfig,
+  type LegalWord,
+  type WordSubmitReport,
+} from './useFoundWordSubmit'
 
 const APPLE: LegalWord = { word: 'apple', points: 5, isBonus: false }
 const ZESTY: LegalWord = { word: 'zesty', points: 9, isBonus: true }
@@ -29,21 +35,20 @@ function makeCfg(over: Partial<FoundWordSubmitConfig> = {}): FoundWordSubmitConf
     userId: 'u1',
     isTerminal: false,
     minWordLength: 4,
-    // A real slot: what the hook shows is read back as its top message.
+    // A real slot: the one thing the hook shows (a commit's not-ok) is read
+    // back as its top message.
     localFeedbackSlot: createFeedbackSlot('local'),
     foundWords: [],
     lookup,
     commit: vi.fn().mockResolvedValue(null), // null = the word landed
-    explainReject: () => 'not a word',
-    // A stand-in reading, not a default: the hook has none, and each game says
-    // its own. These cases are about WHICH branch ran, so the words below are
-    // the ones the roster's majority uses (boggle, spellingbee, wordwheel) —
-    // including `accepted`, which routes through here like every other answer.
-    outcomeFor: (_w, answer) =>
-      answer === 'accepted' ? 'won' : answer === 'not_legal' ? 'lost' : 'warning',
+    onAnswer: vi.fn(),
     ...over,
   }
 }
+
+/** The last report the hook handed `onAnswer`. */
+const lastReport = (cfg: FoundWordSubmitConfig): WordSubmitReport | undefined =>
+  vi.mocked(cfg.onAnswer).mock.lastCall?.[0]
 
 /** The message the hook last showed — the slot's top. */
 const shown = (cfg: FoundWordSubmitConfig) => cfg.localFeedbackSlot.getTop()
@@ -66,7 +71,7 @@ function setup(cfg: FoundWordSubmitConfig) {
 beforeEach(() => clearFaultsForTest())
 
 describe('useFoundWordSubmit', () => {
-  it('accepts a legal word: fires commit once and shows a success pill', async () => {
+  it('accepts a legal word: fires commit once and reports it with its entry', async () => {
     const cfg = makeCfg()
     const { result, type, submit } = setup(cfg)
 
@@ -75,42 +80,23 @@ describe('useFoundWordSubmit', () => {
 
     expect(cfg.commit).toHaveBeenCalledTimes(1)
     expect(cfg.commit).toHaveBeenCalledWith(APPLE)
-    expect(shown(cfg)?.kind).toBe('result')
-    expect(shown(cfg)?.outcome).toBe('won')
-    expect(shown(cfg)?.text).toBe('APPLE — +5')
+    expect(lastReport(cfg)).toEqual({ answer: 'accepted', word: 'apple', entry: APPLE })
     expect(result.current.word).toBe('') // box cleared
     expect(result.current.lastWord).toBe('apple')
   })
 
-  it('with hideAccepted, an accepted word commits but shows nothing; a rejection still shows', async () => {
-    const cfg = makeCfg({ hideAccepted: true, explainReject: () => 'not a word' })
+  it('shows nothing of its own for any answer', async () => {
+    const cfg = makeCfg({ foundWords: [{ word: 'apple', user_id: 'u1' }] })
     const { type, submit } = setup(cfg)
 
-    type('apple')
-    await submit()
-    expect(cfg.commit).toHaveBeenCalledWith(APPLE)
+    for (const w of ['abc', 'zzzzz', 'apple', 'zesty']) {
+      type(w)
+      await submit()
+    }
     expect(shown(cfg)).toBeNull()
-
-    type('zzzzz')
-    await submit()
-    expect(shown(cfg)?.text).toBe('ZZZZZ — not a word')
   })
 
-  it('appends the bonus dot for a bonus word, not for a required word', async () => {
-    const cfg = makeCfg()
-    const { type, submit } = setup(cfg)
-
-    // Bonus dot sits right after the word, before the em-dash.
-    type('zesty')
-    await submit()
-    expect(shown(cfg)?.text).toBe('ZESTY • — +9')
-
-    type('apple')
-    await submit()
-    expect(shown(cfg)?.text).toBe('APPLE — +5')
-  })
-
-  it('keeps the bonus dot on an already-found bonus word', async () => {
+  it('an already-found word carries its entry, so a game can still dot a bonus word', async () => {
     const cfg = makeCfg()
     const { type, submit } = setup(cfg)
 
@@ -118,7 +104,7 @@ describe('useFoundWordSubmit', () => {
     await submit()
     type('zesty')
     await submit()
-    expect(shown(cfg)?.text).toBe('ZESTY • — already found')
+    expect(lastReport(cfg)).toEqual({ answer: 'already_found', word: 'zesty', entry: ZESTY })
   })
 
   it('guards against a same-word re-submit during the realtime-lag window', async () => {
@@ -134,8 +120,7 @@ describe('useFoundWordSubmit', () => {
     await submit()
 
     expect(cfg.commit).toHaveBeenCalledTimes(1)
-    expect(shown(cfg)?.outcome).toBe('warning')
-    expect(shown(cfg)?.text).toMatch(/already found/i)
+    expect(lastReport(cfg)?.answer).toBe('already_found')
   })
 
   it('a same-tick double submit fires commit once (input consumed synchronously)', async () => {
@@ -181,7 +166,7 @@ describe('useFoundWordSubmit', () => {
     c1.type('apple')
     await c1.submit()
     expect(coop.commit).not.toHaveBeenCalled()
-    expect(shown(coop)?.text).toMatch(/already found/i)
+    expect(lastReport(coop)?.answer).toBe('already_found')
 
     // In compete, a different player's find does NOT block me.
     const compete = makeCfg({ mode: 'compete', userId: 'u1', foundWords: found })
@@ -191,38 +176,24 @@ describe('useFoundWordSubmit', () => {
     expect(compete.commit).toHaveBeenCalledTimes(1)
   })
 
-  it('shows the game\'s own outcome for a too-short word, and does not commit', async () => {
+  it('reports a too-short word, and does not commit', async () => {
     const cfg = makeCfg({ minWordLength: 4 })
     const { type, submit } = setup(cfg)
 
     type('ab')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(shown(cfg)?.outcome).toBe('warning')
-    expect(shown(cfg)?.text).toMatch(/too short/i)
+    expect(lastReport(cfg)).toEqual({ answer: 'too_short', word: 'ab' })
   })
 
-  it('shows the game\'s own outcome for a non-legal word, via explainReject', async () => {
-    const cfg = makeCfg({ explainReject: () => 'not on board' })
+  it('reports a non-legal word, and does not commit', async () => {
+    const cfg = makeCfg()
     const { type, submit } = setup(cfg)
 
     type('qqqq')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(shown(cfg)?.outcome).toBe('lost')
-    expect(shown(cfg)?.text).toBe('QQQQ — not on board')
-  })
-
-  it('formats a pangram accept as "WORD — pangram +N"', async () => {
-    // A pangram entry gets the "pangram" prefix; a bonus pangram also gets the
-    // dot after the word.
-    const PANGRAM = { word: 'abcdefg', points: 17, isBonus: true, isPangram: true }
-    const cfg = makeCfg({ lookup: (w) => (w === 'abcdefg' ? PANGRAM : null) })
-    const { type, submit } = setup(cfg)
-
-    type('abcdefg')
-    await submit()
-    expect(shown(cfg)?.text).toBe('ABCDEFG • — pangram +17')
+    expect(lastReport(cfg)).toEqual({ answer: 'not_legal', word: 'qqqq' })
   })
 
   it('is a no-op once terminal', async () => {
@@ -232,10 +203,10 @@ describe('useFoundWordSubmit', () => {
     type('apple')
     await submit()
     expect(cfg.commit).not.toHaveBeenCalled()
-    expect(shown(cfg)).toBeNull()
+    expect(cfg.onAnswer).not.toHaveBeenCalled()
   })
 
-  it('releases the word on a failed commit so a retry succeeds', async () => {
+  it('shows the server\'s sentence on a failed commit, and releases the word so a retry succeeds', async () => {
     // A FAULT envelope — what `runRpc` builds when nothing answered. The game's
     // commit hands it straight back; the hook reads its severity, not its words.
     const commit = vi
@@ -252,20 +223,18 @@ describe('useFoundWordSubmit', () => {
     type('apple')
     await submit()
     // The commit lost → the word is freed and the server's own sentence goes
-    // up as a notOk — over the optimistic "+N", in red (the `fault` severity's
-    // default), and × only. The modal is raised centrally by `runRpc`, not
-    // here — so the slot carries the words rather than going blank.
+    // up as a notOk — in red (the `fault` severity's default), and × only. The
+    // modal is raised centrally by `runRpc`, not here — so the slot carries the
+    // words rather than going blank.
     expect(shown(cfg)?.kind).toBe('notOk')
     expect(shown(cfg)?.outcome).toBe('error')
     expect(shown(cfg)?.text).toBe('You appear to be offline. Please refresh and try again.')
 
-    // Retyping + resubmitting is allowed (not stuck on "already found"). The
-    // notOk keeps its place until its ×; the new result sits under it.
-    cfg.localFeedbackSlot.close()
+    // Retyping + resubmitting is allowed (not stuck on "already found").
     type('apple')
     await submit()
     expect(commit).toHaveBeenCalledTimes(2)
-    expect(shown(cfg)?.outcome).toBe('won')
+    expect(lastReport(cfg)?.answer).toBe('accepted')
   })
 
   it('raises a fault when the commit THROWS rather than answering', async () => {
@@ -305,8 +274,7 @@ describe('useFoundWordSubmit', () => {
   })
 
   it('tells onAnswer about every answer, already-found included', async () => {
-    const onAnswer = vi.fn()
-    const cfg = makeCfg({ onAnswer, foundWords: [{ word: 'apple', user_id: 'u1' }] })
+    const cfg = makeCfg({ foundWords: [{ word: 'apple', user_id: 'u1' }] })
     const { type, submit } = setup(cfg)
 
     type('abc')
@@ -318,11 +286,11 @@ describe('useFoundWordSubmit', () => {
     type('zesty')
     await submit()
 
-    expect(onAnswer.mock.calls).toEqual([
-      ['abc', 'too_short'],
-      ['zzzzz', 'not_legal'],
-      ['apple', 'already_found'],
-      ['zesty', 'accepted'],
+    expect(vi.mocked(cfg.onAnswer).mock.calls.map(([r]) => r.answer)).toEqual([
+      'too_short',
+      'not_legal',
+      'already_found',
+      'accepted',
     ])
   })
 
@@ -334,9 +302,9 @@ describe('useFoundWordSubmit', () => {
     await submit()
 
     // The lookup key is trimmed + lowercased, so a word typed loosely still
-    // finds its entry and the pill names it in caps…
+    // finds its entry and is reported normalized…
     expect(cfg.commit).toHaveBeenCalledWith(APPLE)
-    expect(shown(cfg)?.text).toBe('APPLE — +5')
+    expect(lastReport(cfg)?.word).toBe('apple')
     // …while recall keeps what was actually typed, which is the point of it:
     // ArrowUp is for fixing a typo, not for reading back a normalized key.
     expect(result.current.lastWord).toBe('  ApPle  ')

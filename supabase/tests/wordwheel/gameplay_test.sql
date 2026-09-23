@@ -33,7 +33,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(47);
+select plan(49);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -74,6 +74,12 @@ select is(
   1,
   'submit_word: return echoes the trusted points (bead = 1)'
 );
+-- No outcome and no message: the frontend says what a word is worth
+-- (src/wordwheel/lib/answer.ts, whose test names this folder).
+select is((select ret->>'outcome' from bead_ret), null::text,
+  'submit_word: an accepted word carries no outcome');
+select is((select ret->>'message' from bead_ret), null::text,
+  'submit_word: an accepted word carries no message');
 
 select is(
   (select count(*) from wordwheel.found_words

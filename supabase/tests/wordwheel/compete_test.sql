@@ -125,7 +125,8 @@ select is(
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select pg_temp.envelope_is(
   wordwheel.submit_word((select id from g), 'abcdefghi', 24, true, false),
-  '{"type":"ok","data":{"result":"won"}}'::jsonb,
+  -- No outcome and no message: src/wordwheel/lib/answer.ts says it.
+  '{"type":"ok","data":{"result":"won"},"outcome":null,"message":null}'::jsonb,
   'compete: cade''s target-hitting pangram answers "won", as coop does'
 );
 

@@ -32,19 +32,19 @@ blocking the next word. It is also why these games are trusting-commit — the
 server records what it is told, because the client was given the answers
 ([CLAUDE.md → Trust model](../../../CLAUDE.md)).
 
-One thing the games genuinely disagree about, and it stays theirs: **what a
-refusal is worth.** `outcomeFor` is required, has deliberately no default, and
-takes `accepted` through it like every other answer, so the engine never names a
-word of its own. A game whose board is in front of you reads a word the list
+The engine decides what happened, and the game decides what to say about it.
+Each answer goes to the game's `onAnswer`, and the game turns it into words and
+an outcome in its own `lib/answer.ts` and shows them. The games genuinely
+disagree about both. A game whose board is in front of you reads a word the list
 does not know as a wrong move — the letters are right there and the list is the
 ordinary English one. Wordiply reads the identical event as a warning, because
 it is asking you to try strange words and making a bad guess feel like an error
-would be mean. Both are right, which is the argument for the engine having no
-view of its own: what
-a refusal MEANS is a rule of the game, not a fact about the lookup that produced
-it. Whatever `outcomeFor` returns is what the pill says, so a surface that
-colors an answer anywhere else reads that same table and the two cannot
-disagree ([docs/outcomes.md → One event, one outcome](../../../docs/outcomes.md)).
+would be mean. Some games have answers the others lack — a pangram — and one
+misses the list in more ways than another can tell apart. What an answer MEANS
+is a rule of the game, not a fact about the lookup that produced it, so the
+engine has no words of its own. The one thing it shows is the server's `not-ok`
+when a commit does not land: that sentence is the server's, and every game shows
+it the same way ([docs/outcomes.md → One event, one outcome](../../../docs/outcomes.md)).
 
 A word has two spellings in this folder, and the difference is not cosmetic.
 `FoundWordsWord` is a shipped word as the board data gives it — snake,
@@ -62,8 +62,9 @@ The folder holds no component. Its seams are a who-calls-what question, so:
 ```
 spellingbee/PlayArea ┐
    wordwheel/PlayArea ├─▶ useFoundWordSubmit ──▶ the game's localFeedbackSlot
-      boggle/PlayArea │            ▲ lookup / commit / explainReject / outcomeFor
-     wordiply/PlayArea ┘              (each from the game's own lib/answer.ts)
+      boggle/PlayArea │            ▲                (a commit's not-ok only)
+     wordiply/PlayArea ┘            lookup / commit / onAnswer
+                                    (onAnswer shows the game's own lib/answer.ts)
 
 spellingbee/PlayArea ┐  (twice each: once for the screen, once inside the print action)
    wordwheel/PlayArea ├─▶ buildWordListRows ─┬─▶ buildRevealWords

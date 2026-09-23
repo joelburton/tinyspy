@@ -461,7 +461,7 @@ uses *darker text variants* of purple and gold — a color tuned as a disc fill
 under white letters is not the same color that reads as 15px type on a white row.
 
 **Results speak the shared word-game format** — `WORD — body`, word first and in
-caps, which is `useFoundWordSubmit`'s `line()` convention. strands can't use that hook
+caps, which is how the four `useFoundWordSubmit` games write theirs. strands can't use that hook
 (its acceptance is server-side, not a local list lookup), so it matches the
 *output* instead of inventing a second dialect; `too short` and `not a word` are
 word-for-word boggle's.

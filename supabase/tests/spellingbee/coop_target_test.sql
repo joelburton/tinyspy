@@ -75,7 +75,9 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   spellingbee.submit_word((select id from g), 'abcdefg', 17, true, false),
-  '{"type":"ok","data":{"result":"won"}}'::jsonb,
+  -- No outcome and no message: the frontend says what a word is worth
+  -- (src/spellingbee/lib/answer.ts, whose test names this one).
+  '{"type":"ok","data":{"result":"won"},"outcome":null,"message":null}'::jsonb,
   'coop: the word that crosses the target reports the win to its caller'
 );
 

@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateA
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { showFaultModal } from '@/common/faults/faultStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import type { Outcome } from '@/common/outcomes/outcomes'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 
 /**
@@ -14,11 +13,11 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
  * What it models is narrower than hunting words: **a typed word, a shipped
  * legal list to look it up in, and a growing set of found words to dedup
  * against.** A game with the list in hand does the same thing on every submit —
- * validate the typed word against it, and, if it's good, show instant own-move
- * feedback and fire a trusting-commit RPC in the background. The per-game bits
- * are the list lookup, the RPC, the reject-reason wording and the success
- * label; everything structural (dedup, the optimistic in-flight guard, the
- * feedback plumbing, last-word recall) lives here once. Wordiply is the caller
+ * validate the typed word against it, and, if it's good, answer at once and
+ * fire a trusting-commit RPC in the background. The per-game bits are the list
+ * lookup, the RPC, and everything the player is told; everything structural
+ * (dedup, the optimistic in-flight guard, last-word recall) lives here once.
+ * Wordiply is the caller
  * with no `found_words` table at all — its guesses are the found set — which is
  * the reason the model above is written in terms of the two lists rather than
  * the schema.
@@ -31,18 +30,21 @@ import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
  * `pendingRef` of words accepted-but-not-yet-landed, which closes the realtime-lag
  * window that would otherwise allow a double count.
  *
- * It owns `word`/`lastWord` state and shows every own-move result into the
- * game's local feedback slot, which the PlayArea makes (`useFeedbackSlot`) and
- * hands in — the slot stays the host's, since a game's End / Concede show into
- * it too. It does NOT own `useCaptureKeys`; that lives inside the shared
- * `<WordEntryArea>`, which draws the same slot.
+ * **It says nothing of its own.** Each answer goes to the game's `onAnswer`,
+ * and the game turns it into words and an outcome in its `lib/answer.ts` —
+ * the games word the same answer differently, and some have answers (a
+ * pangram) the others lack. The one thing shown here is the server's `not-ok`
+ * when a commit does not land: that is the server's sentence, and every game
+ * in the family shows it the same way.
+ *
+ * It owns `word`/`lastWord` state. It does NOT own `useCaptureKeys`; that lives
+ * inside the shared `<WordEntryArea>`.
  */
 
 /** One entry of a game's shipped legal list. `word` is the canonical lowercase
  *  form (matches the DB rows + boggle's board string); `points` and the flags
  *  come straight off the shipped data, so the FE computes nothing. `isPangram`
- *  is optional: only some games in the family have the concept, and it drives
- *  the success wording where they do. */
+ *  is optional: only some games in the family have the concept. */
 export type LegalWord = {
   word: string
   points: number
@@ -50,21 +52,31 @@ export type LegalWord = {
   isPangram?: boolean
 }
 
-/** What the engine decided about a submitted word — the closed set every
- *  caller's answer table is keyed by, so a game cannot miss one. A game that
- *  speaks a wider vocabulary than this maps into its own (wordiply's
- *  `answerFor` splits `not_legal` in two). */
+/** What the engine decided about a submitted word. A game maps these into its
+ *  own answers, which are usually more: spellingbee splits `not_legal` three
+ *  ways, by why the word missed. */
 export type WordSubmitAnswer = 'accepted' | 'too_short' | 'not_legal' | 'already_found'
 
-/** Everything the engine cannot know: the game's board rules, its RPC, its
- *  words for what happened, and the slot to say them in. */
+/** One answer as `onAnswer` receives it: what was decided, the word (normalized
+ *  lowercase), and its legal-list entry where there is one. An already-found
+ *  word normally has an entry — it was legal when it was found — so a game can
+ *  still dot a bonus word. */
+export type WordSubmitReport =
+  | { answer: 'accepted'; word: string; entry: LegalWord }
+  | { answer: 'already_found'; word: string; entry: LegalWord | null }
+  | { answer: 'too_short'; word: string }
+  | { answer: 'not_legal'; word: string }
+
+/** Everything the engine cannot know: the game's board rules, its RPC, and what
+ *  it says about each answer. */
 export type FoundWordSubmitConfig = {
   mode: 'coop' | 'compete'
   userId: string
   // True once the game is over — submit becomes a no-op.
   isTerminal: boolean
   minWordLength: number
-  // The game's below-board slot: every result this hook produces is shown here.
+  // The game's below-board slot, for the server's `not-ok` when a commit does
+  // not land. Everything else the game shows there itself, from `onAnswer`.
   localFeedbackSlot: FeedbackSlot
   // Committed rows (from `useGame`), the dedup source. Mode-aware: coop dedups
   // across all players (one shared find list); compete dedups per-player.
@@ -77,11 +89,10 @@ export type FoundWordSubmitConfig = {
   // answers (`pangram` in one, `dealt` in another, which a shared hook could
   // not) and hands back only whether the optimistic pill is still true.
   commit: (entry: LegalWord) => Promise<NotOkEnvelope | null>
-  // Why did `lookup` miss? Returns just the lowercase *reason* — the hook wraps
-  // it in the shared `WORD — reason` line, so the answer is a fragment and not a
-  // sentence. The wording is the game's: one board's misses divide differently
-  // from another's. `word` is the normalized lowercase.
-  explainReject: (word: string) => string
+  // Every answer, as it is decided — the game says what it means (its
+  // `lib/answer.ts`) and shows it. Fires for EVERY answer, already-found
+  // included, and before the commit for an accepted word.
+  onAnswer: (report: WordSubmitReport) => void
   // Optional: also RECORD the rejection, don't just show it. Omitted, a rejected
   // word never leaves the client. Supplied, the rejection is a TURN — it goes in
   // the shared log and can cost the caller their go, which is why wordiply
@@ -95,24 +106,6 @@ export type FoundWordSubmitConfig = {
     word: string,
     reason: Exclude<WordSubmitAnswer, 'accepted' | 'already_found'>,
   ) => void
-
-  // What the engine decided, for a surface that shows it somewhere other than
-  // the pill. Presentational and nothing else — it writes nothing anywhere, and
-  // unlike `recordReject` it fires for EVERY answer including the already-found
-  // one, because a board showing an answer has to show that one too.
-  onAnswer?: (word: string, answer: WordSubmitAnswer) => void
-
-  // What each answer MEANS in this game, as an outcome. Required, no default,
-  // and `accepted` goes through it too, so the engine never names a word of its
-  // own. Takes the word as well because one `not_legal` may cover several
-  // things and only some of them are a rule broken. **Whatever it returns is
-  // what the pill says.** See doc.md for why this is the game's judgment.
-  outcomeFor: (word: string, answer: WordSubmitAnswer) => Outcome
-  // Optional: say nothing when a word is ACCEPTED. Omitted, the accepted word
-  // shows as a result — `CAT +3`, the one place the player learns it landed.
-  // Supplied, the board already shows the word the moment it lands, so a result
-  // would say it twice and only the rejections show.
-  hideAccepted?: boolean
 }
 
 /** The typed word, and the ways a game touches it. */
@@ -131,26 +124,12 @@ export type FoundWordSubmitApi = {
 
 /**
  * A word as it appears anywhere in feedback: caps, with a trailing ` •` bonus
- * dot when it's a bonus find. Exported because the own-move `line()` below is
- * not the only place a found word is named — a game narrating a PEER's find
- * (`{name} found {WORD}`) must show the same dot, and the two would drift the
- * first time either was edited.
+ * dot when it's a bonus find. Shared because the family names a found word in
+ * several places — each game's own-move lines and its peers' finds — and the
+ * dot has to look the same in all of them.
  */
 export const wordWithBonusDot = (word: string, isBonus = false): string =>
   `${word.toUpperCase()}${isBonus ? ' •' : ''}`
-
-/**
- * The one own-move line format, so every game in the family reads identically:
- * `WORD — body`, always leading with the word in caps. A **bonus**
- * find gets the ` •` dot right after the word (not at the end of the line):
- *   accept       → `GOOD — +2`      (bonus: `GOOD • — +2`)
- *   pangram      → `ABCDEFG — pangram +17`
- *   too short    → `AB — too short`
- *   already found→ `CAT — already found`
- *   reject       → `ZZZ — not on board`   (the reason comes from explainReject)
- */
-const line = (word: string, body: string, isBonus = false): string =>
-  `${wordWithBonusDot(word, isBonus)} — ${body}`
 
 export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitApi {
   const [word, setWordState] = useState('')
@@ -193,7 +172,6 @@ export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitA
 
   const submit = useCallback(() => {
     const c = cfgRef.current
-    const slot = c.localFeedbackSlot
     const raw = wordRef.current
     const w = raw.trim().toLowerCase()
     if (w === '' || c.isTerminal) return
@@ -206,15 +184,13 @@ export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitA
     wordRef.current = ''
 
     if (w.length < c.minWordLength) {
-      slot.show(FeedbackMessage.result(c.outcomeFor(w, 'too_short'), line(w, 'too short')))
-      c.onAnswer?.(w, 'too_short')
+      c.onAnswer({ answer: 'too_short', word: w })
       c.recordReject?.(w, 'too_short')
       return
     }
 
-    // Look the word up FIRST so the bonus dot can ride any WORD-prefixed line —
-    // including the already-found one (a duplicate is, by definition, a legal word
-    // that was accepted before, so its `isBonus` is known).
+    // Look the word up FIRST so an already-found answer carries its entry too —
+    // a duplicate is, by definition, a legal word that was accepted before.
     const entry = c.lookup(w)
 
     const alreadyFound =
@@ -223,21 +199,12 @@ export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitA
         (f) => f.word === w && (c.mode === 'coop' || f.user_id === c.userId),
       )
     if (alreadyFound) {
-      slot.show(
-        FeedbackMessage.result(
-          c.outcomeFor(w, 'already_found'),
-          line(w, 'already found', entry?.isBonus),
-        ),
-      )
-      c.onAnswer?.(w, 'already_found')
+      c.onAnswer({ answer: 'already_found', word: w, entry })
       return
     }
 
     if (!entry) {
-      slot.show(
-        FeedbackMessage.result(c.outcomeFor(w, 'not_legal'), line(w, c.explainReject(w))),
-      )
-      c.onAnswer?.(w, 'not_legal')
+      c.onAnswer({ answer: 'not_legal', word: w })
       // One reason for both misses the lookup can't tell apart (not in the
       // list vs doesn't fit the board); the SERVER re-derives which, since it
       // owns the structural rules and this hook doesn't know them.
@@ -245,31 +212,22 @@ export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitA
       return
     }
 
-    // Accept optimistically: reserve the word, show it, commit in the background.
-    // Body is universal — `+N`, or `pangram +N` when the entry is a pangram
-    // (optional: only some games in the family have the concept). The bonus dot
-    // rides right after the word.
+    // Accept optimistically: reserve the word, answer, commit in the background.
     pendingRef.current.add(w)
-    c.onAnswer?.(w, 'accepted')
-    const body = `${entry.isPangram ? 'pangram ' : ''}+${entry.points}`
-    if (!c.hideAccepted)
-      slot.show(
-        FeedbackMessage.result(c.outcomeFor(w, 'accepted'), line(w, body, entry.isBonus)),
-      )
+    c.onAnswer({ answer: 'accepted', word: w, entry })
 
     // The commit lost: free the word so it can be retried, and put the
-    // server's own sentence up — a notOk, which ranks over the optimistic "+N"
-    // and needs its × (docs/ui.md → Feedback pill). A fault's modal is raised
-    // centrally by `runRpc` rather than by anything here.
+    // server's own sentence up — a notOk, which ranks over the optimistic
+    // answer and needs its × (docs/ui.md → Feedback pill). A fault's modal is
+    // raised centrally by `runRpc` rather than by anything here.
     c.commit(entry).then(
       (failure) => {
-        if (failure === null) return // it landed; the optimistic pill stands
+        if (failure === null) return // it landed; the optimistic answer stands
         pendingRef.current.delete(w) // free it so the player can retry
-        // The SERVER's sentence, verbatim — never re-wrapped in `line()`. The
-        // duplicate's message is already the whole line (`CAT — already
-        // found`), composed server-side precisely so the two routes to that
-        // rejection read identically; wrapping it again would double the word.
-        slot.show(FeedbackMessage.notOk(failure))
+        // The server's sentence, verbatim. The duplicate's is already the
+        // whole line (`CAT — already found`), composed server-side to read
+        // like the game's own already-found answer.
+        c.localFeedbackSlot.show(FeedbackMessage.notOk(failure))
       },
       // `runRpc` resolves for every answer it can classify, so a REJECTION here
       // is ours — a commit that threw rather than answering.

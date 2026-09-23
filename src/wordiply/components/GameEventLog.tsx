@@ -4,7 +4,7 @@ import { cls } from '@/common/utils/cls'
 import { memberById } from '@/common/members/memberList'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import { EventLog, EventLogActor, EventLogNumber, EventLogOutcomeBar } from '@/common/event-log/EventLog'
-import { ANSWER_OUTCOME } from '../lib/answer'
+import { eventToOutcome } from '../lib/answer'
 import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import type { Member } from '@/common/members/member'
@@ -82,9 +82,7 @@ export function GameEventLog({
     <EventLog heading="Guesses" picker={eventLogPicker} shown={shown}>
       {shown.map((g, i) => (
         <tr key={g.id} className={gameEventLog.divider}>
-          <EventLogOutcomeBar
-            outcome={ANSWER_OUTCOME[g.valid ? 'accepted' : (g.reason ?? 'not_a_word')]}
-          />
+          <EventLogOutcomeBar outcome={eventToOutcome(g)} />
           {/* The number counts the rows on show; the handle carries the row's
               own id. */}
           <EventLogNumber

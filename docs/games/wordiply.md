@@ -451,16 +451,19 @@ board. A real fork, resolved in [Decisions](#10-decisions).
 
 ## 7. Frontend
 
-### The one outcome decision (`lib/answer.ts`)
+### What a guess says (`lib/answer.ts`)
 
-Five answers — `accepted` · `too_short` · `missing_base` · `not_a_word` ·
-`already_found` — mapped to `won` · `lost` · `lost` · `warning` · `warning`.
-The pill, the board's answer mark and the log bar all index that table; the
-shared `useFoundWordSubmit` routes every answer, `accepted` included, through this
-game's `outcomeFor`, and the log reads a row's `reason`, which is the server's
-word for the same answer (so `answerFor` splits the engine's one "not legal"
-into `missing_base` / `not_a_word` before indexing). No RPC carries an outcome
-here: the frontend decides, once. A word the list does not know is a
+Everything this game says about a guess is one function, `answerMessage`, which
+gives each answer its words and outcome together: `accepted` (`won`, and no
+words — the row is the answer) · its `accepted_peer` twin · `too_short` and
+`missing_base` (`lost`) · `not_a_word` and `already_found` (`warning`). The
+answers are named in the server's vocabulary, which a rejected row carries in
+`reason`. The shared `useFoundWordSubmit` reports what it decided to
+`onAnswer`, and `answerOf` splits its one "not legal" into `missing_base` /
+`not_a_word`; the pill and the board's answer mark read that one call, the
+peer line reads `peerAnswerMessage`, and the log bar reads `eventToOutcome(row)`
+— the log writes its own words. No RPC carries an outcome or a message here:
+the frontend decides, once. A word the list does not know is a
 `warning` rather than a loss, because this game is asking you to try strange
 words. See [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
@@ -496,11 +499,11 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
   is the same **sync-lookup + optimistic + trusting-commit** engine wordwheel uses — the
   lookup is membership in the shipped `legalWords` Set (points = the word's **length**, so the
   hook's per-word value IS the length), `commit` calls the `submit_guess` RPC (and surfaces a
-  server `{ok:false}` as a release). `minWordLength = base.length + 1`; `explainReject`
+  server `{ok:false}` as a release). `minWordLength = base.length + 1`; `answerOf`
   distinguishes "must contain BASE" from "not a word". A rejected guess is decided on the FE
   and then recorded through `recordReject` (§7b).
-  **An accepted word shows no result** (`hideAccepted` — the row already shows the word +
-  its length); only rejections show, as `result` messages in the local slot.
+  **An accepted word shows no result** (its answer has no words — the row already shows the
+  word + its length); only rejections show, as `result` messages in the local slot.
 - **`components/PlayArea.tsx`** — shared; reads `game.mode`; wires `BoardCol` + `InfoCol`,
   the submit hook, the terminal message (`buildOver`), the local feedback slot's three
   standing conditions (the verdict, out of the race, whose turn), and the coop peer-guess

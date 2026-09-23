@@ -14,7 +14,7 @@
 
 begin;
 set search_path = boggle, common, public, extensions;
-select plan(22);
+select plan(24);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -39,6 +39,12 @@ select is((select ret->'data'->>'result' from cat_ret), 'accepted',
   'required word (is_bonus false) → accepted');
 select is((select (ret->'data'->>'points')::int from cat_ret), 1,
   'return carries the FE-supplied points (cat = 1)');
+-- No outcome and no message: the frontend says what a word is worth
+-- (src/boggle/lib/answer.ts, whose test names this folder).
+select is((select ret->>'outcome' from cat_ret), null::text,
+  'an accepted word carries no outcome');
+select is((select ret->>'message' from cat_ret), null::text,
+  'an accepted word carries no message');
 
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select count(*) from boggle.found_words where game_id = (select id from g) and word = 'cat'),

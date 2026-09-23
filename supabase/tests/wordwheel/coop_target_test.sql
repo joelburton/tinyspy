@@ -75,7 +75,8 @@ select is(
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   wordwheel.submit_word((select id from g), 'ihgfedcba', 24, true, false),
-  '{"type":"ok","data":{"result":"won"}}'::jsonb,
+  -- No outcome and no message: src/wordwheel/lib/answer.ts says it.
+  '{"type":"ok","data":{"result":"won"},"outcome":null,"message":null}'::jsonb,
   'coop: the word that crosses the target reports the win to its caller'
 );
 

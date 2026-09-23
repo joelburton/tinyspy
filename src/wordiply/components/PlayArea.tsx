@@ -12,16 +12,12 @@ import { useGame, type EventRow } from '../hooks/useGame'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { historySnapshot } from '../lib/history'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import { ANSWER_OUTCOME, type Answer } from '../lib/answer'
+import { answerMessage, answerOf, peerAnswerMessage } from '../lib/answer'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Actor } from '@/common/members/member'
-import {
-  useFoundWordSubmit,
-  type LegalWord,
-  type WordSubmitAnswer,
-} from '@/shared/found-words/useFoundWordSubmit'
+import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
 import { useMark } from '@/common/board-marks/useMark'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
 import { lengthScore } from '../lib/scoring'
@@ -171,25 +167,10 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Move entry + own-move results (shared engine) ────
   // The legal list ships to the FE, so a guess validates locally against a
-  // Set. useFoundWordSubmit owns the typed word, the results it shows into the
-  // slot, and the optimistic commit + dedup; wordiply supplies the lookup
-  // (points = the word's LENGTH), the submit_guess RPC, and the reject reason.
+  // Set. useFoundWordSubmit owns the typed word and the optimistic commit +
+  // dedup; wordiply supplies the lookup (points = the word's LENGTH), the
+  // submit_guess RPC, and what it shows for each answer.
   const legalSet = useMemo(() => new Set(game?.legalWords ?? []), [game?.legalWords])
-
-  /** The engine's four answers in the SERVER's vocabulary — it reports one
-   *  `not_legal` for two different things, and which one it was decides whether
-   *  a word was a miss or a rule broken. Everything that shows an answer goes
-   *  through here and then through `ANSWER_OUTCOME`, so the pill, the row and
-   *  the log cannot disagree about one word. */
-  const answerFor = useCallback(
-    (w: string, answer: WordSubmitAnswer): Answer =>
-      answer !== 'not_legal'
-        ? answer
-        : base !== '' && !w.includes(base.toLowerCase())
-          ? 'missing_base'
-          : 'not_a_word',
-    [base],
-  )
 
   // ─── The answer, on the row the word was typed into ────────────
   // The shared engine consumes the box the instant you submit — it has to, or a
@@ -254,9 +235,6 @@ export function PlayArea(ctx: GamePageCtx) {
       // Must be LONGER than the base, so the minimum length is base + 1.
       minWordLength: base.length + 1,
       localFeedbackSlot,
-      // The board row shows an accepted word and its length — the one live
-      // readout — so the engine says nothing on an accept.
-      hideAccepted: true,
       foundWords: guesses, // ALL rows: the server dedups on rejects too, so a re-try reads as 'already found' here rather than round-tripping
       lookup: (w): LegalWord | null =>
         legalSet.has(w) ? { word: w, points: w.length, isBonus: false } : null,
@@ -277,25 +255,14 @@ export function PlayArea(ctx: GamePageCtx) {
           return null
         }
       },
-      // Every answer, on the row the word was typed into, in this game's own
-      // reading of them: a word the list does not know is not a bad move — you
-      // are hunting for the longest word you can think of, and a miss is a miss
-      // — and a word you already used is the same kind of nothing-happened. Too
-      // short and "must contain the stem" are RULES, and breaking one costs a
-      // turn like any other move.
-      onAnswer: (w, answer) => showAnswer(w, ANSWER_OUTCOME[answerFor(w, answer)]),
-      // …and the pill says the same, because it is the same table. A word the
-      // list does not know is a WARNING here and not a loss: this game asks you
-      // to try long, strange words, and answering one of them like an error
-      // would be mean. boggle and the bee games read the same event as `lost`,
-      // which is why the engine holds no default and every game says its own.
-      outcomeFor: (w, answer) => ANSWER_OUTCOME[answerFor(w, answer)],
-      // Not in the legal set: either it doesn't contain the base, or it's not
-      // a word. (Too-short is handled by minWordLength above.)
-      explainReject: (w) =>
-        answerFor(w, 'not_legal') === 'missing_base'
-          ? `must contain "${base.toUpperCase()}"`
-          : 'not a word',
+      // Every answer, on the row the word was typed into and in the pill, from
+      // one `lib/answer.ts` call so the two cannot disagree. An accepted guess
+      // has no words: the row showing it IS the answer.
+      onAnswer: (report) => {
+        const { outcome, text } = answerMessage(answerOf(report, base))
+        showAnswer(report.word, outcome)
+        if (text !== '') localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
+      },
       // Record the rejection too — in wordiply a rejected guess is a TURN (see
       // the guesses table header). We hand the server `fe_legal: false` and it
       // re-derives WHICH guard applies, since it owns the structural rules; a
@@ -462,15 +429,10 @@ export function PlayArea(ctx: GamePageCtx) {
     messageFor: (r) => {
       if (r.user_id === session.user.id) return null
       const member = players.find((p) => p.user_id === r.user_id)
-      // No verb: the dot names who, the word is the news, the count is its
-      // length. "played" earned no room in the header's ~26 phone characters.
-      // …and their word lands on the shared board, so the row says so too.
-      showAnswer(r.word, ANSWER_OUTCOME.accepted, true)
-      return FeedbackMessage.peer(
-        member,
-        ANSWER_OUTCOME.accepted,
-        `${r.word.toUpperCase()} (${r.length})`,
-      )
+      const { outcome, text } = peerAnswerMessage(r)
+      // Their word lands on the shared board, so the row says so too.
+      showAnswer(r.word, outcome, true)
+      return FeedbackMessage.peer(member, outcome, text)
     },
     globalFeedbackSlot,
   })

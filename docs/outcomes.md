@@ -222,12 +222,14 @@ its log with no test going red.
 
 **The rollout, so a reader knows which shape they are looking at.** This is the
 shape the game areas are converting to, and most of the roster has not been
-there yet: a game not yet audited has a static `ANSWER_OUTCOME` table from
+there yet: a game not yet converted has a static `ANSWER_OUTCOME` table from
 answer words to outcomes, and a pill that reads `res.outcome` off the envelope
 — the outcome-fix area's shape, which was one derivation per game and is now
 becoming one function. Each game converts as its area opens
-([plans/app-audit.md](../plans/app-audit.md) → the per-game rows); the rule
-that the outcome is decided once has not changed.
+([plans/app-audit.md](../plans/app-audit.md) → the per-game rows), except
+that the four games sharing `useFoundWordSubmit` converted together, since the
+engine's shape changed under all of them; the rule that the outcome is decided
+once has not changed.
 
 **Two games deliberately have no answer file, and that is not an oversight.**
 codenamesduet shows no single guess's outcome — a guess is one tile, it answers
