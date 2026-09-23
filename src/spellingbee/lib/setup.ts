@@ -26,10 +26,11 @@ import type { FormErrors } from '@/common/forms/formState'
  *     the right pick for a group that just wants to find words.
  *   - `required` / `legal` — the vocabulary bands. `required`
  *     (1..6) is where the displayed goal words come from; `legal`
- *     (required..6) is the wider set of accepted/bonus words. The
- *     board pool is selected at the band-1 floor, so any choice is
- *     solvable; `legal` must contain `required` (see
- *     `legalError`).
+ *     (required..6) is the wider set of accepted/bonus words;
+ *     `legal` must contain `required` (see `legalError`). Every
+ *     random board is grown from a band-1 pangram, but a narrow
+ *     `required` can still leave no board with 30 required words,
+ *     which the edge function refuses under this field.
  *   - `custom_center` + `custom_letters` — an OPTIONAL player-
  *     specified letter set: the center letter + the six other
  *     letters. When both are set (and valid — see
@@ -112,9 +113,9 @@ export function customLettersError(setup: SpellingbeeSetup): FormErrors {
 }
 
 /**
- * The single Start-gate validator for both manifests: the legal-band rule OR the
- * custom-letters rule, whichever fails first (the manifest's `validate` shows the
- * returned string and disables Start until it's `null`).
+ * The single Start-gate validator for both manifests: the legal-band rule and
+ * the custom-letters rule, each under its own field. The manifest's `validate`
+ * returns it, and Start stays disabled while it holds any error.
  */
 export function spellingbeeSetupError(setup: SpellingbeeSetup): FormErrors {
   return { ...legalError(setup), ...customLettersError(setup) }

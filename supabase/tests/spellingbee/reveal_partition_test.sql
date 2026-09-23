@@ -33,12 +33,11 @@
 -- actually receive peers + the reveal after a target-rank win
 -- (vs. a timeout/manual end, already covered elsewhere)?
 --
--- It also pins the DB fact behind the PlayArea caller-only-score
--- fix: post-terminal, summing EVERY visible found_words row (what
--- the old code did, leaning on "RLS keeps compete caller-only")
--- no longer equals the caller's own score — because peers' rows
--- are now visible. So the FE must filter to self in compete; the
--- final two assertions document exactly that divergence.
+-- It also pins the DB fact behind PlayArea's caller-only score in
+-- compete: post-terminal, summing EVERY visible found_words row no
+-- longer equals the caller's own score, because peers' rows are
+-- visible by then. So the FE must filter to self rather than lean
+-- on RLS; the final two assertions document exactly that divergence.
 --
 -- Personas: ada (winner), bea (the loser / viewer of interest),
 -- cade (a third player, so cat B has a non-winner peer in it too).
@@ -186,25 +185,25 @@ select ok(
 );
 
 -- ============================================================
--- (9) Post-terminal, as bea: the required answer key materializes
+-- (9) Post-terminal, as bea: the required answer key is still there
 -- ============================================================
--- The other half of cat B — "non-bonus words nobody found" — is
--- computed FE-side as (required_words − found_words). That requires
--- the full required list, which the games_state reveal now exposes.
+-- The other half of cat B — the words nobody found — is computed
+-- FE-side from the shipped lists minus found_words. That needs the
+-- full required list, which games_state exposes throughout.
 
 select is(
   (select jsonb_array_length(required_words) from spellingbee.games_state
     where id = (select id from g)),
   30,
-  'compete post-terminal / bea: games_state.required_words materializes (30 entries) — cat B "nobody found" source'
+  'compete post-terminal / bea: games_state.required_words is present (30 entries) — cat B "nobody found" source'
 );
 
 -- ============================================================
 -- (10)–(11) Why PlayArea must filter to self in compete
 -- ============================================================
--- The old score derivation summed EVERY visible found_words row,
--- relying on "RLS keeps compete caller-only." The two assertions
--- above (peers now visible post-terminal) break that assumption:
+-- A score summed over EVERY visible found_words row, relying on
+-- "RLS keeps compete caller-only", breaks at terminal: the
+-- assertions above (peers visible post-terminal) show why —
 -- summing all rows would jump bea's score from her own 6pt to
 -- 24pt (6 + cade's 1 + ada's 17) at the instant the game ends.
 -- These assertions pin both numbers so the divergence is explicit

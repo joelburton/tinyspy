@@ -1188,7 +1188,18 @@ ending keeps the last mid-game readout — or **also drop the re-emission**,
 which would change what the terminal status says in a race nobody scored in.
 Recommendation: the prose. wordwheel carries the same two comments.
 
-### F-spellingbee-15 · `stale-claims` · sentences on the roster that are no longer true
+### SHIPPED · F-spellingbee-15 · `stale-claims` · sentences on the roster that are no longer true
+
+**Joel, 2026-09-22: "fix."** Every item below corrected in place. Two more
+turned up on the way and went with them: `gameplay_test`'s header named the
+answers by camelCase names no code uses (`tooShort`, `badLetters`, …), and
+`reveal_partition_test`'s "non-bonus words nobody found" — the reveal folds
+in the bonus words too. The edge function's refusal table gained the line it
+had lost, that anything thrown comes back as `crash`. The two `doc.md`
+sentences: the header loads once and only the found list refetches; the
+`gameplay_test` row's "each touching the rows" is true now, since F-17 pinned
+it. **Not touched, being F-14's:** the "replaces status wholesale" comments in
+`compete_test` and `coop_target_test`. Verified with F-17 below.
 
 - **The edge function's docstring** (`index.ts`): step 4 *"Pick the center
   letter … (uniform)"* — it tries all seven in random order until one clears
@@ -1231,7 +1242,33 @@ The prose pass reported pgTAP and the edge function done; these survived it,
 which is the case for the read. Options: **fix them all** in one sitting, or
 leave them. Recommendation: fix them all.
 
-### F-spellingbee-16 · `small-shapes` · code that says a little more or less than it does
+### SHIPPED · F-spellingbee-16 · `small-shapes` · code that says a little more or less than it does
+
+**Joel, 2026-09-23: "yes, f16. do it."** All four:
+
+- **PN161** reads *"BUG: legal difficulty of % with required at %"* — true
+  whether the band is below the required one or above 6, no trailing space.
+- **The band casts are caught**, each in its own `begin … exception when
+  invalid_text_representation`, as `target_rank`'s is. **Two new codes, PN499
+  (required) and PN500 (legal)** — I first reused PN160/PN161 on the ground
+  that it is the same question, and `raiseCodes.test.ts` refused it (*"never
+  reuses a number"*), so the guard's next-free numbers it is.
+- **The dead branches are gone**: `submit_timeout`'s compete terminal is
+  plainly `lost_compete` (its comment says `create_game` refuses a race
+  without a target), and the compete `labelFor`'s `ended` arm is `Ended ·
+  nobody reached "…"` with a line saying the clock is `lost_compete`'s.
+  `docs/game-status-labels.md` already showed only that.
+- **The coop results are `{ won: false }`**, the win's shape inverted, in
+  both `submit_timeout` and `end_game`.
+
+**Tests:** `create_game_test` gains the two not-a-number refusals (a word for
+`required`, `5.5` for `legal`), `coop_target_test` pins a loss's result as
+exactly `{ won: false }`. **Planted**: the required catch pointed at the
+wrong exception — the create_game file dies on the bare `invalid input syntax
+for type integer: "three"`, which is the finding; `finished` put back into
+the result — its case red. Restored. `npm run test:db`, 181 files, 2578
+tests, PASS; spellingbee + guards, 364 tests; the guard now reports PN501
+next.
 
 - **PN161's message** reads *"BUG: legal difficulty of % below the required % "*
   — a trailing space, and wrong when the legal band is above 6, which the same
@@ -1255,7 +1292,37 @@ Options: **fix all four** (PN161 split or reworded, both casts caught the
 way `target_rank`'s is, the two dead branches gone, the three unread keys
 dropped); or pick. Recommendation: all four.
 
-### F-spellingbee-17 · `test-gaps` · rules nothing exercises
+### SHIPPED · F-spellingbee-17 · `test-gaps` · rules nothing exercises
+
+**Joel, 2026-09-22: "fix."** Seven new assertions across four files, and one
+Vitest case:
+
+- `concede_test`: a conceder's `submit_word` is PN355 *Already conceded*; a
+  concede that leaves racers does NOT touch the found rows, and the last one
+  does.
+- `gameplay_test`: `submit_timeout` and `end_game` each touch the found rows.
+- `replay_test`: `replay_board` touches its `games` row.
+- `compete_test`: the leaderboard frozen at the win carries the winner's
+  17 points at Solid and a rival's 1.
+- `PlayArea.test`: New game after a hand-picked board sends the setup with
+  neither letter key and every other setting kept.
+
+**The touches are read off `ctid`, not `xmin`**: each pgTAP file is one
+transaction, so a no-op update's new version keeps the same `xmin`; its
+`ctid` moves. (A temp-table column cannot be named `ctid` — the first run
+aborted three files on it; the column is `version`.)
+
+**Verified by planting**, the SQL through a scratchpad copy applied with
+`psql`: the conceder check off, both end touches off, the replay touch off,
+the winner's score zeroed in the frozen leaderboard — each red on its own
+assertion. The concede touch was planted twice on its own (ungated, and
+removed), since the conceder plant lets a second row in and aborts the file:
+each turned exactly its assertion red. The New-game strip removed: its case
+red. All restored (`gmake db-sql ENV=local`, `git diff` clean on
+`PlayArea.tsx`). Then: `tsc -b` and eslint clean; spellingbee + guards, 36
+files, 364 tests; `deno check` clean and `deno test` 11 green; `npm run
+test:db`, 181 files, 2575 tests, PASS. `doc.md`'s Tests tables name the new
+pins. No e2e run.
 
 - **A conceder cannot submit** (PN355). `doc.md` states it twice as the reason
   a conceder cannot win, and no pgTAP file submits after a concede.

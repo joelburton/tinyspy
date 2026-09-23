@@ -50,8 +50,8 @@ select is(
 -- ============================================================
 -- Public reference tables readable as authenticated
 -- ============================================================
--- These are reference data — public SELECT, no RLS, no club
--- gating. The import script writes them; everyone reads them.
+-- Reference data — a SELECT grant and a permissive RLS policy, no
+-- club gating. The import script writes it; everyone reads it.
 
 -- Seed a sentinel row as postgres so we have something to read.
 -- (The actual data lands via the import script in normal use; here
@@ -73,9 +73,9 @@ select is(
 -- ============================================================
 -- Set up: a spellingbee game in ada+bea's club
 -- ============================================================
--- Direct insert (no RPC yet). Builds a non-terminal game first;
--- we'll flip it to terminal partway through to exercise the
--- conditional-exposure case.
+-- Direct insert, not the RPC: what is pinned is the shape. Builds a
+-- non-terminal game first and flips it to terminal partway through,
+-- to show the lists are exposed the same either side of the flip.
 
 create temp table club on commit drop as
 select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
@@ -113,9 +113,8 @@ with ins as (
 )
 insert into common_g (id) select id from ins;
 
--- The hidden wordlists. Small synthetic lists; they only need
--- to be present + retrievable. mode column added in the
--- sibling-manifest migration; lock to 'coop' here to match the
+-- The word lists. Small synthetic ones; they only need to be
+-- present + retrievable. `mode` is 'coop' to match the
 -- common.games gametype above.
 insert into spellingbee.games
   (id, club_handle, mode, outer_letters, center_letter,

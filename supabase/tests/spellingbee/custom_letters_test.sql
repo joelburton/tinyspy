@@ -16,7 +16,7 @@
 --   4. A custom board with ZERO required words is rejected (the ≥1
 --      playability floor).
 --
--- See ./create_game_test.sql for the base board/setup fixtures.
+-- The base board/setup fixtures are ./setup.psql's.
 
 begin;
 

@@ -36,7 +36,8 @@ export type PangramRow = {
   // How many required words fit this 7-letter seed — the ≥30 gate.
   required_words_count: number
   // Whether the seed's 7 letters include a rare one — {j, q, x, z}
-  // (very rare) or {k, v, w, y} (somewhat rare). The diverse builder
+  // (very rare), {k, v, w, y} (somewhat rare) or {b, f, h} (mildly
+  // under-represented), per the pangram import. The diverse builder
   // gives these masks a ×RARE_LETTER_WEIGHT sampling boost so boards
   // aren't dominated by common-letter seeds (e, a, i, r, t, …).
   // Precomputed at import time.

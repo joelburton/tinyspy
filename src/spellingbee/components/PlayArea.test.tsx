@@ -200,14 +200,6 @@ describe('spellingbee PlayArea — render smoke', () => {
   })
 })
 
-/**
- * The compete collective losses both land on play_state `lost_compete` and are
- * told apart only by `status.reason` — the two-places trap's third surface
- * (labelFor and the report fixtures assert the club card; nothing else asserts
- * the in-game verdict). These pin buildTerminalMessage to the terminals the server
- * actually writes: common.concede → 'lost_compete' + outcome 'conceded',
- * submit_timeout → 'lost_compete' + outcome 'timeout'.
- */
 describe('spellingbee PlayArea — the hexes the word is using', () => {
   /** The letters whose hexes wear the selected edge, in draw order. */
   const usedHexes = () =>
@@ -305,6 +297,14 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
   })
 })
 
+/**
+ * The compete collective losses both land on play_state `lost_compete` and are
+ * told apart only by `status.reason` — the two-places trap's third surface
+ * (labelFor and the report fixtures assert the club card; nothing else asserts
+ * the in-game verdict). These pin buildTerminalMessage to the terminals the server
+ * actually writes: common.concede → 'lost_compete' + reason 'conceded',
+ * submit_timeout → 'lost_compete' + reason 'timeout'.
+ */
 describe('spellingbee PlayArea — compete terminal verdicts', () => {
   const competeCtx = (playState: string, reason: string) =>
     makeCtx({
@@ -471,6 +471,21 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
     )
   })
 
+  it('"New game" after a hand-picked board asks for a random one', async () => {
+    // Custom letters are a one-off: the follow-up keeps every other setting and
+    // drops the two letter keys, so the edge function takes the random path.
+    startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
+    const user = userEvent.setup()
+    const setup = { required: 4, legal: 5, timer: { kind: 'none' }, custom_center: 'e', custom_letters: 'abcdfg' }
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'ended', setup })} />)
+    await user.click(screen.getByRole('button', { name: 'New game' }))
+    await waitFor(() => expect(startEdgeFn).toHaveBeenCalled())
+    const sent = startEdgeFn.mock.calls[0]![1].setup
+    expect(sent.custom_center).toBeUndefined()
+    expect(sent.custom_letters).toBeUndefined()
+    expect(sent.required).toBe(4)
+  })
+
   /**
    * The single-flight guard, checked once end-to-end through a real game rather
    * than only on the hook (`common/single-flight/useSingleFlight.test.ts`). It matters
@@ -489,7 +504,7 @@ describe('spellingbee PlayArea — icon-only action rows', () => {
 
     const button = screen.getByRole('button', { name: 'New game' })
     await user.click(button)
-    await waitFor(() => expect(button).toBeDisabled()) // `startingNewGame` reached the button
+    await waitFor(() => expect(button).toBeDisabled()) // the in-flight run reached the button
     await user.click(button)
     await user.click(button)
 
@@ -686,10 +701,9 @@ describe('spellingbee PlayArea — concede', () => {
       </>,
     )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    // The trigger and the modal's confirm now share the name "End game" (the
-    // button label went from "End" to the full phrase, since icon-only buttons
-    // make the label the accessible name). The confirm is the one the dialog
-    // adds, so it's last in the DOM.
+    // The trigger and the modal's confirm share the name "End game" (an
+    // icon-only button's label is its accessible name). The confirm is the one
+    // the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: 'End game' }))
     const confirms = await screen.findAllByRole('button', { name: 'End game' })
     await user.click(confirms[confirms.length - 1])

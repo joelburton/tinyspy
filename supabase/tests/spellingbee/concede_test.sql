@@ -19,7 +19,7 @@ set search_path = spellingbee, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(6);
+select plan(9);
 
 -- ─── A 3-player compete game (ada, bea, cade) ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -49,12 +49,40 @@ select is(
   (select is_terminal from common.games where id = (select id from g)),
   false, 'the game continues while others race');
 
+-- A conceder is out of the race: their next word is refused, so they cannot
+-- go on to reach the target and be recorded the winner.
+select pg_temp.envelope_is(
+  spellingbee.submit_word((select id from g), 'bead', 1, false, false),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN355",
+    "message":"Already conceded"}'::jsonb,
+  'a conceder cannot submit a word');
+
 -- ─── (2) bea then cade concede → last one out ends it (collective loss) ───
+-- bea finds a word first, so the reveal touch below has a row to touch.
+select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
+select spellingbee.submit_word((select id from g), 'bead', 1, false, false);
+
+-- The touch is ctid-visible: the no-op update writes a new row version, and
+-- this whole file is one transaction, so xmin would not change.
+reset role;
+create temp table before_last on commit drop as
+select ctid::text as version from spellingbee.found_words where game_id = (select id from g);
+
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select spellingbee.concede((select id from g));
+reset role;
+select is(
+  (select ctid::text from spellingbee.found_words where game_id = (select id from g)),
+  (select version from before_last),
+  'a concede that leaves racers in the game does not touch the found rows');
+
 select pg_temp.as_user('cade3333-3333-3333-3333-333333333333');
 select spellingbee.concede((select id from g));
 reset role;
+select isnt(
+  (select ctid::text from spellingbee.found_words where game_id = (select id from g)),
+  (select version from before_last),
+  'the last concede, which ends the game, touches the found rows (the reveal wakes)');
 select set_config('request.jwt.claims', '', true);
 select is(
   (select play_state from common.games where id = (select id from g)),

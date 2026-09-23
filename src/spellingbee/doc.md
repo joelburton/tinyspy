@@ -174,7 +174,8 @@ written once at creation and never changed, so one board reads one way in the
 club's history whatever the local shuffle.
 
 **Realtime is one room per client**, postgres-changes on both tables, and every
-change refetches both reads. Both tables must be in the publication, since a
+change refetches the found list; the header loads once, since nothing in it
+changes during play. Both tables must be in the publication, since a
 subscription naming an unpublished table is rejected whole. The three RPCs that
 end a game from outside a submit touch `found_words` in place on the way out,
 which is what wakes a compete client to refetch the rows the policy has just
@@ -502,9 +503,9 @@ checks shape, not spelling) and three bonus ones, and
 | `custom_letters_test` | a hand-picked board is accepted under thirty words and refused at zero; the custom letters are stripped from the saved default; a random board still needs thirty |
 | `coop_target_test` | reaching the target is `won` with reason `target` and everyone winning, and the game is really over; the clock with a target unreached is `lost`; with no target it is `ended`; End with a target unreached is `ended` |
 | `gameplay_test` | each of the four `ok`s, none carrying an outcome; the row stores what was sent; the score and count include bonus finds; the coop duplicate; coop has no end at a full clear; the timeout and the manual end, each idempotent and each touching the rows; the lists un-gated throughout |
-| `compete_test` | per-player ownership of a word, and a racer's own duplicate refused with the frontend's line; the leaderboard's shape; the target hit answers `won`, ends the race, names the winner and writes every result; a post-win submit is refused; the timeout and the manual end with nobody winning |
-| `concede_test` | refused in coop; a conceder is out while the others race; the last one out ends the race as a collective loss |
-| `replay_test` | the found list cleared, the status reseeded, the clock zeroed, the board kept; any player may, mid-game or after; a non-player may not |
+| `compete_test` | per-player ownership of a word, and a racer's own duplicate refused with the frontend's line; the leaderboard's shape; the target hit answers `won`, ends the race, names the winner, freezes the leaderboard as it stood and writes every result; a post-win submit is refused; the timeout and the manual end with nobody winning |
+| `concede_test` | refused in coop; a conceder is out while the others race and cannot submit a word; the last one out ends the race as a collective loss, and only that concede touches the found rows |
+| `replay_test` | the found list cleared, the status reseeded, the clock zeroed, the board kept, the `games` row touched; any player may, mid-game or after; a non-player may not |
 | `player_subset_test` | a club member not seated in the game can read it and cannot move in it |
 | `reveal_partition_test` | through the real RPCs, from the loser's seat: their own rows mid-game and no rival's; every row at terminal, still partitionable by user; the answer key present throughout; and the sum over every visible row no longer equals the caller's own score, which is why the frontend filters to self in compete |
 
@@ -524,7 +525,7 @@ Vitest, beside the code:
 |---|---|
 | `lib/answer.test` · `lib/terminal.test` | every answer's words and outcome, and the three-way split of a miss; every terminal sentence per mode, play state and reason, as a table with no cell pairing a win with a loss |
 | `lib/setup.test` · `components/SetupForm.test` | the letter rules and the band rule, each refusal under the field it names; the form's settings in order, the compete caption, the solo club's missing picker, and where a server refusal lands |
-| `components/PlayArea.test` | the surface mounts in every mode and state; the hexes a word is using, marked and cleared; the inert board after a concede or an ending; a required, bonus and pangram word accepted with the right call, a miss refused with its reason and answered on the board; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; the keys — New game, End, Concede, Shuffle, Restart |
+| `components/PlayArea.test` | the surface mounts in every mode and state; the hexes a word is using, marked and cleared; the inert board after a concede or an ending; a required, bonus and pangram word accepted with the right call, a miss refused with its reason and answered on the board; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, End, Concede, Shuffle, Restart |
 
 Playwright, in `e2e/`: `spellingbee` (the play loop on screen — a required
 word lands, a bonus word dots, a pangram flourishes, custom letters), 

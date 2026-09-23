@@ -1,7 +1,7 @@
 -- cs-met-spellingbee
 
 -- ============================================================
--- Test: spellingbee.create_game (sibling-manifest era)
+-- Test: spellingbee.create_game
 -- ============================================================
 --
 -- Coverage:
@@ -16,7 +16,7 @@
 --   3. Auth + membership: dee (outsider) rejected.
 --   4. mode arg validation: invalid value; compete with <2 players;
 --      target_rank required iff compete; target_rank range.
---   5. Board validation (unchanged from pre-split): outer_letters
+--   5. Board validation: outer_letters
 --      length / alphabet / no-s / distinctness; center; center-
 --      not-in-outer; required_words_count ≥ 30 gate.
 --   6. Title formula: "<CENTER>·<OUTER-SORTED>".
@@ -28,7 +28,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(35);
+select plan(37);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -300,7 +300,7 @@ select pg_temp.envelope_is(
     "message":"BUG: required difficulty of 0"}'::jsonb,
   'rejects setup.required below 1 (band floor)');
 
--- required = 1 is now the floor (was 2) — accepted. Same fixture board (its
+-- required = 1, the floor, is accepted. Same fixture board (its
 -- required_words_count clears the ≥30 gate regardless of the required band).
 select isnt(
       (spellingbee.create_game(
@@ -312,7 +312,7 @@ select isnt(
       pg_temp.spellingbee_board()
     )->'data'->>'id'),
   null,
-  'accepts setup.required = 1 (the new band floor)'
+  'accepts setup.required = 1 (the band floor)'
 );
 
 select pg_temp.envelope_is(
@@ -343,6 +343,28 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN161"}'::jsonb,
   'rejects setup.legal above 6 (band ceiling)');
 
+-- A band that is not a number answers in the envelope rather than escaping
+-- as a bare cast error, the way target_rank's does (PN158).
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup() || '{"required": "three"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN499",
+    "message":"BUG: required difficulty that is not a number"}'::jsonb,
+  'rejects a setup.required that is not a number, in the envelope');
+
+select pg_temp.envelope_is(
+  spellingbee.create_game((select handle from club),
+    pg_temp.spellingbee_setup() || '{"legal": "5.5"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.spellingbee_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN500",
+    "message":"BUG: legal difficulty that is not a number"}'::jsonb,
+  'rejects a setup.legal that is not a whole number, in the envelope');
+
 -- Happy path with explicit non-default bands: required 4, legal 6.
 select isnt(
       (spellingbee.create_game(
@@ -358,7 +380,7 @@ select isnt(
 );
 
 -- ============================================================
--- (19)-(22) Board validation (unchanged from pre-split)
+-- (19)-(22) Board validation
 -- ============================================================
 
 select pg_temp.envelope_is(

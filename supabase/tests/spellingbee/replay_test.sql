@@ -3,7 +3,7 @@
 -- ============================================================
 -- Test: spellingbee.replay_board (restart this board from scratch)
 -- ============================================================
--- The "Replay board" game-menu item / terminal RestartButton. Clears the
+-- The Restart action — a menu row all game, a button at terminal. Clears the
 -- found-words log (the game's only working state), un-terminals the row
 -- with the same initial status create_game seeds, and zeroes the shared
 -- clock. The frozen board (letters + word lists) survives. Any game
@@ -15,7 +15,7 @@ set search_path = spellingbee, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(13);
+select plan(14);
 
 -- ── Coop: find words, manual-end, then replay → fully reset ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -42,10 +42,19 @@ select is(
   true, 'precondition — manually ended game is terminal');
 -- Age the shared clock so the replay's clock-zeroing is observable.
 update common.timers set ticks = 99 where game_id = (select id from g1);
+-- The games row's version, to see the realtime touch land (a new ctid; this
+-- file is one transaction, so xmin would not move).
+create temp table games_before on commit drop as
+select ctid::text as version from spellingbee.games where id = (select id from g1);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select spellingbee.replay_board((select id from g1));
 reset role;
+
+select isnt(
+  (select ctid::text from spellingbee.games where id = (select id from g1)),
+  (select version from games_before),
+  'replay → the games row is touched, which is what wakes every client (a DELETE may not)');
 
 select is(
   (select play_state from common.games where id = (select id from g1)),
@@ -131,7 +140,7 @@ select is(
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
--- 42501 = common.require_game_player's 'not-a-player|'.
+-- PN253 = common.require_game_player's refusal.
 select pg_temp.envelope_is(
   spellingbee.replay_board((select id from g1)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",

@@ -8,20 +8,25 @@
 -- shipped legal list and scored it, so the RPC takes (word, points, is_pangram,
 -- is_bonus), trusts them, and only enforces the live-game check, dedups, records,
 -- and recomputes aggregates / the compete win. It does NOT validate word content
--- (no tooShort/badLetters/missingCenter/notAWord). Its `ok` is { result, points },
--- result = pangram / bonus / accepted / won; a duplicate is a race not-ok.
+-- (too short, a letter off the hive, the center missing, not a word). Its `ok`
+-- is { result, points }, result = pangram / bonus / accepted / won; a duplicate
+-- is a race not-ok.
 --
--- Coverage:
+-- Coverage, by section:
 --   1. coop happy: required word → 'accepted', row inserted, status updated.
---   2. coop pangram: trusted is_pangram → 'pangram', points as given, is_pangram=true.
---   3. coop bonus: trusted is_bonus → 'bonus', is_bonus=true, scored as given;
+--   2. coop pangram: trusted is_pangram → 'pangram', points as given.
+--   3. coop bonus: trusted is_bonus → 'bonus', scored as given;
 --      3b a bonus word with is_pangram=true → 'pangram'.
---   4. coop duplicate → the race refusal; compete duplicate is per-player.
---   5. compete target-rank-hit → terminal 'won_compete'; leaderboard populated.
---   6. hard rejections: post-terminal is a race; a non-player is refused.
---   7. coop has NO auto-terminal past required_words_count.
---   8. submit_timeout / end_game terminal transitions + idempotency + auth.
---   9. games_state exposes required_words during play + at terminal (un-gated).
+--   4. coop duplicate → the race refusal.
+--   5. a non-player is refused.
+--   6. compete duplicate is per-player.
+--   7. compete target-rank hit → 'won', terminal 'won_compete', the winner named.
+--   8. a submit after the end is the game-over race.
+--   9. coop has NO auto-terminal past required_words_count.
+--  10. submit_timeout: terminal, reason 'timeout', idempotent, the rows touched,
+--      and games_state still exposing the required list.
+--  11. end_game: terminal, reason 'manual', the live tally, idempotent, the rows
+--      touched, and a non-player refused.
 --
 -- See ../codenamesduet/create_game_test.sql for the pgTAP primer.
 
@@ -29,7 +34,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(47);
+select plan(49);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -172,7 +177,7 @@ select is(
 );
 
 -- ============================================================
--- (4) Coop duplicate: once anyone finds 'bead', everyone gets 'alreadyFound'
+-- (4) Coop duplicate: once anyone finds 'bead', it is already found for everyone
 -- ============================================================
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
@@ -265,7 +270,7 @@ select is(
 );
 
 -- ============================================================
--- (8) Post-terminal submission is rejected with P0001
+-- (8) Post-terminal submission is the game-over race (PN354)
 -- ============================================================
 
 -- A RACE, not a bug: the timer can expire or a rival can hit the target while
@@ -367,7 +372,19 @@ select is(
   'submit_word: face accepted in timeout-game setup'
 );
 
+-- The row's version before the end, to see the realtime touch land: the no-op
+-- update writes a new version (a new ctid; this file is one transaction, so
+-- xmin would not move).
+create temp table timeout_before on commit drop as
+select ctid::text as version from spellingbee.found_words where game_id = (select id from timeout_g);
+
 select spellingbee.submit_timeout((select id from timeout_g));
+
+select isnt(
+  (select ctid::text from spellingbee.found_words where game_id = (select id from timeout_g)),
+  (select version from timeout_before),
+  'submit_timeout: touches the found rows, so a compete client refetches the reveal'
+);
 
 select is(
   (select play_state from common.games where id = (select id from timeout_g)),
@@ -387,15 +404,15 @@ select is(
   'submit_timeout: status.reason=timeout'
 );
 
--- Idempotency: a second call raises P0001 (peers racing the countdown).
+-- Idempotency: a second call is the game-over race (peers racing the countdown).
 select pg_temp.envelope_is(
   spellingbee.submit_timeout((select id from timeout_g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'submit_timeout: second call raises P0001 (idempotent at the FE-swallow layer)');
+  'submit_timeout: a second call is the game-over race');
 
--- games_state exposes the full required-words list (un-gated: available during
--- play AND at terminal now — the FE ships it from game start).
+-- games_state exposes the full required-words list at terminal as it did in
+-- play: the FE ships it from game start.
 select is(
   (select jsonb_array_length(required_words) from spellingbee.games_state
     where id = (select id from timeout_g)),
@@ -426,7 +443,16 @@ select is(
   'submit_word: bead accepted in end_game setup'
 );
 
+create temp table end_before on commit drop as
+select ctid::text as version from spellingbee.found_words where game_id = (select id from end_g);
+
 select spellingbee.end_game((select id from end_g));
+
+select isnt(
+  (select ctid::text from spellingbee.found_words where game_id = (select id from end_g)),
+  (select version from end_before),
+  'end_game: touches the found rows, so a compete client refetches the reveal'
+);
 
 select is(
   (select play_state from common.games where id = (select id from end_g)),
@@ -458,12 +484,12 @@ select is(
   'end_game: status.found_words_count reflects the live count'
 );
 
--- Idempotency: a second call raises P0001.
+-- Idempotency: a second call is the game-over race.
 select pg_temp.envelope_is(
   spellingbee.end_game((select id from end_g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'end_game: second call raises P0001 (idempotent at the FE-swallow layer)');
+  'end_game: a second call is the game-over race');
 
 -- Auth: dee (outsider) cannot end a game they're not in. Fresh game (the previous
 -- one is terminal and would short-circuit on play_state).
@@ -484,7 +510,7 @@ select pg_temp.envelope_is(
   spellingbee.end_game((select id from auth_g)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'end_game: non-player (dee, outsider) is rejected with 42501');
+  'end_game: non-player (dee, outsider) is rejected (PN253)');
 
 -- ============================================================
 select * from finish();

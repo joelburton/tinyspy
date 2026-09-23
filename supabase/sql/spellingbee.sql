@@ -175,7 +175,8 @@ drop function if exists spellingbee._rank_idx(int, int);
 --
 -- The function is `security invoker` + `stable`:
 --   - invoker so it runs with the caller's access to common.words
---     (public reference data, RLS off) — no privilege escalation.
+--     (public reference data: a SELECT grant, and RLS on with a permissive
+--     policy) — no privilege escalation.
 --   - stable so a single SELECT can call it once per row of its
 --     enclosing query without repeated re-execution.
 
@@ -358,15 +359,27 @@ begin
   -- required set). Both optional — default to the classic 3 / 5. The edge
   -- function builds the board's word lists from these; create_game is the
   -- authority on the shape.
-  s_required := coalesce((setup->>'required')::int, 3);
+  begin
+    s_required := coalesce((setup->>'required')::int, 3);
+  exception when invalid_text_representation then
+    raise exception 'BUG: required difficulty that is not a number'
+      using errcode = 'PN499', hint = 'fault', column = '_',
+      detail = 'setup.required must be an integer 1..6';
+  end;
   if s_required < 1 or s_required > 6 then
     raise exception 'BUG: required difficulty of %', s_required
       using errcode = 'PN160', hint = 'fault', column = '_',
       detail = 'setup.required must be 1..6';
   end if;
-  s_legal := coalesce((setup->>'legal')::int, 5);
+  begin
+    s_legal := coalesce((setup->>'legal')::int, 5);
+  exception when invalid_text_representation then
+    raise exception 'BUG: legal difficulty that is not a number'
+      using errcode = 'PN500', hint = 'fault', column = '_',
+      detail = 'setup.legal must be an integer between required and 6';
+  end;
   if s_legal < s_required or s_legal > 6 then
-    raise exception 'BUG: legal difficulty of % below the required % ', s_legal, s_required
+    raise exception 'BUG: legal difficulty of % with required at %', s_legal, s_required
       using errcode = 'PN161', hint = 'fault', column = '_',
       detail = 'setup.legal must be between required and 6';
   end if;
@@ -971,13 +984,9 @@ begin
     -- can't be here: submit_word ends the game the moment they cross.)
     select jsonb_object_agg(
              user_id::text,
-             jsonb_build_object(
-               'won', false,
-               'finished', true,
-               'team_score', team_score,
-               'team_rank_idx',
-                 common._rank_idx(team_score, g_row.required_words_score)
-             )
+             -- The team's figures are on the status; a player's result says
+             -- only that nobody won, the win's `{ won: true }` inverted.
+             jsonb_build_object('won', false)
            )
       into player_results
       from common.game_players
@@ -1027,13 +1036,13 @@ begin
          group by gp.user_id
       ) p;
 
-    -- A compete race always has a target rank, so the clock beating everyone
-    -- to it is a real LOSS for the table — the same rule coop already applies
-    -- (see the coop branch's play_state), and the same rule boggle applies to
-    -- its score target. Only a game with nothing to reach ends neutrally.
+    -- A compete race always has a target rank (create_game refuses one
+    -- without), so the clock beating everyone to it is a real LOSS for the
+    -- table — the same rule coop applies when it set a target, and the same
+    -- rule boggle applies to its score target.
     perform common.end_game(
       target_game,
-      case when current_target_rank is not null then 'lost_compete' else 'ended' end,
+      'lost_compete',
       jsonb_build_object(
         'reason', 'timeout',
         'mode', 'compete',
@@ -1143,13 +1152,9 @@ begin
 
     select jsonb_object_agg(
              user_id::text,
-             jsonb_build_object(
-               'won', false,
-               'finished', true,
-               'team_score', team_score,
-               'team_rank_idx',
-                 common._rank_idx(team_score, g_row.required_words_score)
-             )
+             -- The team's figures are on the status; a player's result says
+             -- only that nobody won, the win's `{ won: true }` inverted.
+             jsonb_build_object('won', false)
            )
       into player_results
       from common.game_players

@@ -1,7 +1,7 @@
 -- cs-met-spellingbee
 
 -- ============================================================
--- Test: spellingbee compete mode (sibling-manifest era)
+-- Test: spellingbee compete mode
 -- ============================================================
 --
 -- The compete delta. The shared coop contract is exercised by
@@ -28,7 +28,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(23);
+select plan(25);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -146,6 +146,32 @@ select is(
   (select (status->>'winner_user_id')::uuid from common.games where id = (select id from g)),
   'cade3333-3333-3333-3333-333333333333'::uuid,
   'compete: status.winner_user_id = caller (cade)'
+);
+
+-- The leaderboard is frozen as it stood at the winning word: the winner's
+-- entry includes it, and a rival's is what they had.
+select is(
+  (
+    select (entry->>'found_words_score')::int || '/' || (entry->>'rank_idx')
+      from common.games cg,
+           jsonb_array_elements(cg.status->'leaderboard') entry
+     where cg.id = (select id from g)
+       and (entry->>'user_id')::uuid = 'cade3333-3333-3333-3333-333333333333'::uuid
+  ),
+  '17/2',
+  'compete: the frozen leaderboard carries the winner''s final score and rank (17 pts, Solid)'
+);
+
+select is(
+  (
+    select (entry->>'found_words_score')::int
+      from common.games cg,
+           jsonb_array_elements(cg.status->'leaderboard') entry
+     where cg.id = (select id from g)
+       and (entry->>'user_id')::uuid = 'ada11111-1111-1111-1111-111111111111'::uuid
+  ),
+  1,
+  'compete: the frozen leaderboard carries a rival''s score as it stood'
 );
 
 select is(

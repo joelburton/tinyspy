@@ -31,11 +31,13 @@
  *           has_rare_letters flag) get a 3x weight boost so
  *           j/q/x/z/k/v/w/y/b/f/h get fair representation
  *           against the long tail of common-letter pangrams.
- *   4. Pick the center letter from the 7 in the mask (uniform).
+ *   4. Try the seed's 7 letters as the center, in random order, keeping
+ *      the first that yields at least 30 required words; re-sample the
+ *      seed if none does.
  *   5. As the caller, query common.words (via the candidate_words
  *      RPC) for every word whose mask is a subset of the puzzle
- *      mask AND uses the center letter. Compute points per required
- *      word (length score + 10 if pangram).
+ *      mask AND uses the center letter. Score every word, required
+ *      and bonus alike (length score + 10 if pangram).
  *   6. Call spellingbee.create_game(target_club, setup,
  *      player_user_ids, mode, board) over PostgREST — the RPC
  *      validates everything end-to-end and creates the game.
@@ -47,7 +49,7 @@
  *
  * The caller's JWT carries every authorization signal we need:
  *   - spellingbee.pangrams + common.words are authenticated-readable
- *     (RLS off, public SELECT).
+ *     (a SELECT grant, and RLS on with a permissive policy).
  *   - spellingbee.games is RLS-gated on club membership, so the
  *     previous-board fetch only returns rows for clubs the
  *     caller belongs to.
@@ -57,8 +59,8 @@
  *
  * Calling shape (from the FE):
  *   POST /functions/v1/spellingbee-build-board
- *   { target_club: uuid,
- *     setup: jsonb,                 // {timer, target_rank?}, NO mode field
+ *   { target_club: text,            // the club's handle
+ *     setup: jsonb,                 // the `Setup` type below; NO mode field
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
  *   → an ENVELOPE, always 200 (docs/envelopes.md). The status says whether this
@@ -66,10 +68,12 @@
  *
  * The words are written HERE, at the raise, not looked up on the frontend:
  *
- *   PN175  form-validation  custom_letters  no words for those letters
- *   PN177  form-validation  required        no board at that required difficulty
- *   PN176  fault            -               the generator gave up on a club board
- *   PN172-4, crash          -               a bad request, or a broken pipeline
+ *   PN175     form-validation  custom_letters  no words for those letters
+ *   PN177     form-validation  required        no board at that required difficulty
+ *   PN176     fault            -               the generator gave up on a club board
+ *   PN172-4   fault            -               custom letters the dialog should have refused
+ *
+ * Anything thrown — a failed read, a broken pipeline — comes back as `crash`.
  *
  * The two form-validations are the narrow class the setup form cannot rule out
  * from the values alone: whether a board actually EXISTS at those settings.
@@ -108,9 +112,10 @@ type Setup = {
   required?: number
   legal?: number
   // Optional custom board — the player's own letters. `custom_center` = the
-  // center letter, `custom_letters` = the six other letters. When both are set
-  // (and valid) we build a board from exactly these letters instead of sampling
-  // a random pangram seed. Both create_game and this function re-validate.
+  // center letter, `custom_letters` = the six other letters. Either one set
+  // takes the custom path, where both must be valid; we then build a board from
+  // exactly these letters instead of sampling a random pangram seed. Both
+  // create_game and this function re-validate.
   custom_center?: string
   custom_letters?: string
   timer:
@@ -317,8 +322,9 @@ serve(async (req) => {
     const requiredBand = setup.required ?? 3
     const legalBand = setup.legal ?? 5
 
-    // Optional custom board: the player's own letters. Both fields set → custom
-    // (the FE sends them lowercased/letters-only; we re-normalize defensively).
+    // Optional custom board: the player's own letters. Either field set →
+    // custom, and a half-filled pair faults below (the dialog refuses one). The
+    // FE sends them lowercased/letters-only; we re-normalize defensively.
     const customCenter =
       typeof setup.custom_center === 'string' ? setup.custom_center.trim().toLowerCase() : ''
     const customLetters =
