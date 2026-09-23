@@ -1289,7 +1289,13 @@ table and `submit_guess` section say *"anything but an agent"* is `lost_clock`.
 Options: **fix the doc** and pin the ending (F-27); or change the code.
 Recommendation: fix the doc — an assassin is an assassin.
 
-### F-codenamesduet-23 · `terminal-default-is-timeout` · any unnamed ending reads "Lost: out of time"
+### SHIPPED · F-codenamesduet-23 · `terminal-default-is-timeout` · any unnamed ending reads "Lost: out of time"
+
+**Joel, 2026-09-23: "i'll take your rec."** `buildTerminalMessage` is a
+`switch` over the five endings, `lost_timeout` named; its `default` reads
+*"Game over: <state>"* / *"Game over"*, neutral — naming the state, as the
+club labels' default does, rather than a win or a loss. A `terminal.test.ts`
+case pins it; **planted** the old fallthrough — red. 48 files, 418 tests.
 
 `buildTerminalMessage` reaches `lost_timeout` by fallthrough, *"and any future
 terminal state"*. All five are known. Options: **name it**, as a `switch`

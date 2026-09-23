@@ -30,6 +30,14 @@ describe('buildTerminalMessage', () => {
     expect(buildTerminalMessage('ended').outcome).toBe('neutral')
   })
 
+  it('reads an ending it does not know as neutral, naming it — never as a timeout', () => {
+    expect(buildTerminalMessage('lost_somehow')).toEqual({
+      pillText: 'Game over: lost_somehow',
+      infoColText: 'Game over',
+      outcome: 'neutral',
+    })
+  })
+
   it('fills both texts in every case, and says "Lost" only beside a loss', () => {
     for (const state of ['won', 'lost_assassin', 'lost_clock', 'lost_timeout', 'ended']) {
       const m = buildTerminalMessage(state)
