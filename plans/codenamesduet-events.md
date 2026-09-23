@@ -1,7 +1,7 @@
 # codenamesduet: one `events` table
 
-**Status: BUILDING on branch `codenamesduet-events` — Steps 1–5 done (see
-Progress, at the end); Step 6 left; the six questions answered.**
+**Status: BUILDING on branch `codenamesduet-events` — Steps 1–5 done and rehearsed (see
+Progress, at the end); the deploy waits on Joel; the six questions answered.**
 Joel, 2026-09-23: *"make a plan for this in plans/. once i've read that plan,
 we do this."* Worked inside the
 `codenamesduet` area, which pauses at its restructure's Step 5 until this is
@@ -411,3 +411,28 @@ function, and a real call spends an Anthropic request — Joel's to allow.
 Descriptions of the log's DISPLAY — "a table of turns", keyed by
 `turn_number` (`docs/playarea.md`, `common/event-log/doc.md`) — are unchanged,
 because the display is.
+
+### Step 6 — the rehearsal — DONE 2026-09-23; the deploy waits on Joel
+
+- **The cut:** `supabase migration list --linked` — prod lacks only
+  `20260923000001_codenamesduet_events.sql`. Prod has both tables the migration
+  drops: 19 games, 126 clues, 240 guesses.
+- **`gmake db-rehearse`** over `backups/prod-20260923-122355.dump`
+  (`SINCE=20260923000001`): the migration applied, its own checks passed, and
+  the row diff was `-clues 126`, `-guesses 240`, `+events 434` — 126 clue
+  rows, 240 guess rows (45 of them bystanders that took a turn) and **68
+  inferred passes**. The whole pgTAP suite passed against prod's rows (182
+  files, 2597 tests). The identity sequence stands past the highest id.
+- **`gmake db-drift`** on the rehearsed database: none — the shape matches the
+  baselines. Local then reset to the dev seed (`gmake db-reset ENV=local`).
+- **The live AI call** (Joel allowed one): a local game, alice the clue-giver,
+  one POST to `codenamesduet-suggest-clue` — `ok` / `suggested` (clue
+  "Wildcard"), and exactly one `hint` event landed (seat A, turn 1, no payload,
+  `took_turn` false).
+- **The five e2e specs:** 7 tests green on the reset stack.
+
+**Left:** the deploy — `gmake deploy ENV=prod` (migration, then the SQL, the
+edge functions and the FE; a short read-side window while Netlify catches up,
+so when nobody is mid-game) — then the post-deploy checks: row counts, the
+sequence, `db-drift ENV=prod`, and one game opened in a browser. Whether to
+merge into `app-audit` first is Joel's.
