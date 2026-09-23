@@ -171,8 +171,8 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
 }
 
 type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
-  // The loaded game row: the turn pointer, the budget, both seats and both key
-  // cards. Non-null by construction — the loader holds the gates.
+  // The loaded game row: the turn pointer and the two seats. Non-null by
+  // construction — the loader holds the gates.
   game: GameRow
   // The two seated players, A then B, each with a `seat`. The context's
   // `players` are the same two, with no seat; they are read as `members`.

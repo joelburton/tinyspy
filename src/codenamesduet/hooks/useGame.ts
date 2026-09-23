@@ -9,22 +9,17 @@ import type { Database } from '@/types/db'
 
 /**
  * The `codenamesduet.games` row as the play surface reads it: the turn
- * pointer, the budget, both seats and both key cards.
+ * pointer and the two seats. The key cards are `useBoard`'s to read.
  *
  * Narrower than the generated row (code-conventions.md → "Avoid SELECT *"): a
  * new column is listed here AND in `useGame`'s select().
  */
 export type GameRow = Pick<
   Database['codenamesduet']['Tables']['games']['Row'],
-  | 'id'
-  | 'club_handle'
-  | 'turns_remaining'
   | 'turn_number'
   | 'current_clue_giver'
   | 'user_a_id'
   | 'user_b_id'
-  | 'key_card_a'
-  | 'key_card_b'
 >
 
 /**
@@ -60,9 +55,7 @@ export function useGame(gameId: string) {
       const gameRes = await readRows(
         db
           .from('games')
-          .select(
-            'id, club_handle, turns_remaining, turn_number, current_clue_giver, user_a_id, user_b_id, key_card_a, key_card_b',
-          )
+          .select('turn_number, current_clue_giver, user_a_id, user_b_id')
           .eq('id', gameId),
       )
       if (!mounted()) return

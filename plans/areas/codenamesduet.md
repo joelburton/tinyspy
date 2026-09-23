@@ -1310,7 +1310,15 @@ which the printer's own docstring calls *"not decoration"*, appear nowhere in
 it. Options: **add a line**, drawing the triangles inline as the marks are
 (the legend is WinAnsi-only); or leave it. Recommendation: add it.
 
-### F-codenamesduet-25 · `game-row-read-twice` · the game row is read by both hooks
+### SHIPPED · F-codenamesduet-25 · `game-row-read-twice` · the game row is read by both hooks
+
+**Joel, 2026-09-23: "i'll take your rec."** `useGame` selects, and `GameRow`
+types, the four columns read — `turn_number`, `current_clue_giver`,
+`user_a_id`, `user_b_id`; the key cards are `useBoard`'s alone now. Both
+docstrings say so. **Planted** a read column dropped from the select: `tsc`
+refuses it (the typed select no longer fits `GameRow`), so the two cannot
+drift. `useBoard`'s own read of the row is unchanged (the one-read option was
+not taken). 48 files, 418 tests.
 
 `useGame` selects nine columns of `codenamesduet.games`, and outside the hook
 only `turn_number` and `current_clue_giver` are read; `useBoard` reads the
