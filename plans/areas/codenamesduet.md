@@ -878,7 +878,21 @@ dead arms; or leave it. Recommendation: narrow.
 again. Options: **drop `Board`'s** (it still takes `isViewingHistory` for the
 frame); or leave it. Recommendation: drop.
 
-### F-codenamesduet-7 · `phase-status-type` · two definitions of "over", reached through casts
+### SHIPPED · F-codenamesduet-7 · `phase-status-type` · two definitions of "over", reached through casts
+
+**Joel, 2026-09-23: "do it."** `derivePhase` takes `gameOver` (the shell's
+`isTerminal`) and `inSuddenDeath` (`playState === 'sudden_death'`) as inputs
+and returns only `isGuessPhase`, `isClueGiver` and `cellsClickable`;
+`GameStatus`, both casts and the dead `status === 'playing'` term are gone.
+`useTurnStatus` takes the body's phase and no longer calls `derivePhase`, so
+it drops the game row, the clues and the play state from its arguments.
+`phase.test.ts`'s two gameOver-flag cases became one case on the input.
+**Planted** after the change: the phase ignoring `gameOver` (two red) or
+sudden death (one red), PlayArea passing `gameOver: false` (one red) — and two
+that **passed**: PlayArea never setting sudden death, and the header ignoring
+`gameOver`. Two PlayArea cases now pin them (sudden death opens the tiles to the
+seat holding the clue; the header says nothing about the turn once the game is
+over), each re-planted red. `tsc -b` and eslint clean; 45 files, 400 tests.
 
 `lib/phase.ts`'s `GameStatus` has no `ended`, and `PlayArea` casts
 `playState as GameStatus` twice. `derivePhase` works it out as

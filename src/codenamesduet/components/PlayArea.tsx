@@ -29,10 +29,10 @@ import type { GameRow, Player } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
 import type { WordRow } from '../hooks/useBoard'
 import { useBoard } from '../hooks/useBoard'
-import { cluesOf, guessesOf, type ClueEvent, type DuetEvent } from '../lib/events'
+import { cluesOf, guessesOf, type DuetEvent } from '../lib/events'
 import { answerMessage, turnAnswer } from '../lib/answer'
 import type { KeyLabel } from '../lib/labels'
-import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
+import { derivePhase, type Seat } from '../lib/phase'
 import { historySnapshot } from '../lib/history'
 import { buildTerminalMessage } from '../lib/terminal'
 import type { CodenamesduetSetup } from '../lib/setup'
@@ -78,26 +78,15 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * game is over.
  */
 function useTurnStatus(args: {
-  game: { current_clue_giver: string | null; turn_number: number }
+  // The body's derived phase, beside the two facts it was derived from.
+  phase: { isGuessPhase: boolean; isClueGiver: boolean; inSuddenDeath: boolean; gameOver: boolean }
   players: Player[]
-  clues: ClueEvent[]
-  playState: string
-  gameOver: boolean
   sessionUserId: string
   globalFeedbackSlot: FeedbackSlot
 }) {
-  const { game, players, clues, playState, gameOver, sessionUserId, globalFeedbackSlot } = args
+  const { phase, players, sessionUserId, globalFeedbackSlot } = args
 
-  const me = players.find((p) => p.user_id === sessionUserId)
-  const answer = turnAnswer({
-    ...derivePhase({
-      status: playState as GameStatus,
-      currentClueGiver: game.current_clue_giver as Seat | null,
-      mySeat: me?.seat,
-      hasCurrentTurnClue: clues.some((c) => c.turn_number === game.turn_number),
-    }),
-    gameOver,
-  })
+  const answer = turnAnswer(phase)
   // Derived to PRIMITIVES — the words, their outcome, and the peer's name +
   // color — so the effect below re-runs only when one of them changes, not on
   // every fresh `players` array a realtime refetch brings.
@@ -274,8 +263,9 @@ export function PlayArea({
     [setup, players],
   )
 
-  // `gameOver` is the shell's `isTerminal`; `playState` carries this game's own
-  // value ('playing', 'sudden_death', 'won', …) for the phase and the verdict.
+  // `gameOver` is the shell's `isTerminal`, the one answer to "is it over?";
+  // `playState` carries this game's own value, read for sudden death and the
+  // verdict.
   const gameOver = isTerminal
 
   // Seat/roster derivations, read by the print model (built in the binding's
@@ -292,13 +282,14 @@ export function PlayArea({
     clues.find((c) => c.turn_number === game.turn_number) ?? null
 
   // Who may click what, and when — `lib/phase.ts` carries the matrix.
-  const { isGuessPhase, isClueGiver, inSuddenDeath, cellsClickable } =
-    derivePhase({
-      status: playState as GameStatus,
-      currentClueGiver: game.current_clue_giver as Seat | null,
-      mySeat,
-      hasCurrentTurnClue: currentTurnClue !== null,
-    })
+  const inSuddenDeath = playState === 'sudden_death'
+  const { isGuessPhase, isClueGiver, cellsClickable } = derivePhase({
+    gameOver,
+    inSuddenDeath,
+    currentClueGiver: game.current_clue_giver as Seat | null,
+    mySeat,
+    hasCurrentTurnClue: currentTurnClue !== null,
+  })
 
   // ─── The local slot, and its standing condition ─────
   // A condition is an effect on a primitive edge that shows on true and
@@ -335,11 +326,8 @@ export function PlayArea({
   // the local one (docs/ui.md → Feedback pill).
 
   useTurnStatus({
-    game,
+    phase: { isGuessPhase, isClueGiver, inSuddenDeath, gameOver },
     players,
-    clues,
-    playState,
-    gameOver: isTerminal,
     sessionUserId: session.user.id,
     globalFeedbackSlot,
   })

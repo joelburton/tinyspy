@@ -185,6 +185,12 @@ describe('codenamesduet PlayArea — input gating', () => {
     render(<PlayAreaLoader {...makeCtx({ playState: 'won', isTerminal: true })} />) // gameOver
     expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
   })
+
+  it('in sudden death, tiles are open to either seat — the one holding the clue too', () => {
+    asClueGiver()
+    render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
+    expect(screen.getByRole('button', { name: /apple/i })).toBeEnabled()
+  })
 })
 
 /**
@@ -283,6 +289,12 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
     const ctx = makeCtx() // peer A gave the clue; I guess
     render(<PlayAreaLoader {...ctx} />)
     expect(texts(ctx)).toContain('waiting for you')
+  })
+
+  it('says nothing about the turn once the game is over', () => {
+    const ctx = makeCtx({ playState: 'lost_clock', isTerminal: true })
+    render(<PlayAreaLoader {...ctx} />)
+    expect(texts(ctx)).not.toContain('waiting for you')
   })
 
   it('narrates a partner’s hint as it lands, and not the ones already there on load', () => {

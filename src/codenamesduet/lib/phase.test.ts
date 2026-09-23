@@ -2,11 +2,11 @@
 
 /**
  * Tests for `derivePhase` — the pure function that decides which UI
- * state the play surface is in given a game's status, the seats, and
- * whether a clue exists.
+ * state the play surface is in given whether the game is over or in sudden
+ * death, the seats, and whether a clue exists.
  *
- * The matrix of inputs is small enough (status × seat × clue presence)
- * that every interesting combination is enumerated here.
+ * The matrix of inputs is small enough that every interesting combination is
+ * enumerated here.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -15,26 +15,14 @@ import { derivePhase, type PhaseInputs } from './phase'
 /** Reusable defaults so each test only states what it changes. */
 function inputs(overrides: Partial<PhaseInputs> = {}): PhaseInputs {
   return {
-    status: 'playing',
+    gameOver: false,
+    inSuddenDeath: false,
     currentClueGiver: 'A',
     mySeat: 'A',
     hasCurrentTurnClue: false,
     ...overrides,
   }
 }
-
-describe('derivePhase — gameOver flag', () => {
-  it('is true for any terminal status', () => {
-    for (const status of ['won', 'lost_assassin', 'lost_clock'] as const) {
-      expect(derivePhase(inputs({ status })).gameOver).toBe(true)
-    }
-  })
-
-  it('is false during the playing and sudden_death states', () => {
-    expect(derivePhase(inputs({ status: 'playing' })).gameOver).toBe(false)
-    expect(derivePhase(inputs({ status: 'sudden_death' })).gameOver).toBe(false)
-  })
-})
 
 describe('derivePhase — isClueGiver', () => {
   it('is true when mySeat matches the current clue-giver', () => {
@@ -64,30 +52,29 @@ describe('derivePhase — isGuessPhase', () => {
 describe('derivePhase — cellsClickable', () => {
   // The interesting matrix. The expected behavior:
   //   gameOver                                → never
-  //   sudden_death (regardless of seat)       → always
-  //   playing + guess phase + not clue-giver  → yes (the guesser's window)
-  //   playing + clue phase                    → no (no clue to guess against)
-  //   playing + guess phase + clue-giver      → no (you submitted the clue)
+  //   sudden death (regardless of seat)       → always
+  //   guess phase + not clue-giver            → yes (the guesser's window)
+  //   clue phase                              → no (no clue to guess against)
+  //   guess phase + clue-giver                → no (you submitted the clue)
 
-  it('is false when the game is over (any terminal status)', () => {
-    for (const status of ['won', 'lost_assassin', 'lost_clock'] as const) {
-      expect(derivePhase(inputs({ status, hasCurrentTurnClue: true })).cellsClickable).toBe(false)
-    }
+  it('is false when the game is over, for the guesser in a guess phase too', () => {
+    expect(
+      derivePhase(inputs({ gameOver: true, mySeat: 'B', hasCurrentTurnClue: true })).cellsClickable,
+    ).toBe(false)
   })
 
   it('is true in sudden death for either seat', () => {
     expect(
-      derivePhase(inputs({ status: 'sudden_death', mySeat: 'A', currentClueGiver: null })).cellsClickable,
+      derivePhase(inputs({ inSuddenDeath: true, mySeat: 'A', currentClueGiver: null })).cellsClickable,
     ).toBe(true)
     expect(
-      derivePhase(inputs({ status: 'sudden_death', mySeat: 'B', currentClueGiver: null })).cellsClickable,
+      derivePhase(inputs({ inSuddenDeath: true, mySeat: 'B', currentClueGiver: null })).cellsClickable,
     ).toBe(true)
   })
 
   it('is true for the guesser during guess phase in active play', () => {
     expect(
       derivePhase(inputs({
-        status: 'playing',
         mySeat: 'B',
         currentClueGiver: 'A',
         hasCurrentTurnClue: true,
@@ -98,7 +85,6 @@ describe('derivePhase — cellsClickable', () => {
   it('is false for the clue-giver even during guess phase', () => {
     expect(
       derivePhase(inputs({
-        status: 'playing',
         mySeat: 'A',
         currentClueGiver: 'A',
         hasCurrentTurnClue: true,
@@ -109,7 +95,6 @@ describe('derivePhase — cellsClickable', () => {
   it('is false during the clue phase (no clue yet this turn)', () => {
     expect(
       derivePhase(inputs({
-        status: 'playing',
         mySeat: 'B',
         currentClueGiver: 'A',
         hasCurrentTurnClue: false,
