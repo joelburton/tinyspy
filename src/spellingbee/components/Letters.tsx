@@ -9,50 +9,44 @@ import { Letter } from './Letter'
 import styles from './Letters.module.css'
 
 type Props = {
-  /** The 6 outer letters in their current display order — shuffled
-   *  locally by the caller. */
+  // The 6 outer letters in their display order — shuffled by the caller.
   outerLetters: string[]
-  /** The 1 mandatory center letter. */
+  // The 1 mandatory center letter.
   centerLetter: string
-  /** Called when any letter is clicked. The caller appends the
-   *  letter to the typed word. Absent when the board is read-only — the game
-   *  is over, or I conceded — and then no hex takes a click, a hover or a
-   *  press, as psychicnum's tiles do without their `onPick`. */
+  // Called with the clicked letter; the caller appends it to the typed word.
+  // Absent when the board is read-only, and then no hex takes a click, a
+  // hover or a press.
   onLetterClick?: (letter: string) => void
-  /** The letters the word being typed is using, uppercase — those hexes wear the
-   *  selected edge. */
+  // The letters the word being typed is using, uppercase — those hexes wear
+  // the selected edge.
   usedLetters: Set<string>
-  /** Bumped on every refused word. It keys the hive, so a refusal remounts it
-   *  and the head-shake plays again — a CSS animation restarts on a remount,
-   *  not on a state change under it. */
+  // Bumped on every refused word. It keys the hive, so a refusal remounts it
+  // and the head-shake plays again — a CSS animation restarts on a remount,
+  // not on a state change under it.
   shakeNonce: number
-  /** The letters a refused word used, wearing its answer. */
+  // The letters a refused word used, wearing its answer.
   answered: { letters: Set<string>; outcome: Outcome } | null
-  /** A control floated over the hive's top-right (the Shuffle button). Rendered
-   *  inside the shrink-wrapped `.floatAnchor` around the svg, so it hugs the
-   *  VISUAL hive. Anchoring to the column instead would strand it at the
-   *  column's top, which the vertically-centered hive no longer touches. */
+  // A control floated over the hive's top-right (the Shuffle button). Rendered
+  // inside the shrink-wrapped `.floatAnchor` around the svg, so it hugs the
+  // VISUAL hive rather than the column, which the vertically-centered hive
+  // does not touch.
   floatingControl?: ReactNode
 }
 
 /**
- * The 7-hex honeycomb, drawn as ONE inline `<svg>` (viewBox `0 0 256 267` — the
- * flower's coordinate units). Each hex is an SVG `<polygon>` with a real fill +
- * stroke, so the tiles get a proper border (a `clip-path` div can't be bordered).
- * Only spellingbee uses hexes, so this stays local; the SVG also sets us up for a
- * future PDF export (vector polygons the PDF lib can reuse).
+ * The 7-hex honeycomb, drawn as ONE inline `<svg>` (viewBox `0 0 256 267`, the
+ * flower's coordinate units). Each hex is an SVG `<polygon>` with a real fill
+ * and stroke, so a tile has a true border. The geometry — positions and hex
+ * vertices — lives in `lib/honeycomb.ts`, shared with the PDF.
  *
- * Render order (matches `HEX_POSITIONS`): center → top → upper-right → lower-right →
- * bottom → lower-left → upper-left; the parent (PlayArea) controls the shuffle of
- * `outerLetters` so the visual order changes on Shuffle. The geometry (positions +
- * hex vertices) lives in `lib/honeycomb.ts`, shared with the PDF export.
+ * Render order matches `HEX_POSITIONS`: the center first, then the six outer
+ * letters in the order the caller passes them, so a shuffle changes the visual
+ * order and nothing else.
  *
- * Clicking a letter doesn't validate — it just appends the character to the typed
- * word (server validates on submit). A hex whose letter is in that word wears the
- * selected edge, which is also how a pangram hunter sees the three letters they
- * have not used yet.
+ * A click appends the letter to the typed word; a hex whose letter is in that
+ * word wears the selected edge, which is also how a pangram hunter sees the
+ * letters not yet used.
  */
-
 export function Letters({
   outerLetters,
   centerLetter,

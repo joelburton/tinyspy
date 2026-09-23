@@ -4,44 +4,36 @@ import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import { HEX_W, HEX_H, HEX_VERTS, HEX_SHRINK } from '../lib/honeycomb'
-import styles from './Letters.module.css'
+import styles from './Letter.module.css'
 
 type Props = {
   letter: string
   isCenter?: boolean
-  /** Top-left of this hex's box, in the flower's coordinate units. */
+  // Top-left of this hex's box, in the flower's coordinate units.
   pos: { left: number; top: number }
-  /** Absent when the board is read-only: the hex takes no click and wears no
-   *  hover or press. */
+  // Absent when the board is read-only: the hex takes no click and wears no
+  // hover or press.
   onClick?: () => void
-  /** This letter is in the word being typed — the hex wears the selected edge. */
+  // This letter is in the word being typed — the hex wears the selected edge.
   used?: boolean
-  /** A refused word used this letter: the hex wears that answer's fill + white
-   *  ink for as long as the answer is up. */
+  // A refused word used this letter: the hex wears that answer's fill + white
+  // ink for as long as the answer is up.
   answer?: Outcome
 }
 
 /**
- * One hex in the honeycomb — an SVG `<polygon>` (a REAL fill + stroke border,
- * which the old `clip-path` div couldn't give us) plus a centered `<text>`. Drawn
- * inside the parent `<Letters>` svg, so it shares the flower's coordinate space.
+ * One hex in the honeycomb — an SVG `<polygon>` plus a centered `<text>`, drawn
+ * inside the parent `<Letters>` svg so it shares the flower's coordinate space.
  *
- * The group carries the click (you can't nest a real `<button>` in SVG); the
- * polygon's fill is the hit area, so clicks only land on the hex shape, not its
- * bounding-box corners. **POINTER-ONLY**: no `tabIndex`, no `role`, no
- * Enter/Space keydown. A hex isn't keyboard-reachable and can't be — the page's
- * tab ring is empty, so the whole button costume was unreachable scaffolding,
- * and the one path that did open it left the hex focused with a stuck ring and
- * fired `onClick` into an entry the game no longer accepts. The letters are
- * typed, or clicked; there is no third way.
+ * The group carries the click, since a real `<button>` cannot nest in SVG, and
+ * the polygon's fill is the hit area, so a click lands on the hex shape and
+ * not its bounding-box corners. **POINTER-ONLY**: no `tabIndex`, no `role`, no
+ * Enter/Space keydown — the page's tab ring is empty, so a hex is not
+ * keyboard-reachable; the letters are typed, or clicked. `data-hex` /
+ * `data-center` are the test handles.
  *
- * `data-hex` / `data-center` are the test hooks that replaced `role="button"` +
- * `aria-label` — a stable handle without the behavior an ARIA role implies
- * (the same reason boggle's tiles carry `data-boggle-tile`).
- *
- * `onMouseDown` is still intercepted, now only to stop a click selecting the
- * letter text — nothing here can take focus any more.
- * SVG `<text>` ignores `text-transform`, so we uppercase here.
+ * `onMouseDown` is prevented so a click does not select the letter text.
+ * SVG `<text>` ignores `text-transform`, so the letter is uppercased here.
  */
 export function Letter({ letter, isCenter, pos, onClick, used, answer }: Props) {
   const up = letter.toUpperCase()
@@ -59,9 +51,9 @@ export function Letter({ letter, isCenter, pos, onClick, used, answer }: Props) 
         !onClick && styles.inert,
         isCenter && styles.center,
         used && styles.used,
-        // The tone class sets nothing but the two custom properties the shape
-        // and the text read below, which is why a hex can take one without
-        // being a `.tileFace`.
+        // The tone class sets only the verdict tokens (`VERDICT_TONE`), which
+        // is why a hex can wear one without being a `.tileFace`; `.answered`
+        // maps them onto the shape and the text.
         answer && styles.answered,
         answer && VERDICT_TONE[answer],
       )}

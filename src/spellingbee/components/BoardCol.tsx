@@ -47,19 +47,20 @@ function shuffled<T>(arr: readonly T[]): T[] {
 }
 
 /**
- * spellingbee's board column — the honeycomb `<Letters>`, a floating Shuffle over its
- * top-right, and the below-board slot (the shared `<WordEntryArea>` — the typed-word input
- * + capture keyboard, whose `<WordEntryInput>` renders the per-character illegal-letter dim
- * via `<TypedWord>`).
+ * spellingbee's board column — the honeycomb `<Letters>`, a floating Shuffle
+ * over its top-right, and the below-board region: the shared `<WordEntryArea>`,
+ * whose typed word is drawn through `<TypedWord>` so a letter off the hive dims.
  *
- * It owns the **move**: the word-entry engine (`useFoundWordSubmit` — the typed
- * word, the dedup, the `submit_word` commit), what each answer shows, and the
- * hive's answer to a refused word (the shake and the hex marks). It also owns
- * the **local outer-letter shuffle** (a per-player view-only rearrange — never
- * persisted or shared) and a click on a letter appending to the word. The local
- * feedback slot every answer shows into stays the PlayArea's — its standing
- * conditions and InfoCol's End / Concede show into it too — and comes down as a
- * prop. See docs/playarea.md.
+ * It owns the **move**: the word engine (`useFoundWordSubmit`), the
+ * `submit_word` commit, what each answer shows, and the hive's answer to a
+ * refused word (the shake and the hex marks). It also owns the local
+ * outer-letter shuffle — a per-player, view-only rearrange — and the letter
+ * click that appends to the word.
+ *
+ * Everything else comes down: the board's letters, `readOnly`, the lists a
+ * word is judged against, and the feedback slot, which is the PlayArea's —
+ * its standing conditions and InfoCol's End / Concede show into it too. See
+ * docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status block (above the board) ──
@@ -82,21 +83,17 @@ export function BoardCol({
   localFeedbackSlot,
 }: {
   // ── Mobile-only status block ──
-  /** The four figures behind the RankBar + Stats unit — the SAME components the
-   *  info column renders, mirrored above the board below the `--mobile`
-   *  breakpoint (where the info column is off-canvas in the InfoSheet). Hidden by
-   *  CSS on desktop; see `<MobileStatusBar>`. */
+  // The four figures behind the RankBar + Stats unit the info column renders,
+  // mirrored above the board on a phone (`<MobileStatusBar>`).
   foundWordsScore: number
   requiredWordsScore: number
   foundWordsCount: number
   requiredWordsCount: number
-  /** The goal rank, when the game has one — marked on the mobile RankBar
-   *  exactly as on the info column's copy (which is off-canvas on a phone,
-   *  so this is the only place the goal shows there). */
+  // The goal rank, when the game has one — marked on the mobile RankBar.
   targetRankIdx: number | null
 
   // ── Board to render ──
-  /** The board's outer letters (a string) — the local shuffle rearranges this. */
+  // The board's outer letters as stored; the shuffle below rearranges a copy.
   outerLetters: string
   centerLetter: string
 
@@ -104,29 +101,26 @@ export function BoardCol({
   gameId: string
   mode: 'coop' | 'compete'
   selfId: string
-  /** No more words from me: the game is over, or I conceded a race the others
-   *  play on. The board-only "visible but inert" flag (docs/playarea.md) — the
-   *  engine refuses, the entry closes and the hive goes inert, all on this one
-   *  answer. */
+  // No more words from me: the game is over, or I conceded a race the others
+  // play on. The engine refuses, the entry closes and the hive goes inert, all
+  // on this one flag (docs/playarea.md).
   readOnly: boolean
-  /** The committed rows, the engine's dedup source (mode-aware: the team's in
-   *  coop, mine in compete). */
+  // The committed rows, the engine's dedup source (mode-aware: the team's in
+  // coop, mine in compete).
   foundWords: FoundWordRow[]
-  /** Both shipped lists: a word is judged and scored against them here. */
+  // Both shipped lists: a word is judged and scored against them here.
   requiredWords: SpellingbeeGame['requiredWords']
   bonusWords: SpellingbeeGame['bonusWords']
-  /** PlayArea's below-board slot — every answer shows into it, the entry row
-   *  draws its top in place of the controls, and a letter click is the player's
-   *  next action, so it dismisses a gesture-cleared result. */
+  // PlayArea's below-board slot — every answer shows into it, and the entry
+  // row draws it in place of the controls.
   localFeedbackSlot: FeedbackSlot
 }) {
   // ─── Committing a guess ────────────────────────────────
   // The shared engine owns the typed word, the dedup and the optimistic commit;
   // this game supplies the lookup, the RPC and what it shows for each answer.
-  // First, because the engine owns the pending word the sections below read.
 
-  // The hive's seven letters, lower-cased — the typed word's illegal-letter dim,
-  // and why a word missed.
+  // The hive's seven letters, lower-cased — the typed word's illegal-letter
+  // dim, and why a word missed.
   const allowedLetters = useMemo(() => {
     const s = new Set<string>()
     for (const ch of outerLetters) s.add(ch.toLowerCase())
@@ -134,8 +128,8 @@ export function BoardCol({
     return s
   }, [outerLetters, centerLetter])
 
-  // Both word lists ship to the FE, so a guess is validated + scored locally —
-  // index required ∪ bonus by word.
+  // Both lists ship, so a word is judged and scored here: required ∪ bonus,
+  // by word.
   const legalIndex = useMemo(() => {
     const m = new Map<string, LegalWord>()
     for (const r of requiredWords) {
@@ -147,15 +141,14 @@ export function BoardCol({
     return m
   }, [requiredWords, bonusWords])
 
-  // A refused word shakes the hive — the head-shake "no" every board gives a
-  // move that wasn't a winning one. A bumping nonce, because it is the WHOLE
-  // board that shakes and a board is always mounted: the nonce keys the hive so
-  // each refusal remounts it and the animation plays again (a CSS animation
-  // restarts on a remount, not on a state change under it).
+  // A refused word shakes the WHOLE hive. A bumping nonce, because the hive is
+  // always mounted: it keys the hive, so each refusal remounts it and the
+  // animation plays again — a CSS animation restarts on a remount, not on a
+  // state change under it (`.verdictShake`).
   const [shakeNonce, setShakeNonce] = useState(0)
 
-  /** The letters the refused word used, wearing its answer. The word itself is
-   *  gone by then — the entry clears on submit — so they are captured here. */
+  // The letters the refused word used, wearing its answer. Captured here
+  // because the entry has already cleared by the time the answer shows.
   const [answered, showAnswer] = useMark<{ letters: Set<string>; outcome: Outcome }>(WORD_ANSWER_MS)
 
   const center = centerLetter.toLowerCase()
@@ -168,11 +161,9 @@ export function BoardCol({
       localFeedbackSlot,
       foundWords,
       lookup: (w) => legalIndex.get(w) ?? null,
-      // Four ok answers, all meaning the row landed: three classifications the
-      // FE's own flags come back as, plus `won` — this word crossed the target
-      // rank and ended the game. None of them changes what the optimistic pill
-      // already says; the terminal flip arrives over realtime. Every refusal
-      // means the word was NOT recorded, so each releases it.
+      // `null` says the row landed (`commit` in `useFoundWordSubmit`). None of
+      // the four ok answers changes what the optimistic pill already says, and
+      // the win arrives over realtime like every other terminal.
       commit: async (e) => {
         const res = await runRpc<SubmittedWord>(
           db.rpc('submit_word', {
@@ -199,11 +190,8 @@ export function BoardCol({
         }
       },
       // Every answer shows in the pill, in `lib/answer.ts`'s words. A refused
-      // word also answers ON the board: the hive shakes its head, and the hexes
-      // the word used take that answer's fill and white ink — the same outcome
-      // as the pill, so the two cannot disagree. The actor's alone, and no
-      // attention flash with it — you know what you just typed, and a peer is
-      // never told about somebody else's miss.
+      // word also answers ON the board: the hive shakes, and the hexes the word
+      // used take the same outcome, so the two cannot disagree.
       onAnswer: (report) => {
         const { outcome, text } = answerMessage(answerOf(report, { letters: allowedLetters, center }))
         localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
@@ -217,15 +205,16 @@ export function BoardCol({
   // The typed word is the engine's, above; what this column reads off it, and
   // the letter click that adds to it, sit here.
 
-  // The hexes the typed word is using. A Set of its letters is the whole of it:
-  // a hive letter can be typed more than once and there is nothing to count.
-  // None once the board is read-only: a word left half-typed when the game
-  // ended, or when I conceded, is no longer a move, so its marks go with it.
+  // The hexes the typed word is using. A Set of its letters is the whole of
+  // it: a hive letter can be typed more than once and there is nothing to
+  // count. Empty once the board is read-only, so a word left half-typed when
+  // the game ended, or when I conceded, drops its marks.
   const usedLetters = useMemo(
     () => new Set(readOnly ? '' : word.toUpperCase()),
     [readOnly, word],
   )
 
+  // A click is my next action, so it dismisses a gesture-cleared result.
   const handleLetterClick = useCallback(
     (letter: string) => {
       localFeedbackSlot.dismiss()
@@ -237,10 +226,10 @@ export function BoardCol({
   // ─── The board's display order ─────────────────────────
   // The shuffle — purely visual, touches nothing else.
 
-  // Local visual shuffle of the outer letters — a `shuffleSeed` counter drives a memo
-  // (avoids storing the order in state + a sync effect). Keyed on the outer-letters
-  // STRING (not the game object — a realtime refetch returns a fresh object even when
-  // the letters didn't change, which would re-shuffle on every submit).
+  // A counter drives a memo, rather than an order kept in state plus a sync
+  // effect. Keyed on the outer-letters STRING, not the game object: a realtime
+  // refetch returns a fresh object even when the letters did not change, which
+  // would re-shuffle on every submit.
   const [shuffleSeed, setShuffleSeed] = useState(0)
   const outerShuffled = useMemo(() => {
     if (!outerLetters) return []
@@ -248,10 +237,8 @@ export function BoardCol({
     return shuffled(Array.from(outerLetters))
   }, [outerLetters, shuffleSeed])
 
-  // ⌥Z shuffles — a fresh visual scan of the SAME letters, never a move. Bound
-  // HERE rather than in the PlayArea because this column owns the display order,
-  // and plainly active: shuffling writes nothing and reaches nobody else, so the
-  // post-game fidget is deliberate — the round pill below is this same binding.
+  // A fresh visual scan of the SAME letters, never a move. The floating button
+  // below is this same binding.
   const actShuffle = useBoundAction('act-shuffle', {
     describe: () => 'active',
     run: () => setShuffleSeed((s) => s + 1),
@@ -260,10 +247,9 @@ export function BoardCol({
   // ─── Render ────────────────────────────────────────────
   return (
     <div className={cls(shared.boardCol, bee.boardCol)}>
-      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
-          the rank ladder + score/words, above the hive. A fixed-height block —
-          the hive's `--avail-h` already has it subtracted, so the board shrinks
-          by exactly this much and the page still doesn't scroll. */}
+      {/* Mobile only (`<MobileStatusBar>` is CSS-hidden on desktop): the rank
+          ladder and the figures, above the hive. A fixed-height block, already
+          subtracted from the hive's `--avail-h`. */}
       <MobileStatusBar>
         <div className={bee.mobileStatus}>
           <RankBar score={foundWordsScore} total={requiredWordsScore} targetIdx={targetRankIdx} />
@@ -282,10 +268,8 @@ export function BoardCol({
         centerLetter={centerLetter}
         onLetterClick={readOnly ? undefined : handleLetterClick}
         usedLetters={usedLetters}
-        // Shuffle floats over the hive's top-right — a fresh visual scan of the
-        // SAME board, not a turn action. Always clickable, even when locked (a
-        // harmless rearrange). Passed into Letters so it anchors to the visual
-        // hive, not the column.
+        // Passed into Letters so it anchors to the visual hive rather than
+        // the column (`.floatingShuffle`).
         floatingControl={
           <ShuffleButton
             action={actShuffle}
@@ -294,12 +278,8 @@ export function BoardCol({
           />
         }
       />
-      {/* The below-board slot — the shared <WordEntryArea> (icon-only Delete + the WordEntryInput
-          + icon-only Submit + the capture keyboard).
-          The WordEntryInput renders the per-character illegal-letter dim via <TypedWord>.
-          While the slot holds a message, WordEntryArea draws it in place of the
-          controls (same slot, no reflow) — the verdict, "you're out", a word
-          result, whichever ranks highest. */}
+      {/* The below-board slot: `<WordEntryArea>` draws the controls, or the
+          slot's message in their place — the same slot, so nothing reflows. */}
       <div className={surface.belowBoard}>
         <div className={shared.moveAreaOrLocalFeedback}>
           <WordEntryArea
