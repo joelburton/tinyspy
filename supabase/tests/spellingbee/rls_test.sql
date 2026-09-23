@@ -1,4 +1,4 @@
--- cs-met-spellingbee
+-- cs-blessed-spellingbee
 
 -- ============================================================
 -- Test: spellingbee RLS — club gating + the compete-mode policy

@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 import { useCallback, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'

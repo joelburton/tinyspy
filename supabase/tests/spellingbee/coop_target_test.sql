@@ -1,4 +1,4 @@
--- cs-met-spellingbee
+-- cs-blessed-spellingbee
 
 -- ============================================================
 -- Test: spellingbee COOP target rank (the coop win condition)

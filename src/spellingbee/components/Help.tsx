@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 

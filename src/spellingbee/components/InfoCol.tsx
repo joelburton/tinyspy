@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
@@ -161,9 +161,6 @@ export function InfoCol({
           <ActionButton action={actNewGame} show="icon" />
           <ActionButton action={actConcede} show="icon" />
           <ActionButton action={actEndGame} show="icon" />
-          {/* `weight` is the placement's to choose, not the action's — filled
-              at terminal, outline while the game runs (docs/ui.md → Back to
-              club). */}
           <ActionButton action={actBackToClub} show="icon" weight={terminalMessage ? 'primary' : 'secondary'} />
         </InfoActionsRow>
 

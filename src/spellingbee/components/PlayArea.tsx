@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 import { useEffect, useMemo, useRef } from 'react'
 import { cls } from '@/common/utils/cls'
@@ -236,7 +236,9 @@ export function PlayArea(props: PlayAreaProps) {
             playState,
             reason,
             winnerId,
-            winner: winnerName === undefined ? undefined : { username: winnerName, color: winnerColor ?? '' },
+            winner: winnerName === undefined
+                ? undefined
+                : { username: winnerName, color: winnerColor ?? '' },
             targetRankIdx,
             foundWordsScore,
             requiredWordsScore,
@@ -474,7 +476,13 @@ export function PlayArea(props: PlayAreaProps) {
   })
 
   return (
-    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
+      <div className={ cls(
+          shared.layout,
+          shared.responsiveInfoCol,
+          shared.mobileFill,
+          surface.layout,
+          styles.layout,
+      ) }>
       <BoardCol
         // ── Mobile-only status block (the readouts the InfoCol renders too) ──
         foundWordsScore={foundWordsScore}

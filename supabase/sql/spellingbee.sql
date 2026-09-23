@@ -1,4 +1,4 @@
--- cs-met-spellingbee
+-- cs-blessed-spellingbee
 
 -- ============================================================
 -- spellingbee — the REPEATABLE half
@@ -516,8 +516,8 @@ begin
   -- canonical id we'll FK from.
   --
   -- Saved-default arg: persist the whole setup as the club's
-  -- next default. target_rank + timer are all things a friend
-  -- group settles on; no point asking again next time. BUT strip the
+  -- next default. The target rank, the two bands and the timer are
+  -- things a friend group settles on; no point asking again next time. BUT strip the
   -- one-off custom letters — a hand-picked board is a one-time choice, so the
   -- NEXT game should start from a random board again (the SetupForm shows the
   -- custom fields blank).
@@ -547,9 +547,10 @@ begin
 
   -- ─── Seed common.games.status for the club-page label ────
   -- Coop label needs found_words_score / required_words_score /
-  -- rank_idx / found_words_count / required_words_count. Compete
-  -- label only needs target_rank + required_words_count (the
-  -- leaderboard is built on first submission).
+  -- found_words_count / required_words_count and the target. Compete's
+  -- label reads target_rank (and, at the end, the reason and the
+  -- winner's name); the leaderboard, empty until the first submission,
+  -- is the Rank strip's.
   if mode = 'coop' then
     perform common.update_state(
       new_id,
@@ -678,7 +679,7 @@ declare
   caller_score int;
   caller_found_words_count int;   -- caller's all-rows count (display + leaderboard)
   caller_rank_idx int;
-  player_results jsonb;
+  status_leaderboard jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- Lock the gametype row. Mode is on it, so we pick it up "for
@@ -835,7 +836,7 @@ begin
     if caller_rank_idx >= current_target_rank then
       -- Compete win: caller hit the target rank first. Freeze the
       -- leaderboard at the moment of victory.
-      player_results := spellingbee._leaderboard(target_game, g_row.required_words_score);
+      status_leaderboard := spellingbee._leaderboard(target_game, g_row.required_words_score);
 
       perform common.end_game(
         target_game, 'won_compete',
@@ -849,33 +850,27 @@ begin
           'winner_username', (select username from common.profiles
                                where user_id = caller_id),
           'target_rank', current_target_rank,
-          'leaderboard', player_results
+          'leaderboard', status_leaderboard
         ),
-        -- Re-key the leaderboard into the per-player {won, score,
-        -- rank_idx} shape that common.end_game expects.
-        (select jsonb_object_agg(
-                  (entry->>'user_id'),
-                  jsonb_build_object(
-                    'won', (entry->>'user_id')::uuid = caller_id,
-                    'found_words_score', (entry->>'found_words_score')::int,
-                    'rank_idx', (entry->>'rank_idx')::int
-                  )
-                )
-           from jsonb_array_elements(player_results) entry));
+        -- Each player's result is whether they won, as coop's is; the scores
+        -- and ranks are the status leaderboard's.
+        (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', gp.user_id = caller_id))
+           from common.game_players gp
+          where gp.game_id = target_game));
 
       -- Same answer the coop win gives, for the same event.
       return common.ok_envelope(jsonb_build_object(
         'result', 'won', 'points', coalesce(points, 0)));
     else
       -- The full leaderboard, for the status label and the Rank strip.
-      player_results := spellingbee._leaderboard(target_game, g_row.required_words_score);
+      status_leaderboard := spellingbee._leaderboard(target_game, g_row.required_words_score);
 
       perform common.update_state(
         target_game, 'playing',
         jsonb_build_object(
           'mode', 'compete',
           'target_rank', current_target_rank,
-          'leaderboard', player_results,
+          'leaderboard', status_leaderboard,
           'required_words_score', g_row.required_words_score,
           'required_words_count', g_row.required_words_count
         )
@@ -1028,17 +1023,10 @@ begin
         'target_rank', current_target_rank,
         'leaderboard', status_leaderboard
       ),
-      -- Re-key the display array into the per-player {won:false, score,
-      -- rank_idx} shape common.end_game expects (no winner at a timeout).
-      (select jsonb_object_agg(
-                (entry->>'user_id'),
-                jsonb_build_object(
-                  'won', false,
-                  'found_words_score', (entry->>'found_words_score')::int,
-                  'rank_idx', (entry->>'rank_idx')::int
-                )
-              )
-         from jsonb_array_elements(status_leaderboard) entry));
+      -- No winner at a timeout: every player's result is `{ won: false }`.
+      (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', false))
+         from common.game_players gp
+        where gp.game_id = target_game));
   end if;
 
   -- Realtime touch on found_words so peers refetch and the now-RLS-visible
@@ -1171,15 +1159,10 @@ begin
         'target_rank', current_target_rank,
         'leaderboard', status_leaderboard
       ),
-      (select jsonb_object_agg(
-                (entry->>'user_id'),
-                jsonb_build_object(
-                  'won', false,
-                  'found_words_score', (entry->>'found_words_score')::int,
-                  'rank_idx', (entry->>'rank_idx')::int
-                )
-              )
-         from jsonb_array_elements(status_leaderboard) entry));
+      -- Nobody won: every player's result is `{ won: false }`.
+      (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', false))
+         from common.game_players gp
+        where gp.game_id = target_game));
   end if;
 
   -- Realtime touch on found_words so compete peers refetch the now-RLS-visible

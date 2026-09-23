@@ -1,4 +1,4 @@
--- cs-met-spellingbee
+-- cs-blessed-spellingbee
 
 -- ============================================================
 -- Test: spellingbee.create_game
@@ -7,8 +7,8 @@
 -- Coverage:
 --   1. Coop happy path: ada creates a game; common.games +
 --      spellingbee.games rows materialize; mode='coop'; gametype
---      string is 'spellingbee_coop'; title formula correct;
---      is_current_view flips on; status seeded with coop shape.
+--      string is 'spellingbee_coop'; title formula correct; status
+--      seeded with coop shape.
 --   2. Compete happy path: separate game with mode='compete'
 --      + target_rank=4; mode column + gametype string match;
 --      compete-shape status seeded (target_rank + empty
@@ -16,9 +16,13 @@
 --   3. Auth + membership: dee (outsider) rejected.
 --   4. mode arg validation: invalid value; compete with <2 players;
 --      target_rank required iff compete; target_rank range.
---   5. Board validation: outer_letters
---      length / alphabet / no-s / distinctness; center; center-
---      not-in-outer; required_words_count ≥ 30 gate.
+--   4b. The word bands: required out of range, legal below required
+--      or above 6, either one not a number; required = 1 and an
+--      explicit 4 / 6 accepted.
+--   5. Board validation: outer_letters length and no-s;
+--      center-not-in-outer; required_words_count ≥ 30 gate. (Not
+--      pinned here: outer distinctness, the center's own shape, and a
+--      target_rank that is not a number.)
 --   6. Title formula: "<CENTER>·<OUTER-SORTED>".
 --   7. Player-count upper bound: 7+ entries rejected.
 --

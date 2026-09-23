@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 import { describe, expect, it } from 'vitest'
 import {

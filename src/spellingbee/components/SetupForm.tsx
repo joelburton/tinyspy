@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 import { DictBandField } from '@/common/fields/DictBandField'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'

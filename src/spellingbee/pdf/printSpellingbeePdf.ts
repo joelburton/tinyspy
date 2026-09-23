@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, newPrintDoc, savePrint, type PrintHeader } from '@/common/pdf/frame'

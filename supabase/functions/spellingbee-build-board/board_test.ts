@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 /**
  * `deno test supabase/functions/spellingbee-build-board/board_test.ts`

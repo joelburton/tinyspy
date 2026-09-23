@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
 import { wordWithBonusDot, type WordSubmitReport } from '@/shared/found-words/useFoundWordSubmit'

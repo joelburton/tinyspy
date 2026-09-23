@@ -1,4 +1,4 @@
--- cs-met-spellingbee
+-- cs-blessed-spellingbee
 
 -- ============================================================
 -- spellingbee — NYT-Spelling-Bee-style word finder (consolidated)

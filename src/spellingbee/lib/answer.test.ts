@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 import { describe, it, expect } from 'vitest'
 import type { LegalWord } from '@/shared/found-words/useFoundWordSubmit'

@@ -4,6 +4,13 @@
 
 ## Soon
 
+- **Look at two things on a phone.** A tapped hex should sit flat afterwards
+  (its hover is gated on `(hover: hover)`) and still lift under a mouse; and a
+  refused word's hexes shake by 5 of the hive's own units, which scales with
+  the board — about 7.5px at full size. The keyframes are shared by every
+  game, so a shake that reads wrong here wants a hex-only adjustment, not an
+  edit to them. Neither has been seen outside jsdom.
+
 - ~~**The custom-letters field became one box, and nobody has looked at it.**~~
   The setup form once took a center letter and six others in two boxes; it now
   takes the hyphenated string both the summary and the recap print (`A-CHIROT`)
@@ -40,6 +47,12 @@
   a compete spellingbee is where they would first be read.
 
 ## Maybe
+
+- **Four `create_game` refusals have no pgTAP case**: a target rank that is
+  not a number (PN158), repeated outer letters (PN164), and a center that is
+  not one letter or is an S (PN165, PN166). The edge function refuses bad
+  custom letters first and the dialog before it, so none is reachable from
+  the app; a case each would pin the server's own check.
 
 ## Won't do
 

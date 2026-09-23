@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 /**
  * spellingbee's setup form — what it offers, and where a refusal lands.
@@ -9,12 +9,13 @@
  * `spellingbee.create_game` names when it refuses one, so the list doubles as
  * the routing contract.
  *
- * `custom_letters` is the one box a refusal can land under, and it is worth
- * being precise about why: the dialog already rules out every SHAPE mistake
- * (no S, seven of them, all different), so the server has nothing to add there
- * — those arrive as faults. What it cannot rule out is whether those letters
- * make a puzzle, and that is the one thing the dictionary knows and the form
- * does not.
+ * Two boxes can take a refusal from the server, and it is worth being precise
+ * about why only these: the dialog already rules out every SHAPE mistake (no
+ * S, seven letters, all different; the legal band containing the required
+ * one), so the server has nothing to add there — those arrive as faults. What
+ * the form cannot rule out is what only the dictionary knows: whether the
+ * typed letters make a puzzle (`custom_letters`), and whether any board clears
+ * thirty words at that required band (`required`).
  *
  * One field, two setup keys: the box writes `custom_center` and `custom_letters`
  * from a single string, split after the first letter. The FIELD is named for

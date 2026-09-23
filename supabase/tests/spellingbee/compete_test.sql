@@ -1,4 +1,4 @@
--- cs-met-spellingbee
+-- cs-blessed-spellingbee
 
 -- ============================================================
 -- Test: spellingbee compete mode
@@ -9,8 +9,9 @@
 -- file covers what a race adds:
 --
 --   - First-to-target-rank ends the race with the caller as the
---     winner (status.winner_user_id) and play_state=won_compete.
---     Survivors with sub-target ranks can no longer submit.
+--     winner (status.winner_user_id) and play_state=won_compete,
+--     the leaderboard frozen as it stood and each result exactly
+--     { won }. Survivors with sub-target ranks can no longer submit.
 --   - Per-player duplicate rule: bea finding a word ada already
 --     found is fresh for bea; ada's own repeat is the race refusal.
 --   - Mid-game status carries the leaderboard with per-player
@@ -28,7 +29,7 @@ begin;
 
 set search_path = spellingbee, common, public, extensions;
 
-select plan(25);
+select plan(26);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -182,6 +183,16 @@ select is(
   ),
   true,
   'compete: winner''s game_players.result = {won: true}'
+);
+
+-- …and nothing else: the scores and ranks are the status leaderboard's, and
+-- no reader of a result looks past `won`.
+select is(
+  (select result from common.game_players
+    where game_id = (select id from g)
+      and user_id = 'cade3333-3333-3333-3333-333333333333'::uuid),
+  '{"won": true}'::jsonb,
+  'compete: a result is exactly { won }, as coop''s is'
 );
 
 select is(

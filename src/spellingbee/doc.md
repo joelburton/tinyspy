@@ -215,7 +215,7 @@ Either way the words come from `spellingbee.candidate_words`, a plain SQL
 function that returns every dictionary word of four letters or more, at or
 below the game's legal band, whose letters are a subset of the seven and
 include the center, flagging each as required (at or below the required band,
-American, not slang, clean) or not. The function scores each — one point for
+American, not slang, clean) or not. The edge function scores each — one point for
 four letters, otherwise the length, plus ten for a pangram, a word whose
 letter set equals the board's — partitions them into `required_words` and
 `bonus_words`, totals the required set, and hands the board to `create_game`.
@@ -371,8 +371,8 @@ beat.
 moment the lookup succeeds, the points and flags read off the shipped entry,
 and `submit_word` is called in the background with the word already scored.
 The reply is read only for whether the row landed: any of its four `ok`s
-leaves the pill as it is, and a not-ok — the game ended, the caller conceded,
-or a duplicate that slipped past the local check — replaces it with the
+leaves the pill as it is, and a not-ok — the game ended or was deleted, the
+caller conceded, or a duplicate that slipped past the local check — replaces it with the
 server's own sentence and frees the word to be tried again. The end of the
 game, when this word was the one that ended it, arrives by realtime like every
 other terminal.
@@ -528,7 +528,7 @@ Vitest, beside the code:
 |---|---|
 | `lib/answer.test` · `lib/terminal.test` | every answer's words and outcome, and the three-way split of a miss; every terminal sentence per mode, play state and reason, as a table with no cell pairing a win with a loss |
 | `lib/setup.test` · `components/SetupForm.test` | the letter rules and the band rule, each refusal under the field it names; the form's settings in order, the compete caption, the solo club's missing picker, and where a server refusal lands |
-| `components/PlayArea.test` | the surface mounts in every mode and state; the hexes a word is using, marked and cleared; the inert board after a concede or an ending; a required, bonus and pangram word accepted with the right call, a miss refused with its reason and answered on the board; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, End, Concede, Shuffle, Restart |
+| `components/PlayArea.test` | the surface mounts in every mode and state; the hexes a word is using, marked and cleared; the inert board after a concede or an ending; a required, bonus and pangram word accepted with the right call, a miss refused with its reason and answered on the board — its own letters and no others shaking and wearing its own outcome, for `WORD_ANSWER_MS`, and shaking again when refused again; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, End, Concede, Shuffle, Restart |
 
 Playwright, in `e2e/`: `spellingbee` (the play loop on screen — a required
 word lands, a bonus word dots, a pangram flourishes, custom letters), 

@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 /**
  * The 7-hex flat-top honeycomb geometry — the single source shared by the on-screen

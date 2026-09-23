@@ -1,4 +1,4 @@
--- cs-met-spellingbee
+-- cs-blessed-spellingbee
 
 -- ============================================================
 -- Test: spellingbee.concede(target_game)
@@ -7,10 +7,13 @@
 -- by winning — first to the target rank — or by conceding), so its
 -- concede is a thin wrapper over the generic common.concede. This
 -- test covers the spellingbee-specific parts: the compete-only mode
--- guard, and that the wrapper delegates (marks the caller conceded,
+-- guard; that the wrapper delegates (marks the caller conceded,
 -- keeps the game going while others race, and — via common.concede —
--- ends it as a collective loss when the last racer drops out). The
--- full common.concede matrix is in common/concede_test.sql.
+-- ends it as a collective loss when the last racer drops out); that a
+-- conceder's next word is refused (PN355), so they cannot go on to
+-- win; and that only the concede that ENDS the game touches the found
+-- rows, which is what wakes the reveal. The full common.concede matrix
+-- is in common/concede_test.sql.
 -- ============================================================
 
 begin;

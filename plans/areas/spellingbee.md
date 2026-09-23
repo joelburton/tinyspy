@@ -7,8 +7,13 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/spellingbee/todo.md`, not here.
 
-**Status: OPEN** (2026-09-22). The roster is agreed and stamped; nothing has
-been read. **Three passes back to back**, psychicnum's, connections' and
+**Status: CLOSED 2026-09-23, blessed** (Joel: *"bless the files in this area.
+then close the area. then commit."*). Forty-three files
+`cs-blessed-spellingbee`: the forty agreed at the opening and three the area
+created (`Letter.module.css`, `lib/terminal.ts` and its test). Closed without
+an e2e run.
+
+**Three passes back to back**, psychicnum's, connections' and
 wordle's shape: the restructure ([playarea-readability.md](../playarea-readability.md)
 step by step, with the stylesheet split), then the audit — React, SQL and CSS
 together, the `AnswerMessage` conversion in it — then the tile-feedback pass
@@ -1502,6 +1507,102 @@ case red); the shake class removed from the hex (both red). Restored. Prose:
 shakes a whole board now), and the plan's spellingbee section. spellingbee +
 guards, 367 green; `tsc -b` and eslint clean. **Not seen in a browser.**
 
+## The closing re-read — 2026-09-23
+
+The whole roster once more in one sitting after the last change (the shake,
+`dce68b6d`): `doc.md` end to end, the repeatable SQL whole, every component
+and lib file, the three stylesheets and `theme.css`, the edge function, and
+every pgTAP and Vitest file, the ones this area edited line by line. **Five
+findings, every one created or left behind by this area's own work** — the
+pattern every earlier area's re-read found.
+
+### R-spellingbee-1 · `compete-results-unread-keys` · F-16's defect, left in the compete branches
+
+F-16 cut the coop per-player results to `{ won }` because nothing reads the
+rest. The compete endings — `submit_word`'s win, `submit_timeout`, `end_game`
+— still write `{ won, found_words_score, rank_idx }` per player, and the whole
+app reads `result.won` and nothing else (`terminalOutcomeVerb`, strands; no
+SQL reads `result` at all). Their comments also call it "the shape
+`common.end_game` expects", and `end_game` persists whatever it is handed.
+Options: **drop the two keys** in all three, so a result is `{ won }` in both
+modes and the three re-keys shrink to `jsonb_object_agg(user_id, {won})`; or
+leave them. Recommendation: drop them — the same reasoning F-16 ruled on.
+wordwheel's twin branches carry the same keys.
+
+### R-spellingbee-2 · `test-headers-behind` · four pgTAP headers don't list what their files test
+
+F-17 and F-16 added assertions without updating the coverage lists at the
+top: `concede_test` (a conceder's word refused, the touch only on the last
+concede), `replay_test` (the `games` row touched), `compete_test` (the
+leaderboard frozen at the win), and `create_game_test`, whose list never
+mentioned the bands at all (range, and now not-a-number). Fix: each header
+names what its file pins.
+
+### R-spellingbee-3 · `doc-md-small` · three sentences in `doc.md`
+
+- RPCs → the edge function: *"The function scores each"* follows a paragraph
+  about `candidate_words`, so it reads as the SQL function scoring; it is the
+  edge function.
+- FE submissions: the not-ok list (*"the game ended, the caller conceded, or
+  a duplicate"*) predates F-10 and omits the deleted game.
+- Tests → `PlayArea.test`: says "answered on the board" and not what T-3 and
+  the shake change added — the answer's own outcome, its lifetime, and a
+  repeat refusal shaking again.
+
+### R-spellingbee-4 · `setupform-test-header` · the header says one box can take a refusal, and its own test puts one under another
+
+`SetupForm.test.tsx`'s header: *"`custom_letters` is the one box a refusal
+can land under"*. Two tests below, PN177 lands under `required` — the
+builder's refusal when no board clears thirty words at that band. Fix: the
+header names both, and says why each is the server's to make.
+
+### R-spellingbee-5 · `create-game-comments` · two comments in `create_game` that say less than the code
+
+- The saved-default comment names *"target_rank + timer"* as what a friend
+  group settles on; the bands are saved too.
+- The status-seed comment says the compete label *"only needs target_rank +
+  required_words_count"*; it reads `target_rank`, `reason` and
+  `winner_username`, and never `required_words_count` (the Rank strip and the
+  frontend read the header, not the status, for the totals).
+
+### SHIPPED · R-1 to R-5 — Joel, 2026-09-23: "fix all"
+
+- **R-1**: the three compete endings build each result straight from the
+  roster — `{ won: gp.user_id = caller_id }` at the win, `{ won: false }` at a
+  timeout or a manual end — so a result is `{ won }` in both modes. In
+  `submit_word` the variable that now only ever holds the leaderboard is
+  `status_leaderboard`, as in the other two. `compete_test` pins the winner's
+  result as exactly `{"won": true}`; planted an extra `rank_idx` key, that
+  case red, restored. wordwheel's coop and compete keys are one Soon entry in
+  its todo.
+- **R-2**: `concede_test`, `replay_test`, `compete_test` and
+  `create_game_test` list what they pin. **`create_game_test`'s list also
+  OVERCLAIMED**: it named `is_current_view`, outer-letter distinctness and the
+  center's shape, none of which it asserts; the list now says so rather than
+  gaining tests nobody ruled on (PN158, PN164, PN165, PN166 have no case).
+- **R-3**: the edge function scores, the deleted game is on the not-ok list,
+  and the `PlayArea.test` row names the outcome, the lifetime and the repeat
+  shake.
+- **R-4**: `SetupForm.test`'s header names both boxes and what only the
+  dictionary knows behind each.
+- **R-5**: the saved-default comment names the bands; the status-seed comment
+  says what each label reads (the coop one never read `rank_idx` either).
+
+`npm run test:db`, 181 files, 2580 tests, PASS; spellingbee + guards, 367
+green; `tsc -b` and eslint clean.
+
+### What checked out at the re-read
+
+The shake change reads cleanly end to end: `BoardCol` owns one mark, `Letters`
+keys the word's hexes on its nonce, `Letter` wears the shared shake with its
+answer, and the reduced-motion rule is the shared one. The SQL after F-10 /
+F-11 / F-14 / F-16: every lock-then-gate order right, every handler reading
+`constraint_name` where a helper sets it, the helper's four callers
+identical. `doc.md`'s Genius-at-70% and band-one-floor claims were checked
+against `rankLadder.ts` and the pangram import and hold (the frozen
+migration's "band <= 3" is the stale one, and stays). Help, the manifest's
+labels, `lib/terminal.ts` and the edge function's docstring match the code.
+
 ## Notes
 
 *(things worth remembering about this area that are neither a finding nor
@@ -1515,10 +1616,15 @@ a dependency listed and left. Anything durable goes to `todo.md` or
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group (2026-09-23,
+      after the shake change; R-1 to R-5, all shipped)
 - [x] `docs/games/spellingbee.md` reconciled with `todo.md`: its Deferred
       section moved into the todo (2026-09-22, above), and `docs/deferred.md`
       points at the folder's register
-- [ ] the tile-feedback pass done, and the game's tf level updated there
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the tile-feedback pass done, and the game's tf level updated there
+      (tf2, 2026-09-23)
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      (the on-device look and the four untested `create_game` refusals moved
+      there at the close)
+- [x] every file on the roster blessed, or its stamp says why not (43,
+      `node scripts/cs-stamp.mjs list met-spellingbee` empty)

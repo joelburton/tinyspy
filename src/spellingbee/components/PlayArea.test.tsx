@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 /**
  * Render + behavior tests for spellingbee's play surface: the tree mounts in

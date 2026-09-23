@@ -1,4 +1,4 @@
--- cs-met-spellingbee
+-- cs-blessed-spellingbee
 
 -- ============================================================
 -- Test: spellingbee.replay_board (restart this board from scratch)
@@ -6,8 +6,10 @@
 -- The Restart action — a menu row all game, a button at terminal. Clears the
 -- found-words log (the game's only working state), un-terminals the row
 -- with the same initial status create_game seeds, and zeroes the shared
--- clock. The frozen board (letters + word lists) survives. Any game
--- player may call it, mid-game or post-terminal; a non-player is rejected.
+-- clock. The frozen board (letters + word lists) survives, and the games
+-- row is touched, since that write is what wakes every client (a DELETE
+-- may not). Any game player may call it, mid-game or post-terminal; a
+-- non-player is rejected.
 
 begin;
 set search_path = spellingbee, common, public, extensions;

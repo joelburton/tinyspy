@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 /**
  * Unit test for spellingbee's terminal message (lib/terminal.ts). Pure — no

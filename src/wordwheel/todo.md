@@ -14,6 +14,11 @@
   `end_game`. spellingbee made it one helper, `spellingbee._leaderboard`
   (its F-11, 2026-09-23); the same helper here.
 
+- **The per-player results carry keys nothing reads.** The coop endings write
+  `{ won, finished, team_score, team_rank_idx }` and the compete ones
+  `{ won, found_words_score, rank_idx }`; the app reads `result.won` alone.
+  spellingbee cut both to `{ won }` (its F-16 and R-1, 2026-09-23).
+
 - **Two SQL comments say `common.end_game` replaces the status**
   (`submit_timeout`'s and `end_game`'s compete branches); it merges. The
   re-emitted keys stay — the ending states its final tally — and the

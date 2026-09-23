@@ -1,4 +1,4 @@
-// cs-met-spellingbee
+// cs-blessed-spellingbee
 
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
