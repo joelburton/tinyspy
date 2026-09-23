@@ -896,7 +896,14 @@ setup rows and the celebration's body. Options: **delete it** (the member, the
 pass-through, the import), or keep it for a reader nobody has named.
 Recommendation: delete it.
 
-### F-spellingbee-3 · `print-recomputes-rank` · the print handler works out the rank the component already has
+### SHIPPED · F-spellingbee-3 · `print-recomputes-rank` · the print handler works out the rank the component already has
+
+**Joel, 2026-09-22: "fix."** The handler's `rankIdx` line is gone and the
+coop header reads `RANKS[selfRankIdx]`. Same call, same inputs, so the printed
+header cannot change. No unit test reaches the print handler (only
+`spellingbee-print`'s e2e, which checks that a PDF downloads, not its
+header), so there was nothing to plant. `tsc -b` and eslint clean; spellingbee
++ guards, 36 files, 363 tests green. No e2e run.
 
 `PlayArea.tsx` computes `selfRankIdx = currentRankIndex(foundWordsScore,
 game.required_words_score)` once, in Derived. The print handler computes

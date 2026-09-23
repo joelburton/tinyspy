@@ -402,7 +402,6 @@ export function PlayArea(props: PlayAreaProps) {
             ? { points: r.points ?? 0, who: memberById(players, r.userId)?.username ?? 'someone' }
             : null,
       }))
-      const rankIdx = currentRankIndex(foundWordsScore, game.required_words_score)
       printSpellingbeePdf({
         brand,
         gameTitle: title,
@@ -413,7 +412,7 @@ export function PlayArea(props: PlayAreaProps) {
         summary:
           game.mode === 'compete'
             ? `Target: ${game.required_words_score} pts · ${game.required_words_count} words`
-            : `${RANKS[rankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
+            : `${RANKS[selfRankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
         outerLetters: game.outer_letters.split(''),
         centerLetter: game.center_letter,
         mode: game.mode,
