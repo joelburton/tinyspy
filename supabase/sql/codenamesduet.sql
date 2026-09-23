@@ -834,17 +834,16 @@ begin
     );
 
     -- The three terminal answers are NAMED for the play_state they just set,
-    -- so a call site branching on `result` is branching on the ending. The
-    -- outcome is the verdict on the move that caused it: contacting the 15th
-    -- agent is a good move, and the other two are the two ways to lose.
+    -- so a call site branching on `result` is branching on the ending. Like
+    -- every answer here, it states the fact and carries no outcome: nothing
+    -- shows a single guess's verdict, because the tile turning over says it.
     return common.ok_envelope(
       jsonb_build_object(
         'result', end_state,
         'revealed', revealed_label,
         'greens_found', green_total,
         'turns_used', turns_used
-      ),
-      case when end_state = 'won' then 'won' else 'lost' end
+      )
     );
   end if;
 
@@ -865,8 +864,7 @@ begin
         'turns_remaining', turn_state->'turns_remaining',
         'clue_giver', turn_state->>'clue_giver',
         'play_state', turn_state->>'play_state'
-      ),
-      'lost'
+      )
     );
   end if;
 
@@ -895,8 +893,7 @@ begin
       'turns_remaining', g_row.turns_remaining,
       'clue_giver', g_row.current_clue_giver,
       'play_state', current_play_state
-    ),
-    'won'
+    )
   );
 
 -- One block, and it has never heard of any specific condition: it reads the

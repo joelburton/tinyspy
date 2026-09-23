@@ -25,9 +25,8 @@ import type { GuessRow } from '../hooks/useBoard'
  *
  * It folds over the key LETTERS because its three questions are about the key
  * card — did anything end the game, did we advance, did we waste a word — and
- * not about what a guess was worth. `submit_guess` does say a per-guess word in
- * its envelope (an agent `won`, a bystander `lost`), which agrees with this
- * everywhere it is comparable; nothing reads it, because nothing shows it.
+ * not about what a guess was worth. `submit_guess`'s answers carry no outcome:
+ * they state what was turned over, and this is the only place it becomes one.
  */
 export function turnOutcome(guesses: GuessRow[]): Outcome {
   if (guesses.length === 0) return 'neutral'

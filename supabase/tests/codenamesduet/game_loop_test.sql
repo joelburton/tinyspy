@@ -100,7 +100,7 @@ select pg_temp.envelope_is(
     (select id from g1),
     pg_temp.find_position((select id from g1), 'A', 'G')
   ),
-  '{"type":"ok","outcome":"won","data":{"result":"agent","revealed":"G",
+  '{"type":"ok","outcome":null,"data":{"result":"agent","revealed":"G",
     "greens_found":1,"turn_number":1,"turns_remaining":9,
     "clue_giver":"A","play_state":"playing"}}'::jsonb,
   'a green guess answers ok/agent, turn state unchanged'
@@ -131,7 +131,7 @@ select pg_temp.envelope_is(
     (select id from g1),
     pg_temp.find_position((select id from g1), 'A', 'N')
   ),
-  '{"type":"ok","outcome":"lost","data":{"result":"bystander","revealed":"N",
+  '{"type":"ok","outcome":null,"data":{"result":"bystander","revealed":"N",
     "greens_found":1,"turn_number":2,"turns_remaining":8,
     "clue_giver":"B","play_state":"playing"}}'::jsonb,
   'a neutral guess answers ok/bystander with the new turn state'
@@ -205,7 +205,7 @@ select pg_temp.envelope_is(
     (select id from g2),
     pg_temp.find_position((select id from g2), 'A', 'A')
   ),
-  '{"type":"ok","outcome":"lost","data":{"result":"lost_assassin",
+  '{"type":"ok","outcome":null,"data":{"result":"lost_assassin",
     "revealed":"A","greens_found":0,"turns_used":0}}'::jsonb,
   'an assassin guess answers ok/lost_assassin'
 );

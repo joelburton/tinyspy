@@ -384,6 +384,64 @@ it.
 
 **Verified:** the guards green with the file in place (31 files, 285 tests).
 
+### Step 4 — the `AnswerMessage` conversion — DONE 2026-09-23
+
+**No `lib/answer.ts`, by an existing ruling rather than a new one.**
+`outcome-fix` (`a193de24`, 2026-09-17) found nothing to key: a guess is one
+tile and answers with a reveal, which the board says, so the pill is silent on
+all five `ok`s; the log draws guessed words in the key-card palette; the PDF
+uses its own marks. The only thing wearing an outcome is the TURN, and
+`lib/turnOutcome.ts` is where it is decided (Joel's decision j, 2026-09-16).
+`docs/outcomes.md` → *"Two games deliberately have no answer file"* records
+it. Step 3 confirmed what that predicted: every sentence about a player's own
+move is the server's refusal, and there is no peer line per move — the header
+narrates a standing state (`useTurnStatus`), not an answer.
+
+**What the step DID owe is the SQL half**, the rule connections' Step 4 set and
+wordle's followed: an `ok` that is one of the game's answers states the fact
+and carries no outcome. `submit_guess` still passed one on every `ok` — `won`
+for an agent and the win, `lost` for a bystander and both losses — which
+outcome-fix had confirmed and left, since nothing read it. The three
+`ok_envelope` calls dropped the argument, and the terminal branch's comment
+now says why the answer carries none. `pass_turn` already carried none and
+already pinned it.
+
+**The pins.** Six assertions asserted the outcome — `game_loop_test.sql`'s
+agent, bystander and assassin; `sudden_death_test.sql`'s agent and
+`lost_clock`; `win_test.sql`'s win — and now assert `"outcome": null`,
+written out because `envelope_is` is containment. `cross_direction_test.sql`'s
+three `ok` checks name no outcome and were left: they are about which key
+labels a guess, not about the envelope.
+
+**The two sentences that said otherwise:** `turnOutcome.ts`'s docstring and
+`docs/games/codenamesduet.md` → The one outcome decision both said
+`submit_guess` *"does say a per-guess word in its envelope"*; both now say its
+answers carry none and the fold is the only place one is decided. The old
+doc's `submit_guess` table lost its `won` / `lost` column entries on the five
+`ok` rows.
+
+**Not a word changed on screen.** Nothing on the frontend read a guess's
+outcome (`res.outcome` has no reader in `src/codenamesduet/`).
+
+**Verified by planting.** `won` put back on the agent branch from a scratchpad
+copy of `submit_guess`: the whole suite went red on exactly the two agent pins
+(`game_loop_test.sql` 6, `sudden_death_test.sql` 2), each naming `outcome:
+want null, got "won"`; restored, green. The whole pgTAP suite green (181 files,
+2584 tests), `tsc -b` clean, 41 files / 356 unit tests green. No e2e for this
+step.
+
+### Paused before Step 5 — the events table — 2026-09-23
+
+Talking Step 4 through, Joel asked whether the header's peer phrases should go
+through the answer machinery, and the conversation went to the log's shape:
+a pass and an AI hint are recorded nowhere, and the log is two tables where
+every other game has one. The design is
+[plans/codenamesduet-events.md](../codenamesduet-events.md) — one
+`codenamesduet.events` table, a backfill, and a `lib/answer.ts` after all.
+Joel: *"once i've read that plan, we do this."* **Step 4's "no answer file" is
+overtaken by it**; its SQL half — no outcome on a guess's `ok` — stands either
+way. Step 5 resumes after.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it

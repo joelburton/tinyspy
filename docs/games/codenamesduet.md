@@ -209,11 +209,11 @@ Logic in order:
 
 | | | |
 |---|---|---|
-| `ok` · `{result: 'agent'}` | `won` | an agent contacted; the turn continues, so the turn state is reported unchanged |
-| `ok` · `{result: 'bystander'}` | `lost` | a bystander; carries the turn state `_end_turn` just wrote, sudden death included |
-| `ok` · `{result: 'won'}` | `won` | the 15th agent |
-| `ok` · `{result: 'lost_assassin'}` | `lost` | |
-| `ok` · `{result: 'lost_clock'}` | `lost` | a non-green in sudden death |
+| `ok` · `{result: 'agent'}` | | an agent contacted; the turn continues, so the turn state is reported unchanged |
+| `ok` · `{result: 'bystander'}` | | a bystander; carries the turn state `_end_turn` just wrote, sudden death included |
+| `ok` · `{result: 'won'}` | | the 15th agent |
+| `ok` · `{result: 'lost_assassin'}` | | |
+| `ok` · `{result: 'lost_clock'}` | | a non-green in sudden death |
 | `PN379` "Game over" | `race` | in sudden death EITHER player may guess, so the partner can lose the game while yours is in flight |
 | `PN380` "Your partner is guessing this turn" | `race` | your own turn-ending guess made you the giver; the tiles unlocked on its reply |
 | `PN381` "No clue yet this turn" | `race` | the same window, one turn on |
@@ -354,9 +354,8 @@ turn owns and no single guess can express.
 
 It folds over the key LETTERS because its three questions are about the key card
 — did anything end the game, did we advance, did we waste a word — and not about
-what a guess was worth. `submit_guess` does say a per-guess word in its envelope
-(an agent `won`, a bystander `lost`), and it agrees with this fold everywhere the
-two are comparable; nothing reads it, because nothing shows it.
+what a guess was worth. `submit_guess`'s answers carry no outcome: they state
+what was turned over, and this fold is the only place it becomes one.
 
 The rule this follows is [outcomes.md → One event, one
 outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).

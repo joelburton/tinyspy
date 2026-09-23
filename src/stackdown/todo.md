@@ -146,6 +146,15 @@
   Found by the `outcome-fix` audit (its F-14); the other keystroke refusal — no
   matching tile, `lost` in the pill, no ring — is fine either way.
 
+- **Turn-by-turn coop, as the coop-style games have.** Joel
+  (2026-09-23): *"there's no reason it shouldn't have that."* stackdown's coop
+  is free-for-all: its setup form has no `<SetupCoopStyleSection>`, and
+  `supabase/sql/stackdown.sql` never moves `current_turn_user_id`, so nobody
+  ever waits for anybody. Adding the coop style brings the turn pointer, the
+  board's turn gating, the shared "Waiting for ● Name…" line and the turn bell
+  with it. Any game whose setup form renders `<SetupCoopStyleSection>` is the
+  model.
+
 ## Someday
 
 - `PlayArea.tsx` returns its own `<p>Loading game…</p>` while the read is

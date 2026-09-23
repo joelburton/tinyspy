@@ -152,7 +152,7 @@ select pg_temp.envelope_is(
        )
      limit 1)
   ),
-  '{"type":"ok","outcome":"won","data":{"result":"won","revealed":"G",
+  '{"type":"ok","outcome":null,"data":{"result":"won","revealed":"G",
     "greens_found":15}}'::jsonb,
   'the 15th green reveal answers ok/won'
 );
