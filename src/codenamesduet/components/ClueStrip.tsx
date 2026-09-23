@@ -147,7 +147,9 @@ function ClueDisplay({ clue }: { clue: ClueEvent }) {
 /** "● moth guessing" — the peer as a `<DotActor>` (colored disc + name), then
  *  what they are doing. Telegraphic, because it shares the below-board row
  *  with the clue display and the Pass button, where a sentence crowds a phone.
- *  Falls back to "Your partner". */
+ *  Falls back to "Your partner". The header says the same on purpose: this
+ *  strip is where the player is looking, and it stays when the header is
+ *  holding a chat line. */
 function PeerActivity({
   peer,
   activity,

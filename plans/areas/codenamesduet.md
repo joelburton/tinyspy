@@ -1258,7 +1258,10 @@ readout can't disagree"*, but `StateLine` writes `/15 agents`, the manifest
 **one constant in `lib/`** read in all four; or say only the printer reads
 it. Recommendation: one constant.
 
-### F-codenamesduet-21 · `partner-said-twice` · the partner's activity is said in two slots at once
+### RULED — NO CHANGE · F-codenamesduet-21 · `partner-said-twice` · the partner's activity is said in two slots at once
+
+**Joel, 2026-09-23: "keep both."** `PeerActivity`'s docstring says the
+repetition is deliberate, and why. No behavior changed.
 
 The giver, in the guess phase, reads *"● moth guessing"* in the header
 (`lib/answer.ts`) and *"WORD · N ● moth guessing"* below the board
