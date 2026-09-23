@@ -26,9 +26,9 @@ import logoUrl from './logo.svg?url'
  * `<Suspense>` so the brief between-chunk-fetch render is handled
  * cleanly.
  *
- * The `.then(m => ({ default: m.PlayArea }))` shim re-exports the
+ * The `.then(m => ({ default: m.PlayAreaLoader }))` shim re-exports the
  * named export as a default, since React.lazy expects a module with
- * a default export. We keep `PlayArea` (and friends) named exports
+ * a default export. We keep `PlayAreaLoader` (and friends) named exports
  * for symmetry with everything else.
  */
 // The single source of truth for this game's user-facing brand name —
@@ -61,7 +61,7 @@ export const codenamesduetGame: GameManifest = {
   numberOfPlayers: [2, 2],
 
   PlayArea: lazy(() =>
-    import('./components/PlayArea').then((m) => ({ default: m.PlayArea })),
+    import('./components/PlayArea').then((m) => ({ default: m.PlayAreaLoader })),
   ),
 
   // Per-game setup form: turn-count radio + first-clue-giver

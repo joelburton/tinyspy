@@ -26,7 +26,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
-import { PlayArea } from './PlayArea'
+import { PlayAreaLoader } from './PlayArea'
 
 // Whose turn it is, and whether the clue is in — mutable holders so a test can
 // seat me as the GUESSER (the default: peer A gave the clue, I'm B) or as the
@@ -49,7 +49,7 @@ vi.mock('../hooks/useGame', () => ({
 // so the reveal tests can assert on it (the hook itself is mocked out).
 const peerKeyArgs = vi.hoisted(() => ({ calls: [] as boolean[] }))
 vi.mock('../hooks/useBoard', () => ({
-  // A full 5×5 board (PlayArea gates on `words.length >= 25`). Positions 0/1 are
+  // A full 5×5 board (the loader gates on `words.length >= 25`). Positions 0/1 are
   // the tiles we click; the rest are filler. All unrevealed → all clickable.
   useBoard: (_gameId: string, _userId: string, showPeerKey: boolean) => (
     peerKeyArgs.calls.push(showPeerKey), {
@@ -95,9 +95,9 @@ const okEnvelope = (data: unknown) => ({
 /** PlayArea under the app-root key dispatcher, which App.tsx mounts for real.
  *  Only the tests whose subject is a keystroke need it — a bare `render` binds
  *  the actions but has nothing feeding them keys. */
-function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
+function WithKeys(props: React.ComponentProps<typeof PlayAreaLoader>) {
   useActionDispatcher()
-  return <PlayArea {...props} />
+  return <PlayAreaLoader {...props} />
 }
 
 /** A keystroke at the page, the way a player types with nothing focused.
@@ -155,7 +155,7 @@ beforeEach(() => {
 
 describe('codenamesduet PlayArea — guess in-flight guard', () => {
   it('a second guess while one is in flight does not fire a second submit_guess', () => {
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
     const apple = screen.getByRole('button', { name: /apple/i })
     const berry = screen.getByRole('button', { name: /berry/i })
     fireEvent.click(apple) // guess in flight (rpc never resolves)
@@ -173,12 +173,12 @@ describe('codenamesduet PlayArea — guess in-flight guard', () => {
  */
 describe('codenamesduet PlayArea — input gating', () => {
   it('tiles are clickable during my guess turn', () => {
-    render(<PlayArea {...makeCtx()} />) // playing, my turn, clue given → gate open
+    render(<PlayAreaLoader {...makeCtx()} />) // playing, my turn, clue given → gate open
     expect(screen.getByRole('button', { name: /apple/i })).toBeEnabled()
   })
 
   it('tiles are blocked at terminal', () => {
-    render(<PlayArea {...makeCtx({ playState: 'won', isTerminal: true })} />) // gameOver
+    render(<PlayAreaLoader {...makeCtx({ playState: 'won', isTerminal: true })} />) // gameOver
     expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
   })
 })
@@ -201,7 +201,7 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
   })
 
   it('keeps the card covered at a terminal until I ask — a win included', () => {
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'won' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
     expect(lastPeerKeyArg()).toBe(false)
     // By WHICH action it is — the words are the next tests' subject, not this one's.
     expect(control('act-reveal')).toBeEnabled()
@@ -209,7 +209,7 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
 
   it('Reveal opens it for me alone, and Hide covers it again', async () => {
     const user = userEvent.setup()
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
     await user.click(screen.getByRole('button', { name: "Reveal key cards" }))
     expect(lastPeerKeyArg()).toBe(true)
@@ -222,13 +222,13 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
 
   it('the menu twin is the same toggle, and inert mid-game', async () => {
     const live = makeCtx()
-    const { unmount } = render(<PlayArea {...live} />)
+    const { unmount } = render(<PlayAreaLoader {...live} />)
     // Mid-game the partner's card is the whole game — nothing to reveal.
     expect(menuItems(live).get('act-reveal')?.disabled).toBe(true)
     unmount()
 
     const done = makeCtx({ isTerminal: true, playState: 'lost' })
-    render(<PlayArea {...done} />)
+    render(<PlayAreaLoader {...done} />)
     expect(menuItems(done).get('act-reveal')?.label).toBe("Reveal key cards")
     act(() => menuItems(done).get('act-reveal')!.run())
     expect(lastPeerKeyArg()).toBe(true)
@@ -244,7 +244,7 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
  */
 describe('codenamesduet PlayArea — the guesser’s Pass and the giver’s AI', () => {
   it('the guesser’s Pass is a primary, normal-toned button', () => {
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
     const pass = control('act-end-turn')!
     expect(pass).toBeEnabled()
     // Weight and tone are the module's class keys — the CSS-module proxy keeps
@@ -258,13 +258,13 @@ describe('codenamesduet PlayArea — the guesser’s Pass and the giver’s AI',
   })
 
   it('Suggest a clue is the clue-giver’s and not the guesser’s', () => {
-    const { unmount } = render(<PlayArea {...makeCtx()} />)
+    const { unmount } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(control('act-suggest-clue')).toBeNull()
     expect(liveBindings().some((b) => b.id === 'act-suggest-clue')).toBe(false)
     unmount()
 
     asClueGiver()
-    render(<PlayArea {...makeCtx()} />)
+    render(<PlayAreaLoader {...makeCtx()} />)
     expect(control('act-suggest-clue')).toBeEnabled()
     // The giver has no guesses to stop.
     expect(control('act-end-turn')).toBeNull()
@@ -334,7 +334,7 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
     const live = makeCtx()
     const { unmount } = render(
       <>
-        <PlayArea {...live} />
+        <PlayAreaLoader {...live} />
         <ConfirmationHost />
       </>,
     )
@@ -345,7 +345,7 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
     unmount()
 
     // No host this time: the RPC firing proves no question was asked.
-    render(<PlayArea {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
     await user.click(control('act-restart')!)
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
   })

@@ -247,6 +247,75 @@ roster, so they are findings when pass 2 opens:
 collapse, the `CluePanel` name, the banners, the bell), two Someday (the
 companion's size, the board's monospace), two Won't do.
 
+### Step 2 — the loader / loaded split (readability 3.1) — DONE 2026-09-23
+
+The shape the earlier games settled: `PlayAreaLoader` owns the reads and the
+three gates — `<Loading>`, `<EnvelopeErrorPage>`, `<NoSuchGamePage>` — and
+hands `PlayArea` everything non-null, with `setup` narrowed once in its JSX.
+The manifest's lazy line names the loader, and the spec mounts it at every
+site with the three hooks mocked exactly as before.
+
+**Where this game differs: THREE reads, not one.** `useGame`, `useBoard` and
+`useClues` all move into the loader. `useBoard` takes the partner-key reveal as
+an argument — it is what turns the choice into `peerKey` — so
+`useSolutionReveal` moved up with it, and the loaded component takes
+`peerKeyShown` and `togglePeerKey` as props. The reveal's long rationale
+comment moved down to `actReveal`'s binding, where the choice is made. Moving
+the reveal OUT of `useBoard`'s signature (the hook returns the key, the
+surface decides whether to show it) would put the toggle back in the surface;
+that is a change to the hook's contract, not part of a split, and is left for
+the audit to weigh.
+
+**The two rosters are two props.** The context's `players` is the club roster
+every game gets (read as `members` by New game); `useGame`'s `players` are the
+two SEATED players, each with a `seat`. The loaded component takes the second
+as `seatedPlayers` and reads it as `players` in its body, so no line below the
+destructuring changed.
+
+**What went with it:** `codenamesduetSetup` and its cast (five readers now
+read `setup`), `useTurnStatus`'s nullable `game` and its `if (game && …)`, the
+docstring sentence saying it is *"self-contained so it can be called
+unconditionally before PlayArea's loading early-return"*, the three "above the
+early return(s)" comments, Print's `describe: () => (game && myKey &&
+words.length >= 25 ? 'active' : 'hidden')` and its `run`'s matching guard, and
+the gates at the bottom with their `<p>Loading board…</p>` and `<p>Game not
+found.</p>`. `GameRow` is exported from `useGame.ts` for the loaded props, and
+`useBoard.ts`'s zero-rows comment names the loader and the no-such-game page
+rather than the PlayArea's old sentence.
+
+**The not-found gate's comment was WRONG, and the new one says why.** It read
+*"`!myKey` and a short word list are DERIVED from the game row, so they can
+only be missing when it is"*. `myKey` is also null for a viewer who holds no
+seat — a club member watching — so a watcher has always been told there is no
+game. That is unchanged (spectating is `plans/spectating.md`'s, and undecided);
+the comment now names the case, and the console `detail` says which of the
+three was missing (`rows=… key=seated|none words=…`).
+
+**Two behavior changes, stated now:**
+
+- **The loading gate waits for all three reads.** Before, only `useBoard`'s
+  `loading` gated; `useGame`'s and `useClues`' were never read. A board that
+  answered before the game row drew *"Game not found."* until the row arrived,
+  and one that answered before the clues drew a turn with no clue in it. Both
+  windows are gone.
+- **The same change the four earlier games made:** while the reads are out
+  the header menu has no game rows and `+` does nothing, where before the rows
+  were published pre-load and `+` asked the new-game question and then could
+  not act. **That IS the Bug in `todo.md`**, deleted there —
+  `describe: () => 'active'` is now true rather than optimistic. The empty tab
+  ring (`useTabRing([])`) is also mounted only once the surface is, so during
+  `<Loading>` nothing holds Tab on the page.
+
+**Every effect's edge, read as it moved** (readability §4): the menu, the
+turn status, the terminal verdict and the celebration now first run on a
+LOADED surface. The verdict is keyed on `isTerminal` / `playState`, which the
+shell already had, so it lands a beat later on an already-finished game, not
+differently. `useCelebration` never pops on mount, so an already-won game is
+still quiet.
+
+**Verified:** `tsc -b` and eslint clean; 41 files, 356 tests green. No e2e
+run for this step.
+
 ## Findings
 
 *(`F-codenamesduet-1 · slug · title`, one heading each; a status prefix when it

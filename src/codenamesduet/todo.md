@@ -4,10 +4,6 @@
 
 - `.clueLabel` in `CluePanel.module.css` is read by nothing
   (`cssClasses.test.ts` holds it in `DEAD_CLASS_PENDING`).
-- `act-new-game` answers `active` before the game row has loaded, so an
-  early `+` asks the new-game question and then can do nothing. By the rule
-  in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
-  beside it already answers `hidden` for it.
 
 ## Soon
 

@@ -12,7 +12,7 @@ import type { Database } from '@/types/db'
 // Narrower than Database[...]['Row'] — see code-conventions.md's "Avoid
 // SELECT *". Adding a new column to codenamesduet.games requires
 // explicitly listing it here AND in the select() below.
-type GameRow = Pick<
+export type GameRow = Pick<
   Database['codenamesduet']['Tables']['games']['Row'],
   | 'id'
   | 'club_handle'

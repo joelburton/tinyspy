@@ -26,10 +26,12 @@ import { useStandardGameActions } from '@/common/game-page/useStandardGameAction
 import { setupRows } from '../lib/setupSummary'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import type { ClueRow } from '../hooks/useClues'
-import type { Player } from '../hooks/useGame'
+import type { GameRow, Player } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
+import type { GuessRow, WordRow } from '../hooks/useBoard'
 import { useBoard } from '../hooks/useBoard'
 import { useClues } from '../hooks/useClues'
+import type { KeyLabel } from '../lib/labels'
 import { derivePhase, type GameStatus, type Seat } from '../lib/phase'
 import { historySnapshot } from '../lib/history'
 import type { CodenamesduetSetup } from '../lib/setup'
@@ -40,6 +42,8 @@ import { InfoCol } from './InfoCol'
 import { StateLine } from './StateLine'
 import shared from '@/common/game-page/playArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
+import { NoSuchGamePage } from '@/common/game-page/NoSuchGamePage'
+import { Loading } from '@/common/loading/Loading'
 import styles from './PlayArea.module.css'
 import '../theme.css'  // codenamesduet-specific color tokens (lazy-loaded with this chunk)
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
@@ -143,12 +147,9 @@ function buildOver(playState: string): TerminalMessage {
  * while one sits there, chat lines and narrations are outranked and the
  * players strip stays hidden. The CluePanel notice below the board carries it
  * in full instead, and the info column leads its help with the red tag.
- *
- * Self-contained so it can be called unconditionally before PlayArea's loading
- * early-return.
  */
 function useTurnStatus(args: {
-  game: { current_clue_giver: string | null; turn_number: number } | null | undefined
+  game: { current_clue_giver: string | null; turn_number: number }
   players: Player[]
   clues: ClueRow[]
   playState: string
@@ -165,7 +166,7 @@ function useTurnStatus(args: {
   const peer = players.find((p) => p.user_id !== sessionUserId)
   const peerName = peer?.username
   const peerColor = peer?.color
-  if (game && !gameOver) {
+  if (!gameOver) {
     const me = players.find((p) => p.user_id === sessionUserId)
     const { isGuessPhase, isClueGiver, inSuddenDeath } = derivePhase({
       status: playState as GameStatus,
@@ -205,6 +206,85 @@ function useTurnStatus(args: {
  *  fixed total); named so the print model and the readout can't disagree. */
 const TOTAL_AGENTS = 15
 
+/**
+ * The play surface's loader: runs the three reads — the game row, the board,
+ * the clues — and renders `<PlayArea>` only once all three have answered with
+ * a game to draw. Named by the manifest's lazy line.
+ */
+export function PlayAreaLoader(ctx: GamePageCtx) {
+  const { game, players, loading: gameLoading, failure: gameFailure } = useGame(ctx.gameId)
+  // Showing the partner's key is a display choice, but `useBoard` is what turns
+  // it into `peerKey`, so the choice is held here, above the read.
+  const peerKeyReveal = useSolutionReveal()
+  const board = useBoard(ctx.gameId, ctx.session.user.id, peerKeyReveal.revealed)
+  const { clues, loading: cluesLoading, failure: cluesFailure } = useClues(ctx.gameId)
+
+  if (gameLoading || board.loading || cluesLoading) return <Loading />
+  // A failed read is NOT a missing game. Both leave the board with nothing to
+  // draw, and saying "there's no game here" about a dead connection is a
+  // confident wrong answer — this is what remains once the fault modal is
+  // dismissed. The three reads are equally fatal, so the FIRST failure wins;
+  // each envelope names its own read in `detail`.
+  const failure = gameFailure ?? board.failure ?? cluesFailure
+  if (failure) return <EnvelopeErrorPage envelope={failure} />
+  // Reaching this means the COMMON row exists — `GamePageGate` and
+  // `GamePageLoader` each checked. A missing duet row is a torn write or a game
+  // deleted while open. A missing key card is also a viewer who holds no seat.
+  // `detail` goes to the console, never to the page.
+  if (!game || !board.myKey || board.words.length < 25) {
+    return (
+      <NoSuchGamePage
+        detail={`rows=${game ? 1 : 0} table=codenamesduet.games key=${board.myKey ? 'seated' : 'none'} words=${board.words.length} game=${ctx.gameId}`}
+      />
+    )
+  }
+
+  return (
+    <PlayArea
+      {...ctx}
+      game={game}
+      seatedPlayers={players}
+      words={board.words}
+      guesses={board.guesses}
+      myKey={board.myKey}
+      peerKey={board.peerKey}
+      myAgentsDone={board.myAgentsDone}
+      peerAgentsDone={board.peerAgentsDone}
+      clues={clues}
+      peerKeyShown={peerKeyReveal.revealed}
+      togglePeerKey={peerKeyReveal.toggle}
+      // The one place the setup blob is narrowed. `GamePageCtx` types it
+      // `Record<string, unknown>` for every game; below, it is this game's.
+      setup={ctx.setup as unknown as CodenamesduetSetup}
+    />
+  )
+}
+
+type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
+  // The loaded game row: the turn pointer, the budget, both seats and both key
+  // cards. Non-null by construction — the loader holds the gates.
+  game: GameRow
+  // The two seated players, each with a `seat`. Distinct from the context's
+  // `players`, the club roster the shell passes every game.
+  seatedPlayers: Player[]
+  // The 25 words with their reveal state, and every guess, for the log.
+  words: WordRow[]
+  guesses: GuessRow[]
+  // My key card, and my partner's — null until I choose to see it.
+  myKey: KeyLabel[]
+  peerKey: KeyLabel[] | null
+  // Whether each seat has contacted all its agents; drives the banners.
+  myAgentsDone: boolean
+  peerAgentsDone: boolean
+  // Every clue given, one per turn.
+  clues: ClueRow[]
+  // The partner-key reveal, held by the loader because `useBoard` reads it.
+  peerKeyShown: boolean
+  togglePeerKey: () => void
+  // This game's setup, narrowed once by the loader.
+  setup: CodenamesduetSetup
+}
+
 export function PlayArea({
   session,
   gameId,
@@ -218,14 +298,18 @@ export function PlayArea({
   menu,
   brand,
   title,
-}: GamePageCtx) {
-  // Per-game setup blob — opaque on GamePageCtx, cast to codenamesduet's
-  // shape here. Read-only at this layer; the only field we read
-  // today is `turns` for the "X/Y turns" status counter.
-  const codenamesduetSetup = setup as CodenamesduetSetup
-
-  const { game, players, failure: gameFailure } = useGame(gameId)
-
+  game,
+  seatedPlayers: players,
+  words,
+  guesses,
+  myKey,
+  peerKey,
+  myAgentsDone,
+  peerAgentsDone,
+  clues,
+  peerKeyShown,
+  togglePeerKey,
+}: PlayAreaProps) {
   // The board is worked by clicks, so the page itself has nowhere for Tab to go
   // and an empty ring keeps it from walking out to the browser. While a clue is
   // being given, the clue form's own ring is innermost and Tab is its (CluePanel).
@@ -234,8 +318,8 @@ export function PlayArea({
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
   const summaryRows = useMemo(
-    () => setupRows(codenamesduetSetup, 'coop' as const, players),
-    [codenamesduetSetup, players],
+    () => setupRows(setup, 'coop' as const, players),
+    [setup, players],
   )
 
   // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
@@ -248,53 +332,17 @@ export function PlayArea({
   // the keyboard; it crunched the board too small and scrolled badly.)
   const infoSheet = useInfoSheet()
 
-  // `gameOver` mirrors common.games.is_terminal — derived early so
-  // we can pass `revealPeer` into useBoard. `playState` carries the
+  // `gameOver` mirrors common.games.is_terminal. `playState` carries the
   // gametype-specific value ('playing', 'sudden_death', 'won', ...)
   // for the phase derivation and the terminal copy.
   const gameOver = isTerminal
-
-  // ─── Terminal partner-key reveal ─────────────────────────────────
-  // The partner's key card is NOT opened the instant the game ends. The seconds
-  // right after an assassin are the best part of a Duet post-mortem — "wait, I
-  // was about to pick APPLE" — and that conversation only happens while the card
-  // is still covered. Reveal opens it, and the post-mortem continues with
-  // everything on the table.
-  //
-  // Not about protecting a replay: Duet deliberately has none (its board IS the
-  // secret — docs/ui.md → Restart).
-  //
-  // Not on a win either, where the pair contacted all fifteen and the card has
-  // nothing left to say.
-  //
-  // The ask is LOCAL and reversible (useSolutionReveal). Sharing it — on the
-  // reasoning that the partner is the person you're doing the post-mortem
-  // WITH — cuts the other way: a Duet post-mortem is two people thinking out
-  // loud, and one of them opening the card ends the other's thinking
-  // mid-sentence. Each of you looks when you're ready, and Hide covers it up
-  // again. Not a shield either way: both key columns are readable
-  // by every club member under the friends trust model.
-  const { revealed: peerKeyShown, toggle: togglePeerKey } =
-    useSolutionReveal()
-
-  const {
-    words, guesses, myKey, peerKey, myAgentsDone, peerAgentsDone, loading,
-    failure: boardFailure,
-  } = useBoard(gameId, session.user.id, peerKeyShown)
-  const { clues, failure: cluesFailure } = useClues(gameId)
-  // The three hooks read six tables between them and each holds the envelope of
-  // its own failure. FIRST one wins: they are equally fatal to the board, and
-  // each envelope names its own read in `detail`, so the page says which one
-  // died rather than "something didn't load".
-  const failure = gameFailure ?? boardFailure ?? cluesFailure
 
   // ─── Win celebration ───────────────────────────────────
   // Confetti at the MOMENT the pair contacts the 15th agent (the winning guess
   // flips playState to 'won' on every connected client via realtime, so both
   // players celebrate together); opening an already-won game stays quiet
-  // (useCelebration never pops on mount). Gated on `playState` alone — it's
-  // available from the very first render, unlike anything read from useGame,
-  // and duet is coop-only so 'won' is unambiguous. This is the ONLY terminal
+  // (useCelebration never pops on mount). Gated on `playState` alone — duet is
+  // coop-only, so 'won' is unambiguous. This is the ONLY terminal
   // modal duet shows: losses and the manual end land in-page only.
   const celebration = useCelebration(playState === 'won')
 
@@ -371,7 +419,7 @@ export function PlayArea({
     const res = await runRpc<CreatedGame>(
       db.rpc('create_game', {
         target_club: clubHandle,
-        setup: codenamesduetSetup,
+        setup,
         player_user_ids: members.map((m) => m.user_id),
       }),
     )
@@ -409,6 +457,27 @@ export function PlayArea({
     run: createNewGame,
   })
 
+  // ─── Terminal partner-key reveal ─────────────────────────────────
+  // The partner's key card is NOT opened the instant the game ends. The seconds
+  // right after an assassin are the best part of a Duet post-mortem — "wait, I
+  // was about to pick APPLE" — and that conversation only happens while the card
+  // is still covered. Reveal opens it, and the post-mortem continues with
+  // everything on the table.
+  //
+  // Not about protecting a replay: Duet deliberately has none (its board IS the
+  // secret — docs/ui.md → Restart).
+  //
+  // Not on a win either, where the pair contacted all fifteen and the card has
+  // nothing left to say.
+  //
+  // The ask is LOCAL and reversible (useSolutionReveal). Sharing it — on the
+  // reasoning that the partner is the person you're doing the post-mortem
+  // WITH — cuts the other way: a Duet post-mortem is two people thinking out
+  // loud, and one of them opening the card ends the other's thinking
+  // mid-sentence. Each of you looks when you're ready, and Hide covers it up
+  // again. Not a shield either way: both key columns are readable
+  // by every club member under the friends trust model.
+  //
   // Reveal the partner's key — a LOCAL display toggle: it shows their card to me
   // alone, writes nothing, and affects nobody else. Terminal-only, because
   // mid-game the partner's card IS the game.
@@ -419,9 +488,8 @@ export function PlayArea({
     run: togglePeerKey,
   })
 
-  // Seat/roster derivations, hoisted above the early return so the print model
-  // (built in the binding's run, but reading these) sees the SAME values the
-  // render does.
+  // Seat/roster derivations, read by the print model (built in the binding's
+  // run) and the render alike, so both see the SAME values.
   const me = players.find((p) => p.user_id === session.user.id)
   const mySeat = me?.seat
   const peer = players.find((p) => p.user_id !== session.user.id)
@@ -431,9 +499,8 @@ export function PlayArea({
   // a secret mid-game; `useBoard` only hands it over post-game and the model
   // refuses it before terminal regardless, so it can't reach paper early.
   const actPrintBoard = useBoundAction('act-print-board', {
-    describe: () => (game && myKey && words.length >= 25 ? 'active' : 'hidden'),
+    describe: () => 'active',
     run: () => {
-      if (!game || !myKey || words.length < 25) return
       printCodenamesduetPdf(
         buildDuetPrintModel({
           brand,
@@ -451,7 +518,7 @@ export function PlayArea({
           greenFound,
           totalAgents: TOTAL_AGENTS,
           turnNumber: game.turn_number,
-          turnCap: codenamesduetSetup.turns,
+          turnCap: setup.turns,
           mode: 'coop' as const,
           setup: summaryRows,
         }),
@@ -479,8 +546,7 @@ export function PlayArea({
   }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // Keep the turn state in the header — it's easy to miss "the other player
-  // ended their turn, it's your turn now" otherwise. Called before the early
-  // return (hook order); it no-ops while the game is loading.
+  // ended their turn, it's your turn now" otherwise.
   useTurnStatus({
     game,
     players,
@@ -494,8 +560,7 @@ export function PlayArea({
   // ─── The one standing condition of the local slot ───
   // The verdict, memoized on `playState` so the effect sees one object per
   // outcome, shown on the terminal edge and retracted by its owner on Restart
-  // (a Duet mulligan un-terminals the game). Above the early returns because
-  // effects must be.
+  // (a Duet mulligan un-terminals the game).
   const over = useMemo(() => (isTerminal ? buildOver(playState) : null), [isTerminal, playState])
   useEffect(function showTerminalVerdict() {
     if (!over) return
@@ -503,17 +568,8 @@ export function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, over])
 
-  if (loading) return <p>Loading board…</p>
-  // A failed read is NOT a missing game. Both leave the board with nothing to
-  // draw, and saying "Game not found." about a dead connection is a confident
-  // wrong answer — this is what remains once the fault modal is dismissed.
-  if (failure) return <EnvelopeErrorPage envelope={failure} />
-  // `!myKey` and a short word list are DERIVED from the game row, so they can
-  // only be missing when it is — one branch, not three.
-  if (!game || !myKey || words.length < 25) return <p>Game not found.</p>
-
   const firstClueGiver = players.find(
-    (p) => p.user_id === codenamesduetSetup.first_clue_giver_user_id,
+    (p) => p.user_id === setup.first_clue_giver_user_id,
   )
   // Phase derivation: a turn is in "guess phase" iff a clue already
   // exists for games.turn_number. The submit_clue RPC enforces the
@@ -574,7 +630,7 @@ export function PlayArea({
           <StateLine
             greenFound={greenFound}
             turnNumber={game.turn_number}
-            turns={codenamesduetSetup.turns}
+            turns={setup.turns}
             inSuddenDeath={inSuddenDeath}
           />
         }
@@ -623,7 +679,7 @@ export function PlayArea({
         actNewGame={actNewGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
-        setup={codenamesduetSetup}
+        setup={setup}
         setupRows={summaryRows}
         firstClueGiver={firstClueGiver}
         // ── Turn-history log ──

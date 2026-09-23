@@ -167,7 +167,7 @@ export function useBoard(gameId: string, userId: string, revealPeer: boolean) {
 
       // ZERO ROWS is its own answer, and here it says the game is gone — a
       // server-side delete, or one this pair cannot see. Clearing the key is
-      // what makes the PlayArea say so: it renders "Game not found." on a
+      // what makes the loader say so: it renders the no-such-game page on a
       // missing key, and without this a deleted game would keep drawing from
       // the last load.
       const g = gameRes.data[0]
