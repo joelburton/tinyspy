@@ -875,7 +875,17 @@ once" and its two other statements of the rule change with it. Or **keep coop
 only**, with a comment that says it is a choice. Recommendation: the same
 here, for the reason the three siblings gave.
 
-### F-spellingbee-2 · `unused-setup-prop` · `InfoCol` takes a `setup` it never reads
+### SHIPPED · F-spellingbee-2 · `unused-setup-prop` · `InfoCol` takes a `setup` it never reads
+
+**Joel, 2026-09-22: "delete it."** Three lines in two files: the `setup:
+SpellingbeeSetup` member of `InfoCol`'s props, the `setup={setup}`
+pass-through in `PlayArea`'s JSX, and the `SpellingbeeSetup` import that the
+member was the only use of. The `// ── Setup disclosure ──` heading keeps its
+one real prop, `setupRows`. `PlayArea`'s own `setup` stays (the setup rows,
+`hasBonus`, `targetRankIdx`). Nothing to plant: a prop with no reader is
+invisible to every test, which is the finding. `PlayArea.tsx` is the only file
+that renders `<InfoCol>`; `doc.md` never named the prop. `tsc -b` and eslint
+clean; spellingbee + guards, 36 files, 363 tests green.
 
 `InfoCol`'s props type declares `setup: SpellingbeeSetup` under the setup
 disclosure, `PlayArea` passes `setup={setup}`, and the component destructures

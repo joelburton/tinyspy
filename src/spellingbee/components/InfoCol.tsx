@@ -11,7 +11,6 @@ import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { WordList, type WordListRow } from '@/common/word-list/WordList'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
-import type { SpellingbeeSetup } from '../lib/setup'
 import { RankBar } from '@/shared/rank-ladder/RankBar'
 import { Stats } from '@/shared/rank-ladder/Stats'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -98,7 +97,6 @@ export function InfoCol({
   actBackToClub: BoundAction
 
   // ── Setup disclosure ──
-  setup: SpellingbeeSetup
   // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
   setupRows: SetupRow[]
 
