@@ -831,9 +831,9 @@ has one, no prefix means OPEN)*
 
 The todo emptied, 2026-09-22: the prose pass's "left for the findings" list
 and `todo.md`'s two Soon entries, each re-checked against the code before it
-was written here. Nine findings. The two reads the list also named (the edge
-function's and the SQL's) are not findings but the audit's read, which is
-below them and still owed.
+was written here: F-1 to F-9. The two reads the list also named (the edge
+function's and the SQL's) were not findings but the audit's read, which
+follows F-9 and raised F-10 to F-17.
 
 ### SHIPPED · F-spellingbee-1 · `race-winner-celebration` · the race's winner gets no confetti
 
@@ -1050,14 +1050,236 @@ defaults; or drop the numbers and point at `src/spellingbee/doc.md`.
 Recommendation: say they are setup, with the defaults; the paragraph's point
 is that a game picks its bands, and this makes the example show it.
 
-### The audit's read — OWED
+### The audit's read — 2026-09-22
 
-Not a finding: the READ of every roster file end to end, as wordle's "The
-audit's read" was. The list named two parts of it that no earlier step
-touched: **the edge function** (`index.ts`, `board.ts`, `board_test.ts`), whose
-first read this is, and which no earlier area's shape covers since it is a Deno
-chunk; and **the SQL** (`supabase/sql/spellingbee.sql`, 1383 lines, and its
-pgTAP). What the read turns up joins the list above from F-spellingbee-10.
+**The READ is DONE.** Every roster file end to end, React, SQL and CSS
+together: the manifest, `db.ts`, `useGame.ts`, the five `lib/` files and their
+three tests, the eight components and their four stylesheets, `theme.css`, the
+printer, `PlayArea.test.tsx` and `SetupForm.test.tsx`, `doc.md`; the
+repeatable SQL file whole, the frozen migration, `setup.psql` and all eleven
+pgTAP files, plus `rank_idx_test.sql` as evidence; and the edge function's
+three files.
+
+**The edge function's first read, and what its shape turned out to be.** It
+reads like any other file on the roster, with three checks of its own: what it
+trusts from the setup blob against what `create_game` re-checks (the bands and
+the letters, both re-checked; the shape of the rows it hands over, not); which
+of its refusals the player can act on (PN175 and PN177, both validations, under
+the field that caused them) against the ones only a broken client reaches
+(PN172–PN174, faults); and that it boots, which `deno check` cannot prove (F-6
+probed it). Its docstring is where most of its drift was (F-15).
+
+**The checks beside the files:** the shell commits since the area opened
+(`a9a5695c`..HEAD touches `src/common` and `src/shared` only through this
+area's own Step 4, plus a toast and a scratchpad note, neither under this
+game); what `common.end_game`, `common.reset_game`, `common.concede`,
+`_raise_game_deleted` and `_raise_game_over` do (the first MERGES status, the
+second ASSIGNS it — F-14 turns on that); what `makeBeeGame` refetches (the
+found list only); the sibling games' answers to the same questions (wordwheel
+is the fork and shares F-11, F-12 and F-14's SQL comments; every move RPC on
+the roster answers a missing row as a fault, F-10); which setup keys are live
+(`custom_center` is); every `doc → Section` pointer the roster cites (one dead
+one, fixed in F-7; the rest resolve); and what reads the coop per-player
+result keys (nothing, F-16).
+
+What the game IS, for the record: the code held up. The trusting-commit split
+is clean end to end (the FE judges, the server records, the one refusal that
+can arrive both ways reads the same), the compete privacy rests on one policy
+whose three arms are each pinned, the edge function's pure core is separated
+and tested, and the terminals all say what they should. What the read found is
+of three kinds: two decisions the roster made one way and this game another
+(F-10) or never made (F-11 to F-13); prose that was right when written and
+that the shell moved under (F-14, `common.end_game` learned to merge); and the
+usual drift, tests and small shapes (F-15 to F-17). Eight findings: F-10 to
+F-13 with a decision in them, then F-14 to F-17.
+
+### F-spellingbee-10 · `submit-word-deleted-game` · a word typed into a game a friend just deleted is answered as a BUG
+
+`submit_word` opens by locking its `spellingbee.games` row, and when there is
+none it raises its own `'BUG: a word submitted to a game with no spellingbee
+row'` (PN353, a fault: the red modal). The other three RPCs that lock the row
+(`submit_timeout`, `end_game`, `replay_board`) call
+`common._raise_game_deleted('spellingbee')` instead, whose docstring is the
+argument: `common.delete_game` is open to any club member, so a friend tidying
+the club list really does delete the game under you, and that is a race
+("That game was already deleted", `constraint = 'lost'`), not a broken client.
+A word in flight is the likeliest way to meet it, since typing is what a
+player is doing most of the time.
+
+**The roster answers this one way, and not this area's alone.** Every move RPC
+on the roster raises its own fault for a missing row: wordle's and
+connections' say *"That game no longer exists"* (PN254, PN244), and boggle's,
+wordwheel's, wordiply's and bananagrams' two say `BUG: …` like this one. Only
+the end / timeout / replay RPCs use the shared race. Options: **this game's
+`submit_word` calls `_raise_game_deleted`** (PN353 retired, its row in the
+code register with it, and a pgTAP case that deletes the game and submits),
+leaving the other games to their own areas; **a roster-wide ruling first**,
+recorded where the shared rule lives, and then each area converts; or **leave
+it**, on the ground that a delete mid-word is rare enough that the modal does
+no harm. Recommendation: the ruling first — the question is identical in nine
+RPCs and the answer should be written once — then convert this one here.
+
+### F-spellingbee-11 · `leaderboard-four-times` · the compete leaderboard query is written out four times
+
+The subquery that sums each player's `found_words` into `{ user_id,
+found_words_score, rank_idx, found_words_count }` appears in `submit_word`
+twice (the win and the running update), in `submit_timeout` and in `end_game`,
+the same `left join … group by gp.user_id` each time (the win's copy adds two
+redundant `coalesce`s). The re-key into `common.end_game`'s per-player shape is
+written three times beside it. Nothing has drifted yet; the cost is that a
+change to what the leaderboard carries has to be made four times and the
+compete label and the Rank strip read whichever copy wrote last. wordwheel's
+SQL is the same four copies. Options: **a helper**, `spellingbee._leaderboard
+(target_game uuid, required_score int) returns jsonb`, the four call sites
+reading it (the re-key could be a second helper or stay inline); or **leave
+it**, the copies being short and pinned by `compete_test`. Recommendation: the
+helper, for the leaderboard alone.
+
+### F-spellingbee-12 · `win-narrated-twice` · a beaten racer is told about the winning word twice, in two slots
+
+By the code, not run: `submit_word`'s win passes a fresh leaderboard to
+`common.end_game`, which merges it into the status, so the winner's rank jump
+reaches every client together with the terminal. `narrateRankClimbs` has no
+terminal gate, so a beaten racer's header shows *"● moth reached Amazing"*
+(`peerMilestone`) at the same moment the local slot shows *"● moth won at
+"Amazing""* — one event, two messages. wordwheel's `narrateRankClimbs` is the
+same code. Options: **gate the narration on `!isTerminal`** (a restart remounts the
+surface, so nothing needs seeding for the game coming back); or **leave it**, the header line being true and arriving in its own slot.
+Recommendation: gate it — the verdict is the news, and it already names the
+winner and the rank.
+
+### F-spellingbee-13 · `help-text` · the Help modal promises a pangram a custom board need not have, and omits the modes and bonus words
+
+`Help.tsx` says of the pangram *"Every board has at least one."* True of a
+random board (it is grown from a pangram seed), false of a custom one: the
+player's letters need only yield one required word, and seven letters with no
+common seven-letter word are accepted. `doc.md` → Game rules says the same
+sentence. The modal also says nothing about bonus words (the dot, and why a
+score can pass the maximum), the target rank, or what a race is — a friend
+opening Help mid-race learns none of it. wordle's F-10 is the precedent.
+Options: **rewrite the body** (the pangram line made true — "every random
+board has at least one" — plus a short paragraph on bonus words and one on the
+two modes), and `doc.md`'s sentence with it; or **fix the false sentence only**.
+Recommendation: the rewrite, with the words shown before it ships since it is
+UI copy.
+
+### F-spellingbee-14 · `status-merges` · six comments and two docs say `common.end_game` replaces the status, and it merges
+
+`common.end_game` MERGES its `status` over the row's (`coalesce(status,
+'{}') || end_game.status`; only `common.reset_game` assigns). Written when it
+replaced, these now give a false reason:
+
+- `submit_timeout`'s and `end_game`'s compete branches: *"common.end_game
+  REPLACES status wholesale, so we must re-emit target_rank + the display
+  leaderboard"*;
+- `compete_test.sql` beside the timeout assertions, and `coop_target_test.sql`'s
+  label *"(end_game replaces status wholesale)"*;
+- the manifest's compete `labelFor`: the all-conceded ending comes through
+  *"with NO target_rank"* and the label would read *"…at Start"* — it keeps the
+  mid-game `target_rank`;
+- `doc.md`, twice: the conceded ending *"carries only its reason"*.
+
+The code is right either way. The re-emission still earns its place (the
+timeout's recount lists every player, where the mid-game leaderboard is `[]`
+until somebody scores), and the manifest's early return is still the right
+order. Options: **correct the prose** — each comment gives the reason that is
+true now, the two tests' labels lose the claim, `doc.md` says the conceded
+ending keeps the last mid-game readout — or **also drop the re-emission**,
+which would change what the terminal status says in a race nobody scored in.
+Recommendation: the prose. wordwheel carries the same two comments.
+
+### F-spellingbee-15 · `stale-claims` · sentences on the roster that are no longer true
+
+- **The edge function's docstring** (`index.ts`): step 4 *"Pick the center
+  letter … (uniform)"* — it tries all seven in random order until one clears
+  the gate; step 5 scores the required words only — it scores both lists;
+  *"(RLS off, public SELECT)"* — both tables have RLS on with a permissive
+  policy; the calling shape's `target_club: uuid` (a handle) and `setup:
+  {timer, target_rank?}` (missing the bands and the letters); *"PN172-4,
+  crash"* — `letterFault` returns faults. The `Setup` type's *"Both fields set →
+  custom"* — either one set takes the custom path (and faults).
+- **`board.ts`**: `PangramRow.has_rare_letters` names eight rare letters; the
+  import weights eleven (`b`, `f`, `h` too), which `index.ts` gets right.
+- **`candidate_words`' header**: *"common.words (public reference data, RLS
+  off)"*.
+- **`lib/setup.ts`**: *"The board pool is selected at the band-1 floor, so any
+  choice is solvable"* — PN177 exists because a narrow required band can
+  starve the builder; `spellingbeeSetupError`'s docstring says the manifest
+  shows a returned string until it is `null`, and it returns `FormErrors`.
+- **`doc.md`**: *"every change refetches both reads"* — the header loads once;
+  the Tests table's `gameplay_test` row says the timeout and manual end are
+  *"each touching the rows"*, which nothing asserts (F-17).
+- **pgTAP**: `schema_test` — *"The hidden wordlists"*, *"mode column added in
+  the sibling-manifest migration"*, *"public SELECT, no RLS"*, *"no RPC yet"*,
+  *"the conditional-exposure case"*; `gameplay_test` — four labels naming
+  `P0001` / `42501` for PN codes, *"'alreadyFound'"*, and a header list
+  numbered differently from its sections; `create_game_test` and
+  `compete_test` — *"(sibling-manifest era)"*, *"(unchanged from
+  pre-split)"* twice, *"required = 1 is now the floor (was 2)"*, *"the new band
+  floor"*; `custom_letters_test` points at `create_game_test.sql` for fixtures
+  that are `setup.psql`'s; `replay_test` — *"42501 = … 'not-a-player|'"* (it is
+  PN253) and *"the terminal RestartButton"* (no such component); 
+  `reveal_partition_test` — *"the PlayArea caller-only-score fix"*, *"what the
+  old code did"*, *"The old score derivation"*, *"now exposes"*.
+- **`PlayArea.test.tsx`**: a block comment about the compete collective losses
+  sits above the *hexes the word is using* `describe`, one block away from the
+  verdict tests it describes; *"`startingNewGame` reached the button"* names no
+  identifier in the repo; the End test's *"(the button label went from "End"
+  to the full phrase …)"* is archaeology.
+
+The prose pass reported pgTAP and the edge function done; these survived it,
+which is the case for the read. Options: **fix them all** in one sitting, or
+leave them. Recommendation: fix them all.
+
+### F-spellingbee-16 · `small-shapes` · code that says a little more or less than it does
+
+- **PN161's message** reads *"BUG: legal difficulty of % below the required % "*
+  — a trailing space, and wrong when the legal band is above 6, which the same
+  raise also catches.
+- **The band casts are unguarded.** `(setup->>'required')::int` and `legal`
+  raise a bare 22P02 on a non-number and so escape the envelope as a crash,
+  where `target_rank`'s identical cast is caught and becomes PN158. The
+  dialog never sends one, so this is shape, not a bug.
+- **Two dead branches**: `submit_timeout`'s compete `case when
+  current_target_rank is not null then 'lost_compete' else 'ended'` (a race
+  always has a target, and `create_game` refuses one without), and the
+  compete `labelFor`'s `ended` arm checking for `reason === 'timeout'`, which
+  a compete game can no longer reach.
+- **The coop per-player results disagree.** The win writes `{ won: true }`;
+  the timeout and the manual end write `{ won: false, finished: true,
+  team_score, team_rank_idx }`, and nothing reads `finished`, `team_score` or
+  `team_rank_idx` off `game_players.result` (the team's figures are on the
+  status). Options: drop the three keys, or add them to the win too.
+
+Options: **fix all four** (PN161 split or reworded, both casts caught the
+way `target_rank`'s is, the two dead branches gone, the three unread keys
+dropped); or pick. Recommendation: all four.
+
+### F-spellingbee-17 · `test-gaps` · rules nothing exercises
+
+- **A conceder cannot submit** (PN355). `doc.md` states it twice as the reason
+  a conceder cannot win, and no pgTAP file submits after a concede.
+- **The realtime touches.** `submit_timeout`, `end_game` and the last
+  `concede` update every `found_words` row in place, and `replay_board` its
+  `games` row, so that clients refetch; the three RPC headers call these
+  load-bearing and nothing asserts them. A row's `xmin` changes on the no-op
+  update, so pgTAP can pin each without a realtime client.
+- **New game drops the custom letters.** `createNewGame` strips
+  `custom_center` / `custom_letters` so the follow-up is random; the
+  `PlayArea.test` case starts from a setup with none, so it cannot tell.
+- **The frozen leaderboard.** A compete win freezes the leaderboard "as it
+  stood"; `compete_test` checks the mid-game one and the winner's id, not the
+  final entries.
+
+Options: **write all four** (three pgTAP, one Vitest), each planted to prove
+it can fail; or pick. Recommendation: all four.
+
+### Left for pass 3
+
+The refused word's hexes take `--verdict-fill` for both the fill and the
+stroke; the shared verdict tones also publish `--verdict-edge` (the fill
+stepped toward black) for a piece's own border. Whether a hex should wear it
+is a tile-feedback question, and pass 3 is where it gets asked.
 
 ## Notes
 
