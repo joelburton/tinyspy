@@ -1171,7 +1171,12 @@ reading it (the re-key could be a second helper or stay inline); or **leave
 it**, the copies being short and pinned by `compete_test`. Recommendation: the
 helper, for the leaderboard alone.
 
-### F-spellingbee-12 · `win-narrated-twice` · a beaten racer is told about the winning word twice, in two slots
+### RULED — NO CHANGE · F-spellingbee-12 · `win-narrated-twice` · a beaten racer is told about the winning word twice, in two slots
+
+**Joel, 2026-09-23: "2"** — leave it: the header line is true, and it
+arrives in its own slot. Nothing changed, in this game or in wordwheel's
+twin. Presented with one fact the finding lacked: wordle's compete narrates a
+rival's solve in the header too, though there a solve need not end the race.
 
 By the code, not run: `submit_word`'s win passes a fresh leaderboard to
 `common.end_game`, which merges it into the status, so the winner's rank jump
