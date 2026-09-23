@@ -976,7 +976,28 @@ not this area's. Options: **both call the shared util**, or leave them.
 Recommendation: both call it; the edge function's `deno test` confirms the
 import resolves.
 
-### F-spellingbee-7 · `ungated-hover` · a tap leaves a hex raised on a touchscreen
+### SHIPPED · F-spellingbee-7 · `ungated-hover` · a tap leaves a hex raised on a touchscreen
+
+**Joel, 2026-09-22: "gate it."** `.hex:hover:not(.inert)` sits inside
+`@media (hover: hover)` in `Letter.module.css`, with a comment saying why.
+`.hex:active` stays ungated (a press ends when the finger lifts), and so does
+the reduced-motion block: **the finding below was wrong about it** — on a
+touchscreen its `transform: none` lands on a hex that no longer lifts, which
+is a no-op, and on a mouse it still cancels the lift. `todo.md`'s Soon entry
+is deleted; `docs/deferred.md`'s shared item and its twin in `docs/mobile.md`
+name two games now (stackdown, wordwheel).
+
+**A pointer that led nowhere:** `docs/ui.md` has no "Tooltips" section; the
+`(hover: hover)` tooltip gate is a bullet under Button iconography, "Styled
+tooltips". The new comment, `deferred.md` and `mobile.md` point there now.
+strands' `Board.module.css` carries the same dead pointer and is strands'
+area.
+
+**Verified:** the stylesheet parses under postcss; `vite build` emits
+`@media (hover:hover){._hex_…:hover:not(._inert_…){…}}` in the PlayArea chunk;
+spellingbee + guards, 36 files, 363 tests green. jsdom evaluates neither media
+queries nor `:hover`, so no unit test sees it. **Not checked on a device:**
+the hex should still lift under a mouse and sit flat after a tap on a phone.
 
 From `todo.md` → Soon. `.hex:hover:not(.inert)` in `Letter.module.css` lifts
 the hex and lightens its shadow; a touchscreen keeps `:hover` on the last
@@ -989,7 +1010,17 @@ touchscreen. Options: **gate it**, and take this game's name off the shared
 item in `docs/deferred.md` (stackdown and wordwheel stay on it); or leave it.
 Recommendation: gate it, and check it on a phone.
 
-### F-spellingbee-8 · `is-legal-is-always-true` · the board builder carries a field that is always `true` and that nothing reads
+### SHIPPED · F-spellingbee-8 · `is-legal-is-always-true` · the board builder carries a field that is always `true` and that nothing reads
+
+**Joel, 2026-09-22: "do it."** `is_legal` is gone from `CandidateRow`, from
+`fetchCandidateWords`' mapping (with its three-line comment on synthesizing
+it) and from `board_test.ts`'s `cand` helper. `CandidateRow` gains a
+docstring saying every row is legal because `candidate_words` returns only
+legal-band words. No reference to `is_legal` is left in the function or the
+folder. **Verified:** `deno check` clean on `index.ts` and `board_test.ts`
+(a reader of the field would now be a type error); `deno test`, 11 green;
+eslint clean; the local function boots (its own `PN112` envelope). No board
+built, no e2e run.
 
 The prose pass's note said the edge function reads `is_legal` as
 always-true. The code is plainer than that: `spellingbee.candidate_words`

@@ -4,17 +4,6 @@
 
 ## Soon
 
-- **The hive's hover is not gated, so a tap leaves a hex risen.** A touchscreen
-  keeps `:hover` on the last-tapped element until you tap elsewhere, so
-  `.hex:hover`'s lift + lighter shadow (`Letter.module.css`) sits there after
-  every letter looking like state. strands hit this and was fixed by wrapping
-  the rule in `@media (hover: hover)` — the same gate, for the same reason, as
-  the tooltip bubble (`docs/ui.md` → Tooltips). The shared item in
-  `docs/deferred.md` names three games; stackdown and wordwheel keep it there,
-  and this game's share comes off that list when it ships here. Re-check on a
-  phone: the `@media (prefers-reduced-motion: reduce)` block below it names
-  `.hex:hover` too.
-
 - ~~**The custom-letters field became one box, and nobody has looked at it.**~~
   The setup form once took a center letter and six others in two boxes; it now
   takes the hyphenated string both the summary and the recap print (`A-CHIROT`)

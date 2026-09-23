@@ -263,9 +263,6 @@ async function fetchCandidateWords(
       legal_band: legalBand,
     })
   if (error) throw new Error(`fetchCandidateWords: ${error.message}`)
-  // The RPC returns (word, letter_mask, is_required) — note that
-  // is_legal isn't on the row because the function pre-filters
-  // on it. We synthesize is_legal=true for the consumer.
   return ((data ?? []) as Array<{
     word: string
     letter_mask: string | number
@@ -274,7 +271,6 @@ async function fetchCandidateWords(
     word: row.word,
     letter_mask: String(row.letter_mask),
     is_required: row.is_required,
-    is_legal: true,
   }))
 }
 

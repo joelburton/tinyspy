@@ -777,10 +777,10 @@ strands-specific reasoning:
   dimmed to 0.75 on hover, which on a touchscreen *sticks to the last-tapped
   element* until you tap elsewhere — so every submission left one dimmed tile
   sitting on the board. Same gate, same reason, as the tooltip bubble (docs/ui.md
-  → Tooltips). Other games have ungated `:hover` on board-ish elements
-  (stackdown's `Board`, spellingbee's `Letters`, wordwheel's `Wheel`) and would
-  likely show the same thing; not touched here, recorded in
-  [deferred.md](deferred.md) → Mobile.
+  → Button iconography, "Styled tooltips"). spellingbee's hexes carry it too.
+  stackdown's `Board` and wordwheel's `Wheel` still have ungated `:hover` and
+  would likely show the same thing; recorded in [deferred.md](deferred.md) →
+  Mobile.
 
 Guarded by [`strands-mobile.e2e.ts`](../e2e/strands-mobile.e2e.ts) at tall +
 short: no page scroll in either axis, the board's **bounding rect** (frame

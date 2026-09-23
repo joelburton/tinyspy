@@ -43,15 +43,14 @@ export type PangramRow = {
   has_rare_letters: boolean
 }
 
+/** One word that fits a candidate board. Every row is legal: `candidate_words`
+ *  returns only words at or below the legal band. */
 export type CandidateRow = {
   word: string
   letter_mask: string
   // In the required set (at or below the required band, american, no slang,
   // clean) — counts toward the goal.
   is_required: boolean
-  // In the legal set (at or below the legal band) — enterable. Always true
-  // here (candidate_words already pre-filters to legal).
-  is_legal: boolean
 }
 
 // ───────────────────────────────────────────────────────────

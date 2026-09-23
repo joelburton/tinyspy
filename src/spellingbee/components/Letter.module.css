@@ -41,9 +41,15 @@
 /* @@ */ .inert {
   cursor: default;
 }
-/* @@ */ .hex:hover:not(.inert) {
-  transform: translateY(-1.3px);
-  filter: var(--spellingbee-hex-hover-shadow);
+/* Only on a device that really hovers: a touchscreen keeps `:hover` on the
+ * last-tapped hex, which would sit raised after every letter. Same gate as
+ * strands' tiles and the tooltip bubble (docs/ui.md → Button iconography,
+ * "Styled tooltips"). */
+@media (hover: hover) {
+/* @@ */   .hex:hover:not(.inert) {
+    transform: translateY(-1.3px);
+    filter: var(--spellingbee-hex-hover-shadow);
+  }
 }
 /* Pressed: back down, slightly smaller, slightly darker — 0.96, the same shrink
  * every other board presses by. */

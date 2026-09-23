@@ -32,7 +32,7 @@ function eq(actual: unknown, expected: unknown, msg: string): void {
 
 /** letter_mask a candidate row would carry (the RPC computes it server-side). */
 function cand(word: string, isRequired: boolean): CandidateRow {
-  return { word, letter_mask: letterMask(word).toString(), is_required: isRequired, is_legal: true }
+  return { word, letter_mask: letterMask(word).toString(), is_required: isRequired }
 }
 
 // ── Bitmask helpers ─────────────────────────────────────────
