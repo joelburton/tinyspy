@@ -1370,7 +1370,20 @@ for a click is that it answers the question that was asked, and a refusal
 is the same question a beat later. A `PlayArea.test` case: click the outer
 E, refuse, the outer E shakes and the center does not.
 
-### F-wordwheel-17 · `tile-spent-naming` · one tile state, four names
+### SHIPPED · F-wordwheel-17 · `tile-spent-naming` · one tile state, four names
+
+**Joel, 2026-09-24: "i'll take your rec"** — `spent` throughout: the `Tile`
+prop (`spent?: boolean`, its comment already stating the rule), `Wheel`'s
+`spent={spent.has(i)}`, the class `.spent` in all eight selectors, the handle
+`data-spent`. The finding's "eight test sites" were 25 in `PlayArea.test`
+(F-15 and F-16 added some) plus one reading the class name (`_used_`), found
+when it went red; no e2e spec reads either. The test's own comments stopped
+saying *enabled* / *disabled*, and the stylesheet's *"a spent one is inert"*
+says *"takes no input"*, since `.inert` is the read-only state. spellingbee's
+hex keeps `used`: its letters are reusable, so the difference is deliberate.
+
+**Verified:** `tsc -b` and eslint clean; wordwheel and the guards, 42 files,
+399 tests green; `vite build` emits `._spent_…`.
 
 A tile the typed word is spending is `disabled` (the `Tile` prop),
 `.used` (its class), `data-disabled` (its test hook) and *spent* (`doc.md`,

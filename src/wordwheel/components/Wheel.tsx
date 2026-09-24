@@ -87,7 +87,7 @@ export function Wheel({
                 letter={letter}
                 isCenter={i === 0}
                 pos={TILE_POSITIONS[i] ?? TILE_POSITIONS[0]}
-                disabled={spent.has(i)}
+                spent={spent.has(i)}
                 answer={mark?.value.outcome}
                 onClick={onLetterClick && (() => onLetterClick(letter, tileOrdinals[i] ?? 0))}
               />

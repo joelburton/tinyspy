@@ -545,20 +545,20 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
   it('marks a wheel tile once its letter is in the word (tile-spend rule)', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    // `data-disabled` is the spent marker (it replaced aria-disabled — the tiles
-    // carry no ARIA role, see Tile.tsx).
+    // `data-spent` is the spent marker (the tiles carry no ARIA role, see
+    // Tile.tsx).
     const tile = (letter: string) => document.querySelector(`[data-tile="${letter}"]`)!
-    // Before typing: the 'B' tile + the center 'E' tile are enabled.
-    expect(tile('B')).not.toHaveAttribute('data-disabled')
-    expect(tile('E')).not.toHaveAttribute('data-disabled')
-    // Type 'be' → both spent → both tiles disabled; an untyped tile ('C') stays enabled.
+    // Before typing: neither the 'B' tile nor the center 'E' tile is spent.
+    expect(tile('B')).not.toHaveAttribute('data-spent')
+    expect(tile('E')).not.toHaveAttribute('data-spent')
+    // Type 'be' → both spent; an untyped tile ('C') is not.
     await user.keyboard('be')
-    expect(tile('B')).toHaveAttribute('data-disabled', 'true')
-    expect(tile('E')).toHaveAttribute('data-disabled', 'true')
-    expect(tile('C')).not.toHaveAttribute('data-disabled')
-    // Backspace re-enables the freed tile.
+    expect(tile('B')).toHaveAttribute('data-spent', 'true')
+    expect(tile('E')).toHaveAttribute('data-spent', 'true')
+    expect(tile('C')).not.toHaveAttribute('data-spent')
+    // Backspace gives the freed tile back.
     await user.keyboard('{Backspace}') // removes 'e'
-    expect(tile('E')).not.toHaveAttribute('data-disabled')
+    expect(tile('E')).not.toHaveAttribute('data-spent')
   })
 
   it('wears the selected border while spent, and gives it back', async () => {
@@ -569,7 +569,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     render(<WithKeys {...makeCtx()} />)
     const marked = () =>
       [...document.querySelectorAll('[data-tile]')]
-        .filter((t) => (t.getAttribute('class') ?? '').includes('_used_'))
+        .filter((t) => (t.getAttribute('class') ?? '').includes('_spent_'))
         .map((t) => t.getAttribute('data-tile'))
 
     expect(marked()).toEqual([])
@@ -590,21 +590,21 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     const outerE = () => document.querySelector('[data-tile="E"]:not([data-center])')!
 
     await user.click(outerE())
-    expect(outerE()).toHaveAttribute('data-disabled', 'true')
-    expect(centerE()).not.toHaveAttribute('data-disabled')
+    expect(outerE()).toHaveAttribute('data-spent', 'true')
+    expect(centerE()).not.toHaveAttribute('data-spent')
 
     // A second E, typed this time: the claim holds and the center takes the
     // overflow.
     await user.keyboard('e')
-    expect(outerE()).toHaveAttribute('data-disabled', 'true')
-    expect(centerE()).toHaveAttribute('data-disabled', 'true')
+    expect(outerE()).toHaveAttribute('data-spent', 'true')
+    expect(centerE()).toHaveAttribute('data-spent', 'true')
 
     // Backspace forgets the typed one first, then the click.
     await user.keyboard('{Backspace}')
-    expect(centerE()).not.toHaveAttribute('data-disabled')
-    expect(outerE()).toHaveAttribute('data-disabled', 'true')
+    expect(centerE()).not.toHaveAttribute('data-spent')
+    expect(outerE()).toHaveAttribute('data-spent', 'true')
     await user.keyboard('{Backspace}')
-    expect(outerE()).not.toHaveAttribute('data-disabled')
+    expect(outerE()).not.toHaveAttribute('data-spent')
   })
 
   it('forgets a click once its word is submitted', async () => {
@@ -620,8 +620,8 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     await user.click(outerE())
     await user.keyboard('bad{Enter}')
     await user.keyboard('e')
-    expect(centerE()).toHaveAttribute('data-disabled', 'true')
-    expect(outerE()).not.toHaveAttribute('data-disabled')
+    expect(centerE()).toHaveAttribute('data-spent', 'true')
+    expect(outerE()).not.toHaveAttribute('data-spent')
   })
 
   it('spends duplicate tiles one per occurrence, the center first', async () => {
@@ -636,21 +636,21 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     // names existed (Tile.tsx).
     const centerE = () => document.querySelector('[data-tile="E"][data-center]')!
     const outerE = () => document.querySelector('[data-tile="E"]:not([data-center])')!
-    expect(centerE()).not.toHaveAttribute('data-disabled')
-    expect(outerE()).not.toHaveAttribute('data-disabled')
+    expect(centerE()).not.toHaveAttribute('data-spent')
+    expect(outerE()).not.toHaveAttribute('data-spent')
     // First 'e': center spent FIRST, the outer twin still available.
     await user.keyboard('e')
-    expect(centerE()).toHaveAttribute('data-disabled', 'true')
-    expect(outerE()).not.toHaveAttribute('data-disabled')
+    expect(centerE()).toHaveAttribute('data-spent', 'true')
+    expect(outerE()).not.toHaveAttribute('data-spent')
     // Second 'e': both e-tiles spent.
     await user.keyboard('e')
-    expect(centerE()).toHaveAttribute('data-disabled', 'true')
-    expect(outerE()).toHaveAttribute('data-disabled', 'true')
+    expect(centerE()).toHaveAttribute('data-spent', 'true')
+    expect(outerE()).toHaveAttribute('data-spent', 'true')
     // Backspace frees one occurrence → the outer twin re-enables, the center
     // stays spent (it's first in the spend order).
     await user.keyboard('{Backspace}')
-    expect(centerE()).toHaveAttribute('data-disabled', 'true')
-    expect(outerE()).not.toHaveAttribute('data-disabled')
+    expect(centerE()).toHaveAttribute('data-spent', 'true')
+    expect(outerE()).not.toHaveAttribute('data-spent')
   })
 })
 
@@ -660,9 +660,9 @@ describe('wordwheel PlayArea — the board goes inert when I can add nothing', (
       players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
       setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } },
     })
-  /** The tiles the typed word is spending — `data-disabled`, see Tile.tsx. */
+  /** The tiles the typed word is spending — `data-spent`, see Tile.tsx. */
   const spentTiles = () =>
-    [...document.querySelectorAll('[data-tile][data-disabled]')].map((t) => t.getAttribute('data-tile'))
+    [...document.querySelectorAll('[data-tile][data-spent]')].map((t) => t.getAttribute('data-tile'))
   const inertTiles = () =>
     [...document.querySelectorAll('[data-tile]')].filter((t) =>
       (t.getAttribute('class') ?? '').includes('_inert_'),

@@ -18,7 +18,7 @@ type Props = {
   onClick?: () => void
   // The typed word is spending this tile: it wears the selected edge and takes
   // no click, hover or press, since a word uses each tile once.
-  disabled?: boolean
+  spent?: boolean
   // A refused word used this tile: its face wears that answer's fill, edge and
   // white ink for as long as the answer is up, and shakes once as it arrives
   // (the Wheel remounts it per refusal, which is what replays the shake).
@@ -41,12 +41,12 @@ type Props = {
  *
  * **POINTER-ONLY**: no `tabIndex`, no `role`, no Enter/Space keydown — the
  * page's tab ring is empty, so a tile is not keyboard-reachable; the letters
- * are typed, or clicked. `data-tile` / `data-center` / `data-disabled` are the
+ * are typed, or clicked. `data-tile` / `data-center` / `data-spent` are the
  * test handles.
  *
  * `onMouseDown` is prevented so a click does not select the letter text.
  */
-export function Tile({ letter, isCenter, pos, onClick, disabled, answer }: Props) {
+export function Tile({ letter, isCenter, pos, onClick, spent, answer }: Props) {
   const up = letter.toUpperCase()
   return (
     <div
@@ -54,7 +54,7 @@ export function Tile({ letter, isCenter, pos, onClick, disabled, answer }: Props
         styles.tile,
         !onClick && styles.inert,
         isCenter && styles.center,
-        disabled && styles.used,
+        spent && styles.spent,
         // The tone class sets only the verdict tokens (`VERDICT_TONE`);
         // `.answered` maps them onto the face.
         answer && styles.answered,
@@ -74,8 +74,8 @@ export function Tile({ letter, isCenter, pos, onClick, disabled, answer }: Props
       }
       data-tile={up}
       data-center={isCenter || undefined}
-      data-disabled={disabled || undefined}
-      onClick={disabled ? undefined : onClick}
+      data-spent={spent || undefined}
+      onClick={spent ? undefined : onClick}
       onMouseDown={(e) => e.preventDefault()}
     >
       {/* The shared head-shake, on the FACE — the piece; the seats are the

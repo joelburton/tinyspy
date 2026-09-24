@@ -93,17 +93,17 @@
  * spellingbee's hexes, strands' tiles and the tooltip bubble
  * (common/tooltips/doc.md). */
 @media (hover: hover) {
-/* @@ */   .tile:not(.used):not(.inert):hover {
+/* @@ */   .tile:not(.spent):not(.inert):hover {
     z-index: 1;
   }
-/* @@ */   .tile:not(.used):not(.inert):hover .face {
+/* @@ */   .tile:not(.spent):not(.inert):hover .face {
     transform: translateY(-2px);
     box-shadow: var(--tile-hover-shadow);
   }
 }
 
 /* Pressed: back down into the seat, slightly smaller, slightly darker. */
-/* @@ */ .tile:not(.used):not(.inert):active .face {
+/* @@ */ .tile:not(.spent):not(.inert):active .face {
   transform: translateY(0) scale(0.96);
   box-shadow: var(--tile-shadow);
   filter: brightness(0.92);
@@ -111,15 +111,15 @@
 
 /* Reduced motion: the movement goes, the shadows stay. */
 @media (prefers-reduced-motion: reduce) {
-/* @@ */   .tile:not(.used):not(.inert):hover .face,
-/* @@ */   .tile:not(.used):not(.inert):active .face {
+/* @@ */   .tile:not(.spent):not(.inert):hover .face,
+/* @@ */   .tile:not(.spent):not(.inert):active .face {
     transform: none;
   }
 }
 
 /* A SPENT tile — its letter is already in the word. The wheel is a multiset, so
- * each tile is worth one use; a spent one is inert, and `pointer-events: none`
- * takes it out of hover and press as well as click.
+ * each tile is worth one use; a spent one takes no input, and `pointer-events:
+ * none` takes it out of hover and press as well as click.
  *
  * The face wears the SELECTED border, in the khaki the word-finding games wear
  * for it rather than the usual black (a word lights several letters at once,
@@ -128,17 +128,17 @@
  * the tile being taken away, and it is the mark boggle's tiles and
  * spellingbee's hexes use for the same thing. The tile comes back the moment
  * the letter leaves the word. */
-/* @@ */ .tile.used {
+/* @@ */ .tile.spent {
   pointer-events: none;
 }
-/* @@ */ .tile.used .face {
+/* @@ */ .tile.spent .face {
   border-color: var(--tile-spent-edge-color);
 }
 
 /* THE ANSWER on a refused word's tiles: the outcome's own fill, its edge a step
  * darker, and white ink — the three colors a verdict-filled piece wears on every
  * board (`.tileFace.verdictFill`), and spellingbee's hexes the same. The tone
- * class beside this one sets only the verdict tokens. After `.used`, and more
+ * class beside this one sets only the verdict tokens. After `.spent`, and more
  * specific than `.center .face`, so the answer wins on the center tile too. */
 /* @@ */ .tile.answered .face {
   background: var(--verdict-fill);
