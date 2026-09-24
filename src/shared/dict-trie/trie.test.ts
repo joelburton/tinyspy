@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-dict-trie
 
 import { describe, expect, it } from 'vitest'
 import { buildTrie, walkWord } from './trie'

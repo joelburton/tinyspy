@@ -7,72 +7,86 @@
  * len>=3), tagged by difficulty AND a clean flag. It is GENERATED and
  * git-ignored (~1.3 MB): run `gmake g-boggle-trie` to (re)create it from
  * `common.words` before `supabase functions serve`; `gmake deploy-funcs` does
- * it automatically. We decode it ONCE per isolate (cold start) and build
- * band-filtered tries on demand, memoised by band — so warm invocations reuse
- * both. Shipping it bundled beats querying the DB at cold start (~2× faster, no
- * DB load per isolate; the dictionary is stable). See docs/games/boggle.md §5.
+ * it automatically. Shipping it bundled beats querying the DB at cold start
+ * (~2× faster, no DB load per isolate; the dictionary is stable). See
+ * docs/games/boggle.md §5.
  *
- * Two tries, two filters (the boggle word-set split):
+ * Two word sets, one trie (the boggle word-set split):
  *   - `requiredTrie(band)` — the CLEAN set (american, no crude/slur/slang): what
  *     a board is generated + judged against.
  *   - `legalTrie(band)` — ALL words at the band (difficulty-only): the wider net
  *     of what else a player may find, so crude/slur/slang/non-american words
  *     count. Used to enumerate a board's bonus words.
+ *
+ * **ONE trie is built, per isolate, holding every word.** Each word's terminal
+ * carries its difficulty and its clean flag, and each set is a VIEW of that
+ * trie: the same `children`, with an `eow` of its own marking just the words
+ * the set admits. A full trie is ~110 MB and a worker's limit is 256 MB, so a
+ * trie per set would not fit — band 6 needs two full ones — and a view costs one
+ * byte a node. Solvers read a view exactly as they read a trie.
  */
 
 import { buildTrie } from '../../../src/shared/dict-trie/trie.ts'
 import type { Trie } from '../../../src/shared/dict-trie/trie.ts'
 import { WORDLIST_GZ_B64 } from './wordlist.ts'
 
-// Bands 1..6 (index 0 unused). `clean` = the required-eligible subset; `all`
-// includes every word (difficulty-only).
-type Bands = { clean: string[][]; all: string[][] }
-let bands: Bands | null = null
+// A terminal's value: the difficulty (1..6) in the low bits, plus CLEAN when the
+// word is required-eligible. Never 0, so every word still reads as a word.
+const DIFFICULTY_BITS = 7
+const CLEAN = 8
+
+let fullTriePromise: Promise<Trie> | null = null
 const requiredTrieByBand = new Map<number, Trie>()
 const legalTrieByBand = new Map<number, Trie>()
 
-async function decodeWordlist(): Promise<Bands> {
+async function decodeAndBuild(): Promise<Trie> {
   const bytes = Uint8Array.from(atob(WORDLIST_GZ_B64), (c) => c.charCodeAt(0))
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'))
   const text = await new Response(stream).text()
-  const empty = (): string[][] => [[], [], [], [], [], [], []] // index 0 unused; 1..6
-  const out: Bands = { clean: empty(), all: empty() }
+  const words: string[] = []
+  const terminals: number[] = []
   for (const line of text.split('\n')) {
     if (!line) continue
-    const d = line.charCodeAt(0) - 48 // leading '1'..'6'
-    const isClean = line.charCodeAt(1) === 49 // '1'
-    const word = line.slice(2)
-    out.all[d].push(word)
-    if (isClean) out.clean[d].push(word)
+    const difficulty = line.charCodeAt(0) - 48 // leading '1'..'6'
+    const isClean = line.charCodeAt(1) === 49 // then '1' or '0'
+    words.push(line.slice(2))
+    terminals.push(isClean ? difficulty | CLEAN : difficulty)
   }
-  return out
+  return buildTrie(words, terminals)
 }
 
-// Build (and memoise) a trie for bands 1..band from one of the two sets.
-async function trieFor(
-  band: number,
-  cache: Map<number, Trie>,
-  pick: (b: Bands) => string[][],
-): Promise<Trie> {
+/** Every word, every band. The promise is the memo, so concurrent cold-start
+ *  calls share a single build. */
+function fullTrie(): Promise<Trie> {
+  if (!fullTriePromise) fullTriePromise = decodeAndBuild()
+  return fullTriePromise
+}
+
+/** The words at `difficulty <= band` (and clean, when `cleanOnly`), as a view of
+ *  the full trie. Cached per band: a view is one byte a node. */
+async function viewFor(band: number, cleanOnly: boolean, cache: Map<number, Trie>): Promise<Trie> {
   const cached = cache.get(band)
   if (cached) return cached
-  if (!bands) bands = await decodeWordlist()
-  const words = pick(bands).slice(1, band + 1).flat() // flat() avoids spread limits
-  const trie = buildTrie(words)
-  cache.set(band, trie)
-  return trie
+  const full = await fullTrie()
+  const eow = new Uint8Array(full.nNodes)
+  for (let node = 0; node < full.nNodes; node++) {
+    const t = full.eow[node]
+    if (t !== 0 && (t & DIFFICULTY_BITS) <= band && (!cleanOnly || (t & CLEAN) !== 0)) eow[node] = 1
+  }
+  const view = { children: full.children, eow, nNodes: full.nNodes }
+  cache.set(band, view)
+  return view
 }
 
-/** The CLEAN trie for `difficulty <= band` (the words a board is generated +
- *  judged against). Async only because the one-time gzip decode is; cached per
- *  band, so repeated game-starts at the same band are instant. */
+/** The CLEAN words at `difficulty <= band` (the words a board is generated +
+ *  judged against). Async only because the one-time gzip decode is. */
 export function requiredTrie(band: number): Promise<Trie> {
-  return trieFor(band, requiredTrieByBand, (b) => b.clean)
+  return viewFor(band, true, requiredTrieByBand)
 }
 
-/** The ALL-words trie for `difficulty <= band` (difficulty-only) — used to
- *  enumerate a board's bonus/legal words. Includes the crude/slur/slang/
- *  non-american words the clean filter drops. Cached per band. */
+/** ALL words at `difficulty <= band` (difficulty-only) — used to enumerate a
+ *  board's bonus/legal words. Includes the crude/slur/slang/non-american words
+ *  the clean filter drops. */
 export function legalTrie(band: number): Promise<Trie> {
-  return trieFor(band, legalTrieByBand, (b) => b.all)
+  return viewFor(band, false, legalTrieByBand)
 }

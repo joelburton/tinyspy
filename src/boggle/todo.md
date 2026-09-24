@@ -15,6 +15,11 @@
 
 ## Soon
 
+- **`deno check` fails on `supabase/scripts/generate-boggle-wordlist.ts`.**
+  `import.meta.dirname` is `string | undefined` and goes straight into
+  `resolve(…)` (TS2345). The script still runs, but under Deno's own checker
+  it does not type-check.
+
 - **Collapse the info-column action row's branches.** This game still FORKS on
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these

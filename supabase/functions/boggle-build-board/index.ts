@@ -11,7 +11,7 @@
  *
  * Flow:
  *   1. Verify inputs + the caller's Authorization header.
- *   2. Build the required trie for the chosen band (bundled, cached per isolate).
+ *   2. Get the required trie for the chosen band (bundled, cached per isolate).
  *   3. The board — one of two ways:
  *      a. CUSTOM (`setup.custom_board` set): parse the player's tiles and solve
  *         them once. No rolling, so no constraints and no quality bar; it need

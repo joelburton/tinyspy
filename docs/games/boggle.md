@@ -155,9 +155,9 @@ solves, and reject-samples until a board meets the setup's constraints, then
 creates the game in one round-trip:
 
 1. Verify the JWT; read `{ target_club, setup, player_user_ids, mode }`.
-2. Get the **required trie** for `difficulty ≤ setup.band` (built from the
-   bundled word list — [§5](#5-dictionary-delivery) — memoized per band at
-   module scope).
+2. Get the **required trie** for `difficulty ≤ setup.band` (a view of the one
+   trie built from the bundled word list — [§5](#5-dictionary-delivery) —
+   memoized per band at module scope).
 3. Loop up to a try budget (also wall-clock-bounded so impossible constraints
    fail fast instead of crashing the worker):
    - Roll the chosen dice set (random die order + a random face per die,
@@ -168,7 +168,7 @@ creates the game in one round-trip:
      maxWords]`, score (per the chosen ladder) in `[minScore, maxScore]`,
      longest word in `[minLongest, maxLongest]`, all measured over the required
      set.
-4. On accept → enumerate the **bonus** set: build the **legal trie** for
+4. On accept → enumerate the **bonus** set: get the **legal trie** for
    `legal_band` (`legalTrie(legal_band)` — the *difficulty-only* set, so
    crude/slur/slang/non-american words count; distinct from the clean
    `requiredTrie` the board was solved against) and run `listWords` once on the
@@ -253,7 +253,7 @@ queried at cold start:
   (`len ≥ 3`, every band), each tagged with a **clean flag** (= the
   required-eligible filter `american, crude=0, slur=0, slang=0`), and writes
   `boggle-build-board/wordlist.ts` as a gzip+base64 blob (~283k words, ~1.25
-  MB). `dict.ts` decodes it into two sets: **`requiredTrie`** (clean — board
+  MB). `dict.ts` serves it as two sets: **`requiredTrie`** (clean — board
   generation) and **`legalTrie`** (all, difficulty-only — bonus enumeration), so
   the legal net includes the crude/slur/slang/non-american words the clean
   filter drops. It reads the **table**, not `~/src/gamelist/output/words.tsv`
@@ -263,9 +263,11 @@ queried at cold start:
   from the LOCAL stack because the hosted `common.words` isn't seeded until
   several steps later. Run it manually (`gmake g-boggle-trie`) before
   `supabase functions serve` locally.
-- **Cold start (once per isolate):** decode the blob into a module-scope
-  `[word, difficulty][]`. **Per game-start:** build the band-filtered trie
-  (~9–30 ms), memoized by band.
+- **Cold start (once per isolate):** decode the blob and build ONE trie of every
+  word, each terminal carrying its difficulty and clean flag. **Per band:** a
+  view of it — the same `children`, its own `eow` marking the words that set
+  admits — memoized by band. A full trie is ~110 MB against a worker's 256 MB,
+  so a separate trie per set cannot fit: band 6 would need two full ones.
 - **Why bundle vs query the DB:** ~2×+ faster cold start than bulk-reading
   88k–267k rows, network-independent, and no Postgres load on every isolate
   spin-up. The dictionary is stable, so "redeploy to update it" costs nothing

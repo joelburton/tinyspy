@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-dict-trie
 
 /**
  * Flat typed-array trie — the shared dictionary structure for word games.
