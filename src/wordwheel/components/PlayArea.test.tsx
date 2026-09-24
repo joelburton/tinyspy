@@ -540,6 +540,70 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
   })
 })
 
+describe('wordwheel PlayArea — the board goes inert when I can add nothing', () => {
+  const conceded = () =>
+    makeCtx({
+      players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
+      setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } },
+    })
+  /** The tiles the typed word is spending — `data-disabled`, see Tile.tsx. */
+  const spentTiles = () =>
+    [...document.querySelectorAll('[data-tile][data-disabled]')].map((t) => t.getAttribute('data-tile'))
+  const inertTiles = () =>
+    [...document.querySelectorAll('[data-tile]')].filter((t) =>
+      (t.getAttribute('class') ?? '').includes('_inert_'),
+    )
+  /** Tap the tiles for these letters, in order. */
+  const tap = async (user: ReturnType<typeof userEvent.setup>, letters: string) => {
+    for (const l of letters) await user.click(document.querySelector(`[data-tile="${l}"]`)!)
+  }
+
+  it('a conceded racer types nothing: the entry is closed as the engine is', async () => {
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(<WithKeys {...conceded()} />)
+    // The keys themselves are closed — the marks alone would not show it, since
+    // a read-only board draws none whatever the word holds.
+    expect(bound('act-type-letter').describe('key').state).toBe('disabled')
+    await user.keyboard('bed')
+    expect(spentTiles()).toEqual([])
+  })
+
+  it('a tapped tile adds its letter while I can play', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    expect(inertTiles()).toEqual([])
+    await tap(user, 'BED')
+    expect(new Set(spentTiles())).toEqual(new Set(['B', 'E', 'D']))
+  })
+
+  it('a conceded racer\'s wheel is inert: a tap adds nothing', async () => {
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(<WithKeys {...conceded()} />)
+    expect(inertTiles()).toHaveLength(9)
+    await tap(user, 'BED')
+    expect(spentTiles()).toEqual([])
+  })
+
+  it('a half-typed word loses its marks when the game ends under it', async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<WithKeys {...makeCtx()} />)
+    await user.keyboard('bed')
+    expect(new Set(spentTiles())).toEqual(new Set(['B', 'E', 'D']))
+    rerender(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    expect(spentTiles()).toEqual([])
+  })
+
+  it('a finished game\'s wheel is inert too', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
+    expect(inertTiles()).toHaveLength(9)
+    await tap(user, 'BED')
+    expect(spentTiles()).toEqual([])
+  })
+})
+
 describe('wordwheel PlayArea — coop peer narration (global header)', () => {
   // `usePeerFeedback` seeds the backlog silently on the first loaded render,
   // then fires a header pill for each NEW peer row. Each test renders once (empty

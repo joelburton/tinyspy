@@ -434,7 +434,7 @@ The genuinely wordwheel-only parts (no spellingbee counterpart):
 
 The tile-spend rule is surfaced in the UI two ways, both driven by per-letter
 **counts** of the typed word (`BoardCol` computes `typedCounts: Map<letter,
-count>`; `PlayArea` computes the wheel's `letterCounts` the same way):
+count>`, and the wheel's `letterCounts` the same way):
 
 - **Spent tiles** (`Wheel`/`Tile`, rule in `lib/spend.ts`): each occurrence of a
   letter in the current word spends **one** of its tiles — **inert + marked**

@@ -1,10 +1,18 @@
 // cs-met-wordwheel
 
-import { useCallback, useMemo, useState, type Dispatch, type SetStateAction } from 'react'
+import { useCallback, useMemo, useState, type SetStateAction } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import type { Mark } from '@/common/board-marks/useMark'
+import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
+import { useMark } from '@/common/board-marks/useMark'
+import { runRpc } from '@/common/supabase/dbResult'
+import { reportUnhandled } from '@/common/supabase/dbEnvelope'
+import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
+import { db } from '../db'
+import type { FoundWordRow, WordwheelGame } from '../hooks/useGame'
+import { answerMessage, answerOf } from '../lib/answer'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
@@ -19,6 +27,16 @@ import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
 import bee from '@/shared/bee-games/beeBoard.module.css'
+
+/** What `wordwheel.submit_word` puts in `data`. All four mean the row landed:
+ *  three classifications echoing the caller's own flags, plus `won` — the word
+ *  crossed the target rank and ended the game. */
+type SubmittedWord =
+  | { result: 'accepted'; points: number }
+  | { result: 'bonus'; points: number }
+  | { result: 'pangram'; points: number }
+  | { result: 'won'; points: number }
+  | null
 
 /** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
 function shuffled<T>(arr: readonly T[]): T[] {
@@ -36,14 +54,14 @@ function shuffled<T>(arr: readonly T[]): T[] {
  * + capture keyboard, whose `<WordEntryInput>` renders the per-character illegal-letter dim
  * via `<TypedWord>`).
  *
- * It owns the **local outer-letter shuffle** (a per-player view-only rearrange — never
- * persisted or shared) and a click on an outer/center letter appending to the word.
- * The word-entry ENGINE (`useFoundWordSubmit`: the typed word, the submit RPC, the
- * results) stays in PlayArea, as does the local feedback slot it shows into —
- * InfoCol's End / Concede and PlayArea's standing conditions show into the
- * same slot — so PlayArea passes the entry primitives (`word` / `onChange` /
- * `onSubmit` / the slot / …) DOWN and this column renders them (a thin-input
- * game, like boggle/connections). See docs/playarea.md.
+ * It owns the **move**: the word-entry engine (`useFoundWordSubmit` — the typed
+ * word, the dedup, the `submit_word` commit), what each answer shows, and the
+ * wheel's answer to a refused word (the tiles it used shake and take the
+ * answer). It also owns the **local outer-letter shuffle** (a per-player
+ * view-only rearrange — never persisted or shared) and a click on a letter
+ * appending to the word. The local feedback slot every answer shows into stays
+ * the PlayArea's — its standing conditions and InfoCol's End / Concede show into
+ * it too — and comes down as a prop. See docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status block (above the board) ──
@@ -53,17 +71,17 @@ export function BoardCol({
   foundWordsCount,
   requiredWordsCount,
   // ── Board to render ──
-  refused,
   outerLetters,
   centerLetter,
-  letterCounts,
-  // ── Word entry (engine in PlayArea; rendered here) ──
-  word,
-  onChange,
-  onSubmit,
+  // ── The move ──
+  gameId,
+  mode,
+  selfId,
+  readOnly,
+  foundWords,
+  requiredWords,
+  bonusWords,
   localFeedbackSlot,
-  lastWord,
-  isTerminal,
 }: {
   // ── Mobile-only status block ──
   /** The four figures behind the RankBar + Stats unit — the SAME components the
@@ -80,35 +98,123 @@ export function BoardCol({
   targetRankIdx: number | null
 
   // ── Board to render ──
-  /** A refused word's mark, while its answer is up: how many of each letter it
-   *  used, and the outcome those tiles wear as they shake. */
-  refused: Mark<{ counts: Map<string, number>; outcome: Outcome }> | null
   /** The board's outer letters (a string) — the local shuffle rearranges this. */
   outerLetters: string
   centerLetter: string
-  /** Per-letter tile counts of the whole wheel (center + outers), lower-cased —
-   *  the wheel is a multiset, so `<TypedWord>`'s illegal dim needs counts, not a
-   *  set (a letter is legal as many times as it has tiles). */
-  letterCounts: Map<string, number>
 
-  // ── Word entry ──
-  /** The pending typed word. */
-  word: string
-  /** Set the pending word (a value or an updater — a letter click appends). */
-  onChange: Dispatch<SetStateAction<string>>
-  onSubmit: () => void
-  /** PlayArea's below-board slot — the entry row draws its top in place of the
-   *  controls, and a letter click is the player's next action, so it dismisses
-   *  a gesture-cleared result. */
+  // ── The move ──
+  gameId: string
+  mode: 'coop' | 'compete'
+  selfId: string
+  /** No more words from me: the game is over, or I conceded a race the others
+   *  play on. The board-only "visible but inert" flag (docs/playarea.md) — the
+   *  engine refuses, the entry closes and the wheel goes inert, all on this one
+   *  answer. */
+  readOnly: boolean
+  /** The committed rows, the engine's dedup source (mode-aware: the team's in
+   *  coop, mine in compete). */
+  foundWords: FoundWordRow[]
+  /** Both shipped lists: a word is judged and scored against them here. */
+  requiredWords: WordwheelGame['requiredWords']
+  bonusWords: WordwheelGame['bonusWords']
+  /** PlayArea's below-board slot — every answer shows into it, the entry row
+   *  draws its top in place of the controls, and a letter click is the player's
+   *  next action, so it dismisses a gesture-cleared result. */
   localFeedbackSlot: FeedbackSlot
-  /** The last submitted word, for ArrowUp recall. */
-  lastWord: string
-  /** Freeze the entry controls at terminal (the engine also blocks a conceder). */
-  isTerminal: boolean
 }) {
+  // ─── Committing a guess ────────────────────────────────
+  // The shared engine owns the typed word, the dedup and the optimistic commit;
+  // this game supplies the lookup, the RPC and what it shows for each answer.
+  // First, because the engine owns the pending word the sections below read.
+
+  // The wheel's tile counts — the illegal-letter dim and tile spending. The
+  // wheel is a MULTISET — the same letter may sit on two tiles — so the
+  // "can I type this letter?" question is a per-letter tile COUNT, not set
+  // membership: a word may use a letter as many times as it has tiles.
+  const letterCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const ch of outerLetters + centerLetter) {
+      const lower = ch.toLowerCase()
+      m.set(lower, (m.get(lower) ?? 0) + 1)
+    }
+    return m
+  }, [outerLetters, centerLetter])
+
+  // Both word lists ship to the FE, so a guess is validated + scored locally —
+  // index required ∪ bonus by word.
+  const legalIndex = useMemo(() => {
+    const m = new Map<string, LegalWord>()
+    for (const r of requiredWords) {
+      m.set(r.word, { word: r.word, points: r.points, isBonus: false, isPangram: r.is_pangram })
+    }
+    for (const b of bonusWords) {
+      m.set(b.word, { word: b.word, points: b.points, isBonus: true, isPangram: b.is_pangram })
+    }
+    return m
+  }, [requiredWords, bonusWords])
+
+  // A refused word's tiles shake and wear its answer for a beat — as many of
+  // each letter as the word used, since a letter can sit on two tiles and only
+  // the ones the word would have spent should answer (the Wheel picks them).
+  const [refused, showRefused] = useMark<{ counts: Map<string, number>; outcome: Outcome }>(WORD_ANSWER_MS)
+
+  const center = centerLetter.toLowerCase()
+  const { word, setWord, lastWord, submit } =
+    useFoundWordSubmit({
+      mode,
+      userId: selfId,
+      isTerminal: readOnly,
+      minWordLength: 4,
+      localFeedbackSlot,
+      foundWords,
+      lookup: (w) => legalIndex.get(w) ?? null,
+      // Four ok answers, all meaning the row landed: three classifications the
+      // FE's own flags come back as, plus `won` — this word crossed the target
+      // rank and ended the game. None of them changes what the optimistic pill
+      // already says; the terminal flip arrives over realtime. Every refusal
+      // means the word was NOT recorded, so each releases it.
+      commit: async (e) => {
+        const res = await runRpc<SubmittedWord>(
+          db.rpc('submit_word', {
+            target_game: gameId,
+            word: e.word,
+            points: e.points,
+            is_pangram: e.isPangram ?? false,
+            is_bonus: e.isBonus,
+          }),
+        )
+        if (res.type === 'not-ok') {
+          return res
+        } else if (res.type === 'ok' && res.data?.result === 'accepted') {
+          return null
+        } else if (res.type === 'ok' && res.data?.result === 'bonus') {
+          return null
+        } else if (res.type === 'ok' && res.data?.result === 'pangram') {
+          return null
+        } else if (res.type === 'ok' && res.data?.result === 'won') {
+          return null
+        } else {
+          reportUnhandled('submit_word', res)
+          return null
+        }
+      },
+      // Every answer shows in the pill, in `lib/answer.ts`'s words. Any answer
+      // but an accept is also a move that didn't win: the tiles the word used
+      // shake and take the same outcome, so the two cannot disagree.
+      // The actor's alone: a peer is never told about somebody else's miss.
+      onAnswer: (report) => {
+        const { outcome, text } = answerMessage(answerOf(report, center))
+        localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
+        if (report.answer === 'accepted') return
+        const counts = new Map<string, number>()
+        for (const ch of report.word.toLowerCase()) counts.set(ch, (counts.get(ch) ?? 0) + 1)
+        showRefused({ counts, outcome })
+      },
+    })
+
   // ─── The pending guess ─────────────────────────────────
-  // The typed word is the engine's, in the PlayArea; what this column reads
-  // off it, and the letter click that adds to it, sit here.
+  // The typed word is the engine's, above; what this column reads off it, and
+  // the letter click that adds to it, sit here.
 
   // WHICH tile each use of a letter spends. A click claims the tile it landed
   // on; everything else falls to the render order (see lib/spend.ts). The claims
@@ -120,9 +226,9 @@ export function BoardCol({
     (letter: string, ordinal: number) => {
       localFeedbackSlot.dismiss()
       setClaims((c) => [...c, { letter, ordinal }])
-      onChange((prev) => prev + letter.toUpperCase())
+      setWord((prev) => prev + letter.toUpperCase())
     },
-    [localFeedbackSlot, onChange],
+    [localFeedbackSlot, setWord],
   )
 
   // Every OTHER way the word changes — a keystroke, a Backspace, the ArrowUp
@@ -132,19 +238,22 @@ export function BoardCol({
   const handleChange = useCallback(
     (next: SetStateAction<string>) => {
       setClaims((c) => trimClaims(c, typeof next === 'string' ? next : next(word)))
-      onChange(next)
+      setWord(next)
     },
-    [onChange, word],
+    [setWord, word],
   )
 
   // Per-letter counts of the typed word (lower-cased). Each tile is SPENT per
   // use, so the wheel dims one same-letter tile per occurrence typed (the
-  // center first — see Wheel's spend order).
+  // center first — see Wheel's spend order). None once the board is read-only:
+  // a word left half-typed when the game ended, or when I conceded, is no
+  // longer a move, so its marks go with it.
   const typedCounts = useMemo(() => {
     const m = new Map<string, number>()
+    if (readOnly) return m
     for (const ch of word.toLowerCase()) m.set(ch, (m.get(ch) ?? 0) + 1)
     return m
-  }, [word])
+  }, [readOnly, word])
 
   // ─── The board's display order ─────────────────────────
   // The shuffle — purely visual, touches nothing else.
@@ -193,7 +302,7 @@ export function BoardCol({
         refused={refused}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
-        onLetterClick={handleLetterClick}
+        onLetterClick={readOnly ? undefined : handleLetterClick}
         claims={claims}
         typedCounts={typedCounts}
         // Shuffle floats over the wheel's top-right — a fresh visual scan of the
@@ -219,9 +328,9 @@ export function BoardCol({
           <WordEntryArea
             value={word}
             onChange={handleChange}
-            onSubmit={onSubmit}
+            onSubmit={submit}
             placeholder="Type or click letters"
-            disabled={isTerminal}
+            disabled={readOnly}
             onAnyKey={localFeedbackSlot.dismiss}
             charFor={asciiLetters('upper')}
             recall={lastWord}

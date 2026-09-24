@@ -15,6 +15,15 @@
   "ten specs described the DOM the CSS sprint replaced"), so the red flag came
   off without the look it was holding open.
 
+- **The conceded racer's entry test no longer tests the entry.** *"a conceded
+  racer types nothing: the entry is closed as the engine is"* types `bed` and
+  asserts no hex is marked — but since the board went inert, a read-only
+  board draws no marks whatever the word holds, so the test stays green with
+  `disabled={false}` planted on the `WordEntryArea` (checked 2026-09-23, found
+  while copying the test to wordwheel). The fix is one assertion before the
+  typing: `bound('act-type-letter').describe('key').state` is `'disabled'`,
+  as wordwheel's copy now asserts.
+
 ## Someday
 
 - **The `WordList` marker vocabulary** — ◐ ("more than one player found this

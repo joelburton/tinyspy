@@ -18,8 +18,10 @@ type Props = {
   centerLetter: string
   /** Called when any letter is clicked, with WHICH of that letter's tiles was
    *  hit (its ordinal in render order). The caller appends the letter to the
-   *  typed word and records the claim. */
-  onLetterClick: (letter: string, ordinal: number) => void
+   *  typed word and records the claim. Absent when the board is read-only —
+   *  the game is over, or I conceded — and then no tile takes a click, a hover
+   *  or a press, as psychicnum's tiles do without their `onPick`. */
+  onLetterClick?: (letter: string, ordinal: number) => void
   /** Per-letter counts of the typed word, lower-cased. Each occurrence SPENDS
    *  one same-letter tile — marked + inert — in the wheel's spend order (see
    *  the component doc). */
@@ -104,7 +106,7 @@ export function Wheel({
                 pos={TILE_POSITIONS[i] ?? TILE_POSITIONS[0]}
                 disabled={spent.has(i)}
                 answer={mark?.value.outcome}
-                onClick={() => onLetterClick(letter, ordinals[i] ?? 0)}
+                onClick={onLetterClick && (() => onLetterClick(letter, ordinals[i] ?? 0))}
               />
             )
           })}

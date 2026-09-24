@@ -7,18 +7,16 @@ import { useCelebration } from '@/common/terminal/useCelebration'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import { runRpc } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import { useGame, type FoundWordRow, type WordwheelGame } from '../hooks/useGame'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
-import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoundWordSubmit'
 import { memberById } from '@/common/members/memberList'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import type { LeaderboardEntry } from '@/shared/bee-games/beeLeaderboard'
 import { currentRankIndex, RANKS } from '@/shared/rank-ladder/rankLadder'
-import { answerMessage, answerOf, peerAnswerMessage } from '../lib/answer'
+import { answerMessage, peerAnswerMessage } from '../lib/answer'
 import { buildTerminalMessage } from '../lib/terminal'
 import type { WordwheelSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
@@ -42,19 +40,6 @@ import styles from './PlayArea.module.css'
 
 import '../theme.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-import { useMark } from '@/common/board-marks/useMark'
-import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
-import type { Outcome } from '@/common/outcomes/outcomes'
-
-/** What `wordwheel.submit_word` puts in `data`. All four mean the row landed:
- *  three classifications echoing the caller's own flags, plus `won` — the word
- *  crossed the target rank and ended the game. */
-type SubmittedWord =
-  | { result: 'accepted'; points: number }
-  | { result: 'bonus'; points: number }
-  | { result: 'pangram'; points: number }
-  | { result: 'won'; points: number }
-  | null
 
 /**
  * The GATES, and nothing else: the read, the three answers it can come back
@@ -254,6 +239,10 @@ export function PlayArea(props: PlayAreaProps) {
   // so conceding is the only way to reach it.
   const isLocallyDone = isCompete && myConceded && !isTerminal
 
+  // The board is inert once I can add nothing: the game is over, or I am out
+  // of a race the others play on.
+  const readOnly = isTerminal || isLocallyDone
+
   // ─── The local slot, and its two standing conditions ───
   // Each condition is an effect on a primitive edge that shows on true and
   // retracts in its cleanup — the slot draws whichever ranks highest. The
@@ -304,99 +293,6 @@ export function PlayArea(props: PlayAreaProps) {
     const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isLocallyDone])
-
-  // ─── The move — a typed word, and its answer ───────────
-  // The shared engine owns the typed word, the dedup and the optimistic commit;
-  // this game supplies the lookup, the RPC and what it shows for each answer.
-  // After the local slot, which every answer lands in.
-
-  // The wheel's tile counts — the illegal-letter dim and tile spending. The
-  // wheel is a MULTISET — the same letter may sit on two tiles — so the
-  // "can I type this letter?" question is a per-letter tile COUNT, not set
-  // membership: a word may use a letter as many times as it has tiles.
-  const letterCounts = useMemo(() => {
-    const m = new Map<string, number>()
-    for (const ch of game.outer_letters + game.center_letter) {
-      const lower = ch.toLowerCase()
-      m.set(lower, (m.get(lower) ?? 0) + 1)
-    }
-    return m
-  }, [game])
-
-  // (The local outer-letter shuffle + the letter-click input moved into BoardCol,
-  // beside the wheel + entry.)
-
-  // Both word lists ship to the FE, so a guess is validated + scored locally —
-  // index required ∪ bonus by word.
-  const legalIndex = useMemo(() => {
-    const m = new Map<string, LegalWord>()
-    for (const r of game.requiredWords) {
-      m.set(r.word, { word: r.word, points: r.points, isBonus: false, isPangram: r.is_pangram })
-    }
-    for (const b of game.bonusWords) {
-      m.set(b.word, { word: b.word, points: b.points, isBonus: true, isPangram: b.is_pangram })
-    }
-    return m
-  }, [game.requiredWords, game.bonusWords])
-
-  // A refused word's tiles shake and wear its answer for a beat — as many of
-  // each letter as the word used, since a letter can sit on two tiles and only
-  // the ones the word would have spent should answer (the Wheel picks them).
-  const [refused, showRefused] = useMark<{ counts: Map<string, number>; outcome: Outcome }>(WORD_ANSWER_MS)
-
-  const center = game.center_letter.toLowerCase()
-  const { word, setWord, lastWord, submit } =
-    useFoundWordSubmit({
-      mode: game.mode,
-      userId: session.user.id,
-      isTerminal: isTerminal || myConceded,
-      minWordLength: 4,
-      localFeedbackSlot,
-      foundWords,
-      lookup: (w) => legalIndex.get(w) ?? null,
-      // Four ok answers, all meaning the row landed: three classifications the
-      // FE's own flags come back as, plus `won` — this word crossed the target
-      // rank and ended the game. None of them changes what the optimistic pill
-      // already says; the terminal flip arrives over realtime. Every refusal
-      // means the word was NOT recorded, so each releases it.
-      commit: async (e) => {
-        const res = await runRpc<SubmittedWord>(
-          db.rpc('submit_word', {
-            target_game: gameId,
-            word: e.word,
-            points: e.points,
-            is_pangram: e.isPangram ?? false,
-            is_bonus: e.isBonus,
-          }),
-        )
-        if (res.type === 'not-ok') {
-          return res
-        } else if (res.type === 'ok' && res.data?.result === 'accepted') {
-          return null
-        } else if (res.type === 'ok' && res.data?.result === 'bonus') {
-          return null
-        } else if (res.type === 'ok' && res.data?.result === 'pangram') {
-          return null
-        } else if (res.type === 'ok' && res.data?.result === 'won') {
-          return null
-        } else {
-          reportUnhandled('submit_word', res)
-          return null
-        }
-      },
-      // Every answer shows in the pill, in `lib/answer.ts`'s words. Any answer
-      // but an accept is also a move that didn't win: the tiles the word used
-      // shake and take the same outcome, so the two cannot disagree.
-      // The actor's alone: a peer is never told about somebody else's miss.
-      onAnswer: (report) => {
-        const { outcome, text } = answerMessage(answerOf(report, center))
-        localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
-        if (report.answer === 'accepted') return
-        const counts = new Map<string, number>()
-        for (const ch of report.word.toLowerCase()) counts.set(ch, (counts.get(ch) ?? 0) + 1)
-        showRefused({ counts, outcome })
-      },
-    })
 
   // ─── Narration — what a PEER did, in the header slot ───
   // About somebody else, which is what puts it in the global slot rather than
@@ -646,7 +542,6 @@ export function PlayArea(props: PlayAreaProps) {
   return (
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
       <BoardCol
-        refused={refused}
         // ── Mobile-only status block (the SAME RankBar + Stats the InfoCol
         //    renders; on a phone the info column is off-canvas in the InfoSheet) ──
         foundWordsScore={foundWordsScore}
@@ -657,18 +552,19 @@ export function PlayArea(props: PlayAreaProps) {
         // ── Board to render ──
         outerLetters={game.outer_letters}
         centerLetter={game.center_letter}
-        letterCounts={letterCounts}
-        // ── Word entry (engine here; rendered in BoardCol) ──
-        word={word}
-        onChange={setWord}
-        onSubmit={submit}
+        // ── The move (BoardCol owns the engine and submit_word) ──
+        gameId={gameId}
+        mode={game.mode}
+        selfId={session.user.id}
+        readOnly={readOnly}
+        foundWords={foundWords}
+        requiredWords={game.requiredWords}
+        bonusWords={game.bonusWords}
         // The slot the entry row draws: a word result, the "you're out" state
         // (its info-column twin is the InfoActionsRow's line — dual placement is the
         // rule, docs/playarea.md, and on a phone the InfoCol is off-canvas, so
         // this is the ONLY copy the player sees), the verdict.
         localFeedbackSlot={localFeedbackSlot}
-        lastWord={lastWord}
-        isTerminal={isTerminal}
       />
 
       {/* The info column. Its top region — the readouts + action row + setup — is

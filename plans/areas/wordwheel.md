@@ -469,7 +469,8 @@ spellingbee's Step 7: the engine is still in the PlayArea. spellingbee then
 moved its engine into `BoardCol` as a separate step on Joel's ruling
 (*"in general, if pieces can be pushed down, that seems like a good thing?"*),
 which removed the section again — and wrote that wordwheel would keep its
-engine "until their areas open". **Not done here; asked** — see below.
+engine "until their areas open". **Not done in this step; asked, and done
+next** — see below.
 
 `BoardCol.tsx` reads in three: **The pending guess** (the tile claims, the
 letter click, the change handler that trims claims, the typed word's letter
@@ -497,6 +498,71 @@ surface docstring's nonexistent verdicts (Step 3's note).
 
 **Verified:** `tsc -b` clean, lint clean over `src/wordwheel/`; the game's
 unit tests and the guards: 42 files, 386 tests green.
+
+### The engine moves into BoardCol, and the board goes inert — DONE 2026-09-23
+
+Joel, asked after Step 7 whether to follow spellingbee: *"i'll take your rec"*
+— the move with the inert board, in its own commit after Step 7's. spellingbee
+did this as two commits (`da10576e`, `48b4e58d`); here it is one change, both
+halves copied.
+
+**What moved into `BoardCol`:** the `useFoundWordSubmit` call, `legalIndex`,
+`letterCounts` (its readers — `<TypedWord>`, the submit gate — are all
+BoardCol's; its deps are the two letter props now, not the whole `game`),
+`center`, the refused-tiles mark, `commit` with the `submit_word` call and the
+`SubmittedWord` reply type, and `onAnswer`. BoardCol **gains** `gameId`,
+`mode`, `selfId`, `readOnly`, `foundWords`, `requiredWords`, `bonusWords`; it
+**loses** `refused`, `letterCounts`, `word`, `onChange`, `onSubmit`,
+`lastWord`, `isTerminal`. **What stayed:** the local feedback slot (the
+standing conditions, the shared trio and New game write it too) and
+`foundWords` (the score, the word list, the print and the peer line read it).
+**InfoCol is untouched.** `PlayArea` is back to the doc's eight sections;
+`BoardCol` reads **Committing a guess** · **The pending guess** · **The
+board's display order** · **Render**, spellingbee's four.
+
+**Three behavior changes, spellingbee's three, all from one flag.**
+`PlayArea`'s Derived computes `readOnly = isTerminal || isLocallyDone` and
+hands BoardCol that one flag:
+
+- *A conceded racer's entry closes.* The entry was disabled on `isTerminal`
+  alone while the engine refused on `isTerminal || myConceded`, so a
+  conceder's keys filled a word nobody could see (the out-of-race line holds
+  the slot) and marked its tiles.
+- *The wheel is inert when the game is over or I conceded.* Tile taps had
+  been gated nowhere — `Wheel` always got `onLetterClick`. Now BoardCol passes
+  `onLetterClick={readOnly ? undefined : …}`; `Wheel` and `Tile` take the click
+  as optional, and a tile without one wears `.inert`: `cursor: default`, and the
+  hover rise and the press gated `:not(.inert)` beside the existing
+  `:not(.used)`. Full color and the resting shadow stay. **Shuffle stays
+  live.** A spectator with no seat is not folded in, as in spellingbee.
+- *A half-typed word's marks clear when the board goes read-only.*
+  `typedCounts` is empty while `readOnly` — derived, not cleared. The claims
+  need no clearing: `spentTiles` honors a claim only up to the word's count,
+  and the count is zero.
+
+**Five tests**, spellingbee's five with the wheel's tile hooks (`data-disabled`
+for spent, `_inert_` in the class): a conceded racer types nothing; a tap adds
+its letter while I can play; a conceded racer's wheel is inert (all nine) and
+a tap adds nothing; a half-typed word loses its marks when the game ends; a
+finished game's wheel is inert. **Verified by planting each old behavior back
+from a scratchpad copy:** the ungated tap turned the two inert tests red; the
+kept marks turned the half-typed test red; restored, green.
+
+**The open entry was NOT caught at first**, and that is a defect in
+spellingbee's copy too: once the board went inert, the read-only board draws
+no marks whatever the word holds, so *"a conceded racer types nothing"* stayed
+green with `disabled={false}` planted on the entry. wordwheel's copy now
+asserts first that `act-type-letter` answers `disabled` — red with the plant,
+green restored. **spellingbee's test was planted the same way and stays green**;
+filed in `src/spellingbee/todo.md` → Soon rather than edited, since that area
+is closed and blessed.
+
+**The CSS is not visually verified** — jsdom has no hover; the class is
+asserted, the look is not. The old `docs/games/wordwheel.md`'s one sentence
+saying `PlayArea` computes `letterCounts` now says `BoardCol`.
+
+**Verified:** `tsc -b` clean, lint clean over `src/wordwheel/`; wordwheel,
+spellingbee and the guards: 47 files, 473 tests green.
 
 ## Findings
 

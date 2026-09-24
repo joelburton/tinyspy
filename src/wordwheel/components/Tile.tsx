@@ -13,7 +13,9 @@ type Props = {
   isCenter?: boolean
   /** This tile's center + radius, in the wheel's coordinate units. */
   pos: { cx: number; cy: number; r: number }
-  onClick: () => void
+  /** Absent when the board is read-only: the tile takes no click and wears no
+   *  hover or press. */
+  onClick?: () => void
   /** True once this tile's letter is already in the typed word. Word wheel uses
    *  each tile ONCE per word, so a used tile is inert — it wears the selected
    *  border, is not clickable, and takes no hover or press. */
@@ -56,6 +58,7 @@ export function Tile({ letter, isCenter, pos, onClick, disabled, answer }: Props
     <div
       className={cls(
         styles.tile,
+        !onClick && styles.inert,
         isCenter && styles.center,
         disabled && styles.used,
         // The tone class sets only the verdict tokens (`VERDICT_TONE`);
