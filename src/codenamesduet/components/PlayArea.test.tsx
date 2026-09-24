@@ -6,8 +6,8 @@
  * tiles' input gate, what the bell is told, the board's turn dim and flash and
  * a guess's flash through the log, the finished-player banners, the
  * partner-key reveal, the action row and the menu, the header's lines about
- * the partner, the two role-specific controls, and the commands through the
- * dispatcher.
+ * the partner, the two role-specific controls, the commands through the
+ * dispatcher, and the keyboard's selection cursor.
  *
  * `useGame` / `useBoard` / `db` are mocked; by default the game is "my turn to
  * guess" (I'm the guesser seat B; peer seat A gave the clue), so the tiles are
@@ -43,6 +43,9 @@ const g = vi.hoisted(() => {
     agentsDone: { mine: false, peer: false },
     // Positions turned over as agents — the board a guess has changed.
     agentsAt: [] as number[],
+    // Positions each seat hit as a bystander (I am seat B).
+    neutralA: [] as number[],
+    neutralB: [] as number[],
   }
 })
 // The game row seats peer as A and me as B; the names come from the shell's
@@ -63,8 +66,8 @@ vi.mock('../hooks/useBoard', () => ({
       position: i,
       word: i === 0 ? 'apple' : i === 1 ? 'berry' : `word${i}`,
       revealed_as: g.agentsAt.includes(i) ? 'G' : null,
-      neutral_a: false,
-      neutral_b: false,
+      neutral_a: g.neutralA.includes(i),
+      neutral_b: g.neutralB.includes(i),
     })),
     events: g.events,
     myKey: Array.from({ length: 25 }, () => 'N'),
@@ -160,6 +163,8 @@ beforeEach(() => {
   g.events = [g.PEER_CLUE]
   g.agentsDone = { mine: false, peer: false }
   g.agentsAt = []
+  g.neutralA = []
+  g.neutralB = []
   rpc.mockReset()
   // Never resolves → the first guess stays "in flight" so we can test the guard.
   rpc.mockReturnValue(new Promise(() => {}))
@@ -606,5 +611,132 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
     render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost_assassin' })} />)
     await user.click(control('act-restart')!)
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
+  })
+})
+
+/**
+ * The keyboard's selection cursor. The board is five across, positions row by
+ * row: `apple` is 0, `berry` 1, and the rest `word<N>`. Arrows move the ring,
+ * Space PICKS the word under it, and Enter guesses the pick — where a click
+ * guesses at once. I am the guesser (seat B) unless a test says otherwise.
+ */
+describe('codenamesduet PlayArea — the selection cursor', () => {
+  const wordAt = (p: number) => (p === 0 ? 'apple' : p === 1 ? 'berry' : `word${p}`)
+  const tile = (p: number) => screen.getByRole('button', { name: wordAt(p) })
+  const boardTiles = () => Array.from({ length: 25 }, (_, p) => tile(p))
+  /** The words wearing the cursor ring — at most one. */
+  const ringed = () => boardTiles().filter((t) => /selectionCursor/.test(t.className)).map((t) => t.textContent)
+  /** The words the keyboard has picked — at most one. */
+  const picked = () => boardTiles().filter((t) => /selected/.test(t.className)).map((t) => t.textContent)
+  const key = (k: string) => press({ key: k })
+  const guessed = (p: number) =>
+    expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', target_position: p })
+
+  it('is hidden until an arrow; the first arrow rings the first word, the next moves it', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(ringed()).toEqual([])
+
+    await key('ArrowRight')
+    expect(ringed()).toEqual(['apple'])
+    await key('ArrowRight')
+    expect(ringed()).toEqual(['berry'])
+    await key('ArrowDown')
+    expect(ringed()).toEqual(['word6'])
+  })
+
+  it('Space does nothing while the ring is hidden, then picks and un-picks the ringed word', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key(' ')
+    expect(picked()).toEqual([])
+    expect(ringed()).toEqual([])
+
+    await key('ArrowRight')
+    await key(' ')
+    expect(picked()).toEqual(['apple'])
+    expect(rpc).not.toHaveBeenCalled()
+    await key(' ')
+    expect(picked()).toEqual([])
+  })
+
+  it('Enter guesses the pick, and the pick goes', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key('ArrowRight')
+    await key(' ')
+    await key('Enter')
+    guessed(1)
+    expect(picked()).toEqual([])
+  })
+
+  it('names Enter "Guess" for the key list', () => {
+    render(<WithKeys {...makeCtx()} />)
+    const guess = liveBindings().find((b) => b.id === 'act-submit')!
+    expect(guess.describe('help').label).toBe('Guess')
+  })
+
+  it('⌫ un-picks', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key(' ')
+    await key('Backspace')
+    expect(picked()).toEqual([])
+  })
+
+  // A revealed word, and a bystander I hit, can't be guessed — by a click or
+  // by Space. A bystander only my partner hit may be my agent, so it can.
+  it('Space passes over what a click could not guess', async () => {
+    g.agentsAt = [0]
+    g.neutralB = [1]
+    g.neutralA = [2]
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key(' ')
+    expect(picked()).toEqual([])
+    await key('ArrowRight')
+    await key(' ')
+    expect(picked()).toEqual([])
+    await key('ArrowRight')
+    await key(' ')
+    expect(picked()).toEqual(['word2'])
+  })
+
+  it('a click guesses at once, clears the pick, and hides the ring', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key('ArrowRight')
+    await key(' ')
+    await user.click(tile(0))
+    guessed(0)
+    expect(picked()).toEqual([])
+    expect(ringed()).toEqual([])
+
+    await key('ArrowDown')
+    expect(ringed()).toEqual(['apple'])
+  })
+
+  it('the pick goes when its word is turned over', async () => {
+    const ctx = makeCtx()
+    const { rerender } = render(<WithKeys {...ctx} />)
+    await key('ArrowRight')
+    await key(' ')
+    expect(picked()).toEqual(['apple'])
+
+    // My partner's guess turns it over (sudden death lets both of us guess).
+    g.agentsAt = [0]
+    rerender(<WithKeys {...ctx} />)
+    expect(picked()).toEqual([])
+  })
+
+  it('the clue-giver gets no ring and no keys, and no Guess in the key list', async () => {
+    asClueGiver()
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key(' ')
+    await key('Enter')
+    expect(ringed()).toEqual([])
+    expect(picked()).toEqual([])
+    expect(rpc).not.toHaveBeenCalledWith('submit_guess', expect.anything())
+    expect(liveBindings().find((b) => b.id === 'act-submit')?.describe('help').state).toBe('hidden')
   })
 })
