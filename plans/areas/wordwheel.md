@@ -1139,7 +1139,32 @@ once, the purple center — stay. Options: **rewrite the body** the way
 spellingbee's was, the words shown before they ship since it is UI copy; or
 fix the false sentence only. Recommendation: the rewrite.
 
-### F-wordwheel-12 · `small-shapes` · code that says a little more or less than it does
+### SHIPPED · F-wordwheel-12 · `small-shapes` · code that says a little more or less than it does
+
+**Joel, 2026-09-24: "i'll take your rec"** — five, with the Tile item narrowed:
+
+- **PN183** reads *"BUG: legal difficulty of % with required at %"*.
+- **The band casts are caught**, each in its own `begin … exception when
+  invalid_text_representation`: **PN505** (required) and **PN506** (legal),
+  the guard's next-free numbers. `create_game_test` gains the two
+  not-a-number refusals (`"three"`, `"5.5"`).
+- **The dead branches are gone**: `submit_timeout`'s compete ending is plainly
+  `lost_compete` (its comment says `create_game` refuses a race without a
+  target), and the compete `labelFor`'s `ended` arm is `Ended · nobody reached
+  "…"` with a line saying the clock is `lost_compete`'s. No test reads
+  `labelFor`.
+- **`Tile`**: only the unreachable `cursor: default` left `.tile.used`. The
+  `onClick={disabled ? undefined : onClick}` gate STAYS — the recommendation
+  as presented, differing from the finding: jsdom does not honor
+  `pointer-events`, so the JS gate is the half of the rule a test can see.
+- **`ordinals`** is exported from `lib/spend.ts`; `Wheel` reads it as
+  `tileOrdinals` in place of its inline copy.
+
+**Verified:** `gmake db-sql ENV=local`, `npm run test:db`, 182 files, 2660
+tests, PASS. **Planted** each catch on the wrong exception: `create_game_test`
+dies on the bare `invalid input syntax for type integer` (`"three"`, then
+`"5.5"`), which is the finding. Restored. `tsc -b` and eslint clean;
+wordwheel and the guards, 42 files, 396 tests green.
 
 spellingbee's F-16, ruled *"do it"* — its four have twins here — and two of
 this game's own:

@@ -191,10 +191,10 @@ export const wordwheelCompeteGame: GameManifest = {
       // The clock beat everyone to the rank — a real loss for the table.
       case 'lost_compete':
         return statusLine(verdict('Lost', 'out of time'), `nobody reached "${rank}"`)
+      // The one neutral race ending, the players agreeing to stop: the clock
+      // running out is `lost_compete` above.
       case 'ended':
-        return statusLine(
-          verdict('Ended', (s.reason as string) === 'timeout' ? 'out of time' : null),
-          `nobody reached "${rank}"`)
+        return statusLine(verdict('Ended'), `nobody reached "${rank}"`)
       default:
         return row.play_state
     }

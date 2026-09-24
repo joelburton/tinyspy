@@ -129,7 +129,6 @@
  * spellingbee's hexes use for the same thing. The tile comes back the moment
  * the letter leaves the word. */
 /* @@ */ .tile.used {
-  cursor: default;
   pointer-events: none;
 }
 /* @@ */ .tile.used .face {

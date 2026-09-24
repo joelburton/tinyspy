@@ -22,7 +22,7 @@ export type Claim = { letter: string; ordinal: number }
 
 /** Each tile's ordinal among the tiles sharing its letter, in render order —
  *  so the center is ordinal 0 for its own letter, by construction. */
-function ordinals(tileLetters: string[]): number[] {
+export function ordinals(tileLetters: string[]): number[] {
   const seen = new Map<string, number>()
   return tileLetters.map((letter) => {
     const lower = letter.toLowerCase()

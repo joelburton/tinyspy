@@ -415,15 +415,27 @@ begin
   -- required set). Both optional — default to the classic 3 / 5. The edge
   -- function builds the board's word lists from these; create_game is the
   -- authority on the shape.
-  s_required := coalesce((setup->>'required')::int, 3);
+  begin
+    s_required := coalesce((setup->>'required')::int, 3);
+  exception when invalid_text_representation then
+    raise exception 'BUG: required difficulty that is not a number'
+      using errcode = 'PN505', hint = 'fault', column = '_',
+      detail = 'setup.required must be an integer 1..6';
+  end;
   if s_required < 1 or s_required > 6 then
     raise exception 'BUG: required difficulty of %', s_required
       using errcode = 'PN182', hint = 'fault', column = '_',
       detail = 'setup.required must be 1..6';
   end if;
-  s_legal := coalesce((setup->>'legal')::int, 5);
+  begin
+    s_legal := coalesce((setup->>'legal')::int, 5);
+  exception when invalid_text_representation then
+    raise exception 'BUG: legal difficulty that is not a number'
+      using errcode = 'PN506', hint = 'fault', column = '_',
+      detail = 'setup.legal must be an integer between required and 6';
+  end;
   if s_legal < s_required or s_legal > 6 then
-    raise exception 'BUG: legal difficulty of % below the required % ', s_legal, s_required
+    raise exception 'BUG: legal difficulty of % with required at %', s_legal, s_required
       using errcode = 'PN183', hint = 'fault', column = '_',
       detail = 'setup.legal must be between required and 6';
   end if;
@@ -1012,13 +1024,13 @@ begin
 
     status_leaderboard := wordwheel._leaderboard(target_game, g_row.required_words_score);
 
-    -- A compete race always has a target rank, so the clock beating everyone
-    -- to it is a real LOSS for the table — the same rule coop already applies
-    -- (see the coop branch's play_state), and the same rule boggle applies to
-    -- its score target. Only a game with nothing to reach ends neutrally.
+    -- A compete race always has a target rank (create_game refuses one
+    -- without), so the clock beating everyone to it is a real LOSS for the
+    -- table — the same rule coop applies when it set a target, and the same
+    -- rule boggle applies to its score target.
     perform common.end_game(
       target_game,
-      case when current_target_rank is not null then 'lost_compete' else 'ended' end,
+      'lost_compete',
       jsonb_build_object(
         'reason', 'timeout',
         'mode', 'compete',

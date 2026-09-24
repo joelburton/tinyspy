@@ -5,7 +5,7 @@ import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
 import shared from '@/common/game-page/playArea.module.css'
-import { spentTiles, type Claim } from '../lib/spend'
+import { ordinals, spentTiles, type Claim } from '../lib/spend'
 import { TILE_POSITIONS } from '../lib/wheel'
 import { Tile } from './Tile'
 import styles from './Wheel.module.css'
@@ -70,16 +70,7 @@ export function Wheel({
   const answered = refused ? spentTiles(letters, refused.value.counts, []) : new Set<number>()
   // Each tile's ordinal among same-letter tiles, in render order — what a click
   // reports, so the claim survives a shuffle (a tile INDEX wouldn't).
-  const ordinals: number[] = []
-  {
-    const seen = new Map<string, number>()
-    for (const letter of letters) {
-      const lower = letter.toLowerCase()
-      const n = seen.get(lower) ?? 0
-      ordinals.push(n)
-      seen.set(lower, n + 1)
-    }
-  }
+  const tileOrdinals = ordinals(letters)
   return (
     <div className={cls(shared.boardSeal, styles.board)}>
       <div className={styles.floatAnchor}>
@@ -95,7 +86,7 @@ export function Wheel({
                 pos={TILE_POSITIONS[i] ?? TILE_POSITIONS[0]}
                 disabled={spent.has(i)}
                 answer={mark?.value.outcome}
-                onClick={onLetterClick && (() => onLetterClick(letter, ordinals[i] ?? 0))}
+                onClick={onLetterClick && (() => onLetterClick(letter, tileOrdinals[i] ?? 0))}
               />
             )
           })}

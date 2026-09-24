@@ -33,7 +33,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(36);
+select plan(38);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -343,6 +343,28 @@ select pg_temp.envelope_is(
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN183"}'::jsonb,
   'rejects setup.legal above 6 (band ceiling)');
+
+-- A band that is not a number answers in the envelope rather than escaping
+-- as a bare cast error, the way target_rank's does (PN180).
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup() || '{"required": "three"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN505",
+    "message":"BUG: required difficulty that is not a number"}'::jsonb,
+  'rejects a setup.required that is not a number, in the envelope');
+
+select pg_temp.envelope_is(
+  wordwheel.create_game((select handle from club),
+    pg_temp.wordwheel_setup() || '{"legal": "5.5"}'::jsonb,
+    array['ada11111-1111-1111-1111-111111111111'::uuid],
+    'coop',
+    pg_temp.wordwheel_board()),
+  '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN506",
+    "message":"BUG: legal difficulty that is not a number"}'::jsonb,
+  'rejects a setup.legal that is not a whole number, in the envelope');
 
 -- Happy path with explicit non-default bands: required 4, legal 6.
 select isnt(
