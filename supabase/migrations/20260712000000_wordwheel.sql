@@ -27,18 +27,19 @@
 -- — submit_word here TRUSTS the shipped list, exactly as spellingbee
 -- does. So most of this file is a rename-port; the real changes are:
 -- 8 outer letters (char(8)), the difficulty-tagged pangrams seed
--- table (above), and the +15 pangram bonus (in the edge builder).
+-- table (below), and the +15 pangram bonus (in the edge builder).
 --
 -- "wordwheel" is the codename; the brand is MooseWheel (FE only). SQL
 -- / TypeScript / folder names are all `wordwheel`.
 --
 -- This file is the squashed, build-from-scratch form of the
--- wordwheel schema: the full final state (schema, RLS, the
--- FE-shipped word lists, RPCs) with coop + compete shipped as a
+-- wordwheel SHAPE — tables, constraints, indexes, the Realtime
+-- publication and the gametype rows — with coop + compete shipped as a
 -- sibling-manifest pair (`wordwheel_coop` + `wordwheel_compete`
 -- gametypes, a denormalized `mode` column on wordwheel.games, and a
 -- `mode` arg on create_game). Same pattern psychicnum and connections
--- follow.
+-- follow. The functions, views, policies and grants are
+-- supabase/sql/wordwheel.sql's.
 --
 -- Depends on `common` (clubs, profiles, games, game_players,
 -- is_club_member, gametypes, create_game, update_state, end_game,
@@ -61,7 +62,8 @@ create schema if not exists wordwheel;
 -- wordwheel's word reference is the shared common.words master list,
 -- not a wordwheel table — every word game filters the same
 -- categorized source. wordwheel's slice is computed on the fly in
--- wordwheel.candidate_words (below): legal = difficulty <= the legal
+-- wordwheel.candidate_words (supabase/sql/wordwheel.sql): legal =
+-- difficulty <= the legal
 -- band, required = difficulty <= the required band AND american AND
 -- NOT slang AND clean
 -- (slur = 0 AND crude = 0), len >= 4. The `letter_mask & ~puzzle_mask = 0` subset
@@ -72,8 +74,7 @@ create schema if not exists wordwheel;
 -- filter (difficulty/dialect/len) selects ~a third of the table, a
 -- selectivity at which Postgres prefers a seq-scan-with-filter over
 -- a btree anyway (the bitwise subset test isn't sargable). It runs
--- in tens of ms, a handful of times per board build. See
--- candidate_words for the measured rationale.
+-- in tens of ms, a handful of times per board build.
 
 -- ============================================================
 -- wordwheel.pangrams — the board-seed pool
@@ -164,9 +165,10 @@ create index wordwheel_pangrams_difficulty_idx on wordwheel.pangrams (difficulty
 -- same model as boggle. The trust model doesn't withhold them
 -- (friends, not anti-cheat), so there's no column-grant gate and
 -- no terminal-reveal helper: the FE reads both lists straight off
--- `games_state`, and the missed-words reveal is a client-side
--- `required − found` computed at terminal (bonus words are never
--- shown in the reveal, but that's a FE display choice, not a gate).
+-- `games_state`, and the missed-words reveal is a client-side reveal
+-- of the words nobody found, computed at terminal (bonus words join it
+-- when the board has a real bonus list — a FE display choice, not a
+-- gate).
 -- See src/wordwheel/doc.md.
 
 create table wordwheel.games (
@@ -193,8 +195,8 @@ create table wordwheel.games (
   -- The FE validates + scores a guess against required ∪ bonus locally (no server
   -- round-trip), so both carry points + the pangram flag. Built by the edge
   -- function (via candidate_words over common.words) and handed to create_game.
-  --   required_words: the displayed goal set (drives the rank ladder + the
-  --     missed-words reveal, which is required-only).
+  --   required_words: the displayed goal set (drives the rank ladder and
+  --     the X / Y denominators).
   --   bonus_words: the legal − required set (accepted + scored, not the goal).
   -- Neither is hidden — the trust model doesn't withhold them (friends, not
   -- anti-cheat); see src/wordwheel/doc.md.
@@ -221,8 +223,8 @@ create index wordwheel_games_club_handle_idx on wordwheel.games (club_handle);
 --
 -- PK is the triple (game_id, user_id, word). This shape:
 --   - In coop: submit_word checks "does any row exist with
---     this game_id and word" before insert — if yes, reject
---     as alreadyFound; if no, insert with caller's user_id
+--     this game_id and word" before insert — if yes, refuse
+--     it as the duplicate race; if no, insert with caller's user_id
 --     as the finder.
 --   - In compete: submit_word only checks
 --     "(game_id, caller_user_id, word)" — two different
@@ -270,8 +272,9 @@ alter table wordwheel.found_words enable row level security;
 -- postgres_changes bindings at JOIN time and rejects the WHOLE subscription if
 -- ANY bound table isn't in the publication. So a games subscription against an
 -- unpublished games table kills found_words delivery too — live updates die
--- silently (writes persist, only a manual refresh shows them). wordwheel's
--- schema_test asserts both memberships to guard against a dropped line.
+-- silently (writes persist, only a manual refresh shows them).
+-- common/realtime_publication_test.sql asserts both memberships to guard
+-- against a dropped line.
 
 alter publication supabase_realtime add table wordwheel.games;
 alter publication supabase_realtime add table wordwheel.found_words;

@@ -1508,7 +1508,16 @@ ArrowDown's clear); or **recall clears explicitly**, which needs the shared
 word-entry area to tell the game which gesture changed the word. Either way
 the two sentences are corrected and a `PlayArea.test` case pins it.
 
-### R-wordwheel-2 · `migration-comments` · seven false sentences in the applied migration
+### SHIPPED · R-wordwheel-2 · `migration-comments` · seven false sentences in the applied migration
+
+**Joel, 2026-09-24: "i'll take your rec"** — all seven, in the wording shown
+him: the file is the SHAPE and names where the functions live; the seed table
+is below; `candidate_words` is `supabase/sql/`'s; the pointer to a
+measurement that isn't there is gone; the reveal includes bonus words when
+the board has a real bonus list, and `required_words` drives the ladder and
+the denominators; the publication guard is `common/realtime_publication_test`;
+a duplicate is refused as the race. **Verified:** every changed line is a
+comment, no SQL line moved; guards green.
 
 An applied migration's comments may be corrected (F-14 did three).
 - *"the full final state (schema, RLS, the FE-shipped word lists, RPCs)"* —
