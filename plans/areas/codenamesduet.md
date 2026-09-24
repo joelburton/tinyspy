@@ -436,8 +436,7 @@ step.
 Talking Step 4 through, Joel asked whether the header's peer phrases should go
 through the answer machinery, and the conversation went to the log's shape:
 a pass and an AI hint are recorded nowhere, and the log is two tables where
-every other game has one. The design is
-[plans/codenamesduet-events.md](../codenamesduet-events.md) — one
+every other game has one. The design was `plans/codenamesduet-events.md` — one
 `codenamesduet.events` table, a backfill, and a `lib/answer.ts` after all.
 Joel: *"once i've read that plan, we do this."* **Step 4's "no answer file" is
 overtaken by it**; its SQL half — no outcome on a guess's `ok` — stands either
@@ -445,7 +444,8 @@ way. Step 5 resumes after.
 
 **Resumed 2026-09-23.** The events plan was built, rehearsed, deployed to prod
 from branch `codenamesduet-events` (`fa99b43d`) and fast-forwarded into
-`app-audit` — its record is the plan's own. Three things came with it that
+`app-audit` — its record was the plan's own, deleted at this area's harvest
+once `doc.md` and the migration's comments held what it had learned. Three things came with it that
 this area now inherits as done: the log marks a clue given exactly as the AI
 suggested it; every sudden-death guess is a turn of its own and a row of the
 log; the history link is an event id. After it, and not deployed yet, the key
@@ -1809,8 +1809,19 @@ a dependency listed and left. Anything durable goes to `todo.md` or
 
 - [x] the whole area re-read in one sitting after the last group — 2026-09-23,
       nineteen findings recorded above; eighteen shipped, one ruled no change
-- [ ] `docs/games/codenamesduet.md` reconciled with `todo.md`: its Deferred
-      section moved into the todo, or deliberately kept as the standing register
-- [ ] the tile-feedback pass done, and the game's tf level updated there
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] `docs/games/codenamesduet.md` reconciled with `todo.md` — absorbed into
+      `doc.md` at pass 2 and deleted
+- [x] the tile-feedback pass done, and the game's tf level updated there — tf2,
+      2026-09-23
+- [x] the `doc.md` harvest — 2026-09-23. The events plan's lessons were already
+      in `doc.md` and the migration's comments but two, which `doc.md` now
+      holds: why a clue's AI origin is a column rather than a kind, and that a
+      failed `log_hint` short of a race still sends the suggestion. Every
+      no-change ruling has its home at the code; F-26's reason was missing,
+      and `GameEventLog.module.css` now says it. `plans/codenamesduet-events.md`
+      deleted, with its `CLAUDE.md` row
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      — 2026-09-23: the two Someday items ruled into Won't do (Joel: the
+      companion's size *"is fine as is"*; a not-ok covering the sudden-death
+      notice *"is what we want"*). Only Won't do remains
 - [ ] every file on the roster blessed, or its stamp says why not

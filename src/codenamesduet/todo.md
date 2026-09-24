@@ -6,17 +6,6 @@
 
 ## Someday
 
-- **The AI companion's minimum size, 240×140, is eyeballed.** The rule is that
-  a companion's minimum comes from what its BODY needs, not from what looked
-  right (`docs/ui.md` → Floating panels); every companion's pair is listed in
-  `src/common/floating-panels/todo.md`, to be settled one game at a time.
-
-- **In sudden death, a not-ok hides the sudden-death notice.** The notice and
-  the local feedback pill share the slot under the board, so while a not-ok is
-  open the info column is the only place sudden death shows — and on a phone
-  that column is off-canvas. The notice comes back when the pill's × is
-  pressed.
-
 ## Maybe
 
 ## Won't do
@@ -27,3 +16,10 @@
 - **Tile `aria-label`s** (2026-08-02). Screen readers are out of scope
   project-wide — see [`CLAUDE.md`](../../CLAUDE.md). The tiles keep their
   `aria-hidden`.
+- **Deriving the AI companion's minimum size** (2026-09-23). The rule is that a
+  companion's minimum comes from what its body needs (`docs/ui.md` → Floating
+  panels); this one's 240×140 was eyeballed. Joel: *"it's fine as is."*
+- **Keeping the sudden-death notice visible under a not-ok** (2026-09-23). The
+  not-ok and the notice share the slot under the board, so the not-ok covers
+  the notice until its × is pressed. Joel: *"not-ok messages should appear over
+  sudden death; the current behavior is what we want."*

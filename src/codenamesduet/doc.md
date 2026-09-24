@@ -156,6 +156,11 @@ once from each side, so the log cannot be the board. The board's three columns
 are what the tiles draw; the history viewer rebuilds a past board by folding
 the logged guesses onto the words.
 
+**Where a clue came from is a column, not a kind.** `kind` is what the player
+did; `clue_from_ai` is how that clue came about. A second clue kind would have
+to be named by every "is there a clue this turn" check. The clues logged
+before the column existed are all `false`, since nothing recorded it.
+
 **The club-list readout is `common.games.status`**: `turn_number`,
 `turns_remaining` and `greens_found` during play, and at the end the
 `reason` and `turns_used`. The three endings a guess causes state
@@ -312,7 +317,8 @@ own line, logs the hint with `codenamesduet.log_hint`, and returns the
 suggestion. Logging comes last, so a model that declines or is cut off — which
 comes back as a sentence for the dialog to show — leaves no hint behind.
 `log_hint` asks the same gate `get_clue_context` did, and a refusal from it is
-relayed the same way.
+relayed the same way. Any other failure to log still sends the suggestion,
+since the model's answer is already in hand; the function logs that failure.
 
 **Passed:** `{ "gameId": "88ae6f5a…" }`
 

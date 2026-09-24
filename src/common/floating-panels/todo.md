@@ -55,7 +55,8 @@
   derived: `Chat` 260×240 · `ClubHelpCompanion` 280×180 · `GameHelpCompanion`
   per-game · `GameScratchpadCompanion` 240×200 · `CrosswordsNoteCompanion`
   300×200 · `CrosswordsExplainCompanion` 320×220 ·
-  `CodenamesduetAISuggestCompanion` 240×140. The rule (docs/ui.md → Floating
+  `CodenamesduetAISuggestCompanion` 240×140 (kept as is, codenamesduet's
+  `todo.md` → Won't do). The rule (docs/ui.md → Floating
   panels): the number comes from what the BODY needs — "the titlebar, the
   composer and four messages" — not from what looked about right. Joel: *"as
   we get to these individually in areas, we can figure out."*
