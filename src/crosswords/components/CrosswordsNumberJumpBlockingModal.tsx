@@ -1,6 +1,7 @@
 // cs-unmet
 
 import { useEffect, useRef, useState } from 'react'
+import { pressed } from '@/common/keyboard/componentKeys'
 import styles from './CrosswordsNumberJumpBlockingModal.module.css'
 
 type Props = {
@@ -65,10 +66,10 @@ export function CrosswordsNumberJumpBlockingModal({ onSubmit, onClose }: Props) 
             // Stop these keys before the dispatcher sees them (the grid's keys
             // are suspended while we're open, but this is belt-and-braces).
             e.stopPropagation()
-            if (e.key === 'Enter') {
+            if (pressed('keys-number-jump-go', e)) {
               e.preventDefault()
               commit()
-            } else if (e.key === 'Escape') {
+            } else if (pressed('keys-number-jump-close', e)) {
               e.preventDefault()
               onClose()
             }

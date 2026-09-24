@@ -16,6 +16,7 @@ import { Dot } from '../members/Dot'
 import { menuRow, type MenuHeader, type MenuRow, type MenuSection } from './menuModel'
 import { useIsMobile } from '../mobile/useIsMobile'
 import { IconMenuChevron, IconSubmenu } from '../icons/icons'
+import { pressed } from '../keyboard/componentKeys'
 import styles from './Menu.module.css'
 
 /**
@@ -69,7 +70,7 @@ type Props = {
 /**
  * The dropdown menu behind every page header's logo — a trigger and a
  * popover of grouped rows, with the keyboard contract in
- * docs/keyboard-shortcuts.md → Menus, dialogs, and panels. Reach for it
+ * common/menu/doc.md. Reach for it
  * through `<PageHeaderMenu>`, which is its only renderer; hand it sections of
  * bound actions (`MenuSection`, next door in `menuModel.ts`) and it draws them.
  *
@@ -270,7 +271,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     // a `window` keydown handler, or arrowing through the menu doubles as a
     // board move.
     e.stopPropagation()
-    if (e.key === 'Escape') {
+    if (pressed('keys-menu-unwind', e)) {
       e.preventDefault()
       // Escape unwinds ONE level at a time: out of a submenu first, and only
       // then out of the menu. Closing the whole thing from inside a submenu
@@ -279,7 +280,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
       else closeMenu()
       return
     }
-    if (e.key === 'Tab') {
+    if (pressed('keys-menu-leave', e)) {
       // Tab while open closes the menu AND is consumed: the popover stops its
       // own keys, so the surface's tab ring never hears this press and a native
       // Tab would walk off into the browser's chrome. The NEXT press is the
@@ -288,19 +289,19 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
       dismiss()
       return
     }
-    if (e.key === 'ArrowDown') {
+    if (pressed('keys-menu-walk-down', e)) {
       e.preventDefault()
       setFocusedIndex((curr) => findNextEnabled(curr, 1, navRows))
       return
     }
-    if (e.key === 'ArrowUp') {
+    if (pressed('keys-menu-walk-up', e)) {
       e.preventDefault()
       setFocusedIndex((curr) => findNextEnabled(curr, -1, navRows))
       return
     }
     // The horizontal pair is the desktop-menu convention, and it works in the
     // drill-down too (where it reads as "in" / "out" rather than left/right).
-    if (e.key === 'ArrowRight') {
+    if (pressed('keys-menu-in', e)) {
       const row = navRows[focusedIndex]
       if (row?.kind === 'item' && row.row.children && !row.row.disabled) {
         e.preventDefault()
@@ -308,7 +309,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
       }
       return
     }
-    if (e.key === 'ArrowLeft') {
+    if (pressed('keys-menu-out', e)) {
       if (submenu) {
         e.preventDefault()
         closeSubmenu()
@@ -325,7 +326,7 @@ export const Menu = forwardRef<MenuHandle, Props>(function Menu({
     // menu" gesture. Enter and Space already fire the button's
     // click handler (browser default), so they don't need their
     // own case here — the toggle in onClick handles open/close.
-    if (e.key === 'ArrowDown' && !open) {
+    if (pressed('keys-menu-open', e) && !open) {
       e.preventDefault()
       openMenu()
     }

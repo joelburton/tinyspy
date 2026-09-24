@@ -69,7 +69,7 @@ target. Five families:
 | `all-` | cross-game — `all-words`, `all-pangrams`, `all-tries` |
 | `db-` | the database — `db-schema`, `db-sql`, `db-schema-sql`, `db-data`, `db-seed`, `db-reset`, `db-bots`, `db-psql`, `db-add-user` |
 | `deploy-` | pushing to a target — `deploy-funcs`, `deploy-func-<name>`, `deploy-fe` |
-| `dev-` | the local loop — `dev-lint`, `dev-types` |
+| `dev-` | the local loop — `dev-lint`, `dev-types`, `dev-keys` |
 | `project-` | the hosted project itself — `project-link`, `project-config-auth`, `project-bootstrap` |
 
 `gmake help` lists alphabetically, so the prefixes group there too. Unprefixed

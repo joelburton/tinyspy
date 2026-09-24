@@ -9,7 +9,11 @@ import {
   type Ref,
 } from 'react'
 import { cls } from '../utils/cls'
+import { pressed, useComponentKeys, type ComponentKeyId } from '../keyboard/componentKeys'
 import styles from './SelectionList.module.css'
+
+// The rows Help teaches; Space's row is matched below and not taught.
+const LIST_KEYS: readonly ComponentKeyId[] = ['keys-list-move', 'keys-list-ends', 'keys-list-page', 'keys-list-open']
 
 type Props<T> = {
   // The rows, in display order. Its length IS the list's length — the cursor
@@ -159,51 +163,41 @@ export function SelectionList<T>({
     onActivate(item)
   }
 
+  // The keys, as rows of `COMPONENT_KEYS`: Help teaches them while a list is
+  // on the page, and the handler below matches the same rows. Offered while
+  // frozen too — Help itself is one of the dialogs that freezes a list, and
+  // the keys are the page's, back the moment it closes.
+  useComponentKeys(LIST_KEYS)
+
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     if (frozen) return
     // NOTHING here is allowed to do the native thing. The focused element IS
     // the scroll box, so Space and the four page keys would otherwise scroll
     // it out from under the cursor.
-    switch (e.key) {
-      case 'ArrowDown':
-      case 'ArrowUp':
-        e.preventDefault()
-        // Clamped to the ends — deliberately no wrap-around.
-        if (stepsAfterRevealing()) moveTo(cursor + (e.key === 'ArrowDown' ? 1 : -1))
-        break
-      case 'Home':
-        e.preventDefault()
-        // Absolute: it named a destination, so it reveals AND goes.
-        setRevealed(true)
-        moveTo(0)
-        break
-      case 'End':
-        e.preventDefault()
-        setRevealed(true)
-        moveTo(items.length - 1)
-        break
-      case 'PageDown':
-        e.preventDefault()
-        if (stepsAfterRevealing()) moveTo(cursor + pageSize())
-        break
-      case 'PageUp':
-        e.preventDefault()
-        if (stepsAfterRevealing()) moveTo(cursor - pageSize())
-        break
-      case 'Enter':
-        e.preventDefault()
-        // INERT while the cursor is hidden, and it does not reveal either.
-        // Acting on a row the player cannot see would take them somewhere they
-        // did not choose, and revealing here would make a doubled press — the
-        // natural response to a key that seemed to do nothing — commit.
-        // An arrow is the way in.
-        if (revealed) activate(cursor)
-        break
-      case ' ':
-        // Trapped so it cannot scroll the box, and then inert: choosing here
-        // acts, and moving a cursor must not consent to that.
-        e.preventDefault()
-        break
+    if (pressed('keys-list-move', e)) {
+      e.preventDefault()
+      // Clamped to the ends — deliberately no wrap-around.
+      if (stepsAfterRevealing()) moveTo(cursor + (e.key === 'ArrowDown' ? 1 : -1))
+    } else if (pressed('keys-list-ends', e)) {
+      e.preventDefault()
+      // Absolute: it named a destination, so it reveals AND goes.
+      setRevealed(true)
+      moveTo(e.key === 'Home' ? 0 : items.length - 1)
+    } else if (pressed('keys-list-page', e)) {
+      e.preventDefault()
+      if (stepsAfterRevealing()) moveTo(cursor + (e.key === 'PageDown' ? pageSize() : -pageSize()))
+    } else if (pressed('keys-list-open', e)) {
+      e.preventDefault()
+      // INERT while the cursor is hidden, and it does not reveal either.
+      // Acting on a row the player cannot see would take them somewhere they
+      // did not choose, and revealing here would make a doubled press — the
+      // natural response to a key that seemed to do nothing — commit.
+      // An arrow is the way in.
+      if (revealed) activate(cursor)
+    } else if (pressed('keys-list-space', e)) {
+      // Trapped so it cannot scroll the box, and then inert: choosing here
+      // acts, and moving a cursor must not consent to that.
+      e.preventDefault()
     }
   }
 

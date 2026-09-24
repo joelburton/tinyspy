@@ -404,8 +404,7 @@ the short version, with every current member:
    The default. Initial load + refetch on every CDC event + refetch on
    every SUBSCRIBED (reconnect catch-up) + refetch on the
    postgres_changes **attach confirmation** (the deaf-window closer —
-   [`postgresAttached.ts`](../src/common/realtime/postgresAttached.ts),
-   [realtime-lost-events.md](realtime-lost-events.md)), with a generation
+   [`postgresAttached.ts`](../src/common/realtime/postgresAttached.ts)), with a generation
    counter so a slow superseded load can't clobber a newer one. Members: codenamesduet
    (×3 hooks), psychicnum, wordle, stackdown, scrabble (data side),
    waffle, bananagrams (×2 hooks), boggle, wordiply, strands, letterboxed,
@@ -439,7 +438,7 @@ Four cooperating pieces:
   SUBSCRIBED is only the join ack; events committed before the attach are
   dropped, so without this second refetch a write landing in that gap was
   lost for good — the measured **deaf window** of
-  [realtime-lost-events.md](realtime-lost-events.md).
+  [common/realtime/doc.md](../src/common/realtime/doc.md).
 - [`useRealtimeReconnect`](../src/common/realtime/useRealtimeReconnect.ts)
   (mounted once at app level) nudges the socket on visibilitychange /
   focus / online, so the SUBSCRIBED refetch actually fires promptly after
@@ -460,7 +459,7 @@ migration adds its tables at the bottom of the file.
 
 **The publication is not the only way live updates die silently.** A channel
 whose tables are all published can still report `SUBSCRIBED` and then deliver
-nothing — see [realtime-lost-events.md](realtime-lost-events.md). The symptoms
+nothing — see [common/realtime/doc.md → A page that has stopped updating](../src/common/realtime/doc.md#a-page-that-has-stopped-updating). The symptoms
 are identical (a page that quietly stops updating), so check the publication
 first, since it's the cheap check, and reach for that doc when it's intact.
 

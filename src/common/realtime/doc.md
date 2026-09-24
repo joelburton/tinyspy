@@ -72,9 +72,65 @@ and re-reads the rows.
 - **Which channel is which** is not listed here. The channel-name registry in
   [docs/supabase.md](../../../docs/supabase.md) is every channel in the app in
   one place, including whether each one's name is shared.
-- **The lost-event failure mode** — how it was measured, what the console trail
-  looks like when it happens, and which kinds of test can see it — is
-  [docs/realtime-lost-events.md](../../../docs/realtime-lost-events.md).
+- **The deaf window is multi-second, and the event in it is dropped, not
+  late.** Measured on the local stack, `system ok` arrives about 2–3s after
+  `SUBSCRIBED` on a warm tenant, and seconds more while the tenant is booting;
+  every row committed before `system ok` was lost, and every one after it
+  delivered. A refetch-on-event hook heals a mid-window loss at the next event
+  that does arrive, so the damage is when the lost event is the LAST one — a
+  coop win, a partner's final move. The width on hosted Realtime has not been
+  measured; the mechanism is protocol-level, so it exists there too.
+- **The local tenant stops itself when nobody is connected**, after roughly
+  12–15 idle minutes, and boots again on the next connection — so the first run
+  after a break meets the slow-boot window, not only a restarted container.
+- **`e2e/realtime-deaf-window.e2e.ts` guards the attach refetch** in two
+  layers: a deterministic check that the `(attached)` refetch line follows
+  `system ok` on a plain page load, and a best-effort end-to-end test that
+  lands a terminal write inside a real window (CPU-capped tenant, restarted)
+  and asserts the verdict still arrives. The window's width depends on machine
+  load, so when no attempt can land inside it that test SKIPS with the widths
+  it measured rather than failing.
+
+## Reading the `[rt …]` trail
+
+`realtimeDiag.ts` writes these for every channel, always on:
+
+| line | meaning |
+|---|---|
+| `<topic> — status SUBSCRIBED / CHANNEL_ERROR / TIMED_OUT / CLOSED` | a subscribe-status transition; the failures are `console.warn` |
+| `<topic> — system ok: Subscribed to PostgreSQL` | the server really carries this channel's table subscription — the all-clear |
+| `<topic> — event UPDATE common.games` | a delivered row change, with the payload's `errors` when set |
+| `<topic> — broadcast "manualPause"` | a delivered broadcast |
+| `<topic> — refetch #3 (event)` | `useRealtimeRefetch` reloaded, and why: `mount` / `subscribed` / `attached` / `event` |
+| `game:<id> — load #2: play_state=playing terminal=false players=2` | what `useCommonGame`'s load saw |
+| `<topic> — unsubscribing` / `teardown ok` | a deliberate leave, so it is not mistaken for a channel gone quiet |
+| `<topic> — teardown timed out` / `teardown FAILED` | a leave that did not complete; a timed-out one is what wedges a re-join of the same name |
+| `socket — heartbeat timeout` / `disconnected` | the socket itself is in trouble (routine pulses are not logged) |
+
+Healthy is `status SUBSCRIBED` then `system ok`. A channel with `SUBSCRIBED`
+and never a `system ok` is fully deaf. A stale page whose last lines are a
+`(subscribed)` or `(attached)` refetch, with no `(event)` refetch after a
+partner's move, lost that move. The raw socket log, every push and receive, is
+behind `localStorage.setItem('puzpuzpuz:rt:verbose', '1')` and a reload.
+
+## A page that has stopped updating
+
+1. **Lost or late?** Re-run with a much longer timeout. A late event arrives
+   eventually; a lost one never does, and widening a timeout only makes the
+   failure slower and hides it.
+2. **Did the server do its half?** Read the row the page should have heard
+   about, `common.games.play_state` for a game that should have ended. If it
+   changed, the fault is delivery, not game logic.
+3. **Is the table published?** A table missing from `supabase_realtime` kills
+   the whole channel silently ([docs/supabase.md → The publication
+   invariant](../../../docs/supabase.md#the-publication-invariant-load-bearing)).
+   This is the cheap check when EVERY update is missing.
+4. **Did the tenant restart?** Locally,
+   `docker logs supabase_realtime_codenames 2>&1 | grep -E "Stop tenant|:channel, :joins"`;
+   a stop/start pair just before the failure is the slow-boot window.
+5. **Is it realtime at all?** A test that changes a player's frontend-owned
+   state by RPC while that player's page is open will see the page write its
+   own copy back over it, which looks exactly like a lost event.
 - **The tests keep four channel doubles, deliberately.** `channel.fake.ts` is
   the shared one, for a test that drives a hook through subscribe, presence and
   teardown; the three narrower ones live in the tests that need less than that,

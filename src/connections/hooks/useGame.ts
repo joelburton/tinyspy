@@ -303,8 +303,7 @@ export function useGame(
 
       // Deaf-window closer: re-read once the postgres_changes attach is
       // confirmed — a move committed between SUBSCRIBED (the join ack) and
-      // the attach is dropped. See postgresAttached.ts +
-      // docs/realtime-lost-events.md.
+      // the attach is dropped. See postgresAttached.ts.
       onPostgresAttached(ch, () => load())
       // SUBSCRIBED fires on initial subscribe AND on every reconnect,
       // so this single hook covers both the mount-time fetch and the

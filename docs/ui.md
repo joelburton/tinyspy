@@ -1358,7 +1358,7 @@ menu: {
 
 **Pause behavior.** The menu stays mounted and openable while paused — the header sits outside the pause boundary, so `?` still reaches it. Game sections vanish because PlayArea unmounts on pause; the cleanup return on the PlayArea's `setGameSections` effect clears them (`setGameSections([])`), so a paused menu holds only the account row until resume.
 
-**Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; `→` opens the focused row's submenu and `←` steps back out; Esc unwinds one level, out of a submenu first and then out of the menu. Tab while the menu is open closes it and is consumed — focus does not advance; the next press is the page's ring's ([keyboard-shortcuts.md → Menus, dialogs, and panels](keyboard-shortcuts.md#menus-dialogs-and-panels)). Disabled items are skipped by arrow navigation.
+**Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; `→` opens the focused row's submenu and `←` steps back out; Esc unwinds one level, out of a submenu first and then out of the menu. Tab while the menu is open closes it and is consumed — focus does not advance; the next press is the page's ring's ([common/menu/doc.md](../src/common/menu/doc.md)). Disabled items are skipped by arrow navigation.
 
 **Submenus** are a two-shape hybrid, one level deep. A row that is a [`MenuSubmenu`](../src/common/menu/menuModel.ts) rather than an action opens:
 

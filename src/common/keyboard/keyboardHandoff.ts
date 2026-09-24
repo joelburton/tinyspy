@@ -1,6 +1,7 @@
 // cs-blessed-keyboard
 
 import type { KeyboardEvent } from 'react'
+import { pressed } from './componentKeys'
 
 /**
  * Tab inside a floating panel's text field STEPS OUT of that panel's ring, into
@@ -29,7 +30,7 @@ import type { KeyboardEvent } from 'react'
  *   <textarea onKeyDown={handOffKeyboardOnTab} … />
  */
 export function handOffKeyboardOnTab(e: KeyboardEvent<HTMLElement>): void {
-  if (e.key !== 'Tab' || e.shiftKey) return
+  if (!pressed('keys-leave-field', e)) return
   e.preventDefault()
   e.currentTarget.blur()
 }

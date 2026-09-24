@@ -156,7 +156,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // BoardCol freezes the entry's capture while viewing, so the viewer's own
   // any-key action has the keys to itself: any keystroke returns to the live
   // board instead of typing behind the banner (the hook binds
-  // `act-exit-history`; docs/keyboard-shortcuts.md → the viewer contract).
+  // `act-exit-history`; see `useHistoryViewer`).
   const { historyId, isViewingHistory, showHistory, exitHistory } = useHistoryViewer<number>()
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))

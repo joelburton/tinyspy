@@ -152,8 +152,7 @@ export function useGameInvitations(session: Session): {
       )
       // Deaf-window closer: rescan once the postgres_changes attach is
       // confirmed — an invite INSERT committed between SUBSCRIBED (the join
-      // ack) and the attach is dropped. See postgresAttached.ts
-      // + docs/realtime-lost-events.md.
+      // ack) and the attach is dropped. See postgresAttached.ts.
       onPostgresAttached(ch, () => void load())
       ch.subscribe((status) => {
         if (status === 'SUBSCRIBED') void load()

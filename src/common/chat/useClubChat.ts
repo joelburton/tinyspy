@@ -138,7 +138,7 @@ export function useClubChat(clubHandle: string) {
     // Deaf-window closer: reload once the postgres_changes attach is
     // confirmed — an INSERT committed between SUBSCRIBED (the join ack) and
     // the attach is dropped, and mergeSnapshot makes the extra load safe.
-    // See postgresAttached.ts + docs/realtime-lost-events.md.
+    // See postgresAttached.ts.
     onPostgresAttached(channel, () => load())
     channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') load()

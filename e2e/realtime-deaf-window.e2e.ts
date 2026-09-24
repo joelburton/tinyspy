@@ -8,8 +8,8 @@ import { signIn } from './helpers/session'
 
 /**
  * THE DEAF-WINDOW REGRESSION TESTS — two layers guarding the attach-time
- * refetch (postgresAttached.ts) that closes the lost-event
- * window of docs/realtime-lost-events.md:
+ * refetch (postgresAttached.ts) that closes the deaf window
+ * (src/common/realtime/doc.md):
  *
  *   1. A DETERMINISTIC wiring guard: plain page load, assert the factory's
  *      cause-tagged `refetch #N (attached)` console line appears after the

@@ -227,8 +227,16 @@ The list is illustrative, not a contract. When you add a spec, add it for a brow
 **A realtime-dependent spec that fails is not automatically flake.** Before re-running
 and shrugging, check whether the event was *lost* rather than late — a channel can
 report `SUBSCRIBED` and never deliver anything, in which case a longer timeout only
-fails slower. [realtime-lost-events.md](realtime-lost-events.md) has the deterministic
-reproduction and a four-step diagnosis.
+fails slower. Only a spec that needs a change made by someone else — another
+player, or the server as a consequence of a move — delivered after the page has
+subscribed can see a lost event; anything the page's first load or its own RPC
+answer covers cannot. [common/realtime/doc.md → A page that has stopped
+updating](../src/common/realtime/doc.md#a-page-that-has-stopped-updating) is the
+diagnosis.
+
+**Never change a player's frontend-owned state by RPC while that player's page
+is open.** The page writes its own copy back over yours, and the result looks
+exactly like a lost realtime event.
 
 **A spec that clicks the wrong element fails somewhere else.** A locator that
 still matches after a wording change — an event-log `<td>` where the pill used
@@ -467,6 +475,7 @@ before trusting a green run. The full set:
 | `folderDocs` | every feature folder's `doc.md` + `todo.md` are in shape |
 | `actionIds` | an action's two spellings agree — `act-new-game` ⇄ `actNewGame` |
 | `registeredChords` | nothing outside `common/actions/` matches a registered chord by hand |
+| `componentKeys` | every hand-written key handler in `src/` matches through a row — an action's or `common/keyboard/componentKeys.ts`'s — so Help and `gmake dev-keys` can list it |
 
 Two placement notes for a new guard:
 

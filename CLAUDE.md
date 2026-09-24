@@ -26,14 +26,13 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/supabase.md](docs/supabase.md) | How the app talks to Supabase: the client, schema exposure, **every game's `events` log table** (the skeleton, `kind`, `took_turn`, and the three numbers), query + Realtime conventions, RPC/RLS/edge-function conventions, the divergence register |
 | [docs/envelopes.md](docs/envelopes.md) | **The one shape every RPC and edge function answers in** — ok / not-ok, severity, who writes the player's sentence, how SQL and Deno build one. Canonical; outranks supabase.md where they disagree |
 | [docs/outcomes.md](docs/outcomes.md) | The outcome vocabulary — won · lost · near · warning · neutral · noted (+ `error`, which is never an outcome); what each means and everywhere it's shown |
-| [docs/realtime-lost-events.md](docs/realtime-lost-events.md) | The lost-event failure mode (the deaf window), its fix, and the realtime diagnosis kit |
 | [docs/states.md](docs/states.md) | View-state / play-state vocabulary; suspend / current / pause |
 | [docs/testing.md](docs/testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns, the repo-wide invariant guards, the screenshot gallery |
 | [docs/ui.md](docs/ui.md) | The FE visual language: layout stability, theme tokens, the color system, the feedback pill, page chrome, dialogs/toasts, tiles, the button taxonomy |
 | [docs/buttons.html](docs/buttons.html) | The button tone grid as a rendered page (open off disk, it doesn't ship); the twin of `theme.css` → CHROME — the stylesheet wins if they disagree |
 | [docs/mobile.md](docs/mobile.md) | The mobile-appearance pass: the single desktop→mobile breakpoint, what's mobile-ready so far, recorded TODOs |
 | [docs/playarea.md](docs/playarea.md) | The play surface: PlayArea's two columns, info-column readouts, text entry, the event log + history viewer, board sizing |
-| [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md) | Every key the app listens for: dispatch routing, the global shell shortcuts, per-game board keys |
+| [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md) | Where the app's keys are listed (`gmake dev-keys` and Help, both read from the code), the two kinds of key row — actions and component keys — and where the routing rules live |
 | [src/common/pdf/doc.md](src/common/pdf/doc.md) | Printing boards to PDF: the printable design language + the shared helpers. **Lives in its folder** — `docs/pdf.md` is gone, absorbed by its area audit; which controls earn a recap row is [src/common/setup-form/doc.md → Setup rows](src/common/setup-form/doc.md#setup-rows) |
 | [docs/features.md](docs/features.md) | Games categorized by feature: dimensions (every game has exactly one value) vs tags |
 | [docs/win-lose.md](docs/win-lose.md) | The finish/defeat taxonomy: finish lines, race vs best, timeout adjudications, clock fairness, the priced-hint rule |

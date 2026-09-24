@@ -9,6 +9,7 @@ import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { KeyList } from './KeyList'
 import { useBoundAction, type ActionState } from './useBoundAction'
+import { useComponentKeys } from '../keyboard/componentKeys'
 
 /** A page that binds a few things and shows the list, the way Help does:
  *  something with a key, something without, and something whose state varies. */
@@ -80,5 +81,36 @@ describe('KeyList', () => {
     // …and no duplicate-key complaint, which is what a second row would cost.
     expect(reactSaid).not.toHaveBeenCalled()
     reactSaid.mockRestore()
+  })
+
+  // The keys a component answers for itself are rows of COMPONENT_KEYS, not
+  // actions; the list shows the ones offered on the page that Help teaches.
+  it('lists an offered component key, every key of its row', () => {
+    function List() {
+      useComponentKeys(['keys-list-move'])
+      return <KeyList />
+    }
+    render(<List />)
+    expect(screen.getByText('↑ ↓')).toBeTruthy()
+    expect(screen.getByText('Move through the list')).toBeTruthy()
+  })
+
+  it('leaves out a component key Help does not teach', () => {
+    function Menu() {
+      useComponentKeys(['keys-menu-walk-down'])
+      return <KeyList />
+    }
+    const { container } = render(<Menu />)
+    expect(container.innerHTML).toBe('')
+  })
+
+  it('lists a component key once however many components offer it', () => {
+    function TwoLists() {
+      useComponentKeys(['keys-list-open'])
+      useComponentKeys(['keys-list-open'])
+      return <KeyList />
+    }
+    render(<TwoLists />)
+    expect(screen.getAllByText('Open the row')).toHaveLength(1)
   })
 })

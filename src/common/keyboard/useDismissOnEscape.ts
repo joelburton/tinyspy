@@ -1,6 +1,8 @@
 // cs-blessed-floating-panels
 
 import { useEffect } from 'react'
+import { matches } from '../actions/chord'
+import { ESCAPE } from './componentKeys'
 
 /**
  * Escape dismisses this transient overlay, and nothing else acts on the press.
@@ -34,7 +36,7 @@ export function useDismissOnEscape(active: boolean, onDismiss: () => void): void
     function dismissOnEscape() {
       if (!active) return
       function onKey(e: KeyboardEvent) {
-        if (e.key !== 'Escape') return
+        if (!matches(ESCAPE, e)) return
         e.preventDefault()
         e.stopPropagation()
         onDismiss()

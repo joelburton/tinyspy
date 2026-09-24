@@ -267,7 +267,7 @@ test.describe('bananagrams peer counts', () => {
     await signIn(ctxA, alice.session)
     const pageA = await ctxA.newPage()
     // Alice's [rt] console trail (realtimeDiag). This test is the original
-    // lost-event suspect (docs/realtime-lost-events.md) and has only ever
+    // lost-event suspect (src/common/realtime/doc.md) and has only ever
     // failed inside full-suite runs — where nobody can rerun it under a
     // debugger — so it carries its own evidence: on failure, the trail says
     // whether the CDC event arrived (UI-side bug) or never did (lost after

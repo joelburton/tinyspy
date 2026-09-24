@@ -1,6 +1,8 @@
 // cs-blessed-floating-panels
 
 import { useEffect } from 'react'
+import { matches } from '../actions/chord'
+import { ESCAPE, useComponentKeys } from '../keyboard/componentKeys'
 
 /**
  * How each family answers Escape. `'close'` dismisses; `'swallow'` consumes the
@@ -76,7 +78,7 @@ function focused(): Entry | undefined {
 
 /** The one listener: on Escape, hand the key to the panel it belongs to. */
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key !== 'Escape' || open.length === 0) return
+  if (!matches(ESCAPE, e) || open.length === 0) return
   // Escape belongs to the panels whenever any are open, so it never falls
   // through to a game's own handler with a modal on screen.
   const target = focused() ?? topmost()
@@ -115,6 +117,8 @@ export function usePanelEscape(
   escape: EscapePolicy,
   onClose: () => void,
 ): void {
+  // Help teaches Escape (and its backtick) while a panel that closes on it is up.
+  useComponentKeys(['keys-close-panel'], escape === 'close')
   useEffect(() => {
     const entry: Entry = { id, tier, escape, onClose, seq: seqCounter++ }
     open.push(entry)

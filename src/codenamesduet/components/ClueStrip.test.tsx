@@ -5,7 +5,7 @@
  * as the AI's, and what the strip shows — the sudden-death notice, and the form
  * clearing once its clue lands.
  *
- * The tag is the two-kinds-of-text-input contract (docs/keyboard-shortcuts.md):
+ * The tag is the two-kinds-of-text-input contract (common/keyboard/doc.md → Whose keystroke is it?):
  * the clue inputs must be `data-game-input` so the global `/ ? ~` shortcuts
  * still fire while you're typing a clue (you can hit `/` to chat without
  * clicking away). This is the counterpart to the chat box being

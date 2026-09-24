@@ -250,6 +250,9 @@ export function BoardCol({
   }, [wordsKey, shuffleSeed])
   const handleShuffle = useCallback(() => setShuffleSeed((s) => s + 1), [])
 
+  // Bound here with the board rather than in the entry: the entry unmounts
+  // when I cannot guess, and the Shuffle button stays live in every state,
+  // terminal included, so its key must too.
   const actShuffle = useBoundAction('act-shuffle', {
     describe: () => 'active',
     run: handleShuffle,

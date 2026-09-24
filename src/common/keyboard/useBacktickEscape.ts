@@ -1,6 +1,8 @@
 // cs-blessed-keyboard
 
 import { useEffect } from 'react'
+import { matches } from '../actions/chord'
+import { BACKTICK } from './componentKeys'
 
 /**
  * Global accessibility affordance: let the backtick key `` ` `` stand in
@@ -49,8 +51,8 @@ export function useBacktickEscape(): void {
  */
 export function backtickToEscape(e: KeyboardEvent): boolean {
   if (!e.isTrusted) return false
-  if (e.key !== '`') return false
-  if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return false
+  // A bare backtick: `keys-close-panel`'s second key, which is how Help teaches it.
+  if (!matches(BACKTICK, e)) return false
   if (e.isComposing) return false
   e.preventDefault()
   e.stopPropagation()

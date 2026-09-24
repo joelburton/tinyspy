@@ -182,8 +182,7 @@ export function useCells(
     // Deaf-window closer: re-read the grid once the postgres_changes attach
     // is confirmed — a peer's keystroke committed between SUBSCRIBED (the
     // join ack) and the attach is dropped, and the "newer wins" version
-    // merge makes the extra load safe. See postgresAttached.ts
-    // + docs/realtime-lost-events.md.
+    // merge makes the extra load safe. See postgresAttached.ts.
     onPostgresAttached(ch, () => void load())
     ch.subscribe((status) => {
       if (status === 'SUBSCRIBED') void load()

@@ -2,6 +2,7 @@
 
 import { useCallback, useState, type ComponentPropsWithRef, type FormEvent, type KeyboardEvent, type ReactNode } from 'react'
 import { cls } from '../utils/cls'
+import { pressed } from '../keyboard/componentKeys'
 import styles from './StandardForm.module.css'
 
 /**
@@ -71,8 +72,7 @@ export function StandardForm<V extends object>({
    * pressed, not a way around it.
    */
   function handleEnter(e: KeyboardEvent<HTMLFormElement>) {
-    if (e.key !== 'Enter') return
-    if (e.shiftKey || e.metaKey || e.ctrlKey || e.altKey) return
+    if (!pressed('keys-form-commit', e)) return
     const target = e.target as HTMLElement
     // A PORTAL still bubbles through the React tree, so a blocking modal a
     // field opened elsewhere in the DOM reaches this handler. Containment is

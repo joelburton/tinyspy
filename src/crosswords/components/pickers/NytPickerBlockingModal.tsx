@@ -5,6 +5,7 @@ import { BlockingModal } from '@/common/floating-panels/BlockingModal'
 import { CancelButton } from '@/common/buttons/CancelButton'
 import { SelectionList } from '@/common/lists/SelectionList'
 import { NYT_EARLIEST, WEEKDAYS } from '../../lib/nytDays'
+import { pressed } from '@/common/keyboard/componentKeys'
 import styles from './pickers.module.css'
 
 /** Today as YYYY-MM-DD (the date box's max). */
@@ -101,7 +102,7 @@ export function NytPickerBlockingModal({ onPick, onClose }: Props) {
           value={date}
           onChange={(e) => setDate(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && date) {
+            if (pressed('keys-pick-date', e) && date) {
               e.preventDefault()
               onPick({ date })
             }

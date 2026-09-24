@@ -1314,7 +1314,7 @@ begin
     -- (connections' tiles aren't clickable, its Submit is disabled), and that
     -- gate reads `current_turn_user_id` — which arrives by realtime. So the
     -- only way here is a client whose pointer is stale: a second tab left open,
-    -- or a deaf window (docs/realtime-lost-events.md).
+    -- or a deaf window (src/common/realtime/postgresAttached.ts).
     raise exception 'Not your turn'
       using errcode = 'PN243', hint = 'race', column = '_',
       detail = 'current_turn_user_id is another player';

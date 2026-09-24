@@ -2,7 +2,7 @@
 
 /**
  * Tests for the shared Menu component — every page's header menu. The
- * keyboard contract (docs/keyboard-shortcuts.md → Menus, dialogs, and panels)
+ * keyboard contract (common/menu/doc.md)
  * is intricate enough that manual smoke-testing leaves blind spots, so each
  * describe block below pins one piece of it; the block names are the list.
  *
@@ -170,7 +170,7 @@ describe('Menu — open/close', () => {
       expect(screen.queryByRole('menu')).not.toBeInTheDocument()
       // Consumed: the page's tab ring never hears this press, and a native Tab
       // does not walk on. The NEXT press is the ring's
-      // (docs/keyboard-shortcuts.md → Menus, dialogs, and panels).
+      // (common/menu/doc.md).
       const tab = seen.find((e) => e.key === 'Tab')
       expect(tab?.defaultPrevented).toBe(true)
     } finally {

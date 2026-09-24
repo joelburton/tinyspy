@@ -2,7 +2,7 @@
 
 **A PLAN, not a description.** It is here to be built and then deleted: the
 durable parts (the marks, the channels, the grammar) fold into
-[tile-feedback.md](tile-feedback.md) and [keyboard-shortcuts.md](../docs/keyboard-shortcuts.md)
+[tile-feedback.md](tile-feedback.md) and the games' docs
 as each game lands, and this file goes away when the last one does.
 
 The feature: **arrow keys move a cursor over a board's pieces, `Space` selects,

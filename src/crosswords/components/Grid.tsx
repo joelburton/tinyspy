@@ -13,6 +13,7 @@ import type { Cell as CellT, PuzzleTemplate } from '../lib/types'
 import { cellKey, type CellsMap } from '../hooks/useCells'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
+import { pressed } from '@/common/keyboard/componentKeys'
 import styles from './Grid.module.css'
 
 // Board sizing — a single computed cell size, everything else in `em`.
@@ -216,15 +217,15 @@ function RebusInput({
       onChange={(e) => setValue(e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, MAX_REBUS_LEN))}
       onKeyDown={(e) => {
         e.stopPropagation()
-        if (e.key === 'Enter') {
+        if (pressed('keys-rebus-commit', e)) {
           e.preventDefault()
           committed.current = true
           onCommit(value, 'advance')
-        } else if (e.key === 'Tab') {
+        } else if (pressed('keys-rebus-jump', e)) {
           e.preventDefault()
           committed.current = true
           onCommit(value, e.shiftKey ? 'jumpPrev' : 'jumpNext')
-        } else if (e.key === 'Escape') {
+        } else if (pressed('keys-rebus-cancel', e)) {
           e.preventDefault()
           onCancel()
         }

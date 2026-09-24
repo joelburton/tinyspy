@@ -794,7 +794,7 @@ project-bootstrap: ## stand up a hosted project end to end (MIGRATIONS=keep|dest
 # Dev loop — thin wrappers; `npm run …` remains the documented entry
 # ════════════════════════════════════════════════════════════════
 
-.PHONY: dev test test-fe test-db test-e2e dev-lint dev-types
+.PHONY: dev test test-fe test-db test-e2e dev-lint dev-types dev-keys
 dev:     ## vite dev server
 	@npm run dev
 test:    ## FE + DB tests
@@ -809,6 +809,8 @@ dev-lint: ## eslint
 	@npm run lint
 dev-types: ## regenerate src/types/db.ts from the live local schema
 	@npm run types:gen
+dev-keys: ## list every key the app answers, by page and game (docs/keyboard-shortcuts.md)
+	@npm run --silent report:keys
 
 # The screenshot gallery (docs/testing.md → The screenshot gallery) — every game in every
 # interesting state, photographed into gallery/index.html for you to scroll.

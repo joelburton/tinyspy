@@ -22,7 +22,7 @@ import type { SystemPayload } from './realtimeDiag'
  * `SUBSCRIBED` is only the join ack. Attaching the channel's bindings to
  * the WAL poller is a second, asynchronous phase on the server, and events
  * committed before it completes are dropped — not delayed, dropped
- * (measured; see docs/realtime-lost-events.md). So the standard
+ * (measured; see this folder's doc.md). So the standard
  * refetch-on-SUBSCRIBED runs too early to be the last word: it reads state
  * as of the join, and a write landing in the SUBSCRIBED→attached gap is
  * lost with nothing left to trigger a re-read. The window is milliseconds

@@ -439,7 +439,7 @@ export function useCommonGame(
       // carries this channel's subscription is dropped — for THIS channel
       // that's a game ending invisibly (the exact bug the pinned repro spec
       // demonstrates). Re-read once the attach is confirmed. See
-      // postgresAttached.ts + docs/realtime-lost-events.md.
+      // postgresAttached.ts.
       onPostgresAttached(ch, () => void load())
 
       // Presence: dedupe to user_ids so multiple tabs of the same

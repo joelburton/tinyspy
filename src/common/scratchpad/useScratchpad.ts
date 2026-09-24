@@ -159,8 +159,7 @@ export function useScratchpad(
       }
       // Deaf-window closer: re-read once the postgres_changes attach is
       // confirmed — a pad write committed between SUBSCRIBED (the join ack)
-      // and the attach is dropped. See postgresAttached.ts +
-      // docs/realtime-lost-events.md.
+      // and the attach is dropped. See postgresAttached.ts.
       onPostgresAttached(ch, () => void load())
       ch.subscribe((status) => {
         if (status === 'SUBSCRIBED') void load()

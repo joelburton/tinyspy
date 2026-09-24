@@ -158,7 +158,7 @@ the lock.
 Connections' `eliminated` is the second row: your fourth mistake has landed but
 the row saying so has not arrived — a gap that is usually milliseconds,
 unbounded during a deaf window (see
-[realtime-lost-events.md](realtime-lost-events.md)), and permanent in a stale
+[common/realtime/doc.md](../src/common/realtime/doc.md)), and permanent in a stale
 second tab. Its `bad-selection` guard is neither: the board's own selection is
 local, nothing about it can lag, so a five-tile guess arriving means a broken
 client or someone poking at the API.

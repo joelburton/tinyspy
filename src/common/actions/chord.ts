@@ -84,11 +84,15 @@ export function isWildcard(spec: KeySpec): boolean {
 /** The four arrow keys, as `e.key` spells them. */
 const ARROWS = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown']
 
+/** The half of a keystroke a match reads — a window listener's event and a
+ *  React element's `onKeyDown` event both have it. */
+export type KeyPress = Pick<KeyboardEvent, 'key' | 'code' | 'metaKey' | 'altKey' | 'ctrlKey' | 'shiftKey'>
+
 /**
  * Does this keystroke press this key? A keystroke holding Cmd matches nothing,
  * chord and pattern alike; ⇧ is checked only when the key says so.
  */
-export function matches(spec: KeySpec, e: KeyboardEvent): boolean {
+export function matches(spec: KeySpec, e: KeyPress): boolean {
   // Cmd is never ours — reload, new tab, the address bar.
   if (e.metaKey) return false
   // ⇧ is stated on a chord where it makes a different chord (a physical or

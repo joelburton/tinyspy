@@ -32,7 +32,7 @@
 -- index, and — the load-bearing part — the table's membership in the
 -- `supabase_realtime` publication, which Postgres tracks by OID. A
 -- recreate-and-copy would drop out of the publication and the game would go
--- quiet with nothing failing (docs/realtime-lost-events.md).
+-- quiet with nothing failing (docs/supabase.md → The publication invariant).
 
 -- What the table held before any of this, to check the work against at the
 -- bottom. A temp table rather than variables: the checks are far from here.

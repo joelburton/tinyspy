@@ -8,8 +8,8 @@ import { readStored } from '../web-storage/storage'
  * **This is what writes the `[rt …]` lines in the browser console.** They are
  * the Realtime layer's evidence trail, and they are on for everyone, always —
  * no flag, no opt-in per hook (see "How it's wired" below). Read them when a
- * page has quietly stopped updating; what the trail is FOR is the lost-event
- * failure mode in docs/realtime-lost-events.md.
+ * page has quietly stopped updating; what the trail is FOR is the deaf window
+ * `onPostgresAttached` explains.
  *
  * ─── What it makes visible ────────────────────────────────────────────
  * A deaf channel, an errored one and a healthy one look identical to the
@@ -39,7 +39,7 @@ import { readStored } from '../web-storage/storage'
  *
  * Reading the trail: healthy is `status SUBSCRIBED` → `system ok`. What the
  * other shapes mean, and what a client that has quietly stopped updating
- * leaves behind, is docs/realtime-lost-events.md.
+ * leaves behind, is this folder's doc.md → Reading the `[rt …]` trail.
  *
  * ─── Verbose mode ─────────────────────────────────────────────────────
  * For deep debugging in a deployed browser, flip on the raw socket log

@@ -178,8 +178,7 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
       )
     // Deaf-window closer: reload once the postgres_changes attach is
     // confirmed — SUBSCRIBED below is only the join ack, and an event
-    // committed before the attach is dropped. See postgresAttached.ts
-    // + docs/realtime-lost-events.md.
+    // committed before the attach is dropped. See postgresAttached.ts.
     onPostgresAttached(channel, () => loadGames())
     channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') loadGames()

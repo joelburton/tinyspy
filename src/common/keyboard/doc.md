@@ -43,6 +43,12 @@ It lives here rather than beside the dispatcher because the dispatcher is not
 the only asker: the blinking-caret indicator and bananagrams' drag need the
 same answer, and a second copy of it is how `<select>` gets omitted.
 
+**Nothing on a play surface may keep focus after a click.** The dispatcher
+stands down for a focused text field and a floating panel and for nothing else,
+so a button or a `<summary>` left focused would answer Enter and Space itself
+AND let the bound command fire. `info-sheet/InfoDisclosure` cancels its
+summary's `mousedown` for exactly this; `lists/FilterSelect` never takes focus.
+
 **The caret's version of that question is `useGameHasKeyboard`**, which tracks
 `focusin`/`focusout` and reports whether the game owns the keyboard right now.
 `word-entry/WordEntryInput` gates its simulated caret on it — **caret visible ⟺
@@ -151,3 +157,17 @@ untrusted, so the listener cannot react to its own re-dispatch.
 
 **Escape is not handled here.** It stays "close what is on top," and the
 floating panels own it.
+
+**A key that is not an action is still a row.** Some keys belong to whatever
+has focus or is open rather than to the page: a selection list's arrows, a
+ring's Tab, Escape closing a panel, an open menu's walk, a form's Enter,
+crosswords' rebus box. Each is a row of `COMPONENT_KEYS` in `componentKeys.ts`
+— a label and the keys, in the same `KeySpec` shape an action's keys take —
+and the component handling it matches with `pressed(id, e)` rather than
+comparing `e.key` itself, so the row is the key. A row Help should teach
+(`inHelp`) is also OFFERED while it is live, with `useComponentKeys`, and
+Help's key list shows it after the actions: the club page's two lists offer
+their keys and its ring offers "Next list". A row that only works inside
+something Help cannot be open beside, like an open menu, is matched and never
+offered. `gmake dev-keys` finds both kinds by their ids, and the
+`componentKeys` guard holds every hand-written key handler in `src/` to a row.

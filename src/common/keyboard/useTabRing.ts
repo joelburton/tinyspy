@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import type { RefObject } from 'react'
+import { pressed, useComponentKeys, type ComponentKeyId } from './componentKeys'
 
 /**
  * A surface's Tab stops, in the order Tab visits them. A ref rather than an
@@ -109,11 +110,18 @@ function liveStops(ring: Ring): HTMLElement[] {
  * always includes itself in the cycle and no page attribute takes it out. So
  * containment is the part that has to be built.
  *
+ * **A ring worth teaching names itself.** `offers` is the `COMPONENT_KEYS` row
+ * Help's key list shows while the ring is mounted — `'keys-next-list'` on the
+ * club page, `'keys-next-field'` on a clue form — since what Tab moves between
+ * is the caller's to say. An empty ring, and a panel's, offer nothing.
+ *
  * Not for crosswords, which spends Tab on jumping between clues and so has none
  * left for navigation. That is the one genuine exception, and it costs nothing:
  * it already consumes the key, so it leaks nothing either.
  */
-export function useTabRing(ring: Ring): void {
+export function useTabRing(ring: Ring, offers?: ComponentKeyId): void {
+  useComponentKeys(offers === undefined ? [] : [offers])
+
   // The argument's identity changes every render (callers write it inline), so
   // the listener reads through a ref and never needs re-registering. Refreshed
   // in an effect rather than during render, which is right for a value only a
@@ -131,10 +139,9 @@ export function useTabRing(ring: Ring): void {
     rings.push(me)
 
     function onKeyDown(e: KeyboardEvent) {
-      // Modified chords belong to the browser and the OS — Ctrl-Tab still
-      // switches browser tabs.
-      if (e.metaKey || e.ctrlKey || e.altKey) return
-      if (e.key !== 'Tab') return
+      // Tab or ⇧Tab and nothing else: a modified chord belongs to the browser
+      // and the OS — Ctrl-Tab still switches browser tabs.
+      if (!pressed('keys-tab-ring', e)) return
       // Every live ring hears this; only the innermost answers.
       if (innermost() !== me) return
 

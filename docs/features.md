@@ -137,7 +137,7 @@ Type free text (a clue field):  TS
 Type / click a letter into a slot:  RA SD SS WN CP WW
 Click tiles to select:  WK  PP (a board repeats letters, so a typed string
   can't identify a path)  HT (three cards; also typable, one letter per card —
-  see docs/keyboard-shortcuts.md)
+  see docs/games/setgame.md → The keyboard)
 Drag tiles to place:  MG
 (TS also clicks board cells when guessing; CP/WN/WW are keyboard-first; FB/MW/SB
 tiles are also clickable — SB submits on re-clicking the word's last letter;

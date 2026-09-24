@@ -213,7 +213,7 @@ Two shapes recur across the per-game data hooks, and the choice between them is 
 
 #### Pattern A — refetch-only via `useRealtimeRefetch`
 
-For hooks that subscribe to postgres-changes and refetch on any event. The recurring shape — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → attach-confirmation refetch (the deaf-window closer, [`postgresAttached.ts`](../src/common/realtime/postgresAttached.ts) / [realtime-lost-events.md](realtime-lost-events.md)) → cleanup — is factored into [`useRealtimeRefetch`](../src/common/realtime/useRealtimeRefetch.ts). Canonical calls:
+For hooks that subscribe to postgres-changes and refetch on any event. The recurring shape — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → attach-confirmation refetch (the deaf-window closer, [`postgresAttached.ts`](../src/common/realtime/postgresAttached.ts)) → cleanup — is factored into [`useRealtimeRefetch`](../src/common/realtime/useRealtimeRefetch.ts). Canonical calls:
 
 ```ts
 useRealtimeRefetch({

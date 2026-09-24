@@ -300,7 +300,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // anywhere else, which is how the keyboard comes back after a click on some
   // blank part of the page. Nothing else on the page is in
   // it: not the header marks, not the filters, not a row's delete affordance.
-  useTabRing([startListRef, gamesListRef])
+  useTabRing([startListRef, gamesListRef], 'keys-next-list')
 
   // The startable games in DISPLAY order — alphabetical by brand, and coop
   // before compete inside the tie a sibling pair makes (both export the same

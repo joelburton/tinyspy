@@ -172,7 +172,8 @@ export function useRealtimeRefetch({
 
     // `cause` is diagnostics-only: pairs each refetch in the console with
     // what provoked it (mount / SUBSCRIBED / the postgres_changes attach
-    // confirmation / a delivered event) — see docs/realtime-lost-events.md.
+    // confirmation / a delivered event) — see this folder's doc.md → Reading
+    // the `[rt …]` trail.
     function refetch(cause: 'mount' | 'subscribed' | 'attached' | 'event') {
       const myGen = ++generation
       rtLog(name, `refetch #${myGen} (${cause})`)

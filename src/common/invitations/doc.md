@@ -59,7 +59,7 @@ corner as every other announcement and an open chat panel never covers it.
   invitation shown a second time.
 - **The reconnect rescan also fires when the postgres_changes attach is
   confirmed,** not only on the join ack, because an insert committed between
-  the two is otherwise lost (docs/realtime-lost-events.md).
+  the two is otherwise lost (`common/realtime/postgresAttached.ts`).
 - **The ✕ fires the toast's `onClose`; Join does not.** Joining removes the
   invitation from the list, which retires the toast through the mirror, and
   marking it dismissed would record something nobody did.

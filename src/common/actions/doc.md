@@ -2,9 +2,9 @@
 
 Every command in the app — New game, Shuffle, Concede, typing a letter — as one
 kind of thing, with the half that never varies kept in one table and the half
-that does supplied by whoever offers it. What each key DOES is
-[docs/keyboard-shortcuts.md](../../../docs/keyboard-shortcuts.md); this folder
-is what a command IS.
+that does supplied by whoever offers it. `gmake dev-keys` lists every key a
+surface binds ([docs/keyboard-shortcuts.md](../../../docs/keyboard-shortcuts.md));
+this folder is what a command IS.
 
 ## Intro to area
 
@@ -143,6 +143,9 @@ help companion, loops over the bound actions that have a key and are not
 hidden: the first key, and what the action is called at that moment. An action
 bound twice — `act-end-game`, by the game and by the page for the pause overlay
 — is listed once, with the words of the binding the dispatcher would fire.
+After the actions come the keys a component answers for itself — a list's
+arrows, a ring's Tab, Escape — which are not actions and are offered from
+`keyboard/componentKeys.ts` instead.
 
 **A button's bubble teaches the key, but its name stays its name.** The bubble
 is `nameWithKey`: the words with the first chord on the end, "New game · +",

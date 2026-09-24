@@ -670,7 +670,7 @@ Four keys work on every "real" page (any ClubPage / GamePage, as opposed to the 
 
 They fire when nothing is focused (the mid-game common case, where word games read keys off `window`) **and** when a *game* input is focused (codenamesduet's clue field — opted in with `data-game-input`), but **not** when a non-game field has focus (a setup form, the chat box itself) — there the keys type literally. That is the actions' `inField: 'game-inputs'`, applied by the dispatcher. Escape is deliberately not handled here; it stays "close the topmost open modal," owned by the dialogs.
 
-**Tab is the other direction, and it is never native.** `/` takes the keyboard into chat; Tab in the chat box or the scratchpad hands it back by blurring the field, since every game reads keys off `window` and the dispatcher declines while any field is focused. On the board itself Tab does nothing, because a play surface has nowhere for it to go. Both halves, and the ring model they belong to, are [`common/keyboard`](../src/common/keyboard/doc.md)'s; the per-surface rules are in [keyboard-shortcuts.md](keyboard-shortcuts.md).
+**Tab is the other direction, and it is never native.** `/` takes the keyboard into chat; Tab in the chat box or the scratchpad hands it back by blurring the field, since every game reads keys off `window` and the dispatcher declines while any field is focused. On the board itself Tab does nothing, because a play surface has nowhere for it to go. Both halves, and the ring model they belong to, are [`common/keyboard`](../src/common/keyboard/doc.md)'s; every key each surface binds is listed by `gmake dev-keys` ([keyboard-shortcuts.md](keyboard-shortcuts.md)).
 
 ## Theme & styling
 
@@ -812,7 +812,7 @@ uses `ascii()` bounds now.
 **The chord** is the registry's `altShift('Backquote', '⌥~')` — Shift
 required, matched on `code` because macOS makes ⌥` the dead-key accent
 composer (`e.key === 'Dead'`) — the `⌥+`/`Equal` trick again; see
-[keyboard-shortcuts.md](keyboard-shortcuts.md).
+[common/actions/doc.md](../src/common/actions/doc.md).
 
 ## Dictionary curation (edit / add / delete a word)
 

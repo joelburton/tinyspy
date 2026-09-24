@@ -12,6 +12,7 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { useTabRing } from '@/common/keyboard/useTabRing'
+import { useComponentKeys } from '@/common/keyboard/componentKeys'
 import { db } from '../db'
 import type { Seat } from '../lib/phase'
 import type { ClueEvent } from '../lib/events'
@@ -236,7 +237,9 @@ function ClueForm({
   // the page's empty ring below it.
   const countRef = useRef<HTMLInputElement>(null)
   const wordRef = useRef<HTMLInputElement>(null)
-  useTabRing([countRef, wordRef])
+  useTabRing([countRef, wordRef], 'keys-next-field')
+  // Enter is the form's own submit, not a bound action; offered so Help says so.
+  useComponentKeys(['keys-submit-clue'])
 
   async function onSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault()
