@@ -75,9 +75,9 @@ every guess is everyone's. The four tiles of a guess are picked together —
 each pick is broadcast as it happens, and the board shows whose it was in
 their color. The click rule is on the **union** of everyone's picks
 (`lib/selection.ts`): a tile already in it comes out, whoever put it in; an
-unselected tile joins MY picks, up to four across the table. Submit is whoever presses it. A correct guess
-clears everyone's selection; a wrong or one-away guess keeps it, so the
-player can swap a tile and try again.
+unselected tile joins MY picks, up to four across the table. Submit is whoever presses it. Every
+answered guess clears everyone's selection — correct, one away, wrong, or
+already tried; a guess the server doesn't take keeps it.
 
 The team wins at four bands, and loses on the fourth mistake or when a
 countdown expires. End is the neutral stop — nobody won, nobody lost. Turn
@@ -374,6 +374,11 @@ What is connections' own:
   wears their color as an inset mark (`.peerPick`) on a shared board only; a
   verdict fills the four tiles in its pill's outcome, and a band that landed
   under a teammate's hands flashes for everyone but the guesser.
+- **The keyboard picks too.** Arrows move a selection cursor over the loose
+  tiles (`useBoardSelectionCursor`, the shape `lib/boardShape.ts`), and Space
+  is a click on the tile under it — the same union rule, broadcast the same
+  way; the cursor itself is never sent. Enter is Submit. A band taking a row
+  away moves the cursor to the nearest tile left.
 - **Two checks are local** — four tiles picked, and not a set already tried
   (see FE submissions). The verdict is `lib/evaluate.ts`'s, and the pill
   reads `lib/answer.ts`.

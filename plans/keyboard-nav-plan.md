@@ -256,11 +256,16 @@ says "Submitting…"). **Check its `Help.tsx` too**: the rules text saying how
 to make a move is written by hand, so it has to learn the arrows, Space and
 Enter (the key list under it is automatic).
 
+**connections second — DONE 2026-09-24.** Space is a click on the ringed tile
+(`handleToggle`, so the union rule and the broadcast come with it); its own
+`act-submit` stayed as it was; the cursor clamps onto the nearest tile when a
+band takes a row away (`clampCell`); and the ring became the shared
+`.selectionCursor`.
+
 Then **waffle**, which brings the one real behavior change the feature asks of a
 game: a selection that must stop auto-committing (today the second click *is*
 the swap; the keyboard needs to hold two selections and wait for `Enter`). The
-mouse keeps its current two-click swap. Then **connections** (peer rings + a
-collapsing grid), **codenamesduet** (guesser only — the clue-giver's input is a
+mouse keeps its current two-click swap. Then **codenamesduet** (guesser only — the clue-giver's input is a
 real text field and arrows there belong to the field), **strands** last, since it
 brings the move-end state mark with it.
 
@@ -322,7 +327,7 @@ games follow.
 |---|---|---|---|---|
 | waffle | 4 holes | up to **two** tiles | the swap | must hold 2 selections without firing |
 | psychicnum | trailing cells | one word | the guess | Submit stays, as the commit's button; no cue |
-| connections | — | up to four | the group | index clamps when a band collapses; peer rings nest |
+| connections — **DONE** | — | up to four | the group | index clamps when a band collapses; peer rings nest |
 | codenamesduet | — | one word | the guess | guesser only; needs a submit trigger |
 | strands | — | letters, adjacency-gated | the word | tail-end is state; `⌫` steps back one |
 

@@ -8,8 +8,8 @@
  * What is pinned here is the surface's behavior: the loader's failed-read
  * gate, Concede vs End per mode, the ended board and the reveal, the
  * celebration, the board-scope marks, whose pick is ringed, the marks on a
- * guess and the three ways one ends, attention on a band, and every key and
- * action-row face per asker. Game logic is pgTAP's (the RPCs) and
+ * guess and the three ways one ends, attention on a band, every key and
+ * action-row face per asker, and the keyboard's selection cursor. Game logic is pgTAP's (the RPCs) and
  * `evaluate.test.ts`'s.
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -1141,5 +1141,101 @@ describe('connections PlayArea — the keys', () => {
       // answered "no" — the RPC firing proves none was asked.
       await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
     })
+  })
+})
+
+describe('connections PlayArea — the selection cursor', () => {
+  // The board's tile order, four across:
+  //   a b c d
+  //   e f g h
+  //   i j k l
+  //   m n o p
+  // Space is a click on the tile under the ring, so what it DOES — the union
+  // rule, four across the table, a teammate's pick coming out — is
+  // `eventForClick`'s (selection.test.ts); here it is enough that Space hands
+  // `toggleTile` the ringed tile.
+  const tileFor = (tile: string) => document.querySelector(`[data-tile="${tile}"]`) as HTMLElement
+  const ringed = () =>
+    [...document.querySelectorAll('[data-tile]')]
+      .filter((t) => /selectionCursor/.test(t.className))
+      .map((t) => t.getAttribute('data-tile'))
+  // Awaited: a bound action's run settles a microtask after the keystroke.
+  const key = (k: string) => act(async () => press({ key: k }))
+
+  it('is hidden until an arrow; the first arrow rings the first tile, the next moves it', async () => {
+    h.result = loaded()
+    render(<WithKeys {...makeCtx()} />)
+    expect(ringed()).toEqual([])
+
+    await key('ArrowRight')
+    expect(ringed()).toEqual(['a'])
+    await key('ArrowRight')
+    expect(ringed()).toEqual(['b'])
+    await key('ArrowDown')
+    expect(ringed()).toEqual(['f'])
+  })
+
+  it('Space does nothing while the ring is hidden, then toggles the ringed tile', async () => {
+    const toggleTile = vi.fn()
+    h.result = loaded({ toggleTile })
+    render(<WithKeys {...makeCtx()} />)
+    await key(' ')
+    expect(toggleTile).not.toHaveBeenCalled()
+    expect(ringed()).toEqual([])
+
+    await key('ArrowDown')
+    await key('ArrowDown')
+    await key(' ')
+    expect(toggleTile).toHaveBeenCalledWith('e')
+  })
+
+  it('a click toggles the tile and hides the ring; the next arrow rings the clicked tile', async () => {
+    const user = userEvent.setup()
+    const toggleTile = vi.fn()
+    h.result = loaded({ toggleTile })
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await user.click(tileFor('g'))
+    expect(toggleTile).toHaveBeenCalledWith('g')
+    expect(ringed()).toEqual([])
+
+    await key('ArrowLeft')
+    expect(ringed()).toEqual(['g'])
+  })
+
+  // A solved band takes a row of loose tiles away; the ring stands on the
+  // nearest tile left and Space acts there.
+  it('stands on the nearest tile when a band takes a row away', async () => {
+    const toggleTile = vi.fn()
+    h.result = loaded({ toggleTile })
+    const ctx = makeCtx()
+    const { rerender } = render(<WithKeys {...ctx} />)
+    await key('ArrowRight')
+    await key('ArrowRight')
+    for (let i = 0; i < 3; i++) await key('ArrowDown')
+    expect(ringed()).toEqual(['n'])
+
+    h.result = loaded({
+      toggleTile,
+      matchedCategories: [{ rank: 0, name: 'RED', tiles: ['a', 'b', 'c', 'd'], matched_at: '2026-06-15T00:00:00Z' }],
+    })
+    rerender(<WithKeys {...ctx} />)
+    // e..p now fill three rows, and row 3 is gone: the ring is on row 2,
+    // same column.
+    expect(ringed()).toEqual(['n'])
+    await key(' ')
+    expect(toggleTile).toHaveBeenCalledWith('n')
+    await key('ArrowUp')
+    expect(ringed()).toEqual(['j'])
+  })
+
+  it('a board I cannot play takes no ring and no keys', async () => {
+    const toggleTile = vi.fn()
+    h.result = loaded({ toggleTile })
+    render(<WithKeys {...makeCtx({ isMyTurn: false })} />)
+    await key('ArrowRight')
+    await key(' ')
+    expect(ringed()).toEqual([])
+    expect(toggleTile).not.toHaveBeenCalled()
   })
 })

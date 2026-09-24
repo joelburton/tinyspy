@@ -21,8 +21,9 @@ export function Help({ onClose, brand }: Props) {
       <p>
         <strong>Find four hidden categories of four.</strong> The 16 tiles on
         the board belong to four secret categories. Pick four tiles you
-        think share a category and Submit. Same puzzles as NYT
-        Connections.
+        think share a category and Submit — click them, or move with the
+        arrow keys, pick with Space, and submit with Enter. Same puzzles as
+        NYT Connections.
       </p>
 
       <h3>Guesses</h3>
