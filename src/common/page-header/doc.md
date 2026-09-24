@@ -108,7 +108,8 @@ HomePage (home) · ClubPage (club) · GamePage (game-page)
   registers its handle while mounted and releases it on unmount. The game page
   alone passes `returnFocusOnClose`, because a focused trigger over a board
   that reads window keydowns would swallow them.
-- **On a phone the roster drops to dots**, and the game header splits its
+- **Below the mobile breakpoint the roster drops to dots**, since the dot
+  already says who and whether they are here, and the game header splits its
   contents across the board page and the info page; the header itself is the
   same strip on both (docs/mobile.md).
 - `ChatButton` shows the app-root `act-open-chat` through `useAppAction` (its

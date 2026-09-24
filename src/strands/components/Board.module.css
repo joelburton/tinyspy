@@ -158,10 +158,9 @@
   /* Chrome-less: no border, no background, no radius — which is what the bare
    * <button> already is. The disc under it is the mark. */
   /* Finding a word here is a rapid run of taps across adjacent letters, so opt
-   * out of double-tap-to-zoom and its tap delay — the same treatment the shared
-   * `.tile` gives every other tapped board (common/PlayArea.module.css), which
-   * these bespoke tiles never picked up. Plus the gray tap-flash, which paints
-   * a rectangle over a round disc. */
+   * out of double-tap-to-zoom and its tap delay — the shared `.tile`'s treatment
+   * (common/game-page/playArea.module.css), carried here because these tiles are
+   * bespoke. Plus the gray tap-flash, which paints a rectangle over a round disc. */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
   display: flex;

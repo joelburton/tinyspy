@@ -15,12 +15,12 @@ type Props = {
 }
 
 /**
- * The mobile info-column sheet wrapper (docs/mobile.md → the psychicnum recipe).
+ * The mobile info-column sheet wrapper (doc.md → Details).
  *
  * On desktop it's a `display: contents` no-op: the child (a game's InfoCol) is
  * the flex child of `.layout`. Below `--mobile` it becomes a fixed, FULL-BLEED
  * page slid in from the right by `open` — the second of the two mobile pages,
- * reached by the header's switch button (docs/mobile.md → The two mobile pages).
+ * reached by the header's switch button.
  *
  * The presentational half of the recipe. Pair it with `useInfoSheet` (the open
  * flag and a way to close) and the shared `.mobileFill` class on the game's

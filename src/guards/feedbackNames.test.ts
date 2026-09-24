@@ -10,8 +10,7 @@ import { describe, expect, it } from 'vitest'
  * A feedback message is `feedbackMessage` or `feedbackMsg`; a slot instance
  * is `localFeedbackSlot` or `globalFeedbackSlot`; the type, the hook and the
  * pill carry the word inside a longer name. The bare word is what let
- * "feedback" mean five things at once (docs/code-conventions.md → Feedback
- * naming), and what let a parameter called `feedback` quietly mean "the
+ * "feedback" mean five things at once (src/common/feedback/doc.md), and what let a parameter called `feedback` quietly mean "the
  * local one". This was a naming rule and a habit; it is a check now, because
  * the prefix that used to be the reminder (`Generic…`) is gone.
  *

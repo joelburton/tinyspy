@@ -84,10 +84,9 @@
   transition:
     transform var(--transition-duration-nudge) ease,
     box-shadow var(--transition-duration-nudge) ease;
-  /* Touch (docs/mobile.md → tap-press feedback): the keyboard is the tap-heaviest
-   * surface in wordle/wordiply, so kill the gray tap-flash and opt out of
-   * double-tap-zoom + its tap delay (rapid typing must stay crisp). The designed
-   * press below darkens the key instead. */
+  /* Touch: kill the gray tap-flash and opt out of double-tap-zoom + its tap
+   * delay, so rapid typing stays crisp — the same treatment as the shared
+   * `.tile`. The designed press below replaces the flash. */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }

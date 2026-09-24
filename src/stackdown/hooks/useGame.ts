@@ -88,7 +88,7 @@ type WordEvent =
 
 /**
  * stackdown's per-gametype data hook — a postgres-changes realtime hook
- * (docs/code-conventions.md → "Realtime data hooks"): one channel
+ * (src/common/realtime/doc.md): one channel
  * carrying changes to games / players / submissions, plus the player's
  * own local in-progress-word state.
  *

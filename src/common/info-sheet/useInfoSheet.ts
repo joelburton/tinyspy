@@ -14,8 +14,8 @@ export type InfoSheetApi = {
 }
 
 /**
- * A game's handle on the mobile **info page** (docs/mobile.md → the psychicnum
- * recipe). Below the breakpoint a game's board fills the screen and its info
+ * A game's handle on the mobile **info page** (doc.md → Details).
+ * Below the breakpoint a game's board fills the screen and its info
  * column becomes a second page you switch to.
  *
  * **The switching affordance is not here.** The shell's header renders the

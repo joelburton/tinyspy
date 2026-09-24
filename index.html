@@ -28,9 +28,10 @@
          while everything around us is dark. Readable beats blended.
          The granularity is the page (or a subtree) — there is NO per-color
          opt-out, so don't go looking for one when a single tile misbehaves.
-         WHEN A REAL DARK MODE LANDS: change this to `light dark` and add the
-         prefers-color-scheme rules; the browsers then back off on their own
-         because we've declared support, and our palette wins. -->
+         A dark theme loads src/common/themes/dark-mode.css, which declares
+         `color-scheme: only dark` and wins over this meta. Today the dark
+         themes are behind a flag; if a theme picker ships, this meta must be
+         changed to agree with it (plans/dark-mode.md). -->
     <meta name="color-scheme" content="only light" />
 
     <!-- Installable / home-screen web app. The manifest's `scope: "/"` +

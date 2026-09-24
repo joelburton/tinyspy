@@ -65,7 +65,7 @@ export type ScrabbleGame = {
 
 /**
  * scrabble's per-gametype data hook — a postgres-changes realtime hook
- * (docs/code-conventions.md → "Realtime data hooks", Pattern A) via the shared
+ * (src/common/realtime/doc.md) via the shared
  * `useRealtimeRefetch` factory: reloads games_state / players_state / events on
  * any change. There's no Broadcast — tentative placements are local to the
  * PlayArea (private until a commit), exactly like stackdown's private

@@ -64,6 +64,17 @@ players strip while it does, so nothing belongs there for the length of a game.
 
 ## Details
 
+- **"Feedback" means a message in a slot, and nothing else.** A lit tile, a
+  word underlined in the list, an opponent-strip readout are the board's own
+  display; the test is whether it ends up in a slot.
+- **Bare `feedback` is never a declared name.** The machinery carries the word
+  inside a longer one (`FeedbackMessage`, `useFeedbackSlot`, `FeedbackPill`);
+  a message is `feedbackMessage` or `feedbackMsg`; a slot is `localFeedbackSlot`
+  or `globalFeedbackSlot`. The noun is always `feedback`, never `result` or
+  `flash`, because how a message leaves is its kind's business, not its name's.
+  A producer is named for the stream it reads (`usePeerFeedback`,
+  `useChatFeedback`) and keeps that name in every game.
+  `src/guards/feedbackNames.test.ts` holds the first rule.
 - **The slot dies with its host.** `useFeedbackSlot` makes one per PlayArea or
   page and clears every pending timer on unmount, so a message cannot outlive
   the surface that showed it. The page hands its instance down as

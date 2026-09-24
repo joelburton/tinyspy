@@ -62,10 +62,14 @@ App ── /c/<handle> ──> ClubPageLoader          get_club_page, and the wa
 `GameEntry` draws `GameLogo` (branding) and `ModeBadge`. `CreateClubModal`
 is the one component here this page does not render — `HomePage` does.
 
-- **Each filter is in the tree twice, and cannot be once** — why is in
-  [docs/mobile.md](../../../docs/mobile.md) → "Club page — tabs instead of two
-  columns", with the rest of this page's mobile shape. What that section does
-  not say, because it is about the markup rather than the alternative: one
+- **On a phone the columns are tabs, where a game page moves its info column
+  off the board.** A game's info column sits beside a board, and the board is
+  the page. Here both columns are lists you choose from; moving one aside would
+  make it the lesser of the two, and tabs say they are equals.
+- **Each filter is in the tree twice, and cannot be once.** On a phone the
+  heading rows that hold the filters are hidden (the tab names the view), and
+  the showing tab's filter renders in a row under the tab bar instead; no CSS
+  can move an element from inside a column to a sibling of the tab bar. One
   instance placed by a `useIsMobile` hook would state the mobile threshold
   twice, in a media query and in JS, and those two reads can disagree across a
   resize. A duplicated STATELESS control has nothing to disagree about. The

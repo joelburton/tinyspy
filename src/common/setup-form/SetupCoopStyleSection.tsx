@@ -22,8 +22,8 @@ export type CoopStyle = 'turns' | 'free-for-all'
  * opting-in game shares one definition rather than re-declaring the pair.
  *
  * What each key means, and which survives into a club's saved default:
- * [docs/code-conventions.md → Reserved coop-turn setup
- * keys](../../../docs/code-conventions.md#reserved-coop-turn-setup-keys).
+ * [docs/common-schema.md →
+ * Turn-order](../../../docs/common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
  */
 export type CoopTurnSetup = {
   coop_style?: CoopStyle

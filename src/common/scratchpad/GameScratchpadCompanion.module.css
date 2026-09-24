@@ -36,7 +36,8 @@
   line-height: var(--line-height-1);
 }
 
-/* iOS focus-zoom floor (docs/mobile.md → Decisions #3): `--font-size-2` is
+/* iOS focus-zoom floor (docs/mobile.md → The rules every screen keeps):
+   `--font-size-2` is
    under the 16px threshold, so focusing the notes textarea would zoom the page
    in on a phone (and never back out). Pin to 16px on touch; desktop keeps the
    compact size. A class rule, so it needs its own touch override — the global

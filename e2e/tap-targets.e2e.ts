@@ -24,18 +24,17 @@ import { signIn } from './helpers/session'
  * Why this is an e2e rather than a lint rule or a reading of the CSS: the
  * failure is INVISIBLE IN THE SOURCE. `touch-action` is silently ignored on an
  * SVG child element — a `<g>` generates no CSS box, so the browser drops the
- * declaration on the floor — and spellingbee shipped exactly that for months.
- * The rule was there, on `.hex`, with a comment explaining why it was needed;
- * it just never applied. Reading the stylesheet tells you nothing. Only asking
- * the browser what it actually computed does.
+ * declaration on the floor. On an SVG board the rule belongs on the `<svg>`
+ * root. A rule on a `<g>` reads as correct and never applies, so reading the
+ * stylesheet tells you nothing; only asking the browser what it computed does.
  *
  * So this walks from each game's real tap target up its ancestor chain (which
  * is how the browser resolves a touch's effective behavior) and requires a
  * `touch-action` on some element that can actually carry one. It catches both
- * failure modes at once: the rule that's missing (wordwheel, strands) and the
- * rule that's present but inert (spellingbee).
+ * failure modes at once: the rule that's missing and the rule that's present
+ * but inert.
  *
- * Adding a game with a tapped board? Add it here.
+ * A new game with a tapped board joins this list.
  */
 
 /** Games you play by tapping the board, with a selector for one tap target. */
@@ -43,16 +42,15 @@ const TAPPED_BOARDS = [
   // spellingbee is the SVG-drawn board — the shape that made this bug possible.
   // Its rule has to live on the <svg> root, not on the <g> that is the hex.
   // `data-hex`, not `g[role="button"]`: those tiles are pointer-only and carry
-  // no ARIA role (2026-08-16 — the role + tabIndex was an unreachable button
-  // costume that trapped focus instead).
+  // no ARIA role.
   { name: 'spellingbee', make: createSpellingbeeGame, target: 'g[data-hex]' },
-  // wordwheel's tiles and letterboxed's letters are HTML boxes laid OVER their
-  // SVG, so each carries its own touch-action and the inert-child trap can't
-  // reach them.
+  // wordwheel's tiles and letterboxed's letters are HTML boxes that take the
+  // rule from an HTML ancestor (the wheel, the board square), so the
+  // inert-child trap can't reach them.
   { name: 'wordwheel', make: createWordwheelGame, target: '[data-tile]' },
   { name: 'letterboxed', make: createLetterboxedGame, target: '[class*="node"]' },
-  // HTML tiles: bespoke ones (strands, boggle, scrabble) and the shared `.tile`
-  // (connections, waffle, stackdown).
+  // HTML tiles: bespoke ones (strands, boggle, stackdown, scrabble) and the
+  // shared `.tile` (connections, waffle).
   { name: 'strands', make: createStrandsGame, target: 'button[class*="tile"]' },
   { name: 'connections', make: createConnectionsGame, target: '[class*="tile"]' },
   { name: 'boggle', make: createBoggleGame, target: '[data-boggle-tile]' },

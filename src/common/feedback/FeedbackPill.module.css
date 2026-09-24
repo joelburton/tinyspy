@@ -52,7 +52,7 @@
    `currentColor` RE-POINTS THE SLOT rather than out-cascading `color`: the
    button's ink comes from `.secondary { color: var(--button-slot-secondary-color) }`,
    so setting the slot is how to change it without fighting that rule
-   (code-conventions.md → state classes win by re-setting tokens).
+   (docs/code-conventions.md → The CSS checklist).
 
    DESCENDANT ON PURPOSE. One class here would tie with `.quiet`'s own slot rule
    in the shared module, leaving bundle order to pick the winner. */

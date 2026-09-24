@@ -1,336 +1,284 @@
 # Code conventions
 
-How we write code in this repo. The cross-cutting rules that aren't tied to any one gametype. Read this before writing or reviewing code in `src/` or `supabase/`.
+The house rules for writing code in `src/` and `supabase/`: the ones the
+surrounding code won't teach you, or teaches wrong. A mechanism's own rules
+live with the mechanism — its folder's `doc.md` or its docstring — and this doc
+points at them rather than repeating them. For terminology see
+[naming.md](naming.md); for tests, [testing.md](testing.md).
 
-For terminology and the architectural backdrop see [`naming.md`](naming.md). For feature-specific conventions see [`common.md`](common.md) and [`testing.md`](testing.md); a game's own conventions live in its folder's `doc.md`.
+## Before you write
+
+- **The surrounding code is not evidence.** Much of the app predates rules
+  written here, so a nearby file doing it differently is not permission. This
+  doc, a folder's `doc.md`, and files stamped `cs-blessed-*` are the models.
+- **A new file needs a first-line `cs-` stamp**, or
+  `src/guards/csStamps.test.ts` fails
+  ([plans/app-audit.md → The stamp](../plans/app-audit.md#the-stamp)). Only
+  Joel writes `cs-blessed`.
+- **Many rules here are guarded.** `npx vitest run src/guards` runs them all
+  ([testing.md → Repo-wide invariant guards](testing.md#repo-wide-invariant-guards));
+  where a rule below names its guard, the guard is the authority.
+- **The loop:** `npx tsc -b` (not `tsc --noEmit`), `npm run lint`, the guards,
+  the tests beside what you touched. After editing `supabase/sql/`, re-apply it
+  with `gmake db-sql ENV=local`; run pgTAP as the whole suite (`gmake test-db`).
+  A shape change is a new migration ([CLAUDE.md → Production
+  software](../CLAUDE.md#production-software--preserve-the-data-migrate-forward)).
+- **Where the machinery is explained:**
+
+  | writing… | read |
+  |---|---|
+  | an RPC, read or edge-function call | [envelopes.md → The shape of a call site](envelopes.md#the-shape-of-a-call-site), `src/common/supabase/doc.md` |
+  | a command (a button, menu row or key) | `src/common/actions/doc.md` — the `ACTIONS` registry, `useBoundAction` |
+  | a message to the player | `src/common/feedback/doc.md` |
+  | a realtime hook or channel | `src/common/realtime/doc.md` |
+  | a play surface | [playarea.md](playarea.md) |
+  | CSS values, colors, the z- layers | [tokens.md](tokens.md), `core-css/base.css` → THE Z- LAYERS |
+  | where a shared file goes | [common-folders.md](common-folders.md) |
 
 ## Code clarity & docstrings
 
-The explanation bar in this codebase is higher than the average TypeScript project — see [`../CLAUDE.md → Educational priority`](../CLAUDE.md#educational-priority--clarity-over-brevity) for the prior. **The bar is on docstrings**, which explain a thing once for everyone who uses it. A comment is a different job: it explains something non-obvious about the code in front of the reader. It does not teach, and it does not restate what a shared thing's docstring already says. What that looks like in practice:
+The explanation bar in this codebase is higher than the average TypeScript
+project — see [`../CLAUDE.md → Educational
+priority`](../CLAUDE.md#educational-priority--clarity-over-brevity) for the
+prior. **The bar is on docstrings**, which explain a thing once for everyone who
+uses it. A comment is a different job: it explains something non-obvious about
+the code in front of the reader. It does not teach, and it does not restate what
+a shared thing's docstring already says.
 
-- **Docstrings on every exported function, component, hook, and RPC.** Explain what it does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in [`supabase/sql/codenamesduet.sql`](../supabase/sql/codenamesduet.sql) and components like [`src/codenamesduet/components/ClueStrip.tsx`](../src/codenamesduet/components/ClueStrip.tsx) are the model — generous prose, examples, references to related pieces.
-- **Code comments where the WHY isn't obvious.** Subtle invariants, non-obvious trade-offs ("we refetch on SUBSCRIBED because broadcasts can be missed during reconnect"), workarounds for specific platform behavior. The test is whether a reader needs it to read or safely change *this* code — not whether it's interesting. Design rationale goes in `docs/`, and how the code came to be goes in the commit message.
-- **The `/**` marker belongs to docstrings alone; a note inside a structure or a body takes `//`.** A docstring documents a file, a type, a structure or a function — it answers *should I read this, and how do I call it* — and the editor lights it up so that question can be answered by scanning. A note about one field, one statement, or why the body is written the way it is answers a different question, and taking the docstring marker for it destroys the signal: everything on screen looks like something you must read first. `//` is preferred; `/* */` is fine. This is also how a docstring stays short — when a paragraph explains why the implementation is what it is, it belongs on the line it defends, inside the function, not in the docstring a caller reads. [`dbLog.ts`](../src/common/supabase/dbLog.ts) is the model: `logSlow`'s "omitted beats empty" and `logDb`'s "built ONCE and shared" sit in the bodies, and `TransportFacts.detail`'s note is `//` like every other field's.
+- **Docstrings on every exported function, component, hook, and RPC.** What it
+  does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in
+  [`supabase/sql/codenamesduet.sql`](../supabase/sql/codenamesduet.sql) and
+  [`ClueStrip.tsx`](../src/codenamesduet/components/ClueStrip.tsx) are the
+  model.
+- **Code comments where the WHY isn't obvious.** Subtle invariants, trade-offs,
+  platform workarounds. The test is whether a reader needs it to read or safely
+  change *this* code — not whether it's interesting. Design rationale goes in
+  `docs/` or the folder's `doc.md`; how the code came to be goes in the commit
+  message.
+- **The `/**` marker belongs to docstrings alone; a note inside a structure or a
+  body takes `//`.** A docstring answers *should I read this, and how do I call
+  it*, and the editor lights it up so that can be answered by scanning. A note
+  about one field, one statement, or why the body is written as it is answers a
+  different question; giving it the docstring marker makes everything on screen
+  look like something you must read first. `//` is preferred; `/* */` is fine.
+  It is also how a docstring stays short: a paragraph defending the
+  implementation belongs on the line it defends. [`dbLog.ts`](../src/common/supabase/dbLog.ts)
+  is the model.
 
-  **A component's props are fields, so a prop note is `//`.** This is the case the rule is most often read past, because a props block feels like API surface — but `type Props = { … }` is one declaration, and a note on one prop is a note on one member of it. The docstring that answers "how do I call this" is the component's own, above the function. [`members/Dot.tsx`](../src/common/members/Dot.tsx) is the model. **Much of the app does not comply yet**, including folders that have been audited and blessed, so the surrounding code is not evidence: a prop block written before this was written down is one that predates the rule, not permission to write another.
-- **Names describe role, not implementation.** `isClueGiver` not `playerA`. See [`naming.md`](naming.md) for the terminology lexicon.
-- **Prefer one clear path over a clever one.** A few extra lines of straightforward code beat a tight expression that requires the reader to pause.
-- **Extract a small helper over a deeply-nested ternary.** A single `a ? b : c` is fine; two-or-more-deep nests almost always read better as a small function with `if` branches — each case lands on its own line, picks up a name (or at least a local variable), and survives a future tweak without re-balancing the whole expression. See [`psychicnum/manifest.ts → labelFor`](../src/psychicnum/manifest.ts) for the model: a 3-deep ternary refactored into a 6-line helper. The only reason to keep the ternary inline is a measured hot path where allocating the helper actually shows up in a profile — and there are no such hot paths in this codebase today.
-- **A comment about a SHARED concept or a SHARED mechanism shrinks to a reminder and a pointer.** Where a comment explains what an envelope, an outcome or a severity *is*, one line and the name of the doc beats a paragraph — the doc is the one copy, and prose in five files drifts from it silently. The same holds at a call site: what a shared hook or component does, and why it works the way it does, lives in its docstring, so the caller writes one sentence naming the job and pointing at it.
+  **A component's props are fields, so a prop note is `//`.** `type Props = { … }`
+  is one declaration; the docstring that answers "how do I call this" is the
+  component's own. [`members/Dot.tsx`](../src/common/members/Dot.tsx) is the
+  model. **Much of the app does not comply yet**, audited folders included.
+- **A comment about a SHARED concept or mechanism shrinks to a reminder and a
+  pointer.** What an envelope, an outcome or a severity *is* lives in one doc;
+  what a shared hook does lives in its docstring. The caller writes one sentence
+  naming the job:
 
   ```ts
   // Guards non-idempotent requests from firing twice; see `useSingleFlight`.
   ```
 
-  Where a comment explains what *this code* does — the part that is true here and nowhere else — it stays. The tell is whether editing the shared thing would make the comment wrong.
+  What *this code* does — true here and nowhere else — stays. The tell is whether
+  editing the shared thing would make the comment wrong.
+- **Prefer one clear path over a clever one**, and **extract a small helper over
+  a nested ternary**: one `a ? b : c` is fine, two deep reads better as a
+  function with `if` branches
+  ([`psychicnum/manifest.ts → labelFor`](../src/psychicnum/manifest.ts)).
+- **Names describe role, not implementation** (`isClueGiver`, not `playerA`), and
+  there are no single-letter helpers, even for a formatter used twice.
+- **Name and comment non-trivial hook callbacks** — see [Hook
+  callbacks](#hook-callbacks-a-header-comment-and-a-name).
 
-  ```ts
-  /* three paragraphs on what `field` means */  →  field: string | null  // which input; '_' = not one field
-  ```
-- **A lookup table's name says what it maps, and what the values ARE.** `DB_LOG_KIND_TO_CONSOLE_LOG_METHOD`, not `KIND_METHOD`; `SEVERITY_TO_DB_LOG_KIND`, not `NOT_OK_KIND`. The house form is `FOO_TO_BAR`, spelled out: `_TO_METHOD` only parses for a reader who already knows the values are `console`'s own method names, which is the thing worth saying.
-- **No single-letter helpers**, even for a formatter used twice on the next line. `fieldValue` and `quotedText` each carry a docstring saying what "empty" means for them — which is the only interesting thing about either, and exactly what `v` and `q` hid.
-- **`useEffect`, `useCallback`, and `useMemo` get header comments. `useEffect` callbacks also get a named function expression when non-trivial; `useCallback` / `useMemo` results assigned to a `const` skip the inner name (the const already carries it).** See [the hook-callback rule](#naming-and-commenting-hook-callbacks) below.
+**What doesn't belong:** comments that restate the code; references to the
+task, PR or reviewer (`// per joel's review`) — those go in the commit message;
+TODOs with no trigger — delete them, or file them in the folder's `todo.md`.
 
-### What doesn't belong
+## Naming
 
-- Comments that restate what well-named code already says (`// increment counter` above `counter++`).
-- References to the current task, PR, or contributor (`// added for issue #42`, `// per joel's review`) — these belong in commit messages and rot in the code.
-- Stale TODOs. If a TODO doesn't have a clear trigger for resolution, delete it instead.
+### TypeScript casing
 
-## Database
+> **snake_case** for fields that mirror a Postgres row. **camelCase** for
+> TS-native shapes: props, FE-built normalizations, manifest types.
 
-### Schemas
+The test: would `supabase gen types` emit these field names for that table? Then
+it is DB-shaped. Both forms appear in one file for a reason — snake says "this
+came from the DB unmodified", camel says "we designed this in TS".
 
-Multi-schema layout:
+**Keys inside a jsonb blob are DB-shaped too** — `setup`, `status`, `result`,
+`meta`. They read the same in SQL and TS (`setup->>'coop_style'`,
+`s.coop_style`), persist in rows, and `gen types` can't type them: **snake_case,
+always.** Where a camelCase prop feeds a snake_case key, spell the mapping out at
+the seam:
 
-| schema | what lives there |
-|---|---|
-| `public` | Postgres-managed stuff: `gen_random_uuid`, extension functions, anything we didn't put there. **We do not add tables here.** |
-| `common` | Shared user-data tables and helpers used by every game: profiles, clubs, clubs_members, games, messages. **Must not reference any game schema.** |
-| `codenamesduet`, `psychicnum`, `<game>` | One schema per gametype; that game owns its tables, RPCs, and policies inside it. |
-
-**Search path:** `extra_search_path = common, public, extensions`. Game schemas are deliberately *not* in the search path — every game reference is fully qualified (`codenamesduet.games`, `psychicnum.games`) in SQL, and goes through `supabase.schema('<game>')` in the FE.
-
-The payoff: each game gets a clean namespace. codenamesduet and a hypothetical Boggle can each have a `words` table named just `words`. The fact that you had to say which game it was tells you which one you're touching.
-
-### Tables and columns
-
-- Tables describe their role within their schema. **No game prefix.** `codenamesduet.words`, not `codenamesduet.codenamesduet_words`.
-- `snake_case` for tables and columns.
-- Plural for tables (`games`, `words`, `messages`).
-- FKs use `<thing>_id`: `game_id`, `user_id`, `club_handle`. Self-referential or ambiguous ones get a role prefix: `next_game_id`.
-
-### RPC functions
-
-- Live in the schema they operate on. codenamesduet RPCs are `codenamesduet.create_game`, called via `db.rpc('create_game')` where `db = supabase.schema('codenamesduet')`.
-- Cross-game / shared RPCs live in `common`. A `common` RPC may not reference any game schema; if it would need to, it belongs in the game.
-- Naming describes the verb: `create_game`, `submit_guess`, `send_message`. No `codenamesduet_` prefix — the schema carries that.
-- All callable RPCs are `security definer` with an explicit `set search_path = <game>, common, public, extensions`. The pinned search path neutralizes search-path hijacking; without it, a malicious unqualified table-reference inside the function could resolve against an attacker-controlled schema.
-
-### RLS helpers
-
-The membership check that all per-game RPCs use is `common.require_game_player(target_game)` — it reads `common.game_players` (the cross-game roster the common layer maintains) and either returns the caller's `user_id` or raises. The game-specific RPCs then derive seat / role from per-game state once authorization has passed; e.g., `codenamesduet.submit_guess` reads the games row and pattern-matches `caller_id` against `user_a_id` / `user_b_id` to set `caller_seat`.
-
-For SELECT-policy gating, games use `common.is_club_member(club_handle)` — the per-game game-id check would require querying the per-gametype games table from inside common, which is exactly the cross-coupling the removability rule forbids. Club-membership is a coarser predicate (any club member can read any of the club's games) but adequate under the friends-only trust model.
-
-Helpers are marked `STABLE` so Postgres can cache the result within a single SELECT. RLS policies invoke the helper once per row; without `STABLE` that becomes the dominant cost on any non-trivial query.
-
-### SECURITY DEFINER helper + security_invoker view
-
-When you need to expose a column the calling role can't see directly, gated on row state (e.g., "reveal the answer once the game ends"), reach for this two-layer shape:
-
-1. Keep the column-level grant on the base table — the role can't SELECT the column. (Storage-layer lock.)
-2. Write a `SECURITY DEFINER` helper that reads the column and returns it conditionally based on row state. Running as `postgres`, it bypasses the column grant.
-3. Define a view `with (security_invoker = true)` that calls the helper for the gated column. The `security_invoker` flag means RLS on the base table still gates row visibility *as the caller* — so unauthorized rows stay hidden.
-4. Point the FE at the view, not the base table.
-
-Canonical example: `psychicnum.games_state` + `psychicnum._secrets_for(uuid)` — see [`src/psychicnum/doc.md` → Schema](../src/psychicnum/doc.md#schema).
-
-### Every function gets an explicit revoke
-
-Postgres grants EXECUTE **to PUBLIC by default** on every new function, so a helper is world-callable unless its file says otherwise (functions and their grants live together in `supabase/sql/<game>.sql` — [supabase.md → Schema vs code](supabase.md#schema-vs-code)). The default is backwards for us, so the pair goes right after each definition:
-
-```sql
-revoke execute on function <schema>.<fn>(<types>) from public;
-grant  execute on function <schema>.<fn>(<types>) to authenticated;  -- ONLY if the caller runs it
-```
-
-The **grant** is for functions the *caller* executes: player-facing RPCs, plus the few helpers reached through an RLS policy or a `security_invoker` view. A policy runs as the invoker, so `common.is_club_member` genuinely needs it — revoke it without granting and every club-scoped SELECT fails. Everything else is called from inside a `security definer` function, which runs as the owner and needs **no grant at all**; a `_`-prefixed helper with a grant should be able to name the view or policy that forces it.
-
-Pinned by `tests/common/function_grants_test.sql`, which fails if any function in an app schema is executable by PUBLIC. That guard exists because forgetting the revoke *silently widens* the surface — 27 helpers had drifted this way before the 2026-08-02 sweep, `scrabble._finish` (which unconditionally terminates a game) among them. Not a live exposure under RLS + friends-only, but defense in depth is cheap when the check is one query.
-
-### Migration filenames
-
-Pattern: `<timestamp>_<schema>[_<topic>].sql`. The schema-prefix-in-filename gives per-schema grouping without nested directories.
-
-While we're still building (no real deploys yet), each schema is **squashed to a single final-state file** — one per concern — because that's far easier to read than a pile of incremental deltas:
-
-```
-20260615000000_common.sql
-20260615000001_codenamesduet.sql
-20260615000002_psychicnum.sql
-20260615000003_connections.sql
-20260617000000_spellingbee.sql
-20260623000000_bananagrams.sql
-20260624000000_waffle.sql
-20260625000000_wordle.sql
-20260626000000_stackdown.sql
-20260627000000_scrabble.sql
-20260628000000_boggle.sql
-20260706000000_crosswords.sql
-```
-
-These are **frozen** — one baseline per game plus `common`, never edited again. A shape change appends a new topic delta instead, because `supabase db push` skips any migration prod has already recorded (CLAUDE.md → "Production software"). The switch was made around 2026-08-13:
-
-```
-# how shape changes land now:
-20260720000000_codenamesduet_add_difficulty.sql
-20260721000000_common_add_friends.sql
-```
-
-Cross-schema FKs (game → common) need `common.*` to exist first, which timestamp ordering handles naturally.
-
-### Per-game player counts
-
-Each gametype's supported player-count range is declared in **two places**:
-
-- The TypeScript manifest's `numberOfPlayers: [min, max]` field (consumed by the shell to decide whether a "Start X" button is enabled/disabled/hidden for a given club). Both ends required; `null` upper bounds aren't allowed — every game gets a hard cap so the FE rendering, realtime channel load, and chat surface stay bounded.
-- The `create_game` RPC's member-count check (the hard server-side gate that rejects mismatched calls). Every open-N game shares `common.require_player_count_max(player_user_ids, max)` — that's all of them except codenamesduet, which is fixed at exactly 2 and keeps its inline check.
-
-These two declarations **must agree** by convention. There's no automated sync — adding a lookup table or a code-gen step is overbuild for the scale this project operates at (rare new-game events, both files edited in the same PR). What we do instead:
-
-- **Cross-reference comments on both sides.** The manifest's `numberOfPlayers` comment names the migration that holds the matching check; the migration's check has a comment pointing back at the manifest field. Whoever edits one is told where the other lives.
-- **Boundary-test the DB side.** Each game's `create_game_test.sql` includes a boundary test (one happy-path call within the range + one rejection just outside). The test pins the SQL-side check; drift between the two sides becomes a visible mismatch.
-- **Accept that FE drift surfaces as a server error.** If somehow the manifest says `[1, 8]` and the DB says `[1, 6]`, a 7-member club's Start button is shown enabled, the RPC rejects with its actual message, the user sees the error inline. Loud, not silent.
-
-The model: the two declarations are equally authoritative for their respective layers (TS narrows types; SQL enforces state). The convention is "edit both together; the comments help you remember the partner."
-
-### Sibling gametypes (coop/compete variants)
-
-A family of gametypes that share a schema, folder, and docs, but differ in interaction axis or rules — today this means coop vs compete, but the pattern accommodates other axes (a "super-tough boggle" variant with a different player range). See [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern) for the full design. Coding conventions when implementing one:
-
-**Manifest exports.** Each sibling is its own `GameManifest` export from the same `src/<baseGametype>/manifest.ts`. Use factory helpers when the start/labelFor/etc. fields are near-identical:
-
-```ts
-function startGameInClubFactory(mode: 'coop' | 'compete') {
-  return async (clubHandle, setup, playerUserIds) => {
-    return await db.rpc('create_game', { target_club: clubHandle, setup, player_user_ids: playerUserIds, mode })
-  }
-}
-
-export const psychicnumCoopGame: GameManifest = {
-  gametype: 'psychicnum_coop',
-  schema: 'psychicnum',
-  baseGametype: 'psychicnum',
-  mode: 'coop',
-  ...
-  startGameInClub: startGameInClubFactory('coop'),
-}
-
-export const psychicnumCompeteGame: GameManifest = {
-  gametype: 'psychicnum_compete',
-  schema: 'psychicnum',
-  baseGametype: 'psychicnum',
-  mode: 'compete',
-  ...
-  startGameInClub: startGameInClubFactory('compete'),
+```tsx
+coopStyle={s.coop_style ?? 'free-for-all'}
+onChange={({ coopStyle, firstTurnUserId }) =>
+  onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
 }
 ```
 
-**Schema-side.** One `<baseGametype>.games.mode` column (CHECK `in ('coop', 'compete')`) denormalized from the gametype string at create-time. The RLS-policy branch reads this column rather than joining to `common.games.gametype` — it's a hot path called on every visibility check.
+**A DB-shaped type's name ends in `Row`** (`GameRow`, `PlayerRow`, and aliases of
+generated `Database[…]['Row']` types); a TS-native shape takes whatever names its
+role (`ClubListEntry`, `GamePageCtx`, `GameManifest`). A snake_case type without
+`Row` invites readers to forget they are touching schema-bound data.
 
-**RPC shape.** One `<baseGametype>.create_game(target_club, setup, players, mode)` RPC routes both variants. The RPC composes the effective gametype string (`'<baseGametype>_' || mode`) and writes it to `common.games.gametype`. Per-mode validation (e.g., compete's "≥2 players" floor) lives inside this RPC after the mode-value check.
+| kind | convention | examples |
+|---|---|---|
+| functions, parameters, locals | camelCase | `enterGame`, `gameId` |
+| components | PascalCase | `ClubPage`, `PlayArea` |
+| module-level constants | SCREAMING_SNAKE_CASE | `GAMETYPES`, `STATUS_LABEL` |
+| files — components | PascalCase | `PlayArea.tsx` |
+| files — hooks, lib, db handles | camelCase | `useGame.ts`, `cls.ts`, `db.ts` |
+| files — docs | kebab-case | `code-conventions.md` |
 
-**Mid-game RPCs (submit_*).** Branch on the mode column read off the game row. Keep both code paths visible in one function rather than splitting per-mode wrappers — it's easier to read "in coop, decrement everyone; in compete, decrement only the caller" in one place than to chase two functions.
+- **A lookup table's name says what it maps and what the values ARE:**
+  `SEVERITY_TO_DB_LOG_KIND`, not `NOT_OK_KIND`. The house form is `FOO_TO_BAR`,
+  spelled out.
+- **A hook returning `boolean` is named for the question it answers:**
+  `useIsMobile`, `useGameHasKeyboard`. `usePhone()` reads as "give me a phone",
+  and flattens a hook that ANSWERS into one that DOES.
 
-**Tests.** Cover both modes in the same test files. The setup is cheap; the assertions are mode-specific. Coverage is incomplete without both paths exercised. See `supabase/tests/psychicnum/gameplay_test.sql` for the canonical shape.
+### Member vs Player — one type, context-driven variable names
 
-**Don't introduce a setup.mode field.** Mode is locked at the gametype level. Adding `setup.mode` would create a second source of truth and reopen the "which Start button am I clicking?" question.
+`Member` ([`src/common/members/member.ts`](../src/common/members/member.ts)) is
+the one identity shape. Each game declares a `Player` on top of it — a pure alias
+(`export type Player = Member`) or an extension (codenamesduet adds `seat`) — so
+every game's vocabulary reads the same and the type is already named when a game
+grows per-player state.
 
-### Reserved coop-turn setup keys
+| context | type | variable |
+|---|---|---|
+| club listing, chat, setup forms | `Member` | `members` |
+| inside a game | the game's `Player` | `players` |
 
-Two setup keys are a **common convention** any coop game can adopt to opt into turn-by-turn play (see [`common.md` → Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games) for the mechanism):
-
-- `setup.coop_style: 'turns' | 'free-for-all'` — the pacing choice (default `'free-for-all'`). It **DOES round-trip** as a `default_setup` — "we like taking turns" is a reusable club preference.
-- `setup.first_turn_user_id: string (uuid)` — who goes first. It is **stripped from `default_setup`** server-side in each game's `create_game` (`setup - 'first_turn_user_id'`), exactly like codenamesduet strips `first_clue_giver_user_id`: a specific person isn't a reusable club preference — the club default should remember the *style*, not who happened to go first last time.
-
-This is the general rule for what makes it into the saved default: **style/mode preferences round-trip; specific-person picks don't.** The per-game `create_game` controls what's passed as the `saved_default` argument to `common.create_game`, so it does the strip. The shared `SetupCoopStyleSection` writes both keys; only `coop_style` survives into `common.clubs_gametypes.default_setup`.
-
-### Realtime channel names
-
-Pattern: `<topic>:<id>[:<uuid>]`, and there are two kinds of name.
-
-- **Stable** — `game:<game_id>`, `connections:<game_id>`, `club:<handle>` — used **iff peers must share the room**, because presence rosters and broadcasts are per-channel-name. A stable name cannot take the suffix below, so it opens through [`channelTeardown.ts`](../src/common/realtime/channelTeardown.ts) instead.
-- **UUID-suffixed** — `<gametype>:<game_id>:<uuid>` — everywhere else, so each tab gets its own room. Postgres-changes deliveries don't need to merge across clients.
-
-Which channel is which is not repeated here: [supabase.md → Channel-name registry](supabase.md#channel-name-registry) is every channel in the app, in one place.
-
-The per-effect-run UUID suffix is mandatory where it applies: `supabase-js` caches channels by name, and React StrictMode runs effects twice on mount. Without a unique suffix, the second `.on()` chain would target an already-subscribed cached channel and throw. The suffix and the reasoning behind it live in [`channelDedup.ts`](../src/common/realtime/channelDedup.ts); [`useRealtimeRefetch.ts`](../src/common/realtime/useRealtimeRefetch.ts) is where it is spent.
-
-### Realtime data hooks — two patterns
-
-Two shapes recur across the per-game data hooks, and the choice between them is driven by **whether the hook needs Realtime Broadcast**, not by hook-size or game complexity. Pick by mechanism; don't mix them.
-
-#### Pattern A — refetch-only via `useRealtimeRefetch`
-
-For hooks that subscribe to postgres-changes and refetch on any event. The recurring shape — initial load → postgres-changes subscription → SUBSCRIBED-driven refetch on reconnect → attach-confirmation refetch (the deaf-window closer, [`postgresAttached.ts`](../src/common/realtime/postgresAttached.ts)) → cleanup — is factored into [`useRealtimeRefetch`](../src/common/realtime/useRealtimeRefetch.ts). Canonical calls:
-
-```ts
-useRealtimeRefetch({
-  tables: { schema: '<gametype>', table: 'games', filter: `id=eq.${gameId}` },
-  channelPrefix: '<gametype>',
-  id: gameId,
-  load: async ({ mounted }) => {
-    const { data } = await db.from('games').select(...).eq('id', gameId).maybeSingle()
-    if (!mounted()) return
-    setSomething(data)
-    setLoading(false)
-  },
-})
-```
-
-The `tables` field accepts one subscription or an array — psychicnum's useGame subscribes to `games`, `players` AND `events` with the same `load()`; codenamesduet splits across two hooks (`useGame`, `useBoard`) each with its own factory call. Either shape is fine; the deciding question is whether the PlayArea component splits the data the same way.
-
-The channel name is UUID-suffixed (`<prefix>:<id>:<uuid>`) — every peer's tab gets its own room. That's safe because there's no peer-coordination state on this channel.
-
-Tested at [`useRealtimeRefetch.test.ts`](../src/common/realtime/useRealtimeRefetch.test.ts) — initial load, SUBSCRIBED refetch, attach-confirmation refetch (+ its not-ok filter), event refetch, multi-table fan-in, `id`-change channel rebuild, cleanup mounted-guard, ref-trick (caller-fresh-load-each-render doesn't thrash the channel).
-
-#### Pattern B — broadcast-coupled, hand-rolled, single stable-name channel
-
-For hooks that need to **send and receive Broadcast events between peers** (selection sharing, manual-pause, suspend-cascade, the scratchpad's takeover lock, etc.). Broadcast peers only see each other when they share a channel name, so the channel name has to be stable across peers (no UUID suffix). Once that channel is open, postgres-changes ride along on it — opening a second UUID-suffixed channel just for postgres-changes would split one coherent hook into two coordinating effects with no functional gain.
-
-Canonical examples:
-- [`common/useCommonGame`](../src/common/game-page/useCommonGame.ts) — stable `game:${gameId}` channel carrying presence, manual-pause Broadcast, suspend Broadcast, AND postgres-changes on `common.games`.
-- [`connections/useGame`](../src/connections/hooks/useGame.ts) — stable `connections:${gameId}` channel carrying the shared-selection Broadcast (`select` / `deselect` / `clear`) AND postgres-changes on `connections.{games, guesses}`.
-- [`common/useClubPresence`](../src/common/realtime/useClubPresence.ts) — stable `club:${handle}` channel carrying **only Presence** (no broadcast, no postgres-changes): every connected member of the club orbit announces whether they're on the club page or viewing a game. It's the leanest Pattern B instance — still Pattern B because presence rosters are keyed per-channel-name, so the name must be stable across peers (rule 2 below). Drives the member-strip dots and the abandoned-current-view heal; see [`docs/states.md`](states.md).
-
-The shape is:
-
-```ts
-useEffect(function joinRoom() {
-  let mounted = true
-  async function load() { /* fetch + setState; guard on mounted */ }
-  load()
-
-  const ch = supabase.channel(`<prefix>:${id}`)  // stable name, no UUID
-  ch.on('postgres_changes', { event: '*', schema, table, filter }, load)
-  ch.on('broadcast', { event: 'select' }, ({ payload }) => applySelect(payload))
-  ch.on('broadcast', { event: 'clear' }, () => applyClear())
-  ch.subscribe((status) => {
-    if (status === 'SUBSCRIBED') {
-      load()
-      // (presence track / mount-time RPC, if any)
-    }
-  })
-
-  return () => {
-    mounted = false
-    supabase.removeChannel(ch)
-  }
-}, [id])
-```
-
-Reconnect semantics for the broadcast side fall out naturally: broadcasts during a disconnect are lost, but the project's pause-on-disconnect pattern (see [`states.md → paused`](states.md#paused)) freezes the game while anyone's missing — no broadcast traffic happens while disconnected, so nothing's missed. Postgres-changes on the same channel still get the SUBSCRIBED-refetch recovery via the `.subscribe()` callback.
-
-#### Choosing between A and B
-
-Decision rule when porting a new game:
-
-1. **Does this hook send or receive Broadcast events?** If yes → Pattern B. If no → Pattern A.
-2. **Does this hook track Presence?** If yes → Pattern B (presence rosters are per-channel-name, same constraint as broadcast).
-
-Mixing — Pattern B for broadcast + a separate Pattern A call for postgres-changes — adds a second channel per peer with no functional gain and breaks the "one hook, one channel" mental model. Don't.
-
-#### Append-on-event exception — and the merge rule it requires
-
-[`useClubChat`](../src/common/chat/useClubChat.ts) is hand-rolled in a third shape: postgres-changes on `common.messages`, but the INSERT handler **appends the new row to local state** instead of refetching. That's a meaningful optimization for chat-heavy moments where refetching on every message would be wasteful. It's the only consumer of this shape; new game hooks shouldn't copy it unless they have the same volume profile.
-
-**If you append on INSERT, the SUBSCRIBED refetch MUST merge — never `setX(data)`.** A wholesale replace races with the append: a row that arrives via INSERT *after* the refetch's query snapshot but before it resolves gets clobbered, and nothing re-adds it. (This shipped — two messages in quick succession left the unread badge stuck at "1," and the chat e2e failed ~90% under repeat-each stress.) The refetch instead **unions** the snapshot with any rows appended since (they're newest by construction — the table is append-only, so a row absent from a fresh full snapshot was inserted *after* it), and the INSERT append **dedupes by id** against a row a concurrent refetch already picked up. Regression-tested in [`useClubChat.test.ts`](../src/common/chat/useClubChat.test.ts) ("does not drop a live-appended message when a stale refetch lacks it").
-
-The rule in one line: **append-on-INSERT ⇒ merge-on-refetch** (dedupe by id, keep appended-since rows); **refetch-everything ⇒ replace is fine** (Pattern A has no separate append to clobber, so its `load` can `setX(data)` freely). The two other places that build state incrementally already follow the merge/prune form and so are safe: [`useGameInvitations`](../src/common/invitations/useGameInvitations.ts) (its `load()` adds only deduped-new invites, never replaces) and [`stackdown/useGame`](../src/stackdown/hooks/useGame.ts)'s optimistic `pendingRemoved` (the refetch *prunes* confirmed ids out of `prev` via `filter`, never replaces).
-
-## Frontend
-
-### Folder layout
-
-Feature-first. Each game is a self-contained folder; shared pieces live in `common/`. See [`common.md`](common.md) for the directory tree.
+`useCommonGame` returns `players: Member[]`: the identity type, named for its
+game-context consumers. **`peer`** is the viewer-relative third word — another
+player in this game, from my point of view (`isPeer`, `peers`) — and has no type
+of its own. See [naming.md → player](naming.md#player) and
+[→ peer](naming.md#peer).
 
 ### Component names
 
-Roles, not implementations:
+Roles, not implementations, and **file name = component name**, with the folder
+telling which game: every game has a `PlayArea.tsx` exporting `PlayArea`, a
+`SetupForm`, a `Help`, a `useGame`; never `ConnectionsPlayArea`. The shared
+shell is `GamePage`; cross-cutting chrome (title, timer, pause, chat) is its,
+never a PlayArea's. The two-column split is [playarea.md → The shape of a
+game's PlayArea.tsx](playarea.md#the-shape-of-a-games-playareatsx).
 
-| role | name | shared or per-game? |
-|---|---|---|
-| The route-level shell every game mounts inside (header / pause / chat) | `GamePage` | shared (`common/game-page/`) |
-| The gametype-specific play surface, mounted inside `<GamePage>` at the route level via the manifest's lazy `PlayArea` field | `PlayArea` | per-game |
-| The gametype-specific setup form mounted inside the common `SetupGameModal` | `SetupForm` | per-game |
-| The info column's action row, in every state | `InfoActionsRow` | shared (`common/info-sheet/`); callers pass their buttons as children, plus an optional `{ text, outcome }` line — at terminal, two fields of the `TerminalMessage` their `buildOver()` returns |
-| Reused chat surface | `Chat` | shared, mounted once by `GamePage` |
-| Auth gate | `LoginScreen` | shared |
+**One component per file — with one exception.** A component that stands on its
+own gets its own file, always. The exception is a set of **subparts that exist
+only inside one component and are individually small**: they are one vocabulary
+and a caller reaches for them together, so they share the file.
+`common/event-log/EventLog.tsx` exports the panel plus `EventLogOutcomeBar`,
+`EventLogNumber` and `EventLogActor`, the cells a game builds a row from. **The
+exception is about size and dependence, never subject:** `HistoryBanner` belongs
+to the viewer, not the log, so it is its own file beside `useHistoryViewer.ts`.
+When a folder holds two concerns, the filenames say which one you are in.
 
-A game's main screen is `PlayArea.tsx` whether it has a literal grid (codenamesduet, psychicnum) or a single word entry (spellingbee). The role is "the place where the gametype-specific play happens"; cross-cutting chrome (title, timer, Pause, Back-to-club, pause overlay, chat) belongs to `<GamePage>`, not to the per-game PlayArea.
+### Grid coordinates
 
-**One component per file — with one exception, and its shape is specific.** A component that stands on its own gets its own file, always: `PlayArea`, `BoardCol` and `InfoCol` are the clear case, and they are separate everywhere because they are large and complex and a reader goes looking for one of them by name. The exception is a set of **subparts that exist only inside one component, and are individually small and straightforward** — then packaging them together is better, because they are one vocabulary and a caller reaches for them together.
+The games with a coordinate grid and a keyboard cursor (bananagrams, scrabble)
+share one vocabulary: **`x` = column, `y` = row; `'h'` / `'v'` for the cursor's
+axis; flat index `y * width + x`.** Not `row`/`col`, not a y-first index — the
+two are compared side by side, and their shared mechanics live in
+[`shared/board-cursor`](../src/shared/board-cursor/doc.md) and
+[`shared/grid-and-drag`](../src/shared/grid-and-drag/doc.md). A grid addressed
+by flat index or by tile identity has no pair to name; don't invent one.
 
-`common/event-log/EventLog.tsx` is the worked example (settled 2026-09-16): it exports the panel plus `EventLogOutcomeBar`, `EventLogNumber` and `EventLogActor`, the cells a game builds one `<tr>` from. Games import them in a single line and every use site is inside a `<EventLog>`, so they have no life apart from it — note that "used only by `EventLog`" means used only *within* it, not that only `EventLog.tsx` imports them; each has eleven or more callers.
+### Feedback
 
-**The exception is about size and dependence, never about subject.** Two components that merely belong to the same feature still get their own files if either could be looked for on its own. The same folder shows the line: `HistoryBanner` is the turn-history viewer's, not the log's, so it is `HistoryBanner.tsx` beside `useHistoryViewer.ts` and `historyViewer.module.css` — a reader hunting the viewer should not have to open a file named for the log. **When a folder holds two concerns, the filenames say which one you are in.**
+"Feedback" means a message in the global (header) or local (below-board) slot,
+nothing else, and **bare `feedback` is never a declared name**
+(`feedbackNames.test.ts`). **Never hand a server's `error.message` to a slot**:
+`FeedbackMessage.notOk(res)` carries the sentence someone wrote for the player
+(`noRawServerMessage.test.ts`). The vocabulary is
+[`src/common/feedback/doc.md`](../src/common/feedback/doc.md)'s.
 
-**File name matches component name; folder context disambiguates same-named components across games.** `src/connections/components/PlayArea.tsx` exports `PlayArea`; `src/codenamesduet/components/PlayArea.tsx` also exports `PlayArea`. Same rule for `SetupForm.tsx` — the folder tells you which game's PlayArea or SetupForm you're looking at, the file/export name stays role-named. No `ConnectionsPlayArea` / `CodenamesduetSetupForm` prefixes anywhere.
+## React
+
+### Shared vs game-specific
+
+1. **If two games have a very similar requirement, extract it into `common/` or
+   `shared/` — early.** Even at two call sites with one of them trivial: the
+   named seam is a forcing function for design work, and by the third call site
+   the second has quietly shaped the abstraction. This **overrides** the usual
+   "wait until complexity justifies it" default; don't propose waiting. It holds
+   for splitting a component by state locality too. Premature is only
+   coincidental likeness (two things that share a look but will diverge) or
+   truly one-shot UI.
+2. **If two games need similar-but-different implementations, name them the
+   same.** The same role-noun across games lets a reader see the parallel by
+   sight; the folder says which game.
+
+Which folder a shared file goes in is [common-folders.md](common-folders.md).
+
+**Per-game `useGame` — pick the template by seats.** A **fixed-seat** game
+(codenamesduet's `user_a_id` / `user_b_id`) fetches its own roster, because the
+seat ⇄ user mapping lives on its row. An **open N-player** game reads `players`
+from `GamePageCtx`; `useCommonGame` has already loaded it. Don't mix them.
+
+### Import direction
+
+Enforced by ESLint's `no-restricted-imports`
+([`eslint.config.js`](../eslint.config.js)): `common/` and `shared/` never
+import a game; a game never imports another game; `src/gametypes.ts` is the one
+file that imports every manifest. Wanting to import across games means the
+thing belongs in `common/` or `shared/`; a common piece wanting a game means the
+abstraction is wrong (take a `db` handle or a render prop). The rule's list of
+games is derived from `gametypes.ts`, so a new game needs no lint edit. The
+layering between `common/` and `shared/` is
+[common-folders.md](common-folders.md)'s.
+
+### Hook callbacks: a header comment and a name
+
+An inline hook callback has no name, so a reader has to work out what it does
+and what triggers it from the body and the deps.
+
+- **Every non-trivial effect gets a header comment ABOVE the `useEffect(…)`**,
+  leading with intent and saying why these deps when that isn't obvious —
+  `[session.user.id]` rather than `[session]` so a token refresh doesn't
+  refetch. Same for a non-trivial `useCallback` / `useMemo`.
+- **A non-trivial `useEffect` callback is a named function expression:**
+  `useEffect(function joinGameRoom() { … }, [gameId])`. The name shows in stack
+  traces, DevTools and prose, and choosing it catches an effect doing three
+  things.
+- **A `useCallback` / `useMemo` assigned to a `const` skips the inner name** —
+  the const carries it. Name the inner one only when it's inline (a JSX prop, a
+  return) or genuinely names something different from the const.
+- **The test is the body, not the call shape.** A `.then(…)` that branches four
+  ways takes a name too (`GamePage`'s `logHowTheTimeoutLanded`). If it deserves
+  a header comment, it deserves a name; a one-line `onClick` or `.map` needs
+  neither.
+
+### Guarding a non-idempotent action
+
+An action whose second call does real, unwanted work needs an in-flight guard
+on the **handler**, not the button — one action is reachable from a button, a
+menu row and a key. A bound action's run
+([`useBoundAction`](../src/common/actions/useBoundAction.ts)) already is
+single-flight; a control that isn't an action wraps its handler in
+[`useSingleFlight`](../src/common/single-flight/useSingleFlight.ts). Don't guard
+idempotent calls every client fires (`submit_timeout`).
+
+## CSS
+
+The design side — tokens, themes, the color system, the vocabularies — is
+[tokens.md](tokens.md) and [ui.md](ui.md). The z- layers are
+`core-css/base.css` → THE Z- LAYERS. This section is how the files are written.
+
+**CSS Modules, one `*.module.css` per component, beside its `.tsx`.** Values come
+from tokens at `:root` via `var(--token)`. Classes are combined at the call site
+with `cls()` ([`utils/cls.ts`](../src/common/utils/cls.ts)), never with
+`composes:`, so the composition is visible where the element is written. No
+global `.css` for components, no CSS-in-JS, no Tailwind.
 
 ### A module styles its own elements
 
-CSS Modules is a **build-time** rename, not a browser feature: `.row` in a
-`*.module.css` ships as `._row_1f3ab_18`, and `styles.row` is that string. The
-scoping is just uniqueness of names — nothing enforces it.
-
-`:global()` opts out of the rename, and the build strips it entirely, so
-`:global(.item-row) { … }` written inside `ClubPage.module.css` ships as plain
-`.item-row` and restyles the homepage too. Where the rule sits gives it no scope
-at all.
-
-The rule is about the selector's **subject** — its rightmost compound, which is
-what actually gets styled:
+CSS Modules is a build-time rename, not a browser feature, and `:global()` opts
+out of it entirely: `:global(.item-row) { … }` in `ClubPage.module.css` ships as
+plain `.item-row` and restyles the homepage too. The rule is about the
+selector's **subject**, its rightmost compound:
 
 ```css
 :global(.item-row)            { … }   /* ✗ styles every item-row in the app */
@@ -338,725 +286,285 @@ what actually gets styled:
 :global(.dragging) .row       { … }   /* ✓ subject is local                */
 ```
 
-A guard in [`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) fails on the
-first form.
-
-**Prefer a local class on the element even where the scoped form is legal.** An
-override that sits on the element it affects is visible next to everything else
-about that element, and having to write it is useful friction — it makes you ask
-whether the shared pattern wants a variant instead. The scoped form's one real
-advantage is specificity: `.gamesList :global(.item-row)` is (0,2,0) and beats a
-pattern's (0,1,0) on weight, where a bare local class ties at (0,1,0) and wins
-only because module CSS loads after `patterns/`.
-
-**A class name says what the thing IS, not what slot it sits in.** `.body` is
-the worst offender: body of *what*? — and everyone's default reading is the
-page's `<body>`. Ten classes are called `.body` today. Nine of them agree on a
-real concept (a panel's content area, as opposed to its header) and want a name
-that says so; ClubPage's was the two-column region and is now `.columns`, which
-names the thing rather than the slot. The same test catches `.wrapper`,
-`.content` and `.card` when they're doing a specific job.
-
-**A component's own module may use short names; a CONSUMER's may not.** Inside
-`FilterSelect.module.css` the file *is* the subject, so `.label`, `.option`,
-`.dot` and `.popover` all read as "of the filter select". In a 200-line page
-module about lists, columns, tabs and filters, `.label` reads as "label of…
-something" and you have to go find out. So a class a consumer passes INTO a
-shared component names the component: `.filterSelectLabel`, not `.label`.
-
-A name that already carries its own subject is fine unqualified — `.closedSelect`
-says what it is from either side, which is why the same name is used in
-`FilterSelect.module.css` and in the club page's module: two locals on one
-element, and the match is what says so.
-
-Measured 2026-08-21: `<Dot>` is the common case — ten consumer modules style it
-as a bare `.dot`, while others already qualify (`greetingDot`, `playerDot`,
-`rosterDot`, `actorDot`, `itemDot`, `bonusDot`). Same for `<ShuffleButton>`
-(`.rackShuffle`, `.floatingRotate` — good) and `<WordEntryRow>` (`.wordEntryRow`).
-
-**Don't give a local class a global's bare name.** `styles.button` beside
-`'button'` on the same element are two unrelated classes that look like one; a
-modifier should say what it modifies (`.saveButton`, not `.button`).
-
-### Shared vs game-specific
-
-Two-rule heuristic for deciding where a piece of UI / logic lives:
-
-1. **If two games have a very similar requirement, extract it into `common/`.** Default lean: **extract early.** Even when only two games use it and only one of them is non-trivial, name the shared shape now. Three reasons:
-   - The named seam is a forcing function for future design work. A reader (or Joel himself) is more likely to invest in making `CurrentGameCard` look nicer than in making "the section of ClubPage that renders games."
-   - It amortizes the "what is this thing called" cognitive load before the component grows fancier.
-   - By the time three call sites exist, the abstraction is usually compromised because the second call site informed the shape without anyone noticing. Earlier extraction means the shape is set when the cases are still simple.
-
-   This **overrides** the standard "defer extraction until complexity justifies it" agent default. Don't propose "let's wait until X grows." The principle also applies to React component splits driven by state locality, not just cross-game duplication — if state lives in one section of a render, splitting that section out is a clarity win even in a single-use component.
-
-   Counter-cases where extraction IS premature:
-   - Two call sites that just *happen* to look alike but evolve independently (they share a heading but the surrounding logic diverges next sprint). Extract on shape-with-shared-intent, not coincidence.
-   - Truly one-shot UI that won't recur (a debug panel, an admin-only screen).
-
-2. **If two games need similar-but-meaningfully-different implementations, name them similarly.** Use the same role-noun (`PlayArea`, `SetupForm`, `GameEventLog`, `Help`) across games even when the bodies diverge. A reader scanning the tree should see the common idea by sight; folder context disambiguates which game's implementation they're in. Resist gametype-prefixing names (`CodenamesduetPlayArea`, `ConnectionsSetupForm`) — the folder already says which game.
-
-The reason both rules matter: this codebase is shaped to host a roster of games (the original ~7–8 target has since been exceeded — sixteen are live), most of them ports of games that exist in other stacks. The faster a reader can pattern-match "ah, this is the connections version of the same thing codenamesduet does," the cheaper porting work becomes. Both extracting-when-similar AND naming-similarly-when-different serve that goal — the first by reducing duplication, the second by making the parallels legible when duplication is the right call.
-
-#### Per-game `useGame` shape — pick the right template
-
-When porting a new game, the per-game `useGame` hook's shape depends on whether the game has fixed seats:
-
-- **Fixed-seat games** (codenamesduet is the example: two players, identified by columns `user_a_id` / `user_b_id`): the hook **fetches its own roster**. The seat ⇄ user_id mapping is intrinsic to the per-game row, so the roster has to be loaded alongside the game data — no upstream component can pre-compute it. The hook also fetches profiles (cross-schema) to embed usernames; the canonical example is `src/codenamesduet/hooks/useGame.ts`.
-- **N-player open games** (psychicnum, connections are the examples: any number of players, no per-seat identity): the hook **reads the roster from `GamePageCtx`** (the `players` field provided by `<GamePage>` via `useCommonGame`). No need to re-fetch — the common-side hook has already loaded `common.game_players` + profiles. The per-game hook stays focused on its game-specific tables.
-
-The decision rule is mechanical: "does this game's per-row state name specific seats?" If yes, fixed-seat template; if no, open template. Don't mix — an N-player game that fetches its own roster duplicates work `useCommonGame` already did; a fixed-seat game that reads from `GamePageCtx` would have to wait for the upstream load before its own data makes sense.
-
-Concrete examples in the tree today:
-- Shared: `<GamePage>`, `<PauseBoundary>`, `<Chat>`, `<SetupTimerSection>`, `<CurrentGameCard>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
-- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameEventLog` (every game with an event log; its "whose turns?" header dropdown is the shared [`useEventLogPlayerPicker`](../src/common/event-log/useEventLogPlayerPicker.tsx) — **every** event-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [src/common/event-log/doc.md](../src/common/event-log/doc.md)), `lib/history` (every game with a turn-history viewer — scrabble is the exception, its replay is `historyBoard` in `lib/play.ts`).
-- Extracted-to-common after recurrence: `InfoActionsRow`, `ChatButton`, `PageHeaderPlayersStrip`, `PageHeaderStatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
-
-#### PlayArea decomposition — `BoardCol` / `InfoCol`
-
-A `PlayArea` grew too big to hold in your head (most were 450–900 lines), so every
-standard two-column game now splits it into three layers with one consistent recipe:
-a **`BoardCol`** (the live input engine — drag / cursor / keyboard / word-building —
-plus the below-board feedback slot; it renders the game's `Board`), an **`InfoCol`**
-(the info-column readouts + event log / word list, near-zero internal state), and a
-thin **`PlayArea`** that owns the game data (`useGame`), the RPCs, and cross-column
-coordination (e.g. the turn-history `historyId`). The load-bearing contract:
-**`BoardCol` owns *editing*; `PlayArea` hands it the *board to show*** (live *or* a
-historical snapshot) + a `readOnly` flag — which is what makes the turn-history
-viewer a drop-in. **bananagrams is the exception** (its input engine spans both
-columns, so it uses an engine-hook + two views instead — `usePlayerBoard` /
-`BoardArena` / `HandCard`). The full recipe and the prop conventions (one shared
-vocabulary across games) live in [docs/playarea.md](playarea.md).
-
-### Import-direction rules
-
-Enforced by ESLint's `no-restricted-imports` (see [`eslint.config.js`](../eslint.config.js)):
-
-- `common/` may not import from any `<game>/`.
-- `<game>/` may not import from another `<game>/`.
-- Only legal cross-feature direction: `<game>/` → `common/`.
-- `src/gametypes.ts` is the **one** allowed exception — it imports every game's manifest by definition.
-
-If you find yourself wanting to import a component from another game, that's a signal to promote it to `common/`. If a `common/` piece wants to import from a game, the abstraction is wrong — generalize the common piece (often: take a `db` handle or a render prop) so it doesn't need to know the game.
-
-`GAMETYPES` in `eslint.config.js` is the list the rule works from, and it's **derived** — a regex over `src/gametypes.ts`'s manifest imports, cross-checked against the `src/<name>/manifest.ts` folders on disk. A new game needs no lint edit; a folder registered in neither place throws at config-load time (`npm run lint` fails with the mismatch). It's derived because a hand-maintained copy drifted twice, and drift here is silent: a game missing from the forbidden list produces no error, it just stops being guarded.
-
-### Stable-name Realtime channels
-
-A channel whose name IS the room — every peer must join the identical topic for
-presence and broadcast to work — can't take the `channelDedupSuffix()` that the
-per-client data channels use. Open and close it through
-[`channelTeardown.ts`](../src/common/realtime/channelTeardown.ts):
-
-```ts
-const pending = channelLeaving(room)   // null on the fast path
-if (pending) void pending.then(join)   // join() must guard on a `canceled` flag
-else join()
-// …and in the cleanup: releaseChannel(ch), never supabase.removeChannel(ch)
-```
-
-The reason is in that module's docstring: realtime-js drops a channel from its
-name cache only in the channel's own `_onClose`, so for the whole leave
-round-trip `supabase.channel(sameName)` returns the dying instance — and the
-server can reject a re-join that races the leave, which is why evicting the
-cache wouldn't be enough on its own. Because the join can now happen *after*
-the effect body returns, hold the channel in a **ref** for the cleanup to read
-(state alone is too late) and bail out of `join()` if the effect was already
-torn down. The registry is per channel NAME, so unrelated rooms never block
-each other. Suffixed channels can't collide and keep using `removeChannel`.
-
-### Guarding a non-idempotent action
-
-An action whose second call does real, unwanted work needs an in-flight guard,
-and the guard belongs on the **handler**, not the button: one action is reachable
-from a button, a menu row and a keyboard shortcut, and a `disabled` prop covers
-the first of those. A bound action's run
-([`useBoundAction`](../src/common/actions/useBoundAction.ts)) already is
-single-flight, so a command placed those three ways needs nothing more; a
-control that is not an action wraps its handler in
-[`useSingleFlight`](../src/common/single-flight/useSingleFlight.ts) — its
-docstring carries the mechanism and the cases it is not for.
-
-Don't reach for it for idempotent calls every client fires (`submit_timeout`).
-
-Related: the action dispatcher drops `e.repeat` for any action that does not
-declare `repeat`, so *holding* a key can't machine-gun a one-shot command.
-
-### CSS Modules + theme
-
-This section covers the *file mechanics* only. For the design philosophy — desktop-first, the two-vocabularies rule for global vs per-game tokens, what's deferred — see [`ui.md`](ui.md).
-
-**CSS Modules**, one `*.module.css` per component, co-located with the `.tsx`:
-
-```
-src/common/chat/ChatBody.tsx
-src/common/chat/ChatBody.module.css
-```
-
-**Design tokens at `:root`**, split by what they are: colors live in [`src/common/themes/daylight.css`](../src/common/themes/daylight.css) (the theme) and [`src/common/core-css/fixed.css`](../src/common/core-css/fixed.css) (member + wordle, exempt from theming); everything that isn't a color — radii, sizes, spacing, durations, the depth family, the z- layers — lives in [`src/common/core-css/base.css`](../src/common/core-css/base.css). Every `*.module.css` references them via `var(--token-name)`. Each game's `theme.css` (optional) declares that gametype's brand tokens. The files, and how a theme loads, are in [`tokens.md → Themes`](tokens.md#themes).
-
-`cls()` (in [`src/common/utils/cls.ts`](../src/common/utils/cls.ts)) is a tiny hand-rolled `clsx` equivalent for combining conditional class names. ~10 lines; no dependency.
-
-**What we don't use:**
-
-- Plain global `.css` files for components — fine for the global theme file, but anything component-specific should be a `.module.css`.
-- CSS-in-JS (styled-components, emotion) — adds a dependency and a runtime cost for a problem CSS Modules already solve.
-- Tailwind — large stylistic change from where the code is now; not worth the migration cost.
-- **`composes:`** — zero uses in the repo. Classes are combined at the call site with `cls()` instead, so the composition is visible where the element is written rather than hidden in a stylesheet.
-
-#### The CSS checklist
-
-Six rules that are otherwise only discoverable by reading the code:
-
-1. **No `var()` fallbacks.** Write `var(--token)`, never `var(--token, #ccc)`. We own the whole custom-property namespace, so a missing token is always a bug — and a fallback can only ever *mask* that bug while drifting out of sync with the real value. [`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) is the safety net, and it guards **both directions**: every `var()` reference resolves to a definition, and every definition has a reader. A token that is deliberately live before anything reads it goes in that test's `DECLARED_AHEAD` list, which fails from both sides — a name on it must still exist, and must still be unread — so the debt is countable and the dead-token guard stays live for everything else. (The `var(--client-width, 100vw)` idiom in `common/` is a different thing: an opt-in *parameter* default, not a color fallback.)
-2. **Desktop-first: `@media (--mobile)` blocks override the base rule**, never the reverse. See [`ui.md`](ui.md#audience-and-platform-desktop-first) — a `min-width` media query means a rule got written backwards. **A device override lives in the same file as the rule it overrides, directly under it**: when a pattern moves to a shared module its phone tweak moves with it, and a pattern is never split across two files. No density stylesheet, no density tokens; `mobile/breakpoints.css` is only the `@custom-media` names, injected everywhere by PostCSS so any file can write `@media (--phone)`.
-3. **A component that renders on two surfaces keeps the roomier one as its base rule.** The compressed variant is an override scoped to the surface — e.g. `[data-mobile-status] .stats { … }`, keyed off the attribute `<MobileStatusBar>` already stamps. No media query needed (the bar doesn't exist on desktop) and no `compact` prop to thread through call sites. Writing it the other way round leaks the phone's budget onto a desktop that has room to spare; see [`mobile.md`](mobile.md).
-4. **State classes win by re-setting tokens, not by out-cascading.** A state (`.achieved`, `.dropOk`) should set `--tile-slot-fill-color` and let the base rule consume it, rather than restating `background` at higher specificity.
-5. **Click-to-define words are pointer-only** — no `tabIndex`, no `role="button"`, no focus style. The reasoning is in [`utilities.css`](../src/common/core-css/utilities.css)'s `.definable` block. Nothing builds one by hand: a definable word is `<DefinableWord>`, which carries the class, the title and the `data-word` handle.
-6. **`_variant` suffixes** name the classes behind a `` styles[`base_${key}`] `` lookup: `.outcome_won`, `.day_lost`, `.barInner_good`, `.historyTile_near`, `.guessWord_G`. Base name, underscore, the key's value. The underscore is what marks a class as *dynamically* selected — grep it to find every class that isn't referenced literally anywhere.
-7. **A converted surface writes vocabulary values, not literals**, and [`src/guards/vocabularies.test.ts`](../src/guards/vocabularies.test.ts) holds it there. It is a **shrinking allowlist keyed by VALUE**: a row is `path → the literals still allowed there`, so converting one value on a page protects it immediately even while another value on the same page is still open; a listed value that is no longer written fails, a row whose file no longer offends fails, and a NEW file fails at once because it has no row. Tuned surfaces are exempt by default; `z-index` is the one vocabulary checked across all of `src/`, boards included. The vocabularies themselves are [`tokens.md → The non-color vocabularies`](tokens.md#the-non-color-vocabularies).
-
-#### Patterns — a class, a token, or a utility
-
-A pattern list is written by reading rendered surfaces, **never by grepping class names**: local names hide shared patterns, so searching by local name reproduces the bug.
-
-- **Names for things, utilities for adjustments.** *Can you say what the thing is without mentioning how it looks?* "The explanatory line under a field" — name it. "This should be quieter than its neighbor" — that's an adjustment, and a utility (`.muted`) is honest. Naming an adjustment manufactures a fake concept.
-- **Promote on the SECOND write.** Not the first (no evidence yet), not the third (you won't be there). Copy-pasting a rule out of another module IS the signal — you've found the pattern and chosen to record it as duplication.
-- **No silent default.** Both variants get said; neither is what you get by staying quiet. `.button` once meant "primary" by silence, which is one name doing two jobs.
-- **Compose on *is-a*, never on *looks-like*.** A danger button IS a button. Help text does NOT compose `.muted`: it isn't a kind of muted, it's a thing that happens to be quiet today. Two classes reading one token is two consumers of one decision, not duplication. **The menu is not a list** — it looks identical and is a different thing: a menu is a set of ACTIONS you pick from and it closes, a list is a set of PLACES that stay put. **A game's corner flag is not an outcome bar** — deliberately more prominent, a different thing. The same question is owed to every row-shaped thing before it converts.
-- **A pattern gets a FILE, named for the pattern** (`core-css/patterns/badge.css`) — the default, not a threshold. Too many files merge easily; one long file has to be read through. `utilities.css` keeps only the adjustments that name nothing.
-
-**Where a pattern lives:**
-
-| kind | where | test |
-|---|---|---|
-| utility — an adjustment with no "what" | `core-css/utilities.css` | naming it would manufacture a concept |
-| pattern with structure or behavior | a React component + its module | a form, a dialog |
-| pattern that is only a look | `core-css/patterns/<name>.css` | a badge, a focus ring |
-| one component's internals | that component's module | `GuessKeyboard`'s `.key` |
-| game-specific | that game's module | spellingbee's center hex |
-
-Two boundary rules, because both edges leak: **a common component's module holds its own internals, never a re-implementation of a pattern** (otherwise every duplication moves house under a new banner, since everything is inside *some* component); and **a shared stylesheet with many consumers and no component is a component waiting to be written**.
-
-**Classes or tokens?**
-
-1. Does shared CSS need the value injected by someone who doesn't know the meaning? → **it must stay a token slot.** The shared `.tile` reads only `--tile-bg-color` so a game restyles by re-setting a token instead of out-cascading. Member colors are the same case: `<Dot>` builds `var(--member-${name}-color)` at runtime, so the token name IS the mapping.
-2. Does the meaning paint several properties together? → **a class.** A button tone paints five values; a bundle is a class, which is why the tone classes read families directly instead of via twenty pass-through tokens.
-3. Otherwise, whichever is fewer names.
-
-#### The z- layers
-
-**The layers are named, and they live in [`base.css`](../src/common/core-css/base.css) → "THE Z- LAYERS".** Read a token; never write a page-level number. This is a stacking *order*, not a scale — its failure mode is a visible bug (a menu behind a scrim), which is why the layers carry names and not `--z-index-1…5`: nothing about "3" says whether it beats chat.
-
-**`--z-<layer>`, not `--z-index-<layer>`**: the token IS the layer, and that is the point of the split. `--radius-md` feeds `border-radius` and `--shadow-floating` feeds `box-shadow` — a token named for the property that consumes it was the odd one out. It also lets a layer that needs no z-index sit in the list without claiming a mechanism it doesn't use, which is exactly what `z-pause-gate` is.
-
-| token | value | what |
-|---|---|---|
-| `--z-page` | 0 | the page itself. Nothing here is ever deliberately drawn over anything else |
-| `--z-ghost` | 1200 | a piece in transit, following the pointer. Rendered OUTSIDE the board root, which a sealed board makes mandatory: a ghost confined to the board could not follow the pointer onto the rack or hand it came from |
-| `--z-infocol` | 1300 | the readouts beside the board, **when they leave the flow** — which is only on mobile, where `<InfoSheet>` slides them over the board as a fixed sheet. On desktop the column is a flex sibling of the board, overlaps nothing, and takes no z-index; what it declares there is `--z-host`, a value a dropdown reads, not a layer the column occupies |
-| `--z-companion` | 2000 | something you keep NEARBY while you play: the scratchpad, a setter's note, a clue explainer |
-| `--z-dialog` | 2100 | a question that can wait. No dim, movable, opens where you left it |
-| `--z-modal-normal` | 2200 | a question worth thinking or talking about. Dims to focus you; chat stays reachable, which is not a leak — a normal modal never claimed the world stopped |
-| `--z-help` | 2300 | **Help states otherwise.** It is a companion by every test, but it is summoned FROM things — including the setup modal — and the rules must never open behind the form you pressed "?" in |
-| *`z-pause-gate`* | *3000* | a LAYER WITH NO Z-INDEX, so it is a comment rather than a token. `PauseBoundary` unmounts the play surface rather than covering it |
-| `--z-chat` | 3100 | **Chat states otherwise.** Classed a companion, but the conversation must stay reachable over every dim below it — and chat is the one panel that can OPEN ITSELF (a `!` message force-opens it), so it must never materialize underneath something |
-| `--z-menu` | 3200 | the header menu. There is exactly one, rendered only by `<PageHeaderMenu>`, which is why it is a rung and not a satellite |
-| `--z-toast` | 4000 | an announcement you must see wherever you are and whatever you are doing |
-| `--z-modal-blocking` | 5000 | the world stops. Answer it now; nothing underneath is live |
-| `--z-modal-fault` | 5100 | as blocking, but strictly above it — an error must be readable mid-question |
-| `--z-tooltip` | 9000 | the very top, safely: you cannot hover or click what a modal has made inert. The definition popover is here too — a tooltip with different styling |
-
-**The ordering rule, which is the sentence to keep: shorter-lived or more important sits higher.** The numbers encode relationships — a thousand is a different world, a hundred is a layer within one, ten would be a tweak of a layer (nothing uses one yet; the step exists so that when something does, it says so).
-
-**A floating panel does not read these directly — its FAMILY does.** `<FloatingPanel family="dialog">` resolves `var(--z-dialog)` from the family name, so there is no list of tiers in TypeScript to drift from this one. The two components that state otherwise are the two above, each with the reason written in its own file.
-
-**What is NOT a rung.** Things that attach to a layer instead of occupying one, which is what keeps the list short:
-
-- **a scrim** sits one BELOW its owner (`FloatingPanel` paints it at `calc(… - 1)`);
-- **a `<FilterSelect>` dropdown** sits just ABOVE its host, `z-index: calc(var(--z-host, var(--z-page)) + 1)`. A host that isn't the page sets `--z-host` on itself, as a **custom property only**, and the two things it must not write have different reasons: a `position` would make the host a containing block and move where the dropdown anchors, while a `z-index` would make it a stacking context and confine the dropdown inside it. Neither is wanted, and neither is needed — the host declares a rank for the dropdown to read, and occupies nothing itself;
-- **a tooltip** goes to the absolute top and needs no host at all.
-
-**What is NOT on the ladder** is layering inside a component's own stacking context — a ring over a tile, a floating shuffle on its board, the keyboard cursor. Those compete only with their siblings and stay small local numbers. The app has a clean gap: everything local is ≤ 10, everything page-level is ≥ 1000.
-
-**And a board is SEALED — contained, not ranked.** `.boardSeal` makes every game's board root a stacking context with `isolation: isolate`, so the numbers inside a board are ranked against each other and against nothing else, and a tile cannot reach chat however big a number someone writes on it. That is what makes the paragraph above true rather than merely observed. It goes on the element enclosing the board *and* anything floating over it (bananagrams' `.boardFrame`, the arena plus its zoom controls), and it is why the drag ghosts and the games' hand-built modals render as siblings of the board rather than inside it.
-
-**A board takes no rung, and that is deliberate.** It is a flex sibling of the info column, side by side with it; the two never overlap, so a rank between them would settle a contest that does not happen — and ranking the board would put it *above* a column that carries no z-index at all, so the one thing that does overhang between them (the column's rank bubble) would fall behind the board. `isolation: isolate` is a stacking context and nothing else, so the board keeps its natural place in the flow. The ladder is for things that leave the flow; a board does not.
-
-**The rule is guarded**, by `guards/vocabularies.test.ts`, and in two halves:
-
-- **In CSS, across all of `src/` — boards included.** This is the one vocabulary where tuned surfaces are *not* exempt: a board's radius is a game's decision, but whether a number in a game's file can reach chat is a whole-app decision that merely happens to be written there. Values 0–10 stay legal as local layering; anything above must read a token.
-- **In TypeScript.** `<FloatingPanel>`'s `zIndex` prop is typed `string` and takes `var(--z-chat)`, so the order has one home rather than a CSS list and a TS list free to disagree. A numeric literal fails the guard. A *computed* z-index is still fine — stackdown stacks its tile pile with `zIndex: t.z`, which is per-tile data, not a tier.
-
-**The guard's pending list is empty**, and the rule is that it stays that way: every page-level `z-index` in `src/` reads a rung, and every local one is inside a sealed board or a component's own stacking context.
-
-#### Duplication and drift that are deliberate
-
-Repetition is not automatically a finding. The 2026-07-13 CSS audit examined each of
-these and decided **not** to change it; they're recorded so the next sweep recognizes
-them instead of re-filing them.
-
-**Duplication that shouldn't be shared:**
-
-- **`.loading` / `.empty` shapes.** Loading is an explicitly exempted moment — see the
-  CSS checklist above.
-- **The dashed empty-slot idiom.** Three games, three different jobs; the visual rhyme
-  is coincidence.
-- **The bespoke light modals.** Each is small and local; a shared one would need every
-  caller's variations as props.
-- **The small-caps micro-label.** Real repetition, but it folds into the font-size-token
-  question ([`ui.md`](ui.md) → the standardize-when-it's-noise list) rather than standing
-  alone as its own extraction.
-
-**Per-game differences that look like drift but aren't:**
-
-- **The square-board `--side` math** — "NOT identical enough to share," per the scaffold
-  comment that says so at the site.
-- **No shared `--info-col-width` default** — each game declares its own on purpose.
-- **The two-reds distinction** and the **per-game vocabulary palettes** — see
-  [`ui.md`](ui.md)'s two-vocabularies rule: names and colors track each game's own
-  concepts.
-- **bananagrams' and crosswords' layout exceptions** — documented v3 exceptions, not
-  oversights ([`mobile.md`](mobile.md) and each game's doc).
-- **The `.boardCol` debug tint** — intentional; the rule in `PlayArea.module.css` says
-  "do NOT remove" at the site.
-
-One deliberate non-fold lives with its game rather than here, because it's a fork-pair
-question: spellingbee's `Letters.module.css` + `Letter.module.css` / wordwheel's `Wheel.module.css` in
-[`wordwheel.md → Deferred`](games/wordwheel.md#deferred).
-
-### TypeScript naming conventions
-
-Two conventions intersect: TypeScript leans camelCase, SQL leans snake_case. We honor both, with a rule that makes the boundary visible.
-
-#### Field casing
-
-> **snake_case** for type fields that mirror a Postgres row's shape. **camelCase** for fields on TS-native shapes (component props, FE-built normalizations, manifest types, anything we designed in TS).
-
-The "how to tell" test: if the field names would match what `supabase gen types` emits for that table, the type is DB-shaped and uses snake_case. Otherwise it's a TS abstraction and uses camelCase.
-
-**Keys inside a jsonb blob are DB-shaped too** — `setup`, `status`, `result`, `meta`. They read the same in SQL as in TS (`setup->>'coop_style'`, `s.coop_style`), they persist in rows, and `gen types` can't type them, so nothing catches drift: **snake_case, always.** This is the rule that got broken — `coopStyle` / `firstTurnUserId` / `firstClueGiverUserId` lived in `setup` as camelCase until 2026-08-01, and because setup keys also round-trip into `clubs_gametypes.default_setup` they'd have been the most expensive thing on the roster to rename after the baselines froze. Where a camelCase React prop feeds a snake_case setup key, spell the mapping out at the seam rather than reaching for object shorthand:
-
-```tsx
-// The prop is TS-native (camelCase); the setup key is DB-shaped (snake_case).
-coopStyle={s.coop_style ?? 'free-for-all'}
-onChange={({ coopStyle, firstTurnUserId }) =>
-  onChange({ ...s, coop_style: coopStyle, first_turn_user_id: firstTurnUserId })
-}
-```
-
-```ts
-// DB-shape — fields match the Postgres row exactly
-type PlayerRow = {
-  user_id: string         // snake (matches DB)
-  seat: 'A' | 'B'
-  username: string
-}
-
-// FE-built normalization — TS-named fields
-type ClubGameEntry = {
-  gameType: string        // camel (TS-named)
-  gameId: string
-  startedAt: string
-  isTerminal: boolean
-}
-
-// Component props — TS-native concept
-type Props = {
-  clubId: string          // camel — name we chose
-  members: PlayerRow[]    // camel prop name; PlayerRow keeps its snake fields
-}
-```
-
-Both forms appear in any given file, but for principled reasons: snake means "this came from the DB unmodified"; camel means "this is a TS shape we designed."
-
-The alternative — camelCase everywhere, translate at the hook layer — buys consistency at the cost of ~5 lines of column-renaming boilerplate per hook AND loses the visual signal that distinguishes raw rows from FE shapes.
-
-#### Type name suffix
-
-> A type whose fields are a direct alias of (or trivial subset of) a Postgres row's shape ends in **`Row`**. TS-native shapes use whatever name describes their role best.
-
-| name | what it is |
+`cssTokens.test.ts` fails on the first form. **Prefer a local class on the
+element even where the scoped form is legal**: the override sits with
+everything else about that element, and having to write it makes you ask
+whether the shared pattern wants a variant.
+
+- **A class name says what the thing IS, not its slot.** `.body` (body of
+  what?), `.wrapper`, `.content` and `.card` are the usual offenders.
+- **A component's own module may use short names; a consumer's may not.** Inside
+  `FilterSelect.module.css`, `.label` is the select's. A class a consumer passes
+  INTO a shared component names the component: `.filterSelectLabel`, `.rosterDot`.
+- **Don't give a local class a global's bare name.** `styles.button` beside
+  `'button'` looks like one class and is two; say what it modifies
+  (`.saveButton`).
+
+### The CSS checklist
+
+1. **No `var()` fallbacks.** We own the namespace, so a missing token is a bug a
+   fallback can only mask. `cssTokens.test.ts` checks both directions — every
+   reference resolves, every definition has a reader; a token live before its
+   reader goes in its `DECLARED_AHEAD` list. (`var(--client-width, 100vw)` is a
+   parameter default for the first paint, not a fallback.)
+2. **Desktop-first: `@media (--mobile)` overrides the base rule**, never the
+   reverse, and **lives directly under the rule it overrides**, in the same
+   file. A `min-width` query means a rule was written backwards
+   ([mobile.md](mobile.md)).
+3. **A component on two surfaces keeps the roomier one as its base**, and the
+   compressed variant is scoped to its surface (`[data-mobile-status] .stats`),
+   not threaded through as a `compact` prop.
+4. **State classes re-set tokens; they don't out-cascade.** `.dropOk` sets
+   `--tile-slot-fill-color` and the base rule consumes it.
+5. **Click-to-define words are `<DefinableWord>`** — pointer-only, no
+   `tabIndex`, no focus style ([`utilities.css`](../src/common/core-css/utilities.css) → `.definable`).
+6. **`_variant` suffixes** name classes picked by a `` styles[`base_${key}`] ``
+   lookup: `.outcome_won`, `.guessWord_G`. The underscore marks a class no
+   literal references, so grepping it finds them all.
+7. **A converted surface writes vocabulary values, not literals**, held by
+   `vocabularies.test.ts`'s shrinking allowlist keyed by value. The vocabularies
+   are [tokens.md → The non-color
+   vocabularies](tokens.md#the-non-color-vocabularies).
+
+A game's `theme.css` ships in its lazy chunk, so a game file rendered outside
+`PlayArea` imports it itself; see [Known gotchas](#a-games-stylesheet-ships-in-its-lazy-chunk).
+
+### Patterns — a class, a token, or a utility
+
+A pattern list is written by reading rendered surfaces, **never by grepping
+class names**: local names hide shared patterns.
+
+- **Names for things, utilities for adjustments.** Can you say what it is
+  without saying how it looks? "The line under a field" — name it. "Quieter than
+  its neighbor" — that's `.muted`, a utility.
+- **Promote on the SECOND write.** Copying a rule out of another module is the
+  signal.
+- **No silent default.** Both variants get said; neither is what you get by
+  staying quiet.
+- **Compose on *is-a*, never *looks-like*.** A danger button is a button. Help
+  text is not a kind of muted. The menu is not a list (actions that close vs
+  places that stay).
+- **A pattern gets a file named for it** (`core-css/patterns/badge.css`).
+
+| kind | where |
 |---|---|
-| `WordRow`, `GameRow`, `ClubRow`, `ClubMessage` | Aliases of generated `Database[…]['Row']` types. The `Row` suffix matches what Supabase itself emits. |
-| `PlayerRow`, `MemberRow` | Hand-rolled DB-shape types — not aliases of generated types but they mirror a row shape. |
-| `ClubListEntry`, `ListedGame` | FE-built normalizations for list rendering. No `Row` suffix. "Entry" / "Listed" describes their role. |
-| `CommonGameListRow` | A camelCase-fielded narrow projection of `common.games` used as the input to `manifest.labelFor`. The `Row` suffix is honest: the fields name DB columns even though TS sees them as a structural shape. |
-| `Props`, `ClueStripProps`, `LinkProps`, `GamePageCtx` | React component prop types (`GamePageCtx` is what `<GamePage>` hands the manifest's `PlayArea` — `{ session, gameId, players, playState, isTerminal, timer, setup, globalFeedbackSlot, menu }`). |
-| `GameManifest` | A TS-native interface that game folders implement. |
+| an adjustment that names nothing | `core-css/utilities.css` |
+| a pattern with structure or behavior | a React component + its module |
+| a pattern that is only a look | `core-css/patterns/<name>.css` |
+| one component's internals | that component's module |
+| game-specific | that game's module |
 
-If you see a type whose fields are snake_case but whose *name* doesn't end in `Row`, ask whether the name is misleading — a non-`Row` name on a DB-shaped type invites readers to forget they're touching schema-bound data.
+**A common component's module holds its own internals, never a re-implementation
+of a pattern**, and **a shared stylesheet with many consumers and no component
+is a component waiting to be written.**
 
-#### Member vs Player — one type, context-driven variable names
+**Class or token?** If shared CSS needs a value injected by someone who doesn't
+know its meaning, it stays a token slot (the shared `.tile` reads
+`--tile-bg-color`; `<Dot>` builds `var(--member-${name}-color)`). If the meaning
+paints several properties together, it's a class (a button tone). Otherwise,
+whichever is fewer names.
 
-The codebase has a single canonical identity shape — `Member` in [`src/common/members/member.ts`](../src/common/members/member.ts) — and each per-game folder exposes a `Player` alias on top of it. Same shape, sometimes enriched (codenamesduet adds `seat`); the naming carries the *context*, not the type-level distinction.
+## Database
 
-> **Rule:** `Member` is the type for identity. Per game, declare `Player` (alias or extension). At the call site, the **variable name** reflects whether you're in club context (`members: Member[]`) or game context (`players: Player[]`).
+### Schemas
 
-Why both names exist for what's often the same shape:
-
-- A reader scanning `ClubPage.tsx` sees `members: Member[]` and reads "people in this club" — the chat sender lookup, the member-list rendering, the setup-form's "who picks first?" picker. Club-wide.
-- A reader scanning `connections/components/GameEventLog.tsx` sees `players: Player[]` and reads "people playing this game." The shape is the same as `Member[]` but the variable signals "this is a strict subset — only the friends who joined this game's `game_players` row."
-
-The per-game `Player` alias earns its keep even when it's a pure re-export:
-
-```ts
-// connections/hooks/useGame.ts (and psychicnum/hooks/useGame.ts)
-import type { Member } from '@/common/members/member'
-export type Player = Member
-
-// codenamesduet/hooks/useGame.ts
-import type { Member } from '@/common/members/member'
-export type Player = Member & { seat: 'A' | 'B' }
-```
-
-Why every game declares one — even the pure-alias case:
-
-1. **Cross-game pattern parallel.** A reader scanning per-game folders sees the same `Player` symbol everywhere. They don't have to remember "codenamesduet uses Player but connections uses Member" — every game's vocabulary is the same.
-2. **Future-proofing.** When connections grows per-player game state (a "tile-rate-of-correct" stat, a "you're it" turn marker), the type is already named. No cascade rename from `Member` → `Player` across call sites.
-3. **Semantic signal at the import.** `import type { Player } from '../hooks/useGame'` in a connections subcomponent says "this is connections' notion of a player" — even if the body is just `= Member`.
-
-Where to use which:
-
-| Context | Type | Variable name | Examples |
-|---|---|---|---|
-| Club listing, chat, setup forms | `Member` | `members` | `ClubPage` roster, `ChatBody.members`, `SetupBodyProps.members`, `Chat.members` |
-| Inside a game | game's `Player` | `players` | `useCommonGame().players`, `GamePageCtx.players`, `<PlayArea>` ctx, `<GameEventLog players={...} />`, `computePause(presentUserIds, players)` |
-
-The one variable to be aware of: **`useCommonGame` returns `players: Member[]`** — the type is `Member` (it's the identity layer, not a per-game shape), but the field is named `players` because every consumer is in game context. Per-game components re-type as their own `Player[]` if they need the enrichment (codenamesduet's seat); otherwise the rename happens at the variable-name level only.
-
-See [`naming.md → player`](naming.md#player) for the conceptual side.
-
-#### Peer — the perspective-relative third tier
-
-`member` and `player` are absolute (you're in the club / in the game or you aren't). **`peer`** is the perspective-relative counterpart: another player in this game, from the viewer's POV. Use it for binaries like `isMine` / `isPeer` and phrasings like "a peer disconnected," "peer-colored frame," "broadcast reaches all peers."
-
-When the code wants to discriminate "is this me or someone else in this game?", reach for `peer` rather than generic `other` — `isPeer` reads as "another participant" without further context; `isOther` reads as "other what?" The vocabulary tier:
-
-| word | scope | perspective | type-level? |
-|---|---|---|---|
-| `member` | a person in a club | absolute | yes — `Member` |
-| `player` | a person in a game | absolute | yes — per-game `Player` |
-| `peer` | another player in this game, from my POV | viewer-relative | no — a usage convention, not a type |
-
-`peer` doesn't get its own TypeScript symbol. It's how you *talk about* a Player[] when the viewer is the implicit subject. The relationship lives in variable names (`isPeer`, `peers`, `peerCount`) and prose (docstrings, CSS comments), not in a `type Peer = …`. See [`naming.md → peer`](naming.md#peer) for what does and doesn't qualify as a peer concept.
-
-#### A hook that answers yes/no names itself as a predicate
-
-> **A hook returning `boolean` is named for the question it answers, not the thing it is about: `useIsMobile`, `useIsPhone`, `useIsCoarsePointer`.** `is` is the default form; `has` where that reads better (`useGameHasKeyboard`). Same reason a plain function is `isEmpty()` rather than `empty()`.
-
-Without it the name reads as a noun and the call site looks like it hands
-something back — `usePhone()` reads as "give me a phone" rather than "am I on a
-phone". It also flattens the difference between a hook that ANSWERS something
-and one that DOES something, which are otherwise spelled identically.
-
-
-#### Other casing rules
-
-| kind | convention | examples |
-|---|---|---|
-| Function names, function parameters, local variables | camelCase | `enterGame`, `gameId`, `resolvedIds` |
-| React component names | PascalCase | `ClubPage`, `PlayArea` |
-| Module-level constants | SCREAMING_SNAKE_CASE | `GAMETYPES`, `STATUS_LABEL` |
-| File names — components | PascalCase | `PlayArea.tsx`, `GamePage.tsx` |
-| File names — hooks, lib, db handles | camelCase | `useGame.ts`, `cls.ts`, `db.ts` |
-| File names — docs | kebab-case | `code-conventions.md`, `cheatsheet.md` |
-
-### Feedback naming
-
-**"Feedback"** here means specifically **a message shown in the global feedback slot (the page-header pill) or the local feedback slot (the below-board pill)** — nothing else. Lighting up a board cell, underlining a new word in the WordList, or an OpponentStrip readout are all "feedback" in plain English, but they are **not** feedback in this codebase's sense (they're the ambient display layer). The test is physical: does it end up in a slot? ([ui.md → Feedback pill](ui.md#feedback-pill) has the system.)
-
-**Never pass a server's `error.message` to a feedback slot.** Read the
-envelope: `res.message` is a sentence someone wrote for a player, at the raise,
-on purpose — and `FeedbackMessage.notOk(res)` turns it into the message a slot
-takes, in the outcome the envelope carries ([envelopes.md](envelopes.md)). An
-`error.message` is the other thing: whatever the transport happened to produce,
-which is what put `TypeError: Load failed` in front of players.
-[`noRawServerMessage.test.ts`](../src/guards/noRawServerMessage.test.ts) is the
-guard.
-
-A slot takes a `FeedbackMessage` and nothing else — never a string, never a
-literal. The class has a private constructor, so a message can only come from
-one of its named constructors, and that is what makes every message carry its
-kind.
-
-**This is enforced, because being careful wasn't enough.**
-[`noRawServerMessage.test.ts`](../src/guards/noRawServerMessage.test.ts) fails on any
-`error.message` read that isn't a log, isn't feeding `failureText` /
-`failureMessage`, and isn't in its short justified allowlist. It exists because
-five games shipped briefly showing `no-guesses-left|` as a red pill: their SQL
-had been converted to keys while their own call sites still handed the raw
-string straight to a pill, which defeats the envelope's own sentence, the fault
-styling and the `[db]` log at once — and nothing failed. Writing the guard immediately found
-**nine more sites** a hand-grep had missed, all spelled `error?.message`.
-
-Two hard rules for anything that *sets, holds, renders, or types* one of those messages:
-
-1. **Bare `feedback` is never a declared name.** The type, the hook and the pill carry the word inside a longer name (`FeedbackMessage`, `useFeedbackSlot`, `FeedbackPill`); a variable holding a message is `feedbackMessage` or `feedbackMsg`; a slot instance is `localFeedbackSlot` or `globalFeedbackSlot`, and those two are the only qualified names. The bare word is what let "feedback" mean five things at once and let a parameter called `feedback` quietly mean "the local one". [`feedbackNames.test.ts`](../src/guards/feedbackNames.test.ts) enforces it, over every file in `src/` and with no allowlist.
-
-   The rule covers the feedback MACHINERY, not every type it happens to hold. A message's `outcome` is an [`Outcome`](outcomes.md) — a vocabulary a board, a tile, an event-log row and a server result reach for too — so naming it for feedback would have claimed it for one consumer out of five. And it is `outcome`, never `tone`: that word is a button's or a toast's styling (`caution`, `destructive`, `info`) and not a won/lost value.
-
-2. **The noun is always `feedback`; never `result`, `action`, `flash`, or similar.** How a message leaves — a gesture, a timer, the ×, its owner — is its KIND's property, not something a name should assert.
-
-Same role → same name across games (a peer-narration producer is `usePeerFeedback` everywhere, not a hand-rolled `announcePeerGuess` in one game).
-
-| role | name |
+| schema | what lives there |
 |---|---|
-| the message type; its constructors are the only way to make one | `FeedbackMessage` — `.notOk(res)`, `.result(outcome, text)`, `.terminalVerdict(over)`, `.waiting(member)`, `.peer(member, outcome, text)`, … |
-| the outcome a message carries | `Outcome` — a shared vocabulary, not feedback machinery ([outcomes.md](outcomes.md)) |
-| the hook that makes a slot and owns it for its host's life | `useFeedbackSlot('local' \| 'global')` → a `FeedbackSlot` |
-| the slot's instances | `localFeedbackSlot` (a PlayArea's, below the board) · `globalFeedbackSlot` (a page's, in the header; on `GamePageCtx`) |
-| the slot's verbs | `show(feedbackMsg)` → id · `retract(id)` · `dismiss()` (a gesture) · `close()` (the ×) |
-| the pill | `<FeedbackPill slot={…} />` — draws the slot's top message |
-| the producers, named for the stream they read and handed the slot | `usePeerFeedback` (a peer-event stream) · `useChatFeedback` (chat) |
-| the local pill's CSS wrapper | `.localFeedback` (shared; centers the pill, reserves its own height) |
+| `public` | Postgres-managed things only. **We add no tables here.** |
+| `common` | Shared tables and helpers every game uses. **Never references a game schema.** |
+| `<game>` | One schema per gametype: its tables, RPCs and policies. |
 
-Peer news goes to the **global** slot; the player's own results and standing conditions go to the **local** slot. A slot holds every live message and draws the one that ranks highest; what ranks over what is the kinds table in [ui.md → Feedback pill](ui.md#feedback-pill).
+Game schemas are not on the search path: SQL writes `codenamesduet.games` in
+full, and the FE goes through `supabase.schema('<game>')`. A new schema also
+goes in `[api].schemas` in `supabase/config.toml` — see [Known
+gotchas](#cross-schema-typescript-types).
 
-### Below-board structure
+### Tables and columns
 
-Every game's `.boardCol` reads the same skeleton below the board, so a reader can map any game onto it. The class names are universal; the CSS behind each is per-game (like the board grid itself).
+No game prefix (`codenamesduet.words`), `snake_case`, plural tables, FKs as
+`<thing>_id` with a role prefix where ambiguous (`next_game_id`). Every game's
+event log is `<game>.events` in the standard shape ([supabase.md](supabase.md)).
 
+### RPC functions
+
+- Live in the schema they operate on, named for the verb (`create_game`,
+  `submit_guess`); the schema carries the game. Shared ones live in `common` and
+  may not reference a game.
+- Callable RPCs are `security definer` with a pinned
+  `set search_path = <game>, common, public, extensions`, which neutralizes
+  search-path hijacking.
+- They answer in an envelope ([envelopes.md → How SQL builds
+  one](envelopes.md#how-sql-builds-one)).
+- Authorization is `common.require_game_player(target_game)`, which returns the
+  caller's id or raises; the RPC derives seat or role from its own state after
+  that. SELECT policies gate on `common.is_club_member(club_handle)`, because a
+  common helper can't read a game's table. Helpers read by policies are
+  `STABLE`, so Postgres can cache them within one query.
+
+### Every function gets an explicit revoke
+
+Postgres grants EXECUTE to PUBLIC on every new function, so the pair goes right
+after each definition in `supabase/sql/<game>.sql`:
+
+```sql
+revoke execute on function <schema>.<fn>(<types>) from public;
+grant  execute on function <schema>.<fn>(<types>) to authenticated;  -- ONLY if the caller runs it
 ```
-.boardCol
-  <board>
-  .belowBoard              ← the region: everything below the board. ALWAYS present.
-    .moveArea              ← the below-board move controls (keyboard / WordEntryInput+buttons /
-                              rack / mistakes+buttons). ALWAYS present — EMPTY (with a short
-                              comment) where the move is made on the board itself (bananagrams,
-                              waffle). A game has zero or one.
-    .localFeedback         ← the own-move pill wrapper (shared). Present only when a pill shows;
-                              reserves its own min-height so the board never reflows.
-```
 
-**The swap.** In many games the move controls and the feedback pill occupy the **same** spot — the pill replaces the controls (connections, the `WordEntryArea` games, codenamesduet, and scrabble's *commit buttons only*). There, a `.moveAreaOrLocalFeedback` box holds the reserved height and swaps `.moveArea` ↔ `.localFeedback`:
+Grant only what the caller executes: player-facing RPCs, and helpers reached
+through an RLS policy or a `security_invoker` view (a policy runs as the
+invoker). Anything called only from inside a `security definer` function needs
+no grant; a `_`-prefixed helper with one should be able to name the policy or
+view that forces it. `tests/common/function_grants_test.sql` fails on any
+function executable by PUBLIC.
 
-```
-.belowBoard
-  .moveAreaOrLocalFeedback   ← reserved-height swap box (shared; min-height via
-                               --swap-box-min-height, default 2.75rem)
-    .moveArea  |  .localFeedback
-```
+### SECURITY DEFINER helper + security_invoker view
 
-Games where the two are **separate and both always shown** (wordle: keyboard + feedback; stackdown: WordEntry + feedback) don't use the swap box — `.moveArea` and `.localFeedback` sit side by side, each reserving its own height.
+To expose a column the caller can't read directly, gated on row state ("reveal
+the answer once the game ends"):
 
-Two rules learned the hard way:
-- **`.moveArea` names the *controls*, not the swap box.** Don't rename a controls-holding element to a feedback name — the controls and the feedback are separate concepts even when they share a spot (scrabble's commit buttons keep their own `.commitButtons` right-justify; the *area* is `.moveAreaOrLocalFeedback`).
-- **Never rename to lose a bare `feedback`.** `.localFeedback` / `.moveAreaOrLocalFeedback` carry the channel; there's no unqualified `feedback` class.
+1. Keep the base table's column grant, so the role can't SELECT the column.
+2. A `SECURITY DEFINER` helper reads it and returns it conditionally.
+3. A view `with (security_invoker = true)` calls the helper for that column, so
+   RLS on the base table still gates rows as the caller.
+4. The FE reads the view.
 
-This is a **naming + structure** convention, not a layout change — added wrappers use `display: contents` (they generate no box) and reserved heights move to the equivalently-sized renamed element, so the rendered pixels are identical.
+Canonical: `psychicnum.games_state` + `psychicnum._secrets_for(uuid)`
+([src/psychicnum/doc.md → Schema](../src/psychicnum/doc.md#schema)).
 
-### Grid coordinates
+### Migrations
 
-The games that let you place tiles onto a coordinate-addressed grid with a keyboard cursor — **bananagrams** and **scrabble** — share one vocabulary:
+`supabase/migrations/<timestamp>_<topic>.sql`. Each game has one frozen
+baseline (`<ts>_<game>.sql`), never edited; every shape change since is a new
+file named for what it does (`20260922000000_waffle_event_colors.sql`,
+`20260915000000_games_restarts.sql`). Behavior is not a migration — it lives in
+`supabase/sql/` ([supabase.md → Schema vs code](supabase.md#schema-vs-code)).
+A migration cannot call functions from `supabase/sql/`, which is applied after
+it.
 
-> **`x` = horizontal (column), `y` = vertical (row); `'h'` / `'v'` for the cursor's axis; flat index `idx(x, y) => y * width + x` (x first, matching scrabble's `cellIndex`).**
+### Per-game player counts
 
-Not `row`/`col`, not `'H'`/`'V'`, not a y-first index. The point is read-time parallelism: these two games' cursor + placement code is meant to be compared side by side (one's interaction is a near-port of the other's), so a stray `row`/`col` in one against `x`/`y` in the other is pure friction. With the names aligned, the *real* divergence stands out — the tile-identity model — and the genuinely-shared mechanics lift cleanly into [`common/lib/game/gridCursor.ts`](../src/shared/board-cursor/gridCursor.ts) (`moveCursor` / `stepBack`) and [`common/hooks/ui/useDragGesture.ts`](../src/shared/grid-and-drag/useDragGesture.ts).
+A game's player range is stated in three places, and nothing syncs them:
 
-**Scope — this only binds the coordinate-pair-with-cursor games.** Most grids deliberately *don't* address cells by an `(x, y)` pair, and that's correct — they have no cursor to drift:
+- the manifest's `numberOfPlayers: [min, max]`, which the FE uses to enable the
+  Start buttons (both ends required; every game has a cap);
+- `common.gametypes.min_players`, which answers only "can this be played solo?"
+  for new-club enrollment and solo clubs;
+- the game's `create_game`, which enforces the cap with
+  `common.require_player_count_max` (codenamesduet checks exactly 2 inline) and
+  the compete floor of 2 with its own check.
 
-| game | how a cell is addressed |
-|---|---|
-| bananagrams, scrabble | `(x, y)` pair + keyboard cursor → **this convention** |
-| stackdown | tile `id`; tile *positions* are `x` / `y` / `z` (z = stack layer) — already x/y |
-| codenamesduet, waffle | flat index (`position` / `pos`, 0..N) — no pair, no cursor |
-| connections | the tile string itself |
+Comments on each side name the partner; edit them together. A mismatch reaches
+the player as a fault, not a readable message.
 
-So: a new game with a coordinate-pair grid + cursor uses this vocabulary and reaches for the shared helpers. A game that addresses cells by flat index or identity (the more common case) has no pair to name — don't invent one.
+### Sibling gametypes (coop/compete variants)
 
-The one surviving `row`/`col` is intentional: waffle's `coord(pos)` in [`waffle/lib/waffle.ts`](../src/waffle/lib/waffle.ts) builds a *spreadsheet label* like `"C3"`, where column-letter + row-number is the natural vocabulary. That's a display string, not playfield addressing — leave it.
+A family of gametypes that share a schema, folder and docs
+([common.md → The sibling-manifest
+pattern](common.md#the-sibling-manifest-pattern)):
+
+- **Each sibling is its own `GameManifest` export** from the same
+  `src/<base>/manifest.ts`, built by a factory where the fields are
+  near-identical.
+- **One `<base>.games.mode` column**, `check (mode in ('coop', 'compete'))`,
+  denormalized at create time; RLS reads it rather than joining to
+  `common.games.gametype`.
+- **One `<base>.create_game(…, mode)`** routes both; it composes
+  `'<base>_' || mode`, validates the mode with `common.require_valid_mode`, and
+  holds any per-mode validation. A game whose board is built in an edge
+  function reaches it through that function.
+- **Mid-game RPCs branch on `mode` in one function**, both paths visible.
+- **Tests cover both modes in the same files.**
+- **No `setup.mode`.** Mode is fixed by the gametype; a second copy would reopen
+  "which Start button did I press?".
+
+**What round-trips into a club's saved setup:** a style preference does
+(`coop_style`); a specific person doesn't (`first_turn_user_id` is stripped in
+`create_game`). See [common-schema.md → Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
 ### Avoid `SELECT *`
 
-> Every `.from('foo').select(...)` should pass an explicit column list. Don't reach for `.select('*')`.
-
-The reasoning, in order of weight:
-
-1. **Fail-closed on new columns.** When a new column lands on a table, we want the build to break at every consumer that hadn't decided what to do with it — not for the column to silently flow through to the FE. Explicit lists give that: the next `npm run types:gen` widens the table's `Row` type but our selects, narrowed via `Pick<Row, …>`, stay scoped to what the consumer actually needs.
-2. **Security defense-in-depth.** A future sensitive column added without a column-level grant would leak through `select('*')`. With explicit lists, the leak requires a deliberate edit. The DB-level grant is the lock; the explicit list is "I'm not even reaching for the doorknob."
-3. **Reader clarity.** The select call documents which fields the consumer cares about. You don't have to grep through the codebase to know whether a removable field is actually load-bearing.
-
-The pattern we use:
+Every `.from('foo').select(...)` names its columns, and its row type is a
+`Pick<>` of the generated one, so the two drift together and TypeScript catches
+a mismatch:
 
 ```ts
-// Narrower than Database[...]['Row']. Adding a new column to
-// common.clubs requires explicitly listing it here AND in the
-// select() below.
-type ClubRow = Pick<
-  Database['common']['Tables']['clubs']['Row'],
-  'id' | 'handle' | 'name'
->
-
-const { data } = await commonDb
-  .from('clubs')
-  .select('id, handle, name')
-  .eq('handle', handle)
-  .maybeSingle()
+type ClubRow = Pick<Database['common']['Tables']['clubs']['Row'], 'id' | 'handle' | 'name'>
+… .from('clubs').select('id, handle, name')
 ```
 
-The narrow type + matching select string is the lock. The type alias and the column-list string have to drift together; TS catches mismatches at build time.
-
-#### Exceptions
-
-A `select('*')` is OK if (a) the consumer truly uses every column AND (b) the table is unlikely to grow sensitive columns. In practice that's a rare combination — when in doubt, list them.
-
-#### Concrete avoided-leak example
-
-If we'd let `select('*')` ride on `common.messages` and later added an `ip_address` column for moderation, every `useClubChat` consumer would have started shipping IPs to every signed-in member of the club. The explicit `select('id, user_id, content')` pattern means that doesn't happen until someone adds `ip_address` to the list intentionally.
-
-### Naming and commenting hook callbacks
-
-Two related rules, both motivated by the same problem: inline arrow callbacks in `useEffect` / `useCallback` / `useMemo` have no name, so a reader has to puzzle through the body + dep array to understand what each one does and what triggers it.
-
-#### Header comments
-
-Every non-trivial effect gets a brief header comment **above** the `useEffect(…)` call (not inside the callback body), so the comment is in scope of the deps array. The comment leads with intent and explains the dep choice when it's non-obvious. Examples:
-
-```ts
-// Subscribe to auth state for the component's lifetime. Empty deps
-// = the subscription lives across every re-render and is torn down
-// only on unmount.
-useEffect(() => { ... }, [])
-
-// Load the caller's username. Dep is the user id (not the full
-// session object), so background token refreshes — which return a
-// new Session reference with the same user — don't trigger a refetch.
-useEffect(() => { ... }, [session.user.id])
-```
-
-The deps array is often the subtlest part of an effect — `[id]` vs `[session]` vs `[]` are very different rules — so when the choice isn't obvious, the comment should say *why* this dep, not just *what* the effect does.
-
-The same applies to `useCallback` and `useMemo` when their bodies are non-trivial.
-
-#### Named function expressions for non-trivial callbacks
-
-The core question this rule is answering: **is there already a name on the callback?** A `const sendSuspend = useCallback(() => {…})` already carries the name `sendSuspend` — readers see it on the scan, docstrings can reference it, future-you's "I remember this one, skip" anchor lands on it. A `useEffect(() => {…})` has no such anchor; it's just "the third effect in the file."
-
-So the rule splits by where the name already lives:
-
-**`useEffect` — name it, when non-trivial.**
-
-```ts
-// Join this game's shared Realtime room: load the row + roster,
-// attach the postgres-changes / broadcast / presence handlers,
-// subscribe, and assert current-view on connect.
-useEffect(function joinGameRoom() {
-  // ... 40 lines of channel setup ...
-}, [gameId, session.user.id])
-```
-
-The named function expression is the only place a useEffect callback gets a name. Without it, stack traces, React DevTools' Hooks panel, prose cross-references, and the file-scan all see `<anonymous>` / "the third effect." With it, all four pick up the name.
-
-**`useCallback` / `useMemo` assigned to a `const` — skip the inner name.**
-
-```ts
-// Yes
-const sendManualPause = useCallback(() => { … }, [deps])
-
-// No — redundant
-const sendManualPause = useCallback(function sendManualPause() { … }, [deps])
-```
-
-The const name labels it for the scan, for prose ("the `sendManualPause` callback"), and — in practice — for stack traces (V8 doesn't propagate the const name through the `useCallback(…)` call expression onto the inner arrow's `.name`, but source-position info in modern stack traces and React DevTools' own labeling close most of the gap). Writing the name twice adds noise without a matching read-time win.
-
-The one exception: if the *callback's* most natural name genuinely differs from the *const's* most natural name — e.g. `const doFooOnInitialLoad = useCallback(function doFoo(){…}, [initialLoad])` where the outer name carries the *when* and the inner carries the *what* — name the inner. Rare in practice; don't reach for it without a real difference.
-
-**`useCallback` / `useMemo` NOT assigned to a const** — passed inline as a JSX prop, returned directly, etc. — goes back to the useEffect rule: name it when non-trivial. Same reasoning: no surrounding const to carry the name.
-
-**Why naming helps even when a header comment exists.** A good name is *scannable* — you remember it from last time and can decide "engage or skip" in a single glance. A header comment requires re-reading to pick up the same signal. Comments explain; names label. The two pull different weight in the read.
-
-**Why naming helps even when no header comment exists.** Picking a 2–3 word name is a tiny version of the "if you can't name it, you don't understand it" rule — it catches the "this effect is doing three things, I should split it" case before the body is written.
-
-**When NOT to bother:** short, drop-dead-obvious bodies. One-liners, document-title setters, trivial derived values. If the body fits in a glance and the deps tell you everything, naming adds noise. Rule of thumb: *"if it deserves a header comment, it deserves a name."* Short obvious bodies need neither.
-
-This sits next to a pattern already in the codebase: the inner helper `async function load() { … }` inside the subscription effects in `useCommonGame` and the per-game `useGame` hooks. We already pick named function expressions over `const load = async () => {…}` for inner helpers because the name reads as a label. The convention now extends to the top-level useEffect callback by the same logic.
-
-**Scope of this rule:** the test is the body, not the call shape (Joel, 2026-09-16: *"if they're non-trivial, a name is useful"*). `useEffect`, `useCallback` and `useMemo` are where it bites most often, because a hook callback has no surrounding const to carry a name — but a `.then(…)` that branches four ways on an envelope is no more scannable than an effect that does, and it takes a name too (`GamePage`'s `logHowTheTimeoutLanded`, `useGameTimer`'s `applyTickAnswer`). What decides is "When NOT to bother" above: if it deserves a header comment, it deserves a name.
-
-In practice that still leaves most `setTimeout`, JSX event props (`onClick={() => …}`) and `.map`/`.filter`/`.reduce` callbacks unnamed, since they fit in a glance and the call site labels them by context. That is the triviality test doing its job, not an exemption — a long one earns a name like anything else.
+A new column then fails closed: it reaches no consumer that hasn't chosen it,
+and a sensitive column added later can't leak through a wildcard. `select('*')`
+is fine only where the consumer uses every column and the table won't grow
+sensitive ones — rare.
 
 ## Edge Functions
 
-Edge Functions live in a **flat namespace** at the Supabase project level — they don't get schemas. So they're the one place we use a game-prefixed name:
-
-| pattern | example |
-|---|---|
-| `<game>-<feature>` | `codenamesduet-suggest-clue`, future `boggle-validate-board` |
-| `common-<feature>` | future `common-send-invite-email` (cross-game) |
-
-This matches the directory: `supabase/functions/codenamesduet-suggest-clue/index.ts`.
+Edge functions share one flat namespace, so they are the one place names carry
+the game: `<game>-<feature>` (`codenamesduet-suggest-clue`) or
+`common-<feature>` (`common-define`), matching
+`supabase/functions/<name>/index.ts`. They answer in an envelope, always HTTP 200
+([`src/common/supabase/doc.md`](../src/common/supabase/doc.md)). Deno resolves no
+`@/` alias and no extensionless import, and `deno check` does not catch either.
 
 ## Known gotchas
 
 ### `window` is always there; a browser FEATURE may not be
 
-This app is a Vite SPA with no server render, and jsdom (the vitest environment)
-provides a `window` too. So **`typeof window !== 'undefined'` guards a case that
-cannot happen** — and each one costs a reader a moment deciding whether this file
-is somehow special.
-
-What genuinely goes missing is a feature ON `window`, and that check stays:
-`window.matchMedia` (absent in jsdom — every test depends on the desktop-first
-default that produces), `window.visualViewport` (absent in older browsers and
-jsdom), `ResizeObserver`. Guard the feature, name the environment it's missing
-from, and use `window` itself bare.
-
-`useSyncExternalStore`'s third argument is the same phantom in another costume:
-React requires it, nothing here renders on a server, so it never runs — say that
-where one is passed rather than calling it the SSR case.
-
-Several folders still carry the old guards, mostly supplying a fallback value
-(`floating-panels` defaults a missing `innerWidth` to `1024`), so removing one
-changes what an expression returns and is a per-folder decision rather than a
-sweep.
+This is a Vite SPA with no server render, and jsdom provides a `window` too, so
+**`typeof window !== 'undefined'` guards a case that cannot happen.** What goes
+missing is a feature on `window` — `matchMedia` (absent in jsdom, which every
+test's desktop default depends on), `visualViewport`, `ResizeObserver`. Guard the
+feature, name where it's missing, and use `window` bare. `useSyncExternalStore`'s
+third argument is the same phantom: say so where one is passed. Some folders
+still carry old guards that supply a fallback value, so removing one is a
+per-folder decision.
 
 ### A game's stylesheet ships in its lazy chunk
 
-The core stylesheets and the theme chain are loaded once from `main.tsx`; every *game's* `theme.css` ships in that game's lazy chunk, which is why a game file rendered outside `PlayArea` — setgame's `SetupForm`, crosswords' two picker modals — imports its game's `theme.css` itself. An undefined custom property invalidates the whole declaration, silently. **Palette, polarity and theme are eager and global; only a game's brand anchors are lazy.**
+The core stylesheets and the theme chain load once from `main.tsx`; each game's
+`theme.css` ships in that game's lazy chunk, so a game file rendered outside
+`PlayArea` (setgame's `SetupForm`, crosswords' picker modals) imports it itself.
+An undefined custom property invalidates its whole declaration, silently.
 
 ### Contract slots nobody declares
 
-Common CSS reads some custom properties that a game fills in and no file declares: `--cols`, `--max-tile-width`, `--grid-gap`, `--board-units-w/h/cap`, `--max-board-size`, `--rank-text`, `--tile-font-factor/-min/-max`, `--stats-col-gap`, `--stats-max-width`, `--local-feedback-min-height`, `--swap-box-min-height`. A game that mounts the reader and forgets one gets an undefined property and a dead declaration, and the phantom-token guard passes it because each IS defined — in *some* game. Some are read with a fallback and are harmless when missing; the bare reads (`.hugRectWidth`'s three, the bee games' board units, `--rank-text`) are set by every game that mounts them today. A guard checking per MOUNT POINT is owed (`game-page/todo.md`).
+Common CSS reads some custom properties a game fills in and no file declares:
+`--cols`, `--max-tile-width`, `--grid-gap`, `--board-units-w/h/cap`,
+`--max-board-size`, `--rank-text`, `--tile-font-factor/-min/-max`,
+`--stats-col-gap`, `--stats-max-width`, `--local-feedback-min-height`,
+`--swap-box-min-height`. A game that mounts the reader and forgets one gets a
+dead declaration, and the token guard passes it because some other game defines
+it. A per-mount-point guard is owed (`game-page/todo.md`).
 
 ### Cross-schema embeds (PostgREST)
 
-PostgREST's schema cache only discovers FK relationships **within a single schema** (the parent's schema). Cross-schema FKs like `codenamesduet.games.user_a_id → common.profiles.user_id` exist in Postgres and `[api].schemas` exposes both ends — but the embed syntax still fails:
-
-```ts
-// This DOES NOT work cross-schema, even though the FK exists:
-supabase.schema('codenamesduet').from('games')
-  .select('id, user_a_id, profiles(username)')
-// → PGRST200 "Could not find a relationship between 'games'
-//             and 'profiles' in the schema cache"
-
-// The !fkname hint syntax doesn't rescue it either — same error.
-```
-
-**Workaround:** fetch the two sides in separate queries and merge in JS. For small result sets (≤ 2 players, a few-dozen members) the extra round trip is fine. [`src/codenamesduet/hooks/useGame.ts`](../src/codenamesduet/hooks/useGame.ts) is the canonical example — read the inline comment there for the diagnostic story.
-
-If a query genuinely needs server-side joining of cross-schema data (e.g. a complex roster + scores + history view), prefer a `security definer` RPC that does the join in SQL and returns a single payload, rather than fighting the embed layer.
-
-This limitation has implications for table design: cross-game features that want PostgREST embeds need their referenced tables in the same schema as the queries. It's another argument for the "shared UI, per-game data" pattern — keep tables co-located with the queries that join them.
+PostgREST discovers FK relationships only within one schema, so
+`.select('id, user_a_id, profiles(username)')` from a game table fails with
+PGRST200 even though the FK to `common.profiles` exists, and the `!fkname` hint
+doesn't rescue it. Fetch the two sides separately and merge in JS
+([`codenamesduet/hooks/useGame.ts`](../src/codenamesduet/hooks/useGame.ts)), or
+do the join in a `security definer` RPC.
 
 ### `data[0]` is typed as present, so a zero-rows check needs a cast
 
-`readRows` hands back `Row[]`. Indexing it gives `Row`, not `Row | undefined` — TypeScript only adds that under `noUncheckedIndexedAccess`, which is **off** — so without a cast the `if (!row)` beneath reads as a dead branch to the compiler, while at runtime it is the ordinary "no such game" case:
+`readRows` hands back `Row[]`, and indexing it gives `Row`, not
+`Row | undefined` (`noUncheckedIndexedAccess` is off), so an `if (!row)` reads
+as dead code to the compiler while at runtime it is the ordinary "no such game"
+case:
 
 ```ts
 const row = gameRes.data[0] as GameRow | undefined
 if (!row) { setGame(null); setLoading(false); return }
 ```
 
-The cast **widens**, so it admits nothing unsafe; what it is doing is putting back the `undefined` the flag would have supplied. Write it at any `data[0]` whose zero-rows case the code then checks (connections' and stackdown's `useGame` both do), with a one-line comment pointing here.
-
-The flag is not the fix. Measured 2026-08-29 during the envelope sprint: turning `noUncheckedIndexedAccess` on costs **930 errors repo-wide**, almost all of them safe grid indexing in the solvers and PDF models — and exactly one real defect, setgame's `useGame.ts:163`, filed in [its game doc](games/setgame.md). Revisit only if that ratio changes.
+The cast widens, so it admits nothing unsafe. Turning the flag on isn't the fix:
+it costs hundreds of errors, almost all safe grid indexing.
 
 ### Cross-schema TypeScript types
 
-`supabase gen types` produces a `Database` type with a top-level key per exposed schema. `supabase.schema('codenamesduet').from('words')` is fully typed against `Database['codenamesduet']['Tables']['words']`. Same for RPCs.
-
-If you add a new schema, also:
-
-- Add it to `[api].schemas` in `supabase/config.toml`.
-- Re-run `npm run types:gen` so the FE picks it up.
-- **Restart the local stack: `supabase stop && supabase start`.** Note that `gmake db-reset ENV=local` is NOT enough — it replays migrations and restarts containers, but doesn't re-read `config.toml`. PostgREST will keep its prior exposed-schemas list and reject calls to the new schema with PGRST106 ("Invalid schema: foo"). The full stop/start is required to make the new `[api].schemas` value take effect.
+`supabase gen types` emits a `Database` type keyed by schema, so
+`supabase.schema('codenamesduet').from('words')` is fully typed. A new schema
+also needs `[api].schemas` in `supabase/config.toml`, `npm run types:gen`, and
+**`supabase stop && supabase start`** — `gmake db-reset ENV=local` doesn't
+re-read `config.toml`, so PostgREST keeps rejecting the schema with PGRST106.

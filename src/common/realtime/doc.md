@@ -72,6 +72,18 @@ and re-reads the rows.
 - **Which channel is which** is not listed here. The channel-name registry in
   [docs/supabase.md](../../../docs/supabase.md) is every channel in the app in
   one place, including whether each one's name is shared.
+- **One hook, one channel.** A hook that sends or receives Broadcast, or
+  tracks Presence, opens one stable-name channel through `channelTeardown.ts`
+  (its docstring has the shape), and any table changes it needs ride on that
+  same channel, with `onPostgresAttached` like any other. It does not open a
+  second, suffixed channel beside it for the tables. A hook that only watches
+  tables uses `useRealtimeRefetch`.
+- **A hook that appends on INSERT must merge its refetch.** Replacing state
+  with a refetch's rows drops any row the append added while the query was in
+  flight, and nothing re-adds it. So the refetch keeps rows its snapshot lacks,
+  and the append skips a row whose id a refetch already brought in —
+  `useClubChat`'s `mergeSnapshot`. A hook that refetches on every event has no
+  separate append to clobber, so it replaces freely.
 - **The deaf window is multi-second, and the event in it is dropped, not
   late.** Measured on the local stack, `system ok` arrives about 2–3s after
   `SUBSCRIBED` on a warm tenant, and seconds more while the tenant is booting;

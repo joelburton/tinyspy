@@ -3,7 +3,8 @@
 How the app tells a phone from a desktop. One stylesheet names the thresholds, a
 few hooks let JavaScript ask the same questions, and two smaller pieces measure
 the room a browser actually leaves for the page.
-[docs/mobile.md](../../../docs/mobile.md) is canonical.
+[docs/mobile.md](../../../docs/mobile.md) introduces how the app works on a
+phone; this folder owns the conditions and the hooks.
 
 ## Intro to area
 
@@ -63,6 +64,12 @@ so each condition is written once and a stylesheet wanting one orientation has a
 name for it. `--tablet-p` / `--tablet-l` are declared and read by nothing today,
 kept so a tablet-only tweak has a name waiting; they are the only unread names
 in the file.
+
+**A running `vite dev` reads the PostCSS config only at startup.** The
+`@custom-media` names are resolved by `postcss-custom-media`, with
+`@csstools/postcss-global-data` injecting `breakpoints.css` into every file
+(`postcss.config.js`); a change to that config needs a dev-server restart, not
+a reload.
 
 **The hooks are one-liners over one engine.** `useMediaQuery` holds all of the
 subscription machinery — `useSyncExternalStore` over a `MediaQueryList` — and

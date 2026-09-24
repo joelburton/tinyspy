@@ -19,7 +19,7 @@ type Props = {
  * sheet is full-bleed below `--mobile`), so the affordance is page navigation:
  * one button whose glyph and label flip, in the same place on each page. Why
  * that rather than a control per page, and what the fixed position protects:
- * docs/mobile.md → The two mobile pages.
+ * doc.md → Details.
  *
  * A `<PageHeaderButton>`, like its neighbor the pause button: a mark in the
  * header rather than a control being offered. `GamePage` renders it only on

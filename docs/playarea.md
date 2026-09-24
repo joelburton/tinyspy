@@ -50,6 +50,31 @@ wrapper), `.moveArea` (its move controls), `.moveAreaOrLocalFeedback` (the
 reserved-height box the controls and the pill swap inside) and `.localFeedback`
 (the pill's centering box).
 
+The below-board skeleton, where a game has one (a game whose pill shares a
+spot with something else — crosswords' active-clue bar — names that spot for
+itself):
+
+```
+.boardCol
+  <board>
+  .belowBoard                  ← the game's own class, its CSS per game
+    .moveAreaOrLocalFeedback   ← shared; reserves --swap-box-min-height
+      .moveArea | .localFeedback
+```
+
+**The swap rule:** when the controls and the pill never show at once, one
+`.moveAreaOrLocalFeedback` box holds the height and the pill replaces the
+controls (every `<WordEntryArea>` game). When both show at once (wordle's
+keyboard and its pill), there is no swap box: `.moveArea` and `.localFeedback`
+sit side by side and `.localFeedback` reserves its own height
+(`--local-feedback-min-height`). A game whose move is made on the board keeps
+an empty `.moveArea` (`display: contents`) with a comment saying why.
+
+- **`.moveArea` names the controls, never the box they swap in.** A
+  controls-holding element does not take a feedback name, even where it shares
+  the spot with the pill.
+- **No class is bare `feedback`.** The class names the slot it is.
+
 ## Info-column readouts
 
 The readouts above the log follow one order in every game — state, opponent

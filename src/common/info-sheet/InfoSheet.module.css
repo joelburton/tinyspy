@@ -1,7 +1,7 @@
 /* cs-blessed-info-sheet */
 
-/* The mobile "info column as an off-canvas sheet" wrapper (docs/mobile.md → the
- * psychicnum recipe) — one sheet every game's mobile pass composes, so none of
+/* The mobile "info column as an off-canvas sheet" wrapper (doc.md → Details)
+ * — one sheet every game's mobile pass composes, so none of
  * them writes this again. See InfoSheet.tsx. */
 
 /* Desktop: `display: contents` — the wrapper generates no box, so the child (a
@@ -30,8 +30,7 @@
      * header's switch button moves between the board and this, one at a time.
      * Any fixed width narrower than the viewport is the whole screen on a 390px
      * phone and half a portrait tablet, so the same component would read as a
-     * page on one device and a drawer on the other (docs/mobile.md → The two
-     * mobile pages). Full width picks one. */
+     * page on one device and a drawer on the other. Full width picks one. */
     width: 100%;
     z-index: var(--z-infocol);
     background: var(--default-bg-color);

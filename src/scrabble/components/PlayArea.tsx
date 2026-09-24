@@ -91,7 +91,9 @@ export function PlayArea({
   // <InfoSheet>, reached by the header's page switch. Desktop is
   // unchanged. This is a LAYOUT for keyboard-attached devices (tablets), not a
   // touch-entry mode — the drag path gets no touch support; play is the
-  // keyboard cursor (tap a square, type). Like crosswords, the window-level key
+  // keyboard cursor (tap a square, type). No device gate: a browser cannot tell
+  // whether a keyboard is attached, so a phone renders and simply can't enter
+  // tiles without one. Like crosswords, the window-level key
   // capture keeps running while the sheet is open — typing stages tiles behind
   // it; acceptable for the keyboard-tablet class this targets.
   const infoSheet = useInfoSheet()
@@ -260,7 +262,7 @@ export function PlayArea({
   }, [currentSeatIsAi, game, gameId, isTerminal])
 
   // Peer-move news → the GLOBAL header (the peer channel; my own move goes to
-  // the below-board slot — docs/code-conventions.md → Feedback naming).
+  // the below-board slot — docs/ui.md → Where a message goes).
   // Compete only: announce each OPPONENT's committed move (human OR AI), so a
   // move that lands while I'm looking elsewhere — especially an AI's, which has
   // no visible human actor — gets noticed. Seeded to the current tail on the

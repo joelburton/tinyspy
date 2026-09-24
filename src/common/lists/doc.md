@@ -72,7 +72,7 @@ apart.
   `core-css/patterns/empty-state.css`.
 - **The filter's popover is a satellite, not a rung.** It reads its host's tier
   through `--z-host`, and a host that is not the page declares that on itself.
-  docs/code-conventions.md → The z- layers.
+  `core-css/base.css` → THE Z- LAYERS.
 - **Driving a `FilterSelect` in a test** is `filterSelectHelpers.ts`: the
   options exist only while it is open, and you pick by visible label, since no
   value is in the DOM.

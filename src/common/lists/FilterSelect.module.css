@@ -106,7 +106,7 @@
      which as a rung would mean outranking a blocking modal — absurd for a
      filter. So it reads its host's tier, and a host that is not the page
      declares `--z-host` on itself.
-     docs/code-conventions.md → The z- layers, "what is NOT a rung". */
+     core-css/base.css → THE Z- LAYERS, "what is not a rung". */
   z-index: calc(var(--z-host, var(--z-page)) + 1);
   min-width: 100%;
   width: max-content;

@@ -195,10 +195,14 @@ and only *who may act now* changing. The mechanism is all common:
   to hand it to.
 - **Restart rewinds the pointer** to seat 0.
 
-Two setup keys carry the choice, `coop_style` and `first_turn_user_id` (the
-latter stripped from the saved default — a person isn't a club preference;
-[code-conventions.md](code-conventions.md#reserved-coop-turn-setup-keys)).
-The pointer is not the record of whose go it was — the event log's `took_turn`
+Two setup keys carry the choice, both written by the shared
+`SetupCoopStyleSection`: `coop_style` (`'turns' | 'free-for-all'`) and
+`first_turn_user_id`. Only the first survives into the club's `default_setup`.
+The rule is general: a style or mode preference is worth remembering, a pick of
+a specific person is not. Each game's `create_game` does the strip itself
+(`setup - 'first_turn_user_id'`), since it chooses what to pass
+`common.create_game` as the saved default; codenamesduet drops
+`first_clue_giver_user_id` the same way. The pointer is not the record of whose go it was — the event log's `took_turn`
 is ([supabase.md](supabase.md#every-games-log-is-gameevents)). **A bot can take
 a seat only where something pokes it to move**, since a bot has no client.
 scrabble compete keeps its own seat pointer, a deliberate second mechanism.

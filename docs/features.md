@@ -345,14 +345,12 @@ the board.)
 
 
 # Mobile suitability
-Thirteen games are phone-converted via the info-sheet recipe (docs/mobile.md):
-PN FB TS WK MC SD SS WN CP MW WW PP SB HT.
-(HT is the only one that TRANSPOSES in portrait — three columns growing down
-rather than three rows growing right; see docs/games/setgame.md → Mobile.)
-Keyboard-required, NOT desktop-only (fits a tablet with a hardware keyboard;
-deliberately not device-gated):  CP (its conversion is a layout for
-keyboard-attached devices, not a touch-entry mode)  RA (not phone-converted;
-renders the desktop layout everywhere)
+A dimension: what a game needs on a touch device (docs/mobile.md → Input
+decides playability). Every game but MG has the phone layout.
+Tap-only, strong on a phone:  PN FB WK MC SD SS WN MW WW PP SB HT
+Tap, plus a transient OS keyboard (the clue):  TS
+Keyboard-required: the phone layout, but entry needs a hardware keyboard;
+deliberately not device-gated:  CP RA
 Desktop-only, hard-blocked on all touch via the shared `DeviceBlockNotice`:  MG
 
 

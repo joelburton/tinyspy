@@ -88,8 +88,8 @@
  * own-move result / terminal verdict shows) the local feedback pill — the rack
  * beside it stays, so only this sub-area swaps. Sized to content + shoved to the
  * row's right edge (`margin-left: auto`). This is the AREA only; the buttons'
- * right-justify is the SEPARATE `.commitButtons` (docs/code-conventions.md →
- * below-board structure). The board never moves when it resizes — the flex:1
+ * right-justify is the SEPARATE `.commitButtons` (docs/playarea.md →
+ * PlayArea layout). The board never moves when it resizes — the flex:1
  * `.controls` free space absorbs it (belowBoard is pinned). */
 /* @@ */ .moveAreaOrLocalFeedback {
   flex: 0 0 auto;

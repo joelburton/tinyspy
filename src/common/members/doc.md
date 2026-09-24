@@ -69,7 +69,10 @@ dot-then-actor, which is what a sentence wants. What makes the pair worth a
 component rather than two spans is the `show` prop: because the name is a real
 element rather than text baked into a string, a phone can drop it globally and
 leave the disc, which is the fallback the whole one-shape-carries-color rule is
-built to allow.
+built to allow. A feedback pill that carries an `actor` draws it with `auto`,
+so "● moth writing clue" becomes "● writing clue" on a phone. Event logs and
+chat pass `both`: a log has the width, and in chat who sent it is half the
+message.
 
 **Reading order is a fact about people, not about any game.** Every list of
 players in the app is read "you, then the others," and sorting the others

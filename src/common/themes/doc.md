@@ -80,6 +80,16 @@ were not looking at while a forgotten copy is one grep away.
   agenda in `todo.md`, with the rest of the near-collisions parked there.
 - **Print never flips.** `--print-ink-color` keeps daylight's value in every
   theme, because paper is paper.
+- **`color-scheme: only light` is what keeps a phone browser from darkening
+  the page.** Chrome Android's and Samsung Internet's auto-dark flip each
+  color by its lightness alone: near-white and near-black invert, mid-tones
+  stay, which breaks a palette built from contrast pairs (a gold tile keeps
+  its gold while its white letter goes dark). `only` is the point; a bare
+  `light` states a preference and does not forbid the flip. The meta in
+  `index.html` and the mode file must agree, and the mode file is the
+  load-bearing one, since the meta acts as an author rule placed before all
+  other CSS. The opt-out is per page or subtree, never per color. And
+  `forced-color-adjust` is a different feature, for Windows High Contrast.
 - **`loadTheme.ts`** reads `?theme=` before React exists, imports that
   theme's chain, and is awaited in `main.tsx` so the first render is not one
   frame of undefined tokens. It is audited with the boot files.

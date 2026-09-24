@@ -195,7 +195,7 @@
 
 /* ── Phones: a WINDOW becomes a sheet, a CARD stays a card ──────────────────
  * On a phone a floating, draggable window is the wrong shape — it becomes a
- * full-viewport sheet instead (docs/mobile.md → "Panels on touch"). The panel is
+ * full-viewport sheet instead (doc.md → Details). The panel is
  * already non-draggable + non-resizable on any coarse pointer (forced in
  * FloatingPanel.tsx), so its geometry can't be moved; here we just override
  * react-rnd's inline position/size to fill the visible viewport. Tablets are
@@ -218,8 +218,9 @@
  * how it positions; clamping the rect instead leaves that alone.
  *
  * Insets use env(safe-area-inset-*) so the header clears a notch / status bar in
- * standalone (home-screen) PWA mode; on devices without safe areas the env()
- * values resolve to 0 and the sheet is edge-to-edge.
+ * standalone (home-screen) PWA mode. They are live only because index.html's
+ * viewport meta sets `viewport-fit=cover`; without it every env() inset is 0.
+ * On devices without safe areas they are 0 anyway and the sheet is edge-to-edge.
  *
  * A sheet covers its own scrim, so the dim is only visible in the safe-area
  * strips — which is the better of the two outcomes anyway: a dimmed frame rather

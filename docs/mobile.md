@@ -1,1056 +1,163 @@
 # Mobile
 
-The record of the mobile-appearance pass — the high-level model (what plays
-where, and the decisions shaping the work), what "mobile-ready" means here, the
-shared breakpoint convention, what's been done so far, and what's deliberately
-left for later.
+How the app works on a phone and a tablet: the posture, the device model, what
+input a game needs, the rules every screen keeps, and how a game page becomes
+two pages. The detail lives where the code is — each section points there.
 
-This is the "real mobile pass" that [`ui.md → Audience and platform:
-desktop-first`](ui.md#audience-and-platform-desktop-first) named as a future
-project. It's now underway, one screen at a time. The desktop-first posture
-still holds: **most players are on a laptop/desktop**, so the desktop layout
-stays the default and mobile is expressed as an *exception* layered on top —
-never mobile-first.
+**Desktop-first, always.** Most players are on a laptop, so the desktop layout
+is the default and mobile is an override layered on top: a `@media (--mobile)`
+block under the rule it changes, never a mobile-first rewrite with `min-width`
+queries. A mobile change must not move the desktop layout. And the aim is
+**graceful, not pixel-perfect**: a screen that is usable and never scrolls on a
+phone, not a bespoke mobile design for every component.
 
-## Strategy
+## Naming the device classes
 
-The evolving high-level model — *what plays where* and the decisions that shape
-the pass. Being filled in as we talk it through; expect churn.
+A device is a point in a 2-D space, not a rung on a width ladder: a landscape
+phone (~844×390) and a portrait tablet (~768×1024) are about as wide as each
+other and opposite in shape. So a condition combines **width**, **shape**
+(orientation or height) and **pointer**. Stylesheets write three names:
 
-### Device classes
-
-Think of it as a 2-D space (shape), not a 1-D ladder (width). Five reference
-devices:
-
-| class | example | character |
+| condition | means | what it decides |
 |---|---|---|
-| **phone-p** | iPhone portrait | tightest of all — the case that needs the most work |
-| **phone-l** | iPhone landscape | wide but **short**; good for tiles side-by-side, bad for anything needing vertical room (or a pop-up keyboard, which eats a short screen) |
-| **tablet-p** | iPad portrait | roomy; ≈ a desktop with less width |
-| **tablet-l** | iPad landscape | ≈ desktop |
-| **desktop** | laptop / desktop | the default; everything targets this first |
-
-Width alone can't separate **phone-l** (~844×390) from **tablet-p** (~768×1024):
-similar widths, opposite shapes. So the media model is
-**width × (height|orientation) × pointer**:
-
-- **width** → column count / collapse-to-a-sheet (the 56.25rem line — see
-  [The breakpoint](#the-breakpoint)).
-- **`(pointer: coarse)` / `(hover: none)`** → a touch device → disable dragging,
-  favor bigger tap targets. This is the right signal for *touch behaviors*, not
-  width (a touch tablet is still touch).
-- **`(max-height: ~480px)`** → a landscape phone → the "short" case, where
-  vertical chrome crushes a tall board and a pop-up keyboard covers most of it.
-
-### Naming the device classes (breakpoints)
-
-We want the five classes defined **once, globally**, not re-typed ad hoc — most
-games won't need per-class tweaks, but when one does, the condition should
-already have a name. Two CSS facts shape how:
-
-1. **Custom properties can't live in `@media`.** `@media (max-width: var(--bp))`
-   is invalid — media conditions are evaluated before the cascade, so `var()`
-   isn't available. "CSS vars for breakpoints" can't be literal vars.
-2. **phone-p vs phone-l (and tablet-p vs -l) are *orientation*, not width** — the
-   same device rotated. So each class is a **compound** condition (width +
-   orientation/height), not a single threshold.
-
-The tool that names a compound `@media` condition once and lets every CSS module
-reference it is PostCSS **`@custom-media`**:
-
-```css
-/* one definitions file, referenced by every module */
-@custom-media --touch    (pointer: coarse);              /* touch device (phone OR tablet) */
-@custom-media --mobile   (max-width: 56.25rem);          /* the existing collapse line */
-@custom-media --phone-p  (max-width: 34rem);             /* narrow portrait */
-@custom-media --phone-l  (orientation: landscape) and (max-height: 27.5rem);
-@custom-media --phone    (--phone-p), (--phone-l);       /* either — composed from the arms */
-@custom-media --tablet-p (min-width: 34.0625rem) and (max-width: 56.25rem) and (orientation: portrait);
-@custom-media --tablet-l (orientation: landscape) and (min-height: 27.5625rem) and (pointer: coarse);
-
-@media (--phone-l) { … }   /* usage in any module */
-```
-
-`--touch`, `--mobile` and `--phone` are what stylesheets actually write (touch
-behaviors, layout collapse, phone-tight tweaks). `--phone-p` / `--phone-l` earn
-their keep by composing `--phone`, and are there for a tweak that wants one
-orientation only. The two tablet classes are vocabulary — nothing reads them
-today; they exist so a tablet-only tweak has a name waiting rather than a
-hand-written condition. The thresholds above are **settled** — they have been
-through the whole mobile pass, the phone-viewport e2e specs and the gallery.
-
-**Mechanism (wired up):** `postcss-custom-media` + `@csstools/postcss-global-data`,
-configured in [`postcss.config.js`](../postcss.config.js) — global-data injects
-the definitions from `src/common/mobile/breakpoints.css` into every file, custom-media
-resolves them. Vite auto-loads the config. Definitions live once in
-[`breakpoints.css`](../src/common/mobile/breakpoints.css); edit a value there and it
-changes everywhere. **A running `vite dev` only picks up the postcss config on
-restart** (it's a startup-time config, not HMR'd) — so after pulling this,
-restart the dev server or the breakpoints won't resolve. Three of the names have
-a JS copy, since matchMedia can't resolve a custom-media name:
-[`useIsMobile`](../src/common/mobile/useIsMobile.ts) ↔ `--mobile`,
-[`useIsPhone`](../src/common/mobile/useIsPhone.ts) ↔ `--phone`,
-[`useIsCoarsePointer`](../src/common/mobile/useIsCoarsePointer.ts) ↔ `--touch`.
-Each hook's spec reads the stylesheet and asserts the two still match, so a
-value changed here fails that spec until the hook follows.
-
-### Input is the primary axis
-
-**What input a game needs on a touch device predicts playability better than
-screen size does.** The keyboard kinds:
-
-- **real-keyboard** — a physical keyboard.
-- **virtual-keyboard** — the OS pop-up keyboard a phone raises when you type.
-- **in-game-keyboard** — one we draw ourselves (wordle's letter grid).
-
-…plus the two non-keyboard inputs that matter most:
-
-- **tap** — touching tiles/buttons. The touch-native input; **always preferred**
-  where a game's move can be expressed as taps.
-- **drag** — moving a tile by dragging it. A **mouse** affordance; unpleasant on
-  touch — on a phone *and* on a tablet. If a game's move fundamentally needs
-  drag, that's the signal to make it **real-keyboard-required**, not to build a
-  touch-drag interaction.
-
-Principles that fall out:
-
-- **Prefer tap.** Most games that "type" on desktop can express the same move as
-  a tap (pick a tile), so on touch they need **no keyboard at all**. This
-  collapses most of the roster into the easy bucket.
-- **A transient native virtual keyboard is fine** when you don't need to watch
-  the board *while* typing. codenames duet clue entry is the model: the
-  clue-giver has already read the board, so the OS keyboard popping up for the
-  clue word is acceptable — no reason to build an in-game keyboard there.
-- **Never require drag on touch.** Dragging is a desktop/mouse interaction; a
-  drag-only game becomes real-keyboard-required (or desktop-only) on mobile
-  rather than growing a touch-drag path.
-
-### Where each game plays (by input on touch)
-
-- **Tap-only — no keyboard, strong on phones:** connections, waffle, wordle
-  (its in-game keyboard *is* taps), psychicnum (tap a tile to guess), spellingbee
-  (tap letters), boggle (tap adjacent tiles to trace a path, or type). *Verified
-  end-to-end via a touch-only e2e (`.tap()`, no
-  keystroke): psychicnum tap-tile → Submit locks the tile; spellingbee
-  tap-letters → Submit accepts the word.*
-- **Transient native keyboard, acceptable:** codenames duet / tinyspy (clue
-  entry only).
-- **Real-keyboard-required (desktop or a tablet *with* a keyboard):** crossplay
-  (crossword grid); scrabble (tile placement is drag-or-type, and we won't build
-  touch-drag or an in-game keyboard for it, so it needs a real keyboard).
-- **Desktop-only:** bananagrams (drag-heavy + a large arena; unpleasant even on a
-  tablet with a keyboard).
-
-**bananagrams is HARD-BLOCKED on touch** (a "needs a desktop" screen — the shared
-[`<DeviceBlockNotice>`](../src/common/game-page/DeviceBlockNotice.tsx)),
-not soft-warned: we don't let people limp through a broken experience. It's
-desktop-only (a drag-heavy 25×25 arena), so the gate keys off the *pointer* —
-`useIsCoarsePointer()` in its PlayArea blocks *all* touch (phone + tablet), since
-even a keyboard tablet has no mouse to drag with.
-
-The two keyboard-required games — **scrabble + crossplay** — are **NOT**
-blocked, and both now have mobile layouts (info sheet + board-fills-width): a
-**layout for keyboard-attached devices, not a touch-entry mode**. A
-keyboard-attached tablet plays them fine and the browser can't tell that apart
-from a bare phone, so we'd rather leave them un-gated than lock out the tablet
-case; a bare phone renders the layout but can't enter tiles/letters.
-
-The **phone-l tension**: landscape helps fit tiles side-by-side
-(psychicnum / connections / tinyspy — text in tiles needn't wrap) but a short
-screen hurts anything that still raises a keyboard. connections (pure tap) is the
-clean landscape win. We won't *prevent* portrait play of the landscape-friendly
-ones; and we may *tell* users to hold the drag/board-hungry ones (scrabble)
-portrait.
-
-### Decisions / directions
-
-1. **Panels on touch:** *(Done — see [What's been
-   done](#panels-on-touch--full-screen-sheets--the-close-button-fix).)*
-   non-draggable + non-resizable; **full-viewport on
-   phones**, centered modal on tablets. Gate on `(pointer: coarse)`, not width.
-   This is *also* the fix for the X-won't-close-on-touch bug — react-draggable
-   `preventDefault()`s the touchstart on the header (the drag handle), which
-   kills the synthesized `click`, so the close button's `onClick` never fires;
-   remove the handle and the X just works. `FloatingPanel` already has the
-   `draggable`/`resizable` props, so forcing them off on coarse pointers fixes
-   chat, scratchpad, setup, and help in one place.
-2. **Viewport height:** *(Done — `svh` chosen; see [What's been
-   done](#viewport-height--svh-instead-of-vh).)*
-   use `svh` (or `dvh`) instead of `vh` in the full-height
-   calcs, so content fits the *visible* viewport with the mobile-Safari toolbar
-   present (our never-scroll pages never let it retract, so `100vh` — the
-   toolbar-hidden height — runs too tall and hides content). To actually
-   *reclaim* the toolbar's space, an **"Add to Home Screen" / standalone PWA**
-   (web-app-capable meta + a manifest `display: standalone`) gives the full
-   viewport and a native feel — a strong fit for a returning-friends app.
-3. **Phone sizing via tokens, not a root font-size shrink.** The things that read
-   "too big" on a phone are display type we oversized for desktop drama (the
-   tile-word clamp, psychicnum's 2rem entry, headings) — already tokens; dial
-   them down under the breakpoint. Leave body text and tap targets alone (touch
-   wants tap targets *bigger*). Mind the **iOS trap**: an `<input>` with a font
-   under **16px** triggers focus-zoom on iOS, so shrink the *field*, not the
-   input font, past that floor.
-   **The floor is a rule about AUTHORING, not a shared class**, and that's
-   forced: `base.css` floors `input, textarea` at `max(16px, 1em)`, but any
-   class that sets its own `font-size` out-ranks an element rule, so the
-   override has to sit beside the declaration that caused it: every class that
-   shrinks a text field carries its own floor (`grep 'max(16px'` finds them).
-   **`max(16px, 1em)`, never a bare `16px`**: the `1em` resolves to the
-   inherited size, so it raises anything under the floor and never shrinks a
-   field that was already bigger.
-
-   A `<button>` never triggers focus-zoom — only a focusable text field does. A
-   touch rule on a button is tap-target sizing, a different thing that happens
-   to look identical.
-
-4. **The infoCol-as-a-separate-screen** (rough POC in psychicnum — a menu-opened
-   sheet) is the pattern that makes most games tablet-ready with little extra
-   CSS. **Phones need the most per-game tweaking; tablets mostly inherit.**
-
-### Open questions
-
-- Is **56.25rem** the right collapse line, or should tablets keep the desktop
-  two-column layout (only phones collapse)? Current lean: one mobile treatment
-  (the sheet for phone *and* tablet); revisit if a tablet reads cramped.
-- Does the **transient native keyboard** actually feel fine in phone-p / phone-l
-  for codenames duet? Worth a quick prototype — it's the one remaining
-  keyboard-raising path.
-## The rules of this pass
-
-- **Desktop-first, always.** Mobile styles are `@media (max-width: …)` overrides
-  on top of the desktop rules. We never rewrite a layout mobile-first with
-  `min-width` overlays. A mobile change must not alter the desktop layout at all.
-- **The invariant that must survive on a phone: [the page never
-  scrolls](ui.md#page-height-fits-the-viewport).** Every screen fits the
-  viewport; growth-prone regions scroll inside their own frames, not the
-  document. The most common way a narrow screen breaks this is **horizontal**
-  overflow — a wide row, a fixed two-column body, or a long unbreakable text
-  token forcing the page wider than the viewport. Verify no-scroll headless at a
-  phone width before declaring a screen done (see
-  [testing](testing.md) — a Playwright render + a `scrollWidth <= innerWidth`
-  assertion; a jsdom test can't catch layout width bugs).
-- **Graceful, not pixel-perfect.** We make the screen usable and un-scrolled on a
-  phone; we don't chase a bespoke mobile design for every component.
-
-## The breakpoint
-
-**`--mobile` (`56.25rem` / 900px) is the primary desktop→mobile line for the
-whole app.** Below it: phones and portrait tablets (an iPad in portrait is
-768–834px). At or above it: landscape tablets and desktops keep the full desktop
-layout. This is the layout-collapse switch — two columns fold to one (+ the
-info-column sheet) — and every component agrees on where it happens.
-
-It's defined once as a custom-media in
-[`breakpoints.css`](../src/common/mobile/breakpoints.css) and used as `@media (--mobile)`
-everywhere — see [Naming the device classes](#naming-the-device-classes-breakpoints)
-for the full set (`--phone`, `--touch`, the four orientation classes) and how the
-PostCSS pipeline resolves them.
-
-## What's been done
-
-### Club page — tabs instead of two columns
-
-[`ClubPage`](../src/common/club/ClubPage.tsx) is a two-column body on
-desktop (left = current game + start-a-new-game; right = the "Your games" list).
-On a phone the two columns are too cramped, so below the breakpoint the body
-becomes a **single column with a tab switcher**: a "New game" tab (the left
-column) and a "Your games" tab (the right column). Only the selected
-column renders, so the page still fits the viewport. The tab bar is
-`display: none` on desktop, where both columns show side by side unchanged. State
-lives in `mobileTab`; a `data-tab` attribute on the body drives the CSS that
-hides the inactive column.
-
-**Tabs here, a sheet on a game page, and the difference is what the second
-column holds.** A game's info column sits *beside a board*, and the board is the
-page — so the recipe below takes the column off-canvas and hands the board the
-full width. This page has no board: both of its columns are lists you choose
-from, peers, and choosing one is the whole reason you arrived. A sheet would
-make one of them the page and the other an aside, a claim about priority the
-page does not want to make. Tabs say the two are equals and you are looking at
-one of them.
-
-**The list filters move with the tabs.** Each column's filter (see
-[common/club/doc.md](../src/common/club/doc.md)) lives at the right of
-its section heading on desktop — and the breakpoint hides those heading *rows*
-entirely, since the tab already names the view. So the filter for the showing
-tab renders instead in a row directly under the tab bar, right-aligned — where
-both filters sit on desktop, so the control doesn't jump sides across the
-breakpoint, and where a `<FilterSelect>`'s list, which opens leftward from the
-trigger's right edge, stays on screen. Both filters are therefore in the tree twice, one instance hidden: no CSS
-relocates an element from inside a column to a sibling of the tab bar, and the
-controls are stateless, so the two instances can't disagree. The gametype
-filter goes back up to full control size on touch — it's the only control in
-that row, so it reads as something you tap rather than as heading chrome. That
-is tap-target sizing and NOT the iOS focus-zoom floor: it is a `<button>` that
-declines focus, and only a focusable text field can trigger the zoom
-(Decision #3 below).
-
-### Player strip — dots only on mobile
-
-[`PageHeaderPlayersStrip`](../src/common/page-header/PageHeaderPlayersStrip.tsx) (the header's
-"who's playing, what color is who" row, shared by the club page and every game
-page) shows a colored dot + username per player. Usernames are variable-length
-and can be long handles; on a narrow header they overflow and scroll the page.
-Below the breakpoint the strip **drops to dots only** — the dot already carries
-the whole signal (color = which player, filled/hollow = present/away), so the
-name is the droppable half. Desktop still shows names.
-
-### Actor mentions in feedback — drop the name to a dot on phones
-
-The same "the dot IS the identity, the name is droppable" idea, extended to
-**feedback**. A shared pair of widgets in
-[`ActorMention.tsx`](../src/common/members/ActorMention.tsx) —
-`ActorDot` (name-then-dot, "moth ●") and `DotActor` (dot-then-name, "● moth") —
-render the name in a real `.name` span rather than baking it into the message
-string. A `show` prop (`auto` / `both` / `name` / `dot` / `none`) controls it;
-`auto` (the feedback default) hides the name under `@media (--phone)` via one
-rule, so a long username can't overflow a tight header or below-board pill —
-"● moth writing clue" becomes "● writing clue". Event logs keep their
-names (`EventLogActor` → `show="both"`).
-
-A message about a person carries them as its `actor`, and the pill draws the
-mention itself (`FeedbackMessage.peer(member, …)`); `usePeerFeedback` dedups on
-a separate string key, not the text.
-**Migrated: every mobile game's peer/opponent feedback** — codenamesduet,
-psychicnum, connections, waffle, wordle, spellingbee, boggle, stackdown. Two
-deliberate exclusions: (1) **chat** feedback keeps its sender name — the chat
-pill has no size constraint the game feedback areas have, and knowing *who*
-messaged matters more there; (2) the keyboard-required games —
-**scrabble** and **crossplay** (played on keyboard-attached devices, not bare
-phones, even now that both have mobile layouts) and
-**bananagrams** (blocked on touch, so its feedback never shows there) — skip the
-migration: not worth the churn for games you don't play on a phone. Unit tests that asserted the pill
-`text` as a string now render the node and read its text (`nodeText` helper).
-
-### The `.card` shell pages — home / login / claim-username
-
-The three shell screens ([`HomePage`](../src/common/home/HomePage.tsx),
-[`LoginScreen`](../src/common/auth/LoginScreen.tsx),
-[`ClaimHandleScreen`](../src/common/auth/ClaimHandleScreen.tsx)) all
-render inside the global `.card` (in [`utilities.css`](../src/common/core-css/utilities.css)). What
-made them phone-safe:
-
-- **`overflow-wrap: anywhere` on `.card`.** Long *unbreakable* tokens — a long
-  username in the "● name — welcome!" heading, an email, a solo club's `=handle` — have
-  no break opportunity, so they set the card's max-content width and push it past
-  a narrow viewport. Allowing a break inside such tokens keeps the card within
-  the screen. It only bites words that genuinely can't fit the line, so normal
-  prose (and the whole desktop experience) is untouched. A 30-char username would
-  have overflowed the desktop card too, so this is general robustness, not a
-  mobile-only patch.
-- **Trimmed card padding on mobile** (`2rem` → `1.5rem`/`1.25rem` below the
-  breakpoint) so a narrow screen isn't eaten by padding.
-- The shared `.badge` (home's "Solo") is `white-space: nowrap`, so the
-  card-level wrap can't split its label into "Sol / o".
-
-### Breakpoint system + phone-only page padding
-
-The device classes are now real, shared custom-media
-([`breakpoints.css`](../src/common/mobile/breakpoints.css) + the PostCSS pipeline; see
-[Naming the device classes](#naming-the-device-classes-breakpoints)). The
-existing `56.25rem` overrides were migrated to `@media (--mobile)`
-(behavior-neutral). The first behavior split on the new system: the tight page
-padding (`--page-padding-x/y` → `0.25rem`) is now **`@media (--phone)`** — phones
-only. Tablets and desktop keep the roomy default (a tablet has width to spare;
-the hair-tight padding only earns its keep on a phone). Verified in a production
-build: `@media (--phone)` compiles to
-`(width<=34rem),(orientation:landscape) and (height<=27.5rem)` and body padding
-resolves to 4px on a phone vs 16/8px on tablet + desktop.
-
-### Panels on touch — full-screen sheets + the close-button fix
-
-Realizes [decision 1](#decisions--directions). Every [`FloatingPanel`](../src/common/floating-panels/FloatingPanel.tsx)
-(chat, scratchpad, Setup, Help, the modals) now adapts to touch:
-
-- **Non-draggable + non-resizable on any coarse pointer.** A new
-  [`useIsCoarsePointer`](../src/common/mobile/useIsCoarsePointer.ts) hook (the JS
-  mirror of the `--touch` custom-media, like `useIsMobile` mirrors `--mobile`)
-  forces `draggable`/`resizable` off when `(pointer: coarse)`. Dragging a
-  floating box is a mouse affordance; more importantly this is the **fix for the
-  X-won't-close-on-touch bug** — react-draggable `preventDefault()`s the header
-  touchstart (the drag handle), which cancels the synthesized `click`, so the
-  close button's `onClick` never fired. No drag binding → the X works. One hook
-  fixes it for every panel at once.
-- **Full-screen sheet on phones.** Below `--phone`, a CSS override in
-  [`FloatingPanel.module.css`](../src/common/floating-panels/FloatingPanel.module.css)
-  cancels react-rnd's inline position/size (`!important` — only that beats an
-  inline style) so the panel fills the viewport instead of floating. Insets use
-  `env(safe-area-inset-*)` so the header clears a notch / status bar in
-  standalone PWA mode — live because [`index.html`](../index.html)'s viewport
-  meta sets **`viewport-fit=cover`** (without it the browser letterboxes content
-  itself and every `env()` inset resolves to 0, so the code was inert). The
-  flip-side: with `cover`, *every* full-bleed surface owns its own safe-area
-  padding, so it wants an on-device pass on a notched phone (recorded in
-  [deferred.md](deferred.md)). **Tablets are deliberately excluded** — they keep
-  the centered-modal rect (roomy enough), just pinned in place by the
-  coarse-pointer rule above.
-
-**Keyboard-aware sizing (chat).** A full-screen sheet with a text input has a
-problem on iOS: the on-screen keyboard doesn't shrink a `position: fixed` sheet,
-so it overlays the input + newest messages — and iOS then auto-scrolls the
-webview to reveal the input, stranding earlier content off-screen. You can't fix
-this by *guessing* the keyboard height: it varies by device, and Apple's
-QuickType predictive bar (which **can't be hidden** from web content) makes it
-taller still. So the sheet is sized to the **measured visual viewport** instead:
-a `reserveKeyboard` prop (chat opts in) drives the fixed clip layer's `height` /
-`top` from [`useVisualViewport`](../src/common/mobile/useVisualViewport.ts) —
-the visible region, which shrinks by exactly the keyboard. The sheet then ends at
-the keyboard's top edge: the input rides the keyboard, nothing is hidden behind
-it, and there's nothing to scroll to. Phone-only (gated by
-[`useIsPhone`](../src/common/mobile/useIsPhone.ts)); off a phone the hooks are
-inert (no soft keyboard → visual viewport == layout viewport). This *does* resize
-the sheet when the keyboard toggles — but that's the expected native-chat
-behavior (the input bar riding the keyboard), and it's the chat sheet only, not
-the game board the no-reflow rule protects.
-
-*(An earlier attempt reserved a fixed `~44–50svh` strip statically to avoid any
-reflow. It couldn't win: too small and the keyboard covered the input; too big
-and it wasted space; and the full-height fixed sheet still extended behind the
-keyboard, so the webview stayed scrollable. Measuring beats guessing.)*
-
-The chat input also needed the **16px font floor** — it was `0.9rem` (14.4px),
-under iOS's focus-zoom threshold, so tapping it zoomed the page *in* (and never
-back out), leaving the sheet wider than the screen. `@media (--touch)` pins the
-field to 16px; desktop keeps 0.9rem. This is the exact trap
-[Decisions #3](#decisions--directions) warned about. That sweep has since
-happened: a global `@media (--touch) { input, textarea { font-size: max(16px,
-1em) } }` in [base.css](../src/common/core-css/base.css) floors every element-styled
-field, and the three class-styled fields that would out-specificity it (this
-chat input, the scratchpad textarea, the word-lookup input) each carry their own
-`--touch` pin — so no sub-16px input remains.
-
-Guarded by [`panels-touch.e2e.ts`](../e2e/panels-touch.e2e.ts) (a real browser —
-jsdom has no layout engine, touch synthesis, or visualViewport): the chat sheet
-fills the screen, its input meets the 16px floor, a **tap** on the X closes it,
-and — with a mocked-shrunk visual viewport — the sheet clamps to the visible
-region with the input never behind the keyboard.
-
-### Viewport height — `svh` instead of `vh`
-
-Realizes [decision 2](#decisions--directions). Every full-height calc — the body
-`min-height`, each game's `PlayArea` height / `--avail-h`, the club-page frame,
-the menu sheet, the toast host — now uses **`100svh`** (small viewport height),
-not `100vh`. On mobile Safari `100vh` is the toolbar-*hidden* height, so a
-`100vh` page runs taller than what's visible and forces a scroll — fatal for our
-[never-scroll pages](ui.md#page-height-fits-the-viewport), which never scroll and
-so never let the toolbar retract. `svh` is the toolbar-*shown* height = exactly
-the visible box, and stays stable. It's identical to `vh` on desktop (no
-retractable UI), so this is a mobile-only fix with zero desktop effect. Grep
-`svh` to find them all; flip together to `dvh` if we ever want the dynamic
-behavior. (Standalone PWA mode has no toolbar, so this mainly helps the
-in-browser / not-yet-installed path — but it's the correct unit regardless.)
-
-### Browser-forced dark mode — opted out with `only light`
-
-We are a **light-only** app on purpose, and we now say so in the one way phone
-browsers actually listen to. Chrome Android's "Auto Dark Theme" and Samsung
-Internet's equivalent re-color pages that don't manage their own color scheme —
-and they do it per-color, by **lightness**: near-white and near-black get
-inverted, mid-tone saturated colors are left alone. That is precisely the wrong
-transformation for a palette of hand-picked contrast pairs. The report that
-prompted this: a spellingbee board on a phone with auto-dark kept its golden
-tiles (mid-tone, untouched) while the near-white glyphs on them flipped dark —
-white-on-yellow, unreadable, unplayable.
-
-Two declarations, and they have to agree:
-
-- `<meta name="color-scheme" content="only light">` in `index.html`
-- `color-scheme: only light` on `:root` in `src/common/themes/light-mode.css`
-
-The **`only` keyword is the whole point** — a bare `light` states a preference
-but does *not* forbid the browser's transformation. And the CSS one is
-load-bearing: the meta behaves like an author rule placed before all other
-author CSS, so a bare `light` in `theme.css` silently beats the meta and hands
-force-dark back its license. Change both together.
-
-The trade is deliberate and was made explicitly: on a phone in system dark mode
-we stay bright while everything around us is dark. Readable beats blended.
-
-Two things to know before someone re-files this:
-
-- **There is no per-color opt-out.** `color-scheme` scopes to the page or a
-  subtree; you cannot exempt one tile. The tricks that protect an individual
-  element from force-dark (hiding a color behind a `linear-gradient`
-  background-image, rendering text as SVG) are non-standard and fragile — don't.
-- **`forced-color-adjust` is a different feature.** It pairs with
-  `@media (forced-colors: active)` and covers Windows High Contrast Mode, not
-  mobile auto-dark. Easy to reach for by mistake.
-
-**When a real dark mode lands**, this is its first line rather than something to
-undo: change both declarations to `light dark` and add the
-`prefers-color-scheme` rules. Both browsers then stand down on their own,
-because the page has declared it handles this — and our palette wins instead of
-their heuristic.
-
-### The two mobile pages
-
-Below the breakpoint the info column is a **full-width page**, not a drawer over
-the board — so this is **two full-screen pages** and the affordance is page
-navigation.
-
-**One switch button**, pinned to the header's right edge
-([`InfoSwitchButton`](../src/common/info-sheet/InfoSwitchButton.tsx)),
-drawing lucide's `panel-right-open` / `panel-right-close` — a right-hand panel
-opening and closing IS the gesture, where a bare chevron said nothing about
-which panel and collided with the info column's own icon-only "Back to club".
-It replaced two controls in two places — a "Game info" menu item to leave and a
-✕ in the sheet's corner to come back — which is why moving between the pages
-felt fussy: two different targets, neither where you last used the other.
-
-**The header is a stable frame across both pages**, and that's a change: the
-sheet used to be `top: 0` and covered the chrome outright, so switching to the
-info page took away the menu, chat, pause and the timer at once. It now starts
-at `--game-header-bottom` — a *different* token from `--game-chrome-height`, and
-the difference matters: the chrome-height one is the total lump subtracted from
-`100svh` (it also counts the body's bottom padding and the gap below the
-header), so using it as a `top` overshoots by ~1.75rem and leaves a strip of the
-board page showing above the sheet. The new token is composed from
-`--page-padding-y` rather than fixed, because that padding drops at `--phone`
-but not on a portrait tablet — so any constant is flush at one width and 4px
-wrong at the other.
-
-**The sheet is FULL-BLEED**, not a 24rem panel. It used to be
-`min(24rem, 100%)` = 384px: the whole screen on a 390px phone, but only half a
-768px portrait tablet — so the same component read as a page on one device and a
-drawer on the other. Five games (spellingbee, boggle, crosswords, wordiply,
-wordwheel) opted out of that with a `wide` prop just to get the full width their
-word lists needed. Going full-bleed picks one behavior and **retired `wide`
-entirely** — the prop, its CSS rule, and all five call sites. The drop shadow
-went with it (a page doesn't cast a shadow onto itself), and `.infoCol`'s
-`border-left` + `padding-left` are suppressed below the breakpoint: that divider
-is column furniture, and on mobile there's no second column to divide from.
-
-**The header's contents split**, because a phone header can't hold everything.
-What each page keeps is chosen by what you need *while looking at it*:
-
-| | board page | info page |
-|---|---|---|
-| menu | ✓ | ✓ |
-| chat + scratchpad + feedback | ✓ | — |
-| pause + timer | — | ✓ |
-| switch | ✓ (right edge) | ✓ (right edge) |
-
-Joel's call, against the argument for keeping a countdown visible while playing:
-this roster isn't race-style, and seeing chat and feedback matters more. **The
-switch must stay pinned to the right edge in both** — the two headers hold
-different things, so riding inside either group would move it between pages and
-lose the muscle memory that justified consolidating it.
-
-Desktop is untouched: the info column is inline, the switch is `display: none`,
-and pause + timer stay in the header. `useInfoSheet` resets the flag when the
-viewport crosses up to desktop, so a page-switch made on a phone doesn't survive
-a widen-and-narrow round trip.
-
-**Where the state lives.** The sheet is rendered by each game's PlayArea (it
-wraps that game's `<InfoCol>`) but the switch button and the header live in the
-shell's `<GamePage>` — different subtrees. So the flag is a module store
-([`infoSheetStore`](../src/common/info-sheet/infoSheetStore.ts)), safe as a single
-slot for the same structural reason the app has one game at a time; `GamePage`
-resets it on mount so a sheet left open in one game doesn't greet you in the next.
-
-### Per-game conversions — the info-sheet recipe
-
-Each game's mobile pass follows the **psychicnum recipe**: below `--mobile` the
-board fills the screen and the whole info column becomes an off-canvas sheet
-reached by a **switch button pinned to the header's right edge**. The sheet is
-otherwise pure CSS — `<InfoSheet>`'s `.wrap` is `display: contents` on
-desktop (so InfoCol stays the flex child, byte-identical) and a fixed full-bleed
-page on mobile, with no close of its own. The `--avail-w` override hands the
-board the full width.
-
-This recipe is currently **copy-pasted per game on purpose** — we're doing two
-conversions before extracting a shared `useInfoSheet()` hook + sheet CSS (rule of
-three), and logging what DIVERGES each time so the extraction is informed by real
-variation rather than psychicnum's assumptions:
-
-- **psychicnum** (the POC / reference) — board is a single grid that flex-fills
-  the column. No divergence; this is the baseline shape.
-- **wordle** — board **+ on-screen keyboard** stacked in the board column (the
-  only game that does this). **Divergence:** the board must cap its height, or a
-  short viewport pushes the keyboard off-screen. Done with a `max-width` on the
-  board grid ([`Board.module.css`](../src/wordle/components/Board.module.css))
-  derived from the leftover height (`100svh − chrome −` the keyboard, the
-  feedback slot and the two gaps, each read from its own token rather than
-  summed here), converted to a width via the board's own aspect ratio so
-  tiles stay square and the keyboard's own width is untouched. Guarded by
-  [`wordle-mobile.e2e.ts`](../e2e/wordle-mobile.e2e.ts) at a tall + short
-  viewport (no page scroll; whole keyboard on-screen; sheet opens/closes).
-
-  **The cap is NOT gated to mobile** (it was until 2026-08-08). "Short" is not
-  the same question as "narrow", and wordle is the one game where they come
-  apart: a laptop panel scaled to 200% in Windows is desktop-*width* and
-  phone-*height* — 1128×752 CSS px, ~617 after browser chrome — and wordle
-  clipped by 33px there while the other twelve games sized off `--avail-h` and
-  fit at 560. Ungating is free because the cap is inert whenever there's room:
-  board measured at 318×383 at both 720px and 900px of viewport height, before
-  and after, engaging only below that (248×298 at 617px). Same reason it's
-  already inert on a tall phone, where the per-tile cap wins. **The lesson
-  generalises** — a mobile media query is the right home for a rule about
-  *layout shape*, and the wrong one for a rule about *running out of room*.
-  wordle needs **no keyboard/input machinery** — its on-screen keyboard is taps,
-  and it has no `<input>`, so none of the panel-keyboard/focus-zoom work applies.
-- **codenamesduet** — the guesser taps tiles (no keyboard), but the **clue-giver
-  types a clue in a below-board `<input>`**, which raises the OS keyboard, and the
-  clue-giver needs the board's key-card colors visible *while* composing (the
-  doc's earlier "they've already read the board" assumption was wrong). **Divergence
-  — resolved by NOT fighting the keyboard:** the board stays full-size and, when
-  the keyboard pushes the below-board clue field down, the page scrolls — the
-  giver scrolls up to read the board, down to the field. (An earlier attempt
-  *shrank* the board to the visual viewport to fit above the keyboard; it crunched
-  the board too small and scrolled badly — a full board you scroll reads better.)
-  So there's **no special layout code** — just the standard board-fills recipe.
-  Two mobile tweaks: the clue inputs are already ≥16px (no focus-zoom), and the
-  below-board action buttons (Submit / AI / Pass) go **icon-only on a phone**
-  (`show={useIsPhone() ? 'icon' : 'both'}` — the shared buttons already support it) so the tight
-  clue row fits. Guarded by
-  [`codenamesduet-mobile.e2e.ts`](../e2e/codenamesduet-mobile.e2e.ts) (board
-  fills, no scroll at rest, collapsed sheet, buttons icon-only). The
-  scroll-when-keyboard feel is an on-device check.
-
-**The recipe is now EXTRACTED** (after the psychicnum/wordle/codenamesduet trio
-proved it byte-identical — rule of three). Three shared pieces, and a game's
-mobile pass is now composing them, not copy-paste:
-
-- [`useInfoSheet()`](../src/common/info-sheet/useInfoSheet.ts) — a game's handle
-  on the sheet: the open flag to hand `<InfoSheet>`, and `close`. It used to also
-  return a mobile-only "Game info" **menu item**, which was a placeholder that
-  buried a half-of-the-app navigation two taps inside a menu. See
-  [The two mobile pages](#the-two-mobile-pages) for what replaced it.
-- [`<InfoSheet>`](../src/common/info-sheet/InfoSheet.tsx) — the off-canvas
-  wrapper around the game's `<InfoCol>` (`display: contents` on desktop → a fixed
-  full-bleed page on mobile), owning the sheet CSS. **Accessibility:** the
-  *closed* mobile sheet is `visibility: hidden` (not just slid off-canvas), so a
-  keyboard user can't Tab into the invisible info column; the *open* one is a
-  `role="dialog"` + `aria-modal` that **Escape** dismisses — the cheap half of
-  dialog behavior (focus-trap + tap-outside are a recorded cut, see
-  [deferred.md](deferred.md)). The dialog role is gated on `open`, which is only
-  ever true on mobile, so desktop's always-visible info column is never
-  mis-announced as a modal. `useInfoSheet` also **resets `isOpen` when the
-  viewport crosses up to desktop** (adjust-state-during-render, not an effect),
-  so a sheet opened on mobile doesn't reappear already-open after a round trip
-  through a wide layout. **The sheet is a FLEX COLUMN** whose in-flow child (the
-  game's `<InfoCol>`) gets `flex: 1 1 auto; min-height: 0` — that's what gives
-  the info column a definite height to divide up, so its event log / word list
-  scrolls inside its own bordered box instead of growing tall and making the
-  whole sheet scroll. `min-height: 0` is the load-bearing half: a flex item's
-  implicit `min-height: auto` refuses to shrink under its content. (This was
-  once only on the since-retired `wide` variant; the others were plain blocks and every
-  one of them — waffle / wordle / psychicnum / connections / scrabble /
-  stackdown / codenamesduet — scrolled the sheet instead. Pinned by a measured
-  spec in `waffle-mobile.e2e.ts`.) `overflow-y: auto` stays as the fallback for
-  content that can't fit even after the log has shrunk.
-- **`shared.mobileFill`** on `.layout` (in the scaffold
-  [`PlayArea.module.css`](../src/common/game-page/playArea.module.css)) —
-  the `@media (--mobile)` full-width `--avail-w` + height override.
-
-A converted game is now: `useInfoSheet()`, `cls(shared.layout, shared.mobileFill,
-styles.layout)`, and `<InfoSheet>{<InfoCol/>}</InfoSheet>` — ~5 lines, no CSS.
-psychicnum / wordle / codenamesduet were refactored onto it (net line removal,
-desktop unchanged, e2e green). What stays PER-GAME is the board's own mobile
-SIZING — psychicnum flex-fills, wordle caps by leftover height for its keyboard
-(at every width, not just here — see its bullet above), codenamesduet keeps a
-full board + scroll.
-
-**stackdown** was then the first *new* conversion on the extracted recipe — and
-it proved the payoff: pure recipe, **no board divergence**. Its square board is
-`min(--avail-w, --avail-h, 620px)`, so `mobileFill`'s full-width `--avail-w` (with
-`--avail-h` already reserving the below-board WordEntry) fits it on a phone on its
-own; input is tile taps (no keyboard). The whole conversion was `useInfoSheet()` +
-`shared.mobileFill` + `<InfoSheet>` and nothing else, guarded by
-[`stackdown-mobile.e2e.ts`](../e2e/stackdown-mobile.e2e.ts) (tall + short: board
-fills, no scroll, sheet works).
-
-**spellingbee + boggle** were the original **wide-sheet pair** — the games whose
-info column is a multi-column **WordList** that wants real width. The sheet used
-to be only as wide as its content, which crushed the word columns to one row each
-on a phone, and the fix was a `wide` prop opting those games into `width: 100%`.
-**That prop is gone**: every sheet is full-width now (see
-[The two mobile pages](#the-two-mobile-pages)), so what five games opted into is
-simply the behavior. What remains from that work is the part that wasn't about
-width — the sheet is a flex column whose child (the `<InfoCol>`) stretches to
-full height (`flex: 1 1 auto; min-height: 0`), so the WordList fills it and its
-columns get their natural height. The
-columns themselves are now **rem-width** (`--wl-col-width`, default `10.5rem`) via
-`grid-auto-columns` instead of the old `calc((100% − gaps)/5)` five-column split —
-so the count of columns is driven by the word count and they **side-scroll**
-horizontally (as they already did on desktop) rather than being squeezed. Desktop
-is unaffected: the rem width matches what five columns used to be on a normal
-info column, so a desktop board shows the same column count it always did.
-
-- **spellingbee** — board is the 7-hex honeycomb (SVG, scales with the column via
-  `--u`); the recipe fits it on a phone unchanged. Tap feedback on a hive tile is
-  the shared piece press — the hex sinks and darkens, the same gesture every
-  other board's tiles give. (It was a white flash overlay on top of that press,
-  written when the press was a bare `scale(0.9)` and easy to miss on a fast tap;
-  a hex now rests with a shadow and rises on hover, so the press reads on its
-  own, and white at 0.7 over a pale hex read as the tile blanking rather than
-  taking a tap.) `-webkit-tap-highlight-color: transparent` stays on the `<svg>`:
-  the browser's default tap-highlight paints a gray box over the hex's square
-  bounding box, which both looks wrong and covers the press. Guarded by
-  [`spellingbee-mobile.e2e.ts`](../e2e/spellingbee-mobile.e2e.ts).
-- **boggle** — the square tile grid fills the phone (`mobileFill`'s `--avail-w`;
-  `--avail-h` already reserves the below-board input row). Its touch story is
-  **tap-to-trace a word**: tap tiles along a Boggle path (king-move / 8-way
-  adjacency) and each letter appends to the shared `word`, so submit + validation
-  (`traceableStr`) are unchanged; the path lives in `BoardCol` as tile coords in
-  the *displayed* (possibly-rotated) view, so **rotating clears it** (the coords
-  would point at different letters). Tapping a selected tile backtracks to it (tap
-  the last to step back one, an earlier one to undo to it); tapping a non-adjacent
-  unused tile is ignored; **typing or Delete clears the path** (you switched to the
-  keyboard). Visual feedback: a traced tile gets an **accent fill + ring**
-  (`.selected`), plus the same `:active` press-scale + tap-highlight suppression as
-  spellingbee. The WordEntryInput placeholder is now "Type or tap letters". Path-tracing
-  works with a mouse too, so it's a desktop affordance as well. Guarded by
-  [`boggle.e2e.ts`](../e2e/boggle.e2e.ts) (trace C→A→T, adjacency guard, backtrack,
-  submit-via-button-then-path-clears — Enter would land on the focused tile's own
-  key handler, so a tap user commits with the Submit button).
-
-**waffle** was a pure plain-recipe conversion (like stackdown) plus two touch
-tweaks. Its square board is `min(--avail-w, --avail-h, cap)`, so `mobileFill`'s
-full width fits it on a phone with no board divergence; the info column (a narrow
-22rem swap-state readout + swap log, no WordList) needed nothing of the sheet
-beyond the recipe. Two input tweaks: (1) the move is already **tap-two-tiles-to-swap** —
-tap one tile to pick it up, a second to swap, the same again to cancel — so touch
-needs no new model; the *drag* path (HTML5 DnD, a desktop mouse affordance) is
-turned **off on a coarse pointer** (`draggable={!disabled && !coarse}`) so a phone
-gets the tap model cleanly (no long-press drag-ghost). (2) The picked-up tile's
-ring was a faint brown (`--waffle-select-ring`) — too subtle; it now wears the shared
-**selection mark** (`.tile.selected` — a thick black edge, eaten inward so the grid
-doesn't move), which stays legible over any feedback color. That's a visibility fix,
-so it applies on desktop too. Guarded by
-[`waffle-mobile.e2e.ts`](../e2e/waffle-mobile.e2e.ts) (tall + short: board fills,
-no scroll, sheet works; drag off on touch; a tap-swap commits).
-
-**connections** was the plain recipe plus a couple of below-board tweaks. The board
-is one grid that fills `--avail-w`, so `mobileFill` fills the phone (no divergence,
-like psychicnum); input is tap-a-tile (touch-native), no keyboard/drag; the info
-column (mistakes/event-log/Hints/End, no WordList) uses the **plain** sheet. Unlike
-the pure-board games it has a below-board **commit row** (mistakes readout +
-Clear/Submit), which is tight on a phone, so — same treatment as codenamesduet's
-action row — the **buttons go icon-only** (`show={useIsPhone() ? 'icon' : 'both'}` + a `@media
-(--phone)` drop of their text-era `min-width`) and the **label shortens to
-"Mistakes"** (the strike dots already carry "lose at 4"). One tile-text tweak:
-connections is the only game with multi-letter WORD tiles, and on a narrow phone
-tile a long word (DIAMOND) hit the shared `--tile-font-min` floor and wrapped, so a
-`@media (--phone)` rule lowers that floor on connections' grid (letting the
-auto-fit shrink it to one line). Guarded by
-[`connections-mobile.e2e.ts`](../e2e/connections-mobile.e2e.ts) (tall + short:
-board fills, no scroll, sheet works; a tapped 4-tile guess commits).
-
-**crosswords** got the recorded "clue bar under the grid" treatment (it was this
-doc's future-direction note; now built). Below `--mobile` the grid + the
-active-clue bar are the whole main view — the grid takes the full viewport width
-(a second inline cell-size formula, picked by the breakpoint in
-`Grid.module.css`; the desktop formula shares width with the clue columns and is
-untouched), and the bar hugs the grid's bottom edge showing the one clue the
-cursor is on: **2 reserved/clamped lines on a tablet, 3 on a phone** (narrower
-wraps more). The Across | Down lists AND the check/reveal Controls strip move
-into the info sheet (the shared recipe; a `display: contents`
-`.sheetContent` wrapper keeps them grid items on desktop, byte-identical).
-**Keyboard-required still holds** — this is the layout for a tablet (or phone)
-*with* a hardware keyboard, not a touch-entry mode; entry is still typed.
-Guarded by [`crosswords-mobile.e2e.ts`](../e2e/crosswords-mobile.e2e.ts) at
-tablet-p + phone on a generated full-size 15×15 board
-(`createCrosswordsGameSized` — the 2×2 e2e fixture caps at max cell size, so it
-can't exercise width-bound sizing): no page scroll, width-bound grid, the bar
-under the grid at its reserved height, the sheet round-trip, typed entry.
-
-**strands** was the plain recipe — it composes `useInfoSheet` + `<InfoSheet>` +
-`mobileFill` unchanged, its input is tap-a-letter (touch-native, no keyboard and
-no drag), and its below-board furniture (the echo/verdict slot + the hint bar)
-is already fixed-height, so nothing needed a phone variant. Two things came out
-of the on-device pass, and both are worth recording because neither is
-strands-specific reasoning:
-
-- **The board's FRAME has to be in the height budget.** strands has the tallest
-  board on the roster — portrait 6 wide × 8 tall — and `.board` is
-  `box-sizing: content-box` with `0.9rem` of padding plus a 2px border, so its
-  outer box is ~2rem larger than the number `--board-h` names. The sizing
-  formula budgeted only the inner box, so a 390px phone got a **415px-wide
-  board** and the page scrolled in *both* axes. Fixed with a `--board-frame`
-  token subtracted from both `min()` terms, kept in sync with `.board` by
-  comment. Content-box is deliberate and stays: it keeps the inner area exactly
-  6:8, so cells stay square and the SVG's cell-unit viewBox maps 1:1. **Any
-  game whose board wears a frame owes the same subtraction** — desktop has slack
-  to hide it, a phone does not.
-- **`:hover` needs the `(hover: hover)` gate on anything tappable.** The tiles
-  dimmed to 0.75 on hover, which on a touchscreen *sticks to the last-tapped
-  element* until you tap elsewhere — so every submission left one dimmed tile
-  sitting on the board. Same gate, same reason, as the tooltip bubble (docs/ui.md
-  → Button iconography, "Styled tooltips"). spellingbee's hexes carry it too.
-  stackdown's `Board` and wordwheel's `Wheel` still have ungated `:hover` and
-  would likely show the same thing; recorded in [deferred.md](deferred.md) →
-  Mobile.
-
-Guarded by [`strands-mobile.e2e.ts`](../e2e/strands-mobile.e2e.ts) at tall +
-short: no page scroll in either axis, the board's **bounding rect** (frame
-included) inside the viewport, the sheet round-trip, a tapped trace committing,
-and — with the log padded past what any sheet can show — that the event log's own
-box takes the overflow rather than the sheet. Both halves were verified by
-planting: restoring the un-framed formula fails the width assertion at 415px,
-and making `.eventLogBox` non-scrolling fails the sheet assertion.
-
-Landscape phones were checked (844×390) and are fine — no scroll, everything
-reachable — just height-bound to a small board, which is inherent to an 8-row
-grid on a 390px-tall viewport and not something this doc's breakpoints address.
-
-**letterboxed** shipped mobile-converted from day one — the standard composed
-recipe (`useInfoSheet` + `<InfoSheet>` + `shared.mobileFill`), input is
-tap-a-letter on the SVG square (touch-native; re-tapping the word's last letter
-submits, so a phone needs no keyboard at all — physical keys still work through
-the shared `WordEntryArea`). It has **no mobile status bar** — see the adoption-rule
-note below: the board and the chain strip ARE the readouts, and the
-accepted-word pill ("APPLE — 2 words left") carries the cap. The chain strip
-stays on the play surface — it's per-turn state (what letter the next word must
-start with), which is exactly what can't live behind the sheet — and its
-reserved height is **chain-aware**: `BoardCol` estimates the rows the live
-chain needs (`lib/chainRows.ts`, a crude greedy pack — no measuring) and sets
-`--chain-rows-desktop`/`--chain-rows-mobile` inline; the base reservation is
-2 rows (3 on a phone), and when a long chain genuinely needs more, the extra
-rows are subtracted inside `--avail-h` so the **board shrinks once** rather
-than the page scrolling (never-scroll outranks never-move; the shift is rare
-by design and Joel accepted it explicitly). The slot's "Waiting for ● Name…"
-covers whose-turn in turn-coop, since the `TurnStatusLine` is off-canvas.
+| `--mobile` | narrower than 56.25rem (900px): phones and portrait tablets | the layout folds — two columns become one, and the info column becomes a page |
+| `--phone` | the tightest devices in either orientation | phone-tight tweaks: page padding, a button dropping its label, a name dropping to its dot |
+| `--touch` | a coarse pointer, at any width | touch behavior: no dragging, the text-field floor, tap targets |
+
+The names are `@custom-media` declarations in
+[`breakpoints.css`](../src/common/mobile/breakpoints.css), injected into every
+stylesheet by PostCSS; three have JavaScript copies (`useIsMobile`,
+`useIsPhone`, `useIsCoarsePointer`) for the rare difference that changes what
+React renders. How they are built, why a CSS variable can't do it, and the specs
+that keep each hook matching its stylesheet are
+[src/common/mobile/doc.md](../src/common/mobile/doc.md)'s. **Prefer the CSS
+rule to the hook** wherever the difference is only visual: a rule and a hook are
+two reads of one threshold and can disagree across a resize.
+
+## Input is the primary axis
+
+**What input a game needs on a touch device predicts whether it works there
+better than screen size does.**
+
+- **Prefer tap.** Most moves that are typed on a desktop can be expressed as
+  taps — pick a tile, tap a letter, trace a path — so on touch they need no
+  keyboard at all.
+- **A transient OS keyboard is acceptable** when the moment of typing is short,
+  like codenamesduet's clue. Where it covers the board, the page may scroll
+  while the keyboard is up; shrinking the board to fit above it read worse.
+- **Never build touch-drag.** Dragging is a mouse affordance. A drag is turned
+  off on a coarse pointer where a tap does the same move (waffle's swap); a game
+  whose move fundamentally needs drag or typing is **keyboard-required** or
+  **desktop-only**.
+- **Keyboard-required games are not gated.** A tablet with a keyboard attached
+  looks exactly like a bare phone to the browser, so they get the phone layout
+  and a bare phone simply can't enter moves. **A desktop-only game is blocked**
+  on every coarse pointer with the shared
+  [`<DeviceBlockNotice>`](../src/common/game-page/DeviceBlockNotice.tsx), so
+  nobody limps through a broken experience.
+
+### Where each game plays
+
+Each game's class — tap-only, transient keyboard, keyboard-required,
+desktop-only — is [features.md → Mobile suitability](features.md#mobile-suitability).
+
+## The rules every screen keeps
+
+- **The page never scrolls** ([ui.md → Page-height fits the
+  viewport](ui.md#page-height-fits-the-viewport)), and on a phone the usual way
+  it breaks is **sideways**: a wide row, a fixed two-column body, or a long
+  unbreakable token. Check it in a real browser at a phone width — jsdom has no
+  layout.
+- **`100svh`, not `100vh`**, in every full-height calc. On mobile Safari `100vh`
+  is the height with the toolbar hidden, and a page that never scrolls never
+  hides it; `svh` is the visible box. It equals `vh` on desktop.
+- **A media query is for layout *shape*, not for running out of room.** A rule
+  about fitting the height a board has left belongs at every width: a desktop
+  window can be as short as a phone (a laptop at 200% scaling is). Every game's
+  `--avail-h` is set at every width, and the mobile blocks only add to it.
+- **A board sized from a height budget subtracts everything that shares the
+  column** — the below-board row, the mobile status bar and its gap, and the
+  board's own frame if it has one (strands' `--board-frame`). Desktop has slack
+  to hide a missed term; a phone doesn't.
+- **Text fields are at least 16px on touch.** A smaller focused field makes iOS
+  zoom the page, and it never zooms back. `base.css` floors `input, textarea`
+  at `max(16px, 1em)`; a class that sets a field's own font-size outranks that
+  rule and carries its own floor beside it. A `<button>` never triggers the
+  zoom — a bigger button on touch is tap-target sizing, a different thing.
+- **Anything tappable gets the tap treatment:** no browser tap highlight, a
+  designed press, and `touch-action: manipulation` so double-tap doesn't zoom
+  and taps don't wait. On an SVG board `touch-action` goes on the `<svg>` root:
+  on an SVG child it is silently ignored.
+  [`tap-targets.e2e.ts`](../e2e/tap-targets.e2e.ts) checks the real tap targets,
+  and a new tapped board joins its list.
+- **`:hover` on anything tappable belongs inside `@media (hover: hover)`.** A
+  touchscreen keeps `:hover` on the last element tapped, so a hover style sits
+  there after every move looking like state. Most boards don't gate it yet
+  ([deferred.md → Mobile](deferred.md#mobile)).
+- **Long user strings are bounded twice**: handles and club names are capped in
+  SQL, and the surfaces that show them carry `overflow-wrap: anywhere`, because
+  a short token with no break opportunity still pushes a phone page sideways.
+- **The page is light only.** `color-scheme: only light` stops a phone
+  browser's auto-dark from inverting colors one at a time by lightness, which
+  wrecks the palette's contrast pairs
+  ([src/common/themes/doc.md](../src/common/themes/doc.md)).
+
+## A game page on a phone
+
+### The info-sheet recipe
+
+Below `--mobile` a game page is **two full-screen pages**: the board fills the
+screen, and the info column becomes a second page. One switch button, pinned to
+the right edge of the header, moves between them, and the header stays put
+across both, each page keeping the controls you need while looking at it.
+
+A game joins by composing three things — `useInfoSheet()`, `<InfoSheet>` around
+its `<InfoCol>`, and `shared.mobileFill` on its layout — with no CSS of its own.
+What stays the game's is its board's own mobile sizing. The pieces, the header
+split and the reasons are
+[src/common/info-sheet/doc.md](../src/common/info-sheet/doc.md)'s.
 
 ### The mobile status bar — core state above the board
 
-The info-sheet recipe has a cost: the moment the info column goes off-canvas, the
-game's **live state readout** ("3/15 agents · 4/9 turns") goes with it, so
-answering "how many agents left?" costs a page switch mid-game.
-[`<MobileStatusBar>`](../src/common/info-sheet/MobileStatusBar.tsx) puts that
-one line back on the play surface — rendered as the **first child of
-`shared.boardCol`**, above the board, and hidden by pure CSS (`display: none`)
-above `--mobile`, so it's exactly the InfoSheet's own breakpoint and generates no
-box (no flex gap) on desktop. It is NOT gated by `useIsMobile()`: two independent
-reads of the same breakpoint can disagree across a resize; one CSS rule can't.
+Moving the info column off the board takes its live readout with it, so
+`<MobileStatusBar>` puts that one line back above the board, below `--mobile`
+only. **A game adopts it when its core state is invisible once the column
+slides away** — a per-game judgment: a board that already shows its own state
+needs none. How to feed it and size it is info-sheet's doc.
 
-Two rules for a game adopting it:
+Whose turn it is goes the same way: the turn line is behind the sheet, so a
+turn-order game shows "Waiting for ● Name…" in the below-board slot while it
+isn't your turn ([src/common/feedback/doc.md](../src/common/feedback/doc.md)).
 
-- **Feed it the same node the info column renders.** The game extracts its state
-  line into one component and hands it to both surfaces — codenamesduet's
-  [`StateLine`](../src/codenamesduet/components/StateLine.tsx), used by `InfoCol`
-  (wrapped in `shared.infoState`) and by the bar. Two hand-written copies would
-  drift.
-- **Same node, but the bar may compress it — write the desktop shape as the base
-  rule.** The two surfaces have opposite budgets: the info column is roomy, the
-  bar is a fixed strip where every row costs the board a row. So a component that
-  renders in both keeps its **info-column** look in the plain class and puts the
-  compressed look in a `[data-mobile-status] .x { … }` override at the bottom of
-  the same file — the attribute `<MobileStatusBar>` already stamps on its wrapper.
-  No media query (the bar is `display: none` above the breakpoint, so the override
-  can only ever apply on a phone) and no `compact` prop to thread through call
-  sites. Writing it the other way round is what shipped in `5fa7be9`: `<RankBar>`
-  and `<Stats>` were compressed at the base — rules and margins stripped, the rank
-  name inlined beside its track — which quietly imposed the phone's height budget
-  on a desktop that had room to spare. See
-  [`RankBar.module.css`](../src/shared/rank-ladder/RankBar.module.css) for the
-  worked example.
-- **Fixed height, never content-driven.** The bar defaults to `1.75rem` +
-  `nowrap` + `flex-shrink: 0`; it sits above a `flex: 1` board, so anything that
-  wrapped or grew would move the board mid-game (docs/ui.md → Layout stability).
-  A game whose readout is a small BLOCK instead of a line raises
-  `--mobile-status-height` (spellingbee: `4.25rem` for the RankBar over the
-  Score/Words grid) — still fixed, just taller. **If the game's board sizes
-  itself from a height budget, subtract the bar there too**: spellingbee's hive
-  derives from `--avail-h`, so its mobile block is deducted from that number or
-  the board would be sized for space it no longer has and the page would scroll.
-- **A game may put a CONTROL in it, not only a readout.** setgame's bar carries
-  its counts *and* a copy of the hint button (the info column keeps its own),
-  because asking for a hint there is a routine move rather than a rescue, and a
-  routine move should not cost a sheet-open mid-game. That is what raises its
-  `--mobile-status-height` to `2.5rem`: a tap target is taller than a line of
-  text. The duplicate is safe only because both copies are the same component
-  fed the same label — two hand-written buttons would drift in wording and in
-  their disabled reason.
-- **The inner wrapper is load-bearing.** `.bar` is a flex container, and flex
-  turns each run of text into its own anonymous item, *dropping the whitespace
-  between them* — a status line renders "1/3found·0/7guesses used", visibly
-  tighter than the same component in the info column's `<p>`. `<MobileStatusBar>`
-  wraps its children in a single `<div>` to hand the text back to normal inline
-  layout. Text assertions can't catch this (the whitespace is in the DOM, just
-  not in the layout); it took a screenshot.
+### Tight rows
 
-Opening the sheet doesn't take the status away: `InfoCol` still renders its own
-copy at the top, which is what you read while the sheet is up (the sheet is
-full-bleed, so it covers the bar on every device). Guarded in
-[`codenamesduet-mobile.e2e.ts`](../e2e/codenamesduet-mobile.e2e.ts) — visible and
-above the board on a phone, hidden on desktop, still readable with the sheet open.
+A below-board row that doesn't fit a phone gives way in the same few ways:
+buttons go icon-only (`show={useIsPhone() ? 'icon' : 'both'}`), a label
+shortens where something else already says it, and a text that won't fit lowers
+its font floor under `@media (--phone)`. Each rule sits beside the one it
+changes.
 
-**A game adopts the bar when its core state is invisible once the info column
-slides away** — that is the whole condition, and it is a per-game judgment, not a
-default. Most carry one LINE (psychicnum's "1/3 found · 4/7 guesses used": both
-numbers live only in the info column, and neither is readable off the board); a
-game whose readout is a small BLOCK instead raises `--mobile-status-height` and
-lays the block out itself (spellingbee's RankBar + Stats unit — see below).
+## Other surfaces
 
-**letterboxed is the rule's clearest non-adopter** (it shipped with the bar and dropped it
-2026-08-05): the board itself is the letters readout — covered letters fill
-green — the chain strip above it is the words readout, and the one number
-neither shows (words left under the cap) is restated by the accepted-word
-feedback pill after every move. Dropping the bar returned its ~4.25rem to the
-board on exactly the surface that was tightest.
+- **Panels on touch** are pinned in place (a drag handle on touch swallowed the
+  close button's tap), and on a phone they fill the screen; the chat sheet sizes
+  itself to the visible viewport so the OS keyboard never covers its input
+  ([src/common/floating-panels/doc.md](../src/common/floating-panels/doc.md)).
+- **The club page uses tabs, not a sheet**: its two columns are equals, both
+  lists you choose from, so neither becomes an aside
+  ([src/common/club/doc.md](../src/common/club/doc.md)).
+- **A name drops to its dot.** The header's player strip shows dots only below
+  `--mobile`, and a feedback pill's actor loses the name on a phone; the dot
+  already carries the identity
+  ([src/common/members/doc.md](../src/common/members/doc.md)).
+- **The card pages** (home, login, claim-username) wrap long tokens and tighten
+  their padding ([`utilities.css`](../src/common/core-css/utilities.css) → `.card`).
 
-**Deliberately NOT adopted — connections.** Both halves of its state are already
-on the play surface: **categories found** is self-evident from the board (each
-solve becomes a full-width colored band above the remaining tiles — you can
-count them), and **mistakes** sit in the below-board row as `<StrikeMarks>`
-(labeled "Mistakes" on a phone, "Mistakes (lose at 4)" above it). A status bar
-would restate both and cost the board 1.75rem for nothing.
+## Verifying
 
-**The companion answer — "whose turn is it?"** A turn-order game answers that in
-the info column too (`<TurnStatusLine>`), so it went
-off-canvas with the rest — and a waiting player on a phone had no cue at all
-(the shared `.tile:disabled` rule deliberately refuses to fade; taps silently
-did nothing). The shared **`FeedbackMessage.waiting()`** (its words from
-`common/info-sheet/turnText.tsx`) puts the same "Waiting for ● Name…"
-wording into the fixed-height below-board feedback slot as a standing note
-— shown by each game's whose-turn effect only while it ISN'T your turn (the
-turn signal is the note leaving), costing no layout since the slot already
-exists. See
-[common-schema.md → Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
-
-### Tap feedback — one canonical treatment
-
-spellingbee + boggle grew bespoke tap feedback first (gray-flash suppression + an
-`:active` press on their own tiles); that treatment is now **canonical on the
-shared surfaces**, so every tap game matches instead of a handful. The shared
-`.tile` (in [`PlayArea.module.css`](../src/common/game-page/playArea.module.css)
-— psychicnum / connections / waffle / codenamesduet) and the shared
-on-screen-keyboard `.key` (in [`GuessKeyboard.module.css`](../src/shared/onscreen-keyboard/GuessKeyboard.module.css)
-— wordle + wordiply) each carry three things:
-
-- `-webkit-tap-highlight-color: transparent` — kill the browser's default gray
-  tap box, which paints a rectangle that fights the tile fill;
-- a **designed press** — tiles scale down (`:active` → `scale(0.96)`), keys
-  *darken* instead (a scale would jitter on gap-tight keys);
-- **`touch-action: manipulation`** — opt out of iOS Safari's double-tap-to-zoom
-  and its ~300ms tap delay, so rapid taps (path-tracing, fast typing) stay crisp.
-
-stackdown's bespoke mahjong `.tile` and boggle/spellingbee's own tiles carry the
-same three (they're not the shared `.tile`, so they replicate it locally). The
-zoom-suppression *feel* is an on-device check — Playwright can't reproduce
-Safari's gesture heuristics (recorded in [deferred.md](deferred.md)).
-
-> **`touch-action` is INERT on an SVG child element.** A `<g>`, `<circle>` or
-> `<polygon>` generates no CSS box, so the browser drops the declaration
-> silently — it computes fine, it just never applies. On an SVG board the rule
-> must go on the **`<svg>` root** (or an HTML ancestor); one declaration there
-> covers every tile, because a touch's effective behavior is resolved by
-> walking up from the element it hit.
->
-> This is not theoretical: spellingbee shipped `touch-action: manipulation` on
-> `.hex` — with a comment explaining exactly why the hive needed it — and the
-> hive kept double-tap-to-zoom the whole time, eating the second of two quick
-> taps and losing a letter mid-word on iOS. wordwheel, forked from it, never had
-> the rule at all; strands' bespoke tiles were missed too. All three fixed
-> 2026-08-08. Measured: a drag beginning on a `touch-action: none` `<g>` scrolls
-> the page as far as an unrestricted element, while the same rule on the
-> enclosing `<svg>` stops it dead.
->
-> Because the failure is invisible in the source — the rule is *right there* —
-> [`tap-targets.e2e.ts`](../e2e/tap-targets.e2e.ts) asks the browser instead,
-> walking each tapped board's real tap target up its ancestors and failing
-> unless something that can actually carry `touch-action` does. **A new game
-> with a tapped board goes in that list.**
-
-**The pass now covers every game except one.** Fifteen games follow the
-info-sheet recipe, and since the sheet went full-bleed they all follow the
-*same* one — there is no longer a wide/plain split: **spellingbee / boggle /
-crosswords / psychicnum / wordle / codenamesduet / stackdown / waffle /
-connections / wordwheel / wordiply / scrabble / strands / letterboxed /
-setgame**.
-
-- **setgame** is the only one that **transposes** in portrait: three columns
-  growing downwards instead of three rows growing right. Not a preference —
-  its board GROWS by a column when the table holds no set, which two games in
-  three reach, and dividing a ~366px width by up to seven leaves ~50px cards.
-  Turned, the same board divides by three and grows into the height a portrait
-  screen has going spare. Space for eighteen cards is reserved from the start so
-  a deal resizes nothing; twenty-one (a ~1-in-a-million board) shrinks to fit
-  rather than overflowing. Landscape keeps the desktop orientation — a phone on
-  its side is short and wide, which is what that layout already suits. Its
-  keyboard letters come off below the breakpoint, and `--letter-row` goes to 0
-  so the board actually gets the height back.
-
-- **scrabble** is **keyboard-required, NOT desktop-only** — like crosswords, its
-  conversion is a layout for keyboard-attached devices, not a touch-entry mode
-  (drag gets no touch support; play is the keyboard cursor — tap a square,
-  type). The board fills the width; on phones the rack + controls row wraps to
-  two rows (`@media (--phone)` in BoardCol/PlayArea `.module.css`, with the
-  below-board reserve and `--avail-h` grown in lockstep). It stays **un-gated**
-  (no `useIsPhone()` block) so a keyboard-attached phone/tablet — which the
-  browser can't detect — stays playable; a bare phone renders fine but can't
-  enter tiles. Guard: `e2e/scrabble-mobile.e2e.ts`.
-- **bananagrams** is genuinely **desktop-only** (a large 25×25 drag-heavy arena,
-  unpleasant even on a keyboard tablet) — **hard-blocked on *all* touch** via the
-  shared [`<DeviceBlockNotice>`](../src/common/game-page/DeviceBlockNotice.tsx)
-  (`useIsCoarsePointer()` in its PlayArea). The one game that actually gates the
-  device, and the sole unconverted one.
-
-The app *chrome* (the `.card` shell pages, club page, header/player strip, chat,
-panels) is mobile-ready for all of them regardless.
-
-## TODO — not doing now, recorded so we don't lose them
-
-These two caps attack the overflow problem at the *source* rather than papering
-over it with wrapping/truncation. Long user-supplied strings are the main thing
-that threatens the no-scroll invariant on a narrow screen (see the `.card` and
-player-strip notes above); bounding their length makes the whole app calmer on
-mobile and tightens the rosters, chat, and club lists everywhere.
-
-- [x] **Cap user handles — done at 15 characters** (2026-07-30; the note below
-  proposed 10, we landed on 15). The username is shown in chat, every game
-  roster, the header player strip, and as the literal handle of the solo club
-  (`=<username>`). Enforced where the handle is created — the SQL `CHECK` on
-  `common.profiles.username` (`^[a-z][a-z0-9-]{2,14}$`) and the `claim_username`
-  RPC, mirrored by `HANDLE_REGEX` + a `maxLength` on the input in
-  [`ClaimHandleScreen`](../src/common/auth/ClaimHandleScreen.tsx),
-  which also states "3–15 characters" in its help text. The **club** handle
-  regex is deliberately unchanged (`{2,29}`): it has to keep accommodating the
-  `=<username>` solo form and slugified club names, which is a separate cap.
-  Alpha prior applied: the constraint just re-narrowed; any over-long handle
-  gets re-picked.
-- [x] **Cap club names — done at 20 characters** (2026-08-03). The club name
-  headlines the club page (a 1.5rem `h1`) and the home clubs list. Enforced the
-  same four ways the handle cap is: a `CHECK` on `common.clubs.name`
-  (`char_length between 1 and 20`), a clean `P0001` in `create_club` so the
-  create form doesn't render a raw 23514, `maxLength` on the input, and a help
-  line under it. Wherever a rename lands (the menu item is still a placeholder),
-  it inherits the CHECK for free and should raise the same friendly error.
-
-  Two things the measurement turned up, both worth keeping in mind for the next
-  cap:
-
-  - **20 also fixes a live bug.** `slugify_club_name` truncates the derived
-    handle at 40 characters but the handle `CHECK` allows at most 30, so a
-    ~31–40 character name failed on *that* constraint with a raw 23514. A name
-    that can't exceed 20 can't slugify past 20.
-  - **A cap alone does NOT buy the no-scroll invariant.** 20 characters of
-    ordinary words fit one line at 390px, but 20 wide capitals with no spaces
-    (`MWWMWWMWWMWWMWWMWWMW`) is one unbreakable token that pushed the document
-    wider than the viewport. `.title` now carries `overflow-wrap: anywhere`; the
-    cap bounds how tall the wrap gets, the wrap rule is what stops the sideways
-    scroll. Guarded by [`page-no-scroll.e2e.ts`](../e2e/page-no-scroll.e2e.ts).
-
-- [ ] **Audit local/global feedback message COPY for length.** Dropping the name
-  to a dot (the actor-mention widgets) handles the *name* half, but some messages
-  are just wordy. The pill is `nowrap` +
-  `text-overflow: ellipsis`, so an over-long message is **silently cut**, not
-  wrapped. Measured budget on a 390px phone: the **header** pill fits ~26 chars
-  (it shares the row with the logo + chat bubble; the identity dot eats ~2 of
-  them), a **below-board** pill ~48. Pass over every game's feedback strings and
-  shorten where the meaning survives (the dot already names the actor; the
-  tone/color already carries good/bad).
-  **Done for codenamesduet** (2026-07-30): the four peer-turn messages went
-  telegraphic ("● moth waiting for you", not "● moth is waiting for your turn to
-  complete"), sudden death → "Sudden death: wrong loses", and the below-board
-  clue row dropped its "Your clue:" label and its "Waiting for ● moth to guess…"
-  sentence (now "● moth guessing").
-  **Done for connections** (2026-07-30): terse verdicts, and the peer-solve pill
-  stopped naming the category ("● found category") — the name is puzzle data of
-  unbounded length and the solved band is already on the reader's board.
-  **Done for psychicnum** (2026-07-30): peer narration went label-first ("●
-  Correct: WORD" / "● Wrong: WORD" / "● got hint" / "● revealed word", and
-  compete's "● guessed a word"), verdicts joined the "Lost: out of guesses"
-  vocabulary, and the terminal secret list left the pill entirely — the BOARD
-  rings the answers instead, which is both shorter and easier to read.
+Layout is checked in a real browser, never jsdom: each converted game has a
+`<game>-mobile.e2e.ts` at a tall and a short phone viewport, and
+`page-no-scroll.e2e.ts`, `tap-targets.e2e.ts` and `panels-touch.e2e.ts` cover
+the shared rules. What headless Playwright can't reproduce — the safe-area
+insets on a notched phone, iOS's gesture heuristics — is owed as an on-device
+check in [deferred.md → Mobile](deferred.md#mobile).

@@ -32,7 +32,7 @@
  * without it the column grows to fit content and the log's `overflow-y: auto`
  * never engages. */
 /* @@ */ .infoCol {
-  /* A SATELLITE HOST (docs/code-conventions.md → The z- layers). A dropdown sits
+  /* A SATELLITE HOST (core-css/base.css → THE Z- LAYERS). A dropdown sits
      just above whatever CONTAINS it, and `<FilterSelect>` — the word-list filter
      and the event-log player picker — opens in here. Declaring the column as the
      host puts those dropdowns at 1301, clear of the local layering the column

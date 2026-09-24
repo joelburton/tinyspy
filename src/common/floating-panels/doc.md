@@ -168,6 +168,28 @@ thing: word lookup's *Look up* and the anagram finder's *Find* act inside the
 dialog and leave it open, which is what lets them be dialogs you keep beside a
 cryptic.
 
+**On a phone a window is a sheet; a tablet keeps the rect.** Below `--phone`
+the module overrides react-rnd's inline geometry with `!important`, the only
+thing that beats an inline style. The sheet's insets are
+`env(safe-area-inset-*)`, which resolve to anything but 0 only because
+`index.html`'s viewport meta sets `viewport-fit=cover`. A tablet has the room
+for the centered rect, so it keeps it, pinned like every coarse pointer.
+
+**`reserveKeyboard` sizes a phone sheet to the measured visual viewport.** The
+on-screen keyboard doesn't shrink a `position: fixed` sheet, so without it the
+keyboard covers the input and iOS scrolls the page to reveal it. Guessing the
+keyboard's height cannot work: it varies by device, and iOS's QuickType bar,
+which a page cannot hide, adds to it. The visual viewport shrinks by exactly the
+keyboard, so the sheet ends at its top edge. That does resize the sheet when the
+keyboard opens and closes, which is what a chat input riding the keyboard
+should do; the no-reflow rule is about the board.
+
+**The touch behavior is guarded by `e2e/panels-touch.e2e.ts`**, not a unit
+test, because jsdom has no layout, no touch synthesis and no visual viewport:
+the sheet fills the screen, a tap on the ✕ closes it, the input meets the 16px
+focus-zoom floor, and a shrunk visual viewport keeps the input above the
+keyboard.
+
 **Mount a floating panel high in the tree** — at a PlayArea's layout root or at
 App level, never deep inside the play surface. react-rnd positions the panel
 from its element's static flow position, so one mounted inside a flex column

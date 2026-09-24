@@ -5,7 +5,7 @@ import { createSoloClub } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * ClubPage's mobile view-switcher (docs/mobile.md → club-page tabs). Below the
+ * ClubPage's mobile view-switcher (src/common/club/doc.md). Below the
  * breakpoint the two-column page folds to one column and a toggle bar picks
  * which column shows. These are `aria-pressed` toggle BUTTONS, not an ARIA tabs
  * pattern (see `<Segmented>`'s docstring) — so we assert the honest shape:

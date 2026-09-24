@@ -25,7 +25,7 @@
 
 /* `show="auto"` (the feedback default): the name is DROPPED on a phone, leaving
  * just the identity dot — the dot already says which player, and the name is the
- * droppable half (docs/mobile.md → dots-only on mobile). Feedback pills are tight
+ * droppable half (doc.md → the mention). Feedback pills are tight
  * on a narrow header/below-board row, so this keeps them fitting a long username.
  * Event logs pass `show="both"` and keep their names. */
 @media (--phone) {

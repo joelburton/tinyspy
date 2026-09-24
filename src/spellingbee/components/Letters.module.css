@@ -49,12 +49,12 @@
    * The ancestor is enough — the effective touch-action for a touch walks up
    * from the element it hit, so one declaration here covers all seven hexes.
    * `overflow: visible` doesn't leak: a hex painting past the viewBox is still a
-   * DOM descendant. Same pattern letterboxed's `.board` uses.
+   * DOM descendant. e2e/tap-targets.e2e.ts checks it in a real browser.
    *
-   * `-webkit-tap-highlight-color` moved along with it (inherited, so it reaches
-   * the hexes from here): it kills the gray box the browser paints over the
-   * hex's square BOUNDING box, which both looks wrong on a hexagon and covers
-   * the press the hex gives instead. */
+   * `-webkit-tap-highlight-color` is inherited, so it reaches the hexes from
+   * here: it kills the gray box the browser paints over the hex's square
+   * BOUNDING box, which both looks wrong on a hexagon and covers the press the
+   * hex gives instead. */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }

@@ -62,8 +62,8 @@
   grid-auto-flow: column;
   /* Each column is a fixed rem WIDTH (not a fraction of the card), so a column is
    * always the same readable size and you get as many columns as the words need,
-   * side-scrolling past the visible ones. In the narrow mobile sheet the columns
-   * stay that same readable width and scroll, rather than being cramped to a
+   * side-scrolling past the visible ones. On a narrow screen the columns stay
+   * that same readable width and scroll, rather than being cramped to a
    * fraction of it. */
   grid-auto-columns: var(--wl-col-width);
   column-gap: var(--spacer-2);

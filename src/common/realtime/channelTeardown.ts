@@ -35,16 +35,29 @@ import { bareName, rtLog } from './realtimeDiag'
  * ─── Using it ─────────────────────────────────────────────────────────
  * Two calls, at the two ends of a channel's life:
  *
- *     const leaving = channelLeaving(roomName)      // create side
- *     if (leaving) void leaving.then(open)
- *     else open()
+ *     let canceled = false
+ *     let ch: RealtimeChannel | null = null
+ *     function join() {
+ *       if (canceled) return
+ *       ch = supabase.channel(room)                  // .on(…) × n, then .subscribe(…)
+ *     }
  *
- *     return () => { …; releaseChannel(ch) }        // teardown side
+ *     const leaving = channelLeaving(room)          // create side
+ *     if (leaving) void leaving.then(join)
+ *     else join()
+ *
+ *     return () => {                                // teardown side
+ *       canceled = true
+ *       if (ch) void releaseChannel(ch)
+ *     }
  *
  * The create side stays synchronous in the common case (nothing pending), so
  * a first mount joins on the spot; only a genuine re-create waits. Whoever
  * defers MUST guard with a canceled flag — the effect can be torn down again
- * before its turn arrives.
+ * before its turn arrives. For the same reason the channel is created after
+ * the effect body may have returned, so the cleanup reads it from a variable
+ * `join()` assigns and skips the release when it is still null; a hook whose
+ * other callbacks send on the channel holds it in a ref instead.
  *
  * **Not for suffixed channels.** They can never collide by name, so they gain
  * nothing and should keep calling `supabase.removeChannel` directly.

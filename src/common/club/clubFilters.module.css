@@ -44,9 +44,9 @@
  * you tap rather than heading chrome.
  *
  * NOT the iOS focus-zoom floor — that applies to focusable text fields, and
- * both of these are <button>s that decline focus (docs/mobile.md → Decisions
- * #3). The closed select landing on 16px is a coincidence of the two rules
- * aiming at similar sizes. */
+ * both of these are <button>s that decline focus (docs/mobile.md → The rules
+ * every screen keeps). The closed select landing on 16px is a coincidence of
+ * the two rules aiming at similar sizes. */
 @media (--touch) {
 /* @@ */   .closedSelect {
     font-size: max(16px, 1em);

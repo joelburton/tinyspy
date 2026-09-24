@@ -87,7 +87,7 @@
 /* @@ */   --avail-w: calc(var(--client-width, 100vw) - var(--info-col-width) - var(--layout-gap) - 2 * var(--page-padding-x));
 }
 
-/* Opt-in mobile layout (docs/mobile.md → the psychicnum recipe). A game that has
+/* Opt-in mobile layout (info-sheet/doc.md → Details). A game that has
  * had its mobile pass composes this on its `.layout` — `cls(shared.layout,
  * shared.mobileFill, styles.layout)` — alongside a `<InfoSheet>` around its
  * InfoCol. Below `--mobile`, with the info column off-canvas (the InfoSheet is
@@ -272,7 +272,7 @@
  * move controls) OR the `.localFeedback` pill, in the games where the two swap in
  * one spot (an own-move result / terminal pill replaces the controls). The fixed
  * min-height is what keeps the board above from reflowing as the content swaps
- * (docs/code-conventions.md → below-board structure; docs/ui.md → Layout
+ * (docs/playarea.md → PlayArea layout; docs/ui.md → Layout
  * stability). A flex column that vertically centers its single child. Games where
  * the move area and feedback are SEPARATE (wordle, stackdown, bananagrams, waffle)
  * don't use this — each reserves its own height. */
@@ -775,14 +775,12 @@
  * carries no box of its own, so this class is exactly "and you can act on it". */
 /* @@ */ .tile {
   cursor: pointer;
-  /* Touch behavior, canonical for every interactive-tile game (psychicnum,
-   * connections, waffle, codenamesduet — docs/mobile.md → tap-press feedback):
+  /* Touch behavior, the three things every tapped surface carries:
    *   - kill the browser's default gray tap-flash, which paints a rectangle
    *     that fights the tile fill;
    *   - `touch-action: manipulation` opts out of double-tap-to-zoom and its
    *     ~300ms tap delay, so rapid repeated taps stay crisp;
-   *   - the `:active` press-scale below replaces the removed flash with the same
-   *     designed feedback boggle/spellingbee already give.
+   *   - the `:active` press below replaces the removed flash with a designed one.
    * None of it belongs on an inert tile, which is why it is here and not on the
    * face. */
   -webkit-tap-highlight-color: transparent;

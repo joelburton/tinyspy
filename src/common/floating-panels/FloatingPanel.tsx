@@ -221,7 +221,7 @@ export function FloatingPanel({
   // synthesized click so the X's onClick never fires. No drag
   // handle → the X works. The full-screen-sheet geometry on phones
   // is handled in CSS (@media (--phone)); tablets keep the centered
-  // rect, just pinned in place. See docs/mobile.md → "Panels on touch".
+  // rect, just pinned in place. doc.md → Details has the phone sheet.
   const coarse = useIsCoarsePointer()
   const effectiveDraggable = claims.draggable && !coarse
   const effectiveResizable = resizable && !coarse

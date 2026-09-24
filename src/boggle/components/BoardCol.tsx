@@ -126,18 +126,6 @@ export function BoardCol({
     return g
   }, [grid, turns])
 
-  // ── Tap-to-trace a word (docs/mobile.md) ──────────────────────────────────
-  // Build a word by tapping tiles along a Boggle path — the touch input, and a
-  // fine desktop affordance too. `path` is the selected tiles (in VIEW coords, so
-  // it's cleared on rotate below, since the coords would no longer point at the
-  // same letters). The traced word drives the shared `word`/`onChange` engine, so
-  // submit + validation (traceableStr) are unchanged. Typing clears the path (you
-  // switched to the keyboard); Backspace/Delete steps it back one tile (see
-  // `handleTyping`); submitting clears it (fresh word).
-  // The tiles a refused word used, in the CURRENT view: the answer arrives in
-  // board coordinates, and the player may have turned the board under it. One
-  // clockwise turn sends (row, col) to (col, n-1-row); the rotation is applied
-  // as many times as the view is turned.
   /** Board cells → the keys the grid below draws by, through however many turns
    *  the player has given the board. One clockwise turn sends (row, col) to
    *  (col, n-1-row). */
@@ -178,6 +166,14 @@ export function BoardCol({
     [typedCells, inView],
   )
 
+  // ── Tap-to-trace a word ───────────────────────────────────────────────────
+  // Build a word by tapping tiles along a Boggle path — the touch input, and a
+  // fine desktop affordance too. `path` is the selected tiles (in VIEW coords, so
+  // it's cleared on rotate below, since the coords would no longer point at the
+  // same letters). The traced word drives the shared `word`/`onChange` engine, so
+  // submit + validation (traceableStr) are unchanged. Typing clears the path (you
+  // switched to the keyboard); Backspace/Delete steps it back one tile (see
+  // `handleTyping`); submitting clears it (fresh word).
   const [path, setPath] = useState<Cell[]>([])
   const handleTap = (y: number, x: number) => {
     if (readOnly || view[y][x] === '?') return // frozen, or a blank (matches nothing)

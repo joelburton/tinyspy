@@ -365,8 +365,8 @@ into three buckets:
   are deliberately NOT folded** —
   they're structurally parallel (`.board`, `.grid`, `.floatAnchor`, the tile), but
   folding them means picking one vocabulary, and a honeycomb has hexes where a
-  wheel has tiles. Renaming one to match the other trades [ui.md's
-  two-vocabularies rule](../ui.md) for ~40 lines of dedup. See
+  wheel has tiles. Renaming one to match the other trades [tokens.md's
+  two-vocabularies rule](../tokens.md#two-vocabularies--global-and-per-game) for ~40 lines of dedup. See
   [deferred.md](../deferred.md) if that trade ever looks worth it.
 - **Per-game seams by design** (not duplicates to eliminate): `Help` (rules
   copy), `db.ts` (schema-scoped client), `manifest.ts` (brand lives only here),
@@ -550,7 +550,7 @@ border. See [common/pdf/doc.md](../../src/common/pdf/doc.md).
   structurally parallel in their skeletons (`.board`, `.grid`, `.floatAnchor`, a
   tile), so a fold looks mechanically easy. The reason not to: it means picking ONE
   vocabulary for the shared class names, and a honeycomb has hexes where a wheel
-  has tiles. That trades [ui.md's two-vocabularies rule](../ui.md) — names track
+  has tiles. That trades [tokens.md's two-vocabularies rule](../tokens.md#two-vocabularies--global-and-per-game) — names track
   the game's own concepts — for a few dozen lines of dedup, and the rules inside
   don't share anyway. They share LESS than they used to: the hive is still SVG
   polygons (a hexagon can't be a bordered box) where the wheel is round boxes, so

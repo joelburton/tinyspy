@@ -52,7 +52,9 @@ Every color has a **name**, and every name says which **bucket** it belongs to.
 - **The quality comes last, even for colors**, from a closed set (`-color`,
   `-width`, `-radius`, `-gap`, `-duration`, `-shadow`). Nothing has an implicit
   default, and `grep -- '-color:'` lists the palette. Scales are the exception:
-  `--radius-md`, where the quality *is* the thing.
+  `--radius-md`, where the quality *is* the thing. So are the z- layers:
+  `--z-chat`, not `--z-index-chat`, because the token is the layer and not a
+  value for a property (`base.css` → THE Z- LAYERS).
 - **Hyphens separate different questions; camelCase joins words that answer
   one** (`--button-quiet-primary-hover-color`, but `terminalFrame`). Part count
   is not something to optimize.

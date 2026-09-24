@@ -470,7 +470,9 @@ export function BoardCol({
             </div>
           ) : (
               <div className={styles.moveArea}>
-                {/* The caller's OWN mistakes — the team's one count in coop. */}
+                {/* The caller's OWN mistakes — the team's one count in coop.
+                    A phone drops "(lose at 4)": the strike marks already show
+                    the budget. */}
                 <div className={styles.mistakesInline}>
                   {phone ? 'Mistakes' : 'Mistakes (lose at 4)'}{' '}
                   <StrikeMarks used={mistakeCount} total={mistakeBudget} />

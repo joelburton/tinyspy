@@ -462,9 +462,7 @@
      over a tile, a floating shuffle over its board, the keyboard
      cursor. Those compete only with their siblings, and the numbers are
      small and local by nature. Everything local is ≤ 10 and everything
-     page-level is ≥ 1000, which is what lets
-     `guards/vocabularies.test.ts` draw the line at 10 and require a
-     token above it, across `src/` INCLUDING the boards.
+     page-level is ≥ 1000, which is where the guard draws its line.
 
      A BOARD IS SEALED, NOT RANKED, and that distinction is the whole
      reason the paragraph above is true rather than merely observed.
@@ -476,16 +474,27 @@
      keeps its natural place in the flow, so wherever something beside
      it does overhang — the info column's rank bubble is the one that
      does — that thing still paints over the board, exactly as it did
-     before anything was sealed.
+     before anything was sealed. What goes on the seal and what must
+     stay outside it are in `.boardSeal`, game-page/playArea.module.css.
 
      WHAT IS NOT A RUNG. Things that attach to a layer instead of
      occupying one, which is what keeps this list short: a scrim sits
-     one BELOW its owner; a `<FilterSelect>` dropdown sits just ABOVE
+     one BELOW its owner (`<FloatingPanel>` paints it at
+     `calc(tier - 1)`); a `<FilterSelect>` dropdown sits just ABOVE
      its host, reading `--z-host` from whatever contains it (only
-     `.infoCol` declares one today); and a tooltip — and the definition
+     `.infoCol` declares one today, as a custom property only — its
+     comment says why); and a tooltip — and the definition
      popover, which is a tooltip with different styling — goes to the
      very top, safely, because you cannot hover or click what a modal
      has made inert.
+
+     THE GUARD, `guards/vocabularies.test.ts`, keeps this list the one
+     home, in two halves, and excuses no file. In CSS across all of
+     `src/`, the boards included, anything above 10 must read a token:
+     whether a number in a game's file can reach chat is a whole-app
+     decision. In TypeScript, `<FloatingPanel>`'s `zIndex` is typed
+     `string` and takes `var(--z-chat)`; a numeric literal fails, and a
+     COMPUTED one (stackdown's per-tile `zIndex: t.z`) stays legal.
 
      THE NUMBERS ENCODE RELATIONSHIPS:
 
@@ -870,7 +879,8 @@ textarea:focus {
   outline-offset: -1px;
 }
 
-/* iOS focus-zoom floor (docs/mobile.md → Decisions #3). A text field whose font
+/* iOS focus-zoom floor (docs/mobile.md → The rules every screen keeps).
+   A text field whose font
    is under 16px makes mobile Safari zoom the page IN when focused — and it never
    zooms back out, leaving everything wider than the screen. The base rule above
    is `font: inherit`, so any input inside a container with a sub-1rem font-size
@@ -878,8 +888,8 @@ textarea:focus {
    no rule of its own to grep for. On touch, floor every text field at 16px.
    `max(16px, 1em)` is the key: `1em` resolves to the INHERITED size, so this
    RAISES anything under 16px while leaving larger fields (which inherit >16px)
-   untouched — and never shrinks. Fields that set their own font-size via a class
-   (higher specificity) are unaffected here and handled at their own rule. */
+   untouched — and never shrinks. A class that sets a field's font-size outranks
+   this element rule, so that class must carry its own `--touch` floor. */
 @media (--touch) {
   input,
   textarea {

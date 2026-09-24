@@ -5,7 +5,7 @@
  * common/game-page/playArea.module.css, which arrives as `shared` in BoardCol.tsx;
  * the board inside the column is Board.module.css. This owns only the commit row
  * below the board — the mistakes readout and the Clear/Submit pair
- * (docs/code-conventions.md → below-board structure). */
+ * (docs/playarea.md → PlayArea layout). */
 
 /* The mistakes readout — "Mistakes (lose at 4)" and the marks — left-justified
  * on the commit row below the board, in both modes; margin-right:auto pushes
@@ -37,8 +37,8 @@
   gap: 0.5rem;
 }
 
-/* A button in the commit row — the Clear + Submit pair. The icon+label look
- * is the global `.icon-button` class; this adds only the floor width. */
+/* A button in the commit row — the Clear + Submit pair. The look is the
+ * shared button's; this adds only the floor width. */
 /* @@ */ .inputButton {
   min-width: 7rem;
 }

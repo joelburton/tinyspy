@@ -9,8 +9,8 @@ import styles from './MobileStatusBar.module.css'
  *
  * **Why it exists.** On desktop that readout is the info column's `.infoState`
  * line, always in view beside the board. Below the `--mobile` breakpoint the
- * whole info column moves off-canvas into the `<InfoSheet>` (docs/mobile.md →
- * the shared recipe), so the player loses their live state unless they open the
+ * whole info column moves off-canvas into the `<InfoSheet>` (doc.md → Details),
+ * so the player loses their live state unless they open the
  * sheet — a tap, mid-game, to answer "how many agents left?". This puts the one
  * line that answers it back on the play surface.
  *

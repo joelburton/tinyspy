@@ -46,8 +46,9 @@ type Config = {
    *  `load()` — convenient when the per-game "game row + child
    *  rows" pair both need to drive the same refetch (see
    *  psychicnum/useGame: subscribes to `games` AND `events`,
-   *  same handler). For different per-table handlers, use two
-   *  separate `useRealtimeRefetch` calls instead. */
+   *  same handler). For different per-table handlers, or data the
+   *  play surface consumes in separate pieces, use two separate
+   *  `useRealtimeRefetch` calls instead. */
   tables: TableSubscription | TableSubscription[]
   load: RealtimeLoad
   /** Channel-name prefix — `'board'`, `'clues'`, `'game'`,
@@ -117,8 +118,9 @@ type Config = {
  *
  * **When porting a new game**, the per-game `useGame` hook
  * should default to using this factory. Reach for hand-rolling
- * only if the game introduces broadcast-coupling like connections
- * does, or chat-style append semantics like the club chat does.
+ * only if the game introduces broadcast- or presence-coupling like
+ * connections does, or chat-style append semantics like the club
+ * chat does.
  */
 export function useRealtimeRefetch({
   tables,

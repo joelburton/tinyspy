@@ -37,8 +37,9 @@ tablet showing half a board. `InfoSheet` is that page — a `display: contents`
 no-op on desktop, a fixed full-bleed panel below `--mobile` — and
 `InfoSwitchButton` is the one control that moves between the two, sitting at the
 same edge of the header on both, because a control that rides along with the page
-you are on is a control you have to hunt for. `docs/mobile.md` owns that design;
-this folder owns the pieces that carry it.
+you are on is a control you have to hunt for. `docs/mobile.md` introduces the
+mobile layout as a whole and points here; how the two pages share the header, and
+what a game does to join them, is in Details below.
 
 Moving the column off-canvas has a cost, and `MobileStatusBar` is that cost paid
 back. The state a player reads constantly — how many agents are left, how many
@@ -112,6 +113,60 @@ that grows a per-player metric grows a strip the same day.
 
 `InfoSwitchButton` is the exception: no game places it. `GamePage` renders it on
 mobile, because the header is the shell's.
+
+**A game's mobile pass is three pieces composed.** `useInfoSheet()` for the flag,
+`<InfoSheet open onClose>` around its `InfoCol`, and `shared.mobileFill` on its
+`.layout` — `cls(shared.layout, shared.mobileFill, styles.layout)` — which hands
+the board the full width once the column has left the row. What stays in the
+game's own stylesheet is the board's mobile sizing.
+
+**Below the breakpoint the header is one frame over both pages, and its contents
+split.** The sheet starts under the header rather than covering it, so the header
+stays put across the switch; but a phone header cannot hold everything, so each
+page keeps what you need while looking at it:
+
+| | board page | info page |
+|---|---|---|
+| game menu | yes | yes |
+| chat, scratchpad, the header's status slot | yes | — |
+| pause, timer | — | yes |
+| page switch | right edge | right edge |
+
+The menu rides both pages because it is how you leave the game. Chat and the
+status slot ride the board, where a peer's move is news you need mid-play; pause
+and the timer ride the info page, with the other readouts. The switch is pinned
+to the right edge on both rather than riding inside either group: the groups
+differ between the pages, so a switch inside one would move each time you used
+it. Desktop never splits. The branches are in `GamePage`.
+
+**The status bar is a per-game judgment, not a default.** A game adopts
+`MobileStatusBar` when its core state is invisible once the column slides away. A
+game whose board already shows that state — solved bands you can count, strike
+marks under the board, covered letters — does not: the bar would restate it and
+cost the board a row. Opening the sheet loses nothing either way, since `InfoCol`
+renders its own copy at the top and the full-bleed sheet covers the bar.
+
+**Both surfaces render the same node.** The game extracts its state line into one
+component and hands it to the info column and the bar alike; two hand-written
+copies drift. The bar may carry a control as well as a readout — a routine move,
+like asking setgame for a hint, should not cost a page switch — and the duplicate
+is safe only because both copies are the same component fed the same label.
+
+**The desktop shape is the base rule; the bar's shape is an override.** A
+component rendered on both surfaces keeps its info-column look in its plain class
+and puts the compressed look in `[data-mobile-status] .x { … }` at the foot of the
+same stylesheet — the attribute `MobileStatusBar` stamps on its wrapper. No media
+query, since the bar exists only below the breakpoint, and no `compact` prop to
+thread. Compressing at the base would impose the phone's height budget on a
+desktop with room to spare. `shared/rank-ladder`'s stylesheets are the worked
+example.
+
+**The bar's height is fixed, and a height budget subtracts it.** It sits above a
+`flex: 1` board, so any growth would move the board mid-game. A readout that is a
+small block rather than a line, or that holds a tap target, raises
+`--mobile-status-height` and is fixed at that. A board that sizes itself from a
+height budget such as `--avail-h` takes the bar out of it too, or it is sized for
+space it no longer has and the page scrolls.
 
 **The open flag is a module slot, not component state.** The two halves that need
 it live in different subtrees — the sheet inside each game's PlayArea, since the

@@ -83,7 +83,7 @@ create schema if not exists common;
 -- (3–15 chars, leading alpha, lowercase + digits + hyphens). The 15-char
 -- ceiling is a MOBILE constraint: a username headlines rosters, chat lines,
 -- the players strip and feedback pills, all of which are tight on a phone
--- (docs/mobile.md → handle length).
+-- (docs/mobile.md → The rules every screen keeps).
 -- The unique constraint is the referee for collisions — a pre-check
 -- `select` cannot close the race. claim_username catches its
 -- unique_violation and answers PN017, a validation naming the
@@ -190,7 +190,8 @@ create table common.clubs (
   -- The display name, bounded at 20 characters (2026-08-03). It headlines the
   -- club page ("Club: <name>", a 1.5rem h1) and every row of the home clubs
   -- list, so an unbounded one is the classic way a long user string breaks the
-  -- no-scroll invariant on a phone (docs/mobile.md → the caps).
+  -- no-scroll invariant on a phone
+  -- (docs/mobile.md → The rules every screen keeps).
   --
   -- 20 also keeps the derived HANDLE legal without anyone thinking about it:
   -- `slugify_club_name` truncates at 40, but the handle check above allows at
@@ -587,9 +588,7 @@ create table common.clubs_gametypes (
   -- the form remembers what the friends played last time. NULL
   -- on a fresh row; the FE merge with manifest defaults handles
   -- that case cleanly. Shape is gametype-specific; no constraint.
-  -- See docs/code-conventions.md → "Setup defaults" for the
-  -- evolution-strategy story; until that's formalized, don't
-  -- reshape setup fields without thinking about saved blobs in
+  -- Don't reshape setup fields without thinking about saved blobs in
   -- flight in production.
   default_setup  jsonb,
   primary key (club_handle, gametype)

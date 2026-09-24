@@ -23,15 +23,11 @@ more than one accepted answer). The solution is **server-only** — check / reve
 run server-side; the client never sees the answers until terminal.
 
 **Keyboard-required** (crossplay explicitly scopes out touch — there is no
-on-screen keyboard, so it wants a hardware keyboard). Not strictly desktop-only:
-the board fits a tablet fine; it's just not touch-optimized yet (no game is).
-This is a **documented v3 layout exception** (see §7).
-
-> **Future direction — phone layout (recorded, not built).** For an eventual phone
-> treatment: hide the Across | Down clue panel (no room beside the grid) and show
-> only the cursor's current clue in a bar *under* the grid — relocating the
-> existing active-clue bar (§7) below the board and dropping the full list. See
-> [docs/mobile.md](../mobile.md) → the crosswords future-direction note.
+on-screen keyboard, so it wants a hardware keyboard). Not desktop-only: it has
+the phone layout — below the breakpoint the grid and the active-clue bar under
+it are the main view, and the clue lists move to the info sheet — for a device
+with a keyboard attached; a bare phone can't enter letters
+([docs/mobile.md → Input is the primary axis](../mobile.md#input-is-the-primary-axis)).
 
 ### Modes (sibling-manifest pair)
 

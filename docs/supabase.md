@@ -8,7 +8,8 @@ links to:
 
 | for | see |
 |---|---|
-| DB conventions (schemas, RPC style, RLS helpers, the definer-helper + invoker-view shape), the Pattern A / Pattern B realtime-hook decision rule | [code-conventions.md](code-conventions.md) |
+| DB conventions (schemas, RPC style, RLS helpers, the definer-helper + invoker-view shape) | [code-conventions.md](code-conventions.md) |
+| Which realtime hook shape to write, and the channel rules | [src/common/realtime/doc.md](../src/common/realtime/doc.md) |
 | The `common` schema, the game-RPC helpers (`create_game` / `end_game` / concede / timers), RLS philosophy, auth & magic links | [common.md](common.md) |
 | Per-game schema details | [games/*.md](games/) |
 | Test patterns for all of this (pgTAP + Vitest + the e2e gates) | [testing.md](testing.md) |
@@ -354,7 +355,7 @@ The inventory (row counts from a freshly-imported dev DB):
 
 Every channel in the app, in one place. The naming pattern is
 `<topic>:<id>[:<uuid>]`
-([code-conventions.md → Realtime channel names](code-conventions.md#realtime-channel-names));
+([src/common/realtime/doc.md](../src/common/realtime/doc.md));
 **stable names** are used iff peers must share the room (presence rosters
 and broadcasts are per-channel-name), **UUID-suffixed names** (via
 `channelDedupSuffix()`) everywhere else, to sidestep supabase-js's
@@ -396,7 +397,7 @@ is broader than the rows the hook consumes.
 ### The four data-hook shapes
 
 The decision rule lives in
-[code-conventions.md → Realtime data hooks](code-conventions.md#realtime-data-hooks--two-patterns);
+[src/common/realtime/doc.md → Details](../src/common/realtime/doc.md#details);
 the short version, with every current member:
 
 1. **Pattern A — refetch-on-any-event via
@@ -416,8 +417,7 @@ the short version, with every current member:
    `useSharedMove`.
 3. **Append-on-INSERT** — `useClubChat` only. Appends each INSERT instead
    of refetching; its SUBSCRIBED refetch must **merge, never replace**
-   (the rule and the bug that taught it:
-   [code-conventions.md → Append-on-event exception](code-conventions.md#append-on-event-exception--and-the-merge-rule-it-requires)).
+   ([src/common/realtime/doc.md → Details](../src/common/realtime/doc.md#details)).
 4. **Direct CDC apply** — crosswords `useCells` (per-cell `version`,
    newer-wins, optimistic echo + rollback) and `useScratchpad`'s body
    (same newer-wins idea, one row). For high-frequency per-row writes

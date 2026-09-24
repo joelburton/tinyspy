@@ -107,7 +107,7 @@ export type ConnectionsGame = {
  * connections' per-game data hook: the game row, the guess log, the player
  * rows and, in coop, the shared selection — one Realtime room per game.
  *
- * Broadcast-coupled (docs/code-conventions.md → Realtime data hooks): the
+ * Broadcast-coupled (src/common/realtime/doc.md): the
  * room is the stable `connections:${gameId}` so peers share it for the
  * selection Broadcast, and the postgres-changes on
  * `connections.{games, events, players}` ride the same channel. Compete keeps

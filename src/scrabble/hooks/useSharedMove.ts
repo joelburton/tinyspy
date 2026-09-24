@@ -29,9 +29,9 @@ export type SharedMovePayload = {
 /**
  * scrabble's coop "show a move" transport — a **stable-name** Broadcast channel
  * (`scrabble:${gameId}`) so every teammate merges into one room, following the
- * connections peer-selection pattern (docs/code-conventions.md → "Realtime data
- * hooks"). It's separate from `useGame`'s postgres-changes channel (which is
- * per-tab UUID-suffixed and carries no Broadcast) because this state is ephemeral
+ * connections peer-selection pattern (src/common/realtime/doc.md). It's
+ * separate from `useGame`'s postgres-changes channel (which is per-tab
+ * UUID-suffixed and carries no Broadcast) because this state is ephemeral
  * — a not-yet-committed move that's never stored, and that a teammate who misses
  * it simply doesn't see. **Coop only**: in compete the channel is never opened
  * (private racks, no shared board), so `shareMove` is a no-op and nothing is

@@ -5,7 +5,7 @@ import { createClubWithMembers } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * Touch/phone behavior of FloatingPanel (docs/mobile.md → "Panels on touch").
+ * Touch/phone behavior of FloatingPanel (src/common/floating-panels/doc.md).
  * These need a real browser — jsdom has no layout engine, no touch synthesis,
  * and no visualViewport — so this is the second exception to the suite's "not
  * for UI" scope, alongside codenamesduet's layout guard. Covered:

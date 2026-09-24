@@ -46,12 +46,10 @@
   height: calc(300 * var(--u));
   overflow: visible;
 
-  /* Touch behavior for the whole wheel, declared once here and inherited by the
-   * tiles. Without it, spelling a word by tapping tiles quickly loses letters to
-   * iOS Safari's double-tap-to-zoom. (It lived here rather than on the tiles
-   * because `touch-action` is IGNORED on an SVG child — a `<g>` generates no CSS
-   * box. The tiles are boxes now and could take it themselves; one declaration
-   * still covers all nine.) */
+  /* Touch behavior for the whole wheel: no gray tap-flash, and no
+   * double-tap-to-zoom, which loses letters when a word is spelled by tapping
+   * quickly. A touch's `touch-action` is resolved by walking up from the tile it
+   * hit, so one declaration here covers all nine. */
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }

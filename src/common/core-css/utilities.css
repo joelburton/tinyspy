@@ -37,12 +37,11 @@
   border: var(--border-width-line) solid var(--page-surface-border-color);
   border-radius: var(--radius-lg);
   padding: 2rem;
-  /* Break long unbreakable tokens (a 30-char username in the "Welcome"
-   * heading, a long email, a solo club's `=handle`) instead of letting
-   * them force the card wider than its column and scroll the page. Only
-   * bites when a word genuinely can't fit the line — normal prose is
-   * untouched, so this is invisible on desktop and just keeps the narrow
-   * (phone) card within the viewport. */
+  /* Break long unbreakable tokens (a username in the "Welcome" heading, a
+   * long email, a solo club's `=handle`) instead of letting them force the
+   * card wider than its column and scroll the page. Only bites when a word
+   * genuinely can't fit the line, so normal prose is untouched. Not a phone
+   * patch: a long enough email overflows the desktop card too. */
   overflow-wrap: anywhere;
 }
 

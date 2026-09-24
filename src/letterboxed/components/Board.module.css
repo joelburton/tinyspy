@@ -12,7 +12,13 @@
   position: relative;
   aspect-ratio: 1;
   container-type: inline-size;
+  /* No double-tap-to-zoom or tap delay while a chain is tapped out quickly. A
+   * touch's `touch-action` is resolved by walking up from the letter it hit, so
+   * one declaration here covers all twelve. */
   touch-action: manipulation;
+  /* No gray tap box over a letter; the property inherits, so the letters take
+   * it from here. */
+  -webkit-tap-highlight-color: transparent;
   /** The letter's diameter, as a share of the board — `NODE_R * 2` from
    *  lib/board.ts, which is also what the chain lines are drawn to. Change one
    *  and change the other. */

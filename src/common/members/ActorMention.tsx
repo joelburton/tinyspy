@@ -8,7 +8,7 @@ import styles from './ActorMention.module.css'
 /**
  * How much of an actor mention to show:
  *   - `auto`  — name + dot on desktop, but the name is DROPPED on phones (the dot
- *               carries identity; see docs/mobile.md). The default for feedback.
+ *               carries identity; see doc.md). The default for feedback.
  *   - `both`  — always show both (event logs, where the name is worth the space).
  *   - `name`  — just the name.  `dot` — just the disc.  `none` — nothing.
  */

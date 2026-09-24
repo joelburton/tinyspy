@@ -43,8 +43,7 @@
 }
 /* Only on a device that really hovers: a touchscreen keeps `:hover` on the
  * last-tapped hex, which would sit raised after every letter. Same gate as
- * strands' tiles and the tooltip bubble (docs/ui.md → Button iconography,
- * "Styled tooltips"). */
+ * strands' tiles and the tooltip bubble (common/tooltips/doc.md). */
 @media (hover: hover) {
 /* @@ */   .hex:hover:not(.inert) {
     transform: translateY(-1.3px);

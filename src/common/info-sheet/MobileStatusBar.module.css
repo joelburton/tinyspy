@@ -1,7 +1,7 @@
 /* cs-blessed-info-sheet */
 
-/* The mobile-only status strip above the board (docs/mobile.md → the status
- * bar). See MobileStatusBar.tsx for what goes in it. */
+/* The mobile-only status strip above the board (doc.md → Details). See
+ * MobileStatusBar.tsx for what goes in it. */
 
 /* Desktop: the info column is on-screen, so this line would be a duplicate —
  * generate no box at all (not even a gap in `.boardCol`'s flex column). */
