@@ -91,34 +91,26 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
 }
 
 /**
- * wordwheel's play surface — shared between the coop and compete
- * manifests. Mode is read off `game.mode` (denormalized at
- * create_game time, surfaced on `wordwheel.games_state`).
+ * wordwheel's play surface, shared by the coop and compete manifests. It
+ * holds no board and draws no control: `<BoardCol>` owns the wheel, the word
+ * engine and the `submit_word` commit, `<InfoCol>` the readouts, the action
+ * row and the word list, and this component decides what each of them is
+ * handed.
  *
- * Per-mode rendering:
- *   - **Coop**: shared score, shared rank bar, shared WordList
- *     showing every player's finds with per-finder color, score
- *     reaches Genius at 70% of total. Terminal verdict on
- *     `ended` is Genius (rank ≥ 6) vs Stopped (rank < 6).
- *   - **Compete**: caller-only score, caller-only WordList (RLS
- *     filters peer rows during play), OpponentStrip in the
- *     side panel showing each opponent's current rank — that's
- *     the entire "what opponents know about you" surface during
- *     play. Terminal verdict on `won_compete` is "You won the
- *     race!" vs "Beaten to the punch."; `ended` with
- *     `outcome=timeout`/`manual` is "No winner at <rank>".
+ * What is genuinely this surface's: the below-board feedback slot both columns
+ * write into, the peer narration, the bound actions, and the derivations the
+ * two columns must agree on — the score and rank, the target, and whether I
+ * may still play. The game rows arrive as props from the loader above.
  *
- * Cross-cutting chrome (header / pause / chat / timer) lives in
- * `<GamePage>` above this component. The game rows arrive as props from the
- * loader above.
+ * `game.mode` is what differs between the manifests, and it differs in one
+ * place each: coop scores every visible row and narrates a teammate's find;
+ * compete scores the caller's own rows (RLS hides the rest until terminal),
+ * shows each opponent's rank in the strip, and narrates a rank climbed.
  */
 export function PlayArea(props: PlayAreaProps) {
   const {
     gameId, isTerminal, playState, players, session, status,
     setup, clubHandle, goToGame, menu, brand, title,
-    // The page's header slot (peer/opponent events, via usePeerFeedback + the
-    // compete rank effect) — as opposed to the local slot below, which carries
-    // the player's own word result. Two different surfaces.
     globalFeedbackSlot,
     game, foundWords, rowsLoaded,
   } = props
@@ -133,19 +125,14 @@ export function PlayArea(props: PlayAreaProps) {
   // out to the browser.
   useTabRing([])
 
-  // Mobile (docs/mobile.md → The info-sheet recipe): below the breakpoint the wheel
-  // fills the screen and the info column moves into an off-canvas <InfoSheet>,
-  // reached by the header's page switch. The sheet is full-bleed, so the WordList
-  // has room — the rem-width columns side-scroll. Desktop
-  // is unchanged. No board divergence — input is letter taps (no keyboard).
+  // Mobile (docs/mobile.md): below the breakpoint the wheel fills the screen and
+  // the info column moves into an off-canvas `<InfoSheet>`.
   const infoSheet = useInfoSheet()
 
-  // Confetti at the MOMENT the team crosses the rank they set out for (the
-  // winning word flips playState to 'won' on every connected client via
-  // realtime); opening an already-won game stays quiet (useCelebration never
-  // pops on mount). Only coop reaches 'won' — compete writes 'won_compete', and
-  // telling the winner from the losers there needs data that isn't right on the
-  // first render (the waffle loading-race lesson), so compete doesn't celebrate.
+  // Confetti at the MOMENT the team crosses the rank it set out for. The gate
+  // reads the common row, so it is right on the very first render, which is
+  // what `useCelebration` requires. Only coop reaches `won`; a race's
+  // `won_compete` is not celebrated.
   const celebration = useCelebration(playState === 'won')
 
   // ─── Derived ───────────────────────────────────────────
@@ -157,10 +144,8 @@ export function PlayArea(props: PlayAreaProps) {
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
-  // (common/setup-form/doc.md → Setup rows).
-  // The wheel's own letters ride along as the recap's `Letters` row. Passed as
-  // its stored center/outer; the row alphabetizes them, so every player — and
-  // the printout — names this wheel the same way, whatever the local shuffle.
+  // (common/setup-form/doc.md → Setup rows). The letters go in as stored;
+  // the row alphabetizes them.
   const summaryRows = useMemo(
     () =>
       setupRows(
@@ -172,41 +157,21 @@ export function PlayArea(props: PlayAreaProps) {
     [setup, game, players],
   )
 
-  // Does this board have a genuinely wider bonus dictionary? With the legal band
-  // equal to the required band, "bonus" degenerates to nothing but the words the
-  // clean filter removed from required (non-american / slang / crude / slur) —
-  // which is not a list to hand anyone as "here's what you missed". Gates BOTH the
-  // missed-bonus reveal and the word list's KIND filter, so the two can't disagree
-  // about whether this board has bonus words. Same rule as boggle's.
+  // Does this board have a genuinely wider bonus dictionary? With the legal
+  // band equal to the required band, the bonus list is only what the clean
+  // filter removed from required, which is not a list to hand anyone as "what
+  // you missed". Gates BOTH the missed-bonus reveal and the word list's KIND
+  // filter, so the two cannot disagree.
   const hasBonus = setup.legal !== setup.required
 
-  // Concede state (from the common roster). A conceder can't submit and sees the
-  // locally-terminal look while the others race.
+  // Concede lives on the common roster (`players`).
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
 
   const isCompete = game.mode === 'compete'
 
-  // Score + words-found derived from the FE's view of
-  // wordwheel.found_words. The bucket of rows we sum depends on mode:
-  //
-  //   - coop: the team's total — every visible row (everyone's).
-  //   - compete: the *caller's own* rows only.
-  //
-  // Mid-game RLS already narrows compete rows to the caller, so a
-  // naive "sum every row" matched both modes. But post-terminal the
-  // reveal opens peers' rows (so the WordList can show cat B), which
-  // would otherwise inflate the caller's score/rank at game end. So
-  // compete filters to the caller explicitly rather than leaning on
-  // RLS, and stays correct across the terminal transition.
-  //
-  // foundWordsCount counts ALL of the viewer's accepted submissions
-  // (required + bonus). Matches spellingbee's "found.length" stat (this
-  // game is a fork of it; there is no "wordwheel-ws" upstream) —
-  // the displayed "X / Y words" can legitimately overshoot Y (the
-  // required goal) when the player digs into the bonus list. The
-  // denominator (game.required_words_count) stays required-only.
-  // foundWordsScore sums every row's points, which include bonus-word
-  // points (bonus words score the same as required words).
+  // The rows I score: the team's in coop, my own in compete. Compete filters
+  // explicitly rather than leaning on RLS, because the terminal reveal opens
+  // every player's rows and a plain sum would then jump.
   const myFoundRows = useMemo(
     () =>
       game.mode === 'compete'
@@ -214,6 +179,9 @@ export function PlayArea(props: PlayAreaProps) {
         : foundWords,
     [foundWords, game.mode, session.user.id],
   )
+  // Points over every row, bonus finds included; the count is every accepted
+  // word, so "X / Y words" can pass Y once the bonus list is being mined — the
+  // denominator (`required_words_count`) is required-only.
   const { foundWordsScore, foundWordsCount } = useMemo(() => {
     let s = 0
     for (const row of myFoundRows) {
@@ -222,21 +190,16 @@ export function PlayArea(props: PlayAreaProps) {
     return { foundWordsScore: s, foundWordsCount: myFoundRows.length }
   }, [myFoundRows])
 
-  // The caller's rank in the local ladder, which compete's OpponentStrip
-  // surfaces as "You: <rank>" and coop reads as the team rank.
+  // My rank on the ladder — the team's in coop, "You" in compete's strip.
   const selfRankIdx = currentRankIndex(foundWordsScore, game.required_words_score)
 
-  // Target rank reads off `setup`, NOT `status.target_rank`. Setup is fixed at
-  // create_game time and lives on every code path; the status copy is written by
-  // submit_word and the terminals, but reading it would make the verdict depend
-  // on which terminal path ran — a "Time up — no winner at Genius" on a game
-  // that targeted Amazing. Both modes: compete's race finish line, and coop's
-  // OPTIONAL win threshold (null = the open-ended hunt).
+  // Off `setup`, which is fixed at creation, not off the `status` copy the
+  // terminals write. Both modes: compete's finish line, and coop's optional
+  // win threshold (null = the open-ended hunt).
   const targetRankIdx = setup.target_rank ?? null
 
-  // Locally terminal (compete only): I conceded but the game continues for the
-  // others. wordwheel has no other per-player "done" state (no elimination),
-  // so conceding is the only way to reach it.
+  // Locally terminal (compete only): I conceded while the race runs on for the
+  // others — the one per-player done state this game has.
   const isLocallyDone = isCompete && myConceded && !isTerminal
 
   // The board is inert once I can add nothing: the game is over, or I am out
@@ -248,9 +211,9 @@ export function PlayArea(props: PlayAreaProps) {
   // retracts in its cleanup — the slot draws whichever ranks highest. The
   // local slot is the one for messages about ME; a peer's go in the header's.
 
-  // The below-board slot every own-move result lands in: the answer to each
-  // word, a commit's not-ok, End / Concede's not-oks, and the two standing
-  // conditions below.
+  // The below-board slot: BoardCol shows each word's answer and a commit's
+  // not-ok into it, InfoCol's End / Concede their not-oks, and the two
+  // standing conditions below are effects on it.
   const localFeedbackSlot = useFeedbackSlot('local')
 
   // The per-status terminal message, memoized on primitives so the verdict
@@ -299,17 +262,13 @@ export function PlayArea(props: PlayAreaProps) {
   // the local one (docs/ui.md → Feedback pill). Each mode has one peer event
   // it can see.
 
-  // Peer/opponent activity → header feedback pills (coop: a peer found a
-  // word; compete: an opponent climbed a rank). Self-activity is excluded —
-  // it's reported by the in-body pill / RankBar.
-  // Coop peer-word narration.
-  // coop's `found_words` is club-wide, so a teammate's accepted word arrives in
-  // `foundWords`; surface good + pangram finds. Rejected words never become a
-  // row, so there's nothing to suppress. Own words go to the in-body local pill.
+  // Coop: a teammate's accepted word, arriving as a `foundWords` row in the
+  // outcome the finder saw. A refused word never becomes a row, so there is
+  // nothing to suppress; my own go to the local slot.
   usePeerFeedback({
     enabled: game.mode === 'coop',
-    // Gate the seed on the found_words fetch (separate from the header that sets
-    // `game`), so a coop rejoin doesn't replay the backlog as a burst of pills.
+    // The rows load separately from the header, so the seed waits for them
+    // (`usePeerFeedback`'s `ready`); otherwise a rejoin replays the backlog.
     ready: rowsLoaded,
     items: foundWords,
     keyOf: (r) => `${r.user_id}:${r.word}`,
@@ -322,14 +281,12 @@ export function PlayArea(props: PlayAreaProps) {
     globalFeedbackSlot,
   })
 
-  // Compete opponent-rank narration.
-  // Opponents' words are RLS-hidden in compete, so the one competitively-
-  // meaningful signal is a rank CLIMB, read off `status.leaderboard` — a delta
-  // detector, NOT a seen-set — it fires on a rank INCREASE rather than a new
-  // row — so it stays hand-rolled here rather than going through
-  // `usePeerFeedback`. `ranksReady` seeds each player's last-seen rank on first
-  // load so history isn't replayed. A `peerMilestone`: a climb is where a
-  // player STANDS, so it outranks the stream of finds and a chat line.
+  // Compete: RLS hides opponents' words, so the peer event this mode can
+  // surface is a rank CLIMB, read off `status.leaderboard`. A delta detector
+  // rather than a seen-set, which is why it is hand-rolled instead of going
+  // through `usePeerFeedback`; the first pass seeds each player's last-seen
+  // rank so history is not replayed. A `peerMilestone`, since a climb is where
+  // a player STANDS (docs/ui.md → Feedback pill). My own rank is the RankBar's.
   const prevRankRef = useRef<Map<string, number>>(new Map())
   const ranksReadyRef = useRef(false)
   useEffect(function narrateRankClimbs() {
@@ -363,13 +320,8 @@ export function PlayArea(props: PlayAreaProps) {
   // from another — and `pending` grays every surface of one for the length of
   // its run, so no handler keeps an in-flight flag of its own.
 
-  // End / Concede / Replay — the shared trio.
-  // End is coop's manual "we're done" stop (everyone {won:false} — a valid
-  // outcome, not a punishment), hidden in compete. Concede (compete) is a real
-  // loss for the conceder while the others race on. Replay restarts this board,
-  // clearing everyone's finds. All three are the shared bindings
-  // (useStandardGameActions); the slot a not-ok lands in is wordwheel's.
-  // New game stays below — its create path diverges per game.
+  // End / Concede / Restart — the shared handlers, identical across games
+  // (`useStandardGameActions`). New game is below, its path being this game's.
   const { actEndGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -379,21 +331,15 @@ export function PlayArea(props: PlayAreaProps) {
     localFeedbackSlot,
   })
 
-  // New game — a FRESH game (new id, new board) with THIS game's setup.
-  // Same roster + mode, in the same club, via the same wordwheel-build-board
-  // edge function the manifest's startGameInClub uses. Non-destructive (this
-  // game un-currents into the club list); the creator jumps in via ctx.goToGame,
-  // peers arrive via the game-invitation toast.
-  //
-  // A plain function, rebuilt every render: the binding below reads it at click
-  // time, so `setup` and `players` are whatever the last realtime refetch left,
-  // and the action's own identity doesn't move when they do.
+  // New game — a FRESH game (new id, new board) with THIS game's setup, roster
+  // and mode, in the same club, through the same edge function the manifest's
+  // `startGameInClub` uses. Nothing is destroyed: the club's current-view flag
+  // moves, leaving this game resumable from the club list. The creator jumps
+  // in via `goToGame`, peers arrive by invitation toast.
   const createNewGame = async () => {
-    // A hand-picked custom board is a ONE-OFF (docs/games/wordwheel.md): a "new
-    // game" should get a fresh RANDOM board, not silently rebuild the identical
-    // letters (which would carry everyone's answer knowledge over). create_game
-    // already strips these from the saved club default; strip them here too so
-    // the edge fn takes the random path.
+    // A hand-picked board is a one-off, so the follow-up takes the random
+    // path (doc.md → FE submissions); `create_game` strips the same two from
+    // the saved club default.
     const freshSetup = { ...setup, custom_center: undefined, custom_letters: undefined }
     const res = await runEdgeFn<CreatedGame>(
       'wordwheel-build-board',
@@ -405,15 +351,10 @@ export function PlayArea(props: PlayAreaProps) {
       },
     )
     if (res.type === 'not-ok') {
-      // THE SAME ENVELOPE, READ DIFFERENTLY. On the setup form a validation is
-      // an answer — fix the field and press Start again. Here there is no field
-      // and no form, so whatever came back goes in the slot as it reads, over
-      // the verdict, until its × is pressed. Shown even for a fault whose
-      // modal has already fired centrally — the modal escalates, it does not
-      // replace (docs/envelopes.md), so dismissing it must not leave the board
-      // silent about why the game didn't start. FIVE of the answers here are
-      // form-validations rather than faults — the most of any game — and the
-      // message wears whatever outcome arrived.
+      // No field to fix here, so whatever came back goes in the slot as it
+      // reads, over the verdict, until its × is pressed — a fault whose modal
+      // already fired centrally included, since the modal escalates rather than
+      // replaces (docs/envelopes.md).
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
@@ -426,11 +367,9 @@ export function PlayArea(props: PlayAreaProps) {
   }
 
   // New game — its `+`, its menu row and its terminal button, from one binding.
-  // The registry asks NEW_GAME_CONFIRM mid-play (starting one SHELVES this game:
-  // create_game clears the club's current-view flag, so it stays resumable — the
-  // copy says shelved, not ended) and goes straight through at terminal, where
-  // there is nothing to interrupt. The shared run's single flight is what stops a
-  // second press building a second board.
+  // The registry asks NEW_GAME_CONFIRM mid-play and goes straight through at
+  // terminal, where there is nothing to interrupt; the shared run's single
+  // flight stops a second press building a second board.
   const actNewGame = useBoundAction('act-new-game', {
     terminal: isTerminal,
     // Reachable all game from the menu and `+`, but a BUTTON only at the end.
@@ -438,18 +377,13 @@ export function PlayArea(props: PlayAreaProps) {
     run: createNewGame,
   })
 
-  // Print the board — the plain-data print model built from the live state (RLS +
-  // the explicit compete filter already scope what I may see) and handed to the
-  // jsPDF renderer. Built inside `run`, so it is a snapshot at CLICK time and the
-  // menu needn't rebuild as words are found. See common/pdf/doc.md.
+  // Print the board — a snapshot at CLICK time (common/pdf/doc.md). RLS already
+  // scopes `foundWords` to what the viewer may see.
   const actPrintBoard = useBoundAction('act-print-board', {
     describe: () => 'active',
     run: () => {
-      // The same call the on-screen list makes: at terminal, every missed word —
-      // required AND bonus — folds in (the rows call dedups the found and appends
-      // the unfound). The print deliberately follows the screen here: the missed-word
-      // list IS the post-game artifact, so a printout that quietly dropped the bonus
-      // half would be a different document from the one on screen.
+      // The same rows call the on-screen list makes, so at terminal the missed
+      // words — required AND bonus — print as they show.
       const words = buildWordListRows({
         foundWords,
         requiredWords: game.requiredWords,
@@ -458,7 +392,7 @@ export function PlayArea(props: PlayAreaProps) {
         isTerminal,
       }).map((r) => ({
         word: r.word.toUpperCase(),
-        pangram: r.isPangram ?? false, // wordwheel's own difference: pangrams print bold
+        pangram: r.isPangram ?? false, // pangrams print bold
         bonus: r.isBonus ?? false,
         found:
           r.kind === 'found'
@@ -470,9 +404,9 @@ export function PlayArea(props: PlayAreaProps) {
         brand,
         gameTitle: title,
         date: new Date().toLocaleDateString(),
-        // Coop's rank + totals are the TEAM's, so the header states them. Compete's
-        // are per-player — each section carries its own — so the header states only
-        // the shared targets rather than reporting the viewer's as the table's.
+        // Coop's rank and totals are the TEAM's, so the header states them.
+        // Compete's are per player — each section carries its own — so the
+        // header states only the shared targets.
         summary:
           game.mode === 'compete'
             ? `Target: ${game.required_words_score} pts · ${game.required_words_count} words`
@@ -481,19 +415,18 @@ export function PlayArea(props: PlayAreaProps) {
         centerLetter: game.center_letter,
         mode: game.mode,
         setup: summaryRows,
-        // Coop prints one shared list; compete a section per player, each with its
-        // own score, plus a trailing "Not found" for the terminal reveal.
+        // Coop prints one shared list; compete a section per player, plus a
+        // trailing "Not found" at terminal.
         sections: buildWordSections(words, game.mode, players, session.user.id),
       })
     },
   })
 
   // ─── The menu ──────────────────────────────────────────
-  // `buildGameMenu` supplies the framing (Help + chat above, Back to club
-  // below); the middle is this game's own rows, each one a binding made above —
+  // `buildGameMenu` supplies the framing (Help and chat above, Back to club
+  // below); the middle is this game's own rows, each one a binding made above,
   // so a row's words, glyph, key and availability come from the action rather
-  // than being typed here a second time. The effect re-runs only when the SHAPE
-  // changes, which is why every dep is stable.
+  // than being typed a second time here.
   useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
@@ -515,22 +448,21 @@ export function PlayArea(props: PlayAreaProps) {
   // Everything below is derived fresh each render and read only by the JSX —
   // nothing here is a hook, which is why it may sit after the menu effect.
 
-  // Who has conceded — the OpponentStrip marks them "out".
+  // Who has bowed out of the race — the opponent strip's "out" cell. From the
+  // common roster, like `myConceded`.
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
-  // Compete-only: pull the leaderboard payload off the live
-  // status jsonb. Pre-first-submission the array is empty and
-  // the strip falls back to placeholder zeros for opponents.
+  // Compete only: the leaderboard off the live status. Empty before the first
+  // submission, and the strip then shows zeros for the opponents.
   const leaderboard = isCompete
     ? readLeaderboard<LeaderboardEntry>(status)
     : null
   // Each peer's rank index, keyed by user — the OpponentStrip metric reads it.
   const rankByUser = new Map(leaderboard?.map((e) => [e.user_id, e.rank_idx]) ?? [])
 
-  // Merged, alphabetized rows for the shared WordList (found + the terminal
-  // reveal). The reveal covers BOTH shipped lists — the missed bonus words are
-  // half the fun of the post-game read, and they're the same client-side data the
-  // required half comes from.
+  // Merged, alphabetized rows for the shared WordList: the found words, and at
+  // terminal every missed one — bonus included, being the same shipped data
+  // the required half comes from.
   const wordRows = buildWordListRows({
     foundWords,
     requiredWords: game.requiredWords,
@@ -542,8 +474,7 @@ export function PlayArea(props: PlayAreaProps) {
   return (
     <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
       <BoardCol
-        // ── Mobile-only status block (the SAME RankBar + Stats the InfoCol
-        //    renders; on a phone the info column is off-canvas in the InfoSheet) ──
+        // ── Mobile-only status block (the readouts the InfoCol renders too) ──
         foundWordsScore={foundWordsScore}
         requiredWordsScore={game.required_words_score}
         foundWordsCount={foundWordsCount}
@@ -560,23 +491,11 @@ export function PlayArea(props: PlayAreaProps) {
         foundWords={foundWords}
         requiredWords={game.requiredWords}
         bonusWords={game.bonusWords}
-        // The slot the entry row draws: a word result, the "you're out" state
-        // (its info-column twin is the InfoActionsRow's line — dual placement is the
-        // rule, docs/playarea.md, and on a phone the InfoCol is off-canvas, so
-        // this is the ONLY copy the player sees), the verdict.
+        // ── The below-board slot: BoardCol shows answers into it and draws it ──
         localFeedbackSlot={localFeedbackSlot}
       />
 
-      {/* The info column. Its top region — the readouts + action row + setup — is
-          wrapped in the shared `.noShrinkRow` (same as psychicnum / connections /
-          codenamesduet / waffle): a fixed-height block so the WordList below it
-          doesn't shift when the action row swaps play↔terminal (docs/ui.md →
-          Layout stability). Order follows the canonical info-column sequence
-          (docs/playarea.md → Info-column readouts), with two wordwheel picks:
-          the RankBar + Stats are ONE "state" unit and lead (the thing you watch),
-          and there's no help line — the wheel makes the move obvious. The
-          WordList fills the rest. Off-canvas full-width sheet on mobile, flex
-          child on desktop. */}
+      {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
@@ -610,10 +529,9 @@ export function PlayArea(props: PlayAreaProps) {
         hasBonus={hasBonus}
         />
       </InfoSheet>
-      {/* No modal for the verdict (docs/ui.md → Terminal results): it's carried
-          in-page by the below-board pill + the info-column outcome line.
-          A coop WIN — only possible when the team set a target rank — gets the
-          celebration instead, once, at the moment they cross. */}
+      {/* The win moment. The verdict itself stays in-page — the below-board
+          pill and the action-row line (docs/ui.md → Terminal results). Only a
+          coop game with a target rank can reach it. */}
       {celebration.show && (
         <CelebrationBlockingModal
           title="You win! 🎉"

@@ -11,18 +11,17 @@ import styles from './Wheel.module.css'
 type Props = {
   letter: string
   isCenter?: boolean
-  /** This tile's center + radius, in the wheel's coordinate units. */
+  // This tile's center + radius, in the wheel's coordinate units.
   pos: { cx: number; cy: number; r: number }
-  /** Absent when the board is read-only: the tile takes no click and wears no
-   *  hover or press. */
+  // Absent when the board is read-only: the tile takes no click and wears no
+  // hover or press.
   onClick?: () => void
-  /** True once this tile's letter is already in the typed word. Word wheel uses
-   *  each tile ONCE per word, so a used tile is inert — it wears the selected
-   *  border, is not clickable, and takes no hover or press. */
+  // The typed word is spending this tile: it wears the selected edge and takes
+  // no click, hover or press, since a word uses each tile once.
   disabled?: boolean
-  /** A refused word used this tile: its face wears that answer's fill, edge and
-   *  white ink for as long as the answer is up, and shakes once as it arrives
-   *  (the Wheel remounts it per refusal, which is what replays the shake). */
+  // A refused word used this tile: its face wears that answer's fill, edge and
+  // white ink for as long as the answer is up, and shakes once as it arrives
+  // (the Wheel remounts it per refusal, which is what replays the shake).
   answer?: Outcome
 }
 
@@ -36,21 +35,16 @@ type Props = {
  *
  * Boxes rather than SVG circles, so the depth can be the shared `--tile-shadow`
  * pair rather than a `drop-shadow` filter with every length divided by the
- * board's scale — the same move letterboxed's letters made, and for one reason
- * more: a box can be raised over its neighbors when it lifts. The seats TOUCH, so
- * without a stacking order a hovered face would rise behind the ones drawn after
- * it, and SVG has no z-index.
+ * board's scale, and so a lifted face can be raised over its neighbors. The
+ * seats TOUCH, so without a stacking order a hovered face would rise behind the
+ * ones drawn after it, and SVG has no z-index.
  *
- * **POINTER-ONLY**: no `tabIndex`, no `role`, no Enter/Space keydown — a tile
- * isn't keyboard-reachable and can't be, since the page's tab ring is empty. See
- * spellingbee's `Letter` for the same note at length.
+ * **POINTER-ONLY**: no `tabIndex`, no `role`, no Enter/Space keydown — the
+ * page's tab ring is empty, so a tile is not keyboard-reachable; the letters
+ * are typed, or clicked. `data-tile` / `data-center` / `data-disabled` are the
+ * test handles.
  *
- * `data-tile` / `data-center` / `data-disabled` are the test hooks that replaced
- * `role="button"` + `aria-label` + `aria-disabled` — stable handles without the
- * behavior an ARIA role implies.
- *
- * `onMouseDown` is still intercepted, now only to stop a click selecting the
- * letter text.
+ * `onMouseDown` is prevented so a click does not select the letter text.
  */
 export function Tile({ letter, isCenter, pos, onClick, disabled, answer }: Props) {
   const up = letter.toUpperCase()

@@ -567,6 +567,76 @@ saying `PlayArea` computes `letterCounts` now says `BoardCol`.
 **Verified:** `tsc -b` clean, lint clean over `src/wordwheel/`; wordwheel,
 spellingbee and the guards: 47 files, 473 tests green.
 
+### Step 8 — the comment pass (readability 3.5) — DONE 2026-09-23
+
+spellingbee's Step 8 (`96b84a17`), copied, under psychicnum's Step 6 rules,
+over six files: `PlayArea.tsx`, `BoardCol.tsx`, `InfoCol.tsx`, and the
+wheel's three — `Wheel.tsx`, `Tile.tsx`, `TypedWord.tsx`. **558 comment lines
+in, 425 out.** **Proved a pure comment pass** — with every comment form
+stripped (block, line, trailing, and the JSX `{/* … */}`) and blank lines
+dropped, all six files are byte-identical before and after. `Wheel.tsx` lost
+the blank line between its docstring and `export function Wheel`, which the
+proof's blank-line drop covers.
+
+**`PlayArea.tsx` and `InfoCol.tsx` take spellingbee's comments word for
+word**, with the hive made the wheel: their code was already the same once
+the names are swapped (checked by diff), so every comment spellingbee's pass
+rewrote had its twin here. **`BoardCol.tsx` and the wheel's three were
+written by hand**, since the multiset — the tile counts, the claims, the
+submit gate, the spend order — has no twin in the hive; spellingbee's
+wording was used wherever a comment does.
+
+**Nine comments were FALSE, not stale.** From spellingbee's list, the same
+four: the surface docstring's verdicts (Step 3's note), the celebration's
+first-render reason for compete not celebrating (the winner id is on the
+common row), Print's "the explicit compete filter already scope[s]" (the
+print reads `foundWords`; RLS alone scopes it), and the trio's header naming
+Restart "Replay". This game's own: `Wheel`'s "server validates on submit"
+(the submit gate is the frontend's) and its `.floatAnchor` "around the svg"
+(the wheel is boxes, no svg); `BoardCol`'s `letterCounts` "tile spending"
+(its readers are the typed word's dim and the submit gate — spending reads
+`typedCounts`); `Tile`'s `disabled` "once this tile's letter is already in
+the typed word" (it is the tile being spent — with two tiles of a letter, the
+letter can be in the word and one tile still free); and Print's
+"wordwheel's own difference: pangrams print bold" (spellingbee's do too).
+
+**The rules did the cutting.** Rule 3: End's "a valid outcome, not a
+punishment", the shuffle's "the post-game fidget is deliberate" and "Always
+clickable, even when locked", InfoCol's "the thing you watch" and "the wheel
+makes the move obvious", `onAnswer`'s "a peer is never told about somebody
+else's miss", the slot prop's "the ONLY copy the player sees", and the
+submit gate's "FOOD" argument. Rule 2: the shuffle's "Bound HERE rather than
+in the PlayArea", the Committing header's "First, because the engine owns
+the pending word", the claims' "live here because this column owns both
+halves", `createNewGame`'s "A plain function, rebuilt every render"
+paragraph, and `Wheel`'s "Only wordwheel uses this wheel, so it stays local".
+Rule 1: the shuffle's ⌥Z and `handleChange`'s ArrowUp.
+
+**Archaeology:** `Tile`'s "the test hooks that replaced `role="button"`",
+"`onMouseDown` is still intercepted, now only", and "the same move
+letterboxed's letters made"; `Tile`'s pointer at spellingbee's `Letter` "for
+the same note at length" (that note is short now; the sentence is here
+instead); "(this game is a fork of it; there is no "wordwheel-ws"
+upstream)"; "Same rule as boggle's"; "(the waffle loading-race lesson)";
+the info-column JSX comment's "(same as psychicnum / connections /
+codenamesduet / waffle)". **Call sites to a sentence and a pointer:** the envelope paragraph
+in `createNewGame` (docs/envelopes.md), the `ready` gate
+(`usePeerFeedback`), `commit`'s paragraph (the engine's `commit` contract),
+NEW_GAME_CONFIRM, and `Wheel`'s spend-order paragraph (`lib/spend.ts`, whose
+docstring carries it in full). **The four Step 7 parked comments are gone.**
+Every prop note is `//`.
+
+**One pointer repointed:** `createNewGame`'s "(docs/games/wordwheel.md)" — a
+doc pass 2 deletes — cites `doc.md → FE submissions`, which already says a
+hand-picked board is a one-off.
+
+**For pass 2, spellingbee's F-1 again:** a race's winner gets no confetti.
+The celebration comment now says only what is true — a race's `won_compete`
+is not celebrated — without the old reason.
+
+**Verified:** `tsc -b` clean, lint clean over `src/wordwheel/`; the game's
+unit tests and the guards: 42 files, 391 tests green.
+
 ## Findings
 
 *(`F-wordwheel-1 · slug · title`, one heading each; a status prefix when it

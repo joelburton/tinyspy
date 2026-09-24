@@ -4,33 +4,27 @@ import { cls } from '@/common/utils/cls'
 import styles from '@/shared/found-words/typedWord.module.css'
 
 type Props = {
-  /** The current typed word (already uppercase; we uppercase defensively). */
+  // The typed word. Uppercased again here, so a lowercase caller draws the same.
   word: string
-  /** Per-letter tile counts of the wheel, lower-cased. The wheel is a multiset
-   *  (a letter may sit on two tiles), so legality is a count, not membership:
-   *  characters beyond a letter's tile count — or off the wheel entirely —
-   *  render dimmed, a hint the submit will reject them. */
+  // The wheel's per-letter tile counts, lower-cased. A character beyond its
+  // letter's count, or off the wheel entirely, dims — the submit gate holds
+  // the word back.
   letterCounts: Map<string, number>
 }
 
 /**
- * Renders the in-progress word as the value INSIDE the shared <WordEntryInput> (passed
- * as its `children`) — one <span> per character so illegal letters can be dimmed
- * individually. WordEntryInput owns the input-like box, the blinking caret, and the
- * empty-state placeholder; this owns only the per-character styling. (It returns
- * just the spans, no wrapper — the caret must sit right after the last character,
- * which WordEntryInput appends.)
+ * The typed word as the value INSIDE the shared `<WordEntryInput>` (passed as
+ * its `children`) — one `<span>` per character, so a letter the wheel cannot
+ * cover dims on its own. The input-like box, the blinking caret and the
+ * placeholder are `WordEntryInput`'s; this owns only the per-character
+ * styling. It returns bare spans with no wrapper: the caret must sit right
+ * after the last character, and the input appends it.
  *
- * A character is dimmed ("illegal") when EITHER:
- *   - it's not one of the puzzle's letters (off the wheel), OR
- *   - it EXCEEDS its letter's tile count. Each tile is spent once per word, so
- *     with k tiles of a letter, occurrences 1..k stay legal and the (k+1)th on
- *     dims — we dim it exactly the way we dim an off-wheel letter (the wheel
- *     also dims one tile per occurrence; see Wheel/Tile).
+ * The wheel is a multiset, so with k tiles of a letter the first k uses stay
+ * lit and the (k+1)th on dims, exactly as an off-wheel letter does.
  */
 export function TypedWord({ word, letterCounts }: Props) {
-  // Track per-letter occurrences so far, so a letter dims from the occurrence
-  // AFTER its tiles run out (the first k uses stay legal).
+  // Each letter's uses so far, so it dims from the use after its tiles run out.
   const used = new Map<string, number>()
   return (
     <>

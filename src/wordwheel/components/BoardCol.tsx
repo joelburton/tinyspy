@@ -50,18 +50,20 @@ function shuffled<T>(arr: readonly T[]): T[] {
 
 /**
  * wordwheel's board column — the `<Wheel>`, a floating Shuffle over its
- * top-right, and the below-board slot (the shared `<WordEntryArea>` — the typed-word input
- * + capture keyboard, whose `<WordEntryInput>` renders the per-character illegal-letter dim
- * via `<TypedWord>`).
+ * top-right, and the below-board region: the shared `<WordEntryArea>`, whose
+ * typed word is drawn through `<TypedWord>` so a letter the wheel's tiles
+ * cannot cover dims.
  *
- * It owns the **move**: the word-entry engine (`useFoundWordSubmit` — the typed
- * word, the dedup, the `submit_word` commit), what each answer shows, and the
- * wheel's answer to a refused word (the tiles it used shake and take the
- * answer). It also owns the **local outer-letter shuffle** (a per-player
- * view-only rearrange — never persisted or shared) and a click on a letter
- * appending to the word. The local feedback slot every answer shows into stays
- * the PlayArea's — its standing conditions and InfoCol's End / Concede show into
- * it too — and comes down as a prop. See docs/playarea.md.
+ * It owns the **move**: the word engine (`useFoundWordSubmit`), the
+ * `submit_word` commit, what each answer shows, and the wheel's answer to a
+ * refused word (the tiles it used shake and take the answer). It also owns the
+ * local outer-letter shuffle — a per-player, view-only rearrange — and the
+ * letter click that appends to the word and claims the tile it landed on.
+ *
+ * Everything else comes down: the wheel's letters, `readOnly`, the lists a
+ * word is judged against, and the feedback slot, which is the PlayArea's —
+ * its standing conditions and InfoCol's End / Concede show into it too. See
+ * docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status block (above the board) ──
@@ -84,21 +86,17 @@ export function BoardCol({
   localFeedbackSlot,
 }: {
   // ── Mobile-only status block ──
-  /** The four figures behind the RankBar + Stats unit — the SAME components the
-   *  info column renders, mirrored above the board below the `--mobile`
-   *  breakpoint (where the info column is off-canvas in the InfoSheet). Hidden by
-   *  CSS on desktop; see `<MobileStatusBar>`. */
+  // The four figures behind the RankBar + Stats unit the info column renders,
+  // mirrored above the board on a phone (`<MobileStatusBar>`).
   foundWordsScore: number
   requiredWordsScore: number
   foundWordsCount: number
   requiredWordsCount: number
-  /** The goal rank, when the game has one — marked on the mobile RankBar
-   *  exactly as on the info column's copy (which is off-canvas on a phone,
-   *  so this is the only place the goal shows there). */
+  // The goal rank, when the game has one — marked on the mobile RankBar.
   targetRankIdx: number | null
 
   // ── Board to render ──
-  /** The board's outer letters (a string) — the local shuffle rearranges this. */
+  // The board's outer letters as stored; the shuffle below rearranges a copy.
   outerLetters: string
   centerLetter: string
 
@@ -106,31 +104,27 @@ export function BoardCol({
   gameId: string
   mode: 'coop' | 'compete'
   selfId: string
-  /** No more words from me: the game is over, or I conceded a race the others
-   *  play on. The board-only "visible but inert" flag (docs/playarea.md) — the
-   *  engine refuses, the entry closes and the wheel goes inert, all on this one
-   *  answer. */
+  // No more words from me: the game is over, or I conceded a race the others
+  // play on. The engine refuses, the entry closes and the wheel goes inert, all
+  // on this one flag (docs/playarea.md).
   readOnly: boolean
-  /** The committed rows, the engine's dedup source (mode-aware: the team's in
-   *  coop, mine in compete). */
+  // The committed rows, the engine's dedup source (mode-aware: the team's in
+  // coop, mine in compete).
   foundWords: FoundWordRow[]
-  /** Both shipped lists: a word is judged and scored against them here. */
+  // Both shipped lists: a word is judged and scored against them here.
   requiredWords: WordwheelGame['requiredWords']
   bonusWords: WordwheelGame['bonusWords']
-  /** PlayArea's below-board slot — every answer shows into it, the entry row
-   *  draws its top in place of the controls, and a letter click is the player's
-   *  next action, so it dismisses a gesture-cleared result. */
+  // PlayArea's below-board slot — every answer shows into it, and the entry
+  // row draws it in place of the controls.
   localFeedbackSlot: FeedbackSlot
 }) {
   // ─── Committing a guess ────────────────────────────────
   // The shared engine owns the typed word, the dedup and the optimistic commit;
   // this game supplies the lookup, the RPC and what it shows for each answer.
-  // First, because the engine owns the pending word the sections below read.
 
-  // The wheel's tile counts — the illegal-letter dim and tile spending. The
-  // wheel is a MULTISET — the same letter may sit on two tiles — so the
-  // "can I type this letter?" question is a per-letter tile COUNT, not set
-  // membership: a word may use a letter as many times as it has tiles.
+  // The wheel's tile counts, lower-cased — the typed word's dim and the submit
+  // gate. The wheel is a MULTISET — a letter may sit on two tiles — so a word
+  // may use a letter as many times as it has tiles: a COUNT, not membership.
   const letterCounts = useMemo(() => {
     const m = new Map<string, number>()
     for (const ch of outerLetters + centerLetter) {
@@ -140,8 +134,8 @@ export function BoardCol({
     return m
   }, [outerLetters, centerLetter])
 
-  // Both word lists ship to the FE, so a guess is validated + scored locally —
-  // index required ∪ bonus by word.
+  // Both lists ship, so a word is judged and scored here: required ∪ bonus,
+  // by word.
   const legalIndex = useMemo(() => {
     const m = new Map<string, LegalWord>()
     for (const r of requiredWords) {
@@ -168,11 +162,9 @@ export function BoardCol({
       localFeedbackSlot,
       foundWords,
       lookup: (w) => legalIndex.get(w) ?? null,
-      // Four ok answers, all meaning the row landed: three classifications the
-      // FE's own flags come back as, plus `won` — this word crossed the target
-      // rank and ended the game. None of them changes what the optimistic pill
-      // already says; the terminal flip arrives over realtime. Every refusal
-      // means the word was NOT recorded, so each releases it.
+      // `null` says the row landed (`commit` in `useFoundWordSubmit`). None of
+      // the four ok answers changes what the optimistic pill already says, and
+      // the win arrives over realtime like every other terminal.
       commit: async (e) => {
         const res = await runRpc<SubmittedWord>(
           db.rpc('submit_word', {
@@ -198,10 +190,9 @@ export function BoardCol({
           return null
         }
       },
-      // Every answer shows in the pill, in `lib/answer.ts`'s words. Any answer
-      // but an accept is also a move that didn't win: the tiles the word used
-      // shake and take the same outcome, so the two cannot disagree.
-      // The actor's alone: a peer is never told about somebody else's miss.
+      // Every answer shows in the pill, in `lib/answer.ts`'s words. A refused
+      // word also answers ON the board: the tiles it used shake and take the
+      // same outcome, so the two cannot disagree.
       onAnswer: (report) => {
         const { outcome, text } = answerMessage(answerOf(report, center))
         localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
@@ -217,11 +208,10 @@ export function BoardCol({
   // the letter click that adds to it, sit here.
 
   // WHICH tile each use of a letter spends. A click claims the tile it landed
-  // on; everything else falls to the render order (see lib/spend.ts). The claims
-  // live here because this column owns both halves of a change — the click that
-  // makes one and the typing that can take it away.
+  // on; everything else falls to the render order (`lib/spend.ts`).
   const [claims, setClaims] = useState<Claim[]>([])
 
+  // A click is my next action, so it dismisses a gesture-cleared result.
   const handleLetterClick = useCallback(
     (letter: string, ordinal: number) => {
       localFeedbackSlot.dismiss()
@@ -231,9 +221,9 @@ export function BoardCol({
     [localFeedbackSlot, setWord],
   )
 
-  // Every OTHER way the word changes — a keystroke, a Backspace, the ArrowUp
-  // recall, the box clearing on submit — can only take claims away, never make
-  // one: the player named no tile. Trimming against the new word is the whole of
+  // Every OTHER way the word changes — a keystroke, a Backspace, the recall,
+  // the box clearing on submit — can only take claims away, never make one:
+  // the player named no tile. Trimming against the new word is the whole of
   // it, and an empty box drops the lot.
   const handleChange = useCallback(
     (next: SetStateAction<string>) => {
@@ -243,11 +233,10 @@ export function BoardCol({
     [setWord, word],
   )
 
-  // Per-letter counts of the typed word (lower-cased). Each tile is SPENT per
-  // use, so the wheel dims one same-letter tile per occurrence typed (the
-  // center first — see Wheel's spend order). None once the board is read-only:
-  // a word left half-typed when the game ended, or when I conceded, is no
-  // longer a move, so its marks go with it.
+  // Per-letter counts of the typed word, lower-cased: each use SPENDS one tile
+  // of its letter, and `lib/spend.ts` says which. Empty once the board is
+  // read-only, so a word left half-typed when the game ended, or when I
+  // conceded, drops its marks.
   const typedCounts = useMemo(() => {
     const m = new Map<string, number>()
     if (readOnly) return m
@@ -258,10 +247,10 @@ export function BoardCol({
   // ─── The board's display order ─────────────────────────
   // The shuffle — purely visual, touches nothing else.
 
-  // Local visual shuffle of the outer letters — a `shuffleSeed` counter drives a memo
-  // (avoids storing the order in state + a sync effect). Keyed on the outer-letters
-  // STRING (not the game object — a realtime refetch returns a fresh object even when
-  // the letters didn't change, which would re-shuffle on every submit).
+  // A counter drives a memo, rather than an order kept in state plus a sync
+  // effect. Keyed on the outer-letters STRING, not the game object: a realtime
+  // refetch returns a fresh object even when the letters did not change, which
+  // would re-shuffle on every submit.
   const [shuffleSeed, setShuffleSeed] = useState(0)
   const outerShuffled = useMemo(() => {
     if (!outerLetters) return []
@@ -269,10 +258,8 @@ export function BoardCol({
     return shuffled(Array.from(outerLetters))
   }, [outerLetters, shuffleSeed])
 
-  // ⌥Z shuffles — a fresh visual scan of the SAME letters, never a move. Bound
-  // HERE rather than in the PlayArea because this column owns the display order,
-  // and plainly active: shuffling writes nothing and reaches nobody else, so the
-  // post-game fidget is deliberate — the round pill below is this same binding.
+  // A fresh visual scan of the SAME letters, never a move. The floating button
+  // below is this same binding.
   const actShuffle = useBoundAction('act-shuffle', {
     describe: () => 'active',
     run: () => setShuffleSeed((s) => s + 1),
@@ -281,12 +268,9 @@ export function BoardCol({
   // ─── Render ────────────────────────────────────────────
   return (
     <div className={cls(shared.boardCol, bee.boardCol)}>
-      {/* Mobile only (CSS-hidden on desktop, where the info column carries it):
-          the rank bar + stat grid, above the board. A small BLOCK rather than the
-          bar's one-line default, so PlayArea.module.css raises
-          `--mobile-status-height` AND takes it out of `--avail-h` — the wheel
-          sizes itself from that number, so leaving it alone would size a board
-          that no longer fits (the hard no-scroll invariant). */}
+      {/* Mobile only (`<MobileStatusBar>` is CSS-hidden on desktop): the rank
+          ladder and the figures, above the wheel. A fixed-height block, already
+          subtracted from the wheel's `--avail-h`. */}
       <MobileStatusBar>
         <div className={bee.mobileStatus}>
           <RankBar score={foundWordsScore} total={requiredWordsScore} targetIdx={targetRankIdx} />
@@ -305,10 +289,8 @@ export function BoardCol({
         onLetterClick={readOnly ? undefined : handleLetterClick}
         claims={claims}
         typedCounts={typedCounts}
-        // Shuffle floats over the wheel's top-right — a fresh visual scan of the
-        // SAME board, not a turn action. Always clickable, even when locked (a
-        // harmless rearrange). Passed into Wheel so it anchors to the visual
-        // wheel, not the column.
+        // Passed into Wheel so it anchors to the visual wheel rather than the
+        // column (`.floatingShuffle`).
         floatingControl={
           <ShuffleButton
             action={actShuffle}
@@ -317,12 +299,8 @@ export function BoardCol({
           />
         }
       />
-      {/* The below-board slot — the shared <WordEntryArea> (icon-only Delete + the WordEntryInput
-          + icon-only Submit + the capture keyboard).
-          The WordEntryInput renders the per-character illegal-letter dim via <TypedWord>.
-          While the slot holds a message, WordEntryArea draws it in place of the
-          controls (same slot, no reflow) — the verdict, "you're out", a word
-          result, whichever ranks highest. */}
+      {/* The below-board slot: `<WordEntryArea>` draws the controls, or the
+          slot's message in their place — the same slot, so nothing reflows. */}
       <div className={surface.belowBoard}>
         <div className={shared.moveAreaOrLocalFeedback}>
           <WordEntryArea
@@ -334,13 +312,10 @@ export function BoardCol({
             onAnyKey={localFeedbackSlot.dismiss}
             charFor={asciiLetters('upper')}
             recall={lastWord}
-            // Veto submit when the typed word can't be spelled from the wheel's
-            // tiles (an off-wheel letter, or a letter used more times than it has
-            // tiles — the same characters <TypedWord> dims). Editing stays live;
-            // only Submit + Enter are inert, so "FOOD" on a wheel without F/O
-            // can't submit and read as "not a word". A word that DOES fit but is
-            // missing the center / isn't in the list stays submittable — that
-            // reject carries a genuinely useful reason.
+            // Submit and Enter are inert while the word cannot be spelled from
+            // the wheel's tiles — the same characters `<TypedWord>` dims. A word
+            // that fits but misses the center, or is not in the list, still
+            // submits and gets its answer.
             submitDisabled={!wordFitsWheel(word, letterCounts)}
             localFeedbackSlot={localFeedbackSlot}
           >

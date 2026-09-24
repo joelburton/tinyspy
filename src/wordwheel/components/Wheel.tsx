@@ -11,60 +11,49 @@ import { Tile } from './Tile'
 import styles from './Wheel.module.css'
 
 type Props = {
-  /** The 8 outer letters in their current display order — shuffled
-   *  locally by the caller. */
+  // The 8 outer letters in their display order — shuffled by the caller.
   outerLetters: string[]
-  /** The 1 mandatory center letter. */
+  // The 1 mandatory center letter.
   centerLetter: string
-  /** Called when any letter is clicked, with WHICH of that letter's tiles was
-   *  hit (its ordinal in render order). The caller appends the letter to the
-   *  typed word and records the claim. Absent when the board is read-only —
-   *  the game is over, or I conceded — and then no tile takes a click, a hover
-   *  or a press, as psychicnum's tiles do without their `onPick`. */
+  // Called with the clicked letter and WHICH of that letter's tiles was hit
+  // (its ordinal in render order); the caller appends the letter to the typed
+  // word and records the claim. Absent when the board is read-only, and then
+  // no tile takes a click, a hover or a press.
   onLetterClick?: (letter: string, ordinal: number) => void
-  /** Per-letter counts of the typed word, lower-cased. Each occurrence SPENDS
-   *  one same-letter tile — marked + inert — in the wheel's spend order (see
-   *  the component doc). */
+  // Per-letter counts of the typed word, lower-cased. Each use SPENDS one
+  // tile of its letter, which wears the selected edge and takes no click.
   typedCounts: Map<string, number>
-  /** The tiles the player CLICKED, oldest first. They are spent before any
-   *  fallback, so a clicked tile is always the one that goes dark. */
+  // The tiles the player CLICKED, oldest first — spent before any other, so a
+  // clicked tile is always the one that marks.
   claims: readonly Claim[]
-  /** A refused word's mark, while its answer is up: how many of each letter it
-   *  used, and the outcome. The tiles it would have spent — by the same spend
-   *  order as a typed word — shake and wear that outcome. The nonce keys those
-   *  tiles, so refusing the same letters again remounts them and the shake
-   *  plays again — a CSS animation restarts on a remount, not on a class that
-   *  is already there. */
+  // A refused word's mark, while its answer is up: how many of each letter it
+  // used, and the outcome. The tiles it would have spent shake and wear that
+  // outcome. The nonce keys those tiles, so refusing the same letters again
+  // remounts them and the shake plays again — a CSS animation restarts on a
+  // remount, not on a class that is already there.
   refused: Mark<{ counts: Map<string, number>; outcome: Outcome }> | null
-  /** A control floated over the wheel's top-right (the Shuffle button). Rendered
-   *  inside the shrink-wrapped `.floatAnchor` around the svg, so it hugs the
-   *  VISUAL wheel. Anchoring to the column instead would strand it at the
-   *  column's top, which the vertically-centered wheel no longer touches. */
+  // A control floated over the wheel's top-right (the Shuffle button). Rendered
+  // inside the shrink-wrapped `.floatAnchor` around the grid, so it hugs the
+  // VISUAL wheel rather than the column, which the vertically-centered wheel
+  // does not touch.
   floatingControl?: ReactNode
 }
 
 /**
  * The 9-tile wheel: round boxes absolutely placed on a square sized in `--u`,
- * the wheel's coordinate unit (the box is 300 units across). Only wordwheel uses
- * this wheel, so it stays local; the geometry is shared with the PDF export.
+ * the wheel's coordinate unit (the box is 300 units across). The geometry
+ * lives in `lib/wheel.ts`, shared with the PDF.
  *
- * Render order (matches `TILE_POSITIONS`): center first, then the eight outer tiles
- * clockwise from the top; the parent (BoardCol) controls the shuffle of
- * `outerLetters` so the visual order changes on Shuffle. The geometry lives in
- * `lib/wheel.ts`, shared with the PDF export.
+ * Render order matches `TILE_POSITIONS`: the center first, then the eight
+ * outer letters clockwise from the top in the order the caller passes them, so
+ * a shuffle changes the visual order and nothing else.
  *
- * Clicking a letter doesn't validate — it just appends the character to the typed
- * word (server validates on submit).
- *
- * SPEND ORDER: the wheel is a multiset, so typing a letter spends ONE of its
- * tiles — but nothing in the word says which. A CLICK does, and is honored: the
- * tile you hit is the tile that marks. What is left over falls to the tiles in
- * render order, the CENTER first when it carries the letter (the game rule: a
- * duplicated center is always the tile the mandatory use consumes), then outer
- * duplicates in their current display order. A shuffle can still swap WHICH
- * visual twin is marked, claimed or not — accepted: the twins are identical, and
- * the marked COUNT is always right. See `lib/spend.ts`. */
-
+ * A click appends the letter to the typed word. The wheel is a multiset, so a
+ * typed letter says how many of its tiles are in use but not which; a click
+ * says which, and is honored, and the rest fall to render order — the center
+ * first (`lib/spend.ts`). A shuffle can swap which of two identical tiles is
+ * marked; the marked COUNT is always right.
+ */
 export function Wheel({
   outerLetters,
   centerLetter,
