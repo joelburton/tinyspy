@@ -898,6 +898,30 @@ describe('wordle Board — the reveal flip', () => {
     expect(tiles()[0].className).not.toMatch(/reveal/)
     expect(tiles()[5].className).toMatch(/reveal/)
   })
+
+  // Opening a past turn draws its snapshot in place of the live rows, so coming
+  // back mounts them fresh. A row that already flipped must not flip again; one
+  // that landed while the player was away still does.
+  it('does not flip a row again on the way back from a past turn', () => {
+    const game = { id: 'g1', mode: 'coop' as const, max_guesses: 6, target: null }
+    const slate = { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxgyx', is_correct: false }
+    const moths = { user_id: 'u1', id: 2, guess: 'moths', colors: 'xxyxg', is_correct: false }
+    const crane = { user_id: 'u1', id: 3, guess: 'crane', colors: 'xxxxg', is_correct: false }
+    h.result = loaded(game, [])
+    const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
+    h.result = loaded(game, [slate, moths])
+    rerender(<PlayAreaLoader {...makeCtx()} />)
+    expect(tiles()[0].className).toMatch(/reveal/) // both landed while watching
+
+    fireEvent.click(screen.getByText('#1'))
+    h.result = loaded(game, [slate, moths, crane]) // lands while I'm away
+    rerender(<PlayAreaLoader {...makeCtx()} />)
+    fireEvent.click(screen.getByRole('button', { name: 'Exit history' }))
+
+    expect(tiles()[0].className).not.toMatch(/reveal/)
+    expect(tiles()[5].className).not.toMatch(/reveal/)
+    expect(tiles()[10].className).toMatch(/reveal/)
+  })
 })
 
 /**

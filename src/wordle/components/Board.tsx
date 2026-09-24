@@ -21,6 +21,9 @@ type SubmittedRow = { guess: string; colors: string }
 type Props = {
   // Submitted guesses (letters + their g/y/x colors), in order.
   rows: SubmittedRow[]
+  // How many rows the LIVE board has, even while `rows` is a past turn's
+  // snapshot — where the flip line moves to when a past turn opens.
+  liveRowCount: number
   // The active typing row's current letters (empty when not the
   // player's turn / game over). Rendered just below the submitted
   // rows, with no colors yet.
@@ -71,10 +74,13 @@ type Props = {
  * over one at a time, each painting its color at the midpoint of its own flip.
  * Rows that were already on the board when this mounted — a mid-game refresh,
  * an opponent's history — draw in their final color without flipping, and
- * `flipBaseline` is the line between the two.
+ * `flipBaseline` is the line between the two. Opening a past turn moves the
+ * line up to the live rows as they stood, so coming back flips only a row that
+ * landed while you were away.
  */
 export function Board({
   rows,
+  liveRowCount,
   current,
   pending,
   maxGuesses,
@@ -89,10 +95,20 @@ export function Board({
 }: Props) {
   const activeIndex = active ? rows.length : -1
   // The row count that was already on the board when it mounted, so anything
-  // past it is a guess that landed while you were watching. A mount-time count
-  // is enough: the live rows only grow, and a Restart remounts the whole
-  // surface (GamePage keys it on `restarts`), so a replayed game starts at zero.
-  const [flipBaseline] = useState(rows.length)
+  // past it is a guess that landed while you were watching. The live rows only
+  // grow, and a Restart remounts the whole surface (GamePage keys it on
+  // `restarts`), so a replayed game starts at zero.
+  const [flipBaseline, setFlipBaseline] = useState(rows.length)
+  // Opening a past turn draws the snapshot's rows in place of the live ones,
+  // so coming back mounts the live rows fresh — and each would flip again. The
+  // line moves up to the live rows as the viewer opens. Compared against the
+  // previous render's value in state, React's pattern for adjusting state to a
+  // prop change, which holds under StrictMode's double render.
+  const [wasViewingHistory, setWasViewingHistory] = useState(isViewingHistory)
+  if (isViewingHistory !== wasViewingHistory) {
+    setWasViewingHistory(isViewingHistory)
+    if (isViewingHistory) setFlipBaseline(liveRowCount)
+  }
 
   return (
     <div

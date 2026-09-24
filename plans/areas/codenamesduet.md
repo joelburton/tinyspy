@@ -1521,6 +1521,17 @@ judgment on the tile).
 
 ## Notes
 
+- **A wordle fix made from this area, 2026-09-23** (Joel: *"small fix for
+  wordle while here: when switch from a history view back the live view, the
+  tiles all do the animation flip"*). The viewer draws the snapshot's rows in
+  place of the live ones, so coming back mounted every live row fresh with
+  `.reveal` and each flipped again. `Board` now moves `flipBaseline` up to the
+  live row count as the viewer opens (React's state-from-the-previous-render
+  pattern, StrictMode-safe), with `liveRowCount` passed from `BoardCol`, so the
+  way back flips only a row that landed meanwhile. A PlayArea case pins both
+  halves; planted the baseline move out — red. wordle's `doc.md` says so.
+  Edits blessed files in a closed area.
+
 *(things worth remembering about this area that are neither a finding nor
 owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to `todo.md` or

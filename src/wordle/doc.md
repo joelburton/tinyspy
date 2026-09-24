@@ -388,8 +388,10 @@ What is wordle's own:
   color at the midpoint; rows already on the board when it mounted — a
   mid-game refresh, an opponent's finished board — draw settled. A Restart
   remounts the whole surface, so the replayed game's first row flips like any
-  other landing. The submitted word stays on the board through the round trip,
-  dimmed, and flips in place when its row arrives.
+  other landing. Coming back from a past turn flips only a row that landed
+  while the viewer was open; the rest draw settled. The submitted word stays
+  on the board through the round trip, dimmed, and flips in place when its row
+  arrives.
 - **The keyboard is the alphabet's record.** Each cap wears the strongest
   color its letter has earned across the live rows; Enter and ⌫ are the same
   bound actions the physical keys answer to, so a cap and its key cannot
@@ -452,7 +454,7 @@ Vitest, beside the code:
 | `lib/history.test` · `lib/colors.test` | the inclusive boundary and the ringed row, by id; the keyboard's strength order |
 | `lib/setup.test` · `components/SetupForm.test` | the Start gate names `legal_guess`, and the floor the answer source sets; the form's three controls and where a refusal lands |
 | `pdf/model.test` | the target never prints before it shows on screen; the keyboard is derived per player, never pooled |
-| `components/PlayArea.test` | the surface mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration — the team's win, my race win, never a race I lost or a game opened already won; peer narration in both modes; the picker's labels; Concede vs End per mode; the board-scope marks; a landed row flips and a mounted one does not; the physical keys and the two caps |
+| `components/PlayArea.test` | the surface mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration — the team's win, my race win, never a race I lost or a game opened already won; peer narration in both modes; the picker's labels; Concede vs End per mode; the board-scope marks; a landed row flips and a mounted one does not, nor one already flipped on the way back from a past turn; the physical keys and the two caps |
 
 Playwright, in `e2e/`: `wordle-history` (the viewer's overlay and the exits),
 `wordle-keyboard` (the caps' computed colors, resting and hovered),

@@ -288,6 +288,7 @@ export function BoardCol({
     <div className={shared.boardCol}>
       <Board
         rows={historySnap ? historySnap.rows : rows}
+        liveRowCount={rows.length}
         current={current}
         pending={historySnap ? '' : pendingWord}
         maxGuesses={maxGuesses}
