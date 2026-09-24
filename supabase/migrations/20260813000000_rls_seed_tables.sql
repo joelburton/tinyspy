@@ -32,8 +32,8 @@
 --
 -- Why a NEW migration rather than editing the per-game ones in place: those
 -- are already applied, and `supabase db push` skips applied migrations, so an
--- in-place edit would never reach production — see CLAUDE.md → "In-place
--- migration edits now cost a PROD RESET".
+-- in-place edit would never reach production — see CLAUDE.md → "Production
+-- software".
 
 alter table common.words           enable row level security;
 alter table connections.puzzles    enable row level security;

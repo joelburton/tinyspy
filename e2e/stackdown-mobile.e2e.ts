@@ -5,7 +5,7 @@ import { createSoloClub, createStackdownGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * stackdown's mobile layout (docs/mobile.md → the shared info-sheet recipe): the
+ * stackdown's mobile layout (docs/mobile.md → The info-sheet recipe): the
  * board fills the screen and the info column moves into an off-canvas sheet. No
  * board divergence — the square board is min(--avail-w, --avail-h, 620px), so it
  * fits a phone on its own, and the input is tile taps (no keyboard). We check the
@@ -30,7 +30,7 @@ test.describe('stackdown mobile', () => {
       await page.goto(`/g/${game.gametype}/${game.id}`)
       await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
 
-      // The page never scrolls (docs/ui.md → page fits the viewport).
+      // The page never scrolls (docs/ui.md → Page-height fits the viewport).
       const m = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth,
         sh: document.documentElement.scrollHeight,

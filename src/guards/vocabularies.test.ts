@@ -356,7 +356,7 @@ const VOCABULARIES: Vocabulary[] = [
       // states outright: a heading's size is decided at h1–h4 in base.css.
       // `max(16px,` and `1em)` are not values — they are the two halves of the
       // iOS focus-zoom floor (`font-size: max(16px, 1em)`, docs/mobile.md →
-      // Decisions #3) as `extract` sees them, which cannot look inside a
+      // The rules every screen keeps) as `extract` sees them, which cannot look inside a
       // `max()`. No token can express that floor; three other files on this
       // list carry the same pair.
       'src/common/core-css/base.css': ['1.5rem', '1.25rem', '1.15rem', '1rem', 'max(16px,', '1em)'],

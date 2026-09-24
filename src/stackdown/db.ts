@@ -11,6 +11,6 @@ import { supabase } from '@/common/supabase/supabase'
  * Note: the FE never reads the base `games` table for the solution —
  * that column is grant-excluded. It reads the `games_state` view,
  * which only exposes `solution` once the game is terminal (see
- * docs/games/stackdown.md → hidden-solution pattern).
+ * docs/games/stackdown.md → 5.1 Tables).
  */
 export const db = supabase.schema('stackdown')

@@ -3,7 +3,7 @@
 -- ============================================================
 -- Test: scrabble.get_suggest_context
 -- ============================================================
--- The move suggester's context RPC (docs/scrabble-ai.md S4): SECURITY
+-- The move suggester's context RPC (docs/games/scrabble.md §11): SECURITY
 -- DEFINER, so it can hand the edge function the grant-hidden dictionary
 -- bands — which makes its own gates the whole security story:
 --   a deleted game (the shared race, PN485, asked first), membership

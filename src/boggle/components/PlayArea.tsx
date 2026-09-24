@@ -47,7 +47,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
  * boggle play surface, shared by the coop and compete manifests, on the shared
- * two-column scaffold (board column + fixed info column — see docs/ui.md →
+ * two-column scaffold (board column + fixed info column — see docs/playarea.md →
  * "PlayArea layout"):
  *
  *   - **Board column** — the square tile grid (sized like waffle's: the largest
@@ -84,7 +84,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // out to the browser.
   useTabRing([])
 
-  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
+  // Mobile (docs/mobile.md → The info-sheet recipe): below the breakpoint the board
   // fills the screen and the info column moves into a full-width off-canvas
   // <InfoSheet> (wide, like spellingbee — its WordList wants the room). The board
   // fills for free (a square sized min(--avail-w, --avail-h, …)); input is tile

@@ -5,7 +5,7 @@ import { createClubWithMembers, createCodenamesduetGame } from './helpers/fixtur
 import { signIn } from './helpers/session'
 
 /**
- * codenamesduet's mobile layout (docs/mobile.md → the psychicnum recipe). The
+ * codenamesduet's mobile layout (docs/mobile.md → The info-sheet recipe). The
  * clue-giver's below-board clue input raises the OS keyboard, and the giver needs
  * the board's key-card colors while composing — so we DON'T shrink or clamp the
  * board; it stays full-size and the page scrolls (giver scrolls up to read the

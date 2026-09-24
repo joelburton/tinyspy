@@ -40,7 +40,7 @@
  * exactly 2, by construction: the partition keeps the seed pair playable, so
  * the chain word_a → word_b is always a two-word solution. The chain-length
  * cap is a number the players choose, not a derived par + slack. See
- * docs/letterboxed-plan.md §9.1.
+ * docs/games/letterboxed.md §9.1.
  *
  * The PURE board-building core (partition, the side rule, the playable-word
  * filter) lives in ./board.ts, unit-tested by ./board_test.ts. This file keeps
@@ -159,7 +159,7 @@ async function attemptBoard(
   if (candErr) throw new Error(`candidate_words failed: ${candErr.message}`)
 
   // candidate_words gates on band + board shape only; purity rides along as
-  // `is_clean` (docs/word-list.md → the word list's filter rule). `playable_words`
+  // `is_clean` (docs/word-list.md → Which words a game may use). `playable_words`
   // is therefore the ACCEPT list — everything a player may legally type here —
   // while the clean subset is what the board is JUDGED on below.
   const candRowsTyped = (candRows as Array<{ word: string; is_clean: boolean }> | null) ?? []

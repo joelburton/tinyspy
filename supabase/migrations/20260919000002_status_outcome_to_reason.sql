@@ -6,8 +6,8 @@
 -- The key held WHY a game ended — `solved` · `mistakes` · `timeout` ·
 -- `conceded` · `manual` · `exhausted` · `assassin` · `target` · `cleared` ·
 -- `complete` · `blocked` — and not one of those is an outcome. `outcome` is
--- the six-value appearance vocabulary (docs/outcomes.md → won · lost · near ·
--- warning · neutral · noted), guarded and spent everywhere else in the app,
+-- the six-value appearance vocabulary (won · lost · near · warning ·
+-- neutral · noted, docs/outcomes.md), guarded and spent everywhere else in the app,
 -- and the envelope's own `outcome` field carries exactly those. Two different
 -- facts were wearing one word, in a jsonb blob that MERGES — so an inherited
 -- key read as data.

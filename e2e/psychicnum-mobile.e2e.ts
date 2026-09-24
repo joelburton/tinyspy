@@ -6,7 +6,7 @@ import { signIn } from './helpers/session'
 
 /**
  * psychicnum's mobile layout — the REFERENCE implementation the shared info-sheet
- * recipe (docs/mobile.md → "the psychicnum recipe") is named after, so a
+ * recipe (docs/mobile.md → The info-sheet recipe) was settled on, so a
  * regression in the shared pieces (`useInfoSheet` / `<InfoSheet>` /
  * `.mobileFill`) shows up here first. Every other converted game has a
  * `*-mobile.e2e.ts`; this closes the gap that the baseline game itself didn't.
@@ -36,7 +36,7 @@ test.describe('psychicnum mobile', () => {
       await page.goto(`/g/${game.gametype}/${game.id}`)
       await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
-      // The page never scrolls (docs/ui.md → page fits the viewport).
+      // The page never scrolls (docs/ui.md → Page-height fits the viewport).
       const m = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth,
         sh: document.documentElement.scrollHeight,

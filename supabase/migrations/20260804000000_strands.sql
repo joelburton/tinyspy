@@ -84,7 +84,7 @@
 -- │ registers hides_solution = true, which earns the shared │
 -- │ reveal_solution RPC and terminal reveal for free.       │
 -- │                                                         │
--- │ This is recorded as PROVISIONAL (docs/strands-plan.md): │
+-- │ This is recorded as PROVISIONAL (docs/games/strands.md): │
 -- │ if the verdict feels laggy in the hand, the fallback is │
 -- │ trusting-commit — ship solution + legal words, self-    │
 -- │ score, and have the RPC record the verdict the way      │

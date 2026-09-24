@@ -1,7 +1,7 @@
 // cs-unmet
 
 /**
- * Scrabble move suggester — the AI that recommends plays (docs/scrabble-ai.md).
+ * Scrabble move suggester — the AI that recommends plays (docs/games/scrabble.md).
  *
  * This module is pure TS with no I/O: it runs inside the
  * `scrabble-suggest-move` edge function (which builds the rated trie from the

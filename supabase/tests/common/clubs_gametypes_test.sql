@@ -65,7 +65,7 @@ select is(
 -- A solo club only enrolls in solo-playable gametypes (min_players
 -- <= 1): the coop/solo variants — plus scrabble_compete, which is
 -- solo-playable because you can race an AI opponent alone
--- (docs/scrabble-ai-strength.md). psychicnum_coop is solo-playable
+-- (docs/games/scrabble.md). psychicnum_coop is solo-playable
 -- but default_enroll = false, so it's absent too.
 select is(
   (

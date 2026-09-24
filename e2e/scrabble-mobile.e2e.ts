@@ -5,7 +5,7 @@ import { createSoloClub, createScrabbleGame, setScrabbleRack } from './helpers/f
 import { signIn } from './helpers/session'
 
 /**
- * scrabble's mobile layout (docs/mobile.md → the psychicnum recipe, crosswords'
+ * scrabble's mobile layout (docs/mobile.md → The info-sheet recipe, crosswords'
  * keyboard-required flavor): below the breakpoint the board fills the width and
  * the info column moves into an off-canvas sheet reached from the header's
  * switch. There is NO touch-entry mode — play stays on the keyboard cursor
@@ -43,7 +43,7 @@ test.describe('scrabble mobile', () => {
       const rack = page.locator('[data-zone="rack"]')
       await expect(rack).toBeVisible()
 
-      // The page never scrolls (docs/ui.md → page fits the viewport) …
+      // The page never scrolls (docs/ui.md → Page-height fits the viewport) …
       const m = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth,
         sh: document.documentElement.scrollHeight,

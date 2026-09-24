@@ -5,7 +5,7 @@ import { createSoloClub, createWordleGame, seedWordleGuesses } from './helpers/f
 import { signIn } from './helpers/session'
 
 /**
- * wordle's mobile layout (docs/mobile.md → the psychicnum recipe): below the
+ * wordle's mobile layout (docs/mobile.md → The info-sheet recipe): below the
  * breakpoint the board + on-screen keyboard fill the screen and the info column
  * moves into an off-canvas sheet reached by the header's page-switch button.
  *
@@ -40,7 +40,7 @@ test.describe('wordle mobile', () => {
       const kb = page.getByLabel('Keyboard')
       await expect(kb).toBeVisible()
 
-      // The page never scrolls (docs/ui.md → page fits the viewport) …
+      // The page never scrolls (docs/ui.md → Page-height fits the viewport) …
       const m = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth,
         sh: document.documentElement.scrollHeight,

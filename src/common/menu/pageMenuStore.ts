@@ -6,7 +6,7 @@
  * `act-open-menu` (bound once in `AppActionsHost`) opens whatever is
  * registered. A slot, not a store anything subscribes to — the only reader is
  * a keydown handler, which asks at the moment the key is pressed; doc.md →
- * Design says why one slot is safe.
+ * Intro to area says why one slot is safe.
  *
  * **A missing menu is a no-op, deliberately.** Every real page has a header
  * and so a menu; what has none is the sign-in gate, a loading screen, the

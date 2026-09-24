@@ -8,8 +8,8 @@
   /* SIZED IN em, so the box tracks the text it sits among rather than a number
      picked per site. `--iconButton-size` is the token `.iconOnly` reads for its
      square (2.05rem app-wide); re-setting the property makes that class pick up
-     the new value with no specificity fight (code-conventions.md → state
-     classes win by re-setting tokens), the same move `small` makes at 1.6rem.
+     the new value with no specificity fight (code-conventions.md → The
+     CSS checklist), the same move `small` makes at 1.6rem.
 
      A surface needing a specific box re-points the token again in its own
      class, at TWO classes so the cascade is decided by intent rather than by

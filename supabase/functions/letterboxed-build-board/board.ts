@@ -11,7 +11,7 @@
  * makes a word playable or not. Two consecutive letters of a word may never
  * sit on the same side.
  *
- * See docs/letterboxed-plan.md §4.
+ * See docs/games/letterboxed.md §4.
  */
 
 /** Letters on a board — four sides of three. */

@@ -21,7 +21,7 @@
 -- omits `solution`, plus a SECURITY DEFINER helper that hands it back once the
 -- game is over. The rationale — that a dictionary lookup forces a server round
 -- trip anyway, so classifying server-side costs nothing extra — is written up in
--- the migration header and docs/strands-plan.md §3.
+-- the migration header and docs/games/strands.md §3.
 -- ============================================================
 
 grant usage on schema strands to authenticated;

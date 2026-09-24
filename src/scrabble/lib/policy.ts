@@ -1,7 +1,7 @@
 // cs-unmet
 
 /**
- * scrabble AI player — the move-selection *policy* (docs/scrabble-ai-strength.md).
+ * scrabble AI player — the move-selection *policy* (docs/games/scrabble.md).
  *
  * The move suggester (suggest.ts + rank.ts) always plays at full strength: it
  * finds every legal move and recommends the best. An autonomous *opponent*
@@ -21,7 +21,7 @@
  *
  * A "level" is just a bag of knob values — see `LEVELS`. The knobs and their
  * initial settings are HYPOTHESES to be tuned by the self-play experiment
- * (docs/scrabble-ai-strength.md), not final tuning.
+ * (docs/games/scrabble.md), not final tuning.
  *
  * `.ts` import extensions throughout: like play.ts / suggest.ts / rank.ts this
  * module is written to also load under Deno (the future opponent edge function),
@@ -73,7 +73,7 @@ export type StrengthKnobs = {
 
 /** The five shipped levels, weakest → strongest. `best` is the current
  *  full-strength suggester behavior (all knobs off). Tuned by the self-play
- *  sweep (docs/scrabble-ai-strength.md) to an evenly-spaced mean-score ladder
+ *  sweep (docs/games/scrabble.md) to an evenly-spaced mean-score ladder
  *  — ≈455 / 580 / 715 / 840 / 912 points per coop game (N=40). Retuning means
  *  re-running the sweep, deliberately. */
 export type LevelName = 'beginner' | 'casual' | 'intermediate' | 'strong' | 'best'
@@ -92,7 +92,7 @@ export const LEVELS: Record<LevelName, StrengthKnobs> = {
 
 /** What the policy decides to do on a turn. `exchange` carries the tiles to
  *  dump (currently the whole rack — see the "no strategic exchange" note in
- *  docs/scrabble-ai-strength.md); the caller checks bag feasibility. */
+ *  docs/games/scrabble.md); the caller checks bag feasibility. */
 export type PlayChoice =
   | { kind: 'word'; placements: Placement[]; words: FormedWord[]; score: number; bingo: boolean }
   | { kind: 'exchange'; tiles: string[] }
@@ -159,7 +159,7 @@ export function choosePlay(
 // ── Playing a whole coop game ────────────────────────────────────────────────
 
 /** One self-played coop game's outcome — the final score plus the diagnostics
- *  the measurement plan reads (docs/scrabble-ai-strength.md). */
+ *  the measurement plan reads (docs/games/scrabble.md). */
 export type GameResult = {
   /** Accumulated word score — the primary metric (no leftover penalty; §decision 1). */
   score: number

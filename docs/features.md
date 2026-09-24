@@ -345,8 +345,8 @@ the board.)
 
 
 # Mobile suitability
-A dimension: what a game needs on a touch device (docs/mobile.md → Input
-decides playability). Every game but MG has the phone layout.
+A dimension: what a game needs on a touch device (docs/mobile.md → Input is
+the primary axis). Every game but MG has the phone layout.
 Tap-only, strong on a phone:  PN FB WK MC SD SS WN MW WW PP SB HT
 Tap, plus a transient OS keyboard (the clue):  TS
 Keyboard-required: the phone layout, but entry needs a hardware keyboard;

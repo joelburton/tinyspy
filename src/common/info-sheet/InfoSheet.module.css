@@ -14,7 +14,7 @@
   /* The info column as an off-canvas sheet from the right. Closed = slid off
    * (translateX 100%); `.open` slides it in. position: fixed takes it out of the
    * flex row so the board column fills the width. Scrolls internally so the page
-   * itself never scrolls (docs/ui.md → page fits the viewport). */
+   * itself never scrolls (docs/ui.md → Page-height fits the viewport). */
 /* @@ */   .wrap {
     display: block;
     position: fixed;

@@ -16,8 +16,8 @@ spectator question from inside one game.
 ## Why this needs a plan rather than a fix
 
 The app already lets it happen. Club membership gates VIEWING a game and a
-`game_players` seat gates ACTING (docs/common-schema.md → "spectators a free future
-affordance"; pinned by `tests/spellingbee/player_subset_test.sql`). So a club of
+`game_players` seat gates ACTING (docs/common-schema.md → Membership gates viewing;
+playership gates acting; pinned by `tests/spellingbee/player_subset_test.sql`). So a club of
 five with a two-player game running has three members who can open it from the
 club list and see a board they cannot touch. What they see there was never
 designed: each game answers "is this viewer a player?" with `!!self` or an

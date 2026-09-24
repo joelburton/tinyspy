@@ -467,7 +467,7 @@ codenamesduet use; see [playarea.md → PlayArea layout](../playarea.md#playarea
   which fill the column rectangularly, waffle stays a **top-aligned square** (it's
   a waffle, with holes), sized via container-query units. Tiles use the shared
   `.tile` chrome, painted with the shared **Wordle colors** (`--wordle-*` in
-  `common/theme.css`, shared with wordle); a picked-up tile gets waffle's own
+  `common/themes/daylight.css`, shared with wordle); a picked-up tile gets waffle's own
   ring (the shared dark `.selected` fill would bury the color). While a
   `submit_swap` is **in flight** (a second or two against prod), the submitted
   pair wears a **pulsing ring** (same outline vocabulary as the pick ring,

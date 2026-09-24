@@ -98,30 +98,30 @@ rules this implies.
 
 | file | what's there |
 |---|---|
-| [docs/naming.md](docs/naming.md) | Terminology glossary (gametype, game, board, club, member, persona) |
-| [docs/code-conventions.md](docs/code-conventions.md) | **Read before writing code.** The house rules the surrounding code won't teach: before you write (neighbors aren't evidence, stamps, the loop, where each mechanism is explained), docstrings and comments, naming, React, CSS, the database, edge functions, known gotchas |
-| [docs/common-folders.md](docs/common-folders.md) | How `src/common/` and `src/shared/` are organized — the shell vs a family of games, the one-way import rule, the `@/` alias, and where a new file goes |
-| [docs/common.md](docs/common.md) | **The map of everything that isn't a game**: the layer's rules (one-way imports, removability, solo as a club of one, sibling manifests, library provenance) and a high-level walk through a game's life across the layers, pointing at the folder or doc that owns each step |
-| [docs/common-schema.md](docs/common-schema.md) | The `common` database schema: the tables, the FK firewall, view and play state, the clock, starting a game, the end / concede / locally-terminal / turn-order contracts every game mirrors, the RPCs, the reveal shield, RLS and the publication |
-| [docs/word-list.md](docs/word-list.md) | `common.words`: its columns, the must-reach / may-enter rule every word game follows, a list that can change under a game, definitions, the anagram query, in-app curation |
-| [docs/supabase.md](docs/supabase.md) | How the app uses Supabase: the client and the two settings kept twice (exposed schemas, `max_rows`), **schema vs code** (migrations vs `supabase/sql/`, and its traps), **every game's `events` log table** (the skeleton, `kind`, `took_turn`, the three numbers), reading data and the `max_rows` trap, the publication invariant, RPC / RLS / edge-function conventions. Mechanics in `src/common/supabase` and `src/common/realtime` |
-| [docs/envelopes.md](docs/envelopes.md) | **The one shape every RPC, read and edge function answers in** — an introduction: ok vs not-ok (was anything local consulted first?), what makes a race, outcome and severity, who writes the player's sentence, the keys and codes, the call-site branch chain, and how SQL and Deno build one. The machinery is `src/common/supabase` |
-| [docs/outcomes.md](docs/outcomes.md) | The outcome vocabulary — won · lost · near · warning · neutral · noted (+ `error`, which is never an outcome); what each means and everywhere it's shown |
-| [docs/states.md](docs/states.md) | View-state / play-state vocabulary; suspend / current / pause |
-| [docs/testing.md](docs/testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns, the repo-wide invariant guards, the screenshot gallery |
-| [docs/ui.md](docs/ui.md) | **Read before diving into the frontend.** The principles the UI is built on, one short section each with a pointer to the folder that implements it: layout stability, the page never scrolls, where a message goes, the moment vs the record, floating-panel families, keyboard ownership, identity as a disc, pieces vs controls, the button families, the menu as the legend |
-| [docs/tokens.md](docs/tokens.md) | How values are named and picked: themes, the color system (grammar, buckets, families, what derives from `-base`, alias vs copy), the non-color vocabularies and the a/b/c rule, the typeface, global vs per-game tokens |
-| [docs/buttons.html](docs/buttons.html) | The button tone grid as a rendered page (open off disk, it doesn't ship); the twin of `theme.css` → CHROME — the stylesheet wins if they disagree |
-| [docs/mobile.md](docs/mobile.md) | The introduction to mobile: desktop-first, the three device conditions, input decides playability, the rules every screen keeps, a game page as two pages (the info-sheet recipe, the status bar); detail in `src/common/mobile`, `info-sheet` and the CSS |
-| [docs/playarea.md](docs/playarea.md) | The play surface: the two-column layout contract, board sizing (`--avail-w` / `--avail-h`, why the width is computed), the shape of a game's `PlayArea.tsx` (four layers, loader, section order), the column prop vocabulary; the readouts, entry, event log and history viewer are pointers to their folders |
-| [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md) | Where the app's keys are listed (`gmake dev-keys` and Help, both read from the code), the two kinds of key row — actions and component keys — and where the routing rules live |
-| [src/common/pdf/doc.md](src/common/pdf/doc.md) | Printing boards to PDF: the printable design language + the shared helpers; which controls earn a recap row is [src/common/setup-form/doc.md → Setup rows](src/common/setup-form/doc.md#setup-rows) |
-| [docs/features.md](docs/features.md) | Games categorized by feature: dimensions (every game has exactly one value) vs tags |
-| [docs/win-lose.md](docs/win-lose.md) | The ideas every game's winning and losing is built from — finish lines, race vs best, the reachable-end rule, the invariants (no survival wins, priced hints), clock fairness — and their vocabulary. Each game's own rules are in its doc |
-| [docs/game-status-labels.md](docs/game-status-labels.md) | A game's title + club-page status line: where each comes from, the title rules, where the status grammar lives, the guard |
-| [docs/deferred.md](docs/deferred.md) | Cross-cutting deferred work + the index of per-game registers (see its "Where an item goes") |
-| [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
-| [README.md](README.md) | Narrative + stack |
+| [docs/code-conventions.md](docs/code-conventions.md) | **Read before writing code** — the house rules the surrounding code won't teach |
+| [docs/ui.md](docs/ui.md) | **Read before frontend work** — the principles the UI is built on |
+| [docs/naming.md](docs/naming.md) | The glossary: gametype, game, board, club, member, persona |
+| [docs/common.md](docs/common.md) | The map of everything that isn't a game |
+| [docs/common-folders.md](docs/common-folders.md) | How `src/common/` and `src/shared/` are organized, and where a new file goes |
+| [docs/common-schema.md](docs/common-schema.md) | The `common` schema and the contracts every game mirrors (end, concede, turn order) |
+| [docs/word-list.md](docs/word-list.md) | `common.words` and the rule for which words a game may use |
+| [docs/supabase.md](docs/supabase.md) | How the app uses Supabase: schema vs code, the `events` table, reads, RPC/RLS conventions |
+| [docs/envelopes.md](docs/envelopes.md) | The one shape every RPC, read and edge function answers in |
+| [docs/outcomes.md](docs/outcomes.md) | The outcome vocabulary: won · lost · near · warning · neutral · noted |
+| [docs/states.md](docs/states.md) | View state and play state; suspend, current, pause |
+| [docs/win-lose.md](docs/win-lose.md) | The ideas every game's winning and losing is built from |
+| [docs/game-status-labels.md](docs/game-status-labels.md) | A game's title and club-page status line |
+| [docs/playarea.md](docs/playarea.md) | The play surface: the two columns, board sizing, the shape of `PlayArea.tsx` |
+| [docs/tokens.md](docs/tokens.md) | How CSS values are named and picked: themes, colors, the vocabularies |
+| [docs/buttons.html](docs/buttons.html) | The button tone grid, rendered (open off disk) |
+| [docs/mobile.md](docs/mobile.md) | How the app works on a phone and a tablet |
+| [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md) | Where the app's keys are listed and how they're declared |
+| [src/common/pdf/doc.md](src/common/pdf/doc.md) | Printing a board to PDF |
+| [docs/testing.md](docs/testing.md) | Where a test goes, the pgTAP and Vitest patterns, the guards, the gallery |
+| [docs/features.md](docs/features.md) | Every game, categorized by feature |
+| [docs/deferred.md](docs/deferred.md) | Cross-cutting deferred work, and the index of per-game registers |
+| [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command and file lookup |
+| [README.md](README.md) | The project narrative, setup and deploy |
 
 Each game doc carries that game's rules, schema, RPCs, FE shape, and tests. A
 game's doc moves from `docs/games/` into its own folder as `doc.md` when its
@@ -129,22 +129,22 @@ area is audited. The rows below name only what's distinctive about each:
 
 | file | what's distinctive |
 |---|---|
-| [src/codenamesduet/doc.md](src/codenamesduet/doc.md) | Brand **TinySpy**: the server decides every guess, per-side bystanders and the finished-player hand-off, the AI clue-suggester edge function |
-| [src/psychicnum/doc.md](src/psychicnum/doc.md) | The deliberately minimal toy game; the hidden-secrets pattern |
-| [src/connections/doc.md](src/connections/doc.md) | The FE-knows decision, peer selection via Broadcast, pause-on-disconnect |
-| [src/spellingbee/doc.md](src/spellingbee/doc.md) | Brand **FreeBee**: required + bonus word lists, trusting-commit local scoring, the rank ladder, the board built in an edge function |
-| [src/wordle/doc.md](src/wordle/doc.md) | Hidden-target color feedback, mode-aware per-guess RLS, the on-screen keyboard |
-| [docs/games/bananagrams.md](docs/games/bananagrams.md) | The FE-owned board / server-owned tiles split, per-player concede, the desktop-only layout exception |
-| [docs/games/waffle.md](docs/games/waffle.md) | Hidden-solution color feedback, on-demand board generation, difficulty bands |
-| [docs/games/stackdown.md](docs/games/stackdown.md) | Clear a tile stack by spelling words: the no-trap board invariant, the pre-generated board library |
-| [docs/games/scrabble.md](docs/games/scrabble.md) | Trusting-commit moves, the shared 100-tile bag, the AI move suggester + autonomous opponent |
-| [docs/games/boggle.md](docs/games/boggle.md) | Brand **MothCubes**: the required-vs-bonus split, the pure-TS solver, all 8 dice sets |
-| [docs/games/crosswords.md](docs/games/crosswords.md) | Brand **CrossPlay**: server-only solution, per-cell realtime (`useCells`), the keyboard-required layout exception |
-| [docs/games/wordwheel.md](docs/games/wordwheel.md) | Brand **MooseWheel**: a spellingbee fork where the wheel is a **multiset**; the pangram bonus |
-| [docs/games/wordiply.md](docs/games/wordiply.md) | Brand **WordWire**: the base extender — length-only feedback during play, a comparator winner |
-| [docs/games/setgame.md](docs/games/setgame.md) | Brand **HareTrigger**: base-3 card packing, the roster's first contended board, in-place refills |
-| [docs/games/letterboxed.md](docs/games/letterboxed.md) | Brand **SnakeBox**: chained words covering twelve letters; par is structurally 2; the seed-pair pool |
-| [docs/games/strands.md](docs/games/strands.md) | Brand **PaulPath**: theme words tile the board exactly, match by path not string, the earned hint economy |
+| [src/codenamesduet/doc.md](src/codenamesduet/doc.md) | **TinySpy**: the server decides every guess; the AI clue suggester |
+| [src/psychicnum/doc.md](src/psychicnum/doc.md) | The minimal toy game where each shared shape is settled first |
+| [src/connections/doc.md](src/connections/doc.md) | **WordKnit**: the FE-knows decision; peer selection over Broadcast |
+| [src/spellingbee/doc.md](src/spellingbee/doc.md) | **FreeBee**: required + bonus words, the rank ladder, the board built in an edge function |
+| [src/wordle/doc.md](src/wordle/doc.md) | **WordNerd**: hidden-target colors, mode-aware per-guess RLS |
+| [docs/games/bananagrams.md](docs/games/bananagrams.md) | **MonkeyGrams**: FE-owned board, server-owned tiles; desktop-only |
+| [docs/games/waffle.md](docs/games/waffle.md) | **SyrupSwap**: hidden-solution colors, boards built on demand |
+| [docs/games/stackdown.md](docs/games/stackdown.md) | **StackDown**: the no-trap board invariant, the pre-generated library |
+| [docs/games/scrabble.md](docs/games/scrabble.md) | **RackAttack**: trusting-commit moves, the shared bag, the AI suggester and opponent |
+| [docs/games/boggle.md](docs/games/boggle.md) | **MothCubes**: required vs bonus words, the pure-TS solver |
+| [docs/games/crosswords.md](docs/games/crosswords.md) | **CrossPlay**: server-only solution, per-cell realtime; keyboard-required |
+| [docs/games/wordwheel.md](docs/games/wordwheel.md) | **MooseWheel**: a spellingbee fork whose wheel is a multiset |
+| [docs/games/wordiply.md](docs/games/wordiply.md) | **WordWire**: extend a base; length-only feedback during play |
+| [docs/games/setgame.md](docs/games/setgame.md) | **HareTrigger**: base-3 cards, a contended board, in-place refills |
+| [docs/games/letterboxed.md](docs/games/letterboxed.md) | **SnakeBox**: chained words covering twelve letters; the seed-pair pool |
+| [docs/games/strands.md](docs/games/strands.md) | **PaulPath**: theme words tile the board; matched by path, not string |
 
 ### Plans — `plans/` describes work in flight
 
@@ -162,12 +162,12 @@ game's area, consult both.
 
 | file | the work |
 |---|---|
-| [plans/app-audit.md](plans/app-audit.md) | **THE LIVE SPRINT** — the app-wide, area-by-area audit, and the ONLY spec for it. It keeps only what is open or process; what shipped lives in `docs/` and the folders' `doc.md` / `todo.md`. Start a session there — "Where to start" says what is next, §3 holds the areas in order, §4 the process |
-| [plans/tile-feedback.md](plans/tile-feedback.md) | **The design target for tile/board feedback** — one channel per meaning, with a per-game roster tracked by **tf level** (tf0 untouched · tf1 done in round 1, pre color+buttons · tf2 done against the current framework). Read it per area. Folds into ui.md once the games conform |
-| [plans/playarea-readability.md](plans/playarea-readability.md) | **The readability target for each game's `PlayArea.tsx`** — the loader/loaded split, one section order, the menu's row order, `buildOver` to `lib/`, a comment pass, the unconditional action row, three action conventions, and the copied standing-condition effects. psychicnum settled the shape; the other games copy it. Read it per area. Deleted when the games conform |
-| [plans/spectating.md](plans/spectating.md) | **PROPOSED, nothing built, nothing decided.** A club member can already open a game they are not seated in, and what a watcher sees differs by game. The file inventories what each layer does for a watcher today and lists the questions a design has to settle, all Joel's. Read it before deciding a spectator question from inside one game |
-| [plans/dark-mode.md](plans/dark-mode.md) | **Not scheduled** — what the midnight spike proved: the CSS system CAN carry a dark theme, what it would still cost, and the one thing not solved (depth on a dark page). Reachable today behind `?theme=midnight` |
-| [plans/keyboard-nav-plan.md](plans/keyboard-nav-plan.md) | Arrow-key navigation of board pieces for the five games where clicking pieces IS the move; two prerequisites land first |
+| [plans/app-audit.md](plans/app-audit.md) | **The live sprint.** Start a session here: "Where to start" says what's next |
+| [plans/tile-feedback.md](plans/tile-feedback.md) | The design target for board feedback; read it per game area |
+| [plans/playarea-readability.md](plans/playarea-readability.md) | The target shape for each game's `PlayArea.tsx`; read it per game area |
+| [plans/spectating.md](plans/spectating.md) | Proposed, nothing decided: what a watching club member sees |
+| [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
+| [plans/keyboard-nav-plan.md](plans/keyboard-nav-plan.md) | Arrow-key navigation of board pieces |
 
 ## Audience — friends, not strangers
 

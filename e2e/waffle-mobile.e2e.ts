@@ -5,7 +5,7 @@ import { createSoloClub, createWaffleGame, seedWaffleSwapLog } from './helpers/f
 import { signIn } from './helpers/session'
 
 /**
- * waffle's mobile layout (docs/mobile.md → the shared info-sheet recipe): the
+ * waffle's mobile layout (docs/mobile.md → The info-sheet recipe): the
  * square board fills the screen and the info column moves into an off-canvas
  * sheet. No board divergence — the board is min(--avail-w, --avail-h, cap), so it
  * fits a phone on its own. Input is tap-two-tiles-to-swap; drag (a desktop mouse
@@ -31,7 +31,7 @@ test.describe('waffle mobile', () => {
       await page.goto(`/g/${game.gametype}/${game.id}`)
       await expect(page.locator('[role="grid"]')).toBeVisible({ timeout: 20000 })
 
-      // The page never scrolls (docs/ui.md → page fits the viewport).
+      // The page never scrolls (docs/ui.md → Page-height fits the viewport).
       const m = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth,
         sh: document.documentElement.scrollHeight,
@@ -173,7 +173,7 @@ test('a long event log scrolls inside its box, not the sheet', async ({ browser 
   expect(m.boxScroll).toBeGreaterThan(m.boxClient)
   // …and the sheet does NOT scroll (the +1 absorbs sub-pixel rounding).
   expect(m.sheetScroll).toBeLessThanOrEqual(m.sheetClient + 1)
-  // …nor does the page (docs/ui.md → page fits the viewport).
+  // …nor does the page (docs/ui.md → Page-height fits the viewport).
   expect(m.docScroll).toBeLessThanOrEqual(m.innerH + 1)
 
   await ctx.close()

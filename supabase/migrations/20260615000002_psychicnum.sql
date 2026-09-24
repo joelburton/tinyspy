@@ -18,7 +18,7 @@
 -- today's SPOILER — handing over one secret word. The app now uses
 -- "reveal" for a different thing entirely: the local, reversible
 -- toggle that shows the whole solution at game over. And the file
--- this header cites as `src/common/lib/games.ts` is
+-- this header cites as `src/common/manifest/gameManifest.ts` is
 -- `src/common/manifest/gameManifest.ts`.
 --
 --   psychicnum_coop    — players share a single guess budget and
@@ -45,7 +45,7 @@
 -- in common.gametypes.
 --
 -- The "family pair sharing a schema" pattern is canonical here.
--- See manifest.baseGametype + manifest.mode in src/common/lib/games.ts
+-- See manifest.baseGametype + manifest.mode in src/common/manifest/gameManifest.ts
 -- for the FE side of the same idea. A future game that adds a
 -- compete sibling (connections, spellingbee) follows this template:
 --   - one schema, one folder

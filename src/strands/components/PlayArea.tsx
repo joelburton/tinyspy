@@ -605,9 +605,9 @@ export function PlayArea(ctx: GamePageCtx) {
       // can. PN416's own sentence points at the date field on the setup form —
       // right there, useless here, since this path has no form. What this
       // surface knows instead is how to get more puzzles, so it substitutes
-      // rather than repeats (docs/envelopes.md → a server message may not say
-      // LESS than the sentence it replaces; read the other way, the same test
-      // permits a caller that says MORE). Connections' New Game does the same
+      // rather than repeats (docs/envelopes.md → Who writes the
+      // words: a caller may say MORE than the server sentence it replaces,
+      // never less). Connections' New Game does the same
       // with PN302, which is this condition in the other dated-archive game.
       await acknowledge({
         title: 'No unplayed puzzle',

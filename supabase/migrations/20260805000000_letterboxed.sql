@@ -44,7 +44,7 @@
 -- re-applied in full on every deploy. See CLAUDE.md → Where a SQL
 -- change goes.
 --
--- See docs/letterboxed-plan.md (working) → docs/games/letterboxed.md.
+-- See docs/games/letterboxed.md (working) → docs/games/letterboxed.md.
 
 create schema if not exists letterboxed;
 
@@ -95,7 +95,7 @@ create schema if not exists letterboxed;
 -- solution is always two words a person might actually think of. That
 -- is spellingbee's rule (it forces a band-1 pangram so the board's own
 -- target is gettable), and it leaves `legal_band` on the game as the
--- only band players choose. See docs/letterboxed-plan.md §8.
+-- only band players choose. See docs/games/letterboxed.md §8.
 create table letterboxed.seeds (
   -- The twelve distinct letters, sorted — the canonical board key.
   -- char(12) is a width assertion: a wrong-length string raises at
@@ -146,7 +146,7 @@ create index letterboxed_seeds_difficulty_idx on letterboxed.seeds (difficulty);
 -- except on a board whose twelve letters spell a single word; the
 -- builder rejects those.) A measured 2000-board sample came back par-2
 -- 2000 times. So the cap is a number the players choose, not `par +
--- extra` — see docs/letterboxed-plan.md §9.1.
+-- extra` — see docs/games/letterboxed.md §9.1.
 create table letterboxed.games (
   id uuid primary key references common.games(id) on delete cascade,
   club_handle text not null references common.clubs(handle) on delete cascade,
@@ -236,7 +236,7 @@ create table letterboxed.players (
 
   -- Hints cashed. COOP ONLY — hints are disabled in compete, where
   -- "first to meet the bar wins" would make an optimal suggestion a
-  -- win button. Shown, never penalized. See docs/letterboxed-plan.md §6.
+  -- win button. Shown, never penalized. See docs/games/letterboxed.md §6.
   hints_used int not null default 0 check (hints_used >= 0),
 
   -- Covering all twelve within max_words. In compete this ends the race

@@ -2,7 +2,7 @@
 
 /**
  * scrabble-ai-move — the autonomous AI opponent's move driver (compete;
- * docs/scrabble-ai-strength.md).
+ * docs/games/scrabble.md).
  *
  * Client-invoked: whenever a move hands the turn to an AI seat (or on game load
  * if it's already an AI's turn), a connected human's client POSTs here and this

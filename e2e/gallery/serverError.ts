@@ -21,11 +21,11 @@
  *
  * Matching the KEY is the fix, and having exactly one place that knows the key
  * is what makes the next rename a one-line change instead of four silent
- * regressions. See docs/supabase.md → Server errors for the `key|detail|` shape.
+ * regressions. See docs/envelopes.md → The keys.
  *
- * Deliberately NOT imported from `src/common/lib/game/serverError.ts`, which
- * has a real parser: nothing under `e2e/` imports app code — the harness talks
- * to the running app and the database, and stays a black box on purpose. (It
+ * Deliberately its own copy rather than an import from the app: nothing
+ * under `e2e/` imports app code — the harness talks to the running app and
+ * the database, and stays a black box on purpose. (It
  * would also be a silent-at-runtime dependency, since `e2e/` is in no tsconfig
  * project and neither `tsc -b` nor eslint reads it.)
  */

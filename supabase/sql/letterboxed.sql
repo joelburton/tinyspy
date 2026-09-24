@@ -15,7 +15,7 @@
 -- what may be appended, what the last element's last letter is, how
 -- many distinct letters the whole thing covers.
 --
--- See docs/letterboxed-plan.md (working) → docs/games/letterboxed.md.
+-- See docs/games/letterboxed.md (working) → docs/games/letterboxed.md.
 
 -- ============================================================
 -- Schema + table grants
@@ -341,7 +341,7 @@ grant select on letterboxed.players_state to authenticated;
 -- qual, least selective), so it's worth stating rather than hoping the
 -- estimates land right.
 --
--- ─── The two tiers (docs/word-list.md → the word list's filter rule) ───
+-- ─── The two tiers (docs/word-list.md → Which words a game may use) ───
 -- The WHERE gates on band and on the board's shape ALONE. Purity rides
 -- along as `is_clean` instead, exactly the way spellingbee returns
 -- `is_required` — because the two tiers answer different questions:
@@ -1551,7 +1551,7 @@ grant execute on function letterboxed.submit_timeout(uuid) to authenticated;
 -- letterboxed.end_game — "we've played as much as we want"
 -- ============================================================
 -- The player-callable stop, uniform across the roster (see
--- docs/common-schema.md → the stop-the-game RPC). It writes `ended` in BOTH
+-- docs/common-schema.md → Manual end). It writes `ended` in BOTH
 -- modes — the roster's neutral terminal — and that is the difference
 -- from submit_timeout: the clock running out on a race is a RESULT
 -- (compete resolves on coverage), but a group agreeing to stop is a

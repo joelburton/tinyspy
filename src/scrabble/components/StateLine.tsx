@@ -13,7 +13,7 @@ import type { Member } from '@/common/members/member'
  * `<MobileStatusBar>` above the board (below the `--mobile` breakpoint, where
  * the info column is off-canvas in the InfoSheet). Bare inline content — each
  * caller supplies its own wrapper element + text styling. Same shape as
- * psychicnum's and waffle's `StateLine` (docs/mobile.md → the status bar).
+ * psychicnum's and waffle's `StateLine` (docs/mobile.md → The mobile status bar).
  *
  * The other player's turn reads "Turn: ● name" — a leading color disc and the
  * bare name, never the possessive "name's turn" (we don't apostrophize

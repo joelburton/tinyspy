@@ -22,8 +22,8 @@ Don't put a won't-do under "Deferred," or it reads as a backlog item forever. Ga
 When an item gets picked up, delete it. When a new "we'll do this later" decision happens, add it to the right place.
 
 **Database-touching items are NOT indexed separately** — each lives in the doc
-that owns it, like any other deferral. Two queues once collected them
-(`db-work.md`, then `plans/db-work-2.md`), and both existed for a reason that
+that owns it, like any other deferral. Two queues once collected them,
+and both existed for a reason that
 expired: while the alpha prior made baselines editable, schema work was cheap and
 worth batching. Since 2026-08-13 a shape change is a forward migration against
 data that must survive (CLAUDE.md → "Production software"), so DB work is no
@@ -95,7 +95,7 @@ Only these games have open items today; the rest have none.
 
   **letterboxed's identifiers went the same day**, when `outcome-fix` reached
   that game: `askHelp` → `askForHintOrSpoiler` (Joel's name), `helpPillText` →
-  `hintOrSpoilerPillText`, `lib/help.ts` → `lib/hintOrSpoiler.ts`, and the RPC
+  `hintOrSpoilerPillText`, the `help` module → `hintOrSpoiler`, and the RPC
   `letterboxed.log_help` → `letterboxed.log_hint_or_spoiler` (SQL, the
   regenerated `db.ts`, `replay_test.sql` and the game doc; no migration, since
   the schema shape is a `kind` column that never said "help"). The `drop
@@ -179,7 +179,7 @@ Only these games have open items today; the rest have none.
 
   Three comments also still quote the retired `button:disabled { opacity: 0.5 }` when explaining why they override it — `setgame/components/Card.module.css:48`, `stackdown/components/WordEntry.module.css:58`, `strands/components/Board.module.css:184` (`game-page/playArea.module.css`'s `.tile:disabled` cites the token instead, since 2026-09-15). Those are wrong today whatever is decided about the values, since the number they cite no longer exists.
 
-- **The trie's growth path is correct and untested, and it is the one place in that file that could corrupt rather than misanswer.** `buildTrie` ([`common/lib/game/trie.ts`](../src/shared/dict-trie/trie.ts)) starts at `1 << 16` nodes and doubles on demand: `nx = n++; if (n > cap) grow()`, where `grow()` allocates two fresh typed arrays, copies, and reassigns — after which the write uses the reassigned array. Three things have to stay in that order, and it is one comparison from writing past the end. **Nothing exercises it.** Every trie built in a test is small: `trie.test.ts` uses a handful of words and boggle's C-oracle parity suite uses a 2,000-word fixture (~53k nodes, measured). The tries that actually cross 65,536 nodes are built at the **scrabble edge function's cold start** from a bundled word list — production only, reached by no unit test. **It works**, verified by execution 2026-09-04 and not by reading: a probe of 17,576 six-letter words (**71,006 nodes**, several doublings) returned correct lookups, terminals and misses; the probe was run and removed. So this is a coverage gap, not a doubt — but the failure mode if that ordering is ever disturbed is a **corrupted dictionary at cold start with no exception**: words that quietly stop being words for one deploy's worth of games. **Filed rather than tested** (Joel, 2026-09-04): the case is eight lines and runs in about half a second, but it would be the slowest in that file by a wide margin — every other case builds three words — and the unit suite is deliberately instant. The recipe if it is ever wanted: build every three-letter combination doubled (`abcabc` … `zzzzzz`), assert `nNodes > 65536` plus a hit, a miss, and a prefix-that-is-not-a-word.
+- **The trie's growth path is correct and untested, and it is the one place in that file that could corrupt rather than misanswer.** `buildTrie` ([`shared/dict-trie/trie.ts`](../src/shared/dict-trie/trie.ts)) starts at `1 << 16` nodes and doubles on demand: `nx = n++; if (n > cap) grow()`, where `grow()` allocates two fresh typed arrays, copies, and reassigns — after which the write uses the reassigned array. Three things have to stay in that order, and it is one comparison from writing past the end. **Nothing exercises it.** Every trie built in a test is small: `trie.test.ts` uses a handful of words and boggle's C-oracle parity suite uses a 2,000-word fixture (~53k nodes, measured). The tries that actually cross 65,536 nodes are built at the **scrabble edge function's cold start** from a bundled word list — production only, reached by no unit test. **It works**, verified by execution 2026-09-04 and not by reading: a probe of 17,576 six-letter words (**71,006 nodes**, several doublings) returned correct lookups, terminals and misses; the probe was run and removed. So this is a coverage gap, not a doubt — but the failure mode if that ordering is ever disturbed is a **corrupted dictionary at cold start with no exception**: words that quietly stop being words for one deploy's worth of games. **Filed rather than tested** (Joel, 2026-09-04): the case is eight lines and runs in about half a second, but it would be the slowest in that file by a wide margin — every other case builds three words — and the unit suite is deliberately instant. The recipe if it is ever wanted: build every three-letter combination doubled (`abcabc` … `zzzzzz`), assert `nNodes > 65536` plus a hit, a miss, and a prefix-that-is-not-a-word.
 
 - **`cell` and `tile` are used for the same thing in most games.** [naming.md](naming.md) settles which is which (2026-09-16): a **cell** is a spot on the BOARD, which only matters where a board has empty spots to fill — scrabble and bananagrams place a tile onto a cell, and a crossword grid is cells all the way down — while a **tile** is a letter in a grid. A game with no empty spots therefore has no cells. Most games disagree with themselves: counting identifiers in `.ts`/`.tsx`, strands is 123 cell / 103 tile, waffle 141 / 96, boggle 210 / 210, codenamesduet 51 / 62, and each mixes the two inside single files (strands' `onTileClick` sits beside its `tracedCells`). Legitimately both: scrabble (157 / 293), bananagrams (143 / 229), crosswords (980 / 8). **Filed as its own sweep rather than per game** (Joel, 2026-09-16: *"we can think about the cell-vs-tile as a thing for a different sweep one day"*) — the rule is written down, so nothing new should go in wrong meanwhile, and the CSS is exempt where a class names what is DRAWN (strands' `disc` / `ring`). setgame's `card` → `tile` rename, filed in its own doc, is the one instance of this that needs a forward migration.
 
@@ -266,7 +266,7 @@ Carried over from the 2026-07-10 mobile-FE review (that review doc has since bee
   sentence — so the argument for showing both is weaker than it was, and the
   question is whether one sentence twice is worth a blocking box plus a pill.
   Not a bug; a ruling nobody has made since the premise changed.
-- **`docs/nomenclature.md` — a dictionary of what each word means and, more
+- **A nomenclature doc — a dictionary of what each word means and, more
   importantly, what it doesn't** (Joel's idea, 2026-08-28). One file to check
   when we agree something like *"'environmental' means fetch-failed"* — a
   decision that today is spread across `envelopes.md`, two code comments and a
@@ -304,7 +304,7 @@ Carried over from the 2026-07-10 mobile-FE review (that review doc has since bee
     "never for" column is cheap to check and obvious when wrong, which is not
     true of prose. Partial guard if it earns one: assert that identifiers
     matching a reserved word appear only in that word's allowed directories —
-    that would have caught `askHelp` and `letterboxed/lib/help.ts`, both of
+    that would have caught `askHelp` and letterboxed's `help` module, both of
     which had to be found by hand instead (2026-09-17).
   - **Chores:** three inbound anchors point into the lexicon (`naming.md#member`,
     `#peer`, `#player`, plus `#watch-list-of-generic-words`) out of 44 references

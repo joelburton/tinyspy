@@ -5,7 +5,7 @@ import { createSoloClub, createStrandsGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * strands' mobile layout (docs/mobile.md → the shared info-sheet recipe): the
+ * strands' mobile layout (docs/mobile.md → The info-sheet recipe): the
  * board fills the screen and the info column moves into an off-canvas sheet.
  * Input is tap-the-letters (touch-native); no keyboard, no drag.
  *
@@ -40,7 +40,7 @@ test.describe('strands mobile', () => {
       await page.goto(`/g/${game.gametype}/${game.id}`)
       await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
-      // The page never scrolls, in EITHER axis (docs/ui.md → page fits the
+      // The page never scrolls, in EITHER axis (docs/ui.md → Page-height fits the
       // viewport). The width check is the one that caught the frame bug.
       const m = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth,

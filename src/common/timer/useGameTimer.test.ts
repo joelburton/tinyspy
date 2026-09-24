@@ -33,8 +33,8 @@ import { clearFaultsForTest, peekFaultsForTest } from '../faults/faultStore'
 import { useGameTimer } from './useGameTimer'
 
 /** `common.tick_timer`'s answer when it advanced the clock. Every key of the ok
- *  envelope is present and null (docs/envelopes.md → the shape is the
- *  contract), which is 200 characters in which only the count ever differs
+ *  envelope is present and null (docs/envelopes.md → The keys)
+ *, which is 200 characters in which only the count ever differs
  *  between specs — so only the count is written at a call. */
 const ticked = (n: number) => ({
   data: {

@@ -5,7 +5,7 @@ import { createSoloClub, createWordiplyGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * wordiply (WordWire) mobile layout (docs/mobile.md → the shared info-sheet recipe): the
+ * wordiply (WordWire) mobile layout (docs/mobile.md → The info-sheet recipe): the
  * board fills the screen and the info column moves into an off-canvas sheet.
  * These layout invariants are exactly what jsdom can't see, so we check them at a
  * tall AND a short viewport: the board fills, the page never scrolls, and the info
@@ -29,7 +29,7 @@ test.describe('wordiply mobile', () => {
       await page.goto(`/g/${game.gametype}/${game.id}`)
       await expect(page.locator('[class*="boardCol"]').first()).toBeVisible({ timeout: 20000 })
 
-      // The page never scrolls (docs/ui.md → page fits the viewport).
+      // The page never scrolls (docs/ui.md → Page-height fits the viewport).
       const m = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth,
         sh: document.documentElement.scrollHeight,

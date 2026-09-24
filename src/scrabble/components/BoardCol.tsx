@@ -259,7 +259,7 @@ export function BoardCol({
   // My user id — stamped on a broadcast as its `sharerId`.
   selfId: string
 
-  // ── Suggest-a-move (coop only — see docs/scrabble-ai.md S5) ──
+  // ── Suggest-a-move (coop only — see docs/games/scrabble.md §11) ──
   // Register (or, with null, unregister) the "stage this suggested move"
   // applier with PlayArea, which calls it from the InfoCol list's click —
   // staging lives here, the suggest state there (the menu.setGameSections
@@ -410,7 +410,7 @@ export function BoardCol({
     pendingDrawRef.current = 0
   }, [game.version, game.board, rackLen, isCompete, localFeedbackSlot, flashYellow, onExitHistory])
 
-  // Apply an accepted AI suggestion (docs/scrabble-ai.md S5): fill the staging
+  // Apply an accepted AI suggestion (docs/games/scrabble.md §11): fill the staging
   // state with the suggested placements — the SAME state a hand-placed move
   // uses, so the player reviews the ghost tiles on the board and commits
   // through the normal play flow. The suggester is advisory: it never submits.

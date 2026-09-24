@@ -2,8 +2,8 @@
 
 ## Bugs
 
-- **Nineteen lines across eleven files cite `docs/scrabble-ai.md` and
-  `docs/scrabble-ai-strength.md`, which do not exist** — residue of shipped
+- **Nineteen lines across eleven files cite `docs/games/scrabble.md` and
+  `docs/games/scrabble.md`, which do not exist** — residue of shipped
   plans, several with a section number (`S3`, `S5`, `band rule`) to make it
   worse. `lib/policy.ts` has five; `PlayArea.tsx`, `InfoCol.tsx`,
   `BoardCol.tsx`, `lib/rank.ts` and `lib/setup.ts` two each; `lib/suggest.ts`,

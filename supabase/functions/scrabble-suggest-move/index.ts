@@ -2,7 +2,7 @@
 
 /**
  * scrabble-suggest-move — Edge Function behind the coop "suggest a move"
- * button (docs/scrabble-ai.md).
+ * button (docs/games/scrabble.md).
  *
  * Why edge (not PL/pgSQL): move generation is a trie-guided search — far
  * cleaner in TypeScript, and it reuses the exact engine the FE plays with
@@ -99,7 +99,7 @@ serve(async (req: Request): Promise<Response> => {
       return node > 0 ? trie.eow[node] : 7
     }
     // Max strength (all levers at their defaults) — the strength slider is a
-    // designed-but-deferred extension (docs/scrabble-ai.md).
+    // designed-but-deferred extension (docs/games/scrabble.md).
     const ranked = rankMoves(ctx.board, moves, ctx.rack, wordDifficulty)
 
     // KEEP — the full ranked output, inspectable in the functions terminal.

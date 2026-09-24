@@ -84,7 +84,7 @@ to spellingbee.
 | **outer tiles** | the eight ring tiles |
 | **pangram** | a word using all nine tiles (any 9-letter word fitting the wheel's multiset); +15 bonus |
 | **required / legal bands** | vocabulary difficulty bands (see `src/spellingbee/doc.md` → *Vocabulary*): `required` (default 3) = the displayed goal words; `legal` (default 5) = the wider accepted set. Words above `required` but ≤ `legal` are **bonus** (accepted + scored, but not part of the goal). |
-| **rank ladder** | Start · Good · Solid · Nice · Great · Amazing · Genius (7 tiers); Genius at 70% of the required score. Shared with spellingbee: `src/common/lib/game/rankLadder.ts`. |
+| **rank ladder** | Start · Good · Solid · Nice · Great · Amazing · Genius (7 tiers); Genius at 70% of the required score. Shared with spellingbee: `src/shared/rank-ladder/rankLadder.ts`. |
 
 ## Schema: `wordwheel.*`
 
@@ -331,7 +331,7 @@ into three buckets:
   `target_rank` square with a heavy near-black outline — deliberately NOT a
   per-game hue, since a goal is neither good nor bad and the component is
   shared; see [`src/spellingbee/doc.md`](../../src/spellingbee/doc.md) for the full behavior. The
-  ladder's own palette (`--rank-bar-fill-color` / `--rank-bar-edge-color` in `common/theme.css`) is
+  ladder's own palette (`--rank-bar-fill-color` / `--rank-bar-edge-color` in `common/themes/daylight.css`) is
   shared too — freebee yellow with dark-gold rules, in BOTH games: a rank ladder
   means the same thing wherever it appears, so wordwheel's purple stays the
   wheel's accent and doesn't recolor the bar.
@@ -501,7 +501,7 @@ The wordwheel suite — `lib/setup.test.ts`, `lib/tiles.test.ts`,
 `lib/spend.test.ts`, plus the component tests below — is spellingbee's shape
 adjusted for nine tiles / +15 / tile-spending. The rank-ladder and display-rows
 coverage moved to `common/` with the hoisted shared modules
-(`src/common/lib/game/rankLadder.test.ts`, `foundWordsDisplayRows.test.ts`), so
+(`src/shared/rank-ladder/rankLadder.test.ts`, `foundWordsDisplayRows.test.ts`), so
 it isn't duplicated here.
 
 - **`TypedWord.test.tsx`** — count-based dimming: off-wheel dims; on a single-tile

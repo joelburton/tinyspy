@@ -2,7 +2,7 @@
 // cs-unmet
 
 /**
- * letterboxed seed-yield spike — see docs/letterboxed-plan.md §9.
+ * letterboxed seed-yield spike — see docs/games/letterboxed.md §9.
  *
  * Measures, against the LOCAL common.words:
  *   1. yield of distinct 12-letter sets with a 2-word solution, per band

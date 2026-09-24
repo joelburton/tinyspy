@@ -119,7 +119,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // about whether this board has bonus words. Same rule as boggle's.
   const hasBonus = wordwheelSetup.legal !== wordwheelSetup.required
 
-  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the wheel
+  // Mobile (docs/mobile.md → The info-sheet recipe): below the breakpoint the wheel
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
   // reached by the header's page switch. The sheet is full-bleed, so the WordList
   // has room — the rem-width columns side-scroll. Desktop

@@ -686,8 +686,8 @@ grant execute on function boggle.end_game(uuid) to authenticated;
 -- ============================================================
 -- boggle.replay_board — restart this board from scratch
 -- ============================================================
--- The "Replay board" game-menu item / terminal RestartButton (the waffle
--- feature — docs/celebration-ideas.md; spellingbee's twin). Restarts the
+-- The "Replay board" game-menu item / terminal RestartButton (spellingbee's
+-- twin). Restarts the
 -- SAME board — same faces + word lists — for everyone: the found-words
 -- log (the game's only working state) is cleared, and common.reset_game
 -- un-terminals the row with the same initial status create_game seeds

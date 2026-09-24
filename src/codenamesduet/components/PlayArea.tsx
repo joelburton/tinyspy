@@ -191,7 +191,7 @@ export function PlayArea({
   // being given, the clue form's own ring is innermost and Tab is its (ClueStrip).
   useTabRing([])
 
-  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the info
+  // Mobile (docs/mobile.md → The info-sheet recipe): below the breakpoint the info
   // column is an off-canvas <InfoSheet>, reached from the header. The clue
   // field raises the OS keyboard, and the giver needs the board's key colors
   // while composing, so the board keeps its size and the page scrolls.

@@ -24,7 +24,7 @@ import type { MenuSection } from '../menu/menuModel'
  *
  * It builds the envelope and the transport facts itself because an auth call
  * reaches no wrapper: `/auth/v1/` is outside that system (docs/envelopes.md →
- * the `FE` codes), so the call site is the transport layer too.
+ * The keys), so the call site is the transport layer too.
  */
 function reportFailedSignOut(error: AuthError): void {
   reportDbFault(

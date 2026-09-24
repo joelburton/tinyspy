@@ -31,7 +31,7 @@ export type LetterboxedGame = {
   sides: string
   /** The ACCEPT list: every word a player may type on this board. Band-gated
    *  only — crude / slur / slang / dialect words are all in here, because the
-   *  player chose to type them (docs/word-list.md → the word list's filter rule).
+   *  player chose to type them (docs/word-list.md → Which words a game may use).
    *  Shipped so the FE can reject a bad word instantly. */
   playableWords: string[]
   /** The must-reach SUBSET of `playableWords` — what the hint search is allowed

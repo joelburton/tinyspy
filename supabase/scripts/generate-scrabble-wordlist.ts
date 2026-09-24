@@ -10,7 +10,7 @@
  * function rather than query the DB at cold start. Boggle's bundle can't be
  * reused — it ships only `len >= 3` (scrabble needs the 2-letter words for
  * parallel plays), its `clean` flag isn't scrabble's dialect filter, and it
- * has no length cap (see docs/scrabble-ai.md).
+ * has no length cap (see docs/games/scrabble.md).
  *
  * Output: `supabase/functions/scrabble-suggest-move/wordlist.ts`, exporting a
  * gzip+base64 blob — one line per word, `"<difficulty><word>"`: the

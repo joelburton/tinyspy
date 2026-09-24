@@ -98,7 +98,7 @@ alter table scrabble.games enable row level security;
 -- scrabble.players — per-player seat / score / rack
 -- ============================================================
 -- `seat` is the turn order (compete) AND the identity key — a seat may be an
--- AI PLAYER (docs/scrabble-ai-strength.md), which has no profile, so `user_id`
+-- AI PLAYER (docs/games/scrabble.md), which has no profile, so `user_id`
 -- is nullable and the PK is (game_id, seat), not (game_id, user_id). Exactly
 -- one of `user_id` / `ai_level` is set: a human seat carries `user_id` (and
 -- `ai_level` null); an AI seat carries `ai_level` (a LEVELS name from policy.ts)

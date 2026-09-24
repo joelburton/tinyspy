@@ -5,8 +5,8 @@ import { createSoloClub, createGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * The shared info-sheet's dialog semantics (docs/mobile.md → the psychicnum
- * recipe; docs/code-review-mobile.md finding 5, the "cheap half"): when open on
+ * The shared info-sheet's dialog semantics (docs/mobile.md → The info-sheet
+ * recipe; the "cheap half" of dialog behavior): when open on
  * mobile the sheet is a `role="dialog"` and Escape dismisses it. Focus-trap /
  * tap-outside are deliberately NOT done, so we don't assert them. psychicnum is
  * the reference recipe game.

@@ -946,7 +946,7 @@ reuses:
 
 - `suggest.ts` — `generateMoves`: complete legal-move enumeration, the Appel &
   Jacobson 1988 recipe (anchors, cross-check masks, left parts) run across +
-  transposed, over the shared flat trie (`common/lib/game/trie.ts`, whose
+  transposed, over the shared flat trie (`shared/dict-trie/trie.ts`, whose
   **rated terminals** carry each word's difficulty 1..6). Its `isLegal` is the
   band predicate, applied to every formed word — main and cross-words alike:
   `difficulty ≤ (len = 2 ? dict_2 : dict_3plus)`, matching `play_word`'s SQL by

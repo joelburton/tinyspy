@@ -1271,8 +1271,8 @@ grant execute on function wordwheel.end_game(uuid) to authenticated;
 -- ============================================================
 -- wordwheel.replay_board — restart this board from scratch
 -- ============================================================
--- The "Replay board" game-menu item / terminal RestartButton (the waffle
--- feature — docs/celebration-ideas.md). Restarts the SAME board — same
+-- The "Replay board" game-menu item / terminal RestartButton (the shared
+-- restart). Restarts the SAME board — same
 -- letters + word lists — for everyone: the found-words log (the game's
 -- only working state) is cleared, and common.reset_game un-terminals the
 -- row with the same initial status create_game seeds (mode-branched; the

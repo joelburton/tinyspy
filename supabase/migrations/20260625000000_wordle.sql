@@ -38,7 +38,7 @@
 -- require_valid_timer). Per the removability invariant, common MUST NOT
 -- reference wordle back.
 --
--- See docs/games/wordle.md for the full feature picture.
+-- See src/wordle/doc.md for the full feature picture.
 
 -- ============================================================
 -- Schema + usage grants

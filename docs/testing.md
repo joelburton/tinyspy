@@ -104,7 +104,7 @@ which:
 
 A test whose subject answers in an envelope — nearly every RPC — also loads
 [`_shared/envelope.psql`](../supabase/tests/_shared/envelope.psql) for
-`envelope_is` (below). `src/guards/pgtapIncludes` fails a file that uses a
+`envelope_is` (below). `src/guards/pgtapIncludes.test.ts` fails a file that uses a
 helper without including the file that defines it.
 
 The trigger on `auth.users` materializes a `common.profiles` row + a solo club
@@ -619,6 +619,8 @@ before trusting a green run. The full set:
 | `concedeLock` | each elimination game locks its own row before `_set_conceded` |
 | `schemaExposure.e2e` | the running PostgREST stack, per registered schema |
 | `docLinks` | link targets in `docs/`, `plans/`, every folder's `doc.md` / `todo.md`, `CLAUDE.md`, `README.md` |
+| `prosePointers` | every file — a prose pointer to a doc's section names a heading or bold phrase that exists |
+| `prosePaths` | every file — a repo path named in prose (`src/…`, `` `lib/answer.ts` ``) exists |
 | `americanSpelling` | the whole repo — no British form of any word on its list |
 | `cssClasses` | every class name — defined ⇄ used, in both directions |
 | `vocabularies` | a converted surface writes vocabulary values, not literals |
@@ -663,12 +665,18 @@ A few in more detail:
 - **`src/guards/docLinks.test.ts`** (Vitest) — every relative markdown link in
   the markdown we own resolves: the file exists and a `#fragment` matches a real
   heading. A renamed heading breaks a link that still *looks* right in the
-  source. It checks links, not prose: a pointer written as "doc.md → Heading"
-  outside a link isn't checked. Note the anchor rule it encodes: GitHub
-  **deletes** heading punctuation but keeps the spaces around it, so `##
-  Terminal results — the moment vs the record` is
-  `#terminal-results--the-moment-vs-the-record` with **two** hyphens. Writing
-  one (or keeping the literal `—`) dangles silently.
+  source. Note the anchor rule it encodes: GitHub **deletes** heading
+  punctuation but keeps the spaces around it, so `## Terminal results — the
+  moment vs the record` is `#terminal-results--the-moment-vs-the-record` with
+  **two** hyphens. Writing one (or keeping the literal `—`) dangles silently.
+- **`src/guards/prosePointers.test.ts`** and **`prosePaths.test.ts`** (Vitest)
+  — the same promise for the cross-references that aren't links. A comment's
+  "see docs/mobile.md → The info-sheet recipe" must name a heading or a
+  **bold** phrase of that file (a quoted phrase or a finding id must appear in
+  it), and a path named in prose must exist. A doc rewrite renames headings
+  and a refactor moves files, and without these both leave comments pointing
+  at nothing. Each guard's docstring says what it counts as a match and what it
+  skips.
 
 ## Running the suites
 

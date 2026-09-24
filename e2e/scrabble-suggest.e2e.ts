@@ -5,7 +5,7 @@ import { createClubWithMembers, createScrabbleGame, setScrabbleRack } from './he
 import { signIn } from './helpers/session'
 
 /**
- * Coop "suggest a move" (docs/scrabble-ai.md S5): the FULL loop against the
+ * Coop "suggest a move" (docs/games/scrabble.md §11): the FULL loop against the
  * real scrabble-suggest-move edge function — the local edge runtime (part of
  * `supabase start`) serves it with the generated wordlist (run
  * `gmake g-scrabble-trie` after a fresh clone or the function 500s).

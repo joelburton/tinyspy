@@ -35,7 +35,7 @@ export type ScrabbleValues = CoopTurnSetup & {
    */
   timer: TimerMode
   /**
-   * AI opponents (compete only; docs/scrabble-ai-strength.md). `ai_count`
+   * AI opponents (compete only; docs/games/scrabble.md). `ai_count`
    * (0..3) seats that many AI players, all at `ai_level`. Ignored in coop.
    */
   ai_count: number
@@ -65,7 +65,7 @@ export const AI_LEVEL_LABEL: Record<AiLevel, string> = {
 
 /** The dictionary band each level needs (its `vocabCap` — beginner 1 … strong/
  *  best 6). The game's bands must be ≥ this whenever an AI is present, or the AI
- *  can't play at its tuned strength (docs/scrabble-ai-strength.md band rule). */
+ *  can't play at its tuned strength (docs/games/scrabble.md band rule). */
 export const AI_BAND: Record<AiLevel, number> = {
   beginner: 1,
   casual: 2,

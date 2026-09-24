@@ -20,7 +20,7 @@ of them decides anything. The color VALUES are the `--wordle-*` tokens, which
 live with the rest of the palette rather than here.
 
 The decision the folder does own is that the class keys are named for colors
-rather than for meanings — `wordleGreen`, not `correct`. docs/ui.md → The
+rather than for meanings — `wordleGreen`, not `correct`. docs/tokens.md → The
 buckets carries the argument; the consequence is what matters at this level.
 These values ARE the class names, so a board indexes a stylesheet with them
 directly, and a class renamed on one side of that lookup fails silently — the

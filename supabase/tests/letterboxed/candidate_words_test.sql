@@ -10,7 +10,7 @@
 -- (submit_word is one `?` membership test against it, and the FE's
 -- rejectReason reads the same array), typing BITCH was refused. BITCH is
 -- band 1 with `slur = 1`: a legal word the player CHOSE to type, which is
--- the may-enter tier (docs/word-list.md → the word list's filter rule).
+-- the may-enter tier (docs/word-list.md → Which words a game may use).
 --
 -- The shape that fixes it, and what this file pins:
 --

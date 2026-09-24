@@ -5,7 +5,7 @@ import { createSoloClub, createConnectionsGame } from './helpers/fixtures'
 import { signIn } from './helpers/session'
 
 /**
- * connections' mobile layout (docs/mobile.md → the shared info-sheet recipe): the
+ * connections' mobile layout (docs/mobile.md → The info-sheet recipe): the
  * board fills the screen and the info column moves into an off-canvas sheet. Input
  * is tap-a-tile (touch-native); no keyboard, no drag. The one below-board control
  * row (mistakes readout + Clear/Submit) goes phone-tight: icon-only buttons + a
@@ -34,7 +34,7 @@ test.describe('connections mobile', () => {
       await page.goto(`/g/${game.gametype}/${game.id}`)
       await expect(page.locator('[data-board]')).toBeVisible({ timeout: 20000 })
 
-      // The page never scrolls (docs/ui.md → page fits the viewport).
+      // The page never scrolls (docs/ui.md → Page-height fits the viewport).
       const m = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth,
         sh: document.documentElement.scrollHeight,

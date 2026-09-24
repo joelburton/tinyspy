@@ -117,7 +117,7 @@ export function InfoCol({
   /** Leave for the club — the shell's own action, off `ctx.menu`. */
   actBackToClub: BoundAction
 
-  // ── Suggest-a-move (docs/scrabble-ai.md S5) ──
+  // ── Suggest-a-move (docs/games/scrabble.md §11) ──
   /** The suggest box's state, or null to not render it at all (compete — the
    *  mode never changes mid-game, so its absence is not a reflow). */
   suggest: SuggestState | null

@@ -86,7 +86,7 @@ export function PlayArea({
     [setup, game, players],
   )
 
-  // Mobile (docs/mobile.md → the psychicnum recipe): below the breakpoint the
+  // Mobile (docs/mobile.md → The info-sheet recipe): below the breakpoint the
   // board fills the screen and the info column moves into an off-canvas
   // <InfoSheet>, reached by the header's page switch. Desktop is
   // unchanged. This is a LAYOUT for keyboard-attached devices (tablets), not a
@@ -190,7 +190,7 @@ export function PlayArea({
   // Show-a-move is a coop, ≥2-player affordance — there's a teammate to show.
   const canShare = game?.mode === 'coop' && players.length >= 2
 
-  // ─── AI opponents (compete; docs/scrabble-ai-strength.md) ──────────
+  // ─── AI opponents (compete; docs/games/scrabble.md) ──────────
   // A bot is a player: its name and dot come off its profile like anyone's, and
   // `players` already holds it. What stays scrabble-local is the SEAT — which
   // seats are the bots' is `ai_level`, on the per-seat state.
@@ -287,7 +287,7 @@ export function PlayArea({
     )
   }, [plays, game, isCompete, session.user.id, players, globalFeedbackSlot])
 
-  // ─── Suggest-a-move (coop AI hints — docs/scrabble-ai.md S5) ──────────
+  // ─── Suggest-a-move (coop AI hints — docs/games/scrabble.md §11) ──────────
   // State lives here (the coordinator): InfoCol renders the box, BoardCol
   // registers the "stage these placements" applier the list's click calls.
   // A `ready` result remembers the board `version` it was computed against;

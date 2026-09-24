@@ -5,7 +5,7 @@ import { createClubWithMembers, createScrabbleGame, pinScrabbleSeat } from './he
 import { signIn } from './helpers/session'
 
 /**
- * Compete AI opponent (docs/scrabble-ai-strength.md): the FULL loop against the
+ * Compete AI opponent (docs/games/scrabble.md): the FULL loop against the
  * real scrabble-ai-move edge function. A game with one human (alice) + one AI is
  * rigged so it's the AI's turn on load; alice's client detects the AI turn and
  * pokes the edge function, which plays the AI seat via ai_play_word. We assert

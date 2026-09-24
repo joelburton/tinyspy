@@ -3,7 +3,7 @@
 
 /**
  * scrabble AI self-play harness — the measurement CLI behind the strength
- * ladder (docs/scrabble-ai-strength.md).
+ * ladder (docs/games/scrabble.md).
  *
  * It self-plays coop scrabble (one shared rack, maximize total score) with the
  * pure engine (`src/scrabble/lib/policy.ts`) over many PAIRED bag seeds, so we

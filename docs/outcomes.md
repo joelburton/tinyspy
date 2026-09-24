@@ -233,7 +233,7 @@ there yet: a game not yet converted has a static `ANSWER_OUTCOME` table from
 answer words to outcomes, and a pill that reads `res.outcome` off the envelope
 — the outcome-fix area's shape, which was one derivation per game and is now
 becoming one function. Each game converts as its area opens
-([plans/app-audit.md](../plans/app-audit.md) → the per-game rows), except
+([plans/app-audit.md](../plans/app-audit.md) → The areas, in order), except
 that the four games sharing `useFoundWordSubmit` converted together, since the
 engine's shape changed under all of them; the rule that the outcome is decided
 once has not changed.

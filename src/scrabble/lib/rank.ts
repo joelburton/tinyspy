@@ -1,7 +1,7 @@
 // cs-unmet
 
 /**
- * Scrabble move suggester — ranking (docs/scrabble-ai.md S3).
+ * Scrabble move suggester — ranking (docs/games/scrabble.md §11).
  *
  * The generator (suggest.ts) finds every legal move; this module decides
  * which ones to recommend. The model is first-order Maven (Sheppard 2002):
@@ -174,7 +174,7 @@ export function rankMoves(
     )
   }
 
-  // Presentation dedup (docs/scrabble-ai.md fixes §1). The generator keeps an
+  // Presentation dedup (docs/games/scrabble.md fixes §1). The generator keeps an
   // opening play's across form and its vertical transpose as distinct moves
   // (S2 point 6 — correct for generation), and positional shifts of the same
   // word often score identically too — so the sorted head can hold several

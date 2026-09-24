@@ -36,7 +36,7 @@ test.describe('crosswords mobile', () => {
       // …and is LISTENING, not merely mounted (see helpers/ready).
       await settled(page)
 
-      // The page never scrolls (docs/ui.md → page fits the viewport).
+      // The page never scrolls (docs/ui.md → Page-height fits the viewport).
       const m = await page.evaluate(() => ({
         sw: document.documentElement.scrollWidth,
         sh: document.documentElement.scrollHeight,

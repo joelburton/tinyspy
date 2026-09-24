@@ -17,7 +17,7 @@
  * — which is why the prefix lives in the type rather than only in the
  * stylesheet, and why `tileColor.test.ts` goes looking for every stylesheet
  * that paints them and checks each one defines the lot: that lookup has no
- * compiler behind it. Why the names carry a game at all is docs/ui.md → The
+ * compiler behind it. Why the names carry a game at all is docs/tokens.md → The
  * buckets.
  *
  * `blank` keeps no prefix, and the asymmetry is deliberate: the three judged

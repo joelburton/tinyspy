@@ -467,7 +467,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // How a game reads in the list: the club's current game, a shelved one, or a
   // finished one. Only the corner flag varies, and GameEntry draws it. Terminal
   // vs non-terminal is a rendering distinction, not a schema one
-  // (docs/states.md → no special 'suspended' category in the listing).
+  // (docs/states.md → Suspended vs terminal).
   const gameState = (g: ListedGame) =>
     g.gameId === currentGameId ? 'current' : g.isTerminal ? 'completed' : 'suspended'
 
@@ -514,8 +514,8 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // only thing that knows which of its dialogs are open.
   const kbDialogUp = activeSetup !== null || editing || helpOpen
 
-  // Menu sections for the club logo's dropdown; the shape is docs/ui.md →
-  // "ClubPage header". One common section — there is no PlayArea here to push
+  // Menu sections for the club logo's dropdown; the shape is
+  // src/common/menu/doc.md. One common section — there is no PlayArea here to push
   // a dynamic one — and "Rename club" is a placeholder that acknowledges in
   // the global feedback slot, so a click still has visible feedback.
   const menuSections: MenuSection[] = [

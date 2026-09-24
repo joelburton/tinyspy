@@ -3,7 +3,7 @@
 
 /**
  * Rebuild `letterboxed.seeds` — the board-seed pool. See
- * docs/letterboxed-plan.md §4 + §9.
+ * docs/games/letterboxed.md §4 + §9.
  *
  * A letterboxed board is TWELVE DISTINCT LETTERS, three to a side, and it must
  * be KNOWN SOLVABLE. The only affordable way to know that is to build backwards

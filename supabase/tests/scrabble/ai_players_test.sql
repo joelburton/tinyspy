@@ -1,7 +1,7 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: compete AI players (docs/scrabble-ai-strength.md)
+-- Test: compete AI players (docs/games/scrabble.md)
 -- ============================================================
 -- An AI seat is a real player: the bot holds a `common.profiles` row marked
 -- `ai_member`, a `common.game_players` row, and a `scrabble.players` row that

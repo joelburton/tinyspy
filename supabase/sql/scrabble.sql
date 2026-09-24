@@ -593,7 +593,7 @@ begin
       detail = 'setup.dict_3plus must be 1..6';
   end if;
 
-  -- AI players (compete only; docs/scrabble-ai-strength.md). 0..3 AI seats, all
+  -- AI players (compete only; docs/games/scrabble.md). 0..3 AI seats, all
   -- at the single `ai_level`, seated AFTER the humans. `ai_level` is the SEAT's
   -- strength for this game; who sits there is a bot account, picked below.
   v_ai_count := coalesce((setup->>'ai_count')::int, 0);
@@ -621,7 +621,7 @@ begin
       detail = 'ai_level is not one of the known levels';
     end if;
     -- The game's dictionary must be at least as wide as the AI knows, else it
-    -- can't play at its tuned strength (docs/scrabble-ai-strength.md band rule).
+    -- can't play at its tuned strength (docs/games/scrabble.md band rule).
     if s_dict_2 < v_ai_band or s_dict_3plus < v_ai_band then
       -- A CROSS-FIELD rule the form already gates on (validateScrabbleSetup
       -- blocks Start), so reaching it means something other than the form sent
@@ -1764,7 +1764,7 @@ grant execute on function scrabble.end_game(uuid) to authenticated;
 -- ============================================================
 -- scrabble.get_suggest_context — read-only RPC for the move suggester
 -- ============================================================
--- The `scrabble-suggest-move` Edge Function (docs/scrabble-ai.md) needs the
+-- The `scrabble-suggest-move` Edge Function (docs/games/scrabble.md) needs the
 -- dictionary bands to generate only game-legal moves — but dict_2/dict_3plus
 -- are deliberately EXCLUDED from the column grant on scrabble.games (they're
 -- server-only config; the FE never validates words — §3.3 above). This
@@ -1810,7 +1810,7 @@ begin
   end if;
 
   -- Compete hints are a house-rules question, deliberately deferred
-  -- (docs/scrabble-ai.md "Deferred") — and in compete the rack is private,
+  -- (docs/games/scrabble.md "Deferred") — and in compete the rack is private,
   -- so this gate is also what keeps the suggester from becoming a
   -- rack-reading side channel.
   if g.mode <> 'coop' then
@@ -1849,7 +1849,7 @@ grant execute on function scrabble.get_suggest_context(uuid) to authenticated;
 -- scrabble.get_ai_context — the AI opponent's move context (compete)
 -- ============================================================
 -- The twin of get_suggest_context, for the `scrabble-ai-move` Edge Function
--- (docs/scrabble-ai-strength.md): the SECURITY DEFINER door to the CURRENT AI
+-- (docs/games/scrabble.md): the SECURITY DEFINER door to the CURRENT AI
 -- seat's HIDDEN rack + the server-only dictionary bands, returned atomically
 -- with the board + version + seat. Authorization: any game MEMBER may drive the
 -- AI (trust model — a human at the table pokes the bot along).

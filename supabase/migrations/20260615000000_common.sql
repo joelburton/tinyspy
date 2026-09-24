@@ -241,7 +241,7 @@ create table common.clubs_members (
 -- can carry a real FK pointing here.
 --
 -- `min_players` mirrors the lower bound of each manifest's
--- `numberOfPlayers` range (see src/common/lib/games.ts). It's the
+-- `numberOfPlayers` range (see src/common/manifest/gameManifest.ts). It's the
 -- one fact the SERVER needs from that range: whether a gametype can
 -- be played solo (`min_players <= 1`). New-club enrollment uses it
 -- to keep one-player-only clubs out of two-player games — see
@@ -820,8 +820,8 @@ create table common.words (
   -- Guessing-game clue that HIDES the word (the opposite of definition):
   -- a category/near-synonym nudge ("A hooded snake" → cobra). Present for
   -- every word in the hint set (len = 5 AND (wordle OR difficulty = 1));
-  -- NULL elsewhere. Drives stackdown's "Reveal hint". See the upstream
-  -- gamelist AI.md → Hints.
+  -- NULL elsewhere. Drives stackdown's "Reveal hint". See the Hints
+  -- section of the upstream gamelist project.
   hint              text,
   -- Distinct-letter bitmask, derived from `word`. See above.
   letter_mask       bigint

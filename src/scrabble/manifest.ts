@@ -143,7 +143,7 @@ export const scrabbleCompeteGame: GameManifest = {
   numberOfPlayers: [1, 4],
   PlayArea: playAreaLoader,
   // `validate` blocks Start when an AI is present and the dictionary is too
-  // narrow for its level, or the head-count doesn't fit (docs/scrabble-ai-strength.md).
+  // narrow for its level, or the head-count doesn't fit (docs/games/scrabble.md).
   setupForm: {
     Component: setupFormLoader,
     defaults: DEFAULT_SCRABBLE_SETUP,

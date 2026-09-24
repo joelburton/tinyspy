@@ -180,7 +180,7 @@ function PlayArea({
   // and an empty ring is what keeps it from walking out to the browser.
   useTabRing([])
 
-  // Mobile (docs/mobile.md → the shared recipe): below the breakpoint the board
+  // Mobile (docs/mobile.md → The info-sheet recipe): below the breakpoint the board
   // fills the screen and the info column moves into an off-canvas <InfoSheet>,
   // reached by the header's InfoSwitchButton. Desktop is unchanged.
   const infoSheet = useInfoSheet()
@@ -340,7 +340,7 @@ function PlayArea({
 
   // ─── Narration — what a PEER did, in the header slot ───
   // About somebody else, which is what puts it in the global slot rather than
-  // the local one (docs/ui.md → the two feedback slots). Only coop has one.
+  // the local one (docs/ui.md → Where a message goes). Only coop has one.
 
   // A teammate's guess is narrated in the header, with the words and the color
   // `lib/answer.ts` gives its `_peer` twin. My own rows are excluded — my

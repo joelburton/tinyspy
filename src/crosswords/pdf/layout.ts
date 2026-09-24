@@ -10,7 +10,7 @@
  * clues flow c1 → c2 (below the grid) → c3 → c4 (full-height). The
  * narrow columns let a daily 15×15 with typical clue counts fit on a
  * single page. Large puzzles (≥ 17) get an 8-4 split with three clue
- * regions. See docs/print-pdf-plan.md.
+ * regions. See src/common/pdf/doc.md.
  */
 
 export type Rect = { x: number; y: number; w: number; h: number }

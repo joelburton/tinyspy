@@ -190,7 +190,7 @@ export type FloatingPanelProps = {
  *
  * Most callers don't reach for this directly: `<Companion>`, `<Dialog>`,
  * `<NormalModal>` and `<BlockingModal>` each name a family for you. doc.md →
- * Design covers why one shell rather than several.
+ * Intro to area covers why one shell rather than several.
  */
 export function FloatingPanel({
   family,

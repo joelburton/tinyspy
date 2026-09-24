@@ -34,7 +34,7 @@
 -- require_valid_timer). Per the removability invariant in
 -- docs/common.md, common MUST NOT reference spellingbee back.
 --
--- See docs/games/spellingbee.md for the full feature picture and the
+-- See src/spellingbee/doc.md for the full feature picture and the
 -- rules-of-the-game spec.
 
 -- ============================================================
@@ -79,11 +79,11 @@ create schema if not exists spellingbee;
 -- we precompute `required_words_count` = how many REQUIRED words
 -- (band <= 3, american, no slang, clean: slur 0 + crude 0) fit it, and keep only
 -- seeds with >= 30 so no board is thin. See
--- import-spellingbee-pangrams.ts and docs/games/spellingbee.md.
+-- import-spellingbee-pangrams.ts and src/spellingbee/doc.md.
 --
 -- The edge function samples from this table — one short query, no
 -- rejection loops over the whole word list on each board build.
--- See docs/games/spellingbee.md → "Why a seeds table?" for the longer
+-- See src/spellingbee/doc.md → Schema for the longer
 -- explanation. Rebuilt by import-spellingbee-pangrams.ts (after
 -- `gmake all-words` has loaded common.words).
 --
@@ -132,7 +132,7 @@ create table spellingbee.pangrams (
 -- `games_state`, and the missed-words reveal is a client-side
 -- `required − found` computed at terminal (bonus words are never
 -- shown in the reveal, but that's a FE display choice, not a gate).
--- See docs/games/spellingbee.md.
+-- See src/spellingbee/doc.md.
 
 create table spellingbee.games (
   id uuid primary key references common.games(id) on delete cascade,
@@ -160,7 +160,7 @@ create table spellingbee.games (
   --     missed-words reveal, which is required-only).
   --   bonus_words: the legal − required set (accepted + scored, not the goal).
   -- Neither is hidden — the trust model doesn't withhold them (friends, not
-  -- anti-cheat); see docs/games/spellingbee.md.
+  -- anti-cheat); see src/spellingbee/doc.md.
   required_words jsonb not null,
   bonus_words jsonb not null,
   created_at timestamptz not null default now(),

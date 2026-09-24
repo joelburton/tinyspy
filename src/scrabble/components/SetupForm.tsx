@@ -23,7 +23,7 @@ import { AI_BAND, AI_LEVELS, AI_LEVEL_LABEL, type AiLevel, type ScrabbleValues }
  *     blocks Start if the dictionary is too narrow for the chosen level or the
  *     head-count doesn't fit. We deliberately don't auto-raise the dictionary —
  *     the player does it, so the change is never a surprise
- *     (docs/scrabble-ai-strength.md).
+ *     (docs/games/scrabble.md).
  * Controlled component; state lives in the SetupGameModal wrapper.
  */
 export function SetupForm({
