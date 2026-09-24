@@ -21,9 +21,15 @@ import type { ConfirmAnswer, ConfirmOptions } from './confirmations'
  * `<ConfirmationHost>` in `App.tsx` is what draws the pending question. Without
  * it mounted nothing appears and every promise resolves `null`, which is the
  * safe direction: an unanswerable question is not consent.
+ *
+ * The host sits above every route, so a question survives its asker unless the
+ * asker takes it back: `withdrawConfirmation`, which the action run calls when
+ * the binding that asked unmounts.
  */
 
-type Pending = ConfirmOptions & { resolve: (answer: ConfirmAnswer) => void }
+// `asked` is the options object as the caller passed it — the spread copies its
+// fields for the host, and the original is what a withdrawal is matched against.
+type Pending = ConfirmOptions & { asked: ConfirmOptions; resolve: (answer: ConfirmAnswer) => void }
 
 let pending: Pending | null = null
 let hosted = false
@@ -54,12 +60,18 @@ export function askConfirmation(opts: ConfirmOptions): Promise<ConfirmAnswer> {
   }
   return new Promise<ConfirmAnswer>((resolve) => {
     pending?.resolve(null) // a superseded question answers "no"
-    pending = { ...opts, resolve }
+    pending = { ...opts, asked: opts, resolve }
     notify()
   })
 }
 
-/** Answer the pending question. The host's buttons, and nothing else. */
+/** Take back a question whose asker has gone: it answers `null`, as a cancel
+ *  does. A no-op when the question on screen is not this one. */
+export function withdrawConfirmation(opts: ConfirmOptions): void {
+  if (pending?.asked === opts) settleConfirmation(null)
+}
+
+/** Answer the pending question. The host's buttons, and `withdrawConfirmation`. */
 export function settleConfirmation(answer: ConfirmAnswer): void {
   pending?.resolve(answer)
   pending = null

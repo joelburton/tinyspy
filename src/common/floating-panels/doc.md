@@ -112,7 +112,9 @@ gains nothing by rendering the modal in its own tree, since the host is always
 there, and a second path would be a second options type to keep in sync, which
 is exactly the drift `FAMILY` exists to prevent. A question asked with no host
 up is refused rather than left hanging, and that is the safe direction: an
-unanswerable question is not consent.
+unanswerable question is not consent. Because the host sits above every route, a
+question outlives its asker unless the asker takes it back —
+`withdrawConfirmation`, which answers it no, as a cancel does.
 
 ## Details
 

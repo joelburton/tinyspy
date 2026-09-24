@@ -202,6 +202,10 @@ carries the same three lines. A question only one game asks
 stays inside that game's callback. The asking goes through
 `common/floating-panels/confirmationService.ts`, which exists precisely because
 the code doing the asking is not a component and has nothing to render into.
+**A binding that unmounts under its question takes it back** — a peer's suspend
+navigating away, a pause taking the play surface — and runs nothing if an answer
+arrives anyway: its subject is gone, and the answer would otherwise run through a
+ref that outlived it.
 
 **A question may have two ways to say YES.** Conceding a race and ending it for
 everyone are both things to do and they differ in what they do — subtly enough

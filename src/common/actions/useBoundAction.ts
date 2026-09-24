@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from 'react'
 import { ACTIONS, type ActionId, type ActionSpec } from './registry'
 import type { AppIcon } from '../icons/icons'
-import { askConfirmation } from '../floating-panels/confirmationService'
-import type { ConfirmAnswer } from '../floating-panels/confirmations'
+import { askConfirmation, withdrawConfirmation } from '../floating-panels/confirmationService'
+import type { ConfirmAnswer, ConfirmOptions } from '../floating-panels/confirmations'
 import { useSingleFlight } from '../single-flight/useSingleFlight'
 
 /** Whether an action applies right now, and how. `hidden` is "not here at this
@@ -192,6 +192,21 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
   // eslint-disable-next-line react-hooks/refs -- read back in this same render
   liveRef.current = live
 
+  // Whether this binding is still mounted, and the question it is waiting on.
+  // The question is drawn at the app root, above every route, so it outlives a
+  // binding that unmounts under it — a route change, or a pause taking the play
+  // surface away — and the answer would then run through `liveRef`, which
+  // outlives it too. Unmounting takes the question back and refuses the answer.
+  const mountedRef = useRef(true)
+  const askingRef = useRef<ConfirmOptions | null>(null)
+  useEffect(function dropTheQuestionOnUnmount() {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+      if (askingRef.current) withdrawConfirmation(askingRef.current)
+    }
+  }, [])
+
   // The run every surface shares: ask the action's question, then do the thing.
   // Asking here rather than in the callback is what stops every game from
   // having to remember to ask — and stops one of them from forgetting.
@@ -204,8 +219,14 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
       const question = asked.runAlternative ? (spec.confirmChoice ?? spec.confirm) : spec.confirm
       let answer: ConfirmAnswer = 'confirm'
       if (question && !asked.terminal) {
-        answer = await askConfirmation(question)
-        if (answer === null) return
+        askingRef.current = question
+        try {
+          answer = await askConfirmation(question)
+        } finally {
+          askingRef.current = null
+        }
+        // The binding that asked has gone: its subject is gone with it.
+        if (answer === null || !mountedRef.current) return
       }
       // Read AGAIN after the wait: the game keeps rendering while the question
       // is up (realtime, the clock), and the body that runs must be the one

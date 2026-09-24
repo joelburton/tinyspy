@@ -6,8 +6,9 @@
  * refused (answered `null`, and said so in the console); with a host claimed,
  * the promise waits for `settleConfirmation` and resolves to that answer; a
  * second question supersedes the first; the host's subscription sees the
- * pending question come and go; and releasing the host slot brings the refusal
- * back.
+ * pending question come and go; a withdrawn question answers `null`, and only
+ * the question it names is withdrawn; and releasing the host slot brings the
+ * refusal back.
  *
  * The host component that draws the question is `ConfirmationHost.test.tsx`.
  */
@@ -18,6 +19,7 @@ import {
   registerConfirmationHost,
   settleConfirmation,
   usePendingConfirmation,
+  withdrawConfirmation,
 } from './confirmationService'
 
 const QUESTION = { title: 'Do the thing?', message: 'It will be done.', confirmLabel: 'Do it' }
@@ -52,6 +54,24 @@ describe('askConfirmation with no host mounted', () => {
     await expect(askConfirmation(QUESTION)).resolves.toBeNull()
     expect(said).toHaveBeenCalledTimes(1)
     expect(said.mock.calls[0]![0]).toMatch(/no <ConfirmationHost>/)
+  })
+})
+
+describe('withdrawConfirmation', () => {
+  it('answers the withdrawn question no, and takes it off screen', async () => {
+    release = registerConfirmationHost()
+    const view = renderHook(() => usePendingConfirmation())
+    const answer = askConfirmation(QUESTION)
+    act(() => withdrawConfirmation(QUESTION))
+    await expect(answer).resolves.toBeNull()
+    expect(view.result.current).toBeNull()
+  })
+
+  it('leaves a different question alone', async () => {
+    release = registerConfirmationHost()
+    const answer = askConfirmation(QUESTION)
+    withdrawConfirmation({ ...QUESTION })
+    expect(await settledYet(answer)).toBe(false)
   })
 })
 

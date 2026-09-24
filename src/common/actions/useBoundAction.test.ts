@@ -13,13 +13,16 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { liveBindings, useBoundAction, type LiveAction } from './useBoundAction'
 
 const askConfirmation = vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm')
+const withdrawConfirmation = vi.fn()
 vi.mock('../floating-panels/confirmationService', () => ({
   askConfirmation: (...args: unknown[]) => askConfirmation(...(args as [])),
+  withdrawConfirmation: (...args: unknown[]) => withdrawConfirmation(...args),
 }))
 
 beforeEach(() => {
   askConfirmation.mockClear()
   askConfirmation.mockResolvedValue('confirm')
+  withdrawConfirmation.mockClear()
 })
 
 /** Bind one action, with the parts a test cares about defaulted. */
@@ -135,6 +138,27 @@ describe('useBoundAction — the shared run', () => {
     expect(after).toHaveBeenCalledTimes(1)
     expect(before).not.toHaveBeenCalled()
     view.unmount()
+  })
+
+  it('takes its question back, and runs nothing, when it unmounts under the question', async () => {
+    // The question is drawn above every route, so a binding can unmount while
+    // it is up — a peer's suspend navigates away, a pause takes the play surface
+    // — and an answer then would run on a game the player has left.
+    let settle: (answer: 'confirm' | null) => void = () => {}
+    askConfirmation.mockImplementation(() => new Promise((resolve) => { settle = resolve }))
+    const { run, view } = bind('act-restart')
+
+    act(() => view.result.current.run())
+    view.unmount()
+    expect(withdrawConfirmation).toHaveBeenCalledTimes(1)
+    await act(async () => { settle('confirm') })
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('withdraws nothing when it unmounts with no question of its own up', () => {
+    const { view } = bind('act-restart')
+    view.unmount()
+    expect(withdrawConfirmation).not.toHaveBeenCalled()
   })
 
   it('drops a second run while the first is still out', async () => {
