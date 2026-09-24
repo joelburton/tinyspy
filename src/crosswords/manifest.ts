@@ -121,8 +121,7 @@ type StatusBlob = Record<string, unknown>
 /**
  * crosswords coop. No progress readout and no puzzle name: the name is the
  * game's TITLE, one line above on the same card, and a per-cell fill % would
- * mean a `common.games` status write on every keystroke (see
- * docs/game-status-labels.md).
+ * mean a `common.games` status write on every keystroke.
  */
 function coopLabel(row: { play_state: string; status: StatusBlob | null }): string {
   switch (row.play_state) {

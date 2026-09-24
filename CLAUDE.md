@@ -37,7 +37,7 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [src/common/pdf/doc.md](src/common/pdf/doc.md) | Printing boards to PDF: the printable design language + the shared helpers. **Lives in its folder** — `docs/pdf.md` is gone, absorbed by its area audit; which controls earn a recap row is [src/common/setup-form/doc.md → Setup rows](src/common/setup-form/doc.md#setup-rows) |
 | [docs/features.md](docs/features.md) | Games categorized by feature: dimensions (every game has exactly one value) vs tags |
 | [docs/win-lose.md](docs/win-lose.md) | The finish/defeat taxonomy: finish lines, race vs best, timeout adjudications, clock fairness, the priced-hint rule |
-| [docs/game-status-labels.md](docs/game-status-labels.md) | Every game's title + club-page status line, per play state |
+| [docs/game-status-labels.md](docs/game-status-labels.md) | A game's title + club-page status line: where each comes from, the title rules, where the status grammar lives, the guard |
 | [docs/deferred.md](docs/deferred.md) | Cross-cutting deferred work + the index of per-game registers (see its "Where an item goes") |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
 | [README.md](README.md) | Narrative + stack |

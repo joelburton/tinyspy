@@ -3,8 +3,8 @@
 How every game decides winning and losing, in both modes — the analysis behind
 the (proposed, not yet built) idea of letting friends pick between "race" and
 "best" compete play. Everything in the tables describes the roster **as it is
-today**, verified against [game-status-labels.md](game-status-labels.md) (the
-generated ground truth) and the terminal SQL; the one forward-looking item is
+today**, verified against the status lines `npm run report:labels` prints
+(the generated ground truth) and the terminal SQL; the one forward-looking item is
 the `compete_style` knob, marked as proposed where it appears.
 
 This doc also fixes the **vocabulary** for talking about all of this — in

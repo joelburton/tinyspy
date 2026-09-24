@@ -445,7 +445,7 @@ before trusting a green run. The full set:
 | `noRawServerMessage` | every call site in `src/` — no server `error.message` into a UI sink |
 | `logos` | every `src/<game>/logo.svg` parses as standalone XML |
 | `setupRows` | every game's `lib/setupSummary.ts` (via `import.meta.glob`) |
-| `gameStatusLabels` | every manifest's `labelFor`; regenerates [game-status-labels.md](game-status-labels.md) |
+| `gameStatusLabels` | every manifest's `labelFor` over its reachable states: an unknown state never reads as live, no reason doubles as a play state; `npm run report:labels` prints every line ([game-status-labels.md](game-status-labels.md)) |
 | `deployLists` | `supabase/config.toml`, `supabase/deploy/env.sh`, `Makefile` vs the registry |
 | `edgeFnErrorKeys` | every `json({ error: … })` in `supabase/functions/` |
 | `raiseCodes` | every `PN`/`PA` raise in `supabase/sql/` — unique, hinted, outcome read back |

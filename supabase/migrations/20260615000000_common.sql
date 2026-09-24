@@ -348,9 +348,9 @@ create table common.gametypes (
 --     `_found_title` — deliberate, not drift). A never-rewritten
 --     title (bananagrams' static id) needs nothing at all.
 --
--- The per-game formulas are tabulated in
--- docs/game-status-labels.md (kept there, next to the status
--- lines, since the two are read together).
+-- The rules every formula follows are in
+-- docs/game-status-labels.md, next to the status line the title
+-- is read with.
 
 -- `setup jsonb` is the frozen-at-create-time player choices for
 -- this game — the payload the start-game dialog produced. Stored

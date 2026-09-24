@@ -30,7 +30,7 @@ The one thing this folder produces rather than describes is the **status
 line**: the second line of a game's row on the club page, written by the
 game's own `labelFor` out of a `common.games` row. `statusLabel.ts` holds the
 vocabulary those all speak, so no game invents its own word for "in progress",
-and `docs/game-status-labels.md` shows what every game actually says.
+and `npm run report:labels` prints what every game actually says.
 
 ## Details
 
@@ -50,11 +50,9 @@ and `docs/game-status-labels.md` shows what every game actually says.
   `useGameTimer` speak it, and the manifest is where a game's contract with the
   shell is read, so this is where a reader goes looking.
 
-- **The registry's ORDER carries one thing and not the other.** It sets the row
-  order of the generated `docs/game-status-labels.md`, so reordering it rewrites
-  that doc. It reaches no player: the two lists that walk the registry — the
-  club page's start list and the Edit-club enrollment list — each sort by
-  brand, coop first, explicitly.
+- **The registry's ORDER reaches no player.** The two lists that walk the
+  registry — the club page's start list and the Edit-club enrollment list —
+  each sort by brand, coop first, explicitly.
 
 - **A gametype string can miss the registry, and a miss means three
   things.** From the URL it is a typo and earns the error page; from another

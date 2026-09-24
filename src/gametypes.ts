@@ -55,10 +55,8 @@ import { setgameCoopGame, setgameCompeteGame } from './setgame/manifest'
  *     `from './<name>/manifest'` specifiers below. Keep them in that literal
  *     shape — no aliasing the path, no computed imports — or a game silently
  *     stops being guarded.
- *   - **The order is the generated doc's order.** `gameStatusLabels.test.ts`
- *     walks this list to build the table in `docs/game-status-labels.md`, so
- *     reordering it rewrites that doc. Nothing a PLAYER sees comes from this
- *     order: the club page's lists sort for themselves.
+ *   - **Nothing a PLAYER sees comes from this order**: the club page's lists
+ *     sort for themselves.
  */
 export const gametypes: GameManifest[] = [
   codenamesduetGame,

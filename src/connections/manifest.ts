@@ -181,7 +181,7 @@ export const connectionsCompeteGame: GameManifest = {
         return wonBy(s.winner_username as string | undefined)
       // "no winner" for every cause but one: a table everybody walked away
       // from has no winner to mention, where a race played to the end does.
-      // The roster keeps the same asymmetry (docs/game-status-labels.md),
+      // The roster keeps the same asymmetry (`npm run report:labels`),
       // which is why the branch is not the redundancy it looks like —
       // `COMPETE_LOSS` already holds the words.
       case 'lost_compete':
