@@ -7,6 +7,10 @@ import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { CELLS, isHole } from '../lib/waffle'
+import { BOARD_SHAPE, cellAt, positionAt } from '../lib/boardShape'
+import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
+import type { Cell } from '@/common/board-cursor/stepCell'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import tileColors from '@/shared/wordle-style/tileColors.module.css'
@@ -80,8 +84,11 @@ type Props = {
 
 /**
  * The 5×5 waffle lattice. Tap a tile to pick it up (it highlights),
- * tap a second to swap them; tap the same tile again to cancel. Holes
- * render as gaps. Tile background is the server-computed Wordle-style
+ * tap a second to swap them; tap the same tile again to cancel. From the
+ * keyboard, arrows move a selection cursor, Space picks up to two tiles, and
+ * Enter swaps them — the second pick WAITS for Enter, where the second tap is
+ * the swap, because an arrow can land a cell off and a swap costs one from the
+ * budget. Holes render as gaps, and the cursor passes over them. Tile background is the server-computed Wordle-style
  * feedback (green / yellow / gray) — the FE only renders it, never
  * recomputes it (it doesn't hold the solution).
  *
@@ -104,7 +111,9 @@ export function Board({
   gameOver = null,
   moveCount,
 }: Props) {
-  const [selected, setSelected] = useState<number | null>(null)
+  // The picked tiles, in pick order: one from a tap, up to two from the
+  // keyboard.
+  const [picks, setPicks] = useState<readonly number[]>([])
   // Drag source (HTML5 drag-and-drop, the desktop alternative to tap). Drag is a
   // MOUSE affordance: on a touch device it's off (HTML5 DnD doesn't fire on touch
   // anyway, and a `draggable` tile there just invites a long-press drag-ghost),
@@ -149,19 +158,23 @@ export function Board({
     changed: changedCells,
   })
 
-  // While a swap is in flight, EVERY input path stays quiet (tap, drag, and
-  // the keyboard — a focused tile's Enter/Space lands in `activate` too).
+  // While a swap is in flight, every way of making one stays quiet — tap, drag,
+  // Space and Enter. The arrows still move.
   const inFlight = pendingSwap !== null
 
+  // A TAP: with nothing picked it picks; on the one picked tile it cancels; on
+  // another it swaps the two. Two picked is a keyboard state, and a tap there
+  // starts over from the tapped tile.
   function activate(pos: number) {
     if (disabled || inFlight || isHole(pos)) return
-    if (selected === null) {
-      setSelected(pos)
-    } else if (selected === pos) {
-      setSelected(null)
+    const [first] = picks
+    if (picks.length === 1 && first === pos) {
+      setPicks([])
+    } else if (picks.length === 1 && first !== undefined) {
+      onSwap(first, pos)
+      setPicks([])
     } else {
-      onSwap(selected, pos)
-      setSelected(null)
+      setPicks([pos])
     }
   }
 
@@ -172,8 +185,49 @@ export function Board({
       return
     }
     onSwap(from, pos)
-    setSelected(null)
+    setPicks([])
   }
+
+  // ─── The keyboard ──────────────────────────────────────
+  // Space toggles the tile under the cursor into or out of the picks. A third
+  // is refused, as connections refuses a fifth: un-pick one first.
+  function toggleAt(cell: Cell) {
+    if (disabled || inFlight) return
+    const pos = positionAt(cell.x, cell.y)
+    if (picks.includes(pos)) setPicks(picks.filter((p) => p !== pos))
+    else if (picks.length < 2) setPicks([...picks, pos])
+  }
+
+  const { cursor, point } = useBoardSelectionCursor({
+    shape: BOARD_SHAPE,
+    enabled: !disabled,
+    onToggle: toggleAt,
+  })
+
+  // Enter swaps the two picks. Key-only — a tap is the board's own swap — so
+  // the action names itself for the key list, and hides on a board I can't
+  // play.
+  useBoundAction('act-submit', {
+    describe: () => {
+      if (disabled) return 'hidden'
+      return { state: picks.length === 2 && !inFlight ? 'active' : 'disabled', label: 'Swap' }
+    },
+    run: () => {
+      const [a, b] = picks
+      if (a === undefined || b === undefined || inFlight) return
+      onSwap(a, b)
+      setPicks([])
+    },
+  })
+
+  // ⌫ drops the picks.
+  useBoundAction('act-clear-selection', {
+    describe: () => {
+      if (disabled) return 'hidden'
+      return picks.length > 0 ? 'active' : 'disabled'
+    },
+    run: () => setPicks([]),
+  })
 
   return (
     <div className={cls(shared.boardSeal, styles.board)}>
@@ -218,14 +272,15 @@ export function Board({
                 shared.tileFace,
                 shared.tile,
                 colorClass,
-                selected === pos && shared.selected,
+                picks.includes(pos) && shared.selected,
+                cursor !== null && positionAt(cursor.x, cursor.y) === pos && shared.selectionCursor,
                 pendingSwap?.includes(pos) && styles.inFlight,
                 pendingSwap?.includes(pos) && shared.dimInFlight,
                 flashing.has(pos) && shared.attentionFlash,
                 historyLitTiles?.has(pos) && styles.historyTile,
               )}
               aria-label={`${letter.toUpperCase()} (${color})`}
-              aria-pressed={selected === pos}
+              aria-pressed={picks.includes(pos)}
               disabled={disabled}
               draggable={!disabled && !coarse}
               // NOT a focus target — but by BLUR rather than by the mousedown
@@ -241,6 +296,8 @@ export function Board({
               // trap.
               onClick={(e) => {
                 e.currentTarget.blur()
+                // The cursor follows the hand, hidden, so the keys resume here.
+                point(cellAt(pos))
                 activate(pos)
               }}
               onDragStart={(e) => {
