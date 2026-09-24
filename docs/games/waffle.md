@@ -167,8 +167,9 @@ reads the event log.
 So `events_select` mirrors `_board_visible`, and the two must agree or the
 weaker one decides what's actually secret:
 
-    coop → shared, like the board compete during play → your own rows only
-    compete at terminal → everyone's, since the boards are revealed then anyway
+    coop                 →  shared, like the board
+    compete during play  →  your own rows only
+    compete at terminal  →  everyone's, since the boards are revealed then anyway
 
 Two consequences worth knowing:
 

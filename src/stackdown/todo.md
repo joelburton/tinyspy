@@ -9,6 +9,11 @@
   early `+` asks the new-game question and then can do nothing. By the rule
   in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
   beside it already answers `hidden` for it.
+- **`create_game` accepts a one-player compete game.** The compete manifest's
+  `numberOfPlayers` is `[2, 6]` and its comment says "the RPC enforces it", but
+  `stackdown.create_game` has no `< 2` check for compete, so only the FE's
+  hidden Start button stops it. Add the check the other compete games have
+  (wordle's is `PN498`, a fault, since the app never sends it).
 
 ## Soon
 

@@ -305,9 +305,9 @@ Examples of where this lands:
 React 19 + TypeScript + Vite on the frontend; Supabase (Postgres with RLS,
 PostgREST, Realtime, Auth via magic links, Edge Functions in Deno) on the
 backend; Netlify for FE hosting; Anthropic Claude via Edge Functions for AI
-features (codenamesduet's clue suggester, scrabble's move suggester + autonomous
-opponent, and crosswords' clue explainer). See [README.md](README.md) for the
-longer narrative.
+features (codenamesduet's clue suggester and crosswords' clue explainer;
+scrabble's move suggester and AI opponent are a local trie search, not an LLM).
+See [README.md](README.md) for the longer narrative.
 
 Sixteen games are live (codenamesduet, connections, psychicnum, spellingbee,
 bananagrams, waffle, wordle, stackdown, scrabble, boggle, crosswords, wordwheel,

@@ -256,7 +256,7 @@ create policy events_select on strands.events
 -- compete racer who has already solved or conceded can't pull the answer while
 -- the others are still tracing — and that is exactly is_terminal.
 --
--- Same gate waffle and stackdown use.
+-- Same gate stackdown uses (waffle's also opens in coop).
 create or replace function strands._solution_for(g_id uuid)
 returns jsonb
 language sql
