@@ -1,8 +1,8 @@
 // cs-unmet
 
-import type { BoundAction } from '@/common/actions/useBoundAction'
+import { useBoundAction } from '@/common/actions/useBoundAction'
+import type { ArrowKey } from './gridCursor'
 import { stepCell, type BoardShape, type Cell } from './stepCell'
-import { useBoardCursorKeys } from './useBoardCursorKeys'
 import { useSelectionCursor } from './useSelectionCursor'
 
 export type BoardSelectionCursorOptions = {
@@ -15,10 +15,6 @@ export type BoardSelectionCursorOptions = {
   // Space on the cell under the cursor: put its piece into the move, or take
   // it out. The callback does its own "can this piece be picked" check.
   onToggle: (cell: Cell) => void
-  // Enter, or the Submit button: make the move. Does its own legality check.
-  onCommit: () => void
-  // May the commit fire right now? Narrower than `enabled`; grays the button.
-  canCommit?: boolean
 }
 
 export type BoardSelectionCursor = {
@@ -26,48 +22,45 @@ export type BoardSelectionCursor = {
   cursor: Cell | null
   // A click on a cell: the cursor goes there and hides.
   point: (cell: Cell) => void
-  // The commit binding, to place as the Submit button.
-  actCommit: BoundAction
 }
 
 /**
- * A board's **selection cursor**: arrows move it over the board's cells,
- * Space picks the piece under it, and Enter commits the move. It is the
- * alternative to clicking, so it follows `useSelectionCursor`'s rules — hidden
- * until an arrow asks, the first arrow only showing it, a click moving it and
- * hiding it.
+ * A board's **selection cursor**: arrows move it over the board's cells, and
+ * Space picks the piece under it. It is the alternative to clicking, so it
+ * follows `useSelectionCursor`'s rules — hidden until an arrow asks, the first
+ * arrow only showing it, a click moving it and hiding it.
  *
- * **Space acts on the cursor, so it is inert while the cursor is hidden;
- * Enter acts on the selection, so it is not.** The selection is always drawn,
- * and a click followed by Enter makes the move.
+ * It binds two actions, `act-move-cursor` and `act-toggle-tile`. **The commit
+ * is the game's own**: its Submit is an action with Enter on it, bound beside
+ * the button it draws, and it acts whether or not the cursor shows — it commits
+ * the selection, which is always drawn, so a click followed by Enter makes the
+ * move. **Space acts on the cursor, so it is inert while the cursor is hidden.**
  *
- * What stays in the game is the board's shape, what a pick is, and what the
- * move is. The keys are `useBoardCursorKeys`'s actions; the arrows go where
- * `stepCell` says.
+ * What stays in the game is the board's shape, what a pick is, and the move.
+ * The arrows go where `stepCell` says.
  */
 export function useBoardSelectionCursor({
   shape,
   enabled,
   onToggle,
-  onCommit,
-  canCommit,
 }: BoardSelectionCursorOptions): BoardSelectionCursor {
   const selection = useSelectionCursor<Cell>({ x: 0, y: 0 })
+  const state = () => (enabled ? 'active' : 'disabled')
 
-  const { actCommit } = useBoardCursorKeys({
-    enabled,
-    onArrow: (key) => selection.step(stepCell(selection.at, key, shape)),
-    onToggle: () => {
+  useBoundAction('act-move-cursor', {
+    describe: state,
+    run: (key) => selection.step(stepCell(selection.at, key as ArrowKey, shape)),
+  })
+
+  useBoundAction('act-toggle-tile', {
+    describe: state,
+    run: () => {
       if (selection.revealed) onToggle(selection.at)
     },
-    onCommit,
-    commit: 'act-submit',
-    canCommit,
   })
 
   return {
     cursor: enabled && selection.revealed ? selection.at : null,
     point: selection.point,
-    actCommit,
   }
 }

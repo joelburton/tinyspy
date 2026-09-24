@@ -1,6 +1,6 @@
 # board-cursor
 
-Arrows move a cursor over a board — the key handling every board-cursor game reuses, the axis-cursor math the letter-grid games use, and the selection cursor the picking boards and `<SelectionList>` use. `useBoardCursorKeys` binds five actions: `act-move-cursor`, `act-place-tile`, `act-remove-tile`, `act-toggle-tile`, and the game's own commit.
+Arrows move a cursor over a board — the key handling every board-cursor game reuses, the axis-cursor math the letter-grid games use, and the selection cursor the picking boards and `<SelectionList>` use. `useBoardCursorKeys` binds four actions: `act-move-cursor`, `act-place-tile`, `act-remove-tile`, and the game's own commit; `useBoardSelectionCursor` binds two, `act-move-cursor` and `act-toggle-tile`.
 
 ## Intro to area
 
@@ -22,24 +22,25 @@ guesses. That is a SELECTION cursor — an alternative to clicking, so it stays
 hidden until an arrow asks for it. `useSelectionCursor` holds its show/hide
 rules, which `<SelectionList>` keeps too; `stepCell` says where an arrow takes
 it over a board's cells; `useBoardSelectionCursor` puts those together with
-the keys.
+the arrows and Space. Enter is not its: the game binds its own Submit.
 
-Both kinds take their keys from `useBoardCursorKeys`, which binds them as
-actions and hands each press to the game. What stays in each game is what a
-key means there: where a placed tile comes from, which tiles may be removed,
-what a pick is, and what the commit is. The pointer side of the letter-grid
-boards is `shared/grid-and-drag`'s.
+Both kinds bind their keys as actions and hand each press to the game — the
+letter-grid cursor through `useBoardCursorKeys`, the selection cursor through
+`useBoardSelectionCursor`. What stays in each game is what a key means there:
+where a placed tile comes from, which tiles may be removed, what a pick is,
+and what the commit is. The pointer side of the letter-grid boards is
+`shared/grid-and-drag`'s.
 
 ## Details
 
 ```
 common/board-cursor/
- ├── useBoardCursorKeys.ts    the five bound actions; the game's callbacks
+ ├── useBoardCursorKeys.ts    the letter-grid cursor's four bound actions; the game's callbacks
  ├── gridCursor.ts            moveCursor · stepBack · planBackspace
  ├── gridCursor.module.css    the ring: .cursor + .cursorH / .cursorV
  ├── useSelectionCursor.ts    a selection cursor's show/hide rules
  ├── stepCell.ts              where an arrow takes a selection cursor on a board
- ├── useBoardSelectionCursor.ts   the two above plus useBoardCursorKeys: a board's selection cursor
+ ├── useBoardSelectionCursor.ts   the two above, bound to the arrows and Space: a board's selection cursor
  └── reachability.fixture.ts  for a test: the cells a cursor can never reach on a board's shape
 bananagrams/hooks/usePlayerBoard.ts     runs the hook and the math; BoardArena renders the ring
 scrabble/components/BoardCol.tsx        runs the hook and the math; Board renders the ring
@@ -54,12 +55,6 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
   `enabled` disables them all; `canCommit` disables only the commit, and the
   same answer grays the commit's button, which is the binding the hook
   returns.
-- **A board takes only the keys it has.** `onLetter`, `onBackspace` and
-  `onToggle` (Space) are each optional, and an action with no callback answers
-  HIDDEN rather than disabled: Help does not list it, and its keystroke goes
-  on to the browser, where a disabled one would be swallowed. A letter-grid
-  game passes the first two; a game that picks pieces passes `onToggle`, and
-  never with `act-peel`, whose keys include Space.
 - **The commit brings its own keys.** `commit` names the action, and the
   registry says which keys it carries: `act-submit` Enter, `act-peel` Enter
   and Space.
@@ -90,9 +85,12 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
 - **On a board, Space acts on the cursor and Enter does not.** Space picks the
   piece under the cursor, so it is inert while the cursor is hidden. Enter
   commits the selection, which is always drawn (the picked border), so it
-  commits with the cursor hidden — a click then Enter makes the move. It is
-  also the Submit button's action, and an action cannot be off for its key and
-  on for its button.
+  commits with the cursor hidden — a click then Enter makes the move.
+- **The game binds its own Submit**, beside the button it draws, and
+  `useBoardSelectionCursor` has no commit. A game's Submit knows things no
+  shared hook should: when it hides, what it says while a guess is in flight.
+  It is also why Enter ignores the cursor — an action cannot be off for its
+  key and on for its button.
 - **Arrows move by shape, never by state.** `stepCell` goes to the next cell
   that EXISTS in the arrow's direction, passing over a hole, and stays put at
   an edge or a short last row. A decided piece still exists: the cursor rests

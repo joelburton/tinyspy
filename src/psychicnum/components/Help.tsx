@@ -25,14 +25,15 @@ export function Help({ onClose, brand }: Props) {
     >
       <p>
         <strong>Find the three secret words.</strong> The board shows a
-        set of words; click one or type it to guess. A correct guess
+        set of words; click one and Submit to guess — or move with the
+        arrow keys, pick with Space, and guess with Enter. A correct guess
         turns green and a miss turns red — both for good, so the board
         keeps the record of what you&rsquo;ve ruled out. Every guess
         costs one from your budget.
       </p>
 
       <p>
-        Stuck? Two kinds of help, neither of which costs a guess. A{' '}
+        Stuck? Two kinds of hints, neither of which costs a guess. A{' '}
         <strong>hint</strong> gives you the dictionary clue for one
         secret you haven&rsquo;t found — not the word. A{' '}
         <strong>spoiler</strong> hands you the word itself, though you

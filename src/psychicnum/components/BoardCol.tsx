@@ -271,12 +271,10 @@ export function BoardCol({
     pick(picked === word ? null : word)
   }
 
-  const { cursor, point, actCommit } = useBoardSelectionCursor({
+  const { cursor, point } = useBoardSelectionCursor({
     shape,
     enabled: canPlay,
     onToggle: toggleAt,
-    onCommit: () => void submitGuess(),
-    canCommit: picked !== null && !submitting,
   })
 
   // A tile click: the pick, and the cursor moves there, hidden.
@@ -285,6 +283,13 @@ export function BoardCol({
     point({ x: i % shape.cols, y: Math.floor(i / shape.cols) })
     pick(word)
   }
+
+  // Submit guesses the picked word, on its button or Enter — whether or not the
+  // cursor shows, since the pick is always drawn.
+  const actSubmit = useBoundAction('act-submit', {
+    describe: () => (canPlay && picked !== null && !submitting ? 'active' : 'disabled'),
+    run: submitGuess,
+  })
 
   // Clear un-picks, on its button or ⌫.
   const actClearSelection = useBoundAction('act-clear-selection', {
@@ -357,7 +362,7 @@ export function BoardCol({
                 show={phone ? 'icon' : 'both'}
               />
               <ActionButton
-                action={actCommit}
+                action={actSubmit}
                 show={phone ? 'icon' : 'both'}
                 weight="primary"
               />

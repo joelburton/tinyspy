@@ -7,8 +7,9 @@ import type { BoardShape } from './stepCell'
 import { useBoardSelectionCursor, type BoardSelectionCursorOptions } from './useBoardSelectionCursor'
 
 // A board's selection cursor: hidden until an arrow, the first arrow only
-// showing it, Space inert while hidden, Enter committing either way, a click
-// moving it and hiding it, and a board you cannot play drawing none.
+// showing it, Space inert while hidden, a click moving it and hiding it, and a
+// board you cannot play drawing none. Enter is the game's own Submit, so it is
+// tested with the game.
 
 /** A real window keydown. Awaited: an action's run settles a microtask later. */
 async function press(key: string) {
@@ -20,7 +21,7 @@ async function press(key: string) {
 const shape: BoardShape = { cols: 3, rows: 2, exists: () => true }
 
 function setup(over: Partial<BoardSelectionCursorOptions> = {}) {
-  const cb = { onToggle: vi.fn(), onCommit: vi.fn() }
+  const cb = { onToggle: vi.fn() }
   const view = renderHook(
     (props: Partial<BoardSelectionCursorOptions>) => {
       useActionDispatcher()
@@ -54,15 +55,6 @@ describe('useBoardSelectionCursor', () => {
     s.view.unmount()
   })
 
-  // The selection is always drawn, so Enter commits it with the cursor hidden:
-  // a click and then Enter makes the move.
-  it('Enter commits whether or not the cursor shows', async () => {
-    const s = setup()
-    await press('Enter')
-    expect(s.onCommit).toHaveBeenCalledTimes(1)
-    s.view.unmount()
-  })
-
   it('a click moves the cursor and hides it; the next arrow shows it there', async () => {
     const s = setup()
     await press('ArrowRight')
@@ -81,9 +73,7 @@ describe('useBoardSelectionCursor', () => {
     expect(s.cursor()).toBeNull()
     await press('ArrowRight')
     await press(' ')
-    await press('Enter')
     expect(s.onToggle).not.toHaveBeenCalled()
-    expect(s.onCommit).not.toHaveBeenCalled()
     s.view.rerender({ enabled: true })
     expect(s.cursor()).toEqual({ x: 1, y: 0 })
     s.view.unmount()

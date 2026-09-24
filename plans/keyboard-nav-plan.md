@@ -243,15 +243,18 @@ only worth paying for in a race.
 ## Build order
 
 **psychicnum first — DONE 2026-09-24.** It built the shared pieces, all in
-`common/board-cursor/`: the `useBoardCursorKeys` extension,
-`useSelectionCursor` (which `<SelectionList>` runs too), `stepCell`,
-`useBoardSelectionCursor` over the three, and `reachability.fixture.ts`. See
+`common/board-cursor/`: `useSelectionCursor` (which `<SelectionList>` runs
+too), `stepCell`, `useBoardSelectionCursor` over the two, and
+`reachability.fixture.ts`. See
 [psychicnum — the first rollout](#psychicnum--the-first-rollout).
 
-A later game brings a `BoardShape`, a reachability test over it, an `onToggle`
-and an `onCommit`, and draws the ring from the `cursor` it gets back.
-`useBoardSelectionCursor`'s commit is `act-submit`; a game whose move is not a
-submit (waffle's swap) decides then whether that is the right action.
+A later game brings a `BoardShape`, a reachability test over it, and an
+`onToggle`, and draws the ring from the `cursor` it gets back. **It binds its
+own Submit** (Enter), beside the button it draws — the hook has no commit, so
+a game's Submit keeps its own rules (connections hides it in the viewer and
+says "Submitting…"). **Check its `Help.tsx` too**: the rules text saying how
+to make a move is written by hand, so it has to learn the arrows, Space and
+Enter (the key list under it is automatic).
 
 Then **waffle**, which brings the one real behavior change the feature asks of a
 game: a selection that must stop auto-committing (today the second click *is*
@@ -291,8 +294,7 @@ games follow.
 
 ### The steps
 
-1. **Extend `useBoardCursorKeys`** — see [Code](#code). Run scrabble's and
-   bananagrams' suites.
+1. **The new action**, `act-toggle-tile` on Space — see [Code](#code).
 2. **The selection-cursor hook**, in `common/board-cursor/` (moved out of
    `shared/`, since `<SelectionList>` in `common/lists` uses it and common never
    imports shared): the cursor cell, the visibility rules, and the stepper for a
@@ -302,9 +304,8 @@ games follow.
    verified by planting a break.
 4. **psychicnum's `BoardCol`**: prerequisite 2 (the entry, the recall state, the
    pre-check and `not_on_board` — in `answer.ts`, `answer.test.ts` and
-   `doc.md`); the cursor state beside `pending`; `commit: 'act-submit'`, with
-   the returned `actCommit` placed as the Submit button; Clear is
-   `act-clear-selection`, as in connections.
+   `doc.md`); the cursor state beside the pick; its own `act-submit` on the
+   Submit button; Clear is `act-clear-selection`, as in connections.
 5. **psychicnum's `Board`**: a `cursor` prop and the ring, `outline:
    var(--chrome-cursor-ring)` with an offset tuned to the board. A click sets the
    cursor hidden. Tiles still never take DOM focus.
@@ -353,20 +354,17 @@ bubble carries the shortcut (`Submit · ↵`).
 
 ## Code
 
-**Compose `useBoardCursorKeys`** (`common/board-cursor/`) rather than writing a
-second keyboard. It already owns the load-bearing parts: its keys are bound
-actions the one dispatcher fires, which brings the modifier bail, the
-focused-field guard that stops a keystroke meant for chat reaching the board,
-and the skip-Enter-when-a-button-has-focus nicety with it. Duplicating those is
-how you ship a board that steals typing.
+**The keys are bound actions**, never a window listener: the one dispatcher
+brings the modifier bail, the focused-field guard that stops a keystroke meant
+for chat reaching the board, and the skip-Enter-when-a-button-has-focus nicety
+with any action. Duplicating those is how you ship a board that steals typing.
 
-**DONE:** `onLetter` / `onBackspace` are optional, and `onToggle` is Space, on
-the new `act-toggle-tile`. A key with no callback answers hidden, so its
-keystroke goes on to the browser ([board-cursor/doc.md](../src/common/board-cursor/doc.md)).
-
-Above it, a new hook owns what is actually new: the cursor index, the stepper, the
-visibility rule, and activation. Per game that leaves a geometry, an
-`isActionable` predicate, and an `onActivate`.
+**DONE:** `useBoardSelectionCursor` binds `act-move-cursor` and the new
+`act-toggle-tile` (Space) itself, over `useSelectionCursor` and `stepCell`;
+the game binds its Submit. It does not compose `useBoardCursorKeys`, which
+stays the letter-grid hook: that one always binds a commit, and the commit
+here is the game's ([board-cursor/doc.md](../src/common/board-cursor/doc.md)).
+Per game that leaves a shape, an `onToggle`, and a Submit.
 
 ## Tests
 
