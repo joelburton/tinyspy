@@ -495,8 +495,8 @@ What is wordwheel's own:
 - **Each tile is spent once.** The word is typed at the window, or tapped in,
   and the wheel marks the tiles it is spending — one per use of a letter. A
   typed letter says how many of its tiles are in use but not which, so a click
-  claims the tile it landed on and the rest fall to render order, the center
-  first (`lib/spend.ts`); a spent tile takes no click. A letter past its tile
+  claims the tile it landed on, for that word only, and the rest fall to
+  render order, the center first (`lib/spend.ts`); a spent tile takes no click. A letter past its tile
   count, or off the wheel, dims as it is typed (`TypedWord`), and Submit and
   Enter are inert until the word fits (`lib/tiles.ts`), so the engine never
   sees a word the tiles cannot spell. Once the game is over, or I conceded a
@@ -580,7 +580,7 @@ Vitest, beside the code:
 | `lib/answer.test` · `lib/terminal.test` | every answer's words and outcome, and the two-way split of a miss by the center; every terminal sentence per mode, play state and reason, as a table with no cell pairing a win with a loss |
 | `lib/setup.test` · `components/SetupForm.test` | the letter rules and the band rule, each refusal under the field it names; the form's settings in order, the compete caption, the solo club's missing picker, the unique-letters key dropped rather than stored false, and where a server refusal lands — the letters box, the band, or the checkbox that narrowed the pool |
 | `lib/spend.test` · `lib/tiles.test` · `components/TypedWord.test` | which tile a use spends: the center first for a typed letter, the clicked tile for a click, a claim ignored once the word drops its letter, and the most recent click forgotten first; whether a word fits the tiles; a typed letter dimming past its tile count or off the wheel |
-| `components/PlayArea.test` | the surface mounts in every mode and state; a required, bonus and pangram word accepted with the right call, a word the tiles cannot spell held back rather than refused, and a miss refused with its reason and answered on the board — its own tiles and no others, one per use of a letter, shaking and wearing its own outcome for `WORD_ANSWER_MS`, and shaking again when refused again; the tiles a word spends, marked and given back, the clicked tile over its twin, and the center first when it is duplicated; the inert board after a concede or an ending; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, End, Concede |
+| `components/PlayArea.test` | the surface mounts in every mode and state; a required, bonus and pangram word accepted with the right call, a word the tiles cannot spell held back rather than refused, and a miss refused with its reason and answered on the board — its own tiles and no others, one per use of a letter, shaking and wearing its own outcome for `WORD_ANSWER_MS`, and shaking again when refused again; the tiles a word spends, marked and given back, the clicked tile over its twin and forgotten once its word is submitted, and the center first when it is duplicated; the inert board after a concede or an ending; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, End, Concede |
 
 Playwright, in `e2e/`: `wordwheel` (a submitted word lands in the list and
 moves the score with no refresh), `wordwheel-coop-win` (crossing the target

@@ -1295,7 +1295,21 @@ and labels the prose pass, reading headers, did not reach.
 Options: **fix them all** in one sitting; or leave them. Recommendation: fix
 them all, the migration's three included.
 
-### F-wordwheel-15 · `claims-survive-submit` · a clicked tile's claim outlives the word it was clicked for — a BUG
+### SHIPPED · F-wordwheel-15 · `claims-survive-submit` · a clicked tile's claim outlives the word it was clicked for — a BUG
+
+**Joel, 2026-09-24: "i'll take your rec"** — cleared in `onAnswer`. The
+claims state moved above the `useFoundWordSubmit` call, whose `onAnswer` now
+opens with `setClaims([])` and a line saying why; `handleChange`'s comment no
+longer lists the submit's clear and says `onAnswer` drops the claims instead.
+Checked before building: `onAnswer` runs synchronously inside `submit` on
+every path after the clear, the accepted one included (optimistic, before the
+commit), so it cannot wipe a click made for the next word. `doc.md`'s rule
+says a claim holds for its word only, and the Tests row names the new case.
+
+**Verified:** a `PlayArea.test` case — click the outer E, type `bad`, Enter,
+type `e`: the center is spent, the outer E is not. **Planted** the
+`setClaims([])` line out: that case red, the bug reproduced. Restored. `tsc
+-b` and eslint clean; wordwheel and the guards, 42 files, 398 tests green.
 
 **Proved with a scratch test, then deleted.** Click the outer E on a wheel
 whose center is also E, type the rest, press Enter (the word is refused or

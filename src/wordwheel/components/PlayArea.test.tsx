@@ -593,6 +593,23 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     expect(outerE()).not.toHaveAttribute('data-disabled')
   })
 
+  it('forgets a click once its word is submitted', async () => {
+    // The engine clears the box on a submit without calling the game's
+    // onChange, so the claim has to be dropped where the answer lands — or the
+    // NEXT word's typed 'e' would spend the outer tile clicked for this one.
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ outer_letters: 'bacdfghe' }))
+    render(<WithKeys {...makeCtx()} />)
+    const centerE = () => document.querySelector('[data-tile="E"][data-center]')!
+    const outerE = () => document.querySelector('[data-tile="E"]:not([data-center])')!
+
+    await user.click(outerE())
+    await user.keyboard('bad{Enter}')
+    await user.keyboard('e')
+    expect(centerE()).toHaveAttribute('data-disabled', 'true')
+    expect(outerE()).not.toHaveAttribute('data-disabled')
+  })
+
   it('spends duplicate tiles one per occurrence, the center first', async () => {
     const user = userEvent.setup()
     // A wheel where the CENTER letter 'e' is duplicated on an outer tile:

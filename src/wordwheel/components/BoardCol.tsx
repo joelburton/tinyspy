@@ -143,6 +143,10 @@ export function BoardCol({
   // the ones the word would have spent should answer (the Wheel picks them).
   const [refused, showRefused] = useMark<{ counts: Map<string, number>; outcome: Outcome }>(WORD_ANSWER_MS)
 
+  // WHICH tile each use of a letter spends. A click claims the tile it landed
+  // on; everything else falls to the render order (`lib/spend.ts`).
+  const [claims, setClaims] = useState<Claim[]>([])
+
   const center = centerLetter.toLowerCase()
   const { word, setWord, lastWord, submit } =
     useFoundWordSubmit({
@@ -185,6 +189,9 @@ export function BoardCol({
       // word also answers ON the board: the tiles it used shake and take the
       // same outcome, so the two cannot disagree.
       onAnswer: (report) => {
+        // The engine has already emptied the box, without going through
+        // `handleChange`, so the last word's clicks are dropped here.
+        setClaims([])
         const { outcome, text } = answerMessage(answerOf(report, center))
         localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
         if (report.answer === 'accepted') return
@@ -198,10 +205,6 @@ export function BoardCol({
   // The typed word is the engine's, above; what this column reads off it, and
   // the letter click that adds to it, sit here.
 
-  // WHICH tile each use of a letter spends. A click claims the tile it landed
-  // on; everything else falls to the render order (`lib/spend.ts`).
-  const [claims, setClaims] = useState<Claim[]>([])
-
   // A click is my next action, so it dismisses a gesture-cleared result.
   const handleLetterClick = useCallback(
     (letter: string, ordinal: number) => {
@@ -212,10 +215,10 @@ export function BoardCol({
     [localFeedbackSlot, setWord],
   )
 
-  // Every OTHER way the word changes — a keystroke, a Backspace, the recall,
-  // the box clearing on submit — can only take claims away, never make one:
-  // the player named no tile. Trimming against the new word is the whole of
-  // it, and an empty box drops the lot.
+  // Every OTHER way the word changes — a keystroke, a Backspace, the recall —
+  // can only take claims away, never make one: the player named no tile.
+  // Trimming against the new word is the whole of it. A submit clears the box
+  // without coming through here, so `onAnswer` drops the claims instead.
   const handleChange = useCallback(
     (next: SetStateAction<string>) => {
       setClaims((c) => trimClaims(c, typeof next === 'string' ? next : next(word)))
