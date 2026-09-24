@@ -1503,6 +1503,36 @@ in-flight dim, no attention, no game-over frame.
 - **Question 1:** *"yes, shake bystander and assassin"* — a guess that turns
   over a bystander or an assassin shakes its tile, after the attention flash.
 
+### SHIPPED — pass 3 built, 2026-09-23 (Joel: *"build this."*)
+
+- **P-1:** `PlayArea` names `myTurn` once — the bell, `useTurnStartFlash` and
+  the board's `dimNotYourTurn` (`partnersTurn = cluesStillGiven && !myTurn`)
+  all read it, so the dim never falls on the giver writing the clue.
+- **P-2:** `dimInFlight` on the pending tile; `.tilePending` and `.tileKey`
+  deleted with their markers (Joel's ruling), the board's comments with them.
+  `todo.md`'s monospace Someday item is gone, and `setup-form/todo.md`'s mono
+  question no longer lists this board.
+- **P-3 + the shake:** `useMoveAttention` over the words, `moveCount` the
+  guess count (`guesses.length`), a tile's reveal state compared as one string;
+  `useMark` shakes the flashed tiles that are not agents, `ATTENTION_FADE_MS`
+  after, keyed on the positions. The key squares and triangles lift to
+  `z-index: 1` above the flash, as psychicnum's dot does.
+- **P-4:** the game-over frame from `terminalMessage.outcome`, given up to the
+  viewer.
+- **P-6:** the tan joins `tile-feedback.md`'s floor-exceptions table.
+- **P-7:** `theme.css` says the agent tokens stay separate, and why.
+- **tf2** in the plan's roster, and its section marked as the before.
+  `doc.md` → Frontend gains the marks, and two Tests rows catch up.
+- **Tests:** eleven Board cases and five PlayArea cases. **Planted** each
+  mark and each wiring line out — the in-flight dim, the turn dim, the turn
+  flash, the frame kept while viewing, attention not quiet in history,
+  attention ignoring the log, an agent shaking, the shake not waiting, the dim
+  in sudden death and at the end, the dim on the giver, no outcome passed, the
+  flash not wired, the move count not passed — every one red. One plant first
+  **passed** (the shake not waiting): under fake timers a 0ms timer waits for
+  the clock too, so the case now checks a millisecond before the flash ends.
+  `tsc -b` and eslint clean; 49 files, 444 tests. **Not seen on screen.**
+
 ### Checked and fine
 
 The shared tile (face + actionable), hover as a shadow, ink (dark untouched,

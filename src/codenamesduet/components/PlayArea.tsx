@@ -10,6 +10,7 @@ import { useTabRing } from '@/common/keyboard/useTabRing'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useTurnBell } from '@/common/sounds/useTurnBell'
+import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { cls } from '@/common/utils/cls'
 import { db } from '../db'
@@ -297,13 +298,17 @@ export function PlayArea({
     hasCurrentTurnClue: currentTurnClue !== null,
   })
 
-  // The bell, when there is something for me to do. This game never moves the
-  // shared turn pointer `GamePage` rings from, so it rings its own; sudden death
-  // has no arrival to ring for.
+  // My turn: there is something for me to do. This game never moves the shared
+  // turn pointer `GamePage` rings from, so it marks its own — the bell and the
+  // board's frame flash on the arrival, and the board dims while my partner
+  // holds the move. Sudden death and a finished game have no turn at all.
   const cluesStillGiven = !gameOver && !inSuddenDeath
   const myClueToGive = isClueGiver && !isGuessPhase
   const myClueToGuess = !isClueGiver && isGuessPhase
-  useTurnBell(cluesStillGiven && (myClueToGive || myClueToGuess))
+  const myTurn = cluesStillGiven && (myClueToGive || myClueToGuess)
+  const partnersTurn = cluesStillGiven && !myTurn
+  useTurnBell(myTurn)
+  const turnFlash = useTurnStartFlash(myTurn)
 
   // ─── The local slot, and its standing condition ─────
   // A condition is an effect on a primitive edge that shows on true and
@@ -557,6 +562,11 @@ export function PlayArea({
         gameOver={gameOver}
         readOnly={!cellsClickable}
         historyLitTiles={historySnap?.historyLitTiles}
+        // ── Board marks (tile-feedback): the turn, the move log, the ending ──
+        notMyTurn={partnersTurn}
+        myTurnJustStarted={turnFlash}
+        moveCount={guesses.length}
+        terminalOutcome={terminalMessage?.outcome ?? null}
         // ── History viewer ──
         historyLabel={historySnap?.historyLabel ?? null}
         onExitHistory={exitHistory}

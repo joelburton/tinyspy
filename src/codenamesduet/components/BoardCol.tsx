@@ -9,6 +9,7 @@ import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import { runRpc } from '@/common/supabase/dbResult'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import { db } from '../db'
 import type { WordRow } from '../hooks/useBoard'
 import type { ClueEvent } from '../lib/events'
@@ -71,6 +72,11 @@ export function BoardCol({
   gameOver,
   readOnly,
   historyLitTiles,
+  // ── Board marks ──
+  notMyTurn,
+  myTurnJustStarted,
+  moveCount,
+  terminalOutcome,
   // ── History viewer (its overlay lives in the below-board region) ──
   historyLabel,
   onExitHistory,
@@ -106,6 +112,12 @@ export function BoardCol({
   readOnly: boolean
   // The positions the viewed turn decided — ringed (undefined while live).
   historyLitTiles: ReadonlySet<number> | undefined
+
+  // ── Board marks ── straight through to `<Board>`; see its props.
+  notMyTurn: boolean
+  myTurnJustStarted: boolean
+  moveCount: number
+  terminalOutcome: Outcome | null
 
   // The viewed turn's description while inspecting history (drives the banner), or
   // null when live.
@@ -211,6 +223,10 @@ export function BoardCol({
         onGuess={handleGuess}
         isViewingHistory={isViewingHistory}
         historyLitTiles={historyLitTiles}
+        notMyTurn={notMyTurn}
+        myTurnJustStarted={myTurnJustStarted}
+        moveCount={moveCount}
+        terminalOutcome={terminalOutcome}
       />
       {/* The below-board slot (docs/playarea.md → Board sizing). Two states in
           one fixed-height slot, so the board above never shifts as they swap:

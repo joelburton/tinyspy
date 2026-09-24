@@ -38,6 +38,8 @@ const g = vi.hoisted(() => {
     game: { current_clue_giver: 'A', turn_number: 1, user_a_id: 'peer', user_b_id: 'me' },
     events: [PEER_CLUE] as unknown[],
     agentsDone: { mine: false, peer: false },
+    // Positions turned over as agents — the board a guess has changed.
+    agentsAt: [] as number[],
   }
 })
 // The game row seats peer as A and me as B; the names come from the shell's
@@ -57,7 +59,7 @@ vi.mock('../hooks/useBoard', () => ({
     words: Array.from({ length: 25 }, (_, i) => ({
       position: i,
       word: i === 0 ? 'apple' : i === 1 ? 'berry' : `word${i}`,
-      revealed_as: null,
+      revealed_as: g.agentsAt.includes(i) ? 'G' : null,
       neutral_a: false,
       neutral_b: false,
     })),
@@ -154,6 +156,7 @@ beforeEach(() => {
   g.game = { current_clue_giver: 'A', turn_number: 1, user_a_id: 'peer', user_b_id: 'me' }
   g.events = [g.PEER_CLUE]
   g.agentsDone = { mine: false, peer: false }
+  g.agentsAt = []
   rpc.mockReset()
   // Never resolves → the first guess stays "in flight" so we can test the guard.
   rpc.mockReturnValue(new Promise(() => {}))
@@ -256,6 +259,61 @@ describe('codenamesduet PlayArea — the turn bell', () => {
     expect(lastTurn()).toBe(false)
     view.rerender(<PlayAreaLoader {...makeCtx({ playState: 'won', isTerminal: true })} />)
     expect(lastTurn()).toBe(false)
+  })
+})
+
+/**
+ * The board's turn dim and game-over frame, as PlayArea decides them: dimmed
+ * only while my partner holds the move — not while I write the clue, since the
+ * clue is written from the board — and never in sudden death or at the end.
+ */
+describe('codenamesduet PlayArea — the board marks', () => {
+  const grid = () => document.querySelector('[data-board] > div') as HTMLElement
+
+  it('dims the board while my partner writes the clue, not while I guess', () => {
+    g.events = []
+    const view = render(<PlayAreaLoader {...makeCtx()} />) // peer A holds the clue seat
+    expect(grid().className).toMatch(/dimNotYourTurn/)
+    g.events = [g.PEER_CLUE]
+    view.rerender(<PlayAreaLoader {...makeCtx()} />)
+    expect(grid().className).not.toMatch(/dimNotYourTurn/)
+  })
+
+  it('flashes the frame as the clue arrives for me to guess from', () => {
+    g.events = []
+    const view = render(<PlayAreaLoader {...makeCtx()} />)
+    expect(grid().className).not.toMatch(/yourTurnFlash/)
+    g.events = [g.PEER_CLUE]
+    view.rerender(<PlayAreaLoader {...makeCtx()} />)
+    expect(grid().className).toMatch(/yourTurnFlash/)
+  })
+
+  it('flashes the tile a guess turned over, reading the guess log', () => {
+    const view = render(<PlayAreaLoader {...makeCtx()} />)
+    g.agentsAt = [1]
+    g.events = [
+      g.PEER_CLUE,
+      { kind: 'guess', id: 2, user_id: 'me', took_turn: false, created_at: '2026-01-01T00:00:01Z',
+        turn_number: 1, seat: 'B', guess_position: 1, guess_result: 'G' },
+    ]
+    view.rerender(<PlayAreaLoader {...makeCtx()} />)
+    expect(screen.getByRole('button', { name: /berry/i }).className).toMatch(/attentionFlash/)
+    expect(screen.getByRole('button', { name: /apple/i }).className).not.toMatch(/attentionFlash/)
+  })
+
+  it('does not dim the board while I write the clue', () => {
+    asClueGiver()
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(grid().className).not.toMatch(/dimNotYourTurn/)
+  })
+
+  it('dims nothing in sudden death, and frames the finished board in its outcome', () => {
+    g.events = []
+    const view = render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
+    expect(grid().className).not.toMatch(/dimNotYourTurn/)
+    view.rerender(<PlayAreaLoader {...makeCtx({ playState: 'lost_assassin', isTerminal: true })} />)
+    expect(grid().className).not.toMatch(/dimNotYourTurn/)
+    expect(grid().className).toMatch(/gameOverLost/)
   })
 })
 

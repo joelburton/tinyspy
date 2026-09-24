@@ -21,7 +21,10 @@
 
 /* @@ */ :root {
   /* Agent — the "good" target color. Deep forest green; reads as
-     saturated on white without screaming. */
+     saturated on white without screaming. This and `-agent-key` below carry
+     the same hexes as `--outcomes-won-ink-color` and `--outcomes-won-base-color`,
+     and stay separate on purpose: they are the key card's vocabulary, not an
+     outcome's, and move with this game's palette, not with the outcome one. */
 /* @@ */   --codenamesduet-agent:               #2e7d32;
 /* @@ */   --codenamesduet-agent-soft-banner:   rgb(46 125 50 / 18%);
 /* @@ */   --codenamesduet-agent-text:          #1b5e20;  /* dark green; readable on soft-bright bg */

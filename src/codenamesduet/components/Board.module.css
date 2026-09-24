@@ -70,26 +70,14 @@
 /* @@ */   --tile-wdth-min: 0.6;
 }
 
-/* codenamesduet tiles carry corner OVERLAYS (keycard squares, neutral triangles,
- * the pending "…") that absolutely-position against the tile, so the tile must
+/* codenamesduet tiles carry corner OVERLAYS (keycard squares, neutral
+ * triangles) that absolutely-position against the tile, so the tile must
  * be a positioning context. The shared `.tile` doesn't set `position: relative`,
  * so it is added here as a per-game composition —
  * `cls(shared.tile, styles.overlayTile)`. (The shared `.tile` already sets
  * `container-type: inline-size`, which the cqi-sized overlays below rely on.) */
 /* @@ */ .overlayTile {
   position: relative;
-}
-
-/* @@ */ .tileKey {
-  /* Pending indicator — bottom-right corner, out of the way of
-   * the centered word. */
-  position: absolute;
-  bottom: 0.25rem;
-  right: 0.5rem;
-  font-size: 0.7rem;
-  opacity: 0.55;
-  font-family: ui-monospace, Menlo, monospace;
-  letter-spacing: 0.1em;
 }
 
 /* Tile FILL = what HAPPENED on this cell, set by re-defining the shared tile's
@@ -129,13 +117,6 @@
 /* @@ */   --tile-slot-ink-color: var(--ink-onDark-color);
 }
 
-/* Pending (the guess RPC is in flight): an accent ring, distinct from the shared
- * dark hover ring. Per-game state, composed on top of the shared `.tile`. */
-/* @@ */ .tilePending {
-  outline: 2px solid var(--button-normal-primary-color);
-  outline-offset: -2px;
-}
-
 /* A tile the VIEWED past turn decided — the shared history blue, the same
  * signal the board frame + the viewed turn's #N handle wear, in the shared
  * ring's geometry (`--history-tile-ring-*`, base.css). Pairs with the
@@ -161,6 +142,9 @@
   height: clamp(12px, 13cqi, 28px);
   border-radius: 4px;
   border: 1px solid var(--codenamesduet-tile-rule-color);
+  /* Above the attention flash, which sits at 0 so it can lighten the tile
+   * under its word — a flashing tile shouldn't swallow its key squares. */
+  z-index: 1;
 }
 /* @@ */ .keyMine {
   bottom: 5px;
@@ -193,6 +177,8 @@
   height: 0;
   border-left: clamp(6px, 6cqi, 10px) solid transparent;
   border-right: clamp(6px, 6cqi, 10px) solid transparent;
+  /* Above the attention flash, as the key squares are. */
+  z-index: 1;
 }
 /* @@ */ .triPeer {
   top: 4px;

@@ -1,6 +1,11 @@
 // cs-met-codenamesduet
 
+import { useEffect } from 'react'
 import { cls } from '@/common/utils/cls'
+import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
+import { useMark } from '@/common/board-marks/useMark'
+import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
+import type { Outcome } from '@/common/outcomes/outcomes'
 import type { WordRow } from '../hooks/useBoard'
 import type { KeyLabel } from '../lib/labels'
 import type { Seat } from '../lib/phase'
@@ -10,6 +15,9 @@ import styles from './Board.module.css'
 
 /** Empty lit-tile set — a stable reference so a live render never rings a tile. */
 const NO_TILES: ReadonlySet<number> = new Set()
+
+/** What a tile's reveal state is, as one comparable string per position. */
+const revealKey = (w: WordRow) => `${w.revealed_as ?? '-'}${w.neutral_a ? 'a' : ''}${w.neutral_b ? 'b' : ''}`
 
 /**
  * KeyLabel ('G'|'N'|'A') → the keycard-square color class. The squares always
@@ -40,8 +48,8 @@ type Props = {
   // Whether the caller may click tiles right now — the phase's answer
   // (`derivePhase`), with the viewer ORed in by BoardCol.
   cellsClickable: boolean
-  // The tile whose guess is in flight (the pending "…" + accent ring), or
-  // null. BoardCol's, which dispatches the guess.
+  // The tile whose guess is in flight — dimmed until the reply — or null.
+  // BoardCol's, which dispatches the guess.
   pendingPos: number | null
   // A click on a clickable tile. BoardCol owns `submit_guess`; this component
   // only reports the position.
@@ -52,14 +60,25 @@ type Props = {
   // The board positions the viewed turn decided — ringed in the history blue
   // ("added this turn"). Empty / omitted when live.
   historyLitTiles?: ReadonlySet<number>
+  // My partner holds the move: the board dims.
+  notMyTurn: boolean
+  // True for a beat as the move becomes mine: the board's frame flashes.
+  myTurnJustStarted: boolean
+  // Guesses the server has recorded — the CAUSE the attention flash reads. A
+  // restart deletes them, so it drops rather than advances.
+  moveCount: number
+  // The ending's outcome, for the game-over frame's color; null while playing.
+  terminalOutcome: Outcome | null
 }
 
 /**
  * The 5×5 codenamesduet board — presentational. It owns the per-tile render
- * alone: the result fill, the key-card, triangle and pending overlays, the
- * click gate. A click calls `onGuess`; BoardCol dispatches the guess, and the
- * reveal arrives by Realtime — `useBoard` refetches and the tile re-renders in
- * its result color.
+ * alone: the result fill, the key-card and triangle overlays, the click gate,
+ * and the shared board marks (plans/tile-feedback.md) — the in-flight dim, the
+ * attention flash and the shake on a tile, the turn dim and flash and the
+ * game-over frame on the board. A click calls `onGuess`; BoardCol dispatches
+ * the guess, and the reveal arrives by Realtime — `useBoard` refetches and the
+ * tile re-renders in its result color.
  */
 export function Board({
   words,
@@ -72,9 +91,46 @@ export function Board({
   onGuess,
   isViewingHistory = false,
   historyLitTiles = NO_TILES,
+  notMyTurn,
+  myTurnJustStarted,
+  moveCount,
+  terminalOutcome,
 }: Props) {
-  // The tiles are the shared `.tile` / `.tileWord` chrome; the key-card,
-  // triangle and pending overlays are layered on through `.overlayTile`, which
+  // ATTENTION — the tiles a guess just turned over, mine included: the answer
+  // arrives in the tile I am watching, and a partner's lands anywhere. Gated on
+  // the guess log, not on the board differing, so a restart, the history
+  // viewer and the partner's key being shown never flash. See
+  // `useMoveAttention`.
+  const flashing = useMoveAttention({
+    content: words,
+    contentKey: words.map(revealKey).join(','),
+    moveCount,
+    quiet: isViewingHistory,
+    changed: (before, now) =>
+      new Set(now.filter((w, i) => revealKey(w) !== revealKey(before[i] ?? w)).map((w) => w.position)),
+  })
+
+  // NO — the head-shake on a tile that came back a bystander or the assassin,
+  // once the flash has handed the tile its color back. An agent never shakes.
+  const [shakeMark, shakeWrong] = useMark<{ positions: ReadonlySet<number> }>(VERDICT_SHAKE_MS)
+  const shaking = shakeMark?.value.positions ?? NO_TILES
+  // Keyed on the positions rather than the set: `words` is a fresh array every
+  // refetch, and an effect depending on it would cancel its own timer.
+  const wrongKey = [...flashing]
+    .filter((p) => words[p] && words[p].revealed_as !== 'G')
+    .sort((a, b) => a - b)
+    .join(',')
+  useEffect(function shakeAfterFlash() {
+    if (wrongKey === '') return
+    const timer = setTimeout(
+      () => shakeWrong({ positions: new Set(wrongKey.split(',').map(Number)) }),
+      ATTENTION_FADE_MS,
+    )
+    return () => clearTimeout(timer)
+  }, [wrongKey, shakeWrong])
+
+  // The tiles are the shared `.tile` / `.tileWord` chrome; the key-card and
+  // triangle overlays are layered on through `.overlayTile`, which
   // makes the tile their positioning context.
   return (
     // data-board: the e2e handle for the layout-stability test, which measures
@@ -88,6 +144,13 @@ export function Board({
           shared.hugRectWidth,
           styles.grid,
           isViewingHistory && history.historyFrame,
+          notMyTurn && shared.dimNotYourTurn,
+          myTurnJustStarted && shared.yourTurnFlash,
+          // Both frames are outlines, so they take turns: the viewer owns it
+          // while open, being the state you chose and the one you can leave.
+          terminalOutcome !== null && !isViewingHistory && shared.gameOverFrame,
+          terminalOutcome === 'won' && !isViewingHistory && shared.gameOverWon,
+          terminalOutcome === 'lost' && !isViewingHistory && shared.gameOverLost,
         )}
       >
         {words.map((w) => {
@@ -129,7 +192,9 @@ export function Board({
                 shared.tile,
                 styles.overlayTile,
                 bgCls,
-                isPending && styles.tilePending,
+                isPending && shared.dimInFlight,
+                flashing.has(w.position) && shared.attentionFlash,
+                shaking.has(w.position) && shared.verdictShake,
                 // Turn-history: this cell was decided on the turn being viewed.
                 historyLitTiles.has(w.position) && styles.historyTile,
               )}
@@ -171,7 +236,6 @@ export function Board({
                   aria-hidden
                 />
               )}
-              {isPending && <span className={styles.tileKey}>…</span>}
             </button>
           )
         })}
