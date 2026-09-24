@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-board-cursor
 
 /**
  * Tests for the shared 2-D board-cursor keyboard (bananagrams + scrabble): arrows

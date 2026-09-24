@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-audited-board-cursor
 
 /**
  * The shared keyboard-cursor *movement* math for the two grid games

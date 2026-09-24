@@ -19,8 +19,9 @@ the folders' `todo.md`.
 - `outcome-fix` — closed as a pass across every game's move path; its files
   are `cs-fixed-outcome-fix`, not blessed.
 
-**Not opened yet:** the ten remaining games (Joel picks the next), and one
-shared family — `board-cursor`.
+**Open:** `board-cursor` — the READ is done; its findings await Joel.
+
+**Not opened yet:** the ten remaining games (Joel picks the next).
 
 **Before opening anything, read §4.** §3 is the order and the progress.
 
@@ -131,7 +132,7 @@ area file's closing summary.
 | | **The shared families** | | |
 | 48 | `dict-trie` | `shared/dict-trie` | closed 09-24 · the dictionary trie |
 | 49 | `rank-ladder` | `shared/rank-ladder` | closed 09-21 · the rank ladder |
-| 50 | `board-cursor` | `shared/board-cursor` | not opened · a cursor moving over a board |
+| 50 | `board-cursor` | `shared/board-cursor` | **open** 09-24 · a cursor moving over a board |
 | 51 | `wordle-style` | `shared/wordle-style` | closed 09-22 · the per-letter color codes |
 | 52 | `onscreen-keyboard` | `shared/onscreen-keyboard` | closed 09-22 · the on-screen QWERTY |
 | 53 | `grid-and-drag` | `shared/grid-and-drag` | closed 09-24 · dragging a tile onto the grid |
