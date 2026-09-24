@@ -36,6 +36,8 @@ import { useGame } from '../hooks/useGame'
 import { db } from '../db'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
+import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
+import { BOARD_SHAPE, cellAt, coordAt } from '../lib/boardShape'
 import type { PuzzleAnswer, StrandsSetup } from '../lib/setup'
 import shared from '@/common/game-page/playArea.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
@@ -370,6 +372,28 @@ export function PlayArea(ctx: GamePageCtx) {
   // presence is fixed for the game's life, no reflow. (wordle's shape.)
   const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
 
+  // The board refuses clicks — terminal, out of the race, a word in flight, a
+  // teammate's turn. The keyboard's cursor asks the same, and the viewer too.
+  const boardDisabled = isTerminal || isLocallyDone || busy || waiting
+
+  // The keyboard's selection cursor: arrows move a ring over the letters, and
+  // Space is a CLICK on the ringed one — extend, back up, or start over, by
+  // `clickTile`'s own rule. It follows the trace's end when a typed letter
+  // extends it, so after a letter that rings red the next arrow starts beside
+  // the candidates.
+  const { point, follow } = useBoardSelectionCursor({
+    shape: BOARD_SHAPE,
+    enabled: !boardDisabled && !historyViewer.isViewingHistory,
+    onToggle: (cell) => onTileClick(coordAt(cell)),
+  })
+
+  // A click on a letter: the cursor moves there, hidden, and the click does its
+  // move.
+  const handleTileClick = (at: Coord) => {
+    point(cellAt(at))
+    onTileClick(at)
+  }
+
   // ⌫ and Enter, as the two bindings the word-entry row places. ONE gate for both:
   // with nothing traced there is nothing to take back OR submit, and a frozen
   // board freezes them too. They go DISABLED rather than hidden, so the row
@@ -402,6 +426,9 @@ export function PlayArea(ctx: GamePageCtx) {
    *   - **Backspace** drops the last tile, so a misclick costs one key instead
    *     of restarting the word;
    *   - **Enter** submits — one of only two ways, with the Submit button;
+   *   - **the arrows and Space** are the selection cursor above: Space is a
+   *     click on the ringed letter, which is how a red-ringed candidate is
+   *     chosen without the mouse;
    *   - **Tab** has nowhere to go — the board is traced with clicks and keys,
    *     so this page's ring is empty and Tab is caught rather than leaked.
    *
@@ -429,6 +456,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // previous one stop pointing.
         clearAmbiguous()
         setTrace([...trace, r.at])
+        follow(cellAt(r.at))
       } else if (r.kind === 'ambiguous') {
         // No message here on purpose: that row IS the entry area, so a pill
         // would hide the word being built to say something the board can say
@@ -877,10 +905,10 @@ export function PlayArea(ctx: GamePageCtx) {
         // it's my own unspent hint. Either way the board draws it as rings with
         // no connecting line — a hint never gave you the order.
         hintCoords={historyViewer.isViewingHistory ? historySnap?.hintCoords ?? null : me?.active_hint_coords ?? null}
-        onTileClick={onTileClick}
+        onTileClick={handleTileClick}
         // `waiting` folds in turn-order (coop only): a waiting player's board
         // is inert, and the slot below says why.
-        disabled={isTerminal || isLocallyDone || busy || waiting}
+        disabled={boardDisabled}
         // The hint bar keeps its own gate: spend_hint is deliberately NOT
         // turn-gated (a team decision, not a move), so waiting must not dim
         // it — but replaying history must, or a click meant to exit the viewer
