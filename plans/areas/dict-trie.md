@@ -149,7 +149,7 @@ docstring rots, and `docs/common-folders.md`'s table already carries it.
 - `const A = 'a'.charCodeAt(0)` is a capital `A` naming the code of a
   lowercase `a`.
 
-## F-dict-trie-4 · `empty-word` · `buildTrie` marks the root as a word when the list holds an empty string
+## FIXED · F-dict-trie-4 · `empty-word` · `buildTrie` marks the root as a word when the list holds an empty string
 
 `buildTrie(['', 'cat'])` sets `eow[0] = 1`. The test pins that as known
 behavior, and `walkWord('')` refuses to reach it. It is harmless today: both
@@ -161,6 +161,12 @@ problem `walkWord`'s docstring says it exists to prevent.
 - **(a)** Skip an empty word the way a non-a–z word is skipped, and change the
   test to pin that.
 - **(b)** Keep it pinned as it is.
+
+**Resolution (Joel, 2026-09-24: *"skip it"*):** `buildTrie` skips an empty
+word the way it skips a non-a–z one, and its docstring says so. The test that
+pinned the root being marked now pins the skip, rating included. Planting the
+old behavior turns that test red. `walkWord`'s test lost the half that
+described the old behavior.
 
 ## F-dict-trie-5 · `walk-case` · `buildTrie` lower-cases; `walkWord` does not
 

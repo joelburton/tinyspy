@@ -39,6 +39,14 @@ describe('buildTrie', () => {
     expect(trie.eow[walkWord(trie, 'ca')]).toBe(0)
   })
 
+  it('skips an empty word rather than marking the root', () => {
+    // Node 0 is also `children`'s "no child", so a word ending there would give
+    // it two meanings. A rating for the skipped word is never validated.
+    const trie = buildTrie(['', 'cat'], [0, 2])
+    expect(trie.eow[0]).toBe(0)
+    expect(trie.eow[walkWord(trie, 'cat')]).toBe(2)
+  })
+
   it('lower-cases words and skips any with non-a–z characters', () => {
     const trie = buildTrie(['CAT', "don't"], [2, 5])
     expect(trie.eow[walkWord(trie, 'cat')]).toBe(2)
@@ -71,15 +79,8 @@ describe('walkWord', () => {
   it('returns -1 for the empty string rather than the root node', () => {
     // Walking nothing lands on node 0, which is also `children`'s "no child"
     // sentinel — so returning it would hand back a value that means the
-    // opposite everywhere else in this structure. A caller testing `!== -1`
-    // would then read eow[0], and eow[0] is only 0 for as long as no word list
-    // contains an empty string: buildTrie accepts one silently and marks the
-    // ROOT as a word, at which point every empty query answers "yes".
+    // opposite everywhere else in this structure.
     const trie = buildTrie(['cat'])
     expect(walkWord(trie, '')).toBe(-1)
-
-    const withEmpty = buildTrie(['', 'cat'])
-    expect(withEmpty.eow[0]).toBe(1) // the root really does get marked
-    expect(walkWord(withEmpty, '')).toBe(-1) // and it is still unreachable
   })
 })

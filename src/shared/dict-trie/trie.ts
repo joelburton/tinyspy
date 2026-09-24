@@ -30,10 +30,10 @@ export interface Trie {
   nNodes: number
 }
 
-/** Build a trie from a word list. Words are lower-cased; any word with a
- *  non-`a`–`z` character is skipped. `ratings`, if given, is parallel to
- *  `words` and becomes the terminal value (see "rated terminals" above);
- *  otherwise terminals are `1`.
+/** Build a trie from a word list. Words are lower-cased; an empty word, or any
+ *  word with a non-`a`–`z` character, is skipped. `ratings`, if given, is
+ *  parallel to `words` and becomes the terminal value (see "rated terminals"
+ *  above); otherwise terminals are `1`.
  *
  *  A supplied rating MUST be an integer in `1..255` — the terminal is a
  *  `Uint8Array` cell whose truthiness IS "this is a word", so a missing
@@ -53,6 +53,7 @@ export function buildTrie(words: readonly string[], ratings?: readonly number[])
   }
   for (let i = 0; i < words.length; i++) {
     const w = words[i].toLowerCase()
+    if (w.length === 0) continue // the root is never a word; see walkWord
     let node = 0
     let ok = true
     for (let j = 0; j < w.length; j++) {
