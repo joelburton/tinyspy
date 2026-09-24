@@ -26,12 +26,15 @@ export function Help({ onClose, brand }: Props) {
       <ul>
         <li>
           <strong>Trace a word</strong> by clicking letters in order. Letters must
-          touch — sideways, up and down, or <em>diagonally</em>.
+          touch — sideways, up and down, or <em>diagonally</em>. The arrow keys
+          move a ring over the board, and <kbd>Space</kbd> does what a click on
+          the ringed letter would.
         </li>
         <li>
           <strong>Or type it.</strong> Once a word has a first letter, typing picks
           the neighbor that matches — usually there's only one. When several
-          letters could be meant, they ring red: click the one you want. (A word's
+          letters could be meant, they ring red: click the one you want, or reach
+          it with the arrows and press <kbd>Space</kbd>. (A word's
           <em>first</em> letter is usually a click, since the same letter appears
           all over the board.)
         </li>

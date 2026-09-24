@@ -410,6 +410,17 @@ reversed. Physical keys also do the rest: **Backspace** drops the last tile,
 empty tab ring, so no tile is ever a tab stop), and any key dismisses the last
 result.
 
+**The arrows and Space are a selection cursor** (`useBoardSelectionCursor`,
+the shape `lib/boardShape.ts`): a ring in the app's cursor blue, hidden until
+an arrow asks for it, and **Space is exactly a click** on the ringed letter —
+extend, back up, or start over, by `clickTile`'s rule. It is how a red-ringed
+candidate is chosen without the mouse. A typed letter, a submitted word and a
+click each move the cursor to where the move went and hide it, so the next
+arrow shows it there — beside the candidates after a letter that rang red.
+The ring is an SVG circle at the cell's edge rather than the shared outline,
+because this board draws no boxes; it sits outside the trace-end ring, so both
+show on one letter, and arrowing never moves the trace's end.
+
 **A click never submits.** Re-clicking the last tile would be a misclick magnet:
 that tile is where the cursor already is, so clipping it while reaching for the
 next letter would fire a half-built word at the server. It truncates like any

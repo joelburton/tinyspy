@@ -21,8 +21,8 @@ export function cellsOf(shape: BoardShape): Cell[] {
 /**
  * For a TEST — the cells a selection cursor starting at `start` can never
  * reach by arrows, walking `stepCell`'s own answers. A board's shape is sound
- * when this is empty from every cell (plans/keyboard-nav-plan.md → the
- * reachability invariant).
+ * when this is empty from every cell: every cell must be reachable from every
+ * other (doc.md → Arrows move by shape).
  *
  *     for (const start of cellsOf(shape)) expect(unreachableFrom(shape, start)).toEqual([])
  */

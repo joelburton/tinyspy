@@ -707,8 +707,9 @@ The doc left "position" unassigned for a long time because its three claimants
 looked like one thing. They are two, and separating them answers all three:
 
 - **The CURSOR is where my INPUT is pointing.** It moves as I look around, commits
-  nothing, and belongs to the keyboard: crosswords' cell cursor, and the arrow
-  cursor the five board games are getting (plans/keyboard-nav-plan.md). The
+  nothing, and belongs to the keyboard: crosswords' cell cursor, and the
+  selection cursor of the boards where clicking a piece is the move
+  (`common/board-cursor`). The
   arrow cursor takes an **outline**: the app's cursor ring
   (`--chrome-cursor-ring`, the one `<SelectionList>` draws on a row), outside
   the piece — the shared `.selectionCursor`. It touches nothing the piece already wears — the picked border sits
@@ -1721,15 +1722,6 @@ Two changes in this conversion looked correct in the CSS and did nothing at all:
 
 Neither is visible to `tsc` or eslint, and both survived review of the diff.
 On this kind of work the diff is not evidence; the computed value is.
-
-## Not yet in scope
-
-**Keyboard navigation** is now planned in detail —
-[keyboard-nav-plan.md](keyboard-nav-plan.md) — for the five games where clicking
-pieces IS the move (waffle, psychicnum, connections, codenamesduet, strands). The
-marks it uses are all above; the plan holds the grammar (`Space` toggles, `Enter`
-alone commits), the movement model, and the rollout. It folds in here as each game
-lands.
 
 ## Open questions
 

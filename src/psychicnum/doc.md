@@ -308,6 +308,12 @@ answer does not.
 `GamePage` mounts the loader and owns everything above it — members, the timer,
 play_state, pause, chat — and unmounts this whole surface on pause.
 
+The keyboard's selection cursor is [board-cursor](../common/board-cursor/doc.md)'s;
+what is psychicnum's is its shape (`lib/boardShape.ts`: `⌈√N⌉` across, so the
+last row may be short, and a missing cell is a wall) and that the cursor sits
+on a CELL — a shuffle moves the words under it, and the pick, being a word,
+moves with its tile.
+
 Off the tree: `pdf/` builds the printable board from the live state at click
 time, so it works mid-game as well as at the end; the shared printable design
 language is [common/pdf/doc.md](../common/pdf/doc.md).

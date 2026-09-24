@@ -16,9 +16,10 @@ which the player needs to read the board, so it always shows.
 Backspace empties. `gridCursor.module.css` is its ring, heavy on the two edges
 the letters will run between, so the direction reads at a glance.
 
-In psychicnum you pick a word from the keyboard as well as by clicking one.
-Arrows move a ring over the tiles, Space picks the word under it, Enter
-guesses. That is a SELECTION cursor — an alternative to clicking, so it stays
+On the boards where clicking a piece IS the move — psychicnum, connections,
+codenamesduet, waffle, strands — you can make the move from the keyboard too.
+Arrows move a ring over the pieces, Space picks the one under it, Enter
+commits. That is a SELECTION cursor — an alternative to clicking, so it stays
 hidden until an arrow asks for it. `useSelectionCursor` holds its show/hide
 rules, which `<SelectionList>` keeps too; `stepCell` says where an arrow takes
 it over a board's cells; `useBoardSelectionCursor` puts those together with
@@ -45,6 +46,10 @@ common/board-cursor/
 bananagrams/hooks/usePlayerBoard.ts     runs the hook and the math; BoardArena renders the ring
 scrabble/components/BoardCol.tsx        runs the hook and the math; Board renders the ring
 psychicnum/components/BoardCol.tsx      runs useBoardSelectionCursor; Board renders the ring
+connections/components/BoardCol.tsx     the same
+codenamesduet/components/BoardCol.tsx   the same
+waffle/components/Board.tsx             runs it beside its own selection, and renders the ring
+strands/components/PlayArea.tsx         runs it; Board draws its own ring (below)
 common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
 ```
 
@@ -95,9 +100,38 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
   that EXISTS in the arrow's direction, passing over a hole, and stays put at
   an edge or a short last row. A decided piece still exists: the cursor rests
   on it and Space does nothing there, so the same press always goes the same
-  place. Every board's shape carries a reachability test
-  (`reachability.fixture.ts`).
+  place. A board that SHRINKS under the cursor (connections, a row per solved
+  band) stands it on the nearest cell left (`clampCell`). Every board's shape
+  carries a reachability test (`reachability.fixture.ts`).
 - **The selection ring is a shared mark**, `.selectionCursor` in
   `common/game-page/playArea.module.css`: the app's cursor ring, outside the
   piece. The game puts it on the piece `cursor` names
-  ([tile-feedback.md](../../../plans/tile-feedback.md) → Position).
+  ([tile-feedback.md](../../../plans/tile-feedback.md) → Position). strands
+  alone draws its own — an SVG circle in the same `--chrome-cursor-color` —
+  because its board draws no boxes.
+- **Which boards take one.** Where clicking a piece is the move, and an arrow
+  has a sane meaning. Not where the board is a reference you type against
+  (boggle, spellingbee, wordwheel, wordle, wordiply); not where one keystroke
+  already names a piece (letterboxed's twelve unique letters, setgame's
+  lettered cards); not stackdown, whose overlapping stack has no "one cell
+  left".
+- **Enter is the only key that commits a keyboard move.** A pointer's aim is
+  its confirmation, so a click may commit; an arrow can land a cell off, so the
+  keyboard confirms with a second key. codenamesduet (a click guesses) and
+  waffle (the second tap swaps) keep their clicks, and their keyboard picks
+  wait for Enter. Where a click only ever picks (connections, strands), Space
+  is exactly that click.
+- **The cursor lives beside the game's selection**, since the two must agree.
+  A board that can't take a move — not your turn, finished, in the history
+  viewer — draws no cursor and takes no keys, but keeps the cell for when it
+  can. There is no scroll-into-view: the board is always on screen.
+- **No board piece is ever focused.** The cursor is state and a mark, and the
+  keys are actions; a focused tile would be promoted to `:focus-visible` by
+  the next keystroke.
+- **No on-screen cue teaches Enter** where a click commits (a `⏎ to guess`
+  line under the board was declined): Help and the key list do. codenamesduet
+  and waffle each keep a Someday about it.
+- **A new board brings** a shape with its reachability test, an `onToggle`,
+  its own Submit, the ring on the piece `cursor` names, and a line in its
+  hand-written `Help.tsx` — the key list under it is automatic, the rules text
+  is not.

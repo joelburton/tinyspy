@@ -8,9 +8,9 @@
 
 - **Teach Enter on screen.** A click guesses at once, so nothing on the board
   shows that the keyboard's pick (arrows, Space) is guessed with Enter; only
-  Help and the key list say so. The plan's `⏎ to guess` cue
-  (plans/keyboard-nav-plan.md → The `⏎ to guess` cue) was declined because
-  the below-board line — the clue, and Pass & End Turn — has no room for it.
+  Help and the key list say so. A `⏎ to guess` line under the board, shown
+  while a keyboard pick waits, was declined because the below-board line —
+  the clue, and Pass & End Turn — has no room for it.
   Something that fits would teach the key where it is used.
 
 ## Maybe

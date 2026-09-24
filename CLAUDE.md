@@ -168,7 +168,6 @@ game's area, consult both.
 | [plans/playarea-readability.md](plans/playarea-readability.md) | The target shape for each game's `PlayArea.tsx`; read it per game area |
 | [plans/spectating.md](plans/spectating.md) | Proposed, nothing decided: what a watching club member sees |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
-| [plans/keyboard-nav-plan.md](plans/keyboard-nav-plan.md) | Arrow-key navigation of board pieces |
 
 ## Audience — friends, not strangers
 
