@@ -325,7 +325,7 @@ games follow.
 
 | game | absent coords | `Space` selects | `Enter` commits | extra |
 |---|---|---|---|---|
-| waffle | 4 holes | up to **two** tiles | the swap | must hold 2 selections without firing |
+| waffle | 4 holes | up to **two** tiles; a third is refused | the swap | must hold 2 selections without firing; its own `act-submit` on Enter, labeled "Swap"; a tap acts on what is picked (with two picked it starts over); no cue |
 | psychicnum | trailing cells | one word | the guess | Submit stays, as the commit's button; no cue |
 | connections — **DONE** | — | up to four | the group | index clamps when a band collapses; peer rings nest |
 | codenamesduet | — | one word | the guess | guesser only; its own `act-submit` on Enter, no button, labeled "Guess"; no cue |
@@ -345,8 +345,11 @@ bubble carries the shortcut (`Submit · ↵`).
 **codenamesduet takes no cue either** (Joel, 2026-09-24): its below-board line
 is already full — the clue, and the guesser's Pass & End Turn — and a cue
 would not fit. Help and the key list ("Guess ↵") teach Enter. A way to teach
-it on screen is a Someday in `codenamesduet/todo.md`. waffle decides for
-itself when it lands.
+it on screen is a Someday in `codenamesduet/todo.md`.
+
+**waffle takes no cue** (Joel, 2026-09-24), though its slot has the room:
+Help and the key list ("Swap ↵") teach Enter, and a Someday in
+`waffle/todo.md` holds the question.
 
 ## Decided, so nobody re-opens them
 

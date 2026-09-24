@@ -84,6 +84,12 @@
 
 ## Someday
 
+- **Teach Enter on screen.** A tap-tap swaps at once, so nothing on the board
+  shows that two keyboard picks (arrows, Space) are swapped with Enter; only
+  Help and the key list ("Swap ↵") say so. The plan's `⏎ to guess` cue
+  (plans/keyboard-nav-plan.md → The `⏎ to guess` cue) was declined here, as it
+  was for codenamesduet; the slot under the board does have room, so this
+  one would fit if it is wanted.
 - `SolutionReveal` sets monospace twice, so the revealed grid's letters line
   up in a column. The alignment need is real; whether monospace is how to
   meet it is not obvious now that the app font's digits are tabular and its
