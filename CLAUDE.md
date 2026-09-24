@@ -277,9 +277,3 @@ React 19 + TypeScript + Vite on the frontend; Supabase (Postgres with RLS, Postg
 ## Game roster — trajectory
 
 The original target was ~7–8 games; sixteen are live today (codenamesduet, connections, psychicnum, spellingbee, bananagrams, waffle, wordle, stackdown, scrabble, boggle, crosswords, wordwheel, wordiply, strands, letterboxed, setgame); psychicnum is a deliberately minimal toy whose job is to exercise the multi-game architecture with the smallest possible game-logic surface.
-
-**New games tend to be ports.** The planned roster is essentially complete, but the pattern for any future addition still holds: Joel has implementations of these games in other stacks (the rules / problem-space are well understood), so the work is fitting them into the Supabase + React shell, not designing the game logic. When porting:
-
-- Treat the existing implementation as the spec for *what the game does* and adapt the FE to that.
-- Server-authoritative state and the gametype-per-schema split are non-negotiable; if the source code keeps state somewhere else, that's where the porting work happens.
-- Look for opportunities to share components / hooks with what's already in `common/` — see [docs/ui.md → Consistency across games](docs/ui.md#consistency-across-games) and [docs/code-conventions.md → Shared vs game-specific](docs/code-conventions.md#shared-vs-game-specific).

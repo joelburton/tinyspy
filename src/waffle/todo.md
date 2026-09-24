@@ -8,17 +8,13 @@
   beside it already answers `hidden` for it.
 
 ## Soon
-- **A swap row records no colors, so the browser is given the answer.** The
-  turn-history viewer recolors each past board on the frontend, which needs the
-  solution — so `waffle._solution_for` hands it to the coop client DURING PLAY,
-  and says so in its own comment. Storing a 25-char `colors` on the event row
-  the way wordle has always stored its per-guess colors takes the secret off the
-  client mid-game and retires `lib/colors.ts`'s copy of `common.wordle_colors`,
-  which is held to the SQL by hand-copied test vectors and has already drifted
-  once. The design, the footprint, the visibility check and the backfill for
-  existing games are worked out in `plans/waffle-stored-colors.md`; the three
-  open questions there are Joel's, and the first of them — whether the old games
-  are backfilled — decides whether it is worth doing at all.
+- **Does `waffle._solution_for` still hand coop the solution during play?**
+  Each swap row now stores its board's colors, so the turn-history viewer no
+  longer needs the answer to recolor a past board — the reason
+  `_solution_for`'s own comment gives for the coop branch, which also still
+  says compete writes no swap log. `PlayArea.tsx`'s comment above the swap
+  handler repeats the stale reason. Tightening the branch to terminal-only is
+  Joel's call, with its own pgTAP; either way the two comments are wrong today.
 
 - **The below-board reserve is a hand-tuned constant.**
   `components/Board.module.css`'s `--avail-h` sizes the board as `100svh -
