@@ -39,8 +39,8 @@
 
 ## Won't do
 
-- **`Wheel.module.css` is deliberately NOT folded with spellingbee's
-  `Letters.module.css` + `Letter.module.css`** (2026-07-31). The rest of the
+- **`Wheel.module.css` + `Tile.module.css` are deliberately NOT folded with
+  spellingbee's `Letters.module.css` + `Letter.module.css`** (2026-07-31). The rest of the
   pair's CSS is shared (`shared/bee-games`), but these stay separate copies.
   They're structurally parallel in their skeletons (`.board`, `.grid`,
   `.floatAnchor`, a tile), so a fold looks mechanically easy. The reason not

@@ -34,8 +34,8 @@
 
 ## Won't do
 
-- **`Letters.module.css` + `Letter.module.css` and `Wheel.module.css` are
-  deliberately NOT folded** with wordwheel's. The two sides are structurally
+- **`Letters.module.css` + `Letter.module.css` and `Wheel.module.css` +
+  `Tile.module.css` are deliberately NOT folded** with wordwheel's. The two sides are structurally
   parallel — `.board`, `.grid`, `.floatAnchor`, a tile — so a fold looks
   mechanically easy, and the reason
   not to is that it means picking ONE vocabulary for the shared names when a

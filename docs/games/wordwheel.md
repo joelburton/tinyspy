@@ -378,7 +378,7 @@ cleanly into three buckets:
   line; the multiset-vs-set logic that decides *what* to dim stays per-game),
   and `.checkRow` moved to the shared `setupForm.module.css` it shares with
   bananagrams. **spellingbee's `Letters.module.css` + `Letter.module.css` /
-  `Wheel.module.css` are deliberately NOT folded** — they're structurally
+  `Wheel.module.css` + `Tile.module.css` are deliberately NOT folded** — they're structurally
   parallel (`.board`, `.grid`, `.floatAnchor`, the tile), but folding them means
   picking one vocabulary, and a honeycomb has hexes where a wheel has tiles.
   Renaming one to match the other trades [tokens.md's two-vocabularies

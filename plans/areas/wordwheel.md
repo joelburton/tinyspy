@@ -35,7 +35,8 @@ and carries none; both are on the roster all the same, as is
 `docs/games/wordwheel.md`, deleted into `src/wordwheel/doc.md` in pass 2.
 **`src/wordwheel/doc.md` was written at Step 3** (2026-09-23), markdown like
 the todo, roster all the same. **`lib/terminal.ts` and `lib/terminal.test.ts`
-were created at Step 6**, stamped `cs-met-wordwheel`.
+were created at Step 6**, stamped `cs-met-wordwheel`. **`components/Tile.module.css`
+was created at the stylesheet split**, stamped the same.
 
 ### What is NOT on it
 
@@ -636,6 +637,55 @@ is not celebrated — without the old reason.
 
 **Verified:** `tsc -b` clean, lint clean over `src/wordwheel/`; the game's
 unit tests and the guards: 42 files, 391 tests green.
+
+### The stylesheet split — DONE 2026-09-23
+
+spellingbee's split (`83cd582c`), copied. The per-importer rule, and again no
+judgment was needed: `Wheel.module.css` had two importers and no class read
+by both. `Wheel.tsx` reads `.board` / `.floatAnchor` / `.grid`; `Tile.tsx`
+reads `.tile` / `.inert` / `.center` / `.used` / `.answered` / `.face`. So
+**`Tile.module.css` is new**, holding every rule from `.tile` down — the
+seat, the face, the center, the read-only tile, the hover and press, the
+reduced-motion block, the spent tile, the answer — and `Wheel.module.css`
+keeps the wrapper, the anchor and the square with its touch behavior.
+**Rule bodies and `/* @@ */` markers moved verbatim**, checked by script:
+with every non-marker comment stripped, the old file and the two new ones
+are the same 89 lines.
+
+**Both headers are rewritten.** The old one was false in three places: it
+said the wheel is "ONE inline <svg> … viewBox 0 0 300 300" (it is boxes on a
+square), that `--u` is "set on .boardCol in PlayArea.module.css"
+(`beeBoard.module.css` declares it), and it carried the history ("It was an
+SVG <circle> until 2026-09-15", "letterboxed made the same move"). The new
+`Tile.module.css` header keeps the one reason that still explains the code:
+boxes, so the depth is the shared shadow and a lifted face can rise over
+touching neighbors. **One rule comment changed with them:** `.floatAnchor`'s
+"Shrink-wraps the wheel svg" says the wheel's grid. The archaeology left in
+rule comments ("Hover used to DIM", "(It was a DARKENED FILL …)", "exactly as
+it was when the whole thing was one SVG circle") is the prose pass's,
+untouched here.
+
+**Prose pointers chased:** `todo.md`'s Won't-do fold entry, spellingbee's
+`todo.md` twin of it, `docs/games/wordwheel.md`'s fold entry, and
+`plans/tile-feedback.md`'s own-tile table (the tile is `Tile.module.css`
+now). Each names the file the rules live in. `PlayArea.module.css`'s "(see
+Wheel.module.css)" is about the 300 × 300 square, which stayed, so it is
+still right. `docs/deferred.md` and `docs/code-conventions.md` no longer name
+the file.
+
+**`PlayArea.module.css` stays as it is**, spellingbee's ruling for the same
+reason: it is one `.layout` rule declaring the six bee-games tokens, two of
+which are read on `.layout` itself, and the bee-games contract declares all
+six there. `BoardCol.tsx` wears no class of its own, so it needs no module.
+**The restructure is complete.**
+
+**Verified in the EMITTED css:** `vite build` to the scratchpad; the game's
+chunk carries two module hashes (`_grid_1gywk` beside `_face_1kzo9`) and the
+`prefers-reduced-motion` block once. `cs-stamp.mjs list met-wordwheel` shows
+the new file; `cssClasses` and `csStamps` green with it staged. `tsc -b`
+clean, lint clean; the game's unit tests and the guards: 42 files, 391 tests
+green. **Not seen on a device or in a browser** — the rules are unchanged,
+and the build shows both modules load.
 
 ## Findings
 

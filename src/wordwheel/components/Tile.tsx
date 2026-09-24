@@ -6,7 +6,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import { VERDICT_TONE } from '@/common/game-page/verdictTone'
 import shared from '@/common/game-page/playArea.module.css'
 import { RING_W } from '../lib/wheel'
-import styles from './Wheel.module.css'
+import styles from './Tile.module.css'
 
 type Props = {
   letter: string

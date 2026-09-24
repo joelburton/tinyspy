@@ -1,0 +1,147 @@
+/* cs-met-wordwheel */
+
+/* One tile of the wheel — what `Tile.tsx` wears: the mustard seat, the face
+ * that is the piece with its rest / hover / press depth, and the states a tile
+ * can be in — the center, read-only, SPENT by the typed word, and wearing a
+ * refused word's answer. The square the tiles sit on, and its touch behavior,
+ * are `Wheel.module.css`.
+ *
+ * Each tile is a round BOX rather than an SVG circle, so the depth can be the
+ * shared tile shadow and a lifted face can be raised over its neighbors: the
+ * nine seats TOUCH, and SVG has no z-index. */
+
+/* A tile is TWO circles, and only the inner one is the piece.
+ *
+ * The outer circle is the mustard SEAT. Nine of them, tangent by construction,
+ * so their edges merge into one continuous flower — that is the board's shape,
+ * and it is a tray rather than a border: it stays put, like boggle's dice box.
+ * `--d` (its diameter) and `left`/`top` come inline from the geometry; the
+ * negative margins pull the box back onto the center point those name, leaving
+ * `transform` free for the face inside it.
+ *
+ * The seat carries the click, so the mustard is part of the hit area exactly as
+ * it was when the whole thing was one SVG circle. */
+/* @@ */ .tile {
+  position: absolute;
+  width: var(--d);
+  height: var(--d);
+  margin-left: calc(var(--d) / -2);
+  margin-top: calc(var(--d) / -2);
+  border-radius: 50%;
+  background: var(--wordwheel-seat);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  cursor: pointer;
+}
+
+/* The FACE — the piece. It rests in its seat with a shadow, rises on hover while
+ * the shadow falls away, and presses back down: the shared piece gesture every
+ * other board's tiles wear (common/game-page/playArea.module.css → `.tile`).
+ * Hover used to DIM the whole tile instead, which is the one thing hover means
+ * nowhere else in the app.
+ *
+ * `--wheel-ring` is the seat showing around it — the geometry's `RING_W`, which
+ * is sized so touching seats MERGE, since that merge is what makes nine circles
+ * read as one flower rather than nine coins.
+ *
+ * The border is drawn TRANSPARENT at rest so a spent tile changes only its color
+ * and nothing moves — the same trick every other board's selected tile uses. */
+/* @@ */ .face {
+  --wheel-ring: calc(14 * var(--u));
+  width: calc(var(--d) - 2 * var(--wheel-ring));
+  height: calc(var(--d) - 2 * var(--wheel-ring));
+  box-sizing: border-box;
+  border-radius: 50%;
+  background: var(--wordwheel-tile);
+  border: var(--tile-selected-edge-width) solid transparent;
+  box-shadow: var(--tile-shadow);
+  color: var(--wordwheel-tile-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(34 * var(--u));
+  font-weight: 800;
+  line-height: 1;
+  transition:
+    transform 80ms ease,
+    box-shadow 80ms ease,
+    background 80ms ease,
+    border-color 80ms ease;
+}
+
+/* The center tile is used in every word, so it is the hub: bigger (its diameter
+ * comes inline from the geometry) and the muted purple, in the SAME seat as the
+ * outer tiles so all nine read as one set and only the fill says "center". White
+ * ink on it. */
+/* @@ */ .center .face {
+  background: var(--wordwheel-accent);
+  color: var(--wordwheel-center-text);
+  font-size: calc(40 * var(--u));
+}
+
+/* The piece rises while its shadow falls away — the gap between them IS the
+ * elevation, which is why neither half works alone. `z-index` is on the SEAT and
+ * is the part a wheel needs that a grid doesn't: the seats overlap, so a face
+ * lifting with no stacking order would rise UNDER its neighbors. */
+/* A read-only board (the game is over, or I conceded): the tile keeps its
+ * resting shadow and full color, and loses the pointer, the rise and the press
+ * — the shared `.tile:disabled`'s answer, for a tile that is not a button. */
+/* @@ */ .inert {
+  cursor: default;
+}
+/* @@ */ .tile:not(.used):not(.inert):hover {
+  z-index: 1;
+}
+/* @@ */ .tile:not(.used):not(.inert):hover .face {
+  transform: translateY(-2px);
+  box-shadow: var(--tile-hover-shadow);
+}
+
+/* Pressed: back down into the seat, slightly smaller, slightly darker. */
+/* @@ */ .tile:not(.used):not(.inert):active .face {
+  transform: translateY(0) scale(0.96);
+  box-shadow: var(--tile-shadow);
+  filter: brightness(0.92);
+}
+
+/* Reduced motion: the movement goes, the shadows stay. */
+@media (prefers-reduced-motion: reduce) {
+/* @@ */   .tile:not(.used):not(.inert):hover .face,
+/* @@ */   .tile:not(.used):not(.inert):active .face {
+    transform: none;
+  }
+}
+
+/* A SPENT tile — its letter is already in the word. The wheel is a multiset, so
+ * each tile is worth one use; a spent one is inert, and `pointer-events: none`
+ * takes it out of hover and press as well as click.
+ *
+ * The face wears the SELECTED border, in the khaki the word-finding games wear
+ * for it rather than the usual black (a word lights several letters at once,
+ * and a crowd of black edges distracts), with the fill and the letter exactly
+ * where they were. That reads as "this tile is in your word"
+ * rather than as the tile being taken away, and it is the mark boggle's tiles and
+ * spellingbee's hexes use for the same thing. (It was a DARKENED FILL, which is
+ * the in-flight dim's channel — and two darkened reds are harder to tell apart
+ * than an edge that changed color.) The tile comes back the moment the letter
+ * leaves the word. */
+/* @@ */ .tile.used {
+  cursor: default;
+  pointer-events: none;
+}
+/* @@ */ .tile.used .face {
+  border-color: var(--tile-spent-edge-color);
+}
+
+/* THE ANSWER on a refused word's tiles: the outcome's own fill, its edge a step
+ * darker, and white ink — the three colors a verdict-filled piece wears on every
+ * board (`.tileFace.verdictFill`), and spellingbee's hexes the same. The tone
+ * class beside this one sets only the verdict tokens. After `.used`, and more
+ * specific than `.center .face`, so the answer wins on the center tile too. */
+/* @@ */ .tile.answered .face {
+  background: var(--verdict-fill);
+  border-color: var(--verdict-edge);
+  color: var(--verdict-ink);
+}

@@ -1435,7 +1435,7 @@ roll their own:
 |---|---|
 | boggle | `PlayArea.module.css` |
 | spellingbee | `Letter.module.css` (hexes — an SVG polygon, which cannot wear the CSS-box face) |
-| wordwheel | `Wheel.module.css` (circles in a tray) |
+| wordwheel | `Tile.module.css` (circles in a tray) |
 | stackdown | `Board.module.css` |
 | strands | `Board.module.css` |
 | setgame | `Card.module.css` |
