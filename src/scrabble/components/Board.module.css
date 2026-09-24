@@ -170,7 +170,7 @@
 /* The keyboard cursor's one game-specific declaration: it hugs the cell it sits
  * in, and scrabble's cells are 3px (`.cell, .tile` above). The ring itself — the
  * thick-on-the-axis shape and its direction variants — is the shared
- * shared/board-cursor/gridCursor.module.css. */
+ * common/board-cursor/gridCursor.module.css. */
 /* @@ */ .cursor {
   border-radius: 3px;
 }

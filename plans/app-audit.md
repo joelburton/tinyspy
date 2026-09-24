@@ -130,7 +130,7 @@ area file's closing summary.
 | | **The shared families** | | |
 | 48 | `dict-trie` | `shared/dict-trie` | closed 09-24 · the dictionary trie |
 | 49 | `rank-ladder` | `shared/rank-ladder` | closed 09-21 · the rank ladder |
-| 50 | `board-cursor` | `shared/board-cursor` | closed 09-24 · a cursor moving over a board |
+| 50 | `board-cursor` | `common/board-cursor` | closed 09-24 · a cursor moving over a board |
 | 51 | `wordle-style` | `shared/wordle-style` | closed 09-22 · the per-letter color codes |
 | 52 | `onscreen-keyboard` | `shared/onscreen-keyboard` | closed 09-22 · the on-screen QWERTY |
 | 53 | `grid-and-drag` | `shared/grid-and-drag` | closed 09-24 · dragging a tile onto the grid |

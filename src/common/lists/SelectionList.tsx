@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { cls } from '../utils/cls'
 import { pressed, useComponentKeys, type ComponentKeyId } from '../keyboard/componentKeys'
+import { useSelectionCursor } from '../board-cursor/useSelectionCursor'
 import styles from './SelectionList.module.css'
 
 // The rows Help teaches; Space's row is matched below and not taught.
@@ -112,40 +113,19 @@ export function SelectionList<T>({
   // Tracked on the container proper (not a bubbled child focus) so nothing can
   // leave a stale ring pointing somewhere else.
   const [focused, setFocused] = useState(false)
-  // The row the cursor sits on: the top one until the user moves it. Clamped
-  // here rather than at the move, because the list shrinks under the cursor.
-  const [movedTo, setMovedTo] = useState(0)
-  const cursor = items.length === 0 ? -1 : Math.min(movedTo, items.length - 1)
-  // Whether to PAINT the cursor. Hidden until a movement key asks — this is a
-  // selection cursor, an alternative to clicking, and a mouse user has no use
-  // for a ring (common/lists/doc.md → Two kinds of cursor).
+  // The row the cursor sits on — the top one until the user moves it — and
+  // whether it is painted: a selection cursor, hidden until a movement key
+  // asks (common/lists/doc.md → Two kinds of cursor; see `useSelectionCursor`).
   // Enter and Space never reveal, so no impatient second press can commit
-  // something the first press appeared to ignore. Separate from `movedTo`,
-  // because a click moves the cursor without revealing it, so going back to
-  // the keys resumes where your hand left off.
-  const [revealed, setRevealed] = useState(false)
-  const showCursor = focused && revealed && cursor >= 0
+  // something the first press appeared to ignore.
+  const selection = useSelectionCursor(0)
+  // Clamped here rather than at the move, because the list shrinks under the
+  // cursor.
+  const cursor = items.length === 0 ? -1 : Math.min(selection.at, items.length - 1)
+  const showCursor = focused && selection.revealed && cursor >= 0
 
-  function moveTo(next: number) {
-    setMovedTo(Math.max(0, Math.min(items.length - 1, next)))
-  }
-
-  /**
-   * A RELATIVE key (an arrow, a page) asking to move — call it in the `if`.
-   *
-   * It always reveals the cursor, and returns whether the key ALSO gets to
-   * move it: the first press does not, because "one row down from where I am"
-   * has no honest answer before there is a where-I-am. So that press paints
-   * the resting row and the next one steps.
-   *
-   * `Home` and `End` don't come through here. They name a destination rather
-   * than a direction, so they reveal and go in the same press.
-   */
-  function stepsAfterRevealing() {
-    const wasHidden = !revealed
-    setRevealed(true)
-    return !wasHidden
-  }
+  // Clamped to the ends — deliberately no wrap-around.
+  const clamp = (next: number) => Math.max(0, Math.min(items.length - 1, next))
 
   /** One visible page, measured rather than guessed: a constant would be wrong
    *  for both densities and for every list height. Falls back to one row when
@@ -176,16 +156,13 @@ export function SelectionList<T>({
     // it out from under the cursor.
     if (pressed('keys-list-move', e)) {
       e.preventDefault()
-      // Clamped to the ends — deliberately no wrap-around.
-      if (stepsAfterRevealing()) moveTo(cursor + (e.key === 'ArrowDown' ? 1 : -1))
+      selection.step(clamp(cursor + (e.key === 'ArrowDown' ? 1 : -1)))
     } else if (pressed('keys-list-ends', e)) {
       e.preventDefault()
-      // Absolute: it named a destination, so it reveals AND goes.
-      setRevealed(true)
-      moveTo(e.key === 'Home' ? 0 : items.length - 1)
+      selection.jump(e.key === 'Home' ? 0 : items.length - 1)
     } else if (pressed('keys-list-page', e)) {
       e.preventDefault()
-      if (stepsAfterRevealing()) moveTo(cursor + (e.key === 'PageDown' ? pageSize() : -pageSize()))
+      selection.step(clamp(cursor + (e.key === 'PageDown' ? pageSize() : -pageSize())))
     } else if (pressed('keys-list-open', e)) {
       e.preventDefault()
       // INERT while the cursor is hidden, and it does not reveal either.
@@ -193,7 +170,7 @@ export function SelectionList<T>({
       // did not choose, and revealing here would make a doubled press — the
       // natural response to a key that seemed to do nothing — commit.
       // An arrow is the way in.
-      if (revealed) activate(cursor)
+      if (selection.revealed) activate(cursor)
     } else if (pressed('keys-list-space', e)) {
       // Trapped so it cannot scroll the box, and then inert: choosing here
       // acts, and moving a cursor must not consent to that.
@@ -273,13 +250,13 @@ export function SelectionList<T>({
                 isDisabled && styles.disabled,
                 showCursor && i === cursor && styles.cursor,
               )}
-              // Clicking SETS the cursor without revealing it, so the mouse
-              // and the keyboard agree on where you are without a mouse user
-              // ever being shown a ring: cancel a dialog you opened from a row
-              // and your first arrow reveals THAT row, not wherever the ring
-              // last sat.
+              // Clicking moves the cursor and hides it, so the mouse and the
+              // keyboard agree on where you are without a mouse user ever
+              // being shown a ring: cancel a dialog you opened from a row and
+              // your first arrow reveals THAT row, not wherever the ring last
+              // sat.
               onClick={() => {
-                moveTo(i)
+                selection.point(i)
                 activate(i)
               }}
             >

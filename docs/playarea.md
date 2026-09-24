@@ -96,7 +96,7 @@ codenamesduet's clue, stays a real `<input>`. The entry control, when to use
 hooks and who owns the keyboard are
 [src/common/keyboard/doc.md](../src/common/keyboard/doc.md)'s; the 2-D cursor of
 the board-cursor games is
-[src/shared/board-cursor](../src/shared/board-cursor/doc.md)'s.
+[src/common/board-cursor](../src/common/board-cursor/doc.md)'s.
 
 The below-board slot is made by the PlayArea with `useFeedbackSlot('local')`
 and handed to the BoardCol to draw; its rules are

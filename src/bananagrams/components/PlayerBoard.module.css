@@ -162,7 +162,7 @@
 
 /* ---- keyboard cursor ----
  * Just the corner rounding; the ring itself (thick-on-the-axis, plus its
- * direction variants) is the shared shared/board-cursor/gridCursor.module.css.
+ * direction variants) is the shared common/board-cursor/gridCursor.module.css.
  * A touch of radius on square `.cell`s so the ring doesn't read as a hard box. */
 /* @@ */ .cursor {
   border-radius: 4px;

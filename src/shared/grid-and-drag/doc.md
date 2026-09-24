@@ -31,7 +31,7 @@ finger taps here but never drags.
 
 What stays in each game is the meaning: its `onDrop` and `onTap`, the zones it
 reads besides the grid (the rack, the hand, the dump), the ghost's look, and
-the keyboard cursor, which is `shared/board-cursor`'s.
+the keyboard cursor, which is `common/board-cursor`'s.
 
 ## Details
 

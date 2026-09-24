@@ -1,6 +1,6 @@
 # Area: board-cursor
 
-The folders it reads: `shared/board-cursor`. The process is
+The folders it reads: `common/board-cursor`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
@@ -14,13 +14,13 @@ audit."*):
 
 | file | lines | stamp |
 |---|---|---|
-| `src/shared/board-cursor/useBoardCursorKeys.ts` | 93 | `cs-blessed-board-cursor` |
-| `src/shared/board-cursor/useBoardCursorKeys.test.ts` | 140 | `cs-blessed-board-cursor` |
-| `src/shared/board-cursor/gridCursor.ts` | 72 | `cs-blessed-board-cursor` |
-| `src/shared/board-cursor/gridCursor.test.ts` | 102 | `cs-blessed-board-cursor` |
-| `src/shared/board-cursor/gridCursor.module.css` | 45 | `cs-blessed-board-cursor` |
-| `src/shared/board-cursor/doc.md` | 69 | (markdown carries no stamp) |
-| `src/shared/board-cursor/todo.md` | 11 | (markdown carries no stamp) |
+| `src/common/board-cursor/useBoardCursorKeys.ts` | 93 | `cs-blessed-board-cursor` |
+| `src/common/board-cursor/useBoardCursorKeys.test.ts` | 140 | `cs-blessed-board-cursor` |
+| `src/common/board-cursor/gridCursor.ts` | 72 | `cs-blessed-board-cursor` |
+| `src/common/board-cursor/gridCursor.test.ts` | 102 | `cs-blessed-board-cursor` |
+| `src/common/board-cursor/gridCursor.module.css` | 45 | `cs-blessed-board-cursor` |
+| `src/common/board-cursor/doc.md` | 69 | (markdown carries no stamp) |
+| `src/common/board-cursor/todo.md` | 11 | (markdown carries no stamp) |
 
 Dependencies listed and left, since they belong to bananagrams' and scrabble's
 areas: `bananagrams/hooks/usePlayerBoard.ts` and its test,

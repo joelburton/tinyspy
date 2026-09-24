@@ -264,6 +264,7 @@ moves its own items into its `todo.md` when it opens, and the file drains.
 | `actions` | what a command IS: the registry, `useBoundAction`, the dispatcher, `ActionButton`, `actionSurface`, `KeyList` |
 | `anagram-finder` | the anagram dialog |
 | `auth` | the pre-app screens — sign in, claim a handle |
+| `board-cursor` | arrows move a cursor over a board: the reusable key handling, the letter-grid cursor math, and the selection cursor's show/hide rules, which `lists` shares |
 | `board-marks` | the marks a board wears for a beat: a move's attention flash, the your-turn frame, a hot set or a single mark a game raises for its own reasons, and every mark's lifetime |
 | `boot` | what `main.tsx` runs before React mounts (`panic`, `reloadOnStaleChunk`, `reloadOnStaleBuild`) |
 | `branding` | the app and per-game logos |
@@ -329,7 +330,6 @@ from everyone else.
 | folder | the family | what it is |
 |---|---|---|
 | `bee-games` | spellingbee, wordwheel | the hook factory behind their identical data lifecycles, the board header it returns, the compete leaderboard row, the coordinate-unit geometry a hive and a wheel are both drawn by |
-| `board-cursor` | bananagrams, scrabble | arrows move a cursor over a board: the reusable key handling plus the letter-grid cursor math |
 | `dict-trie` | boggle, scrabble | the flat trie behind boggle's solver and scrabble's suggester |
 | `found-words` | spellingbee, wordwheel, boggle — and wordiply, which takes the submit engine alone | the games that accumulate a list of found words: the submit engine, the terminal reveal, the rows the word-list panel draws, the row and word types, the typed-word look, the play-surface scaffolding |
 | `grid-and-drag` | bananagrams, scrabble | dragging a tile to the right place on the grid |

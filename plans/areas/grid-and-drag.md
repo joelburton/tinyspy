@@ -314,7 +314,7 @@ was (a), `hook-reads-the-cell`):**
   removed): the hook owns the mechanics and each game keeps the meaning — its
   `onDrop` (stage, move, recall, reorder, dump), its `onTap` (move the cursor,
   mark for exchange), and its keyboard cursor and typing, which live in
-  `shared/board-cursor` or the game. And Joel's ruling on waffle: the
+  `common/board-cursor` or the game. And Joel's ruling on waffle: the
   browser's own drag-and-drop where a drag is a mouse shortcut for a tap move
   between like things; this hook where the drop's meaning depends on where it
   lands, or a tap means something else.

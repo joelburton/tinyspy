@@ -260,7 +260,7 @@
   --toast-stripe-width:       4px;
 
   /* The board cursor's two heavy edges, across the direction of typing
-     (shared/board-cursor/gridCursor.module.css). Heavier than any frame,
+     (common/board-cursor/gridCursor.module.css). Heavier than any frame,
      because reading the direction off them at a glance is the ring's job. */
   --mark-gridCursor-heavy-width: 5px;
 

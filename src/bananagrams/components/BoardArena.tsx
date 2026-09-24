@@ -14,8 +14,8 @@ import {
 import { idx } from '../lib/board'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
-import gridCursor from '@/shared/board-cursor/gridCursor.module.css'
-import type { GridCursor } from '@/shared/board-cursor/gridCursor'
+import gridCursor from '@/common/board-cursor/gridCursor.module.css'
+import type { GridCursor } from '@/common/board-cursor/gridCursor'
 import styles from './PlayerBoard.module.css'
 
 /**

@@ -34,7 +34,7 @@ vi.mock('@/shared/grid-and-drag/useDragGesture', () => ({
 // The cursor keyboard is captured rather than driven: what this file tests is
 // what bananagrams supplies (the callbacks), not the shared binding. It hands
 // back a commit binding, so the fake does too.
-vi.mock('@/shared/board-cursor/useBoardCursorKeys', () => ({
+vi.mock('@/common/board-cursor/useBoardCursorKeys', () => ({
   useBoardCursorKeys: (cfg: typeof keyCfg.current) => {
     keyCfg.current = cfg
     return { actCommit: boundActionFixture('act-peel') }

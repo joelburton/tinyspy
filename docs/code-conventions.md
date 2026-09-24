@@ -183,7 +183,7 @@ The games with a coordinate grid and a keyboard cursor (bananagrams, scrabble)
 share one vocabulary: **`x` = column, `y` = row; `'h'` / `'v'` for the cursor's
 axis; flat index `y * width + x`.** Not `row`/`col`, not a y-first index — the
 two are compared side by side, and their shared mechanics live in
-[`shared/board-cursor`](../src/shared/board-cursor/doc.md) and
+[`common/board-cursor`](../src/common/board-cursor/doc.md) and
 [`shared/grid-and-drag`](../src/shared/grid-and-drag/doc.md). A grid addressed
 by flat index or by tile identity has no pair to name; don't invent one.
 

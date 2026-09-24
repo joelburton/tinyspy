@@ -175,13 +175,18 @@ that will drift if it is not shared:
 - **An ABSOLUTE move reveals and moves in one press.** `Home` and `End` name a
   destination rather than a direction, so revealing at the resting row instead
   would ignore what was asked.
-- **`Enter` is INERT while the cursor is hidden** — it neither acts nor
-  reveals, and **only a movement key reveals**. Acting on a cell the player
-  cannot see would commit something they did not choose (on a list, Enter
-  navigates you off the page). Revealing would be worse than doing nothing:
-  the natural response to a key that seems dead is to press it again, and that
-  second press would then commit. So Enter keeps one meaning — "this one" —
-  and an arrow is the only way in.
+- **A key that acts ON THE CURSOR is INERT while it is hidden** — it neither
+  acts nor reveals, and **only a movement key reveals**. On a list that key is
+  `Enter`; on a board it is `Space`. Acting on a place the player cannot see
+  would do something they did not choose (on a list, Enter navigates you off
+  the page). Revealing would be worse than doing nothing: the natural response
+  to a key that seems dead is to press it again, and that second press would
+  then act. So an arrow is the only way in.
+- **A board's `Enter` is not one of those keys.** It commits the SELECTION,
+  which is always drawn (the picked tile's border), so it acts whether the
+  cursor shows or not — a click and then `Enter` makes the move. It is also one
+  action with the Submit button, and an action cannot be off for its key and
+  on for its button.
 - **A click sets the cursor and hides it**, so switching back to keys resumes
   where your hand left off.
 - **An inert board takes no cursor at all** — not your turn, terminal, viewing
@@ -263,8 +268,7 @@ brings the move-end state mark with it.
 | Naming a word not on the board answers "Not on the board" | **Gone** — only a board word can be picked |
 | The entry row: Delete · the typed word · Submit | **Clear · Submit**, connections-shaped; the picked tile's border shows the word |
 | — | **Arrows**: the first press shows the ring; each press after moves it one cell |
-| — | **`Space`**: picks the word under the ring, or un-picks it |
-| — | **`Enter`**: guesses the picked word; inert while the ring is hidden |
+| — | **`Space`**: picks the word under the ring, or un-picks it; inert while the ring is hidden |
 | — | **`⌫`**: un-picks |
 | — | A click moves the ring to that tile and hides it |
 
@@ -281,9 +285,11 @@ brings the move-end state mark with it.
 
 1. **Extend `useBoardCursorKeys`** — see [Code](#code). Run scrabble's and
    bananagrams' suites.
-2. **The selection-cursor hook**, in `shared/board-cursor/`: the cursor cell, the
-   visibility rules, and the stepper for a `cols × rows` grid with a short last
-   row. `<SelectionList>` moves onto its visibility rules.
+2. **The selection-cursor hook**, in `common/board-cursor/` (moved out of
+   `shared/`, since `<SelectionList>` in `common/lists` uses it and common never
+   imports shared): the cursor cell, the visibility rules, and the stepper for a
+   `cols × rows` grid with a short last row. `<SelectionList>` moves onto its
+   visibility rules.
 3. **The reachability test** over every psychicnum board size (5–20 words),
    verified by planting a break.
 4. **psychicnum's `BoardCol`**: prerequisite 2 (the entry, the recall state, the
@@ -339,7 +345,7 @@ bubble carries the shortcut (`Submit · ↵`).
 
 ## Code
 
-**Compose `useBoardCursorKeys`** (`shared/board-cursor/`) rather than writing a
+**Compose `useBoardCursorKeys`** (`common/board-cursor/`) rather than writing a
 second keyboard. It already owns the load-bearing parts: its keys are bound
 actions the one dispatcher fires, which brings the modifier bail, the
 focused-field guard that stops a keystroke meant for chat reaching the board,
@@ -348,7 +354,7 @@ how you ship a board that steals typing.
 
 **DONE:** `onLetter` / `onBackspace` are optional, and `onToggle` is Space, on
 the new `act-toggle-tile`. A key with no callback answers hidden, so its
-keystroke goes on to the browser ([board-cursor/doc.md](../src/shared/board-cursor/doc.md)).
+keystroke goes on to the browser ([board-cursor/doc.md](../src/common/board-cursor/doc.md)).
 
 Above it, a new hook owns what is actually new: the cursor index, the stepper, the
 visibility rule, and activation. Per game that leaves a geometry, an
@@ -359,7 +365,8 @@ visibility rule, and activation. Per game that leaves a geometry, an
 - The **reachability invariant** over each geometry (see above).
 - Per game: arrows move, `Space` toggles, `Enter` commits, `⌫` clears, an inert
   board ignores all four, and the mark stays hidden until an arrow — including
-  that the FIRST arrow only reveals, that `Enter` is inert while hidden — it
-  does not commit and does not reveal — and that a click leaves it hidden.
+  that the FIRST arrow only reveals, that `Space` is inert while hidden — it
+  does not pick and does not reveal — that `Enter` commits a clicked pick with
+  the mark hidden, and that a click leaves it hidden.
 - Every one verified by **planting the break first** — a guard that cannot fail is
   worse than none.

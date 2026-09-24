@@ -24,8 +24,8 @@ import {
   shuffleString,
 } from '../lib/board'
 import { cellAtPoint, useDragGesture, type DragGesture, type DragState } from '@/shared/grid-and-drag/useDragGesture'
-import { moveCursor, planBackspace, type GridCursor } from '@/shared/board-cursor/gridCursor'
-import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
+import { moveCursor, planBackspace, type GridCursor } from '@/common/board-cursor/gridCursor'
+import { useBoardCursorKeys } from '@/common/board-cursor/useBoardCursorKeys'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import { isEditableField } from '@/common/keyboard/editableField'

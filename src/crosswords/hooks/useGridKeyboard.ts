@@ -78,7 +78,7 @@ export type GridKeys = {
  * never matches a pattern key, a keystroke aimed at chat never reaches an
  * action, and a floating panel with focus stops every one of them.
  *
- * Contrast `shared/board-cursor/useBoardCursorKeys`, which is the same idea for
+ * Contrast `common/board-cursor/useBoardCursorKeys`, which is the same idea for
  * the tile-placement games: a cursor, letters and a commit. This one is
  * crosswords' own because the grid is the game — the two-step ⌫, the given cells
  * you slide off, the clue walk and the edge marks have no sibling.

@@ -125,7 +125,7 @@ own call.
 
 ### F-z-index-6 · `cursor-points-at-no-tier` · the grid cursor cites a tier that does not exist — WORKED
 
-`shared/board-cursor/gridCursor.module.css`: *"Above the cell's own contents
+`common/board-cursor/gridCursor.module.css`: *"Above the cell's own contents
 (letter + premium label) but below the drag ghost and any overlay — see the
 board-layer tier in each game's board CSS."* No game's board CSS documents a
 tier. The comment should say what is actually true of the `5`: it is local

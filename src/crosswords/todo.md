@@ -94,7 +94,7 @@
 ## Maybe
 
 - **The cursor speaks its own vocabulary.** Here a cursor is `{ row, col }`
-  with `'across'`/`'down'`; the shared board cursor (`shared/board-cursor`) is
+  with `'across'`/`'down'`; the shared board cursor (`common/board-cursor`) is
   `{ x, y }` with `'h'`/`'v'`, and docs/naming.md wants one name per concept.
   Whether the two should share names is a question across both.
 

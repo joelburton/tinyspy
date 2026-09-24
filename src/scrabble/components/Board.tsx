@@ -12,8 +12,8 @@ import {
 } from '../lib/board'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
-import gridCursor from '@/shared/board-cursor/gridCursor.module.css'
-import type { GridCursor } from '@/shared/board-cursor/gridCursor'
+import gridCursor from '@/common/board-cursor/gridCursor.module.css'
+import type { GridCursor } from '@/common/board-cursor/gridCursor'
 import styles from './Board.module.css'
 
 /** A tile a player has placed this turn but not yet committed. */

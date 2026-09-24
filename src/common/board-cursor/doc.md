@@ -25,12 +25,16 @@ and what the commit is. The pointer side of the same boards is
 ## Details
 
 ```
-shared/board-cursor/
+common/board-cursor/
  ├── useBoardCursorKeys.ts    the five bound actions; the game's callbacks
  ├── gridCursor.ts            moveCursor · stepBack · planBackspace
- └── gridCursor.module.css    the ring: .cursor + .cursorH / .cursorV
+ ├── gridCursor.module.css    the ring: .cursor + .cursorH / .cursorV
+ ├── useSelectionCursor.ts    a selection cursor's show/hide rules
+ ├── stepCell.ts              where an arrow takes a selection cursor on a board
+ └── useBoardSelectionCursor.ts   the two above plus useBoardCursorKeys: a board's selection cursor
 bananagrams/hooks/usePlayerBoard.ts     runs the hook and the math; BoardArena renders the ring
 scrabble/components/BoardCol.tsx        runs the hook and the math; Board renders the ring
+common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
 ```
 
 - **The keys are actions.** The arrows and the letters are pattern actions,
@@ -68,7 +72,11 @@ scrabble/components/BoardCol.tsx        runs the hook and the math; Board render
 - **Not `useCaptureKeys`.** That hook (`common/keyboard`) takes typed entry
   into a word with no cursor; this is the board-cursor sibling, not a
   superset.
-- **The hook expects another user.**
-  [plans/keyboard-nav-plan.md](../../../plans/keyboard-nav-plan.md) builds its
-  selection cursor on `useBoardCursorKeys`, through `onToggle`. The ring and
+- **The selection cursor is being built here.**
+  [plans/keyboard-nav-plan.md](../../../plans/keyboard-nav-plan.md) builds a
+  board's selection cursor, `useBoardSelectionCursor`, from
+  `useSelectionCursor`, `stepCell` and `useBoardCursorKeys` (through
+  `onToggle`). On a board Space acts on the cursor and is inert while it is
+  hidden; Enter commits the selection, which is always drawn, so it is not. `<SelectionList>` already runs
+  `useSelectionCursor`, which is why the folder is in `common/`. The ring and
   `gridCursor` are outside that plan.
