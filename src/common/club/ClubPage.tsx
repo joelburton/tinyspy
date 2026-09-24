@@ -423,7 +423,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
       // been raised centrally, and the toast is what survives dismissing it —
       // without one, pressing OK leaves a club page that looks like nothing
       // happened and a game still sitting in the list (docs/envelopes.md → the
-      // modal is an escalation, not a replacement).
+      // shape of a call site).
       //
       // No `ms`, so it waits to be dismissed: the toast is the only lasting
       // record here, since this page has no pill of its own.

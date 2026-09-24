@@ -2057,7 +2057,7 @@ grant execute on function common.tick_timer(uuid) to authenticated;
 --
 -- Outcomes:
 --   - ok               {"result": "deleted"} — the row (and its subtree) is gone
---   - not-ok / error   PN010 — it was already gone
+--   - not-ok / race    PN010 — it was already gone (reads red: constraint lost)
 --   - not-ok/fault     PN011 / PN012, from require_club_member — not
 --                      signed in, or not a member of this club
 

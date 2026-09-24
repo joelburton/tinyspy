@@ -38,11 +38,16 @@ import type { Severity } from './envelope'
  * what it is about would drift from the severity it prints beside — a bare
  * `ERROR` on a line whose `severity=service-error` invites the reader to wonder
  * which of the two they are looking at, and `error` is the word this system
- * exists to stop using loosely. `SLOW` and `OK` are the exceptions because they
- * are `dbFetch` narrating transport, where no envelope reached a decision.
+ * exists to stop using loosely. `SLOW` and `OK` are the exceptions: neither is a
+ * not-ok's severity — `SLOW` is `dbFetch` noting a request that took too long,
+ * and `OK` is a wrapper recording an answer that reached no refusal.
  *
- * Why each sits at the console method it does — including why `RACE` is `warn`
- * when nothing is wrong — is in docs/envelopes.md → the `[db]` line.
+ * **`RACE` is `warn` though nothing is wrong**, the one kind not tracking how bad
+ * something is: a lost race is rare and puzzling from the player's side — the
+ * move simply didn't happen — so the answer should be one glance at the console
+ * rather than a dig through debug output. And every not-ok is logged at all,
+ * not only faults, so a MISCLASSIFIED bug — "already deleted" firing on every
+ * click — still leaves a trail.
  */
 export type DbLogKind =
   'FAULT' | 'SERVICE_ERROR' | 'SLOW' | 'RACE' | 'FORM_VALIDATION' | 'OK'

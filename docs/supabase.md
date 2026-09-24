@@ -539,17 +539,7 @@ Every RPC and edge function answers in **one envelope shape**, and the sentence
 a player reads is written at the raise by whoever knows why the answer is what
 it is. [envelopes.md](envelopes.md) is canonical for all of it: the two arms,
 the severities, who writes the words, how SQL and Deno build one, and what a
-call site does with it. [outcomes.md](outcomes.md) holds the tone vocabulary.
-
-**What used to be here** was the system that preceded it — SQL raised a
-machine-shaped key (`chain-full|5|`), and membership in a TypeScript table
-called `ERROR_COPY` decided both the words and whether the failure counted as
-expected. It is gone: the last call site converted on 2026-09-01 and
-`errorCopy.ts`, `serverError.ts` and `callRpc.ts` were deleted with it. Nothing
-in `supabase/sql/` raises a bare key any more, and the four wrappers
-(`runRpc`, `readRows`, `runEdgeFn`, and Deno's own `runRpc`) are the only ways
-the app talks to the server — [`dbCallWrapped.test.ts`](../src/guards/dbCallWrapped.test.ts)
-holds that.
+call site does with it. [outcomes.md](outcomes.md) holds the outcome vocabulary.
 
 ## RLS & grants
 

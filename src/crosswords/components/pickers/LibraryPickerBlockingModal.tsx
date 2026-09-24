@@ -89,7 +89,7 @@ export function LibraryPickerBlockingModal({ clubHandle, onPick, onClose }: Prop
       )
       // The cancel guard first, before the branch: a modal closed mid-flight
       // cancels its own request, and `runRpc` hands that back as a not-ok like
-      // any other (docs/envelopes.md → The cancel guard comes FIRST).
+      // any other (docs/envelopes.md → The shape of a call site).
       if (!active) return
       if (res.type === 'not-ok') {
         // The list stays `null`, which is the LOADING state — a failed load must

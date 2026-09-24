@@ -204,7 +204,7 @@ export const OUR_BUG_TO_CODE_AND_TEXT = {
   // said something this caller was never taught to read.
   //
   // Its number is out of family on purpose: `max + 1` across the whole `PN`
-  // class is what allocates a code (docs/envelopes.md → Allocating one), and
+  // class is what allocates a code (docs/envelopes.md → The keys), and
   // the 3xx block filled up with SQL raises long after 307–310 were taken.
   // Never filling gaps is the rule, so a bug report saying "PN488" can only
   // ever mean this.

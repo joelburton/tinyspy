@@ -29,8 +29,8 @@
  * failure by `throw`, which the handler's `crash(FN, e)` turns into a fault at
  * the edge. Those calls sit inside pure helpers rather than the request
  * handler, they have no not-ok to relay and no player sentence, and giving
- * them envelopes would push branching into every board builder to gain nothing
- * (docs/envelopes.md → How edge functions RECEIVE one). A `readRows` twin earns
+ * them envelopes would push branching into every board builder to gain nothing.
+ * A `readRows` twin earns
  * its place the day one of them needs to relay a not-ok.
  */
 
@@ -99,7 +99,9 @@ export async function runRpc<T>(call: PromiseLike<RpcReply>, rpcName: string): P
     // half-finished deploy, or a conversion that reached the Deno half first.
     // A fault rather than a fall-through, deliberately: reading a non-envelope
     // as the payload is how a stale deploy becomes a puzzling bug instead of a
-    // clear one.
+    // clear one. It is also why a function and the RPC it relays change their
+    // answer shape in ONE commit: pointed at an RPC that still answers bare,
+    // this faults every success.
     return faultEnvelope(
       'PN118',
       `BUG: ${rpcName} returned no envelope`,

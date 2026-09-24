@@ -226,8 +226,8 @@ export function useCells(
       //
       // A named function rather than a statement in one branch, because TWO
       // answers need it: a refusal, and an answer we cannot read
-      // (docs/envelopes.md → work several answers need becomes a named
-      // function each of them calls).
+      // (docs/envelopes.md → The shape of a call site: work several
+      // answers need is a named function each of them calls).
       const rollBack = () => setCells((prev) => {
         const cur = prev.get(key)
         if (!cur || !prevCell || cur.version !== prevCell.version) return prev

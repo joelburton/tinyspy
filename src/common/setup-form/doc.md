@@ -106,8 +106,8 @@ the game's InfoCol ──> SetupDisclosure ──> the rows setupRows.ts builds 
   does not reach `setup.timer`, which keeps the last valid seconds; the
   complaint comes from the field itself. That is why `require_valid_timer`
   refusing a timer is a fault rather than a validation — see
-  [docs/envelopes.md](../../../docs/envelopes.md) → "A fault can still name a
-  field".
+  [docs/envelopes.md](../../../docs/envelopes.md) → Who writes
+  the words.
 
 - **The puzzle section's two values are each three-state.** `undefined` is
   LOOKING and `null` is "there is nothing" — collapsing them to one `null`

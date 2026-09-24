@@ -431,7 +431,7 @@ function PlayArea({
     if (preview.type === 'not-ok' && preview.dbcode === 'PN302') {
       // The archive is spent. The server's sentence points at the setup form's
       // date field, which this path has no form for; this surface says the two
-      // ways forward instead (docs/envelopes.md → a caller may say MORE).
+      // ways forward instead (docs/envelopes.md → Who writes the words).
       await acknowledge({
         title: 'No more puzzles',
         message:

@@ -45,9 +45,12 @@ import { logDb, logSlow } from './dbLog'
  * keeps that contract on both paths: everything that ANSWERED comes back as a
  * Response, failures included, and only a request that never completed throws —
  * re-thrown as it arrived. Building the envelope is the wrappers' job, and they
- * already hold what it takes (`status === 0` says nothing answered). Why it does
- * not instead resolve with a synthetic 200 carrying an envelope is in
- * docs/envelopes.md → "Environmental" means the JS fetch failed.
+ * already hold what it takes (`status === 0` says nothing answered). Resolving
+ * instead with a synthetic 200 carrying an envelope would have worked — auth is
+ * fenced off by `isSupabaseInternal`, so the client's own token refresh would
+ * never see one — but it buys nothing the wrappers can't read for themselves,
+ * at the price of a `fetch` that sometimes resolves for a request that never
+ * happened.
  */
 
 /** How long a request may run before we count it slow enough to narrate. A

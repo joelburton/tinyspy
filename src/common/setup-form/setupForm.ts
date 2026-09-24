@@ -105,8 +105,8 @@ export type SetupBodyProps = {
   //
   // **A fault gets written here like anything else.** Its modal is an
   // escalation, not a replacement: press OK and this line is the only thing
-  // left saying the load is still broken (docs/envelopes.md → But the surface
-  // still shows it).
+  // left saying the load is still broken (docs/envelopes.md → The shape
+  // of a call site).
   //
   // Passing `null` clears the entry — what a body does when the same load
   // succeeds on a later attempt.

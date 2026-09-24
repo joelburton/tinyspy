@@ -88,8 +88,23 @@ and the wrapper reads it back with `situationFor`. Nothing else in the app
 writes that field.
 
 **`presentFaults: false` means "I will show my own", never "drop it."** The
-`[db]` line is written either way. `src/guards/callSiteShape.test.ts` names each
-caller that opts out and holds it to the promise.
+`[db]` line is written either way. `src/guards/callSiteShape.test.ts` holds each
+file that opts out to the promise.
+
+**A raw fault and a declared fault.** A *declared* fault arrives as an envelope
+with `severity: fault`: someone named the condition and wrote its sentence. A
+*raw* fault arrives in Postgres's own shape (`{code, message, details, hint}`)
+— a constraint violation, a missing function, a deadlock — which nobody
+anticipated. They look the same to a player and are completely different to
+debug.
+
+**"Environmental" means our server did not answer** — the four `FE` codes:
+nothing answered and the device knew it was offline (`FE001`) or thought it was
+online (`FE002`), our own gateway answered with nothing behind it (`FE003`), or
+something that is not ours did — a captive portal, a proxy (`FE004`). None of
+them can say whether the move landed, since a connection can die on the way
+back after the write committed; so each says only "refresh and try again", and
+refreshing shows the real state before a retry can double-apply.
 
 **Zero rows is `ok`.** Only a caller can know an empty result is impossible.
 `readRows` does fault on a non-array payload, which is what pointing it at an

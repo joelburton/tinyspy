@@ -40,8 +40,8 @@ import type { Envelope, NotOkEnvelope, Severity } from './envelope'
  *
  * **The exception is sanctioned and narrow**: a caller passing
  * `presentFaults: false` has promised to show its own, which is why a few files
- * call `showFaultModal` directly — `src/guards/callSiteShape.test.ts` names each
- * and holds it to the promise.
+ * call `showFaultModal` directly — `src/guards/callSiteShape.test.ts` holds each
+ * file that opts out to the promise.
  *
  * `dbFetch` classifies and logs but never shows: all it knows is the URL, so the
  * only rule it could express was "this path never modals", which cannot serve a

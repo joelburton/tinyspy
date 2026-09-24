@@ -677,7 +677,7 @@ select is(
 --
 -- The non-member case still THROWS, and deliberately so: 42501 comes
 -- from common.require_club_member, a shared helper with no handler of its
--- own (docs/envelopes.md → Four things the roster conversion taught), so
+-- own (docs/envelopes.md → How SQL builds one), so
 -- it fails delete_game's ownership test and is re-raised untouched.
 
 select pg_temp.as_jwt_only('dee44444-4444-4444-4444-444444444444');

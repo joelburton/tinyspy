@@ -140,8 +140,8 @@ export function useGame(
   // SEPARATE FROM `game === null`, which means the game does not exist. A
   // failed read knows nothing about whether it exists, and saying "Game not
   // found." about a dead connection is a confident wrong answer
-  // (docs/envelopes.md → the modal is an escalation, not a replacement: this
-  // is what remains once the fault modal is dismissed).
+  // (docs/envelopes.md → The shape of a call site: the modal is an
+  // escalation, and this is what remains once it is dismissed).
   failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<ConnectionsGame | null>(null)
