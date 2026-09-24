@@ -4,7 +4,8 @@
 would edit to do the work — `src/common/<folder>/`, `src/shared/<folder>/` or
 `src/<game>/` — and work no single folder owns goes in the root
 [`todo.md`](../todo.md). Both use the same five sections, which separate a live
-bug from an idea ([common-folders.md](common-folders.md#every-folder-carries-a-docmd-and-a-todomd)).
+bug from an idea
+([common-folders.md](common-folders.md#every-folder-carries-a-docmd-and-a-todomd)).
 
 What is left here is the older per-game registers: the `## Deferred` and
 `## Won't do` sections of the game docs still in `docs/games/`. Each drains

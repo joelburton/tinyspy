@@ -17,11 +17,10 @@ time rather than the live table.
 
 **The columns are the filtering knobs:**
 
-- **`difficulty`**, a 1–6 **recognizability band**: 1 universal, 2 common,
-  3 familiar, 4 uncommon, 5 obscure, 6 expert (SOWPODS-only). It measures
-  "would a player *know* this word", not how often it appears in text. Validation
-  always allows the full 1–6 range; which bands a game *offers* is its own
-  choice.
+- **`difficulty`**, a 1–6 **recognizability band**: 1 universal, 2 common, 3
+  familiar, 4 uncommon, 5 obscure, 6 expert (SOWPODS-only). It measures "would a
+  player *know* this word", not how often it appears in text. Validation always
+  allows the full 1–6 range; which bands a game *offers* is its own choice.
 - **`american` / `british` / `canadian` / `australian`** — dialect validity,
   mostly a spelling filter. There is no app-wide default; a game that cares
   says which it wants.

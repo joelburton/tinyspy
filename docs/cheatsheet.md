@@ -16,9 +16,9 @@
 | `npm run types:gen` | regenerate `src/types/db.ts` from the live local schema |
 | `npm run scrabble:selfplay` | run the AI-vs-AI self-play tuning harness (calibrates the compete opponent's strength levels — see scrabble.md §12) |
 
-Scripts prefixed `_` (`_words:import`, `_sql:apply`, `_seed`, …) are **internal** —
-they're invoked by gmake targets, which add the `ENV` guard and stamp
-bookkeeping. Don't run them directly; use the `gmake` target instead.
+Scripts prefixed `_` (`_words:import`, `_sql:apply`, `_seed`, …) are
+**internal** — they're invoked by gmake targets, which add the `ENV` guard and
+stamp bookkeeping. Don't run them directly; use the `gmake` target instead.
 | `deno test supabase/functions/waffle-build-board/gen_test.ts` | unit-test waffle's `minSwaps` par (the generation logic lives in the edge function, not under Vitest) |
 
 ## `gmake …`
@@ -39,11 +39,11 @@ Anything that talks to a database now refuses without `ENV`; `help`, `dev-*`,
 `test-*`, `_audit` and the local-pinned artifact builders don't care and don't
 ask. Every writing target echoes its resolved target (password masked) first.
 
-**Two doors into prod, picked for you.** `db.<ref>.supabase.co` is **IPv6-only**,
-so on a network without working IPv6 (most café and hotel wifi) it fails with
-`could not translate host name … nodename nor servname provided` — which looks
-like a DNS outage and is really "no usable address family". Every `ENV=prod`
-target probes that host and falls back to the **session pooler**
+**Two doors into prod, picked for you.** `db.<ref>.supabase.co` is
+**IPv6-only**, so on a network without working IPv6 (most café and hotel wifi)
+it fails with `could not translate host name … nodename nor servname provided` —
+which looks like a DNS outage and is really "no usable address family". Every
+`ENV=prod` target probes that host and falls back to the **session pooler**
 (`aws-N-<region>.pooler.supabase.com:5432`, discovered from the Management API),
 so nothing needs remembering when you change networks. The announce line names
 the route it took. Force one with `DB_ROUTE=direct` / `DB_ROUTE=pooler`; both
@@ -265,7 +265,9 @@ supabase secrets set KEY=value                  # set a secret in prod runtime e
 supabase secrets list                           # see what secrets are set (names only)
 ```
 
-Local-only secrets live in `supabase/functions/.env` (gitignored). Production secrets are set via `supabase secrets set` — they live in Supabase's encrypted vault and are injected into the function's `Deno.env` at runtime.
+Local-only secrets live in `supabase/functions/.env` (gitignored). Production
+secrets are set via `supabase secrets set` — they live in Supabase's encrypted
+vault and are injected into the function's `Deno.env` at runtime.
 
 ### Inspecting the running local stack
 
@@ -307,10 +309,10 @@ rollback;
 ### Assertions
 
 The assertion vocabulary (`plan` / `is` / `ok` / `throws_ok` — incl. the EXACT
-message-match gotcha — / `lives_ok` / `finish`) lives in one place:
-[`testing.md → pgTAP assertion functions`](testing.md#pgtap-assertion-functions). Don't re-copy the
-semantics here (it's where a `throws_ok` substring-vs-exact contradiction once
-crept in from duplication).
+message-match gotcha — / `lives_ok` / `finish`) lives in one place: [`testing.md
+→ pgTAP assertion functions`](testing.md#pgtap-assertion-functions). Don't
+re-copy the semantics here (it's where a `throws_ok` substring-vs-exact
+contradiction once crept in from duplication).
 
 ### Acting as a user
 

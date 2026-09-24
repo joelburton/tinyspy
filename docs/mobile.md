@@ -59,7 +59,8 @@ better than screen size does.**
 ### Where each game plays
 
 Each game's class — tap-only, transient keyboard, keyboard-required,
-desktop-only — is [features.md → Mobile suitability](features.md#mobile-suitability).
+desktop-only — is [features.md → Mobile
+suitability](features.md#mobile-suitability).
 
 ## The rules every screen keeps
 
@@ -152,7 +153,8 @@ changes.
   already carries the identity
   ([src/common/members/doc.md](../src/common/members/doc.md)).
 - **The card pages** (home, login, claim-username) wrap long tokens and tighten
-  their padding ([`utilities.css`](../src/common/core-css/utilities.css) → `.card`).
+  their padding ([`utilities.css`](../src/common/core-css/utilities.css) →
+  `.card`).
 
 ## Verifying
 

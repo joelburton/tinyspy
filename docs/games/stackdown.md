@@ -82,9 +82,9 @@ letter-assignment problem on a fixed DAG.
 
 Tile **A covers B** iff `A.z > B.z` **and** `|A.x − B.x| ≤ 1 && |A.y − B.y| ≤ 1`
 (the `≤ 1`, not `< 1`, is because the integer layout places overlapping tiles
-exactly one cell apart diagonally). A tile is **exposed** iff no *remaining* tile
-covers it. The covering relation is a DAG; exposed tiles are its sources among
-the remaining tiles.
+exactly one cell apart diagonally). A tile is **exposed** iff no *remaining*
+tile covers it. The covering relation is a DAG; exposed tiles are its sources
+among the remaining tiles.
 
 ### 2.3 Sequence-as-word (the correctness crux)
 
@@ -147,7 +147,8 @@ holds), and `create_game` claims a random board **of the chosen band**.
 Even if a stray board ever slipped a non-solution legal word past the generator,
 we'd never want to accept it — so there's nothing to gain from a dictionary
 lookup, and adding one would only couple runtime validation to the generator's
-exact word list ("pin runtime to the same list or get phantom forks") for no benefit.
+exact word list ("pin runtime to the same list or get phantom forks") for no
+benefit.
 
 **Word case.** Words are stored **lowercase** everywhere — `boards.words`,
 `games.solution`, and the logged `events.word` — matching `common.words`
@@ -216,8 +217,9 @@ git in `stackdown-proto/` (gitignored, like `bananagrams-ui/`).
 
 ## 5. Schema / RPCs / FE
 
-Built as the standard sibling-manifest pair (`stackdown_coop`, `stackdown_compete`)
-on a per-gametype `stackdown` schema. Migration: `supabase/migrations/20260626000000_stackdown.sql`.
+Built as the standard sibling-manifest pair (`stackdown_coop`,
+`stackdown_compete`) on a per-gametype `stackdown` schema. Migration:
+`supabase/migrations/20260626000000_stackdown.sql`.
 
 ### 5.1 Tables
 
@@ -228,7 +230,13 @@ on a per-gametype `stackdown` schema. Migration: `supabase/migrations/2026062600
 | `stackdown.players` | `(game_id, user_id)` → `found_count` (public tally), `solved` / `solved_at` (compete winner) | club members |
 | `stackdown.events` | the durable game log, keyed by a `bigint identity` and read `order by id`. `kind`: `'word'` (a played word → `word` / `tile_ids` / `valid`) or `'hint'` / `'spoiler'` (a logged cheat request → `for_word_index`, plus the revealed text in `word`: the hint clue or the word itself, for the log to show). `took_turn` is true on a `word` — accepted or refused — and on a `spoiler`, false on a `hint`: stackdown has no rotation, and the column is the record of turns taken regardless. | coop: all; compete: own (until terminal) |
 
-The hidden-solution pattern is the standard [SECURITY DEFINER helper + security_invoker view](../code-conventions.md#security-definer-helper--security_invoker-view) shared with the other answer-hiding games (waffle, wordle): a column-grant excludes `solution`, and the `games_state` view exposes it via `_solution_for(id)`, which returns NULL until `common.games.is_terminal`. The FE reads `games_state`, never the base table.
+The hidden-solution pattern is the standard [SECURITY DEFINER helper +
+security_invoker
+view](../code-conventions.md#security-definer-helper--security_invoker-view)
+shared with the other answer-hiding games (waffle, wordle): a column-grant
+excludes `solution`, and the `games_state` view exposes it via
+`_solution_for(id)`, which returns NULL until `common.games.is_terminal`. The FE
+reads `games_state`, never the base table.
 
 `board_id` is `on delete set null` — **retiring a board does not delete games
 built from it**. A game copies the board's `tiles` / `words` / `band` at
@@ -238,28 +246,26 @@ creation, so it's self-contained; `board_id` is provenance only.
 
 - **`create_game(target_club, setup, player_user_ids, mode)`** — club-member +
   player-count (≤6) + timer + band (1..6) checks, then claims a random board
-  **of the chosen band** (`where band = <setup.band, default 1> order by random()
-  limit 1`, raising if no board of that band exists), copies its tiles/words/
-  band onto a new `stackdown.games`, seeds one `players` row each, flips to
-  `playing`.
+  **of the chosen band** (`where band = <setup.band, default 1> order by
+  random() limit 1`, raising if no board of that band exists), copies its
+  tiles/words/ band onto a new `stackdown.games`, seeds one `players` row each,
+  flips to `playing`.
 - **`submit_word(target_game, tile_ids int[]) → jsonb`** — the core move. Locks
   the games row (`for update`); computes the already-removed set (coop = every
   valid submission, compete = the caller's); validates the five tiles are
   distinct, unremoved, and **reachable in the given order** (replaying
   `_is_exposed` tile-by-tile — the server is the authority on legality, not the
-  FE); logs the submission (valid OR invalid — both are durable rows); on a valid
-  word bumps `found_count` and, on the sixth, ends the game (coop → `won`,
-  compete → `won_compete` with the caller recorded in `status.winner_user_id`
-  + `winner_username`). Answers with an
-  [envelope](../envelopes.md) whose `data` is
-  `{result: 'accepted'|'invalid', word, terminal}` — a non-word is an **`ok`**,
-  because the rules were applied and nothing was cleared; the server writes
-  `Not a word: EBATL`, naming the word because the tiles have just gone back on
-  the board and taken it off the screen. The refusals are three races (the game
-  ending, the
-  caller having conceded, a teammate taking your tiles) and four faults the
-  frontend should have prevented. On a valid **coop** word it
-  also rewrites `common.games.title` to the cleared words (see [Title
+  FE); logs the submission (valid OR invalid — both are durable rows); on a
+  valid word bumps `found_count` and, on the sixth, ends the game (coop → `won`,
+  compete → `won_compete` with the caller recorded in `status.winner_user_id` +
+  `winner_username`). Answers with an [envelope](../envelopes.md) whose `data`
+  is `{result: 'accepted'|'invalid', word, terminal}` — a non-word is an
+  **`ok`**, because the rules were applied and nothing was cleared; the server
+  writes `Not a word: EBATL`, naming the word because the tiles have just gone
+  back on the board and taken it off the screen. The refusals are three races
+  (the game ending, the caller having conceded, a teammate taking your tiles)
+  and four faults the frontend should have prevented. On a valid **coop** word
+  it also rewrites `common.games.title` to the cleared words (see [Title
   formula](#title-formula)).
 - **`submit_timeout(target_game)`** — countdown expiry: coop → `lost`, compete →
   `lost_compete` (a race, so no winner if it gets here).
@@ -271,49 +277,67 @@ creation, so it's self-contained; `board_id` is provenance only.
   stackdown doesn't pass).
   So the `stackdown_compete | ended — manual end` labels row is server-reachable
   but has no FE button today — same posture as scrabble.
-- **`replay_board(target_game)`** — the "Restart" menu item / terminal-row Restart: reset the working state on the SAME game row. The frozen puzzle (tiles / solution / band / mode) stays — the same stack, cleared again. Any game player, from a finished game OR mid-game; both modes reset ALL players. Zeroes `players`, deletes every `events` row (words AND the hint/spoiler cheats — a replay is a genuine second try), puts `common.games.title` back to `"New game"` (else a replayed coop game would still advertise the previous run's cleared words, spoiling the board it just reset), then hands the common half to `common.reset_game`. The solution re-hides on its own: `games_state` gates it on `is_terminal`, which `reset_game` clears. pgTAP: `replay_test.sql`.
-- **`concede(target_game)`** — the compete per-player drop-out. stackdown is a race to clear (first to clear wins, no elimination), so it's a **thin wrapper over `common.concede`** (compete-only guard): marks the caller out, ends as a collective loss only when the last racer drops. FE: `act-concede` (hidden in coop) in compete, conceder "out" in the OpponentStrip, "You conceded" locally-terminal look. See [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out). pgTAP: `concede_test.sql`.
+- **`replay_board(target_game)`** — the "Restart" menu item / terminal-row
+  Restart: reset the working state on the SAME game row. The frozen puzzle
+  (tiles / solution / band / mode) stays — the same stack, cleared again. Any
+  game player, from a finished game OR mid-game; both modes reset ALL players.
+  Zeroes `players`, deletes every `events` row (words AND the hint/spoiler
+  cheats — a replay is a genuine second try), puts `common.games.title` back to
+  `"New game"` (else a replayed coop game would still advertise the previous
+  run's cleared words, spoiling the board it just reset), then hands the common
+  half to `common.reset_game`. The solution re-hides on its own: `games_state`
+  gates it on `is_terminal`, which `reset_game` clears. pgTAP:
+  `replay_test.sql`.
+- **`concede(target_game)`** — the compete per-player drop-out. stackdown is a
+  race to clear (first to clear wins, no elimination), so it's a **thin wrapper
+  over `common.concede`** (compete-only guard): marks the caller out, ends as a
+  collective loss only when the last racer drops. FE: `act-concede` (hidden in
+  coop) in compete, conceder "out" in the OpponentStrip, "You conceded"
+  locally-terminal look. See [common-schema.md →
+  Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
+  `concede_test.sql`.
 - **`reveal_next_word(target_game) → jsonb`** — a **cheat**: answers with an
   envelope carrying `{result: 'spoiler', word}` — the next solution word the
   caller still has to clear (`solution[cleared + 1]`) — defeating the
-  hidden-solution invariant on
-  purpose. The `lost` outcome rides with it, painting the pill red: a spoiler
-  costs you the whole hunt for that word, so unlike the hint beside it (amber)
-  there is nothing left to find. There is no "all cleared" answer: clearing
-  the sixth word ends the game in both modes, so a later call meets the
-  in-progress gate and reads "Game over". `result` names the one case it does
-  answer, because a call site may not take an `ok` branch by merely matching
-  `ok` ([envelopes.md](../envelopes.md#choosing-which-ok-branch)). It exists
-  to verify generated boards are solvable in order (and as a playtest hint), and
+  hidden-solution invariant on purpose. The `lost` outcome rides with it,
+  painting the pill red: a spoiler costs you the whole hunt for that word, so
+  unlike the hint beside it (amber) there is nothing left to find. There is no
+  "all cleared" answer: clearing the sixth word ends the game in both modes, so
+  a later call meets the in-progress gate and reads "Game over". `result` names
+  the one case it does answer, because a call site may not take an `ok` branch
+  by merely matching `ok`
+  ([envelopes.md](../envelopes.md#choosing-which-ok-branch)). It exists to
+  verify generated boards are solvable in order (and as a playtest hint), and
   may be removed once boards are trusted. Gated like a move (game player,
   in-progress only). Because strict validity forces clearing in solution order,
-  the count of cleared words is exactly the index of the next one. The FE surfaces
-  it as a **Spoiler** action button (bare-eye, and amber like the Hint beside it
-  — a BUTTON's tone is about the move you are about to make, where the outcome
-  is about what happened; see [ui.md → Button
-  iconography](../ui.md#button-iconography)) in the info-column action row during play
-  (writing its answer to the **local** below-board feedback slot — it's the
-  player's own request). It also **logs the request** — a `kind='spoiler'`
-  submission row storing the revealed word (shown in the log as "Spoiler:
+  the count of cleared words is exactly the index of the next one. The FE
+  surfaces it as a **Spoiler** action button (bare-eye, and amber like the Hint
+  beside it — a BUTTON's tone is about the move you are about to make, where the
+  outcome is about what happened; see [ui.md → Button
+  iconography](../ui.md#button-iconography)) in the info-column action row
+  during play (writing its answer to the **local** below-board feedback slot —
+  it's the player's own request). It also **logs the request** — a
+  `kind='spoiler'` submission row storing the revealed word (shown in the log as
+  "Spoiler:
   <WORD>") so the ask persists in the game log; deduped
-  per `(player, for_word_index)` so repeated clicks don't spam, and serialized by
-  the games-row `for update` lock, which is what keeps two coop players from
+  per `(player, for_word_index)` so repeated clicks don't spam, and serialized
+  by the games-row `for update` lock, which is what keeps two coop players from
   clearing the same word.
 - **`reveal_next_hint(target_game) → jsonb`** — the softer sibling: an envelope
-  carrying `{result: 'hint', hint}` — the next word's clue
-  (`common.words.hint`, which points at the word without naming it) — under an
-  amber `warning`. Same gating +
-  next-word math as `reveal_next_word`, but the word never reaches the client —
-  only the hint text crosses the wire. Every word a stackdown board can hold
-  carries a hint, so a missing one is a fault the RPC shouts about (with the
-  word in the envelope's `detail`), not an answer the surface narrates. The FE's **Reveal hint**
-  action button shows it in the same local below-board feedback slot. Both
-  cheats also carry **menu rows** ("Hint for next word" / "Cheat for next word"
-  — the buttons' tooltip copy, since a menu has room to say which word it acts
-  on), which is where their lightbulb and bare-eye glyphs get named ([ui.md →
-  the menu is the legend](../ui.md#button-iconography)). Logs a `kind='hint'` request row
-  storing the clue text (shown in the log as "Hint: <clue>") the same way. Both requests ride the events RLS, so a
-  coop request shows to everyone and a compete one only to the requester.
+  carrying `{result: 'hint', hint}` — the next word's clue (`common.words.hint`,
+  which points at the word without naming it) — under an amber `warning`. Same
+  gating + next-word math as `reveal_next_word`, but the word never reaches the
+  client — only the hint text crosses the wire. Every word a stackdown board can
+  hold carries a hint, so a missing one is a fault the RPC shouts about (with
+  the word in the envelope's `detail`), not an answer the surface narrates. The
+  FE's **Reveal hint** action button shows it in the same local below-board
+  feedback slot. Both cheats also carry **menu rows** ("Hint for next word" /
+  "Cheat for next word" — the buttons' tooltip copy, since a menu has room to
+  say which word it acts on), which is where their lightbulb and bare-eye glyphs
+  get named ([ui.md → the menu is the legend](../ui.md#button-iconography)).
+  Logs a `kind='hint'` request row storing the clue text (shown in the log as
+  "Hint: <clue>") the same way. Both requests ride the events RLS, so a coop
+  request shows to everyone and a compete one only to the requester.
 
 `submit_timeout` / `end_game` go through `common.end_game` (which writes
 `common.games`, not `stackdown.*`), so each does a realtime "touch"
@@ -401,137 +425,143 @@ outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 ### 5.3 Frontend (`src/stackdown/`)
 
-stackdown is a **v3** game: it renders on the shared
-two-column PlayArea scaffold (`common/game-page/playArea.module.css` — `.layout` /
-`.boardCol` / `.infoCol` / `.noShrinkRow`). The board column holds the stacked-tile
-board, the **word-entry row**, and a fixed-height **local feedback slot**; the
-info column runs **state → opponent strip → action row → help → setup → log** in
-that fixed order. Feedback is **split** the canonical way: the player's OWN move
-results (a rejected word, a keystroke matching no/too-many exposed tiles — all
-`result`s), a hint's or spoiler's answer (a `hint`, which leaves only by its ×
-so it stays up while the player hunts for the tiles), a not-ok and the terminal
-verdict show through the local feedback slot's centered `<FeedbackPill>`
-([ui.md → Feedback pill](../ui.md#feedback-pill)); **peer** narration goes to
-the GLOBAL header (a `peer` message with the teammate's identity disc). An
-accepted / rejected word additionally flashes its letters green/red in the
-`WordEntry` ring (strong outcome colors) — so the local slot carries only the
-results a ring can't.
+stackdown is a **v3** game: it renders on the shared two-column PlayArea
+scaffold (`common/game-page/playArea.module.css` — `.layout` / `.boardCol` /
+`.infoCol` / `.noShrinkRow`). The board column holds the stacked-tile board, the
+**word-entry row**, and a fixed-height **local feedback slot**; the info column
+runs **state → opponent strip → action row → help → setup → log** in that fixed
+order. Feedback is **split** the canonical way: the player's OWN move results (a
+rejected word, a keystroke matching no/too-many exposed tiles — all `result`s),
+a hint's or spoiler's answer (a `hint`, which leaves only by its × so it stays
+up while the player hunts for the tiles), a not-ok and the terminal verdict show
+through the local feedback slot's centered `<FeedbackPill>` ([ui.md → Feedback
+pill](../ui.md#feedback-pill)); **peer** narration goes to the GLOBAL header (a
+`peer` message with the teammate's identity disc). An accepted / rejected word
+additionally flashes its letters green/red in the `WordEntry` ring (strong
+outcome colors) — so the local slot carries only the results a ring can't.
 
 **The word-entry row** is the shared `<WordEntryRow>` around stackdown's own
 five-slot `WordEntry` — `⌫ | the five slots | Submit`, the same control every
-typing game wears ([playarea.md → Text entry](../playarea.md#text-entry--capture-not-input)).
-What stackdown cannot use is `<WordEntryArea>`, the row with the capture keyboard
-attached: its "entry" is a grid of picked-up **tiles**, not a text buffer, so
-`WordEntryArea`'s capture keyboard, arrow-history and string `value` have nothing
-to bind to. stackdown binds its own ⌫ and ↵ and hands the row those two
-bindings, which is what makes its buttons the same buttons as everywhere else.
+typing game wears ([playarea.md → Text
+entry](../playarea.md#text-entry--capture-not-input)). What stackdown cannot use
+is `<WordEntryArea>`, the row with the capture keyboard attached: its "entry" is
+a grid of picked-up **tiles**, not a text buffer, so `WordEntryArea`'s capture
+keyboard, arrow-history and string `value` have nothing to bind to. stackdown
+binds its own ⌫ and ↵ and hands the row those two bindings, which is what makes
+its buttons the same buttons as everywhere else.
 
 - **Filling the fifth slot does not submit.** You commit deliberately — the
   Submit button or `Enter` — so a wrong fifth tile is recoverable rather than
-  committed under your finger. The completed word waits, and Submit is enabled at exactly five
-  tiles (a word is always five, so that's the entire gate).
+  committed under your finger. The completed word waits, and Submit is enabled
+  at exactly five tiles (a word is always five, so that's the entire gate).
 - **Three ways to take a tile back**, all of them kept: `⌫` or the ⌫ button
   removes the most recent, and clicking a filled slot returns that tile *and
-  every tile after it* (the word is an order — you can't pull one from the middle
-  and keep the rest). The button is the touch-reachable twin of the key, which is
-  the real gain: stackdown has a supported phone layout and no keyboard there.
-- **Non-swap, unlike `WordEntryArea`**: the feedback pill does NOT take the row's slot
-  over — it has its own reserved row below — so the buttons stay visible while a
-  pill shows. Both buttons stay mounted and merely disabled when they can't act
-  (including while a past turn is being viewed), so the region never reflows.
+  every tile after it* (the word is an order — you can't pull one from the
+  middle and keep the rest). The button is the touch-reachable twin of the key,
+  which is the real gain: stackdown has a supported phone layout and no keyboard
+  there.
+- **Non-swap, unlike `WordEntryArea`**: the feedback pill does NOT take the
+  row's slot over — it has its own reserved row below — so the buttons stay
+  visible while a pill shows. Both buttons stay mounted and merely disabled when
+  they can't act (including while a past turn is being viewed), so the region
+  never reflows.
 
-At terminal, no modal carries the verdict
-([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
-`buildOver`'s terse text fills the local slot's verdict + the info-column outcome line —
-coop "Won: stack cleared" / "Lost: out of time" / "Lost: stack not cleared";
-compete "Won: cleared it first" vs a loss naming the winner as the message's
-`actor` ("● moth cleared it first"), while the no-winner endings ("Out of time — no
-winner" / "Nobody cleared it") drop the `Lost:` prefix — nobody was beaten, the
-stack just outlasted everyone. A **coop clear** pops the shared
-`<CelebrationBlockingModal>` via `useCelebration(playState === 'won')` — at the moment
-of the flip, never on opening an already-won game; a compete win stays in the
-pill.
+At terminal, no modal carries the verdict ([ui.md → Terminal
+results](../ui.md#terminal-results--the-moment-vs-the-record)): `buildOver`'s
+terse text fills the local slot's verdict + the info-column outcome line — coop
+"Won: stack cleared" / "Lost: out of time" / "Lost: stack not cleared"; compete
+"Won: cleared it first" vs a loss naming the winner as the message's `actor` ("●
+moth cleared it first"), while the no-winner endings ("Out of time — no winner"
+/ "Nobody cleared it") drop the `Lost:` prefix — nobody was beaten, the stack
+just outlasted everyone. A **coop clear** pops the shared
+`<CelebrationBlockingModal>` via `useCelebration(playState === 'won')` — at the
+moment of the flip, never on opening an already-won game; a compete win stays in
+the pill.
 
 - **`lib/board.ts`** — the display half of the board logic, ported from the
   prototype: `covers`, `exposedIds`, `depthMap` (layer-below-frontier for the
   depth shading), `letterCorner` (tuck a covered tile's letter into a free
   quadrant). Pure; Vitest in `board.test.ts`.
-- **`lib/history.ts`** — the turn-history replay (pure + unit-tested; stackdown is
-  where this feature was born — see docs/playarea.md). Given the
-  submission log and a turn's **position** in it, reconstruct the board *as it was
-  about to be played*: the full stack minus tiles cleared by valid words at positions
-  **strictly before** it — so the viewed turn's own word is still ON the board (ringed
-  green) and the stack is *fuller* than live — plus a kind-aware description ("entered
-  EBATL — not a word", "requested hint", "revealed LEMON"). The removal-based twin of
-  scrabble's `historyBoard`; keyed by the **row's id** (the `#N` the log shows counts the rows on show), which
-  is chronological across a shared coop log and unambiguous under any filter. Clicking a `GameEventLog` row's `#N` opens that turn on the
-  board via the shared viewer (the same one scrabble/waffle use — frame + banner +
-  keystroke/click/✕ exits documented in [playarea.md → Turn-history viewer](../playarea.md#turn-history-viewer)).
+- **`lib/history.ts`** — the turn-history replay (pure + unit-tested; stackdown
+  is where this feature was born — see docs/playarea.md). Given the submission
+  log and a turn's **position** in it, reconstruct the board *as it was about to
+  be played*: the full stack minus tiles cleared by valid words at positions
+  **strictly before** it — so the viewed turn's own word is still ON the board
+  (ringed green) and the stack is *fuller* than live — plus a kind-aware
+  description ("entered EBATL — not a word", "requested hint", "revealed
+  LEMON"). The removal-based twin of scrabble's `historyBoard`; keyed by the
+  **row's id** (the `#N` the log shows counts the rows on show), which is
+  chronological across a shared coop log and unambiguous under any filter.
+  Clicking a `GameEventLog` row's `#N` opens that turn on the board via the
+  shared viewer (the same one scrabble/waffle use — frame + banner +
+  keystroke/click/✕ exits documented in [playarea.md → Turn-history
+  viewer](../playarea.md#turn-history-viewer)).
 - **`hooks/useGame.ts`** — the realtime hook: one channel carrying
-  postgres-changes on `games_state` / `players` / `events` (no Broadcast).
-  The board the player sees is `game.tiles` minus `removedTileIds`
-  (valid-submission tiles, plus a brief optimistic hold so an accepted word
-  doesn't flash back during the realtime round-trip) minus `currentWord` (the
-  tiles picked up into the word being built). **The in-progress word is local in
-  both modes** — selections are never broadcast, so teammates build words in
-  parallel; `append` / `retract` / `clear` / `commit` are now just a local
-  reducer's actions (`commit` still distinct from `clear` for the
-  submitter's optimistic tile-hold). Sharing happens entirely through the
-  `events` rows: coop RLS shows everyone's, so a teammate's accepted word
-  reaches you via the realtime refetch (board + history). If that refetch shows
-  a tile you were mid-building with is now gone (a teammate claimed it), `load()`
-  resets your local word. Per-effect channel name (`channelDedupSuffix`) — the
-  shared Broadcast room that needed a stable name is gone.
-- **Peer narration** (coop-only) is the SHARED `common/hooks/feedback/usePeerFeedback`,
-  wired inline in PlayArea — no game-local hook. It diffs the `events` list
-  (via `keyOf: (id)`), bootstrapping quietly on the first loaded render so
-  a reconnect doesn't replay the backlog. Each *new* teammate submission fires a
-  **global** header feedback pill — carrying the teammate's identity disc (`● moth
-  found SCARE` [won] / `● moth tried FOOFS` [lost] / `● moth revealed a hint`
-  [warning] / `● moth took a spoiler` [lost], every word from `lib/answer.ts`) —
-  and, for a played word, `messageFor` also calls `markPeerWord` to mark that
-  word's tiles on the board in the same outcome. No-ops off coop (compete hides
-  peers' submissions) and skips the caller's own rows (those are reported in the
-  local below-board slot / ring instead).
+  postgres-changes on `games_state` / `players` / `events` (no Broadcast). The
+  board the player sees is `game.tiles` minus `removedTileIds` (valid-submission
+  tiles, plus a brief optimistic hold so an accepted word doesn't flash back
+  during the realtime round-trip) minus `currentWord` (the tiles picked up into
+  the word being built). **The in-progress word is local in both modes** —
+  selections are never broadcast, so teammates build words in parallel; `append`
+  / `retract` / `clear` / `commit` are now just a local reducer's actions
+  (`commit` still distinct from `clear` for the submitter's optimistic
+  tile-hold). Sharing happens entirely through the `events` rows: coop RLS shows
+  everyone's, so a teammate's accepted word reaches you via the realtime refetch
+  (board + history). If that refetch shows a tile you were mid-building with is
+  now gone (a teammate claimed it), `load()` resets your local word. Per-effect
+  channel name (`channelDedupSuffix`) — the shared Broadcast room that needed a
+  stable name is gone.
+- **Peer narration** (coop-only) is the SHARED
+  `common/hooks/feedback/usePeerFeedback`, wired inline in PlayArea — no
+  game-local hook. It diffs the `events` list (via `keyOf: (id)`), bootstrapping
+  quietly on the first loaded render so a reconnect doesn't replay the backlog.
+  Each *new* teammate submission fires a **global** header feedback pill —
+  carrying the teammate's identity disc (`● moth found SCARE` [won] / `● moth
+  tried FOOFS` [lost] / `● moth revealed a hint` [warning] / `● moth took a
+  spoiler` [lost], every word from `lib/answer.ts`) — and, for a played word,
+  `messageFor` also calls `markPeerWord` to mark that word's tiles on the board
+  in the same outcome. No-ops off coop (compete hides peers' submissions) and
+  skips the caller's own rows (those are reported in the local below-board slot
+  / ring instead).
 - **`components/`** — `Board` (stacked tiles, depth color, corner letters, only
-  exposed tiles clickable; tiles are percentage-positioned in a responsive square
-  canvas — `container-type` + `cqi` typography — so the board grows to fill a
-  roomy viewport and stays on-screen on a small one. **At terminal `PlayArea`
-  restores the board ONLY IF THE STACK CAME DOWN** — a cleared board would
-  otherwise be blank, and the finished stack is the thing worth reviewing. A
-  board that was *not* cleared stays exactly as the players left it: restoring
+  exposed tiles clickable; tiles are percentage-positioned in a responsive
+  square canvas — `container-type` + `cqi` typography — so the board grows to
+  fill a roomy viewport and stays on-screen on a small one. **At terminal
+  `PlayArea` restores the board ONLY IF THE STACK CAME DOWN** — a cleared board
+  would otherwise be blank, and the finished stack is the thing worth reviewing.
+  A board that was *not* cleared stays exactly as the players left it: restoring
   it there drew a full thirty tiles under the words "Lost: stack not cleared",
   claiming they'd got nowhere, and where they actually stopped is the whole
   record of how it went. "Cleared" is measured per viewer — `removedTileIds` is
   everyone's submissions in coop and your own in compete — which is the right
   question in both modes. The in-progress word is deliberately not subtracted at
   terminal: those tiles were picked up, never spent, so they're still on the
-  stack), `WordEntry`
-  (the five-slot word under the board; clicking a slot returns that tile and
-  every tile after it. When nothing's being spelled it flashes a word for ~1s
-  — PlayArea's `flash` timer, cleared early when a new word starts: the
-  player's own just-accepted word, in `lib/answer.ts`'s word for it. The flash
-  carries plain letters, not tile ids, because an accepted word's tiles have
-  already left the board),
-  `GameEventLog` (the info-column submission log — heading "Turns" — rendered on
-  the shared `<EventLog>`: a `<tr>` per submission with the shared outcome bar,
-  whose word comes from `lib/answer.ts` — see **The one outcome decision** below.
-  Valid words are clickable to define, invalid attempts are struck through and
-  tagged, and a cheat request shows the text it revealed ("Hint: <clue>" /
-  "Spoiler: <WORD>"); every row names its actor via the shared `<ActorDot>`, in
-  both modes. The header carries the shared "whose turns?" picker
-  (`useEventLogPlayerPicker` — Team/All + each player); in compete an opponent's
-  rows are RLS-hidden during play and open at terminal, which the picker's empty
-  text says. Each row's `#N` is the shared `<EventLogNumber>` history handle, live
-  only while the rows on show ARE the board's sequence — the viewer indexes by
-  POSITION, so a filtered row 3 isn't the board's turn 3 — see `lib/history.ts`), `BoardCol` (the board + WordEntry input engine + the local
-  feedback slot; takes the board to render — live or a `lib/history` snapshot — plus
-  `readOnly`, and emits the completed word up), `InfoCol` (the info column: state,
-  compete OpponentStrip, action row of Reveal-hint/Reveal-word cheats + End/Concede
-  as bound actions, help, setup, the asked-for words reveal, and the GameEventLog
-  log), `PlayArea` (the thin two-column coordinator: `useGame` + the submit + game-over
-  + the history `historyId`; in compete it filters the log to the caller's own so
-  it doesn't swap to an everyone's-words view at terminal), `SetupForm` (the
+  stack), `WordEntry` (the five-slot word under the board; clicking a slot
+  returns that tile and every tile after it. When nothing's being spelled it
+  flashes a word for ~1s — PlayArea's `flash` timer, cleared early when a new
+  word starts: the player's own just-accepted word, in `lib/answer.ts`'s word
+  for it. The flash carries plain letters, not tile ids, because an accepted
+  word's tiles have already left the board), `GameEventLog` (the info-column
+  submission log — heading "Turns" — rendered on the shared `<EventLog>`: a
+  `<tr>` per submission with the shared outcome bar, whose word comes from
+  `lib/answer.ts` — see **The one outcome decision** below. Valid words are
+  clickable to define, invalid attempts are struck through and tagged, and a
+  cheat request shows the text it revealed ("Hint: <clue>" / "Spoiler: <WORD>");
+  every row names its actor via the shared `<ActorDot>`, in both modes. The
+  header carries the shared "whose turns?" picker (`useEventLogPlayerPicker` —
+  Team/All + each player); in compete an opponent's rows are RLS-hidden during
+  play and open at terminal, which the picker's empty text says. Each row's `#N`
+  is the shared `<EventLogNumber>` history handle, live only while the rows on
+  show ARE the board's sequence — the viewer indexes by POSITION, so a filtered
+  row 3 isn't the board's turn 3 — see `lib/history.ts`), `BoardCol` (the
+  board + WordEntry input engine + the local feedback slot; takes the board to
+  render — live or a `lib/history` snapshot — plus `readOnly`, and emits the
+  completed word up), `InfoCol` (the info column: state, compete OpponentStrip,
+  action row of Reveal-hint/Reveal-word cheats + End/Concede as bound actions,
+  help, setup, the asked-for words reveal, and the GameEventLog log), `PlayArea`
+  (the thin two-column coordinator: `useGame` + the submit + game-over + the
+  history `historyId`; in compete it filters the log to the caller's own so it
+  doesn't swap to an everyone's-words view at terminal), `SetupForm` (the
   word-difficulty band + timer — the board is dealt at random from the chosen
   band's pool), `Help`.
 - **Keyboard input** (in `BoardCol`, as three bound actions — `act-pick-tile`,
@@ -539,10 +569,10 @@ pill.
   Backspace returns the most recent tile; a letter key plays the matching tile —
   but only when exactly one exposed tile bears it (the word is the selection
   order, so an ambiguous letter can't pick for you). No match shows a local
-  **lost** pill ("No 'X' tile is on top"); more than one shows a **warning** pill
-  ("N 'X' tiles are on top — click one") AND briefly outlines the candidate tiles
-  in red (an `ambiguousTiles` set passed to `Board`). Keys aimed at chat or an input
-  never reach an action at all — that gate is the dispatcher's.
+  **lost** pill ("No 'X' tile is on top"); more than one shows a **warning**
+  pill ("N 'X' tiles are on top — click one") AND briefly outlines the candidate
+  tiles in red (an `ambiguousTiles` set passed to `Board`). Keys aimed at chat
+  or an input never reach an action at all — that gate is the dispatcher's.
 
 ### 5.4 Board generation — a two-step split (gen is slow, import is cheap)
 
@@ -550,26 +580,27 @@ Generation is a few seconds per board (the strict validation), too slow to
 re-run across hundreds of boards on every `db-reset`. So it's split, mirroring
 `all-words`'s vendored-file pattern:
 
-- **`gmake g-stackdown-genpuzzles COUNT=n [SEED=s] [BAND=b]`** (`generate-stackdown-boards.ts`)
-  — the SLOW half, run rarely. `COUNT` is required — running with no count
-  just prints usage and generates nothing. Loads the 5-letter lexicon at the chosen `band`
-  (`difficulty = band` exactly, default 1) from `common.words` (read-only),
-  generates N strictly-valid boards on the fixed geometry, and **appends** them
-  to `supabase/data/stackdown-boards.jsonl` (one JSON board per line — a
-  committed, human-readable library that grows across runs; duplicate six-word
-  sets are skipped, so band-1 and band-2 boards coexist in the one file, each
-  line tagged with its `band`). A band-N board is made entirely of band-N words.
+- **`gmake g-stackdown-genpuzzles COUNT=n [SEED=s] [BAND=b]`**
+  (`generate-stackdown-boards.ts`) — the SLOW half, run rarely. `COUNT` is
+  required — running with no count just prints usage and generates nothing.
+  Loads the 5-letter lexicon at the chosen `band` (`difficulty = band` exactly,
+  default 1) from `common.words` (read-only), generates N strictly-valid boards
+  on the fixed geometry, and **appends** them to
+  `supabase/data/stackdown-boards.jsonl` (one JSON board per line — a committed,
+  human-readable library that grows across runs; duplicate six-word sets are
+  skipped, so band-1 and band-2 boards coexist in the one file, each line tagged
+  with its `band`). A band-N board is made entirely of band-N words.
   Reproducible: board *i* uses `SEED + i`. Does NOT touch the `stackdown`
-  tables. Each board is bounded by
-  a wall-clock budget (default 30s, `STACKDOWN_BOARD_TIMEOUT_MS`): a pathological
-  word-set whose strict-validation search blows up is skipped rather than hanging
-  the run. (Validation is also kept fast by pruning the `reachableWords` DFS to
-  letter-prefixes of real words and precomputing the covering relation once.)
-- **`gmake g-stackdown-puzzles ENV=local`** (`import-stackdown-boards.ts`) — the CHEAP half.
-  Reads the JSONL file and replaces `stackdown.boards` with it (delete-all +
-  insert, one transaction). A reset wipes the
-  table (plain table, not seeded by migrations), and `create_game` raises if the
-  library is empty — `gmake db-reset` re-runs this via `db-data`.
+  tables. Each board is bounded by a wall-clock budget (default 30s,
+  `STACKDOWN_BOARD_TIMEOUT_MS`): a pathological word-set whose strict-validation
+  search blows up is skipped rather than hanging the run. (Validation is also
+  kept fast by pruning the `reachableWords` DFS to letter-prefixes of real words
+  and precomputing the covering relation once.)
+- **`gmake g-stackdown-puzzles ENV=local`** (`import-stackdown-boards.ts`) — the
+  CHEAP half. Reads the JSONL file and replaces `stackdown.boards` with it
+  (delete-all + insert, one transaction). A reset wipes the table (plain table,
+  not seeded by migrations), and `create_game` raises if the library is empty —
+  `gmake db-reset` re-runs this via `db-data`.
 
 (Heads-up: a reset also wipes `common.words`, which board generation reads — the
 gmake graph orders that for you (`g-stackdown-genpuzzles` depends on the local
@@ -582,75 +613,80 @@ pgTAP under `supabase/tests/stackdown/`: `create_game` (board claim + hidden
 solution + board-deletion survival), `gameplay` (a full coop solve), `compete`
 (the race + per-player tally), `end_game` (manual stop), `reveal` (the cheat
 tracks solution order + is player/in-progress gated), `concede` (the thin
-wrapper over the generic `common.concede`: the compete-only mode guard + that
-it delegates — the full matrix lives in `common/concede_test.sql`), `replay`
+wrapper over the generic `common.concede`: the compete-only mode guard + that it
+delegates — the full matrix lives in `common/concede_test.sql`), `replay`
 (replay_board resets both modes on the same game row, any state, non-player
 rejected — incl. the stackdown-specific bit: the club-list title goes back to
 `'New game'`, since a replayed coop title would spoil the board it just reset),
 `rls` (the row-visibility policies: the club-member gates on `games` /
-`players`, and the load-bearing mode-aware `events` policy — coop
-club-readable, compete own-rows-only until terminal reveals opponents' words).
-A shared fixture board
-lives in `setup.psql` — which **deletes any library boards first** so
+`players`, and the load-bearing mode-aware `events` policy — coop club-readable,
+compete own-rows-only until terminal reveals opponents' words). A shared fixture
+board lives in `setup.psql` — which **deletes any library boards first** so
 `create_game`'s `order by random()` can only pick the fixture (otherwise a
-database that has run `g-stackdown-puzzles` would have real boards in scope and the
-fixture-encoded `sd_seq()` would spell the wrong tiles). FE: the `board.test.ts`
-Vitest above.
+database that has run `g-stackdown-puzzles` would have real boards in scope and
+the fixture-encoded `sd_seq()` would spell the wrong tiles). FE: the
+`board.test.ts` Vitest above.
 
-**e2e** (`e2e/stackdown-*.e2e.ts`): history (the turn viewer), mobile, print, and
-**entry** — the word-entry row's affordance. That last one is e2e rather than unit
-because what it pins is spread across three places that only exist together in a
-document: the fifth tile no longer submitting (the click handler), the buttons'
-enabled-ness (derived state), and `Enter` (the bound submit action). A unit test
-could hold any one of them and still let the control feel wrong. It submits a
-deliberately INVALID word — the fixture board's solution letters are mostly
-buried at the start, and an invalid word exercises the whole commit path (round
-trip, tiles bounced back, pill) without depending on which letters are on top.
+**e2e** (`e2e/stackdown-*.e2e.ts`): history (the turn viewer), mobile, print,
+and **entry** — the word-entry row's affordance. That last one is e2e rather
+than unit because what it pins is spread across three places that only exist
+together in a document: the fifth tile no longer submitting (the click handler),
+the buttons' enabled-ness (derived state), and `Enter` (the bound submit
+action). A unit test could hold any one of them and still let the control feel
+wrong. It submits a deliberately INVALID word — the fixture board's solution
+letters are mostly buried at the start, and an invalid word exercises the whole
+commit path (round trip, tiles bounced back, pill) without depending on which
+letters are on top.
 
 ## 6. Printing the board (PDF)
 
 `src/stackdown/pdf/` — a **"Print board (PDF)"** GamePage menu item, the tenth
-game to print (common/pdf/doc.md). Track family: the stack at the top of its column, the
-word log beneath.
+game to print (common/pdf/doc.md). Track family: the stack at the top of its
+column, the word log beneath.
 
-**The stack prints almost for free**, because `common/pdf/doc.md`'s "every surface is white"
-rule is exactly what a mahjong board needs. Occlusion is what makes the stack
-legible — a raised tile hides what's under it — and a white-filled tile painted
-over a lower one occludes it the same way the screen does. So the renderer just
-paints in `z` order and the stacking falls out; no shading, no rule bent. It
-shares [`letterCorner`](../../src/stackdown/lib/board.ts) with the board
-component, so a partly covered tile tucks its letter into the same visible
-quadrant on paper as on screen — sharing that function is what stops the two
-drifting. The screen's warm depth ramp is deliberately NOT carried over: the
-overlap already says what's on top, so a shade would be decoration.
+**The stack prints almost for free**, because `common/pdf/doc.md`'s "every
+surface is white" rule is exactly what a mahjong board needs. Occlusion is what
+makes the stack legible — a raised tile hides what's under it — and a
+white-filled tile painted over a lower one occludes it the same way the screen
+does. So the renderer just paints in `z` order and the stacking falls out; no
+shading, no rule bent. It shares
+[`letterCorner`](../../src/stackdown/lib/board.ts) with the board component, so
+a partly covered tile tucks its letter into the same visible quadrant on paper
+as on screen — sharing that function is what stops the two drifting. The
+screen's warm depth ramp is deliberately NOT carried over: the overlap already
+says what's on top, so a shade would be decoration.
 
-**One column per board** ([common/pdf/doc.md → Tracks](../../src/common/pdf/doc.md#the-body-families)): coop prints the
-single shared stack as "Team" with a log that names who played each word;
-**compete prints a board per player**, each with its own words and its own
-"n/6 cleared" line, three across a page — one board under a merged log would
-read as though one person had played alone. The per-player boards are only
-available at terminal, when RLS opens everyone's submissions; during play the
-viewer holds nobody else's, so only their own column prints (a column built from
-rows you can't see would draw a full untouched stack, which reads as "they've
-cleared nothing" rather than "not visible yet").
+**One column per board** ([common/pdf/doc.md →
+Tracks](../../src/common/pdf/doc.md#the-body-families)): coop prints the single
+shared stack as "Team" with a log that names who played each word; **compete
+prints a board per player**, each with its own words and its own "n/6 cleared"
+line, three across a page — one board under a merged log would read as though
+one person had played alone. The per-player boards are only available at
+terminal, when RLS opens everyone's submissions; during play the viewer holds
+nobody else's, so only their own column prints (a column built from rows you
+can't see would draw a full untouched stack, which reads as "they've cleared
+nothing" rather than "not visible yet").
 
 Which tiles print follows the screen exactly, and by construction rather than by
-hand: `lib/board.ts` exports `offBoardIds`, and the screen, the printout and each
-per-player track all call it, so the surfaces cannot drift apart — the same
-reason the [setup rows](../../src/common/setup-form/doc.md#setup-rows) are shared. While playing, tiles spent on accepted words (and the
-ones picked into the word being built) are hidden; **at terminal the board comes
-back only if it was cleared** — see the `Board` note above for why an uncleared
-board must stay as it ended.
+hand: `lib/board.ts` exports `offBoardIds`, and the screen, the printout and
+each per-player track all call it, so the surfaces cannot drift apart — the same
+reason the [setup rows](../../src/common/setup-form/doc.md#setup-rows) are
+shared. While playing, tiles spent on accepted words (and the ones picked into
+the word being built) are hidden; **at terminal the board comes back only if it
+was cleared** — see the `Board` note above for why an uncleared board must stay
+as it ended.
 
 The six words are **terminal-only**, three times over: the server withholds
 `solution` until the row is terminal (`games_state` gates it), the FE holds it
 back further until THIS viewer presses Reveal — never automatically, unless they
 played all six words themselves (`impliedBy`, docs/ui.md → Terminal results;
 `replay_board` re-runs this very stack, so an answer left in front of a player
-who did NOT clear it would make Restart theater), and the print model refuses to emit it before then regardless — so neither a lost-game printout nor a future
-schema change can quietly put the answer on paper. The log prints all three submission kinds, with the
-valid/invalid/cheat distinction carried in **text** rather than color, since a
-mono printer flattens the outcome bar's green and red to one gray.
+who did NOT clear it would make Restart theater), and the print model refuses to
+emit it before then regardless — so neither a lost-game printout nor a future
+schema change can quietly put the answer on paper. The log prints all three
+submission kinds, with the valid/invalid/cheat distinction carried in **text**
+rather than color, since a mono printer flattens the outcome bar's green and red
+to one gray.
 
 ## 7. Deferred
 
@@ -658,8 +694,8 @@ mono printer flattens the outcome bar's green and red to one gray.
   game's workaround: `data[0]` types as present because
   `noUncheckedIndexedAccess` is off, so the cast is what makes the `if (!row)`
   beneath it mean something. Written up once, with the 930-error measurement
-  that says why the flag is not the fix, in
-  [code-conventions.md → known gotchas](../code-conventions.md#data0-is-typed-as-present-so-a-zero-rows-check-needs-a-cast).
+  that says why the flag is not the fix, in [code-conventions.md → known
+  gotchas](../code-conventions.md#data0-is-typed-as-present-so-a-zero-rows-check-needs-a-cast).
 
 - **DONE 2026-09-01.** `tile-gone` showed the FAULT modal and should have been
   a pill — seen live 2026-08-24, Joel and moth clearing the same word at the
@@ -694,8 +730,8 @@ mono printer flattens the outcome bar's green and red to one gray.
   ([tile-feedback.md](../../plans/tile-feedback.md) → Roster).
 
 - **A disabled board paints nothing, on purpose.** `<Board>` takes both
-  `disabled` and `waiting`, and only `waiting` fades: a board is also disabled at
-  every terminal and while replaying a past turn, and neither should fade,
+  `disabled` and `waiting`, and only `waiting` fades: a board is also disabled
+  at every terminal and while replaying a past turn, and neither should fade,
   because both are states people sit and study. Worth re-reading against the
   vocabulary's board-scope marks at conversion — the game-over frame says the
   same thing without dimming anything.

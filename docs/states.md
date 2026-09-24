@@ -1,59 +1,151 @@
 # States: view, play, and the suspend/current/pause vocabulary
 
-Canonical reference for how view-state and play-state are split on `common.games`, and how the suspend / pause / current concepts compose. Don't conflate "the game the club is currently focused on" with "the game's play state isn't terminal" — those are orthogonal axes and naming has to keep them separate (see the no-`'active'` convention below).
+Canonical reference for how view-state and play-state are split on
+`common.games`, and how the suspend / pause / current concepts compose. Don't
+conflate "the game the club is currently focused on" with "the game's play state
+isn't terminal" — those are orthogonal axes and naming has to keep them separate
+(see the no-`'active'` convention below).
 
-The split that drives everything below: **view states and play states are orthogonal.** A current game might already be won. A terminal game might have nobody viewing it. The two axes don't constrain each other.
+The split that drives everything below: **view states and play states are
+orthogonal.** A current game might already be won. A terminal game might have
+nobody viewing it. The two axes don't constrain each other.
 
 ## View states
 
-These describe where a game sits in the club's "what are we looking at right now" picture. They're club-wide, not per-member.
+These describe where a game sits in the club's "what are we looking at right
+now" picture. They're club-wide, not per-member.
 
 ### current
 
-A game is **current** iff at least one club member is viewing its GamePage right now. ("In" a game means viewing — there's no other sense. A member who was `common.game_players`-seated in a non-current game is no longer "in" it; they're a previous player.)
+A game is **current** iff at least one club member is viewing its GamePage right
+now. ("In" a game means viewing — there's no other sense. A member who was
+`common.game_players`-seated in a non-current game is no longer "in" it; they're
+a previous player.)
 
-**Invariant: at most one current game per club.** Enforced by a partial unique index on `(club_handle) where is_current_view = true`.
+**Invariant: at most one current game per club.** Enforced by a partial unique
+index on `(club_handle) where is_current_view = true`.
 
-**Why we mark this:** the club page can show a "Currently being viewed: <game>" affordance so a member typing the club URL can jump straight back to where the group is. And it enforces the one-game-at-a-time invariant structurally.
+**Why we mark this:** the club page can show a "Currently being viewed: <game>"
+affordance so a member typing the club URL can jump straight back to where the
+group is. And it enforces the one-game-at-a-time invariant structurally.
 
-**Concurrency:** if two members on the club page simultaneously open different non-current games, the partial unique index serializes the two writes. Last-click wins: the second to commit clears the first's flag and sets its own. Each member is in the game they opened; the club's current-game *pointer* just ends up on the winner's, and the games list reflects that on the next realtime refresh (nobody is auto-snapped anywhere — auto-nav is gone). The race is vanishingly rare in practice (clubs coordinate over chat: "wanna pick up crossword A or B?"), and the resolution is harmless.
+**Concurrency:** if two members on the club page simultaneously open different
+non-current games, the partial unique index serializes the two writes.
+Last-click wins: the second to commit clears the first's flag and sets its own.
+Each member is in the game they opened; the club's current-game *pointer* just
+ends up on the winner's, and the games list reflects that on the next realtime
+refresh (nobody is auto-snapped anywhere — auto-nav is gone). The race is
+vanishingly rare in practice (clubs coordinate over chat: "wanna pick up
+crossword A or B?"), and the resolution is harmless.
 
 ### paused
 
-A game is **paused** when its presence-pause OR manual-pause is in effect. Only the current game can be paused — pause is meaningless for a game nobody's viewing.
+A game is **paused** when its presence-pause OR manual-pause is in effect. Only
+the current game can be paused — pause is meaningless for a game nobody's
+viewing.
 
 The two sources stay as today:
-- **Presence-pause**: someone in `common.game_players` isn't currently connected to the channel.
+- **Presence-pause**: someone in `common.game_players` isn't currently connected
+  to the channel.
 - **Manual-pause**: someone clicked Pause; broadcast to peers.
 
-**Getting out of a pause.** Presence-pause clears itself the moment the missing player reconnects — and to make that reliable after a laptop sleep, `useRealtimeReconnect` (mounted in `App.tsx`) forces `supabase.realtime.connect()` on tab focus / `visibilitychange`→visible / network `online` when the socket is down. Without it, Supabase's own ~25s heartbeat is slow to notice a socket that died during OS sleep, so a game can sit **wedged** in the pause overlay until a manual refresh (two players who both walk away — "unofficially paused for dinner" — are the classic case). As a manual backstop when a pause won't clear, `<PauseOverlay>` offers two escapes: **Back to club** (the same `act-back-to-club` every other surface places — it asks first when there are peers, then shelves the game and sends everyone back) and **End game** (the gametype's `manifest.endGame`, which every gametype supplies — the overlay's escape would otherwise be missing from exactly the games that most need one). Both go through PostgREST, whose token auto-refreshes independently of the Realtime socket, so they work **even when Realtime is wedged** (which is why a refresh — re-initializing Realtime — was the only way out before).
+**Getting out of a pause.** Presence-pause clears itself the moment the missing
+player reconnects — and to make that reliable after a laptop sleep,
+`useRealtimeReconnect` (mounted in `App.tsx`) forces
+`supabase.realtime.connect()` on tab focus / `visibilitychange`→visible /
+network `online` when the socket is down. Without it, Supabase's own ~25s
+heartbeat is slow to notice a socket that died during OS sleep, so a game can
+sit **wedged** in the pause overlay until a manual refresh (two players who both
+walk away — "unofficially paused for dinner" — are the classic case). As a
+manual backstop when a pause won't clear, `<PauseOverlay>` offers two escapes:
+**Back to club** (the same `act-back-to-club` every other surface places — it
+asks first when there are peers, then shelves the game and sends everyone back)
+and **End game** (the gametype's `manifest.endGame`, which every gametype
+supplies — the overlay's escape would otherwise be missing from exactly the
+games that most need one). Both go through PostgREST, whose token auto-refreshes
+independently of the Realtime socket, so they work **even when Realtime is
+wedged** (which is why a refresh — re-initializing Realtime — was the only way
+out before).
 
-**The overlay.** When a game is paused (either source), `PauseBoundary` — mounted by `<GamePage>` around every PlayArea — **unmounts the PlayArea entirely** and renders `<PauseOverlay>` in its place. So PlayArea-local state (form input, transient tile selections) clears on pause and rebuilds clean on resume — the "should this survive a pause?" rule ([common.md](common.md)). The overlay's text adapts to the source: presence-only reads "Waiting for everyone to connect…" over the WHOLE roster — a filled disc for each player already here, a hollow gray ring for whoever is not, so a waiting player sees who is with them as well as who is missing — and it has no Resume button, since it clears when the missing player rejoins; manual reads "Bea paused the game" with a Resume button **any** player can click (no privileged "original pauser" — we're friends); both sources stack both messages, and clearing the manual one leaves presence-pause still active. Manual-pause survives mid-game peer reconnects because any client observing a manual pause re-broadcasts it on every Presence change (idempotent receivers make "everyone rebroadcasts on every presence change" the simplest robust shape).
+**The overlay.** When a game is paused (either source), `PauseBoundary` —
+mounted by `<GamePage>` around every PlayArea — **unmounts the PlayArea
+entirely** and renders `<PauseOverlay>` in its place. So PlayArea-local state
+(form input, transient tile selections) clears on pause and rebuilds clean on
+resume — the "should this survive a pause?" rule ([common.md](common.md)). The
+overlay's text adapts to the source: presence-only reads "Waiting for everyone
+to connect…" over the WHOLE roster — a filled disc for each player already here,
+a hollow gray ring for whoever is not, so a waiting player sees who is with them
+as well as who is missing — and it has no Resume button, since it clears when
+the missing player rejoins; manual reads "Bea paused the game" with a Resume
+button **any** player can click (no privileged "original pauser" — we're
+friends); both sources stack both messages, and clearing the manual one leaves
+presence-pause still active. Manual-pause survives mid-game peer reconnects
+because any client observing a manual pause re-broadcasts it on every Presence
+change (idempotent receivers make "everyone rebroadcasts on every presence
+change" the simplest robust shape).
 
-**Inherited by every gametype.** Pause is common machinery: `computePause` + `PauseOverlay` + `PauseBoundary` run under every gametype that mounts `<GamePage>` + `useCommonGame`, with no per-game wiring. Pause and [suspend](#suspended-vs-terminal--not-a-special-case) never coexist on one game — a suspended game isn't being looked at by anyone, so there's no Presence channel to pause it.
+**Inherited by every gametype.** Pause is common machinery: `computePause` +
+`PauseOverlay` + `PauseBoundary` run under every gametype that mounts
+`<GamePage>` + `useCommonGame`, with no per-game wiring. Pause and
+[suspend](#suspended-vs-terminal--not-a-special-case) never coexist on one game
+— a suspended game isn't being looked at by anyone, so there's no Presence
+channel to pause it.
 
 ## Play states
 
-Play states describe the game's rules-side situation — totally independent of view state.
+Play states describe the game's rules-side situation — totally independent of
+view state.
 
-Each gametype defines its own `play_state` enum, with `playing` for the default mid-game state and one or more terminal values. The specific set varies by gametype's rules — see each per-game doc's `### Play-state enum` / `### Play states` section for the full list. The simplest is psychicnum coop (`playing` / `won` / `lost` / `ended`); the broadest today is codenamesduet (multi-axis loss reasons: `lost_assassin` / `lost_clock` / `lost_timeout`). The set of terminal play_states varies per gametype.
+Each gametype defines its own `play_state` enum, with `playing` for the default
+mid-game state and one or more terminal values. The specific set varies by
+gametype's rules — see each per-game doc's `### Play-state enum` / `### Play
+states` section for the full list. The simplest is psychicnum coop (`playing` /
+`won` / `lost` / `ended`); the broadest today is codenamesduet (multi-axis loss
+reasons: `lost_assassin` / `lost_clock` / `lost_timeout`). The set of terminal
+play_states varies per gametype.
 
-**Convention: don't use `'active'` as a play_state value.** "Active" overloads view-state and play-state — using it for play_state invites the confusion this whole vocabulary exists to prevent. Every gametype uses `'playing'` as its standard mid-game play_state. Gametypes with additional non-terminal phases (codenamesduet's `'sudden_death'`) get their own names for those.
+**Convention: don't use `'active'` as a play_state value.** "Active" overloads
+view-state and play-state — using it for play_state invites the confusion this
+whole vocabulary exists to prevent. Every gametype uses `'playing'` as its
+standard mid-game play_state. Gametypes with additional non-terminal phases
+(codenamesduet's `'sudden_death'`) get their own names for those.
 
 ### Compete-variant convention: `_compete` suffix
 
-Sibling-manifest pairs that include a compete variant (see [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern)) follow this convention: the terminal play_state in compete mode is the coop name plus a `_compete` suffix. psychicnum is the canonical example:
+Sibling-manifest pairs that include a compete variant (see [`common.md` → The
+sibling-manifest pattern](common.md#the-sibling-manifest-pattern)) follow this
+convention: the terminal play_state in compete mode is the coop name plus a
+`_compete` suffix. psychicnum is the canonical example:
 
 | mode    | won-terminal   | lost-terminal    |
 |---------|----------------|------------------|
 | coop    | `won`          | `lost`           |
 | compete | `won_compete`  | `lost_compete`   |
 
-The distinct names matter because the per-player outcome differs: coop's `'won'` means "every player won together"; compete's `'won_compete'` means "one player won, the others lost." Per-player outcome detail goes on `common.game_players.result` jsonb (`{ "won": bool }` shape today); `play_state` carries the **game-level** terminal answer that the listing label needs to render without joining game_players.
+The distinct names matter because the per-player outcome differs: coop's `'won'`
+means "every player won together"; compete's `'won_compete'` means "one player
+won, the others lost." Per-player outcome detail goes on
+`common.game_players.result` jsonb (`{ "won": bool }` shape today); `play_state`
+carries the **game-level** terminal answer that the listing label needs to
+render without joining game_players.
 
-spellingbee's compete variant follows the same suffix convention (its schema declares `'won_compete'` as a play_state). **Every gametype with a win now uses `won` / `won_compete`** — connections was the last holdout (`solved` / `solved_compete` until 2026-08-01). Its puzzle vocabulary didn't disappear, it moved to where it's true: the play_state carries the verdict in the roster's words, `status.reason = 'solved'` carries the cause in connections'. The old pair was never self-consistent anyway — the loss side was already plain `lost` / `lost_compete`, not `unsolved`.
+spellingbee's compete variant follows the same suffix convention (its schema
+declares `'won_compete'` as a play_state). **Every gametype with a win now uses
+`won` / `won_compete`** — connections was the last holdout (`solved` /
+`solved_compete` until 2026-08-01). Its puzzle vocabulary didn't disappear, it
+moved to where it's true: the play_state carries the verdict in the roster's
+words, `status.reason = 'solved'` carries the cause in connections'. The old
+pair was never self-consistent anyway — the loss side was already plain `lost` /
+`lost_compete`, not `unsolved`.
 
-**The convention is load-bearing, not just cosmetic:** `common.concede` reads the `_compete` suffix off `common.games.gametype` to decide whether an all-conceded table ends `lost_compete` or plain `lost` (2026-08-01 — before that it hardcoded `lost`, so half the roster ended a concede in one vocabulary and half in another). A **single-mode** gametype has no `_compete` half and keeps plain `lost`: bananagrams is the only one today. So a new compete sibling gets the right terminal for free, and a new single-mode game must not be registered with a `_compete` suffix unless it really means the compete vocabulary.
+**The convention is load-bearing, not just cosmetic:** `common.concede` reads
+the `_compete` suffix off `common.games.gametype` to decide whether an
+all-conceded table ends `lost_compete` or plain `lost` (2026-08-01 — before that
+it hardcoded `lost`, so half the roster ended a concede in one vocabulary and
+half in another). A **single-mode** gametype has no `_compete` half and keeps
+plain `lost`: bananagrams is the only one today. So a new compete sibling gets
+the right terminal for free, and a new single-mode game must not be registered
+with a `_compete` suffix unless it really means the compete vocabulary.
 
 ### When the clock is a LOSS
 
@@ -119,8 +211,8 @@ thing twice. A terminal write states both: `play_state = 'lost_compete'` with
 
 The rule, checkable at a glance: **no `reason` value may also be a `play_state`
 value.** Pinned by the vocabulary-disjointness test in
-`src/guards/gameStatusLabels.test.ts` (which sweeps this table against the reachable
-play_states in its CASES matrix). The whole roster's vocabulary today:
+`src/guards/gameStatusLabels.test.ts` (which sweeps this table against the
+reachable play_states in its CASES matrix). The whole roster's vocabulary today:
 
 | reason | the cause it names |
 |---|---|
@@ -141,9 +233,9 @@ Converged 2026-08-01. Before that, connections / psychicnum / codenamesduet
 echoed their play_state into the reason (`lost_timeout`,
 `lost_compete_conceded`, …), spellingbee / wordwheel wrote `won_compete` where
 their own coop sibling already said `target`, bananagrams wrote `won`, and
-crosswords wrote `finished` for what everyone else calls `manual`. The status-line
-grammar wants a reason noun it can drop into "Lost (out of time)", so a value
-that repeats the verdict is dead weight the label has to strip.
+crosswords wrote `finished` for what everyone else calls `manual`. The
+status-line grammar wants a reason noun it can drop into "Lost (out of time)",
+so a value that repeats the verdict is dead weight the label has to strip.
 
 **Adding a terminal? Pick an existing noun before inventing one.** A new cause
 that genuinely isn't in the table above gets a new noun — but "my game's win"
@@ -151,89 +243,169 @@ is not a new cause: it's `solved`, `target`, `cleared`, or `complete`.
 
 ### `is_terminal` is materialized
 
-Each gametype knows which of its play_states are terminal. The codebase shouldn't have to ask "is this play_state terminal for this gametype?" everywhere — we materialize `is_terminal boolean` on the row as a derived-but-stored field. Updated in the same transaction as `play_state`.
+Each gametype knows which of its play_states are terminal. The codebase
+shouldn't have to ask "is this play_state terminal for this gametype?"
+everywhere — we materialize `is_terminal boolean` on the row as a
+derived-but-stored field. Updated in the same transaction as `play_state`.
 
-Net effect: code that just wants "did this game end?" reads `is_terminal`. Code that wants the specific outcome reads `play_state`.
+Net effect: code that just wants "did this game end?" reads `is_terminal`. Code
+that wants the specific outcome reads `play_state`.
 
 ## Where the two tables sit
 
-The schema split: `common.games` is the cross-cutting metadata; `<gametype>.games` is the gametype-specific machinery. (`<gametype>.games` is referred to as `foo.games` below for brevity.)
+The schema split: `common.games` is the cross-cutting metadata;
+`<gametype>.games` is the gametype-specific machinery. (`<gametype>.games` is
+referred to as `foo.games` below for brevity.)
 
 ### `common.games` carries
 
 - `is_current_view` (boolean)
-- `paused` (boolean — present for any game, but only meaningful when `is_current_view = true`)
-- `play_state` (text — the gametype's enum value, e.g. `'won_compete'` for a compete race)
+- `paused` (boolean — present for any game, but only meaningful when
+  `is_current_view = true`)
+- `play_state` (text — the gametype's enum value, e.g. `'won_compete'` for a
+  compete race)
 - `is_terminal` (boolean — materialized, in sync with play_state)
-- `status` (jsonb — gametype-specific data needed for the club-page listing label; each gametype consumes its own shape via `manifest.labelFor`)
-- The game clock lives in a **separate table, `common.timers (game_id, ticks, last_tick)`** — NOT on the games row, so the once-per-second tick UPDATE doesn't churn the games realtime stream. `ticks` is an **additive** count of whole seconds of *active play*: every actively-playing client calls `common.tick_timer` once a second, which advances `ticks` by at most 1 per real second (its `now() - last_tick >= 1s` conditional dedupes across players and makes a pause/idle gap cost +1, not the gap). Pauses and "nobody viewing" need **no tracking** — they're just seconds where nobody calls tick_timer, so the clock stops. `set_current_view`/`unset_current_view` are pure pointer-flips with no timer work.
-- plus the cross-cutting fields already there: `id`, `club_handle`, `gametype`, `title`, `setup`, `started_at`, `ended_at`, etc.
+- `status` (jsonb — gametype-specific data needed for the club-page listing
+  label; each gametype consumes its own shape via `manifest.labelFor`)
+- The game clock lives in a **separate table, `common.timers (game_id, ticks,
+  last_tick)`** — NOT on the games row, so the once-per-second tick UPDATE
+  doesn't churn the games realtime stream. `ticks` is an **additive** count of
+  whole seconds of *active play*: every actively-playing client calls
+  `common.tick_timer` once a second, which advances `ticks` by at most 1 per
+  real second (its `now() - last_tick >= 1s` conditional dedupes across players
+  and makes a pause/idle gap cost +1, not the gap). Pauses and "nobody viewing"
+  need **no tracking** — they're just seconds where nobody calls tick_timer, so
+  the clock stops. `set_current_view`/`unset_current_view` are pure
+  pointer-flips with no timer work.
+- plus the cross-cutting fields already there: `id`, `club_handle`, `gametype`,
+  `title`, `setup`, `started_at`, `ended_at`, etc.
 
-`status`'s semantic: *state for label rendering*, kept in sync on every state-transitioning RPC. Not just a terminal-time snapshot — every mid-game state-affecting move writes whatever the manifest's `labelFor` needs to render the current row.
+`status`'s semantic: *state for label rendering*, kept in sync on every
+state-transitioning RPC. Not just a terminal-time snapshot — every mid-game
+state-affecting move writes whatever the manifest's `labelFor` needs to render
+the current row.
 
 ### `foo.games` carries
 
-Only gametype-specific gameplay state — things that drive the in-game render and the gametype's own RPCs. Examples:
+Only gametype-specific gameplay state — things that drive the in-game render and
+the gametype's own RPCs. Examples:
 - **connections**: `board jsonb`, `mistake_count`
-- **codenamesduet**: `key_card_a`, `key_card_b`, `current_clue_giver`, `turns_remaining`, …
+- **codenamesduet**: `key_card_a`, `key_card_b`, `current_clue_giver`,
+  `turns_remaining`, …
 
-Nothing about cross-cutting state. Nothing that the listing reads. (If the listing wanted to show the
-number of mistakes in a connections game, we would *also* put that in the common.games.status)
+Nothing about cross-cutting state. Nothing that the listing reads. (If the
+listing wanted to show the number of mistakes in a connections game, we would
+*also* put that in the common.games.status)
 
 ### Listing implication
 
-The club page lists games entirely from `common.games`. The manifest's only listing responsibility is `labelFor(commonGamesRow) → string` — a pure function that reads the per-gametype `status` jsonb and returns a label. No I/O, no `foo.games` touched.
+The club page lists games entirely from `common.games`. The manifest's only
+listing responsibility is `labelFor(commonGamesRow) → string` — a pure function
+that reads the per-gametype `status` jsonb and returns a label. No I/O, no
+`foo.games` touched.
 
 ## Suspended vs terminal — not a special case
 
-A "suspended" game is just a description for **a non-current, non-terminal game** — a crossword not yet filled, a connections where categories remain. Suspended games are likely candidates for the club to pick up again.
+A "suspended" game is just a description for **a non-current, non-terminal
+game** — a crossword not yet filled, a connections where categories remain.
+Suspended games are likely candidates for the club to pick up again.
 
-Terminal games are non-current and `is_terminal = true`. Clubs can still view these (to look at the solved grid, reminisce, etc.).
+Terminal games are non-current and `is_terminal = true`. Clubs can still view
+these (to look at the solved grid, reminisce, etc.).
 
-There's no special "suspended" category in the schema or the listing. The club page's "Your games" is a single list of every game, the current one included; a corner flag marks the ones still open (orange for the current game, yellow for a suspended one), and a terminal game has none.
+There's no special "suspended" category in the schema or the listing. The club
+page's "Your games" is a single list of every game, the current one included; a
+corner flag marks the ones still open (orange for the current game, yellow for a
+suspended one), and a terminal game has none.
 
 ## Lifecycle: when `is_current_view` flips
 
 ### A game becomes current
 
 The first member to open its GamePage. The mount fires a write that:
-1. Clears `is_current_view = false` on any other game in this club (the index would reject the new `true` otherwise).
+1. Clears `is_current_view = false` on any other game in this club (the index
+   would reject the new `true` otherwise).
 2. Sets `is_current_view = true` on this game.
 
 ### A game stops being current
 
 Two mechanisms, a fast path and a safety net:
 
-1. **Last-viewer-leave write (fast path).** When a viewer's `useCommonGame` unmounts and its latest presence snapshot says it's the only viewer, it fires a conditional update (`set is_current_view = false where ... and is_current_view = true`). Idempotent — concurrent "I'm the last one!" writes are safe; the first wins, the rest no-op.
+1. **Last-viewer-leave write (fast path).** When a viewer's `useCommonGame`
+   unmounts and its latest presence snapshot says it's the only viewer, it fires
+   a conditional update (`set is_current_view = false where ... and
+   is_current_view = true`). Idempotent — concurrent "I'm the last one!" writes
+   are safe; the first wins, the rest no-op.
 
-2. **Club-presence heal (safety net).** The fast path has a race: when *all* viewers leave near-simultaneously — notably a **suspend**, which broadcasts and navigates everyone at once — each leaving tab still sees the others in presence, so *nobody* fires the unset and the flag gets stuck `true`. (Visiting the club page does NOT call `set_current_view`, so there's no automatic recovery from that path — the old assumption that it did was wrong.) The fix: a **club-level presence channel** (`club:<handle>`, `useClubPresence`) that every member of the club orbit joins, announcing whether they're on the club page or viewing a game. The club page reconciles the DB flag against it: if a game is flagged current but **nobody present is viewing it** (after a short grace for presence to sync), the club page fires `unset_current_view`. Presence can't get stuck the way a missed write can, so loading the club page always heals an abandoned pointer.
+2. **Club-presence heal (safety net).** The fast path has a race: when *all*
+   viewers leave near-simultaneously — notably a **suspend**, which broadcasts
+   and navigates everyone at once — each leaving tab still sees the others in
+   presence, so *nobody* fires the unset and the flag gets stuck `true`.
+   (Visiting the club page does NOT call `set_current_view`, so there's no
+   automatic recovery from that path — the old assumption that it did was
+   wrong.) The fix: a **club-level presence channel** (`club:<handle>`,
+   `useClubPresence`) that every member of the club orbit joins, announcing
+   whether they're on the club page or viewing a game. The club page reconciles
+   the DB flag against it: if a game is flagged current but **nobody present is
+   viewing it** (after a short grace for presence to sync), the club page fires
+   `unset_current_view`. Presence can't get stuck the way a missed write can, so
+   loading the club page always heals an abandoned pointer.
 
-The same `club:<handle>` presence channel also drives the member-strip "who's in the club" dots — see `useClubPresence`.
+The same `club:<handle>` presence channel also drives the member-strip "who's in
+the club" dots — see `useClubPresence`.
 
 ### Solo vs multi-player at the "viewer leaves" moment
 
-Both cases use the same machinery (last-viewer-leaves write); the difference is in what UI gates the leaving action.
+Both cases use the same machinery (last-viewer-leaves write); the difference is
+in what UI gates the leaving action.
 
-**Solo (1-player club, e.g. a personal puzzle).** The lone player leaving = last viewer = the game stops being current. No "but Bea is still in here" complication.
+**Solo (1-player club, e.g. a personal puzzle).** The lone player leaving = last
+viewer = the game stops being current. No "but Bea is still in here"
+complication.
 
-**Multi-player.** If one player leaves while others are still viewing, the game stays current (presence-sync shows >0). The leaving player sees the game in the club page's "currently being viewed" slot — easy to rejoin. For the remaining players, the disconnect triggers presence-pause (we don't play with a missing partner). When the absent player returns, pause clears automatically.
+**Multi-player.** If one player leaves while others are still viewing, the game
+stays current (presence-sync shows >0). The leaving player sees the game in the
+club page's "currently being viewed" slot — easy to rejoin. For the remaining
+players, the disconnect triggers presence-pause (we don't play with a missing
+partner). When the absent player returns, pause clears automatically.
 
 ### Leaving the game page — terminal vs non-terminal
 
-The UI bar for "leaving" depends on play state — three shapes (GamePage's `requestBackToClub`):
+The UI bar for "leaving" depends on play state — three shapes (GamePage's
+`requestBackToClub`):
 
-- **Terminal**. Trivial to leave. Members are reviewing the endgame (the matched bands, the revealed key cards, the post-game summary); the Back-to-club is just a single click. No confirm, no broadcast — other reviewers stay put. When the last reviewer leaves, the game stops being current.
+- **Terminal**. Trivial to leave. Members are reviewing the endgame (the matched
+  bands, the revealed key cards, the post-game summary); the Back-to-club is
+  just a single click. No confirm, no broadcast — other reviewers stay put. When
+  the last reviewer leaves, the game stops being current.
 
-- **Non-terminal, SOLO**. Also no confirm — Back-to-club suspends immediately. Suspending isn't dangerous by itself (the game shelves into the club list, resumable); the confirm exists to warn about dragging PEERS off the game, and a solo game has none to surprise.
+- **Non-terminal, SOLO**. Also no confirm — Back-to-club suspends immediately.
+  Suspending isn't dangerous by itself (the game shelves into the club list,
+  resumable); the confirm exists to warn about dragging PEERS off the game, and
+  a solo game has none to surprise.
 
-- **Non-terminal, MULTIPLAYER**. The suspend question, asked through `askConfirmation` like every other question and drawn as a real modal (scrim-blocked board, dialog-owned keyboard). Its words are `suspendConfirm(title)` in `src/common/pause-suspend/`, a function rather than a constant because they name the game. On accept, ALL viewing members (not just the leaver) move to the club page and the game stops being current.
+- **Non-terminal, MULTIPLAYER**. The suspend question, asked through
+  `askConfirmation` like every other question and drawn as a real modal
+  (scrim-blocked board, dialog-owned keyboard). Its words are
+  `suspendConfirm(title)` in `src/common/pause-suspend/`, a function rather than
+  a constant because they name the game. On accept, ALL viewing members (not
+  just the leaver) move to the club page and the game stops being current.
 
-The asymmetry: the confirm is about the *social* surprise, not the act. Suspending loses nothing; what needs a beat of consideration is yanking the rest of the group off the puzzle mid-flight.
+The asymmetry: the confirm is about the *social* surprise, not the act.
+Suspending loses nothing; what needs a beat of consideration is yanking the rest
+of the group off the puzzle mid-flight.
 
-Contrast **ending** a game (the End button / menu item / pause-overlay escape hatch), which IS destructive — terminal for the whole group, irreversible — and therefore always asks through the shared `ConfirmationBlockingModal` ("End this game?"), even in a solo or coop game.
+Contrast **ending** a game (the End button / menu item / pause-overlay escape
+hatch), which IS destructive — terminal for the whole group, irreversible — and
+therefore always asks through the shared `ConfirmationBlockingModal` ("End this
+game?"), even in a solo or coop game.
 
 ## Exiting a club page (separate concern)
 
-This is *not* permanently leaving a club. When a member is on a club page, they're "in the club's space" — chat is visible, currently-viewed game is reachable. Leaving the club page (back to the homepage to pick a different club) deserves a confirm: *"Leave <Club Foo>?"* Light UI bar; just enough to prevent accidental clicks.
+This is *not* permanently leaving a club. When a member is on a club page,
+they're "in the club's space" — chat is visible, currently-viewed game is
+reachable. Leaving the club page (back to the homepage to pick a different club)
+deserves a confirm: *"Leave <Club Foo>?"* Light UI bar; just enough to prevent
+accidental clicks.
 
 No schema implication. Pure UX layer.

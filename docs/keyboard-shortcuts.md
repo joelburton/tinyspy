@@ -20,7 +20,8 @@ It can, because **every key is a row**, and there are two kinds:
 - **An action** — a command the page offers, wherever focus is: New game,
   Shuffle, typing a letter. Its keys are a row of `ACTIONS` in
   [`common/actions/registry.ts`](../src/common/actions/registry.ts), and a
-  surface offers it by binding it ([`common/actions`](../src/common/actions/doc.md)).
+  surface offers it by binding it
+  ([`common/actions`](../src/common/actions/doc.md)).
 - **A component key** — one that belongs to whatever has focus or is open: a
   selection list's arrows, a ring's Tab, Escape closing a panel, an open menu's
   walk. Its keys are a row of `COMPONENT_KEYS` in

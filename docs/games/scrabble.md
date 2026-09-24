@@ -14,9 +14,9 @@ where almost all of its novelty lives.
 > codename it's the clearest possible name.)
 
 scrabble is a **coop / compete sibling pair** (`scrabble_coop`,
-`scrabble_compete`) and inherits the shared chrome — timer, chat, presence-pause,
-manual "End game" — through `<GamePage>` + `useCommonGame`, like every other
-multiplayer gametype.
+`scrabble_compete`) and inherits the shared chrome — timer, chat,
+presence-pause, manual "End game" — through `<GamePage>` + `useCommonGame`, like
+every other multiplayer gametype.
 
 > **Status: live.** scrabble is built end-to-end (engine, migration, RPCs, FE)
 > and shipping. The design forks — difficulty bands by word length
@@ -40,8 +40,8 @@ multiplayer gametype.
 ## 1. The shape of the novelty
 
 Every existing game is either "any player acts whenever" (spellingbee, stackdown
-coop) or fixed two-seat (codenamesduet). scrabble is structurally different in three
-ways that drive most of the schema:
+coop) or fixed two-seat (codenamesduet). scrabble is structurally different in
+three ways that drive most of the schema:
 
 1. **One shared 15×15 board** all players mutate, sequentially.
 2. **One shared 100-tile bag** everyone draws from — a *contended* resource, not
@@ -50,12 +50,12 @@ ways that drive most of the schema:
 
 The flip side: there is **no board library and no builder edge function**. The
 board layout and tile distribution are *constants in code*; the only per-game
-randomness is the bag's shuffle order. So unlike spellingbee / waffle / stackdown,
-there's nothing to pre-generate and nothing to import. The complexity instead
-lands in **move evaluation** (a single placement forms a main word *plus* every
-perpendicular cross-word) — which lives in **one place, the TS `lib/play.ts`**,
-shared by the live preview and the commit path (see [§6](#6-where-validation-lives))
-— and in **turn / lifecycle management**.
+randomness is the bag's shuffle order. So unlike spellingbee / waffle /
+stackdown, there's nothing to pre-generate and nothing to import. The complexity
+instead lands in **move evaluation** (a single placement forms a main word
+*plus* every perpendicular cross-word) — which lives in **one place, the TS
+`lib/play.ts`**, shared by the live preview and the commit path (see
+[§6](#6-where-validation-lives)) — and in **turn / lifecycle management**.
 
 ---
 
@@ -72,13 +72,13 @@ shared by the live preview and the commit path (see [§6](#6-where-validation-li
   distribution lives in `lib/board.ts` (and is mirrored SQL-side); the canonical
   table is in [§3.2](#32-the-tile-distribution).
 - **Rack:** 7 tiles. **Compete:** each player has a *private* rack (RLS hides
-  peers' racks). **Coop:** there is **one shared rack** the whole team plays from
-  (see [§2.4](#24-coop-vs-compete)).
+  peers' racks). **Coop:** there is **one shared rack** the whole team plays
+  from (see [§2.4](#24-coop-vs-compete)).
 
 ### 2.2 A play (placing a word)
 
-On a turn (compete) or at any time (coop), a player places one or more rack tiles
-on empty board squares. The play is legal iff:
+On a turn (compete) or at any time (coop), a player places one or more rack
+tiles on empty board squares. The play is legal iff:
 
 - **First play covers the center** (7,7).
 - **All placed tiles lie in a single row or column**, contiguous along that line
@@ -111,8 +111,8 @@ were played, or as many as remain), and — in compete — **the turn advances**
 Standard Scrabble scoring:
 
 - Each tile contributes its letter value, multiplied by any **letter premium**
-  (DL/TL) on its square — *but only for premiums under newly-placed tiles*. Tiles
-  already on the board score face value with no premium.
+  (DL/TL) on its square — *but only for premiums under newly-placed tiles*.
+  Tiles already on the board score face value with no premium.
 - Then **word premiums** (DW/TW) multiply the whole word's total — again, only
   premiums under *newly-placed* tiles count, and they stack (two DWs in one word
   = ×4).
@@ -123,26 +123,27 @@ Standard Scrabble scoring:
 
 ### 2.4 Coop vs compete
 
-- **Compete** (`scrabble_compete`, 1–4 players): classic Scrabble. **Turn-based**
-  — a rotating order, only the active player may play / exchange / pass. Private
-  per-player racks, per-player scores. Highest final score wins. Unusually for a
-  compete manifest, its floor is **1**, not 2: a lone player can race the
-  autonomous AI opponent (see §12), which fills the other seat.
+- **Compete** (`scrabble_compete`, 1–4 players): classic Scrabble.
+  **Turn-based** — a rotating order, only the active player may play / exchange
+  / pass. Private per-player racks, per-player scores. Highest final score wins.
+  Unusually for a compete manifest, its floor is **1**, not 2: a lone player can
+  race the autonomous AI opponent (see §12), which fills the other seat.
 - **Coop** (`scrabble_coop`, 1–4 players, solo-capable): **one shared rack, one
-  shared board, one shared bag, one shared score.** There is **no turn rotation**
-  — *any* player may attempt a word at any time; players coordinate over chat to
-  plan the team's best move. The team plays for the highest score it can reach
-  (a "see what you can get" practice/collaboration mode; solo is just the
-  1-player case).
+  shared board, one shared bag, one shared score.** There is **no turn
+  rotation** — *any* player may attempt a word at any time; players coordinate
+  over chat to plan the team's best move. The team plays for the highest score
+  it can reach (a "see what you can get" practice/collaboration mode; solo is
+  just the 1-player case).
 
   Mirroring stackdown coop: a player **stages tiles privately** — tentative
   placements are local to their client, never broadcast — and only on a
   successful **commit** does the word hit the shared board for everyone. Commits
-  serialize on the game-row lock, so if two players commit at once the first wins
-  and the second's staged word **resets** — and because the rack is *shared*, a
-  peer's commit can pull tiles out from under your half-built word, forcing the
-  same reset (exactly stackdown's "whoever submits first claims it, the other's
-  in-progress resets," with the shared rack as the contended resource).
+  serialize on the game-row lock, so if two players commit at once the first
+  wins and the second's staged word **resets** — and because the rack is
+  *shared*, a peer's commit can pull tiles out from under your half-built word,
+  forcing the same reset (exactly stackdown's "whoever submits first claims it,
+  the other's in-progress resets," with the shared rack as the contended
+  resource).
 
 ### 2.5 Blank tiles
 
@@ -170,8 +171,8 @@ future word validation. The tile scores 0 forever.
 
 Two natural end triggers, plus the universal manual / timeout paths:
 
-- **Going out:** the bag is empty **and** a player empties their rack (compete) /
-  the shared rack is empty (coop). The classic end.
+- **Going out:** the bag is empty **and** a player empties their rack (compete)
+  / the shared rack is empty (coop). The classic end.
 - **Blocked (compete only):** **every active seat passed in a row** — one lap of
   the table with nobody willing to play. A deliberate *casual* house rule
   (2026-08-01) in place of tournament Scrabble's 6 consecutive scoreless turns,
@@ -183,8 +184,9 @@ Two natural end triggers, plus the universal manual / timeout paths:
   **Coop has no blocked-end** (and no turns/passes): it ends *only* on going-out
   or **End game**.
 - **Manual end** (`end_game`): any player stops the game. **Compete** is the
-  uniform neutral stop ([common-schema.md → Manual end](../common-schema.md#manual-end--every-gametypes-end_gametarget_game))
-  — no winner, no scoring. **Coop deviates** (see below): it *forfeits* the
+  uniform neutral stop ([common-schema.md → Manual
+  end](../common-schema.md#manual-end--every-gametypes-end_gametarget_game)) —
+  no winner, no scoring. **Coop deviates** (see below): it *forfeits* the
   leftover-tile value.
 - **Timeout** (`submit_timeout`): a countdown clock hit 0.
 
@@ -251,20 +253,21 @@ Scrabble, not a trivializing exploit.)
 
 ### 3.3 The dictionary (difficulty bands, by word length)
 
-The legal word set is the shared `common.words` list (see
-[word-list.md → The word list](../word-list.md#the-word-list-commonwords)), gated by
-**two per-game difficulty bands** chosen at setup — one for **2-letter** words
-(`dict_2`) and one for **3+-letter** words (`dict_3plus`), both 1..6. A word is
-legal iff `difficulty ≤ the band for its length` and it's valid in the
-**american OR british** dialect (the codebase's default-play convention). The
-two-band split (the same bananagrams uses) exists because 2-letter words are a
-thin, separate vocabulary you usually want to gate independently of the rest. No
-clean filter — among friends, crude words are legal Scrabble plays (standard
-dictionaries include them), the same way spellingbee's *legal* tier carries no clean
+The legal word set is the shared `common.words` list (see [word-list.md → The
+word list](../word-list.md#the-word-list-commonwords)), gated by **two per-game
+difficulty bands** chosen at setup — one for **2-letter** words (`dict_2`) and
+one for **3+-letter** words (`dict_3plus`), both 1..6. A word is legal iff
+`difficulty ≤ the band for its length` and it's valid in the **american OR
+british** dialect (the codebase's default-play convention). The two-band split
+(the same bananagrams uses) exists because 2-letter words are a thin, separate
+vocabulary you usually want to gate independently of the rest. No clean filter —
+among friends, crude words are legal Scrabble plays (standard dictionaries
+include them), the same way spellingbee's *legal* tier carries no clean
 restriction. **The AI is held to a stricter bar than the players** (2026-08-03):
 its bundled vocabulary drops slurs + profanity, because a word the app puts on a
-shared board is the app's, not the player's — see [§11](#11-the-move-suggester-ai)
-and [word-list.md → Which words a game may use](../word-list.md#which-words-a-game-may-use--the-two-tier-rule).
+shared board is the app's, not the player's — see
+[§11](#11-the-move-suggester-ai) and [word-list.md → Which words a game may
+use](../word-list.md#which-words-a-game-may-use--the-two-tier-rule).
 
 **The bands are the acceptance gate — scrabble deviates from the roster default
 here.** The general convention (common.md) is "validation accepts the *full* 1–6
@@ -276,10 +279,10 @@ rejected), so picking a lower band genuinely makes a stricter game. The setup
 form offers **all six** for each (default 3 / 3). The bands are server-only
 config — not exposed to the FE (which never validates words).
 
-Word legality is a plain `common.words` lookup inside `play_word` — the one piece
-of validation that stays server-side, because that's where the word list is
-([§6](#6-where-validation-lives)). The geometry + word-extraction + scoring live
-*only* in `lib/play.ts` (no SQL re-implementation).
+Word legality is a plain `common.words` lookup inside `play_word` — the one
+piece of validation that stays server-side, because that's where the word list
+is ([§6](#6-where-validation-lives)). The geometry + word-extraction + scoring
+live *only* in `lib/play.ts` (no SQL re-implementation).
 
 ---
 
@@ -328,22 +331,23 @@ outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 ### 4.2 The deliberate coop/compete column asymmetry
 
-Coop's rack + score sit on `games` (one shared thing); compete's sit on `players`
-(partitioned per player). Each is null in the other mode. This mirrors the modes
-themselves — coop *shares* the contended resource, compete *partitions* it — and
-is cleaner than forcing one shape to serve both (a single shared rack modeled as
-N per-player rows would make RLS and refill writes awkward). Documented here so
-the nulls read as intentional, not a gap.
+Coop's rack + score sit on `games` (one shared thing); compete's sit on
+`players` (partitioned per player). Each is null in the other mode. This mirrors
+the modes themselves — coop *shares* the contended resource, compete
+*partitions* it — and is cleaner than forcing one shape to serve both (a single
+shared rack modeled as N per-player rows would make RLS and refill writes
+awkward). Documented here so the nulls read as intentional, not a gap.
 
 ### 4.3 Hidden-state pattern
 
 Same column-grant + `security_invoker` view shape the answer-hiding games use
-(stackdown's `solution`, spellingbee's `required_words`), but applied to *resources*:
+(stackdown's `solution`, spellingbee's `required_words`), but applied to
+*resources*:
 
 - **`bag`** is column-excluded from the `authenticated` grant and **never
-  revealed**. A `scrabble.games_state` view exposes `bag_count` (via a
-  `SECURITY DEFINER` `_bag_count_for(id)` helper that reads the hidden column) so
-  the FE can show "N tiles left" without seeing their letters.
+  revealed**. A `scrabble.games_state` view exposes `bag_count` (via a `SECURITY
+  DEFINER` `_bag_count_for(id)` helper that reads the hidden column) so the FE
+  can show "N tiles left" without seeing their letters.
 - **`players.rack`** (compete) is column-excluded; a `scrabble.players_state`
   view exposes `rack` through a definer helper that returns it **only when
   `user_id = auth.uid()` OR the game is terminal** (the terminal branch is what
@@ -373,8 +377,8 @@ vs an AI is a legal compete table but a 1-seat "race" is not. Reads
   `games.shared_rack`.
 - Sets the first turn (compete: a **random seat** among *all* seats — humans
   then AI — so an AI may open; see [§12](#12-the-ai-opponent-compete)).
-- Inserts the `games` row + one `players` row per uid, seeds `common.update_state`
-  with the initial status ([§9](#9-status-jsonb--labels)).
+- Inserts the `games` row + one `players` row per uid, seeds
+  `common.update_state` with the initial status ([§9](#9-status-jsonb--labels)).
 
 ### 5.2 `play_word(target_game, base_version int, placements jsonb, words text[], score int)`
 
@@ -390,8 +394,8 @@ declared letter).
    moved first → **`PN437`, a `race`, "Board changed"**. This is the race
    handler — it also rejects a *stale* client that computed against an old
    board. It is a refusal, and the board version rides in the raise's DETAIL,
-   where the `[db]` line shows it (the FE's own `game.version` comes from the games-row
-   subscription, which is the authority).
+   where the `[db]` line shows it (the FE's own `game.version` comes from the
+   games-row subscription, which is the authority).
 
    **This gate is also why almost everything below it is a `fault`.** Any server
    state a later check could disagree with — the turn, the rack, the bag, the
@@ -399,38 +403,40 @@ declared letter).
    checks with a version that MATCHES means the client's own state is wrong.
    Only `play_state` escapes it: that lives on `common.games`, so a peer ending
    the game bumps nothing here, which is why "Game over" is the other race.
-3. **Compete:** reject unless it's the acting seat's turn — the check is
-   `g.mode = 'compete' and p_seat is distinct from g.current_seat` → **`PN438`,
-   a fault** (`current_seat` travels on the same row as `version`, so see the
-   gate above), keyed on the scrabble-local seat system. **Coop:** free-for-all by default (any player), but
-   the coop sibling also supports **opt-in turn-by-turn** play (setup `coop_style =
-   'turns'`) — when on, the shared `_commit_word` core gates on the **common**
-   `common._require_turn` and advances `common._advance_turn` on an accepted,
-   non-terminal commit. The two turn systems coexist deliberately: compete keeps
-   its own `scrabble.games.current_seat` + `scrabble._advance_seat` (which also
-   drive the AI opponent, [§12](#12-the-ai-opponent-compete)), coop uses the
-   common pointer. See
-   [common-schema.md → Turn-order](../common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
+3. **Compete:** reject unless it's the acting seat's turn — the check is `g.mode
+   = 'compete' and p_seat is distinct from g.current_seat` → **`PN438`, a
+   fault** (`current_seat` travels on the same row as `version`, so see the gate
+   above), keyed on the scrabble-local seat system. **Coop:** free-for-all by
+   default (any player), but the coop sibling also supports **opt-in
+   turn-by-turn** play (setup `coop_style = 'turns'`) — when on, the shared
+   `_commit_word` core gates on the **common** `common._require_turn` and
+   advances `common._advance_turn` on an accepted, non-terminal commit. The two
+   turn systems coexist deliberately: compete keeps its own
+   `scrabble.games.current_seat` + `scrabble._advance_seat` (which also drive
+   the AI opponent, [§12](#12-the-ai-opponent-compete)), coop uses the common
+   pointer. See [common-schema.md →
+   Turn-order](../common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 4. **Integrity guards** (cheap; data-consistency, *not* anti-cheat): every
    placement is in-bounds and lands on an empty square; the consumed tiles
    (`?` per blank, else the letter) are actually in the acting rack (compete:
    caller's; coop: shared). These keep the board + bag accounting honest against
    a buggy client; they do *not* re-derive words or score.
-5. **Dictionary:** every word in `words` must be legal at the band for its length
-   (`dict_2` for 2-letter, `dict_3plus` for 3+). **Any** failure → an `ok` ·
-   `{result:'invalid', bad_words}` in outcome `lost`, with **no state change**
-   (the free reject). An `ok` rather than a refusal because this is the only
-   validation the client cannot do — the word list is here — so asking is what
-   the move was for, and this is the answer.
+5. **Dictionary:** every word in `words` must be legal at the band for its
+   length (`dict_2` for 2-letter, `dict_3plus` for 3+). **Any** failure → an
+   `ok` · `{result:'invalid', bad_words}` in outcome `lost`, with **no state
+   change** (the free reject). An `ok` rather than a refusal because this is the
+   only validation the client cannot do — the word list is here — so asking is
+   what the move was for, and this is the answer.
 6. **Commit:** apply the placements to `board` (a cell-write loop — the server
    builds its own next board, it doesn't trust a board blob); remove the played
    tiles from the rack and **draw replacements from the hidden `bag`** (the
    server owns this — fairness without trust); add the trusted `score` (compete:
    `players.score`; coop: `games.team_score`); insert the `plays` row;
    `version += 1`; reset `consecutive_passes = 0`.
-7. **Compete:** advance the seat pointer via `scrabble._advance_seat(target_game)`.
-   **Both:** check end conditions
-   ([§2.7](#27-ending-the-game)); end the game if met, else `common.update_state`.
+7. **Compete:** advance the seat pointer via
+   `scrabble._advance_seat(target_game)`. **Both:** check end conditions
+   ([§2.7](#27-ending-the-game)); end the game if met, else
+   `common.update_state`.
 8. An `ok` · `{result:'accepted', drawn, version, terminal}` in outcome `won` —
    the newly-drawn tiles (so the FE updates the rack without leaking the rest of
    the bag) and the new version.
@@ -466,20 +472,20 @@ crossing a score. So `play_word` only *ends* the game via the natural triggers.
 
 ### 5.3 `exchange_tiles(target_game, base_version int, rack_tiles text[])`
 
-Lock + version CAS (same stale-guard as `play_word` — it mutates the shared rack
-+ bag) + gate + (compete) turn check. `rack_tiles` are the tile glyphs to return
-(`?` for a blank). Requires `bag_count ≥ 7`. Returns the tiles to the bag,
-reshuffles, redraws the same count; `version += 1`; logs `kind='exchange'`.
+Lock + version CAS (same stale-guard as `play_word` — it mutates the shared
+rack + bag) + gate + (compete) turn check. `rack_tiles` are the tile glyphs to
+return (`?` for a blank). Requires `bag_count ≥ 7`. Returns the tiles to the
+bag, reshuffles, redraws the same count; `version += 1`; logs `kind='exchange'`.
 **Compete:** `consecutive_passes = 0` (an exchange clears the streak), advance
-turn. **Coop:** none of that — it's just a rack refresh (no compete-seat
-turns, no blocked-end). Under **coop turn-by-turn** (setup `coop_style = 'turns'`)
-the shared `_commit_exchange` core also gates on `common._require_turn` and hands
+turn. **Coop:** none of that — it's just a rack refresh (no compete-seat turns,
+no blocked-end). Under **coop turn-by-turn** (setup `coop_style = 'turns'`) the
+shared `_commit_exchange` core also gates on `common._require_turn` and hands
 off via `common._advance_turn` — an exchange is a real turn-consuming coop move.
 (There's no coop pass — `pass_turn` is compete-only, which is the rule now in
 question: see Deferred — so only `_commit_word` and `_commit_exchange` carry the
 common gate.) Answers an `ok` · `{result:'exchanged', drawn, version, terminal}`
-in outcome `neutral` — `terminal` is always false now (an exchange resets the pass
-streak rather than feeding it, so it can no longer end a game), but the key
+in outcome `neutral` — `terminal` is always false now (an exchange resets the
+pass streak rather than feeding it, so it can no longer end a game), but the key
 stays in the shape because every move RPC returns it and the FE branches on it
 uniformly. A CAS miss is `PN447`, a race, exactly as `play_word`'s.
 
@@ -499,9 +505,9 @@ here: scrabble's 15×15 premium grid is the **standard layout**, the same for
 every game — not a generated puzzle. So unlike waffle/wordle there is nothing to
 restore, and a replay **re-deals**: freshly shuffled bag, new racks, empty grid,
 keeping the setup (club, roster, seats, dictionary bands, AI opponents). "Same
-table, new deal", not "same puzzle again" — which is also why replay and New game
-differ less here than elsewhere (New game additionally mints a NEW game row,
-leaving this one in the club's list).
+table, new deal", not "same puzzle again" — which is also why replay and New
+game differ less here than elsewhere (New game additionally mints a NEW game
+row, leaving this one in the club's list).
 
 Any game player may call it, from a finished game OR mid-game; both modes reset
 every seat. Three subtleties:
@@ -509,18 +515,18 @@ every seat. Three subtleties:
 - **`version` is BUMPED, not zeroed.** It's the optimistic-concurrency counter
   every move RPC checks `base_version` against. Zeroing would let a client
   holding a stale mid-game version commit against the fresh deal; bumping keeps
-  it monotonic so every in-flight move fails its check — correct, since that move
-  was for the old deal.
+  it monotonic so every in-flight move fails its check — correct, since that
+  move was for the old deal.
 - **Compete re-randomizes `current_seat`**, matching `create_game`: the deal is
   new, so who opens is drawn afresh.
-- **Coop turn-order rewinds** to the player seated first (`game_players.turn_seat
-  = 0`). The rotation was assigned at create time and doesn't change, so this
-  restores the original opener without re-reading `setup.first_turn_user_id`. A
-  free-for-all game's null pointer stays null.
+- **Coop turn-order rewinds** to the player seated first
+  (`game_players.turn_seat = 0`). The rotation was assigned at create time and
+  doesn't change, so this restores the original opener without re-reading
+  `setup.first_turn_user_id`. A free-for-all game's null pointer stays null.
 
 It also puts `common.games.title` back to `"New game"` (the title is the first
-three words played — see §7 — so it would otherwise advertise the old deal), then
-hands the common half to `common.reset_game`. Takes the row `FOR UPDATE`: a
+three words played — see §7 — so it would otherwise advertise the old deal),
+then hands the common half to `common.reset_game`. Takes the row `FOR UPDATE`: a
 replay racing a move must not interleave with it. pgTAP: `replay_test.sql`.
 
 ### 5.6 `end_game` / `concede` / `submit_timeout`
@@ -530,23 +536,24 @@ replay racing a move must not interleave with it. pgTAP: `replay_test.sql`.
 both modes** — the RPC branches. **Coop** runs final scoring with a
 leftover-tile penalty (a `'leftovers'` row with the negative value lost,
 `play_state 'ended'`, `outcome 'manual'`). **Compete** is the uniform neutral
-stop ([§2.7](#27-ending-the-game)): a flat `'ended'` with every player
-`{won: false}` and **no scoring** — the group agreeing there's no result.
-The FE **menu** surfaces one exit per mode: **End game** in coop, **Concede**
-in compete (`useStandardGameActions` offers compete's whole-table End only as
+stop ([§2.7](#27-ending-the-game)): a flat `'ended'` with every player `{won:
+false}` and **no scoring** — the group agreeing there's no result. The FE
+**menu** surfaces one exit per mode: **End game** in coop, **Concede** in
+compete (`useStandardGameActions` offers compete's whole-table End only as
 Concede's second answer, behind the opt-in `offersEndForAll`, which scrabble
-doesn't pass — so the neutral compete branch is live server-side but has no
-FE button today).
-`scrabble.concede` is the per-player "I quit, the others keep playing". Because scrabble is turn-based, concede is
-more than a flag: `scrabble._advance_seat` **skips** conceders, `scrabble._finish`
-picks the winner among **non-conceded** players (a drop-out forfeits even a tying
-score), and `scrabble.concede` hands the turn off if it was the conceder's, or
-ends the game (final scoring, nobody eligible to win) when the last active player
-drops. FE: `act-concede` (hidden in coop) in compete, conceder "out" in the OpponentStrip
-(and `Quit · score` at terminal via `terminalOutcomeVerb`), input disabled once
-conceded. See [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
-pgTAP: `concede_test.sql`. All the terminal paths do the realtime-touch self-write
-on a `scrabble` row so the FE subscription wakes to reveal final racks.
+doesn't pass — so the neutral compete branch is live server-side but has no FE
+button today). `scrabble.concede` is the per-player "I quit, the others keep
+playing". Because scrabble is turn-based, concede is more than a flag:
+`scrabble._advance_seat` **skips** conceders, `scrabble._finish` picks the
+winner among **non-conceded** players (a drop-out forfeits even a tying score),
+and `scrabble.concede` hands the turn off if it was the conceder's, or ends the
+game (final scoring, nobody eligible to win) when the last active player drops.
+FE: `act-concede` (hidden in coop) in compete, conceder "out" in the
+OpponentStrip (and `Quit · score` at terminal via `terminalOutcomeVerb`), input
+disabled once conceded. See [common-schema.md →
+Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
+`concede_test.sql`. All the terminal paths do the realtime-touch self-write on a
+`scrabble` row so the FE subscription wakes to reveal final racks.
 
 ---
 
@@ -567,31 +574,32 @@ The geometry + word-extraction + scoring — the genuinely intricate logic — r
 **only in TS**, where the board already is. The FE evaluates a play instantly
 (live score, word highlighting, illegal-placement graying) and, on submit, hands
 the server the `placements` it made, the `words` it read off, and the `score` it
-computed. **The server trusts those** (per the trust model — players are friends;
-we don't defend against cheating) and only does the things it alone can: check
-the words against the dictionary, draw replacement tiles from the hidden bag, and
-keep the books. This is the model Joel chose: simpler SQL, one implementation of
-the hard logic, and the same `lib/play.ts` is what the AI move suggester reuses
-([§11](#11-the-move-suggester-ai)).
+computed. **The server trusts those** (per the trust model — players are
+friends; we don't defend against cheating) and only does the things it alone
+can: check the words against the dictionary, draw replacement tiles from the
+hidden bag, and keep the books. This is the model Joel chose: simpler SQL, one
+implementation of the hard logic, and the same `lib/play.ts` is what the AI move
+suggester reuses ([§11](#11-the-move-suggester-ai)).
 
 **Atomicity + races, without re-deriving the move.** The earlier worry — that
-trusting the FE opens a read-then-write TOCTOU, especially in coop's shared rack —
-is handled by **optimistic concurrency**, not by re-validation. `games.version`
-is a move counter; the FE submits the `base_version` its board was read at, and
-`play_word` does a compare-and-set under the row lock: if the version moved, the
-commit is rejected as `stale` and the FE recomputes against fresh state. This is
-the explicit form of stackdown coop's "first commit wins, the other resets," and
-it *also* catches a stale client that computed against an old board (which a bare
-lock would silently clobber). Two cheap **integrity guards** (placements
-in-bounds + on empty squares; consumed tiles really in the rack) protect the
-board/bag accounting from a *buggy* client — they're data-consistency checks, not
-the duplicated word/score logic.
+trusting the FE opens a read-then-write TOCTOU, especially in coop's shared rack
+— is handled by **optimistic concurrency**, not by re-validation.
+`games.version` is a move counter; the FE submits the `base_version` its board
+was read at, and `play_word` does a compare-and-set under the row lock: if the
+version moved, the commit is rejected as `stale` and the FE recomputes against
+fresh state. This is the explicit form of stackdown coop's "first commit wins,
+the other resets," and it *also* catches a stale client that computed against an
+old board (which a bare lock would silently clobber). Two cheap **integrity
+guards** (placements in-bounds + on empty squares; consumed tiles really in the
+rack) protect the board/bag accounting from a *buggy* client — they're
+data-consistency checks, not the duplicated word/score logic.
 
 **The trade-off, stated honestly.** Server-authority for geometry/score is gone:
-a buggy (not malicious) client could persist a wrong score or a missed cross-word.
-We accept that under FE-trust; the mitigation is that `lib/play.ts` is the single,
-unit-tested source of those rules. If we ever wanted server authority back, the
-port target is exactly that one tested module — but YAGNI today.
+a buggy (not malicious) client could persist a wrong score or a missed
+cross-word. We accept that under FE-trust; the mitigation is that `lib/play.ts`
+is the single, unit-tested source of those rules. If we ever wanted server
+authority back, the port target is exactly that one tested module — but YAGNI
+today.
 
 (No edge function on the *play* path: the dictionary check and bag draw are
 trivial SQL. scrabble's one edge function, `scrabble-suggest-move`, is the
@@ -602,53 +610,51 @@ trivial SQL. scrabble's one edge function, `scrabble-suggest-move`, is the
 ## 7. Frontend (`src/scrabble/`)
 
 Shared `PlayArea` / `SetupForm` / `Help` / `useGame`, mode-branched at render on
-`game.mode`. **v3 layout** (the shared two-column scaffold — see
-[playarea.md → PlayArea layout](../playarea.md#playarea-layout)): the **board column** holds
+`game.mode`. **v3 layout** (the shared two-column scaffold — see [playarea.md →
+PlayArea layout](../playarea.md#playarea-layout)): the **board column** holds
 the 15×15 board (the square *hug* model — `--side = min(--avail-w, --avail-h)`,
 the largest square that fits, like waffle/boggle) and, directly below it,
-scrabble's **GameEntryArea**: the **rack + action row** (the rack *is* the input,
-so it lives with everything else needed to play). That row is pinned to the board
-width and split by a divider — Shuffle (`act-shuffle`, `⌥Z`) + the icon-only Recall
-(`act-recall-tiles`) on the left; the **commit slot** ([Swap] [Pass] [Submit]) on the
-right. The shell-wide keys apply as everywhere: `+` New game, `⌥⌫` End / Concede.
-The commit
-slot doubles as the **local feedback area**: the local feedback slot's
-`<FeedbackPill>` — an own-move result, dismissed by the player's next move (a tile
-tap / a keystroke); a not-ok with its ×; "you're out"; whose turn; the terminal
-verdict ([ui.md → Feedback pill](../ui.md#feedback-pill)) — shows in place of the
-commit buttons. To keep that row
-on one line within the board width, the buttons are compact — **Swap is
-icon-only** (`act-exchange`, two-way-arrows glyph, carrying its own reason when it
-can't act); Pass hides itself outside compete and is the end-turn octagon in the
-registry's caution tone (`act-pass` — icon-only, left of Submit); and **Submit is the
-`SubmitWithScore` button** over `act-submit`, a
-shared component that doubles as the live preview — the triangle pinned left, the
-play's score right-justified ("+23"), an em-dash on an empty board, at a fixed
-width so it never resizes. Submit is enabled for *any* placed tiles; an illegal
-shape isn't disabled-away but surfaces as a `lost` pill on submit. The **info column** holds
+scrabble's **GameEntryArea**: the **rack + action row** (the rack *is* the
+input, so it lives with everything else needed to play). That row is pinned to
+the board width and split by a divider — Shuffle (`act-shuffle`, `⌥Z`) + the
+icon-only Recall (`act-recall-tiles`) on the left; the **commit slot** ([Swap]
+[Pass] [Submit]) on the right. The shell-wide keys apply as everywhere: `+` New
+game, `⌥⌫` End / Concede. The commit slot doubles as the **local feedback
+area**: the local feedback slot's `<FeedbackPill>` — an own-move result,
+dismissed by the player's next move (a tile tap / a keystroke); a not-ok with
+its ×; "you're out"; whose turn; the terminal verdict ([ui.md → Feedback
+pill](../ui.md#feedback-pill)) — shows in place of the commit buttons. To keep
+that row on one line within the board width, the buttons are compact — **Swap is
+icon-only** (`act-exchange`, two-way-arrows glyph, carrying its own reason when
+it can't act); Pass hides itself outside compete and is the end-turn octagon in
+the registry's caution tone (`act-pass` — icon-only, left of Submit); and
+**Submit is the `SubmitWithScore` button** over `act-submit`, a shared component
+that doubles as the live preview — the triangle pinned left, the play's score
+right-justified ("+23"), an em-dash on an empty board, at a fixed width so it
+never resizes. Submit is enabled for *any* placed tiles; an illegal shape isn't
+disabled-away but surfaces as a `lost` pill on submit. The **info column** holds
 the live turn/score state, the compete `OpponentStrip` (metric "Score"), the
-End/Concede action row (the terminal outcome line at game over), a help line, the
-setup disclosure, and the Moves log filling the rest.
+End/Concede action row (the terminal outcome line at game over), a help line,
+the setup disclosure, and the Moves log filling the rest.
 
 **Mobile** (the [mobile.md](../mobile.md) info-sheet recipe, crosswords'
 keyboard-required flavor): below the breakpoint the board fills the width
 (`shared.mobileFill`) and the info column moves into the narrow off-canvas
-`<InfoSheet>`, reached by the header's page-switch button (`useInfoSheet`). The core
-state stays on the play surface via the shared `<MobileStatusBar>` above the
-board — scrabble's `StateLine` ("Your turn · 7 in bag" / "Turn: ● moth · 7 in
-bag" / coop's "Team score: 152 · 7 in bag"), the same component the info
-column's state readout renders, so the two can't drift
-([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar--core-state-above-the-board)).
-This is a
-**layout for keyboard-attached devices, not a touch-entry mode** — drag gets no
-touch support; play is the keyboard cursor (tap a square, type). One phone-only
-divergence: the rack + controls can't share one line at phone widths (the rack
-bottoms out at ~206px, the controls need ~205px), so at `@media (--phone)` the
-`.moveArea` wraps and `.controls` takes a full-width second row — unconditional,
-never state-dependent — with the below-board reserve (5.1rem) and `--avail-h`
-(−6.1rem) grown in lockstep so the height-bound landscape board still fits
-without page scroll. Guard: `e2e/scrabble-mobile.e2e.ts` (phone + tablet
-viewports: fit invariants + the sheet round-trip).
+`<InfoSheet>`, reached by the header's page-switch button (`useInfoSheet`). The
+core state stays on the play surface via the shared `<MobileStatusBar>` above
+the board — scrabble's `StateLine` ("Your turn · 7 in bag" / "Turn: ● moth · 7
+in bag" / coop's "Team score: 152 · 7 in bag"), the same component the info
+column's state readout renders, so the two can't drift ([mobile.md → The mobile
+status bar](../mobile.md#the-mobile-status-bar--core-state-above-the-board)).
+This is a **layout for keyboard-attached devices, not a touch-entry mode** —
+drag gets no touch support; play is the keyboard cursor (tap a square, type).
+One phone-only divergence: the rack + controls can't share one line at phone
+widths (the rack bottoms out at ~206px, the controls need ~205px), so at `@media
+(--phone)` the `.moveArea` wraps and `.controls` takes a full-width second row —
+unconditional, never state-dependent — with the below-board reserve (5.1rem) and
+`--avail-h` (−6.1rem) grown in lockstep so the height-bound landscape board
+still fits without page scroll. Guard: `e2e/scrabble-mobile.e2e.ts` (phone +
+tablet viewports: fit invariants + the sheet round-trip).
 
 **Placement mirrors bananagrams's two input modes** — its pointer-gesture system
 (a press-past-threshold becomes a drag, with a floating ghost + drop highlights)
@@ -659,52 +665,56 @@ common 2-D board-cursor hook both games use, four bound actions); scrabble's 5%
 is that only STAGED tiles are editable — committed tiles are locked — and its
 COMMIT is `act-submit`, which plays the staged word (vs bananagrams' peel). The
 commit's availability is its own, narrower than the cursor's: you may stage a
-play before your turn in compete, and Enter waits with the button. Drag a tile rack→board, board→board (move), board→rack (recall), or
-**rack→rack to reorder** (people rearrange tiles to hunt for anagrams — the drop
-position is read off the rack tiles' midpoints and moves the tile in the display
-`order`); tap a square to position the cursor; tap a rack tile to mark it for
-Exchange.
+play before your turn in compete, and Enter waits with the button. Drag a tile
+rack→board, board→board (move), board→rack (recall), or **rack→rack to reorder**
+(people rearrange tiles to hunt for anagrams — the drop position is read off the
+rack tiles' midpoints and moves the tile in the display `order`); tap a square
+to position the cursor; tap a rack tile to mark it for Exchange.
 
 **Pre-play (compete).** Placement is split from commit by two gates: `canPlace`
-(stage / recall / reorder / shuffle, `⌥Z`) and `canCommit` (Submit / Swap / Pass — needs
-your turn). In compete `canPlace` is true **even when it isn't your turn**, so you
-can *pre-play* — lay a move out while waiting, to line it up and see its score (a
-disabled Submit showing "+N"). Pre-played tiles use the same bright tentative face.
-When an opponent commits, your pre-play **persists** (the version-move effect keeps
-it + your rack order, since your rack is untouched) — *unless* the opponent placed a
-tile on a cell you'd pre-played, in which case the whole pre-play is cleared with a
-terse local `warning` result, "Pre-play cleared: conflict" (no name/disc — the commit
-slot is too narrow). When your turn then starts with tiles already staged, Submit is enabled and
-Pass is disabled (you have a move pending). Coop is unchanged — no turns, and a
-teammate's commit still resets your in-progress staging (the stackdown-style "first
-commit wins").
+(stage / recall / reorder / shuffle, `⌥Z`) and `canCommit` (Submit / Swap / Pass
+— needs your turn). In compete `canPlace` is true **even when it isn't your
+turn**, so you can *pre-play* — lay a move out while waiting, to line it up and
+see its score (a disabled Submit showing "+N"). Pre-played tiles use the same
+bright tentative face. When an opponent commits, your pre-play **persists** (the
+version-move effect keeps it + your rack order, since your rack is untouched) —
+*unless* the opponent placed a tile on a cell you'd pre-played, in which case
+the whole pre-play is cleared with a terse local `warning` result, "Pre-play
+cleared: conflict" (no name/disc — the commit slot is too narrow). When your
+turn then starts with tiles already staged, Submit is enabled and Pass is
+disabled (you have a move pending). Coop is unchanged — no turns, and a
+teammate's commit still resets your in-progress staging (the stackdown-style
+"first commit wins").
 
 **Turn viewer.** scrabble uses the shared turn-history viewer — the `#N`
-`<EventLogNumber>` handle (not the whole row), the history frame + banner, and the
-✕ / click / any-key / opponent-move exits are all common mechanics, documented in
-[playarea.md → Turn-history viewer](../playarea.md#turn-history-viewer).
-scrabble's snapshot semantics: the board swaps to the **replayed historical state**
-(`historyBoard` in `lib/play.ts` — a pure fold of every word play's `placements`
-up to and including the row being viewed; no per-turn snapshot stored, since the board *is* the
-accumulation of placements). The tiles *that turn placed* take the warm-yellow
-**attention** face (`--scrabble-tile-attention`, the same overlay a just-placed tile
-wears) plus a **success-green outline** (only word turns light up, not a pass); the
-shared history blue rings the board, the open turn's `#N` handle, and the banner (a
-terse "#12 Bea: +54 JUKEBOX"; non-word turns read "#5 Bea passed" / "exchanged N") —
-not green, since it's a neutral "looking at history" marker and green would wrongly
-imply the whole turn succeeded (a pass didn't). The rack stays mounted *underneath*
-the banner, so your `staged` pre-play is preserved and restored on exit. Local view-only state (like the
+`<EventLogNumber>` handle (not the whole row), the history frame + banner, and
+the ✕ / click / any-key / opponent-move exits are all common mechanics,
+documented in [playarea.md → Turn-history
+viewer](../playarea.md#turn-history-viewer). scrabble's snapshot semantics: the
+board swaps to the **replayed historical state** (`historyBoard` in
+`lib/play.ts` — a pure fold of every word play's `placements` up to and
+including the row being viewed; no per-turn snapshot stored, since the board
+*is* the accumulation of placements). The tiles *that turn placed* take the
+warm-yellow **attention** face (`--scrabble-tile-attention`, the same overlay a
+just-placed tile wears) plus a **success-green outline** (only word turns light
+up, not a pass); the shared history blue rings the board, the open turn's `#N`
+handle, and the banner (a terse "#12 Bea: +54 JUKEBOX"; non-word turns read "#5
+Bea passed" / "exchanged N") — not green, since it's a neutral "looking at
+history" marker and green would wrongly imply the whole turn succeeded (a pass
+didn't). The rack stays mounted *underneath* the banner, so your `staged`
+pre-play is preserved and restored on exit. Local view-only state (like the
 board rotation) — never shared, never persisted, doesn't pause.
 
 - **`lib/board.ts`** — premium grid, tile values, distribution constants. Pure;
   Vitest (layout symmetry, distribution sums to 100).
-- **`lib/play.ts`** — the **sole** geometry validation + word extraction + scoring
-  (`evaluatePlay`), used both for the live preview and to build the commit payload
-  (no SQL re-implementation — see [§6](#6-where-validation-lives)). Vitest-heavy:
+- **`lib/play.ts`** — the **sole** geometry validation + word extraction +
+  scoring (`evaluatePlay`), used both for the live preview and to build the
+  commit payload (no SQL re-implementation — see
+  [§6](#6-where-validation-lives)). Vitest-heavy:
   in-line/contiguous/connected/center-first; main + cross-word extraction;
-  premiums-only-on-new-tiles; bingo +50; blanks = 0. Plus **`historyBoard`** (the
-  turn-viewer replay): word plays fold in, pass/exchange add nothing, blanks keep
-  their declared letter.
+  premiums-only-on-new-tiles; bingo +50; blanks = 0. Plus **`historyBoard`**
+  (the turn-viewer replay): word plays fold in, pass/exchange add nothing,
+  blanks keep their declared letter.
 - **`lib/setup.ts`** — `ScrabbleSetup` (the two difficulty bands + timer +
   the AI opponents' `ai_count`/`ai_level`, plus `coop_style` /
   `first_turn_user_id` via the extended `CoopTurnSetup`). Also the
@@ -716,86 +726,91 @@ board rotation) — never shared, never persisted, doesn't pause.
   stays a count and a compete opponent's rack reads null until terminal —
   subscriptions watch tables, reads go through views, per the
   view-reads/table-subscribes convention).
-- **`hooks/useSharedMove.ts`** — the coop "show a move" transport: a **stable-name**
-  Broadcast channel (`scrabble:${gameId}`, so teammates merge into one room, like
-  connections' peer-selection channel), separate from `useGame`'s postgres-changes
-  channel because the shared move is ephemeral (a not-yet-committed move, never
-  stored). **Coop only** — in compete the channel never opens (`shareMove` no-ops),
-  and supabase Broadcast doesn't echo to the sender, so only teammates preview it.
+- **`hooks/useSharedMove.ts`** — the coop "show a move" transport: a
+  **stable-name** Broadcast channel (`scrabble:${gameId}`, so teammates merge
+  into one room, like connections' peer-selection channel), separate from
+  `useGame`'s postgres-changes channel because the shared move is ephemeral (a
+  not-yet-committed move, never stored). **Coop only** — in compete the channel
+  never opens (`shareMove` no-ops), and supabase Broadcast doesn't echo to the
+  sender, so only teammates preview it.
 - **`components/`** — `Board` (15×15 premium grid; committed / tentative tiles,
-  blanks shown on a brighter golden face; the cursor overlay; drag drop-highlights
-  + lifted-tile fade; green/red flashes on accept/reject), `Rack` (a fixed
-  7-wide tray, left-aligned; drag-to-place, tap-to-exchange-select, the
-  just-drawn tiles flashed yellow, blanks grayed), `Controls` (the action half of
-  the below-board row: the icon-only Recall on the left, then the icon-only Share
-  preview (see [Show a move](#show-a-move-coop)), which hides itself where there is
-  nobody to show a move to, then the **commit slot** pushed right [Swap / Pass,
-  which hides itself in coop / Submit]; that slot doubles as the
-  local feedback area, swapping in a `<FeedbackPill>` for the buttons + filling its width
-  when there's an own-move result or the terminal verdict; the rack's `ShuffleButton`
-  (`act-shuffle`, `⌥Z`) floats over the rack corner, not in this row), `ScrabbleBlankPickerBlockingModal` (declare a
-  dragged blank's letter on drop — a real `<BlockingModal>` since 2026-09-10, so
-  it has the tab ring, Escape and panel tier every other modal has; its 26
-  letters are not actions, being answers to a question this panel asks rather
-  than commands the page offers), `GameEventLog` (the move log on the shared
-  `<EventLog>` — one `<tr>` per play: an outcome bar whose color is
-  `lib/answer.ts`'s (see below), the move in `.main` [`+score WORD…`], the actor's
-  `<ActorDot>`; words click-to-define via the common `DefinitionPopover`. The
-  header carries the shared "whose moves?" picker (`useEventLogPlayerPicker`),
-  bent twice for scrabble: it defaults to the aggregate in BOTH modes
-  (`competeSharesOneGame` — even compete is one public board, so "All" is what
-  you're looking at), and **a bot is pickable like anyone**, since it holds a
-  profile and its plays carry its user_id. The `#N` handle addresses a play by
-  the row's `id` while the number counts the rows on show, so filtering
-  renumbers the log without changing what a handle opens),
-  `BoardCol` (the turn machine — drag / cursor / keyboard staging, the live score
-  preview, the optimistic just-played hold, and — the **documented exception** to
-  the "PlayArea does the RPC" contract — the `play_word` / `exchange` RPCs
-  themselves, because their commit is inseparable from that input state [the
-  `lastActionRef` race + the version-reset effect]; PlayArea just hands it `game` +
-  `gameId`. Also takes the board to show — live, a `historyBoard` history snapshot,
-  OR a coop teammate's shared move — the `HistoryTarget` union it switches on; and owns
-  the Share trigger), `InfoCol` (the readouts + score + the End/Concede action-row
-  button + the GameEventLog), `PlayArea` (the thin coordinator: `useGame`, the shared
-  below-board feedback slot [both columns show into it], the coop `useSharedMove`
-  transport, the terminal message + the compete-win `CelebrationBlockingModal`, and the
-  board-viewer state), `SetupForm`
-  (`<SetupCoopStyleSection>` [coop pacing + first turn], two `<DictBandField>`s,
-  the AI opponent count/level controls [compete], + timer), `Help`.
+  blanks shown on a brighter golden face; the cursor overlay; drag
+  drop-highlights + lifted-tile fade; green/red flashes on accept/reject),
+  `Rack` (a fixed 7-wide tray, left-aligned; drag-to-place,
+  tap-to-exchange-select, the just-drawn tiles flashed yellow, blanks grayed),
+  `Controls` (the action half of the below-board row: the icon-only Recall on
+  the left, then the icon-only Share preview (see [Show a
+  move](#show-a-move-coop)), which hides itself where there is nobody to show a
+  move to, then the **commit slot** pushed right [Swap / Pass, which hides
+  itself in coop / Submit]; that slot doubles as the local feedback area,
+  swapping in a `<FeedbackPill>` for the buttons + filling its width when
+  there's an own-move result or the terminal verdict; the rack's `ShuffleButton`
+  (`act-shuffle`, `⌥Z`) floats over the rack corner, not in this row),
+  `ScrabbleBlankPickerBlockingModal` (declare a dragged blank's letter on drop —
+  a real `<BlockingModal>` since 2026-09-10, so it has the tab ring, Escape and
+  panel tier every other modal has; its 26 letters are not actions, being
+  answers to a question this panel asks rather than commands the page offers),
+  `GameEventLog` (the move log on the shared `<EventLog>` — one `<tr>` per play:
+  an outcome bar whose color is `lib/answer.ts`'s (see below), the move in
+  `.main` [`+score WORD…`], the actor's `<ActorDot>`; words click-to-define via
+  the common `DefinitionPopover`. The header carries the shared "whose moves?"
+  picker (`useEventLogPlayerPicker`), bent twice for scrabble: it defaults to
+  the aggregate in BOTH modes (`competeSharesOneGame` — even compete is one
+  public board, so "All" is what you're looking at), and **a bot is pickable
+  like anyone**, since it holds a profile and its plays carry its user_id. The
+  `#N` handle addresses a play by the row's `id` while the number counts the
+  rows on show, so filtering renumbers the log without changing what a handle
+  opens), `BoardCol` (the turn machine — drag / cursor / keyboard staging, the
+  live score preview, the optimistic just-played hold, and — the **documented
+  exception** to the "PlayArea does the RPC" contract — the `play_word` /
+  `exchange` RPCs themselves, because their commit is inseparable from that
+  input state [the `lastActionRef` race + the version-reset effect]; PlayArea
+  just hands it `game` + `gameId`. Also takes the board to show — live, a
+  `historyBoard` history snapshot, OR a coop teammate's shared move — the
+  `HistoryTarget` union it switches on; and owns the Share trigger), `InfoCol`
+  (the readouts + score + the End/Concede action-row button + the GameEventLog),
+  `PlayArea` (the thin coordinator: `useGame`, the shared below-board feedback
+  slot [both columns show into it], the coop `useSharedMove` transport, the
+  terminal message + the compete-win `CelebrationBlockingModal`, and the
+  board-viewer state), `SetupForm` (`<SetupCoopStyleSection>` [coop pacing +
+  first turn], two `<DictBandField>`s, the AI opponent count/level controls
+  [compete], + timer), `Help`.
 
-**Tentative placement is local state** (and private in coop until commit — per the
-"should this survive a pause?" rule it lives in `BoardCol` [the turn machine],
-clearing on pause/unmount, and — for *your own* commit — on the server `version`
-move). On an
-accepted word the played tiles are held **optimistically** (rendered committed)
-until the realtime refetch lands, so they never blink off the board. **Compete
-allows placement off-turn** (pre-play, above) — only *committing* needs your turn;
-coop is always-live (race to commit).
+**Tentative placement is local state** (and private in coop until commit — per
+the "should this survive a pause?" rule it lives in `BoardCol` [the turn
+machine], clearing on pause/unmount, and — for *your own* commit — on the server
+`version` move). On an accepted word the played tiles are held
+**optimistically** (rendered committed) until the realtime refetch lands, so
+they never blink off the board. **Compete allows placement off-turn** (pre-play,
+above) — only *committing* needs your turn; coop is always-live (race to
+commit).
 
 ### Show a move (coop)
 
-In coop (≥2 players) a player building a word can click **Share** (the info-tone,
-icon-only `act-share-preview`, beside Recall) to broadcast their **staged tiles** to
-teammates, who see them laid on their own board in a **read-only preview** — the
-deliberate **twin of the turn-history viewer**: the shared `historyViewer` chrome
-(framed board + a banner `● moth showing: +18 BERRY`, input frozen) and the same
-exits (click / keystroke / ✕ / a new committed move). The one difference from history
-is the board content — the live board + the sharer's *tentative* tiles, vs history's
-committed *past* board — so both ride one `useHistoryViewer` via the `HistoryTarget`
-union (`{kind:'turn'} | {kind:'shared'}`), and `BoardCol` switches on `kind`.
+In coop (≥2 players) a player building a word can click **Share** (the
+info-tone, icon-only `act-share-preview`, beside Recall) to broadcast their
+**staged tiles** to teammates, who see them laid on their own board in a
+**read-only preview** — the deliberate **twin of the turn-history viewer**: the
+shared `historyViewer` chrome (framed board + a banner `● moth showing: +18
+BERRY`, input frozen) and the same exits (click / keystroke / ✕ / a new
+committed move). The one difference from history is the board content — the live
+board + the sharer's *tentative* tiles, vs history's committed *past* board — so
+both ride one `useHistoryViewer` via the `HistoryTarget` union (`{kind:'turn'} |
+{kind:'shared'}`), and `BoardCol` switches on `kind`.
 
-It's **ephemeral** — a stable Broadcast channel (`useSharedMove`), never stored; a
-teammate who misses it simply doesn't see it, matching the trust model (friends, no
-anti-cheat needed). The committed board is already shared in coop, so the payload is
-just the placements (+ `sharerId` / `words` / `score` for the banner) overlaid on the
-receiver's live board; a **stale** broadcast — its `baseVersion` no longer matches the
-receiver's board, i.e. a real move landed in between — is dropped, so it never renders
-a move that no longer fits. The preview wears its **own** color token
-(`--peer-preview-color`, a yellow of its own — tinkerable independently of the
-history blue, via a `--history-accent` override on the `.peerPreview` column). Coop
-only — compete has private racks and no shared board, so the button and channel are
-absent. Verified cross-client in `e2e/scrabble-show-move.e2e.ts` (two contexts:
-Alice shares → Bob previews → Bob dismisses; no self-echo to Alice).
+It's **ephemeral** — a stable Broadcast channel (`useSharedMove`), never stored;
+a teammate who misses it simply doesn't see it, matching the trust model
+(friends, no anti-cheat needed). The committed board is already shared in coop,
+so the payload is just the placements (+ `sharerId` / `words` / `score` for the
+banner) overlaid on the receiver's live board; a **stale** broadcast — its
+`baseVersion` no longer matches the receiver's board, i.e. a real move landed in
+between — is dropped, so it never renders a move that no longer fits. The
+preview wears its **own** color token (`--peer-preview-color`, a yellow of its
+own — tinkerable independently of the history blue, via a `--history-accent`
+override on the `.peerPreview` column). Coop only — compete has private racks
+and no shared board, so the button and channel are absent. Verified cross-client
+in `e2e/scrabble-show-move.e2e.ts` (two contexts: Alice shares → Bob previews →
+Bob dismisses; no self-echo to Alice).
 
 ### Realtime channels
 
@@ -807,11 +822,12 @@ Alice shares → Bob previews → Bob dismisses; no self-echo to Alice).
 
 ### Printing the board (PDF)
 
-scrabble joins the printable games — a **"Print board (PDF)"** GamePage menu item that
-hands you a paper record of the game. It shows the 15×15 board (premium squares in faint
-pastels), the rack, and the move log flowing newspaper-style down two columns
-(`src/scrabble/pdf/printScrabblePdf.ts`). The shared clean-printable design language +
-helpers live in [common/pdf/doc.md](../../src/common/pdf/doc.md).
+scrabble joins the printable games — a **"Print board (PDF)"** GamePage menu
+item that hands you a paper record of the game. It shows the 15×15 board
+(premium squares in faint pastels), the rack, and the move log flowing
+newspaper-style down two columns (`src/scrabble/pdf/printScrabblePdf.ts`). The
+shared clean-printable design language + helpers live in
+[common/pdf/doc.md](../../src/common/pdf/doc.md).
 
 ---
 
@@ -868,25 +884,25 @@ left` (coop) / `Playing · 7 tiles left` (compete). **At terminal:**
 **Vitest** (`src/scrabble/lib/`):
 - `board.test.ts` — premium layout symmetry, tile values, distribution = 100.
 - `play.test.ts` — geometry (off-line / gap / disconnected / center-first
-  rejects), main + cross-word extraction, scoring (premiums only under new tiles,
-  stacked word multipliers, bingo +50, blanks 0).
+  rejects), main + cross-word extraction, scoring (premiums only under new
+  tiles, stacked word multipliers, bingo +50, blanks 0).
 - `components/PlayArea.test.tsx` — render smoke (coop / compete / terminal): the
   v3 tree mounts without throwing (board cells, the state line, the compete
-  OpponentStrip, the terminal pill), the 7-tile rack renders (a regression guard),
-  and the turn viewer opens on a row click + exits on ✕. `useGame` + `db` mocked.
-  Shallow by design — the logic lives in the lib + pgTAP suites; this guards the
-  wiring `tsc` can't.
+  OpponentStrip, the terminal pill), the 7-tile rack renders (a regression
+  guard), and the turn viewer opens on a row click + exits on ✕. `useGame` +
+  `db` mocked. Shallow by design — the logic lives in the lib + pgTAP suites;
+  this guards the wiring `tsc` can't.
 
 **pgTAP** (`supabase/tests/scrabble/`) — covers the *server's* job (the trusting
 commit), not the TS-owned geometry/scoring:
-- `create_game` — deal (compete per-player racks / coop shared rack), hidden bag,
-  version = 0, both modes, player-count floors.
-- `play_word` — the **version CAS** (`stale` on a mismatch), the integrity guards
-  (out-of-bounds / occupied square / tile-not-in-rack rejects), the **dictionary
-  free reject** (no row, no state change, no version bump), the happy path (board
-  applied, rack drawn from bag, score added, version bumped), compete turn advance,
-  the **title** becoming the first word played, and a word into a game a friend
-  just deleted answering the shared race (PN485).
+- `create_game` — deal (compete per-player racks / coop shared rack), hidden
+  bag, version = 0, both modes, player-count floors.
+- `play_word` — the **version CAS** (`stale` on a mismatch), the integrity
+  guards (out-of-bounds / occupied square / tile-not-in-rack rejects), the
+  **dictionary free reject** (no row, no state change, no version bump), the
+  happy path (board applied, rack drawn from bag, score added, version bumped),
+  compete turn advance, the **title** becoming the first word played, and a word
+  into a game a friend just deleted answering the shared race (PN485).
 - `exchange_pass` — both move RPCs in one file: bag-≥7 gate, version CAS, the
   pass streak (pass feeds it, exchange clears it), turn advance, and each into
   a deleted game answering the shared race.
@@ -908,24 +924,25 @@ commit), not the TS-owned geometry/scoring:
 - `replay` — the re-deal ([§5.5](#55-replay_board)): setup restored, version
   **bumped** not zeroed, compete's first seat re-randomized, coop turn-order
   rewound.
-- `concede` — the turn-based concede ([§5.6](#56-end_game--concede--submit_timeout)):
-  the rotation skips conceders, a conceder forfeits the win, the turn hands off,
-  the last active player's concede ends the game with nobody eligible to win.
-  That last check is `scrabble._maybe_finish_compete`, named as the other four
-  elimination games name theirs — it has ONE caller here, since scrabble's move
-  paths end a game by going out or by the pass streak and neither is reachable
-  once everybody has dropped out, but the shared name is what
-  [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out) keys its
-  lock-order rule off.
+- `concede` — the turn-based concede
+  ([§5.6](#56-end_game--concede--submit_timeout)): the rotation skips conceders,
+  a conceder forfeits the win, the turn hands off, the last active player's
+  concede ends the game with nobody eligible to win. That last check is
+  `scrabble._maybe_finish_compete`, named as the other four elimination games
+  name theirs — it has ONE caller here, since scrabble's move paths end a game
+  by going out or by the pass streak and neither is reachable once everybody has
+  dropped out, but the shared name is what [common-schema.md →
+  Concede](../common-schema.md#concede--per-player-drop-out) keys its lock-order
+  rule off.
 - `ai_players` — AI seats ([§12](#12-the-ai-opponent-compete)): `create_game`
   seats them (and rejects a dictionary narrower than the AI's band, bad counts,
   and coop), `get_ai_context` is the member-gated, AI-seat-only, its-turn-only
   door to the AI's hidden rack, and the `ai_*` RPCs act for the seat; each of
   the four on a deleted game answers the shared race.
-- `get_suggest_context` — the move suggester's definer door ([§11](#11-the-move-suggester-ai)):
-  a deleted game (the shared race, asked first), membership + `playing` +
-  coop-only gates; the happy path returns its five
-  keys atomically.
+- `get_suggest_context` — the move suggester's definer door
+  ([§11](#11-the-move-suggester-ai)): a deleted game (the shared race, asked
+  first), membership + `playing` + coop-only gates; the happy path returns its
+  five keys atomically.
 - `rls` — own rack only mid-game / peers' revealed at terminal; bag never
   revealed (only `bag_count`); board + plays public; club-membership gates.
 
@@ -936,10 +953,11 @@ the single source of truth for geometry + scoring.)
 
 ## 11. The move suggester (AI)
 
-Coop's info column has a **Suggest** button (`act-suggest-move`, sparkles + amber); it returns
-the top-5 legal moves, and clicking one **stages** that move's tiles — the same
-staging state a hand-placed move uses, reviewed and committed through the
-normal play flow. The suggester is advisory: it never submits.
+Coop's info column has a **Suggest** button (`act-suggest-move`, sparkles +
+amber); it returns the top-5 legal moves, and clicking one **stages** that
+move's tiles — the same staging state a hand-placed move uses, reviewed and
+committed through the normal play flow. The suggester is advisory: it never
+submits.
 
 **The engine is pure TS in `src/scrabble/lib/`**, beside the play engine it
 reuses:
@@ -960,12 +978,12 @@ reuses:
 
 **The edge function `scrabble-suggest-move`** hosts the engine (the dictionary
 deliberately never ships to the game FE). It builds ONE all-bands rated trie at
-cold start from a bundled word list (`gmake g-scrabble-trie` generates it —
-len 2..15, american OR british, all bands, **minus slurs + profanity**
-(`slur = 0 AND crude = 0`, 612 of ~277k); git-ignored, rebuilt on deploy).
-That last filter makes the trie a **strict subset of what `play_word` accepts**,
-and deliberately so: a player may play a crude word, the AI may not. The same
-trie backs the autonomous opponent ([§12](#12-the-ai-opponent-compete)), so this one asset
+cold start from a bundled word list (`gmake g-scrabble-trie` generates it — len
+2..15, american OR british, all bands, **minus slurs + profanity** (`slur = 0
+AND crude = 0`, 612 of ~277k); git-ignored, rebuilt on deploy). That last filter
+makes the trie a **strict subset of what `play_word` accepts**, and deliberately
+so: a player may play a crude word, the AI may not. The same trie backs the
+autonomous opponent ([§12](#12-the-ai-opponent-compete)), so this one asset
 decides it for both. Consequences worth knowing: the suggester will miss a few
 high-scoring plays a human could make, and the AI won't *extend* a crude word
 already on the board (the cross-word it would form isn't in its trie, so it
@@ -976,15 +994,15 @@ POST /functions/v1/scrabble-suggest-move   { game_id }
   → { moves: RankedMove[] /* top 5 */, version }     · { error } (400/401/403/500)
 ```
 
-**`scrabble.get_suggest_context(uuid)`** is the function's one read — a
-SECURITY DEFINER RPC (the `codenamesduet.get_clue_context` shape), because the
-dictionary bands are **grant-hidden** on `scrabble.games` and this is the one
-sanctioned door. It asks that the game still exists (a friend may have deleted
-it: the shared race), then enforces membership (`require_game_player`), `play_state =
-'playing'`, and **coop only** (in compete the rack is private — the gate is
-also what keeps the suggester from becoming a rack-reading side channel), then
-returns `{board, rack, dict_2, dict_3plus, version}` from one SELECT — an
-atomic snapshot. pgTAP: `get_suggest_context_test.sql`.
+**`scrabble.get_suggest_context(uuid)`** is the function's one read — a SECURITY
+DEFINER RPC (the `codenamesduet.get_clue_context` shape), because the dictionary
+bands are **grant-hidden** on `scrabble.games` and this is the one sanctioned
+door. It asks that the game still exists (a friend may have deleted it: the
+shared race), then enforces membership (`require_game_player`), `play_state =
+'playing'`, and **coop only** (in compete the rack is private — the gate is also
+what keeps the suggester from becoming a rack-reading side channel), then
+returns `{board, rack, dict_2, dict_3plus, version}` from one SELECT — an atomic
+snapshot. pgTAP: `get_suggest_context_test.sql`.
 
 **`version` is the staleness currency** (coop has no turns, so a teammate can
 play while a hint is in flight). Staleness is **derived at render**, never
@@ -1013,13 +1031,13 @@ ordinary accounts with `common.profiles.ai_member` set, seated in
 keeps them off the club roster. Presence-pause skips them by the same mark.
 `create_game` seats humans then bots; `_advance_seat` / `_finish` / the turn
 checks all rotate + resolve by seat, and a bot wins by uuid and handle like
-anyone. (The helper is deliberately named `_advance_seat`, not
-`_advance_turn`: `common._advance_turn` — the coop turn-order pointer — is
-called nearby in the same file, and the rename [2026-08-02] stops the two
-shadowing each other.) The human move RPCs (`play_word` / `exchange_tiles` /
-`pass_turn`) and the AI twins (`ai_play_word` / `ai_exchange_tiles` / `ai_pass_turn`) share
-one seat-driven core (`_commit_word` / `_commit_exchange` / `_commit_pass`), so
-there's no second copy of the trusting-commit logic.
+anyone. (The helper is deliberately named `_advance_seat`, not `_advance_turn`:
+`common._advance_turn` — the coop turn-order pointer — is called nearby in the
+same file, and the rename [2026-08-02] stops the two shadowing each other.) The
+human move RPCs (`play_word` / `exchange_tiles` / `pass_turn`) and the AI twins
+(`ai_play_word` / `ai_exchange_tiles` / `ai_pass_turn`) share one seat-driven
+core (`_commit_word` / `_commit_exchange` / `_commit_pass`), so there's no
+second copy of the trusting-commit logic.
 
 **The brain is `src/scrabble/lib/policy.ts`.** `choosePlay(board, rack, trie,
 bands, knobs, rng)` picks one move (or an exchange) — pure + deterministic given
@@ -1064,9 +1082,10 @@ no *strategic* exchange — the AI only swaps when it has no legal play at all.
 **Surfacing.** Solo clubs get the compete Start button (`scrabble_compete`'s
 `min_players` is 1 — you race the AI alone), badged **"AI Compete"** by
 `ModeBadge`. Each opponent's committed move (human OR AI) is announced in the
-global header as a `peer` message ("● ada-bot played COATS (+18)"); an AI seat's score shows in
-a compact strip in the info column. pgTAP: `ai_players_test.sql`; e2e:
-`scrabble-ai-player.e2e.ts` (a human-vs-AI game against the real edge function).
+global header as a `peer` message ("● ada-bot played COATS (+18)"); an AI seat's
+score shows in a compact strip in the info column. pgTAP: `ai_players_test.sql`;
+e2e: `scrabble-ai-player.e2e.ts` (a human-vs-AI game against the real edge
+function).
 
 ## Deferred
 

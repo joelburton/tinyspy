@@ -47,8 +47,8 @@ presence-pause, friends-on-a-Zoom-call model.
 ## Modes (sibling-manifest pair)
 
 Ships as `waffle_coop` + `waffle_compete`, the same sibling-manifest pattern the
-other multiplayer games follow (a `mode` column on `waffle.games`, a `mode` arg on
-`create_game`, mode-aware RLS):
+other multiplayer games follow (a `mode` column on `waffle.games`, a `mode` arg
+on `create_game`, mode-aware RLS):
 
 - **Coop** — one shared board, one shared swap budget; **either player can
   swap** and everyone sees it. "Like connections coop" — players' working rows
@@ -107,11 +107,12 @@ known Waffle states (`src/waffle/lib/*.test.ts`).
 
 The puzzle is shared + immutable on `waffle.games`; the **solution is
 grant-hidden** (column-grant revoked from `authenticated`; the only read path is
-the `_solution_for` SECURITY DEFINER helper behind `games_state`). That helper is
-**mode-aware**: **compete** hides the solution until terminal (players race on
-independent boards); **coop** exposes it *during* play, which is a collaborative
-solve — per the trust model (server-authoritative for cleanliness, not
-anti-cheat) a friend peeking at the shared answer only spoils their own puzzle.
+the `_solution_for` SECURITY DEFINER helper behind `games_state`). That helper
+is **mode-aware**: **compete** hides the solution until terminal (players race
+on independent boards); **coop** exposes it *during* play, which is a
+collaborative solve — per the trust model (server-authoritative for cleanliness,
+not anti-cheat) a friend peeking at the shared answer only spoils their own
+puzzle.
 
 **That exposure no longer has a mechanical reason.** It was there because the
 turn-history viewer recomputed each past board's colors in the browser, which
@@ -125,22 +126,25 @@ forces a per-player row (each player solves their own copy, with their own
 columns on `waffle.games`, but we reuse the same per-player table and keep every
 coop player's row **identical**, updating them all on each swap ("lock-step").
 That gives one storage shape, one read path, and one view for both modes —
-exactly how `connections` handles its coop counters. The only cost is storing the
-25-char board redundantly across a handful of rows; trivial.
+exactly how `connections` handles its coop counters. The only cost is storing
+the 25-char board redundantly across a handful of rows; trivial.
 
 | table | purpose |
 |---|---|
 | `waffle.games` → `common.games(id)` | `club_handle`, `mode` (`coop`/`compete`), `scramble` (exposed), `par_swaps`, `max_swaps`, and **`solution` (grant-hidden** — column-grant revoked; read only via
-`_solution_for`, which exposes it in coop always / compete post-terminal). The board (solution/scramble/par) is built on demand by the `waffle-build-board` edge function and stored here, so the game is self-contained. There is **no** `waffle.puzzles` table — boards aren't pre-generated. |
+`_solution_for`, which exposes it in coop always / compete post-terminal). The
+board (solution/scramble/par) is built on demand by the `waffle-build-board`
+edge function and stored here, so the game is self-contained. There is **no**
+`waffle.puzzles` table — boards aren't pre-generated. |
 | `waffle.players` PK `(game_id, user_id)` | Per-player working state: `board` (25-char, starts = `scramble`), `swaps_used`, `solved`, `solved_at`. **Coop:** every row updates in lock-step. **Compete:** rows are independent. |
 | `waffle.events` PK `(id)`, a `bigint identity` | The move log, **both modes** (compete gained one 2026-08-02): one row per swap — `user_id`, `kind` ('swap' — the check allows no other value), `pos_a`/`pos_b`, `letter_a`/`letter_b` (the letters on those cells *before* the swap, so the entry is self-contained), `took_turn` (true on every row: only an accepted swap is written, and a swap spends one of the budget), `created_at`. Read `order by id` — one game-wide order, which in compete interleaves two players' swaps by when they happened. The caller's own count is `players.swaps_used`. RLS is mode-aware: see [The compete swap log](#the-compete-swap-log-and-why-it-is-private) below. |
 
 ### Views (`security_invoker`)
 
-- **`waffle.games_state`** — `mode`, `scramble`, `par_swaps`, `max_swaps`; `solution`
-  via the `SECURITY DEFINER` `_solution_for` helper — exposed in **coop** always
-  (the turn-history viewer needs it) and in **compete** only once
-  `common.games.is_terminal`.
+- **`waffle.games_state`** — `mode`, `scramble`, `par_swaps`, `max_swaps`;
+  `solution` via the `SECURITY DEFINER` `_solution_for` helper — exposed in
+  **coop** always (the turn-history viewer needs it) and in **compete** only
+  once `common.games.is_terminal`.
 - **`waffle.players_state`** — `board`, `swaps_used`, `solved`, `solved_at`, **+
   computed `colors`** (a `SECURITY DEFINER` helper
   `_player_colors_for(g_id, row_user)` that reads the hidden `games.solution`
@@ -155,25 +159,25 @@ now exists behind a gate rather than not at all:
 
 Every compete player solves the **same puzzle from the same scramble**, and a
 swap row carries both positions and both letters. So replaying an opponent's log
-forward from the scramble reconstructs their board exactly, and their green tiles
-are correct letter positions. A club-wide readable log wouldn't be so much a
-cheating opportunity as a **spoiler handed to an honest player** who just reads
-the event log.
+forward from the scramble reconstructs their board exactly, and their green
+tiles are correct letter positions. A club-wide readable log wouldn't be so much
+a cheating opportunity as a **spoiler handed to an honest player** who just
+reads the event log.
 
-So `events_select` mirrors `_board_visible`, and the two must agree or the weaker
-one decides what's actually secret:
+So `events_select` mirrors `_board_visible`, and the two must agree or the
+weaker one decides what's actually secret:
 
-    coop                 →  shared, like the board
-    compete during play  →  your own rows only
-    compete at terminal  →  everyone's, since the boards are revealed then anyway
+    coop → shared, like the board compete during play → your own rows only
+    compete at terminal → everyone's, since the boards are revealed then anyway
 
 Two consequences worth knowing:
 
-- **The FE must never replay a mixed list.** `lib/history.ts` reconstructs a past
-  board by applying swaps to the scramble; applying two players' transpositions
-  to one board produces a state nobody ever saw. PlayArea filters to a single
-  player's swaps before calling it, and the log offers a clickable `#N` only when
-  the number counts the rows on show and the handle carries the row's own id.
+- **The FE must never replay a mixed list.** `lib/history.ts` reconstructs a
+  past board by applying swaps to the scramble; applying two players'
+  transpositions to one board produces a state nobody ever saw. PlayArea filters
+  to a single player's swaps before calling it, and the log offers a clickable
+  `#N` only when the number counts the rows on show and the handle carries the
+  row's own id.
 - **The log carries the shared "whose swaps?" picker** in compete — "All", plus
   each player — with an honest *"Hidden until game ends"* for an opponent
   mid-game rather than a misleading "no swaps yet".
@@ -183,18 +187,19 @@ Two consequences worth knowing:
 Read gating on club membership (`common.is_club_member`), like every game. The
 mode-aware twist (spellingbee precedent): in **compete**, an opponent's
 `board`/`colors` are hidden mid-game — expose only their `swaps_used` + `solved`
-(a lean opponent-progress projection, like spellingbee's rank-only visibility) — and
-everything reveals post-terminal. **Coop** shows the shared board to all members.
+(a lean opponent-progress projection, like spellingbee's rank-only visibility) —
+and everything reveals post-terminal. **Coop** shows the shared board to all
+members.
 
 ## RPCs
 
 - **`create_game(target_club, setup, player_user_ids, mode, board)`** —
   sibling-manifest signature plus a `board` jsonb (`{solution, scramble,
   par_swaps}`) built by the `waffle-build-board` edge function. Validates
-  `require_club_member`, `require_player_count_max`, `require_valid_timer`; validates
-  `setup.extra_swaps` (0..15, default 5) and `setup.difficulty` (band **1–6**,
-  default 2 — the dialog's `DictBandField` offers the same full 1–6 range);
-  sanity-checks the board structure (25-char strings, holes at the four
+  `require_club_member`, `require_player_count_max`, `require_valid_timer`;
+  validates `setup.extra_swaps` (0..15, default 5) and `setup.difficulty` (band
+  **1–6**, default 2 — the dialog's `DictBandField` offers the same full 1–6
+  range); sanity-checks the board structure (25-char strings, holes at the four
   interior cells, scramble is a rearrangement of the solution); stores it on
   `waffle.games`; sets `max_swaps = par_swaps + setup.extra_swaps`; seeds the
   title placeholder (see [Title formula](#title-formula)); seeds one
@@ -206,60 +211,63 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   `setup.first_turn_user_id` is one of the players — so `submit_swap` can gate
   each swap.
 - **`submit_swap(game, pos_a, pos_b) → jsonb`** — the core move. Guards: the
-  game still exists, `require_game_player`, playing state, both positions filled (non-hole) and distinct,
-  swaps remaining. Then:
-  - **coop:** apply the swap to **all** players' rows (lock-step), `swaps_used++`,
-    and append a `waffle.events` log row (swapper, positions, pre-swap
-    letters).
+  game still exists, `require_game_player`, playing state, both positions filled
+  (non-hole) and distinct, swaps remaining. Then:
+  - **coop:** apply the swap to **all** players' rows (lock-step),
+    `swaps_used++`, and append a `waffle.events` log row (swapper, positions,
+    pre-swap letters).
   - **compete:** apply to the caller's row only (no log row).
-  - Returns [an envelope](../envelopes.md) carrying `{ colors, swaps_used, solved,
-    terminal }` in `data`, with **no outcome and no message**: an accepted swap
-    shows the swapper nothing until the colors reach everyone together over the
-    realtime refetch, which is why the reply is deliberately ignored (see the
-    PlayArea comment). The payload travels anyway — the fact is structural.
+  - Returns [an envelope](../envelopes.md) carrying `{ colors, swaps_used,
+    solved, terminal }` in `data`, with **no outcome and no message**: an
+    accepted swap shows the swapper nothing until the colors reach everyone
+    together over the realtime refetch, which is why the reply is deliberately
+    ignored (see the PlayArea comment). The payload travels anyway — the fact is
+    structural.
   - Every refusal is a raise, and only three are races: `PN485` "That game was
     already deleted" (a friend deleted it from the club list; asked before the
     membership gate), `PN261` "Game over" (a teammate ended it, or the clock ran
     out) and `PN262` "Already conceded". The rest are faults, because the board
-    cannot produce them: `PN263` a square swapped with itself, `PN264` an empty square, `PN265` already
-    solved and `PN266` no swaps left. The last two look like shared-budget races
-    and are not — spending the last coop swap, or solving, ENDS the game, so a
-    later swap meets the play_state guard instead; only compete keeps playing
-    with a finished player at the table.
+    cannot produce them: `PN263` a square swapped with itself, `PN264` an empty
+    square, `PN265` already solved and `PN266` no swaps left. The last two look
+    like shared-budget races and are not — spending the last coop swap, or
+    solving, ENDS the game, so a later swap meets the play_state guard instead;
+    only compete keeps playing with a finished player at the table.
   - **Opt-in turn-by-turn coop** (setup `coop_style = 'turns'`): after the
     lock + caller, `submit_swap` gates on `common._require_turn`, and calls
     `common._advance_turn` only on an accepted, non-terminal swap — never on a
     guard reject (bad position, hole, out of swaps) or the swap that solves /
-    exhausts the board. See
-    [common-schema.md → Turn-order](../common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
+    exhausts the board. See [common-schema.md →
+    Turn-order](../common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 - **`submit_timeout(game)`** — only when a countdown timer is set; reuse the
   spellingbee "realtime touch" pattern so the FE wakes up on expiry.
-- **`concede(game)`** — the compete "Concede" action-row button: a per-player
-  "I quit, the others keep racing". waffle is an **elimination** game (a player
-  is done when solved or out of swaps without the table ending), so concede calls
-  `common._set_conceded` then re-runs `waffle._maybe_finish_compete`, which counts
-  a conceder as done and **forfeits their win** (fewest-swaps winner is picked
-  among solved, non-conceded players). The FE shows Concede in compete / End in
-  coop, marks a conceder "out" in the OpponentStrip, and folds them into the
-  existing solved/out-of-swaps locally-terminal look. Full mechanism:
-  [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
+- **`concede(game)`** — the compete "Concede" action-row button: a per-player "I
+  quit, the others keep racing". waffle is an **elimination** game (a player is
+  done when solved or out of swaps without the table ending), so concede calls
+  `common._set_conceded` then re-runs `waffle._maybe_finish_compete`, which
+  counts a conceder as done and **forfeits their win** (fewest-swaps winner is
+  picked among solved, non-conceded players). The FE shows Concede in compete /
+  End in coop, marks a conceder "out" in the OpponentStrip, and folds them into
+  the existing solved/out-of-swaps locally-terminal look. Full mechanism:
+  [common-schema.md →
+  Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
-- **`replay_board(game)`** — the **"Restart"** game-menu item (both modes,
-  any state). Restarts the SAME board from scratch for everyone: resets every
+- **`replay_board(game)`** — the **"Restart"** game-menu item (both modes, any
+  state). Restarts the SAME board from scratch for everyone: resets every
   `waffle.players` row to the scramble (`swaps_used=0`, unsolved), clears the
   coop `waffle.events` log, and hands the common-layer reset to the new
-  `common.reset_game` helper (the inverse of `end_game` — `play_state='playing'`,
-  `is_terminal=false`, `ended_at=null`, fresh initial `status`, clears every
-  `game_players.{result, conceded, conceded_at}`, and **zeroes the shared
-  clock** — a timed game restarts from the full countdown; the FE's tick-merge
-  accepts the big backward jump as a deliberate reset, and the timeout fires
-  on the expired *edge* so a stale flag can't re-end the fresh game). The
-  frozen puzzle/setup (solution/scramble/par/max_swaps/mode) is untouched. Any game player may call
-  it. No realtime touch needed — the `players` update + `swaps` delete wake
-  `useGame`, and `reset_game`'s `common.games` write wakes `useCommonGame`, so
-  the board, event log, and terminal state reset **live for every player**. Two
-  FE entry points, one handler: the game-menu item (any state) and the terminal
-  action row's **Restart** (`act-restart`) (`SkipBack` glyph, the normal tone, left of
+  `common.reset_game` helper (the inverse of `end_game` —
+  `play_state='playing'`, `is_terminal=false`, `ended_at=null`, fresh initial
+  `status`, clears every `game_players.{result, conceded, conceded_at}`, and
+  **zeroes the shared clock** — a timed game restarts from the full countdown;
+  the FE's tick-merge accepts the big backward jump as a deliberate reset, and
+  the timeout fires on the expired *edge* so a stale flag can't re-end the fresh
+  game). The frozen puzzle/setup (solution/scramble/par/max_swaps/mode) is
+  untouched. Any game player may call it. No realtime touch needed — the
+  `players` update + `swaps` delete wake `useGame`, and `reset_game`'s
+  `common.games` write wakes `useCommonGame`, so the board, event log, and
+  terminal state reset **live for every player**. Two FE entry points, one
+  handler: the game-menu item (any state) and the terminal action row's
+  **Restart** (`act-restart`) (`SkipBack` glyph, the normal tone, left of
   Back-to-Club). Mid-game it confirms first (it wipes the whole group's
   progress); at terminal it fires unconfirmed — the game is over, there's
   nothing left to lose. pgTAP: `replay_test.sql`.
@@ -277,12 +285,12 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
 - **"New game"** (game-menu item, FE-only — no waffle RPC): start a **fresh
   game** — new id, new randomly-built board — with THIS game's setup + roster +
   mode, in the same club. Calls the same `waffle-build-board` edge function the
-  manifest's `startGameInClub` uses (via `runEdgeFn`), then jumps
-  the creator in via the new `ctx.goToGame`; peers arrive via the game-invitation
-  toast, and this game un-currents into the club's games list (resumable), so
-  there's no confirm. `clubHandle` + `goToGame` are new `GamePageCtx` fields
-  (see [common.md](../common.md)) so any game can adopt the same "same again!"
-  item later.
+  manifest's `startGameInClub` uses (via `runEdgeFn`), then jumps the creator in
+  via the new `ctx.goToGame`; peers arrive via the game-invitation toast, and
+  this game un-currents into the club's games list (resumable), so there's no
+  confirm. `clubHandle` + `goToGame` are new `GamePageCtx` fields (see
+  [common.md](../common.md)) so any game can adopt the same "same again!" item
+  later.
 - ~~**`reveal_answer(game)`**~~ — **removed 2026-08-03.** It was a mid-game
   give-up that overwrote every `waffle.players.board` with the solution and then
   ended the game. Waffle now matches every other game: **End the game, then
@@ -295,10 +303,11 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   boards survive — so the turn-history viewer still replays real swaps against
   the board they actually played — and **Hide brings that board straight back**,
   which a rewrite could never do. Nothing autoreveals but your own solve, which
-  puts the board you just made on screen anyway (`impliedBy`). Offered
-  from the game menu AND the terminal action row, both the SAME bound action
+  puts the board you just made on screen anyway (`impliedBy`). Offered from the
+  game menu AND the terminal action row, both the SAME bound action
   (`act-reveal`) wearing the same two faces — its words and its glyph move
-  together, so a row and a button can't disagree about which face is on. pgTAP: `boards_untouched_test.sql`.
+  together, so a row and a button can't disagree about which face is on. pgTAP:
+  `boards_untouched_test.sql`.
 
 ### Terminal logic
 
@@ -308,22 +317,23 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
 | **Lose** | `swaps_used == max_swaps` & unsolved → `lost` | nobody solved → all `lost_compete` |
 
 A solved player is locked (can't keep swapping). The finite swap budget bounds
-the game even without a timer. Per-player outcome → `common.game_players.result`;
-game-level terminal → `play_state` (the `_compete` suffix convention from
-[`states.md`](../states.md)). All terminal transitions go through
-`common.end_game`.
+the game even without a timer. Per-player outcome →
+`common.game_players.result`; game-level terminal → `play_state` (the `_compete`
+suffix convention from [`states.md`](../states.md)). All terminal transitions go
+through `common.end_game`.
 
-Timer is optional (`none` / `countup` / `countdown`, via `common.require_valid_timer`).
-A countdown is a pace/cap: on expiry, coop → `lost`; compete simply ends the
-race where it stands — `submit_timeout` picks the fewest-swaps winner (then
-earliest `solved_at`) among players who had already **solved** and not conceded,
-→ `won_compete`, or `lost_compete` if nobody had. Unfinished boards are left
-as-is; being mid-solve at the buzzer just means you're not in the running.
+Timer is optional (`none` / `countup` / `countdown`, via
+`common.require_valid_timer`). A countdown is a pace/cap: on expiry, coop →
+`lost`; compete simply ends the race where it stands — `submit_timeout` picks
+the fewest-swaps winner (then earliest `solved_at`) among players who had
+already **solved** and not conceded, → `won_compete`, or `lost_compete` if
+nobody had. Unfinished boards are left as-is; being mid-solve at the buzzer just
+means you're not in the running.
 
 ## Board generation: `waffle-build-board` (edge function)
 
-**No external corpus** (unlike connections' found Connections collection) and **no
-pre-generated library** — a board is built fresh at game-start by the
+**No external corpus** (unlike connections' found Connections collection) and
+**no pre-generated library** — a board is built fresh at game-start by the
 `waffle-build-board` edge function, the same on-demand pattern as
 `spellingbee-build-board`.
 
@@ -349,24 +359,25 @@ can't drift). `minSwaps` is covered by `gen_test.ts` (`deno test`).
 
 **The flow** (`index.ts`, running as the caller):
 
-1. Fetch the candidate 5-letter words from `common.words` for the band:
-   `len = 5 AND difficulty ≤ N AND american AND slur = 0 AND crude = 0 AND NOT slang` (paged
-   to defeat PostgREST's `max_rows`). Returns `(word, difficulty)`.
-2. **Fill** (the trick that makes it fast): fixing the 3 *across* words fixes the
-   3 *down* words' intersection letters. Build an index
-   `(char@0, char@2, char@4) → [words]`; sample `a0,a2,a4`, then the down words
-   are three O(1) bucket lookups. All three non-empty + 6 distinct words + the
-   hardest word **exactly** band N → a valid waffle of that tier.
-3. **Scramble + par.** Permute the solution into a mostly-wrong arrangement, then
-   compute `par_swaps` = min transpositions to solve. With duplicate letters this
-   is "min swaps to sort with dupes" — pick the same-letter→position assignment
-   that **maximizes cycles** (`swaps = positions − cycles`); a left-to-right
-   greedy over-counts here, so `minSwaps` does the exact max-cycle decomposition.
-   Two real-Waffle conventions shape the scramble (per the arXiv analysis of
-   1000+ archived boards): the **four corners + center are always left green**
-   (cells `0,4,20,24,12` — `ANCHORS`; we only ever swap the other 16), and the
-   board shows **5–8 total greens** (the 5 anchors plus ≤3 incidental). Keep only
-   scrambles whose par lands in a band (≈ 9–11).
+1. Fetch the candidate 5-letter words from `common.words` for the band: `len = 5
+   AND difficulty ≤ N AND american AND slur = 0 AND crude = 0 AND NOT slang`
+   (paged to defeat PostgREST's `max_rows`). Returns `(word, difficulty)`.
+2. **Fill** (the trick that makes it fast): fixing the 3 *across* words fixes
+   the 3 *down* words' intersection letters. Build an index `(char@0, char@2,
+   char@4) → [words]`; sample `a0,a2,a4`, then the down words are three O(1)
+   bucket lookups. All three non-empty + 6 distinct words + the hardest word
+   **exactly** band N → a valid waffle of that tier.
+3. **Scramble + par.** Permute the solution into a mostly-wrong arrangement,
+   then compute `par_swaps` = min transpositions to solve. With duplicate
+   letters this is "min swaps to sort with dupes" — pick the
+   same-letter→position assignment that **maximizes cycles** (`swaps = positions
+   − cycles`); a left-to-right greedy over-counts here, so `minSwaps` does the
+   exact max-cycle decomposition. Two real-Waffle conventions shape the scramble
+   (per the arXiv analysis of 1000+ archived boards): the **four corners +
+   center are always left green** (cells `0,4,20,24,12` — `ANCHORS`; we only
+   ever swap the other 16), and the board shows **5–8 total greens** (the 5
+   anchors plus ≤3 incidental). Keep only scrambles whose par lands in a band (≈
+   9–11).
 4. Call `waffle.create_game(target_club, setup, players, mode, board)` with
    `board = { solution, scramble, par_swaps }`. The RPC sanity-checks structure
    (25-char strings, holes at the four interior cells, scramble is a
@@ -399,8 +410,8 @@ Two details the formula is careful about:
 
 - The coop readout is gated on `swaps_used > 0`: a scramble can hand the players
   a whole correct word for free, and a **replayed** board is in identical state
-  to a fresh one — they must read identically. A terminal game is exempt from the
-  gate, since `reveal_answer` writes the solution onto every board without a
+  to a fresh one — they must read identically. A terminal game is exempt from
+  the gate, since `reveal_answer` writes the solution onto every board without a
   single swap.
 - Every transition calls the helper rather than assigning its own string —
   `submit_swap`, `concede`, `submit_timeout`, `end_game`, `reveal_answer`, and
@@ -418,21 +429,23 @@ swap at all, and the log's bar is `neutral` on every row — the word for a turn
 that counted and that nothing adjudicates. One move, one word, one reader, so
 there is no table; the decision is stated where it is made, in
 `GameEventLog.tsx`. The g/y/x tile colors are the board's own vocabulary, not
-outcomes. See [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
+outcomes. See [outcomes.md → One event, one
+outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 The FE follows the v3 conventions (see [ui.md](../ui.md)): a refused swap, the
-locally-terminal "waiting" state, whose turn it is, and the terminal verdict all show
-through the local feedback slot's `<FeedbackPill>` in the `.belowBoard` slot (a
-`notOk` with its ×, the owner-cleared standing states, the filled verdict —
-[ui.md → Feedback pill](../ui.md#feedback-pill)); the action row places both exits and lets each hide itself
-(coop shows End, a race shows Concede); a **locally-terminal** state (compete: solved
-or out of swaps while others race on) reuses the terminal look (a bold status line +
-Concede) and disables the grid — and Concede goes gray once you have SOLVED, since
-conceding would forfeit a win already banked; the `.infoCol` follows the canonical **state →
-opponent strip → action row → help → setup → log** order; the `OpponentStrip` carries
-a `metricLabel="Swaps"`; and the event log renders its own `<tr>` rows. An opponent
-solving reads as `won` (green), the same green a found word always reads as (the
-outcome follows the event, not the viewer's stake).
+locally-terminal "waiting" state, whose turn it is, and the terminal verdict all
+show through the local feedback slot's `<FeedbackPill>` in the `.belowBoard`
+slot (a `notOk` with its ×, the owner-cleared standing states, the filled
+verdict — [ui.md → Feedback pill](../ui.md#feedback-pill)); the action row
+places both exits and lets each hide itself (coop shows End, a race shows
+Concede); a **locally-terminal** state (compete: solved or out of swaps while
+others race on) reuses the terminal look (a bold status line + Concede) and
+disables the grid — and Concede goes gray once you have SOLVED, since conceding
+would forfeit a win already banked; the `.infoCol` follows the canonical **state
+→ opponent strip → action row → help → setup → log** order; the `OpponentStrip`
+carries a `metricLabel="Swaps"`; and the event log renders its own `<tr>` rows.
+An opponent solving reads as `won` (green), the same green a found word always
+reads as (the outcome follows the event, not the viewer's stake).
 
 Mirrors the other game folders:
 
@@ -442,112 +455,118 @@ Mirrors the other game folders:
 - `hooks/useGame.ts` — projects `games_state` + `players_state` + the `swaps`
   log; three-table realtime subscription on `waffle.{games, players, swaps}`.
 - `lib/waffle.ts` — geometry (shared), incl. `coord(pos)` → `A1`..`E5`. Color
-  rendering is the shared `shared/wordle-style/tileColor.ts` (server code → class key);
-  the server is authoritative for the actual colors.
-- `lib/colors.ts` — `allGreen` alone: the colors of a board that IS the solution,
-  for the reveal and the printed word list. Every other colored board the FE
-  draws was colored by `waffle.board_colors` — the live one off `players_state`,
-  a past one off the swap row that stored it. Nothing here recomputes feedback,
-  and the coloring algorithm lives only in SQL.
-- `lib/history.ts` — the coop turn-history replay (pure + unit-tested): given the
-  `scramble` + the swap log, `historySnapshot(index)` reconstructs the board *after*
-  that swap (each swap is a reversible transposition), colors it via `lib/colors`,
-  and rings the two moved cells. **Coop only** — compete writes no swap log.
-  Clicking a `GameEventLog` row opens that swap on the board (the shared "viewing"
-  frame + banner from the shared `src/common/event-log/historyViewer.module.css`, input
-  frozen; a keystroke / board click / the ✕ returns to live), mirroring
-  scrabble/stackdown's history viewer.
+  rendering is the shared `shared/wordle-style/tileColor.ts` (server code →
+  class key); the server is authoritative for the actual colors.
+- `lib/colors.ts` — `allGreen` alone: the colors of a board that IS the
+  solution, for the reveal and the printed word list. Every other colored board
+  the FE draws was colored by `waffle.board_colors` — the live one off
+  `players_state`, a past one off the swap row that stored it. Nothing here
+  recomputes feedback, and the coloring algorithm lives only in SQL.
+- `lib/history.ts` — the coop turn-history replay (pure + unit-tested): given
+  the `scramble` + the swap log, `historySnapshot(index)` reconstructs the board
+  *after* that swap (each swap is a reversible transposition), colors it via
+  `lib/colors`, and rings the two moved cells. **Coop only** — compete writes no
+  swap log. Clicking a `GameEventLog` row opens that swap on the board (the
+  shared "viewing" frame + banner from the shared
+  `src/common/event-log/historyViewer.module.css`, input frozen; a keystroke /
+  board click / the ✕ returns to live), mirroring scrabble/stackdown's history
+  viewer.
 
 The PlayArea sits on the **shared two-column scaffold**
-(`common/game-page/playArea.module.css` — the same one psychicnum / connections /
-codenamesduet use; see [playarea.md → PlayArea layout](../playarea.md#playarea-layout)):
+(`common/game-page/playArea.module.css` — the same one psychicnum / connections
+/ codenamesduet use; see [playarea.md → PlayArea
+layout](../playarea.md#playarea-layout)):
 
-- **Board column** — `Board` (the 5×5 lattice, tap-A-then-tap-B or
-  drag-to-swap) in a no-chrome `.board` wrapper. Unlike the other games' boards,
-  which fill the column rectangularly, waffle stays a **top-aligned square** (it's
-  a waffle, with holes), sized via container-query units. Tiles use the shared
+- **Board column** — `Board` (the 5×5 lattice, tap-A-then-tap-B or drag-to-swap)
+  in a no-chrome `.board` wrapper. Unlike the other games' boards, which fill
+  the column rectangularly, waffle stays a **top-aligned square** (it's a
+  waffle, with holes), sized via container-query units. Tiles use the shared
   `.tile` chrome, painted with the shared **Wordle colors** (`--wordle-*` in
-  `common/themes/daylight.css`, shared with wordle); a picked-up tile gets waffle's own
-  ring (the shared dark `.selected` fill would bury the color). While a
-  `submit_swap` is **in flight** (a second or two against prod), the submitted
-  pair wears a **pulsing ring** (same outline vocabulary as the pick ring,
-  animating `outline-color` only — no layout shift; reduced-motion holds a
+  `common/themes/daylight.css`, shared with wordle); a picked-up tile gets
+  waffle's own ring (the shared dark `.selected` fill would bury the color).
+  While a `submit_swap` is **in flight** (a second or two against prod), the
+  submitted pair wears a **pulsing ring** (same outline vocabulary as the pick
+  ring, animating `outline-color` only — no layout shift; reduced-motion holds a
   steady ring) and swap input **single-flights** (`useSingleFlight`; tap, drag,
   and keyboard all funnel through the same two gated paths) — without both,
   players read the silent gap as a missed click and tap the same two tiles
-  again, queueing the REVERSE swap. An optimistic local swap was considered
-  and rejected: in coop a peer's swap can land first, so a preview could show
-  an exchange that never happens that way (the comment in `PlayArea` records
-  the decision). Below it the
-  **`.belowBoard` local-feedback slot** holds a centered `<FeedbackPill>` — a
-  refused swap during play, the "waiting" state when the player is locally
-  terminal, whose turn it is, or the filled verdict at game-over. (The
-  `SolutionReveal` answer list is NOT here — it lives in the info column's status
-  section.) There's no special "reveal" board mode: the **"Reveal solution"** menu
-  action ENDS the game and overwrites every board with the solution server-side
-  (see `reveal_answer` below), so the caller's own board simply *becomes* the
-  answer — the grid renders it all-green for free, with zero FE branching.
+  again, queueing the REVERSE swap. An optimistic local swap was considered and
+  rejected: in coop a peer's swap can land first, so a preview could show an
+  exchange that never happens that way (the comment in `PlayArea` records the
+  decision). Below it the **`.belowBoard` local-feedback slot** holds a centered
+  `<FeedbackPill>` — a refused swap during play, the "waiting" state when the
+  player is locally terminal, whose turn it is, or the filled verdict at
+  game-over. (The `SolutionReveal` answer list is NOT here — it lives in the
+  info column's status section.) There's no special "reveal" board mode: the
+  **"Reveal solution"** menu action ENDS the game and overwrites every board
+  with the solution server-side (see `reveal_answer` below), so the caller's own
+  board simply *becomes* the answer — the grid renders it all-green for free,
+  with zero FE branching.
 - **Info column** — the shared readouts in canonical order (`.infoState` swap
-  tally + par → `SolutionReveal` answer list → `OpponentStrip` (compete) → action
-  row → `.infoHelp` → `<SetupDisclosure>`), over the coop `GameEventLog`.
+  tally + par → `SolutionReveal` answer list → `OpponentStrip` (compete) →
+  action row → `.infoHelp` → `<SetupDisclosure>`), over the coop `GameEventLog`.
   The swap tally is the shared **`StateLine`** ("Swaps 3/12 (9 left) · Par 10"),
-  which `BoardCol` also renders above the board in the shared `<MobileStatusBar>`
-  below `--mobile`, where the info column is off-canvas
-  ([mobile.md → The mobile status bar](../mobile.md#the-mobile-status-bar--core-state-above-the-board)).
+  which `BoardCol` also renders above the board in the shared
+  `<MobileStatusBar>` below `--mobile`, where the info column is off-canvas
+  ([mobile.md → The mobile status
+  bar](../mobile.md#the-mobile-status-bar--core-state-above-the-board)).
   **`SolutionReveal`** is the **progressive answer reveal**: the six words (3
-  across, 3 down), each shown once the caller has turned it fully green (every tile
-  correct) on their own board, else an em dash. It's shown *throughout* the game,
-  not just at terminal, and it's **leak-safe without the shielded solution** — a
-  fully-green word is already on the caller's board, so `lib/waffle.ts`'s
-  `solvedWords(board, colors)` reads the revealed letters off the caller's OWN
-  board + `colors` (identical, and safe, in compete where the solution isn't sent
-  during play). The six slots (word or em dash) are always present, so it's a fixed
-  height — no info-column reflow as words come in. Revealed words are click-to-define. The action row is **ICON-ONLY** (waffle's
-  experiment — the styled tooltips carry the labels; see
-  [ui.md → Button iconography](../ui.md#button-iconography)): during play the
-  two exits plus back-to-club; at terminal the bold outcome line + Restart /
-  Reveal (the terminal-local reveal) / New game / primary back-to-club, in
+  across, 3 down), each shown once the caller has turned it fully green (every
+  tile correct) on their own board, else an em dash. It's shown *throughout* the
+  game, not just at terminal, and it's **leak-safe without the shielded
+  solution** — a fully-green word is already on the caller's board, so
+  `lib/waffle.ts`'s `solvedWords(board, colors)` reads the revealed letters off
+  the caller's OWN board + `colors` (identical, and safe, in compete where the
+  solution isn't sent during play). The six slots (word or em dash) are always
+  present, so it's a fixed height — no info-column reflow as words come in.
+  Revealed words are click-to-define. The action row is **ICON-ONLY** (waffle's
+  experiment — the styled tooltips carry the labels; see [ui.md → Button
+  iconography](../ui.md#button-iconography)): during play the two exits plus
+  back-to-club; at terminal the bold outcome line + Restart / Reveal (the
+  terminal-local reveal) / New game / primary back-to-club, in
   `InfoActionsRow`'s children. Every one is an `<ActionButton>` over a bound
   action ([common/actions](../../src/common/actions/doc.md)), including
   back-to-club: ONE binding serves both rows, navigating directly at terminal
-  and routing through the shell's **suspend-confirm** flow mid-game. Stay-here options sit left of the leave option.
-  `GameEventLog` renders its own `<tr>` rows on the shared `<EventLog>` table — the
-  outcome bar (`neutral`) + "#N" + "A (A1) ↔ B (C2)" (letters prominent,
-  coordinates small/light) + the swapper's `<ActorDot>`; coop only. Compete shows
-  the shared `common/info-sheet/OpponentStrip` instead, with `metricLabel="Swaps"`
-  and a `metricFor` returning swaps-used + a ✓/✗ mark.
-- **Feedback split** — own not-oks (a refused swap / a failed End) show **locally**
-  below the board; the header's global slot carries **peer** news (compete: "● moth
-  solved it", "● moth out of swaps"; coop needs none — the swap log shows every move).
-  Both of those are `peerMilestone`s rather than `peer`s — each is a flag on the
-  opponent's row rather than a move of theirs, so neither gets buried by a chat
-  line ([ui.md → Feedback pill](../ui.md#feedback-pill)).
+  and routing through the shell's **suspend-confirm** flow mid-game. Stay-here
+  options sit left of the leave option. `GameEventLog` renders its own `<tr>`
+  rows on the shared `<EventLog>` table — the outcome bar (`neutral`) + "#N" +
+  "A (A1) ↔ B (C2)" (letters prominent, coordinates small/light) + the swapper's
+  `<ActorDot>`; coop only. Compete shows the shared
+  `common/info-sheet/OpponentStrip` instead, with `metricLabel="Swaps"` and a
+  `metricFor` returning swaps-used + a ✓/✗ mark.
+- **Feedback split** — own not-oks (a refused swap / a failed End) show
+  **locally** below the board; the header's global slot carries **peer** news
+  (compete: "● moth solved it", "● moth out of swaps"; coop needs none — the
+  swap log shows every move). Both of those are `peerMilestone`s rather than
+  `peer`s — each is a flag on the opponent's row rather than a move of theirs,
+  so neither gets buried by a chat line ([ui.md → Feedback
+  pill](../ui.md#feedback-pill)).
 - `SetupForm` and `Help` round it out. The form (shared by both modes) offers
-  four knobs: the `SetupCoopStyleSection` first (the opt-in turn-by-turn coop pacing +
-  its first-turn picker — self-gates to nothing for compete / solo), a
+  four knobs: the `SetupCoopStyleSection` first (the opt-in turn-by-turn coop
+  pacing + its first-turn picker — self-gates to nothing for compete / solo), a
   word-difficulty `DictBandField` (which vocabulary band the six words come
   from, 1–6), the extra-swaps `RadioRow` (the budget knob — fewer is harder),
-  and the shared `SetupTimerSection`. The two disclosure sections carry their current
-  values in their summaries ("Dictionary: Familiar", "Swap budget: Tight +3")
-  so the form reads without opening anything.
+  and the shared `SetupTimerSection`. The two disclosure sections carry their
+  current values in their summaries ("Dictionary: Familiar", "Swap budget: Tight
+  +3") so the form reads without opening anything.
 
-**Terminal flow — the prototype for the app-wide treatment**
-(see [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)).
-No modal carries the verdict: it's in-page (the below-board terminal pill + the
+**Terminal flow — the prototype for the app-wide treatment** (see [ui.md →
+Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)). No
+modal carries the verdict: it's in-page (the below-board terminal pill + the
 action-row outcome line), and the terminal action row offers Restart right
 there. Instead, a **coop solve** pops the shared **`CelebrationBlockingModal`**
 (confetti + jingle) via the `useCelebration` hook — **only at the moment of the
 win** (the `playState → 'won'` flip lands on every connected client via the
-realtime refetch, so the group celebrates together); opening an already-won
-game shows nothing, and a replay-board → second solve celebrates again. Gated
-on `playState === 'won'`, not `over.outcome` (`over` needs `game.mode`, which
-is null until `useGame`'s fetch lands and would fake a flip on every mount of a
-won game; and a manual end is `neutral` anyway), and coop-only — a compete win is one player's,
-carried by the pill/action row. The coop win's in-page verdict (pill + outcome
-line) is **golf-style against par** — "Par +2", or "Par!" for matching it (par
-is the generator's minimum, so under-par can't happen) — rather than a generic
-"Solved!": the celebration dialog carries the solved moment; the lasting
-verdict carries the score.
+realtime refetch, so the group celebrates together); opening an already-won game
+shows nothing, and a replay-board → second solve celebrates again. Gated on
+`playState === 'won'`, not `over.outcome` (`over` needs `game.mode`, which is
+null until `useGame`'s fetch lands and would fake a flip on every mount of a won
+game; and a manual end is `neutral` anyway), and coop-only — a compete win is
+one player's, carried by the pill/action row. The coop win's in-page verdict
+(pill + outcome line) is **golf-style against par** — "Par +2", or "Par!" for
+matching it (par is the generator's minimum, so under-par can't happen) — rather
+than a generic "Solved!": the celebration dialog carries the solved moment; the
+lasting verdict carries the score.
 
 Presence-pause is inherited free via `<GamePage>` + `useCommonGame`. Live
 drag-preview via Broadcast (connections' peer-selection trick) is a deferred
@@ -555,28 +574,32 @@ nice-to-have, not shipped.
 
 ## Printing the board (PDF)
 
-`src/waffle/pdf/` — a **"Print board (PDF)"** GamePage menu item (common/pdf/doc.md).
-The **track family**: one page column per BOARD, its 5×5 grid, then that board's swaps.
+`src/waffle/pdf/` — a **"Print board (PDF)"** GamePage menu item
+(common/pdf/doc.md). The **track family**: one page column per BOARD, its 5×5
+grid, then that board's swaps.
 
 The tiles use the shared 4-state encoding — **border and fill weight, not
 color**. That's what makes waffle printable at all: its feedback is entirely
 green/yellow/gray, which a mono printer flattens to a single gray, and waffle
-without its feedback is a grid of unrelated letters. See
-[`common/pdf/doc.md` → Backgrounds are white](../../src/common/pdf/doc.md#backgrounds-are-white) for the rule
-this is the agreed exception to, and why grays rather than hues keep it honest.
+without its feedback is a grid of unrelated letters. See [`common/pdf/doc.md` →
+Backgrounds are white](../../src/common/pdf/doc.md#backgrounds-are-white) for
+the rule this is the agreed exception to, and why grays rather than hues keep it
+honest.
 
 **Coop is one track** (a single shared board). **Compete is one per player at
-terminal**, and just yours during play — mid-game you hold nobody else's board OR swaps (both RLS-gated — see [The compete swap log](#the-compete-swap-log-and-why-it-is-private)),
-so an opponent column would be an empty grid rather than information. Capped at
-three tracks per page; a fourth player spills onto a second page at the same size.
+terminal**, and just yours during play — mid-game you hold nobody else's board
+OR swaps (both RLS-gated — see [The compete swap
+log](#the-compete-swap-log-and-why-it-is-private)), so an opponent column would
+be an empty grid rather than information. Capped at three tracks per page; a
+fourth player spills onto a second page at the same size.
 
 The four **holes** print as nothing at all — not an empty box. They aren't
 un-guessed cells, they're not part of the puzzle, and a box there would invite
 someone to fill it in. The notches are how you recognize the waffle shape.
 
-A coop track's log names each swapper (one board, many hands); a compete track is
-one person's, so the rows don't repeat their name — the column heading says whose
-it is.
+A coop track's log names each swapper (one board, many hands); a compete track
+is one person's, so the rows don't repeat their name — the column heading says
+whose it is.
 
 The **six answer words are terminal-only**, twice over: the server gates
 `solution`, and the model refuses to emit it before terminal regardless.
@@ -609,11 +632,11 @@ The **six answer words are terminal-only**, twice over: the server gates
 ## Design notes — two choices worth remembering
 
 - **Coop working-state uses one uniform `waffle.players` table** for both modes,
-  coop rows kept in lock-step (matches connections). The rejected alternative — a
-  single shared board on `waffle.games` for coop — is described in the schema note
-  above; flip to it only if the per-row redundancy ever bites.
+  coop rows kept in lock-step (matches connections). The rejected alternative —
+  a single shared board on `waffle.games` for coop — is described in the schema
+  note above; flip to it only if the per-row redundancy ever bites.
 - **Puzzles are generated on demand** by the `waffle-build-board` edge function
   (see [Board generation](#board-generation-waffle-build-board-edge-function)),
-  not vendored from a pre-built library: once player-selectable word filters made a
-  pre-generated set multiply combinatorially, on-demand generation became the only
-  tractable shape.
+  not vendored from a pre-built library: once player-selectable word filters
+  made a pre-generated set multiply combinatorially, on-demand generation became
+  the only tractable shape.

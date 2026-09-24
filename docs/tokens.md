@@ -155,8 +155,8 @@ What derives, and what does not:
   - **`-ink`.** The step from fill to legible ink differs by hue — gold needs
     far more darkening than red for the same legibility, and cannot go dark
     without ceasing to be gold — so no one formula gives all of them.
-  - **`-wash`.** The pale values come from a ramp whose hue rotates, so no single
-    mix reproduces them.
+  - **`-wash`.** The pale values come from a ramp whose hue rotates, so no
+    single mix reproduces them.
   - **The member borders**, tuned by hand.
   - **The tile ramp.** Hue holds while chroma rises as it darkens — one material
     getting thicker, not a tint plus a darkening — so it is tuned, shade by

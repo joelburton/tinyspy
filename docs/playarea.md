@@ -19,10 +19,10 @@ classes are the scaffold's, the column's and its rows' are the column's.
 
 **The contract:**
 
-- **No whole-page scroll.** The layout fills the viewport,
-  `height: calc(100svh - var(--game-chrome-height))`, and only inner regions (the
-  event log or word list, chat) scroll. See
-  [ui.md → Page-height fits the viewport](ui.md#page-height-fits-the-viewport).
+- **No whole-page scroll.** The layout fills the viewport, `height:
+  calc(100svh - var(--game-chrome-height))`, and only inner regions (the event
+  log or word list, chat) scroll. See [ui.md → Page-height fits the
+  viewport](ui.md#page-height-fits-the-viewport).
 - **Two columns, no chrome around them.** A board column (`.boardCol`) and an
   info column (`.infoCol`), and the only thing between them is the divider: the
   info column's `border-left`, with the layout gap on one side and the column's
@@ -140,8 +140,8 @@ Boggle cube — we call it a **tile**.
 width and the column hugs it. Each game has a maximum tile size; with no cap the
 board grows to all the width available, so an uncapped game looks like it fills.
 
-**The inputs.** `.layout` defines **`--avail-w`**, the width left beside the info
-column:
+**The inputs.** `.layout` defines **`--avail-w`**, the width left beside the
+info column:
 
 ```css
 --avail-w: calc(var(--client-width, 100vw) - var(--info-col-width)
@@ -157,19 +157,20 @@ narrows. On a phone, `.mobileFill` hands the board the full width.
 
 **Two shapes of board.**
 
-- A **rectangular** board composes `.hugRectWidth` onto its `.grid`:
-  `width: min(var(--avail-w), <cols × max tile width + gaps>)`. Its height
-  flex-fills the column, capped by a maximum tile height. The grid is
-  `repeat(var(--cols), 1fr)` with a fixed `--grid-gap`, so capping a tile never
-  stretches the gaps. `--cols` / `--rows` are static where the shape is fixed and
-  set inline where it varies.
+- A **rectangular** board composes `.hugRectWidth` onto its `.grid`: `width:
+  min(var(--avail-w), <cols × max tile width + gaps>)`. Its height flex-fills
+  the column, capped by a maximum tile height. The grid is `repeat(var(--cols),
+  1fr)` with a fixed `--grid-gap`, so capping a tile never stretches the gaps.
+  `--cols` / `--rows` are static where the shape is fixed and set inline where
+  it varies.
 - A **square** board is bounded by both dimensions, so it computes one `--side`
   from `--avail-w` and **`--avail-h`** (the height above its below-board row),
   with a single `--max-tile-size` cap. The square games' formulas differ enough
   that each lives in its own board module.
 
 **The tinker knobs.** Each game's board module carries a `─── TINKER HERE ───`
-block with its tile caps and `--grid-gap`. Commenting a cap out uncaps that axis.
+block with its tile caps and `--grid-gap`. Commenting a cap out uncaps that
+axis.
 
 **Word tiles.** A single glyph scales with its tile via `cqmin` / `cqi`;
 multi-character content fits itself via `cqi` and `--len` (`.tileWord` in the
@@ -298,9 +299,9 @@ needed.
 ### The commands, and the one order three readers keep
 
 Every command is in one block, each handler declared directly above the binding
-that runs it. **None of them is a `useCallback`**: `useBoundAction` refreshes its
-live half through a ref during render, and the bound value's identity turns on
-`pending` alone. **No handler carries an in-flight flag**: `pending` already
+that runs it. **None of them is a `useCallback`**: `useBoundAction` refreshes
+its live half through a ref during render, and the bound value's identity turns
+on `pending` alone. **No handler carries an in-flight flag**: `pending` already
 grays the button and the menu row, so a `const [hinting, setHinting]` would be a
 second source for one fact.
 
@@ -329,19 +330,19 @@ A `BoardCol` / `InfoCol` prop that means the same thing in two games is spelled
 the same in both, or reading the second game means re-deriving the first.
 
 - **Flat prop lists, grouped by region, not prefixed.** No `actionsOnHint` /
-  `oppStripHintCount`: they stutter against `on*` and force one taxonomy on props
-  that serve two regions. Order the props to mirror the render order, separated
-  by `// ── Section ──` headers **on the type block**, beside the per-prop
-  docstrings; the destructure is a flat list, and the call site follows the same
-  order. There is no `React.memo` in the app, so grouping props into objects buys
-  nothing. Use a real object only for a cluster that always travels together to
-  one child, such as the OpponentStrip's inputs.
+  `oppStripHintCount`: they stutter against `on*` and force one taxonomy on
+  props that serve two regions. Order the props to mirror the render order,
+  separated by `// ── Section ──` headers **on the type block**, beside the
+  per-prop docstrings; the destructure is a flat list, and the call site follows
+  the same order. There is no `React.memo` in the app, so grouping props into
+  objects buys nothing. Use a real object only for a cluster that always travels
+  together to one child, such as the OpponentStrip's inputs.
 - **One vocabulary.** `readOnly`, `over`, `isTerminal`, `isCompete`, `isPlayer`,
   `historyLabel`, `onExitHistory`, `onShowHistory`, `players`, `selfId`,
   `playerStates`, `concededIds`, `myConceded`, `setup`, `solution`, `onEndGame`,
   `onConcede`, `onBackToClub`, … When a new column needs a prop an earlier one
-  already has, reuse the name; diverge only when the meaning differs, and say so.
-  The ones that drift:
+  already has, reuse the name; diverge only when the meaning differs, and say
+  so. The ones that drift:
   - **The viewer passes one prop saying it is open, and the flag is derived.**
     A column writes `const isViewingHistory = historyLabel !== null` rather than
     taking both. A column whose board data comes out of the snapshot takes the
@@ -367,25 +368,25 @@ Where the four-layer table is too clean:
 
 - **A word buffer tangled with server state stays in the data hook.** When the
   pending word is coupled to optimistic updates and realtime bookkeeping
-  (stackdown's `currentWord`, scrabble's `staged`), `PlayArea` passes the editing
-  primitives down and `BoardCol` emits the finished word up. "BoardCol owns
-  editing" means the gesture → word, not the word's state.
+  (stackdown's `currentWord`, scrabble's `staged`), `PlayArea` passes the
+  editing primitives down and `BoardCol` emits the finished word up. "BoardCol
+  owns editing" means the gesture → word, not the word's state.
 - **The below-board slot belongs to the coordinator.** Things other than the
   board column show into it — the terminal verdict, and results from info-column
   actions like Hint or Reveal — so `PlayArea` makes the slot and passes it down,
   and `BoardCol` draws it and shows its own input results.
 - **Split state by its trigger, not by where it renders.** A flash drawn inside
   `BoardCol` lives in `PlayArea` when a teammate's move is one of its triggers.
-- **`readOnly` is `viewing || !canPlay`.** One flag, not two: when not viewing it
-  means "can't play right now", so a key handler reads `if (viewing) exit; if
+- **`readOnly` is `viewing || !canPlay`.** One flag, not two: when not viewing
+  it means "can't play right now", so a key handler reads `if (viewing) exit; if
   (readOnly) return`.
 - **`BoardCol` owns its RPCs when the result mutates deep input state.**
   scrabble's moves claim `lastActionRef` before the await and their results
-  rewrite `optimistic` and `staged`; splitting the RPC from that state would tear
-  one machine in half. Emit up when the coordinator can own the result; own the
-  RPC when it can't.
+  rewrite `optimistic` and `staged`; splitting the RPC from that state would
+  tear one machine in half. Emit up when the coordinator can own the result; own
+  the RPC when it can't.
 - **Prove a decomposition with the geometry harness, not render tests.** Render
   tests, `tsc` and eslint all pass on a botched CSS move;
-  `e2e/board-geometry.e2e.ts` (a `BASELINE=1` run before, a compare after) catches
-  a moved boundary. For a game whose input engine the unit tests can't reach, add
-  a gameplay e2e first and run it on both sides of the cut.
+  `e2e/board-geometry.e2e.ts` (a `BASELINE=1` run before, a compare after)
+  catches a moved boundary. For a game whose input engine the unit tests can't
+  reach, add a gameplay e2e first and run it on both sides of the cut.

@@ -1,9 +1,9 @@
 # strands (PaulPath)
 
 A NYT-Strands-style word search: an 8×6 board of letters hiding a set of **theme
-words** plus a **spangram** — the one that runs edge to edge and names the theme.
-You trace a word by clicking its letters in order. Valid non-theme words earn
-hint points; enough of them buys a hint.
+words** plus a **spangram** — the one that runs edge to edge and names the
+theme. You trace a word by clicking its letters in order. Valid non-theme words
+earn hint points; enough of them buys a hint.
 
 "strands" is the codename (as "codenamesduet" is for Codenames Duet). The
 user-facing brand is **PaulPath**, which lives only in the manifest's `BRAND`
@@ -29,9 +29,10 @@ puzzle uses diagonal steps (3–15 of ~40), so a 4-way tracer cannot enter most
 boards at all. From 2025-06-15, `AMBITION` runs
 `A[2,3] → M[1,3] → B[1,2] → I[0,1] → …` — that third step is a diagonal.
 
-The rule lives once, in [`src/strands/lib/board.ts`](../../src/strands/lib/board.ts),
-and both the puzzle importer and the FE import it from there. The
-[oracle test](#the-oracle) pins it.
+The rule lives once, in
+[`src/strands/lib/board.ts`](../../src/strands/lib/board.ts), and both the
+puzzle importer and the FE import it from there. The [oracle test](#the-oracle)
+pins it.
 
 ### The hidden words tile the board exactly
 
@@ -55,10 +56,10 @@ Deliberately **not** connections' FE-knows-the-answer.
 
 connections went FE-knows because its evaluator is a ~15-line pure function, and
 server-side evaluation would have meant building column-grant + PL/pgSQL
-infrastructure *for that alone*. strands has no such choice: classifying a traced
-word needs a dictionary lookup against `common.words`, so a round trip is paid
-regardless. Once it is, theme-matching in the same RPC is free — and the puzzle's
-entire content, *where the words are*, stays server-side.
+infrastructure *for that alone*. strands has no such choice: classifying a
+traced word needs a dictionary lookup against `common.words`, so a round trip is
+paid regardless. Once it is, theme-matching in the same RPC is free — and the
+puzzle's entire content, *where the words are*, stays server-side.
 
 The usual objection to server round trips is latency under rapid input, which is
 why boggle and spellingbee ship word lists and self-score. strands inverts that:
@@ -72,15 +73,15 @@ is where that bites: a racer who has solved or conceded is sitting there
 locally-done while the rest are still tracing, and could read the answer out —
 so the gate can't key on any per-player doneness (`compete_test.sql` pins both
 halves). Whether a player is *looking* at the answer is their own display choice
-in the FE ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
-a local, reversible reveal (`act-reveal`, one binding carrying both faces and
-placed in the terminal row AND the menu), nothing shared, and nothing autorevealed
-to a player who did not solve it. The
-reveal has **two halves, one toggle**: the unfound words draw as gray lines on
-the board, and the info column names them as text (`Words: <spangram> …`,
-spangram first, each click-to-define). The column half is not decoration — the
-board draws *paths* and never spells anything out, so without it a reveal makes
-you read the answer off the grid letter by letter.
+in the FE ([ui.md → Terminal
+results](../ui.md#terminal-results--the-moment-vs-the-record)): a local,
+reversible reveal (`act-reveal`, one binding carrying both faces and placed in
+the terminal row AND the menu), nothing shared, and nothing autorevealed to a
+player who did not solve it. The reveal has **two halves, one toggle**: the
+unfound words draw as gray lines on the board, and the info column names them as
+text (`Words: <spangram> …`, spangram first, each click-to-define). The column
+half is not decoration — the board draws *paths* and never spells anything out,
+so without it a reveal makes you read the answer off the grid letter by letter.
 
 > **Recorded as provisional.** If the verdict ever feels laggy, the fallback is
 > trusting-commit: ship the solution + legal words and let the RPC record the
@@ -90,12 +91,12 @@ you read the answer off the grid letter by letter.
 > shielding, and that is a schema edit.
 
 **Both shielded tables `revoke select` before their column grant.** Grants are
-additive, so a table-wide `grant select` that ever reached the database would not
-be undone by re-applying `supabase/sql/strands.sql` — the column grants would be
-added alongside it and `solution` would stay readable while the file claimed
-otherwise. Since that directory is the authoritative current definition, the
-shield starts by clearing whatever came before. (Found by planting exactly that
-break and watching the file fail to heal it.)
+additive, so a table-wide `grant select` that ever reached the database would
+not be undone by re-applying `supabase/sql/strands.sql` — the column grants
+would be added alongside it and `solution` would stay readable while the file
+claimed otherwise. Since that directory is the authoritative current definition,
+the shield starts by clearing whatever came before. (Found by planting exactly
+that break and watching the file fail to heal it.)
 
 **Match by PLACEMENT + word**, not by ordered path and not by string alone.
 
@@ -188,9 +189,10 @@ it can't quietly stop being true.
 **A hint row stores its coords and not its word.** The coords are what let the
 viewer re-ring a past hint exactly as it looked; the word is withheld because a
 hint has never said it, and the log is the one place that would outlive the
-on-board ring being retired. They go to `HistorySnapshot.hintCoords`, kept separate
-from `historyLitTiles` so the board draws them as *rings with no connecting line* —
-replaying a hint as a traced route would show an order the hint never gave.
+on-board ring being retired. They go to `HistorySnapshot.hintCoords`, kept
+separate from `historyLitTiles` so the board draws them as *rings with no
+connecting line* — replaying a hint as a traced route would show an order the
+hint never gave.
 
 The one thing this discloses that nothing else did: **the location of a hinted
 word nobody went on to find**, visible once the compete log opens at terminal
@@ -204,10 +206,10 @@ view, the same mechanism `games_state` and `players_state` already use.
 Coop: `playing` → `won` (all found) / `lost` (timer expired) / `ended` (manual,
 neutral).
 
-The clock is a **loss** under the roster's one test — *you lose if the game had a
-reachable end and you didn't reach it* ([states.md](../states.md)) — so strands
-sits with wordle and connections, not with an untargeted word hunt where the
-clock is merely how a session stops.
+The clock is a **loss** under the roster's one test — *you lose if the game had
+a reachable end and you didn't reach it* ([states.md](../states.md)) — so
+strands sits with wordle and connections, not with an untargeted word hunt where
+the clock is merely how a session stops.
 
 ---
 
@@ -223,8 +225,8 @@ clock is merely how a session stops.
 ### The one outcome decision (`lib/answer.ts`)
 
 A turn is one of seven answers — `submit_path`'s six results plus `spent_hint`,
-which is what a `kind: 'hint'` row is (it has no `result` column). `lib/answer.ts`
-says what each is worth:
+which is what a `kind: 'hint'` row is (it has no `result` column).
+`lib/answer.ts` says what each is worth:
 
 | answer | outcome | why |
 |---|---|---|
@@ -292,8 +294,8 @@ malformed-path shape still gets a *designed* answer rather than a raw cast error
 (`validation_test.sql` plants each one).
 
 The dictionary filter is the **may-enter tier** ([common.md](../common.md)):
-`difficulty <= band` and nothing else. No slur / crude / slang / dialect filter —
-the player chose to type it.
+`difficulty <= band` and nothing else. No slur / crude / slang / dialect filter
+— the player chose to type it.
 
 > **The band runs backwards from waffle's.** A *higher* band makes strands
 > *easier*: more words qualify, so hints come faster. Same direction as
@@ -312,13 +314,13 @@ connecting line**, so the player still works out the order.
   persisted: a client-side roll would show three players three different hints
   for one spent token.
 - **The bar caps** at `hint_cost`. Points found while a hint sits unspent are
-  lost, and nothing warns about it — the full bar is the signal, which is why the
-  filled state is styled distinctly rather than merely being 100% wide.
+  lost, and nothing warns about it — the full bar is the signal, which is why
+  the filled state is styled distinctly rather than merely being 100% wide.
 - **The button is clickable before the bar fills**, and answers the click with
-  the count still to go — a `warning` result, "3 more words needed for a hint". The bar
-  shows *progress* but never states the remaining number, so an early click is a
-  fair question, and a disabled button is the one response that can't answer it.
-  The two states still read differently: the button only fills amber
+  the count still to go — a `warning` result, "3 more words needed for a hint".
+  The bar shows *progress* but never states the remaining number, so an early
+  click is a fair question, and a disabled button is the one response that can't
+  answer it. The two states still read differently: the button only fills amber
   (`hintReady`) when a hint is actually there to cash. Words is the literal unit
   — `spend_hint`'s ledger adds exactly one point per valid non-theme word — and
   the singular ("1 more word needed") is unit-tested, since it's the state
@@ -357,10 +359,10 @@ rare case where you know the date and want that one, including one you've
 played before. It calls `strands.puzzle_for_date`, which filters nothing and
 starts a second game on a puzzle rather than reopening the first.
 
-**Neither picker answers "nothing" quietly.** Both return `ok` ·
-`{result: 'found', puzzle}` or a **`form-validation` naming `puzzle_id`** —
-`PN416` "Everyone here has played every puzzle. You can open one already played
-by its date." and `PN417` "No puzzle for `<date>`. Try another date." Running out
+**Neither picker answers "nothing" quietly.** Both return `ok` · `{result:
+'found', puzzle}` or a **`form-validation` naming `puzzle_id`** — `PN416`
+"Everyone here has played every puzzle. You can open one already played by its
+date." and `PN417` "No puzzle for `<date>`. Try another date." Running out
 BLOCKS Start, and what fixes it is a control on this very form, which is the
 shape of a validation rather than a gray line mentioning it in passing. Both
 sentences are connections' PN302/PN303 verbatim: the same condition in the other
@@ -392,88 +394,90 @@ next:
   is usually a click.
 - **Mid-word** → only the ≤8 neighbors of the last cell, minus cells already in
   the trace (a path can't visit one twice; clicking your own cell still means
-  "undo back to here", which stays click-only). A small field, so this is usually
-  unique — which is what makes typing the *rest* of a word work.
+  "undo back to here", which stays click-only). A small field, so this is
+  usually unique — which is what makes typing the *rest* of a word work.
 - **Several matches** → they ring **red** for a beat and wait for a click. No
-  message: this slot IS the entry area, so a pill would hide the word being built
-  to say something the board says better. **No match** → a `lost` result, because
-  that's nearly always a mistake rather than a choice.
+  message: this slot IS the entry area, so a pill would hide the word being
+  built to say something the board says better. **No match** → a `lost` result,
+  because that's nearly always a mistake rather than a choice.
 - An unmatched letter **never restarts the trace elsewhere** the way a far
   *click* does. A click names a cell unambiguously; a keystroke doesn't, so
   jumping the trace across the board would be guessing at intent.
 
 So the rule the original design derived from still holds — it's refined, not
 reversed. Physical keys also do the rest: **Backspace** drops the last tile,
-**Enter** submits, **Tab** is caught and goes nowhere (the page declares an empty
-tab ring, so no tile is ever a tab stop), and any key dismisses the last result.
+**Enter** submits, **Tab** is caught and goes nowhere (the page declares an
+empty tab ring, so no tile is ever a tab stop), and any key dismisses the last
+result.
 
-**A click never submits.** Re-clicking the last tile would be a misclick
-magnet: that tile is where the cursor already is, so clipping it while reaching
-for the next letter would fire a half-built word at the server. It truncates
-like any other selected tile — clicking *any*
-letter in the trace, the last one included, backs up to just before it — and
-the two deliberate routes (Enter, the Submit button) carry submission alone.
-That makes the word-entry row load-bearing rather than a convenience, since a phone
-has no Enter key. The last tile keeps its second ring: it marks where the trace
-ends, which is what tells you which neighbors are live and what Backspace will
-take.
+**A click never submits.** Re-clicking the last tile would be a misclick magnet:
+that tile is where the cursor already is, so clipping it while reaching for the
+next letter would fire a half-built word at the server. It truncates like any
+other selected tile — clicking *any* letter in the trace, the last one included,
+backs up to just before it — and the two deliberate routes (Enter, the Submit
+button) carry submission alone. That makes the word-entry row load-bearing
+rather than a convenience, since a phone has no Enter key. The last tile keeps
+its second ring: it marks where the trace ends, which is what tells you which
+neighbors are live and what Backspace will take.
 
 **The word-entry row** is the shared `<WordEntryRow>` (⌫ | the traced word in a
-`<WordEntryInput>` | Submit) — the same control every other game's entry wears. strands
-can't use `<WordEntryArea>`: its string is *derived* from the path (`wordFromPath`),
-so WordEntryArea's `value`/`onChange` contract runs backwards. The buttons are the
-pointer twins of Backspace and Enter, and the win is touch — on a phone there's
-no keyboard, so the Submit button is the ONLY way to send a word. The row **shares its fixed-height slot with the feedback pill** (you're
+`<WordEntryInput>` | Submit) — the same control every other game's entry wears.
+strands can't use `<WordEntryArea>`: its string is *derived* from the path
+(`wordFromPath`), so WordEntryArea's `value`/`onChange` contract runs backwards.
+The buttons are the pointer twins of Backspace and Enter, and the win is touch —
+on a phone there's no keyboard, so the Submit button is the ONLY way to send a
+word. The row **shares its fixed-height slot with the feedback pill** (you're
 either building a word or reading what the last one did) — the same swap
-`<WordEntryArea>` makes; stackdown, whose pill has a separate reserved row, is the odd
-one out. The local slot's standing conditions are the verdict, out of the race
-("Solved — waiting on the rest" for a solver), whose turn, and the **theme clue
-as a `prompt`** on an untouched board — it leaves when a trace begins and comes
-back if that trace is taken back or rejected, until the first find, and a
-rejection shows over it ([ui.md → Feedback pill](../ui.md#feedback-pill)).
+`<WordEntryArea>` makes; stackdown, whose pill has a separate reserved row, is
+the odd one out. The local slot's standing conditions are the verdict, out of
+the race ("Solved — waiting on the rest" for a solver), whose turn, and the
+**theme clue as a `prompt`** on an untouched board — it leaves when a trace
+begins and comes back if that trace is taken back or rejected, until the first
+find, and a rejection shows over it ([ui.md → Feedback
+pill](../ui.md#feedback-pill)).
 
 **Bare letters, no tile boxes** — a documented departure from the
 tile-and-warm-ramp vocabulary in [ui.md](../ui.md). A disc IS the mark here, and
 a box around it reads as noise; the board instead gets one frame at its edge,
 because without it the letters float in the page.
 
-The path layer is **one SVG under the letters**, in cell units
-(`viewBox="0 0 6 8"`), so a cell center is exactly `(col+0.5, row+0.5)` and every
-radius is a fraction of a cell — no pixel maths, no resize observer. Discs are
-drawn in the same SVG as the lines, which is what guarantees a line passes *under*
-its discs at any size.
+The path layer is **one SVG under the letters**, in cell units (`viewBox="0 0 6
+8"`), so a cell center is exactly `(col+0.5, row+0.5)` and every radius is a
+fraction of a cell — no pixel maths, no resize observer. Discs are drawn in the
+same SVG as the lines, which is what guarantees a line passes *under* its discs
+at any size.
 
 **Every log row leads with a verdict GLYPH** — trophy (spangram), star (theme
 word), check (valid word), X (rejected) — from the shared icon registry, named
 for the verdict rather than for this game so another word game's log can reuse
 them. Two jobs: an eye running down the log sorts finds from misses without
-reading a word, and it is the NON-COLOR encoding of the same fact, which the
-PDF printer will need — [common/pdf/doc.md](../../src/common/pdf/doc.md) prints in three shades of gray,
-where purple and gold are the same ink. The glyph sits in a FIXED-width slot, so
-words start at the same x whichever mark precedes them, and it tints with its
-word so the two can never disagree about a row.
+reading a word, and it is the NON-COLOR encoding of the same fact, which the PDF
+printer will need — [common/pdf/doc.md](../../src/common/pdf/doc.md) prints in
+three shades of gray, where purple and gold are the same ink. The glyph sits in
+a FIXED-width slot, so words start at the same x whichever mark precedes them,
+and it tints with its word so the two can never disagree about a row.
 
 **Colors**, and each says one thing: purple = a found theme word, gold = the
-spangram, light purple = the live trace, gray = a word nobody found (drawn at the
-reveal). Green belongs to the hint bar; the `valid word` result is gold, since it is
-progress rather than the goal. The event log
-uses *darker text variants* of purple and gold — a color tuned as a disc fill
-under white letters is not the same color that reads as 15px type on a white row.
+spangram, light purple = the live trace, gray = a word nobody found (drawn at
+the reveal). Green belongs to the hint bar; the `valid word` result is gold,
+since it is progress rather than the goal. The event log uses *darker text
+variants* of purple and gold — a color tuned as a disc fill under white letters
+is not the same color that reads as 15px type on a white row.
 
 **Results speak the shared word-game format** — `WORD — body`, word first and in
-caps, which is how the four `useFoundWordSubmit` games write theirs. strands can't use that hook
-(its acceptance is server-side, not a local list lookup), so it matches the
-*output* instead of inventing a second dialect; `too short` and `not a word` are
-word-for-word boggle's.
+caps, which is how the four `useFoundWordSubmit` games write theirs. strands
+can't use that hook (its acceptance is server-side, not a local list lookup), so
+it matches the *output* instead of inventing a second dialect; `too short` and
+`not a word` are word-for-word boggle's.
 
 **New game advances to the next UNPLAYED puzzle**, carrying the club's knobs
-(and the mode itself) forward. It omits `puzzleId` and lets `create_game`
-derive it — the same function the setup dialog previews, so the two can't
-disagree. Mid-game the registry's `NEW_GAME_CONFIRM` asks first; the preview
-read (`next_puzzle_for_club`) exists only to catch a spent archive before the
-create, and can go stale harmlessly, because the authority is the create. Restart is for replaying the
-same board. When the archive is spent for these players it says so as a
-one-button notice.
+(and the mode itself) forward. It omits `puzzleId` and lets `create_game` derive
+it — the same function the setup dialog previews, so the two can't disagree.
+Mid-game the registry's `NEW_GAME_CONFIRM` asks first; the preview read
+(`next_puzzle_for_club`) exists only to catch a spent archive before the create,
+and can go stale harmlessly, because the authority is the create. Restart is for
+replaying the same board. When the archive is spent for these players it says so
+as a one-button notice.
 
 (Until 2026-08-13 this was two FE reads plus the pure `nextUnplayedPuzzle`
 rule, whose exclusion was per-club and per-MODE and walked forward from the
@@ -563,18 +567,19 @@ ENV=local` — routine and frequent — fired ~900 requests at nytimes.com on ev
 reset. The archive is committed like the rest of `supabase/data/`, so a fresh
 clone imports offline too.
 
-The feed (`nytimes.com/svc/strands/v2/<date>.json`) is **public** — no cookie jar,
-unlike the NYT crossword path. It starts 2024-03-04.
+The feed (`nytimes.com/svc/strands/v2/<date>.json`) is **public** — no cookie
+jar, unlike the NYT crossword path. It starts 2024-03-04.
 
-**The import guard** ([`lib/strandsPuzzle.ts`](../../supabase/scripts/lib/strandsPuzzle.ts))
-checks five things per puzzle, and runs on both sides — at fetch so bad data never
+**The import guard**
+([`lib/strandsPuzzle.ts`](../../supabase/scripts/lib/strandsPuzzle.ts)) checks
+five things per puzzle, and runs on both sides — at fetch so bad data never
 reaches the file, at import so a hand-edited file fails loudly:
 
 1. the board is 8 rows of 6;
 2. every path is contiguous under 8-way adjacency;
-3. every path actually **spells** its word on that board — the check that catches
-   a feed change flipping coordinates to `[col,row]`, which no shape check would
-   notice;
+3. every path actually **spells** its word on that board — the check that
+   catches a feed change flipping coordinates to `[col,row]`, which no shape
+   check would notice;
 4. the spangram **spans** two opposite edges (all ~900 archived puzzles do);
 5. the words **tile** the board exactly.
 
@@ -597,7 +602,8 @@ that under 4-way *fewer than half* remain traceable.
 
 The search harness lives in the test file, not `lib/`: the app never needs to
 *find* a word on a board (the server classifies; the FE only validates the path
-actually traced), so shipping an unused solver to serve a test would be backwards.
+actually traced), so shipping an unused solver to serve a test would be
+backwards.
 
 ---
 
@@ -668,7 +674,8 @@ order is `strands.games` → `common.games` on every path, so no deadlock.
 
 Its refusals are `common`'s, like every other game's: "no such game" and "not
 compete" are what `common.require_compete` and `common._set_conceded` already
-say, so a null mode falls through the first and is refused by the second. See [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
+say, so a null mode falls through the first and is refused by the second. See
+[common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
 
 The manual **End** stays neutral in both modes. A race called off early didn't
 finish, and handing the trophy to whoever was ahead would reward stopping at the

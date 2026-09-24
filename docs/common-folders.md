@@ -11,9 +11,9 @@ one a module is in is a statement about it:
   that drag tiles on a grid, the pair with an on-screen keyboard. Most games
   will never import any of it.
 
-The import path is where that distinction is said out loud. `@/shared/bee-games/…`
-tells the reader "this is a spellingbee-shaped game"; `@/common/chat/…` tells
-them "everybody has this".
+The import path is where that distinction is said out loud.
+`@/shared/bee-games/…` tells the reader "this is a spellingbee-shaped game";
+`@/common/chat/…` tells them "everybody has this".
 
 ## Principles
 
@@ -48,17 +48,17 @@ The direction is one way:
 ```
 
 A shell file importing `@/shared/…` makes every game carry a family's code and
-empties the word "common" of meaning — the reader can no longer tell from a
-path whether a module is everyone's or three games'. Nothing about it breaks,
-which is why it is guarded rather than trusted:
+empties the word "common" of meaning — the reader can no longer tell from a path
+whether a module is everyone's or three games'. Nothing about it breaks, which
+is why it is guarded rather than trusted:
 [`src/guards/commonNeverImportsShared.test.ts`](../src/guards/commonNeverImportsShared.test.ts)
 fails on any such import, in either spelling.
 
 A family importing another family is fine and unguarded — `bee-games`, for
-instance, takes the found-word row and the shipped-word type from
-`found-words`, because spellingbee and wordwheel are members of that family as
-well as a pair of their own. And `src/shared/` is held to the same cross-game rule `src/common/` is —
-eslint blocks it from importing `src/<game>/`.
+instance, takes the found-word row and the shipped-word type from `found-words`,
+because spellingbee and wordwheel are members of that family as well as a pair
+of their own. And `src/shared/` is held to the same cross-game rule
+`src/common/` is — eslint blocks it from importing `src/<game>/`.
 
 ### Imports use the `@/` alias when they leave their folder
 
@@ -234,12 +234,13 @@ and re-classifying is a move up the file:
   *up* the file. That is the whole re-classification mechanism.
 - **`Won't do` is the floor of the ramp, and the one section that is not a
   queue.** It is for the change an audit *would* recommend, ruled against so
-  that it is not recommended again (Joel, 2026-09-19). So the bullet **names
-  the proposal, not the outcome** — "the action box should reserve its height",
-  then the ruling, the date, and why — in the same shape
-  the root [`todo.md`](../todo.md) uses for the cross-cutting ones. Two things it is not: an item that is merely unlikely is
-  a `Maybe` (the difference is whether somebody ruled), and **an item that got
-  DONE never lands here** — that one is deleted.
+  that it is not recommended again (Joel, 2026-09-19). So the bullet **names the
+  proposal, not the outcome** — "the action box should reserve its height", then
+  the ruling, the date, and why — in the same shape the root
+  [`todo.md`](../todo.md) uses for the cross-cutting ones. Two things it is not:
+  an item that is merely unlikely is a `Maybe` (the difference is whether
+  somebody ruled), and **an item that got DONE never lands here** — that one is
+  deleted.
 - **`Bugs`, not `Broken`** — deliberately. The app audit gives "broken" a
   specific meaning while it runs (a compile break, a test break and a behavior
   break each have their own rule), and reusing it here would blur the one word
@@ -374,13 +375,13 @@ from everyone else.
   family's printers. It still reads `common/pdf/frame`'s grays, which is a
   family using the shell, the allowed direction. Joel's call, 2026-09-04, when
   the guard surfaced the edge.
-- **`Menu.tsx` + `menuModel.ts`, `FilterSelect.tsx` + `filterSelectHelpers.ts`.**
-  A component and a same-named lowercase module cannot share a folder: the
-  filesystem is case-insensitive, so `./menu` and `./Menu` name the same file
-  and the resolver picks whichever it reaches first. Both lowercase modules
-  were renamed rather than the components. **This is the cost of the
-  no-type-subfolders rule**, and the next collision has to be resolved the same
-  way.
+- **`Menu.tsx` + `menuModel.ts`, `FilterSelect.tsx` +
+  `filterSelectHelpers.ts`.** A component and a same-named lowercase module
+  cannot share a folder: the filesystem is case-insensitive, so `./menu` and
+  `./Menu` name the same file and the resolver picks whichever it reaches first.
+  Both lowercase modules were renamed rather than the components. **This is the
+  cost of the no-type-subfolders rule**, and the next collision has to be
+  resolved the same way.
 
 ## The rest of `docs/` still cites pre-move paths
 

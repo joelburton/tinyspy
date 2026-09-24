@@ -65,10 +65,10 @@ game in progress depends on, so puzzles can be retired or re-imported freely.
 Each step is one or two sentences here; the folder named has the rest.
 
 - **Signing in.** A magic link or a code. On first sign-in the player claims a
-  username and color, which creates their profile and their solo club in one
-  RPC ([`common/auth`](../src/common/auth/doc.md),
-  [`common/session`](../src/common/session/doc.md),
-  [common-schema.md → Username claim flow](common-schema.md#username-claim-flow)).
+  username and color, which creates their profile and their solo club in one RPC
+  ([`common/auth`](../src/common/auth/doc.md),
+  [`common/session`](../src/common/session/doc.md), [common-schema.md → Username
+  claim flow](common-schema.md#username-claim-flow)).
 - **The club.** The club page lists the games the club has and the gametypes
   it can start, and the club's chat and presence
   ([`common/club`](../src/common/club/doc.md)).

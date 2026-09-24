@@ -16,8 +16,9 @@ points at them rather than repeating them. For terminology see
   ([plans/app-audit.md → The stamp](../plans/app-audit.md#the-stamp)). Only
   Joel writes `cs-blessed`.
 - **Many rules here are guarded.** `npx vitest run src/guards` runs them all
-  ([testing.md → Repo-wide invariant guards](testing.md#repo-wide-invariant-guards));
-  where a rule below names its guard, the guard is the authority.
+  ([testing.md → Repo-wide invariant
+  guards](testing.md#repo-wide-invariant-guards)); where a rule below names its
+  guard, the guard is the authority.
 - **The loop:** `npx tsc -b` (not `tsc --noEmit`), `npm run lint`, the guards,
   the tests beside what you touched. After editing `supabase/sql/`, re-apply it
   with `gmake db-sql ENV=local`; run pgTAP as the whole suite (`gmake test-db`).
@@ -46,8 +47,8 @@ the code in front of the reader. It does not teach, and it does not restate what
 a shared thing's docstring already says.
 
 - **Docstrings on every exported function, component, hook, and RPC.** What it
-  does, why it exists, and any non-obvious constraints. The codenamesduet RPCs in
-  [`supabase/sql/codenamesduet.sql`](../supabase/sql/codenamesduet.sql) and
+  does, why it exists, and any non-obvious constraints. The codenamesduet RPCs
+  in [`supabase/sql/codenamesduet.sql`](../supabase/sql/codenamesduet.sql) and
   [`ClueStrip.tsx`](../src/codenamesduet/components/ClueStrip.tsx) are the
   model.
 - **Code comments where the WHY isn't obvious.** Subtle invariants, trade-offs,
@@ -62,11 +63,11 @@ a shared thing's docstring already says.
   different question; giving it the docstring marker makes everything on screen
   look like something you must read first. `//` is preferred; `/* */` is fine.
   It is also how a docstring stays short: a paragraph defending the
-  implementation belongs on the line it defends. [`dbLog.ts`](../src/common/supabase/dbLog.ts)
-  is the model.
+  implementation belongs on the line it defends.
+  [`dbLog.ts`](../src/common/supabase/dbLog.ts) is the model.
 
-  **A component's props are fields, so a prop note is `//`.** `type Props = { … }`
-  is one declaration; the docstring that answers "how do I call this" is the
+  **A component's props are fields, so a prop note is `//`.** `type Props = { …
+  }` is one declaration; the docstring that answers "how do I call this" is the
   component's own. [`members/Dot.tsx`](../src/common/members/Dot.tsx) is the
   model. **Much of the app does not comply yet**, audited folders included.
 - **A comment about a SHARED concept or mechanism shrinks to a reminder and a
@@ -78,14 +79,14 @@ a shared thing's docstring already says.
   // Guards non-idempotent requests from firing twice; see `useSingleFlight`.
   ```
 
-  What *this code* does — true here and nowhere else — stays. The tell is whether
-  editing the shared thing would make the comment wrong.
+  What *this code* does — true here and nowhere else — stays. The tell is
+  whether editing the shared thing would make the comment wrong.
 - **Prefer one clear path over a clever one**, and **extract a small helper over
   a nested ternary**: one `a ? b : c` is fine, two deep reads better as a
   function with `if` branches
   ([`psychicnum/manifest.ts → labelFor`](../src/psychicnum/manifest.ts)).
-- **Names describe role, not implementation** (`isClueGiver`, not `playerA`), and
-  there are no single-letter helpers, even for a formatter used twice.
+- **Names describe role, not implementation** (`isClueGiver`, not `playerA`),
+  and there are no single-letter helpers, even for a formatter used twice.
 - **Name and comment non-trivial hook callbacks** — see [Hook
   callbacks](#hook-callbacks-a-header-comment-and-a-name).
 
@@ -107,8 +108,8 @@ came from the DB unmodified", camel says "we designed this in TS".
 **Keys inside a jsonb blob are DB-shaped too** — `setup`, `status`, `result`,
 `meta`. They read the same in SQL and TS (`setup->>'coop_style'`,
 `s.coop_style`), persist in rows, and `gen types` can't type them: **snake_case,
-always.** Where a camelCase prop feeds a snake_case key, spell the mapping out at
-the seam:
+always.** Where a camelCase prop feeds a snake_case key, spell the mapping out
+at the seam:
 
 ```tsx
 coopStyle={s.coop_style ?? 'free-for-all'}
@@ -117,10 +118,10 @@ onChange={({ coopStyle, firstTurnUserId }) =>
 }
 ```
 
-**A DB-shaped type's name ends in `Row`** (`GameRow`, `PlayerRow`, and aliases of
-generated `Database[…]['Row']` types); a TS-native shape takes whatever names its
-role (`ClubListEntry`, `GamePageCtx`, `GameManifest`). A snake_case type without
-`Row` invites readers to forget they are touching schema-bound data.
+**A DB-shaped type's name ends in `Row`** (`GameRow`, `PlayerRow`, and aliases
+of generated `Database[…]['Row']` types); a TS-native shape takes whatever names
+its role (`ClubListEntry`, `GamePageCtx`, `GameManifest`). A snake_case type
+without `Row` invites readers to forget they are touching schema-bound data.
 
 | kind | convention | examples |
 |---|---|---|
@@ -141,10 +142,10 @@ role (`ClubListEntry`, `GamePageCtx`, `GameManifest`). A snake_case type without
 ### Member vs Player — one type, context-driven variable names
 
 `Member` ([`src/common/members/member.ts`](../src/common/members/member.ts)) is
-the one identity shape. Each game declares a `Player` on top of it — a pure alias
-(`export type Player = Member`) or an extension (codenamesduet adds `seat`) — so
-every game's vocabulary reads the same and the type is already named when a game
-grows per-player state.
+the one identity shape. Each game declares a `Player` on top of it — a pure
+alias (`export type Player = Member`) or an extension (codenamesduet adds
+`seat`) — so every game's vocabulary reads the same and the type is already
+named when a game grows per-player state.
 
 | context | type | variable |
 |---|---|---|
@@ -267,12 +268,12 @@ The design side — tokens, themes, the color system, the vocabularies — is
 [tokens.md](tokens.md) and [ui.md](ui.md). The z- layers are
 `core-css/base.css` → THE Z- LAYERS. This section is how the files are written.
 
-**CSS Modules, one `*.module.css` per component, beside its `.tsx`.** Values come
-from tokens at `:root` via `var(--token)`. Classes are combined at the call site
-with `cls()` ([`utils/cls.ts`](../src/common/utils/cls.ts)); nothing uses
-`composes:` today (whether a game should extend a shared look with it is open
-in `common/info-sheet/todo.md`). No global `.css` for components, no
-CSS-in-JS, no Tailwind.
+**CSS Modules, one `*.module.css` per component, beside its `.tsx`.** Values
+come from tokens at `:root` via `var(--token)`. Classes are combined at the call
+site with `cls()` ([`utils/cls.ts`](../src/common/utils/cls.ts)); nothing uses
+`composes:` today (whether a game should extend a shared look with it is open in
+`common/info-sheet/todo.md`). No global `.css` for components, no CSS-in-JS, no
+Tailwind.
 
 **A capitalized stylesheet is one component's; a lowercase one is shared.**
 `Foo.module.css` is the look of `Foo`, and only `Foo` (and its test) imports
@@ -302,7 +303,8 @@ whether the shared pattern wants a variant.
   what?), `.wrapper`, `.content` and `.card` are the usual offenders.
 - **A component's own module may use short names; a consumer's may not.** Inside
   `FilterSelect.module.css`, `.label` is the select's. A class a consumer passes
-  INTO a shared component names the component: `.filterSelectLabel`, `.rosterDot`.
+  INTO a shared component names the component: `.filterSelectLabel`,
+  `.rosterDot`.
 - **Don't give a local class a global's bare name.** `styles.button` beside
   `'button'` looks like one class and is two; say what it modifies
   (`.saveButton`).
@@ -324,7 +326,8 @@ whether the shared pattern wants a variant.
 4. **State classes re-set tokens; they don't out-cascade.** `.dropOk` sets
    `--tile-slot-fill-color` and the base rule consumes it.
 5. **Click-to-define words are `<DefinableWord>`** — pointer-only, no
-   `tabIndex`, no focus style ([`utilities.css`](../src/common/core-css/utilities.css) → `.definable`).
+   `tabIndex`, no focus style
+   ([`utilities.css`](../src/common/core-css/utilities.css) → `.definable`).
 6. **`_variant` suffixes** name classes picked by a `` styles[`base_${key}`] ``
    lookup: `.outcome_won`, `.guessWord_G`. The underscore marks a class no
    literal references, so grepping it finds them all.
@@ -334,7 +337,8 @@ whether the shared pattern wants a variant.
    vocabularies](tokens.md#the-non-color-vocabularies).
 
 A game's `theme.css` ships in its lazy chunk, so a game file rendered outside
-`PlayArea` imports it itself; see [Known gotchas](#a-games-stylesheet-ships-in-its-lazy-chunk).
+`PlayArea` imports it itself; see [Known
+gotchas](#a-games-stylesheet-ships-in-its-lazy-chunk).
 
 ### Patterns — a class, a token, or a utility
 
@@ -487,7 +491,8 @@ pattern](common.md#the-sibling-manifest-pattern)):
 
 **What round-trips into a club's saved setup:** a style preference does
 (`coop_style`); a specific person doesn't (`first_turn_user_id` is stripped in
-`create_game`). See [common-schema.md → Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
+`create_game`). See [common-schema.md →
+Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
 ### Avoid `SELECT *`
 
@@ -510,9 +515,10 @@ sensitive ones — rare.
 Edge functions share one flat namespace, so they are the one place names carry
 the game: `<game>-<feature>` (`codenamesduet-suggest-clue`) or
 `common-<feature>` (`common-define`), matching
-`supabase/functions/<name>/index.ts`. They answer in an envelope, always HTTP 200
-([`src/common/supabase/doc.md`](../src/common/supabase/doc.md)). Deno resolves no
-`@/` alias and no extensionless import, and `deno check` does not catch either.
+`supabase/functions/<name>/index.ts`. They answer in an envelope, always HTTP
+200 ([`src/common/supabase/doc.md`](../src/common/supabase/doc.md)). Deno
+resolves no `@/` alias and no extensionless import, and `deno check` does not
+catch either.
 
 ## Known gotchas
 
@@ -521,11 +527,11 @@ the game: `<game>-<feature>` (`codenamesduet-suggest-clue`) or
 This is a Vite SPA with no server render, and jsdom provides a `window` too, so
 **`typeof window !== 'undefined'` guards a case that cannot happen.** What goes
 missing is a feature on `window` — `matchMedia` (absent in jsdom, which every
-test's desktop default depends on), `visualViewport`, `ResizeObserver`. Guard the
-feature, name where it's missing, and use `window` bare. `useSyncExternalStore`'s
-third argument is the same phantom: say so where one is passed. Some folders
-still carry old guards that supply a fallback value, so removing one is a
-per-folder decision.
+test's desktop default depends on), `visualViewport`, `ResizeObserver`. Guard
+the feature, name where it's missing, and use `window` bare.
+`useSyncExternalStore`'s third argument is the same phantom: say so where one is
+passed. Some folders still carry old guards that supply a fallback value, so
+removing one is a per-folder decision.
 
 ### A game's stylesheet ships in its lazy chunk
 

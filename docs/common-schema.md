@@ -152,14 +152,14 @@ Two shapes, by how a player can stop racing:
   conceder never wins.
 
 **A game whose "anyone still racing?" test reads its own tables must lock its
-own games row before `common.games`.** That test reads two tables at once —
-the game's progress rows and `game_players` — and a final move and a concede
-both ask it. The move locks the game's row; if concede locked only
-`common.games`, the two would never serialize: each reads a snapshot from before
-the other's write, both see someone still racing, neither ends the game, and it
-wedges in `playing` with nobody left. So such a concede opens by locking its own
-row, in the move path's order. It can't be shared into `common`, which cannot
-lock another schema's table without dynamic SQL; `src/guards/concedeLock.test.ts`
+own games row before `common.games`.** That test reads two tables at once — the
+game's progress rows and `game_players` — and a final move and a concede both
+ask it. The move locks the game's row; if concede locked only `common.games`,
+the two would never serialize: each reads a snapshot from before the other's
+write, both see someone still racing, neither ends the game, and it wedges in
+`playing` with nobody left. So such a concede opens by locking its own row, in
+the move path's order. It can't be shared into `common`, which cannot lock
+another schema's table without dynamic SQL; `src/guards/concedeLock.test.ts`
 holds it for every game that calls `_set_conceded`.
 
 Concede answers `{ result: 'conceded' }`. Whether it also ended the game is not
@@ -202,9 +202,10 @@ The rule is general: a style or mode preference is worth remembering, a pick of
 a specific person is not. Each game's `create_game` does the strip itself
 (`setup - 'first_turn_user_id'`), since it chooses what to pass
 `common.create_game` as the saved default; codenamesduet drops
-`first_clue_giver_user_id` the same way. The pointer is not the record of whose go it was — the event log's `took_turn`
-is ([supabase.md](supabase.md#every-games-log-is-gameevents)). **A bot can take
-a seat only where something pokes it to move**, since a bot has no client.
+`first_clue_giver_user_id` the same way. The pointer is not the record of whose
+go it was — the event log's `took_turn` is
+([supabase.md](supabase.md#every-games-log-is-gameevents)). **A bot can take a
+seat only where something pokes it to move**, since a bot has no client.
 scrabble compete keeps its own seat pointer, a deliberate second mechanism.
 
 ## Players and clubs
@@ -288,7 +289,8 @@ watch** any of the club's games — the read policies are club-gated — while
 **only a player may act**: every move RPC gates on `require_game_player`. The
 exceptions are viewing-adjacent (`set_current_view`, `unset_current_view`,
 `tick_timer` take a club member, since a watcher drives the pointer and the
-clock too). What a watcher sees is [plans/spectating.md](../plans/spectating.md).
+clock too). What a watcher sees is
+[plans/spectating.md](../plans/spectating.md).
 
 ### Realtime publication
 

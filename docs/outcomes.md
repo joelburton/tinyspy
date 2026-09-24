@@ -10,9 +10,10 @@ are saying the same thing, and the two spellings this list used to have
 (`success` / `error` for won / lost) hid that behind a rename buried in a CSS
 rule. One vocabulary, spelled one way, everywhere.
 
-The list lives in [`src/common/outcomes/outcomes.ts`](../src/common/outcomes/outcomes.ts)
-— its own file because it is a vocabulary rather than a feature, and nothing
-should have to import a game manifest to get at it.
+The list lives in
+[`src/common/outcomes/outcomes.ts`](../src/common/outcomes/outcomes.ts) — its
+own file because it is a vocabulary rather than a feature, and nothing should
+have to import a game manifest to get at it.
 
 ## The words
 
@@ -238,9 +239,9 @@ that the four games sharing `useFoundWordSubmit` converted together, since the
 engine's shape changed under all of them; the rule that the outcome is decided
 once has not changed.
 
-**waffle deliberately has no answer file, and that is not an oversight.** It
-has one move kind whose bar is always `neutral`. One move, one word, one reader:
-a file of its own would be ceremony. codenamesduet has one, but no answer about a
+**waffle deliberately has no answer file, and that is not an oversight.** It has
+one move kind whose bar is always `neutral`. One move, one word, one reader: a
+file of its own would be ceremony. codenamesduet has one, but no answer about a
 guess of its own: a guess is one tile, it answers with a reveal, and the board
 says it — so a guess's outcome is worn only by its TURN, folded in
 `lib/turnOutcome.ts`.
@@ -260,8 +261,8 @@ the terminal frame: these are games saying their own thing, deliberately outside
 vocabulary.** wordiply's engine reports one refusal for "not a word" and "does
 not contain the stem" while the server distinguishes them — so the frontend
 splits its own answer into the server's words (`not_a_word` / `missing_base`)
-before asking `lib/answer.ts` what they say. Otherwise the log, which reads the server's reason, is
-answering a different question from the pill.
+before asking `lib/answer.ts` what they say. Otherwise the log, which reads the
+server's reason, is answering a different question from the pill.
 
 ## The colors
 
@@ -318,11 +319,11 @@ section is where it gets its full hearing.
 
 **The info action row was the other narrowing, and it is gone** (2026-09-18). It
 had excluded `error` with the reason "error is never an outcome", which
-contradicted this file two screens up, and nothing else was holding the exclusion
-up: every caller happens to pass a `TerminalOutcome` or a literal `neutral`
-today, which is the census this rule forbids as an argument. So
-`InfoActionsMessage.outcome` is now `Outcome`, the stylesheet inks all seven, and
-the three surfaces that show an outcome — the pill, the event log's bar, the
+contradicted this file two screens up, and nothing else was holding the
+exclusion up: every caller happens to pass a `TerminalOutcome` or a literal
+`neutral` today, which is the census this rule forbids as an argument. So
+`InfoActionsMessage.outcome` is now `Outcome`, the stylesheet inks all seven,
+and the three surfaces that show an outcome — the pill, the event log's bar, the
 action row's line — agree about the vocabulary.
 
 `Extract`/`Exclude` rather than a hand-written union, always: a subset spelled

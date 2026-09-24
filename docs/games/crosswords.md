@@ -26,8 +26,8 @@ run server-side; the client never sees the answers until terminal.
 on-screen keyboard, so it wants a hardware keyboard). Not desktop-only: it has
 the phone layout — below the breakpoint the grid and the active-clue bar under
 it are the main view, and the clue lists move to the info sheet — for a device
-with a keyboard attached; a bare phone can't enter letters
-([docs/mobile.md → Input is the primary axis](../mobile.md#input-is-the-primary-axis)).
+with a keyboard attached; a bare phone can't enter letters ([docs/mobile.md →
+Input is the primary axis](../mobile.md#input-is-the-primary-axis)).
 
 ### Modes (sibling-manifest pair)
 
@@ -36,11 +36,12 @@ with a keyboard attached; a bare phone can't enter letters
   give-up (`end_game`) ends as a neutral **`ended`** (`outcome: 'manual'`) — not
   a loss; putting an unfinished crossword down is normal.
 - **`crosswords_compete`** (`[2, 8]`) — the same puzzle, each player fills a
-  **private** grid. The **first fully-correct grid wins outright** (`won_compete`
-  + `status.winner_username`). Per-player **concede** (`common.concede`);
-  dropping out never ends the table for the others. `end_game` is offered in
-  this mode too — the table agreeing the crossword beat them, neutral `ended`
-  like coop's — though no board control reaches it yet (§7).
+  **private** grid. The **first fully-correct grid wins outright**
+  (`won_compete` + `status.winner_username`). Per-player **concede**
+  (`common.concede`); dropping out never ends the table for the others.
+  `end_game` is offered in this mode too — the table agreeing the crossword beat
+  them, neutral `ended` like coop's — though no board control reaches it yet
+  (§7).
 
 Both manifests share `PlayArea` / `SetupForm` / `Help` / schema with
 `baseGametype: 'crosswords'`; the mode split is exactly like boggle/stackdown.
@@ -49,8 +50,8 @@ Both manifests share `PlayArea` / `SetupForm` / `Help` / schema with
 
 Two puzzle sources, ONE table for only one of them:
 
-- **`crosswords.puzzles`** — the curated, **CLI-imported library** only
-  (`gmake g-crosswords-puzzles`, `source = 'library'`). `meta` is the whole template
+- **`crosswords.puzzles`** — the curated, **CLI-imported library** only (`gmake
+  g-crosswords-puzzles`, `source = 'library'`). `meta` is the whole template
   (`PuzzleTemplate` = PuzzleMeta + the initial grid cells) in one jsonb column;
   `solution` is a **shielded** jsonb column (column grants: `authenticated` gets
   only `(id, source, meta, created_at)` — `solution` *and* `content_hash` are
@@ -88,16 +89,17 @@ player** for compete. Notable shapes:
 ## 3. Match semantics (mirror `ws.ts`, not prose)
 
 The fill-vs-solution comparison + the solve/check treatment of pencil, empty,
-and given cells are mirrored **from crossplay's `ws.ts`** (`fillMatchesSolution`,
-`isPuzzleSolved`, `applyCheck`) — with two subtleties worth pinning in pgTAP:
+and given cells are mirrored **from crossplay's `ws.ts`**
+(`fillMatchesSolution`, `isPuzzleSolved`, `applyCheck`) — with two subtleties
+worth pinning in pgTAP:
 
-- **First-letter acceptance is keyed on the candidate's length (a rebus), not
-  on the number of candidates.** `_matches` accepts a bare first letter for any
-  multi-*character* candidate answer (`length(s.ans) > 1`, e.g. `"HEART"` → `"H"`)
-  — a long-standing NYT typing shortcut. This mirrors `fillMatchesSolution`'s
-  per-candidate `sol.length > 1` check. So a single-candidate rebus DOES accept
-  its first letter; a Schrödinger cell whose candidates are all single letters
-  does not.
+- **First-letter acceptance is keyed on the candidate's length (a rebus), not on
+  the number of candidates.** `_matches` accepts a bare first letter for any
+  multi-*character* candidate answer (`length(s.ans) > 1`, e.g. `"HEART"` →
+  `"H"`) — a long-standing NYT typing shortcut. This mirrors
+  `fillMatchesSolution`'s per-candidate `sol.length > 1` check. So a
+  single-candidate rebus DOES accept its first letter; a Schrödinger cell whose
+  candidates are all single letters does not.
 - **Solve does NOT skip pencil.** `_is_solved` counts a pencil cell whose letter
   is right (pencil is a confidence marker). Only *check* skips pencil. An empty
   cell blocks solve.
@@ -190,45 +192,46 @@ Four sources (Library / NYT / Guardian / Upload), exposed in the setup form as
 
 The sources themselves:
 
-- **`gmake g-crosswords-puzzles`** (CLI, `supabase/scripts/`) — bulk-imports crossplay's
-  `.puz` / `.ipuz` files + the `content_hash` dedup into the curated
-  `crosswords.puzzles` library. Reads a **git-ignored** `supabase/data/crosswords/`
-  folder (Joel keeps his own puzzle files; nothing committed). After a reset
-  the library is empty until re-run (`gmake db-reset` chains it via `db-data`) —
-  same posture as the other library games.
-  The picker reads the library through **`library_for_club`** (§4), not a plain
-  table select, so every row arrives tagged with whether *this club* has already
+- **`gmake g-crosswords-puzzles`** (CLI, `supabase/scripts/`) — bulk-imports
+  crossplay's `.puz` / `.ipuz` files + the `content_hash` dedup into the curated
+  `crosswords.puzzles` library. Reads a **git-ignored**
+  `supabase/data/crosswords/` folder (Joel keeps his own puzzle files; nothing
+  committed). After a reset the library is empty until re-run (`gmake db-reset`
+  chains it via `db-data`) — same posture as the other library games. The picker
+  reads the library through **`library_for_club`** (§4), not a plain table
+  select, so every row arrives tagged with whether *this club* has already
   solved / started / lost that puzzle — a 4px color bar down the row's leading
-  edge, in the shared `--gamelist-*` vocabulary the club page uses. The bar
-  is painted on every row (unplayed gets the near-white neutral) so it can never
-  reflow the list. One round trip, so the list is never drawn and then recolored.
-  The parsers themselves live in **`src/crosswords/lib/parse/`** (see §6).
-  Author-side companions (ported from crossplay): **`crosswords:puz-to-ipuz`**
-  (convert a `.puz` → `.ipuz` via `parsePuzBuffer` + `writeIpuz`) and
-  **`crosswords:set-note`** (patch a `note` into a note-less `.puz` — relevant
-  because the cryptic gating keys off "puzzle has a note").
+  edge, in the shared `--gamelist-*` vocabulary the club page uses. The bar is
+  painted on every row (unplayed gets the near-white neutral) so it can never
+  reflow the list. One round trip, so the list is never drawn and then
+  recolored. The parsers themselves live in **`src/crosswords/lib/parse/`** (see
+  §6). Author-side companions (ported from crossplay):
+  **`crosswords:puz-to-ipuz`** (convert a `.puz` → `.ipuz` via
+  `parsePuzBuffer` + `writeIpuz`) and **`crosswords:set-note`** (patch a `note`
+  into a note-less `.puz` — relevant because the cryptic gating keys off "puzzle
+  has a note").
 - **Saved-fill restore** — a partially-solved `.ipuz` (whether imported or
   uploaded) carries the solver's in-progress fills as its ipuz `saved` grid; the
   parser applies them onto the non-given template cells, and `create_game` seeds
   `crosswords.cells.fill` from them (uppercased). So a half-finished puzzle
-  imports where you left off — crossplay's `saved` round-trip, the counterpart to
-  **Download as .ipuz** (§9). Blank library/NYT templates carry no fills, so this
-  is a no-op there.
-- **In-app upload** — the setup form's Upload picker parses a dropped /
-  chosen `.puz` / `.ipuz` **entirely client-side** (`lib/importFile.ts` →
-  `lib/parse/`; puzjs is a dependency-free `Uint8Array` reader, so it bundles in
-  the browser) into the inline board, then `create_game(board=…)` directly — a
-  self-contained game, no `puzzles` row (like NYT). The parsed board rides in the
-  FE-only `setup.board` and is **stripped** before create_game stores the setup,
-  so the solution never lands in the unshielded status / saved-default. The strip
-  is **belt-and-braces** across three layers, because a parsed board lingering
-  in `setup` under a source that is no longer Upload would leak the answers:
+  imports where you left off — crossplay's `saved` round-trip, the counterpart
+  to **Download as .ipuz** (§9). Blank library/NYT templates carry no fills, so
+  this is a no-op there.
+- **In-app upload** — the setup form's Upload picker parses a dropped / chosen
+  `.puz` / `.ipuz` **entirely client-side** (`lib/importFile.ts` → `lib/parse/`;
+  puzjs is a dependency-free `Uint8Array` reader, so it bundles in the browser)
+  into the inline board, then `create_game(board=…)` directly — a self-contained
+  game, no `puzzles` row (like NYT). The parsed board rides in the FE-only
+  `setup.board` and is **stripped** before create_game stores the setup, so the
+  solution never lands in the unshielded status / saved-default. The strip is
+  **belt-and-braces** across three layers, because a parsed board lingering in
+  `setup` under a source that is no longer Upload would leak the answers:
   `PuzzleSourceField` replaces the whole value on every pick and clears it on
   every cancel, `startGameInClub` deletes `board`/`filename` *unconditionally*
-  (not just for an upload), and `create_game` itself runs
-  `setup := setup - 'board' - 'filename'` as a
-  server backstop — the real inline puzzle always rides as the separate `board`
-  arg, so it's never wanted in the persisted setup regardless of what the FE sends.
+  (not just for an upload), and `create_game` itself runs `setup := setup -
+  'board' - 'filename'` as a server backstop — the real inline puzzle always
+  rides as the separate `board` arg, so it's never wanted in the persisted setup
+  regardless of what the FE sends.
 - **The NYT picker picks a WEEKDAY** (2026-08-13), not a date — a list of
   Monday…Sunday, each labeled with what it means (`Monday — easiest`,
   `Saturday — hardest`, `Sunday — big (21×21), medium`). An NYT crossword's day
@@ -281,70 +284,73 @@ The sources themselves:
   `src/crosswords/lib/nyt.ts` (unit-tested), then `create_game(board=…)` as the
   caller. **Overlay-PNG analysis** (circles-on-shaded + word-break bars on a
   minority of themed puzzles) is applied after conversion: the pure detector is
-  `src/crosswords/lib/nytOverlay.ts` (`detectOverlayMarkings` + `applyOverlayMarkings`,
-  unit-tested against real NYT overlay fixtures), and the edge fn fetches + decodes
-  the overlay PNG (`npm:pngjs`) — a missing/broken overlay is non-fatal. `applyOverlayMarkings`
-  writes circles onto `meta.cells` (a template-read field, so they render directly) and
-  bars as `markRight`/`markBottom`; because marks are a *live-cell* concept here (board +
-  PDFs read them from `crosswords.cells`, not the template), **`create_game` seeds template
-  marks into the live cells** so the overlay bars render like any player-drawn mark. Local cookie setup:
-  put `NYT_COOKIE_JAR=<raw JSON or base64>` in `supabase/functions/.env` and
+  `src/crosswords/lib/nytOverlay.ts` (`detectOverlayMarkings` +
+  `applyOverlayMarkings`, unit-tested against real NYT overlay fixtures), and
+  the edge fn fetches + decodes the overlay PNG (`npm:pngjs`) — a missing/broken
+  overlay is non-fatal. `applyOverlayMarkings` writes circles onto `meta.cells`
+  (a template-read field, so they render directly) and bars as
+  `markRight`/`markBottom`; because marks are a *live-cell* concept here
+  (board + PDFs read them from `crosswords.cells`, not the template),
+  **`create_game` seeds template marks into the live cells** so the overlay bars
+  render like any player-drawn mark. Local cookie setup: put
+  `NYT_COOKIE_JAR=<raw JSON or base64>` in `supabase/functions/.env` and
   `supabase functions serve crosswords-import-nyt --env-file …`.
 - **`crosswords-import-guardian`** edge function — fetches **today's** Guardian
   crossword in a chosen `series`. Every series shares one entry-based JSON
   shape, so adding one is a one-line allowlist + dropdown entry (quick-cryptic
   clues carry `<span>`/`<i>` tags, which the shared `htmlToText` already
-  strips). The edge fn's `SERIES` allowlist accepts eight (Quick, Cryptic,
-  Quick cryptic, Everyman, Speedy, Quiptic, Prize, Weekend); the FE picker
+  strips). The edge fn's `SERIES` allowlist accepts eight (Quick, Cryptic, Quick
+  cryptic, Everyman, Speedy, Quiptic, Prize, Weekend); the FE picker
   (`GUARDIAN_SERIES` in `lib/setup.ts`) currently shows **six** — Prize and
   Weekend are **omitted from the dropdown** (their answers are withheld until a
   reveal date, so a same-day start would 422) but stay in the server allowlist
   as a one-line re-add. Each visible series carries a one-line character hint
   shown under the picker (Quick/Speedy are plain-definition; the rest are
   cryptics of graded difficulty). It converts via the pure
-  `src/crosswords/lib/guardian.ts`
-  (unit-tested), then `create_game(board=…)` as the caller — the same
-  self-contained shape as NYT. **No auth** (Guardian crosswords are public — no
-  secret to configure), and the conversion is simpler than NYT's: the Guardian
-  data is *entry*-based (each clue carries its start position, direction,
-  length, number, and answer), so the grid + numbering + split clue lists fall
-  out directly, with none of NYT's cell-type enum or overlay-PNG step. The one
-  wrinkle is the fetch: the puzzle JSON is embedded in the solver page inside a
-  `<gu-island name="CrosswordComponent" props="…escaped JSON…">` web-component
-  tag, which the edge fn scrapes + entity-un-escapes (mirroring the Python
-  xword-dl downloader this was ported from). `find latest` reads the series
-  index page for the first `/crosswords/<type>/<id>` link. **Caveats:** a *Prize*
-  or *Weekend* puzzle withholds its answers until a reveal date, so a same-day
-  start of those may 422 (`convertGuardianPuzzle` throws when `solutionAvailable`
-  is false rather than seed an unsolvable board — our check/reveal/terminal flow
-  needs the answer key); and the cryptic **enumeration bars** (`separatorLocations`
-  → grid word-break marks) are *not* ported in v1 (the enumeration is already in
-  each clue's text, e.g. "(6,5)"). The clue-HTML→text helper is now shared
-  (`src/crosswords/lib/clueHtml.ts`, used by both `nyt.ts` and `guardian.ts`).
+  `src/crosswords/lib/guardian.ts` (unit-tested), then `create_game(board=…)` as
+  the caller — the same self-contained shape as NYT. **No auth** (Guardian
+  crosswords are public — no secret to configure), and the conversion is simpler
+  than NYT's: the Guardian data is *entry*-based (each clue carries its start
+  position, direction, length, number, and answer), so the grid + numbering +
+  split clue lists fall out directly, with none of NYT's cell-type enum or
+  overlay-PNG step. The one wrinkle is the fetch: the puzzle JSON is embedded in
+  the solver page inside a `<gu-island name="CrosswordComponent" props="…escaped
+  JSON…">` web-component tag, which the edge fn scrapes + entity-un-escapes
+  (mirroring the Python xword-dl downloader this was ported from). `find latest`
+  reads the series index page for the first `/crosswords/<type>/<id>` link.
+  **Caveats:** a *Prize* or *Weekend* puzzle withholds its answers until a
+  reveal date, so a same-day start of those may 422 (`convertGuardianPuzzle`
+  throws when `solutionAvailable` is false rather than seed an unsolvable board
+  — our check/reveal/terminal flow needs the answer key); and the cryptic
+  **enumeration bars** (`separatorLocations` → grid word-break marks) are *not*
+  ported in v1 (the enumeration is already in each clue's text, e.g. "(6,5)").
+  The clue-HTML→text helper is now shared (`src/crosswords/lib/clueHtml.ts`,
+  used by both `nyt.ts` and `guardian.ts`).
 
 ## 6. Server surface + parsers (the shared-code seam)
 
 The `.puz` / `.ipuz` parsers live in **`src/crosswords/lib/parse/`** (`puz.ts`,
 `ipuz.ts`, `format.ts`) as **dual-runtime** modules taking a `Uint8Array`: the
-Node import CLI (`supabase/scripts/crosswords/convert.ts`) and the browser upload
-(`lib/importFile.ts`) both consume them. The NYT conversion is likewise **pure TS
-in `src/crosswords/lib/`** so the SAME code backs the FE, the Deno edge function
-(imported with `.ts` specifiers, like boggle), and the vitest tests.
-`contentHashPayload` builds the dedup string, and the **CLI import** hashes it
-with `node:crypto` to dedup re-imports into `crosswords.puzzles`. The NYT edge
-function does **not** hash — it creates a self-contained inline game (no
-`puzzles` row), so `content_hash` never comes up on that path.
+Node import CLI (`supabase/scripts/crosswords/convert.ts`) and the browser
+upload (`lib/importFile.ts`) both consume them. The NYT conversion is likewise
+**pure TS in `src/crosswords/lib/`** so the SAME code backs the FE, the Deno
+edge function (imported with `.ts` specifiers, like boggle), and the vitest
+tests. `contentHashPayload` builds the dedup string, and the **CLI import**
+hashes it with `node:crypto` to dedup re-imports into `crosswords.puzzles`. The
+NYT edge function does **not** hash — it creates a self-contained inline game
+(no `puzzles` row), so `content_hash` never comes up on that path.
 
 ## 7. Frontend (`src/crosswords/`)
 
 The play surface ports crossplay's `PuzzleView` layout — **a documented v3
-layout exception** (see [playarea.md → Info-column readouts](../playarea.md#info-column-readouts)):
-a CSS grid with the board on the left spanning full height, the **Across | Down**
-clue columns top-right (scrolling internally), a **3-line active-clue bar** that
-doubles as the local-feedback slot, and a slim chrome strip (the action row).
-`.wrap` is bound to `calc(100vh - var(--game-chrome-height))` so the
-`min-height: 0` chain engages — the board fills, the clue lists scroll, the page
-never scrolls. Board sized in `em` off a computed cell font-size, `100dvh`.
+layout exception** (see [playarea.md → Info-column
+readouts](../playarea.md#info-column-readouts)): a CSS grid with the board on
+the left spanning full height, the **Across | Down** clue columns top-right
+(scrolling internally), a **3-line active-clue bar** that doubles as the
+local-feedback slot, and a slim chrome strip (the action row). `.wrap` is bound
+to `calc(100vh - var(--game-chrome-height))` so the `min-height: 0` chain
+engages — the board fills, the clue lists scroll, the page never scrolls. Board
+sized in `em` off a computed cell font-size, `100dvh`.
 
 **Mobile** (below `--mobile`; [mobile.md](../mobile.md)): the grid + the
 active-clue bar ARE the main view — the grid takes the full viewport width
@@ -363,8 +369,8 @@ sizing).
 - **`lib/cursor.ts`** — the pure navigation module, ported **verbatim** (36
   tests). Reads only `kind`/`number`, so it runs on the static template grid.
 - **`useCells`** — the documented deviation from `useRealtimeRefetch`: applies
-  CDC row payloads **directly** (per-cell `version` "newer wins") with optimistic
-  `set_cell` echo + compete owner-drop, refetch only on `SUBSCRIBED`.
+  CDC row payloads **directly** (per-cell `version` "newer wins") with
+  optimistic `set_cell` echo + compete owner-drop, refetch only on `SUBSCRIBED`.
 - **`useGridKeyboard`** — the full grid key set (ported from crossplay's
   PuzzleView) as **bound actions** (`common/actions`): letters (fill +
   advance), Backspace (two-step) / Shift+Backspace (clear word), Space (advance)
@@ -404,13 +410,13 @@ sizing).
   letters are the players' fill now), and the row sits one mis-click below
   "Word". Letter and word go straight through: they're the ordinary hint ladder.
 - **Puzzle-info menu header** — the game menu opens with the loaded puzzle's
-  **title + credits** (`title`, `by {author}`, `copyright`), a non-clickable block
-  pinned above Help — crossplay's menu shows the same. It rides the shared menu's
-  new `MenuSection.header` / `buildGameMenu({ header })` (empty credit fields drop
-  out). The puzzle title is *also* the game's `common.games.title` now: `create_game`
-  names the game after the puzzle (`v_meta ->> 'title'`, e.g. "NYT Sat 1/1/22: …"
-  or a library puzzle's embedded title) rather than a generic "New crossword", the
-  way crossplay names a game after its puzzle.
+  **title + credits** (`title`, `by {author}`, `copyright`), a non-clickable
+  block pinned above Help — crossplay's menu shows the same. It rides the shared
+  menu's new `MenuSection.header` / `buildGameMenu({ header })` (empty credit
+  fields drop out). The puzzle title is *also* the game's `common.games.title`
+  now: `create_game` names the game after the puzzle (`v_meta ->> 'title'`, e.g.
+  "NYT Sat 1/1/22: …" or a library puzzle's embedded title) rather than a
+  generic "New crossword", the way crossplay names a game after its puzzle.
 - **Rebus / peek overlay** — the `Grid` renders a 3-cell-wide box centered +
   clamped over the cursor cell: an editable `RebusInput` (Enter commits +
   advances, Tab / Shift+Tab commits + jumps clue, Esc/blur cancels) or, for
@@ -428,43 +434,44 @@ sizing).
   it is disabled there.
 - **Scratchpad** — the shared `common/` feature (opt-in via the manifest
   `scratchpad` field): shared pad in coop (Broadcast takeover lock), private pad
-  per player in compete. See [common/scratchpad/doc.md](../../src/common/scratchpad/doc.md) → Intro to
-  area for the architecture.
-- **Terminal** — no modal carries the verdict
-  ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
-  `buildOver`'s terse text lands as the filled verdict in the active-clue slot
-  (the local feedback slot's `<FeedbackPill>` — "Won: grid complete" / "Won: solved
-  it first" / a compete loss naming the winner as the message's `actor` — "● moth
-  solved it first"; a compete race
-  that empties out because everyone conceded lands on `lost_compete` —
-  `common.concede` names the collective loss — and reads "Lost: out of the
-  race"; a countdown expiring reads "Lost: out of time" in coop and "Out of
-  time — no winner" in compete, the roster's shared phrasing, keyed off
-  `status.reason === 'timeout'`). A **coop solve** pops the shared
-  `<CelebrationBlockingModal>` via `useCelebration(playState === 'won')` — coop-only by
-  the states vocabulary (compete writes `won_compete`), at the moment of the
-  flip, never on opening an already-solved game. The board is **not**
-  auto-revealed at game end: the blanks stay blank until THIS viewer picks the
-  **"Reveal solution"** game-menu item, which fetches `games_state.solution` and
-  draws the author's grid **exactly as shipped** — blanks fill in, and a wrong
-  letter is *corrected* rather than left standing beside them (a half-corrected
-  grid isn't the solution, and what the answer was is the whole reason to look).
-  The player's own verdict marks go with it: a cell showing the author's letter
-  drops its red wrong-triangle, since that verdict was about a letter no longer
-  on screen. Gray means "this letter is the author's, not yours", so it marks
-  the blanks AND the corrections and leaves anything they had right looking like
-  theirs — the answer key doubles as a diff, for free. It's a **local,
-  reversible**
-  reveal (`useSolutionReveal` — [ui.md → Terminal
+  per player in compete. See
+  [common/scratchpad/doc.md](../../src/common/scratchpad/doc.md) → Intro to area
+  for the architecture.
+- **Terminal** — no modal carries the verdict ([ui.md → Terminal
+  results](../ui.md#terminal-results--the-moment-vs-the-record)): `buildOver`'s
+  terse text lands as the filled verdict in the active-clue slot (the local
+  feedback slot's `<FeedbackPill>` — "Won: grid complete" / "Won: solved it
+  first" / a compete loss naming the winner as the message's `actor` — "● moth
+  solved it first"; a compete race that empties out because everyone conceded
+  lands on `lost_compete` — `common.concede` names the collective loss — and
+  reads "Lost: out of the race"; a countdown expiring reads "Lost: out of time"
+  in coop and "Out of time — no winner" in compete, the roster's shared
+  phrasing, keyed off `status.reason === 'timeout'`). A **coop solve** pops the
+  shared `<CelebrationBlockingModal>` via `useCelebration(playState === 'won')`
+  — coop-only by the states vocabulary (compete writes `won_compete`), at the
+  moment of the flip, never on opening an already-solved game. The board is
+  **not** auto-revealed at game end: the blanks stay blank until THIS viewer
+  picks the **"Reveal solution"** game-menu item, which fetches
+  `games_state.solution` and draws the author's grid **exactly as shipped** —
+  blanks fill in, and a wrong letter is *corrected* rather than left standing
+  beside them (a half-corrected grid isn't the solution, and what the answer was
+  is the whole reason to look). The player's own verdict marks go with it: a
+  cell showing the author's letter drops its red wrong-triangle, since that
+  verdict was about a letter no longer on screen. Gray means "this letter is the
+  author's, not yours", so it marks the blanks AND the corrections and leaves
+  anything they had right looking like theirs — the answer key doubles as a
+  diff, for free. It's a **local, reversible** reveal (`useSolutionReveal` —
+  [ui.md → Terminal
   results](../ui.md#terminal-results--the-moment-vs-the-record)): my looking
   doesn't fill a partner's grid while they're still working out what they got
-  wrong, and **"Hide solution"** puts the answers away again, leaving exactly the
-  fill the solvers left — wrong letters and their marks included. Overwriting
-  what's on screen is only safe *because* that comes back. That reversibility matters more here than in any other
-  game — a crossword grid can legitimately differ from the author's (rebuses,
-  quantum clues), so a permanent overwrite would destroy the only record of what
-  the solvers actually wrote. The item is disabled mid-game (the server only
-  unshields the solution at terminal, `_solution_for`).
+  wrong, and **"Hide solution"** puts the answers away again, leaving exactly
+  the fill the solvers left — wrong letters and their marks included.
+  Overwriting what's on screen is only safe *because* that comes back. That
+  reversibility matters more here than in any other game — a crossword grid can
+  legitimately differ from the author's (rebuses, quantum clues), so a permanent
+  overwrite would destroy the only record of what the solvers actually wrote.
+  The item is disabled mid-game (the server only unshields the solution at
+  terminal, `_solution_for`).
 
   **Layout is unaffected, and measured**: revealing and hiding move nothing.
   Both faces of the control are the same icon-only fixed box, and the answers
@@ -491,29 +498,29 @@ sizing).
   rows of a viewport-height grid, so it can't move — only the `1fr` clue list
   above absorbs the difference.
 
-  **New game opens the SETUP dialog** rather than creating a game directly.
-  A crossword has no randomness to re-roll: `setup`
-  names a *puzzle*, so replaying it re-serves the grid just solved (library /
-  nyt / guardian alike), and an uploaded board is stripped before it's
-  persisted (see Puzzle sourcing), leaving nothing to re-send. Picking the next puzzle is the
-  only sane "another one". Mechanically it navigates to
-  `/c/<handle>?new=<gametype>`; ClubPage reads that param once at mount and
-  opens `SetupGameModal` on it **after** its fetch settles (the dialog seeds
-  its form from `savedDefault` + `members` with a lazy initializer and never
-  re-seeds, so opening early would lose the club's last-played setup), then
-  strips the param on cancel/start. Also a **game-menu item**, which is the
-  phone route to it — the strip lives in the off-canvas info sheet there.
+  **New game opens the SETUP dialog** rather than creating a game directly. A
+  crossword has no randomness to re-roll: `setup` names a *puzzle*, so replaying
+  it re-serves the grid just solved (library / nyt / guardian alike), and an
+  uploaded board is stripped before it's persisted (see Puzzle sourcing),
+  leaving nothing to re-send. Picking the next puzzle is the only sane "another
+  one". Mechanically it navigates to `/c/<handle>?new=<gametype>`; ClubPage
+  reads that param once at mount and opens `SetupGameModal` on it **after** its
+  fetch settles (the dialog seeds its form from `savedDefault` + `members` with
+  a lazy initializer and never re-seeds, so opening early would lose the club's
+  last-played setup), then strips the param on cancel/start. Also a **game-menu
+  item**, which is the phone route to it — the strip lives in the off-canvas
+  info sheet there.
 
 ### Printing the board (PDF) — a deliberate whole-cloth exception
 
 `src/crosswords/pdf/` is a **verbatim port** of crossplay's own jsPDF printer
 (its 12-unit layout grid, clue pagination, cell renderer), NOT the shared
 `common/pdf` frame — it keeps crossplay's title block and adds no Setup section.
-The **answer-key generator (`generateSolutionPdf`)** is also
-ported (`pdf/solution.ts`): a solved-grid PDF (every open cell filled with the
+The **answer-key generator (`generateSolutionPdf`)** is also ported
+(`pdf/solution.ts`): a solved-grid PDF (every open cell filled with the
 canonical answer, the note flowed through the clue regions), driven by a "Print
-answer key (PDF)" menu item that fetches the grid via `export_solution` — coop any
-time, compete only at terminal (a UI gate; `export_solution` itself isn't
+answer key (PDF)" menu item that fetches the grid via `export_solution` — coop
+any time, compete only at terminal (a UI gate; `export_solution` itself isn't
 terminal-gated, same as Download-as-.ipuz).
 
 **Coop's any-time answer key is deliberate — don't "fix" it** (confirmed
@@ -525,37 +532,38 @@ without protecting anything — the person printing it is the person choosing no
 to read it. Compete keeps its gate, since there an answer key mid-race is a
 giveaway to someone else's disadvantage. Both PDFs are exposed as
 `setGameSections` menu items; the grid is snapshotted at click-time. See
-[common/pdf/doc.md → The body families](../../src/common/pdf/doc.md#the-body-families), where crosswords is the stated exception.
+[common/pdf/doc.md → The body
+families](../../src/common/pdf/doc.md#the-body-families), where crosswords is
+the stated exception.
 
 **The game menu** is the fullest in the app — crosswords builds its whole menu
-via `ctx.menu.setGameSections` + the shared `buildGameMenu` helper (see
-[ui.md → GamePage menu](../ui.md#gamepage-menu)), reproducing crossplay's
-single-column layout in order: **Help** / Open chat (`/`) · Switch to pencil
-(⌥P) / Enter rebus (⇧↵) / Collapse rebuses · Show note (⌥N) / Explain cryptic
-clue (⌥X) / Scratchpad (⌥S) / Print board (PDF) / Download as .ipuz / Print
-answer key (PDF) · **Check ▸** Letter (⌥C) / Word (⌥⇧C) / Grid · **Reveal ▸**
-Letter (⌥R) / Word (⌥⇧R) / Grid *(the whole submenu drops out in compete, since
-all three children hide themselves)* · Restart / Reveal solution / New game (`+`)
-· **Concede game / End game** (⌥⌫) · **Back to club** (`<`).
-Every row is a bound action, so its words, glyph, key hint and availability come
-from the action rather than being typed here a second time — which is what makes
-a row and the square beside it in the tool bar the same thing. Notables: **Collapse
-rebuses** is a display-only toggle (persisted per browser) that shows multi-char
-rebus fills as just their first letter; **Download as .ipuz** emits the current
-board — template + fills + the answer grid (fetched via the `export_solution` RPC,
-which relaxes the shielding on demand) — via the ported `writeIpuz`, re-uploadable
-to continue; **Show note** (`CrosswordsNoteCompanion`) also
-broadcasts a `showNotes` event in coop so teammates open it together;
-**Restart** is the destructive "start over" — `replay_board` through the shared
-`useStandardGameActions`, confirmed mid-game and straight through at terminal.
-It replaced **Clear board** on 2026-08-03: the same wipe under the name every
-other game uses, plus two powers the old one lacked — it clears EVERY grid (a
-restart is for the table, so a compete restart re-opens the race) and it
-un-terminals a finished puzzle, which is what let crosswords join the rest of
-the roster in having a replay at all
-([common/game-page/doc.md](../../src/common/game-page/doc.md)).
-**Reveal solution** is the terminal-only answer key (see *Terminal* above). The
-menu is long, so the popover scrolls — the page never does.
+via `ctx.menu.setGameSections` + the shared `buildGameMenu` helper (see [ui.md →
+GamePage menu](../ui.md#gamepage-menu)), reproducing crossplay's single-column
+layout in order: **Help** / Open chat (`/`) · Switch to pencil (⌥P) / Enter
+rebus (⇧↵) / Collapse rebuses · Show note (⌥N) / Explain cryptic clue (⌥X) /
+Scratchpad (⌥S) / Print board (PDF) / Download as .ipuz / Print answer key (PDF)
+· **Check ▸** Letter (⌥C) / Word (⌥⇧C) / Grid · **Reveal ▸** Letter (⌥R) / Word
+(⌥⇧R) / Grid *(the whole submenu drops out in compete, since all three children
+hide themselves)* · Restart / Reveal solution / New game (`+`) · **Concede game
+/ End game** (⌥⌫) · **Back to club** (`<`). Every row is a bound action, so its
+words, glyph, key hint and availability come from the action rather than being
+typed here a second time — which is what makes a row and the square beside it in
+the tool bar the same thing. Notables: **Collapse rebuses** is a display-only
+toggle (persisted per browser) that shows multi-char rebus fills as just their
+first letter; **Download as .ipuz** emits the current board — template + fills +
+the answer grid (fetched via the `export_solution` RPC, which relaxes the
+shielding on demand) — via the ported `writeIpuz`, re-uploadable to continue;
+**Show note** (`CrosswordsNoteCompanion`) also broadcasts a `showNotes` event in
+coop so teammates open it together; **Restart** is the destructive "start over"
+— `replay_board` through the shared `useStandardGameActions`, confirmed mid-game
+and straight through at terminal. It replaced **Clear board** on 2026-08-03: the
+same wipe under the name every other game uses, plus two powers the old one
+lacked — it clears EVERY grid (a restart is for the table, so a compete restart
+re-opens the race) and it un-terminals a finished puzzle, which is what let
+crosswords join the rest of the roster in having a replay at all
+([common/game-page/doc.md](../../src/common/game-page/doc.md)). **Reveal
+solution** is the terminal-only answer key (see *Terminal* above). The menu is
+long, so the popover scrolls — the page never does.
 
 The board reads no `window` keydowns — its keys are bound actions — but the
 shared `Menu` is still given **`returnFocusOnClose={false}`** by
@@ -567,9 +575,9 @@ opt-in so non-game menus keep standard Esc-restores-focus a11y.)
 
 ## 8. Tests
 
-- pgTAP `supabase/tests/crosswords/` — create (library + inline board) / gameplay
-  (set_cell, check, reveal, set_mark, `_matches`, the explainer's read and the
-  export on a deleted game) / win (solve, pencil-counts,
+- pgTAP `supabase/tests/crosswords/` — create (library + inline board) /
+  gameplay (set_cell, check, reveal, set_mark, `_matches`, the explainer's read
+  and the export on a deleted game) / win (solve, pencil-counts,
   first-correct-wins) / rls (compete privacy) / concede + give-up / timeout
   (countdown expiry → a loss for everyone, coop `lost` / compete `lost_compete`
   with `outcome: 'timeout'`; idempotent by no-op on a second call) /
@@ -580,13 +588,13 @@ opt-in so non-game menus keep standard Esc-restores-focus a11y.)
   library — the test that would catch a `security definer` rewrite). Plus
   `common/scratchpad_test.sql`.
 - Vitest — `lib/` (`cursor`, `nyt`, `importFile`, `marks`, `enumeration`,
-  `guardian` — the entry-based Guardian conversion incl. the
-  answers-withheld `GuardianConvertError` throw, `nytOverlay` — the
-  overlay-PNG circle/bar detector pinned against real NYT fixtures, byte-for-byte
-  with crossplay's, `clueRuns` — the PDF clue-text italic-run parse/wrap
-  arithmetic under a fake text measure), `hooks/useCells.test.ts` +
-  `hooks/useGridKeyboard.test.ts`, `pdf/*.test.ts`, and the parser +
-  content-hash tests next to the CLI (`supabase/scripts/crosswords/`).
+  `guardian` — the entry-based Guardian conversion incl. the answers-withheld
+  `GuardianConvertError` throw, `nytOverlay` — the overlay-PNG circle/bar
+  detector pinned against real NYT fixtures, byte-for-byte with crossplay's,
+  `clueRuns` — the PDF clue-text italic-run parse/wrap arithmetic under a fake
+  text measure), `hooks/useCells.test.ts` + `hooks/useGridKeyboard.test.ts`,
+  `pdf/*.test.ts`, and the parser + content-hash tests next to the CLI
+  (`supabase/scripts/crosswords/`).
 - e2e `e2e/crosswords.e2e.ts` — solve; check/reveal + the terminal "Reveal
   solution" menu flow (disabled mid-game, blanks stay blank until clicked);
   compete win; compete privacy (opponent never sees your letters); coop peer
@@ -602,18 +610,19 @@ This is the **canonical deferred register** for crosswords — distilled from th
 
 ### Deferred features
 - **The setup form opts out of the shared field vocabulary.** Every other game's
-  `SetupForm` builds from `common/fields/`; crosswords hand-rolls its
-  controls, and they have drifted on every axis. Moved here from the CSS sprint's
-  `forms` area on 2026-08-25 (it was F37, `crosswords-rolls-its-own-field`) —
-  the DECISION is the shared vocabulary's, but every edit lands in this game.
-  - **Two raw `<select>`s** (`SetupForm.tsx:326`, `:378`) — the only ones left in
-    the app outside `common/fields/`. Both wear a local `.search`
-    class instead of `<SelectField>`.
+  `SetupForm` builds from `common/fields/`; crosswords hand-rolls its controls,
+  and they have drifted on every axis. Moved here from the CSS sprint's `forms`
+  area on 2026-08-25 (it was F37, `crosswords-rolls-its-own-field`) — the
+  DECISION is the shared vocabulary's, but every edit lands in this game.
+  - **Two raw `<select>`s** (`SetupForm.tsx:326`, `:378`) — the only ones left
+    in the app outside `common/fields/`. Both wear a local `.search` class
+    instead of `<SelectField>`.
   - **`.search` re-declares the field chrome and disagrees with it four ways**:
     `border-radius: 6px` (a literal — `--radius-md` IS `6px`, `base.css:85`),
     `border: 1px solid var(--page-surface-border-color)` where every other field
-    uses `--field-edge-color`, `padding: 0.4rem 0.6rem` against `<SelectField>`'s
-    `0.6rem 0.9rem`, and `font-size: 0.95rem` against inherited.
+    uses `--field-edge-color`, `padding: 0.4rem 0.6rem` against
+    `<SelectField>`'s `0.6rem 0.9rem`, and `font-size: 0.95rem` against
+    inherited.
   - **`.nextDate` is `<SetupNextPuzzleSection>`'s `.next` re-typed** — same
     `--page-text-color`, same `min-height: 1.4em`, same stated reason (don't let
     the timer below jump when the RPC lands). The date-override input beside it
@@ -622,19 +631,20 @@ This is the **canonical deferred register** for crosswords — distilled from th
   - **`.dropzone` carries `border-radius: 8px`**, a second unconverted literal.
 
   **What is NOT drift, and must survive any fix:** crosswords has a real reason
-  not to use `<SetupNextPuzzleSection>` — its archive is a catalog, not a queue (a
-  Monday puzzle and a Saturday one are different animals), so it picks a WEEKDAY
-  where connections and strands ask for "the next one nobody has played". The
-  fixed-height preview line and the date override are the same mechanism; the
-  thing above them is not.
+  not to use `<SetupNextPuzzleSection>` — its archive is a catalog, not a queue
+  (a Monday puzzle and a Saturday one are different animals), so it picks a
+  WEEKDAY where connections and strands ask for "the next one nobody has
+  played". The fixed-height preview line and the date override are the same
+  mechanism; the thing above them is not.
 
 - **`Controls.module.css .btn` paints a button out of a form field.** The
   pencil/pen toggles and the clear-scope control (3 uses) are drawn with
-  `background: var(--field-fill-color)`, `border: 1px solid var(--field-edge-color)`
-  and `border-radius: 6px` — a form FIELD's edge and fill on a control that is a
-  button, plus the same unconverted literal as `.search` above (`--radius-md` IS
-  `6px`, `base.css:85`). It also sizes itself with `--iconButton-size`, so it is
-  literally the standard button's icon-only box wearing a field's paint.
+  `background: var(--field-fill-color)`, `border: 1px solid
+  var(--field-edge-color)` and `border-radius: 6px` — a form FIELD's edge and
+  fill on a control that is a button, plus the same unconverted literal as
+  `.search` above (`--radius-md` IS `6px`, `base.css:85`). It also sizes itself
+  with `--iconButton-size`, so it is literally the standard button's icon-only
+  box wearing a field's paint.
 
   Moved here from the forms audit on 2026-08-25. What made it a finding: the
   scratchpad's "Take over" control — written by a different hand, sharing no
@@ -648,95 +658,98 @@ This is the **canonical deferred register** for crosswords — distilled from th
   diverge. Decide whether this wants `<StandardButton small>` or a look of its
   own — `<StandardButton>` can now express a label, an icon, or both, which it
   could not when the drift happened.
-- **First-visit help auto-open** — crossplay opened Help on first board
-  load (dismissal remembered per browser); the rebus chords (⇧Enter / ⇧Space) are
-  otherwise undiscoverable. Not ported — `?` / the menu open Help on demand. Could
-  become a common-shell feature.
-- **`fetch-nyt-range` bulk CLI** — a Node script to download a date range
-  of NYT dailies into the library; blocked on the `NYT_COOKIE_JAR` secret (same as
-  the live NYT fetch). Workaround: run crossplay's script, then `gmake g-crosswords-puzzles`.
-  **Data, not schema:** it writes rows into the existing `crosswords.puzzles`, so
-  it needs no migration however large it gets — the cost it carries is the picker
-  bound below, not a shape change.
-- **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a new
-  game (fine; NYT was always kept out of the library).
+- **First-visit help auto-open** — crossplay opened Help on first board load
+  (dismissal remembered per browser); the rebus chords (⇧Enter / ⇧Space) are
+  otherwise undiscoverable. Not ported — `?` / the menu open Help on demand.
+  Could become a common-shell feature.
+- **`fetch-nyt-range` bulk CLI** — a Node script to download a date range of NYT
+  dailies into the library; blocked on the `NYT_COOKIE_JAR` secret (same as the
+  live NYT fetch). Workaround: run crossplay's script, then `gmake
+  g-crosswords-puzzles`. **Data, not schema:** it writes rows into the existing
+  `crosswords.puzzles`, so it needs no migration however large it gets — the
+  cost it carries is the picker bound below, not a shape change.
+- **NYT dedup** — inline NYT games aren't stored, so re-fetching a date makes a
+  new game (fine; NYT was always kept out of the library).
 - **Library picker bound before the bulk import** (from the 2026-07-12 supabase
-  review) — the picker query is unbounded: it's now `library_for_club` (§4), which
-  orders by title but has no `LIMIT`. It answers one `jsonb` value, so
+  review) — the picker query is unbounded: it's now `library_for_club` (§4),
+  which orders by title but has no `LIMIT`. It answers one `jsonb` value, so
   `max_rows` can't truncate it; the cost is payload size, which returning four
   scalars per puzzle rather than its whole `meta` keeps small — but that is not
-  a bound. Deliberately
-  **not** fixed pre-emptively: >10k puzzles needs a real picker UI (search/filter,
-  not a flat list) anyway, so do the bound **with** that import, not before.
-  Minimum safe change if the import lands first: a `LIMIT` in the RPC + a
-  truncation note in the UI.
+  a bound. Deliberately **not** fixed pre-emptively: >10k puzzles needs a real
+  picker UI (search/filter, not a flat list) anyway, so do the bound **with**
+  that import, not before. Minimum safe change if the import lands first: a
+  `LIMIT` in the RPC + a truncation note in the UI.
 
 ### Deliberate leaves / standing flags
-Recorded decisions, not bugs — surfaced in the reviews and left as-is for a possible
-future cleanup pass:
-- **The clue-list grays deliberately diverge from crossplay — don't "correct" them.**
-  `--crosswords-row-hover` / `-row-rule` / `-clue-num` (and the `-clue-label`,
-  `-rebus-bg` pair) are a cool **slate** family that exists in neither `~/src/crossplay`
-  nor this app's neutral grays. Two of them replaced a source value outright: the
-  clue-row hover was crossplay's `#eef3fa`, and the clue number was its `#444`. That
-  divergence almost certainly arrived by substitution during the port rather than by
-  design — but Joel likes the result and **ratified it (2026-08-01)**, which is the
-  concrete evidence the port-parity rule asks for before accepting a deviation. They
-  were bare literals scattered across three modules; they're now named in `theme.css`
-  at **unchanged values**, so the palette is findable and `cssTokens.test.ts` covers
-  them. Anyone diffing against crossplay will find this and think it's a bug: it isn't.
-  (`#333` on the `.circle` decoration IS byte-identical to crossplay's `Cell.module.css`,
-  and the grid's `#fff` / `#000` / `#111` are structural black-and-white, so all of those
-  stay literal.)
-- **A revealed grid still ends as `won`** (ratified 2026-08-01). `reveal_cells` runs
-  the ordinary solve check, so "Reveal puzzle" fills the grid and trips
-  `_finish_coop` → `play_state = 'won'`, `outcome: 'solved'`, everyone
-  `won: true`, and a green "Won" on the club list. waffle and wordle deliberately
-  went the other way for the same gesture (`ended` + `outcome: 'revealed'`, nobody
+Recorded decisions, not bugs — surfaced in the reviews and left as-is for a
+possible future cleanup pass:
+- **The clue-list grays deliberately diverge from crossplay — don't "correct"
+  them.** `--crosswords-row-hover` / `-row-rule` / `-clue-num` (and the
+  `-clue-label`, `-rebus-bg` pair) are a cool **slate** family that exists in
+  neither `~/src/crossplay` nor this app's neutral grays. Two of them replaced a
+  source value outright: the clue-row hover was crossplay's `#eef3fa`, and the
+  clue number was its `#444`. That divergence almost certainly arrived by
+  substitution during the port rather than by design — but Joel likes the result
+  and **ratified it (2026-08-01)**, which is the concrete evidence the
+  port-parity rule asks for before accepting a deviation. They were bare
+  literals scattered across three modules; they're now named in `theme.css` at
+  **unchanged values**, so the palette is findable and `cssTokens.test.ts`
+  covers them. Anyone diffing against crossplay will find this and think it's a
+  bug: it isn't. (`#333` on the `.circle` decoration IS byte-identical to
+  crossplay's `Cell.module.css`, and the grid's `#fff` / `#000` / `#111` are
+  structural black-and-white, so all of those stay literal.)
+- **A revealed grid still ends as `won`** (ratified 2026-08-01). `reveal_cells`
+  runs the ordinary solve check, so "Reveal puzzle" fills the grid and trips
+  `_finish_coop` → `play_state = 'won'`, `outcome: 'solved'`, everyone `won:
+  true`, and a green "Won" on the club list. waffle and wordle deliberately went
+  the other way for the same gesture (`ended` + `outcome: 'revealed'`, nobody
   won) — don't "align" crosswords with them. Those are guess-economy games where
   the hidden answer is the whole contest; a crossword isn't competitive in that
-  way. Reveal here is a scoped solving aid (letter / word / puzzle) with no honest
-  boundary between using it once and giving up, so a completed grid counts as
-  completed however it got there.
-- ~~**Dead `crosswords.games` Realtime wiring.**~~ **Resolved (2026-07-12 supabase
-  review).** `crosswords.games` was published + touched by four no-op "Realtime touch"
-  self-updates in the terminal RPCs to wake FE subscribers that never existed (`useGame`
-  is one-shot; status flows through `common.games`). Both the publication line and the
-  four touches were removed to lean the migration; `crosswords` now publishes only
-  `cells`. Re-add both together (publication line + a writing-RPC touch) if a feature
-  ever needs the FE to react to a `crosswords.games` change. Membership is pinned by
-  the central `supabase/tests/common/realtime_publication_test.sql` (the
-  `crosswords.cells` row — and `crosswords.games` deliberately absent).
-- **Compete terminal never shows opponents' grids** (decision C5). The compete RLS
-  *opens* opponents' rows at terminal (pinned in `rls_test.sql`), but `useCells` stays
-  filtered to the caller and PlayArea draws one grid — deliberately-unused surface,
-  not a delivered feature (see §2).
-- **Answer-key PDF gate is UI-only** (§7) — `export_solution` hands any member the grid
-  at any time (like Download-as-.ipuz), so the compete "terminal-only" gate on the
-  menu item is a UI gate, not server-enforced. Acceptable under the friends-only
-  trust model.
-- **`content_hash` is unique across BOTH sources** — an NYT fetch that content-collides
-  with a `library` row would reuse it (then listable), mildly contradicting "NYT stays
-  out of the listing." Very low probability, and largely moot now that NYT games are
-  inline. Left as a known edge case.
-- **Coop read-committed solve races** (nit, friend-scale ≈ 0) — two players filling
-  the last two cells at once can each miss the solved state (a re-type heals it); a
-  fill + concurrent clear can terminate a not-actually-complete grid. Crossplay
-  avoided both by being single-threaded; not worth guarding here.
+  way. Reveal here is a scoped solving aid (letter / word / puzzle) with no
+  honest boundary between using it once and giving up, so a completed grid
+  counts as completed however it got there.
+- ~~**Dead `crosswords.games` Realtime wiring.**~~ **Resolved (2026-07-12
+  supabase review).** `crosswords.games` was published + touched by four no-op
+  "Realtime touch" self-updates in the terminal RPCs to wake FE subscribers that
+  never existed (`useGame` is one-shot; status flows through `common.games`).
+  Both the publication line and the four touches were removed to lean the
+  migration; `crosswords` now publishes only `cells`. Re-add both together
+  (publication line + a writing-RPC touch) if a feature ever needs the FE to
+  react to a `crosswords.games` change. Membership is pinned by the central
+  `supabase/tests/common/realtime_publication_test.sql` (the `crosswords.cells`
+  row — and `crosswords.games` deliberately absent).
+- **Compete terminal never shows opponents' grids** (decision C5). The compete
+  RLS *opens* opponents' rows at terminal (pinned in `rls_test.sql`), but
+  `useCells` stays filtered to the caller and PlayArea draws one grid —
+  deliberately-unused surface, not a delivered feature (see §2).
+- **Answer-key PDF gate is UI-only** (§7) — `export_solution` hands any member
+  the grid at any time (like Download-as-.ipuz), so the compete "terminal-only"
+  gate on the menu item is a UI gate, not server-enforced. Acceptable under the
+  friends-only trust model.
+- **`content_hash` is unique across BOTH sources** — an NYT fetch that
+  content-collides with a `library` row would reuse it (then listable), mildly
+  contradicting "NYT stays out of the listing." Very low probability, and
+  largely moot now that NYT games are inline. Left as a known edge case.
+- **Coop read-committed solve races** (nit, friend-scale ≈ 0) — two players
+  filling the last two cells at once can each miss the solved state (a re-type
+  heals it); a fill + concurrent clear can terminate a not-actually-complete
+  grid. Crossplay avoided both by being single-threaded; not worth guarding
+  here.
 
 ### Known limits & unpinned tests
-- **No keystroke debounce** — every fill is an UPDATE + CDC fanout to all peers (the
-  debounce was correctly dropped; the FE needs each keystroke live). Fine at friend
-  scale; 4 people speed-solving is the case to watch (row-update rates + Supabase
-  Realtime message quotas).
-- **Unpinned tests** (low-value / deferred from the reviews): Schrödinger + rebus
-  solve end-to-end in pgTAP (a fixture with a multi-char / multi-candidate solution
-  driving `set_cell → _is_solved → win`); inline-board missing-meta/solution
-  rejection; fill-clear-resets-pencil; the player-max guard; `reveal_solved_word`
-  expansion (a given cell, compete non-solver, non-player throw, note round-trip,
-  empty `p_cells`); `importFile` error paths + `meta.id` slugification;
-  `enumerationFor` mixed break+hyphen; `games_select` / `puzzles_select` row-RLS
-  (only `cells` RLS is pinned today); and the concede-flow / terminal-copy e2e.
+- **No keystroke debounce** — every fill is an UPDATE + CDC fanout to all peers
+  (the debounce was correctly dropped; the FE needs each keystroke live). Fine
+  at friend scale; 4 people speed-solving is the case to watch (row-update
+  rates + Supabase Realtime message quotas).
+- **Unpinned tests** (low-value / deferred from the reviews): Schrödinger +
+  rebus solve end-to-end in pgTAP (a fixture with a multi-char / multi-candidate
+  solution driving `set_cell → _is_solved → win`); inline-board
+  missing-meta/solution rejection; fill-clear-resets-pencil; the player-max
+  guard; `reveal_solved_word` expansion (a given cell, compete non-solver,
+  non-player throw, note round-trip, empty `p_cells`); `importFile` error
+  paths + `meta.id` slugification; `enumerationFor` mixed break+hyphen;
+  `games_select` / `puzzles_select` row-RLS (only `cells` RLS is pinned today);
+  and the concede-flow / terminal-copy e2e.
 
 The crossplay apparatus is otherwise **fully ported**: cryptic edge marks
 (`|`/`_`, `set_mark`), the AI **"Explain cryptic clue"** (§10), the **rebus
@@ -762,11 +775,12 @@ Anthropic prompt, modernized to this repo's edge-function pattern (mirrors
 - **Never a spoiler.** The answer is the shielded solution, so the FE sends the
   clue's cells and the `reveal_solved_word` RPC hands back the canonical answer
   **only if the caller has already filled that word correctly** (else the edge
-  function returns 409 → "Solve this clue correctly first"). Safe in compete too.
+  function returns 409 → "Solve this clue correctly first"). Safe in compete
+  too.
 - **Flow.** FE → `crosswords-explain-clue` edge fn → `reveal_solved_word`
   (answer + note) → Claude (system prompt + `{clue, enumeration, answer, note}`)
-  → `{ explanation }` → `CrosswordsExplainCompanion` (on `FloatingPanel`, renders the
-  `**bold**` Definition/Wordplay/Indicators prose).
+  → `{ explanation }` → `CrosswordsExplainCompanion` (on `FloatingPanel`,
+  renders the `**bold**` Definition/Wordplay/Indicators prose).
 - **Enumeration** (`lib/enumeration.ts`) is derived on the FE from the word's
   cryptic edge marks — `(7)`, `(4,3)`, `(3-2)` — mirroring crossplay.
 - **Needs `ANTHROPIC_API_KEY`** on the edge function (like the NYT path needs

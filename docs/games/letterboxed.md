@@ -35,8 +35,8 @@ conventions [`playarea.md`](../playarea.md).
 4. **The complete playable word set is computable at build time** — the indexed
    subset test spellingbee runs (`letter_mask & ~board_mask = 0`) plus the
    side-adjacency walk. A few hundred to a few thousand words per board. This
-   one fact is what makes the suggestion search, instant local validation, and the
-   winnability guarantee nearly free.
+   one fact is what makes the suggestion search, instant local validation, and
+   the winnability guarantee nearly free.
 
 Where it sits on the roster: the only game where a word's **last letter**
 constrains the next move (a genuinely new verb), and the only one where **move
@@ -52,7 +52,8 @@ builder partitions the letters so both words stay playable — so the chain
 `word_a → word_b` is always a two-word solution (a 2000-board sample confirmed
 it 2000 times). Par can't go *below* 2 either: the builder rejects boards
 solvable in one word. So there is **no `par` column and no build-time solver** —
-`PAR` is the constant `2` in [`lib/board.ts`](../../src/letterboxed/lib/board.ts).
+`PAR` is the constant `2` in
+[`lib/board.ts`](../../src/letterboxed/lib/board.ts).
 
 **A player-typed board doesn't change this** (§7). It proves par 2 by the same
 route a rolled board guarantees it — the seed table is asked for the pair that
@@ -91,23 +92,22 @@ Three different trust postures coexist here, each for its own reason:
   authority: two players submitting off the same tail must produce one winner
   and one clean "the chain moved on" rejection, not a corrupted chain. The RPC
   takes a row lock on the game to serialize appends.
-- **The playable word list and the seeded solution ship to the FE openly.**
-  Per CLAUDE.md's trust model this costs nothing (friends, not adversaries),
-  and it buys a lot: the suggestion search is ~40 lines of unit-testable TypeScript
+- **The playable word list and the seeded solution ship to the FE openly.** Per
+  CLAUDE.md's trust model this costs nothing (friends, not adversaries), and it
+  buys a lot: the suggestion search is ~40 lines of unit-testable TypeScript
   instead of the most complex plpgsql in the repo (§6), and the FE can refuse a
   bad word instantly. The solution is **display-gated, not shielded**: the
-  nothing autoreveals, so the seeded pair stays covered until the
-  terminal Reveal — a local, reversible display toggle in the FE (docs/ui.md →
-  Terminal results), which is **never automatic, a win included**. Winning is
-  covering the twelve with *any* chain inside the cap, so unlike waffle (the
-  solved grid is the answer) or wordle (you typed the target) a win does **not**
-  put the seeded pair on screen. That used to need a whole
-  `letterboxed._end_game` wrapper, because the shared `end_game` opened the
-  solution on any win; with no flag to open, the wrapper is gone (§5).
-  Gating it server-side would guard nothing, since any two-word
-  solution is one BFS away from the shipped list; the seeded pair is stored
-  because it's the *gettable* one (band ≤ 2 by construction), not because it's
-  secret.
+  nothing autoreveals, so the seeded pair stays covered until the terminal
+  Reveal — a local, reversible display toggle in the FE (docs/ui.md → Terminal
+  results), which is **never automatic, a win included**. Winning is covering
+  the twelve with *any* chain inside the cap, so unlike waffle (the solved grid
+  is the answer) or wordle (you typed the target) a win does **not** put the
+  seeded pair on screen. That used to need a whole `letterboxed._end_game`
+  wrapper, because the shared `end_game` opened the solution on any win; with no
+  flag to open, the wrapper is gone (§5). Gating it server-side would guard
+  nothing, since any two-word solution is one BFS away from the shipped list;
+  the seeded pair is stored because it's the *gettable* one (band ≤ 2 by
+  construction), not because it's secret.
 - **A compete rival's chain is column-shielded.** Mid-race a rival may see how
   *many* words you've played and how much you've covered — never which words.
   The column grant on `letterboxed.players` omits `chain`; it reaches the FE
@@ -187,9 +187,9 @@ coverage) / `lost_compete` (all conceded, or a timed-out race nobody scored in)
 
 Every mid-game transition calls `_sync_status` (the wordle `_sync_title`
 pattern: derived, not remembered per-writer), so the club-page label is correct
-after a word, an undo, a clear, a hint or a spoiler. Terminal transitions build their own
-blob for `common.end_game` — status **merges**, so every value a terminal
-asserts is restated ([status blob merges](../supabase.md)). Compete's
+after a word, an undo, a clear, a hint or a spoiler. Terminal transitions build
+their own blob for `common.end_game` — status **merges**, so every value a
+terminal asserts is restated ([status blob merges](../supabase.md)). Compete's
 mid-game/terminal blobs carry a `_leaderboard` of the two public numbers, with
 usernames cached in (never joined at read time).
 
@@ -217,8 +217,8 @@ never runs solo (`SetupCoopStyleSection` hides for one player).
 part of the rulebook, but the only undo surface is the **× on the chain strip's
 last word** (§8), and clicking it repeatedly walks the chain back to empty, so a
 bulk clear would be a second way to do the same thing.
-[`PlayArea.tsx`](../../src/letterboxed/components/PlayArea.tsx) documents this at
-the call site.
+[`PlayArea.tsx`](../../src/letterboxed/components/PlayArea.tsx) documents this
+at the call site.
 
 ---
 
@@ -293,12 +293,13 @@ row nor the button asks about mode. The menu carries **Reveal solution**
 (`act-reveal`) for the same reason: the terminal row's boxed-eye button had no
 legend row, the only reveal-capable game missing one.
 
-Both call `log_hint_or_spoiler`, which bumps `hints_used` and writes an `events` row.
+Both call `log_hint_or_spoiler`, which bumps `hints_used` and writes an `events`
+row.
 
-**A failed log is shown, not swallowed** (Joel, 2026-09-01). The slot is
-already holding the hint itself when the answer arrives, so the not-ok shows
-over it — and nothing is lost by that, because `log_hint_or_spoiler` can only
-refuse in ways that make the hint moot: one race that fires once the game is over, and
+**A failed log is shown, not swallowed** (Joel, 2026-09-01). The slot is already
+holding the hint itself when the answer arrives, so the not-ok shows over it —
+and nothing is lost by that, because `log_hint_or_spoiler` can only refuse in
+ways that make the hint moot: one race that fires once the game is over, and
 three faults that mean a broken client. The reasoning that used to justify
 swallowing it — "the event log keeps the content, so the pill is a convenience
 copy" — is true only when the write SUCCEEDS; a failed write is precisely the
@@ -307,16 +308,17 @@ case where the log has nothing.
 The content reaches **every coop player, on three surfaces** (Joel's spec,
 2026-08-05): the requester's own pill; the teammates' pills — a header line
 naming the act ("● joel got a hint" / "● joel revealed a word") plus the same
-content pill the requester saw, because a hint one player asks for is a hint
-the whole team has; and the event log's lasting record ("Hint: 8 letters: DEM" /
-"Reveal: DEMOTIC" — the pills are transient, the log is what's given away on
-the record). All three read from `lib/hintOrSpoiler.ts`'s
-`hintOrSpoilerPillText`/`hintPrefix` so they can't drift. Two event kinds, not one, because "I was told it starts with
-DEM" and "I was told the word" are different admissions. **`hints_used` is tracked server-side but nothing renders
-it** — the event log's rows are the record players actually read, and
-a counter beside the score would read as something the game holds against you
-(neither rung is penalized). The per-player tally stays as the cheap
-number the log would otherwise have to be folded to get.
+content pill the requester saw, because a hint one player asks for is a hint the
+whole team has; and the event log's lasting record ("Hint: 8 letters: DEM" /
+"Reveal: DEMOTIC" — the pills are transient, the log is what's given away on the
+record). All three read from `lib/hintOrSpoiler.ts`'s
+`hintOrSpoilerPillText`/`hintPrefix` so they can't drift. Two event kinds, not
+one, because "I was told it starts with DEM" and "I was told the word" are
+different admissions. **`hints_used` is tracked server-side but nothing renders
+it** — the event log's rows are the record players actually read, and a counter
+beside the score would read as something the game holds against you (neither
+rung is penalized). The per-player tally stays as the cheap number the log would
+otherwise have to be folded to get.
 
 **The text is a `hint` message, and leaves only by its ×** ([ui.md →
 Feedback pill](../ui.md#feedback-pill)) — the rule for every hint, so a
@@ -477,8 +479,8 @@ letters transposed would start happily and simply not be solvable in two.
 `custom-board-mismatch` if they differ — the feature is "the *exact* board my
 friend sent me", so a builder bug that quietly re-partitioned it would hand back
 a puzzle that looks right and isn't. And `custom_sides` is stripped from the
-club's `default_setup`: a board is an **instance**, not a preference, and left in
-place it would silently rebuild itself on every later Start.
+club's `default_setup`: a board is an **instance**, not a preference, and left
+in place it would silently rebuild itself on every later Start.
 
 ### `legal_band` — the one knob, and it runs backwards
 
@@ -536,9 +538,9 @@ Band is the ONLY filter on what a player may type. `candidate_words` gates on
 band, length, the board's letter set and the no-doubled-letter rule — nothing
 else — so `playable_words` holds crude, slur, slang and dialect-only words too.
 That's the may-enter tier ([word-list.md → the word list's filter
-rule](../word-list.md#the-word-list-commonwords)): a player typing `BITCH` (band 1, `slur = 1`)
-chose it, and the game has no business refusing it. It used to, until
-2026-08-10.
+rule](../word-list.md#the-word-list-commonwords)): a player typing `BITCH` (band
+1, `slur = 1`) chose it, and the game has no business refusing it. It used to,
+until 2026-08-10.
 
 What the game itself OFFERS is the must-reach tier, and that's `clean_words` —
 `american AND british AND crude = 0 AND slur = 0 AND NOT slang`, the subset the
@@ -591,22 +593,23 @@ since the chain is shared and arrives by realtime; in compete `chain` is your
 own, so it's your own last word and can't leak a rival's (their chains are
 column-shielded — §3).
 
-Both lines come from one derivation, [`pathPoints`](../../src/letterboxed/lib/board.ts),
-so they can't disagree about where a word goes. **No path is stored anywhere:**
-the board's twelve letters are distinct, so a word determines its route
-uniquely — which is the fact that makes the whole feature free of schema, RPC
-and realtime work. A repeated letter (ONION) revisits its node and the line
-doubles back; that's the geometry being honest.
+Both lines come from one derivation,
+[`pathPoints`](../../src/letterboxed/lib/board.ts), so they can't disagree about
+where a word goes. **No path is stored anywhere:** the board's twelve letters
+are distinct, so a word determines its route uniquely — which is the fact that
+makes the whole feature free of schema, RPC and realtime work. A repeated letter
+(ONION) revisits its node and the line doubles back; that's the geometry being
+honest.
 
 **When the ghost clears is the deliberate part.** It survives the next word's
 FIRST letter, because that letter isn't a choice — it's carried over from the
 previous word's tail — and clears on the second, the moment the player commits
 to a direction. That's `word.length < 2`, and it's the assertion
-[`letterboxed.e2e.ts`](../../e2e/letterboxed.e2e.ts) cares about most: bracketing
-"appears" and "disappears" alone would pass an implementation that cleared a
-keystroke too early. The turn-history viewer inherits it for nothing — it
-passes `word=''` with a snapshot chain, so stepping back through turns replays
-each word's route.
+[`letterboxed.e2e.ts`](../../e2e/letterboxed.e2e.ts) cares about most:
+bracketing "appears" and "disappears" alone would pass an implementation that
+cleared a keystroke too early. The turn-history viewer inherits it for nothing —
+it passes `word=''` with a snapshot chain, so stepping back through turns
+replays each word's route.
 
 **The chain strip sits ABOVE the board** (`<ChainStrip>`), not in the info
 column: the chain is the game's central state — what you've played, and
@@ -627,9 +630,9 @@ at the seed**. Two more entry gates: only the twelve board letters are typeable
 follow the previous one (same side) **never enters the field** — refusing the
 keystroke says "wrong" immediately, instead of letting you finish typing a word
 you can already see is illegal. **Neither history arrow is bound here** — the
-`<WordEntryArea>` takes `hasHistory={false}`, so `↑` and `↓` are off the key list
-entirely: a submitted word goes into the chain rather than away, and `↓` could
-only clear back to the locked seed, which the gate above refuses anyway.
+`<WordEntryArea>` takes `hasHistory={false}`, so `↑` and `↓` are off the key
+list entirely: a submitted word goes into the chain rather than away, and `↓`
+could only clear back to the locked seed, which the gate above refuses anyway.
 
 **The board** is an SVG on a 0–100 square (`lib/board.ts → layout`), the twelve
 letters laid clockwise from the top-left so the four sides read as one loop.
@@ -655,22 +658,22 @@ compete "All", defaulting to you; a rival's rows fill in at terminal).
 by the **row's own id**. The snapshot
 ([`lib/history.ts`](../../src/letterboxed/lib/history.ts)) is a **fold**, which
 is the payoff of the events table being append-only: a chain isn't a board that
-accumulates, it's a stack that can also shrink, so `historyChainAt` just runs the four
-rules forward — `word` push, `undo` pop, `clear` empty, a hint or a spoiler nothing. The
-boundary is **inclusive** (viewing move N shows the chain *after* it — the only
-reading that makes an `undo` row show anything at all, since its whole content
-is the word no longer being there). `#N` counts the rows on show and its handle carries
-the row's own id, resolved against the chain being folded; any key or click
-exits, per the shared viewer contract.
+accumulates, it's a stack that can also shrink, so `historyChainAt` just runs
+the four rules forward — `word` push, `undo` pop, `clear` empty, a hint or a
+spoiler nothing. The boundary is **inclusive** (viewing move N shows the chain
+*after* it — the only reading that makes an `undo` row show anything at all,
+since its whole content is the word no longer being there). `#N` counts the rows
+on show and its handle carries the row's own id, resolved against the chain
+being folded; any key or click exits, per the shared viewer contract.
 
 **Info column**, canonical order: the `<StateLine>` (the game in two fractions —
 letters covered / 12, words used / cap **with par named in the label**, since
-"3/5" alone says nothing) → `TurnStatusLine` (turn-coop only) →
-`OpponentStrip` (compete: `7/12 · 2w` per rival — kept at terminal too, unlike
-wordiply's verdict switch: coverage is the story after a coverage race — the two public numbers, never
-the words; `out` for a conceder) → the action row (coop: Hint + Spoiler + End;
-compete: Concede) → the revealed solution ("Solvable in two: DEMOTIC → CRAVING",
-click-to-define) → help line → setup disclosure → the log.
+"3/5" alone says nothing) → `TurnStatusLine` (turn-coop only) → `OpponentStrip`
+(compete: `7/12 · 2w` per rival — kept at terminal too, unlike wordiply's
+verdict switch: coverage is the story after a coverage race — the two public
+numbers, never the words; `out` for a conceder) → the action row (coop: Hint +
+Spoiler + End; compete: Concede) → the revealed solution ("Solvable in two:
+DEMOTIC → CRAVING", click-to-define) → help line → setup disclosure → the log.
 
 **Mobile** — the standard conversion (`useInfoSheet` + `<InfoSheet>` +
 `shared.mobileFill`), and deliberately **no `<MobileStatusBar>`** (the adoption
@@ -687,29 +690,30 @@ slot's "Waiting for ● moth" covers whose-turn on the phone surface. See
 
 **Coop peer narration** (`usePeerFeedback`): a teammate's word changes *my*
 board, so the header says so — `● moth TRACE (7/12)`, "undid TRACE" (named, so
-peers know which word came off), or "cleared the chain". A hint or a spoiler narrates on two
-channels at once — the header names the act, the local slot carries the
-content (see §6 Hints). Compete has no narration — the race ends on first solve and the
-OpponentStrip already shows live progress (wordiply and strands are the same).
+peers know which word came off), or "cleared the chain". A hint or a spoiler
+narrates on two channels at once — the header names the act, the local slot
+carries the content (see §6 Hints). Compete has no narration — the race ends on
+first solve and the OpponentStrip already shows live progress (wordiply and
+strands are the same).
 
 **Celebration**: confetti at the moment the board is covered — coop's win, and
 compete's for whoever got there first ("All twelve! 🐍").
 
 ### Print to PDF
 
-The **track family** (`common/pdf/columns`, three to a page): coop is one
-"Team" track, compete one per player whose chain is visible — mid-race that's
-just yours (`players_state` masks rivals), at terminal everyone. Each track:
-the square, the standing, the numbered chain, the full move log — retreats,
-hints and spoilers included, because "what did we try?" is most of what a finished game is
-worth keeping.
+The **track family** (`common/pdf/columns`, three to a page): coop is one "Team"
+track, compete one per player whose chain is visible — mid-race that's just
+yours (`players_state` masks rivals), at terminal everyone. Each track: the
+square, the standing, the numbered chain, the full move log — retreats, hints
+and spoilers included, because "what did we try?" is most of what a finished
+game is worth keeping.
 
 A covered letter moves its encoding from color to **weight**: a heavy black
 ring + bold glyph vs a thin gray ring — it survives a photocopier, which is the
-test [common/pdf/doc.md](../../src/common/pdf/doc.md) sets. The solution prints **only if the players
-revealed it on screen** (`pdf/model.ts` pins this) — printing it regardless
-would route around the Reveal gate and hand the answer to someone still
-playing. `->` not `→` (WinAnsi).
+test [common/pdf/doc.md](../../src/common/pdf/doc.md) sets. The solution prints
+**only if the players revealed it on screen** (`pdf/model.ts` pins this) —
+printing it regardless would route around the Reveal gate and hand the answer to
+someone still playing. `->` not `→` (WinAnsi).
 
 ---
 

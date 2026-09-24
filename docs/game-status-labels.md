@@ -48,12 +48,12 @@ Multi-word titles join with a dash: `APPLE-BERRY-CHERRY`.
 
 ## The status line
 
-`manifest.labelFor(row)`: a **pure, synchronous** function of one
-`common.games` row (see [`common/manifest`](../src/common/manifest/doc.md)), which ClubPage
+`manifest.labelFor(row)`: a **pure, synchronous** function of one `common.games`
+row (see [`common/manifest`](../src/common/manifest/doc.md)), which ClubPage
 calls through each row's gametype. Everything a label needs must therefore
-already be on the row, which is why the RPCs write a `status` jsonb blob for
-it to read. And because `status` is club-readable, the rule for titles holds
-here too: a line says only what every player already sees.
+already be on the row, which is why the RPCs write a `status` jsonb blob for it
+to read. And because `status` is club-readable, the rule for titles holds here
+too: a line says only what every player already sees.
 
 Every line has one shape:
 
@@ -61,12 +61,13 @@ Every line has one shape:
 OUTCOME (why) · other · facts
 ```
 
-**The rules are in the code** — [`statusLabel.ts`](../src/common/manifest/statusLabel.ts)'s
-header holds them: the four leading words, the two devices and no third, where
-a reason may and may not go, and that every `labelFor` is an exhaustive
-`switch`. That file is what a `labelFor` author has open. Each helper's own
-docstring carries the rest — `dictLabel` why the band comes off `setup` rather
-than `status`, `wonBy` why a winner takes no parentheses.
+**The rules are in the code** —
+[`statusLabel.ts`](../src/common/manifest/statusLabel.ts)'s header holds them:
+the four leading words, the two devices and no third, where a reason may and may
+not go, and that every `labelFor` is an exhaustive `switch`. That file is what a
+`labelFor` author has open. Each helper's own docstring carries the rest —
+`dictLabel` why the band comes off `setup` rather than `status`, `wonBy` why a
+winner takes no parentheses.
 
 ## The guard
 

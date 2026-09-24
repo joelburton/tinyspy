@@ -89,8 +89,8 @@ and all three manifests' own comments claim the RPC enforces it.
 ## Co-op interaction (games that have coop)
 This is the DEFAULT pacing; nine of the free-for-all games also offer opt-in
 turn-by-turn play at setup (see the "Opt-in turn-by-turn coop" tag below).
-Free-for-all (shared board, everyone acts anytime):  PN FB WK MC RA SD SS WN CP MW WW PP SB HT
-Turn-based (fixed seats, alternating):  TS
+Free-for-all (shared board, everyone acts anytime): PN FB WK MC RA SD SS WN CP
+MW WW PP SB HT Turn-based (fixed seats, alternating): TS
 
 ## Board origin
 Generated fresh at start:  PN FB TS MC SS WN MW WW SB HT
@@ -103,14 +103,15 @@ Multi-source (library OR NYT-generated OR uploaded):  CP
 
 ## How the board gets built (code path)
 Where to look when a board is wrong — distinct from "Board origin" above.
-Dedicated `<codename>-build-board` edge fn computes the board, then calls `create_game`:  FB MC SS MW WW SB
-Built inline in `create_game` (plpgsql, sampling `common.words` / a tile distribution):  PN TS RA MG WN
-  HT (no sampling at all — a setgame board is a SHUFFLE, so create_game deals
-  one and runs the deal-three rule until it holds a set)
-Picked from a CLI-imported library table:  WK (`connections.puzzles`)  SD (`stackdown.boards`)
-  PP (`strands.puzzles`)
-Multi-source:  CP (CLI-imported `crosswords.puzzles` library, OR NYT-by-date via
-the `crosswords-import-nyt` edge fn — fetched on demand, stored inline on the game)
+Dedicated `<codename>-build-board` edge fn computes the board, then calls
+`create_game`: FB MC SS MW WW SB Built inline in `create_game` (plpgsql,
+sampling `common.words` / a tile distribution): PN TS RA MG WN HT (no sampling
+at all — a setgame board is a SHUFFLE, so create_game deals one and runs the
+deal-three rule until it holds a set) Picked from a CLI-imported library table:
+WK (`connections.puzzles`) SD (`stackdown.boards`) PP (`strands.puzzles`)
+Multi-source: CP (CLI-imported `crosswords.puzzles` library, OR NYT-by-date via
+the `crosswords-import-nyt` edge fn — fetched on demand, stored inline on the
+game)
 
 ## Board change during play
 Unchanged — you just find words in it:  MC FB MW PP SB
@@ -144,13 +145,13 @@ tiles are also clickable — SB submits on re-clicking the word's last letter;
 WN + WW share the on-screen `GuessKeyboard`.)
 
 ## Solution & trust model — where the answer lives, who validates
-Hidden server-side solution, revealed at terminal:  PN SD SS WN CP PP
-Solution FE-readable all along, but not shown ("FE-knows"; server still
-validates moves — devtools could peek, and per the trust model that's fine):  TS WK
-SB (the whole playable list ships too, for the FE hint search; display-gated
-  behind the terminal Reveal)
-FE holds the full word list, self-scores ("trusting-commit"):  MC FB MW WW
-No fixed answer — server just validates each move's legality:  RA MG HT
+Hidden server-side solution, revealed at terminal: PN SD SS WN CP PP Solution
+FE-readable all along, but not shown ("FE-knows"; server still validates moves —
+devtools could peek, and per the trust model that's fine): TS WK SB (the whole
+playable list ships too, for the FE hint search; display-gated behind the
+terminal Reveal) FE holds the full word list, self-scores ("trusting-commit"):
+MC FB MW WW No fixed answer — server just validates each move's legality: RA MG
+HT
 
 ## Hidden-solution machinery (the schema pattern behind the row above)
 Column-level grant blocks the solution column on the base table; a
@@ -172,27 +173,27 @@ on the base table and reaches the FE only through `players_state`'s per-mode
 mask.)
 
 ## Win / score metric shape
-Points accumulation (high score wins; FB/MW via a rank ladder):  RA MC FB MW
-  HT (sets claimed; in coop the same count is the team's, and the WIN is
-  reaching the natural end rather than passing a score)
-Binary solve (you finished the puzzle, or didn't):  TS WK SS WN CP
-Count to a target:  PN (find N secrets)  SD (clear 6 words)  PP (find every theme
-  word — which, since the words tile the board exactly, is the same as consuming
-  all 48 cells)  SB (cover all 12 letters within the word cap)
-Race to empty your hand:  MG
-Best-word comparator (no scalar score; length score → letter count → time):  WW
+Points accumulation (high score wins; FB/MW via a rank ladder): RA MC FB MW HT
+(sets claimed; in coop the same count is the team's, and the WIN is reaching the
+natural end rather than passing a score) Binary solve (you finished the puzzle,
+or didn't): TS WK SS WN CP Count to a target: PN (find N secrets) SD (clear 6
+words) PP (find every theme word — which, since the words tile the board
+exactly, is the same as consuming all 48 cells) SB (cover all 12 letters within
+the word cap) Race to empty your hand: MG Best-word comparator (no scalar score;
+length score → letter count → time): WW
 
 ## Move / guess budget
-Fixed guess budget:  WN (5–8 at setup, default 6)  WW (5, hardcoded)  PN (3/5/7/9 at setup)
-Resource budget:  SS (swaps: par + extra, extra 0–15 at setup, default 5)
-SB (words: par 2 + extra, extra 0–5 at setup, default 3 — but undo REFUNDS, so
-  it's a shape constraint you can't bust, not a spendable budget)
-WK (4 mistakes, fixed)  TS (9 turns, fixed)
-Unbounded — play to terminal / timer:  MC FB MW RA SD MG CP PP HT
+Fixed guess budget: WN (5–8 at setup, default 6) WW (5, hardcoded) PN (3/5/7/9
+at setup) Resource budget: SS (swaps: par + extra, extra 0–15 at setup,
+default 5) SB (words: par 2 + extra, extra 0–5 at setup, default 3 — but undo
+REFUNDS, so it's a shape constraint you can't bust, not a spendable budget) WK
+(4 mistakes, fixed) TS (9 turns, fixed) Unbounded — play to terminal / timer: MC
+FB MW RA SD MG CP PP HT
 
 ## Seat & information model
-Variable N players (1–8; MW WW PP SB HT cap at 6), full shared info in coop:  PN FB WK MC RA SD SS WN CP MG MW WW PP SB HT
-Fixed 2 seats, asymmetric info (each partner sees a different key):  TS
+Variable N players (1–8; MW WW PP SB HT cap at 6), full shared info in coop: PN
+FB WK MC RA SD SS WN CP MG MW WW PP SB HT Fixed 2 seats, asymmetric info (each
+partner sees a different key): TS
 
 ## History log in the info column
 EventLog (chronological turns):  PN TS WK RA SD SS WN WW PP SB HT
@@ -204,30 +205,31 @@ the log shows every try with its reason.)
 heading borrows the WordList counts idea: "Found: 7 · Hints: 3".)
 
 ## Realtime sync
-Standard refetch-on-change (`useRealtimeRefetch`):  everyone below not called out
-Per-cell CDC direct-apply + peer cursors:  CP
-Broadcast-coupled peer tile-selection:  WK
-(RA + CP also broadcast a coop "show my move / peer flash"; scratchpad is broadcast where enabled.)
-(Load-bearing for all of them: every table a channel subscribes to must be in
-the `supabase_realtime` publication — see docs/supabase.md.)
+Standard refetch-on-change (`useRealtimeRefetch`): everyone below not called out
+Per-cell CDC direct-apply + peer cursors: CP Broadcast-coupled peer
+tile-selection: WK (RA + CP also broadcast a coop "show my move / peer flash";
+scratchpad is broadcast where enabled.) (Load-bearing for all of them: every
+table a channel subscribes to must be in the `supabase_realtime` publication —
+see docs/supabase.md.)
 
 ## PlayArea layout
-Standard v3 two-column (board column hugs the board, fixed-width info column):  PN FB TS WK MC RA SD SS WN MW WW PP SB HT
-Documented exceptions (docs/playarea.md + the game docs):  MG (board FILLS the
-column + zoom/scroll; hand + peel/dump live in the info column)  CP (keyboard-first
-grid; clue lists fill the info side)
+Standard v3 two-column (board column hugs the board, fixed-width info column):
+PN FB TS WK MC RA SD SS WN MW WW PP SB HT Documented exceptions
+(docs/playarea.md + the game docs): MG (board FILLS the column + zoom/scroll;
+hand + peel/dump live in the info column) CP (keyboard-first grid; clue lists
+fill the info side)
 
 
 # Tags
 
 ## Opt-in turn-by-turn coop (the common turn-order primitive)
-PN WN WK SS WW  RA (coop)  PP  HT  SB (the strongest fit on the roster — the chain
+PN WN WK SS WW RA (coop) PP HT SB (the strongest fit on the roster — the chain
 hands off natively, "I ended on T, you start on T"; undo COSTS the turn there)
-(A per-game setup choice — `coop_style: 'turns'` — that rotates moves through the
-players instead of free-for-all. Discrete-move coop games only; the shared
+(A per-game setup choice — `coop_style: 'turns'` — that rotates moves through
+the players instead of free-for-all. Discrete-move coop games only; the shared
 primitive lives on `common.games.current_turn_user_id` + `common.game_players.
-turn_seat`. See docs/common-schema.md → Turn-order. Distinct from TS, whose turns are
-fixed at the gametype level, not an opt-in.)
+turn_seat`. See docs/common-schema.md → Turn-order. Distinct from TS, whose
+turns are fixed at the gametype level, not an opt-in.)
 
 ## Word-finding as core play
 MC FB MW (find many words)  WW (find the longest word)
@@ -235,26 +237,26 @@ PP (find the words HIDDEN in a grid — the only one where a word's PLACEMENT,
 not just its letters, is what you're looking for)
 
 ## Shared entry / submit machinery (who consumes what from `common/`)
-`useFoundWordSubmit` (shipped-list lookup + optimistic trusting-commit):  FB MC MW WW
-`WordEntryArea` / `WordEntryInput` (the typed-word box + Delete/Submit row):  PN FB MC MW SB
-`useCaptureKeys` directly (bare-keys grab, no focused input):  FB MC WN MW WW
-  (PN + SB get their capture via `WordEntryArea`; WN/WW letters land on the board,
-  not a box. SB deliberately skips `useFoundWordSubmit` — a chain append isn't a
-  found-word, so its validation is `lib/board.ts` + a plain RPC.)
-`GuessKeyboard` (shared on-screen QWERTY):  WN WW
+`useFoundWordSubmit` (shipped-list lookup + optimistic trusting-commit): FB MC
+MW WW `WordEntryArea` / `WordEntryInput` (the typed-word box + Delete/Submit
+row): PN FB MC MW SB `useCaptureKeys` directly (bare-keys grab, no focused
+input): FB MC WN MW WW (PN + SB get their capture via `WordEntryArea`; WN/WW
+letters land on the board, not a box. SB deliberately skips `useFoundWordSubmit`
+— a chain append isn't a found-word, so its validation is `lib/board.ts` + a
+plain RPC.) `GuessKeyboard` (shared on-screen QWERTY): WN WW
 
 ## Hints
-PN SD WK RA CP  PP  HT (coop-only, and PRIVATE — the ring shows only to the
-asker, since being handed a card you didn't ask for is being played FOR; the
-COUNT is the table's, and the log names who asked. Computed on the FE, which can:
-the board is face-up and `lib/cards.ts` holds the same algebra the server does,
-so `record_hint` records the asking and nothing else. Three asks walk a ladder to
-a full set, and the third one claims it)  SB (two rungs, coop-only: 'hint' = length + first letters,
-'spoiler' = the word; computed by an FE breadth-first search over the shipped
-playable list, logged server-side, never penalized)
-SS* FB*(hint for the pangram) MC*(first 2 letters?)
-(PP's is the only EARNED one: valid non-theme words fill a bar, and cashing it
-rings a theme word's tiles without giving their order.)
+PN SD WK RA CP PP HT (coop-only, and PRIVATE — the ring shows only to the asker,
+since being handed a card you didn't ask for is being played FOR; the COUNT is
+the table's, and the log names who asked. Computed on the FE, which can: the
+board is face-up and `lib/cards.ts` holds the same algebra the server does, so
+`record_hint` records the asking and nothing else. Three asks walk a ladder to a
+full set, and the third one claims it) SB (two rungs, coop-only: 'hint' =
+length + first letters, 'spoiler' = the word; computed by an FE breadth-first
+search over the shipped playable list, logged server-side, never penalized) SS*
+FB*(hint for the pangram) MC*(first 2 letters?) (PP's is the only EARNED one:
+valid non-theme words fill a bar, and cashing it rings a theme word's tiles
+without giving their order.)
 
 ## AI
 TS (clue suggester)  RA (suggester + opponent)  CP (explain-cryptic-clue)
@@ -265,14 +267,12 @@ MG
 ## Leans on the shared dictionary (`common.words`)
 Everything except TS WK CP HT. (The first three bring their own word lists /
 puzzle sources; HT is the only game on the roster with no WORDS in it at all —
-its deck is generated arithmetic.)
-PP is a hybrid: its THEME words come with the puzzle, and only the hint words are
-looked up in common.words.
-FE-validation via a shipped list built from it:  MC FB MW WW
-  (SB ships a list too, but the server re-validates every move against it)
-Server-side move validation:  RA MG WN PP SB
-Board build / secrets / hints:  PN SD SS WN MW WW SB (the seed pool + each
-  board's playable list are both computed from it)
+its deck is generated arithmetic.) PP is a hybrid: its THEME words come with the
+puzzle, and only the hint words are looked up in common.words. FE-validation via
+a shipped list built from it: MC FB MW WW (SB ships a list too, but the server
+re-validates every move against it) Server-side move validation: RA MG WN PP SB
+Board build / secrets / hints: PN SD SS WN MW WW SB (the seed pool + each
+board's playable list are both computed from it)
 
 ## Reveal-at-terminal (shows the answer when done)
 PN TS WK SD SS WN CP PP SB (the seeded two-word solution — "Solvable in two";
@@ -307,11 +307,11 @@ fixpoint — and a second implementation of that on the FE would eventually show
 board that never existed.)
 
 ## Print to PDF
-All sixteen games print (common/pdf/doc.md has the per-game table + body families).
-HT prints THE LOG and nothing else — per-player totals, then every claim and
-hint as PICTURES of the cards. It is the one game with no print-and-play value
-at all: its board is a shuffle that turns over every few seconds, so a printed
-one is a photograph of a moment nobody can return to.
+All sixteen games print (common/pdf/doc.md has the per-game table + body
+families). HT prints THE LOG and nothing else — per-player totals, then every
+claim and hint as PICTURES of the cards. It is the one game with no
+print-and-play value at all: its board is a shuffle that turns over every few
+seconds, so a printed one is a photograph of a moment nobody can return to.
 (PP + SB print one TRACK PER BOARD like WN/SS — coop is one column, compete one
 per player — and move their color encodings onto shape/weight, since on a mono
 printer two hues are one gray: PP's purple/gold becomes line weight + dashing,

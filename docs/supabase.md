@@ -130,8 +130,9 @@ compute the result: which hint, which colors.)
 
 **`took_turn` answers "did this event use up one of the actor's goes?"** in
 every game and mode, whether or not a turn rotation is running
-([common-schema.md → Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games)
-is the rotation, a different question).
+([common-schema.md →
+Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games) is
+the rotation, a different question).
 
 - **It is the game's judgment, not the mechanism.** A game with no rotation
   still marks its moves; a game-ending move advances nothing yet is still a
@@ -152,15 +153,16 @@ is the rotation, a different question).
 | **the metered number** | "your 3rd of 6 guesses", "cleared in 14 turns" | derived at read time — `count(*) where took_turn`, or the game's own predicate where the meter counts something else |
 | **`took_turn`** | the RPC's verdict on one event | stored, because no predicate over the row recovers it |
 
-A metered count is correct in every mode because it counts only the caller's
-own rows, which RLS always shows them; a per-player counter a game keeps anyway
-stays the authority for what was spent. The payload columns are each game's
-own. The frontend side — the `#N` handle, the "whose turns?" picker, the
-history viewer — is [src/common/event-log/doc.md](../src/common/event-log/doc.md).
+A metered count is correct in every mode because it counts only the caller's own
+rows, which RLS always shows them; a per-player counter a game keeps anyway
+stays the authority for what was spent. The payload columns are each game's own.
+The frontend side — the `#N` handle, the "whose turns?" picker, the history
+viewer — is [src/common/event-log/doc.md](../src/common/event-log/doc.md).
 
 ## Reading data
 
-- **Explicit columns, always** ([code-conventions.md → Avoid `SELECT *`](code-conventions.md#avoid-select-)).
+- **Explicit columns, always** ([code-conventions.md → Avoid `SELECT
+  *`](code-conventions.md#avoid-select-)).
 - **Read views, subscribe to base tables.** A game with hidden state reads a
   `games_state` / `players_state` view that shields the secret column until the
   row's state allows it. Realtime watches tables, not views, so the same hook
@@ -200,8 +202,9 @@ The frontend hears about writes through Realtime: `postgres_changes` (CDC) for
 table changes, Broadcast and Presence for peer-to-peer state that is never
 stored. Almost every data hook is refetch-on-any-event through
 `useRealtimeRefetch`; the hook shapes, the channel names, the reconnect story
-and the deaf window are [src/common/realtime/doc.md](../src/common/realtime/doc.md)'s.
-Finding a channel is a search for `supabase.channel(` and `channelPrefix`.
+and the deaf window are
+[src/common/realtime/doc.md](../src/common/realtime/doc.md)'s. Finding a channel
+is a search for `supabase.channel(` and `channelPrefix`.
 
 ### The publication invariant (load-bearing)
 
@@ -216,8 +219,8 @@ nobody reads is replication overhead.
 
 A channel whose tables are all published can still report `SUBSCRIBED` and
 deliver nothing ([realtime/doc.md → A page that has stopped
-updating](../src/common/realtime/doc.md#a-page-that-has-stopped-updating)); check
-the publication first, since it's the cheap check.
+updating](../src/common/realtime/doc.md#a-page-that-has-stopped-updating));
+check the publication first, since it's the cheap check.
 
 **DELETE events are unreliable under a filter**, because a DELETE carries only
 the row's replica identity. Two consequences, each commented where it lives:
@@ -227,8 +230,9 @@ the UPDATE wakes clients to refetch.
 
 ## Server conventions
 
-**RPCs** ([code-conventions.md → RPC functions](code-conventions.md#rpc-functions),
-[common-schema.md → RPCs](common-schema.md#rpcs)):
+**RPCs** ([code-conventions.md → RPC
+functions](code-conventions.md#rpc-functions), [common-schema.md →
+RPCs](common-schema.md#rpcs)):
 
 - **Every write goes through an RPC.** There are no INSERT, UPDATE or DELETE
   policies anywhere; RLS grants reads only.
@@ -238,24 +242,26 @@ the UPDATE wakes clients to refetch.
   `common.require_club_member` for club-level actions like `set_current_view`
   and `tick_timer`.
 - **A move locks its game row** (`select … for update`) so concurrent moves
-  serialize, and so does a `replay_board`: a replay interleaved with a move could
-  leave a stray log row on the fresh board, or let a game-ending move land after
-  the reset and re-end it.
+  serialize, and so does a `replay_board`: a replay interleaved with a move
+  could leave a stray log row on the fresh board, or let a game-ending move land
+  after the reset and re-end it.
 - A state-changing RPC updates the game's own row and the `common.games` header
   (`common.update_state` / `common.end_game`) in one transaction, so the club
   list never lags the game.
-- It answers in an envelope ([envelopes.md → How SQL builds one](envelopes.md#how-sql-builds-one)).
+- It answers in an envelope ([envelopes.md → How SQL builds
+  one](envelopes.md#how-sql-builds-one)).
 
 On the frontend, a call goes through `runRpc` / `readRows` / `runEdgeFn`
 ([src/common/supabase/doc.md](../src/common/supabase/doc.md)).
 
-**RLS** ([CLAUDE.md → Trust model](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat),
+**RLS** ([CLAUDE.md → Trust
+model](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat),
 [common-schema.md → Row-level security](common-schema.md#row-level-security)):
 
 - **Viewing is club-gated, acting is player-gated.** SELECT policies use
   `common.is_club_member`; moves use `require_game_player`.
-- **A hidden answer is shielded** by a column grant, a `security definer`
-  helper and a `security_invoker` view
+- **A hidden answer is shielded** by a column grant, a `security definer` helper
+  and a `security_invoker` view
   ([code-conventions.md](code-conventions.md#security-definer-helper--security_invoker-view)).
 - **Some rows are owner-only**, and a compete game's policies narrow mid-game
   reads to the player's own rows, opening up at terminal. A CDC payload isn't
@@ -287,7 +293,8 @@ caller.
   game's own engine server-side; the crosswords importers fetch a puzzle and
   create the game with it.
 - Every function answers an envelope at HTTP 200 whenever it ran, faults
-  included ([envelopes.md → How edge functions build one](envelopes.md#how-edge-functions-build-one)),
-  and keeps its tagged `console.log` diagnostics.
+  included ([envelopes.md → How edge functions build
+  one](envelopes.md#how-edge-functions-build-one)), and keeps its tagged
+  `console.log` diagnostics.
 - Functions are outside `tsc -b`: check them with `deno check`, which misses a
   bare `@/` alias or an extensionless import — both fail only at boot.

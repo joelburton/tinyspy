@@ -116,9 +116,9 @@ thing to the reader: the log is what happened, in order, and a hint is as much
 part of the record as the find it led to. It also makes the hint tally something
 the log can be asked for rather than a separate counter to keep in step.
 
-**`board_after` is stored, not derived.** The board after event N *is* a function
-of the frozen deck and the events before it — but only by re-running the deal
-(remove three · refill in place when under the floor with cards left ·
+**`board_after` is stored, not derived.** The board after event N *is* a
+function of the frozen deck and the events before it — but only by re-running
+the deal (remove three · refill in place when under the floor with cards left ·
 tail-compact when not · deal to fixpoint), which is the subtlest logic in the
 game. Deriving it on the FE means a second implementation with nothing testing
 that the two agree, and when they drift the history viewer shows a board that
@@ -137,9 +137,9 @@ helper behind it. `_deck_size` is the one `_`-prefixed function granted to
 ### Realtime
 
 All three tables are in `supabase_realtime` (`games` carries the board itself,
-`players` the counts, `events` the log + the last-set panel). One unpublished table would
-silently kill live delivery for the other two — the central registry test
-guards it.
+`players` the counts, `events` the log + the last-set panel). One unpublished
+table would silently kill live delivery for the other two — the central registry
+test guards it.
 
 ### Play states
 
@@ -191,7 +191,8 @@ just in the FE, and `supabase/tests/setgame/turn_order_test.sql` pins every row
 of that table.
 
 **Three surfaces say whose turn it is**, and setgame's arrangement is not the
-roster's standard one (this section carries the argument; `FeedbackMessage.waiting()` is the shared message):
+roster's standard one (this section carries the argument;
+`FeedbackMessage.waiting()` is the shared message):
 
 | surface | when it's yours | when it isn't |
 |---|---|---|
@@ -238,8 +239,9 @@ is more than one, and the FE reads its own flag.
 **On timeout, compete RANKS THE STANDINGS** — the leader at the whistle wins.
 With a collective finish there are no finishers to rank, and the count of sets
 taken IS the complete result at every instant, so the clock is simply how the
-session stops ([win-lose.md → The three primitives](../win-lose.md#the-three-primitives)).
-A race nobody scored in is still a collective loss.
+session stops ([win-lose.md → The three
+primitives](../win-lose.md#the-three-primitives)). A race nobody scored in is
+still a collective loss.
 
 Concede is the standard per-player drop-out. A conceder keeps the sets they took
 — they appear in the leaderboard with their count — but cannot win, so nothing
@@ -274,10 +276,10 @@ while you are mid-thought, and it re-letters every card after the hole.
 ### The claim flash
 
 A claim substitutes cards **in place**: three leave and three arrive in the same
-slots. Locally that lands in one beat and reads fine — over a real connection the
-board simply *differs* a moment later, and if your eye was in another corner of
-it, nothing said so. Worst in coop, where the claim was someone else's and you
-had no reason to be watching those three at all.
+slots. Locally that lands in one beat and reads fine — over a real connection
+the board simply *differs* a moment later, and if your eye was in another corner
+of it, nothing said so. Worst in coop, where the claim was someone else's and
+you had no reason to be watching those three at all.
 
 So every claim is marked, and `lib/flash.ts` owns the whole design:
 
@@ -289,38 +291,40 @@ So every claim is marked, and `lib/flash.ts` owns the whole design:
 
 Three properties are load-bearing:
 
-- **Fills, not rings.** The first version drew a ring, and a ring is the one mark
-  that can't do this job: thin, at the edge of a card, invisible to peripheral
-  vision — exactly where the board is when someone else claims.
+- **Fills, not rings.** The first version drew a ring, and a ring is the one
+  mark that can't do this job: thin, at the edge of a card, invisible to
+  peripheral vision — exactly where the board is when someone else claims.
 - **Light tints of a saturated hue.** The symbols are drawn *on* these, and two
   of the three traditional symbol colors are red and green. Dark saturated
   symbols on a light saturated ground stay perfectly legible. (Red was the first
   suggestion for the departing set and would have been the wrong word: red means
   *rejected* everywhere else, so a successful claim flashing red reads as a
   refusal — worst of all to the claimer.)
-- **Both clear at the same instant**, and that symmetry is fairness, not tidiness:
-  if the claimer's board updated while everyone else still held ghosts, they'd
-  see their replacements early — a real edge in compete.
+- **Both clear at the same instant**, and that symmetry is fairness, not
+  tidiness: if the claimer's board updated while everyone else still held
+  ghosts, they'd see their replacements early — a real edge in compete.
 
 **There is no slow deal.** An earlier version emptied the claimed slots and
 landed the replacements one at a time (300ms apart), on the theory that motion
 draws the eye. It doesn't, if the moving thing is a thin ring — and it made the
 board partly unplayable for the length of the deal, since a card that hasn't
-arrived can't be clicked. A player who can think fast should be able to act fast.
-The only time anything now costs is the 600ms hold, and that one is deliberate.
+arrived can't be clicked. A player who can think fast should be able to act
+fast. The only time anything now costs is the 600ms hold, and that one is
+deliberate.
 
 **Keyed to a CLAIM, and nothing else.** A new game and a restart just appear,
 unmarked. Working out which had happened took three wrong answers, all of them
-inferring the cause from the board's shape — how many slots differed, whether the
-deck moved, whether the score dropped. Each had a case that broke it and two of
-them shipped: a restart one claim in leaves a board differing in only three
+inferring the cause from the board's shape — how many slots differed, whether
+the deck moved, whether the score dropped. Each had a case that broke it and two
+of them shipped: a restart one claim in leaves a board differing in only three
 slots, so it flashed them as freshly dealt; and a claim on a fifteen-card table
 compacts to twelve without drawing from the deck at all. The answer is that the
-cause is already *recorded* — a claim writes an event, and `replay_board` deletes
-every event — so `PlayArea` reads the log instead of measuring the wreckage. Safe
-because the board and the events arrive in one fetch. The third condition is
-"there was a previous board at all": on first load an ended game's history is
-full of claims, and without it, opening a finished game lit the whole table up.
+cause is already *recorded* — a claim writes an event, and `replay_board`
+deletes every event — so `PlayArea` reads the log instead of measuring the
+wreckage. Safe because the board and the events arrive in one fetch. The third
+condition is "there was a previous board at all": on first load an ended game's
+history is full of claims, and without it, opening a finished game lit the whole
+table up.
 
 
 ## 6. Contention — the one genuinely new mechanic
@@ -518,9 +522,9 @@ least urgent, and the bar must never wrap.
 The bar is paid for twice over. Its height comes out of `--avail-h` (the shared
 convention), and the ~9px of card width that cost is bought back by **cropping
 the card's own top/bottom whitespace**: mobile draws a 100:86 card instead of
-100:94, and the face is rendered `preserveAspectRatio="slice"` so the shorter box
-trims margin rather than shrinking the symbols. Measured at 390×844, cards are
-111px either way.
+100:94, and the face is rendered `preserveAspectRatio="slice"` so the shorter
+box trims margin rather than shrinking the symbols. Measured at 390×844, cards
+are 111px either way.
 
 In **portrait** the board **transposes**: three columns, growing downwards.
 Growing sideways on a ~366px width would divide it by up to seven, leaving ~50px
@@ -568,8 +572,8 @@ the terminal so a cooperative game doesn't become a running scoreboard, and
 nothing is live on paper, so that reason doesn't apply.
 
 The printer draws its own two-column flow rather than composing the shared
-`drawEventLog`, whose row is `{ seq, who, text }`. The column *geometry* is still
-shared (`twoColGeom`), so the page lines up with every other printout.
+`drawEventLog`, whose row is `{ seq, who, text }`. The column *geometry* is
+still shared (`twoColGeom`), so the page lines up with every other printout.
 
 **Shading on paper — the hatch, and why the shortcuts failed.** setgame is the
 one printer that has to reproduce a texture. On screen a striped card is an SVG
@@ -744,18 +748,18 @@ would file a bug report for.
   here, when setgame is next open.
 
 - **Rename `card` → `tile` throughout** (Joel, 2026-08-21). The app has one word
-  for the main game piece — **tile** — regardless of what the physical game uses.
-  codenamesduet deals in real-world cards too and calls them tiles; setgame is
-  the holdout, and it makes `.card` mean a fourth thing app-wide (the others are
-  a bordered surface panel, a popover, and a list row).
+  for the main game piece — **tile** — regardless of what the physical game
+  uses. codenamesduet deals in real-world cards too and calls them tiles;
+  setgame is the holdout, and it makes `.card` mean a fourth thing app-wide (the
+  others are a bordered surface panel, a popover, and a list row).
 
   Not small, and it is why this is deferred rather than done: **765 mentions in
   `src/setgame/`, 141 in SQL, 128 in this doc.** The SQL half is the part that
   costs — `cards` is a column and appears in `smallint` declarations, loop
-  variables and function bodies across `supabase/sql/setgame.sql`, so this is the
-  rare deferral that needs a **forward migration** for the column rename on top of
-  the in-place edit to `supabase/sql/setgame.sql` (CLAUDE.md → "Write a NEW
-  migration; never edit an applied one"). The FE half includes
+  variables and function bodies across `supabase/sql/setgame.sql`, so this is
+  the rare deferral that needs a **forward migration** for the column rename on
+  top of the in-place edit to `supabase/sql/setgame.sql` (CLAUDE.md → "Write a
+  NEW migration; never edit an applied one"). The FE half includes
   `components/Card.tsx`, `lib/cards.ts` and their tests.
 
   Worth doing when setgame's CSS/tile-feedback pass comes up, so the rename
@@ -765,35 +769,36 @@ would file a bug report for.
   Only bites in a timed game. Nobody has asked for it.
 
 - **A claim on a 15-card board flashes more than three cards** (seen in play,
-  2026-08-17). Not a diffing accident — it is [`lib/flash.ts`](../../src/setgame/lib/flash.ts)'s
-  documented choice working as designed: the transition is compared **slot by
-  slot, never as a set difference**, because a claim on fifteen compacts back to
-  twelve and *moves* cards from the end into the holes. Those cards aren't new to
-  the game, so "which cards are new?" finds nothing for them and they would land
-  silently — which the comment argues is the one case you most need to be told
-  about.
+  2026-08-17). Not a diffing accident — it is
+  [`lib/flash.ts`](../../src/setgame/lib/flash.ts)'s documented choice working
+  as designed: the transition is compared **slot by slot, never as a set
+  difference**, because a claim on fifteen compacts back to twelve and *moves*
+  cards from the end into the holes. Those cards aren't new to the game, so
+  "which cards are new?" finds nothing for them and they would land silently —
+  which the comment argues is the one case you most need to be told about.
 
-  What's now in question is whether that is the right trade at the table: five or
-  six cards lighting up for a three-card claim over-reports what happened, and the
-  mark is deliberately loud. Worth discussing rather than fixing blind — the
-  options are roughly (a) leave it, (b) mark a moved-but-not-new card differently
-  from a genuine arrival, or (c) don't compact, and let the holes stay until the
-  next deal. Each says something different about what a slot *means*.
+  What's now in question is whether that is the right trade at the table: five
+  or six cards lighting up for a three-card claim over-reports what happened,
+  and the mark is deliberately loud. Worth discussing rather than fixing blind —
+  the options are roughly (a) leave it, (b) mark a moved-but-not-new card
+  differently from a genuine arrival, or (c) don't compact, and let the holes
+  stay until the next deal. Each says something different about what a slot
+  *means*.
 
 - **An 18-card board doesn't fit at full card size on desktop** (a 16" MacBook,
-  2026-08-17) — and the code agrees: `Board.module.css` says `--max-card-w: 12rem`
-  is "chosen against the WIDTH term… under what five columns can afford, so
-  dealing to fifteen resizes nothing at all. Only an eighteen-card board shrinks
-  the cards, and that is 1.4% of games."
+  2026-08-17) — and the code agrees: `Board.module.css` says `--max-card-w:
+  12rem` is "chosen against the WIDTH term… under what five columns can afford,
+  so dealing to fifteen resizes nothing at all. Only an eighteen-card board
+  shrinks the cards, and that is 1.4% of games."
 
   So the implementation reserves *fifteen* without a resize, while the mental
-  model we've been carrying is that only the ~1-in-a-million twenty-one-card board
-  should ever cost a size change. The header records why the first draft's
+  model we've been carrying is that only the ~1-in-a-million twenty-one-card
+  board should ever cost a size change. The header records why the first draft's
   always-fit-seven-columns approach was rejected — an ordinary twelve-card board
   paid a permanent 20% of card size for a board almost nobody sees — so the real
-  question is whether six columns' worth of that cost is worth paying for the 1.4%
-  of games that reach eighteen. Measure before deciding: the width term binds
-  beside the info column, so the cost is a real number, not a guess.
+  question is whether six columns' worth of that cost is worth paying for the
+  1.4% of games that reach eighteen. Measure before deciding: the width term
+  binds beside the info column, so the cost is a real number, not a guess.
 
 
 ## Won't do

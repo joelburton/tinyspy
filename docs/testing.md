@@ -104,8 +104,8 @@ which:
 
 A test whose subject answers in an envelope — nearly every RPC — also loads
 [`_shared/envelope.psql`](../supabase/tests/_shared/envelope.psql) for
-`envelope_is` (below). `src/guards/pgtapIncludes.test.ts` fails a file that uses a
-helper without including the file that defines it.
+`envelope_is` (below). `src/guards/pgtapIncludes.test.ts` fails a file that uses
+a helper without including the file that defines it.
 
 The trigger on `auth.users` materializes a `common.profiles` row + a solo club
 for each persona, so every test starts with five profiles and five solo clubs

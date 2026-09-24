@@ -2,9 +2,9 @@
 
 A find-words-in-a-grid game (Boggle): players trace words through a grid of
 letter tiles, stepping between orthogonally **or** diagonally adjacent tiles and
-never reusing a tile within one word. The board is pre-solved at creation, so the
-game knows every word that's *findable* — which is what makes the "did you find
-them all?" reveal and the board-difficulty constraints possible.
+never reusing a tile within one word. The board is pre-solved at creation, so
+the game knows every word that's *findable* — which is what makes the "did you
+find them all?" reveal and the board-difficulty constraints possible.
 
 > **Brand ≠ codename.** The user-facing brand is **MothCubes** (it lives only in
 > the manifest `BRAND` const — see [docs/naming.md](../naming.md) and
@@ -12,9 +12,9 @@ them all?" reveal and the board-difficulty constraints possible.
 > the codename is `boggle`. Ported from `~/src/wsboggle` (the rules/spec) and
 > `~/src/cboggle/make-dawg` (consulted only while building the solver).
 
-boggle is a **coop / compete sibling pair** (`boggle_coop`, `boggle_compete`) and
-inherits the shared chrome — timer, chat, presence-pause, manual "End game" —
-through `<GamePage>` + `useCommonGame`, like every other multiplayer gametype.
+boggle is a **coop / compete sibling pair** (`boggle_coop`, `boggle_compete`)
+and inherits the shared chrome — timer, chat, presence-pause, manual "End game"
+— through `<GamePage>` + `useCommonGame`, like every other multiplayer gametype.
 
 > **Status: live.** boggle (its `boggle_coop` / `boggle_compete` are the
 > gametypes) is built end-to-end
@@ -31,19 +31,20 @@ one of the up-to-8 neighbors, no tile visited twice — and the word clears the
 minimum length.
 
 - **Dice sets.** All eight wsboggle sets ship (4×4 Classic/Revised, four 5×5
-  sets, two 6×6 sets), ported verbatim from `dice.py`. A board is rolled from the
-  chosen set's bag of dice. Some faces are **multiface** — a single tile that
-  contributes two letters at once: `Qu In Th Er He An` (you can't use half a
-  tile). One face on the 6×6 super set is a **blank** that matches no letter, so
-  no word can path through it (rendered as a faint `?`, like a scrabble blank).
+  sets, two 6×6 sets), ported verbatim from `dice.py`. A board is rolled from
+  the chosen set's bag of dice. Some faces are **multiface** — a single tile
+  that contributes two letters at once: `Qu In Th Er He An` (you can't use half
+  a tile). One face on the 6×6 super set is a **blank** that matches no letter,
+  so no word can path through it (rendered as a faint `?`, like a scrabble
+  blank).
 - **Scoring ladders.** wsboggle's four ladders — `flat` (every word 1),
   `basic` (1–11 by length), `fib` (Fibonacci, 1–377), `big` (prefer-big, 1–50) —
   picked in setup, default `basic`. The chosen ladder drives generation scoring,
   the score constraint, and per-word points.
 - **Minimum word length.** 3 / 4 / 5, default 3. A guess shorter than this is
   rejected.
-- **Timer.** The shared `SetupTimerSection` (none / count-up / count-down MM:SS),
-  default none; a countdown lets the player pick the duration.
+- **Timer.** The shared `SetupTimerSection` (none / count-up / count-down
+  MM:SS), default none; a countdown lets the player pick the duration.
 - **Win target (`win_percent`).** An optional score bar: a dropdown of
   **None / 50 / 55 / … / 100 %**, default None. When set, the game is WON the
   moment the team (coop) or a player (compete) reaches `win_percent` % of the
@@ -77,8 +78,8 @@ set (the board's goal + reveal) and *bonus* words (extra legal finds). Two
 independent difficulty bands govern them, and **both lists are enumerated at
 board-build time and shipped to the FE** — the FE validates + scores every guess
 locally against required ∪ bonus and submits trusting-commit (the same model as
-spellingbee, via the shared `useFoundWordSubmit` hook). No `common.words` round-trip
-at guess time.
+spellingbee, via the shared `useFoundWordSubmit` hook). No `common.words`
+round-trip at guess time.
 
 - **Required words** — the set the board is **built and judged against**:
   `difficulty ≤ band` plus the **clean filter** (`american, crude=0, slur=0,
@@ -91,13 +92,15 @@ at guess time.
   **legal band** and traceable on the board. Scored normally; **never listed**
   when unfound (the reveal is required-only). Enumerated once on the accepted
   board (a second `listWords` pass against the legal-band trie — see
-  [§4](#4-board-generation-boggle-build-board-edge-function)) and stored in `bonus_words`.
+  [§4](#4-board-generation-boggle-build-board-edge-function)) and stored in
+  `bonus_words`.
 
-- **Legal words** = required ∪ bonus — the acceptance set. A guess is legal iff it
-  is a member of that shipped list (membership implies traceable + real, since the
-  list was produced by solving *this* board). The FE keeps a local `traceableStr`
-  check only to distinguish the two reject messages ("not on the board" vs "not a
-  word"); the server trusts the FE's word + points + `is_bonus`.
+- **Legal words** = required ∪ bonus — the acceptance set. A guess is legal iff
+  it is a member of that shipped list (membership implies traceable + real,
+  since the list was produced by solving *this* board). The FE keeps a local
+  `traceableStr` check only to distinguish the two reject messages ("not on the
+  board" vs "not a word"); the server trusts the FE's word + points +
+  `is_bonus`.
 
 **The two bands and their deliberate asymmetry.** Setup picks *both* a required
 band and a legal band, with `legal_band ≥ band` (every required word is also
@@ -117,9 +120,9 @@ roll→solve→reject loop, so board-creation constraints stay required-only.
 
 ## 3. The solver (`lib/solver.ts`)
 
-The generator needs to find every required word on a candidate board, fast enough
-to reject-sample boards interactively. The solver is **pure TypeScript** running
-natively in the Deno edge function — no WASM, no FFI.
+The generator needs to find every required word on a candidate board, fast
+enough to reject-sample boards interactively. The solver is **pure TypeScript**
+running natively in the Deno edge function — no WASM, no FFI.
 
 - **Algorithm.** A **flat typed-array trie** plus a **generation-stamp** on each
   terminal node: each solve bumps a counter and stamps a word's node when found,
@@ -127,10 +130,10 @@ natively in the Deno edge function — no WASM, no FFI.
   the language — is the lever; it's ~2× faster than the original C's DAWG +
   hash-table approach, and in V8 a TS port of it beats that original C.
 - **Board sizes.** Because the 6×6 sets ship (36 tiles), the DFS tracks visited
-  tiles with a **two-word 64-bit mask** (`usedLo` / `usedHi`) — one code path for
-  4×4 / 5×5 / 6×6. A single 32-bit JS-number bitmask tops out at 32 tiles.
-- **Multiface + blanks.** Multiface faces expand to their letter pairs during the
-  trace; the blank face matches nothing, so paths can't cross it.
+  tiles with a **two-word 64-bit mask** (`usedLo` / `usedHi`) — one code path
+  for 4×4 / 5×5 / 6×6. A single 32-bit JS-number bitmask tops out at 32 tiles.
+- **Multiface + blanks.** Multiface faces expand to their letter pairs during
+  the trace; the blank face matches nothing, so paths can't cross it.
 - **Shape.** A `createSolver(trie)` factory returns `{ solve }`; a fresh solver
   per generation means concurrent games share no mutable state. (A module-global
   singleton was measured and is *identical* in the shipping runtimes — Deno
@@ -138,9 +141,9 @@ natively in the Deno edge function — no WASM, no FFI.
 
 `boggle-c-solver/` (repo root) holds the original C, the improved C, and a
 six-way native/WASM × C/TS benchmark, all reproducing an identical correctness
-tuple. It stays as the **golden-master parity oracle**: the shipping TS solver is
-tested against a fixture (`solver.fixture.ts`, 90 boards across all sizes incl.
-multiface) generated from that C.
+tuple. It stays as the **golden-master parity oracle**: the shipping TS solver
+is tested against a fixture (`solver.fixture.ts`, 90 boards across all sizes
+incl. multiface) generated from that C.
 
 ---
 
@@ -152,8 +155,9 @@ solves, and reject-samples until a board meets the setup's constraints, then
 creates the game in one round-trip:
 
 1. Verify the JWT; read `{ target_club, setup, player_user_ids, mode }`.
-2. Get the **required trie** for `difficulty ≤ setup.band` (built from the bundled
-   word list — [§5](#5-dictionary-delivery) — memoized per band at module scope).
+2. Get the **required trie** for `difficulty ≤ setup.band` (built from the
+   bundled word list — [§5](#5-dictionary-delivery) — memoized per band at
+   module scope).
 3. Loop up to a try budget (also wall-clock-bounded so impossible constraints
    fail fast instead of crashing the worker):
    - Roll the chosen dice set (random die order + a random face per die,
@@ -161,8 +165,9 @@ creates the game in one round-trip:
    - Solve for required words (flat-trie DFS, gen-stamp dedup, with a `max`
      fail-fast so an over-rich board is abandoned early).
    - Accept iff it meets **every** constraint: word count in `[minWords,
-     maxWords]`, score (per the chosen ladder) in `[minScore, maxScore]`, longest
-     word in `[minLongest, maxLongest]`, all measured over the required set.
+     maxWords]`, score (per the chosen ladder) in `[minScore, maxScore]`,
+     longest word in `[minLongest, maxLongest]`, all measured over the required
+     set.
 4. On accept → enumerate the **bonus** set: build the **legal trie** for
    `legal_band` (`legalTrie(legal_band)` — the *difficulty-only* set, so
    crude/slur/slang/non-american words count; distinct from the clean
@@ -170,64 +175,66 @@ creates the game in one round-trip:
    accepted board, minus the required set (`listBonusWords` in
    `src/boggle/lib/generate.ts`). This is usually non-empty **even when
    `legal_band == band`** — the required set is clean-only, so the band's
-   non-clean words are all bonus. Then call `boggle.create_game` with the board +
-   the required-word list + the bonus-word list (both `[{word, points}]`). On
-   exhaustion → return a friendly **"constraints too strict, relax them"** error,
-   which the FE surfaces on the setup dialog.
+   non-clean words are all bonus. Then call `boggle.create_game` with the
+   board + the required-word list + the bonus-word list (both `[{word,
+   points}]`). On exhaustion → return a friendly **"constraints too strict,
+   relax them"** error, which the FE surfaces on the setup dialog.
 
 `legal_band` shapes only the post-acceptance bonus enumeration, never board
-*acceptance* (constraints are required-only), so the reject loop stays fast — the
-bonus pass is one extra solve on the single accepted board. The `scoring_ladder`
-is validated at the API boundary before generation.
+*acceptance* (constraints are required-only), so the reject loop stays fast —
+the bonus pass is one extra solve on the single accepted board. The
+`scoring_ladder` is validated at the API boundary before generation.
 
-**Measured cost** (one accepted board): ~60–110 ms for typical bands; ~286 ms for
-the extreme corner (an easy band *and* a required 11-letter word). Cold start
-(decode the asset + build the first band trie) is a one-time ~166 ms per isolate.
-Both sit comfortably inside an on-demand "Start game" action.
+**Measured cost** (one accepted board): ~60–110 ms for typical bands; ~286 ms
+for the extreme corner (an easy band *and* a required 11-letter word). Cold
+start (decode the asset + build the first band trie) is a one-time ~166 ms per
+isolate. Both sit comfortably inside an on-demand "Start game" action.
 
 ### Custom board (player-typed tiles)
 
-One OPTIONAL setup field lets a player hand the game its board instead of rolling
-one: **`setup.custom_board`**, the tiles as text. Blank → the roll loop above runs
-as normal; set → the edge function **skips rolling entirely**, parses the tiles,
-solves that one board, and creates the game. Available in **either mode**. The
-SetupForm surfaces a "Custom board (optional)" disclosure under the dice set; the
-manifest's `validate` (`customBoardError`) gates Start on the same parse the
-server runs. This is freebee's and MooseWheel's "custom letters" feature, in the
-shape a grid needs — the three letter games now all have one.
+One OPTIONAL setup field lets a player hand the game its board instead of
+rolling one: **`setup.custom_board`**, the tiles as text. Blank → the roll loop
+above runs as normal; set → the edge function **skips rolling entirely**, parses
+the tiles, solves that one board, and creates the game. Available in **either
+mode**. The SetupForm surfaces a "Custom board (optional)" disclosure under the
+dice set; the manifest's `validate` (`customBoardError`) gates Start on the same
+parse the server runs. This is freebee's and MooseWheel's "custom letters"
+feature, in the shape a grid needs — the three letter games now all have one.
 
 The **written form** is the board read like English: rows top to bottom, a space
 between them, e.g. `ABCD EFGH IJKL MNOP`. It is exactly what the recap's
-`Letters` row prints ([§8](#8-frontend-srcboggle)), which is the point — you read
-a board off a game you liked (on screen or on paper) and paste it into the next
-game's dialog to hand a friend the same puzzle. `src/boggle/lib/customBoard.ts`
-owns **both** directions so they can't drift, and `customBoard.test.ts` asserts
-`parse(format(board)) === board` over rolls of every dice set.
+`Letters` row prints ([§8](#8-frontend-srcboggle)), which is the point — you
+read a board off a game you liked (on screen or on paper) and paste it into the
+next game's dialog to hand a friend the same puzzle.
+`src/boggle/lib/customBoard.ts` owns **both** directions so they can't drift,
+and `customBoard.test.ts` asserts `parse(format(board)) === board` over rolls of
+every dice set.
 
 - **Two-letter tiles are spelled as they print** — `Qu In Th Er He An` — and a
   blank is `?`. The parser recognizes a digraph only when written **capital then
-  lowercase**: `Qu` is one tile, `QU` and `qu` are two. That rule is load-bearing,
-  not tidiness: a bare `Q` face is real (4×4 Classic's `ABJMOQ` die), so `QU` is
-  genuinely ambiguous, and all six digraphs are common letter pairs — a
-  case-insensitive parse would silently swallow `an`/`in`/`th`/`er`/`he` out of an
-  ordinary lowercase paste. Keying on case makes each spelling mean one thing and
-  makes the printed form the one that round-trips.
-- **The dice set fixes the size.** A custom board must have exactly `n²` tiles for
-  the currently-picked set; a mismatch is a Start-blocking message
-  ("A 4×4 board needs 16 tiles — that's 25"), deliberately not a guess at which
-  of the four 5×5 sets you meant. The set therefore still chose something real,
-  which is why its `Board` recap row stays.
+  lowercase**: `Qu` is one tile, `QU` and `qu` are two. That rule is
+  load-bearing, not tidiness: a bare `Q` face is real (4×4 Classic's `ABJMOQ`
+  die), so `QU` is genuinely ambiguous, and all six digraphs are common letter
+  pairs — a case-insensitive parse would silently swallow
+  `an`/`in`/`th`/`er`/`he` out of an ordinary lowercase paste. Keying on case
+  makes each spelling mean one thing and makes the printed form the one that
+  round-trips.
+- **The dice set fixes the size.** A custom board must have exactly `n²` tiles
+  for the currently-picked set; a mismatch is a Start-blocking message ("A 4×4
+  board needs 16 tiles — that's 25"), deliberately not a guess at which of the
+  four 5×5 sets you meant. The set therefore still chose something real, which
+  is why its `Board` recap row stays.
 - **Constraints don't apply, and their recap rows vanish.** Nothing is being
   rejection-sampled, so the min/max word/score/longest targets had no effect on
   this board — and a recap must not assert a choice that didn't apply
   (`lib/setupSummary.ts`).
-- **The floor is ≥1 required word.** A custom board is whatever the player's tiles
-  yield, so there's no quality gate — but `setup.win_percent` is a *share of the
-  required-words score*, so a board with none would put the threshold at 0 and
-  hand the win to the first bonus word. Both the edge function (422,
+- **The floor is ≥1 required word.** A custom board is whatever the player's
+  tiles yield, so there's no quality gate — but `setup.win_percent` is a *share
+  of the required-words score*, so a board with none would put the threshold at
+  0 and hand the win to the first bonus word. Both the edge function (422,
   `no-required-words|<band>|`) and `create_game` (P0001) reject that. Rolled
-  boards keep no such floor: their constraints are the player's to set, including
-  none.
+  boards keep no such floor: their constraints are the player's to set,
+  including none.
 - **One-off, not a new default.** `create_game` strips `custom_board` from the
   setup it saves as the club's `clubs_gametypes.default_setup`, so the next
   dialog opens with the field blank and rolls again — the same treatment
@@ -237,20 +244,20 @@ owns **both** directions so they can't drift, and `customBoard.test.ts` asserts
 
 ## 5. Dictionary delivery
 
-The required-word source is the shared `common.words` list (see
-[word-list.md → The word list](../word-list.md#the-word-list-commonwords)), **not**
-wsboggle's word list. It's shipped to the edge function as a **bundled asset**
-rather than queried at cold start:
+The required-word source is the shared `common.words` list (see [word-list.md →
+The word list](../word-list.md#the-word-list-commonwords)), **not** wsboggle's
+word list. It's shipped to the edge function as a **bundled asset** rather than
+queried at cold start:
 
-- **Build step:** `gmake g-boggle-trie` queries `common.words` for **all**
-  words (`len ≥ 3`, every band), each tagged with a **clean flag** (= the
+- **Build step:** `gmake g-boggle-trie` queries `common.words` for **all** words
+  (`len ≥ 3`, every band), each tagged with a **clean flag** (= the
   required-eligible filter `american, crude=0, slur=0, slang=0`), and writes
-  `boggle-build-board/wordlist.ts` as a gzip+base64 blob (~283k words, ~1.25 MB).
-  `dict.ts` decodes it into two sets: **`requiredTrie`** (clean — board
+  `boggle-build-board/wordlist.ts` as a gzip+base64 blob (~283k words, ~1.25
+  MB). `dict.ts` decodes it into two sets: **`requiredTrie`** (clean — board
   generation) and **`legalTrie`** (all, difficulty-only — bonus enumeration), so
-  the legal net includes the crude/slur/slang/non-american words the clean filter
-  drops. It reads the **table**, not `~/src/gamelist/output/words.tsv` (that file is only
-  the `common.words` importer's input).
+  the legal net includes the crude/slur/slang/non-american words the clean
+  filter drops. It reads the **table**, not `~/src/gamelist/output/words.tsv`
+  (that file is only the `common.words` importer's input).
 - **Generated, not committed.** The asset is git- and eslint-ignored, and
   **regenerated by `gmake deploy-funcs`** — which depends on it, always building
   from the LOCAL stack because the hosted `common.words` isn't seeded until
@@ -279,64 +286,65 @@ pair on one `boggle` schema.
   membership without a join and the FE reads the whole board in one query.
 - `board text` — the rolled board as a row-major raw-face string (A–Z, a
   multiface digit `1`–`6`, or `0` for a blank), length `n²`; `n int` (4–6).
-- `min_word_length int`, `legal_band int` — `min_word_length` is the entry floor;
-  `legal_band` is retained for reference (it was the ceiling the bonus list was
-  enumerated against). The rest of setup (`band`, `scoring_ladder`, `timer`,
-  constraint bounds) lives in `common.games.setup`.
+- `min_word_length int`, `legal_band int` — `min_word_length` is the entry
+  floor; `legal_band` is retained for reference (it was the ceiling the bonus
+  list was enumerated against). The rest of setup (`band`, `scoring_ladder`,
+  `timer`, constraint bounds) lives in `common.games.setup`.
 - `required_words jsonb` (`[{word, points}]`) + `bonus_words jsonb` (same shape,
-  the legal − required set; empty when `legal_band == band`), both **readable** by
-  club members and shipped to the FE. `required_words_count int`,
+  the legal − required set; empty when `legal_band == band`), both **readable**
+  by club members and shipped to the FE. `required_words_count int`,
   `required_words_score int`.
 
-**No hidden-solution view.** A deliberate divergence from waffle, which hides its
-answer behind a column-grant + `security_invoker` reveal view. boggle ships both
-word lists to the FE from the start — hiding them would be anti-cheat contortion
-the trust model rejects, and shipping them makes the FE simpler (instant
-validation + scoring against required ∪ bonus, client-side missed-words reveal, in
-one shared TS hook). So there's no reveal view: the **missed-words list is
-computed client-side** as `(required ∪ bonus) − found` — missed **bonus** words are
-revealed too, except on a board whose `legal_band` equals its `band`, where "bonus"
-means only the words the clean filter removed from required (the same
-`hasBonusDifficulty` flag that suppresses the Bonus stat cells).
-*(spellingbee now works the same way — the two converged.)*
+**No hidden-solution view.** A deliberate divergence from waffle, which hides
+its answer behind a column-grant + `security_invoker` reveal view. boggle ships
+both word lists to the FE from the start — hiding them would be anti-cheat
+contortion the trust model rejects, and shipping them makes the FE simpler
+(instant validation + scoring against required ∪ bonus, client-side missed-words
+reveal, in one shared TS hook). So there's no reveal view: the **missed-words
+list is computed client-side** as `(required ∪ bonus) − found` — missed
+**bonus** words are revealed too, except on a board whose `legal_band` equals
+its `band`, where "bonus" means only the words the clean filter removed from
+required (the same `hasBonusDifficulty` flag that suppresses the Bonus stat
+cells). *(spellingbee now works the same way — the two converged.)*
 
-**`boggle.found_words`** — `(game_id, user_id, word, points, is_bonus, found_at)`,
-PK `(game_id, user_id, word)`. **Mode-aware RLS** (the spellingbee pattern):
-coop → everyone sees all found words; compete → you see only your own until the
-game is terminal, then all.
+**`boggle.found_words`** — `(game_id, user_id, word, points, is_bonus,
+found_at)`, PK `(game_id, user_id, word)`. **Mode-aware RLS** (the spellingbee
+pattern): coop → everyone sees all found words; compete → you see only your own
+until the game is terminal, then all.
 
 ---
 
 ## 7. RPCs (all `security definer`)
 
-- **`create_game(target_club, setup, player_user_ids, mode, board)`** — called by
-  the edge function. Validates club membership, player count, timer, `band`
+- **`create_game(target_club, setup, player_user_ids, mode, board)`** — called
+  by the edge function. Validates club membership, player count, timer, `band`
   (1–6), `legal_band` (band..6), `scoring_ladder`, `min_word_length` (3–9),
-  `win_percent` (null or 50..100 in steps of 5), and the board structure; inserts
-  the `common.games` header + the `boggle.games` row (`win_percent` denormalized
-  onto it); titles the game `n×n <top row>` (e.g. `4×4 ABQuD` — the board's first
-  `n` faces, with a multiface die expanded to the two letters a player sees on the
-  tile). The board is public, so nothing is leaked. On a **custom board**
-  (`setup.custom_board` present) it also demands ≥1 required word and strips the
-  one-off board from the setup saved as the club's default — see
-  [§4 → Custom board](#custom-board-player-typed-tiles).
-- **`submit_word(target_game, word, points, is_bonus)`** — the **trusting commit**.
-  The FE validated the word against the shipped legal list (required ∪ bonus) and
-  scored it, so the RPC trusts `word` + `points` + `is_bonus` and only:
+  `win_percent` (null or 50..100 in steps of 5), and the board structure;
+  inserts the `common.games` header + the `boggle.games` row (`win_percent`
+  denormalized onto it); titles the game `n×n <top row>` (e.g. `4×4 ABQuD` — the
+  board's first `n` faces, with a multiface die expanded to the two letters a
+  player sees on the tile). The board is public, so nothing is leaked. On a
+  **custom board** (`setup.custom_board` present) it also demands ≥1 required
+  word and strips the one-off board from the setup saved as the club's default —
+  see [§4 → Custom board](#custom-board-player-typed-tiles).
+- **`submit_word(target_game, word, points, is_bonus)`** — the **trusting
+  commit**. The FE validated the word against the shipped legal list (required ∪
+  bonus) and scored it, so the RPC trusts `word` + `points` + `is_bonus` and
+  only:
   1. enforces the game is live (else `gameOver`);
   2. dedups against the caller's scope (coop = team, compete = self);
   3. inserts the row + refreshes the club-page status;
   4. **checks the win target** (if `win_percent` is set): the threshold is
-     `ceil(win_percent% × required_words_score)`; when the score of the **required
-     words found** (`not is_bonus`) by the team (coop) or the caller (compete)
-     reaches it — bonus finds don't count — it calls `_finish(…, 'target'[,
-     winner_user_id])` to end the game as a win. Compete is a race — the caller who
-     just crossed is the `winner_user_id`, and the non-`playing` guard makes a
-     near-simultaneous second crosser a no-op.
+     `ceil(win_percent% × required_words_score)`; when the score of the
+     **required words found** (`not is_bonus`) by the team (coop) or the caller
+     (compete) reaches it — bonus finds don't count — it calls `_finish(…,
+     'target'[, winner_user_id])` to end the game as a win. Compete is a race —
+     the caller who just crossed is the `winner_user_id`, and the non-`playing`
+     guard makes a near-simultaneous second crosser a no-op.
 
   No word-content or dictionary check, and no scoring, in plpgsql — it does not
-  read `common.words` at all anymore. (Drives off the shared `useFoundWordSubmit` hook,
-  same as spellingbee.)
+  read `common.words` at all anymore. (Drives off the shared
+  `useFoundWordSubmit` hook, same as spellingbee.)
 
   **What it answers** ([envelopes.md](../envelopes.md)). Two `ok`s, both
   carrying the points the row was written with:
@@ -351,17 +359,17 @@ game is terminal, then all.
   | `PN485` "That game was already deleted" | `race` | a friend deleted the game mid-call — the shared race (`common._raise_game_deleted`), asked before the membership gate |
 
   `create_game`'s eleven refusals (**PN136**–**PN146**) are all faults, and all
-  `BUG:` — the setup dialog composes every field and the edge function builds the
-  board, so any of them means a broken client or a builder that broke its own
-  contract.
-- **`_finish(target_game, outcome, winner_user_id default null)`** — the terminal
-  transition. `outcome` ∈ `manual` / `timeout` / `target`; a `target` compete win
-  passes the crosser as `winner_user_id` (they win outright, others lose regardless of
-  banked score). Coop has no per-player result.
+  `BUG:` — the setup dialog composes every field and the edge function builds
+  the board, so any of them means a broken client or a builder that broke its
+  own contract.
+- **`_finish(target_game, outcome, winner_user_id default null)`** — the
+  terminal transition. `outcome` ∈ `manual` / `timeout` / `target`; a `target`
+  compete win passes the crosser as `winner_user_id` (they win outright, others
+  lose regardless of banked score). Coop has no per-player result.
 
   **The play_state depends on whether a TARGET was set** (`setup.win_percent`) —
-  boggle used to land every ending on the neutral `'ended'`, which made a reached
-  target and a give-up indistinguishable in the club list:
+  boggle used to land every ending on the neutral `'ended'`, which made a
+  reached target and a give-up indistinguishable in the club list:
 
   | | reached the target | clock ran out | manual End |
   |---|---|---|---|
@@ -379,32 +387,33 @@ game is terminal, then all.
   `lost_compete` for it, so both read the truth (2026-08-01; the FE guard stays
   but is no longer load-bearing). wordiply's score race carries the same guard.
 
-  Otherwise it's the rule spellingbee/wordwheel already apply to their rank target: a game
-  with something to reach can be won or lost against it; a game with nothing to
-  reach is an exercise, and any ending is neutral. A manual stop is always
-  neutral — the friends chose to stop, so nobody wins. A no-target score race
-  names its winner in `status.winner_username` (a tie leaves it null, and the
-  label reads "co-winners"), because the leaderboard is privacy-scoped and a
-  club-list label can't recompute it.
+  Otherwise it's the rule spellingbee/wordwheel already apply to their rank
+  target: a game with something to reach can be won or lost against it; a game
+  with nothing to reach is an exercise, and any ending is neutral. A manual stop
+  is always neutral — the friends chose to stop, so nobody wins. A no-target
+  score race names its winner in `status.winner_username` (a tie leaves it null,
+  and the label reads "co-winners"), because the leaderboard is privacy-scoped
+  and a club-list label can't recompute it.
 - **`end_game` / `submit_timeout`** — flip the game terminal; `submit_timeout`
   mirrors spellingbee's timer-expiry handler. No reveal view: the FE renders the
   missed words from data it already holds. `end_game` is coop's manual stop.
-- **`concede`** — the compete per-player drop-out. boggle is a timed hunt with no
-  per-player elimination, so it's a **thin wrapper over `common.concede`**
-  (compete-only guard). The FE places `act-concede`, which hides itself outside a
-  race, marks a conceder "out" in the OpponentStrip, "You conceded"
-  locally-terminal look. See
-  [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
+- **`concede`** — the compete per-player drop-out. boggle is a timed hunt with
+  no per-player elimination, so it's a **thin wrapper over `common.concede`**
+  (compete-only guard). The FE places `act-concede`, which hides itself outside
+  a race, marks a conceder "out" in the OpponentStrip, "You conceded"
+  locally-terminal look. See [common-schema.md →
+  Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
 - **`replay_board`** — `act-restart`, placed as both the **"Restart"** menu row
-  and the terminal button (spellingbee's twin — [ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):
-  restart the SAME board (same faces + word lists) for everyone. Clears
-  `boggle.found_words` (the only working state), then `common.reset_game`
-  un-terminals with the exact initial status `create_game` seeds and zeroes the
-  shared clock. Confirmed mid-game; unconfirmed at terminal. **The realtime
-  touch is LOAD-BEARING**: replay only DELETEs rows and realtime filters don't
-  reliably match DELETE events, so `useGame` also subscribes to `boggle.games`
-  and the RPC's no-op games write wakes the refetch. pgTAP: `replay_test.sql`.
+  and the terminal button (spellingbee's twin — [ui.md → Terminal
+  results](../ui.md#terminal-results--the-moment-vs-the-record)): restart the
+  SAME board (same faces + word lists) for everyone. Clears `boggle.found_words`
+  (the only working state), then `common.reset_game` un-terminals with the exact
+  initial status `create_game` seeds and zeroes the shared clock. Confirmed
+  mid-game; unconfirmed at terminal. **The realtime touch is LOAD-BEARING**:
+  replay only DELETEs rows and realtime filters don't reliably match DELETE
+  events, so `useGame` also subscribes to `boggle.games` and the RPC's no-op
+  games write wakes the refetch. pgTAP: `replay_test.sql`.
 - **"New game"** (`act-new-game`, its `+` key, its menu row and its terminal
   button all one binding; FE-only): a fresh game — new id, new board — with THIS
   game's setup + roster + mode via the same `boggle-build-board` edge function
@@ -440,152 +449,166 @@ Everything this game says about a word is one function, `answerMessage`, which
 gives each answer its words and outcome together: `accepted` and its
 `accepted_peer` twin (`won` — a teammate's 7+ letter find leads with `wow!`) ·
 `already_found` and `too_short` (`warning`) · `not_on_board` and `not_a_word`
-(`lost`). The shared `useFoundWordSubmit` reports what it decided to
-`onAnswer`, and `answerOf` splits its one "not legal" by whether any path on
-the board spells the word; the pill and the board's answer mark read that one
-call. No RPC carries an outcome or a message: the frontend decides, once. The
-same readings as spellingbee's, for the same reasons
-([`src/spellingbee/doc.md`](../../src/spellingbee/doc.md); [outcomes.md → One event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
+(`lost`). The shared `useFoundWordSubmit` reports what it decided to `onAnswer`,
+and `answerOf` splits its one "not legal" by whether any path on the board
+spells the word; the pill and the board's answer mark read that one call. No RPC
+carries an outcome or a message: the frontend decides, once. The same readings
+as spellingbee's, for the same reasons
+([`src/spellingbee/doc.md`](../../src/spellingbee/doc.md); [outcomes.md → One
+event, one outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it)).
 
-**v3 layout** — the shared two-column scaffold (`common/game-page/playArea.module.css`,
-imported as `shared`): a board column + a fixed info column, no full-page scroll
-(per [docs/ui.md](../ui.md) and [docs/playarea.md](../playarea.md)).
-boggle is spellingbee's structural twin (hunt words → typed entry → found-words
-`<WordList>` → compete `OpponentStrip` → client-side missed-words reveal); the one
-difference is the **square tile grid** (sized like waffle's, the other square
-board), swapped in for spellingbee's hex flower.
+**v3 layout** — the shared two-column scaffold
+(`common/game-page/playArea.module.css`, imported as `shared`): a board column +
+a fixed info column, no full-page scroll (per [docs/ui.md](../ui.md) and
+[docs/playarea.md](../playarea.md)). boggle is spellingbee's structural twin
+(hunt words → typed entry → found-words `<WordList>` → compete `OpponentStrip` →
+client-side missed-words reveal); the one difference is the **square tile grid**
+(sized like waffle's, the other square board), swapped in for spellingbee's hex
+flower.
 
-- **Board column** — the square `n × n` tile grid (multiface tiles render "Qu" etc.,
-  the blank a faint `?`). It hugs the **largest square that fits** via the shared
-  HUG model (`.boardCol --side = min(--avail-w, --avail-h, n·--max-tile-size +
-  gaps)`, with `--cols`/`--rows` set inline since `n` ∈ 4/5/6); the letter scales
-  with each tile through `container-type: size` + `42cqmin`, kept (rather than
-  waffle's column-count-tuned `--side/12`) precisely because it's **n-agnostic**.
-  The shared `ShuffleButton` (⟲) **floats over the board's top-right** — a bespoke
-  round pill driven by a bound action (`act-rotate`, also **⌥Z**) — and does a
-  **cosmetic 90° matrix rotation** of the displayed grid — tiles reposition but each
-  letter stays upright (a matrix rotation, not a CSS spin), so the board is readable
-  from any side. **Local to this player in both modes**: never persisted, never seen
-  by others. A fixed-height **below-board slot** under the grid holds either the
-  typed-word input row or the local feedback slot's top message — an own-move
-  result, "you're out", the verdict — one replacing the other so the board
-  never reflows ([ui.md → Feedback pill](../ui.md#feedback-pill)).
-  - **Move entry** is the shared **capture model** (`useCaptureKeys` + a chrome-less
-    `<WordEntryInput>` display, same as spellingbee): window key-capture, letters stored
-    UPPERCASE, the icon-only `act-delete-last` + `act-submit-entry` flanking the box. Enter
-    submits; **Up arrow** recalls the last submitted word for editing, **Down arrow**
-    clears (`useArrowHistory`, which `<WordEntryArea>` layers on). Words can also be built
-    by **tap-to-trace** — tapping tiles along a Boggle path (the touch input; see
-    [mobile.md](../mobile.md)); the traced word drives the same `word`/`onChange` engine,
-    and typing clears the path. A TYPED word lights the tiles its letters could
-    mean (`traceCells`), so the player watches the word walk the board as they
-    spell it: a letter with one candidate tile takes the selected border outright,
-    a letter with several lights all of them in that same border held back toward
-    the tile, and a later letter settles it by filling the color in. On H-E-A-X-T
-    over Z-Z-A-R-Z, `HE` settles two tiles, `HEA` holds both As, and `HEAR` settles
-    the R while the As stay open. The board only ever ADDS certainty, so no tile is
-    ever lit and then taken back: a letter the board CANNOT follow leaves the
-    tiles exactly where they were and dims itself in the entry box instead (GO on
-    the board and no T beside it dims the T of GOT, and every letter after it) —
-    the positional cousin of the bee games' off-the-puzzle letter dim. A tapped path wins over all of it — it is the player's own choice,
-    not a deduction — and submitting picks one route for the answer marks. Own-move results are `result` messages in the
+- **Board column** — the square `n × n` tile grid (multiface tiles render "Qu"
+  etc., the blank a faint `?`). It hugs the **largest square that fits** via the
+  shared HUG model (`.boardCol --side = min(--avail-w, --avail-h,
+  n·--max-tile-size + gaps)`, with `--cols`/`--rows` set inline since `n` ∈
+  4/5/6); the letter scales with each tile through `container-type: size` +
+  `42cqmin`, kept (rather than waffle's column-count-tuned `--side/12`)
+  precisely because it's **n-agnostic**. The shared `ShuffleButton` (⟲) **floats
+  over the board's top-right** — a bespoke round pill driven by a bound action
+  (`act-rotate`, also **⌥Z**) — and does a **cosmetic 90° matrix rotation** of
+  the displayed grid — tiles reposition but each letter stays upright (a matrix
+  rotation, not a CSS spin), so the board is readable from any side. **Local to
+  this player in both modes**: never persisted, never seen by others. A
+  fixed-height **below-board slot** under the grid holds either the typed-word
+  input row or the local feedback slot's top message — an own-move result,
+  "you're out", the verdict — one replacing the other so the board never reflows
+  ([ui.md → Feedback pill](../ui.md#feedback-pill)).
+  - **Move entry** is the shared **capture model** (`useCaptureKeys` + a
+    chrome-less `<WordEntryInput>` display, same as spellingbee): window
+    key-capture, letters stored UPPERCASE, the icon-only `act-delete-last` +
+    `act-submit-entry` flanking the box. Enter submits; **Up arrow** recalls the
+    last submitted word for editing, **Down arrow** clears (`useArrowHistory`,
+    which `<WordEntryArea>` layers on). Words can also be built by
+    **tap-to-trace** — tapping tiles along a Boggle path (the touch input; see
+    [mobile.md](../mobile.md)); the traced word drives the same
+    `word`/`onChange` engine, and typing clears the path. A TYPED word lights
+    the tiles its letters could mean (`traceCells`), so the player watches the
+    word walk the board as they spell it: a letter with one candidate tile takes
+    the selected border outright, a letter with several lights all of them in
+    that same border held back toward the tile, and a later letter settles it by
+    filling the color in. On H-E-A-X-T over Z-Z-A-R-Z, `HE` settles two tiles,
+    `HEA` holds both As, and `HEAR` settles the R while the As stay open. The
+    board only ever ADDS certainty, so no tile is ever lit and then taken back:
+    a letter the board CANNOT follow leaves the tiles exactly where they were
+    and dims itself in the entry box instead (GO on the board and no T beside it
+    dims the T of GOT, and every letter after it) — the positional cousin of the
+    bee games' off-the-puzzle letter dim. A tapped path wins over all of it — it
+    is the player's own choice, not a deduction — and submitting picks one route
+    for the answer marks. Own-move results are `result` messages in the
     **local** slot (required `+N` / bonus / too-short / off-board / not-a-word),
     dismissed by the next keystroke or tile tap — not the header's global slot,
     which carries teammates' finds.
-- **Info column** (the canonical v3 order — see [playarea.md → Info-column readouts](../playarea.md#info-column-readouts)):
-  the live **`<Stats>` grid** — a 4-cell three-line readout (a two-line stacked
-  label over the value over the found-share percent), every cell `found / total`:
-  **Req / Words** (required found / required on board) · **Req / Score**
-  (required-found score / required total) · **Bonus / Words** · **Bonus / Score**.
-  The labels stack ("Req" over "Words") because four cells side by side are
-  narrow — narrower still in the mobile status block, where this same grid is
-  ALSO rendered above the board (see below). Then the compete **`OpponentStrip`**
-  (the shared common one, `metricLabel="Score"`, score-only — counts stay private),
-  the **action row** (both exits placed, each hiding itself in the mode that isn't
-  its own — coop shows End, a race shows Concede; the bold outcome line + a compact
-  back-to-club button at terminal), a **help line**,
-  the **setup disclosure**, and the **`WordList`** filling the rest.
-  - **The `Letters` row** leads the setup disclosure, under the roster, and the PDF
-    prints the identical row (one `setupRows()` feeds both — [setup-form/doc.md → Setup
-    rows](../../src/common/setup-form/doc.md#setup-rows)). It names the board this game was played on —
-    `Letters: ABCD EFGH IJKL MNOP` — **rolled or typed alike**, in the written form
-    the setup dialog's custom-board field takes back
-    ([§4 → Custom board](#custom-board-player-typed-tiles)). Printing it for a
-    ROLLED board is the documented board-identity exception to "the recap is the
-    dialog read back" (`common/setup-form/setupRows.ts` → `BOARD_KEY`): a row that
-    appeared only on hand-picked boards would be exactly the half you never need
-    to copy.
+- **Info column** (the canonical v3 order — see [playarea.md → Info-column
+  readouts](../playarea.md#info-column-readouts)): the live **`<Stats>` grid** —
+  a 4-cell three-line readout (a two-line stacked label over the value over the
+  found-share percent), every cell `found / total`: **Req / Words** (required
+  found / required on board) · **Req / Score** (required-found score / required
+  total) · **Bonus / Words** · **Bonus / Score**. The labels stack ("Req" over
+  "Words") because four cells side by side are narrow — narrower still in the
+  mobile status block, where this same grid is ALSO rendered above the board
+  (see below). Then the compete **`OpponentStrip`** (the shared common one,
+  `metricLabel="Score"`, score-only — counts stay private), the **action row**
+  (both exits placed, each hiding itself in the mode that isn't its own — coop
+  shows End, a race shows Concede; the bold outcome line + a compact
+  back-to-club button at terminal), a **help line**, the **setup disclosure**,
+  and the **`WordList`** filling the rest.
+  - **The `Letters` row** leads the setup disclosure, under the roster, and the
+    PDF prints the identical row (one `setupRows()` feeds both —
+    [setup-form/doc.md → Setup
+    rows](../../src/common/setup-form/doc.md#setup-rows)). It names the board
+    this game was played on — `Letters: ABCD EFGH IJKL MNOP` — **rolled or typed
+    alike**, in the written form the setup dialog's custom-board field takes
+    back ([§4 → Custom board](#custom-board-player-typed-tiles)). Printing it
+    for a ROLLED board is the documented board-identity exception to "the recap
+    is the dialog read back" (`common/setup-form/setupRows.ts` → `BOARD_KEY`): a
+    row that appeared only on hand-picked boards would be exactly the half you
+    never need to copy.
   - **`WordList`:** the **shared `common/word-list/WordList`** (identical to
-    spellingbee's, since it IS the same component) — finder color (coop), a bonus
-    dot, a recently-found underline (`common/word-list/useRecentlyFound`), click-to-define
-    words (`<DefinableWord>`), the post-terminal missed-words reveal, and the
-    two-axis KIND/WHO filter (`common/word-list/useWordListFilter` — see
-    [common/word-list/doc.md](../../src/common/word-list/doc.md)). boggle builds its rows via
-    `shared/found-words/wordListRows` → `WordListRow[]`, the same one call the screen
-    and the printer both make (the live count moved to the info-column state
-    line, so the list header carries the label + the two selects).
+    spellingbee's, since it IS the same component) — finder color (coop), a
+    bonus dot, a recently-found underline (`common/word-list/useRecentlyFound`),
+    click-to-define words (`<DefinableWord>`), the post-terminal missed-words
+    reveal, and the two-axis KIND/WHO filter
+    (`common/word-list/useWordListFilter` — see
+    [common/word-list/doc.md](../../src/common/word-list/doc.md)). boggle builds
+    its rows via `shared/found-words/wordListRows` → `WordListRow[]`, the same
+    one call the screen and the printer both make (the live count moved to the
+    info-column state line, so the list header carries the label + the two
+    selects).
 
 **End game** is surfaced in both places per the common convention (see
-[common-schema.md → Manual end](../common-schema.md#manual-end--every-gametypes-end_gametarget_game)):
-an info-column action-row button *and* a GamePage menu row — the SAME bound action
-in both, arranged by `buildGameMenu`.
-The terminal message comes from a unified `buildOver` — the shared
-`TerminalMessage` shape (`{pillText, infoColText, outcome, actor?}`,
-`src/common/terminal/terminalMessage.ts`) — shown into the local slot as a
-`terminalVerdict` and driving the action-row line. **No modal
-carries the verdict** ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)
-— it would duplicate the pill). Without a win
-target, coop is a neutral shared hunt and compete picks the highest score;
-**with** one (`setup.win_percent`), reaching the score bar is a real win
-(`status.reason === 'target'`) — and a **coop** target win pops the shared
-`<CelebrationBlockingModal>` ("Target reached! 🎉"), once, at the moment it happens.
-That gate reads `status.mode` + `status.reason`, both off the common row GamePage
-waits for — deliberately not boggle's own `game.mode`, which arrives later and
-would pop confetti at someone opening a finished game.
+[common-schema.md → Manual
+end](../common-schema.md#manual-end--every-gametypes-end_gametarget_game)): an
+info-column action-row button *and* a GamePage menu row — the SAME bound action
+in both, arranged by `buildGameMenu`. The terminal message comes from a unified
+`buildOver` — the shared `TerminalMessage` shape (`{pillText, infoColText,
+outcome, actor?}`, `src/common/terminal/terminalMessage.ts`) — shown into the
+local slot as a `terminalVerdict` and driving the action-row line. **No modal
+carries the verdict** ([ui.md → Terminal
+results](../ui.md#terminal-results--the-moment-vs-the-record) — it would
+duplicate the pill). Without a win target, coop is a neutral shared hunt and
+compete picks the highest score; **with** one (`setup.win_percent`), reaching
+the score bar is a real win (`status.reason === 'target'`) — and a **coop**
+target win pops the shared `<CelebrationBlockingModal>` ("Target reached! 🎉"),
+once, at the moment it happens. That gate reads `status.mode` + `status.reason`,
+both off the common row GamePage waits for — deliberately not boggle's own
+`game.mode`, which arrives later and would pop confetti at someone opening a
+finished game.
 
 Verdicts are terse and lead with the outcome word ("Won: 12 words, 34 points";
-the coop neutral end "Ended: 12 words, 34 points"; the nobody-scored compete race
-"Lost: no words found"; "Lost: conceded"); a loss to a named player carries
+the coop neutral end "Ended: 12 words, 34 points"; the nobody-scored compete
+race "Lost: no words found"; "Lost: conceded"); a loss to a named player carries
 them as the message's `actor` — "● alice won".
 
-**Mobile status block.** Below `--mobile` the info column moves off-canvas, taking
-the Stats grid with it — so `BoardCol` renders the SAME `<Stats>` above the tray in
-the shared `<MobileStatusBar>` ([mobile.md](../mobile.md#the-mobile-status-bar--core-state-above-the-board)).
+**Mobile status block.** Below `--mobile` the info column moves off-canvas,
+taking the Stats grid with it — so `BoardCol` renders the SAME `<Stats>` above
+the tray in the shared `<MobileStatusBar>`
+([mobile.md](../mobile.md#the-mobile-status-bar--core-state-above-the-board)).
 One `stats` object feeds both surfaces, so they can't drift; its `4rem` is
 subtracted from `--avail-h` so the board shrinks to match and the page still
 doesn't scroll.
 
 **Guess flow.** Because the FE holds both word lists, *every* guess resolves
 instantly with no round-trip and commits optimistically: a word in required ∪
-bonus → **+N** (bonus finds get a trailing `•`), committed in the background;
-a miss → not-a-word if it traces on the board (`lib/boardTrace`), else
-not-on-board; too short / duplicate → an instant `warning`. The server only records +
-dedups the accepted words.
+bonus → **+N** (bonus finds get a trailing `•`), committed in the background; a
+miss → not-a-word if it traces on the board (`lib/boardTrace`), else
+not-on-board; too short / duplicate → an instant `warning`. The server only
+records + dedups the accepted words.
 
 **Setup form.** Dice set · an optional **Custom board** (the tiles, typed — see
-[§4 → Custom board](#custom-board-player-typed-tiles)) · required difficulty (the
-shared `DictBandField`, full `universal…expert` list) · legal/bonus difficulty
-(a second `DictBandField` whose minimum tracks the required band) · scoring
-ladder · minimum word length · an optional collapsible **Board constraints**
-min/max grid (words / score / longest) · timer. Mode-aware copy (coop vs
-compete). Start is gated by `boggleSetupError` = the cross-field band rules, then
-the custom-board parse.
+[§4 → Custom board](#custom-board-player-typed-tiles)) · required difficulty
+(the shared `DictBandField`, full `universal…expert` list) · legal/bonus
+difficulty (a second `DictBandField` whose minimum tracks the required band) ·
+scoring ladder · minimum word length · an optional collapsible **Board
+constraints** min/max grid (words / score / longest) · timer. Mode-aware copy
+(coop vs compete). Start is gated by `boggleSetupError` = the cross-field band
+rules, then the custom-board parse.
 
 Other files: `manifest.ts` (the two sibling manifests, `BRAND='MothCubes'`,
 `startGameInClub` → invoke `boggle-build-board`, `submitTimeout`, `labelFor`),
 `db.ts`, `theme.css`, `logo.svg`, `hooks/useGame.ts` (realtime refetch on
-`boggle.{games, found_words}`), `lib/{setup, customBoard, boardTrace}`. Registered
-in `src/gametypes.ts`; `boggle` is in `supabase/config.toml` schemas and the eslint
-`GAMETYPES`. Presence-pause is inherited via `<GamePage>` + `useCommonGame`
-([[feedback_pause_on_disconnect]]).
+`boggle.{games, found_words}`), `lib/{setup, customBoard, boardTrace}`.
+Registered in `src/gametypes.ts`; `boggle` is in `supabase/config.toml` schemas
+and the eslint `GAMETYPES`. Presence-pause is inherited via `<GamePage>` +
+`useCommonGame` ([[feedback_pause_on_disconnect]]).
 
 ### Printing the board (PDF)
 
-boggle joins the printable games — a **"Print board (PDF)"** GamePage menu item that hands
-you a paper record of the game: the fixed-size letter grid (a 6×6 prints bigger than a 4×4)
-with the Setup to its right, above the found-words list in columns (missed words
-fold in at terminal — bonus ones too, when the legal band is the wider one) — `src/boggle/pdf/printBogglePdf.ts`. The shared clean-printable design
-language + helpers live in [common/pdf/doc.md](../../src/common/pdf/doc.md).
+boggle joins the printable games — a **"Print board (PDF)"** GamePage menu item
+that hands you a paper record of the game: the fixed-size letter grid (a 6×6
+prints bigger than a 4×4) with the Setup to its right, above the found-words
+list in columns (missed words fold in at terminal — bonus ones too, when the
+legal band is the wider one) — `src/boggle/pdf/printBogglePdf.ts`. The shared
+clean-printable design language + helpers live in
+[common/pdf/doc.md](../../src/common/pdf/doc.md).
 
 ---
 
@@ -596,15 +619,15 @@ language + helpers live in [common/pdf/doc.md](../../src/common/pdf/doc.md).
   multiface + blanks) and the ladders.
 - `dice.test.ts` — the eight sets (n² dice of valid faces), multiface + blank
   display.
-- `generate.test.ts`, `boardTrace.test.ts` (traces validated against the solver),
-  `setup.test.ts` (the cross-field band guard). The word-list rows are the
-  shared family's now, and are specced there.
+- `generate.test.ts`, `boardTrace.test.ts` (traces validated against the
+  solver), `setup.test.ts` (the cross-field band guard). The word-list rows are
+  the shared family's now, and are specced there.
 - `customBoard.test.ts` — the custom-board **round trip**, which is the property
   the feature rests on: `parse(format(board)) === board` over 200 rolls of each
   of the eight dice sets, plus a guard that those rolls actually reach the
-  multiface + blank faces (a round trip covering nothing but A–Z would pass while
-  proving nothing). Then the mixed-case rule by name — `Qu` is one tile, `QU` and
-  `qu` are two, and a lowercase paste keeps its `an`/`in`/`th` intact.
+  multiface + blank faces (a round trip covering nothing but A–Z would pass
+  while proving nothing). Then the mixed-case rule by name — `Qu` is one tile,
+  `QU` and `qu` are two, and a lowercase paste keeps its `an`/`in`/`th` intact.
 
 **pgTAP** (`supabase/tests/boggle/`):
 - `create_game_test` — the happy paths (header + per-game row + status) and the
@@ -649,8 +672,8 @@ allowlist.
   play loop" (line 52) and "boggle custom board" (line 203) both wait for
   `Letters: CATS AREA TILE NEST` — spaces. `formatBoard` joins rows with DASHES
   now (`CATS-AREA-TILE-NEST`), so the recap and the setup field agree on one
-  written form and a board reads back the way you would paste it. **The change is
-  right and the specs are simply behind it**; they were left red on purpose
+  written form and a board reads back the way you would paste it. **The change
+  is right and the specs are simply behind it**; they were left red on purpose
   (Joel, 2026-08-26: punted to boggle's own pass rather than fixed from the CSS
   sprint's `forms` area, where the dashes landed). Fixing them is two string
   literals.
@@ -675,13 +698,13 @@ allowlist.
   All 15 other games conform.
 
 - **The "Board constraints" grid is the last hand-rolled field in any setup
-  form.** Every field type a setup form has is a shared component — `SetupTimerSection`,
-  `DictBandField`, `SelectField`, `RadioRow`, `SetupCoopStyleSection`,
-  `ManualBoardField`, and now `NumberField`, `CheckboxField` and `DateField`.
-  This grid is the one exception: six raw `<input type="number">`s laid out 3×2
-  (Words / Score / Longest, each min and max) with column heads and a local
-  `Row` helper, wearing `.grid` / `.colHead` / `.rowLabel` / `.numInput` from
-  boggle's own module.
+  form.** Every field type a setup form has is a shared component —
+  `SetupTimerSection`, `DictBandField`, `SelectField`, `RadioRow`,
+  `SetupCoopStyleSection`, `ManualBoardField`, and now `NumberField`,
+  `CheckboxField` and `DateField`. This grid is the one exception: six raw
+  `<input type="number">`s laid out 3×2 (Words / Score / Longest, each min and
+  max) with column heads and a local `Row` helper, wearing `.grid` / `.colHead`
+  / `.rowLabel` / `.numInput` from boggle's own module.
 
   **Left here on purpose, not overlooked** (Joel, 2026-08-26). Six numbers in a
   labeled matrix is a GRID, not six independent fields — `<NumberField>` exists
@@ -693,7 +716,9 @@ allowlist.
   Raised 2026-08-26 in the CSS sprint's `forms` area, while writing the three
   components above.
 
-- **Compete classic dupes-cancel** scoring as an opt-in — moved to [`src/boggle/todo.md`](../../src/boggle/todo.md) → Maybe: the open question is whether we want the rule at all, not how to build it.
+- **Compete classic dupes-cancel** scoring as an opt-in — moved to
+  [`src/boggle/todo.md`](../../src/boggle/todo.md) → Maybe: the open question is
+  whether we want the rule at all, not how to build it.
 
 ## 12. Won't do
 
@@ -701,12 +726,12 @@ allowlist.
   frozen at deploy, so editing the dictionary doesn't reach boggle until the
   function is redeployed. The proposed middle ground was a gzipped list in a
   Storage bucket `fetch`ed at cold start — refresh by re-uploading one file, no
-  redeploy and no DB scan. **`gmake deploy-funcs` already regenerates the asset**
-  (§5), so the answer to "I changed the word list" is to run it, and the bundle
-  is also the *fastest* of the three (measured cold-start floors: bundled ~21 ms
-  required / ~76 ms full; DB query at startup ~48 ms / ~128 ms local, more on
-  hosted; Storage sits between). Buying staleness-immunity we don't need with
-  cold-start time we'd rather keep is the wrong trade.
+  redeploy and no DB scan. **`gmake deploy-funcs` already regenerates the
+  asset** (§5), so the answer to "I changed the word list" is to run it, and the
+  bundle is also the *fastest* of the three (measured cold-start floors: bundled
+  ~21 ms required / ~76 ms full; DB query at startup ~48 ms / ~128 ms local,
+  more on hosted; Storage sits between). Buying staleness-immunity we don't need
+  with cold-start time we'd rather keep is the wrong trade.
 - **A "check board" helper** (2026-08-03). It was listed here as a sibling of
   MonkeyGrams' — that one shipped, and building it made clear the two aren't
   siblings at all. bananagrams' check answers an objective question about a

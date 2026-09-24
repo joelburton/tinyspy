@@ -1,54 +1,94 @@
 # Naming & terminology
 
-The short, conceptual glossary for this repo. Reads in a sitting; serves as the orientation layer before you dive into a specific file.
+The short, conceptual glossary for this repo. Reads in a sitting; serves as the
+orientation layer before you dive into a specific file.
 
-For code-style and convention details (table naming, RPC patterns, CSS, imports, etc.) see [`code-conventions.md`](code-conventions.md). For the architectural layer (clubs, registry, removability) see [`common.md`](common.md).
+For code-style and convention details (table naming, RPC patterns, CSS, imports,
+etc.) see [`code-conventions.md`](code-conventions.md). For the architectural
+layer (clubs, registry, removability) see [`common.md`](common.md).
 
 ## The big idea
 
 > A name describes a **role**, not an **implementation**. If two games each have a thing that plays role X, both are called X, and the game qualifier lives in the folder structure — never in the name.
 
-Game-name prefixes (`BoggleScoreReport`, `codenamesduet_words`) are the smell. The folder or schema already carries that information; repeating it in the name is noise.
+Game-name prefixes (`BoggleScoreReport`, `codenamesduet_words`) are the smell.
+The folder or schema already carries that information; repeating it in the name
+is noise.
 
-The practical effect: when you swap from working on codenamesduet to working on boggle, the names you reach for don't change. The `Board` is still `Board`, the `useGame` is still `useGame` — just in a different folder.
+The practical effect: when you swap from working on codenamesduet to working on
+boggle, the names you reach for don't change. The `Board` is still `Board`, the
+`useGame` is still `useGame` — just in a different folder.
 
 ## Terminology lexicon
 
-The load-bearing words and what they each mean. Internalize these; mixing them up is a source of confusion that surfaces hours later in code review.
+The load-bearing words and what they each mean. Internalize these; mixing them
+up is a source of confusion that surfaces hours later in code review.
 
 ### gametype
 
-The *registered entry* representing a game (or game variant) in the registry. One row in `common.gametypes`, one TS manifest in `src/gametypes.ts`, one URL prefix. Treated as one word (like `username`), not `game_type` or `gameKind`. In code: `gametype text` columns, `gametype: string` TS fields.
+The *registered entry* representing a game (or game variant) in the registry.
+One row in `common.gametypes`, one TS manifest in `src/gametypes.ts`, one URL
+prefix. Treated as one word (like `username`), not `game_type` or `gameKind`. In
+code: `gametype text` columns, `gametype: string` TS fields.
 
-Examples: `codenamesduet`, `psychicnum_coop`, `psychicnum_compete`, `connections_coop`, `connections_compete`, `spellingbee_coop`, `spellingbee_compete`, `bananagrams`, `waffle_coop`, `waffle_compete`, `wordle_coop`, `wordle_compete`, `stackdown_coop`, `stackdown_compete`, `scrabble_coop`, `scrabble_compete`, `boggle_coop`, `boggle_compete`, `crosswords_coop`, `crosswords_compete`, `wordwheel_coop`, `wordwheel_compete`, `wordiply_coop`, `wordiply_compete`, `strands_coop`, `strands_compete`, `letterboxed_coop`, `letterboxed_compete`, `setgame_coop`, `setgame_compete`.
+Examples: `codenamesduet`, `psychicnum_coop`, `psychicnum_compete`,
+`connections_coop`, `connections_compete`, `spellingbee_coop`,
+`spellingbee_compete`, `bananagrams`, `waffle_coop`, `waffle_compete`,
+`wordle_coop`, `wordle_compete`, `stackdown_coop`, `stackdown_compete`,
+`scrabble_coop`, `scrabble_compete`, `boggle_coop`, `boggle_compete`,
+`crosswords_coop`, `crosswords_compete`, `wordwheel_coop`, `wordwheel_compete`,
+`wordiply_coop`, `wordiply_compete`, `strands_coop`, `strands_compete`,
+`letterboxed_coop`, `letterboxed_compete`, `setgame_coop`, `setgame_compete`.
 
-The gametype string is the second segment of `/g/<gametype>/<gameId>` URLs and the key the FE uses to dispatch manifest behavior (rendering, RPC routing). It is NOT always identical to the folder/schema name — sibling gametypes share a single folder and a single schema. See [`baseGametype`](#basegametype) below.
+The gametype string is the second segment of `/g/<gametype>/<gameId>` URLs and
+the key the FE uses to dispatch manifest behavior (rendering, RPC routing). It
+is NOT always identical to the folder/schema name — sibling gametypes share a
+single folder and a single schema. See [`baseGametype`](#basegametype) below.
 
 ### baseGametype
 
-The *family root* shared by one or more sibling gametypes. Same string as the folder name under `src/`, same as the Postgres schema name. For a single-variant game, `baseGametype === gametype` (e.g., codenamesduet's baseGametype is `codenamesduet`). For a family with coop/compete variants, both manifests share the baseGametype (`psychicnum_coop` and `psychicnum_compete` both declare `baseGametype: 'psychicnum'`).
+The *family root* shared by one or more sibling gametypes. Same string as the
+folder name under `src/`, same as the Postgres schema name. For a single-variant
+game, `baseGametype === gametype` (e.g., codenamesduet's baseGametype is
+`codenamesduet`). For a family with coop/compete variants, both manifests share
+the baseGametype (`psychicnum_coop` and `psychicnum_compete` both declare
+`baseGametype: 'psychicnum'`).
 
-This is the field downstream code reads to ask "what family does this gametype belong to?" — for:
+This is the field downstream code reads to ask "what family does this gametype
+belong to?" — for:
 
-- **Docs** — `docs/games/<baseGametype>.md`. One per family, regardless of variant count.
+- **Docs** — `docs/games/<baseGametype>.md`. One per family, regardless of
+  variant count.
 - **Logo / theme** — siblings share `logo.svg` and `theme.css`.
-- **The club page's gametype filter** — one "Wordle" choice over "Your games" covers both siblings.
+- **The club page's gametype filter** — one "Wordle" choice over "Your games"
+  covers both siblings.
 - **Schema** — one set of tables under `<baseGametype>.*` serves all siblings.
 
-See [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern) for the wider write-up.
+See [`common.md` → The sibling-manifest
+pattern](common.md#the-sibling-manifest-pattern) for the wider write-up.
 
 ### codename vs brand name
 
 Every game has two names:
 
-- The **codename** — the lowercase word used *everywhere in code*: the Postgres schema, the `src/<codename>/` folder, the `<codename>_coop` / `<codename>_compete` gametype strings, table/column/variable/component names, and the test files. Codenames are the **recognizable** name of the game they descend from, so the source stays legible to a newcomer: `connections`, `spellingbee`, `bananagrams`, `codenamesduet`, `wordle`, `scrabble`, `waffle`, `stackdown`, `psychicnum`, `boggle`, `crosswords`, `wordwheel`, `wordiply`, `strands`, `letterboxed`, `setgame`.
+- The **codename** — the lowercase word used *everywhere in code*: the Postgres
+  schema, the `src/<codename>/` folder, the `<codename>_coop` /
+  `<codename>_compete` gametype strings, table/column/variable/component names,
+  and the test files. Codenames are the **recognizable** name of the game they
+  descend from, so the source stays legible to a newcomer: `connections`,
+  `spellingbee`, `bananagrams`, `codenamesduet`, `wordle`, `scrabble`, `waffle`,
+  `stackdown`, `psychicnum`, `boggle`, `crosswords`, `wordwheel`, `wordiply`,
+  `strands`, `letterboxed`, `setgame`.
 
   `setgame` is the one codename that is NOT simply the game's own name: `set`
   is a Postgres keyword, a TypeScript builtin, and on this file's own
   banned-generic list, so the schema, folder and gametype strings carry the
   suffix. The domain word survives in player-facing copy; in code the found
   thing is a **claim**.
-- The **brand** — the custom, user-facing display name, the only thing players ever see. It lives in **exactly one place**: a `const BRAND` at the top of each game's `manifest.ts`, which `name` and any user-facing string (e.g. the start-game error) read. A fork rebrands a game by editing that one line.
+- The **brand** — the custom, user-facing display name, the only thing players
+  ever see. It lives in **exactly one place**: a `const BRAND` at the top of
+  each game's `manifest.ts`, which `name` and any user-facing string (e.g. the
+  start-game error) read. A fork rebrands a game by editing that one line.
 
 | codename | brand | | codename | brand |
 |---|---|---|---|---|
@@ -61,110 +101,226 @@ Every game has two names:
 | `wordiply` | WordWire | | `strands` | PaulPath |
 | `letterboxed` | SnakeBox | | `setgame` | HareTrigger |
 
-The brand and codename coincide as a word only for `stackdown`/StackDown and `psychicnum`/PsychicNum (and even there the codename is lowercase, the brand is the display-cased token).
+The brand and codename coincide as a word only for `stackdown`/StackDown and
+`psychicnum`/PsychicNum (and even there the codename is lowercase, the brand is
+the display-cased token).
 
 **Rules that follow from this:**
 
-- **Code uses the codename, never the brand.** The brand appears nowhere in the codebase except the manifest `BRAND` const (+ this doc, which explains the idea). Comments referring to a game use the lowercase codename.
-- **No mid-caps in code identifiers.** A codename is one token, so its PascalCase is a single leading capital: `SpellingbeeSetup`, `CodenamesduetSetup`, `Psychicnum…` — never `SpellingBee`, `CodenamesDuet`, `PsychicNum`. (The *brand* may be mid-capped; it's a display string, not an identifier.)
-- **Real-game references stay capitalized.** When prose names the actual game a codename descends from — "NYT Connections", "Bananagrams", "Codenames Duet", "Spelling Bee", "Wordle", "Scrabble" — that's a proper noun for the real product, distinct from both our codename and our brand. Mind the collisions: `connections`/`bananagrams`/`scrabble`/`wordle`/`waffle` are real game names too, so the lowercase codename and the capitalized real-game reference can sit a paragraph apart.
+- **Code uses the codename, never the brand.** The brand appears nowhere in the
+  codebase except the manifest `BRAND` const (+ this doc, which explains the
+  idea). Comments referring to a game use the lowercase codename.
+- **No mid-caps in code identifiers.** A codename is one token, so its
+  PascalCase is a single leading capital: `SpellingbeeSetup`,
+  `CodenamesduetSetup`, `Psychicnum…` — never `SpellingBee`, `CodenamesDuet`,
+  `PsychicNum`. (The *brand* may be mid-capped; it's a display string, not an
+  identifier.)
+- **Real-game references stay capitalized.** When prose names the actual game a
+  codename descends from — "NYT Connections", "Bananagrams", "Codenames Duet",
+  "Spelling Bee", "Wordle", "Scrabble" — that's a proper noun for the real
+  product, distinct from both our codename and our brand. Mind the collisions:
+  `connections`/`bananagrams`/`scrabble`/`wordle`/`waffle` are real game names
+  too, so the lowercase codename and the capitalized real-game reference can sit
+  a paragraph apart.
 
 ### mode
 
-The *interaction axis* a gametype declares — `'coop'` (cooperative; players share an outcome) or `'compete'` (competitive; players race for individual outcomes). Locked at the gametype level, NOT a per-game setup choice. Read off `manifest.mode` and (where the SQL needs it) off `<baseGametype>.games.mode` denormalized from the gametype string.
+The *interaction axis* a gametype declares — `'coop'` (cooperative; players
+share an outcome) or `'compete'` (competitive; players race for individual
+outcomes). Locked at the gametype level, NOT a per-game setup choice. Read off
+`manifest.mode` and (where the SQL needs it) off `<baseGametype>.games.mode`
+denormalized from the gametype string.
 
-A timer that runs out and ends a game is NOT what makes something compete — compete needs an opposing PLAYER. Solo clubs see only coop variants because compete manifests declare `numberOfPlayers: [2, max]`. Coop can still carry a countdown timer (where the clock running out is the team's loss).
+A timer that runs out and ends a game is NOT what makes something compete —
+compete needs an opposing PLAYER. Solo clubs see only coop variants because
+compete manifests declare `numberOfPlayers: [2, max]`. Coop can still carry a
+countdown timer (where the clock running out is the team's loss).
 
 ### game
 
-A *specific playing*. "Ada and Bea's codenamesduet match on June 14." Matches everyday English ("good game," "game over"). One row in `<gametype>.games`. Identified by a UUID.
+A *specific playing*. "Ada and Bea's codenamesduet match on June 14." Matches
+everyday English ("good game," "game over"). One row in `<gametype>.games`.
+Identified by a UUID.
 
 ### board
 
-The *static starting state* of a game — the inert configuration that could be saved and replayed. For boggle, that's the dice arrangement. For crosswords, the puzzle grid. For games where the starting state is trivial (psychicnum's "a number from 1–10," codenamesduet's "25 random words + a key card"), the board co-locates onto the game row instead of warranting its own table.
+The *static starting state* of a game — the inert configuration that could be
+saved and replayed. For boggle, that's the dice arrangement. For crosswords, the
+puzzle grid. For games where the starting state is trivial (psychicnum's "a
+number from 1–10," codenamesduet's "25 random words + a key card"), the board
+co-locates onto the game row instead of warranting its own table.
 
-The distinguishing test: would two different games on the same setup be a meaningful concept for this gametype? If yes, that setup is a board. If no, the concept is too thin to bother extracting.
+The distinguishing test: would two different games on the same setup be a
+meaningful concept for this gametype? If yes, that setup is a board. If no, the
+concept is too thin to bother extracting.
 
 ### puzzle
 
-A *prewritten, replayable game source* — distinct from `board` (the per-game-instance copy of the puzzle's content, with any per-game state like a shuffled tileOrder). A puzzle exists ahead of time; players pick it from a list and `create_game` copies it into a fresh `board`.
+A *prewritten, replayable game source* — distinct from `board` (the
+per-game-instance copy of the puzzle's content, with any per-game state like a
+shuffled tileOrder). A puzzle exists ahead of time; players pick it from a list
+and `create_game` copies it into a fresh `board`.
 
-The split lets the source stay pristine across multiple plays (a club can replay yesterday's puzzle without contaminating it) and gives us a place to attach puzzle-source metadata (NYT puzzle number + date for connections; future Sunday-NYT-crossword constructor names).
+The split lets the source stay pristine across multiple plays (a club can replay
+yesterday's puzzle without contaminating it) and gives us a place to attach
+puzzle-source metadata (NYT puzzle number + date for connections; future
+Sunday-NYT-crossword constructor names).
 
 Two kinds of gametype shake out from this:
 
-- **Generated-board games** (spellingbee, codenamesduet, psychicnum, boggle): each game gets a fresh board synthesized by `create_game` from random draws of a word pool / random number. No puzzles, no `<game>.puzzles` table. The setup form has no puzzle picker.
-- **Puzzle-based games** (connections, crosswords): puzzles exist as prewritten rows in `<game>.puzzles`, imported from external archives. `create_game` accepts a `puzzleId` and copies the chosen puzzle's content into the new board. The setup form has a picker. (crosswords also supports an inline NYT-by-date source alongside its curated library.)
+- **Generated-board games** (spellingbee, codenamesduet, psychicnum, boggle):
+  each game gets a fresh board synthesized by `create_game` from random draws of
+  a word pool / random number. No puzzles, no `<game>.puzzles` table. The setup
+  form has no puzzle picker.
+- **Puzzle-based games** (connections, crosswords): puzzles exist as prewritten
+  rows in `<game>.puzzles`, imported from external archives. `create_game`
+  accepts a `puzzleId` and copies the chosen puzzle's content into the new
+  board. The setup form has a picker. (crosswords also supports an inline
+  NYT-by-date source alongside its curated library.)
 
-Per-gametype `puzzles` tables stay narrow (different shapes for Connections vs. crosswords) rather than collapsing into a common `puzzle` table with a generic `content jsonb`. Cross-cutting "which puzzles a club has played" lives on the per-game `<game>.games.puzzle_id` FK.
+Per-gametype `puzzles` tables stay narrow (different shapes for Connections vs.
+crosswords) rather than collapsing into a common `puzzle` table with a generic
+`content jsonb`. Cross-cutting "which puzzles a club has played" lives on the
+per-game `<game>.games.puzzle_id` FK.
 
 ### club
 
-A fixed-membership room formed by one creator. The cross-game social primitive: a club might play codenamesduet on Monday and boggle on Friday, and the same friendship/conversation persists across both.
+A fixed-membership room formed by one creator. The cross-game social primitive:
+a club might play codenamesduet on Monday and boggle on Friday, and the same
+friendship/conversation persists across both.
 
-Clubs live in `common.clubs`. They span gametypes; gametypes reference clubs (`<schema>.games.club_handle → common.clubs.id`), never the reverse.
+Clubs live in `common.clubs`. They span gametypes; gametypes reference clubs
+(`<schema>.games.club_handle → common.clubs.id`), never the reverse.
 
-Solo clubs (handle `=<username>`) are single-member auto-created clubs that anchor solo play and per-user stats. They're structurally separate from regular (multi-member) clubs,
+Solo clubs (handle `=<username>`) are single-member auto-created clubs that
+anchor solo play and per-user stats. They're structurally separate from regular
+(multi-member) clubs,
 
-See [`common.md`](common.md) for the full club model — invariants and lifecycle. The current / suspended / completed flag a club's game list draws is [`states.md`](states.md#suspended-vs-terminal--not-a-special-case)'s.
+See [`common.md`](common.md) for the full club model — invariants and lifecycle.
+The current / suspended / completed flag a club's game list draws is
+[`states.md`](states.md#suspended-vs-terminal--not-a-special-case)'s.
 
 ### member
 
-A user who's joined a club. In `common.clubs_members`. Membership is fixed at club creation in v1; no add/remove RPCs.
+A user who's joined a club. In `common.clubs_members`. Membership is fixed at
+club creation in v1; no add/remove RPCs.
 
-**Bare `member` is reserved for the club-member case** — that's the dominant referent in this codebase and stealing it would cost every reader a moment of disambiguation. If we ever introduce a "member" concept for some other domain object (a permission group, a household, a mailing list, …), it must carry a differentiating prefix: `permissionGroupMember`, `householdMember`. Bare `member` stays the club member.
+**Bare `member` is reserved for the club-member case** — that's the dominant
+referent in this codebase and stealing it would cost every reader a moment of
+disambiguation. If we ever introduce a "member" concept for some other domain
+object (a permission group, a household, a mailing list, …), it must carry a
+differentiating prefix: `permissionGroupMember`, `householdMember`. Bare
+`member` stays the club member.
 
-**`member` vs `user` as a context signal.** Once you've decided to talk about a person, the choice between the two words is itself meaningful:
+**`member` vs `user` as a context signal.** Once you've decided to talk about a
+person, the choice between the two words is itself meaningful:
 
-- `member` reads as "of the club / game / clearly-implied group we're currently discussing." "Any member can start a game" is unambiguous — *which* members? The current club's. The scope rides along with the word.
-- `user` reads as "of the site." Saying "any user can start a game" is actively weaker and confusing — it raises the question *which* users, in a way `member` doesn't.
+- `member` reads as "of the club / game / clearly-implied group we're currently
+  discussing." "Any member can start a game" is unambiguous — *which* members?
+  The current club's. The scope rides along with the word.
+- `user` reads as "of the site." Saying "any user can start a game" is actively
+  weaker and confusing — it raises the question *which* users, in a way `member`
+  doesn't.
 
-The practical effect: most game-side code shouldn't reach for `user` at all, because games happen inside clubs and the relevant person is always a member of that club. `user` is right when the context genuinely is "a person who isn't tied to a specific club we're discussing" — e.g., the club-creation flow's "list of users we might pick to add to a new club," or the auth-side `auth.users` references. When in doubt: if a club is implied by the surrounding code, write `member`.
+The practical effect: most game-side code shouldn't reach for `user` at all,
+because games happen inside clubs and the relevant person is always a member of
+that club. `user` is right when the context genuinely is "a person who isn't
+tied to a specific club we're discussing" — e.g., the club-creation flow's "list
+of users we might pick to add to a new club," or the auth-side `auth.users`
+references. When in doubt: if a club is implied by the surrounding code, write
+`member`.
 
-For the database row specifically (regardless of context), `profile` is the name — that's the `common.profiles` row.
+For the database row specifically (regardless of context), `profile` is the name
+— that's the `common.profiles` row.
 
-**`member` vs `player` inside a game.** Once code is in a game context (inside a `<PlayArea>`, inside `useCommonGame`, inside a per-game hook), the person is more precisely a **player** — someone in `common.game_players` for this game, which is a strict subset of the club's members. See [`player`](#player) below. Right now, we don't support spectators; if we did in the future, anyone in the club could view the currently-active game, but they'd just be members (of the club), not players (in the game).
+**`member` vs `player` inside a game.** Once code is in a game context (inside a
+`<PlayArea>`, inside `useCommonGame`, inside a per-game hook), the person is
+more precisely a **player** — someone in `common.game_players` for this game,
+which is a strict subset of the club's members. See [`player`](#player) below.
+Right now, we don't support spectators; if we did in the future, anyone in the
+club could view the currently-active game, but they'd just be members (of the
+club), not players (in the game).
 
 ### player
 
-A member who's in a specific game — i.e. someone in `common.game_players` for that game id. Always a club member; not always *every* club member, because the `SetupGameModal` player picker lets a subset of the club start a game. (The creator is locked in — they can't deselect their own checkbox, since whoever starts a game must play it.)
+A member who's in a specific game — i.e. someone in `common.game_players` for
+that game id. Always a club member; not always *every* club member, because the
+`SetupGameModal` player picker lets a subset of the club start a game. (The
+creator is locked in — they can't deselect their own checkbox, since whoever
+starts a game must play it.)
 
-**Same shape as a member, different vocabulary.** In TypeScript this lands as one canonical `Member` type in `src/common/members/member.ts` plus a per-game `Player` alias in each game's hook file:
+**Same shape as a member, different vocabulary.** In TypeScript this lands as
+one canonical `Member` type in `src/common/members/member.ts` plus a per-game
+`Player` alias in each game's hook file:
 
-- connections, spellingbee, psychicnum: `type Player = Member` (pure re-export — no per-game enrichment today).
-- codenamesduet: `type Player = Member & { seat: 'A' | 'B' }` (the seat is a real per-game enrichment — codenamesduet is intrinsically 2-seat).
+- connections, spellingbee, psychicnum: `type Player = Member` (pure re-export —
+  no per-game enrichment today).
+- codenamesduet: `type Player = Member & { seat: 'A' | 'B' }` (the seat is a
+  real per-game enrichment — codenamesduet is intrinsically 2-seat).
 
-Every game declares the alias even when it's a pure re-export, because cross-game vocabulary consistency makes per-game folders pattern-match cleanly (a reader switching from codenamesduet to connections sees the same `Player` parallel and doesn't trip on a name change).
+Every game declares the alias even when it's a pure re-export, because
+cross-game vocabulary consistency makes per-game folders pattern-match cleanly
+(a reader switching from codenamesduet to connections sees the same `Player`
+parallel and doesn't trip on a name change).
 
 **Variable naming follows context, not type:**
 
-- Inside club-context code (ClubPage's roster, ChatBody's name resolution, SetupGameModal's pickers): variable name is `members`, type is `Member[]`.
-- Inside game-context code (useCommonGame's return, GamePageCtx, PlayArea props, per-game GameEventLog props): variable name is `players`, type is `Player[]`.
+- Inside club-context code (ClubPage's roster, ChatBody's name resolution,
+  SetupGameModal's pickers): variable name is `members`, type is `Member[]`.
+- Inside game-context code (useCommonGame's return, GamePageCtx, PlayArea props,
+  per-game GameEventLog props): variable name is `players`, type is `Player[]`.
 
-So `useCommonGame` returns `players: Member[]` — the type is `Member` (the identity layer is shared) but the variable says `players` because we're in a game context. See [`code-conventions.md` → Member vs Player](code-conventions.md#member-vs-player--one-type-context-driven-variable-names) for the implementation rules.
+So `useCommonGame` returns `players: Member[]` — the type is `Member` (the
+identity layer is shared) but the variable says `players` because we're in a
+game context. See [`code-conventions.md` → Member vs
+Player](code-conventions.md#member-vs-player--one-type-context-driven-variable-names)
+for the implementation rules.
 
 ### peer
 
-**Another player in this game, from my perspective.** Same shape as a `Player`, minus the viewer. Where `member` and `player` are absolute (you're either in the club / in the game or you aren't), `peer` is perspective-relative — every viewer has a different peer set, because none of us is our own peer.
+**Another player in this game, from my perspective.** Same shape as a `Player`,
+minus the viewer. Where `member` and `player` are absolute (you're either in the
+club / in the game or you aren't), `peer` is perspective-relative — every viewer
+has a different peer set, because none of us is our own peer.
 
-Wherever code needs to discriminate "is this me or someone else in this game?" — pick the `peer` half of the binary instead of generic words like `other`. Concretely:
+Wherever code needs to discriminate "is this me or someone else in this game?" —
+pick the `peer` half of the binary instead of generic words like `other`.
+Concretely:
 
-- `isMine` / `isPeer` for per-tile attribution in `connections/components/Board.tsx`.
-- "Peer selection," "peer-colored frame," "a peer disconnected" — phrasings that name the relationship rather than describing it as "the other player."
-- codenamesduet's `peerKey` (the partner's key card, fetched only post-game) and `revealPeer` flag — the seat I'm not in is my peer.
-- The pause-on-disconnect pattern phrases the trigger as "a peer is missing" because the predicate is viewer-relative: if Ada disconnects, Bea sees a missing peer; Ada sees Bea still there.
+- `isMine` / `isPeer` for per-tile attribution in
+  `connections/components/Board.tsx`.
+- "Peer selection," "peer-colored frame," "a peer disconnected" — phrasings that
+  name the relationship rather than describing it as "the other player."
+- codenamesduet's `peerKey` (the partner's key card, fetched only post-game) and
+  `revealPeer` flag — the seat I'm not in is my peer.
+- The pause-on-disconnect pattern phrases the trigger as "a peer is missing"
+  because the predicate is viewer-relative: if Ada disconnects, Bea sees a
+  missing peer; Ada sees Bea still there.
 
 **Where peer does NOT belong:**
 
-- Identity-color helpers (`src/common/members/memberColor.ts`, `--member-*-fill-color` CSS tokens) — those resolve a color for ANY person (including the viewer, e.g. your own disc beside your own chat message). That's member-level, not peer-level. The visual concept *applied* to a peer's tile is still "peer-colored," but the helper that resolves the color is `memberColor` because the helper is identity-keyed, not perspective-keyed.
-- Cross-game lobby / roster contexts — `members` and `players` are still the right words there. "Peer" only makes sense from a viewer's POV inside an active play surface.
+- Identity-color helpers (`src/common/members/memberColor.ts`,
+  `--member-*-fill-color` CSS tokens) — those resolve a color for ANY person
+  (including the viewer, e.g. your own disc beside your own chat message).
+  That's member-level, not peer-level. The visual concept *applied* to a peer's
+  tile is still "peer-colored," but the helper that resolves the color is
+  `memberColor` because the helper is identity-keyed, not perspective-keyed.
+- Cross-game lobby / roster contexts — `members` and `players` are still the
+  right words there. "Peer" only makes sense from a viewer's POV inside an
+  active play surface.
 
 ### start (startSetup vs startGame)
 
-"Start a game" is a two-phase flow in this codebase: the user picks options first, *then* the game is created. The same word would describe both phases in casual speech, so identifier naming splits them:
+"Start a game" is a two-phase flow in this codebase: the user picks options
+first, *then* the game is created. The same word would describe both phases in
+casual speech, so identifier naming splits them:
 
-- **`startSetup`** — activate the connections row in ClubPage's start list. Opens the setup dialog. The game does not yet exist; nothing is written to the DB.
-- **`startGame`** — click "Start connections" inside the dialog after picking options. Fires `manifest.startGameInClub`, which calls `create_game` and writes the new `common.games` row.
+- **`startSetup`** — activate the connections row in ClubPage's start list.
+  Opens the setup dialog. The game does not yet exist; nothing is written to the
+  DB.
+- **`startGame`** — click "Start connections" inside the dialog after picking
+  options. Fires `manifest.startGameInClub`, which calls `create_game` and
+  writes the new `common.games` row.
 
 Concretely:
 
@@ -176,11 +332,18 @@ Concretely:
 | `manifest.startGameInClub` | startGame | The RPC-firing function. Always actually creates a game. |
 | `SetupGameModal.onStarted(gameId)` | startGame done | Past tense; fires after `startGameInClub` returns success. |
 
-UI labels stay "Start X" everywhere — users intuitively understand the two-click pattern as "open the form, confirm the form." The distinction lives in the code, where ambiguity costs reader cycles.
+UI labels stay "Start X" everywhere — users intuitively understand the two-click
+pattern as "open the form, confirm the form." The distinction lives in the code,
+where ambiguity costs reader cycles.
 
 ### persona
 
-A test fixture user with a stable role across the pgTAP suite — `ada`, `bea`, `cade`, `dee`, `eda`. Each has a documented role (in-club player, in-club non-player, outsider) and a UUID that embeds the name (`ada11111-1111-…`) for self-evident error messages. Defined in [`supabase/tests/_shared/setup.psql`](../supabase/tests/_shared/setup.psql). See [`testing.md`](testing.md) for the conventions.
+A test fixture user with a stable role across the pgTAP suite — `ada`, `bea`,
+`cade`, `dee`, `eda`. Each has a documented role (in-club player, in-club
+non-player, outsider) and a UUID that embeds the name (`ada11111-1111-…`) for
+self-evident error messages. Defined in
+[`supabase/tests/_shared/setup.psql`](../supabase/tests/_shared/setup.psql). See
+[`testing.md`](testing.md) for the conventions.
 
 ## Per-game vocabulary
 
@@ -250,83 +413,170 @@ ring: 100% standard everywhere *including* inside the most-tuned board. The
 three levels answer "how much may this vary"; the vocabulary answers "what may
 never vary".
 
-The cross-cutting terms above apply everywhere. Each game also has its own small lexicon for domain-specific things — connections' `category` / `tile` / `matched`, spellingbee's `pangram` / `bonus word` / `letter mask` / `outcome`, etc. Those lexicons live in the per-game doc's `## Vocabulary` section so the words sit next to the code that uses them:
+The cross-cutting terms above apply everywhere. Each game also has its own small
+lexicon for domain-specific things — connections' `category` / `tile` /
+`matched`, spellingbee's `pangram` / `bonus word` / `letter mask` / `outcome`,
+etc. Those lexicons live in the per-game doc's `## Vocabulary` section so the
+words sit next to the code that uses them:
 
 - [`src/connections/doc.md → Vocabulary`](../src/connections/doc.md#vocabulary)
 - [`src/spellingbee/doc.md → Vocabulary`](../src/spellingbee/doc.md#vocabulary)
 
-codenamesduet and psychicnum use the cross-cutting lexicon plus their domain-obvious words (`clue`, `target`) and don't have separate vocabulary sections.
+codenamesduet and psychicnum use the cross-cutting lexicon plus their
+domain-obvious words (`clue`, `target`) and don't have separate vocabulary
+sections.
 
-When two games use the same word for genuinely different concepts (connections' `rank` = per-category difficulty 0..3; spellingbee's `rank` = per-player progress 0..6), the per-game `## Vocabulary` entry should call that collision out so a cross-game reader doesn't get confused.
+When two games use the same word for genuinely different concepts (connections'
+`rank` = per-category difficulty 0..3; spellingbee's `rank` = per-player
+progress 0..6), the per-game `## Vocabulary` entry should call that collision
+out so a cross-game reader doesn't get confused.
 
 ## Naming principles
 
-These are the rules-of-thumb behind the choices above. They apply to SQL column / table / function names, TS types / fields / exports, and CSS tokens — anywhere a name will be read outside its immediate point of definition.
+These are the rules-of-thumb behind the choices above. They apply to SQL column
+/ table / function names, TS types / fields / exports, and CSS tokens — anywhere
+a name will be read outside its immediate point of definition.
 
 ### Be specific at long visibility; generic is OK only when scope is obvious
 
-Avoid general terms — `group`, `set`, `data`, `item`, `entry`, `record`, `list`, `value`, `content`, `state` (as a noun for "the data") — for anything that travels far from its definition: column names, top-level TS types, hook return keys, module exports.
+Avoid general terms — `group`, `set`, `data`, `item`, `entry`, `record`, `list`,
+`value`, `content`, `state` (as a noun for "the data") — for anything that
+travels far from its definition: column names, top-level TS types, hook return
+keys, module exports.
 
-Generic locals inside a small function are fine. A 5-line PL/pgSQL function with a `group_obj jsonb` variable reads correctly because you can see the whole function at once. The rule is about visibility scope — the bigger the visibility, the more specific the name needs to be.
+Generic locals inside a small function are fine. A 5-line PL/pgSQL function with
+a `group_obj jsonb` variable reads correctly because you can see the whole
+function at once. The rule is about visibility scope — the bigger the
+visibility, the more specific the name needs to be.
 
-Watch list of generic words to push back on in wide-visibility names is at the bottom of this file.
+Watch list of generic words to push back on in wide-visibility names is at the
+bottom of this file.
 
 ### Bare `member` = club member; prefix everything else
 
-See the lexicon entry. If you need "member" for a non-club concept, it gets a differentiating prefix (`permissionGroupMember`, etc.) — the bare form stays reserved.
+See the lexicon entry. If you need "member" for a non-club concept, it gets a
+differentiating prefix (`permissionGroupMember`, etc.) — the bare form stays
+reserved.
 
 ### Plural ≠ count. If a count could share its name with a list, add `_count`.
 
 `connections.games.mistake_count` is named that way (not `mistakes`) because:
 
 1. It's a number, not a list. A plural-looking name reads as a list.
-2. A list of the actual mistakes will eventually live somewhere on the FE (the `guesses` rows with `result <> 'correct'`). Calling the column `mistakes` would collide with that list.
+2. A list of the actual mistakes will eventually live somewhere on the FE (the
+   `guesses` rows with `result <> 'correct'`). Calling the column `mistakes`
+   would collide with that list.
 
-Apply this preemptively: when adding a count column, ask "could a list-of-these also exist later?" If yes — and that's usually yes for anything countable — use `_count` / `Count` now. The cost of being explicit upfront is small; the cost of renaming later is real.
+Apply this preemptively: when adding a count column, ask "could a list-of-these
+also exist later?" If yes — and that's usually yes for anything countable — use
+`_count` / `Count` now. The cost of being explicit upfront is small; the cost of
+renaming later is real.
 
-Doesn't apply to scalars that have no plausible list shape — `score`, `total_seconds_paused`, `version`. The rule is about *count*-vs-*list*-collision, not "every number ends in `_count`."
+Doesn't apply to scalars that have no plausible list shape — `score`,
+`total_seconds_paused`, `version`. The rule is about
+*count*-vs-*list*-collision, not "every number ends in `_count`."
 
 ### A name with multiple plausible meanings is usually wrong
 
-If you reach for `group` or `set` or `level` and find yourself thinking "well, it could mean…" — that's the signal to pick a more specific word. `member` is the pragmatic exception, and its carve-out (prefix when not a club member) is precisely what controls the ambiguity.
+If you reach for `group` or `set` or `level` and find yourself thinking "well,
+it could mean…" — that's the signal to pick a more specific word. `member` is
+the pragmatic exception, and its carve-out (prefix when not a club member) is
+precisely what controls the ambiguity.
 
 ### Consistency across gametypes for the same concept is non-negotiable
 
-When two games have a concept that *is the same thing*, they MUST use the same name. The common types and hooks force this for everything they touch (`Member`, `useGameTimer`, `PauseBoundary`); the discipline lives at the boundary where a new game starts to introduce its own surface.
+When two games have a concept that *is the same thing*, they MUST use the same
+name. The common types and hooks force this for everything they touch (`Member`,
+`useGameTimer`, `PauseBoundary`); the discipline lives at the boundary where a
+new game starts to introduce its own surface.
 
-When a third game adopts a term that's standard in two others, that term graduates to the "cross-game canonical names" list below. That's also the moment to verify the pre-existing two are already using it the same way (often the catalyst for a small rename).
+When a third game adopts a term that's standard in two others, that term
+graduates to the "cross-game canonical names" list below. That's also the moment
+to verify the pre-existing two are already using it the same way (often the
+catalyst for a small rename).
 
 ### …but deliberately-distinct names are the flip side — don't unify a name that encodes a real difference
 
-The corollary to the rule above: when a cross-game name difference encodes a *real* mechanical, shape, or signature difference, **keep it**. Forcing a shared name for surface consistency would *hide* the distinction. These look like drift but correctly aren't (recorded so a future consistency pass doesn't "fix" them):
+The corollary to the rule above: when a cross-game name difference encodes a
+*real* mechanical, shape, or signature difference, **keep it**. Forcing a shared
+name for surface consistency would *hide* the distinction. These look like drift
+but correctly aren't (recorded so a future consistency pass doesn't "fix" them):
 
-- **Cheat verbs** — psychicnum `request_hint` / `request_spoiler` (secrets are *unordered* — pick an unfound one at random) vs stackdown `reveal_next_hint` / `reveal_next_word` (6 *ordered* solution words — you reveal the *next* one). The `_next_` is load-bearing.
-- **`result` numeric key** — scrabble `score` (points) vs stackdown `found` (a 0–6 words-cleared count). Different metrics, not one concept under two names.
-- **boggle `play_state = 'ended'`** for a normal finish — boggle has no win-threshold state (the winner is *derived* from most-points when the timer / manual End fires), so `'ended'` is its only terminal; `'won_compete'` would invent a state its model doesn't have.
-- **`onSubmitWord(tileIds)` (stackdown)** vs argument-less `onSubmit()` (boggle / spellingbee) — different signatures (stackdown carries the specific tile set spelled off the exposed stack); the self-describing name is deliberate.
-- **Board-gate FE props** — connections `showInput` / psychicnum `isStillPlaying` stay distinct from the shared `readOnly`: they're cross-column input-*phase* flags that show/hide the input UI, not a board-only "visible-but-inert" `readOnly`.
-- **Per-player metric props** — the three same-shaped `ReadonlyMap<string, number>` props were unified on `metricByUser`, but `playerStates` / `playerBudgets` (a *rows* shape) stayed distinct — different shapes, not different names for one thing.
-- **`_maybe_finish_compete`** (connections / waffle / wordle) vs `_finish` / `_finalize` — a genuinely different function: it returns `boolean` and early-returns if the game *isn't* over, where `_finish` returns `void` and unconditionally finalizes.
+- **Cheat verbs** — psychicnum `request_hint` / `request_spoiler` (secrets are
+  *unordered* — pick an unfound one at random) vs stackdown `reveal_next_hint` /
+  `reveal_next_word` (6 *ordered* solution words — you reveal the *next* one).
+  The `_next_` is load-bearing.
+- **`result` numeric key** — scrabble `score` (points) vs stackdown `found` (a
+  0–6 words-cleared count). Different metrics, not one concept under two names.
+- **boggle `play_state = 'ended'`** for a normal finish — boggle has no
+  win-threshold state (the winner is *derived* from most-points when the timer /
+  manual End fires), so `'ended'` is its only terminal; `'won_compete'` would
+  invent a state its model doesn't have.
+- **`onSubmitWord(tileIds)` (stackdown)** vs argument-less `onSubmit()` (boggle
+  / spellingbee) — different signatures (stackdown carries the specific tile set
+  spelled off the exposed stack); the self-describing name is deliberate.
+- **Board-gate FE props** — connections `showInput` / psychicnum
+  `isStillPlaying` stay distinct from the shared `readOnly`: they're
+  cross-column input-*phase* flags that show/hide the input UI, not a board-only
+  "visible-but-inert" `readOnly`.
+- **Per-player metric props** — the three same-shaped `ReadonlyMap<string,
+  number>` props were unified on `metricByUser`, but `playerStates` /
+  `playerBudgets` (a *rows* shape) stayed distinct — different shapes, not
+  different names for one thing.
+- **`_maybe_finish_compete`** (connections / waffle / wordle) vs `_finish` /
+  `_finalize` — a genuinely different function: it returns `boolean` and
+  early-returns if the game *isn't* over, where `_finish` returns `void` and
+  unconditionally finalizes.
 
-- **`common.wordle_colors`** — looks like a game codename in the shared layer, which the headline rule forbids. It isn't: "Wordle colors" is the *term of art* for the green/yellow/gray scheme, and waffle calls it because that's the recognizable convention, not because it borrowed from our wordle. The name describes the OUTPUT. (waffle's board-level wrapper was `compute_colors` — the repo's lone `compute_` verb — and DID get tidied, to `board_colors`.) Ratified 2026-08-02.
-- **`common.create_game`'s `saved_default` param vs the `clubs_gametypes.default_setup` column it feeds** — the mismatch is load-bearing, not drift. Naming the param `default_setup` makes the UPDATE inside the function ambiguous: PL/pgSQL sees a parameter and a column of that name in one statement and errors. Same trap as `psychicnum.submit_guess`'s local `is_correct` next to the column of that name (there the fix was qualifying the column; here it's the distinct param name).
-- **`scrabble._advance_seat` vs `common._advance_turn`** — two different pointers, and BOTH are called from scrabble's `play_word` a few lines apart: the seat pointer for compete turns, the common pointer for opt-in coop turn order. They were `scrabble._advance_turn` / `common._advance_turn` until 2026-08-02, telling apart only by schema qualifier.
-- **`common._require_turn` is `_`-prefixed while the other `require_*` gates aren't** — it belongs to the turn-order primitives (`_assign_turn_order` / `_advance_turn` / `_require_turn`), which share the prefix as one opt-in mechanism's internals rather than the roster-wide gates every RPC calls.
-- bananagrams' two per-player tables (`player_boards` + `progress`) — a real RLS boundary (owner-only vs club-readable), commented at `useProgress` in `src/bananagrams/hooks/useGame.ts`.
-- `common._set_conceded` vs `common.concede` — elimination games deliberately take the half-step; the header comment explains it.
-- `scrabble.players.user_id` nullable (the AI-seat XOR) — unique but correctly documented inline.
+- **`common.wordle_colors`** — looks like a game codename in the shared layer,
+  which the headline rule forbids. It isn't: "Wordle colors" is the *term of
+  art* for the green/yellow/gray scheme, and waffle calls it because that's the
+  recognizable convention, not because it borrowed from our wordle. The name
+  describes the OUTPUT. (waffle's board-level wrapper was `compute_colors` — the
+  repo's lone `compute_` verb — and DID get tidied, to `board_colors`.) Ratified
+  2026-08-02.
+- **`common.create_game`'s `saved_default` param vs the
+  `clubs_gametypes.default_setup` column it feeds** — the mismatch is
+  load-bearing, not drift. Naming the param `default_setup` makes the UPDATE
+  inside the function ambiguous: PL/pgSQL sees a parameter and a column of that
+  name in one statement and errors. Same trap as `psychicnum.submit_guess`'s
+  local `is_correct` next to the column of that name (there the fix was
+  qualifying the column; here it's the distinct param name).
+- **`scrabble._advance_seat` vs `common._advance_turn`** — two different
+  pointers, and BOTH are called from scrabble's `play_word` a few lines apart:
+  the seat pointer for compete turns, the common pointer for opt-in coop turn
+  order. They were `scrabble._advance_turn` / `common._advance_turn` until
+  2026-08-02, telling apart only by schema qualifier.
+- **`common._require_turn` is `_`-prefixed while the other `require_*` gates
+  aren't** — it belongs to the turn-order primitives (`_assign_turn_order` /
+  `_advance_turn` / `_require_turn`), which share the prefix as one opt-in
+  mechanism's internals rather than the roster-wide gates every RPC calls.
+- bananagrams' two per-player tables (`player_boards` + `progress`) — a real RLS
+  boundary (owner-only vs club-readable), commented at `useProgress` in
+  `src/bananagrams/hooks/useGame.ts`.
+- `common._set_conceded` vs `common.concede` — elimination games deliberately
+  take the half-step; the header comment explains it.
+- `scrabble.players.user_id` nullable (the AI-seat XOR) — unique but correctly
+  documented inline.
 
-The test: would a shared name *hide* a difference the reader needs? If yes, keep them distinct and let the name carry the distinction.
+The test: would a shared name *hide* a difference the reader needs? If yes, keep
+them distinct and let the name carry the distinction.
 
 ### Qualify when the name will be read in isolation; stay bare when the scope owner is right there
 
-Inside `board.categories[].rank`, bare `rank` is unambiguous — the surrounding object IS a category. As a column on `connections.events`, the same idea needs `matched_category_rank` because at the column level the name is read globally (PostgREST, generated TS types, the FE's `Database` type) with no surrounding context.
+Inside `board.categories[].rank`, bare `rank` is unambiguous — the surrounding
+object IS a category. As a column on `connections.events`, the same idea needs
+`matched_category_rank` because at the column level the name is read globally
+(PostgREST, generated TS types, the FE's `Database` type) with no surrounding
+context.
 
-The principle: the wider the visibility, the more the name has to carry its own scope.
+The principle: the wider the visibility, the more the name has to carry its own
+scope.
 
 ## Cross-game canonical names
 
-Names that recur across gametypes and MUST be identical when the underlying concept is the same. A future game that names one of these differently is wrong.
+Names that recur across gametypes and MUST be identical when the underlying
+concept is the same. A future game that names one of these differently is wrong.
 
 | name | what it is |
 |---|---|
@@ -352,7 +602,10 @@ Names that recur across gametypes and MUST be identical when the underlying conc
 
 ## Watch list of generic words
 
-These show up as smells when they leak into wide-visibility names (columns, top-level types, hook return keys, exports). Each has at least one preferred specific alternative in this codebase. If you see one here in a wide-visibility name, raise it.
+These show up as smells when they leak into wide-visibility names (columns,
+top-level types, hook return keys, exports). Each has at least one preferred
+specific alternative in this codebase. If you see one here in a wide-visibility
+name, raise it.
 
 | generic | preferred specifics |
 |---|---|
@@ -370,4 +623,5 @@ These show up as smells when they leak into wide-visibility names (columns, top-
 
 ## What's in the rest of `docs/`
 
-See [CLAUDE.md](../CLAUDE.md)'s documentation table for the full, current index of every doc.
+See [CLAUDE.md](../CLAUDE.md)'s documentation table for the full, current index
+of every doc.
