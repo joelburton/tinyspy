@@ -78,4 +78,30 @@ describe('useBoardSelectionCursor', () => {
     expect(s.cursor()).toEqual({ x: 1, y: 0 })
     s.view.unmount()
   })
+
+  // connections loses a row of tiles to each solved band.
+  it('stands on the nearest cell when the board shrinks under it, and moves on from there', async () => {
+    const s = setup()
+    await press('ArrowRight')
+    await press('ArrowRight')
+    await press('ArrowDown')
+    expect(s.cursor()).toEqual({ x: 1, y: 1 })
+
+    s.view.rerender({ shape: { cols: 3, rows: 1, exists: () => true } })
+    expect(s.cursor()).toEqual({ x: 1, y: 0 })
+    await press(' ')
+    expect(s.onToggle).toHaveBeenCalledWith({ x: 1, y: 0 })
+    await press('ArrowRight')
+    expect(s.cursor()).toEqual({ x: 2, y: 0 })
+    s.view.unmount()
+  })
+
+  it('a board with no cells draws no cursor, and its keys do nothing', async () => {
+    const s = setup({ shape: { cols: 4, rows: 0, exists: () => true } })
+    await press('ArrowRight')
+    await press(' ')
+    expect(s.cursor()).toBeNull()
+    expect(s.onToggle).not.toHaveBeenCalled()
+    s.view.unmount()
+  })
 })

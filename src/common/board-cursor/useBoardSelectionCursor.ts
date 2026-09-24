@@ -2,7 +2,7 @@
 
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import type { ArrowKey } from './gridCursor'
-import { stepCell, type BoardShape, type Cell } from './stepCell'
+import { clampCell, stepCell, type BoardShape, type Cell } from './stepCell'
 import { useSelectionCursor } from './useSelectionCursor'
 
 export type BoardSelectionCursorOptions = {
@@ -37,7 +37,8 @@ export type BoardSelectionCursor = {
  * move. **Space acts on the cursor, so it is inert while the cursor is hidden.**
  *
  * What stays in the game is the board's shape, what a pick is, and the move.
- * The arrows go where `stepCell` says.
+ * The arrows go where `stepCell` says, and when the shape shrinks under the
+ * cursor it stands where `clampCell` says.
  */
 export function useBoardSelectionCursor({
   shape,
@@ -45,22 +46,27 @@ export function useBoardSelectionCursor({
   onToggle,
 }: BoardSelectionCursorOptions): BoardSelectionCursor {
   const selection = useSelectionCursor<Cell>({ x: 0, y: 0 })
+  // Clamped here rather than at the move, because the board can shrink under
+  // the cursor. Null only on a board with no cells.
+  const at = clampCell(selection.at, shape)
   const state = () => (enabled ? 'active' : 'disabled')
 
   useBoundAction('act-move-cursor', {
     describe: state,
-    run: (key) => selection.step(stepCell(selection.at, key as ArrowKey, shape)),
+    run: (key) => {
+      if (at !== null) selection.step(stepCell(at, key as ArrowKey, shape))
+    },
   })
 
   useBoundAction('act-toggle-tile', {
     describe: state,
     run: () => {
-      if (selection.revealed) onToggle(selection.at)
+      if (selection.revealed && at !== null) onToggle(at)
     },
   })
 
   return {
-    cursor: enabled && selection.revealed ? selection.at : null,
+    cursor: enabled && selection.revealed ? at : null,
     point: selection.point,
   }
 }

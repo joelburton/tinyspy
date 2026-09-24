@@ -13,6 +13,22 @@ export type BoardShape = {
 }
 
 /**
+ * The cell a cursor at `cell` stands on when the board has SHRUNK under it
+ * (connections loses a row of tiles to each solved band): pulled into the
+ * board's bounds, then back along the rows to the nearest cell that exists.
+ * Null when the board has no cells at all.
+ */
+export function clampCell(cell: Cell, shape: BoardShape): Cell | null {
+  let i = Math.min(cell.y, shape.rows - 1) * shape.cols + Math.min(cell.x, shape.cols - 1)
+  for (; i >= 0; i--) {
+    const x = i % shape.cols
+    const y = Math.floor(i / shape.cols)
+    if (shape.exists(x, y)) return { x, y }
+  }
+  return null
+}
+
+/**
  * Where an arrow takes a selection cursor: the next cell that exists in the
  * arrow's direction, passing over a hole (waffle's) to the cell beyond it. With
  * none that way — the board's edge, or a short last row (psychicnum's) — the

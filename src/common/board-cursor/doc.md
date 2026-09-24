@@ -39,7 +39,7 @@ common/board-cursor/
  ├── gridCursor.ts            moveCursor · stepBack · planBackspace
  ├── gridCursor.module.css    the ring: .cursor + .cursorH / .cursorV
  ├── useSelectionCursor.ts    a selection cursor's show/hide rules
- ├── stepCell.ts              where an arrow takes a selection cursor on a board
+ ├── stepCell.ts              where an arrow takes a selection cursor on a board; clampCell when it shrinks
  ├── useBoardSelectionCursor.ts   the two above, bound to the arrows and Space: a board's selection cursor
  └── reachability.fixture.ts  for a test: the cells a cursor can never reach on a board's shape
 bananagrams/hooks/usePlayerBoard.ts     runs the hook and the math; BoardArena renders the ring
