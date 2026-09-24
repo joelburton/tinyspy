@@ -28,6 +28,7 @@ const { keyCfg, mockStart, mockRpc } = vi.hoisted(() => ({
 
 vi.mock('../db', () => ({ db: { rpc: mockRpc } }))
 vi.mock('@/shared/grid-and-drag/useDragGesture', () => ({
+  cellAtPoint: () => null,
   useDragGesture: () => ({ drag: null, hover: null, start: mockStart }),
 }))
 // The cursor keyboard is captured rather than driven: what this file tests is

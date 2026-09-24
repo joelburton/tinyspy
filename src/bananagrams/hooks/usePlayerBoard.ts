@@ -23,7 +23,7 @@ import {
   reconcileHandOrder,
   shuffleString,
 } from '../lib/board'
-import { useDragGesture, type DragGesture, type DragState } from '@/shared/grid-and-drag/useDragGesture'
+import { cellAtPoint, useDragGesture, type DragGesture, type DragState } from '@/shared/grid-and-drag/useDragGesture'
 import { moveCursor, stepBack } from '@/shared/board-cursor/gridCursor'
 import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -78,12 +78,6 @@ export type DragSource = { kind: 'hand'; index: number } | { kind: 'board'; x: n
 // reset there after a recenter.
 const CENTER_CURSOR: Cursor = { x: Math.floor(GRID / 2), y: Math.floor(GRID / 2), dir: 'h' }
 
-function cellAtPoint(x: number, y: number): Cell | null {
-  const el = document.elementFromPoint(x, y)
-  const cell = el?.closest('[data-cell]') as HTMLElement | null
-  if (!cell) return null
-  return { x: Number(cell.dataset.x), y: Number(cell.dataset.y) }
-}
 function overHandAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="hand"]')
 }
@@ -426,7 +420,7 @@ export function usePlayerBoard({
 
   // --- Drag plumbing (shared hook owns the window listeners) ------------
   const finishDrag = useCallback(
-    (g: DragGesture<DragSource, Cell>, x: number, y: number) => {
+    (g: DragGesture<DragSource>, x: number, y: number) => {
       const target = cellAtPoint(x, y)
       if (target) {
         const occupied = boardRef.current[idx(target.x, target.y)] !== '.'
@@ -460,12 +454,11 @@ export function usePlayerBoard({
   )
 
   // A plain tap on a board cell moves the keyboard cursor there.
-  const onTap = useCallback((g: DragGesture<DragSource, Cell>) => {
+  const onTap = useCallback((g: DragGesture<DragSource>) => {
     if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
   }, [])
 
-  const { drag, hover, start } = useDragGesture<DragSource, Cell>({
-    cellAtPoint,
+  const { drag, hover, start } = useDragGesture<DragSource>({
     onDrop: finishDrag,
     onTap,
     // Any dragged tile (hand or board) can be dumped; light the slot when one hovers

@@ -1,31 +1,26 @@
 /* cs-audited-grid-and-drag */
 
-/* The drag ghost — the tile that follows the pointer while you're dragging one,
- * shared by the two games with draggable tiles (scrabble's rack, bananagrams's
- * hand + board). Composed with each game's own look:
- * `cls(dragGhost.ghost, styles.ghost)`.
+/* The drag ghost — the tile that follows the pointer while one is dragged.
+ * Composed with the game's own rule, `cls(dragGhost.ghost, styles.ghost)`, and
+ * the render site sets `left`/`top` from the pointer.
  *
- * WHAT'S HERE is the mechanics of "an element pinned to the pointer", which is
- * identical in both and is the part that would drift silently — if someone
- * retuned the rotation in one game, nothing would point at the other:
+ * WHAT'S HERE is what every ghost shares:
  *
- *   position: fixed          the render sites set `left`/`top` from pointer coords
- *   translate(-50%, -50%)    so those coords are the tile's CENTER, not its corner
+ *   position: fixed          pinned to the viewport, where the pointer is
+ *   translate(-50%, -50%)    so the pointer coords are the tile's CENTER, not its corner
  *   rotate(-3deg)            the "lifted off the board" tilt
  *   pointer-events: none     the ghost must never eat the drop target's events
+ *   z-index: --z-ghost       its tier, which is not a game's choice
+ *   a centered bold letter
  *
- * WHAT'S DELIBERATELY NOT HERE is the look. Each game's ghost imitates the tile
- * it lifted, and those tiles genuinely differ: bananagrams's are large and round
- * (7px radius, a deep `0 6px 14px` shadow), scrabble's small and crisp (4px, a
- * shallower `0 4px 10px`), each on its own color tokens, and scrabble sizes its
- * ghost from `--rack-tile-size` where bananagrams's is sized by its content. A
- * ghost that stopped resembling the tile it came from would be a worse drag, not
- * a more consistent one.
- *
- * WHAT IS NOT A PER-GAME DECISION is the tier: both ghosts read `--z-ghost`, and
- * both render OUTSIDE the board root. They have to — a board is a stacking
+ * Neither is where it renders: OUTSIDE the board root. A board is a stacking
  * context (`.boardSeal` in game-page/playArea.module.css), and a ghost confined
  * to one could not follow the pointer onto the rack or hand it came from.
+ *
+ * WHAT'S NOT HERE is the look. A ghost imitates the tile it lifted — its size,
+ * face, edge, radius and shadow — so the game's own rule sets those. A ghost
+ * that stopped resembling its tile would be a worse drag, not a more
+ * consistent one.
  */
 /* @@ */ .ghost {
   position: fixed;
@@ -35,4 +30,5 @@
   justify-content: center;
   font-weight: 700;
   pointer-events: none;
+  z-index: var(--z-ghost);
 }

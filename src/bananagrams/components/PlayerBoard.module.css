@@ -302,14 +302,13 @@
 }
 
 /* ---- drag ghost ----
- * The LOOK only; the pointer-following mechanics (fixed + center-translate +
- * tilt) come from the shared shared/grid-and-drag/dragGhost.module.css,
- * composed alongside this. */
+ * The LOOK only; everything a ghost shares — the pointer-following and the
+ * tier — comes from shared/grid-and-drag/dragGhost.module.css, composed
+ * alongside this. */
 /* @@ */ .ghost {
   color: var(--bananagrams-tile-ink);
   background: var(--bananagrams-tile-face);
   border: 1px solid var(--bananagrams-tile-edge);
   border-radius: 7px;
   box-shadow: var(--bananagrams-drag-shadow);
-  z-index: var(--z-ghost);
 }

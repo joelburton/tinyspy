@@ -102,8 +102,8 @@
 
 /* The dragged tile's LOOK — sized to match the (responsive) rack tile so the drag
  * image is the same size as the tile it lifted. Reads --rack-tile-size + the tile
- * tokens from ancestors (.layout / :root). The pointer-following mechanics
- * (fixed + center-translate + tilt) come from the shared
+ * tokens from ancestors (.layout / :root). Everything a ghost shares — the
+ * pointer-following and the tier — comes from
  * shared/grid-and-drag/dragGhost.module.css, composed alongside this. */
 /* @@ */ .ghost {
   width: var(--rack-tile-size);
@@ -113,6 +113,5 @@
   border: 1px solid var(--scrabble-tile-edge);
   border-radius: 4px;
   font-size: calc(var(--rack-tile-size) * 0.5);
-  z-index: var(--z-ghost);
   box-shadow: var(--scrabble-tile-lift-shadow);
 }

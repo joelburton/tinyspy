@@ -15,7 +15,7 @@ import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalF
 import { Dot } from '@/common/members/Dot'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
-import { useDragGesture, type DragGesture } from '@/shared/grid-and-drag/useDragGesture'
+import { cellAtPoint, useDragGesture, type DragGesture } from '@/shared/grid-and-drag/useDragGesture'
 import { moveCursor, stepBack } from '@/shared/board-cursor/gridCursor'
 import { db } from '../db'
 import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
@@ -62,12 +62,6 @@ export type HistoryTarget =
   | { kind: 'turn'; id: number }
   | { kind: 'peerPreview'; placements: Placement[]; sharerId: string; words: string[]; score: number }
 
-/** The board cell under a screen point (via data-cell), or null. */
-function cellAtPoint(x: number, y: number): XY | null {
-  const el = document.elementFromPoint(x, y)?.closest('[data-cell]') as HTMLElement | null
-  if (!el) return null
-  return { x: Number(el.dataset.x), y: Number(el.dataset.y) }
-}
 function overRackAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="rack"]')
 }
@@ -465,7 +459,7 @@ export function BoardCol({
   }, [])
 
   const finishDrag = useCallback(
-    (g: DragGesture<DragSource, XY>, px: number, py: number) => {
+    (g: DragGesture<DragSource>, px: number, py: number) => {
       const target = cellAtPoint(px, py)
       if (target) {
         const ownCell = g.source.kind === 'board' && g.source.x === target.x && g.source.y === target.y
@@ -520,15 +514,14 @@ export function BoardCol({
   // A plain tap: on a rack tile toggles it for exchange; on a board square
   // moves the keyboard cursor there.
   const onTap = useCallback(
-    (g: DragGesture<DragSource, XY>) => {
+    (g: DragGesture<DragSource>) => {
       if (g.source.kind === 'rack') toggleSelect(g.source.rackIdx)
       else if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
     },
     [toggleSelect],
   )
 
-  const { drag, hover, start } = useDragGesture<DragSource, XY>({
-    cellAtPoint,
+  const { drag, hover, start } = useDragGesture<DragSource>({
     onDrop: finishDrag,
     onTap,
   })

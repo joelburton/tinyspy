@@ -3,56 +3,38 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './dragging.css'
 
-/**
- * The shared "press a tile, then either tap or drag it" pointer plumbing,
- * factored out of bananagrams and scrabble — the two games with a grid you
- * drag lettered tiles onto.
- *
- * Both games run the *same* gesture state machine: a pointer-down arms a
- * gesture; the first move past a small threshold promotes it to a real drag
- * (otherwise the release is treated as a plain tap); during a drag we track a
- * floating ghost + the cell under the pointer; the release either drops the
- * tile or, if it never became a drag, taps. Only the *meaning* of a drop / a
- * tap differs per game, so those are callbacks. Everything mechanical — the
- * threshold maths, the window listeners, the body "dragging" class, the
- * drag/hover state — lives here once.
- *
- * What stays in each game (genuinely game-specific, deliberately NOT absorbed):
- *   - `cellAtPoint` — reads the game's own grid data-attributes (`data-x/y`
- *     vs `data-row/col`), so it's passed in.
- *   - `onDrop` — the drop semantics (stage a tile, move it, recall it to the
- *     rack, dump it…). This is the heart of each game's rules.
- *   - `onTap` — what a non-drag release means (move the keyboard cursor,
- *     toggle a rack tile for exchange…).
- *   - the keyboard cursor + tile placement / typing — those diverge enough
- *     that sharing them would obscure each game's rules, so they stay put.
- *
- * The callbacks are read through a ref, so the window listeners bind exactly
- * ONCE for the hook's lifetime and never re-attach as the game's render-fresh
- * closures change.
- *
- * Generic over the game's drag *source* (what was picked up — a rack slot, a
- * board cell…) and its *cell* coordinate shape (`{x,y}` or `{row,col}`).
- */
-
 const DRAG_THRESHOLD = 4 // px a press must travel before it counts as a drag (vs a tap)
 
 /** The body class set while a tile is being dragged; `dragging.css` styles it. */
 export const DRAGGING_CLASS = 'tile-dragging'
 
+/** A square of the grid: `x` is its column, `y` its row. */
+export type GridCell = { x: number; y: number }
+
+/**
+ * The grid square under a screen point, or null off the grid. A square is an
+ * element carrying `data-cell`, with its column and row in `data-x` and
+ * `data-y`.
+ */
+export function cellAtPoint(x: number, y: number): GridCell | null {
+  const el = document.elementFromPoint(x, y)?.closest('[data-cell]') as HTMLElement | null
+  if (!el) return null
+  return { x: Number(el.dataset.x), y: Number(el.dataset.y) }
+}
+
 /** An armed gesture: a press that may still become a drag or settle as a tap. */
-export type DragGesture<TSource, TCell> = {
-  /** What was picked up (game-defined: a rack slot, a board cell, a hand tile…). */
+export type DragGesture<TSource> = {
+  // What was picked up (game-defined: a rack slot, a board cell, a hand tile…).
   source: TSource
-  /** The letter being moved, or null when the press isn't draggable (an empty
-   *  board cell). A null letter can only ever tap, never drag. */
+  // The letter being moved, or null when the press can't drag (an empty square,
+  // a finger). A null letter can only ever tap.
   letter: string | null
-  /** The board cell pressed (for the tap → move-cursor path), or null when the
-   *  press began off the grid (e.g. on the rack/hand). */
-  cell: TCell | null
+  // The board cell pressed, or null when the press began off the grid (on the
+  // rack or hand).
+  cell: GridCell | null
   startX: number
   startY: number
-  /** Flips true once the press travels past DRAG_THRESHOLD. */
+  // Flips true once the press travels past DRAG_THRESHOLD.
   started: boolean
 }
 
@@ -64,32 +46,44 @@ export type DragState<TSource> = {
   y: number
 }
 
-export type UseDragGestureOpts<TSource, TCell> = {
-  /** The grid cell under a screen point, read from the game's data-attributes. */
-  cellAtPoint: (x: number, y: number) => TCell | null
-  /** A completed drag dropped at (x, y). The game decides what that means. */
-  onDrop: (g: DragGesture<TSource, TCell>, x: number, y: number) => void
-  /** A press that never became a drag (a plain tap/click). */
-  onTap: (g: DragGesture<TSource, TCell>) => void
-  /** Optional: extra per-move side-effect during a drag (bananagrams lights its
-   *  dump slot when a tile hovers it). Called with the live pointer position. */
+export type UseDragGestureOpts<TSource> = {
+  // A completed drag dropped at (x, y). The game decides what that means.
+  onDrop: (g: DragGesture<TSource>, x: number, y: number) => void
+  // A press that never became a drag (a plain tap or click).
+  onTap: (g: DragGesture<TSource>) => void
+  // Called on every pointer move during a drag, with the pointer's position.
   onDragMove?: (x: number, y: number) => void
-  /** Optional: extra cleanup once a drag finishes (clear the dump highlight). */
+  // Called once a drag ends, dropped or canceled.
   onDragEnd?: () => void
 }
 
-export function useDragGesture<TSource, TCell>(
-  opts: UseDragGestureOpts<TSource, TCell>,
-) {
+/**
+ * Press a tile, then tap it or drag it: the pointer plumbing for a grid you
+ * drag lettered tiles onto. The game says what a drop and a tap mean; the
+ * hook does the rest.
+ *
+ * A press armed with `start` becomes a drag once it travels a few pixels with
+ * a letter to carry; released before that, it is a tap. While a drag is in
+ * flight, `drag` holds the ghost's letter and position, `hover` the grid
+ * square under the pointer (`cellAtPoint`, so the grid must mark its squares
+ * the way that says), and the body carries `DRAGGING_CLASS`. A canceled
+ * pointer ends it with neither a drop nor a tap.
+ *
+ * The options are read fresh on every event, so they may be new closures on
+ * every render.
+ *
+ * Generic over what was picked up (`TSource`: a rack slot, a board cell…).
+ */
+export function useDragGesture<TSource>(opts: UseDragGestureOpts<TSource>) {
   // Latest callbacks, read by the once-bound window listeners below.
   const optsRef = useRef(opts)
   useEffect(() => {
     optsRef.current = opts
   })
 
-  const gestureRef = useRef<DragGesture<TSource, TCell> | null>(null)
+  const gestureRef = useRef<DragGesture<TSource> | null>(null)
   const [drag, setDrag] = useState<DragState<TSource> | null>(null)
-  const [hover, setHover] = useState<TCell | null>(null)
+  const [hover, setHover] = useState<GridCell | null>(null)
 
   // Bind the window listeners ONCE — they read the gesture + the latest opts
   // from refs, so they never need to re-attach.
@@ -97,7 +91,7 @@ export function useDragGesture<TSource, TCell>(
     const onMove = (e: PointerEvent) => {
       const g = gestureRef.current
       if (!g) return
-      const { cellAtPoint, onDragMove } = optsRef.current
+      const { onDragMove } = optsRef.current
       if (
         !g.started &&
         g.letter &&
@@ -161,7 +155,7 @@ export function useDragGesture<TSource, TCell>(
    * press can only tap.
    */
   const start = useCallback(
-    (source: TSource, letter: string | null, cell: TCell | null, e: React.PointerEvent) => {
+    (source: TSource, letter: string | null, cell: GridCell | null, e: React.PointerEvent) => {
       if (e.button !== 0) return
       e.preventDefault()
       gestureRef.current = {

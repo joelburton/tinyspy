@@ -4,7 +4,7 @@ The folders it reads: `shared/grid-and-drag`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-24. The READ is done; six findings await Joel.**
+**Status: OPEN 2026-09-24. All seven findings fixed; the closing re-read and the harvest remain.**
 
 ## The roster
 
@@ -175,7 +175,7 @@ does.
   and `pointer` without it. The scrabble, bananagrams and folder suites, the
   guards, `tsc -b` and eslint pass. A real drag was not looked at.
 
-## F-grid-and-drag-4 · `ghost-tier` · The ghost's header says the tier is not a per-game decision; each game declares it
+## FIXED · F-grid-and-drag-4 · `ghost-tier` · The ghost's header says the tier is not a per-game decision; each game declares it
 
 `dragGhost.module.css` says both ghosts read `--z-ghost` and that this is
 not a per-game decision, yet `z-index: var(--z-ghost)` sits in each game's
@@ -188,7 +188,15 @@ also sets the bold, centered letter both ghosts share.
 both games' rules; the header says what the rule is for without the copied
 values or the roster.
 
-## F-grid-and-drag-5 · `docstring-marker` · The header docstring sits on `DRAG_THRESHOLD`; the hook has none
+**Resolution (Joel, 2026-09-24: *"commit then do the rest."*):**
+`z-index: var(--z-ghost)` is in the shared `.ghost` and out of both games'
+rules. The header now lists everything the shared rule sets, the tier and the
+letter included. It says why the ghost renders outside the board root, and
+that the look is the game's, without the copied values or the game names.
+Both games' ghost comments now point at "everything a ghost shares" instead of
+listing three of its properties. The guards pass.
+
+## FIXED · F-grid-and-drag-5 · `docstring-marker` · The header docstring sits on `DRAG_THRESHOLD`; the hook has none
 
 - The 30-line `/** */` at the top of `useDragGesture.ts` attaches to the next
   declaration, `const DRAG_THRESHOLD`. `useDragGesture` itself has no
@@ -204,7 +212,24 @@ values or the roster.
 what it does, what the callbacks mean and what it returns; the design to
 `doc.md` at the harvest; `//` on the members.
 
-## F-grid-and-drag-6 · `test-claims` · The test's header says jsdom has no `PointerEvent`; the hook's once-bound listeners are untested
+**Resolution (Joel, 2026-09-24: *"commit then do the rest."*):**
+
+- **The header went.** `useDragGesture` has its own docstring, for the caller:
+  what a press becomes, what `drag`, `hover` and `DRAGGING_CLASS` mean during
+  a drag, that a canceled pointer neither drops nor taps, and that the options
+  may be new closures on every render.
+- **A false claim went with it.** The header said the games read their cells
+  from different attributes (`data-x/y` vs `data-row/col`) and shapes
+  (`{x,y}` or `{row,col}`). Both read `data-x` and `data-y` into `{x, y}`.
+  That turned up F-grid-and-drag-7.
+- **The members** of `DragGesture` and `UseDragGestureOpts` carry `//`, and
+  `DragState`'s had none. Two notes named a caller's use (the tap → cursor
+  path, bananagrams' dump slot) and now say what the field is. `letter`'s
+  note names a finger as the second press that can't drag.
+- **The design paragraph** (what each game keeps) is owed to `doc.md`; see
+  Notes.
+
+## FIXED · F-grid-and-drag-6 · `test-claims` · The test's header says jsdom has no `PointerEvent`; the hook's once-bound listeners are untested
 
 - *"jsdom has no `PointerEvent`, but ... a `MouseEvent` ... stands in fine."*
   The repo's jsdom is 29.1.1, and it has `PointerEvent`. The tests could
@@ -217,6 +242,55 @@ what it does, what the callbacks mean and what it returns; the design to
 **No decision in it:** dispatch `PointerEvent`, drop the claim, and add a test
 that rerenders with a new `onDrop` mid-gesture and checks the new one is the
 one called. Planted to fail first.
+
+**Resolution (Joel, 2026-09-24: *"commit then do the rest."*):** the tests
+dispatch jsdom's `PointerEvent`, and the header lost the claim (and its
+`/**`, which sat on `type Src`). A new test starts a drag, rerenders with a
+new `onDrop`, and releases: only the new one is called. Planting a hook that
+never refreshes its options turns it red. Folder suite 7/7; scrabble,
+bananagrams, the guards, `tsc -b` and eslint pass.
+
+## FIXED · F-grid-and-drag-7 · `cell-at-point` · Both games pass the same `cellAtPoint`
+
+Found while working F-grid-and-drag-5. The option exists because the header
+said each game reads its grid differently. They don't:
+
+```ts
+// scrabble/components/BoardCol.tsx
+function cellAtPoint(x: number, y: number): XY | null {
+  const el = document.elementFromPoint(x, y)?.closest('[data-cell]') as HTMLElement | null
+  if (!el) return null
+  return { x: Number(el.dataset.x), y: Number(el.dataset.y) }
+}
+// bananagrams/hooks/usePlayerBoard.ts — the same, split over two statements
+```
+
+Both cell types are `{ x: number; y: number }`, which is
+`docs/code-conventions.md → Grid coordinates`' rule for these two games.
+
+- **(a) The hook reads the cell.** `cellAtPoint` leaves the options, `TCell`
+  becomes `{ x, y }`, and the `[data-cell]` / `data-x` / `data-y` contract is
+  written in the hook's docstring. Both games lose their copy.
+- **(b) Keep it an option.** A future grid could address its cells
+  differently.
+
+**Resolution (Joel, 2026-09-24: *"i'll take your rec. then commit."*, which
+was (a), `hook-reads-the-cell`):**
+
+- **The hook** exports `GridCell` (`{ x, y }`) and `cellAtPoint`, whose
+  docstring states the `data-cell` / `data-x` / `data-y` contract. It calls
+  it itself, so `cellAtPoint` left the options and `TCell` left every type:
+  `useDragGesture<TSource>`, `DragGesture<TSource>`.
+- **Both games** deleted their copy and import the shared one, since each
+  `onDrop` still asks what square a drop landed on. bananagrams' test mock of
+  the module gained a `cellAtPoint`.
+- **The folder's test** stubs `document.elementFromPoint` (jsdom does no
+  layout) and gives the hover a real marked square instead of echoing the
+  pointer. Three new tests cover `cellAtPoint`: a square, an element inside
+  one, and off the grid. Planting swapped coordinates turns three red.
+- **Verified:** the folder's tests pass (10/10), as do the scrabble and
+  bananagrams suites, the guards, `tsc -b` and eslint. A real drag was not
+  looked at.
 
 ## What checked out
 
@@ -235,7 +309,14 @@ one called. Planted to fail first.
 
 ## Notes
 
-*(none yet)*
+- **Owed to `doc.md` at the harvest** (from the header F-grid-and-drag-5
+  removed): the hook owns the mechanics and each game keeps the meaning — its
+  `onDrop` (stage, move, recall, reorder, dump), its `onTap` (move the cursor,
+  mark for exchange), and its keyboard cursor and typing, which live in
+  `shared/board-cursor` or the game. And Joel's ruling on waffle: the
+  browser's own drag-and-drop where a drag is a mouse shortcut for a tap move
+  between like things; this hook where the drop's meaning depends on where it
+  lands, or a tap means something else.
 
 ## Predicted test breaks
 
