@@ -151,16 +151,12 @@ const MAX_SEED_ATTEMPTS = 25
 // Sampling (impure — uses Math.random)
 // ───────────────────────────────────────────────────────────
 
-/** Sample a pangram mask uniformly from the weighted pool. The pool is
- *  already gated at import time (≥15 required words at each seed's own
- *  difficulty) and again by the difficulty <= required_band fetch filter,
- *  so there's no per-row quality re-check here. Throws when the pool is
- *  empty (e.g. the overlap cap excluded everything — but it should leave
- *  hundreds of candidates in practice). */
+/** Sample a seed uniformly from the weighted pool. The pool is already gated
+ *  at import time (≥15 required words at each seed's own difficulty) and
+ *  again by the difficulty <= required_band fetch filter, so there's no
+ *  per-row quality re-check here; and it is never empty, since PN197 has
+ *  answered an empty one. */
 function sampleMask(weighted: PangramRow[]): PangramRow {
-  if (weighted.length === 0) {
-    throw new Error('no pangram seeds match the overlap-cap filter')
-  }
   return weighted[Math.floor(Math.random() * weighted.length)]
 }
 

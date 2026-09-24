@@ -216,7 +216,8 @@ export function SetupForm({
           value={customEntry}
           onChange={(raw) => {
             const { center, letters } = splitCustomLetters(raw)
-            { set('custom_center', center); set('custom_letters', letters) }
+            set('custom_center', center)
+            set('custom_letters', letters)
           }}
           placeholder="D-AEEGINNR"
           chars={10}

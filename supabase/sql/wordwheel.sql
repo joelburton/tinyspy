@@ -991,10 +991,6 @@ begin
     select (setup->>'target_rank')::int into current_target_rank
       from common.games where id = target_game;
 
-    -- The clock beat a team that set out for a rank → a real LOSS ('lost').
-    -- With no target there was nothing to fail at, so the same expiry is just
-    -- the neutral stop ('ended'). (A team that had already REACHED its target
-    -- can't be here: submit_word ends the game the moment they cross.)
     select jsonb_object_agg(
              user_id::text,
              -- The team's figures are on the status; a player's result says
@@ -1005,6 +1001,10 @@ begin
       from common.game_players
      where game_id = target_game;
 
+    -- The clock beat a team that set out for a rank → a real LOSS ('lost').
+    -- With no target there was nothing to fail at, so the same expiry is just
+    -- the neutral stop ('ended'). (A team that had already REACHED its target
+    -- can't be here: submit_word ends the game the moment they cross.)
     perform common.end_game(
       target_game,
       case when current_target_rank is not null then 'lost' else 'ended' end,

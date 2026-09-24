@@ -28,9 +28,9 @@ type Props = {
   claims: readonly Claim[]
   // A refused word's mark, while its answer is up: how many of each letter it
   // used, the tiles it had clicked, and the outcome. The tiles it would have
-  // spent shake and wear that outcome. The nonce keys those tiles, so refusing the same letters again
-  // remounts them and the shake plays again — a CSS animation restarts on a
-  // remount, not on a class that is already there.
+  // spent shake and wear that outcome. The nonce keys those tiles, so refusing
+  // the same letters again remounts them and the shake plays again — a CSS
+  // animation restarts on a remount, not on a class that is already there.
   refused: Mark<{ counts: Map<string, number>; claims: readonly Claim[]; outcome: Outcome }> | null
   // A control floated over the wheel's top-right (the Shuffle button). Rendered
   // inside the shrink-wrapped `.floatAnchor` around the grid, so it hugs the

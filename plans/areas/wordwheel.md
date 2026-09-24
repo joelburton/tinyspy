@@ -1658,7 +1658,16 @@ wordwheel and the guards, 42 files, 400 tests green; eslint clean.
 - `doc.md` → Tests, `create_game_test`: *"every board-shape fault"* — F-14
   established it pins neither the outer alphabet nor the center's shape.
 
-### R-wordwheel-9 · `small-shapes` · a few lines that read worse than they need to
+### SHIPPED · R-wordwheel-9 · `small-shapes` · a few lines that read worse than they need to
+
+**Joel, 2026-09-24: "i'll take your rec"** — all four. `Wheel.tsx`'s comment
+rewrapped; `SetupForm`'s two `set` calls lose their bare block; `sampleMask`
+drops the empty-pool throw PN197 answers first, its docstring saying so
+(F-8's ruling); `submit_timeout`'s `lost` / `ended` comment sits on the
+`common.end_game` call it explains. **Verified:** `npm run test:db`, 182
+files, 2668 tests, PASS; `deno check` clean, `deno test` 15; the local
+function boots (`PN112`); `tsc -b` and eslint clean; wordwheel and the
+guards, 42 files, 400 tests green.
 
 - `Wheel.tsx`'s `refused` prop comment has a 110-column line F-16's edit left.
 - `SetupForm`'s custom-letters `onChange` wraps its two `set` calls in a bare
