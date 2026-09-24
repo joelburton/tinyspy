@@ -13,7 +13,7 @@
  * reads "out" mid-game; and after I concede I get the locally-terminal look.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
- * needed; everything else — the board, entry, strip, action row — renders for
+ * needed; everything else — the board, Clear/Submit, strip, action row — renders for
  * real. Mirrors wordle's concede tests (the elimination template, commit c1b5df8).
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
@@ -834,5 +834,133 @@ describe('psychicnum PlayArea — the keys', () => {
       // answered "no" — the RPC firing proves none was asked.
       await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
     })
+  })
+})
+
+describe('psychicnum PlayArea — the selection cursor', () => {
+  // A shuffle on ~1 leaves the words in dealt order, so five words lay out
+  //   alpha   bravo  charlie
+  //   delta   echo
+  // and a cell names a known word.
+  beforeEach(() => {
+    vi.spyOn(Math, 'random').mockReturnValue(0.999999)
+    rpc.mockResolvedValue(okEnvelope({ verdict: 'hit', found_all: false }))
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const tileFor = (word: string) => document.querySelector(`[data-tile="${word}"]`) as HTMLElement
+  /** The words wearing the cursor ring — at most one. */
+  const ringed = () => WORDS.filter((w) => /cursor/.test(tileFor(w).className))
+  const isPicked = (word: string) => /selected/.test(tileFor(word).className)
+  // Awaited: a bound action's run settles a microtask after the keystroke.
+  const key = (k: string) => act(async () => press({ key: k }))
+  const guessed = (word: string) =>
+    waitFor(() => expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess: word }))
+
+  it('is hidden until an arrow; the first arrow rings the first tile, the next moves it', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(ringed()).toEqual([])
+
+    await key('ArrowRight')
+    expect(ringed()).toEqual(['alpha'])
+    await key('ArrowRight')
+    expect(ringed()).toEqual(['bravo'])
+    await key('ArrowDown')
+    expect(ringed()).toEqual(['echo'])
+  })
+
+  // The short last row is a wall, not a way round.
+  it('stays put where the last row is short', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key('ArrowRight')
+    await key('ArrowRight')
+    expect(ringed()).toEqual(['charlie'])
+    await key('ArrowDown')
+    expect(ringed()).toEqual(['charlie'])
+  })
+
+  it('Space does nothing while the ring is hidden, then picks and un-picks the ringed word', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key(' ')
+    expect(WORDS.filter(isPicked)).toEqual([])
+    expect(ringed()).toEqual([])
+
+    await key('ArrowDown')
+    await key('ArrowDown')
+    await key(' ')
+    expect(WORDS.filter(isPicked)).toEqual(['delta'])
+    await key(' ')
+    expect(WORDS.filter(isPicked)).toEqual([])
+  })
+
+  it('Enter guesses the picked word', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key('ArrowRight')
+    await key(' ')
+    await key('Enter')
+    await guessed('bravo')
+  })
+
+  // The pick is always drawn, so Enter sends it with the ring hidden.
+  it('a click picks the tile and hides the ring; Enter then guesses it', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await user.click(tileFor('charlie'))
+    expect(ringed()).toEqual([])
+    expect(isPicked('charlie')).toBe(true)
+
+    await key('Enter')
+    await guessed('charlie')
+  })
+
+  it('the next arrow after a click rings the clicked tile', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.click(tileFor('echo'))
+    await key('ArrowLeft')
+    expect(ringed()).toEqual(['echo'])
+  })
+
+  it('⌫ and Clear selection un-pick; Submit guesses', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.click(tileFor('alpha'))
+    await key('Backspace')
+    expect(isPicked('alpha')).toBe(false)
+
+    await user.click(tileFor('alpha'))
+    await user.click(screen.getByRole('button', { name: 'Clear selection' }))
+    expect(isPicked('alpha')).toBe(false)
+
+    await user.click(tileFor('alpha'))
+    await user.click(screen.getByRole('button', { name: 'Submit' }))
+    await guessed('alpha')
+  })
+
+  it('Space passes over a decided tile', async () => {
+    h.result = {
+      ...loaded(coopGame),
+      guesses: [{ id: 1, user_id: 'u1', word: 'alpha', is_correct: false, kind: 'guess', created_at: '2026-01-01T00:00:01Z' }],
+    }
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    expect(ringed()).toEqual(['alpha'])
+    await key(' ')
+    expect(isPicked('alpha')).toBe(false)
+  })
+
+  it('a board I cannot play takes no ring and no keys', async () => {
+    render(<WithKeys {...makeCtx({ isMyTurn: false })} />)
+    await key('ArrowRight')
+    await key(' ')
+    await key('Enter')
+    expect(ringed()).toEqual([])
+    expect(WORDS.filter(isPicked)).toEqual([])
+    expect(rpc).not.toHaveBeenCalledWith('submit_guess', expect.anything())
   })
 })
