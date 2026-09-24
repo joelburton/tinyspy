@@ -379,3 +379,28 @@ and a Details list for the sharp specifics. `common/page-header` is off
       (`page-header/todo.md` is empty — its one item closed as F-1)
 - [x] every file on the roster blessed (Joel, 2026-09-12): thirteen files
       `cs-blessed-page-header`
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`page-header` is closed** (2026-09-12): thirteen files
+`cs-blessed-page-header`, sixteen findings, all worked or closed. The area's
+own question — the marks' separation, the folder's one todo item — closed as
+a stated decision: the gap is a base and each mark's padding is part of its
+look. Two things a player could see: the players strip is now a block
+container, because `text-overflow` never paints on a flex row and a long
+roster was clipped mid-name with no sign (verified headless); and the club
+strip's presence hint is a `data-tooltip` like every other hover text in the
+header. The chat mark's `aria-label` is a fixed "Chat" — it computed three
+variants nobody read. Three literal-number questions closed as decisions
+written into the guard and the stylesheets. Joel's read of the re-read caught
+two "a component rather than a class, because…" paragraphs in docstrings —
+rationale, and the prose pass had trimmed around them. **The full e2e suite
+ran for the first time in a while and is green (233)**: four keyboard cases
+had been red since the lists area hid the cursor until asked without
+updating the two specs it left off, and one setgame spec bet on a deal the
+deal-three rule can overturn; all repaired from here. Owed: nothing.
+
+**CLOSED 2026-09-12, blessed.** the top strip and the marks in it — furniture every page carries and no page owns. Sixteen findings; the summary is under "Where to start"

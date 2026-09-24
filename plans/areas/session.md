@@ -511,3 +511,41 @@ either can be reversed and neither is load-bearing:
 1. `PN491` keeps its registry entry with nothing raising it (F-session-1).
 2. `callSiteShape`'s opt-out guard gained a fourth way to be satisfied
    (F-session-2).
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`session` is closed** (2026-09-05): four files `cs-blessed-session`, twelve
+findings, all twelve worked. The area's real find was structural: one profiles
+row was read twice at boot, by a probe asking whether it existed and a store
+hook asking what was in it, behind two hooks whose names said the same thing.
+The probe now reads the whole row and seeds the store, so there is one read, one
+arg-free subscribe-only `useProfile()`, no menu row that starts life showing a
+placeholder — and, newly, a store that is emptied on every signed-out path,
+which nothing did before. Two behaviors changed with it. A failed profile read
+used to be answered with a guess, sending the player to the claim screen under a
+fault modal to pick a handle they might already own; it is a fourth state now,
+rendered by `EnvelopeErrorPage` with a Try again, and the read opts out of the
+modal because the page is the message. And the probe fired on every auth event —
+`getUser()` plus a read on each hourly token refresh — where auth-js's own docs
+say the event name does not tell you whether the person changed; it is keyed on
+the user id now, which covers refreshes, repeat `SIGNED_IN`s and multi-tab noise
+under one rule. The prose pass came after those three, so it was written once:
+the docstring lost its history and gained the four states, "friends-alpha"
+stopped being an argument anywhere in the folder, and the stale-JWT story now
+names `PN018`, which is what the RPC raises, rather than the 23503 it swallows.
+`useProfile.ts` got the test file it never had. Two things this cost elsewhere,
+both deliberate and both reversible: `PN491` keeps its registry entry with
+nothing raising it, since one read leaves no window in which a row exists for
+the probe and not for the load; and `callSiteShape`'s opt-out guard gained a
+fourth way to be satisfied — handing the envelope up to a caller that renders it
+— because that guard is file-level and this presentation lives in `App`. Handed
+on: `useCommonGame` shows a whole-page failure as both a modal and an error
+page, the same doubling this area removed, and it carries the fourth
+"friends-alpha" comment. `docs/deferred.md` lost an item this area's work had
+made untrue, pointing at a `// Fragile:` comment that no longer existed.
+`todo.md` is empty. **The closing re-read earned its place again** — six more,
+including two different "fours" a page apart in one file, and a piece of
+archaeology in `doc.md` that no code change had ever touched.

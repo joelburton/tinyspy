@@ -917,3 +917,21 @@ its own `.frame`, the one page not wearing `.pageHeaderAndMainArea`;
 - [ ] every file on the roster blessed, or its stamp says why not — **only
       Joel's word sets `cs-blessed-corecss`**. PAUSED 2026-09-05: the
       blessing waits until areas that rely on corecss have closed
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`corecss` is paused, one step from closed** (2026-09-05): nineteen audit
+findings worked, the closing re-read's eleven worked, `core-css/doc.md` and
+`themes/doc.md` written and off `INTROS_OWED`. Its roster stays
+`cs-audited-corecss` because the last step is Joel's read, and Joel: *"i can't
+really review these files and bless them until we've complete some areas that
+rely on corecss."* A base rule is best judged from the surfaces that wear it,
+so the blessing comes after those areas, and `branding` opens next as usual.
+Three decisions it left are `todo.md` items, not open work: the hand-written
+`--game-chrome-height` (core-css), the `.card` name collision (core-css), and
+GamePage's own wrapper class (game-page).
+
+**PAUSED 2026-09-05, one step from closed.** Every finding worked, the re-read done, both Designs written; the roster stays `cs-audited-corecss` until Joel blesses it, which waits until areas that rely on these stylesheets have closed — a base rule is judged from the surfaces that wear it. The stylesheets every page loads and none owns, and the theme chain

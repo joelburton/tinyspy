@@ -1164,3 +1164,10 @@ The two markdown files take no stamp.
 outside the folder. `TerminalActionRow`, the sixty-odd call sites, the icon
 registry, the menu model, the themes and `core-css` all keep the stamps their
 own areas will give them.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-08, blessed.** the button taxonomy. Twenty-one findings; the two biggest came from Joel rather than the read — a call site now states what its button DRAWS (`label` + a required `show`, with `tooltip` carrying the name), and a segmented choice became `<Segmented>` here rather than a global class. `FormSubmitButton` is new. The folder owns how a button is BUILT; `docs/ui.md` keeps the taxonomy around it

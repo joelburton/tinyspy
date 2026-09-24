@@ -353,3 +353,10 @@ behavior.
 - [x] every file on the roster blessed, or its stamp says why not — all
       seventeen `cs-blessed-actions`, 2026-09-11, on Joel's words "bless the
       files"
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-11.** what a command IS: the registry of every command's fixed half, the one key dispatcher, the bound action a page or component makes, and the surfaces that read it (`<ActionButton>`, `actionSurface`, the key list). Built by the actions sprint (2026-09-10) and on no roster since; `doc.md` is written. Its two guards (`actionIds`, `registeredChords`) and `e2e/helpers/actions.ts` are its to list at the opening

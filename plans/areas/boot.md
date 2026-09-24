@@ -702,3 +702,41 @@ docstring now sits directly on the function like the file's other three.
 - [x] every file on the roster blessed, or its stamp says why not — nine
       files `cs-blessed-boot` (Joel, 2026-09-05: "mark files in this area as
       blessed, close the area, and commit")
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`boot` is closed** (2026-09-05): nine files `cs-blessed-boot` — the four in
+`common/boot/`, the two root files `main.tsx` and `App.tsx`, and
+`themes/loadTheme.ts`, plus the two files the area wrote — and fifteen
+findings: twelve worked, two closed with no change, one handed on. The code
+was doing its job; the area's finds were mostly about what the files SAID.
+`main.tsx` is an order and its docstring now says so, one reason per line;
+`App.tsx`'s docstring described only the route table for a file that also runs
+the gates and mounts the root singletons, and now tells all three parts in the
+order they happen; `reloadOnStaleChunk.ts` described an app from before
+`panic.ts` existed, and its exported function gained the docstring that owns
+the "call it before the first dynamic import" rule. Two names and two tests
+moved: `chosenTheme()` wrote to storage under a getter's name and is gone,
+`loadTheme` doing its three steps in the open; `loadTheme.ts` got the test
+file its comments had stood in for, with two cases rewritten after they were
+found to pass for the wrong reason; the stale-chunk test dropped a hand-rolled
+blocked-storage stub for the fake `web-storage` built, and left that guard's
+allowlist; and a twelve-line `location` stub written in both boot tests became
+`reload.fake.ts`. Two rulings, both no change: a `sessionStorage` that reads but
+will not write reloads uncounted, accepted as too rare (recorded in `boot/doc.md` →
+Details), and a gametype the registry has never heard of keeps its error page
+rather than sharing `GamePage`'s "no game here" card — "this division is
+intentional and good", now a comment at the branch. Handed on: the render-prop
+`App` builds for a `GamePage` that already holds the manifest is `game-page`'s
+to remove, written into that folder's `todo.md` — and removed there 2026-09-14,
+along with the gametype lookup and F-boot-4's error page, which moved into
+`GamePageGate`. `docs/common.md` lost a path that had not existed since the
+reorg. `todo.md` is empty. **The closing re-read
+earned its place again** — three more, all prose in the `loadTheme` pair, and
+the F-boot-1 ruling turned out to have no durable home until `doc.md` gave it
+one.
+
+**CLOSED 2026-09-05.** mounting, the theme load, the session gate, panic, the stale-chunk reload. The two root files were added at the opening (Joel, 2026-09-05), and `loadTheme.ts` with them: it STAYS in `common/themes/` and is audited here, so `themes` is the one folder two rows name

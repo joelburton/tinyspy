@@ -571,3 +571,29 @@ the hook and its CSS twin stay a pair. No decision yet.
       closed rather than handed on.
 - [x] every file on the roster blessed — fifteen `cs-blessed-mobile`, the nine
       audited files plus the six this area wrote.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`mobile` is closed** (2026-09-05): fifteen files `cs-blessed-mobile`, and all
+thirteen findings settled — twelve worked, one closed with no change. Three
+device queries were written twice, once as a `@custom-media` name and once as a
+string in the hook that mirrors it, with five prose warnings to keep them in sync
+by hand and nothing checking it; each hook now exports its query and a spec
+holds it to the stylesheet, which is also what made composing `--phone` from its
+two arms safe — the arms had been declared and read by nothing, while the union
+repeated their conditions longhand. The emitted CSS was diffed condition by
+condition against the previous build to prove that change was source-level only.
+Docstrings stopped telling their callers' stories: the coarse-pointer hook spent
+six of nine lines on FloatingPanel's drag bug, and the phone hook's "use this
+when" described one of its three callers. Three specs were written where the
+folder had none, one of them for a property — `getSnapshot` must return the same
+object — that reads as an optimization and is load-bearing. Two rules came out
+of it and went where the rest of the app can inherit them: a hook returning a
+boolean is named `useIsX` (so `usePhone` → `useIsPhone`, `useCoarsePointer` →
+`useIsCoarsePointer`), and `window` is always there while a browser FEATURE may
+not be, which is `docs/code-conventions.md` → Known gotchas. Handed on: six
+`typeof window` guards in `floating-panels` that supply fallback values, and one
+each in `faults` and `toasts` that install a dev helper.

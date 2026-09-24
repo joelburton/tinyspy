@@ -520,3 +520,10 @@ for the docs, not this area's, and noted here so it is not mistaken for done.
 - [x] the folder's `doc.md` intro written; its row off `INTROS_OWED` (F-1; the re-read added the count-twice and mode-tail details)
 - [x] `todo.md` holds everything still owed (the mono-face decision; the seed effect's deps); no finding is open
 - [x] every file on the roster blessed — all 26 read `cs-blessed-setup-form` (Joel, 2026-09-14)
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-14, blessed.** the start-a-game dialog, its sections, and the recap rows the info column and the PDF share. With the pages because the club page is where a game starts. Twenty findings in `plans/areas/setup-form.md`, all worked. The closing re-read earned its place again — seven more, five of them the area's own findings recurring next door, three in prose the day's fixes wrote. What changed the app: the dialog reads `is_solo` and says "· AI" for scrabble's solo compete; `require_valid_timer`'s faults name `timer` and the create path's no-players fault names `player_user_ids`; `SetupDisclosure` owns its stylesheet; the "next up" line has a test handle

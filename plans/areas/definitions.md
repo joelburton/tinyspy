@@ -380,3 +380,26 @@ which every surface now carries.
       item was done by F-definitions-15 — and nothing durable is left here
 - [x] every file on the roster blessed — twenty-five `cs-blessed-definitions`
       (Joel, 2026-09-12)
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`definitions` is closed** (2026-09-12): twenty-five files
+`cs-blessed-definitions`, twenty-two findings, all worked. The one that
+changed the app: click-to-define is one component over a root host —
+`<DefinableWord>` writes a one-slot store and `<DefinitionHost>` in `App.tsx`
+draws the card, so the fourteen surfaces that show a definable word each lost
+a hook call, a popover render and a four-prop bundle, and `useDefinePopover`
+is gone; the native title stays (Joel: a styled bubble would trail popups down
+a hundred-word list), one hover feel everywhere, and wordle's squares got an
+underline that had never painted. Two live bugs: the Edit link showed after a
+failed lookup, and two local hover rules could only ever paint a disabled
+button. Both stylesheets joined the size vocabulary, the popover now a few
+percent smaller. The closing re-read's lesson, for the third area running:
+three of its four findings were the area's own fault classes recurring in
+prose the area wrote that day — thirteen bare "panel"s, three of them in
+comments a finding had written, and eleven "used to"s after a finding had
+fixed one. Grep the class, not the phrase. Owed: a screenshot of wordle's
+turn-log hover, which needs Playwright.

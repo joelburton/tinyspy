@@ -486,3 +486,10 @@ Marker pass: no `/**` on a prop anywhere on the roster; nothing to do.
 - [x] the folder's `doc.md` intro written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not (2026-09-14)
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-14, blessed.** the registry and the manifest contract every game fills in. `gametypes.ts` is the registry's list, the one file allowed to import every game; it was `root-files`' until that row folded into this one (Joel, 2026-09-05), once `boot` had taken the other two root files. Fifteen findings in `plans/areas/manifest.md`, all worked, and two of the recorded ones were WRONG as recorded — F-9 counted manifest files where the registry has thirty entries, and `tsc` found the one (crosswords compete) that omitted `endGame`. What changed the app: `endGame` is required and crosswords compete has `end_game` (PN487 retired); `manifestFor` replaced six hand-rolled lookups and a registry miss now says what it means — an error page from the URL, a reload fault from a stale bundle, and `?new=` no longer bypasses club enrollment; both club lists sort coop-first explicitly; `statusLabel.ts`'s header is the one home of the status-line grammar. The closing re-read found a recorded fix that had never landed

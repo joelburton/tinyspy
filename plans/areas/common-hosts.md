@@ -774,3 +774,10 @@ in any of the eighteen code files.
 - [x] every file on the roster blessed — the eighteen code files say
       `cs-blessed-common-hosts`, set on Joel's words "bless the files in the
       area" (2026-09-11); `doc.md` / `todo.md` are outside the stamp's scope
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-11, blessed.** the three root hosts and the headless watcher. Thirty-six findings: thirty-four worked, one closed, one withdrawn. The area's question — what earns a mount at the root — got the wide rule: a thing is mounted at the root when its state crosses subtrees, and the store is how a page reaches it; home is App.tsx's docstring. Two live bugs a throwaway spec caught first: a long press ended by `touchcancel` left the click suppression armed, and a scroll left the hovered control unable to show its bubble again. The card's two exits got the spec they never had; `puptoast` and `pupfault` install in prod; the fault modal's canned fault is built by `diagnosticsLine`; the toast stripe is `--toast-stripe-width`. The closing re-read's lesson: prose names a game by its codename, never the brand. Handed on: `@starting-style` (`core-css`), `FaultModal` hand-draws its title (`floating-panels`)

@@ -717,3 +717,28 @@ The two specs above; both changed with their games and are green.
 - [x] every file on the roster blessed (Joel, 2026-09-12): twenty-two files
       `cs-blessed-feedback`, `FailureLine` and its stylesheet among them in
       `forms/`
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`feedback` is closed** (2026-09-12): twenty-two files `cs-blessed-feedback`,
+twenty-one findings, all worked or closed. A redesign rather than a tidy:
+the machinery was built first, every one of the sixteen games converted to it
+the same day, and the old system's twelve files were deleted before the audit
+began — so the audit read what the build left. A message is now a class with
+a private constructor, one constructor per KIND, and the kind decides fill,
+rank, exit and duration in one table; a slot is a list that discards nothing
+and draws the lowest rank; a standing condition is an effect whose cleanup
+retracts. Three ranks moved during the audit, each for a stated reason — a
+rank is a priority and nothing more, so `waiting`, `chat`, `peerMilestone`
+and `peerStatus` became kinds of their own — and two placements changed:
+setgame's whose-turn note left the header for the board, and codenamesduet's
+header sudden-death line was deleted outright. `FailureLine` moved to
+`forms/`, `Actor` to `members/`, and the names guard lost its allowlist.
+**The closing re-read earned its place again** — eight more, and two of them
+were the area's own earlier findings recurring in a sibling file. Owed: one
+unit test, in `waffle/todo.md`.
+
+**CLOSED 2026-09-12, blessed.** A redesign, not a tidy: everything between an envelope and a player reading words. The design plan (`feedback-design.md`) was deleted at the close; what shipped is in `docs/ui.md → Feedback pill`, `docs/code-conventions.md → Feedback naming` and `feedback/doc.md`. Twenty-one findings; the summary is under "Where to start"

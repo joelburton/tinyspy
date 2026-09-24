@@ -358,3 +358,29 @@ sentences describing a two-file folder.
 Nothing the re-read caught was deferred — all six were fixed in the sitting, so
 nothing new is owed. The one item this area's reading turned up for elsewhere —
 `gameManifest.ts`'s `lib/` docstring — was fixed rather than deferred.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`routing` is closed** (2026-09-05): six files `cs-blessed-routing`, nine
+findings worked, and the folder grew a third unit. The `/g/<gametype>/<gameId>`
+shape was matched in two files and built in seven, and the two matchers disagreed
+about what a game id may be — `App.tsx` matched it loosely on purpose while the
+invitations hook required a uuid; `routes.ts` now holds both shapes as a builder
+and a matcher side by side, so the code writing a link and the code recognizing
+one read the same rule. `<Link>` lost a branch that could never run: a
+non-primary button fires `auxclick`, not `click`, so the middle-click
+fall-through was always the browser's doing and the check plus the test that
+pinned it with a synthetic event are gone. Everything else was prose that had
+stopped being true as the router moved twice — the folder index called it a hash
+router when it is path-based, three docs carried a line count and a route count,
+and `docs/common.md` put `<Link>` inside `router.ts`. Counts went; conditions
+stayed. Two things the area's reading turned up elsewhere and fixed rather than
+deferred: `docs/common.md` and `gameManifest.ts` both described the pre-reorg
+`lib/` layout, the latter including a paragraph arguing a placement inside a
+folder that no longer exists. Nothing handed on; `todo.md` is empty. **The
+closing re-read earned its place again** — six more findings, every one a
+sentence describing a two-file folder after `routes.ts` made it three, including
+a Design paragraph contradicting the one directly above it.

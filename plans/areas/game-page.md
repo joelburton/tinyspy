@@ -981,3 +981,47 @@ rules, `DeviceBlockNotice`), and the row-by-row don't-move rule.
 - [x] every file on the roster blessed, or its stamp says why not — Joel,
       2026-09-15: nineteen files `cs-blessed-game-page`. `InfoActionsRow` and
       its test are `info-sheet`'s now and stay `cs-unmet` for that area.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-15, blessed.** the live game's page and what it hands down — `GamePage`, `gamePageCtx`, `useCommonGame`, the error boundary, the device gate, the mount points. It imports 23 folders, which is why it comes after them. Twenty-four findings in `plans/areas/game-page.md`: eleven from the reading, thirteen from the re-read, plus the seven decisions `todo.md` handed it. What changed the app: the route is three components (`GamePageGate` → `GamePageLoader` → `GamePage`), and the page builds its own play surface — `App.tsx` passes the URL's two parts and the session and nothing else; one Back to club from every surface, the pause overlay and the device-block card included (`BackToClubButton` and `ctx.goToClub` deleted); `InfoActionsRow` is the info column's action row in every state, absorbing `terminal/`'s two (moved on to `info-sheet/` at the close, Joel's call); `describe()` takes its asker; `.noShrinkRow` reserves no height, by Joel's row-by-row rule; `--game-chrome-height` is composed and the shell no longer overflows by 1px; Help closes by its ✕. The re-read's lesson, for the fifth area running: eight of its thirteen were the area's own findings next door or written by its own fixes — and forty-three lines in twenty-three files dated the work to a day that had not happened yet. Open in its `todo.md`: the concern split of `playArea.module.css`, which waits for the first game area (Joel). Unrun: `e2e/bananagrams-block.e2e.ts`, whose selector F-9 changed
+
+**Closed-area doc passes — render trees, DONE 2026-09-15.** The render-tree
+rule (§4 → "Harvest the folder's `doc.md`") arrived at `game-page` on
+2026-09-15, after these closed. Assessed by reading each folder's components
+and who mounts them, and drawn the same day at Joel's ask (each tree was built
+from the JSX, not the docs); none reopened its area:
+
+- **`boot`** — `App.tsx`'s tree: the page it picks per session state and
+  route, and the hosts it mounts under every page (`ToastHost`, `FaultModal`,
+  `TooltipHost`, `DefinitionHost`, `ConfirmationHost`, `AppActionsHost`,
+  `GameInvitations`, the two root dialogs). The root of every other tree.
+- **`club-page`** — `App` → `ClubPageLoader` → `ClubPage`, and what the page
+  draws: header, current-game card, the start row, the game list's rows and
+  filters, the edit and help panels, `Chat`, and `setup-form`'s modal.
+- **`page-header`** — rendered by `ClubPage`, `HomePage` and `GamePage`;
+  draws the menu slot, the panel toggles, and the status slot that swaps the
+  players strip for `feedback`'s pill.
+- **`setup-form`** — `ClubPage` → `SetupGameModal` → the shared sections and
+  the game's own `setupForm.Component`; separately, every game's info column
+  → `SetupDisclosure`.
+- **`floating-panels`** — which shell wraps which: `FloatingPanel` under the
+  three window families, `BlockingModal` under its two members, and
+  `ConfirmationHost` at the root drawing whatever is pending. A family tree
+  more than a render tree, and the same question. Its `doc.md` has no
+  `## Details` at all today.
+- **`definitions`** — `DefinableWord` in text → `DefinitionHost` at the root
+  → the popover → `DefinitionView`; `AppActionsHost` → `WordLookupDialog` →
+  the same view; `App` → `WordEditDialog`. Two hosts, one view.
+- **`chat`** — short, and worth it for the edge: `Chat` → `ChatBody` is
+  mounted by `ClubPage` and `GamePage`, while its header mark is
+  `page-header`'s.
+
+Not worth a tree: `buttons`, `fields`, `forms`, `lists`, `members` (leaf
+components rendered from everywhere); `menu` (one component, one renderer —
+a sentence); `common-hosts`, `account`, `simple-page`, `scratchpad`,
+`actions` (their mount is `App`'s or `GamePage`'s tree). Folders not yet
+closed draw theirs at their own harvest.

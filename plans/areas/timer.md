@@ -447,3 +447,10 @@ effects: nothing asserts on effect names.
       close the area"*): the folder's four `.ts` files read `cs-blessed-timer`.
       The SQL half keeps `cs-unmet` — evidence, not roster, by Joel's ruling at
       the opening.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-16, blessed** (Joel: *"mark files in this area as blessed, then close the area"*): four files `cs-blessed-timer`. The game clock — one integer counting seconds of play, and the words a configured timer is described in. The SQL half (`common.tick_timer`, `require_valid_timer`, the `timers` table) was EVIDENCE by Joel's ruling, read and left `cs-unmet`. Fifteen findings in `plans/areas/timer.md`, all worked: eight from the reading, seven from the closing re-read. What changed the app: M:SS is written once, in `timerLabel.ts`, and the hook file is the hook (no printer reaches through the poller); the hook's orphaned essay became `doc.md`'s intro and a twelve-line docstring that says the hook fires nothing; `ticked(n)` in the test; five stale doc claims about the old accumulator gone from `common.md`, `win-lose.md`, `states.md`, and after the re-read from `gameManifest.ts` and `codenamesduet.sql` too. Two decisions that outlive it: the hook-callback rule now tests the BODY, not the call shape (Joel: *"if they're non-trivial, a name is useful"*), and `expired` stays a level because a hook cannot hand back a one-render edge under StrictMode — F-8's recorded reason was wrong and the re-verify found the real one. The re-read's lesson, for the seventh area running: a finding that overturns a reason has to chase every file that wrote it (`doc.md` still had F-8's struck rationale), and a NOTE can have a false premise too — "no pgTAP for `tick_timer`" handed off a gap that a nine-spec file had covered since June

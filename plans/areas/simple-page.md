@@ -577,3 +577,37 @@ linted; **not run** — an e2e is run on Joel's word only. Stamped
       handoffs are in `club`'s and five games' `todo.md`)
 - [x] every file on the roster blessed, or its stamp says why not — all eleven
       `cs-blessed-simple-page` (Joel, 2026-09-13)
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`simple-page` is closed** (2026-09-13): twelve files `cs-blessed-simple-page`,
+twenty findings, all worked, one of them a handoff and one — a claim-screen e2e
+the roster had missed — worked the day after the close on Joel's word. What changed the app: the
+claim screen's two exits — the "Not you? Sign out" button and the PN018 branch —
+run one `signOutAndLeave()`, where PN018 had signed out and trusted an auth
+listener the button's own comment said could not be trusted; the sign-in code's
+placeholder stopped naming a digit count the docs say is a Supabase setting; a
+wrong code no longer erases the sentence saying where the mail went; and the
+error page's "Error" is sized by `h1` like every page's title rather than forced
+under the modal's. Three Designs written: auth carries the weight (one email
+with two uses, no password flow, the raw-GoTrue-message exception, the
+permanent handle, the seeded color, the two halves of the claim's refusals),
+error-page the modal-vs-page rule, loading the word-with-no-box. Both screens'
+docstrings had been stranded above a constant where the orphan guard cannot
+see them, and both essays became hovers with the reasoning in the Design. The
+claim screen's error-mapping block described SQLSTATE codes the code had
+stopped reading; the pgTAP file, `docs/common.md` and two comments in an
+applied migration said the same, and Joel ruled the migration's comments get
+fixed in place. PN018 got its pgTAP assertion, pinned there because the session
+gate turns a stale token away before the e2e can reach the RPC. The closing
+re-read found the area's own sentence — "PN017 is the only one a player can
+act on" — written into six files the day before, and a prop comment naming a
+helper that does not exist. Owed: `auth/todo.md` holds one Someday (the
+`.buttonRow` / `modalActions` merge, floating-panels' to make); `club`'s
+`todo.md` the hand-paired `{ text, diagnostics }`; five games' `todo.md` their
+own "Loading game…" paragraph where `<Loading>` is the word.
+
+**CLOSED 2026-09-13, blessed.** the pages that are not home, club or game. **The roster's test is "does `App` render it directly?"** — it catches `ErrorPage` and `Loading`, which stand in for a page AND appear inside one. Twenty findings; the summary is under "Where to start"

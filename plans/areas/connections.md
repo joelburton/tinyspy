@@ -1410,3 +1410,10 @@ components diagram psychicnum's carries, under Frontend.
       (2026-09-19: fifty-six files `cs-blessed-connections` — the roster's
       fifty-one and the five the area stamped outside it; `doc.md` /
       `todo.md` / `logo.svg` carry none)
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`connections` is CLOSED 2026-09-19, blessed** (Joel: *"mark all files in this area blessed and close it"*): fifty-six files `cs-blessed-connections` — the roster's fifty-one and five the area stamped as it worked (the presence-pause spec, F-5's and F-22's migrations, common's locally-terminal test, the importer). The second game, in psychicnum's shape and one day: the restructure in eight steps (the doc's RPC and FE-submission sections and the AnswerMessage conversion moved earlier, from psychicnum's commit history), the audit (twenty-two findings in `plans/areas/connections.md`, all shipped one commit apiece), tile-feedback to tf2 (confirmed, not converted), then the closing re-read (eighteen: five ruled, thirteen prose) and a comment pass against what psychicnum settled. `docs/games/connections.md` deleted into `src/connections/doc.md`, which carries the components diagram. Closed without an e2e run. **The stylesheet split landed 2026-09-22, after the close** — the board and the commit row came out of `PlayArea.module.css` into `Board.module.css` and `BoardCol.module.css` — and it is where the restructure's split rule above came from, Joel having asked for it at every game.

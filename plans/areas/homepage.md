@@ -431,3 +431,35 @@ database, not the person. Lint clean; the e2e not yet run — asked.
       (nothing is owed; the greeting note was harvested into the Design)
 - [x] every file on the roster blessed, or its stamp says why not (2026-09-13,
       Joel: "mark files in this area as blessed")
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`homepage` is closed** (2026-09-13): five files `cs-blessed-homepage`,
+nineteen findings, all worked — nine from the reading and ten from the closing
+re-read. What changed the app: the page got the unit test it never had
+(thirteen tests, the three empty states, the zero-rows fault on every load and
+NOT on a failed read, the display order asked of the database, the modal and
+where success goes); the keyboard e2e's Space check got an assertion that can
+fail, where `toContain('/')` had matched every URL; and `e2e/faults.e2e.ts`,
+`cs-unmet` with no area coming for it, joined the roster because its second
+test is this page's zero-rows fault end to end — found by grepping `e2e/` for
+the page's heading text, which is now the way every opening looks. A Design
+written for `home`: one list and the button that adds to it, no lobby; the
+one-stop tab ring and its accepted cost; why an empty list means three things;
+why zero rows is the page's fault to raise and a failed read is not; solo clubs
+marked, not separated; the modal because the act is add-to-this-list; the disc
+leading the greeting. The docstring shrank to the page and its one prop, and
+eight comments to their local decision plus a pointer, five in the reading and
+three at the re-read — because the Design was written FROM the comments and
+then left in them. The closing re-read's own lesson: a commit message is not
+evidence that an edit landed — F-2's docstring cut was described in the commit
+and recorded as worked, and the diff had never touched it; F-4 was recorded as
+a move and had landed as a deletion. Stale claims fixed in place in `ui.md`
+and `mobile.md`: a `<ul>` and a `.frame` the page does not have, rows that
+"stay ordinary links", a "Welcome, …" heading, a "SOLO pill". Nothing owed:
+`home/todo.md` is empty.
+
+**CLOSED 2026-09-13, blessed.** the landing page after login: one list and the button that adds to it. Nineteen findings, all worked; the summary is under "Where to start". The roster took `e2e/faults.e2e.ts`, which no area had audited: grep `e2e/` by the page's heading text at every opening

@@ -314,3 +314,35 @@ not re-asked.
 - [x] every file on the roster blessed, or its stamp says why not — all
   thirteen `cs-blessed-supabase`, 2026-09-05 (Joel: "mark files in area
   blessed then close area")
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`supabase` is closed** (2026-09-05): thirteen files `cs-blessed-supabase` —
+every file of `src/common/supabase/` plus the two Deno files in
+`supabase/functions/_shared/` that build and read the same envelope — with
+twelve findings worked, one closed with no change and one withdrawn. The code
+held up: the envelope's shape, the three-wrappers split and the
+classify-here/present-there line between `dbFetch` and `dbResult` all read as
+designed, and the folder's `doc.md` now explains that line for a newcomer. What
+had drifted was the prose about it. Two comments promised a guard that no
+longer existed for a form-validation raise with no COLUMN; `raiseCodes.test.ts`
+now has that check, a forward fix into the guards area. `NotOkEnv` became
+`NotOkEnvelope`, the one abbreviation in a folder that spells the word out
+everywhere else. Ten places that called a not-ok a "refusal" say not-ok, since
+the word collides with the game-rule refusal that is an `ok`. Six counts became
+conditions, five doc link texts and one docstring stopped writing pre-reorg
+import paths, and the five `typeof window` guards went bare, this folder's
+half of the per-folder decision `docs/code-conventions.md` leaves open. Three
+small code cleanups: one named `Settled<T>` where the response shape had been
+spelled five ways, one URL parse per request instead of two in `dbFetch`, and
+Deno's `isEnvelope` now as strict as its frontend twin. The withdrawn finding
+is the lesson: the audit grepped for a file named `EnvelopeErrorPage` and found
+none, but it is an export of `ErrorPage.tsx` and both docstrings naming it were
+right — grep the name, not the path. Nothing handed on; `todo.md` is empty.
+Left unplaced for the areas table: `_shared/http.ts`, `_shared/startGame.ts`
+and `supabase/sql/common.sql`, none of which has a row.
+
+**CLOSED 2026-09-05.** the client, the wrappers, the envelope — including the two Deno files that build and receive the same envelope server-side. The fault sink it reaches is `common-hosts`' to read

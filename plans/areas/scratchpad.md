@@ -480,3 +480,30 @@ catches the rename; nothing else has a test that would notice.
 - [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`scratchpad` is closed** (2026-09-12): eight files `cs-blessed-scratchpad`,
+sixteen findings — fifteen worked, one closed by another's decision. What
+changed the app: the pad stays writable after the game ends, a whole vertical
+slice — the companion's terminal flag, the hook's parameter, the RPC's
+play-state guard and its race arm, the pgTAP case, the read-only status text —
+gone on the ruling that the notes are the players', not the game's. The two
+one-second intervals that ran for the life of every coop game page run only
+while a holder exists; the reconnect refetch gained the holder guard the CDC
+path already had; "Take over" is a standard small quiet button, and ui.md's
+last "unsettled" case went with it. The editor is named by a `<DotActor>` from
+the club roster, so the lock claim carries a user id and nothing else, and
+`GamePage`'s `?? 'You'` went with the username. The textarea paints as a field
+like every other — no wrapper, no read-only mute, the monospace face decided.
+`useIsScratchpadOpen` and `useIsChatOpen` in one pass, the rect key in the
+storage convention's shape, and the store test its twin had. The closing
+re-read found five stale claims in prose outside the folder — a rollback the
+body never had in supabase.md's register, "bubble" for the mark in two blessed
+page-header docstrings — and moved the two lock races from crosswords'
+register to the folder's todo. Owed: nothing; `todo.md` holds two Maybes, the
+open-flag encoding and the lock races. Three game companions store rects
+without the `puzpuzpuz:` prefix, noted in the area file for those games.

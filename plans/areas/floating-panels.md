@@ -604,3 +604,10 @@ Deleted: `useConfirmation.tsx` (the hook; the file lives on as `confirmations.ts
 - [x] every file on the roster blessed, or its stamp says why not (Joel,
       2026-09-11: "mark all files as blessed" — the nineteen roster files and
       the three created outside the folder)
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-11, blessed.** the machinery and shared look of every window-like thing that floats over the page. Not the instances. Twenty-nine findings; the ones that mattered were the ones the audit's own reading had gotten wrong and a check caught — a live double-dismiss on Escape recorded as theoretical (`useDismissOnEscape` + a guard), two "harmless" fallbacks that centered a panel top-left and shrank it on every drag, a rules-of-hooks reason that did not hold (three components gone), a `minWidth` that outranked a phone. `useConfirmation` deleted: one way to ask. Handed on: the suspend question still rendered by hand (`pause-suspend`), and "backdrop" vs "scrim" as a vocabulary ruling

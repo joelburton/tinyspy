@@ -633,3 +633,10 @@ proof.
       — the three notes are placed, F-14 to F-20 worked
 - [x] every file on the roster blessed, or its stamp says why not — seven files
       `cs-blessed-pause-suspend`, set 2026-09-16 on Joel's word
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-16, blessed** (Joel: *"bless the files in this area, then close the area"*): seven files `cs-blessed-pause-suspend`. Stopping a game while a player is missing or somebody wants a break — the rule, the gate that unmounts the play surface, the banner that stands in for it, and the words of the suspend question. Twenty findings in `plans/areas/pause-suspend.md`, all worked: thirteen from the reading, seven from the closing re-read. What changed the app: the suspend question is asked through `askConfirmation` like every other question (the hand-rendered wrapper is gone, and the real bug — a pending question outliving its page — is filed in `floating-panels/todo.md`); the overlay's four props stopped being optional for a test's sake; the roster prop is `players`, the name `naming.md` had already given it; the overlay stopped second-guessing the boundary's decision; the explanatory line is one sentence per pause source, in Joel's words; `computePause` answers a boolean, since nothing read the list it returned. Handed on: the overlay's mobile pass (its own `todo.md`), the unread `common.games.paused` column (`deferred.md`), the eliminated-racer pause caveat (`connections/todo.md`). The re-read's lesson, for the eighth area running: a return value with no reader recruits false sentences — the docstring, the test header, the order spec and the caller's comment all described a reader that was not there

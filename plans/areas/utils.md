@@ -252,3 +252,13 @@ the answer to "what would converging the three cost" if that is ever revisited
 - [x] every file on the roster blessed, or its stamp says why not — all ten
       code files `cs-blessed-utils`; `doc.md` and `todo.md` take no stamp
       (markdown is outside the stamper's scope)
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`utils` is closed** (2026-09-04): ten files `cs-blessed-utils`, eight
+findings worked or closed, and a shared `shuffle` written where nine hand-rolled
+Fisher–Yates loops had been — those nine callers are a line in seven games'
+`todo.md`, to convert as each area opens.

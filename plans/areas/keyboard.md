@@ -444,3 +444,10 @@ docstring-marker pass at this sitting found the nine `/**` on
 `CaptureKeysOptions` still standing from F-keyboard-11 and one file docstring
 below its imports; both are fixed. `doc.md` was harvested at the sprint's step
 7 and re-read here; nothing owed.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-10, blessed.** Whose keystroke it is, where Tab may go, and backtick as Escape — what is left once every key became an action. Twenty findings, sixteen resolved (most by the actions sprint that came out of this area); the four surviving are the folder's `todo.md`. The tab-rings sprint ran out of this area and finished 2026-09-11: `useTabRing` lives here, every surface declares its ring, and the model is in the folder's `doc.md`

@@ -445,3 +445,27 @@ that is where it stays.
       had written down" was already owed to `page-header`.
 - [x] every file on the roster blessed, or its stamp says why not — all six
       `cs-blessed-branding`.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`branding` is closed** (2026-09-05): six files `cs-blessed-branding`, fifteen
+findings — thirteen worked, two closed with no change. The folder's rule, now
+in its `doc.md`: a mark is a bare `<img>` and never a control, because the same
+mark stands in two wrappers that mean different things by a click. `<GameLogo>`
+takes the manifest its callers already hold rather than re-resolving a gametype
+string, and following that one level up reshaped ClubPage's list row — it had
+copied manifest fields onto the row and then handed the string down to be
+looked up again. `--logo-size` now holds the 32px the two marks share, with the
+header's height composed from it instead of explained in prose in two files.
+**The closing re-read earned its place again** — six more, four of them created
+by this area's own fixes, including a docstring in a THIRD file repeating the
+staleness the audit had just corrected in the other two. Nothing is owed here,
+so `branding/todo.md` stays empty; the two handoffs went to `manifest/todo.md`
+(resolving a gametype string is hand-written at five call sites, each answering
+"what if it isn't there?" differently) and `club/todo.md` (`<StartGameButtons>`
+no longer exists and is named in nine places).
+
+**CLOSED 2026-09-05.** the app logo, the wordmark, and the `<GameLogo>` that renders a game's. Fifteen findings, thirteen worked; the folder's rule is that a mark is a bare `<img>` and never a control, because the same mark stands in two wrappers that mean different things by a click. **Not step 11's asset pass** — the 16 per-game logo files live in `src/<game>/`, so that stays one sweep at the end

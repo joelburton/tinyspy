@@ -617,3 +617,10 @@ still his, and untouched everywhere else.
 - [x] every file on the roster blessed, or its stamp says why not (Joel,
       2026-09-11: "bless the files here and close and commit" — the nine code
       files; the stamp tool takes no markdown)
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-11, blessed.** the one menu, its store, and what a game puts in it. Twenty-two findings, all worked or closed. Two were live bugs a throwaway spec caught before they were written down — an outside click that forgot the open submenu, and a second flyout opened by click recording its parent as row 0 — and the second copy of the popover that let the first one hide is gone: one render path. The stylesheet joined the vocabulary (two type sizes on the ramp, every mark in a row `1em`, one muted ink of the menu's own, the submenu mark a registry glyph); a disabled fade that had never painted was deleted. The closing re-read's catch: three files said the game menu unmounts while paused, and it does not. Handed on: "hint" as a repo-wide vocabulary ruling with no guard; a disabled row cannot say why

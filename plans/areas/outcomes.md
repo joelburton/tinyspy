@@ -325,3 +325,26 @@ planting instead: an eighth outcome for the palette rectangle, and the
 - [x] every file on the roster blessed, or its stamp says why not —
       `outcomes.ts` is `cs-blessed-outcomes`; the two markdown files take no
       stamp
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`outcomes` is closed** (2026-09-05): `outcomes.ts` is `cs-blessed-outcomes`,
+and all nine findings are settled — six worked, two filed as work other folders
+own, one closed by correcting a doc that stayed off the roster. The vocabulary
+itself held up; what had drifted was every sentence about it. The file claiming
+"no second spelling" had one — `good` / `bad` / `partial` for `won` / `lost` /
+`near`, in six docstrings and two docs, all of which wrote the right string in
+the code beside the wrong word. The palette had grown from four roles to seven
+without the prose noticing, so the recipe for adding an outcome told a reader to
+ship three missing cells. And one concept — how a finished game reads — was
+retyped by hand in twelve places under three spellings; it is `TerminalOutcome`
+now, `Extract`ed from the list so a rename breaks it instead of leaving it
+behind, and the rule that a subset lives with its consumer is written in the
+folder's `doc.md`. Two things found and handed on, both to `turn-log`:
+`TurnOutcome` is a second name for `Outcome` with three words missing, and the
+missing `warning` is why four games work around it to log a hint row. One thing
+found and left for `pdf`: its printed ✓/✗ marks were glossed `good` / `bad`
+(a find and a miss since 2026-09-19).

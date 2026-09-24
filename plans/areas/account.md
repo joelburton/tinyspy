@@ -539,3 +539,31 @@ arguments are kept in the present tense and the stories are gone.
       `fields/ColorChoiceField.tsx` was NOT re-blessed and still says
       `cs-blessed-forms` over content it gained in F-12 — forms', when forms
       next opens.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`account` is closed** (2026-09-12): eight files `cs-blessed-account`, fifteen
+findings, all worked. What changed the app: a failed sign-out was a
+`console.error`, and `GoTrueClient` returns before clearing the local session on
+one, so you stayed signed in with nothing on screen saying so — it goes through
+`reportDbFault` now with a code of its own (`PN492`, in a third table beside the
+`FE` four, for the auth calls a signed-in player makes that no wrapper speaks
+for), and the hook got its first test file. A `<legend>` is not a flex item, so
+every `group` field's caption had been sitting flush against its control — one
+rule in `field.module.css` fixed the picker in two screens and Edit club's
+checkbox list. The color swatches are quiet buttons now, wearing quiet's washes
+and no transition because a standard button paints its wash instantly, and the
+chosen one takes an ink border rather than the keyboard cursor's blue ring —
+which let both `⚠️` essays defending that resemblance be deleted, `focus-ring.css`
+included. `ColorChoiceList` folded into its wrapper as `ColorChoiceField`, so a
+blessed folder no longer imports its inner from elsewhere. The reserved `theme`
+column got its own pgTAP file. Two null branches that cannot fire kept their
+`??` and lost the comments describing a loading moment that does not exist.
+The prose pass's catch: `supabase/sql/common.sql`'s profiles policy justified
+its standing rule with "all four columns today" when the table has six — the
+conclusion held, the reasoning had not. Owed: nothing; `todo.md` is empty.
+`fields/ColorChoiceField.tsx` still says `cs-blessed-forms` over content it
+gained here, for forms to re-bless when it next opens.

@@ -922,3 +922,10 @@ roster and left.
 Verified: `tsc -b` clean, eslint clean on every touched file, 329 tests green
 (the folder and every guard). The four e2es changed only prose and two local
 names (`startRows`, `gameRows`, `rows`) and **were not run**.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**CLOSED 2026-09-14, blessed.** the club page: one RPC for the load, a shared face for its three game entries, a decomposition into a loader and two hooks. Twenty-five findings; the reading is `plans/areas/club-page.md`

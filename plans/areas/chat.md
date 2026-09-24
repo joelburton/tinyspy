@@ -347,3 +347,30 @@ after each.
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed — sixteen `cs-blessed-chat` (2026-09-12,
   Joel: "bless the files. then close.")
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`chat` is closed** (2026-09-12): sixteen files `cs-blessed-chat`, seventeen
+findings, all worked. The one that changed the app: every real page opened the
+club's chat stream twice — the panel subscribed for its list and the page
+subscribed again for the feedback bridge — and now the panel, which already
+holds the stream, calls `useChatFeedback` itself, so there is one subscription
+per page and on `GamePage` the bridge no longer runs before the game row has
+loaded. The unread store publishes a fact, the sender's color NAME, and the
+blessed `page-header` mark turns it into the paint, muted case and all — the
+decision moved to the mark and took a new `ChatButton.test.tsx` with it. The
+non-subscribing `getChatOpen` read stays as a declared test seam, and
+scratchpad's twin took the same answer in the same pass. `ChatBody`'s six
+literals took the ramps, an inert `.inputRow` reset came out, and the tests
+lost a twice-built channel mock and a hand-rolled storage fake. The closing
+re-read, for the fourth area running, found the area's own faults in prose it
+had written that week: nine stale sentences, most of them left by two
+findings worked the day before, `members.find` beside `memberById` a second
+time, a guard recommending a token that does not exist, and three pre-reorg
+paths in `docs/common.md`. Owed: nothing; `todo.md` holds one Maybe, the
+open-flag encoding chat and scratchpad store two ways.
+
+**CLOSED 2026-09-12, blessed.** the club chat panel end to end. It belongs to no page: `ClubPage` and `GamePage` both mount it, which is why it is not `club-page`'s. Seventeen findings; the summary is under "Where to start"

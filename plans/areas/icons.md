@@ -283,3 +283,18 @@ map, and what each doc holds instead); "the set grows as more buttons adopt it"
 described a rollout that has finished; and `IconPrint`'s comment was wrapped
 raggedly. The grouping rule went into `doc.md` as a Design bullet, since a
 decision that shipped belongs there rather than here.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`icons` is closed** (2026-09-04): `icons.ts` is `cs-blessed-icons`, and all
+eight findings are settled — six worked, two closed with no change. The
+registry's comments lost their archaeology and their stale caller claims, four
+names now say what the glyph MEANS (`IconEndGame`, `IconRevealSolution`,
+`IconInfoSheetOpen` / `Close`), and the exports are grouped by what a glyph is
+for instead of by when it was adopted. `docs/ui.md` stopped carrying a second
+copy of the map and points at the registry. One thing found and left: a menu
+row picks its glyph by hand, so every game names the same action's glyph twice
+— a line in `src/common/menu/todo.md` for when that area opens.

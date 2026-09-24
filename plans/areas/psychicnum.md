@@ -1557,3 +1557,10 @@ the trailing `: `, which is what separates the pill from the log.
 - [x] every file on the roster blessed, or its stamp says why not
       (2026-09-19: thirty-nine files `cs-blessed-psychicnum`, after `pdf`
       closed and the full e2e suite ran green)
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`psychicnum` is CLOSED 2026-09-19, blessed** (Joel: *"bless all files in the psychicnum area, then close it"*): thirty-nine files `cs-blessed-psychicnum` — the stamped files of `src/psychicnum/`, its three SQL files and its seven pgTAP files. All three passes in one day: the restructure in six steps, the audit (twenty findings in `plans/areas/psychicnum.md`, all ruled and shipped one commit apiece), and the tile-feedback pass to tf2; then the closing re-read (sixteen more, all prose), the `doc.md` harvest, and `docs/games/psychicnum.md` deleted into `src/psychicnum/doc.md`. Paused pre-close so `pdf` could be read first — its printer builds on that folder — and unpaused the same day when `pdf` closed, with the one thing `pdf` handed it worked. The full e2e suite ran green (245) before the blessing.

@@ -302,3 +302,23 @@ an omission.
   `common/chat/todo.md` and `common/scratchpad/todo.md` for the two open-store
   encodings disagreeing.
 - [x] every file on the roster blessed — all five `cs-blessed-web-storage`.
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`web-storage` is closed** (2026-09-05): five files `cs-blessed-web-storage`,
+six findings — five worked, one closed with no change. The shape every stored
+key takes was written in a hook's param docstring and asserted in passing by a
+comment, neither of which a new caller reads; it now lives in the wrapper all of
+them go through, and the seven keys that disagreed were renamed. The
+sticky-choice test dropped its hand-rolled fake for the shared one, which let it
+cover the way storage actually fails in a blocking browser — the property access
+throwing, which no test had touched, and which the old suite would have passed
+against a wrapper that had lost it. Crosswords' rebus toggle turned out to be
+that hook rewritten by hand, with its write in an effect that fired on mount;
+converting it removed the write and settled that a boolean is a two-position
+choice rather than a case for a second hook. One thing found and left,
+`chatOpenStore.test.ts` as the last hand-rolled storage fake, went to
+`src/common/chat/todo.md` and the `chat` area converted it.

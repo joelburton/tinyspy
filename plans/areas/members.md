@@ -569,3 +569,26 @@ in that window:
 - [x] `todo.md` holds everything still owed; nothing durable left in this file
 - [x] every file on the roster blessed, or its stamp says why not — all ten
       `cs-blessed-members`; the four `text` rows are DELETED and carry no stamp
+
+## Closing summary
+
+Moved here from `plans/app-audit.md` (its "Where to start" notes and its row in
+the areas table) when that file was trimmed to the process, 2026-09-23.
+
+**`members` is closed** (2026-09-09): ten files `cs-blessed-members`, fifteen
+findings all worked, closed moot or decided. Two of them changed the folder's
+shape rather than its prose — `common/text` was deleted (its one component had
+had no caller since August and no producer since before that), and
+`<ActorTag>` / `<ActorDot>` moved in from `turn-log`, where one JSX use site was
+a turn log and about thirty-seven were not. Both were then renamed to read in
+draw order, in two passes because the target names overlapped the current ones.
+The folder's rule — identity is a NAME the database constrains, and exactly one
+shape carries it — is why four surfaces stopped coloring player names, and
+`memberPalette.test.ts` is what keeps the eight names agreeing across the FIVE
+places that spell them, not the three the read found. **Both closing re-reads
+earned their place**: between them ten findings, and every single one was prose
+the area itself had written, several of them that same day. Owed work is in
+`members/todo.md`; the handoff to `club` is that a first-load roster read that
+fails leaves `members` at `[]` for the life of the page.
+
+**CLOSED 2026-09-09, blessed.** who someone is, their color, and the disc that carries it. Fifteen findings. Two of them were the area's shape rather than its prose: `common/text` had no caller and no producer, so the folder went instead of getting a Design; and `<ActorTag>`/`<ActorDot>` — one turn-log use site against ~37 elsewhere — moved in from `turn-log` and were renamed to read in draw order (`ActorDot` "moth ●", `DotActor` "● moth"). The folder's rule is that identity is a NAME the database constrains and exactly one shape carries it, which is why four surfaces stopped coloring player names. `memberPalette.test.ts` is new: the eight color names are spelled in FIVE places, not the three the read found
