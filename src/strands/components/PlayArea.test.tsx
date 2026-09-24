@@ -32,7 +32,8 @@ import { PlayArea } from './PlayArea'
  * they'd traced themselves.
  *
  * So these are deliberately about STATE → CONTROLS, not about game logic:
- * playing vs locally-done vs terminal, and the reveal's three faces.
+ * playing vs locally-done vs terminal, the reveal's three faces, and the
+ * keyboard's selection cursor.
  *
  * `useGame` (realtime + supabase) and `db` are mocked; the board, info column
  * and event log all render for real.
@@ -500,5 +501,138 @@ describe('strands PlayArea — before the game has loaded', () => {
     )
     expect(screen.getByText('Loading…')).toBeInTheDocument()
     for (const binding of liveBindings()) expect(() => binding.describe('button')).not.toThrow()
+  })
+})
+
+/**
+ * The keyboard's selection cursor. Cells are `row,col`; the board's rows are
+ * `ABCDEF`, `GHIJKL`, … so `A` sits at 0,0 and again at 4,2. Arrows move the
+ * ring, Space is a CLICK on the ringed letter, and a typed letter or a
+ * submitted word moves the cursor to the trace's end and hides it.
+ */
+describe('strands PlayArea — the selection cursor', () => {
+  beforeEach(() => {
+    h.result = loaded()
+    rpc.mockReset()
+    rpc.mockResolvedValue(okEnvelope({
+      result: 'invalid', word: 'AB', hint_points: 0, hint_cost: 3, words_found: 0, terminal: false,
+    }))
+  })
+
+  /** Where the ring is DRAWN, as `row,col`, or null when it isn't — read off
+   *  the circle's center, which sits at (col + 0.5, row + 0.5) in cell units. */
+  const ringAt = () => {
+    const ring = document.querySelector('circle[class*="ringCursor"]')
+    if (!ring) return null
+    return `${Number(ring.getAttribute('cy')) - 0.5},${Number(ring.getAttribute('cx')) - 0.5}`
+  }
+  /** The traced cells, in board order. */
+  const traced = () =>
+    [...document.querySelectorAll('[data-cell]')]
+      .filter((b) => /tileTrace/.test(b.className))
+      .map((b) => b.getAttribute('data-cell'))
+  /** Where the trace ends. */
+  const traceEnd = () =>
+    [...document.querySelectorAll('[data-cell]')].find((b) => /tileLast/.test(b.className))?.getAttribute('data-cell') ?? null
+  const key = (k: string) => press({ key: k })
+  const keys = async (...ks: string[]) => {
+    for (const k of ks) await key(k)
+  }
+
+  it('is hidden until an arrow; the first arrow rings the first letter, the next moves it', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(ringAt()).toBeNull()
+
+    await key('ArrowRight')
+    expect(ringAt()).toBe('0,0')
+    await key('ArrowRight')
+    expect(ringAt()).toBe('0,1')
+    await key('ArrowDown')
+    expect(ringAt()).toBe('1,1')
+  })
+
+  // Space is exactly a click: extend a neighbor, back up to before a letter
+  // already traced, start over from a far one.
+  it('Space does nothing while hidden, then does what a click does', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key(' ')
+    expect(traced()).toEqual([])
+
+    await keys('ArrowRight', ' ', 'ArrowRight', ' ')
+    expect(traced()).toEqual(['0,0', '0,1'])
+
+    // The last letter again: back up to just before it.
+    await key(' ')
+    expect(traced()).toEqual(['0,0'])
+
+    // A far letter: start over there.
+    await keys('ArrowDown', 'ArrowDown', 'ArrowDown', ' ')
+    expect(traced()).toEqual(['3,1'])
+  })
+
+  it('arrowing moves the ring and never the trace’s end', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await keys('ArrowRight', ' ', 'ArrowRight', ' ')
+    expect(traceEnd()).toBe('0,1')
+    await keys('ArrowDown', 'ArrowRight', 'ArrowDown')
+    expect(ringAt()).toBe('2,2')
+    expect(traceEnd()).toBe('0,1')
+  })
+
+  it('a typed letter moves the cursor onto it and hides it; the next arrow shows it there', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await keys('ArrowRight', ' ')
+    // From A at 0,0 the only neighboring H is 1,1.
+    await key('h')
+    expect(traced()).toEqual(['0,0', '1,1'])
+    expect(ringAt()).toBeNull()
+
+    await key('ArrowRight')
+    expect(ringAt()).toBe('1,1')
+  })
+
+  // A typed letter that several cells could be rings them red and waits; the
+  // arrows reach one and Space takes it, with no mouse.
+  it('arrows reach a red-ringed candidate and Space takes it', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key('a')
+    expect(traced()).toEqual([])
+
+    await keys('ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowDown', 'ArrowRight', 'ArrowRight')
+    expect(ringAt()).toBe('4,2')
+    await key(' ')
+    expect(traced()).toEqual(['4,2'])
+  })
+
+  it('a click moves the cursor onto the letter and hides it', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await user.click(document.querySelector('[data-cell="2,3"]')!)
+    expect(traced()).toEqual(['2,3'])
+    expect(ringAt()).toBeNull()
+
+    await key('ArrowLeft')
+    expect(ringAt()).toBe('2,3')
+  })
+
+  it('a submitted word moves the cursor to its last letter and hides it', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await keys('ArrowRight', ' ', 'ArrowRight', ' ', 'ArrowDown', 'ArrowDown')
+    expect(ringAt()).toBe('2,1')
+
+    await key('Enter')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('submit_path', expect.objectContaining({ path: [[0, 0], [0, 1]] })))
+    expect(ringAt()).toBeNull()
+
+    await key('ArrowRight')
+    expect(ringAt()).toBe('0,1')
+  })
+
+  it('a board I cannot play takes no ring and no keys', async () => {
+    render(<WithKeys {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false })} />)
+    await keys('ArrowRight', ' ')
+    expect(ringAt()).toBeNull()
+    expect(traced()).toEqual([])
   })
 })

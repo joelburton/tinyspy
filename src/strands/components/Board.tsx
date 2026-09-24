@@ -206,7 +206,6 @@ export function Board({
         {cursor !== null && (
           <circle
             className={styles.ringCursor}
-            data-cursor={coordKey([cursor.y, cursor.x])}
             cx={cx(cursor.x)}
             cy={cy(cursor.y)}
             r={0.52}
