@@ -525,7 +525,6 @@ export function PlayArea(props: PlayAreaProps) {
         actEndGame={actEndGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
-        setup={setup}
         setupRows={summaryRows}
         // ── Found-words list ──
         wordRows={wordRows}

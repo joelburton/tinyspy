@@ -1021,7 +1021,11 @@ three places and its Tests row, and `lib/terminal.ts`'s docstring in one;
 or keep coop only with a comment that says it is a choice. Recommendation:
 the same here, for the reason the four siblings gave.
 
-### F-wordwheel-6 · `unused-setup-prop` · `InfoCol` takes a `setup` it never reads
+### SHIPPED · F-wordwheel-6 · `unused-setup-prop` · `InfoCol` takes a `setup` it never reads
+
+**Joel, 2026-09-24: "i'll take your rec"** — deleted: the member, the
+pass-through in `PlayArea`, and the `WordwheelSetup` import. **Verified:**
+`tsc -b` and eslint clean; wordwheel and the guards, 42 files, 396 tests green.
 
 spellingbee's F-2 (Step 5's note), ruled *"delete it."* `InfoCol`'s props
 type declares `setup: WordwheelSetup` under the setup disclosure, `PlayArea`
