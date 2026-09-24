@@ -21,9 +21,9 @@
   it isn't in (strands left a dimmed tile after every word). The fix is to
   put the rule inside `@media (hover: hover)`, which a phone skips, and give
   touch its own press with `:active`, since a finger is either off or
-  pressing. Already gated: spellingbee's hexes, strands' tiles and the header's
-  marks (with `:active`). Not gated: the shared `.tile`, the on-screen
-  keyboard's `.key`, and the boards of stackdown, wordwheel, boggle,
+  pressing. Already gated: spellingbee's hexes, wordwheel's and strands' tiles
+  and the header's marks (with `:active`). Not gated: the shared `.tile`, the
+  on-screen keyboard's `.key`, and the boards of stackdown, boggle,
   letterboxed, setgame and connections' peer pick. The decision is the scope:
   **board pieces only** (the stuck look players actually notice), **every
   `:hover` in the app** (buttons and rows too, each gaining an `:active`

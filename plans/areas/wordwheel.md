@@ -1062,7 +1062,19 @@ letters, and `Array.from('')` is `[]` anyway. Options: **delete the line**,
 or keep it as a defense. Recommendation: delete it; a guard for a state the
 column forbids tells the reader that state exists.
 
-### F-wordwheel-9 · `ungated-hover` · a tap leaves a tile raised on a touchscreen
+### SHIPPED · F-wordwheel-9 · `ungated-hover` · a tap leaves a tile raised on a touchscreen
+
+**Joel, 2026-09-24: "i'll take your rec"** — gated. The two hover rules sit
+inside `@media (hover: hover)` in `Tile.module.css`, with spellingbee's
+comment; `:active` and the reduced-motion block stay ungated.
+`common/mobile/todo.md`'s `:hover` question lists wordwheel's tiles among the
+gated now.
+
+**Verified:** `vite build` emits `@media (hover:hover){…tile…:hover{z-index:1}
+…:hover …face{…}}` with `:active` after it, outside; wordwheel and the guards,
+42 files, 396 tests green. jsdom evaluates neither media queries nor
+`:hover`, so no unit test sees it. **Not checked on a device:** the tile
+should still lift under a mouse and sit flat after a tap on a phone.
 
 spellingbee's F-7, ruled *"gate it."* `.tile:not(.used):not(.inert):hover`
 and its `.face` rule in `Tile.module.css` lift the face and lighten its

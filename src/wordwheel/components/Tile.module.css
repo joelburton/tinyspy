@@ -88,12 +88,18 @@
 /* @@ */ .inert {
   cursor: default;
 }
-/* @@ */ .tile:not(.used):not(.inert):hover {
-  z-index: 1;
-}
-/* @@ */ .tile:not(.used):not(.inert):hover .face {
-  transform: translateY(-2px);
-  box-shadow: var(--tile-hover-shadow);
+/* Only on a device that really hovers: a touchscreen keeps `:hover` on the
+ * last-tapped tile, which would sit raised after every letter. Same gate as
+ * spellingbee's hexes, strands' tiles and the tooltip bubble
+ * (common/tooltips/doc.md). */
+@media (hover: hover) {
+/* @@ */   .tile:not(.used):not(.inert):hover {
+    z-index: 1;
+  }
+/* @@ */   .tile:not(.used):not(.inert):hover .face {
+    transform: translateY(-2px);
+    box-shadow: var(--tile-hover-shadow);
+  }
 }
 
 /* Pressed: back down into the seat, slightly smaller, slightly darker. */
