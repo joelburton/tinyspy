@@ -136,6 +136,11 @@ imports; both games' `Cursor` become `GridCursor` (kept under their local
 name if that reads better at their call sites), and the docstring sentence
 goes.
 
+**Worked 2026-09-24** (*"yes"*): `ArrowKey` lives in `gridCursor.ts` and the
+hook imports it; both games' `Cursor` are gone for `GridCursor` itself (few
+enough uses that an alias bought nothing), including bananagrams'
+`BoardArena.tsx`; the sentence is gone.
+
 ## F-board-cursor-4 · `on-enter` · `onEnter` also fires on Space
 
 `onEnter` is the commit's callback, and for a peel the commit carries Enter

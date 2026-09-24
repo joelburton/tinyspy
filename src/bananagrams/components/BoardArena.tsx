@@ -9,13 +9,13 @@ import {
   LETTER_SCALE,
   blurActiveField,
   type Cell,
-  type Cursor,
   type DragSource,
 } from '../hooks/usePlayerBoard'
 import { idx } from '../lib/board'
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import gridCursor from '@/shared/board-cursor/gridCursor.module.css'
+import type { GridCursor } from '@/shared/board-cursor/gridCursor'
 import styles from './PlayerBoard.module.css'
 
 /**
@@ -53,7 +53,7 @@ export function BoardArena({
   actZoomFit: BoundAction
   /** The placement grid (`GRID*GRID` chars, '.' = empty). */
   board: string
-  cursor: Cursor
+  cursor: GridCursor
   /** The cell the drag is hovering (drop highlight), or null. */
   hover: Cell | null
   /** The live drag state (for the "lifting this board tile" dim), or null. */

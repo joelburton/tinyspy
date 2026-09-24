@@ -26,9 +26,6 @@
  * with `'across'`/`'down'`, against `{ x, y }` with `'h'`/`'v'` here — which is
  * a real cross-game naming split (docs/naming.md wants one name per concept)
  * and a bigger question than this module.
- *
- * The games' own `Cursor` types are structurally identical to `GridCursor`, so
- * they pass through without conversion.
  */
 
 export type Dir = 'h' | 'v'

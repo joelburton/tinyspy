@@ -16,13 +16,13 @@ import { Dot } from '@/common/members/Dot'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
 import { cellAtPoint, useDragGesture, type DragGesture } from '@/shared/grid-and-drag/useDragGesture'
-import { moveCursor, planBackspace } from '@/shared/board-cursor/gridCursor'
+import { moveCursor, planBackspace, type GridCursor } from '@/shared/board-cursor/gridCursor'
 import { db } from '../db'
 import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
 import { historyBoard, evaluatePlay, type Placement } from '../lib/play'
 import type { SharedMovePayload } from '../hooks/useSharedMove'
 import type { ScrabbleGame, PlayerRow, EventRow } from '../hooks/useGame'
-import { Board, type Cursor, type Tentative } from './Board'
+import { Board, type Tentative } from './Board'
 import { Rack } from './Rack'
 import { Controls } from './Controls'
 import { ScrabbleBlankPickerBlockingModal } from './ScrabbleBlankPickerBlockingModal'
@@ -267,7 +267,7 @@ export function BoardCol({
   const [selected, setSelected] = useState<Set<number>>(new Set()) // exchange selection
   const [order, setOrder] = useState<number[]>([])
   const [blankAt, setBlankAt] = useState<{ x: number; y: number; rackIdx: number } | null>(null)
-  const [cursor, setCursor] = useState<Cursor>({ x: 7, y: 7, dir: 'h' })
+  const [cursor, setCursor] = useState<GridCursor>({ x: 7, y: 7, dir: 'h' })
   const [submitting, setSubmitting] = useState(false)
   // Just-played tiles, rendered as committed until the realtime refetch brings
   // them in for real — so an accepted word never blinks off the board.

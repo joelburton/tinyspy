@@ -2,8 +2,7 @@
 
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import type { BoundAction } from '@/common/actions/useBoundAction'
-
-export type ArrowKey = 'ArrowLeft' | 'ArrowRight' | 'ArrowUp' | 'ArrowDown'
+import type { ArrowKey } from './gridCursor'
 
 export type BoardCursorKeysOptions = {
   /**

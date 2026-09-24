@@ -13,12 +13,11 @@ import {
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import gridCursor from '@/shared/board-cursor/gridCursor.module.css'
+import type { GridCursor } from '@/shared/board-cursor/gridCursor'
 import styles from './Board.module.css'
 
 /** A tile a player has placed this turn but not yet committed. */
 export type Tentative = { letter: string; blank: boolean }
-/** The keyboard-entry cursor. */
-export type Cursor = { x: number; y: number; dir: 'h' | 'v' }
 type XY = { x: number; y: number }
 
 const PREMIUM_LABEL: Record<PremiumType, string> = {
@@ -53,7 +52,7 @@ export function Board({
 }: {
   board: Cell[]
   tentative: Map<number, Tentative>
-  cursor: Cursor
+  cursor: GridCursor
   hover: XY | null
   // Cell indices to outline green for a beat (a just-accepted word).
   greenCells: ReadonlySet<number>

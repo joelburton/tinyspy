@@ -24,7 +24,7 @@ import {
   shuffleString,
 } from '../lib/board'
 import { cellAtPoint, useDragGesture, type DragGesture, type DragState } from '@/shared/grid-and-drag/useDragGesture'
-import { moveCursor, planBackspace } from '@/shared/board-cursor/gridCursor'
+import { moveCursor, planBackspace, type GridCursor } from '@/shared/board-cursor/gridCursor'
 import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -70,13 +70,12 @@ export const LETTER_SCALE = 0.6
 const NO_CELLS: ReadonlySet<number> = new Set()
 
 export type Cell = { x: number; y: number }
-export type Cursor = Cell & { dir: 'h' | 'v' }
 export type DragSource = { kind: 'hand'; index: number } | { kind: 'board'; x: number; y: number }
 
 // The board cursor is always present during play (you can type the moment the board
 // loads). It starts dead center — Bananagrams builds outward from the middle — and is
 // reset there after a recenter.
-const CENTER_CURSOR: Cursor = { x: Math.floor(GRID / 2), y: Math.floor(GRID / 2), dir: 'h' }
+const CENTER_CURSOR: GridCursor ={ x: Math.floor(GRID / 2), y: Math.floor(GRID / 2), dir: 'h' }
 
 function overHandAtPoint(x: number, y: number): boolean {
   return !!document.elementFromPoint(x, y)?.closest('[data-zone="hand"]')
@@ -151,7 +150,7 @@ export type PlayerBoardEngine = {
   board: string
   cell: number
   minCell: number
-  cursor: Cursor
+  cursor: GridCursor
   hover: Cell | null
   drag: DragState<DragSource> | null
   invalidCells: ReadonlySet<number>
@@ -224,7 +223,7 @@ export function usePlayerBoard({
   const [handOrder, setHandOrder] = useState<string | null>(null)
   const [cell, setCell] = useState(DEFAULT_CELL) // zoom (px per cell)
   const [minCell, setMinCell] = useState(24) // smallest zoom = whole grid fits
-  const [cursor, setCursor] = useState<Cursor>(CENTER_CURSOR)
+  const [cursor, setCursor] = useState<GridCursor>(CENTER_CURSOR)
   // Board cells flagged illegal by a blocked peel (disconnected, or — with
   // word_check on — in an invalid word). Stored WITH the board they were computed
   // against, so any edit (which changes `board`) makes them stop matching in render —
@@ -484,7 +483,7 @@ export function usePlayerBoard({
   )
 
   // --- Keyboard cursor --------------------------------------------------
-  const advance = useCallback((cur: Cursor) => {
+  const advance = useCallback((cur: GridCursor) => {
     setCursor({
       x: clamp(cur.x + (cur.dir === 'h' ? 1 : 0)),
       y: clamp(cur.y + (cur.dir === 'v' ? 1 : 0)),
