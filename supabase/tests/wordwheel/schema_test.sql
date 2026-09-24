@@ -50,10 +50,10 @@ select is(
 -- ============================================================
 -- Public reference tables readable as authenticated
 -- ============================================================
--- Reference data — public SELECT, no RLS, no club gating. The import
--- script writes them; everyone reads them. The word reference itself
--- is common.words, not wordwheel's — only the wordwheel-specific
--- pangram seed pool is checked here.
+-- Reference data — a public SELECT grant, RLS on with a permissive policy,
+-- no club gating. The import script writes them; everyone reads them. The
+-- word reference itself is common.words, not wordwheel's — only the
+-- wordwheel-specific pangram seed pool is checked here.
 reset role;
 -- A duplicate-letter multiset seed ('a' ×3) — `letters` is the PK; `mask` is
 -- GENERATED from it (the distinct-letter set), so it isn't in the column list.

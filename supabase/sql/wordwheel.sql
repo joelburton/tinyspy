@@ -187,7 +187,8 @@ drop function if exists wordwheel._rank_idx(int, int);
 --
 -- The function is `security invoker` + `stable`:
 --   - invoker so it runs with the caller's access to common.words
---     (public reference data, RLS off) — no privilege escalation.
+--     (public reference data: a SELECT grant, and RLS on with a permissive
+--     policy) — no privilege escalation.
 --   - stable so a single SELECT can call it once per row of its
 --     enclosing query without repeated re-execution.
 

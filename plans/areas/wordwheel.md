@@ -1534,7 +1534,12 @@ An applied migration's comments may be corrected (F-14 did three).
 - *"reject as alreadyFound"* — the answer is `already_found`, and at the
   server it is a race.
 
-### R-wordwheel-3 · `rls-off` · two comments say the reference tables have no RLS
+### SHIPPED · R-wordwheel-3 · `rls-off` · two comments say the reference tables have no RLS
+
+**Joel, 2026-09-24: "i'll take your rec"** — both. `candidate_words`' header
+carries spellingbee's F-15 wording; `schema_test` says a public SELECT grant,
+RLS on with a permissive policy. **Verified:** `npm run test:db` PASS; guards
+green.
 
 `candidate_words`' header (*"common.words … public reference data, RLS off"*)
 and `schema_test` (*"Reference data — public SELECT, no RLS"*). RLS is on for
