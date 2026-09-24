@@ -1,4 +1,4 @@
--- cs-met-wordwheel
+-- cs-blessed-wordwheel
 
 -- ============================================================
 -- Test: wordwheel post-terminal reveal — the cat-A / cat-B data

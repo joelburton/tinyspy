@@ -1,12 +1,12 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 /**
- * Unit test for wordwheel's terminal message (lib/terminal.ts). Pure — no
+ * Unit test for the bee games' terminal message (terminal.ts). Pure — no
  * DOM, no supabase.
  *
- * It walks EVERY play state a wordwheel game can finish in, in both modes,
- * for every reason the server can write, for a caller who won or was beaten —
- * the whole input space, since the builder reads nothing else. What that buys:
+ * It walks EVERY play state a bee game can finish in, in both modes, for
+ * every reason the server can write, for a caller who won or was beaten — the
+ * whole input space, since the builder reads nothing else. What that buys:
  * the pill and the info-column line are two texts for one outcome, and a table
  * is the only way to see at a glance that no cell says "won" beside an outcome
  * of `lost`, or leaves a loss reading as neutral.

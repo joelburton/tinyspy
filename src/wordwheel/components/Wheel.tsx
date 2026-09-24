@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 import type { ReactNode } from 'react'
 import { cls } from '@/common/utils/cls'

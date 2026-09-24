@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest'

@@ -1,4 +1,4 @@
--- cs-met-wordwheel
+-- cs-blessed-wordwheel
 
 -- ============================================================
 -- Test: a game played by a SUBSET of club members

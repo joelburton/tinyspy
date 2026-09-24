@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 /**
  * The multiset tile-spend rule, as a single boolean — the FE twin of the edge

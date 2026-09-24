@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 import { useCallback, useMemo, useState, type SetStateAction } from 'react'
 import { cls } from '@/common/utils/cls'

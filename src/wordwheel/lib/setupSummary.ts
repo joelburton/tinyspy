@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'

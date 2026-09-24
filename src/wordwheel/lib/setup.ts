@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 import type { TimerMode } from '@/common/manifest/gameManifest'
 import type { SetupOf } from '@/common/setup-form/setupForm'

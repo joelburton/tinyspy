@@ -1,4 +1,4 @@
--- cs-met-wordwheel
+-- cs-blessed-wordwheel
 
 -- ============================================================
 -- Test: wordwheel COOP target rank (the coop win condition)

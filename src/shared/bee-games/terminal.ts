@@ -1,12 +1,12 @@
-// cs-blessed-spellingbee
+// cs-blessed-wordwheel
 
 import type { Actor } from '@/common/members/member'
 import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
 
 /**
- * What spellingbee says once the game is over, for a play state, a mode, the
- * server's reason and the scores.
+ * What a bee game — spellingbee or wordwheel — says once the game is over, for
+ * a play state, a mode, the server's reason and the scores.
  *
  * `pillText` + `outcome` are the below-board verdict, `infoColText` + `outcome`
  * the short bold line in the info-column action row. Both come back in one
@@ -21,7 +21,7 @@ import { RANKS } from '@/shared/rank-ladder/rankLadder'
  * below-board pill on a phone (~44 characters; it ellipsizes rather than wraps).
  * A rank that names the GOAL is quoted (`"Genius"`); the rank reached is not.
  *
- * **Coop** (the target rank is optional — see `SpellingbeeSetup.target_rank`):
+ * **Coop** (the target rank is optional — see each game's setup type):
  *   - `won`   — the team reached the rank they set out for → `Won: "Genius" 47/50 points`
  *   - `lost`  — the countdown beat an unreached target → `Lost: ran out of time`
  *   - `ended` — no target, or they stopped early → `Ended: Solid 10/50 points`

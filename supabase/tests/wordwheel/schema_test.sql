@@ -1,4 +1,4 @@
--- cs-met-wordwheel
+-- cs-blessed-wordwheel
 
 -- ============================================================
 -- Test: wordwheel baseline schema invariants

@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 import { describe, expect, it } from 'vitest'
 import {

@@ -473,8 +473,8 @@ What is spellingbee's own:
   above the hive on a phone by `MobileStatusBar` so the readout stays on the
   play surface when the info column is off-canvas. Coop shows the team's;
   compete the caller's own, with the Rank strip for the rivals.
-- **The terminal** is the pill and the row's line (`lib/terminal.ts`), the
-  inert hive, and the list with its missed words. A win celebrates once, on
+- **The terminal** is the pill and the row's line, in sentences wordwheel
+  shares ([`shared/bee-games`](../shared/bee-games/doc.md)), the inert hive, and the list with its missed words. A win celebrates once, on
   the flip — the team's in coop, and in a race only the winner's screen, read
   off `status.winner_user_id`; nothing pops for any other ending.
 - **The setup form** offers the target rank — *Win at* in coop with a *None*,
@@ -526,7 +526,7 @@ Vitest, beside the code:
 
 | file | pins |
 |---|---|
-| `lib/answer.test` · `lib/terminal.test` | every answer's words and outcome, and the three-way split of a miss; every terminal sentence per mode, play state and reason, as a table with no cell pairing a win with a loss |
+| `lib/answer.test` | every answer's words and outcome, and the three-way split of a miss (the terminal sentences are `shared/bee-games`' `terminal.test`) |
 | `lib/setup.test` · `components/SetupForm.test` | the letter rules and the band rule, each refusal under the field it names; the form's settings in order, the compete caption, the solo club's missing picker, and where a server refusal lands |
 | `components/PlayArea.test` | the surface mounts in every mode and state; the hexes a word is using, marked and cleared; the inert board after a concede or an ending; a required, bonus and pangram word accepted with the right call, a miss refused with its reason and answered on the board — its own letters and no others shaking and wearing its own outcome, for `WORD_ANSWER_MS`, and shaking again when refused again; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, End, Concede, Shuffle, Restart |
 

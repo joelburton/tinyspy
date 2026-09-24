@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 import { useEffect, useMemo, useRef } from 'react'
 import { cls } from '@/common/utils/cls'
@@ -17,7 +17,7 @@ import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import type { LeaderboardEntry } from '@/shared/bee-games/beeLeaderboard'
 import { currentRankIndex, RANKS } from '@/shared/rank-ladder/rankLadder'
 import { answerMessage, peerAnswerMessage } from '../lib/answer'
-import { buildTerminalMessage } from '../lib/terminal'
+import { buildTerminalMessage } from '@/shared/bee-games/terminal'
 import type { WordwheelSetup } from '../lib/setup'
 import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'

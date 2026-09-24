@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 /**
  * wordwheel-build-board — Edge Function that produces a fresh

@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 /**
  * WHICH tile each use of a letter spends.

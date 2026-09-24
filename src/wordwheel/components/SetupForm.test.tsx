@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 /**
  * wordwheel's setup form — what it offers, and where a refusal lands.

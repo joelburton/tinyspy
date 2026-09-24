@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 import { GameHelpCompanion } from '@/common/game-page/GameHelpCompanion'
 

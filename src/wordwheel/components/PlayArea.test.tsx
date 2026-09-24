@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 /**
  * Render + behavior tests for wordwheel's play surface: the tree mounts in

@@ -320,9 +320,11 @@ row. A menu is easy to reorder, so this is a starting order, not a lock.
 
 **The terminal message.** A pure `buildTerminalMessage(...)` returning a
 `TerminalMessage`, in `lib/terminal.ts` beside the game's other decisions about
-what a move meant. The `useMemo` that feeds the verdict effect stays in the
-component. Its test walks every terminal play state in every mode for every
-reason the server writes — a small, closed space worth exhausting.
+what a move meant — except for spellingbee and wordwheel, whose endings read
+alike and share one in `shared/bee-games/terminal.ts`. The `useMemo` that feeds
+the verdict effect stays in the component. Its test walks every terminal play
+state in every mode for every reason the server writes — a small, closed space
+worth exhausting.
 
 ## Prop conventions for the columns
 

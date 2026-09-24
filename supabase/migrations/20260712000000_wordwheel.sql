@@ -1,4 +1,4 @@
--- cs-met-wordwheel
+-- cs-blessed-wordwheel
 
 -- ============================================================
 -- wordwheel — Guardian-Word-Wheel-style word finder (MooseWheel)

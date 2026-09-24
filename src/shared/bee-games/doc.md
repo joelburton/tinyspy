@@ -2,8 +2,8 @@
 
 What spellingbee and wordwheel share and nothing else does: the hook factory
 behind their identical data lifecycles, the board header it returns, the compete
-leaderboard row, and the coordinate-unit geometry a hive and a wheel are both
-drawn by. Everything the wider found-words family shares — the submit engine,
+leaderboard row, the coordinate-unit geometry a hive and a wheel are both drawn
+by, and the sentences a finished game says. Everything the wider found-words family shares — the submit engine,
 the reveal, the rows, the row and word types, the typed-word look, the
 play-surface scaffolding — is [shared/found-words](../found-words/doc.md).
 
@@ -53,7 +53,17 @@ spellingbee/hooks/useGame ─┐
 the two BoardCols ─▶ beeBoard.module.css   (.boardCol → --u · --board-width
                                             .mobileStatus)
 the two PlayAreas ─▶ beeLeaderboard.ts     (LeaderboardEntry, via readLeaderboard)
+                  ─▶ terminal.ts           (buildTerminalMessage — the pill and the
+                                            action row's line at the end)
 ```
+
+**The endings are shared because the games end alike.** Both modes, every play
+state and every reason are the same in the two games, and so is every sentence
+said about them; only the brand differs, and no sentence names it. Every other
+game keeps its `buildTerminalMessage` in its own `lib/terminal.ts`
+(docs/playarea.md → What leaves the component file). The day one bee game's
+ending needs a word the other's doesn't, the function goes back to the game
+folders.
 
 **The header is read once and the found list is not.** `<schema>.games` is
 immutable during play — the letters and both word lists never change, and

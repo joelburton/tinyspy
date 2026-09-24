@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 import { describe, it, expect } from 'vitest'
 import { answerMessage, answerOf, peerAnswerMessage } from './answer'

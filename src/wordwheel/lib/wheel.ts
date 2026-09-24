@@ -1,4 +1,4 @@
-// cs-met-wordwheel
+// cs-blessed-wordwheel
 
 /**
  * The 9-circle wheel geometry — the single source shared by the on-screen board

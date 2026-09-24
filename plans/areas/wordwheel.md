@@ -7,7 +7,13 @@ One of the sixteen game areas. The process is [app-audit.md](../app-audit.md)
 §4; the plan holds the order, this file holds the reading. Owed work lives in
 `src/wordwheel/todo.md`, not here.
 
-**Status: OPEN 2026-09-23.**
+**Status: CLOSED 2026-09-24, blessed** (Joel: *"close the area and
+commit"*, after *"bless the files in this area (and the terminal.ts and
+terminal.test.ts in bee-games)"*). Forty-nine files `cs-blessed-wordwheel`:
+the roster's forty-seven and the two `shared/bee-games/terminal` files this
+area moved there. Opened 2026-09-23. The four wordwheel e2e specs ran green
+after F-17 (6 tests), and F-9's hover gate was checked on a device; nothing
+since has been run end to end.
 
 **Three passes back to back**, the earlier games' shape: the restructure
 ([playarea-readability.md](../playarea-readability.md) step by step, with the
@@ -1685,6 +1691,23 @@ owed work — a forward-fix made from another area, a question for the opening,
 a dependency listed and left. Anything durable goes to `todo.md` or
 `docs/games/wordwheel.md` instead; a note here never stands in for either)*
 
+**`terminal.ts` moved into `shared/bee-games` — 2026-09-24.** Joel, asked
+whether anything the two bee games both use could live in `bee-games`: *"let's
+move terminal.ts to bee-games, and update both wordwheel and spellingbee."*
+The two `lib/terminal.ts` files and their tests were identical but for names
+in comments. wordwheel's copy moved (`git mv`, so its history follows) to
+`src/shared/bee-games/terminal.ts` and `terminal.test.ts`, its prose made to
+speak for both games; spellingbee's were deleted. Both `PlayArea`s import it
+from there. **The two files stay on this area's roster**, blessed with it
+(`cs-blessed-wordwheel`), though they sit in a closed folder. Prose: both
+`doc.md`s point at `shared/bee-games`; `bee-games/doc.md` lists the endings
+and says why they are shared and when they'd split; `docs/playarea.md` names
+the bee games as the one exception to "each game's own `lib/terminal.ts`".
+**Touched in closed, blessed areas:** spellingbee's `PlayArea.tsx` (the import
+line) and `doc.md`, and `bee-games/doc.md`; their stamps were left as they
+are. **Verified:** `tsc -b` and eslint clean; spellingbee, wordwheel,
+bee-games and the guards, 47 files, 485 tests green; the moved test runs, 8.
+
 ## Predicted test breaks
 
 *(the spec names, written when the area starts changing things)*
@@ -1695,9 +1718,49 @@ wordwheel specs — `wordwheel`, `wordwheel-coop-win` (2), `wordwheel-mobile`
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] `docs/games/wordwheel.md` reconciled with `todo.md`: its Deferred
-      section moved into the todo, or deliberately kept as the standing register
+- [x] the whole area re-read in one sitting after the last group (2026-09-24,
+      after pass 3; R-1 to R-9, all shipped)
+- [x] `docs/games/wordwheel.md` reconciled with `todo.md`: deleted into
+      `src/wordwheel/doc.md` at the prose pass (2026-09-24), its Deferred
+      entries already in the todo from Step 1
 - [x] the tile-feedback pass done, and the game's tf level updated there (tf2, 2026-09-24)
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+      (nothing owed: its Bugs and Soon are empty, and what stays is the
+      `s`-heavy Maybe and the Won't-do fold ruling)
+- [x] every file on the roster blessed, or its stamp says why not — Joel,
+      2026-09-24: *"bless the files in this area (and the terminal.ts and
+      terminal.test.ts in bee-games)"*; 49 files `cs-blessed-wordwheel` by the
+      script's listing (the roster's 47 and the two in `shared/bee-games`)
+
+## Closing summary
+
+**`wordwheel` is CLOSED 2026-09-24, blessed** (Joel: *"close the area and
+commit"*): forty-nine files `cs-blessed-wordwheel` — the roster's forty-seven
+and `shared/bee-games/terminal.ts` with its test, which this area moved there.
+The fifth game, and spellingbee's fork, so every step copied spellingbee's
+matching commit and most findings were its twins. The restructure in eight
+steps with the stylesheet split (and the word engine moved into `BoardCol`);
+the audit (seventeen findings — fourteen twins of spellingbee's rulings, two
+bugs of this game's own, one naming — all shipped); tile-feedback to tf2 (the
+board held up; one ruling, the face keeping its own box); then the closing
+re-read (nine, all shipped). **What changed the app:** the claims mechanism —
+the one thing this game has that spellingbee cannot — had three leaks, all
+found and pinned: a click's claim outlived its word (F-15), a refusal shook
+the unclicked twin (F-16), and ArrowUp's recall kept a click on a different
+word (R-1); a race's winner celebrates; the tapped tile no longer stays
+raised on a touchscreen; Help tells the truth about pangrams and covers bonus
+words and the modes; every per-player result is `{ won }`; the leaderboard is
+one helper; both shuffles are the shared one; `create_game` answers a
+non-numeric band in the envelope (`PN505`, `PN506`); the custom-letters
+example is a nine-tile wheel; the spent-tile state has one name. **Beyond the
+area:** the two bee games' identical `buildTerminalMessage` moved into
+`shared/bee-games` (Joel's ask), with `docs/playarea.md` naming it the one
+exception to each game's own `lib/terminal.ts`. **The lesson:** the fork's own
+mechanism is where the read found what spellingbee's could not, and each claims
+fix exposed the next leak in the same state — the re-read found the third after
+two fixes had been proved; and, for the tenth area running, the re-read's
+findings were the area's own work not reaching a sibling, plus a migration
+whose comments still described the game before its fork was finished.
+**Handed on:** nothing owed. **Left, and said:** spellingbee's `lib/setup.ts`
+keeps "or `null`" in two docstrings, and its `submit_word` the same unread
+count R-5 dropped here — both in a closed area.

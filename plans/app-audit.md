@@ -19,7 +19,7 @@ the folders' `todo.md`.
 - `outcome-fix` — closed as a pass across every game's move path; its files
   are `cs-fixed-outcome-fix`, not blessed.
 
-**Not opened yet:** the eleven remaining games (Joel picks the next), and three
+**Not opened yet:** the ten remaining games (Joel picks the next), and three
 shared families — `dict-trie`, `board-cursor`, `grid-and-drag`.
 
 **Before opening anything, read §4.** §3 is the order and the progress.
@@ -143,7 +143,8 @@ area file's closing summary.
 | 58 | `wordle` | `src/wordle/` | closed 09-22 |
 | 59 | `spellingbee` | `src/spellingbee/` | closed 09-23 |
 | 60 | `codenamesduet` | `src/codenamesduet/` | closed 09-23 |
-| 61 | `bananagrams` · `boggle` · `crosswords` · `letterboxed` · `scrabble` · `setgame` · `stackdown` · `strands` · `waffle` · `wordiply` · `wordwheel` | `src/<game>/` | not opened |
+| 61 | `wordwheel` | `src/wordwheel/` | closed 09-24 |
+| 62 | `bananagrams` · `boggle` · `crosswords` · `letterboxed` · `scrabble` · `setgame` · `stackdown` · `strands` · `waffle` · `wordiply` | `src/<game>/` | not opened |
 
 **`common/devtools` is on no row, deliberately.** `/palette` and `/font` are
 ABSOLUTELY EXCLUDED (Joel: *"Do not read them, do not edit them, do not touch
