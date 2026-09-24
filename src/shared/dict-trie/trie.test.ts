@@ -4,9 +4,9 @@ import { describe, expect, it } from 'vitest'
 import { buildTrie, walkWord } from './trie'
 
 /**
- * What this file defends is NOT that the trie finds words — the boggle solver
- * suite does that, against a C oracle, on every board it generates. This covers
- * what the extraction added on top and what a caller can get wrong.
+ * What this file defends is NOT that the trie finds words — boggle's solver
+ * parity suite does that, against a C oracle's output on fixed fixture boards.
+ * This covers what the extraction added on top and what a caller can get wrong.
  *
  * **Rated terminals**, including the guard: the terminal is a `Uint8Array` cell
  * whose truthiness IS "this is a word", so a rating outside 1..255 would erase
@@ -20,7 +20,7 @@ import { buildTrie, walkWord } from './trie'
  */
 
 describe('buildTrie', () => {
-  it('marks terminals 1 when no ratings are given (the boggle contract)', () => {
+  it('marks terminals 1 when no ratings are given', () => {
     const trie = buildTrie(['cat', 'cats'])
     expect(trie.eow[walkWord(trie, 'cat')]).toBe(1)
     expect(trie.eow[walkWord(trie, 'cats')]).toBe(1)

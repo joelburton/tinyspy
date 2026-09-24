@@ -4,7 +4,7 @@ The folders it reads: `shared/dict-trie`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-24). The READ is done; the findings wait on Joel.
+**Status: OPEN** (2026-09-24). The READ is done and every finding is resolved; the closing steps remain.
 
 ## The roster
 
@@ -123,7 +123,7 @@ change is in `boggle-build-board/dict.ts`; `trie.ts` did not change.
   `generate-boggle-wordlist.ts`'s comments, and `index.ts`'s step list.
 - **Not run:** the boggle e2e.
 
-## F-dict-trie-2 · `truthiness-claim` · The header says every consumer tests `eow` for truthiness; scrabble reads the value
+## FIXED · F-dict-trie-2 · `truthiness-claim` · The header says every consumer tests `eow` for truthiness; scrabble reads the value
 
 `trie.ts`'s header: *"since every existing consumer tests `eow` for
 truthiness, rated and unrated tries are interchangeable"*. Scrabble's
@@ -136,7 +136,13 @@ The same header names its consumers: the boggle solver by path, and scrabble
 by `docs/games/scrabble.md` rather than by code. A roster of consumers in a
 docstring rots, and `docs/common-folders.md`'s table already carries it.
 
-## F-dict-trie-3 · `docstring-marker` · Two docstrings carry the implementation's reasons; the `Trie` fields carry nothing
+
+**Resolution (no decision needed; Joel: *"do the rest of the findings"*):** the
+header no longer claims every consumer tests truthiness, and names no
+consumers. It says what a terminal holds and that "is this a word?" code reads
+rated and unrated tries alike.
+
+## FIXED · F-dict-trie-3 · `docstring-marker` · Two docstrings carry the implementation's reasons; the `Trie` fields carry nothing
 
 - `buildTrie`'s second paragraph explains why it throws ("a `Uint8Array` cell
   whose truthiness IS…"). The caller needs *that* it throws and when. The
@@ -148,6 +154,14 @@ docstring rots, and `docs/common-folders.md`'s table already carries it.
   nothing says so.
 - `const A = 'a'.charCodeAt(0)` is a capital `A` naming the code of a
   lowercase `a`.
+
+
+**Resolution:** both docstrings now say only what a caller needs.
+`buildTrie`'s says **Throws** and when. The why sits on the check at the
+`throw`, and the empty-string reason sits on `walkWord`'s first line. Each
+`Trie` field carries a `//`: `children`'s layout (moved out of the header),
+what `eow` holds, and `nNodes` as what a caller sizes per-node arrays by.
+`A` is now `A_CODE`.
 
 ## FIXED · F-dict-trie-4 · `empty-word` · `buildTrie` marks the root as a word when the list holds an empty string
 
@@ -186,7 +200,7 @@ matching `buildTrie`, and its docstring says so. Five callers dropped their own
 counted four and missed the edge function. A new test pins lookup in either
 case, and planting the old behavior turns it red.
 
-## F-dict-trie-6 · `dense-lines` · `buildTrie`'s growth and insert are three statements a line
+## FIXED · F-dict-trie-6 · `dense-lines` · `buildTrie`'s growth and insert are three statements a line
 
 ```ts
 const c = new Int32Array(cap * 26); c.set(children); children = c
@@ -198,7 +212,12 @@ This is the one subtle stretch of the file: the off-by-one between `n` and
 densest style. One statement a line, and a note on the `n > cap` test, would
 read it for the reader.
 
-## F-dict-trie-7 · `stale-claims` · The test header and the Won't-do note each claim something false
+
+**Resolution:** one statement a line in `grow()` and in the insert. `nx` is
+now `next`, and a note on the `n > cap` test says why it is right. The full
+scrabble dictionary still builds to 609,465 nodes, the same as before.
+
+## FIXED · F-dict-trie-7 · `stale-claims` · The test header and the Won't-do note each claim something false
 
 - **`trie.test.ts`'s header** says the boggle solver suite checks word-finding
   "against a C oracle, on every board it generates". The parity suite runs
@@ -209,6 +228,13 @@ read it for the reader.
   every band: band 1 is already 78,836 nodes. The ruling it records stands.
   Its reason is half wrong. The growth path runs in prod on every boggle
   board, which is stronger evidence for leaving the test out, not weaker.
+
+
+**Resolution:** the test header now says the parity suite runs fixed fixture
+boards. The Won't-do note now says both edge functions cross the first
+allocation on every cold start, and the unit suites never do. The ruling is
+unchanged. One more stale aside turned up and went: a test title called
+unrated terminals "the boggle contract", and boggle now builds a rated trie.
 
 ## What checked out
 

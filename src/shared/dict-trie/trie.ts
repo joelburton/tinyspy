@@ -3,53 +3,50 @@
 /**
  * Flat typed-array trie — the shared dictionary structure for word games.
  *
- * Shared by the boggle solver (`src/boggle/lib/solver.ts`) and scrabble's move
- * suggester (`docs/games/scrabble.md`). Deliberately a trie, not a minimized
- * DAWG: a DAWG merges shared suffixes, so a node can't identify a
- * word; in a trie every word gets its own terminal node, which is what lets
- * boggle dedup found words by stamping the node and lets scrabble hang a
- * per-word difficulty rating off it.
+ * Deliberately a trie, not a minimized DAWG: a DAWG merges shared suffixes, so
+ * a node can't identify a word; in a trie every word gets its own terminal
+ * node, which is what lets a solver dedup found words by stamping the node and
+ * lets a word carry a value of its own on it.
  *
- * Layout: `children[node * 26 + letter]` is the child node index (0 = none;
- * node 0 is the root, which nothing points back to, so 0 is unambiguous).
- *
- * **Rated terminals.** `eow[node]` is `0` for "not a word"; nonzero marks a
- * word ending. When `buildTrie` is given a parallel `ratings` array the
- * terminal carries the word's difficulty (1..6 from `common.words`), so one
- * all-bands trie can answer band-gated legality at query time — scrabble's
- * `difficulty <= band` predicate. Without ratings every terminal is `1`, and
- * since every existing consumer tests `eow` for truthiness, rated and unrated
- * tries are interchangeable to code that only asks "is this a word?".
+ * **Terminals.** `eow[node]` is `0` for "not a word"; nonzero marks a word
+ * ending. `buildTrie` stores `1` there, or the caller's own value when given
+ * `ratings` — a difficulty, say — so one trie can answer "is this a word, and
+ * which kind?" at query time. Code that only asks "is this a word?" tests
+ * `eow` for truthiness, and reads a rated trie and an unrated one alike.
  */
 
-const A = 'a'.charCodeAt(0)
+const A_CODE = 'a'.charCodeAt(0)
 
 export interface Trie {
+  // `children[node * 26 + letter]` is the child's node index, 0 for none. Node 0
+  // is the root, which nothing points back to, so 0 is unambiguous.
   children: Int32Array
+  // Per node: 0, or the word ending there's terminal value (see Terminals).
   eow: Uint8Array
+  // How many nodes are in use — what a caller sizes a per-node array by. The
+  // arrays themselves may be longer.
   nNodes: number
 }
 
 /** Build a trie from a word list. Words are lower-cased; an empty word, or any
  *  word with a non-`a`–`z` character, is skipped. `ratings`, if given, is
- *  parallel to `words` and becomes the terminal value (see "rated terminals"
- *  above); otherwise terminals are `1`.
+ *  parallel to `words` and becomes each word's terminal value; otherwise every
+ *  terminal is `1`.
  *
- *  A supplied rating MUST be an integer in `1..255` — the terminal is a
- *  `Uint8Array` cell whose truthiness IS "this is a word", so a missing
- *  rating (short array → `undefined`), a `0`, or a value that wraps mod 256
- *  would silently turn an accepted word into a non-word and desync a
- *  consumer's legality check from the real dictionary. We throw instead of
- *  storing a self-erasing terminal. */
+ *  **Throws** when a supplied rating is missing or not an integer in `1..255`. */
 export function buildTrie(words: readonly string[], ratings?: readonly number[]): Trie {
   let cap = 1 << 16
   let children = new Int32Array(cap * 26)
   let eow = new Uint8Array(cap)
-  let n = 1 // node 0 = root
+  let n = 1 // the next free node; node 0 is the root
   const grow = () => {
     cap *= 2
-    const c = new Int32Array(cap * 26); c.set(children); children = c
-    const e = new Uint8Array(cap); e.set(eow); eow = e
+    const biggerChildren = new Int32Array(cap * 26)
+    biggerChildren.set(children)
+    children = biggerChildren
+    const biggerEow = new Uint8Array(cap)
+    biggerEow.set(eow)
+    eow = biggerEow
   }
   for (let i = 0; i < words.length; i++) {
     const w = words[i].toLowerCase()
@@ -57,15 +54,27 @@ export function buildTrie(words: readonly string[], ratings?: readonly number[])
     let node = 0
     let ok = true
     for (let j = 0; j < w.length; j++) {
-      const c = w.charCodeAt(j) - A
-      if (c < 0 || c >= 26) { ok = false; break }
-      let nx = children[node * 26 + c]
-      if (nx === 0) { nx = n++; if (n > cap) grow(); children[node * 26 + c] = nx }
-      node = nx
+      const c = w.charCodeAt(j) - A_CODE
+      if (c < 0 || c >= 26) {
+        ok = false
+        break
+      }
+      let next = children[node * 26 + c]
+      if (next === 0) {
+        next = n++
+        // `next` is the last index that fits when n === cap; past that, grow
+        // before anything is written at `next`.
+        if (n > cap) grow()
+        children[node * 26 + c] = next
+      }
+      node = next
     }
     if (ok) {
       if (ratings) {
         const r = ratings[i]
+        // The terminal's truthiness IS "this is a word", so a missing rating, a
+        // 0, or one that wraps mod 256 would silently turn an accepted word into
+        // a non-word. Refuse it rather than store a self-erasing terminal.
         if (!Number.isInteger(r) || r < 1 || r > 255)
           throw new Error(`buildTrie: rating for "${w}" must be an integer 1..255, got ${r}`)
         eow[node] = r
@@ -77,23 +86,20 @@ export function buildTrie(words: readonly string[], ratings?: readonly number[])
   return { children, eow, nNodes: n }
 }
 
-/** Walk a word from the root, in either case as `buildTrie` stores it; the
- *  node reached, or -1 if the trie has no such path. `trie.eow[node]` then answers is-it-a-word (and
- *  at what difficulty). Handy at boundaries — inner loops walk `children`
- *  themselves, one letter at a time.
+/** Walk a word from the root, in either case as `buildTrie` stores it; the node
+ *  reached, or -1 if the trie has no such path. `trie.eow[node]` then answers
+ *  is-it-a-word (and its terminal value). Handy at boundaries — inner loops walk
+ *  `children` themselves, one letter at a time.
  *
- *  **Never returns 0.** A returned node is always a real one, so a caller can
- *  test `!== -1` and index `eow` safely. The empty string is the case that
- *  would otherwise break that: it walks nothing and lands on the root, which is
- *  node 0 — the same value `children` uses for "no child". Rejecting it here
- *  keeps one meaning per value instead of asking every caller to know that the
- *  root can come back. */
+ *  **Never returns 0**, so a caller can test `!== -1` and index `eow` safely. */
 export function walkWord(trie: Trie, word: string): number {
+  // The empty string walks nothing and lands on the root, node 0 — the value
+  // `children` uses for "no child". Refusing it keeps one meaning per value.
   if (word.length === 0) return -1
   const w = word.toLowerCase()
   let node = 0
   for (let i = 0; i < w.length; i++) {
-    const c = w.charCodeAt(i) - A
+    const c = w.charCodeAt(i) - A_CODE
     if (c < 0 || c >= 26) return -1
     node = trie.children[node * 26 + c]
     if (node === 0) return -1
