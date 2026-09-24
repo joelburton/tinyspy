@@ -15,6 +15,7 @@
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the grid, strips, action row — renders for real.
+ * The keyboard's selection cursor is pinned here too, at the end.
  */
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -838,5 +839,137 @@ describe('waffle PlayArea — the keys', () => {
       await answer(user, 'Restart')
       await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
     })
+  })
+})
+
+/**
+ * The keyboard's selection cursor. Positions run row by row, five across, and
+ * 6, 8, 16 and 18 are holes, which have no tile. Arrows move the ring, Space
+ * picks up to two tiles, and Enter swaps them — the second pick waits, where
+ * the second tap is the swap.
+ */
+describe('waffle PlayArea — the selection cursor', () => {
+  const HOLES = [6, 8, 16, 18]
+  /** The tile at a board position (holes are not tiles). */
+  const tileAt = (pos: number) => {
+    const tiles = within(screen.getByRole('grid')).getAllByRole('button')
+    return tiles[pos - HOLES.filter((h) => h < pos).length]!
+  }
+  const positions = Array.from({ length: 25 }, (_, p) => p).filter((p) => !HOLES.includes(p))
+  const ringed = () => positions.filter((p) => /selectionCursor/.test(tileAt(p).className))
+  const picked = () => positions.filter((p) => /selected/.test(tileAt(p).className))
+  // Awaited: a bound action's run settles a microtask after the keystroke.
+  const key = (k: string) => act(async () => press({ key: k }))
+  const swapsSent = () => rpc.mock.calls.filter(([fn]) => fn === 'submit_swap')
+
+  it('is hidden until an arrow; the first arrow rings the first tile, and an arrow jumps a hole', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(ringed()).toEqual([])
+
+    await key('ArrowRight')
+    expect(ringed()).toEqual([0])
+    await key('ArrowRight')
+    expect(ringed()).toEqual([1])
+    // Down from 1 is the hole at 6; the ring lands on 11 beyond it.
+    await key('ArrowDown')
+    expect(ringed()).toEqual([11])
+  })
+
+  it('two picks wait, and Enter swaps them', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key(' ')
+    expect(picked()).toEqual([])
+
+    await key('ArrowRight')
+    await key(' ')
+    await key('ArrowRight')
+    await key(' ')
+    expect(picked()).toEqual([0, 1])
+    expect(swapsSent()).toEqual([])
+
+    await key('Enter')
+    expect(rpc).toHaveBeenCalledWith('submit_swap', expect.objectContaining({ pos_a: 0, pos_b: 1 }))
+    expect(picked()).toEqual([])
+  })
+
+  it('names Enter "Swap" for the key list', () => {
+    render(<WithKeys {...makeCtx()} />)
+    expect(bound('act-submit').describe('help').label).toBe('Swap')
+  })
+
+  it('a third pick is refused; Space on a picked tile un-picks it', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key(' ')
+    await key('ArrowRight')
+    await key(' ')
+    await key('ArrowRight')
+    await key(' ')
+    expect(picked()).toEqual([0, 1])
+
+    await key('ArrowLeft')
+    await key(' ')
+    expect(picked()).toEqual([0])
+  })
+
+  it('⌫ drops the picks', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key(' ')
+    await key('Backspace')
+    expect(picked()).toEqual([])
+  })
+
+  it('a tap on one keyboard pick swaps the two, as a second tap does', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key(' ')
+    await user.click(tileAt(2))
+    expect(rpc).toHaveBeenCalledWith('submit_swap', expect.objectContaining({ pos_a: 0, pos_b: 2 }))
+  })
+
+  it('a tap with two keyboard picks starts over from the tapped tile, and hides the ring', async () => {
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key(' ')
+    await key('ArrowRight')
+    await key(' ')
+    await user.click(tileAt(3))
+    expect(picked()).toEqual([3])
+    expect(swapsSent()).toEqual([])
+    expect(ringed()).toEqual([])
+
+    await key('ArrowLeft')
+    expect(ringed()).toEqual([3])
+  })
+
+  // The swap stays in flight until the server's board arrives, which it never
+  // does here — so every way of making another swap is quiet.
+  it('Space and Enter do nothing while a swap is in flight', async () => {
+    render(<WithKeys {...makeCtx()} />)
+    await key('ArrowRight')
+    await key(' ')
+    await key('ArrowRight')
+    await key(' ')
+    await key('Enter')
+    expect(swapsSent()).toHaveLength(1)
+
+    await key(' ')
+    await key('ArrowLeft')
+    await key(' ')
+    expect(picked()).toEqual([])
+    await key('Enter')
+    expect(swapsSent()).toHaveLength(1)
+  })
+
+  it('a board I cannot play takes no ring and no keys', async () => {
+    render(<WithKeys {...makeCtx({ isMyTurn: false })} />)
+    await key('ArrowRight')
+    await key(' ')
+    expect(ringed()).toEqual([])
+    expect(picked()).toEqual([])
+    expect(bound('act-submit').describe('help').state).toBe('hidden')
   })
 })
