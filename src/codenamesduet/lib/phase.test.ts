@@ -3,14 +3,15 @@
 /**
  * Tests for `derivePhase` — the pure function that decides which UI
  * state the play surface is in given whether the game is over or in sudden
- * death, the seats, and whether a clue exists.
+ * death, the seats, and whether a clue exists — and for `isGuessable`, which
+ * word on a clickable board may be guessed.
  *
  * The matrix of inputs is small enough that every interesting combination is
  * enumerated here.
  */
 
 import { describe, expect, it } from 'vitest'
-import { derivePhase, type PhaseInputs } from './phase'
+import { derivePhase, isGuessable, type PhaseInputs } from './phase'
 
 /** Reusable defaults so each test only states what it changes. */
 function inputs(overrides: Partial<PhaseInputs> = {}): PhaseInputs {
@@ -100,5 +101,29 @@ describe('derivePhase — cellsClickable', () => {
         hasCurrentTurnClue: false,
       })).cellsClickable,
     ).toBe(false)
+  })
+})
+
+describe('isGuessable', () => {
+  const word = (over: Partial<{ revealed_as: string | null; neutral_a: boolean; neutral_b: boolean }> = {}) =>
+    ({ revealed_as: null, neutral_a: false, neutral_b: false, ...over })
+
+  it('an untouched word is guessable by either seat', () => {
+    expect(isGuessable(word(), 'A')).toBe(true)
+    expect(isGuessable(word(), 'B')).toBe(true)
+  })
+
+  it('a revealed word is guessable by nobody', () => {
+    expect(isGuessable(word({ revealed_as: 'G' }), 'A')).toBe(false)
+    expect(isGuessable(word({ revealed_as: 'A' }), 'B')).toBe(false)
+  })
+
+  // The Duet rule: a bystander I hit is closed to me; one my partner hit may
+  // still be my agent.
+  it('a bystander closes the word only for the seat that hit it', () => {
+    expect(isGuessable(word({ neutral_a: true }), 'A')).toBe(false)
+    expect(isGuessable(word({ neutral_a: true }), 'B')).toBe(true)
+    expect(isGuessable(word({ neutral_b: true }), 'B')).toBe(false)
+    expect(isGuessable(word({ neutral_b: true }), 'A')).toBe(true)
   })
 })

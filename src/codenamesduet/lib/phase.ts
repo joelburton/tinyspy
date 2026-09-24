@@ -43,3 +43,21 @@ export function derivePhase(inputs: PhaseInputs): PhaseDerived {
   const cellsClickable = !gameOver && (inSuddenDeath || (isGuessPhase && !isClueGiver))
   return { isGuessPhase, isClueGiver, cellsClickable }
 }
+
+/** The reveal state of one board word — the columns `isGuessable` reads. */
+type WordReveal = {
+  revealed_as: string | null
+  neutral_a: boolean
+  neutral_b: boolean
+}
+
+/**
+ * May the player in `mySeat` guess this word — on a board whose cells are
+ * clickable at all? Not once it is revealed, and not once *I* hit it as a
+ * bystander; a bystander only my partner hit stays guessable, since it may be
+ * my agent (the Duet rule). A click and the keyboard's Space both ask this.
+ */
+export function isGuessable(word: WordReveal, mySeat: Seat): boolean {
+  const iNeutraled = mySeat === 'A' ? word.neutral_a : word.neutral_b
+  return word.revealed_as === null && !iNeutraled
+}

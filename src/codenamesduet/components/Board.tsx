@@ -8,7 +8,7 @@ import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedba
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { WordRow } from '../hooks/useBoard'
 import type { KeyLabel } from '../lib/labels'
-import type { Seat } from '../lib/phase'
+import { isGuessable, type Seat } from '../lib/phase'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
@@ -177,10 +177,10 @@ export function Board({
             : (w.neutral_a || w.neutral_b) ? styles.bgNeutral
             : styles.bgWhite
 
-          // Clickable unless revealed, or *I* already neutraled it — a
-          // partner-only neutral stays clickable, since it may be my agent.
-          // (A past turn open is already in `cellsClickable`.)
-          const clickable = cellsClickable && !revealed && !iNeutraled
+          // Clickable unless revealed, or *I* already neutraled it — the rule
+          // is `isGuessable`'s, which the keyboard's Space asks too. (A past
+          // turn open is already in `cellsClickable`.)
+          const clickable = cellsClickable && isGuessable(w, mySeat)
           const isPending = pendingPos === w.position
 
           return (

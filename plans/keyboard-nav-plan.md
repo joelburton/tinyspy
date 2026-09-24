@@ -328,7 +328,7 @@ games follow.
 | waffle | 4 holes | up to **two** tiles | the swap | must hold 2 selections without firing |
 | psychicnum | trailing cells | one word | the guess | Submit stays, as the commit's button; no cue |
 | connections — **DONE** | — | up to four | the group | index clamps when a band collapses; peer rings nest |
-| codenamesduet | — | one word | the guess | guesser only; needs a submit trigger |
+| codenamesduet | — | one word | the guess | guesser only; its own `act-submit` on Enter, no button, labeled "Guess"; no cue |
 | strands | — | letters, adjacency-gated | the word | tail-end is state; `⌫` steps back one |
 
 ## The `⏎ to guess` cue
@@ -341,6 +341,12 @@ relevant and never touches the mouse experience.
 
 **psychicnum takes no cue**: its Submit button is on screen, and its hover
 bubble carries the shortcut (`Submit · ↵`).
+
+**codenamesduet takes no cue either** (Joel, 2026-09-24): its below-board line
+is already full — the clue, and the guesser's Pass & End Turn — and a cue
+would not fit. Help and the key list ("Guess ↵") teach Enter. A way to teach
+it on screen is a Someday in `codenamesduet/todo.md`. waffle decides for
+itself when it lands.
 
 ## Decided, so nobody re-opens them
 
