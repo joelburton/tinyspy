@@ -36,20 +36,6 @@
   other way. Benign today: the play surface is a flex item and gives the
   pixel. Decide: compose it from the tokens the way `--game-header-bottom`
   does, or keep the number and say so.
-- **Should `:hover` be gated to pointer devices, app-wide?** A touch device
-  applies `:hover` when you tap and leaves it applied until you tap elsewhere,
-  so on a phone a tapped row or button stays in its hover look indefinitely.
-  The model that makes it a
-  decision: hover is a state only a pointer can be in — "I am over this and
-  have not committed" — and a finger has no such state, it is off or pressing.
-  So the answer pairs with its other half: gate `:hover` to `(hover: hover)`
-  and give touch its own feedback with `:active`, which the app has almost
-  nowhere. The gate is already used by spellingbee's hexes, strands' tiles and
-  the header's marks (which pair it with `:active`); the shared `.tile`, the
-  on-screen keyboard's `.key`, and the boards of stackdown, wordwheel, boggle,
-  letterboxed, setgame and connections' peer pick are not. Not decided —
-  docs/mobile.md → The rules every screen keeps states the gate as the rule,
-  so if the answer is no, that doc changes too.
 - **`.card` names two different things.** Global `.card` is the bordered
   section of a page; four module stylesheets also declare a local `.card`
   that is not it — a popover's box, a device notice's box, setgame's playing

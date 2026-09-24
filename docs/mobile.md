@@ -90,10 +90,11 @@ desktop-only — is [features.md → Mobile suitability](features.md#mobile-suit
   on an SVG child it is silently ignored.
   [`tap-targets.e2e.ts`](../e2e/tap-targets.e2e.ts) checks the real tap targets,
   and a new tapped board joins its list.
-- **`:hover` on anything tappable belongs inside `@media (hover: hover)`.** A
-  touchscreen keeps `:hover` on the last element tapped, so a hover style sits
-  there after every move looking like state. Most boards don't gate it yet
-  ([common/core-css/todo.md](../src/common/core-css/todo.md)).
+- **`:hover` on a touchscreen sticks.** A phone keeps `:hover` on the last
+  element tapped, so a hover style sits there after every move looking like
+  state; `@media (hover: hover)` keeps a rule off touch devices. Some boards
+  gate their hover and most don't: how widely to gate it is not decided yet
+  ([common/mobile/todo.md](../src/common/mobile/todo.md)).
 - **Long user strings are bounded twice**: handles and club names are capped in
   SQL, and the surfaces that show them carry `overflow-wrap: anywhere`, because
   a short token with no break opportunity still pushes a phone page sideways.
