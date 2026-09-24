@@ -5,6 +5,7 @@ import { cls } from '@/common/utils/cls'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import type { Coord } from '../lib/board'
+import type { Cell } from '@/common/board-cursor/stepCell'
 import { WordEntryRow } from '@/common/word-entry/WordEntryRow'
 import type { BoundAction } from '@/common/actions/useBoundAction'
 import { WordEntryInput } from '@/common/word-entry/WordEntryInput'
@@ -24,6 +25,9 @@ type Props = {
   trace: readonly Coord[]
   hintCoords: Coord[] | null
   onTileClick: (at: Coord) => void
+  // The keyboard's selection cursor — the cell to ring — or null when it is
+  // not drawn (see `useBoardSelectionCursor`).
+  cursor: Cell | null
   disabled: boolean
   // The viewed turn's traced cells, ringed.
   historyLitTiles: Coord[]
@@ -74,6 +78,7 @@ export function BoardCol({
   trace,
   hintCoords,
   onTileClick,
+  cursor,
   disabled,
   historyLitTiles,
   historyLabel,
@@ -100,6 +105,7 @@ export function BoardCol({
         trace={trace}
         hintCoords={hintCoords}
         onTileClick={onTileClick}
+        cursor={cursor}
         disabled={disabled}
         isViewingHistory={isViewingHistory}
         historyLitTiles={historyLitTiles}

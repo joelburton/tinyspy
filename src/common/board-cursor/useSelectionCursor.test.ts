@@ -6,19 +6,9 @@ import { useSelectionCursor } from './useSelectionCursor'
 
 // The rules every selection cursor keeps alike: hidden until a movement key
 // asks, a relative key's first press only reveals, an absolute key reveals and
-// goes, a click goes and hides, and a move made another way carries it along.
+// goes, a click goes and hides.
 
 describe('useSelectionCursor', () => {
-  it('follow moves the cursor and leaves it shown or hidden as it was', () => {
-    const { result } = renderHook(() => useSelectionCursor(0))
-    act(() => result.current.follow(3))
-    expect(result.current).toMatchObject({ at: 3, revealed: false })
-
-    act(() => result.current.jump(4))
-    act(() => result.current.follow(2))
-    expect(result.current).toMatchObject({ at: 2, revealed: true })
-  })
-
   it('starts hidden, at the start', () => {
     const { result } = renderHook(() => useSelectionCursor(0))
     expect(result.current).toMatchObject({ at: 0, revealed: false })

@@ -17,9 +17,6 @@ export type SelectionCursor<P> = {
   jump: (to: P) => void
   // A click on `to`: the cursor goes there and hides.
   point: (to: P) => void
-  // The move itself went to `to` another way (strands' typed letter): the
-  // cursor goes there, shown or hidden as it already was.
-  follow: (to: P) => void
 }
 
 /**
@@ -34,8 +31,6 @@ export type SelectionCursor<P> = {
  * - **An absolute press reveals and moves.** It named a destination.
  * - **A click moves it and hides it**, so going back to the keys resumes where
  *   the hand left off.
- * - **A move made another way can carry it along** (`follow`) without showing
- *   or hiding it — strands' typed letter, so the next arrow starts beside it.
  *
  * Where a move lands — clamping to a list's ends, stepping over a board's
  * holes — is the caller's, handed in as the destination. So is what the keys
@@ -61,6 +56,5 @@ export function useSelectionCursor<P>(start: P): SelectionCursor<P> {
       setAt(to)
       setRevealed(false)
     },
-    follow: setAt,
   }
 }

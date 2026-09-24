@@ -336,7 +336,7 @@ games follow.
 | psychicnum | trailing cells | one word | the guess | Submit stays, as the commit's button; no cue |
 | connections — **DONE** | — | up to four | the group | index clamps when a band collapses; peer rings nest |
 | codenamesduet — **DONE** | — | one word | the guess | guesser only; its own `act-submit` on Enter, no button, labeled "Guess"; no cue |
-| strands | — | Space is exactly a click (Joel, 2026-09-24): extend, back up, or start over | the word (`act-submit-entry`, already its own) | tail-end is state, and already drawn (`.ringLast`); `⌫` steps back one (`act-drop-last-cell`, already); the ring is an SVG circle in `--chrome-cursor-color`, not the shared outline — the board draws no boxes; the cursor FOLLOWS the trace's end when a typed letter extends it |
+| strands | — | Space is exactly a click (Joel, 2026-09-24): extend, back up, or start over | the word (`act-submit-entry`, already its own) | tail-end is state, and already drawn (`.ringLast`); `⌫` steps back one (`act-drop-last-cell`, already); the ring is an SVG circle in `--chrome-cursor-color`, not the shared outline — the board draws no boxes; the cursor FOLLOWS the trace's end — a typed letter or a submitted word moves it there AND HIDES it (Joel, 2026-09-24), as a click does |
 
 ## The `⏎ to guess` cue
 

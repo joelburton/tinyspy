@@ -2,6 +2,7 @@
 
 import { COLS, ROWS, coordKey, letterAt, type Board as BoardLetters, type Coord } from '../lib/board'
 import { cls } from '@/common/utils/cls'
+import type { Cell } from '@/common/board-cursor/stepCell'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
@@ -24,6 +25,9 @@ type Props = {
   hintCoords: Coord[] | null
   // Tile click. The reducer decides what it means; the board just reports it.
   onTileClick: (at: Coord) => void
+  // The keyboard's selection cursor — the cell to ring in the cursor blue — or
+  // null when it is not drawn (see `useBoardSelectionCursor`).
+  cursor?: Cell | null
   // Frozen at terminal (and while a peer's turn is pending in a turn game).
   disabled?: boolean
   // Replaying a past turn: the board wears the shared history frame.
@@ -66,6 +70,7 @@ export function Board({
   trace,
   hintCoords,
   onTileClick,
+  cursor = null,
   disabled,
   isViewingHistory,
   historyLitTiles = [],
@@ -193,6 +198,20 @@ export function Board({
             r={0.44}
           />
         ))}
+
+        {/* The keyboard's selection cursor: where the arrows are pointing. The
+            app's cursor blue, drawn as a ring because this board's marks are
+            rings, and at the cell's edge — outside every other ring — so it and
+            the trace's end both show on the same letter. */}
+        {cursor !== null && (
+          <circle
+            className={styles.ringCursor}
+            data-cursor={coordKey([cursor.y, cursor.x])}
+            cx={cx(cursor.x)}
+            cy={cy(cursor.y)}
+            r={0.52}
+          />
+        )}
       </svg>
 
       {/* The letters, on top and click-bearing. */}

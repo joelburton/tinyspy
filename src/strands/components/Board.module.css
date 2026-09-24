@@ -58,6 +58,10 @@
  * 6/8, so the units are already square — `none` just avoids rounding drift. */
 /* @@ */ .paths {
   pointer-events: none;
+  /* The cursor ring reaches past the cell's edge, so on an outermost letter it
+   * would be cut at the SVG's box; the board's inset (above) is the room it
+   * draws into. */
+  overflow: visible;
 }
 
 /* @@ */ .line {
@@ -134,6 +138,17 @@
  * reads as emphatically as the other rings, and solid rather than the hint's
  * dashes, because this is one moment's answer to one keystroke, not a standing
  * state. Cleared by `AMBIGUOUS_PICK_FLASH_MS`. */
+/* The keyboard's selection cursor — the app's cursor blue
+ * (`--chrome-cursor-color`, the ring `<SelectionList>` and the other boards
+ * draw), but as a ring rather than the shared outline, because this board draws
+ * no boxes. At r=0.52 it sits just outside the trace-end ring (0.47), so both
+ * show when the cursor is on the letter the trace ends at. */
+/* @@ */ .ringCursor {
+  fill: none;
+  stroke: var(--chrome-cursor-color);
+  stroke-width: 0.06;
+}
+
 /* @@ */ .ringAmbiguous {
   fill: none;
   stroke: var(--outcomes-error-ink-color);

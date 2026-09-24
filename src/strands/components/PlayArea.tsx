@@ -378,10 +378,10 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The keyboard's selection cursor: arrows move a ring over the letters, and
   // Space is a CLICK on the ringed one — extend, back up, or start over, by
-  // `clickTile`'s own rule. It follows the trace's end when a typed letter
-  // extends it, so after a letter that rings red the next arrow starts beside
-  // the candidates.
-  const { point, follow } = useBoardSelectionCursor({
+  // `clickTile`'s own rule. A typed letter or a submitted word moves it to the
+  // trace's end and hides it, as a click does: the next arrow shows it there,
+  // so after a letter that rings red it starts beside the candidates.
+  const { cursor, point } = useBoardSelectionCursor({
     shape: BOARD_SHAPE,
     enabled: !boardDisabled && !historyViewer.isViewingHistory,
     onToggle: (cell) => onTileClick(coordAt(cell)),
@@ -409,7 +409,12 @@ export function PlayArea(ctx: GamePageCtx) {
   })
   const actSubmitEntry = useBoundAction('act-submit-entry', {
     describe: () => (entryOff() ? 'disabled' : 'active'),
-    run: submitTrace,
+    run: () => {
+      // The cursor goes to the word's last letter, and hides.
+      const last = trace[trace.length - 1]
+      if (last) point(cellAt(last))
+      submitTrace()
+    },
   })
 
   /**
@@ -456,7 +461,9 @@ export function PlayArea(ctx: GamePageCtx) {
         // previous one stop pointing.
         clearAmbiguous()
         setTrace([...trace, r.at])
-        follow(cellAt(r.at))
+        // The cursor goes with the typed letter, and hides: the player is
+        // typing, not arrowing.
+        point(cellAt(r.at))
       } else if (r.kind === 'ambiguous') {
         // No message here on purpose: that row IS the entry area, so a pill
         // would hide the word being built to say something the board can say
@@ -906,6 +913,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // no connecting line — a hint never gave you the order.
         hintCoords={historyViewer.isViewingHistory ? historySnap?.hintCoords ?? null : me?.active_hint_coords ?? null}
         onTileClick={handleTileClick}
+        cursor={cursor}
         // `waiting` folds in turn-order (coop only): a waiting player's board
         // is inert, and the slot below says why.
         disabled={boardDisabled}
