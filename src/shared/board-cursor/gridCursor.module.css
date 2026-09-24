@@ -6,8 +6,9 @@
  * scrabble's copy of this was even commented "(bananagrams style)", which is the
  * standing signal to make the match structural rather than remembered.
  *
- * The shape is a ring that's THICK ON THE AXIS OF TRAVEL: 1px all round with the
- * two edges perpendicular to the direction thickened to 5px. So a horizontal
+ * The shape is a ring that's THICK ON THE AXIS OF TRAVEL: a line all round with
+ * the two edges perpendicular to the direction thickened to
+ * `--mark-gridCursor-heavy-width`. So a horizontal
  * cursor has heavy top and bottom rules (the letters will run left-to-right
  * between them) and a vertical one heavy left and right. Reading the direction
  * off the cursor is the whole job, so the asymmetry is the point, not decoration.
@@ -35,14 +36,14 @@
 
 /* Horizontal: heavy top + bottom, so the eye runs along the row. */
 /* @@ */ .cursorH {
-  border: 1px solid var(--mark-gridCursor-color);
-  border-top-width: 5px;
-  border-bottom-width: 5px;
+  border: var(--border-width-line) solid var(--mark-gridCursor-color);
+  border-top-width: var(--mark-gridCursor-heavy-width);
+  border-bottom-width: var(--mark-gridCursor-heavy-width);
 }
 
 /* Vertical: heavy left + right, so the eye runs down the column. */
 /* @@ */ .cursorV {
-  border: 1px solid var(--mark-gridCursor-color);
-  border-left-width: 5px;
-  border-right-width: 5px;
+  border: var(--border-width-line) solid var(--mark-gridCursor-color);
+  border-left-width: var(--mark-gridCursor-heavy-width);
+  border-right-width: var(--mark-gridCursor-heavy-width);
 }

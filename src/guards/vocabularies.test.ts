@@ -524,7 +524,6 @@ const VOCABULARIES: Vocabulary[] = [
     pending: {
       'src/common/buttons/ShuffleButton.module.css': ['1px'],
       'src/shared/onscreen-keyboard/GuessKeyboard.module.css': ['1px'],
-      'src/shared/board-cursor/gridCursor.module.css': ['1px', '5px'],
       'src/common/event-log/historyViewer.module.css': ['2px'],
       'src/common/event-log/gameEventLog.module.css': ['1px'], //   `.divider`, the between-turns line
       'src/common/pause-suspend/PauseOverlay.module.css': ['1px'],

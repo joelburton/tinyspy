@@ -114,6 +114,11 @@ unconverted. The border-width vocabulary is `--border-width-line` (1px),
   - **(b) Fit `--border-width-frame` (4px).** The heavy edges get 1px thinner.
   - **(c) Keep `5px` bespoke,** with its reason written at the declaration.
 
+**Ruled 2026-09-24: (a), named `--mark-gridCursor-heavy-width`** (*"a"*, then
+*"a1"*): in `base.css` beside `--toast-stripe-width`, since a width is not a
+theme decision. **Worked:** the `1px` is `--border-width-line`, the row is off
+the guard's pending list.
+
 ## F-board-cursor-3 · `cursor-types` · `ArrowKey` is declared twice here, and each game declares its own `GridCursor`
 
 - `ArrowKey` is exported from both `useBoardCursorKeys.ts` and
