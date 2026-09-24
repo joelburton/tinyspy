@@ -2,17 +2,17 @@
 
 A monorepo for online collaborative games among groups of friends. The shell, auth, clubs, and chat are common; each game lives in its own folder + Postgres schema + lazy chunk. Adding or removing a game is a folder-and-one-line operation; the architecture's removability is the structural integrity check (enforced by ESLint).
 
-Fifteen games are live today (the parenthetical is each game's in-app brand):
+Sixteen games are live today (the parenthetical is each game's in-app brand):
 
 - **bananagrams** (MonkeyGrams) — Bananagrams-style: build your own crossword from a shared tile bank.
 - **boggle** (MothCubes) — Boggle-style: find words in a grid of lettered dice.
-- **codenamesduet** (TinySpy) — [Codenames Duet](https://czechgames.com/en/codenames-duet/): two players give clues to each other to find all the agents before the timer runs out.
+- **codenamesduet** (TinySpy) — [Codenames Duet](https://czechgames.com/en/codenames-duet/): two players give clues to each other to find all the agents before the turns run out.
 - **connections** (WordKnit) — Connections-style: sort sixteen words into four hidden groups.
 - **crosswords** (CrossPlay) — a collaborative/competitive crossword.
 - **letterboxed** (SnakeBox) — Letter-Boxed-style: chain words around a square of twelve letters, each word starting where the last one ended.
-- **setgame** (HareTrigger) — Set-style: eighty-one cards over four attributes, and a *set* is three of them that are all-same or all-different in every one. The one game on the roster with no words in it.
 - **psychicnum** (PsychicNum) — a deliberately tiny toy that keeps the multi-game wiring honest, with the smallest possible game-logic surface.
 - **scrabble** (RackAttack) — Scrabble-style on the standard 15×15 premium board, with an AI opponent.
+- **setgame** (HareTrigger) — Set-style: eighty-one cards over four attributes, and a *set* is three of them that are all-same or all-different in every one. The one game on the roster with no words in it.
 - **spellingbee** (FreeBee) — Spelling-Bee-style: make words from seven letters around a required center.
 - **stackdown** (StackDown) — a mahjong-style word game: clear a stack of lettered tiles by spelling words off the exposed ones.
 - **strands** (PaulPath) — Strands-style word search: trace hidden theme words that tile the whole board.
@@ -33,15 +33,15 @@ The metaphor that anchors everything: this app **replaces a group of friends on 
 
 - **everyone present is a friend** — playing, or a club member watching (what a watcher sees is not yet designed; see `plans/spectating.md`);
 - **only one game happens at a time** — the whole group is on the same thing;
-- **starting a new game invites the group into it** — each friend gets a "join this game" popup and the game waits, paused, until everyone's joined (you don't half-join a Zoom call).
+- **starting a new game invites the group into it** — each friend gets a "… added you to a new game" toast with a Join button, and the game waits, paused, until everyone's there (you don't half-join a Zoom call).
 
-The social primitive is the **club**: a named, fixed-membership room you create with the friends you want to play with. The club is the "Zoom call" — a persistent place where chat threads across every game the friends play. One game is the "current view" at a time across all gametypes; starting a new game suspends the previously-current one (which stays resumable). No invitations, no public lobby, no random pairings — friends-only by construction.
+The social primitive is the **club**: a named, fixed-membership room you create with the friends you want to play with. The club is the "Zoom call" — a persistent place where chat threads across every game the friends play. One game is the "current view" at a time across all gametypes; starting a new game suspends the previously-current one (which stays resumable). No public lobby, no strangers, no random pairings — friends-only by construction.
 
-See [`docs/common.md`](docs/common.md) for the full club model and [`CLAUDE.md`](CLAUDE.md) for the project-level priors (educational clarity, server-authoritative for cleanliness not anti-cheat, alpha-software-break-things-freely posture).
+See [`docs/common.md`](docs/common.md) for the club model and [`CLAUDE.md`](CLAUDE.md) for the project-level priors (educational clarity, server-authoritative for cleanliness not anti-cheat, production data preserved and migrated forward).
 
 ## Stack
 
-- **Frontend:** Vite + React 19 + TypeScript. Hand-rolled path-based router (no react-router). Each game's `Root` is a lazy chunk so the main bundle stays small as games are added.
+- **Frontend:** Vite + React 19 + TypeScript. Hand-rolled path-based router (no react-router). Each game's play surface, setup form and help are lazy chunks, loaded through its manifest, so the main bundle stays small as games are added.
 - **Backend:** Supabase — Postgres (with RLS), PostgREST, Realtime (WebSocket), Auth (magic links via Resend SMTP), Edge Functions (Deno).
 - **Hosting:** Netlify (FE), Supabase (everything else).
 - **AI features:** Anthropic Claude via Edge Functions — codenamesduet's clue suggester and crosswords' clue explainer. (scrabble's move suggester + autonomous opponent are a local trie-search engine, not an LLM.)
@@ -51,23 +51,24 @@ See [`docs/common.md`](docs/common.md) for the full club model and [`CLAUDE.md`]
 ```
 src/
   App.tsx, main.tsx, gametypes.ts # shell + the gametype registry
-  common/                         # cross-game UI, hooks, lib, db handle
-  codenamesduet/                  # Codenames Duet
-  psychicnum/                     # toy game; exercises multi-game wiring
-  connections/  spellingbee/  bananagrams/  waffle/  wordle/  stackdown/
-  scrabble/  boggle/  crosswords/  wordwheel/  wordiply/   # the other live games (one folder each)
+  common/                         # the shell every game stands on (docs/common-folders.md)
+  shared/                         # code a family of games shares, and only they
+  guards/                         # repo-wide invariant tests
+  <game>/                         # one folder per game (sixteen)
 
 Makefile                          # data + deploy targets (GNU Make 4+; `gmake help`)
 supabase/
-  config.toml, seed.sql
+  config.toml, seed.sql, seed.dev.sql
   deploy/                         # sourced prelude + one script per hosted-deploy step
   migrations/                     # per-schema SHAPE: tables, indexes, publication, seeds
   sql/                            # per-schema CODE: functions, views, policies, grants
                                   #   re-applied in full on every deploy (never a migration)
   tests/                          # pgTAP — per-schema folders + _shared/
   functions/                      # Edge Functions (Deno)
+e2e/                              # Playwright specs + the screenshot gallery
 
 docs/                             # see Documentation below
+plans/                            # work in flight
 CLAUDE.md                         # project priors for AI / contributors
 ```
 
@@ -80,17 +81,17 @@ Prereqs: Node, Docker Desktop, GNU Make 4+ (`brew install make` → `gmake`), an
 ```bash
 brew install supabase/tap/supabase
 git clone <this repo>
-cd codenames
+cd tinyspy
 npm install
 supabase start             # pulls Docker images on first run (~slow); ~30s after
-gmake db-reset ENV=local   # migrations + supabase/sql/ + data (common.words + the puzzle libraries) + seed
+gmake db-reset ENV=local   # migrations + supabase/sql/ + data (common.words + the puzzle libraries) + dev personas
 npm run types:gen          # generates src/types/db.ts from the live schema
 npm run dev                # http://localhost:5173
 ```
 
 Local credentials are picked up automatically from `supabase status`; `.env.local` already points at the local API URL. Magic-link emails land in Mailpit at <http://localhost:54324> in dev — open it, click the link, and you're signed in.
 
-For multi-player testing, open one regular window and one private/incognito window and sign in as two different emails. To play codenamesduet, create a club with both of you as members from `/c/new`, then click "Start codenamesduet" on the club page. The other tab gets a "join this game" popup — click Join (the game waits, paused, until everyone's joined).
+For multi-player testing, open one regular window and one private/incognito window and sign in as two different emails. Create a club with both of you as members ("+ New club" on the home page), then pick a game from the club page's "Start a new game" list. The other window gets a "… added you to a new game" toast — click Join (the game waits, paused, until everyone's there).
 
 ## npm scripts
 
@@ -101,14 +102,18 @@ npm run lint         # ESLint (incl. cross-feature import-direction rules)
 npm test             # FE + DB tests (Vitest, then pgTAP)
 npm run test:fe      # Vitest only (add --watch for the dev loop)
 npm run test:db      # pgTAP only (needs Docker + the local stack)
+npm run test:edge    # Deno tests for the edge functions' pure logic
+npm run test:e2e     # Playwright against the live local stack (not part of npm test)
 
 # Composable data + deploy steps live in the Makefile (GNU Make 4+, `gmake`):
 gmake help                          # every target
-gmake db-reset ENV=local            # wipe local DB: migrations + supabase/sql/ + data + seed
+gmake db-reset ENV=local            # wipe local DB: migrations + supabase/sql/ + data + dev personas
 gmake db ENV=local                  # a working database: structure + data
 gmake db-data ENV=local             # just the data, rebuilding only what's stale
 gmake db-sql ENV=local              # re-apply supabase/sql/ alone — how an RPC change ships (docs/supabase.md)
 gmake deploy ENV=prod               # schema + code + functions + FE
+gmake dev-keys                      # every key the app answers, by page and game
+gmake gallery                       # screenshot every game state (docs/testing.md)
 # ENV is REQUIRED — no default. DEBUG=1 adds --debug to the supabase CLI.
 npm run db:diff      # drift vs migrations (noisy: supabase/sql/ objects always show)
 npm run db:lint      # supabase db lint --level warning
@@ -119,7 +124,7 @@ npm run types:gen    # regenerate src/types/db.ts from local DB
 
 ## Tests
 
-Two suites — pgTAP for server-authoritative game logic, Vitest for FE behavior. The patterns, persona conventions, and decision framework (pgTAP vs Vitest) live in [`docs/testing.md`](docs/testing.md).
+Two main suites — pgTAP for server-authoritative game logic, Vitest for FE behavior — plus Deno tests for the edge functions' pure logic and a Playwright suite for what only a real browser against the live stack can show. The patterns, persona conventions, and where a test goes live in [`docs/testing.md`](docs/testing.md).
 
 ```bash
 npm test                                                        # both
@@ -138,17 +143,18 @@ Redeploy in one command:
 gmake deploy ENV=prod
 ```
 
-That links the checkout, pushes pending migrations, re-applies the repeatable SQL (`supabase/sql/`), regenerates the git-ignored boggle/scrabble word bundles and deploys the edge functions, then builds the FE and pushes it to Netlify. Order matters: schema and functions first so the FE never references a column, RPC, or function the prod backend doesn't have yet. Every step is idempotent — when nothing's pending it's a chain of quick no-ops, so it's safe to run on every deploy. (The old `npm run deploy` is retired: it reached production with none of the Makefile's ENV guards.)
+That links the checkout, pushes pending migrations, re-applies the repeatable SQL (`supabase/sql/`), regenerates the git-ignored boggle/scrabble word bundles and deploys the edge functions, then builds the FE and pushes it to Netlify. Order matters: schema and functions first so the FE never references a column, RPC, or function the prod backend doesn't have yet. Every step is idempotent — when nothing's pending it's a chain of quick no-ops, so it's safe to run on every deploy. It ships structure, code, functions and the FE — **not data**: new word lists or puzzle libraries need `gmake db-data ENV=prod`.
 
-Manual breakdown:
+The steps, each its own target when one needs running alone:
 
 ```bash
-supabase db push --dry-run                # preview pending migrations
-supabase db push                          # apply to hosted DB
-supabase functions deploy                 # push Edge Function changes
-npm run build                             # picks up .env.production[.local]
-netlify deploy -p -d dist                 # upload to Netlify
+gmake db-schema ENV=prod                  # push pending migrations
+gmake db-sql ENV=prod                     # re-apply supabase/sql/
+gmake deploy-funcs ENV=prod               # regenerate the word bundles, deploy the edge functions
+gmake deploy-fe ENV=prod                  # build and push the FE to Netlify
 ```
+
+A migration that moves data is rehearsed first against a production dump (`gmake db-rehearse`; [docs/supabase.md → Schema vs code](docs/supabase.md#schema-vs-code)).
 
 The hosted Supabase project ref is in `supabase/.temp/project-ref` (created by `supabase link`); the publishable key is in `.env.production.local` (gitignored). For new contributors: get both from the dashboard at Project Settings → API.
 
@@ -165,6 +171,6 @@ The detail behind everything above lives in `docs/`. **[CLAUDE.md](CLAUDE.md) ca
 
 ## Status
 
-Alpha software (see [`CLAUDE.md`](CLAUDE.md) for what that means in practice). Sixteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, letterboxed, psychicnum, scrabble, setgame, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/gametypes.ts`, one new Postgres schema.
+In production with real accounts, games and chat history, so schema changes migrate forward and preserve data (see [`CLAUDE.md`](CLAUDE.md)). Sixteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, letterboxed, psychicnum, scrabble, setgame, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/gametypes.ts`, one new Postgres schema.
 
 Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md).
