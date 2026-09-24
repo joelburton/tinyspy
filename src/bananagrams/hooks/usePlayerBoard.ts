@@ -465,7 +465,6 @@ export function usePlayerBoard({
   }, [])
 
   const { drag, hover, start } = useDragGesture<DragSource, Cell>({
-    dragClass: 'mg-dragging',
     cellAtPoint,
     onDrop: finishDrag,
     onTap,

@@ -1,0 +1,10 @@
+/* cs-audited-grid-and-drag */
+
+/* While a tile is being dragged (useDragGesture sets the class): no text
+   selection, and the closed hand over everything — `*` because every square
+   and tile sets a cursor of its own. */
+/* @@ */ body.tile-dragging,
+body.tile-dragging * {
+  user-select: none;
+  cursor: grabbing;
+}

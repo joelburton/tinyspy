@@ -528,7 +528,6 @@ export function BoardCol({
   )
 
   const { drag, hover, start } = useDragGesture<DragSource, XY>({
-    dragClass: 'scrabble-dragging',
     cellAtPoint,
     onDrop: finishDrag,
     onTap,

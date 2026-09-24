@@ -1,7 +1,7 @@
 /* cs-unmet */
 
 /*
- * bananagrams/theme.css — game-specific design tokens + one global rule.
+ * bananagrams/theme.css — game-specific design tokens.
  *
  * Mirrors the other games' per-game theme files. bananagrams's bespoke
  * surface is the cream letter tile; the rest piggybacks on common/themes/daylight.css
@@ -36,13 +36,4 @@
    * the vocabulary will want to own once this game converts. */
 /* @@ */   --bananagrams-drop-ok-fill-color:  rgb(120 200 130 / 22%);
 /* @@ */   --bananagrams-drop-ok-edge-color:  rgb(120 200 130 / 80%);
-}
-
-/* Set while a tile is being dragged (toggled on document.body by
- * PlayerBoard). Global — not a module class — because it targets the
- * body element directly to kill text selection + show the grab cursor
- * app-wide for the duration of the drag. */
-/* @@ */ body.mg-dragging {
-  user-select: none;
-  cursor: grabbing;
 }

@@ -15,6 +15,7 @@ Agreed with Joel 2026-09-24 (*"i approve the field list. do the area audit."*):
 | `src/shared/grid-and-drag/useDragGesture.ts` | 178 | `cs-audited-grid-and-drag` |
 | `src/shared/grid-and-drag/useDragGesture.test.ts` | 129 | `cs-audited-grid-and-drag` |
 | `src/shared/grid-and-drag/dragGhost.module.css` | 38 | `cs-audited-grid-and-drag` |
+| `src/shared/grid-and-drag/dragging.css` | 10 | `cs-audited-grid-and-drag` — created by F-grid-and-drag-3 |
 | `src/shared/grid-and-drag/doc.md` | 3 | (markdown carries no stamp) |
 | `src/shared/grid-and-drag/todo.md` | 11 | (markdown carries no stamp) |
 
@@ -131,7 +132,7 @@ device would be a tablet with a keyboard attached."*):**
 - **Verified:** the scrabble, bananagrams and folder suites, the guards,
   `tsc -b` and eslint pass. Not tried on a device.
 
-## F-grid-and-drag-3 · `drag-class` · Each game names its own body class for the same rule, and the grab cursor rarely shows
+## FIXED · F-grid-and-drag-3 · `drag-class` · Each game names its own body class for the same rule, and the grab cursor rarely shows
 
 `dragClass` is an option only so each game can spell the class its
 `theme.css` styles. The two rules are identical:
@@ -155,6 +156,24 @@ does.
   the cursor wins over every tile; `dragClass` leaves the options and both
   games' body rules go (after F-grid-and-drag-1 empties them of tokens).
 - **(b) Keep a class per game** and fix the cursor in each game's rule.
+
+**Resolution (Joel, 2026-09-24: *"i'll take your rec"*, which was (a),
+`hook-owns-it`):**
+
+- **The rule.** A new plain stylesheet, `dragging.css`, imported by the hook,
+  styles `body.tile-dragging` and every element under it with
+  `user-select: none; cursor: grabbing`.
+- **The hook.** `useDragGesture` exports `DRAGGING_CLASS` and sets it itself;
+  `dragClass` is gone from the options.
+- **The games.** scrabble and bananagrams dropped `dragClass:`, and both
+  `theme.css` drag rules are deleted, taking the stale "toggled by
+  `PlayerBoard`" comment with them. bananagrams' header no longer says it
+  holds "one global rule".
+- **The test** asserts `DRAGGING_CLASS` instead of its made-up `x-dragging`.
+- **Verified headless:** with the real `dragging.css` loaded, an element that
+  sets its own `cursor: pointer` reads `grabbing` once the body has the class,
+  and `pointer` without it. The scrabble, bananagrams and folder suites, the
+  guards, `tsc -b` and eslint pass. A real drag was not looked at.
 
 ## F-grid-and-drag-4 · `ghost-tier` · The ghost's header says the tier is not a per-game decision; each game declares it
 

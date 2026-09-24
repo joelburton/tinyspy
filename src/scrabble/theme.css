@@ -44,9 +44,3 @@
 /* @@ */   --scrabble-rack-shadow:    0 2px 0 rgb(0 0 0 / 20%);
 /* @@ */   --scrabble-rack-selected-outline-color: #e6b324;
 }
-
-/* While dragging a tile, suppress text selection + show the grab cursor. */
-/* @@ */ body.scrabble-dragging {
-  user-select: none;
-  cursor: grabbing;
-}

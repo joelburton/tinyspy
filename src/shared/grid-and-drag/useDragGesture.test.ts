@@ -2,7 +2,7 @@
 
 import { act, cleanup, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { useDragGesture, type DragGesture } from './useDragGesture'
+import { DRAGGING_CLASS, useDragGesture, type DragGesture } from './useDragGesture'
 
 /**
  * The shared press → tap-or-drag state machine. We drive it the way the real
@@ -31,7 +31,6 @@ function setup(extra: Partial<Parameters<typeof useDragGesture<Src, Cell>>[0]> =
   const cellAtPoint = vi.fn((x: number, y: number): Cell => ({ x, y }))
   const view = renderHook(() =>
     useDragGesture<Src, Cell>({
-      dragClass: 'x-dragging',
       cellAtPoint,
       onDrop,
       onTap,
@@ -60,7 +59,7 @@ describe('useDragGesture', () => {
     expect(onTap.mock.calls[0][0]).toMatchObject({ source: SOURCE, cell: { x: 7, y: 7 } })
     expect(onDrop).not.toHaveBeenCalled()
     expect(view.result.current.drag).toBeNull()
-    expect(document.body.classList.contains('x-dragging')).toBe(false)
+    expect(document.body.classList.contains(DRAGGING_CLASS)).toBe(false)
   })
 
   it('a press dragged past the threshold sets drag/hover + the body class, then drops', () => {
@@ -68,7 +67,7 @@ describe('useDragGesture', () => {
     act(() => view.result.current.start(SOURCE, 'A', { x: 7, y: 7 }, down(100, 100)))
 
     act(() => pointer('pointermove', 130, 100)) // 30px → a real drag
-    expect(document.body.classList.contains('x-dragging')).toBe(true)
+    expect(document.body.classList.contains(DRAGGING_CLASS)).toBe(true)
     expect(view.result.current.drag).toMatchObject({ letter: 'A', source: SOURCE, x: 130, y: 100 })
     expect(view.result.current.hover).toEqual({ x: 130, y: 100 })
     expect(onDragMove).toHaveBeenLastCalledWith(130, 100)
@@ -82,14 +81,14 @@ describe('useDragGesture', () => {
     expect(onDragEnd).toHaveBeenCalledTimes(1)
     expect(view.result.current.drag).toBeNull()
     expect(view.result.current.hover).toBeNull()
-    expect(document.body.classList.contains('x-dragging')).toBe(false)
+    expect(document.body.classList.contains(DRAGGING_CLASS)).toBe(false)
   })
 
   it('a pointercancel mid-drag tears down the gesture — no drop, no tap, state cleared', () => {
     const { view, onDrop, onTap, onDragEnd } = setup()
     act(() => view.result.current.start(SOURCE, 'A', { x: 7, y: 7 }, down(100, 100)))
     act(() => pointer('pointermove', 130, 100)) // a real drag
-    expect(document.body.classList.contains('x-dragging')).toBe(true)
+    expect(document.body.classList.contains(DRAGGING_CLASS)).toBe(true)
     expect(view.result.current.drag).not.toBeNull()
 
     // A touch-scroll takeover / OS gesture cancels the pointer — no pointerup.
@@ -99,7 +98,7 @@ describe('useDragGesture', () => {
     expect(onDragEnd).toHaveBeenCalledTimes(1)
     expect(view.result.current.drag).toBeNull()
     expect(view.result.current.hover).toBeNull()
-    expect(document.body.classList.contains('x-dragging')).toBe(false)
+    expect(document.body.classList.contains(DRAGGING_CLASS)).toBe(false)
 
     // The gesture is disarmed: a later stray pointerup does nothing.
     act(() => pointer('pointerup', 200, 200))
@@ -111,7 +110,7 @@ describe('useDragGesture', () => {
     act(() => view.result.current.start(SOURCE, null, { x: 3, y: 4 }, down(100, 100)))
     act(() => pointer('pointermove', 300, 300)) // way past threshold, but letter is null
     expect(view.result.current.drag).toBeNull()
-    expect(document.body.classList.contains('x-dragging')).toBe(false)
+    expect(document.body.classList.contains(DRAGGING_CLASS)).toBe(false)
     act(() => pointer('pointerup', 300, 300))
     expect(onDrop).not.toHaveBeenCalled()
     expect(onTap).toHaveBeenCalledTimes(1) // it settles as a tap
@@ -122,7 +121,7 @@ describe('useDragGesture', () => {
     act(() => view.result.current.start(SOURCE, 'A', { x: 3, y: 4 }, down(100, 100, 0, 'touch')))
     act(() => pointer('pointermove', 300, 300))
     expect(view.result.current.drag).toBeNull()
-    expect(document.body.classList.contains('x-dragging')).toBe(false)
+    expect(document.body.classList.contains(DRAGGING_CLASS)).toBe(false)
     act(() => pointer('pointerup', 300, 300))
     expect(onDrop).not.toHaveBeenCalled()
     expect(onTap).toHaveBeenCalledTimes(1)

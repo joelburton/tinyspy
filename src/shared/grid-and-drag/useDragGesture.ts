@@ -1,6 +1,7 @@
 // cs-audited-grid-and-drag
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import './dragging.css'
 
 /**
  * The shared "press a tile, then either tap or drag it" pointer plumbing,
@@ -36,6 +37,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 const DRAG_THRESHOLD = 4 // px a press must travel before it counts as a drag (vs a tap)
 
+/** The body class set while a tile is being dragged; `dragging.css` styles it. */
+export const DRAGGING_CLASS = 'tile-dragging'
+
 /** An armed gesture: a press that may still become a drag or settle as a tap. */
 export type DragGesture<TSource, TCell> = {
   /** What was picked up (game-defined: a rack slot, a board cell, a hand tile…). */
@@ -61,9 +65,6 @@ export type DragState<TSource> = {
 }
 
 export type UseDragGestureOpts<TSource, TCell> = {
-  /** Body class toggled while a drag is in flight (e.g. `'mg-dragging'`); the
-   *  game's theme.css uses it to suppress text selection + show a grab cursor. */
-  dragClass: string
   /** The grid cell under a screen point, read from the game's data-attributes. */
   cellAtPoint: (x: number, y: number) => TCell | null
   /** A completed drag dropped at (x, y). The game decides what that means. */
@@ -96,14 +97,14 @@ export function useDragGesture<TSource, TCell>(
     const onMove = (e: PointerEvent) => {
       const g = gestureRef.current
       if (!g) return
-      const { dragClass, cellAtPoint, onDragMove } = optsRef.current
+      const { cellAtPoint, onDragMove } = optsRef.current
       if (
         !g.started &&
         g.letter &&
         Math.hypot(e.clientX - g.startX, e.clientY - g.startY) > DRAG_THRESHOLD
       ) {
         g.started = true
-        document.body.classList.add(dragClass)
+        document.body.classList.add(DRAGGING_CLASS)
       }
       if (g.started && g.letter) {
         setDrag({ letter: g.letter, source: g.source, x: e.clientX, y: e.clientY })
@@ -115,8 +116,8 @@ export function useDragGesture<TSource, TCell>(
       const g = gestureRef.current
       if (!g) return
       gestureRef.current = null
-      const { dragClass, onDrop, onTap, onDragEnd } = optsRef.current
-      document.body.classList.remove(dragClass)
+      const { onDrop, onTap, onDragEnd } = optsRef.current
+      document.body.classList.remove(DRAGGING_CLASS)
       if (g.started) {
         onDrop(g, e.clientX, e.clientY)
         setDrag(null)
@@ -128,7 +129,7 @@ export function useDragGesture<TSource, TCell>(
     }
     // A canceled pointer (touch-scroll takeover, an OS gesture) fires
     // pointercancel and NO pointerup — without this the armed gesture is
-    // stranded: the ghost tile stays rendered and the body `dragClass` stays
+    // stranded: the ghost tile stays rendered and the body `DRAGGING_CLASS` stays
     // applied until some unrelated future pointerup. Tear the gesture down as
     // a no-drop, no-tap (it never completed).
     const onCancel = () => {
@@ -136,8 +137,8 @@ export function useDragGesture<TSource, TCell>(
       if (!g) return
       gestureRef.current = null
       if (g.started) {
-        const { dragClass, onDragEnd } = optsRef.current
-        document.body.classList.remove(dragClass)
+        const { onDragEnd } = optsRef.current
+        document.body.classList.remove(DRAGGING_CLASS)
         setDrag(null)
         setHover(null)
         onDragEnd?.()
