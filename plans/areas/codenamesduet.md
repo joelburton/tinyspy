@@ -1549,6 +1549,240 @@ judgment on the tile).
   already records the second.
 - F-26, if judged tile-feedback's.
 
+## The closing re-read — 2026-09-23
+
+Every roster file again in one sitting after pass 3 — the manifest, `db.ts`,
+both hooks, the eleven `lib/` files, the printer, `theme.css`, all twelve
+components with their nine stylesheets and their specs, the fourteen `lib/`
+and hook specs, `InfoDisclosure` with its stylesheet and spec, the repeatable
+SQL whole, both migrations, `setup.psql` and the twelve pgTAP files, the edge
+function, `doc.md`, `todo.md` and the e2e spec — plus, first, one grep per
+worked finding over the whole roster for the same defect next door
+(`members.map`, `turnNumber: number`, `Seat | undefined`, `GameStatus`,
+`common.profiles`, `Game over`, the four retired codes, `CluePanel`,
+`show="both"`, `6px`, `turn ${`, `inSuddenDeath`, bare `15`s, `lost_clock`,
+`fallthrough`, `tilePending`, `-3px`, `firstClueGiver`, `for update`,
+`TOTAL_AGENTS`), the docstring-marker pass over everything the area wrote, and
+the checks outside the folder: the shell commits since the open, every doc
+anchor the folder cites, and what the docs say about this game.
+
+**Nineteen things.** Three are the area's own fixes recurring next door
+(R-1 is F-11's, R-3 is F-28's and F-20's, R-7 is F-1's), one is prose this
+area wrote against the remount (R-9), two are spec ledes left behind by the
+cases the area added (R-10) — the shape connections' re-read found — and the
+rest are prose. Each has its options and a recommendation.
+
+**SHIPPED 2026-09-23** (Joel: *"do the fixes for the re-read"*, after asking
+how R-14's schema allows a phrase, ruling R-19 *"leave them"* and, shown the
+cut, R-18 *"those cuts look fine"*). R-1 to R-18 worked as recommended, R-19
+ruled no change. Nothing to plant: R-1 is a type nothing reads (`tsc` accepts
+either), R-15 swaps a fixture, and the rest are prose. `tsc -b`, eslint and
+`deno check` clean; the folder's 18 specs, `info-sheet`'s 4 and the 31 guards
+green (53 files, 457 tests); the whole pgTAP suite PASS, 182 files, 2656
+tests. **One blessed file edited**, `MobileStatusBar.tsx` (`info-sheet`);
+re-blessing it is Joel's. `docs/playarea.md` and `docs/win-lose.md` are docs.
+
+### SHIPPED · R-codenamesduet-1 · `guess-answer-clue-giver-null` · `BoardCol`'s guess answer types the clue seat as always held
+
+`BoardCol.tsx`'s `GuessAnswer` gives the two running answers `clue_giver:
+Seat`. F-11 made the seat null in sudden death, and both answers relay it:
+the bystander answer carries `_end_turn`'s `clue_giver`, null when that guess
+spent the last turn, and the agent answer carries the row's, null throughout
+sudden death. F-11 changed the pass answer's twin in `ClueStrip.tsx` to `Seat
+| null` with a note, and did not open this file; `doc.md`'s `submit_guess`
+section already says the null. Nothing reads the field. Options: **`Seat |
+null`**, with the pass answer's note; or leave it. Recommendation: `Seat |
+null`.
+
+### SHIPPED · R-codenamesduet-2 · `null-seat-means-sudden-death-too` · "null when the game has ended"
+
+`lib/phase.ts`'s `currentClueGiver` note says the column is null when the
+game has ended, and `phase.test.ts`'s case says "(game over)". Since F-11 it is
+null in sudden death too — the case `derivePhase` is fed for the rest of such a
+game. Options: **say both**; or leave it. Recommendation: say both.
+
+### SHIPPED · R-codenamesduet-3 · `state-line-prop-claim` · `InfoCol` says the state line reads a flag it no longer takes
+
+`InfoCol.tsx`'s `inSuddenDeath` note: *"the state line reads "sudden death"
+and the help swaps to the sudden-death rules"*. F-28 made `StateLine` decide
+from the turn count and stopped passing the flag; in this column only the help
+line reads it. Two lines down, `greenFound` is *"out of 15"* where `StateLine`
+says *"out of `TOTAL_AGENTS`"* (F-20's sibling). Options: **rewrite the note
+and point the fifteen at the constant**; or leave them. Recommendation:
+rewrite.
+
+### SHIPPED · R-codenamesduet-4 · `key-square-always-shown` · the stylesheet says my key square is always shown
+
+`Board.module.css`'s keycard-square comment: *"My own is bottom-left and
+always shown (it's how I read which cells to clue for)"*. `Board.tsx` hides it
+while I am the one guessing, and F-27's `Board.test.tsx` pins the hiding.
+Options: **say what the component does** (shown except while I guess); or
+leave it. Recommendation: say it.
+
+### SHIPPED · R-codenamesduet-5 · `clue-strip-quotes` · the stylesheet quotes a line the strip does not draw
+
+`ClueStrip.module.css` names the longest one-line state as *"Your clue: WORD ·
+N  Waiting for X to guess…"*. The strip draws *"WORD · N"* beside *"● X
+guessing"*, and `ClueStrip.tsx`'s own comment says there is no "Your clue:"
+label. Options: **quote the real line**; or leave it. Recommendation: quote
+it.
+
+### SHIPPED · R-codenamesduet-6 · `refusal-count` · "three of the four refusals"
+
+`ClueStrip.tsx`'s submit comment: *"Three of the four refusals are RACES
+(orange)"*. After F-11 and F-12 the form can hear six — the deleted game,
+PN502, PN370, PN371 and PN372 are races, PN384 the one fault — and
+`submit_clue`'s own header counts them right (*"Five of its six raises are
+RACES"*). A count in prose rots (it just did). Options: **drop the count** —
+every refusal but the seat fault is a race, and why; or recount. Recommendation:
+drop it.
+
+### SHIPPED · R-codenamesduet-7 · `first-member-seed` · `setup.ts` says the form picks the first member
+
+`lib/setup.ts`'s `DEFAULT_CODENAMESDUET_SETUP` docstring: *"The SetupForm
+component auto-picks the first member on mount."* F-1 made it the first
+SELECTED player, re-seeded whenever the pick is unticked, and `SetupForm`'s
+docstring says so. Options: **say the first selected player**, or point at
+the form; or leave it. Recommendation: say it.
+
+### SHIPPED · R-codenamesduet-8 · `panel-for-strip` · the strip is still "the clue panel" in twelve places
+
+F-14 renamed `CluePanel` to `ClueStrip`, the word `doc.md` and
+`docs/playarea.md` use. The prose kept the old noun: "the clue panel" in
+`PlayArea.tsx` (the docstring, the Derived section, the local-slot comment,
+and two prop-group headers) and `BoardCol.tsx` (two prop-group headers, the
+slot note, the `top` comment), and "the panel" in `ClueStrip.tsx`'s clear-on-
+success comment, `BoardCol.module.css` and `ClueStrip.module.css`. One noun
+(`docs/naming.md`). Options: **"the clue strip" / "the strip"** at all twelve;
+or leave them. Recommendation: one noun.
+
+### SHIPPED · R-codenamesduet-9 · `restart-retract-comment` · the verdict "retracted by its owner on Restart"
+
+`PlayArea.tsx`'s `terminalMessage` comment says the verdict is *"retracted by
+its owner on Restart (a Duet mulligan un-terminals the game)"*. A restart
+REMOUNTS the surface (`<PlayArea key={restarts}>`), so nothing un-terminals
+inside a mounted one; the effect's cleanup runs on unmount, as every effect's
+does. Written in step 7 of this area; psychicnum's twin carries no such
+sentence. Options: **drop the clause**; or leave it. Recommendation: drop it.
+
+### SHIPPED · R-codenamesduet-10 · `spec-headers-behind` · two spec ledes describe the files they were
+
+`PlayArea.test.tsx`'s docstring lists seven subjects above eleven describes —
+the refused guess, the bell, the board marks and the finished-player banners
+(F-14, F-27, pass 3) are not in it. `ClueStrip.test.tsx`'s is the
+`data-game-input` regression guard alone, above five describes (F-10's count,
+F-27's provenance, clearing and the notice). connections' re-read found the
+same shape. Options: **rewrite both ledes** to what the files pin; or leave
+them. Recommendation: rewrite.
+
+### SHIPPED · R-codenamesduet-11 · `submit-clue-doc-signature` · `doc.md`'s `submit_clue` heading and example are short one field
+
+`doc.md` heads the section `submit_clue(target_game, clue_word, clue_count)`
+while the RPC takes `clue_from_ai` too (the Passed line has it), and the
+Returned example omits `from_ai`, which the RPC answers and `game_loop_test`
+pins. Options: **add both**; or leave them. Recommendation: add.
+
+### SHIPPED · R-codenamesduet-12 · `shell-readout-examples` · two shell texts quote the readout as it was
+
+Outside the folder: `src/common/info-sheet/MobileStatusBar.tsx`'s docstring
+gives this game's readout as *"3/15 agents · 4/9 turns"* (a blessed
+`info-sheet` file), and `docs/playarea.md` → PlayArea layout says
+*"codenamesduet's `4/9 turns`"*. The line reads *"3/9 turns spent"*, and
+"sudden death" past the budget (F-28). Beside them, `docs/win-lose.md`'s
+defeat-sources cell for this game reads *"turn budget + **sudden death** (the
+assassin) + clock"*, the parenthetical attaching the assassin to sudden
+death, where the finish table above it has the three sources right. Options:
+**quote the current line in both, and fix the cell**; or leave them.
+Recommendation: fix all three (edits a blessed file; re-blessing is Joel's).
+
+### SHIPPED · R-codenamesduet-13 · `disclosure-anchor` · `InfoDisclosure` cites a heading that is not there
+
+`InfoDisclosure.tsx` cites *"docs/playarea.md → Info column"*. There is no
+such heading; the no-growth rule is a bullet under **PlayArea layout**.
+Options: **cite PlayArea layout**; or leave it. Recommendation: cite it.
+
+### SHIPPED · R-codenamesduet-14 · `clue-word-or-phrase` · the AI's schema allows a phrase the prompt forbids
+
+The edge function's schema describes `clue` as *"A single word (preferred) or
+short phrase"*, while the prompt's constraints say *"Pick a single word"* and
+the rules (Help, `doc.md`) say one word. The model can answer a phrase and the
+form takes it. Options: **the description says a single word**; or leave it.
+Recommendation: a single word.
+
+### SHIPPED · R-codenamesduet-15 · `invented-play-state` · four spec cases end the game in `lost`
+
+`PlayArea.test.tsx` renders four terminal cases with `playState: 'lost'`, a
+state this game never writes; since F-23 it reaches the builder's default arm
+("Game over: lost"). The cases only need `isTerminal`, so they pass. Options:
+**a real ending** (`lost_assassin`); or leave it. Recommendation: a real one.
+
+### SHIPPED · R-codenamesduet-16 · `pgtap-description` · "raises 42501"
+
+`create_game_test.sql`'s first case is described as *"not authenticated raises
+42501"* while it asserts the PN011 fault envelope. Options: **say what it
+asserts**; or leave it. Recommendation: say it.
+
+### SHIPPED · R-codenamesduet-17 · `useboard-returns` · the docstring's list of returns is short
+
+`useBoard`'s docstring lists the words, the events, `myKey` and `peerKey`, and
+not `myAgentsDone`, `peerAgentsDone` or `loading` (the field notes cover
+them; `failure` has its own paragraph). Options: **complete the list**; or
+leave it. Recommendation: complete it.
+
+### SHIPPED · R-codenamesduet-18 · `turn-outcome-docstring-rationale` · the log's color decision lives in `turnOutcome`'s docstring
+
+`lib/turnOutcome.ts`'s docstring carries two paragraphs of this area's own
+prose: that the pill stays silent on a guess, that the log draws guessed words
+in the key-card palette rather than outcome colors (the decision F-26 ruled,
+whose home is `GameEventLog.module.css`), and why the fold reads letters. The
+contract a caller needs is one sentence — the turn wears the outcome, a guess
+has none. Options: **cut to the contract** and leave the log's colors to the
+log; or leave it. Recommendation: cut. Low weight; Joel's call.
+
+### RULED — NO CHANGE · R-codenamesduet-19 · `cluehint-logs` · six `[ClueHint]` console lines
+
+**Joel, 2026-09-23: "leave them."**
+
+`PlayArea.tsx` logs the suggestion state on every render; `ClueStrip.tsx`
+logs the click and each of the three replies; the companion logs each render.
+Logs stay unless Joel says otherwise — listed so the re-read is on record as
+having looked. Options: leave them; or remove them. Recommendation: **leave**,
+by the standing rule.
+
+### What checked out
+
+- **The shell window.** Every commit since the open is this area's own, plus
+  the three it caused: the deleted-game sweep (F-12), the history-ring tokens
+  (pass 3), and the tab-ring fix. Nothing moved under the game unseen.
+- **The rules against the SQL**, re-read end to end: `took_turn` in
+  `submit_guess`, the migration and `lib/events.ts` say the same rule; the
+  five guess answers, the clue answer and the pass answer match `doc.md` and
+  the specs; every move locks the game row first and asks the deleted-game
+  question before membership; the sudden-death gates (PN502–PN504) and the
+  null seat; the one-clue index the client leans on; `end_game`'s wake;
+  `submit_timeout`'s idempotency as the manifest describes it.
+- **Docstring markers.** Every props block takes `//`; every `/**` sits on a
+  whole declaration. The only rationale-in-a-docstring is R-18.
+- **Tokens and classes.** Every `--codenamesduet-*` token has a reader, and
+  `theme.css`'s four-per-role claim holds. No `CluePanel`, `.tilePending`,
+  `.tileKey`, `GameStatus` or retired code anywhere in `src/`, `docs/` or
+  `supabase/`.
+- **Doc anchors.** Every heading the folder cites resolves (`Avoid SELECT *`,
+  `Page-height fits the viewport`, `Terminal results`, `Layout stability`,
+  `Real forms`, `Faults`, `Feedback pill`, `Floating panels`, `Info-column
+  readouts`, `Prop conventions`, `Board sizing`, `Turn-history viewer`,
+  `Per-game player counts`, `Setup rows`, `Every game's log`) but R-13's. The
+  two cites to `plans/tile-feedback.md` (`Board.tsx`, `doc.md`) are the
+  tolerated kind until that plan folds; the plan's survey note that still
+  names `.tilePending` sits in its survey section, and its roster row is
+  current.
+- **The docs' other claims about this game** hold: `docs/ui.md`'s
+  `FloatingPanel` behind the AI dialog (`Companion` wraps it), `docs/mobile.md`,
+  `docs/code-conventions.md`, `docs/states.md`, `docs/playarea.md`'s picker
+  row. `doc.md`'s Tests rows and e2e list match the files. `setupSummary`'s
+  order matches the form. F-5's `Seat | undefined` in `phase.ts` and the print
+  model stands as ruled.
+
 ## Notes
 
 - **A wordle fix made from this area, 2026-09-23** (Joel: *"small fix for
@@ -1573,7 +1807,8 @@ a dependency listed and left. Anything durable goes to `todo.md` or
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group — 2026-09-23,
+      nineteen findings recorded above; eighteen shipped, one ruled no change
 - [ ] `docs/games/codenamesduet.md` reconciled with `todo.md`: its Deferred
       section moved into the todo, or deliberately kept as the standing register
 - [ ] the tile-feedback pass done, and the game's tf level updated there

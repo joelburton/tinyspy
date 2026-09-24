@@ -33,7 +33,7 @@ describe('derivePhase — isClueGiver', () => {
     expect(derivePhase(inputs({ mySeat: 'B', currentClueGiver: 'A' })).isClueGiver).toBe(false)
   })
 
-  it('is false when the current clue-giver is null (game over)', () => {
+  it('is false when the current clue-giver is null (sudden death, or game over)', () => {
     expect(derivePhase(inputs({ mySeat: 'A', currentClueGiver: null })).isClueGiver).toBe(false)
   })
 

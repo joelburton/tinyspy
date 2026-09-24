@@ -62,12 +62,11 @@ export function InfoCol({
   // ── Mode + phase ──
   // The verdict once the game is over — the action row's line — else null.
   terminalMessage: TerminalMessage | null
-  // Turn budget spent: the state line reads "sudden death" and the help swaps
-  // to the sudden-death rules.
+  // Turn budget spent: the help line swaps to the sudden-death rules.
   inSuddenDeath: boolean
 
   // ── State readout (agents found + the turn counter) ──
-  // Green agents contacted, out of 15.
+  // Green agents contacted, out of `TOTAL_AGENTS`.
   greenFound: number
   // The current turn (`games.turn_number`); paired with `setup.turns`.
   turnNumber: number

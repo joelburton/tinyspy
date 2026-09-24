@@ -215,7 +215,7 @@ The play surface's New game calls it too, with this game's setup and roster.
 { "result": "created", "id": "88ae6f5a…" }
 ```
 
-### `codenamesduet.submit_clue(target_game, clue_word, clue_count)`
+### `codenamesduet.submit_clue(target_game, clue_word, clue_count, clue_from_ai)`
 
 The clue-giver's move. Under a lock on the game row it checks that the game is
 still in ordinary play, that the caller holds the clue seat, and that this
@@ -232,7 +232,7 @@ police their own clues, as they would at a table.
 **Returned** — one answer, the clue as it was stored:
 
 ```json
-{ "result": "clued", "word": "WORD", "count": 2, "turn_number": 1, "by_seat": "A" }
+{ "result": "clued", "word": "WORD", "count": 2, "from_ai": false, "turn_number": 1, "by_seat": "A" }
 ```
 
 ### `codenamesduet.submit_guess(target_game, target_position)`

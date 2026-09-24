@@ -5,7 +5,7 @@ import styles from './MobileStatusBar.module.css'
 
 /**
  * The mobile-only status strip that sits ABOVE the board, carrying the game's
- * core state readout (codenamesduet: "3/15 agents · 4/9 turns").
+ * core state readout (codenamesduet: "3/15 agents · 3/9 turns spent").
  *
  * **Why it exists.** On desktop that readout is the info column's `.infoState`
  * line, always in view beside the board. Below the `--mobile` breakpoint the

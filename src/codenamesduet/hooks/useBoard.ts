@@ -31,8 +31,10 @@ export type WordRow = Pick<
  *
  * Returns the 25 word rows (with denormalized reveal state), every event in the
  * order it happened (`events` — clues, guesses, passes, hints; see
- * `lib/events.ts`), the caller's own key view (`myKey`), and optionally the
- * partner's key view (`peerKey`) for post-game review.
+ * `lib/events.ts`), the caller's own key view (`myKey`), optionally the
+ * partner's key view (`peerKey`) for post-game review, whether each seat has
+ * found all its agents (`myAgentsDone`, `peerAgentsDone` — the finished-player
+ * banners), and `loading` until the first load completes.
  *
  * Why the board and the log are read separately: a word can be guessed by BOTH
  * players (a bystander on one key may be the other's agent), so the per-word

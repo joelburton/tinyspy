@@ -2,9 +2,12 @@
 
 /**
  * Render + behavior tests for codenamesduet's play surface, mounted through the
- * loader: the guess in-flight guard, the tiles' input gate, the partner-key
- * reveal, the action row and the menu, the header's lines about the partner,
- * the two role-specific controls, and the commands through the dispatcher.
+ * loader: the guess in-flight guard, a refused guess in the local slot, the
+ * tiles' input gate, what the bell is told, the board's turn dim and flash and
+ * a guess's flash through the log, the finished-player banners, the
+ * partner-key reveal, the action row and the menu, the header's lines about
+ * the partner, the two role-specific controls, and the commands through the
+ * dispatcher.
  *
  * `useGame` / `useBoard` / `db` are mocked; by default the game is "my turn to
  * guess" (I'm the guesser seat B; peer seat A gave the clue), so the tiles are
@@ -367,7 +370,7 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
 
   it('Reveal opens it for me alone, and Hide covers it again', async () => {
     const user = userEvent.setup()
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost_assassin' })} />)
 
     await user.click(screen.getByRole('button', { name: "Reveal key cards" }))
     expect(lastPeerKeyArg()).toBe(true)
@@ -385,7 +388,7 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
     expect(menuItems(live).get('act-reveal')?.disabled).toBe(true)
     unmount()
 
-    const done = makeCtx({ isTerminal: true, playState: 'lost' })
+    const done = makeCtx({ isTerminal: true, playState: 'lost_assassin' })
     render(<PlayAreaLoader {...done} />)
     expect(menuItems(done).get('act-reveal')?.label).toBe("Reveal key cards")
     act(() => menuItems(done).get('act-reveal')!.run())
@@ -415,7 +418,7 @@ describe('codenamesduet PlayArea — the action row', () => {
   })
 
   it('at the end: Reveal, Restart, New game and Back to club — End is gone', () => {
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost_assassin' })} />)
     expect(buttons()).toEqual(['act-reveal', 'act-restart', 'act-new-game', 'act-back-to-club'])
   })
 
@@ -590,7 +593,7 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
     unmount()
 
     // No host this time: the RPC firing proves no question was asked.
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost_assassin' })} />)
     await user.click(control('act-restart')!)
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
   })

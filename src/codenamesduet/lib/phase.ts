@@ -9,7 +9,7 @@ export type PhaseInputs = {
   gameOver: boolean
   // play_state is 'sudden_death': the budget is spent and nobody clues.
   inSuddenDeath: boolean
-  // games.current_clue_giver — null when the game has ended.
+  // games.current_clue_giver — null in sudden death and once the game has ended.
   currentClueGiver: Seat | null
   // The caller's seat in this game; undefined if they aren't seated.
   mySeat: Seat | undefined

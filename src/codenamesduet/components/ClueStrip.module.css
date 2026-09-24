@@ -4,15 +4,15 @@
  * reserves a single control-row's height + vertical-centers its child (so
  * swapping clue states doesn't shift the board). The slot is board-wide, so each
  * state lays its pieces out on ONE horizontal line rather than stacking them.
- * The panel carries no surface chrome of its own (except sudden death) — the
+ * The strip carries no surface chrome of its own (except sudden death) — the
  * slot is the container. */
 
 /* The one-line states (clue display + Pass / waiting copy / sudden death).
  * Centered cluster, kept on ONE line (no wrap) — a wrapping state would be
  * taller than the others and make the board above reflow as turns change
- * (docs/ui.md → "Layout stability"). The clue-giver's guess-phase line ("Your
- * clue: WORD · N  Waiting for X to guess…") is the longest, and stays on one row
- * on a desktop-width board. */
+ * (docs/ui.md → "Layout stability"). The clue-giver's guess-phase line
+ * ("WORD · N  ● X guessing") is the longest, and stays on one row on a
+ * desktop-width board. */
 /* @@ */ .clueStrip {
   display: flex;
   flex-direction: row;

@@ -155,7 +155,7 @@ serve(async (req) => {
               clue: {
                 type: 'string',
                 description:
-                  'A single word (preferred) or short phrase that hints at one or more agents. Must not contain or share a root with any of the 25 board words.',
+                  'A single word that hints at one or more agents. Must not contain or share a root with any of the 25 board words.',
               },
               count: {
                 type: 'integer',

@@ -129,9 +129,10 @@
 
 /* Keycard squares — small corner chips showing what a key card SAYS about the
  * cell, always in the soft/unrevealed palette (independent of what's been
- * guessed). My own is bottom-left and always shown (it's how I read which cells
- * to clue for); the partner's is top-right and shown only once the game is over
- * and I have chosen to reveal it. Bottom/top placement mirrors a tabletop: my
+ * guessed). My own is bottom-left, shown except while I am the one guessing
+ * (it's how I read which cells to clue for, and it says nothing about my
+ * partner's clue); the partner's is top-right and shown only once the game is
+ * over and I have chosen to reveal it. Bottom/top placement mirrors a tabletop: my
  * card near me, my partner's across the table. */
 /* @@ */ .keySquare {
   position: absolute;

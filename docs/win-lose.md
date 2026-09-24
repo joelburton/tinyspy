@@ -95,7 +95,7 @@ comes from.
 
 | game | finish | defeat sources |
 |---|---|---|
-| codenamesduet | built-in — 15 agents | turn budget + **sudden death** (the assassin) + clock |
+| codenamesduet | built-in — 15 agents | the assassin + turn budget (spent, it becomes **sudden death**, where any non-agent loses) + clock |
 | psychicnum | built-in — 3 secrets | move budget (size configurable) + clock |
 | connections | built-in — 4 groups | **mistake budget** (4; only wrong guesses spend it — perfect play cannot lose) + clock |
 | waffle | built-in — solve the board | move budget (swaps; margin configurable via `extra_swaps`) + clock |

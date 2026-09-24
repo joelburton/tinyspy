@@ -18,7 +18,7 @@
 }
 
 /* codenamesduet's move controls: the ClueStrip (clue form / clue display + Pass /
- * waiting copy). `display: contents` — a naming wrapper; the panel keeps its place
+ * waiting copy). `display: contents` — a naming wrapper; the strip keeps its place
  * inside the swap box, and a local/terminal pill takes its spot. */
 /* @@ */ .moveArea {
   display: contents;

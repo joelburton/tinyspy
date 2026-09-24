@@ -90,7 +90,7 @@ select pg_temp.envelope_is(
     (select handle from club2)
   )),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN011"}'::jsonb,
-  'create_game: not authenticated raises 42501'
+  'create_game: not authenticated is refused as a fault'
 );
 
 -- cade is signed in but not a member of club2 (ada+bea only).

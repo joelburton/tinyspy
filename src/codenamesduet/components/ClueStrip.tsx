@@ -250,17 +250,18 @@ function ClueForm({
       clue_from_ai: aiClue !== null && clueWord === aiClue.word && clueCount === aiClue.count,
     }))
     setBusy(false)
-    // Three of the four refusals are RACES (orange), because this form is drawn
-    // from state that arrives by subscription while the button unlocks on the
-    // reply above: the partner's guess can hand the clue-giver seat away, and
-    // your own clue can land before the row saying so does. The inputs KEEP
+    // Every refusal but the seatless fault is a RACE (orange), because this
+    // form is drawn from state that arrives by subscription while the button
+    // unlocks on the reply above: the partner's guess can hand the clue-giver
+    // seat away, your own clue can land before the row saying so does, and the
+    // last turn can be spent under the form. The inputs KEEP
     // their contents on any refusal — the clue was never recorded, so it is
     // still the clue you meant to give.
     if (res.type === 'not-ok') {
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'clued') {
-      // Clear on success; the panel swaps to the guess-phase view once Realtime
+      // Clear on success; the strip swaps to the guess-phase view once Realtime
       // propagates the new clue row. Also dismiss any open suggestion dialog.
       setCount('')
       setWord('')

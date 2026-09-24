@@ -56,7 +56,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 /**
  * codenamesduet's play surface — the coordinator under `PlayAreaLoader`. It
  * holds no board and draws no control of its own: `BoardCol` renders the 5×5
- * board with the below-board slot (the clue panel, or the local slot's pill),
+ * board with the below-board slot (the clue strip, or the local slot's pill),
  * and `InfoCol` the readout, the banners, the action row, the disclosures and
  * the event log. This component derives the phase (`derivePhase` — who may
  * click what, and when), binds the commands both columns place, and decides
@@ -259,7 +259,7 @@ export function PlayArea({
   // columns all ask the same questions, and they must not answer them
   // differently.
 
-  // The two views of the events the log, the history viewer, the clue panel and
+  // The two views of the events the log, the history viewer, the clue strip and
   // the PDF read: every clue, and every guess with the word on its tile.
   const clues = useMemo(() => cluesOf(events), [events])
   const guesses = useMemo(() => guessesOf(events, words), [events, words])
@@ -317,9 +317,9 @@ export function PlayArea({
   // header's.
 
   // The below-board slot. Born here because BOTH columns show into it —
-  // BoardCol's guess and clue panel (a refused guess / clue / pass) and
+  // BoardCol's guess and clue strip (a refused guess / clue / pass) and
   // InfoCol's End — and while it holds anything the pill takes the clue
-  // panel's place. Not-ok only, plus the terminal verdict: a guess that lands
+  // strip's place. Not-ok only, plus the terminal verdict: a guess that lands
   // shows on the board and in the log.
   const localFeedbackSlot = useFeedbackSlot('local')
   // Any key is the player's next move, so it dismisses a gesture-cleared
@@ -328,8 +328,7 @@ export function PlayArea({
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // The verdict, memoized on `playState` so the effect sees one object per
-  // outcome, shown on the terminal edge and retracted by its owner on Restart
-  // (a Duet mulligan un-terminals the game).
+  // outcome, shown on the terminal edge.
   const terminalMessage = useMemo(
     () => (isTerminal ? buildTerminalMessage(playState) : null),
     [isTerminal, playState],
@@ -571,10 +570,10 @@ export function PlayArea({
         historyLabel={historySnap?.historyLabel ?? null}
         onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) — and the slot its
-        //    not-oks, the clue panel's, and the verdict show into ──
+        //    not-oks, the clue strip's, and the verdict show into ──
         gameId={gameId}
         localFeedbackSlot={localFeedbackSlot}
-        // ── Clue panel ──
+        // ── Clue strip ──
         isClueGiver={isClueGiver}
         isGuessPhase={isGuessPhase}
         currentClue={currentTurnClue}

@@ -1,14 +1,18 @@
 // cs-met-codenamesduet
 
 /**
- * Regression guard for the two-kinds-of-text-input contract
- * (docs/keyboard-shortcuts.md): codenamesduet's clue inputs must be tagged
- * `data-game-input` so the global `/ ? ~` shortcuts still fire while you're
- * typing a clue (you can hit `/` to chat without clicking away). This is the
- * counterpart to the chat box being `data-chat-input` (NOT a game input), so
- * `/` types a literal slash there. `isNonGameField`'s LOGIC is covered in
- * `common/keyboard/editableField.test.ts` (the shell actions reach it through
- * `inField: 'game-inputs'`); this pins that the actual clue inputs carry the tag.
+ * The clue strip: the clue inputs' tag, the one-digit count, when a clue counts
+ * as the AI's, and what the strip shows — the sudden-death notice, and the form
+ * clearing once its clue lands.
+ *
+ * The tag is the two-kinds-of-text-input contract (docs/keyboard-shortcuts.md):
+ * the clue inputs must be `data-game-input` so the global `/ ? ~` shortcuts
+ * still fire while you're typing a clue (you can hit `/` to chat without
+ * clicking away). This is the counterpart to the chat box being
+ * `data-chat-input` (NOT a game input), so `/` types a literal slash there.
+ * `isNonGameField`'s LOGIC is covered in `common/keyboard/editableField.test.ts`
+ * (the shell actions reach it through `inField: 'game-inputs'`); this pins that
+ * the actual clue inputs carry the tag.
  */
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

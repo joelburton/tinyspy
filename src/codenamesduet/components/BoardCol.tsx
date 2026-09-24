@@ -39,7 +39,9 @@ type GuessAnswer =
       greens_found: number
       turn_number: number
       turns_remaining: number
-      clue_giver: Seat
+      // Null once a bystander drops the game into sudden death, and for every
+      // agent turned over there: nobody clues in sudden death.
+      clue_giver: Seat | null
       play_state: 'playing' | 'sudden_death'
     }
   | {
@@ -83,7 +85,7 @@ export function BoardCol({
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
   localFeedbackSlot,
-  // ── Clue panel (the clue-giver's below-board form) ──
+  // ── Clue strip (the clue-giver's below-board form) ──
   isClueGiver,
   isGuessPhase,
   currentClue,
@@ -127,14 +129,14 @@ export function BoardCol({
 
   // ── Guess dispatch ──
   gameId: string
-  // PlayArea's below-board slot. This column and the clue panel show their
+  // PlayArea's below-board slot. This column and the clue strip show their
   // not-oks into it (a rejected guess / clue / pass), and while it holds
   // anything — a not-ok, the terminal verdict — the pill takes the clue
-  // panel's place. A tile click is the player's next move, so it dismisses a
+  // strip's place. A tile click is the player's next move, so it dismisses a
   // gesture-cleared message.
   localFeedbackSlot: FeedbackSlot
 
-  // ── Clue panel ──
+  // ── Clue strip ──
   isClueGiver: boolean
   isGuessPhase: boolean
   currentClue: ClueEvent | null
@@ -204,7 +206,7 @@ export function BoardCol({
   // first guess commits (you shouldn't guess again until the reveal resolves).
   const [handleGuess] = useSingleFlight(submitGuess)
 
-  // Whatever the slot holds on top takes the clue panel's place; an empty
+  // Whatever the slot holds on top takes the clue strip's place; an empty
   // slot hands it back.
   const top = useTopFeedbackMessage(localFeedbackSlot)
 

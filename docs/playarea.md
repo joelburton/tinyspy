@@ -131,7 +131,7 @@ anything *else* to say:
 **Don't spell the verdict here.** "Ended" names the *state*, not the outcome —
 the outcome already has two surfaces at terminal (the action row's bold verdict
 and the below-board terminal pill), and a third copy is noise. A turn *count*
-(codenamesduet's `4/9 turns`) is state, not a claim about whose turn it is, and
+(codenamesduet's `3/9 turns spent`) is state, not a claim about whose turn it is, and
 needs no terminal branch.
 
 **Locally-terminal look.** When the game continues but *this* player can't act
