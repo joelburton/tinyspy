@@ -526,6 +526,10 @@ looks identical everywhere:
   entry survives) and the open turn's `#N` wears `.historyNumber` (the matching ring).
   `.historyFrame` also sets `pointer-events: none`, so a board click falls through to the
   exit handler — a viewed board is a read-only snapshot.
+- **The viewed turn's own tiles are ringed**, in the history blue, by each game's
+  `.historyTile` in the shared geometry: `--history-tile-ring-width` and
+  `--history-tile-ring-offset` (`base.css`), outside the tile. Games whose area has
+  been audited read the tokens; scrabble and stackdown still draw their own.
 - **Three exits, all shared.** A keystroke (the hook binds `act-exit-history`, whose
   any-key wildcard consumes the press) and a click anywhere (except another `#N`
   handle, which switches turns) are intrinsic to the hook — a game wires neither.

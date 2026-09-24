@@ -156,14 +156,11 @@
 }
 
 /* The tile the VIEWED past turn guessed — the shared history BLUE, the same
- * signal the board frame and the viewed log #N wear. OUTSIDE the tile like
- * every history ring: it only ever lands on a DECIDED tile, and blue over
- * saturated green or red reads badly. 2px off so it reads as a ring rather
- * than a thicker border; 3px because an offset ring is not backed by the fill.
- * On an EDGE tile it overlaps the board frame's outline by 2px — moving the
+ * signal the board frame and the viewed log #N wear, in the shared ring's
+ * geometry (`--history-tile-ring-*`, base.css). On an EDGE tile it overlaps the board frame's outline by 2px — moving the
  * frame outward is shared chrome, and padding the grid while viewing would
  * resize tiles on a state change. */
 /* @@ */ .historyTile {
-  outline: 3px solid var(--history-color);
-  outline-offset: 2px;
+  outline: var(--history-tile-ring-width) solid var(--history-color);
+  outline-offset: var(--history-tile-ring-offset);
 }

@@ -134,12 +134,12 @@
  * what that guess turned out to be, and the two can never co-occur (the viewer
  * is read-only and holds no live answer).
  *
- * The ring is the shared viewer blue, outside the tile, so it reads as the board
- * frame's mark at tile scale. Offset 0 is forced by the grid: 3px of ring on two
- * neighbors would take 6px of the 0.5rem gap and collide. */
+ * The ring is the shared viewer blue in the shared ring's geometry
+ * (`--history-tile-ring-*`, base.css), outside the tile, so it reads as the
+ * board frame's mark at tile scale. */
 /* @@ */ .historyTile {
-  outline: 3px solid var(--history-color);
-  outline-offset: 0;
+  outline: var(--history-tile-ring-width) solid var(--history-color);
+  outline-offset: var(--history-tile-ring-offset);
 }
 
 @media (--phone) {

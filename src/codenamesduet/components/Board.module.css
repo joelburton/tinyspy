@@ -136,13 +136,13 @@
   outline-offset: -2px;
 }
 
-/* A tile the VIEWED past turn decided — the shared history blue
- * (`--history-color`), the same signal the board frame + the viewed turn's #N
- * handle wear. An inset outline so it hugs just inside the tile edge (over the fill,
- * clear of the grid gap and neighbors). Pairs with the board-level `.historyFrame`. */
+/* A tile the VIEWED past turn decided — the shared history blue, the same
+ * signal the board frame + the viewed turn's #N handle wear, in the shared
+ * ring's geometry (`--history-tile-ring-*`, base.css). Pairs with the
+ * board-level `.historyFrame`. */
 /* @@ */ .historyTile {
-  outline: 3px solid var(--history-color);
-  outline-offset: -3px;
+  outline: var(--history-tile-ring-width) solid var(--history-color);
+  outline-offset: var(--history-tile-ring-offset);
 }
 
 

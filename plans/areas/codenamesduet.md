@@ -1411,6 +1411,107 @@ cap the count at the budget (*"9/9 turns spent"*); or leave it.
 Recommendation: by the turn count — the game did reach sudden death, and the
 line should keep saying so.
 
+## Pass 3 — tile-feedback — READ 2026-09-23, proposals only
+
+Joel: *"do pass 3: we've already done [some] of the tile-feedback stuff, so
+read carefully to check. don't change code yet, just report what you'd
+change."* Read against `plans/tile-feedback.md` (the channels, the dim and
+attention rules, the restart check, the floor) and psychicnum's `Board.tsx`,
+the turn-based sibling that wears every mark. **The plan's section on this
+game holds, but for one sentence:** "neither turn mark" and no in-flight dim
+are both still true, but "Two seats alternating means nothing races" is not —
+in sudden death both players may guess at once. tf0 today.
+
+**What the board wears now:** the shared `.tileFace` + `.tile` (hover as a
+shadow, the disabled look), `.boardSeal`, the history frame, its own
+`.historyTile` ring (inset, `-3px`), and its own `.tilePending` — an outline in
+the action BUTTON's blue plus a monospace "…" (`.tileKey`). No turn marks, no
+in-flight dim, no attention, no game-over frame.
+
+### Proposals
+
+- **P-1 · the turn marks.** `dimNotYourTurn` on the grid while it is my
+  partner's move — they write the clue, or they guess from mine — and
+  `yourTurnFlash` from `useTurnStartFlash` on the SAME value the bell reads
+  (`cluesStillGiven && (myClueToGive || myClueToGuess)`), so frame and bell land
+  together. NOT dimmed while I write the clue: the move is the form's, and the
+  giver has to read the board's key squares to write it. Neither in sudden
+  death (no turn) nor at terminal. The in-flight dim can compound with it (my
+  bystander passes the turn while its reply is out); the shared values are
+  already chosen as a pair.
+- **P-2 · the in-flight dim.** `.tilePending` and the "…" `.tileKey` go;
+  the guessed tile wears the shared `dimInFlight` until the reply. This retires
+  the roster's button-blue chrome borrow AND `todo.md`'s Someday monospace item
+  (`.tileKey` is the board's one monospace). The untouched tile is the ramp's
+  lightest, so the dim lands a light gray — distinct from the tan bystander,
+  but to be looked at on screen.
+- **P-3 · attention.** `useMoveAttention` over the words: `moveCount` = the
+  guess events' count (a restart deletes them, so it drops, not advances;
+  words and events already arrive in one `Promise.all`), `changed` = positions
+  whose `revealed_as` / `neutral_a` / `neutral_b` differ, `quiet` while viewing
+  history. Self-attention ON (the app-wide default): my own guess flashes too,
+  its answer arriving in the tile I am watching. The tile word (and the corner
+  squares / triangles) need `z-index: 1` so the flash lightens under them.
+  The partner-key reveal at terminal is a state change, not a move — it has no
+  guess row behind it, so it cannot flash.
+- **P-4 · the game-over frame.** `gameOverFrame` with `gameOverWon` /
+  `gameOverLost` by the terminal outcome (neutral for `ended`), dropped while
+  the history viewer is open — psychicnum's three lines.
+- **P-5 · the history ring outside the tile.** `outline-offset: -3px` →
+  `+2px`, same 3px weight — psychicnum's ruling (2026-08-20): the ring only
+  lands on tiles that turn decided, and inset it draws history blue over
+  saturated green / red.
+- **P-6 · white on the tan is below the floor.** White on `#b4986e` measures
+  **2.74:1** (agent 5.13, assassin 5.38); the floor is 3:1 and tan is not on the
+  blessed list. Options: bless it, darken the tan, or dark ink on it.
+- **P-7 · the "do not collapse" note.** `--codenamesduet-agent` is
+  byte-identical to `--outcomes-won-ink-color` (`#2e7d32`) and `-agent-key` to
+  `--outcomes-won-base-color` (`#66bb6a`); `theme.css` says nothing. One
+  comment: these are the keycard vocabulary, not outcomes.
+
+### Questions (Joel's)
+
+1. **A shake on a bystander or assassin guess?** The channel table's motion is
+   "no — not a winning move". Recommendation: **no** — the tile's fill IS the
+   answer and is permanent state (the background is spoken for), the assassin
+   gets the game-over frame, and a bystander's news is the turn passing, which
+   P-1 marks.
+2. **P-6's choice** — bless, darken, or dark ink.
+
+### Joel's rulings — 2026-09-23
+
+- **P-5 (the history ring): SHIPPED.** Asked first whether a ring was in
+  common CSS — it is not: six boards each write their own, with three offsets,
+  two colors and two mechanisms (a shared ring was not asked for). Then:
+  *"make the history rings for codenamesduet by +2px, like psychicnum"* —
+  `.historyTile`'s `outline-offset` is `2px`, and its comment says why it sits
+  outside.
+  **Then a shared geometry** (Joel, having tried +2px on connections: *"let's
+  make +2px be the default. we should make a named token for this"*):
+  `--history-tile-ring-width: 3px` and `--history-tile-ring-offset: 2px` in
+  `base.css`, with the why; psychicnum's, connections' and this game's
+  `.historyTile` read them, their comments pointing there (connections' *"Offset
+  0 is forced by the grid"* is gone — at +2px, two ringed neighbors on the 8px
+  gap meet, and that is accepted, as it was at psychicnum). waffle is already at
+  +2px but unaudited, and scrabble and stackdown draw their own ring, so none
+  reads the tokens yet. `docs/playarea.md` → Turn-history viewer says so.
+  **Planted** a misspelled token: `cssTokens` red. Edits two blessed files
+  (`cs-blessed-psychicnum`, `cs-blessed-connections`).
+- **P-6:** *"it look fine"* and, to question 2, *"keep it"* — white on the tan
+  is **blessed**, to join the floor's exceptions table in `tile-feedback.md`.
+- **P-7:** *"yes, keep them separate"* — the comment goes in `theme.css`.
+- **Question 1:** *"yes, shake bystander and assassin"* — a guess that turns
+  over a bystander or an assassin shakes its tile, after the attention flash.
+
+### Checked and fine
+
+The shared tile (face + actionable), hover as a shadow, ink (dark untouched,
+white decided); no selection, identity, cursor or hint channel applies — the
+triangles are the keycard, not attribution (the plan's own correction);
+restart (the surface remounts and every proposed mark reads the events,
+which `replay_board` deletes); a refused guess stays the pill's (a race, not a
+judgment on the tile).
+
 ### Left for pass 3
 
 - The history ring's offset (`-3px` here, `2px` psychicnum, `0` connections)

@@ -273,6 +273,14 @@
   --tile-edge-width:           2px;
   --tile-selected-edge-width:  4px;
 
+  /* The history viewer's ring on a tile the viewed turn decided. OUTSIDE the
+     tile: it only ever lands on a decided tile, and inside it would draw the
+     viewer's blue over a saturated fill. Flush reads as a fat border, and a
+     thinner ring is lost off the tile — so a real gap, at this weight. Where
+     two ringed tiles are neighbors on an 8px grid, their rings meet. */
+  --history-tile-ring-width:   3px;
+  --history-tile-ring-offset:  2px;
+
   /* How far a disabled control fades. An EFFECT rather than a
      per-family color: filled and outline degrade identically under
      opacity (2.04 vs 2.00 at 0.5), so per-family values would solve
