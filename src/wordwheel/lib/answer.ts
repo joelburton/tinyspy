@@ -34,11 +34,6 @@ export type Answer =
 /**
  * How an answer reads — **the one place this game decides that.** The pill, the
  * tiles a refused word used, and the header's peer lines all read it.
- *
- * The readings are its siblings', because it is the same event: the letters are
- * in front of you and the list is the ordinary English one, so a word that does
- * not count is a WRONG MOVE (`lost`). Too short and already found are not — you
- * have not finished typing, or you already have it — so they are `warning`.
  */
 export function answerMessage(answer: Answer): AnswerMessage {
   switch (answer.answerType) {

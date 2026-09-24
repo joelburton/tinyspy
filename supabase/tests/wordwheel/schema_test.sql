@@ -52,7 +52,7 @@ select is(
 -- ============================================================
 -- Reference data — public SELECT, no RLS, no club gating. The import
 -- script writes them; everyone reads them. The word reference itself
--- now lives in common.words, not wordwheel — only the wordwheel-specific
+-- is common.words, not wordwheel's — only the wordwheel-specific
 -- pangram seed pool is checked here.
 reset role;
 -- A duplicate-letter multiset seed ('a' ×3) — `letters` is the PK; `mask` is
@@ -126,7 +126,7 @@ values (
 );
 
 -- ============================================================
--- The word lists are readable directly (no longer hidden)
+-- The word lists are readable directly (nothing hidden)
 -- ============================================================
 -- The grant on wordwheel.games to authenticated includes
 -- required_words + bonus_words — the FE needs them to validate
@@ -175,7 +175,8 @@ select is(
 -- ============================================================
 -- games_state view: still exposed at terminal
 -- ============================================================
--- Flip is_terminal true; required_words stays exposed (it always was).
+-- Flip is_terminal true; required_words stays exposed — the terminal
+-- transition changes nothing about what the view returns.
 
 reset role;
 update common.games set is_terminal = true, play_state = 'ended'

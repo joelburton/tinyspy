@@ -141,7 +141,7 @@ area is audited. The rows below name only what's distinctive about each:
 | [docs/games/scrabble.md](docs/games/scrabble.md) | **RackAttack**: trusting-commit moves, the shared bag, the AI suggester and opponent |
 | [docs/games/boggle.md](docs/games/boggle.md) | **MothCubes**: required vs bonus words, the pure-TS solver |
 | [docs/games/crosswords.md](docs/games/crosswords.md) | **CrossPlay**: server-only solution, per-cell realtime; keyboard-required |
-| [docs/games/wordwheel.md](docs/games/wordwheel.md) | **MooseWheel**: a spellingbee fork whose wheel is a multiset |
+| [src/wordwheel/doc.md](src/wordwheel/doc.md) | **MooseWheel**: a spellingbee fork whose wheel is a multiset |
 | [docs/games/wordiply.md](docs/games/wordiply.md) | **WordWire**: extend a base; length-only feedback during play |
 | [docs/games/setgame.md](docs/games/setgame.md) | **HareTrigger**: base-3 cards, a contended board, in-place refills |
 | [docs/games/letterboxed.md](docs/games/letterboxed.md) | **SnakeBox**: chained words covering twelve letters; the seed-pair pool |

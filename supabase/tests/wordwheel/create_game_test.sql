@@ -16,7 +16,7 @@
 --   4. mode arg validation: invalid value;
 --      compete with <2 players; target_rank required iff compete;
 --      target_rank range.
---   5. Board validation: outer_letters length (NOW 8) / alphabet;
+--   5. Board validation: outer_letters length (8) / alphabet;
 --      center shape; DUPLICATES ACCEPTED (the wheel is a multiset —
 --      repeated outers + a center repeating an outer are ordinary
 --      boards); required_words_count ≥ 15 gate (NOT 30 — the

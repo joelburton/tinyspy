@@ -18,7 +18,7 @@
  *                            purple, the single "used in every word" cue.
  *   --wordwheel-center-text  White glyph on the purple center tile.
  *
- * Two-vocabularies rule (see docs/ui.md): tokens use semantic
+ * Two-vocabularies rule (see docs/tokens.md): tokens use semantic
  * names tied to wordwheel's vocabulary (`tile`, `accent`) rather
  * than literal colors. A future palette tweak doesn't have to
  * walk every consumer.

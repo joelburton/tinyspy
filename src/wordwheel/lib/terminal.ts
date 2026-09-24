@@ -18,8 +18,7 @@ import { RANKS } from '@/shared/rank-ladder/rankLadder'
  * Verdicts lead with the OUTCOME WORD — "Won:" / "Lost:" / "Ended:" — so the
  * result reads before the detail does, and they stay short enough for the
  * below-board pill on a phone (~44 characters; it ellipsizes rather than wraps).
- * A rank in a verdict is quoted (`"Genius"`), the one place we still use
- * `rankLabel`'s longer `rank "Genius"` form being the info-column line.
+ * A rank that names the GOAL is quoted (`"Genius"`); the rank reached is not.
  *
  * **Coop** (the target rank is optional — see `WordwheelSetup.target_rank`):
  *   - `won`   — the team reached the rank they set out for → `Won: "Genius" 47/50 points`
@@ -50,14 +49,14 @@ export function buildTerminalMessage({
 }: {
   mode: 'coop' | 'compete'
   playState: string
-  /** WHY it ended — `status.reason`, or 'ended' when the status carries none. */
+  // WHY it ended — `status.reason`, or 'ended' when the status carries none.
   reason: string
-  /** `status.winner_user_id`, or null. */
+  // `status.winner_user_id`, or null.
   winnerId: string | null
-  /** The winner's identity, when the roster knows them. */
+  // The winner's identity, when the roster knows them.
   winner: Actor | undefined
-  /** From `setup.target_rank`: always set in compete, optional in coop (null =
-   *  the open-ended hunt, which has no win condition). */
+  // From `setup.target_rank`: always set in compete, optional in coop (null =
+  // the open-ended hunt, which has no win condition).
   targetRankIdx: number | null
   foundWordsScore: number
   requiredWordsScore: number
@@ -68,8 +67,7 @@ export function buildTerminalMessage({
   const points = `${foundWordsScore}/${requiredWordsScore} points`
 
   if (mode === 'compete') {
-    // Passed in from setup, not derived here — see the comment at
-    // the call site for why status is the wrong source for this.
+    // Always set in a race; the fallback is for the type alone.
     const targetRankName = RANKS[targetRankIdx ?? 6]
 
     if (playState === 'won_compete') {

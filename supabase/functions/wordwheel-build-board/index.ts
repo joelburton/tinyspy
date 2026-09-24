@@ -13,12 +13,11 @@
  *     times as it has tiles. candidate_words returns the pure subset set
  *     (letter-SET ⊆ wheel + contains center); we post-filter here to
  *     words whose per-letter counts FIT the wheel's tile counts.
- *     See docs/games/wordwheel.md.
  *   • The pangram bonus is +15 (spellingbee's is +10). A pangram uses
  *     all nine tiles, so any 9-letter word that fits IS one.
  *   • The seed pool is difficulty-tagged: we sample only seeds whose
  *     `difficulty <= required_band`, so the pool scales with the game's
- *     required band. See docs/games/wordwheel.md.
+ *     required band (src/wordwheel/doc.md → Schema).
  *   • 's' is allowed (a tile per use means 's' pluralizes at most once
  *     per 's' tile), so there is no 's' exclusion anywhere.
  *   • No ING dampening: spellingbee damps -ing because unbounded letter
@@ -48,9 +47,10 @@
  *      whose letter-set is a subset of the puzzle mask AND uses the
  *      center; post-filter to words fitting the wheel's tile counts;
  *      compute points (length score + 15 if pangram).
- *   6. Call wordwheel.create_game(...) — the RPC validates end-to-end
- *      and returns the new id.
- *   7. Return { id } to the FE.
+ *   6. Call wordwheel.create_game(target_club, setup, player_user_ids,
+ *      mode, board) over PostgREST — the RPC validates everything
+ *      end-to-end and creates the game.
+ *   7. Relay its envelope to the FE, untouched.
  *
  * Secrets / env:
  *   - SUPABASE_URL       auto-injected
@@ -66,7 +66,7 @@
  * Calling shape (from the FE):
  *   POST /functions/v1/wordwheel-build-board
  *   { target_club: text,           // the club HANDLE, not a uuid
- *     setup: jsonb,                 // {timer, required?, legal?, target_rank?}, NO mode field
+ *     setup: jsonb,                 // the Setup type below; NO mode field
  *     player_user_ids: uuid[],
  *     mode: 'coop' | 'compete' }
  *   → an ENVELOPE, always 200 (docs/envelopes.md). The status says whether this
@@ -77,13 +77,13 @@
  *   PN194  form-validation  custom_letters  no words for those letters
  *   PN195  form-validation  required        no pangram seeds at that difficulty
  *   PN196  form-validation  unique_letters  no unique-letter boards at it either
+ *   PN197  form-validation  _               the club's last board rules out every seed left
  *   PN198  form-validation  required        no board at that required difficulty
- *   PN197  fault            -               the generator gave up on a club board
  *   PN192-3, crash          -               a bad request, or a broken pipeline
  *
  * The form-validations are the narrow class the setup form cannot rule out from
  * the values alone: whether a board actually EXISTS at those settings — which
- * is why this game has four where most build-boards have one.
+ * is why this game has five where most build-boards have one.
  * A create_game raise relays verbatim, envelope and all (invokeCreateGame).
  */
 
@@ -110,21 +110,21 @@ import {
 // ───────────────────────────────────────────────────────────
 
 type Setup = {
-  /** Required when `mode === 'compete'` (validated server-side). */
+  // Required when `mode === 'compete'` (validated server-side).
   target_rank?: number
-  /** Vocabulary bands for this board's word lists (validated server-side by
-   *  wordwheel.create_game). `required` (1..6, default 3) = the displayed goal
-   *  set; `legal` (required..6, default 5) = the wider accepted set. */
+  // Vocabulary bands for this board's word lists (validated server-side by
+  // wordwheel.create_game). `required` (1..6, default 3) = the displayed goal
+  // set; `legal` (required..6, default 5) = the wider accepted set.
   required?: number
   legal?: number
-  /** Optional custom board — the player's own letters. `custom_center` = the
-   *  center letter, `custom_letters` = the eight other letters. When both are set
-   *  (and valid) we build a board from exactly these letters instead of sampling
-   *  a random pangram seed. Both create_game and this function re-validate. */
+  // Optional custom board — the player's own letters. `custom_center` = the
+  // center letter, `custom_letters` = the eight other letters. When both are set
+  // (and valid) we build a board from exactly these letters instead of sampling
+  // a random pangram seed. Both create_game and this function re-validate.
   custom_center?: string
   custom_letters?: string
-  /** Board constraint (random boards only): when true, sample only from seeds
-   *  whose nine letters are all distinct. Ignored for a custom board. */
+  // Board constraint (random boards only): when true, sample only from seeds
+  // whose nine letters are all distinct. Ignored for a custom board.
   unique_letters?: boolean
   timer:
     | { kind: 'none' }
@@ -136,9 +136,9 @@ type Setup = {
 // Constants
 // ───────────────────────────────────────────────────────────
 
-/** Sanity gate that must agree with the RPC's same gate. PROVISIONAL 15 —
- *  lower than spellingbee's 30 because spending a tile per use yields fewer
- *  words than unbounded reuse. */
+/** Sanity gate that must agree with the RPC's same gate. 15, lower than
+ *  spellingbee's 30, because spending a tile per use yields fewer words than
+ *  unbounded reuse. */
 const MIN_REQUIRED_WORDS_COUNT = 15
 /** How many seeds to try when a sampled seed has NO center that clears the
  *  word gate. A seed is gated at import to ≥15 required words center-agnostically
@@ -188,9 +188,9 @@ const PAGE_SIZE = 10_000
 
 /** Fetches the pangram seeds eligible for this game — those whose pangram is
  *  gettable at the required band (difficulty <= required_band). The
- *  difficulty tag is what lets the pool grow with the game's difficulty
- *  (docs/games/wordwheel.md). Worst case (band 6) is the full ~36.7k pool —
- *  ~4 round-trips at the 10k page size. */
+ *  difficulty tag is what lets the pool grow with the game's difficulty.
+ *  Worst case (band 6) is the whole pool — a few round-trips at the 10k page
+ *  size. */
 async function fetchPangrams(
   supabase: SupabaseClient,
   requiredBand: number,
@@ -375,8 +375,7 @@ serve(async (req) => {
       console.log(`fetched ${allPangrams.length} pangram seeds (difficulty <= ${requiredBand})`)
       if (allPangrams.length === 0) {
         // Player-reachable: a low required band can have zero nine-letter
-        // seeds at all. The sentence is Joel's, approved 2026-08-12, and moves
-        // here verbatim from ERROR_COPY.
+        // seeds at all.
         console.log('reject: no pangram seeds at this required band')
         return formValidation(
           'PN195',
@@ -400,9 +399,8 @@ serve(async (req) => {
         // Player-reachable: the unique-letters option plus a low band can empty
         // the pool. Under `unique_letters` rather than the band, because the
         // option is what narrowed the pool and turning it off is one click —
-        // and the sentence names the other lever anyway. Joel's words, approved
-        // 2026-08-12; "higher difficulty" is the right direction here, since
-        // the seed pool GROWS with the band.
+        // and the sentence names the other lever anyway. "Higher difficulty" is
+        // the right direction here, since the seed pool GROWS with the band.
         console.log('reject: no all-distinct pangram seeds at this required band')
         return formValidation(
           'PN196',
@@ -434,10 +432,10 @@ serve(async (req) => {
 
       // 3-4. Sample a seed AND a center that clears the word gate.
       // A seed's import-time gate is over its whole 9-tile multiset, but the
-      // puzzle only counts words that CONTAIN THE CENTER. So a poorly-chosen
-      // center can land a real board below the ≥15 gate even though the
-      // multiset is fine. Fix: try the seed's centers in random order and keep
-      // the first that clears the gate; re-sample the seed only if NONE do.
+      // puzzle only counts words that CONTAIN THE CENTER, so one center can
+      // land a board below the ≥15 gate even though the multiset is fine. Try
+      // the seed's centers in random order and keep the first that clears the
+      // gate; re-sample the seed only if NONE do.
       // Centers are the seed's DISTINCT letters: picking either of two
       // duplicate tiles as center makes the identical board (same center
       // letter, same outer multiset), so trying both would be wasted work —

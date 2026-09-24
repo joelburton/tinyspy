@@ -26,42 +26,41 @@ export type Board = {
   center_letter: string
   required_words_score: number
   required_words_count: number
-  /** The required set: words in the smaller list (the displayed goal). */
+  // The required set: words in the smaller list (the displayed goal).
   required_words: Array<{ word: string; points: number; is_pangram: boolean }>
-  /** The bonus set (legal − required): accepted + scored, not the goal. Same
-   *  { word, points, is_pangram } shape as required so the FE scores it locally. */
+  // The bonus set (legal − required): accepted + scored, not the goal. Same
+  // { word, points, is_pangram } shape as required so the FE scores it locally.
   bonus_words: Array<{ word: string; points: number; is_pangram: boolean }>
 }
 
 export type PangramRow = {
-  /** The wheel's nine letters as a sorted lowercase string (the PK), e.g.
-   *  'aabcdeghi' — a MULTISET, so a letter may appear twice. */
+  // The wheel's nine letters as a sorted lowercase string (the PK), e.g.
+  // 'aabcdeghi' — a MULTISET, so a letter may appear twice.
   letters: string
-  /** The distinct-letter set of `letters` (generated column), for the
-   *  overlap cap + the candidate_words subset pre-filter. bigint comes
-   *  through PostgREST as string. */
+  // The distinct-letter set of `letters` (generated column), for the
+  // overlap cap + the candidate_words subset pre-filter. bigint comes
+  // through PostgREST as string.
   mask: string
-  /** The min difficulty band of a required-quality 9-letter word with this
-   *  multiset — we fetch only rows with difficulty <= required_band, so the
-   *  pool scales with the game's difficulty. Kept for logging. */
+  // The min difficulty band of a required-quality 9-letter word with this
+  // multiset. Not read here: the fetch filters on it server-side
+  // (difficulty <= required_band), which is what scales the pool with the
+  // game's difficulty.
   difficulty: number
-  /**
-   * Whether the seed's 9 letters include a rare one — {j, q, x, z}
-   * (very rare) or {k, v, w, y, b, f, h} (somewhat rare). The diverse
-   * builder gives these masks a ×RARE_LETTER_WEIGHT sampling boost so
-   * boards aren't dominated by common-letter seeds. Precomputed at
-   * import time.
-   */
+  // Whether the seed's 9 letters include a rare one — {j, q, x, z}
+  // (very rare) or {k, v, w, y, b, f, h} (somewhat rare). The diverse
+  // builder gives these masks a ×RARE_LETTER_WEIGHT sampling boost so
+  // boards aren't dominated by common-letter seeds. Precomputed at
+  // import time.
   has_rare_letters: boolean
 }
 
 export type CandidateRow = {
   word: string
-  /** In the required set (difficulty ≤ required_band, american, no slang, clean:
-   *  slur 0 + crude 0) — counts toward the goal. */
+  // In the required set (at or below the required band, american, no slang,
+  // clean) — counts toward the goal.
   is_required: boolean
-  /** In the legal set (difficulty ≤ legal_band) — enterable. Always true here
-   *  (candidate_words already pre-filters to legal). */
+  // In the legal set (at or below the legal band) — enterable. Always true
+  // here (candidate_words already pre-filters to legal).
   is_legal: boolean
 }
 
@@ -221,23 +220,19 @@ export function buildBoard(
   }
 }
 
-/** Validate a custom (player-specified) letter set, or null if it's fine.
- *  Mirrors wordwheel.create_game's letter rules: a single center + eight
- *  outer letters, lowercase a–z — DUPLICATES ALLOWED (the wheel is a
- *  multiset; a repeated letter just means two tiles carry it, and the
- *  center may repeat an outer). Unlike spellingbee, 's' is allowed (a tile
- *  per use makes it ordinary). Both inputs are already lowercased/trimmed
- *  by the caller. */
-// Returns the fe-error-key for the failed rule, or null when the letters are
-// valid. Keys, not sentences: the FE pre-validates the same rules in the setup
-// form, so reaching one of these means a broken client — they carry no copy
-// and render as faults (docs/supabase.md → Server errors).
 /** Which of the two wheel rules broke. Named, not coded: this file knows
  *  wordwheel's spelling rules and nothing about how a refusal is carried, so
  *  the SQLSTATE and the severity are the caller's to attach — and keeping them
  *  together there is what lets the code guard read both in one place. */
 export type LetterFault = 'center' | 'letters'
 
+/** Validate a custom (player-specified) letter set: which rule broke, or null
+ *  if it's fine. Mirrors wordwheel.create_game's letter rules: a single center
+ *  + eight outer letters, lowercase a–z — DUPLICATES ALLOWED (the wheel is a
+ *  multiset; a repeated letter just means two tiles carry it, and the center
+ *  may repeat an outer). Unlike spellingbee, 's' is allowed (a tile per use
+ *  makes it ordinary). Both inputs are already lowercased/trimmed by the
+ *  caller. */
 export function validateCustomLetters(center: string, letters: string): LetterFault | null {
   if (!/^[a-z]$/.test(center)) return 'center'
   if (!/^[a-z]{8}$/.test(letters)) return 'letters'

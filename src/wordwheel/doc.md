@@ -44,17 +44,166 @@ private lists: an opponent's finds stay hidden until the game is over, so all a
 racer learns about a rival mid-game is the rank they have reached, and the
 first to the target ends the race for everyone.
 
-*The rest of the intro is owed — pass 2 of this area's audit.*
+The end of a game is on the board. No modal carries the verdict: the
+below-board pill says it, the action row's line repeats it, and the word list
+fills in every word nobody found — the bonus words too, being the same shipped
+data. The wheel stays on screen, inert, with Shuffle still live, and Restart
+replays the same letters from an empty list. A coop team that set a target
+celebrates once, at the moment they cross it.
 
 ## Game rules
 
-*Owed — pass 2. Absorbs what
-[`docs/games/wordwheel.md`](../../docs/games/wordwheel.md) says that the code
-does not.*
+A **wheel** of nine tiles: one **center** and eight **outer**. The wheel is a
+multiset — the same letter may sit on two tiles, and the center may repeat an
+outer. A word counts when it is four letters or more, spelled from the tiles
+with each tile used at most once, includes the center, and is in the board's
+**legal list**. A **pangram** is a word that uses all nine tiles, which is any
+nine-letter word that fits. Every random board has at least one, and it is a
+required word, since a board is grown from a nine-letter seed gettable at the
+required band; a board built from letters the player chose need not have one.
+There is no S rule: a tile is spent per use, so an S pluralizes at most once
+per S tile.
+
+Scoring: a four-letter word is one point, a longer word scores its length, and
+a pangram adds fifteen. The **required words** are the goal — their count and
+their total are the `X / Y` denominators on screen — and the **bonus words**
+are the rest of the legal list: accepted and scored exactly the same, but not
+part of the goal, so a player who finds them can pass the displayed maximum.
+Which words fall on which side is set at creation by two dictionary bands: a
+word is required at or below the **required band** when it is also American,
+not slang and clean; it is legal at or below the **legal band** with no further
+condition. So even at equal bands the bonus list holds the words the clean
+filter removed — which is why a board whose bands are equal shows no bonus
+list at all.
+
+The **rank ladder** runs Start → Good → Solid → Nice → Great → Amazing →
+Genius, evenly spaced up to Genius at 70% of the required total; a score past
+that clamps at Genius. `currentRankIndex` draws it on the frontend and
+`common._rank_idx` decides it on the server, in integer math, and the
+rank-ladder tests pin the two to the same answer at every boundary.
+
+### Vocabulary
+
+| term | what it means |
+|---|---|
+| **wheel** · **center** · **outer** | the nine tiles: `center_letter` and the eight-character `outer_letters`, stored lowercase, repeats allowed; the frontend shuffles the outer eight for display only |
+| **tile** | one seat on the wheel, spent once per word. A letter on two tiles may be used twice, and which tile a use spends is the board's to decide (`lib/spend.ts`) |
+| **pangram** | a word that uses all nine tiles — any nine-letter word that fits. `+15`, bold in the list, and the seed every random board is grown from |
+| **seed** | a row of `wordwheel.pangrams`: the sorted letters of a nine-letter word, tagged with the lowest band at which a required-quality word spells them |
+| **required word** · **bonus word** | the goal and the rest of the legal list, split by the two bands at creation; each shipped as `{ word, points, is_pangram }` |
+| **required band** · **legal band** | `setup.required` (1–6, default 3) and `setup.legal` (required–6, default 5), the dictionary difficulty each list is drawn at |
+| **found word** | a row in `wordwheel.found_words`: who, which word, its points and flags. The team's in coop, each racer's own in compete |
+| **rank** | where a score stands on the ladder, 0–6. The team's in coop; each racer's own in compete, and the one thing rivals can see. (connections uses the word for a category's difficulty; the scope tells them apart) |
+| **target rank** | `setup.target_rank`: compete's finish line, always set; coop's optional win, absent for the open-ended hunt |
+| **custom letters** | `setup.custom_center` + `setup.custom_letters`, a board the player chose instead of a sampled one. A one-off: never saved as the club's next default |
+| **unique letters** | `setup.unique_letters`: sample only a wheel whose nine tiles all differ. A constraint on a random board, ignored when the letters are the player's own, and saved with the rest of the setup |
+
+### Coop
+
+One found list, one score. A word is anyone's to find and, once found, is
+found for the whole team — a second player typing it gets *already found*.
+The team's rank climbs as the score does, and the game ends three ways: the
+countdown expires, somebody presses End, or — when the team chose a target
+rank at setup — the word that carries them to it wins. There is no end at
+100%: a team that clears the required list keeps finding bonus words, and the
+counter overshoots. The clock running out is a loss only when there was a
+target to miss; with none, it is the neutral `ended`. End is neutral either
+way.
+
+### Compete
+
+The same wheel, raced on private lists. Each racer has their own found words,
+score and rank, and finding a word another racer already has is a fresh point.
+What a racer learns about a rival mid-game is their rank, on the Rank strip,
+and whether they have dropped out — never a word, which the row policy
+withholds until the game ends and then opens for the post-game read.
+
+The first racer whose rank reaches the target ends the race for everyone;
+the caller is frozen onto the status as the winner with the leaderboard as it
+stood, and each player's result is written to the common roster. A conceder is
+out while the others race on and can submit nothing more, so they cannot reach
+the target; every racer conceding is a collective loss, written by
+`common.concede`. The countdown expiring before anyone reaches the target is a
+loss for the table, since there was a rank to reach; End is neutral in a race
+too.
+
+Compete needs an opposing **player**, which is why its manifest takes 2–6
+where coop takes 1–6. `create_game` checks both ends: a race with fewer than
+two players is a fault, and so is a roster of more than six.
+
+### The play states
+
+Each mode writes its own pair, so a reader of `common.games.play_state` can
+tell which was played without joining anything:
+
+| | coop | compete |
+|---|---|---|
+| the target rank reached | `won` | `won_compete` |
+| the clock, or every racer out | `lost` | `lost_compete` |
+
+Plus `playing`, and `ended` when somebody stopped it — neutral in every mode,
+and also coop's clock running out on a hunt with no target. WHY it ended is
+`common.games.status.reason`: `target`, `timeout`, `manual`, or `conceded`.
+Every ending this game writes itself publishes the final figures beside the
+reason — coop's score, count and rank, compete's leaderboard and the winner's
+name — which is what the club-list label and the Rank strip read after the
+game. The one ending it does not write, every racer conceding, is
+`common.concede`'s: it adds only its reason, and the status merges, so the
+race's last readout stays under it.
 
 ## Schema
 
-*Owed — pass 2.*
+Three tables and a view, in `supabase/migrations/20260712000000_wordwheel.sql`
+(shape) and `supabase/sql/wordwheel.sql` (behavior).
+
+| | |
+|---|---|
+| `wordwheel.pangrams` | the board-seed pool: one row per nine-letter multiset spelled by a word in `common.words`, keyed by its sorted letters, with its distinct-letter mask (generated), the lowest band at which a required-quality word spells it, how many required words fit it at each band, and whether it holds a rare letter. Public reference data, rebuilt by `gmake g-wordwheel-pangrams` after `gmake all-words` |
+| `wordwheel.games` | one row per game: the `mode`, the nine letters, both word lists as jsonb arrays of `{ word, points, is_pangram }`, and the required list's score and count, cached so a submit need not re-sum the list |
+| `wordwheel.found_words` | one row per `(game, player, word)`, with `points`, `is_pangram`, `is_bonus` and `found_at`. The game's only working state |
+| `wordwheel.games_state` | the view the frontend reads: every column of `games`, passed straight through under `security_invoker`. It hides nothing today and is kept as the uniform seam every game reads |
+
+**Nothing is hidden from a client.** Both word lists are in the column grant
+and the view exposes them from the first read; the frontend judges every word
+against them and the missed-words reveal is computed on the client at
+terminal. The trust model does not withhold an answer key from friends
+(CLAUDE.md → Trust model).
+
+**The seed pool scales with the band.** A seed's tag is the lowest band at
+which a required-quality word spells its nine letters, and the edge function
+samples only seeds tagged at or below the game's required band, so a harder
+game draws from a bigger pool. The mask is a set, so it serves the two
+set-semantics readers — the overlap cap and `candidate_words`' subset test —
+while the sorted letters carry the multiset the tiles are dealt from.
+
+**`found_words` carries the mode-aware policy**, three arms in one `EXISTS`:
+coop shows every club member every row, a racer always sees their own, and a
+terminal game opens everybody's — the post-game reveal in compete, and a no-op
+in coop. Club membership is the outer gate; the mode is read off
+`wordwheel.games.mode`, denormalized there so the policy joins one table.
+`games` needs only the membership gate, since the header holds nothing private.
+
+**The club-list readout is `common.games.status`**, seeded by `create_game`
+and rewritten on every submit. Coop's carries the team's score, count and rank
+beside the required totals and the target; compete's carries the target, the
+totals and a `leaderboard` of every player's score, count and rank, which the
+Rank strip draws mid-game. Only the rank is shown to a rival; the score rides
+along unread. A compete win freezes the winner's id and username onto the
+status, since the club label cannot resolve a uuid on its own.
+
+**The club-list title is the board**, `<CENTER>·<OUTER-SORTED>` — `D·AEEGINNR`
+— written once at creation and never changed, so one board reads one way in
+the club's history whatever the local shuffle. A repeated letter sorts beside
+its twin, so the title is the multiset.
+
+**Realtime is one room per client**, postgres-changes on both tables, and every
+change refetches the found list; the header loads once, since nothing in it
+changes during play. Both tables must be in the publication, since a
+subscription naming an unpublished table is rejected whole. The three RPCs that
+end a game from outside a submit touch `found_words` in place on the way out,
+which is what wakes a compete client to refetch the rows the policy has just
+opened; `replay_board` touches `games` instead, because it only deletes and a
+filtered subscription does not reliably see a delete.
 
 ## RPCs
 
@@ -301,8 +450,139 @@ interrupt.
 
 ## Frontend
 
-*Owed — pass 2.*
+The play surface is the shape [`docs/playarea.md`](../../docs/playarea.md)
+describes — a loader that gates on the three ways a game can fail to load,
+then `PlayArea` in the eight sections.
+
+```
+<PlayAreaLoader {...GamePageCtx}>        useGame, and the three gates
+  └── PlayArea                           the coordinator: draws no board, no control
+        ├── BoardCol                     the board column — the word engine and submit_word
+        │     ├── MobileStatusBar ←      phone only: the RankBar and Stats, mirrored above the wheel
+        │     ├── Wheel                  the wheel: nine <Tile> boxes placed on a square
+        │     │     └── ShuffleButton ←  floated over its top-right
+        │     └── WordEntryArea ←        ⌫, the typed word (drawn through TypedWord), Submit, the
+        │                                capture keyboard — or the local slot's pill in their place
+        ├── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
+        │     └── InfoCol                the readouts and the action row
+        │           ├── RankBar ⇐ Stats ⇐  the ladder, and the score and count under it
+        │           ├── OpponentStrip ←  compete only: each rival's rank, or "out"
+        │           ├── InfoActionsRow ← one row, every action, in the menu's order
+        │           ├── SetupDisclosure ←
+        │           └── WordList ←       the found words, and at terminal the missed ones
+        └── CelebrationBlockingModal ←   a coop win, as it lands
+
+  ← belongs to common/ ; ⇐ to shared/ ; everything else is this folder's
+```
+
+`GamePage` mounts the loader and owns everything above it — members, the timer,
+play_state, pause, chat — and unmounts this whole surface on pause. `Help` and
+`SetupForm` are the shell's to mount, from the menu and the start-game dialog.
+`useGame` is the bee games' shared hook bound to this schema: the header from
+`games_state`, loaded once, and the found rows, refetched on every change.
+
+What is wordwheel's own:
+
+- **The wheel is nine round boxes.** Each tile is a mustard seat placed on a
+  square by its own center, from `lib/wheel.ts`, and the face that sits in it;
+  the seats touch by construction and merge into one flower, and only the face
+  is the piece — it rests with a shadow, rises on hover and presses back down.
+  The square is sized in one coordinate unit, so the whole board sizes to the
+  column and the printer draws the same geometry. The center is bigger and
+  purple. The outer eight are shuffled locally, a fresh scan of the same
+  letters that writes nothing and reaches nobody, and the button stays live on
+  a finished board.
+- **Each tile is spent once.** The word is typed at the window, or tapped in,
+  and the wheel marks the tiles it is spending — one per use of a letter. A
+  typed letter says how many of its tiles are in use but not which, so a click
+  claims the tile it landed on and the rest fall to render order, the center
+  first (`lib/spend.ts`); a spent tile takes no click. A letter past its tile
+  count, or off the wheel, dims as it is typed (`TypedWord`), and Submit and
+  Enter are inert until the word fits (`lib/tiles.ts`), so the engine never
+  sees a word the tiles cannot spell. Once the game is over, or I conceded a
+  race, the board is read-only: the entry closes, the tiles go inert and drop
+  their marks.
+- **A refused word answers on the board.** The tiles it would have spent shake,
+  each on its own and no others, and wear the answer's color for a beat, the
+  same outcome the pill reads (`common/board-marks`). Refusing the same
+  letters again shakes them again: they are keyed on the mark's nonce.
+- **Two lists, one reveal.** Both word lists ship at load; the engine looks a
+  word up in their union and the missed words fold into the list at terminal —
+  bonus included, unless the bands are equal and there is no bonus list worth
+  showing. The list is the shared `WordList`, found words in their finder's
+  color, pangrams bold, bonus words dotted.
+- **The ladder and the figures** are the shared rank-ladder pieces, mirrored
+  above the wheel on a phone by `MobileStatusBar` so the readout stays on the
+  play surface when the info column is off-canvas. Coop shows the team's;
+  compete the caller's own, with the Rank strip for the rivals.
+- **The terminal** is the pill and the row's line (`lib/terminal.ts`), the
+  inert wheel, and the list with its missed words. A coop win celebrates once,
+  on the flip; nothing pops for any other ending.
+- **The setup form** offers the target rank — *Win at* in coop with a *None*,
+  *Target rank* in compete — the two dictionary bands, *unique letters only*
+  under a board-constraints section of its own, and one box for custom letters
+  that writes both setup keys, split after the first letter, repeats allowed.
+  Start is gated on the legal band containing the required one and on the
+  letter rules, the same rules the edge function and `create_game` check again.
+- **The club label** (`manifest.ts`) reads the status: coop's points and words,
+  compete's target and, at the end, who won at it or that nobody did.
+- **The printer** (`pdf/`) is the wheel beside the setup, above the word list —
+  coop's one shared list and compete's a section per player, the missed words
+  folded in at terminal as they are on screen. On the grayscale page the
+  center tile is told apart the two ways that survive it: larger, and with a
+  thicker border.
+- **No event log and no history viewer.** A found list is alphabetical, not
+  chronological, so there is no turn to replay.
 
 ## Tests
 
-*Owed — pass 2.*
+pgTAP, in `supabase/tests/wordwheel/` — `setup.psql` gives every file
+`pg_temp.wordwheel_board()`, a board of `abcdfghi` around `e` holding nineteen
+required entries worth sixty-two points (some real words, some synthetic — the
+RPC checks shape, not spelling) and three bonus ones; `pg_temp.wordwheel_dup_board()`,
+the multiset fixture — `abcdefgg` around `e`, so the center repeats an outer
+and G sits on two tiles — holding sixteen required entries worth forty-seven,
+among them words that spend both tiles of a letter; and `pg_temp.wordwheel_setup()`,
+a no-timer coop setup to override a field of:
+
+| file | pins |
+|---|---|
+| `schema_test` | both gametypes registered; the seed pool readable, and its generated mask the distinct-letter set of its letters; both word lists readable by a client and exposed by the view during play and at terminal |
+| `rls_test` | coop shows every member every row; an outsider sees no row of any table; a direct insert is denied; compete narrows a racer to their own rows mid-game and opens every row at terminal |
+| `candidate_words_test` | this game's own: the SQL helper returns a fitting word AND a word that would need more of a letter than the wheel has tiles, which is what proves the fit filter is the edge function's; a word missing the center and a word off the wheel are excluded |
+| `create_game_test` | both modes' rows, the gametype suffix and the denormalized mode; the title formula, with a repeated letter appearing twice; the status seeded per mode; duplicate outers and a center repeating an outer accepted, and an S; an outsider, a bad mode, a short race, a missing or out-of-range target, a bad band, every board-shape fault, the fifteen-word gate, and seven players refused |
+| `custom_letters_test` | a hand-picked board is accepted under fifteen words and refused at zero, and may repeat a letter; the custom letters are stripped from the saved default; a random board still needs fifteen |
+| `coop_target_test` | reaching the target is `won` with reason `target` and everyone winning, and the game is really over; the clock with a target unreached is `lost`; with no target it is `ended`; End with a target unreached is `ended` |
+| `gameplay_test` | each of the four `ok`s, none carrying an outcome; the row stores what was sent; the score and count include bonus finds; the coop duplicate; a word spending both tiles of a letter accepted on the multiset board; coop has no end at a full clear; the timeout and the manual end, each idempotent; the lists un-gated throughout; a word into a game deleted under it is the shared race |
+| `compete_test` | per-player ownership of a word, and a racer's own duplicate refused with the frontend's line; the leaderboard's shape; the target hit answers `won`, ends the race and names the winner; a post-win submit is refused; the timeout and the manual end with nobody winning |
+| `concede_test` | refused in coop; a conceder is out while the others race; the last one out ends the race as a collective loss |
+| `replay_test` | the found list cleared, the status reseeded, the clock zeroed, the board kept; any player may, mid-game or after; a non-player may not |
+| `player_subset_test` | a club member not seated in the game can read it and cannot move in it |
+| `reveal_partition_test` | through the real RPCs, from the loser's seat: their own rows mid-game and no rival's; every row at terminal, still partitionable by user; the answer key present throughout; and the sum over every visible row no longer equals the caller's own score, which is why the frontend filters to self in compete |
+
+`rank_idx_test` sits in the folder too, but pins `common._rank_idx` and
+belongs to `shared/rank-ladder`.
+
+The edge function has its own runner: `deno test --allow-all
+supabase/functions/wordwheel-build-board/` covers the pure core in
+`board.ts` — the letter mask and the tile counts, the fit rule (a letter as
+many times as it has tiles, two tiles allowing two uses, an absent letter
+never), the required/bonus partition and its totals, the pangram by length,
+the overlap cap, the rare-letter weighting, and the custom-letter rules with
+repeats and S allowed. The sampling that uses `Math.random` stays in
+`index.ts` and is not unit-tested.
+
+Vitest, beside the code:
+
+| file | pins |
+|---|---|
+| `lib/answer.test` · `lib/terminal.test` | every answer's words and outcome, and the two-way split of a miss by the center; every terminal sentence per mode, play state and reason, as a table with no cell pairing a win with a loss |
+| `lib/setup.test` · `components/SetupForm.test` | the letter rules and the band rule, each refusal under the field it names; the form's settings in order, the compete caption, the solo club's missing picker, the unique-letters key dropped rather than stored false, and where a server refusal lands — the letters box, the band, or the checkbox that narrowed the pool |
+| `lib/spend.test` · `lib/tiles.test` · `components/TypedWord.test` | which tile a use spends: the center first for a typed letter, the clicked tile for a click, a claim ignored once the word drops its letter, and the most recent click forgotten first; whether a word fits the tiles; a typed letter dimming past its tile count or off the wheel |
+| `components/PlayArea.test` | the surface mounts in every mode and state; a required, bonus and pangram word accepted with the right call, a word the tiles cannot spell held back rather than refused, and a miss refused with its reason and answered on the board — its own tiles and no others, one per use of a letter, shaking and wearing its own outcome for `WORD_ANSWER_MS`, and shaking again when refused again; the tiles a word spends, marked and given back, the clicked tile over its twin, and the center first when it is duplicated; the inert board after a concede or an ending; the two peer narrations; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, End, Concede |
+
+Playwright, in `e2e/`: `wordwheel` (a submitted word lands in the list and
+moves the score with no refresh), `wordwheel-coop-win` (crossing the target
+celebrates once and shows the verdict; no target ends neutral),
+`wordwheel-mobile` (the sheet at phone width, and the desktop unchanged), and
+`wordwheel-print` (a real PDF downloads).

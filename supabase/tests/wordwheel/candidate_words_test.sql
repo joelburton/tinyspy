@@ -48,7 +48,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 
 -- Sanity: 'abcdefikl' is a seeded wheel (imported; its generated
 -- distinct-letter mask is 3391). If this fails, the pangram import
--- didn't run — see MEMORY: `db reset needs import`.
+-- didn't run — `gmake db-data ENV=local` (docs/cheatsheet.md).
 select ok(
   exists (select 1 from wordwheel.pangrams where letters = 'abcdefikl' and mask = 3391),
   'fixture wheel (letters abcdefikl, mask 3391) is present in the seeded wordwheel.pangrams'

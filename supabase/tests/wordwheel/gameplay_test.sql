@@ -11,8 +11,8 @@
 -- check, dedups, records, and recomputes aggregates / the compete win.
 -- It does NOT validate word content (no tooShort/badLetters/
 -- missingCenter/notAWord — the tile-multiplicity rule lives in the edge
--- function's multiset-fit filter, not here). It returns { result, points }
--- (result = pangram / bonus / accepted / alreadyFound) mostly for tests.
+-- function's multiset-fit filter, not here). Its `ok` is { result, points },
+-- result = pangram / bonus / accepted / won; a duplicate is a race not-ok.
 --
 -- THE FORK numbers: the fixture pangram 'abcdefghi' is a 9-letter word
 -- scoring 9 + 15 = 24 (spellingbee's is 7-letter, +10). The fixture
@@ -22,9 +22,9 @@
 --   1. coop happy: required word → 'accepted', row inserted, status updated.
 --   2. coop pangram: trusted is_pangram (24 pt) → 'pangram'.
 --   3. coop bonus: trusted is_bonus → 'bonus'; 3b bonus+pangram → 'pangram'.
---   4. coop duplicate → 'alreadyFound'; compete duplicate is per-player.
+--   4. coop duplicate → the race refusal; compete duplicate is per-player.
 --   5. compete target-rank-hit → terminal 'won_compete'; leaderboard populated.
---   6. hard rejections: post-terminal P0001; non-player 42501.
+--   6. hard rejections: post-terminal is a race; a non-player is refused.
 --   7. coop has NO auto-terminal past required_words_count.
 --   8. submit_timeout / end_game terminal transitions + idempotency + auth.
 --   9. games_state exposes required_words during play + at terminal.
@@ -175,11 +175,11 @@ select is(
 );
 
 -- ============================================================
--- (4) Coop duplicate: once anyone finds 'bead', everyone gets 'alreadyFound'
+-- (4) Coop duplicate: once anyone finds 'bead', everyone else's is the race
 -- ============================================================
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
--- A RACE: useWordSubmit dedups locally and returns before committing, so
+-- A RACE: useFoundWordSubmit dedups locally and returns before committing, so
 -- reaching this means its foundWords list was stale.
 select pg_temp.envelope_is(
   wordwheel.submit_word((select id from g), 'bead', 1, false, false),
@@ -230,12 +230,12 @@ select is(
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
--- A RACE: useWordSubmit dedups locally and returns before committing, so
+-- A RACE: useFoundWordSubmit dedups locally and returns before committing, so
 -- reaching this means its foundWords list was stale.
 select pg_temp.envelope_is(
   wordwheel.submit_word((select id from compete_g), 'bead', 1, false, false),
   '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN361","message":"BEAD — already found"}'::jsonb,
-  'compete: ada''s SECOND "bead" is "alreadyFound" (same-player rule)'
+  'compete: ada''s SECOND "bead" is the already-found race (same-player rule)'
 );
 
 -- ============================================================
@@ -346,7 +346,7 @@ select is(
 );
 
 -- ============================================================
--- (10) submit_timeout: terminal 'ended' outcome='timeout'
+-- (10) submit_timeout: terminal 'ended', reason 'timeout'
 -- ============================================================
 
 reset role;

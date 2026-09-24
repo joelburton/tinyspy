@@ -15,8 +15,8 @@
  * to its target size — `--u` on screen, a fixed tile width in the PDF.
  */
 
-/** The wheel's coordinate box (a square SVG viewBox). Sized so the outer ring +
- *  each outer tile's radius leave a few units of margin for strokes / focus rings. */
+/** The wheel's coordinate box, a square. Sized so the outer ring plus an outer
+ *  tile's radius sit inside the 150-unit half-box, with a few units to spare. */
 export const BOX_W = 300
 export const BOX_H = 300
 

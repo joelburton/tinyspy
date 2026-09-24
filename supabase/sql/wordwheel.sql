@@ -41,8 +41,8 @@ create policy pangrams_select on wordwheel.pangrams
   using (true);
 
 
--- Column-level grant. The word lists are no longer hidden (the FE needs them to
--- validate guesses locally), so all columns are readable — but we keep the
+-- Column-level grant. Nothing is hidden (the FE judges every word against
+-- the lists), so all columns are readable — but we keep the
 -- explicit column list per docs/code-conventions.md → "Avoid SELECT *". `mode` is
 -- included so the games_state view's `g.mode` and the found_words_select RLS
 -- policy's `fg.mode` resolve for `authenticated` (both run in the caller's context).
@@ -56,8 +56,8 @@ grant select on wordwheel.found_words to authenticated;
 
 -- Membership-gated read on games. Co-op + compete behave
 -- identically here: anyone in the club can see the game's
--- header (letters, totals, etc.). The wordlists are gated
--- separately at the column level + games_state view.
+-- header (letters, totals, the word lists) — nothing on the
+-- row is private.
 drop policy if exists games_select on wordwheel.games;
 create policy games_select on wordwheel.games
   for select to authenticated
@@ -105,15 +105,14 @@ create policy found_words_select on wordwheel.found_words
 -- ============================================================
 -- The FE's read path for a wordwheel game header. `security_invoker = true` so
 -- RLS on the base table evaluates as the caller (games_select still gates row
--- visibility). The word lists are no longer hidden — required_words + bonus_words
--- ship to the FE from game start so it can validate + score guesses locally — so
--- the view exposes both directly (no terminal-gated reveal helper anymore; the
--- missed-words reveal is a client-side `required − found` computed at terminal).
+-- visibility). Both word lists ship to the FE from game start, so it can judge
+-- and score a word locally and compute the missed-words reveal itself at
+-- terminal; the view exposes them directly.
 --
--- So this is now a PURE PASS-THROUGH, and deliberately kept as one: every
--- game's FE reads `<schema>.games_state`, so the uniform seam is worth a view
--- that currently adds nothing but `security_invoker`. If a column ever needs
--- hiding again, it goes here and no FE changes.
+-- So this is a PURE PASS-THROUGH, and deliberately kept as one: every game's
+-- FE reads `<schema>.games_state`, so the uniform seam is worth a view that
+-- adds nothing but `security_invoker`. If a column ever needs hiding, it goes
+-- here and no FE changes.
 
 drop view if exists wordwheel.games_state;
 create view wordwheel.games_state with (security_invoker = true) as
@@ -153,7 +152,7 @@ drop function if exists wordwheel._rank_idx(int, int);
 -- through supabase.rpc(...) in one round-trip.
 --
 -- This is also where wordwheel's slice of the shared common.words
--- list is defined, on the 1..6 recognizability bands. Both bands are now a
+-- list is defined, on the 1..6 recognizability bands. Both bands are a
 -- per-game setup choice (`required` 1..6, `legal` required..6), threaded in by
 -- the edge function:
 --   - legal      difficulty <= legal_band  (returned at all = enterable). No
@@ -255,7 +254,7 @@ grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to
 --       { "word": text, "points": int, "is_pangram": bool },
 --       …
 --     ],
---     "bonus_words":   [text, …]            -- the bonus set (legal − required)
+--     "bonus_words":   [ { "word", "points", "is_pangram" }, … ]  -- legal − required, same shape
 --   }
 --
 -- The board's wordlists are taken at face value: they were
@@ -264,18 +263,21 @@ grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to
 -- gates still applied). The RPC just sanity-checks structure, not
 -- content.
 --
--- Title formula:  "<CENTER>·<OUTER-SORTED>"  e.g.,  "E·CABDNO".
--- The center letter, dot, then the 8 outer letters alphabetized.
--- Identifies a board at a glance in the club's history list.
+-- Title formula:  "<CENTER>·<OUTER-SORTED>"  e.g.,  "D·AEEGINNR".
+-- The center letter, dot, then the 8 outer letters alphabetized — a
+-- repeated letter appears twice. Identifies a board at a glance in
+-- the club's history list.
 --
--- Reject reasons (all 'P0001' unless noted):
---   - 42501 not authenticated
---   - 42501 not a member of this club
+-- Refused (each a not-ok envelope — every one a fault, since the
+-- dialog composes the setup and the edge function builds the wheel,
+-- except the custom-letters one, which is the player's own input):
+--   - not authenticated / not a member of this club
 --   - mode must be 'coop' or 'compete'
 --   - compete mode requires at least 2 players
 --   - more than 6 players (require_player_count_max)
 --   - setup.target_rank is required when mode='compete' / must be 0..6
 --     (coop may set it too: it becomes the coop WIN threshold)
+--   - the bands out of range, or legal below required
 --   - timer shape errors (delegated to common.require_valid_timer)
 --   - board.outer_letters must be 8 lowercase ASCII letters
 --     (duplicates allowed — the wheel is a multiset; 's' is allowed
@@ -286,7 +288,8 @@ grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to
 --     the edge function already applies; recheck here so a
 --     misbehaving builder can't sneak a degenerate puzzle past) —
 --     EXCEPT for a custom board (setup.custom_letters set), where the
---     player picked the letters and the gate relaxes to ≥ 1
+--     player picked the letters and the gate relaxes to ≥ 1: the one
+--     form-validation, under the letters box
 --   - board.required_words / board.bonus_words must be arrays
 
 drop function if exists wordwheel.create_game(text, jsonb, uuid[], text, jsonb);
@@ -436,11 +439,10 @@ begin
         detail = 'the chosen wheel produces an empty required set at that band';
     end if;
   elsif b_required_words_count < 15 then
-    -- PROVISIONAL threshold: a 9-tile wheel where each tile is spent per use
-    -- yields far fewer words than a spellingbee board (which allows unbounded
-    -- reuse), so the ≥15 floor is lower than spellingbee's ≥30. Tune against
-    -- the seed data's word_counts once the import has run; the edge function's
-    -- builder must target the same number.
+    -- A 9-tile wheel where each tile is spent per use yields far fewer words
+    -- than a spellingbee board (which allows unbounded reuse), so the ≥15 floor
+    -- is lower than spellingbee's ≥30. The edge function's builder targets the
+    -- same number.
     raise exception 'BUG: generated wheel had only % words to find', b_required_words_count
       using errcode = 'PN189', hint = 'fault', column = '_',
       detail = 'required_words_count must be >= 15; the edge function''s gate must agree';
@@ -498,7 +500,7 @@ begin
     b_required_words_score,
     b_required_words_count,
     board->'required_words',
-    -- bonus_words is a jsonb array of { word, points, is_pangram } now (same
+    -- bonus_words is a jsonb array of { word, points, is_pangram } (the same
     -- shape as required_words) — stored directly so the FE can score bonus finds.
     coalesce(board->'bonus_words', '[]'::jsonb)
   );
@@ -562,12 +564,14 @@ grant execute on function wordwheel.create_game(text, jsonb, uuid[], text, jsonb
 -- wordwheel.submit_word
 -- ============================================================
 -- The only mid-game action, and it is TRUSTING-COMMIT: the word arrives
--- already judged. The legality checks — too short, a letter not in the
--- wheel's multiset, the center letter missing, not on the board's list —
--- all run on the FE (src/wordwheel/lib/answer.ts and the shared
--- word-hunt engine), so a refused word never reaches this function. What
--- is left here is the duplicate, REFUSED per mode rule (see below) as a
--- RACE rather than an answer, and the accepted word itself.
+-- already judged. The legality checks all run on the FE — a word the
+-- wheel's tiles cannot spell is held back by the board column's submit
+-- gate, and too short, the center letter missing and not on the board's
+-- list are the shared found-words engine's, said in
+-- src/wordwheel/lib/answer.ts — so a refused word never reaches this
+-- function. What is left here is the duplicate, REFUSED per mode rule
+-- (see below) as a RACE rather than an answer, and the accepted word
+-- itself.
 --
 -- "Per mode rule":
 --   - coop:    duplicate iff ANY row exists with this game_id
@@ -592,10 +596,10 @@ grant execute on function wordwheel.create_game(text, jsonb, uuid[], text, jsonb
 -- no outcome: the pill is shown from the FE's own table before this call
 -- is made (docs/envelopes.md → Who writes the words, per answer).
 --
--- Throws (hard rejections):
---   42501 not authenticated, not a game player
---   P0001 'game is not in progress'  (post-terminal call)
---   P0002 'game not found'
+-- Refused (each a not-ok envelope): a game with no wordwheel row (the
+-- shared deleted-game race), a game no longer playing, a caller who has
+-- conceded, and the duplicate below (each a race); a non-player is
+-- refused by require_game_player.
 --
 -- ───────────────────────────────────────────────────────────
 -- Concurrency
@@ -610,7 +614,7 @@ grant execute on function wordwheel.create_game(text, jsonb, uuid[], text, jsonb
 -- list (required ∪ bonus) and scored it, so this trusts word + points +
 -- is_pangram + is_bonus and only enforces the live-game check, dedups, records,
 -- and recomputes aggregates / the compete win. It does NOT re-validate letters /
--- center / min length / dictionary membership. (See docs/games/wordwheel.md.)
+-- tiles / center / min length / dictionary membership (src/wordwheel/doc.md → RPCs).
 create or replace function wordwheel.submit_word(
   target_game uuid,
   word text,
@@ -681,7 +685,7 @@ begin
   -- Normalize for storage + dedup (the FE already validated legality).
   w_lower := lower(coalesce(word, ''));
 
-  -- alreadyFound (per mode rule, reading off g_row.mode). Table alias `fw` is
+  -- The duplicate (per mode rule, reading off g_row.mode). Table alias `fw` is
   -- mandatory: the function parameter is also named `word`, and PL/pgSQL's
   -- column-resolution rule raises "column reference word is ambiguous" without
   -- the alias even though we mean `w_lower` below.
@@ -708,8 +712,8 @@ begin
     -- the only one that can arrive by BOTH routes — caught locally, or lost as
     -- a race — and the two must not read differently, so the server composes
     -- the same string rather than a sentence of its own. The phrase is
-    -- deliberately written twice (Joel, 2026-09-01): it is not going to change,
-    -- and machinery to share it would cost more than it saves.
+    -- deliberately written twice: it is not going to change, and machinery to
+    -- share it would cost more than it saves.
     raise exception '% — already found', upper(w_lower) || case when coalesce(is_bonus, false) then ' •' else '' end
       using errcode = 'PN361', hint = 'race', column = '_',
       detail = 'the word is already in found_words under this mode''s dedup rule';
@@ -727,8 +731,7 @@ begin
   -- word carried them to it. Without a target (the open-ended hunt) coop still
   -- only ends via timer expiry or the manual End button: players keep finding
   -- bonus words past the displayed `Y / required_words_count` denominator and
-  -- the score overshoots `required_words_score` (the wordwheel-ws design —
-  -- see the bonus-scoring write-up above).
+  -- the score overshoots `required_words_score`.
   if g_row.mode = 'coop' then
     -- Alias `fw` so `points` resolves to the column, not the same-named function
     -- parameter (PL/pgSQL would otherwise raise "column reference is ambiguous").
@@ -761,9 +764,8 @@ begin
         (select jsonb_object_agg(gp.user_id, jsonb_build_object('won', true))
            from common.game_players gp
           where gp.game_id = target_game));
-      -- Its OWN answer, in both modes — see spellingbee.submit_word, which this
-      -- is forked from: the win used to be a `won: true` field here and nothing
-      -- at all on the compete path.
+      -- Its OWN answer, in both modes: "this word ended the game and you won"
+      -- is one case, so it gets one name.
       return common.ok_envelope(jsonb_build_object(
         'result', 'won', 'points', coalesce(points, 0)));
     end if;
@@ -783,13 +785,9 @@ begin
 
   else
     -- compete: per-player aggregates. caller_found_words_count counts
-    -- ALL of caller's rows (required + bonus) — matches the
-    -- wordwheel-ws "found.length" stat. The target-rank check
-    -- below uses caller_score (which already includes bonus
-    -- points after the bonus-scoring fix in the validation
-    -- block above), so a player who finds bonus pangrams can
-    -- legitimately rocket past target faster than the displayed
-    -- max score would suggest.
+    -- ALL of caller's rows (required + bonus), matching the Stats card, and
+    -- caller_score includes bonus points, so a player who finds bonus
+    -- pangrams can reach the target faster than the displayed max suggests.
     select coalesce(sum(fw.points), 0),
            count(*)
       into caller_score, caller_found_words_count
@@ -812,10 +810,8 @@ begin
         from (
           select gp.user_id,
                  coalesce(sum(fw.points), 0)::int as found_words_score,
-                 -- All rows (required + bonus) to mirror wordwheel-ws's
-                 -- found.length stat surfaced in the leaderboard
-                 -- display. Scoring-only count would diverge from
-                 -- what the player sees in their own Stats card.
+                 -- All rows (required + bonus): a required-only count would
+                 -- diverge from what the player sees in their own Stats card.
                  count(fw.word)::int as found_words_count
             from common.game_players gp
             left join wordwheel.found_words fw
@@ -867,10 +863,8 @@ begin
         from (
           select gp.user_id,
                  coalesce(sum(fw.points), 0)::int as found_words_score,
-                 -- All rows (required + bonus) to mirror wordwheel-ws's
-                 -- found.length stat surfaced in the leaderboard
-                 -- display. Scoring-only count would diverge from
-                 -- what the player sees in their own Stats card.
+                 -- All rows (required + bonus): a required-only count would
+                 -- diverge from what the player sees in their own Stats card.
                  count(fw.word)::int as found_words_count
             from common.game_players gp
             left join wordwheel.found_words fw
@@ -921,18 +915,17 @@ grant execute on function wordwheel.submit_word(uuid, text, int, boolean, boolea
 -- wordwheel.submit_timeout
 -- ============================================================
 -- Fired by the FE when the count-down timer hits 0. Flips the game terminal
--- with outcome='timeout' — 'ended' (neutral) normally, but 'lost' in a COOP
--- game that set a target rank and didn't reach it (the clock beat them), and
--- 'ended' in compete (nobody reached the target). Multiple peers may
+-- with reason='timeout' — play_state 'lost' in a COOP game that set a target
+-- rank and didn't reach it (the clock beat them), 'lost_compete' in compete
+-- (a race always has a target rank to miss), and 'ended' (neutral) only in
+-- the open-ended coop hunt with no target. Multiple peers may
 -- race the expiry; the SELECT ... FOR UPDATE serializes them
--- and the post-lock play_state check rejects everyone after
--- the first with P0001 (which the FE swallows silently).
+-- and the post-lock play_state check answers everyone after
+-- the first with the shared game-over race.
 --
--- Mode comes off wordwheel.games.mode. This is identical in shape
--- to connections / psychicnum's submit_timeout, just with wordwheel's
--- status payload.
--- common.end_game flips common.games to ended/terminal; the FE's useCommonGame
--- hook (subscribed to common.games) sees that and enters review mode.
+-- Mode comes off wordwheel.games.mode. common.end_game flips common.games
+-- to terminal; the FE's useCommonGame hook (subscribed to common.games) sees
+-- that and enters review mode.
 --
 -- A wordwheel-table "realtime touch" on found_words IS needed for compete:
 -- opponents' found_words rows are RLS-hidden during play and become SELECT-able
@@ -977,9 +970,7 @@ begin
   end if;
 
   if g_row.mode = 'coop' then
-    -- Status display uses the ALL-rows count to match the
-    -- live Stats card (wordwheel-ws semantics — see submit_word
-    -- for the rationale).
+    -- The ALL-rows count, matching the live Stats card.
     select coalesce(sum(points), 0),
            count(*)
       into team_score, team_found_words_count
@@ -1100,26 +1091,18 @@ grant execute on function wordwheel.submit_timeout(uuid) to authenticated;
 -- wordwheel.end_game — manual stop
 -- ============================================================
 --
--- Unlike codenamesduet / psychicnum / connections, wordwheel has no
--- intrinsic "you lost" or "you won" terminal state in coop: the
--- only automatic terminals are the compete first-to-target-rank
--- (handled inside submit_word: play_state 'won_compete', outcome
--- 'target') and the countdown timer expiring (handled by
--- submit_timeout with outcome='timeout'). For all other cases the friends are
--- expected to play until they're satisfied with their rank and
--- then explicitly stop the game.
---
--- This RPC is that explicit stop. The FE's GamePage menu has an
--- "End game" item (per-game, declared by wordwheel's PlayArea via
--- ctx.menu.setGameItems) that fires this. Distinct from suspend
--- (which leaves play_state='playing' and is the path "back to
--- club" + start-a-new-game takes): end_game writes a terminal
--- play_state='ended' with status.outcome='manual', so the game
--- appears in the club's "completed" section forever after and the
--- terminal verdict renders.
+-- The only automatic terminals are a target rank reached (inside
+-- submit_word, in either mode) and the countdown expiring
+-- (submit_timeout). A coop hunt with no target, and any game the friends
+-- are done with, is stopped explicitly — this RPC, the End action the
+-- play surface binds. Distinct from suspend (which leaves
+-- play_state='playing' and is the path "back to club" takes): end_game
+-- writes a terminal play_state='ended' with status.reason='manual', so
+-- the game appears in the club's "completed" section forever after and
+-- the terminal verdict renders.
 --
 -- Same shape as submit_timeout, with two differences:
---   - status.outcome='manual' (vs 'timeout')
+--   - status.reason='manual' (vs 'timeout')
 --   - any game player can fire it (vs the FE's timer-driven
 --     dispatch)
 -- Ends with a found_words realtime touch, same as submit_timeout: the compete
@@ -1157,14 +1140,13 @@ begin
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
-    -- Idempotency: a second click (or a concurrent click + timer
-    -- expiry) raises this and the FE swallows it the same way
-    -- it does for submit_timeout's "already terminal" race.
+    -- A second click, or a click racing the timer's expiry: the shared
+    -- game-over race, as submit_timeout answers it.
     perform common._raise_game_over();
   end if;
 
   if g_row.mode = 'coop' then
-    -- All-rows count for display, matching wordwheel-ws.
+    -- The ALL-rows count, matching the live Stats card.
     select coalesce(sum(points), 0),
            count(*)
       into team_score, team_found_words_count
@@ -1271,8 +1253,8 @@ grant execute on function wordwheel.end_game(uuid) to authenticated;
 -- ============================================================
 -- wordwheel.replay_board — restart this board from scratch
 -- ============================================================
--- The "Replay board" game-menu item / terminal RestartButton (the shared
--- restart). Restarts the SAME board — same
+-- The Restart action — a menu row all game, a button at terminal.
+-- Restarts the SAME board — same
 -- letters + word lists — for everyone: the found-words log (the game's
 -- only working state) is cleared, and common.reset_game un-terminals the
 -- row with the same initial status create_game seeds (mode-branched; the

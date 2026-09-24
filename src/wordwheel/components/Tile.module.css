@@ -19,8 +19,7 @@
  * negative margins pull the box back onto the center point those name, leaving
  * `transform` free for the face inside it.
  *
- * The seat carries the click, so the mustard is part of the hit area exactly as
- * it was when the whole thing was one SVG circle. */
+ * The seat carries the click, so the mustard is part of the hit area. */
 /* @@ */ .tile {
   position: absolute;
   width: var(--d);
@@ -39,8 +38,6 @@
 /* The FACE — the piece. It rests in its seat with a shadow, rises on hover while
  * the shadow falls away, and presses back down: the shared piece gesture every
  * other board's tiles wear (common/game-page/playArea.module.css → `.tile`).
- * Hover used to DIM the whole tile instead, which is the one thing hover means
- * nowhere else in the app.
  *
  * `--wheel-ring` is the seat showing around it — the geometry's `RING_W`, which
  * is sized so touching seats MERGE, since that merge is what makes nine circles
@@ -121,12 +118,10 @@
  * The face wears the SELECTED border, in the khaki the word-finding games wear
  * for it rather than the usual black (a word lights several letters at once,
  * and a crowd of black edges distracts), with the fill and the letter exactly
- * where they were. That reads as "this tile is in your word"
- * rather than as the tile being taken away, and it is the mark boggle's tiles and
- * spellingbee's hexes use for the same thing. (It was a DARKENED FILL, which is
- * the in-flight dim's channel — and two darkened reds are harder to tell apart
- * than an edge that changed color.) The tile comes back the moment the letter
- * leaves the word. */
+ * where they were. That reads as "this tile is in your word" rather than as
+ * the tile being taken away, and it is the mark boggle's tiles and
+ * spellingbee's hexes use for the same thing. The tile comes back the moment
+ * the letter leaves the word. */
 /* @@ */ .tile.used {
   cursor: default;
   pointer-events: none;

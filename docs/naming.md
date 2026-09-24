@@ -421,6 +421,7 @@ words sit next to the code that uses them:
 
 - [`src/connections/doc.md → Vocabulary`](../src/connections/doc.md#vocabulary)
 - [`src/spellingbee/doc.md → Vocabulary`](../src/spellingbee/doc.md#vocabulary)
+- [`src/wordwheel/doc.md → Vocabulary`](../src/wordwheel/doc.md#vocabulary)
 
 codenamesduet and psychicnum use the cross-cutting lexicon plus their
 domain-obvious words (`clue`, `target`) and don't have separate vocabulary

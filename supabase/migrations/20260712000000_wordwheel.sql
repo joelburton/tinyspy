@@ -21,7 +21,7 @@
 -- BONUS: accepted and scored, but not part of the displayed goal.
 --
 -- This is a targeted FORK of spellingbee (see spellingbee.sql +
--- docs/games/wordwheel.md). The tile-multiplicity rule lives entirely
+-- src/wordwheel/doc.md). The tile-multiplicity rule lives entirely
 -- in the board builder (which words ship) + the FE's membership check
 -- — submit_word here TRUSTS the shipped list, exactly as spellingbee
 -- does. So most of this file is a rename-port; the real changes are:
@@ -45,7 +45,7 @@
 -- require_valid_timer). Per the removability invariant in
 -- docs/common.md, common MUST NOT reference wordwheel back.
 --
--- See docs/games/wordwheel.md for the full feature picture and the
+-- See src/wordwheel/doc.md for the full feature picture and the
 -- rules-of-the-game spec.
 
 -- ============================================================
@@ -111,7 +111,7 @@ create schema if not exists wordwheel;
 -- one center, so this slightly over-counts, but it's a richness
 -- proxy). A future "board must have >= N words" gate can filter seeds
 -- on this with no build-time rescan. See import-wordwheel-pangrams.ts
--- + docs/games/wordwheel.md.
+-- + src/wordwheel/doc.md → Schema.
 --
 -- has_rare_letters drives the "diverse" builder's weighting: wheels
 -- containing any of {j, q, x, z, k, v, w, y, b, f, h} (the rare + somewhat-rare
@@ -165,7 +165,7 @@ create index wordwheel_pangrams_difficulty_idx on wordwheel.pangrams (difficulty
 -- `games_state`, and the missed-words reveal is a client-side
 -- `required − found` computed at terminal (bonus words are never
 -- shown in the reveal, but that's a FE display choice, not a gate).
--- See docs/games/wordwheel.md.
+-- See src/wordwheel/doc.md.
 
 create table wordwheel.games (
   id uuid primary key references common.games(id) on delete cascade,
@@ -195,7 +195,7 @@ create table wordwheel.games (
   --     missed-words reveal, which is required-only).
   --   bonus_words: the legal − required set (accepted + scored, not the goal).
   -- Neither is hidden — the trust model doesn't withhold them (friends, not
-  -- anti-cheat); see docs/games/wordwheel.md.
+  -- anti-cheat); see src/wordwheel/doc.md.
   required_words jsonb not null,
   bonus_words jsonb not null,
   created_at timestamptz not null default now(),

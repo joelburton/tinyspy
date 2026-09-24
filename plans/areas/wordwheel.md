@@ -687,6 +687,145 @@ clean, lint clean; the game's unit tests and the guards: 42 files, 391 tests
 green. **Not seen on a device or in a browser** — the rules are unchanged,
 and the build shows both modules load.
 
+## The audit — pass 2
+
+### The prose pass — in the working tree 2026-09-24, one sitting
+
+spellingbee's prose pass (`5df66582`), copied file for file, for Joel's read
+before any finding is presented (the order [app-audit.md](../app-audit.md)
+§4 sets):
+
+- **`src/wordwheel/doc.md` is whole.** The intro's fifth paragraph (the end
+  of a game is on the board — and only a coop team celebrates, since the
+  race winner's confetti is still F-1's); Game rules with a Vocabulary table,
+  Coop, Compete and The play states; Schema; Frontend, with the render tree
+  and what is wordwheel's own; Tests, both suites as tables, the Deno runner
+  and the four Playwright specs named. Written from the code, as Step 3's
+  sections were, not from the old doc. What this game's sections carry that
+  spellingbee's do not: the multiset in the rules (each tile once, the center
+  free to repeat an outer, no S rule), `tile`, `seed` and `unique letters` in
+  the vocabulary, the seed pool that scales with the band and the multiset
+  title under Schema, the spend rule and the submit gate under Frontend, the
+  dup-board fixture and `candidate_words_test` under Tests. Every random
+  board's pangram is a REQUIRED word (a seed tagged at or below the required
+  band has a required-quality nine-letter word at that band, and the exact
+  multiset always fits), which the doc now says and the old one did not.
+  **`docs/games/wordwheel.md` is deleted** (staged with `git rm`, so the
+  deletion rides with the diff); CLAUDE.md's row, the manifest's docstring,
+  `submit_word`'s comment and the edge function's three pointers are
+  repointed, and `docs/naming.md`'s vocabulary list gains this doc's row
+  beside connections' and spellingbee's. **The frozen migration's five
+  pointers and the import script's one are repointed too** — spellingbee's
+  pass left its migration alone, but Joel's prose-guards commit (`f2d5ff34`)
+  then repointed that migration's comments itself, and `prosePaths` now
+  refuses a named path that does not exist; an applied migration's COMMENTS
+  are Joel's to correct (CLAUDE.md → Production software). The import script
+  is `cs-unmet`, off the roster; only its pointer changed.
+- **The marker pass**, the same files as spellingbee's: a note on a field or
+  an argument is `//` (`lib/setup.ts`'s values, `unique_letters` among them;
+  `lib/terminal.ts`'s input; `pdf/`'s model; `setupSummary`'s `board`; the
+  edge function's `Setup`; `board.ts`'s three row types). The compete
+  manifest's `labelFor` carried a `/**` inside the object literal.
+  `board.ts`'s `validateCustomLetters` docstring sat above the `LetterFault`
+  type with the same stale `//` block between them (a return shape the
+  function does not have, and a `docs/supabase.md → Server errors` cite);
+  the type and the function each have their own now.
+- **The stale claims** — spellingbee's, each with its twin here, and this
+  game's own. `lib/setup.ts` and `setup.psql`: `create_game` "REJECTS a
+  `mode` field" (no such check). `manifest.ts`: "the shipped word list the FE
+  scores locally" as an architectural decision to read up on, "strips
+  `setup.mode`" (strips nothing), the picker "iff compete". `SetupForm.tsx`:
+  "Coop: a short paragraph + the timer. That's it." (coop has *Win at*, the
+  bands, the board constraint and the letters box), "Solid..Genius" against
+  `TARGET_RANK_CHOICES` of 1..6, `value`/`onChange` and a cast to
+  `WordwheelSetup` (it is `values`/`set` and `WordwheelValues`). `db.ts`: the
+  view "conditionally exposes the hidden `required_words`" behind a grant
+  that blocks it (both ship). `lib/setupSummary.ts`: "Order mirrors
+  `SetupForm.tsx`" (the target rank sits after the bands here, before them
+  there) and "fields take back" (one box). `lib/terminal.ts`: `rankLabel`
+  named as still used, and "see the comment at the call site". `pdf/`:
+  `wordColumns` (the body is `drawWordListBody`) and "required-but-missed"
+  (bonus fold in). `lib/wheel.ts`: the box "a square SVG viewBox" with
+  margin "for strokes / focus rings" (round boxes; nothing focuses). The
+  edge function's header: step 7 "Return { id }" (it relays the envelope),
+  the create_game call missing `mode`, the setup shape listed without
+  `custom_center` / `custom_letters` / `unique_letters`, **PN197 as a
+  `fault` and "this game has four" form-validations** (the code returns
+  five `formValidation`s, PN197 on the form's own line — Step 3's note), and
+  "~36.7k pool" (no count is stated now); `MIN_REQUIRED_WORDS_COUNT`
+  "PROVISIONAL" (the old doc recorded it settled 2026-08-03) — and the SQL's
+  twin, "Tune against the seed data's word_counts once the import has run".
+  `board.ts`: `difficulty` "Kept for logging" (nothing in `index.ts` reads
+  it; the fetch filters on it server-side, which the note now says). In the
+  SQL: `create_game`'s header gave `E·CABDNO` (six letters, unsorted — it is
+  `D·AEEGINNR`, the doc's real board, with the repeated letter noted),
+  `bonus_words` as `[text, …]`, and "Reject reasons (all 'P0001' unless
+  noted)" with two 42501 rows (every raise is a PN envelope; the list is now
+  by kind, every one a fault but the custom-letters validation);
+  `submit_word`'s header said the letters check is "src/wordwheel/lib/answer.ts
+  and the shared word-hunt engine" (the tile check is `BoardCol`'s submit
+  gate; the engine is `useFoundWordSubmit`) and listed "P0001 … P0002";
+  `submit_timeout`'s said `outcome`, compete ends "'ended' (nobody reached
+  the target)" (it writes `lost_compete`), "P0001 (which the FE swallows
+  silently)" and "identical in shape to connections / psychicnum's";
+  `end_game`'s said `status.outcome`, `ctx.menu.setGameItems` and "no
+  intrinsic 'you won' terminal state in coop"; `replay_board`'s named a
+  "Replay board" menu item and a `RestartButton`. The `games_select` policy
+  said "The wordlists are gated separately at the column level + games_state
+  view" (nothing is gated). The pgTAP headers: `compete_test`'s
+  `'alreadyFound'` and `outcome=` ×2; `coop_target_test`'s "outcome
+  'target'"; `gameplay_test`'s `alreadyFound` as a `result` (×4 with the
+  section headers and the assertion label), "P0001; non-player 42501" and
+  `outcome='timeout'`; `reveal_partition_test`'s "non-bonus required words"
+  bucket (bonus fold in) and its list that "splits every word into two
+  stylable buckets"; `replay_test`'s "Replay board" / `RestartButton`;
+  `candidate_words_test`'s "see MEMORY: `db reset needs import`" (a memory
+  file — now `gmake db-data ENV=local`, docs/cheatsheet.md); `useWordSubmit`
+  ×3 (the engine is `useFoundWordSubmit`). `theme.css`'s "see docs/ui.md"
+  for the two-vocabularies rule (docs/tokens.md — the opening reads' note).
+- **The archaeology.** `wordwheel-ws` ×6 in the SQL (a port source this game
+  never had — spellingbee's, carried by the fork); `submit_word`'s "the win
+  used to be a `won: true` field"; the dup comment's "(Joel, 2026-09-01)";
+  the SQL's and `schema_test`'s "no longer hidden" / "now" / "anymore" /
+  "again" (six places); `candidate_words`' "Both bands are now";
+  `create_game`'s "is a jsonb array … now"; `coop_target_test`'s "Coop used
+  to have no win at all"; `create_game_test`'s "(NOW 8)";
+  `custom_letters_test`'s "is now 8"; `schema_test`'s "now lives in
+  common.words"; `Tile.module.css`'s "Hover used to DIM", "(It was a
+  DARKENED FILL …)" and "exactly as it was when the whole thing was one SVG
+  circle" (the split's note); `SetupForm.tsx`'s "Only the input shape
+  moved"; `PlayArea.test.tsx`'s memory-file cite, "no longer picks between
+  two callbacks", "which the conceded row used to" and "went from "End" to
+  the full phrase"; the edge function's "Fix:" and its two "Joel's words,
+  approved 2026-08-12 … verbatim from ERROR_COPY". Rule 3:
+  `DEFAULT_WORDWHEEL_SETUP_COMPETE`'s "design conversation" pick, and
+  `answerMessage`'s second paragraph (Step 4's note).
+- **Not touched, on purpose:** the four e2e headers (`cs-unmet`, off the
+  roster); `Help.tsx` (already short; its body's ⌥Z is UI copy); `todo.md`'s
+  attributions; the two "common.end_game REPLACES status wholesale" comments
+  (`todo.md` → Soon holds them, spellingbee's F-14); `useGame.ts`,
+  `lib/spend.ts`, `lib/tiles.ts`, `InfoCol.tsx`, `Wheel.tsx`, `Tile.tsx`,
+  `TypedWord.tsx`, `Wheel.module.css`, `PlayArea.module.css` and the lib
+  tests, which needed nothing; `rank_idx_test` (blessed, rank-ladder's).
+
+**Seen on the way and left for the findings**, none of it prose: the race
+winner's confetti (F-1, Step 8's note); `InfoCol`'s unread `setup` (F-2,
+Step 5's); Print's `rankIdx` recomputing `selfRankIdx` (F-3, Step 5's); the
+edge function selects `difficulty` and never reads it, and synthesizes
+`is_legal` as always-true — the `CandidateRow` field nothing reads
+(spellingbee's pass saw the same); `todo.md`'s four Soon items. **Seen in
+spellingbee, its area closed and blessed, and left:** its SQL still carries
+the twins of four things fixed here — "Both bands are now", "is a jsonb
+array … now", "alreadyFound (per mode rule", and the `games_select` policy's
+"gated separately at the column level + games_state view".
+
+**Verified:** `tsc -b` clean; eslint clean over `src/wordwheel/` and the
+edge function; the game's unit tests and the guards green (42 files, 391
+tests — `prosePaths` caught the migration's and the import script's six
+pointers at the deleted doc, repointed); `deno test`, 15 green;
+`gmake db-sql ENV=local` then `npm run test:db`, 182 files, 2656 tests,
+PASS.
+
 ## Findings
 
 *(`F-wordwheel-1 · slug · title`, one heading each; a status prefix when it

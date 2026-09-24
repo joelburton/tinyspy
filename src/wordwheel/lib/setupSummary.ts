@@ -8,23 +8,23 @@ import type { WordwheelSetup } from './setup'
 
 /**
  * wordwheel's setup recap — ONE array, rendered by the info column and the PDF
- * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
- *
- * Two conditional controls: the target rank (only when one was chosen) and the
- * unique-letters constraint (only when it's on). Both omit rather than print a
- * "none"/"off" row — a record shouldn't assert a choice nobody made.
+ * alike (common/setup-form/doc.md → Setup rows): the roster, the wheel's
+ * letters, the two dictionary bands, the target rank when one was chosen, the
+ * unique-letters constraint when it's on (a control that didn't apply produces
+ * no row, rather than a row saying "none" or "off"), and the timer.
  *
  * The `Letters` row is the documented board-identity exception (setupRows.ts →
  * BOARD_KEY): it prints the wheel this game was actually built on, random or
  * hand-picked, in the same `A-BCDEFGHI` shape the dialog's custom-letters
- * fields take back — nine tiles, center first. It leads, right under the
- * roster.
+ * field takes back — nine tiles, center first. It leads, right under the
+ * roster — on a kept record, WHICH board this was outranks how it was
+ * configured.
  */
 export function setupRows(
   setup: WordwheelSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
-  /** The wheel's letters, or null while the game row is still loading. */
+  // The wheel's letters; null draws no Letters row.
   board: { center: string; outer: string } | null = null,
 ): SetupRow[] {
   const rows: SetupRow[] = [

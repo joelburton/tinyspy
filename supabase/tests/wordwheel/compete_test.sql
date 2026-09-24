@@ -12,11 +12,11 @@
 --   - First-to-target-rank ends the race with the caller as the
 --     winner (status.winner_user_id) and play_state=won_compete.
 --   - Per-player duplicate rule: bea finding a word ada already
---     found is fresh-for-bea (not 'alreadyFound').
+--     found is fresh for bea; ada's own repeat is the race refusal.
 --   - Mid-game status carries the leaderboard with per-player
 --     score + rank_idx + found_words_count.
---   - submit_timeout in compete: everyone {won: false}, outcome='timeout'.
---   - end_game in compete: everyone {won: false}, outcome='manual'.
+--   - submit_timeout in compete: everyone {won: false}, reason='timeout'.
+--   - end_game in compete: everyone {won: false}, reason='manual'.
 --   - RLS mid-game scopes finds to caller; post-terminal opens the reveal.
 --
 -- THE FORK numbers: the fixture pangram 'abcdefghi' scores 24 (9 + 15).
@@ -72,7 +72,7 @@ select is(
 );
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
--- A RACE: useWordSubmit dedups locally and returns before committing, so
+-- A RACE: useFoundWordSubmit dedups locally and returns before committing, so
 -- reaching this means its foundWords list was stale.
 select pg_temp.envelope_is(
   wordwheel.submit_word((select id from g), 'bead', 1, false, false),

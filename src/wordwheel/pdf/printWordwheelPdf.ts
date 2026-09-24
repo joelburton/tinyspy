@@ -7,27 +7,28 @@ import { drawWordListBody } from '@/common/pdf/wordListBody'
 import { BOX_H, BOX_W, TILE_POSITIONS } from '../lib/wheel'
 
 /**
- * wordwheel's print-to-PDF, composed from the shared `common/pdf` helpers (common/pdf/doc.md):
- * the frame (header / Setup / save) + `wordColumns` (the found-words list). It's boggle's
- * shape with a different board: all that's wordwheel-specific is the **wheel** — the
- * 9-circle board drawn from the same `lib/wheel.ts` geometry the on-screen board uses.
+ * wordwheel's print-to-PDF, composed from the shared `common/pdf` helpers
+ * (common/pdf/doc.md): the frame (header / Setup / save) + `drawWordListBody`
+ * (the board beside the setup, the word list below). All that is wordwheel's
+ * is the **wheel** — the 9-circle board drawn from the same `lib/wheel.ts`
+ * geometry the on-screen board uses.
  *
  * On the clean-printable page we can't lean on the on-screen purple center tile (the
  * palette is three-shade grayscale — color only for meaning; see common/pdf/doc.md), so the
  * center tile is distinguished the two ways that survive grayscale: it's LARGER (from
  * the geometry) and drawn with a thicker border.
  *
- * The word list uses both `wordColumns` per-row flags: `pangram` → bold (wordwheel's
- * pangrams), `bonus` → a dot (bonus-band finds). At terminal the required-but-missed words
- * fold in as bare rows (`found: null`), from the same reveal the on-screen list uses.
+ * The word list reads both per-row flags: `pangram` → bold, `bonus` → a dot.
+ * At terminal every missed word — required and bonus — folds in as a bare row
+ * (`found: null`), from the same rows call the on-screen list makes.
  */
 
 /** The print payload — plain data, built by the caller from the live game state. */
 export type WordwheelPrintModel = PrintHeader & {
-  /** The 8 outer letters + the mandatory center letter (the wheel). */
+  // The 8 outer letters + the mandatory center letter (the wheel).
   outerLetters: string[]
   centerLetter: string
-  /** The word list, ALREADY sorted alphabetically. */
+  // The word list, ALREADY sorted alphabetically.
   sections: WordSection[]
 }
 

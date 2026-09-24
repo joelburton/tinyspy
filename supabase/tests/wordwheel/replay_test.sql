@@ -3,8 +3,8 @@
 -- ============================================================
 -- Test: wordwheel.replay_board (restart this board from scratch)
 -- ============================================================
--- A fork of spellingbee's replay_test. The "Replay board" game-menu item
--- / terminal RestartButton. Clears the found-words log (the game's only
+-- A fork of spellingbee's replay_test. The Restart action — a menu row
+-- all game, a button at terminal. Clears the found-words log (the game's only
 -- working state), un-terminals the row with the same initial status
 -- create_game seeds, and zeroes the shared clock. The frozen board
 -- (letters + word lists) survives. Any game player may call it, mid-game

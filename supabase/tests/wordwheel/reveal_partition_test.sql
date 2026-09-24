@@ -5,12 +5,14 @@
 --       contract the WordList + PlayArea rely on
 -- ============================================================
 --
--- A fork of spellingbee's reveal_partition_test. The FE's post-game
--- WordList splits every word into two stylable buckets:
+-- A fork of spellingbee's reveal_partition_test. The post-game list (the
+-- shared common/word-list, rows from shared/found-words/wordListRows)
+-- draws every word by who found it, and the words nobody found in gray.
+-- Two buckets, named here for the assertions:
 --
 --   cat A — words *I* (the viewer) found.
---   cat B — everything else, merged: words found by *other* players +
---           the non-bonus required words nobody found.
+--   cat B — everything else: words found by *other* players + the
+--           required words nobody found.
 --
 -- That render is correct only if the DB hands each player, at game end,
 -- exactly the rows it needs to compute the split:

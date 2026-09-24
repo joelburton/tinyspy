@@ -182,13 +182,11 @@ begin
 end;
 $$;
 
--- Default setup: no timer. Mode is a positional RPC arg
--- (sibling-manifest split — the gametype string carries the mode);
--- wordwheel.create_game REJECTS a `mode` field on setup so a stale FE
--- fails fast. Tests that exercise compete-mode setup shape
--- (target_rank validation) override via jsonb concatenation:
+-- Default setup: no timer, and no mode — mode is create_game's own
+-- positional argument. A test that needs a compete setup overrides
+-- via jsonb concatenation:
 --   pg_temp.wordwheel_setup() || '{"target_rank": 3}'::jsonb
--- and pass 'compete' as the create_game `mode` arg.
+-- and passes 'compete' as the `mode` arg.
 
 create function pg_temp.wordwheel_setup()
 returns jsonb

@@ -1,18 +1,13 @@
 // cs-met-wordwheel
 
 /**
- * Render + behavior tests for wordwheel's PlayArea.
- *
- * Why this exists: the trusting-commit refactor rewired the whole submit path
- * (the shared `useFoundWordSubmit` hook, the un-gated word lists, the client-side
- * reveal), and wordwheel's PlayArea (the largest FE file in that change) had NO
- * component coverage — a blank-page runtime error wouldn't be caught by `tsc`
- * (the root tsconfig checks nothing — see memory project_typecheck_use_tsc_b).
- * These prove the tree mounts in every mode AND that the wordwheel-specific
- * glue works: the local lookup accepts a required/bonus/pangram word (optimistic
- * pill + `submit_word` call) and rejects a non-legal one with the right reason.
- * Deep game logic still lives in pgTAP + the lib Vitest suites (ranks, the
- * answer table, the tile spend); here we cover the composition.
+ * Render + behavior tests for wordwheel's play surface: the tree mounts in
+ * every mode and state, and the wordwheel-specific glue works — the local
+ * lookup accepts a required, bonus or pangram word (the optimistic pill and the
+ * `submit_word` call), holds back a word the tiles cannot spell, and refuses a
+ * non-legal one with the right reason, on the board as well as in the pill.
+ * The game logic itself is pgTAP's and the lib suites' (the answer table, the
+ * terminal sentences, the tile spend); here we cover the composition.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
  * needed; everything else — the wheel, RankBar, entry row, word list — renders
@@ -265,8 +260,8 @@ describe('wordwheel PlayArea — icon-only action rows', () => {
 
   it('playing row offers Back-to-club — the shell action, which knows to suspend', async () => {
     // ONE binding for both rows: it navigates directly at terminal and routes
-    // through the suspend-confirm flow mid-game, so the game no longer picks
-    // between two callbacks and no longer can pick wrong.
+    // through the suspend-confirm flow mid-game, so the game picks nothing
+    // and cannot pick wrong.
     const user = userEvent.setup()
     const ctx = makeCtx()
     render(<PlayAreaLoader {...ctx} />)
@@ -723,10 +718,9 @@ describe('wordwheel PlayArea — concede', () => {
       </>,
     )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    // The trigger and the modal's confirm now share the name "End game" (the
-    // button label went from "End" to the full phrase, since icon-only buttons
-    // make the label the accessible name). The confirm is the one the dialog
-    // adds, so it's last in the DOM.
+    // The trigger and the modal's confirm share the name "End game" (an
+    // icon-only button's label is its accessible name). The confirm is the one
+    // the dialog adds, so it's last in the DOM.
     await user.click(screen.getByRole('button', { name: 'End game' }))
     const confirms = await screen.findAllByRole('button', { name: 'End game' })
     await user.click(confirms[confirms.length - 1])
@@ -759,7 +753,7 @@ describe('wordwheel PlayArea — concede', () => {
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     // Possible here, not right now: the button stays and says why.
     expect(bound('act-concede').describe('button').state).toBe('disabled')
-    // The one row cannot lose the way out, which the conceded row used to.
+    // The one row always keeps the way out.
     expect(screen.getByRole('button', { name: 'Back to club' })).toBeInTheDocument()
     // Moving on is still a menu thing until the game is over.
     expect(bound('act-restart').describe('button').state).toBe('hidden')

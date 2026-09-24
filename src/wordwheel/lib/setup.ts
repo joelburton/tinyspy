@@ -9,13 +9,9 @@ import type { FormErrors } from '@/common/forms/formState'
  * persisted to `common.games.setup`, validated server-side in
  * `wordwheel.create_game`.
  *
- * **Mode is NOT on this type** — it's locked at the gametype
- * level (the sibling-manifest pattern), not a setup-time choice.
- * Clicking "Start wordwheel (coop)" vs "(compete)" is what picks
- * mode; both manifests share this same setup shape. The
- * `wordwheel.create_game` RPC rejects a `mode` field on setup with
- * a loud P0001 — so a stale FE that still embeds it fails fast
- * rather than silently mismatching.
+ * **Mode is NOT on this type** — it is the manifest's, picked by which Start
+ * button was pressed, and `create_game` takes it as its own argument; both
+ * manifests share this one setup shape.
  *
  * Fields:
  *   - `timer` — wall-clock mode (none / countup / countdown).
@@ -49,27 +45,27 @@ import type { FormErrors } from '@/common/forms/formState'
  */
 export type WordwheelValues = {
   timer: TimerMode
-  /** Required in compete; optional in coop, where it's the team's win
-   *  threshold (undefined = no win condition, the coop default). */
+  // Required in compete; optional in coop, where it's the team's win
+  // threshold (undefined = no win condition, the coop default).
   target_rank?: number
-  /** Required-words band (1..6); see the type-level notes. */
+  // Required-words band (1..6); see the type-level notes.
   required: number
-  /** Legal/bonus-words band (required..6). */
+  // Legal/bonus-words band (required..6).
   legal: number
-  /** Optional custom board: the center letter (1) + the eight other letters.
-   *  Both set → custom board; both empty/undefined → random. See the type notes
-   *  and `customLettersError`. */
+  // Optional custom board: the center letter (1) + the eight other letters.
+  // Both set → custom board; both empty/undefined → random. See the type notes
+  // and `customLettersError`.
   custom_center?: string
   custom_letters?: string
-  /** Board constraint (random boards only): when true, sample only from seeds
-   *  whose nine letters are ALL DISTINCT — no wheel with a doubled tile. Off
-   *  (undefined/false) is the default: the pool includes multiset seeds. Ignored
-   *  for a custom board, where the player's own letters stand as chosen. The
-   *  edge function enforces it by filtering the pangram pool. */
+  // Board constraint (random boards only): when true, sample only from seeds
+  // whose nine letters are ALL DISTINCT — no wheel with a doubled tile. Off
+  // (undefined/false) is the default: the pool includes multiset seeds. Ignored
+  // for a custom board, where the player's own letters stand as chosen. The
+  // edge function enforces it by filtering the pangram pool.
   unique_letters?: boolean
-  /** WHO IS PLAYING — a field like any other, and the only one that is not
-   *  part of the setup blob: `create_game` takes it as its own argument and
-   *  writes `common.game_players` rows from it. */
+  // WHO IS PLAYING — a field like any other, and the only one that is not
+  // part of the setup blob: `create_game` takes it as its own argument and
+  // writes `common.game_players` rows from it.
   player_user_ids: Set<string>
 }
 
@@ -142,11 +138,8 @@ export const DEFAULT_WORDWHEEL_SETUP_COOP: WordwheelSetup = {
 }
 
 /**
- * Initial setup for the compete manifest. Adds `target_rank: 5`
- * (Amazing — the second-toughest tier on the 7-rank ladder). The
- * SetupForm surfaces a picker so the choice is changeable per
- * game; the default is the "decisive race without being a slog"
- * pick from the design conversation.
+ * Initial setup for the compete manifest: the coop one plus a target rank,
+ * since a race needs a finish line. The dialog's picker changes it per game.
  */
 export const DEFAULT_WORDWHEEL_SETUP_COMPETE: WordwheelSetup = {
   timer: { kind: 'none' },

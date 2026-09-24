@@ -20,7 +20,7 @@
 --   5. DUPLICATE custom letters are accepted — the wheel is a multiset,
 --      so a player may repeat a letter (even the center).
 --
--- THE FORK: custom_letters is now 8 outer letters (word wheel's wheel is
+-- THE FORK: custom_letters is 8 outer letters (word wheel's wheel is
 -- nine tiles — 8 outer + 1 center).
 
 begin;

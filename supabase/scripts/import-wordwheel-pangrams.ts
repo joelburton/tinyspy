@@ -3,7 +3,7 @@
 
 /**
  * Rebuild `wordwheel.pangrams` — the board-seed pool (the word-wheel twin of
- * import-spellingbee-pangrams.ts). See docs/games/wordwheel.md.
+ * import-spellingbee-pangrams.ts). See src/wordwheel/doc.md → Schema.
  *
  * A word-wheel board is a MULTISET of nine letters (duplicates allowed — two
  * `b` tiles is a legal wheel) containing a pangram — a word using all nine
