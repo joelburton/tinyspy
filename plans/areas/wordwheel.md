@@ -1548,7 +1548,13 @@ both `common.words` and `wordwheel.pangrams`
 is the gate. spellingbee's F-15 corrected its twin to *"a SELECT grant, and
 RLS on with a permissive policy"*.
 
-### R-wordwheel-4 · `create-game-comments` · four comments in `create_game` that say less than the code
+### SHIPPED · R-wordwheel-4 · `create-game-comments` · four comments in `create_game` that say less than the code
+
+**Joel, 2026-09-24: "i'll take your rec"** — all four, in the wording shown
+him: the saved default names the bands and unique-letters; the status seed
+says what each label reads (spellingbee's R-5 wording); the setup shape lists
+the bands, the custom letters and unique-letters; the Refused list names the
+not-a-number bands. **Verified:** `npm run test:db` PASS; guards green.
 
 - The saved-default comment names *"target_rank + timer"*; the bands and
   unique-letters are saved too.

@@ -274,6 +274,12 @@ revoke execute on function wordwheel._leaderboard(uuid, int) from public;
 --                                           --   finish line). coop: OPTIONAL —
 --                                           --   reach it together and you WIN;
 --                                           --   null/absent = open-ended hunt.
+--     "required": 1..6,                     -- the required band (default 3)
+--     "legal": required..6,                 -- the legal band (default 5)
+--     "custom_center", "custom_letters",    -- a hand-picked board: relaxes
+--                                           --   the ≥15 gate to ≥1; stripped
+--                                           --   from the saved default
+--     "unique_letters": true | absent,      -- the edge function's; not read here
 --     "timer": (
 --         { "kind": "none" }
 --       | { "kind": "countup" }
@@ -318,7 +324,7 @@ revoke execute on function wordwheel._leaderboard(uuid, int) from public;
 --   - more than 6 players (require_player_count_max)
 --   - setup.target_rank is required when mode='compete' / must be 0..6
 --     (coop may set it too: it becomes the coop WIN threshold)
---   - the bands out of range, or legal below required
+--   - the bands out of range or not a number, or legal below required
 --   - timer shape errors (delegated to common.require_valid_timer)
 --   - board.outer_letters must be 8 lowercase ASCII letters
 --     (duplicates allowed — the wheel is a multiset; 's' is allowed
@@ -529,9 +535,9 @@ begin
   -- canonical id we'll FK from.
   --
   -- Saved-default arg: persist the whole setup as the club's
-  -- next default. target_rank + timer are all things a friend
-  -- group settles on; no point asking again next time. BUT strip the
-  -- one-off custom letters — a hand-picked board is a one-time choice, so the
+  -- next default. The target rank, the two bands, the unique-letters
+  -- constraint and the timer are things a friend group settles on; no point
+  -- asking again next time. BUT strip the one-off custom letters — a hand-picked board is a one-time choice, so the
   -- NEXT game should start from a random board again (the SetupForm shows the
   -- custom fields blank).
   new_id := common.create_game(
@@ -560,9 +566,10 @@ begin
 
   -- ─── Seed common.games.status for the club-page label ────
   -- Coop label needs found_words_score / required_words_score /
-  -- rank_idx / found_words_count / required_words_count. Compete
-  -- label only needs target_rank + required_words_count (the
-  -- leaderboard is built on first submission).
+  -- found_words_count / required_words_count and the target. Compete's
+  -- label reads target_rank (and, at the end, the reason and the
+  -- winner's name); the leaderboard, empty until the first submission,
+  -- is the Rank strip's.
   if mode = 'coop' then
     perform common.update_state(
       new_id,
