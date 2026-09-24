@@ -271,12 +271,11 @@ creation, so it's self-contained; `board_id` is provenance only.
   `lost_compete` (a race, so no winner if it gets here).
 - **`end_game(target_game)`** — manual neutral stop → `ended`, **both modes**
   (the RPC doesn't branch on mode; any game player, idempotent on the
-  `playing` check). The FE surfaces it in **coop only**: compete's action row
-  and menu offer Concede instead (`useStandardGameActions` would offer ending
-  as Concede's second answer only behind the `offersEndForAll` opt-in, which
-  stackdown doesn't pass).
-  So the `stackdown_compete | ended — manual end` labels row is server-reachable
-  but has no FE button today — same posture as scrabble.
+  `playing` check). Coop's action row and menu show End; compete's show Concede,
+  whose question offers ending for everyone as its second answer
+  (`useStandardGameActions`, for every race) — so the
+  `stackdown_compete | ended — manual end` labels row is reachable from the
+  board.
 - **`replay_board(target_game)`** — the "Restart" menu item / terminal-row
   Restart: reset the working state on the SAME game row. The frozen puzzle
   (tiles / solution / band / mode) stays — the same stack, cleared again. Any

@@ -539,10 +539,9 @@ leftover-tile penalty (a `'leftovers'` row with the negative value lost,
 stop ([§2.7](#27-ending-the-game)): a flat `'ended'` with every player `{won:
 false}` and **no scoring** — the group agreeing there's no result. The FE
 **menu** surfaces one exit per mode: **End game** in coop, **Concede** in
-compete (`useStandardGameActions` offers compete's whole-table End only as
-Concede's second answer, behind the opt-in `offersEndForAll`, which scrabble
-doesn't pass — so the neutral compete branch is live server-side but has no FE
-button today). `scrabble.concede` is the per-player "I quit, the others keep
+compete, whose question offers the whole-table End as its second answer
+(`useStandardGameActions`, for every race), so the neutral compete branch is
+reachable from the board. `scrabble.concede` is the per-player "I quit, the others keep
 playing". Because scrabble is turn-based, concede is more than a flag:
 `scrabble._advance_seat` **skips** conceders, `scrabble._finish` picks the
 winner among **non-conceded** players (a drop-out forfeits even a tying score),

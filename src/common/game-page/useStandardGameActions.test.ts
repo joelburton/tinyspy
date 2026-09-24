@@ -28,7 +28,6 @@ type Overrides = {
   isTerminal?: boolean
   mode?: 'coop' | 'compete'
   myConceded?: boolean
-  offersEndForAll?: boolean
   confirmed?: boolean
   // What the question is answered with, for the two-ending case.
   answer?: 'confirm' | 'alternative' | null
@@ -56,7 +55,6 @@ function setup(overrides: Overrides = {}) {
       isTerminal: overrides.isTerminal ?? false,
       mode: overrides.mode ?? 'coop',
       myConceded: overrides.myConceded ?? false,
-      offersEndForAll: overrides.offersEndForAll,
       localFeedbackSlot,
     }),
   )
@@ -106,25 +104,20 @@ describe('which exit a game offers', () => {
     expect(result.current.actEndGame.describe('button').state).toBe('hidden')
   })
 
-  it('a race that can stop the table puts BOTH behind Concede, not beside it', () => {
+  it('a race puts BOTH endings behind Concede, not beside it', () => {
     // One row, one button, one key. The second ending lives inside the
     // question — which is where the difference between them gets explained.
-    const { result } = setup({ mode: 'compete', offersEndForAll: true })
+    // Every race offers it (Joel, 2026-09-19).
+    const { result } = setup({ mode: 'compete' })
     expect(result.current.actConcede.describe('button').state).toBe('active')
     expect(result.current.actConcede.describe('button').label).toBe('Concede / End game')
     expect(result.current.actEndGame.describe('button').state).toBe('hidden')
   })
 
-  it('says only "Concede game" in a race that cannot stop the table', () => {
-    // Named in both branches, so the row cannot rename itself as state changes.
-    const { result } = setup({ mode: 'compete' })
-    expect(result.current.actConcede.describe('button').label).toBe('Concede game')
-  })
-
   it('takes the exits away once the game is terminal', () => {
     // HIDDEN, not disabled: there is no race left to drop out of and no game
     // left to end, and `disabled` means "possible here, not right now".
-    const { result } = setup({ mode: 'compete', isTerminal: true, offersEndForAll: true })
+    const { result } = setup({ mode: 'compete', isTerminal: true })
     expect(result.current.actConcede.describe('button').state).toBe('hidden')
     expect(result.current.actEndGame.describe('button').state).toBe('hidden')
   })
@@ -143,15 +136,11 @@ describe('which exit a game offers', () => {
     // A decision, not an oversight (Joel, 2026-09-04): ending is the group
     // agreeing there is no result, and choosing it is freely open — a conceder
     // is still in the conversation. Their Concede is spent, and the question
-    // that carried both endings went with it, so End comes back out on its own.
-    const { result } = setup({ mode: 'compete', myConceded: true, offersEndForAll: true })
-    expect(result.current.actConcede.describe('button').state).toBe('disabled')
-    expect(result.current.actEndGame.describe('button').state).toBe('active')
-  })
-
-  it('leaves a conceder nothing extra in a race that cannot stop the table', () => {
+    // that carried both endings went with it, so End comes back out on its own
+    // — and Concede goes, so the row does not show two flags.
     const { result } = setup({ mode: 'compete', myConceded: true })
-    expect(result.current.actEndGame.describe('button').state).toBe('hidden')
+    expect(result.current.actConcede.describe('button').state).toBe('hidden')
+    expect(result.current.actEndGame.describe('button').state).toBe('active')
   })
 
   it('offers Restart at terminal too — a replayed board is a legal thing to replay', () => {
@@ -219,26 +208,21 @@ describe('concede', () => {
 
   /**
    * The two endings behind one action. Which question gets asked is decided by
-   * whether there is a body for the second one, so a game cannot end up
-   * offering an answer it can't carry out.
+   * whether there is a body for the second one, and a race always has one.
    */
-  describe('in a race that can also stop the table', () => {
+  describe('in a race', () => {
     it('asks the two-answer question, not the plain one', () => {
-      const { result } = setup({ mode: 'compete', offersEndForAll: true })
+      const { result } = setup({ mode: 'compete' })
       act(() => result.current.actConcede.run())
       expect(lastQuestion()).toMatchObject({
         title: 'Concede, or end the game?',
         confirmLabel: 'Concede',
-        alternativeLabel: 'End for everyone',
+        alternativeLabel: 'End for all',
       })
     })
 
     it('fires end_game when the alternative is picked', async () => {
-      const { result, rpc } = setup({
-        mode: 'compete',
-        offersEndForAll: true,
-        answer: 'alternative',
-      })
+      const { result, rpc } = setup({ mode: 'compete', answer: 'alternative' })
       rpc.mockResolvedValue(ENDED_OK)
       act(() => result.current.actConcede.run())
       await flush()
@@ -247,7 +231,7 @@ describe('concede', () => {
     })
 
     it('fires concede when the primary answer is picked', async () => {
-      const { result, rpc } = setup({ mode: 'compete', offersEndForAll: true })
+      const { result, rpc } = setup({ mode: 'compete' })
       rpc.mockResolvedValue(CONCEDED_OK)
       act(() => result.current.actConcede.run())
       await flush()
@@ -255,15 +239,6 @@ describe('concede', () => {
     })
   })
 
-  it('asks the PLAIN question where the game cannot stop the table', () => {
-    const { result } = setup({ mode: 'compete' })
-    act(() => result.current.actConcede.run())
-    expect(lastQuestion()).toMatchObject({
-      title: 'Concede the game?',
-      confirmLabel: 'Concede',
-    })
-    expect(lastQuestion()).not.toHaveProperty('alternativeLabel')
-  })
 })
 
 describe('restart', () => {

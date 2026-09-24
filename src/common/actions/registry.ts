@@ -122,7 +122,7 @@ const CONCEDE_OR_END_CONFIRM: ConfirmOptions = {
     'Conceding puts you out and the others play on — it counts as a loss for you. ' +
     'Ending stops the game now for everyone, with no winner.',
   confirmLabel: 'Concede',
-  alternativeLabel: 'End for everyone',
+  alternativeLabel: 'End for all',
   cancelLabel: 'Keep playing',
 }
 

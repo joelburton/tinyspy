@@ -316,9 +316,8 @@ table comment in the baseline migration.)
   in, which left a stale game sitting as the club's current view. The FE offers
   both behind ONE control: the action row runs **[Concede / End game] [Check
   words] [Peel]**, and Concede's question is where the two are told apart
-  (`useStandardGameActions`' `offersEndForAll`, opt-in because most races do not
-  offer a whole-table stop on the board, though every schema defines
-  `end_game`). pgTAP: `end_game_test.sql`.
+  (`useStandardGameActions`, which gives every race that question). pgTAP:
+  `end_game_test.sql`.
 - `bananagrams.concede(target_game)` — **a player drops out of the race.**
   bananagrams was the *origin* of per-player concede; that mechanism has since
   been promoted into `common` and made a whole-app feature (see
@@ -467,8 +466,8 @@ collide at ~1-in-16M, which a club of friends will never reach.
   column (the other exception), the order is **state → opponents (`PeersStrip`)
   → help → setup → the hand card → the action row at the very bottom**. While
   playing, the action row is **Concede + Peel** side by side (icon-only; the
-  exit comes from `useStandardGameActions` with `offersEndForAll`, so its
-  question offers ending for everyone as its second answer rather than a second
+  exit comes from `useStandardGameActions`, so its question offers ending for
+  everyone as its second answer rather than a second
   red button sitting beside it) — there is NO separate Dump button (the in-hand
   dump zone is the only dump affordance); **[Check words]** sits between Concede
   and Peel — the always-available manual board check (below), icon-only like its

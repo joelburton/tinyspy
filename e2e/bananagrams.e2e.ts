@@ -382,8 +382,8 @@ test.describe('bananagrams new game', () => {
  *
  * Asserted through the UI rather than the RPC because the wiring is the part
  * that was missing: bananagrams is compete, and a race's exit is Concede, so
- * ending for everyone reaches the player as Concede's SECOND answer (the
- * `offersEndForAll` opt-in). One row, one button, one key — the question is
+ * ending for everyone reaches the player as Concede's SECOND answer, as it does
+ * in every race. One row, one button, one key — the question is
  * where the two are told apart, since two red squares on the board could only
  * name them.
  */
@@ -406,7 +406,7 @@ test.describe('bananagrams end game', () => {
     // say yes, which is the whole point of it being a question.
     const panel = page.locator('[data-floating-panel]')
     await expect(panel.getByText('Concede, or end the game?')).toBeVisible()
-    await panel.getByRole('button', { name: 'End for everyone' }).click()
+    await panel.getByRole('button', { name: 'End for all' }).click()
 
     // Neutral terminal: the row offers New game + Back to club, and Peel is gone.
     await expect(actionButton(page, 'act-new-game')).toBeVisible({ timeout: 15000 })

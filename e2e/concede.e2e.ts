@@ -17,9 +17,8 @@ import { signIn } from './helpers/session'
  * conceded") while Bob keeps playing (no terminal for him, his Concede still
  * live).
  *
- * wordwheel's board does not offer End for everyone, so its question is the
- * plain two-button CONCEDE_CONFIRM. bananagrams' spec covers the other shape — the same action
- * with ending for everyone as its second answer.
+ * Alice answers the question's Concede, not its second answer, End for all —
+ * bananagrams' spec covers that one, ending the table neutrally.
  */
 test.describe('concede (compete)', () => {
   test('a conceding player goes out; the other keeps racing', async ({ browser }) => {
@@ -46,7 +45,7 @@ test.describe('concede (compete)', () => {
     // Alice concedes (Playwright retries the click until it's actionable, so a brief
     // startup pause before Bob's presence registers self-heals), then answers the
     // question. Scoped to the panel: the board's own button shares the word.
-    await pageA.getByRole('button', { name: 'Concede game' }).click()
+    await pageA.getByRole('button', { name: 'Concede / End game' }).click()
     await pageA.locator('[data-floating-panel]').getByRole('button', { name: 'Concede' }).click()
 
     // Alice is now locally terminal — "You conceded" (the InfoActionsRow line).
@@ -54,7 +53,7 @@ test.describe('concede (compete)', () => {
 
     // Bob keeps racing: no conceded/terminal state for him, and his Concede is live.
     await expect(pageB.getByText('You conceded')).toBeHidden()
-    await expect(pageB.getByRole('button', { name: 'Concede game' })).toBeEnabled()
+    await expect(pageB.getByRole('button', { name: 'Concede / End game' })).toBeEnabled()
 
     await ctxA.close()
     await ctxB.close()

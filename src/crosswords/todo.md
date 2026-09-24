@@ -89,21 +89,6 @@
   rather than a choice. The bar is a documented exemption from the shared
   button (its ON state is a game color), so the size is this game's to keep or
   collapse; the point is only that nothing yet says which.
-- **The board still has no control that stops the whole table in compete.**
-  Everything under it is done: `crosswords.end_game` runs in either mode and
-  writes the neutral terminal (`ended` + `outcome: 'manual'`, `status.mode` says
-  which, nobody won), `crosswordsCompeteGame` supplies `endGame`, and the
-  reading was checked — `competeLabel` answers `'ended'` and `buildOver` hands
-  it to `gameEndedTerminalMessage('compete')`, which is "Game ended — no winner"
-  at `outcome: 'neutral'`.
-
-  What is left is one argument: `offersEndForAll` on this game's
-  `useStandardGameActions` call, which grows Concede's question a second answer
-  ("End for everyone") rather than putting a second red button on the board.
-  bananagrams is the worked example. Until then a race can only reach End from
-  the pause overlay, so a group that is merely done with the crossword still
-  closes it by conceding one at a time, each taking a loss.
-
 ## Someday
 
 ## Maybe

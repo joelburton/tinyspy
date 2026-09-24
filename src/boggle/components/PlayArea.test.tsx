@@ -266,6 +266,24 @@ describe('boggle PlayArea — render smoke', () => {
     expect(screen.getAllByText(/moth won/).length).toBeGreaterThan(0)
   })
 
+  it('compete: a race the friends stopped is neutral, whoever was ahead', () => {
+    // boggle.end_game writes `ended`; without this the scores were compared,
+    // and a stopped race read as a win for the leader and a loss for the rest.
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <PlayArea
+        {...makeCtx({
+          isTerminal: true,
+          playState: 'ended',
+          players: twoMembers,
+          status: { mode: 'compete', reason: 'manual', leaderboard: [] },
+        })}
+      />,
+    )
+    expect(screen.getAllByText('Game ended — no winner').length).toBeGreaterThan(0)
+    expect(screen.queryByText(/won$/)).toBeNull()
+  })
+
   it('shows local feedback (and clears the box) for an off-board word', async () => {
     // Regression: a too-short/off-board reject set the feedback but didn't clear
     // `word`, and the below-board pill is gated on word === '' — so its own
@@ -703,7 +721,7 @@ describe('boggle PlayArea — the keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
     await answer(user, 'Concede')
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
     expect(rpc).not.toHaveBeenCalledWith('end_game', expect.anything())

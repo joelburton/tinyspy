@@ -45,8 +45,16 @@ type ReplayResult = { result: 'replayed' }
  * Every game calls this and places what it wants: coop shows End, a race shows
  * Concede, and a game that offers neither simply doesn't put them anywhere. The
  * actions themselves say when they apply, so a caller never asks — End is
- * hidden in a race unless the game opts in, Concede is hidden outside one, and
+ * hidden in a race until you have conceded, Concede is hidden outside one, and
  * both are hidden once the game is over (there is no ending an ended game).
+ *
+ * **Every race can also stop the whole table** (Joel, 2026-09-19: *"yes, every
+ * race should offer it"*): Concede's question offers ending as its second
+ * answer. They are different acts — conceding is a loss on your record, and it
+ * takes every player doing it to close a game the group has lost interest in;
+ * ending is the group agreeing there is no result, which is neutral — and the
+ * difference is subtle enough that the question explains it rather than the
+ * board drawing two red buttons.
  *
  * The genuinely per-game bits:
  *   - `localFeedbackSlot` is the game's own below-board slot, where a not-ok
@@ -67,7 +75,6 @@ export function useStandardGameActions({
   mode,
   myConceded,
   selfSolved,
-  offersEndForAll,
   localFeedbackSlot,
 }: {
   db: GameRpcClient
@@ -84,21 +91,13 @@ export function useStandardGameActions({
   // because not every race HAS this state — where finishing ends the game for
   // everyone, or where there is nothing to solve, nobody can sit on a banked win.
   selfSolved?: boolean
-  // Compete: this game can ALSO stop the whole table, so Concede's question
-  // offers that as its second answer. They're different acts — conceding is a
-  // loss on your record and it takes every player doing it to close a game the
-  // group has simply lost interest in; ending is the group agreeing there's no
-  // result — and the difference is subtle enough that the question explains it
-  // rather than the board drawing two red buttons and hoping. Opt-in per game:
-  // every schema defines `end_game`, but a race has to want a whole-table stop.
-  offersEndForAll?: boolean
 
   // The game's below-board slot, where a not-ok answer is shown.
   localFeedbackSlot: FeedbackSlot
 }): StandardGameActions {
-  // Stop the whole table. The body of coop's End, and — where a race offers it —
-  // of Concede's second answer, so the two say the identical thing to the
-  // server and read the identical answer back.
+  // Stop the whole table. The body of coop's End, and of a race's Concede's
+  // second answer, so the two say the identical thing to the server and read
+  // the identical answer back.
   const endForAll = async () => {
     const res = await runRpc<GameStopResult>(db.rpc('end_game', { target_game: gameId }))
     if (res.type === 'not-ok') {
@@ -113,7 +112,7 @@ export function useStandardGameActions({
   }
 
   // End — coop's exit. A race normally never draws it: its way out is Concede,
-  // whose question offers ending as the alternative where the game has one.
+  // whose question offers ending as the alternative.
   //
   // The exception is a racer who has ALREADY conceded. Choosing to end is
   // freely open to them — ending is the group agreeing there is no result, and
@@ -126,7 +125,7 @@ export function useStandardGameActions({
   const actEndGame = useBoundAction('act-end-game', {
     terminal: isTerminal,
     describe: (): ActionState => {
-      if (mode === 'compete' && !(offersEndForAll && myConceded)) return 'hidden'
+      if (mode === 'compete' && !myConceded) return 'hidden'
       // HIDDEN at terminal, not disabled: there is no ending an ended game, and
       // `disabled` is for what is possible here and not right now. A conceder
       // still gets it while the others race — conceding is not ending.
@@ -135,24 +134,25 @@ export function useStandardGameActions({
     run: endForAll,
   })
 
-  // Concede — a real loss for the conceder; the others keep racing. In a game
-  // that can also stop the table, this is the ONE way out and its question is
-  // where the two are told apart: `runAlternative` is what makes the registry
-  // ask the two-answer version, so there is no flag to disagree with a body.
+  // Concede — a real loss for the conceder; the others keep racing. It is a
+  // race's ONE way out while you can still play, and its question is where
+  // conceding and stopping the table are told apart: `runAlternative` is what
+  // makes the registry ask the two-answer version.
   const actConcede = useBoundAction('act-concede', {
     terminal: isTerminal,
     describe: (): ActionState | { state: ActionState; label: string } => {
       if (mode !== 'compete') return 'hidden'
-      // Hidden once the game is over — there is no race left to drop out of.
-      // Disabled, not hidden, for the two states where the race runs on without
-      // you: the button says why (already conceded, or a win already banked).
-      if (isTerminal) return 'hidden'
-      const state: ActionState = myConceded || selfSolved ? 'disabled' : 'active'
-      // Named in both branches: a row that fell back to the registry's "Concede
-      // game" in one of them would rename itself as the game changed.
-      return { state, label: offersEndForAll ? 'Concede / End game' : 'Concede game' }
+      // Hidden once the game is over — there is no race left to drop out of —
+      // and once you have conceded: End has come back out as its own control
+      // (above), so a spent Concede beside it would be a second flag offering
+      // nothing. Disabled, not hidden, for a win already banked: End is not
+      // offered there, so the button stays to say why you cannot leave by it.
+      if (isTerminal || myConceded) return 'hidden'
+      const state: ActionState = selfSolved ? 'disabled' : 'active'
+      // Named for both answers its question offers.
+      return { state, label: 'Concede / End game' }
     },
-    runAlternative: offersEndForAll ? endForAll : undefined,
+    runAlternative: endForAll,
     run: async () => {
       const res = await runRpc<ConcedeResult>(db.rpc('concede', { target_game: gameId }))
       if (res.type === 'not-ok') {

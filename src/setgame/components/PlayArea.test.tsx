@@ -398,7 +398,7 @@ describe('setgame PlayArea — the command keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
     await answer(user, 'Concede')
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
     expect(rpc).not.toHaveBeenCalledWith('end_game', expect.anything())

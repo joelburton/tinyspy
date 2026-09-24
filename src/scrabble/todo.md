@@ -18,6 +18,14 @@
 
 ## Soon
 
+- **scrabble's three marks have no spec.** Its green, yellow and red all
+  converted to `useMark` with the rest (2026-09-20), and each was planted: make
+  the mark never draw and scrabble's whole suite stays green. The other nine
+  games' marks each got one; these did not, because reaching them needs a
+  staged-and-committed move and no scrabble spec has ever staged one. That
+  harness is the work, not the assertions. (Moved here from
+  `common/board-marks/todo.md`.)
+
 - **One play is formatted for a reader in two places.** `BoardCol`'s
   `historyLabelFor(play, nameOf)` builds the history banner's line ("#1 moth: +10
   APPLE, BERRY" / "#5 moth passed" / "#5 moth exchanged 3 tiles"), and
@@ -120,22 +128,6 @@
   suggest row is a list row that IS the control rather than a general button,
   so the shared button's `small` treatment does not reach it; this is only
   about which size it means to be.
-- **A race here has no way to stop the whole table.** Compete offers Concede
-  alone, so a group that has lost interest can only close the game by every
-  player conceding — one at a time, each taking a loss on their record for a
-  game nobody wanted to finish.
-
-  Most of it already exists. `scrabble.end_game` writes the neutral terminal
-  (`ended` + `outcome: 'manual'`, nobody won) and does not care which mode it is
-  called in, and the FE side is one argument: `offersEndForAll` on this game's
-  `useStandardGameActions` call, which grows Concede's question a second answer
-  ("End for everyone") rather than putting a second red button on the board.
-  bananagrams is the worked example.
-
-  What to check first is the READING, not the wiring — that this game's
-  `labelFor` and its in-game verdict treat `ended` in COMPETE as neutral, since
-  nobody won is not the same as everyone losing.
-
 - **The leftover-tile scoring is logged on one ending out of five, and in one
   mode out of two — so a score drops and the log does not say why.** Joel,
   2026-09-17: it should be a row every time.

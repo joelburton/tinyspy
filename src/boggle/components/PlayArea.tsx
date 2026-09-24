@@ -13,7 +13,7 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import type { TerminalMessage } from '@/common/terminal/terminalMessage'
+import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/terminal/terminalMessage'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
@@ -702,6 +702,11 @@ function buildOver({
     }
     return { pillText: `Ended: ${tally}`, infoColText: reason, outcome: 'neutral' }
   }
+
+  // A race the friends chose to stop (`ended`, boggle.end_game) is neutral —
+  // no one won, no one lost (Joel, 2026-09-19) — whatever the scores were, so
+  // it is answered before anything compares them.
+  if (playState === 'ended') return gameEndedTerminalMessage('compete')
 
   // Compete — most points wins (no dupes-cancel; see boggle.md §12).
   // A conceder forfeited the race: they see a plain loss even if their

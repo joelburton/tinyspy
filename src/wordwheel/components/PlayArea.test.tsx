@@ -885,8 +885,9 @@ describe('wordwheel PlayArea — concede', () => {
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
-    // Possible here, not right now: the button stays and says why.
-    expect(bound('act-concede').describe('button').state).toBe('disabled')
+    // A spent Concede goes, and End takes its place: one flag, not two.
+    expect(bound('act-concede').describe('button').state).toBe('hidden')
+    expect(bound('act-end-game').describe('button').state).toBe('active')
     // The one row always keeps the way out.
     expect(screen.getByRole('button', { name: 'Back to club' })).toBeInTheDocument()
     // Moving on is still a menu thing until the game is over.
@@ -992,7 +993,7 @@ describe('wordwheel PlayArea — the keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
     await answer(user, 'Concede')
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
     expect(rpc).not.toHaveBeenCalledWith('end_game', expect.anything())

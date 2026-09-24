@@ -260,7 +260,7 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('⌥⌫ asks the two-answer question; "End for everyone" calls end_game', async () => {
+  it('⌥⌫ asks the two-answer question; "End for all" calls end_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
     h.progress = [progressRow({ user_id: 'u1', unplaced: 7 }), progressRow({ user_id: 'u2', unplaced: 3 })]
@@ -272,7 +272,7 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
     expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'End for everyone' }))
+    await user.click(screen.getByRole('button', { name: 'End for all' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
     expect(rpc).not.toHaveBeenCalledWith('concede', expect.anything())
   })
@@ -303,11 +303,11 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
     expect(document.querySelector('button[data-action="act-end-game"]')).toBeNull()
     expect(document.querySelector('button[data-action="act-concede"]')).not.toBeNull()
 
-    // My Concede is spent; ending the table is still open to me.
+    // My Concede is spent, so it goes; ending the table is still open to me.
     h.progress = [progressRow({ user_id: 'u1' }), progressRow({ user_id: 'u2', unplaced: 3 })]
     rerender(<PlayArea {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true }), two[1]] })} />)
     expect(stateOf('act-end-game')).toBe('active')
-    expect(stateOf('act-concede')).toBe('disabled')
+    expect(stateOf('act-concede')).toBe('hidden')
   })
 
   it('Restart mid-game asks, and goes straight through at terminal', async () => {

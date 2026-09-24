@@ -68,10 +68,10 @@ describe('ConfirmationHost', () => {
       title: 'Concede, or end the game?',
       message: 'Two endings.',
       confirmLabel: 'Concede',
-      alternativeLabel: 'End for everyone',
+      alternativeLabel: 'End for all',
     })
     expect(screen.getAllByRole('button')).toHaveLength(3)
-    await click('End for everyone')
+    await click('End for all')
     await expect(answer).resolves.toBe('alternative')
   })
 

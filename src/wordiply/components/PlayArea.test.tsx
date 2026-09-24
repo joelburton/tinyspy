@@ -716,7 +716,7 @@ describe('wordiply PlayArea — new game, end, concede and restart', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('Concede the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
