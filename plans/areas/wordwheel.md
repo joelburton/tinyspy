@@ -125,6 +125,67 @@ question):
 
 **A later red is the step's.**
 
+### Step 1 — gather this game's owed work into `todo.md` — DONE 2026-09-23
+
+The doc's register was emptied at the opening. Every other `todo.md`, every
+plan, and the docs were grepped for the game (`wordwheel`, `word wheel`,
+`MooseWheel`). What they held:
+
+**The end-for-all copy in `todo.md` is DELETED**, as spellingbee's was.
+`common/game-page/todo.md` holds the work and says *"build it as one change,
+not fourteen"*, and Joel's ruling there (*"`ended` is neutral in every
+mode"*) leaves no per-game reading to check first. The copy's check was run
+anyway, and it holds: `manifest.ts`'s compete `labelFor` answers
+`verdict('Ended', …)` with `nobody reached "<rank>"`, never a loss, with the
+all-conceded terminal caught ahead of it on `status.reason`; the in-game
+verdict for a manual compete end is the shared
+`gameEndedTerminalMessage('compete')`.
+
+**`plans/tile-feedback.md` holds three wordwheel entries, and none is
+`todo.md`'s** — all are pass 3's: the shape-1 section (*"Nothing more on the
+board"*, Joel 2026-09-23, now that the refusal reads the same on both bee
+boards); the roster row (tf0 — *"a pass through the MARKS, not the
+framework"*); and the token row (BRAND tokens for both bee games, ruled at
+spellingbee's tf2, with the center moved to the dusty purple `#7e6aa3` the
+same day, `45f618f1`).
+
+**Two things for the audit, not the todo** — both in files on this roster:
+
+- `components/Tile.tsx` calls the outcome class a *"tone class"*, and
+  `Wheel.module.css` → `.tile.answered .face`'s header says *"The tone"*.
+  `common/game-page/todo.md` → Bugs files the shared `VERDICT_TONE` rename,
+  and says a game's own `tone`-for-outcome prose is fixed per game.
+- `theme.css`'s *"see docs/ui.md"* pointer, already recorded in the opening
+  reads.
+
+**Checked and holding nothing owed:**
+
+- `common/mobile/todo.md`'s `:hover` question lists wordwheel's board among
+  the ungated (`Wheel.module.css`'s `.tile:not(.used):hover`, verified). The
+  decision is the scope, shared and open; nothing to copy until it lands.
+- `common/setup-form/todo.md`'s five monospace forms name wordwheel — but
+  wordwheel's `SetupForm` sets no font. The mono face is
+  `common/fields/ManualBoardField.module.css`'s, shared with spellingbee, so
+  the entry's "five forms" count is stale in a detail. setup-form's to fix,
+  not this area's.
+- `shared/found-words/todo.md`'s `.loading` / `.empty` — this game deletes its
+  own two uses at Step 2, the loader split; the shared rule goes when the last
+  of the three has converted.
+- `common/game-page/todo.md`'s per-game height reserves — wordwheel computes
+  no `100svh` of its own; its column height is `foundWordsPlayArea.module.css`'s.
+- `src/boggle/todo.md`'s Won't do on sharing `makeBeeGame` — boggle's ruling,
+  wordwheel as evidence.
+- `plans/playarea-readability.md` (its survey rows — pass 1's steps),
+  `plans/keyboard-nav-plan.md`, `docs/states.md`, `docs/naming.md`,
+  `docs/games/wordiply.md` / `letterboxed.md` / `boggle.md` and the shared
+  folders' `doc.md`s — evidence or description, no work.
+- The root `todo.md` names nothing of this game's.
+
+**What `todo.md` holds after the step:** one Bug (`act-new-game` before the
+game loads), five Soon (the leaderboard helper, the unread result keys, the
+status-merges comments, the action-row collapse, the two shuffles), one
+Maybe (`s`-heavy seeds), one Won't do (the board-stylesheet fold).
+
 ## Findings
 
 *(`F-wordwheel-1 · slug · title`, one heading each; a status prefix when it
