@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { execFileSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -19,6 +19,11 @@ import { describe, expect, it } from 'vitest'
  *     ancestor, from one of the usual roots, or inside SOME game, common or
  *     shared folder, because "each game's `lib/answer.ts`" names a file every
  *     game has.
+ *
+ * "Exists" means git knows it: tracked, or ignored on purpose (`.env`, the
+ * generated word lists). Asked of git, not the disk, so a Mac answers as CI's
+ * fresh Linux checkout does — the disk holds local-only files CI lacks, and a
+ * Mac's filenames match regardless of case.
  *
  * Skipped: a placeholder (`<game>`, `*`, `…`, `${`), a name wrapped mid-word at
  * a line end, a string in code, `plans/areas/` and `plans/app-audit.md` (dated
@@ -39,13 +44,31 @@ const NOT_OURS: Record<string, string> = {
   'src/crosswords/lib/types.ts → packages/shared/src/index.ts': "crossplay's repo, the port's source",
   'src/crosswords/pdf/solution.ts → print/solution.ts': "crossplay's repo, the port's source",
   'src/guards/cssClasses.test.ts → ./X.module.css': 'an example shape, not a file',
+  'src/guards/cssClasses.test.ts → ./PlayArea.module.css': "each game's own, in its components folder",
   'src/letterboxed/lib/customBoard.ts → ./dice.ts': "boggle's import, relative to boggle's folder",
 }
 
+const gitFiles = execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter(Boolean)
+
 function trackedFiles(): string[] {
-  return execFileSync('git', ['ls-files'], { cwd: ROOT, encoding: 'utf8' })
-    .split('\n')
-    .filter((f) => SOURCE.test(f) && !RECORDS(f) && !SELF.includes(f))
+  return gitFiles.filter((f) => SOURCE.test(f) && !RECORDS(f) && !SELF.includes(f))
+}
+
+/** Every tracked file, and every folder holding one. */
+const tracked = new Set(gitFiles.flatMap((f) => f.split('/').map((_, i, parts) => parts.slice(0, i + 1).join('/'))))
+
+/** Which of `paths` an ignore rule covers, whether or not the file is on disk.
+ *  Each is also asked with a trailing slash, for a rule written for a folder. */
+function ignored(paths: string[]): Set<string> {
+  const asked = paths.flatMap((p) => [p, `${p}/`])
+  try {
+    const out = execFileSync('git', ['check-ignore', '--stdin'], { cwd: ROOT, encoding: 'utf8', input: asked.join('\n') })
+    return new Set(out.split('\n').filter(Boolean).map((p) => p.replace(/\/$/, '')))
+  } catch (e) {
+    // Exit 1 is "none of them is ignored"; anything else is a real failure.
+    if ((e as { status?: number }).status === 1) return new Set()
+    throw e
+  }
 }
 
 const subfolders = (d: string) =>
@@ -53,7 +76,6 @@ const subfolders = (d: string) =>
     .filter((e) => e.isDirectory())
     .map((e) => join(d, e.name))
 
-const exists = (p: string) => existsSync(join(ROOT, p))
 
 describe('paths named in prose', () => {
   const files = trackedFiles()
@@ -71,9 +93,12 @@ describe('paths named in prose', () => {
   })
 
   it('every repo path named in prose exists', () => {
-    const missing: string[] = []
-    const report = (file: string, line: number, token: string) => {
-      if (!NOT_OURS[`${file} → ${token}`]) missing.push(`${file}:${line}  ${token}`)
+    // A name with no tracked candidate waits here, and is reported unless an
+    // ignore rule covers one of its candidates — one `check-ignore` for all.
+    const untracked: Array<{ where: string; token: string; candidates: string[] }> = []
+    const check = (file: string, line: number, token: string, candidates: string[]) => {
+      if (NOT_OURS[`${file} → ${token}`] || candidates.some((c) => tracked.has(c))) return
+      untracked.push({ where: `${file}:${line}`, token, candidates })
     }
 
     for (const file of files) {
@@ -86,7 +111,7 @@ describe('paths named in prose', () => {
             const next = line[m.index + p.length] ?? ''
             const prev = line[m.index - 1] ?? ''
             if (next === '-' || next === '*' || prev === "'" || prev === '"') continue
-            if (!['', '.sql', '.ts', '.tsx', '.md'].some((ext) => exists(p + ext))) report(file, i + 1, p)
+            check(file, i + 1, p, ['', '.sql', '.ts', '.tsx', '.md'].map((ext) => p + ext))
           }
           for (const m of line.matchAll(/`([\w.-]+(?:\/[\w.-]+)+\.(?:ts|tsx|css|sql|psql|md|mjs|json|toml|sh))`/g)) {
             const p = m[1]
@@ -94,10 +119,14 @@ describe('paths named in prose', () => {
             const candidates: string[] = []
             for (let d = dirname(file); d && d !== '.'; d = dirname(d)) candidates.push(join(d, p))
             candidates.push(p, ...roots.map((r) => join(r, p)), ...anyFolder.map((d) => join(d, p)))
-            if (!candidates.some(exists)) report(file, i + 1, p)
+            check(file, i + 1, p, candidates)
           }
         })
     }
+    const ignoredPaths = ignored(untracked.flatMap((u) => u.candidates))
+    const missing = untracked
+      .filter((u) => !u.candidates.some((c) => ignoredPaths.has(c)))
+      .map((u) => `${u.where}  ${u.token}`)
     expect(missing, `Path(s) named in prose that don't exist:\n${missing.join('\n')}`).toEqual([])
   })
 
