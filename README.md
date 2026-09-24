@@ -130,7 +130,7 @@ Two main suites — pgTAP for server-authoritative game logic, Vitest for FE beh
 npm test                                                        # both
 npm run test:fe                                                 # Vitest only; --watch for dev loop
 npm run test:db                                                 # pgTAP only; needs Docker + local stack
-supabase test db --local supabase/tests/codenamesduet/win_test.sql    # one file
+npm run test:db | grep win_test                                 # one file: run all, read its line
 ```
 
 ## Production

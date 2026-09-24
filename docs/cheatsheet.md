@@ -250,7 +250,7 @@ supabase db dump --local --schema common        # dump one schema as SQL
 ```
 supabase gen types typescript --local           # → stdout; piped into src/types/db.ts
 supabase test db --local supabase/tests         # pgTAP suite (recurses into subfolders)
-supabase test db --local supabase/tests/codenamesduet/create_game_test.sql   # one file
+supabase test db --local supabase/tests | grep create_game_test   # one file: run all, read its line
 supabase link --project-ref <ref>               # tie this checkout to a hosted project
 supabase login                                  # one-time browser-based auth
 ```

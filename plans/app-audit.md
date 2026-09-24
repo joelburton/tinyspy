@@ -253,12 +253,19 @@ Those registers take no new items; they empty as the areas open.
 
 **Then read what moved under it.** The shell keeps changing, so an area's code
 was written against a `common/game-page` that may no longer be the one it is
-audited against. Read the commits that touched the shell since the area's own
-files last changed:
+audited against. Read the commits that touched the shell since the game's code
+was last written for its own sake — the last commit whose subject opens with
+the game's name. Not the last commit to touch the folder: the opening commit
+stamps every file, and a shared area's sweep that reached in already brought
+the game to the new shape, so either anchor gives an empty or short window.
 
 ```sh
-git log --oneline --since="$(git log -1 --format=%cI -- src/<area>/)" -- src/common/game-page/
+since=$(git log -1 --format=%cI -i --grep='^<game>' -- src/<game>/)
+git log --oneline --since="$since" -- src/common/game-page/
 ```
+
+What the window is for is false findings: list what those shell changes made
+untrue before writing a single finding.
 
 **An area is committed before the next one opens.** Several commits inside one
 area is normal; two areas' work may not share a commit.

@@ -67,10 +67,10 @@ Every color has a **name**, and every name says which **bucket** it belongs to.
 - **Not every token is a decision.** A **contract slot** is a blank a game fills
   in (`--tile-bg-color`, `--grid-gap`); **local math** is arithmetic
   (`--cols`); **`--_localName`** is a value built up inside one file.
-- **A value with one reader is not a token** — it stays a number in its class.
-  If one component's value does earn a token, it carries that component's whole
-  name: shortening it to look general is how a one-off acquires the appearance
-  of a system.
+- **A value with one reader can be a token.** The name documents what the
+  number is, and it is the handle a theme reaches for (`--toast-stripe-width`
+  has one reader). It carries that component's whole name: shortening it to
+  look general is how a one-off acquires the appearance of a system.
 
 ### The buckets
 
@@ -240,9 +240,9 @@ test: can two members trade places and still be the same kind of thing, more or
 less of it? `label` is a hair darker than `muted`, not lighter, because a label
 is structure that must stay readable in small caps, not de-emphasized content.
 
-**Tokens are for values with many readers.** A value with one reader stays a
-number in its class. Board geometry and a game's tuned surfaces (its radii, its
-dims) are outside the vocabularies.
+**A token's reader count is not its test.** A value with one reader earns a
+token when a name says what it is, or a theme might change it. Board geometry
+and a game's tuned surfaces (its radii, its dims) are outside the vocabularies.
 
 ### The a/b/c rule — a value that doesn't fit
 

@@ -705,10 +705,14 @@ MEANS to reach the stack imports `fetchTheRealStack` from the same file, as
 page mount and every RPC fall-through would otherwise make that fetch; the
 module's own test unmocks it.
 
-Single-file pgTAP run, for tightening one test:
+**pgTAP runs as a whole suite, never one file.** Every test file includes
+`../_shared/setup.psql` and `envelope.psql`, and `supabase test db` mounts only
+the path it is given, so pointing it at one file or one game's folder fails
+with `No such file or directory` and "Bad plan … ran 0". To tighten one test,
+run the suite and read that file's line:
 
 ```bash
-supabase test db --local supabase/tests/codenamesduet/create_game_test.sql
+npm run test:db | grep create_game_test
 ```
 
 `supabase test db` does its own `create extension if not exists pgtap` against

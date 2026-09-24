@@ -67,11 +67,12 @@ and the two declare disjoint tokens — but the order within the folder does:
 ## Details
 
 - **Where a value goes.** A themed color: `themes/`. A color no theme may
-  touch: `fixed.css`. Anything that is not a color and is read by more than a
-  couple of rules: `base.css`. A game's brand color: that game's `theme.css`.
-  A value with one reader: its own class, as a number. The rules for all of
-  this are [docs/tokens.md](../../../docs/tokens.md), which owns the color system and
-  the non-color vocabularies; this folder is where the non-color half lives.
+  touch: `fixed.css`. A token that is not a color: `base.css`. A game's brand
+  color: that game's `theme.css`. A value with one reader may be a token too,
+  named for its component (`--toast-stripe-width`). The rules for all of this
+  are [docs/tokens.md](../../../docs/tokens.md), which owns the color system
+  and the non-color vocabularies; this folder is where the non-color half
+  lives.
 - **Two page-height numbers, on purpose.** `--game-chrome-height` is the
   total lump a play surface subtracts from the viewport, written as one
   number; `--game-header-bottom` is where the header's rule actually sits,
