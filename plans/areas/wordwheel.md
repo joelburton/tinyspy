@@ -905,7 +905,20 @@ spellingbee's helper with the schema swapped; or leave it. Recommendation:
 the helper, as ruled there. `compete_test`'s mid-game score and the win's
 leaderboard pin its content.
 
-### F-wordwheel-2 · `results-unread-keys` · the per-player results carry keys nothing reads
+### SHIPPED · F-wordwheel-2 · `results-unread-keys` · the per-player results carry keys nothing reads
+
+**Joel, 2026-09-24: "i'll take your rec"** — `{ won }` everywhere. The two
+coop endings write `{ won: false }`; the three compete endings build each
+result from the roster, `jsonb_object_agg(gp.user_id, {won})`, instead of
+re-keying the leaderboard. `submit_word`'s leaderboard variable is
+`status_leaderboard`, as in the other two (spellingbee's R-1 made the same
+rename). `coop_target_test` pins a loss's result as exactly `{"won": false}`,
+`compete_test` the winner's as exactly `{"won": true}`. The `todo.md` → Soon
+entry is gone.
+
+**Verified:** `gmake db-sql ENV=local`, `npm run test:db`, 182 files, 2658
+tests, PASS. **Planted** an extra key on every result: both new cases red.
+Restored.
 
 From `todo.md` → Soon; spellingbee's F-16 (coop) and R-1 (compete), both
 ruled. The coop endings — `submit_timeout`, `end_game` — write `{ won:

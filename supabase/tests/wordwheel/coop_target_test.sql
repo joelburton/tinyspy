@@ -25,7 +25,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(12);
+select plan(13);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -145,6 +145,14 @@ select is(
   (select play_state from common.games where id = (select id from g2)),
   'lost',
   'coop: the clock beating an unreached target is a LOSS, not a neutral stop'
+);
+
+-- A player's result is the win's shape inverted; the team's figures are the
+-- status's, not repeated per player.
+select is(
+  (select result from common.game_players where game_id = (select id from g2)),
+  '{"won": false}'::jsonb,
+  'coop: a loss writes each player { won: false } and nothing else'
 );
 
 -- ============================================================
