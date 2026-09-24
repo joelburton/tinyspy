@@ -13,6 +13,18 @@
   early `+` asks the new-game question and then can do nothing. By the rule
   in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
   beside it already answers `hidden` for it.
+- **`replay_board` takes no game-row lock.** Every other game's replay locks
+  the game row (`select … for update`) before resetting, because a replay
+  interleaved with an in-flight move can let that move land on the fresh
+  board, or let a game-ending move land after the reset and re-end the game
+  (docs/supabase.md → Server conventions). `crosswords.replay_board` doesn't,
+  and `common.reset_game` doesn't lock for it. psychicnum's `replay_board` is
+  the model.
+- **The cell RPCs take no game-row lock** (`set_cell`, `set_mark`,
+  `check_cells`, `reveal_cells`). Per-cell writes carry their own `version`
+  (newer wins), so this may be deliberate for the cells themselves; check
+  whether the move that completes the grid, and so ends the game, can race
+  another, and say in the functions why they don't lock.
 
 ## Soon
 

@@ -690,7 +690,7 @@ alter table common.game_scratchpads enable row level security;
 -- ClubPage refetch on navigation) and at gametype registration
 -- (a deploy-time event).
 --
--- Membership is pinned by tests/common/publication_test.sql.
+-- Membership is pinned by tests/common/realtime_publication_test.sql.
 
 alter publication supabase_realtime add table common.clubs_members;
 alter publication supabase_realtime add table common.messages;
@@ -699,7 +699,7 @@ alter publication supabase_realtime add table common.game_players;
 alter publication supabase_realtime add table common.game_scratchpads;
 
 -- Replica identity FULL on common.games so DELETE events carry
--- the full pre-deletion row. ClubPage's postgres_changes
+-- the full pre-deletion row. useClubGames' postgres_changes
 -- subscription filters on `club_handle=eq.<X>`; under the default
 -- replica identity (PK only) the OLD payload on a DELETE event
 -- has just the id, the filter fails to match, and the subscriber

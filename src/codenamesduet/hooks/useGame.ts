@@ -37,7 +37,8 @@ export type GameRow = Pick<
  * The seated players are not read here: the loader seats the row's two ids
  * from the profiles `GamePageCtx` already holds (`lib/seats.ts`). `useBoard`
  * reads the words and the events on a channel of its own; the loader runs
- * both.
+ * both. Two hooks rather than one so each refetches only on its own tables:
+ * an agent found mid-turn moves the board and the log but not the turn.
  */
 export function useGame(gameId: string) {
   const [game, setGame] = useState<GameRow | null>(null)

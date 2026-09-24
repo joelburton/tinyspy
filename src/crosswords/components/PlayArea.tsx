@@ -159,9 +159,8 @@ export function PlayArea(ctx: GamePageCtx) {
   // control puts the author's answers away again — back to exactly the fill the
   // players left, which is the whole point for a game whose grid can
   // legitimately differ from his (rebuses, quantum clues). The fetch below
-  // hangs off the toggle rather than a flag. (Errors are tolerated silently,
-  // like the old auto-fetch was: solution stays null and the control stays
-  // live for a retry.)
+  // hangs off the toggle rather than a flag. (Errors are tolerated silently:
+  // solution stays null and the control stays live for a retry.)
   const { revealed: solutionShown, toggle: toggleSolution } = useSolutionReveal()
   const [solution, setSolution] = useState<(string[] | null)[][] | null>(null)
   useEffect(() => {

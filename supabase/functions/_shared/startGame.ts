@@ -1,7 +1,7 @@
 // cs-unmet
 
 // Shared game-creation scaffolding for the board-builder edge functions
-// (spellingbee, wordwheel, wordiply, waffle, boggle). Like `_shared/http.ts`,
+// (spellingbee, wordwheel, wordiply, waffle, boggle, letterboxed). Like `_shared/http.ts`,
 // this lives under `_shared/` so the deployed functions can import it but it
 // isn't itself deployed. It captures the pieces every board-builder repeats
 // verbatim: the caller-scoped client, the request parse/validate GATE, and the
@@ -31,7 +31,7 @@ import type { Database } from '../../../src/types/db.ts'
  * security-definer `create_game` RPC (and any candidate-word reads) see the real user
  * for the club-membership check. Every board-builder needs exactly this client; the
  * `SUPABASE_URL` / `SUPABASE_ANON_KEY` / `Authorization` plumbing now lives here once
- * (a future auth change touches one place, not five).
+ * (a future auth change touches one place).
  */
 export function callerClient(authHeader: string): SupabaseClient<Database> {
   return createClient<Database>(
@@ -57,7 +57,8 @@ export type BuildBoardRequest = {
  * Parse + validate the four fields every board-builder takes (`target_club`,
  * `setup`, `mode`, `player_user_ids`) plus the `Authorization` header, and build
  * the caller-scoped client. Returns the validated request, or a ready-to-send
- * error `Response` (400/401) — callers do `if (x instanceof Response) return x`.
+ * fault envelope `Response` (HTTP 200, like every answer) — callers do
+ * `if (x instanceof Response) return x`.
  *
  * Logs are tagged with `fnName` (e.g. "wordwheel-build-board"): a one-line entry
  * trace, a `reject:` line per failed gate (so the early returns aren't silent in
@@ -69,7 +70,7 @@ export async function parseBuildBoardRequest(
   fnName: string,
 ): Promise<BuildBoardRequest | Response> {
   // Entry trace so the serve output shows the request arrived even when the body
-  // is unparseable (the early 400/401 returns would otherwise look silent).
+  // is unparseable (the early fault returns would otherwise look silent).
   console.log(`${fnName}: request received`)
   const body = (await req.json().catch(() => ({}))) as Record<string, unknown>
   const targetClub = body.target_club

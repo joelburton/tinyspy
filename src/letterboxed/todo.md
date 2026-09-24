@@ -9,6 +9,19 @@
   early `+` asks the new-game question and then can do nothing. By the rule
   in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
   beside it already answers `hidden` for it.
+- **The board's word list can be silently cut short.**
+  `letterboxed.candidate_words` returns a set with no order and no bound, and
+  `letterboxed-build-board` calls it through PostgREST (`index.ts:158`,
+  `:266`), so `max_rows` (10,000) applies. Sampling 300 seeds locally, 2 went
+  over at the default band 5 (largest 10,694 rows) and 5 at band 6 (largest
+  12,714; an earlier sample reached 17,260). Rows past the cap are dropped
+  arbitrarily, so those words are missing from the board's accepted list and a
+  legal word is refused. Fix: a `.range()` paging loop ordered by a unique key
+  (docs/supabase.md → Query bounds), or return the list as one `jsonb` value.
+- **`log_hint_or_spoiler` takes no game-row lock.** Every other move locks the
+  game row (`select … for update`) so concurrent moves serialize
+  (docs/supabase.md → Server conventions). Decide whether a hint/spoiler log
+  can race anything that matters; if it can't, say so in the function.
 
 ## Soon
 

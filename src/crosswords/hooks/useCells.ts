@@ -146,7 +146,7 @@ export function useCells(
       setLoading(false)
     }
 
-    // Postgres-changes-only (Pattern A) → a per-effect-run dedup suffix so a
+    // Postgres-changes-only → a per-effect-run dedup suffix so a
     // StrictMode double-mount doesn't hit supabase-js's name cache and throw
     // on the second `.on(...)` after `.subscribe(...)`. (usePeerCursors, by
     // contrast, needs a STABLE Broadcast room, so it must NOT use this.)

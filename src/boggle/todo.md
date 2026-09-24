@@ -6,6 +6,12 @@
   early `+` asks the new-game question and then can do nothing. By the rule
   in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
   beside it already answers `hidden` for it.
+- **`submit_word` takes no game-row lock.** Every other game's move locks the
+  game row (`select … for update`) so concurrent moves serialize
+  (docs/supabase.md → Server conventions). Check whether two teammates'
+  simultaneous submissions can race — both crossing the score bar, or one
+  landing after the game has ended — and either take the lock or say in the
+  function why it isn't needed.
 
 ## Soon
 

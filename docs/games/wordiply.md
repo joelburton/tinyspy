@@ -473,7 +473,7 @@ Folder `src/wordiply/`, mirroring `src/wordwheel/`. Two manifests, one schema, o
 
 - **`manifest.ts`** — `wordiplyCoopGame` / `wordiplyCompeteGame`, a single `BRAND` const,
   shared lazy loaders (Help / PlayArea / SetupForm), `startGameInClub` →
-  `invokeStartGameEdgeFn('wordiply-build-board', …)`, `submitTimeout` / `endGame` via
+  `runEdgeFn('wordiply-build-board', …)`, `submitTimeout` / `endGame` via
   `makeRpcDispatcher`, per-mode `labelFor`. Register both in the games registry + add to the
   CLAUDE.md doc map.
 - **`db.ts`** — typed client on schema `wordiply`.
@@ -731,7 +731,7 @@ Mid-game compete needs no filter: RLS means you only *have* your own rows.
   `act-concede` / `act-restart` / `act-new-game` / `act-back-to-club`), each placed as an
   `<ActionButton>`. A `<LengthScoreBar>` is likely new (or a thin
   reskin of wordwheel's `<RankBar>`, which is already "fill to a target percent").
-- **RPC helpers:** `makeRpcDispatcher`, `invokeStartGameEdgeFn`.
+- **RPC helpers:** `makeRpcDispatcher`, `runEdgeFn`.
 - **Not applicable:** `WordList` (the board rows are the words), PDF print (candidate but
   deferred — see below).
 

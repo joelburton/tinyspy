@@ -342,11 +342,15 @@ begin
   --
   -- It raises nothing at all, so it needs no catch block: `security invoker`
   -- means RLS decides what it can see, and seeing nothing is an answer.
+  --
+  -- NO BOUND, on purpose for now: the list comes back as ONE jsonb value, so
+  -- PostgREST's `max_rows` cannot truncate it, but the payload grows with the
+  -- library. Bound it with the bulk import (docs/games/crosswords.md → Deferred).
   select coalesce(jsonb_agg(to_jsonb(r)), '[]'::jsonb) into v_rows
     from (
-      -- Every column reference is table-qualified on purpose: the OUT columns
-        -- above (`id`, `title`, `status`, …) shadow unqualified names, and
-        -- `common.games` really does have `id`, `title` and `status` columns.
+      -- Every column reference is table-qualified on purpose: `common.games`
+        -- has `id` and `title` columns too, so a bare name would be ambiguous or
+        -- read the wrong table.
         select
           p.id,
           coalesce(nullif(btrim(p.meta ->> 'title'), ''), 'Untitled') as title,
@@ -384,8 +388,9 @@ begin
         -- Alphabetical by title, case-insensitively — the picker is a list you
         -- scan by name, and import order (the previous `created_at desc`) is an
         -- accident of how the files happened to land. The expression is repeated
-        -- rather than `order by title`, because the OUT column of that name would
-        -- shadow it. `created_at desc` breaks ties so equal titles hold a stable,
+        -- rather than `order by lower(title)`, because inside an expression
+        -- `title` names `common.games.title`, not this select's alias.
+        -- `created_at desc` breaks ties so equal titles hold a stable,
         -- newest-first order instead of whatever the plan happens to emit.
         order by lower(coalesce(nullif(btrim(p.meta ->> 'title'), ''), 'Untitled')),
                  p.created_at desc

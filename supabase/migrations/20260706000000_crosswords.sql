@@ -118,7 +118,7 @@ alter table crosswords.cells enable row level security;
 -- there is no subscriber to wake. If a future feature needs the FE to react to
 -- a crosswords.games change, re-add the publication line here AND a touch in the
 -- writing RPC — a subscription to an unpublished table fails silently.
--- Publication membership is pinned by tests/crosswords/publication_test.sql.
+-- Publication membership is pinned by tests/common/realtime_publication_test.sql.
 alter publication supabase_realtime add table crosswords.cells;
 
 -- ── Gametype registration ─────────────────────────────────────────────

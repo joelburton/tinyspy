@@ -172,6 +172,8 @@ export function useClubGames(clubHandle: string, globalFeedbackSlot: FeedbackSlo
           event: '*',
           schema: 'common',
           table: 'games',
+          // A DELETE matches this only because common.games is REPLICA
+          // IDENTITY FULL (see its migration).
           filter: `club_handle=eq.${clubHandle}`,
         },
         () => loadGames(),

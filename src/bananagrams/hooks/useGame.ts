@@ -101,7 +101,9 @@ export type ProgressRow = {
  * Subscribe to every player's `bananagrams.progress` row for this game — the
  * thin realtime surface (counts only, never boards). `progress` is
  * club-readable, so the caller sees all players' rows; the PeersStrip renders
- * the opponents'. Pattern A (refetch on any change) — the table is tiny
+ * the opponents'. A hook apart from `useGame` because the two tables sit on
+ * opposite sides of RLS: `player_boards` is owner-only during play. Pattern A
+ * (refetch on any change) — the table is tiny
  * (one row per player) and updates at most on each player's debounced save.
  */
 export function useProgress(gameId: string): ProgressRow[] {

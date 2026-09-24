@@ -1,75 +1,44 @@
-# Supabase — conventions and divergences
+# Supabase — how the app uses it
 
-How the app talks to Supabase, end to end: the client, schema access, query
-shapes, Realtime, RPCs, RLS, and Edge Functions. This doc is the **map** —
-it names each convention, says who follows it, and records every deliberate
-divergence in one register. The deeper mechanics live in the docs this one
-links to:
+Everything the app knows lives in Postgres. The frontend reads it through
+PostgREST, changes it only by calling RPCs, hears about changes over Realtime,
+and hands the work that needs a secret or a lot of computing to an edge
+function. This doc introduces how those pieces are used here and the
+conventions that hold across every game; the mechanics are in the folders:
 
 | for | see |
 |---|---|
-| DB conventions (schemas, RPC style, RLS helpers, the definer-helper + invoker-view shape) | [code-conventions.md](code-conventions.md) |
-| Which realtime hook shape to write, and the channel rules | [src/common/realtime/doc.md](../src/common/realtime/doc.md) |
-| The `common` schema, the game-RPC helpers (`create_game` / `end_game` / concede / timers), RLS philosophy, auth & magic links | [common.md](common.md) |
-| Per-game schema details | [games/*.md](games/) |
-| Test patterns for all of this (pgTAP + Vitest + the e2e gates) | [testing.md](testing.md) |
+| the client, the call wrappers, and the one shape every answer comes back in | [src/common/supabase/doc.md](../src/common/supabase/doc.md), [envelopes.md](envelopes.md) |
+| channels, the hook shapes, the deaf window, reconnects | [src/common/realtime/doc.md](../src/common/realtime/doc.md) |
+| the `common` schema, the game-RPC helpers, RLS | [common-schema.md](common-schema.md) |
+| SQL naming, `security definer`, the explicit revoke, the helper + view shield | [code-conventions.md → Database](code-conventions.md#database) |
+| test patterns (pgTAP, Vitest, e2e) | [testing.md](testing.md) |
 
-## The client
+## The client and schema access
 
-One typed client for the whole app —
-[`src/common/supabase/supabase.ts`](../src/common/supabase/supabase.ts):
+One typed client, [`supabase.ts`](../src/common/supabase/supabase.ts), made with
+the publishable key and the generated `Database` type (`npm run types:gen`
+after a schema change). Each game has its own Postgres schema, reached through
+a pre-bound handle — `src/<game>/db.ts` is
+`export const db = supabase.schema('<game>')` — and game code that needs the
+common schema imports it as `commonDb`. Auth, edge functions and Realtime use
+the raw client.
 
-- Created once with the **publishable key** and the generated `Database`
-  type (`npm run types:gen` after any schema change). There is no
-  service-role key anywhere in the FE, and none in the Edge Functions
-  either — see [Edge Functions](#edge-functions).
-- Auth options are the supabase-js defaults, **stated explicitly**
-  (`persistSession` / `autoRefreshToken` / `detectSessionInUrl`) so the
-  contract is visible.
-- Dev nicety: when the page is loaded from a LAN IP but
-  `VITE_SUPABASE_URL` points at loopback, the client rewrites the Supabase
-  host to the page's host — this is what makes phone-over-LAN testing Just
-  Work. No-op in prod.
-- On session restore, `useSession` round-trips `auth.getUser()` and probes
-  `common.profiles` to catch stale JWTs (post-`db reset`, deleted users).
-  Transient 5xx keeps the stored session; hard failures sign out.
+Two settings exist twice, once for the local stack and once for the hosted
+project, and a change to one needs the other:
 
-## Schema access
+- **Exposed schemas.** Every schema the frontend addresses must be in
+  `supabase/config.toml` → `[api] schemas` locally and in `EXPOSED_SCHEMAS`
+  (`supabase/deploy/env.sh`, applied by `gmake project-config-api`) on the
+  hosted project. A new game missing from the hosted list works in every local
+  gate and fails in production with `Invalid schema`.
+  [`schemaExposure.e2e.test.ts`](../src/guards/schemaExposure.e2e.test.ts)
+  probes the local side.
+- **`max_rows`**, the cap PostgREST silently applies to every response
+  ([Query bounds](#query-bounds--and-the-max_rows-trap)).
 
-One Postgres schema per gametype plus `common`
-([code-conventions.md → Schemas](code-conventions.md#schemas)). The FE
-reaches each through a **pre-bound handle**:
-
-- Every game folder has a one-line `src/<game>/db.ts`:
-  `export const db = supabase.schema('<game>')`.
-- The common layer has [`src/common/supabase/db.ts`](../src/common/supabase/db.ts); game
-  code that needs common tables imports it as `commonDb` to alias around
-  its own `db`.
-- Auth, Edge Functions, and Realtime channels use the raw `supabase`
-  client — those aren't schema-scoped.
-
-Two operational invariants ride on this:
-
-- **PostgREST exposure.** Every schema the FE addresses must be in
-  `supabase/config.toml` `[api] schemas`, and that config is only read at
-  `supabase start` — a `db reset` does NOT re-apply it. A missing/unapplied
-  schema fails every request with `PGRST106`.
-  [`src/guards/schemaExposure.e2e.test.ts`](../src/guards/schemaExposure.e2e.test.ts)
-  probes every registered game's schema over real HTTP to pin this.
-  **The hosted project has its own copy of this list**: `EXPOSED_SCHEMAS` in
-  `supabase/deploy/env.sh`, applied by `gmake project-config-api` — config.toml
-  only governs the local stack. A new game must be added to BOTH, or prod fails
-  with `Invalid schema: <name>` on that game's first request (how strands'
-  first deploy failed, 2026-08-04, while every local gate was green).
-- **`max_rows = 10000`** (config.toml): PostgREST silently caps every
-  response at this many rows. It's a backstop against a missing-filter
-  bug fetching a whole seed table, not a license to skip `.limit()` —
-  see [Query bounds](#query-bounds--and-the-max_rows-trap). Set above the
-  1000 default so every legitimately-growing query has years of headroom.
-  Two gotchas (both in the config.toml comment): applied only at
-  `supabase stop && supabase start`, and the hosted project's Max Rows is
-  a separate setting — `gmake project-config-api ENV=prod` sets it to match
-  config.toml; if you change one, change both.
+Both are read by the local stack only at `supabase start`; a `db reset` doesn't
+re-read `config.toml`.
 
 ## Schema vs code
 
@@ -81,91 +50,59 @@ re-run:
 | **schema** | `supabase/migrations/<ts>_<game>.sql` | applied **once**, then frozen |
 | **code** | `supabase/sql/<game>.sql` | re-applied **in full on every deploy** |
 
-The schema file holds what describes *shape* — `create table`, constraints,
-indexes, `alter publication` (the Realtime membership), and seed rows including
-the `common.gametypes` registration. None of it can be re-run, so it accumulates:
-a post-freeze column change appends a new migration.
+The schema file holds *shape* — `create table`, constraints, indexes,
+`alter publication` (Realtime membership), and seed rows including the
+`common.gametypes` registration. None of it can be re-run, so it accumulates: a
+later shape change is a new migration.
 
-The code file holds what describes *behavior* — functions, views, RLS policies,
-triggers, and grants. All of it is drop-and-recreate safe, so it is not a delta
-at all: it is the **current definition**, edited in place forever. This is why
-changing an RPC adds no migration. You edit the game's one file, and
-`gmake db-sql` re-runs it.
-
-Roughly two-thirds of each game's SQL is code by line count (scrabble 69%,
-wordle 63%, common 38%), so the part that accumulates is the small part.
+The code file holds *behavior* — functions, views, RLS policies, triggers and
+grants. It is not a delta: it is the **current definition**, edited in place
+forever and re-applied whole. Changing an RPC adds no migration; you edit the
+game's one file and `gmake db-sql` re-runs it. The trade is that git, not the
+migration table, records which version of a function was live when.
 
 **The rules that make it work:**
 
 - **Order inside a file is load-bearing.** A policy can only reference a
-  function that already exists, and a function can only select from a view that
-  already exists — so statements stay in the order they were written, and
-  `common.sql` is applied before any game (`apply-sql.ts` sorts it first). Games
-  never reference each other, so the rest is alphabetical.
+  function that exists, and a function can only select from a view that exists,
+  so statements stay in dependency order, and `common.sql` is applied before any
+  game (`apply-sql.ts` sorts it first).
 - **A signature change needs an explicit drop.** `create or replace function`
-  keys on (name, argument types): rename an argument or change a return type and
-  you get a *second* function beside the first, which PostgREST then refuses to
-  choose between. Put a `drop function if exists <schema>.<name>(<old types>);`
-  above the create and leave it there — the file runs against databases of every
-  age. [`supabase/tests/common/function_overloads_test.sql`](../supabase/tests/common/function_overloads_test.sql)
-  fails if one ever slips through.
-- **A migration may only touch what migrations own.** Shape — tables,
-  constraints, indexes, the publication — is there whenever migrations run.
-  Everything in `supabase/sql/` is NOT: a local `db reset` and the shadow
-  database `gmake db-drift` builds apply migrations alone, so a migration that
-  says `alter policy … rename` or `alter function …` fails outright on a fresh
-  build while succeeding on a database that has been deployed to. The
-  asymmetry is the trap — the statement works where you first try it. Where a
-  migration has to clear something the repeatable half owns (an object under
-  an old name, which `supabase/sql/` can create but never remove), write
-  `drop … if exists`: a no-op on the fresh build, and the cleanup on the
-  deployed one.
-
+  keys on name and argument types, so a changed signature creates a *second*
+  function beside the first, which PostgREST then refuses to choose between.
+  Put `drop function if exists <schema>.<name>(<old types>);` above the create
+  and leave it: the file runs against databases of every age.
+  `tests/common/function_overloads_test.sql` fails if one slips through.
 - **Views, policies and triggers are dropped, not replaced.** `create or replace
-  view` can't drop or reorder columns, and policies/triggers have no replace
+  view` can't drop or reorder columns, and policies and triggers have no replace
   form, so each is preceded by its `drop … if exists`. Functions use
-  `create or replace` (a bare drop would cascade into the generated column and
-  triggers that depend on them).
+  `create or replace`; a bare drop would cascade into what depends on them.
+- **A migration may only touch what migrations own.** A local `db reset`, and
+  the shadow database `gmake db-drift` builds, apply migrations alone — so a
+  migration that alters a function or policy fails on a fresh build while
+  succeeding on a deployed database. Where a migration must clear something the
+  code half owns, write `drop … if exists`. A migration also cannot call a
+  function from `supabase/sql/`, which is applied after it.
+- **One function is pinned to the schema side:** `common.word_letter_mask`,
+  because generated columns call it, so it must exist before their tables.
 
-**One function is pinned to the schema side:** `common.word_letter_mask`, because
-`common.words.letter_mask` and `wordwheel.pangrams.mask` are `generated always as`
-columns that call it. The table can't be created before the function exists, so
-it stays in the migration and changing it needs a migration like any other DDL.
+**Applying it.** `gmake db-sql ENV=local|prod` re-applies every file, each in
+one transaction, so a syntax error rolls the file back rather than leaving half
+a schema. `gmake db-reset ENV=local` runs it after the reset, and
+`gmake deploy ENV=prod` after the migration push.
 
-**Applying it.** `gmake db-sql` (`ENV=local` or `ENV=prod` names the database;
-the target wraps the internal `npm run _sql:apply`, which reads
-`SUPABASE_DB_URL`, default local). `gmake db-reset ENV=local` chains it after `supabase db reset`, so the
-local flow is unchanged. `gmake deploy ENV=prod` runs it after the migration
-push with `--require-url`, which makes an unset `SUPABASE_DB_URL` a hard error
-rather than a silent re-apply to localhost. Each file runs in a single transaction, so a
-syntax error rolls the whole file back instead of leaving a half-updated schema.
-
-**Rehearsing a migration that moves data.** The normal loop never runs a
-backfill. `supabase db reset` builds the new shape on an empty database, so a
-migration's data statements run over zero rows, succeed, and prove nothing —
-production is then the first place they meet a row. `gmake db-rehearse
-ENV=local DUMP=backups/<f>.dump SINCE=<version>` stages what production will
-do: it holds back every migration from `SINCE` onward, resets to the shape
-production is at, restores a `db-backup` dump of production's rows, and only
-then applies the held-back migrations over them — reporting the row count of
-every table before and after, reloading the dictionary bulk the dump excludes,
-and finishing with the pgTAP suite. `SINCE` has no default on purpose: the cut
-is a fact about the hosted project, and `supabase migration list --linked` is
-what answers it.
-
-**What this trades away:** the migration table no longer records which version of
-a function was live on a given date — git does. That's the deliberate exchange
-for one readable file per game, which is the property
-[CLAUDE.md](../CLAUDE.md)'s per-game-baseline decision exists to protect.
+**Rehearsing a migration that moves data.** A local reset builds the new shape
+on an empty database, so a backfill runs over zero rows, succeeds, and proves
+nothing. `gmake db-rehearse ENV=local DUMP=backups/<f>.dump SINCE=<version>`
+holds back the migrations from `SINCE`, resets to production's shape, restores a
+dump of production's rows, applies the held-back migrations over them, reports
+every table's row count before and after, and runs the pgTAP suite. `SINCE` has
+no default: `supabase migration list --linked` answers it.
 
 ## Every game's log is `<game>.events`
 
-Every game with a chronological log of what happened keeps it in one shape.
-(The bee games' `found_words` is a set, not a log, and bananagrams and crosswords
-have no log at all.) codenamesduet stores its events in this shape too, and
-differs only in how it SHOWS them: its log draws a table of turns — a clue and
-the guesses under it — so it groups the events on its `turn_number` payload
-column, and a turn's history handle is the id of the clue that heads it.
+Every game with a chronological log of what happened keeps it in one shape
+(a found-words list is a set, not a log, and some games have no log at all):
 
 ```sql
 create table <game>.events (
@@ -182,445 +119,175 @@ create index <game>_events_game_id_id_idx on <game>.events (game_id, id);
 ```
 
 **Read `order by id`, never by the timestamp.** Two rows written in one
-transaction tie on `created_at`, and the log's whole meaning is its order. The
-index above is what an `order by id` read within one game wants.
+transaction tie on `created_at`, and the log's meaning is its order.
 
 **`kind` is what the player DID; the payload says how it went.** A refused
-wordiply guess is `kind = 'guess'` with `valid = false`; strands' six `result`
-values all sit under `kind = 'guess'`. No game has a kind meaning "a bad move".
-`kind` carries no default anywhere — a column that is mandatory at every insert
-should not arrive by accident — and it is always knowable before the request:
-the player knew what they were asking for, so the frontend knows the kind before
-the call and no RPC picks one based on what it finds. That is what lets a game
-show its pill before the round trip. (An RPC may still choose the WORD or
-compute how it went — psychicnum's hint picks which clue, wordle computes the
-colors.)
+guess is `kind = 'guess'` with its verdict in a payload column; no game has a
+kind meaning "a bad move". `kind` has no default, and it is always knowable
+before the request — the player knew what they asked for — so the frontend can
+show its pill before the round trip. (An RPC may still choose the word or
+compute the result: which hint, which colors.)
 
-**`took_turn` answers "did this event use up one of the actor's goes?"** — in
-every game and every mode, whether or not a rotation is running
+**`took_turn` answers "did this event use up one of the actor's goes?"** in
+every game and mode, whether or not a turn rotation is running
 ([common-schema.md → Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games)
-is the rotation itself, and it is a different question). Joel's rule: *"all games
-have a 'turn'; this may not always be important except in compete ('claude won
-because he used fewer turns') or turn-by-turn coop, but we still track the
-'turn'."*
+is the rotation, a different question).
 
-- **It is the game's judgment, not the mechanism.** stackdown has no rotation at
-  all and still marks its words and spoilers `true`; scrabble compete rotates by
-  its own seat pointer rather than `common._advance_turn`; and the move that ENDS
-  a game advances nothing yet is still a turn. A column meaning "this called
-  `_advance_turn`" would be false in all three places.
-- **Which kinds are turns is per-game, and deliberately not constrained in the
-  schema.** stackdown spends a turn on a spoiler where psychicnum does not, and
-  Joel expects that to change ("we may change a game so that getting a hint is a
-  player's turn"). So there is no CHECK and no generated column: the RPC writes
-  the value at the insert, and changing the rule is an edit to `supabase/sql/`.
-  Usually that value is `true` or `false` spelled out, because the branch already
-  knows which it is; where one insert serves several verdicts it is an expression
-  over the verdict instead (strands writes
-  `v_result in ('theme', 'spangram', 'hint_word')`, wordiply
-  `reject_reason in ('too_short', 'missing_base')`). Both say the same thing —
-  the column holds this RPC's judgment of this event.
-- **It cannot be derived.** wordiply is the proof: `too_short` and `missing_base`
-  rejects cost the player their go, `not_a_word` does not, and all three are
-  `kind='guess'` rows with `valid=false`. Unlike `kind`, it may not be knowable
-  up front — it is the server's verdict, written by the RPC and read back, never
-  predicted by the client.
+- **It is the game's judgment, not the mechanism.** A game with no rotation
+  still marks its moves; a game-ending move advances nothing yet is still a
+  turn.
+- **Which kinds are turns is per-game and not constrained in the schema.** The
+  RPC writes the value at the insert, as a literal where the branch knows it or
+  an expression over the verdict where one insert serves several, so changing
+  the rule is an edit to `supabase/sql/`.
+- **It cannot be derived**: two rejected guesses with the same `kind` and the
+  same `valid = false` can differ on whether they cost the player's go. It is
+  the server's verdict, read back, never predicted by the client.
 
-**Three numbers, and only one of them is a column.** The distinction the shape
-rests on:
+**Three numbers, and only one is a column:**
 
 | | what it is | where it lives |
 |---|---|---|
-| **the ordinal** | "the 3rd row of what you are looking at" — the `#N` a log prints | computed in the frontend from the displayed list; filter-dependent, never stored |
-| **the metered number** | "your 3rd of 6 guesses", "cleared in 14 turns" | derived at read time — `count(*) where took_turn` where the meter counts goes, the game's own predicate where it counts something else (wordiply's five slots, connections' four mistakes, letterboxed's chain length) |
+| **the ordinal** | "the 3rd row of what you're looking at" — the `#N` a log prints | computed by the frontend from the list on show; never stored |
+| **the metered number** | "your 3rd of 6 guesses", "cleared in 14 turns" | derived at read time — `count(*) where took_turn`, or the game's own predicate where the meter counts something else |
 | **`took_turn`** | the RPC's verdict on one event | stored, because no predicate over the row recovers it |
 
-A metered count is correct in every mode by construction, because it counts only
-the caller's own rows — which are the rows RLS always shows them. The per-player
-counters that exist anyway (`wordle.players.guesses_used`,
-`waffle.players.swaps_used`, psychicnum's `guesses_remaining`) stay the authority
-for what was actually spent.
+A metered count is correct in every mode because it counts only the caller's
+own rows, which RLS always shows them; a per-player counter a game keeps anyway
+stays the authority for what was spent. The payload columns are each game's
+own. The frontend side — the `#N` handle, the "whose turns?" picker, the
+history viewer — is [src/common/event-log/doc.md](../src/common/event-log/doc.md).
 
-**Payload columns are each game's own.** `connections.events.mode`,
-`strands.events.path`, `setgame.events.board_after` and the rest have nothing to
-do with the skeleton. The frontend's side of the log — the `#N` handle, the
-"whose turns?" picker and the history viewer — is
-[playarea.md](playarea.md#event-log) and
-[src/common/event-log/doc.md](../src/common/event-log/doc.md).
+## Reading data
 
-## Query conventions
-
-### Explicit columns, always
-
-Every `.select()` in the app lists its columns by name; there is no
-`select('*')` anywhere. The consuming
-hook usually narrows the row with a TypeScript `Pick`-style type right next
-to the query. This is what makes schema evolution safe: adding a column
-can't silently fatten every payload, and removing one fails loudly at the
-query that named it.
-
-### Read views, subscribe to base tables
-
-Games with hidden state (psychicnum, spellingbee, waffle, wordle,
-stackdown, scrabble, crosswords, wordwheel, wordiply, strands, letterboxed,
-setgame)
-read from a
-`games_state` / `players_state` **view** that gates the shielded column
-(solution / target / opponent board) on row state — the
-[definer-helper + invoker-view shape](code-conventions.md#security-definer-helper--security_invoker-view).
-(setgame is in that list for the read pattern only: it has nothing to reveal,
-so its view gates nothing and has no definer helper behind it — see the
-divergence register.)
-But Realtime CDC watches **tables**, not views, so their subscriptions
-target the base tables (`games`, `players`, …) while `load()` refetches
-the views. waffle's `useGame` is the canonical commented example.
-
-### Split lifecycle: immutable header once, live rows on every event
-
-Games whose header row carries a large immutable payload (boggle's word
-lists, wordiply's `legal_words`, crosswords' puzzle meta, the
-`makeBeeGame` pair spellingbee/wordwheel) fetch it **once** in a
-plain effect and wire only the volatile child rows (`found_words`,
-`guesses`, `cells`) into the refetch loop. This avoids re-downloading a
-multi-kilobyte word list every time a teammate finds a word. Games with
-small headers (psychicnum, wordle, …) just refetch everything — simpler,
-and the volumes don't justify the split.
+- **Explicit columns, always** ([code-conventions.md → Avoid `SELECT *`](code-conventions.md#avoid-select-)).
+- **Read views, subscribe to base tables.** A game with hidden state reads a
+  `games_state` / `players_state` view that shields the secret column until the
+  row's state allows it. Realtime watches tables, not views, so the same hook
+  subscribes to the base tables and its `load()` refetches the views.
+- **A large immutable header is fetched once.** Where a game row carries a big
+  payload that never changes (a word list, a puzzle), the hook fetches it once
+  and puts only the changing child rows in the refetch loop, so a teammate's
+  move doesn't re-download it.
 
 ### Query bounds — and the `max_rows` trap
 
-Most queries are naturally bounded: one row by PK, or child rows of a
-single game (human-scale — nobody finds 1000 words). A handful are
-**unbounded by anything except `max_rows`**, and the failure mode is
-worse than it sounds because of ordering:
+PostgREST caps every response at `max_rows` (10,000 here, set above the default
+so every legitimately growing query has room), silently. It is a backstop, not
+a license to skip bounding a query. Most reads are bounded by nature — one row
+by key, or one game's child rows — and **a read that isn't says how it is
+bounded, at the site**: a recency window, a filter to active rows, an explicit
+`.limit()`.
 
-> **The trap:** an *ascending*-ordered unbounded query past the cap
-> returns the **oldest** rows and silently drops the newest — exactly the
-> rows you wanted. A descending-ordered one degrades gracefully (you lose
-> the oldest). An *unordered* one returns an unspecified subset.
+> **The trap:** an *ascending*-ordered unbounded query past the cap returns the
+> **oldest** rows and silently drops the newest — the rows you wanted. A
+> descending one loses the oldest; an unordered one returns an arbitrary
+> subset.
 
-The `max_rows` cap of 10,000 keeps the cliff years out for all of these,
-but the cliff still exists — a busy club (a couple dozen quick games a day
-is realistic) accumulates games, chat, and lifetime seats faster than
-"per year" intuitions suggest. Every unbounded query is now bounded by an
-explicit mechanism:
+A read that is *meant* to exceed the cap — a seed or library table — routes
+around it, one of two ways:
 
-| query | order | bound | status |
-|---|---|---|---|
-| `useClubChat` messages (`useClubChat.ts`) | `sent_at` **asc** | a 7-day recency window (`.gte('sent_at', cutoff)`, cutoff computed once per subscription) | **bounded** ✓ (a recency window, not a row limit — the window matches how chat is read) |
-| `useGameInvitations` (`game_players` for self) | n/a | one `!inner` embed filtered to `is_terminal = false`, so the row set is my *active* games (a handful), not every seat I've ever held | **bounded** ✓ |
-| ClubPage games list | `last_active_at` **desc** | explicit `.limit(200)`; overflow drops the oldest games (deliberate, commented) | **bounded** ✓ |
-| `makeBeeGame` / boggle / wordiply child rows | `found_at` asc | human-bounded (nobody finds thousands of words in one game) | note the pattern, no action |
-
-### The flip side: reads that legitimately NEED >1000 rows
-
-`max_rows` cuts both ways — a query whose table is *supposed* to exceed
-the cap gets silently truncated unless it deliberately routes around it.
-Two escape hatches are in use, and picking one is **mandatory** for any
-read of a seed/library table:
-
-- **`.range()` paging loop over a stable order** (PostgREST reads that
-  need the whole set). The build-board edge functions do this. Two rules
-  make the loop correct:
-  1. **`.order()` by a unique key (the PK)** — each window is a separate
-     query, and without an ORDER BY Postgres guarantees nothing across
-     statements, so windows could overlap or skip rows.
-  2. **Cap-agnostic advance**: step `from` by the rows *actually
-     received* and stop only on an **empty** page. Never treat a
-     short-of-`PAGE_SIZE` page as "last page" — if the server's live cap
-     is lower than `PAGE_SIZE` (config drift, hosted dashboard out of
-     sync), every page comes back "short" and the naive loop silently
-     exits after one window. With the cap-agnostic shape, a cap mismatch
-     just costs extra round-trips; `PAGE_SIZE` is purely an optimization
-     knob.
-- **Stay in SQL** — do the heavy read inside an RPC (or via `psql` for
-  CLIs), where `max_rows` doesn't exist.
-
-The inventory (row counts from a freshly-imported dev DB):
-
-| reader | table (rows) | mechanism | capped? |
-|---|---|---|---|
-| waffle-build-board | `common.words` (283k source pool) | `.range()` paging loop | no ✓ |
-| spellingbee-build-board | `spellingbee.pangrams` (1.9k) | `.range()` paging loop | no ✓ |
-| wordwheel-build-board | `wordwheel.pangrams` (36.7k) | `.range()` paging loop | no ✓ |
-| wordiply-build-board | `candidate_bases` / `try_base` | SQL RPCs; fn takes `.limit(1)` | no ✓ |
-| boggle-build-board | — | dictionary **bundled** in the fn (`dict.ts`); no fetch | no ✓ |
-| stackdown `create_game` board pick | `stackdown.boards` (1.2k) | `order by random() limit 1` inside the RPC | no ✓ |
-| import CLIs (`gmake db-data`) | everything | direct Postgres (`psql \copy`), not PostgREST | no ✓ |
-| connections SetupForm | `connections.puzzles` (NYT-dated, growing daily) | two RPCs — `next_puzzle_for_club`, `puzzle_for_date` | each answers with ONE puzzle, so the row count never reaches the client and the 10k cap is not in play |
-| crosswords SetupForm library list | `crosswords.puzzles` (3 today; the planned dictionary-puzzle import will be **large**) | plain select | fine until that import — give it a paging loop (or a limit + real picker UI, which >10k puzzles needs regardless) **before** importing in bulk (deferred: [crosswords.md §9](games/crosswords.md#9-deferred)) |
+- **A `.range()` paging loop**, ordered by a unique key (each window is a
+  separate query, so without one windows can overlap or skip) and advancing by
+  the rows actually received, stopping only on an empty page (a short page
+  means nothing if the server's cap is lower than the page size).
+- **Stay in SQL**: do the heavy read inside an RPC and return the answer, or a
+  single `jsonb` value, which `max_rows` doesn't touch.
 
 ## Realtime
 
-### Channel-name registry
-
-Every channel in the app, in one place. The naming pattern is
-`<topic>:<id>[:<uuid>]`
-([src/common/realtime/doc.md](../src/common/realtime/doc.md));
-**stable names** are used iff peers must share the room (presence rosters
-and broadcasts are per-channel-name), **UUID-suffixed names** (via
-`channelDedupSuffix()`) everywhere else, to sidestep supabase-js's
-name-cache + StrictMode double-mount collision.
-
-A stable name can't take that suffix, so it needs the other half of the fix:
-every one of the eight below opens through
-[`channelTeardown.ts`](../src/common/realtime/channelTeardown.ts) —
-`channelLeaving(room)` before `supabase.channel(room)`, `releaseChannel(ch)`
-instead of `supabase.removeChannel(ch)`. Without it a remount inside the
-previous mount's leave round-trip is handed realtime-js's still-dying cached
-instance (it leaves `client.channels` only on its own `_onClose`, not in
-`removeChannel`), and its `.subscribe()` never reaches SUBSCRIBED — no
-presence, no broadcasts, no CDC until the next reconnect. **Adding a new
-stable-name channel means using that pair.** Suffixed channels don't need it
-and keep calling `removeChannel` directly. Every CDC subscription is
-filtered (`id=eq` / `game_id=eq` / `club_handle=eq` / `user_id=eq`) — none
-is broader than the rows the hook consumes.
-
-| channel | opened by | stable? | carries |
-|---|---|---|---|
-| `game:<gameId>` | `useCommonGame` (every game page) | **stable** | presence, manual-pause + suspend Broadcast, CDC on `common.games` + `common.game_players` |
-| `game:<gameId>` (temp, ~1s) | ClubPage `handleDelete` | **stable** | send-only suspend Broadcast into the same room before deleting a current game (never mounted concurrently with a GamePage in the same tab, so no cache collision) |
-| `club:<handle>` | `useClubPresence` | **stable** | presence only |
-| `club-setup:<handle>` | `useClubSetupPresence` | **stable** | presence only (setup-dialog open state) |
-| `scratchpad:<gameId>` | `useScratchpad` | **stable** | CDC on `common.game_scratchpads` (direct-apply, newer-wins) + shared-lock Broadcast |
-| `connections:<gameId>` | connections `useGame` | **stable** | shared-selection Broadcast (coop) + CDC on 3 tables |
-| `scrabble:<gameId>` | `useSharedMove` | **stable** | ephemeral show-move Broadcast (coop only; never stored) |
-| `crosswords:cursors:<gameId>` | `usePeerCursors` | **stable** | presence + cursor/fill/notes Broadcast (coop only) |
-| `club-games:<handle>:<uuid>` | ClubPage | uuid | CDC on `common.games` filtered by club |
-| `club-chat:<handle>:<uuid>` | `useClubChat` | uuid | CDC INSERT on `common.messages` |
-| `game-invites:<selfId>:<uuid>` | `useGameInvitations` | uuid | CDC INSERT on `common.game_players` filtered by self |
-| `home-clubs:<selfId>:<uuid>` | HomePage | uuid | CDC on `common.clubs_members` filtered by self |
-| `<gametype>:<gameId>:<uuid>` | each per-game `useGame` (or factory) | uuid | CDC on that game's tables |
-| `crosswords:cells:<gameId>:<uuid>` | `useCells` | uuid | CDC UPDATE on `crosswords.cells` (direct-apply) |
-| `codenamesduet:game:` / `codenamesduet:board:` / `codenamesduet:clues:` `<gameId>:<uuid>` | codenamesduet's three hooks | uuid | CDC per concern (concern-keyed like `crosswords:cells` / `crosswords:cursors`) |
-| `bananagrams-board:` / `bananagrams-progress:` `<gameId>:<uuid>` | bananagrams' two hooks | uuid | CDC per RLS boundary |
-
-### The four data-hook shapes
-
-The decision rule lives in
-[src/common/realtime/doc.md → Details](../src/common/realtime/doc.md#details);
-the short version, with every current member:
-
-1. **Pattern A — refetch-on-any-event via
-   [`useRealtimeRefetch`](../src/common/realtime/useRealtimeRefetch.ts).**
-   The default. Initial load + refetch on every CDC event + refetch on
-   every SUBSCRIBED (reconnect catch-up) + refetch on the
-   postgres_changes **attach confirmation** (the deaf-window closer —
-   [`postgresAttached.ts`](../src/common/realtime/postgresAttached.ts)), with a generation
-   counter so a slow superseded load can't clobber a newer one. Members: codenamesduet
-   (×3 hooks), psychicnum, wordle, stackdown, scrabble (data side),
-   waffle, bananagrams (×2 hooks), boggle, wordiply, strands, letterboxed,
-   setgame,
-   the spellingbee/wordwheel factory, HomePage.
-2. **Pattern B — broadcast/presence-coupled, hand-rolled, stable name.**
-   `useCommonGame`, connections `useGame`, `useScratchpad`,
-   `useClubPresence`, `useClubSetupPresence`, `usePeerCursors`,
-   `useSharedMove`.
-3. **Append-on-INSERT** — `useClubChat` only. Appends each INSERT instead
-   of refetching; its SUBSCRIBED refetch must **merge, never replace**
-   ([src/common/realtime/doc.md → Details](../src/common/realtime/doc.md#details)).
-4. **Direct CDC apply** — crosswords `useCells` (per-cell `version`,
-   newer-wins, optimistic echo + rollback) and `useScratchpad`'s body
-   (same newer-wins idea, one row). For high-frequency per-row writes
-   where refetch-per-event would be a storm. Full refetch only on
-   SUBSCRIBED.
-
-### Reconnect story
-
-Four cooperating pieces:
-
-- Every data hook refetches on **every SUBSCRIBED status**, not just the
-  first — that's the catch-up after a dropped socket (events during the
-  gap are simply refetched over).
-- Every postgres_changes hook ALSO refetches when the server confirms the
-  subscription is attached to the WAL poller (the `system` "Subscribed to
-  PostgreSQL" message, via
-  [`onPostgresAttached`](../src/common/realtime/postgresAttached.ts)).
-  SUBSCRIBED is only the join ack; events committed before the attach are
-  dropped, so without this second refetch a write landing in that gap was
-  lost for good — the measured **deaf window** of
-  [common/realtime/doc.md](../src/common/realtime/doc.md).
-- [`useRealtimeReconnect`](../src/common/realtime/useRealtimeReconnect.ts)
-  (mounted once at app level) nudges the socket on visibilitychange /
-  focus / online, so the SUBSCRIBED refetch actually fires promptly after
-  a laptop-lid cycle.
-- Broadcast traffic lost during a disconnect is covered by design, not
-  replay: presence-pause freezes the game while anyone is missing, so no
-  broadcasts happen while someone can't hear them.
+The frontend hears about writes through Realtime: `postgres_changes` (CDC) for
+table changes, Broadcast and Presence for peer-to-peer state that is never
+stored. Almost every data hook is refetch-on-any-event through
+`useRealtimeRefetch`; the hook shapes, the channel names, the reconnect story
+and the deaf window are [src/common/realtime/doc.md](../src/common/realtime/doc.md)'s.
+Finding a channel is a search for `supabase.channel(` and `channelPrefix`.
 
 ### The publication invariant (load-bearing)
 
-**Every table a channel subscribes to via `postgres_changes` must be in
-the `supabase_realtime` publication.** The Realtime server rejects the
-channel's *entire* subscription if any one bound table is unpublished —
-live updates silently die for all tables on that channel, with no error.
-`supabase/tests/common/realtime_publication_test.sql` is the single,
-registry-driven guard for that invariant across every schema, and each game's
-migration adds its tables at the bottom of the file.
+**Every table a channel subscribes to via `postgres_changes` must be in the
+`supabase_realtime` publication.** The Realtime server rejects the channel's
+*entire* subscription if any one bound table is unpublished — live updates die
+for every table on that channel, with no error. Each game's migration adds its
+tables at the bottom, and `tests/common/realtime_publication_test.sql` checks
+both directions: what is subscribed is published, and what is deliberately left
+out stays out. Nothing is published without a subscriber — a published table
+nobody reads is replication overhead.
 
-**The publication is not the only way live updates die silently.** A channel
-whose tables are all published can still report `SUBSCRIBED` and then deliver
-nothing — see [common/realtime/doc.md → A page that has stopped updating](../src/common/realtime/doc.md#a-page-that-has-stopped-updating). The symptoms
-are identical (a page that quietly stops updating), so check the publication
-first, since it's the cheap check, and reach for that doc when it's intact.
+A channel whose tables are all published can still report `SUBSCRIBED` and
+deliver nothing ([realtime/doc.md → A page that has stopped
+updating](../src/common/realtime/doc.md#a-page-that-has-stopped-updating)); check
+the publication first, since it's the cheap check.
 
-Related server-side subtleties:
+**DELETE events are unreliable under a filter**, because a DELETE carries only
+the row's replica identity. Two consequences, each commented where it lives:
+`common.games` is `REPLICA IDENTITY FULL` so the club list hears a deleted game,
+and a `replay_board` that deletes child rows also touches its `games` row, so
+the UPDATE wakes clients to refetch.
 
-- **`REPLICA IDENTITY FULL` on `common.games`** — ClubPage's subscription
-  filters on `club_handle`; DELETE events only carry the old row's
-  replica identity, which by default is the PK. Without FULL, deletes
-  would never match the filter and the club list wouldn't refresh.
-- **DELETE events don't reliably match filters** in general — which is why
-  `replay_board` RPCs (spellingbee/wordwheel/boggle/wordiply) do a **no-op
-  UPDATE touch on `games`** after deleting the child rows: the UPDATE
-  event is what wakes clients to refetch the now-empty list. This is why
-  those games subscribe to `games` at all. `strands.replay_board` and
-  `letterboxed.replay_board` also delete child rows; their wake is the
-  `players` UPDATE (plus, for strands, `reset_game`'s `common.games`
-  write) rather than a `games` touch.
-- **Nothing is published without a subscriber.** A published-but-unread
-  table is harmless (the invariant only kills things in the other
-  direction) but pure replication overhead, so the publication is kept
-  minimal. `crosswords` publishes only `cells` — its `clear_board` UPDATEs
-  cells rather than deleting them, so the cells subscription hears it
-  directly, and `crosswords.games` is unpublished (`useGame` is one-shot;
-  status flows through `common.games`). Publication membership is pinned
-  per-schema by `tests/common/publication_test.sql` and
-  `tests/crosswords/publication_test.sql` (both directions: the
-  load-bearing tables published, the deliberately-absent ones absent).
-- Reference/seed tables (`common.profiles`, `common.clubs`,
-  `wordwheel.pangrams`, `crosswords.puzzles`, …) are deliberately
-  unpublished.
+## Server conventions
 
-## RPCs
-
-Server-side conventions
-([code-conventions.md → RPC functions](code-conventions.md#rpc-functions),
+**RPCs** ([code-conventions.md → RPC functions](code-conventions.md#rpc-functions),
 [common-schema.md → RPCs](common-schema.md#rpcs)):
 
-- All callable RPCs are `SECURITY DEFINER` with a pinned
-  `search_path = <game>, common, public, extensions`; cross-schema calls
-  are fully qualified anyway.
-- **No INSERT/UPDATE/DELETE policies exist anywhere** — every write goes
-  through an RPC. Reads are the only thing RLS grants directly.
-- Authorization gates: `common.require_game_player` for moves,
-  `common.require_club_member` for viewing-adjacent actions
-  (`set_current_view`, `tick_timer`).
-- **Errcodes.** A converted RPC raises `PA###` / `PN###` and catches its own
-  raise — [envelopes.md → How SQL builds one](envelopes.md). An unconverted one
-  still uses `42501` for authz failures and `P0001` for validation, which is the
-  old scheme; **write a new raise the new way.**
-- **Every mid-game mutation locks the game row** (`select … for update`)
-  to serialize concurrent moves — across all games (codenamesduet,
-  psychicnum, connections, waffle ×4, bananagrams ×3, scrabble ×3, …).
-  scrabble adds a `base_version` optimistic-concurrency check on top.
-  This includes **every `replay_board`**: a replay that interleaved with an
-  in-flight move would leave a stray log row on the "fresh" board, or — if that
-  move was the game-ENDING one — let its `end_game` land after `reset_game`
-  cleared `is_terminal`, re-terminalling the just-reset game with the previous
-  run's verdict (and re-unshielding its solution, since `games_state` gates on
-  `is_terminal`). All ten replays take the lock as of 2026-07-31; before that
-  only scrabble and wordiply did.
-- **Duplicate-write discipline:** state-transitioning RPCs update both the
-  per-game row and the `common.games` header (`common.update_state` /
-  `common.end_game`) in one transaction, so the club list's labels and
-  `is_terminal` never lag the game.
+- **Every write goes through an RPC.** There are no INSERT, UPDATE or DELETE
+  policies anywhere; RLS grants reads only.
+- A callable RPC is `security definer` with a pinned `search_path`; a read-only
+  helper that should run as the caller says so.
+- Authorization is `common.require_game_player` for a move and
+  `common.require_club_member` for club-level actions like `set_current_view`
+  and `tick_timer`.
+- **A move locks its game row** (`select … for update`) so concurrent moves
+  serialize, and so does a `replay_board`: a replay interleaved with a move could
+  leave a stray log row on the fresh board, or let a game-ending move land after
+  the reset and re-end it.
+- A state-changing RPC updates the game's own row and the `common.games` header
+  (`common.update_state` / `common.end_game`) in one transaction, so the club
+  list never lags the game.
+- It answers in an envelope ([envelopes.md → How SQL builds one](envelopes.md#how-sql-builds-one)).
 
-FE-side, three shared wrappers in
-[`manifestRpcs.ts`](../src/common/manifest/manifestRpcs.ts) keep call sites
-uniform: `makeRpcDispatcher(db, 'submit_timeout' | 'end_game' | …)` for
-fire-and-report RPCs, `invokeStartGameEdgeFn` for edge-function game
-creation, and `unwrapEdgeFnError` for reading the real server message out
-of a FunctionsHttpError's read-once body. `useStandardGameActions` builds
-the End/Concede/Replay handlers on top.
+On the frontend, a call goes through `runRpc` / `readRows` / `runEdgeFn`
+([src/common/supabase/doc.md](../src/common/supabase/doc.md)).
 
-## Server errors — see [envelopes.md](envelopes.md)
-
-Every RPC and edge function answers in **one envelope shape**, and the sentence
-a player reads is written at the raise by whoever knows why the answer is what
-it is. [envelopes.md](envelopes.md) is canonical for all of it: the two arms,
-the severities, who writes the words, how SQL and Deno build one, and what a
-call site does with it. [outcomes.md](outcomes.md) holds the outcome vocabulary.
-
-## RLS & grants
-
-The philosophy is in [CLAUDE.md → Trust model](../CLAUDE.md) and
-[common-schema.md → Row-level security](common-schema.md#row-level-security); the shapes:
+**RLS** ([CLAUDE.md → Trust model](../CLAUDE.md#trust-model--server-authoritative-for-cleanliness-not-anti-cheat),
+[common-schema.md → Row-level security](common-schema.md#row-level-security)):
 
 - **Viewing is club-gated, acting is player-gated.** SELECT policies use
-  `common.is_club_member` (STABLE, SECURITY DEFINER helper); move RPCs use
-  `require_game_player`. Spectating falls out for free.
-- **Hidden-solution shielding** = column-level grant on the base table +
-  `SECURITY DEFINER` helper + `security_invoker` view
+  `common.is_club_member`; moves use `require_game_player`.
+- **A hidden answer is shielded** by a column grant, a `security definer`
+  helper and a `security_invoker` view
   ([code-conventions.md](code-conventions.md#security-definer-helper--security_invoker-view)).
-  Users: psychicnum (secrets), waffle + stackdown + crosswords (solution),
-  wordle (target), scrabble (bag, compete racks), spellingbee/wordwheel
-  (required_words until terminal).
-- **Owner-only rows**: bananagrams `player_boards` (private board;
-  club-readable `progress` is its public projection) and per-owner
-  scratchpad rows.
-- **Mode-aware policies**: compete variants narrow mid-game reads to own
-  rows (wordle guesses, crosswords cells, waffle boards, scrabble racks),
-  opening up at terminal. Note the FE double-checks where CDC can leak:
-  `useCells` drops rows whose `owner_id` isn't mine, because the CDC
-  payload isn't RLS-filtered per-column the way a query is.
-- **Trusting-commit games** (spellingbee, wordwheel, boggle, scrabble
-  scoring, wordiply) deliberately ship word lists / score client-side —
-  a documented trust-model call, not an oversight.
+- **Some rows are owner-only**, and a compete game's policies narrow mid-game
+  reads to the player's own rows, opening up at terminal. A CDC payload isn't
+  filtered per column the way a query is, so a hook that could receive someone
+  else's row filters it on the frontend.
+- **Trusting-commit games** deliberately ship a word list or score to the
+  client — a trust-model decision, not an oversight.
 
-## Edge Functions
+### Server errors — see [envelopes.md](envelopes.md)
 
-All 13 functions follow the `_shared/` conventions
-(`supabase/functions/_shared/`):
+Every RPC and edge function answers in one envelope shape, and the sentence a
+player reads is written at the raise. [envelopes.md](envelopes.md) is the
+introduction; [outcomes.md](outcomes.md) holds the outcome vocabulary.
 
-- **Caller's JWT, never service-role.** `callerClient(authHeader)` builds
-  a client as the requesting user; membership and validation are enforced
-  by the `create_game` RPC exactly as if the FE had called it. An edge
-  function is a *computation* venue (board generation, AI calls), not a
-  privilege escalation.
-- **Build-board family** (spellingbee, wordwheel, wordiply, waffle,
-  boggle): `parseBuildBoardRequest` gates the request →
-  fetch candidate words (paged past `max_rows` where needed) → generate
-  the board in TypeScript → `invokeCreateGame` → `{ id }` or a
-  status-coded `{ error }`.
-- **AI family** (codenamesduet-suggest-clue, scrabble-ai-move,
-  scrabble-suggest-move, crosswords-explain-clue, common-define): the edge
-  function exists to hold the `ANTHROPIC_API_KEY` (or to reuse the
-  FE engine server-side), fetching game context via a dedicated
-  `get_*_context` RPC as the caller.
-- Error convention: `{ error }` with 400 (validation) / 401 (no JWT) /
-  403 (authz) / 500; tagged `console.log` diagnostics (keep these — see
-  the keep-logs house rule).
-- Verification: `deno check` (edge fns are outside `tsc -b`); the local
-  edge runtime hot-reloads file edits.
+## Edge functions
 
-## Divergence register
+An edge function is a **computation venue, not a privilege escalation**. It
+runs as the caller — a client built from the request's JWT, so `create_game`
+and every other RPC enforce membership exactly as if the frontend had called
+them. The one exception is `common-define`, which caches a definition through
+one service-role write (`cache_definition`) and does everything else as the
+caller.
 
-Every place the code deviates from the sibling-standard path, and why.
-All of these are commented at the site; this table is the index.
-
-| divergence | where | why |
-|---|---|---|
-| Two data hooks instead of one | codenamesduet (`useGame`/`useBoard`) | per-concern lifecycles; PlayArea splits the same way |
-| Two data hooks instead of one | bananagrams (`useGame`/`useProgress`) | RLS boundary: owner-only board vs club-readable progress |
-| Broadcast-coupled hand-rolled channel | connections `useGame` | shared-selection Broadcast needs the stable room; CDC rides along |
-| Ephemeral broadcast on a second stable channel | scrabble `useSharedMove` | staged-move preview is never stored; a missed broadcast just means no preview |
-| Direct CDC apply instead of refetch | crosswords `useCells`, scratchpad body | per-keystroke frequency; version-merge ("newer wins") + optimistic echo. `useCells` rolls a refused write back; the scratchpad has no rollback, its next keystroke re-flushes the whole text |
-| Append-on-INSERT instead of refetch | `useClubChat` | chat volume; requires merge-on-refetch (see the rule) |
-| Shared `useGame` factory across two games | `makeBeeGame` (spellingbee + wordwheel) | byte-identical lifecycle; fork it back if they diverge |
-| One-shot on-demand fetch | crosswords Reveal (`games_state.solution`) | solution is gated; fetched only when the button is pressed |
-| Stable-name temp channel | ClubPage delete-current-game broadcast | borrows `useCommonGame`'s room name to reach peers, send-only, ~1s lifetime |
-| FE-side owner filter on CDC | crosswords `useCells` | compete privacy: CDC payload carries other owners' cells; dropped before apply |
-| `common.games` subscribed in a game's own channel | strands `useGame` | the shield's terminal wake: `_solution_for` gates on `is_terminal`, and the ending that flips it writes only `common.games` — so without this the refetch never re-reads the now-unshielded views and Reveal has nothing to draw |
-| Own `games` table subscribed though nothing writes it mid-play | letterboxed `useGame` | a deliberately quiet binding, kept so any future `games` write wakes clients rather than silently not; its publication membership is pinned by the central registry test |
-| `games_state` view with NO definer helper behind it | setgame | the roster's simplest shield: nothing is ever revealed, so there is no row-state gate to write. The view just never selects `deck`, and derives `deck_left` from two public columns. The one catch is that a `security_invoker` view runs its body as the READER, so the helper it calls (`_deck_size`) has to be granted to `authenticated` — unlike every other `_`-prefixed function in that file, which stay revoked |
-
-## Bounds & realtime work — where it's tracked
-
-This doc describes the current surface. Deferred bounds/realtime items
-(e.g. the crosswords library-picker bound, owed before the bulk
-dictionary-puzzle import) live in [deferred.md](deferred.md) and the
-per-game deferred registers ([crosswords.md §9](games/crosswords.md#9-deferred)).
-
-Gates for any code change here: `npx tsc -b` (NOT `tsc --noEmit` — the
-root tsconfig checks nothing), `npm test`, and `npm run test:db` for
-migration changes.
+- **Build-board** functions (the found-words games, waffle, wordiply,
+  letterboxed) parse the request, fetch candidates, generate the board in
+  TypeScript, and relay `create_game`'s envelope.
+- **Claude** calls hold `ANTHROPIC_API_KEY` (codenamesduet's clue suggester,
+  crosswords' clue explainer); scrabble's suggester and AI opponent run the
+  game's own engine server-side; the crosswords importers fetch a puzzle and
+  create the game with it.
+- Every function answers an envelope at HTTP 200 whenever it ran, faults
+  included ([envelopes.md → How edge functions build one](envelopes.md#how-edge-functions-build-one)),
+  and keeps its tagged `console.log` diagnostics.
+- Functions are outside `tsc -b`: check them with `deno check`, which misses a
+  bare `@/` alias or an extensionless import — both fail only at boot.

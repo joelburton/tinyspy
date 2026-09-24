@@ -113,7 +113,7 @@ export function useScratchpad(
       )
       if (!active) return
       // A failed read leaves whatever is on the pad ALONE and stops loading.
-      // This runs on every realtime event, so the next one that lands seeds it
+      // This runs again on the next SUBSCRIBED or attach, which seeds it then
       // — and blanking a pad someone is typing in would be the one thing worse
       // than showing a stale one. `readRows` has logged it and raised the modal.
       if (res.type === 'not-ok') {
@@ -135,6 +135,8 @@ export function useScratchpad(
       // the previous channel is still leaving.
       if (canceled) return
       const ch = supabase.channel(room)
+      // Applied straight from the payload rather than refetched: a flush lands
+      // every pause in typing, and the version is all the merge needs.
       ch.on(
         'postgres_changes',
         { event: '*', schema: 'common', table: 'game_scratchpads', filter: `game_id=eq.${gameId}` },

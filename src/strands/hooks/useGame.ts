@@ -136,14 +136,11 @@ export function useGame(gameId: string, selfId: string): {
       // don't reliably match).
       { schema: 'strands', table: 'games', filter: `id=eq.${gameId}` },
       // COMMON's row too, which is unusual for a per-game hook. It's needed
-      // because the shield's gate lives there: `games_state.solution` is
-      // `case when common.games.solution_revealed …`, and both writers of that
-      // flag (common.end_game on a win, common.reveal_solution on the ask)
-      // touch ONLY common.games. Without this subscription the flag flips, the
-      // shell re-renders with solutionRevealed=true, and this hook keeps
-      // serving the stale `solution: null` it fetched before the reveal — so
-      // the answer never appears. Found by clicking Reveal and watching
-      // nothing happen.
+      // because the shield's gate lives there: `_solution_for` answers only
+      // once `common.games.is_terminal`, and an ending can write ONLY
+      // common.games (a concede does). Without this subscription the game
+      // ends and this hook keeps serving the `solution: null` it fetched
+      // during play, so Reveal has nothing to draw.
       { schema: 'common', table: 'games', filter: `id=eq.${gameId}` },
     ],
     channelPrefix: 'strands',

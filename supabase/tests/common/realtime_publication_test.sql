@@ -16,8 +16,8 @@
 -- the whole app — the model is src/guards/schemaExposure.e2e.test.ts, which
 -- probes every registered schema through PostgREST. The `expected`
 -- VALUES list below IS the registry: one row per (schema, table) the FE
--- subscribes to. It is maintained BY HAND to mirror the TS channel
--- registry — when a hook adds or drops a postgres_changes subscription,
+-- subscribes to. It is maintained BY HAND to mirror the hooks' table
+-- subscriptions — when a hook adds or drops a postgres_changes subscription,
 -- update this list. (Re-derive the truth any time with
 -- `grep -rn "table:" src | grep -v .test.` — those are the filters.)
 --
@@ -31,10 +31,10 @@
 --
 -- Where the subscriptions live:
 --   common     useCommonGame / useGameInvitations / useScratchpad /
---              useClubChat / ClubPage / HomePage
+--              useClubChat / useClubGames / HomePage
 --   <game>     each game's hooks/useGame.ts (codenamesduet also
 --              useBoard; crosswords via useCells; spellingbee
---              + wordwheel via the shared makeFoundWordsGame factory)
+--              + wordwheel via the shared makeBeeGame factory)
 --
 -- Deliberately NOT subscribed, therefore NOT published (their absence
 -- from the list is itself the assertion):
@@ -85,7 +85,7 @@ select set_eq(
       ('connections', 'games'),
       ('connections', 'players'),
       ('connections', 'events'),
-      -- spellingbee (makeFoundWordsGame)
+      -- spellingbee (makeBeeGame)
       ('spellingbee', 'games'),
       ('spellingbee', 'found_words'),
       -- bananagrams (no game-schema games table)
@@ -112,7 +112,7 @@ select set_eq(
       ('boggle', 'found_words'),
       -- crosswords (per-cell CDC only; games is one-shot, NOT published)
       ('crosswords', 'cells'),
-      -- wordwheel (makeFoundWordsGame)
+      -- wordwheel (makeBeeGame)
       ('wordwheel', 'games'),
       ('wordwheel', 'found_words'),
       -- wordiply

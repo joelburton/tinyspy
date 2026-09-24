@@ -662,10 +662,10 @@ This is the **canonical deferred register** for crosswords — distilled from th
   game (fine; NYT was always kept out of the library).
 - **Library picker bound before the bulk import** (from the 2026-07-12 supabase
   review) — the picker query is unbounded: it's now `library_for_club` (§4), which
-  orders by title but has no `LIMIT`. Still fine (a few hundred
-  curated puzzles against a `max_rows` of 10000), and the club-history work cut
-  the payload ~200× by returning four scalars instead of each puzzle's whole
-  `meta`, which buys a lot of headroom — but neither is a bound. Deliberately
+  orders by title but has no `LIMIT`. It answers one `jsonb` value, so
+  `max_rows` can't truncate it; the cost is payload size, which returning four
+  scalars per puzzle rather than its whole `meta` keeps small — but that is not
+  a bound. Deliberately
   **not** fixed pre-emptively: >10k puzzles needs a real picker UI (search/filter,
   not a flat list) anyway, so do the bound **with** that import, not before.
   Minimum safe change if the import lands first: a `LIMIT` in the RPC + a

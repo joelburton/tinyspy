@@ -9,7 +9,6 @@
  * channels use. That leaves it exposed to the re-create race described in
  * `channelTeardown.ts`, and this hook is the smallest consumer of the fix — a
  * good place to pin the ORDERING every stable-name room depends on.
- * docs/supabase.md's channel registry lists them.
  *
  * The roster projection from a synced channel is exercised end-to-end by
  * `e2e/presence.e2e.ts` (member dots, the abandoned-game heal,

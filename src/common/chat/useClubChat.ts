@@ -64,7 +64,8 @@ function mergeSnapshot(
  * every SUBSCRIBED event to recover from missed events during a reconnect. The
  * board hooks get that shape from `useRealtimeRefetch`; this one is wired by
  * hand because it appends each INSERT instead of refetching on it, which the
- * factory does not do. `channelDedup` says why the channel name carries a
+ * factory does not do — a refetch per message would re-pull the whole backlog
+ * window for one new line. `channelDedup` says why the channel name carries a
  * suffix.
  */
 export function useClubChat(clubHandle: string) {

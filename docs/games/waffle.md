@@ -277,7 +277,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
 - **"New game"** (game-menu item, FE-only — no waffle RPC): start a **fresh
   game** — new id, new randomly-built board — with THIS game's setup + roster +
   mode, in the same club. Calls the same `waffle-build-board` edge function the
-  manifest's `startGameInClub` uses (via `invokeStartGameEdgeFn`), then jumps
+  manifest's `startGameInClub` uses (via `runEdgeFn`), then jumps
   the creator in via the new `ctx.goToGame`; peers arrive via the game-invitation
   toast, and this game un-currents into the club's games list (resumable), so
   there's no confirm. `clubHandle` + `goToGame` are new `GamePageCtx` fields

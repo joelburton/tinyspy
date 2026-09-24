@@ -69,21 +69,44 @@ and re-reads the rows.
 
 ## Details
 
-- **Which channel is which** is not listed here. The channel-name registry in
-  [docs/supabase.md](../../../docs/supabase.md) is every channel in the app in
-  one place, including whether each one's name is shared.
-- **One hook, one channel.** A hook that sends or receives Broadcast, or
-  tracks Presence, opens one stable-name channel through `channelTeardown.ts`
-  (its docstring has the shape), and any table changes it needs ride on that
-  same channel, with `onPostgresAttached` like any other. It does not open a
-  second, suffixed channel beside it for the tables. A hook that only watches
-  tables uses `useRealtimeRefetch`.
+- **Which channel is which** is not listed anywhere; the code is the list.
+  Search `supabase.channel(` for the hand-opened channels and `channelPrefix`
+  for the ones `useRealtimeRefetch` opens. A name is `<topic>:<id>`, with a
+  `channelDedupSuffix()` on the end unless it is shared.
+- **Refetch on any event is the default ("Pattern A").** A hook that only
+  watches tables calls `useRealtimeRefetch`: it loads on mount, and reloads on
+  every change event, on every `SUBSCRIBED`, and on the attach confirmation. A
+  generation counter drops a slow load that a newer one has overtaken.
+- **One hook, one channel ("Pattern B").** A hook that sends or receives
+  Broadcast, or tracks Presence, opens one stable-name channel through
+  `channelTeardown.ts` (its docstring has the shape), and any table changes it
+  needs ride on that same channel, with `onPostgresAttached` like any other. It
+  does not open a second, suffixed channel beside it for the tables.
 - **A hook that appends on INSERT must merge its refetch.** Replacing state
   with a refetch's rows drops any row the append added while the query was in
   flight, and nothing re-adds it. So the refetch keeps rows its snapshot lacks,
   and the append skips a row whose id a refetch already brought in —
   `useClubChat`'s `mergeSnapshot`. A hook that refetches on every event has no
   separate append to clobber, so it replaces freely.
+- **High-frequency per-row writes apply the event directly.** Where a refetch
+  per event would be a storm — several people typing into one crossword — the
+  hook applies each row payload itself, guarded by a per-row `version` so an
+  event no newer than local state is dropped, and does a full refetch only on
+  `SUBSCRIBED`. `useCells` and `useScratchpad`'s body work this way.
+- **Every table subscription is filtered** (`id=eq`, `game_id=eq`,
+  `club_handle=eq`, `user_id=eq`) to the rows the hook consumes, never a whole
+  table.
+- **A change event is not a private read.** Privacy comes from the RLS on the
+  read, not from Realtime withholding rows, so an event can carry a row this
+  viewer must not see. A compete hook that applies payloads drops rows that are
+  not the viewer's before touching state — `useCells`' `isMine`.
+- **Catching up after a reconnect is a reload, not a replay.** Hooks reload on
+  every `SUBSCRIBED`, not only the first, so events missed while the socket was
+  down are read over. `useRealtimeReconnect`, mounted once in `App.tsx`,
+  reopens the socket on `visibilitychange`, `focus` and `online` so that
+  `SUBSCRIBED` comes promptly. Broadcasts sent during a disconnect are not
+  replayed at all; presence-pause freezes the game while a player is missing,
+  so nothing is broadcast that they would need.
 - **The deaf window is multi-second, and the event in it is dropped, not
   late.** Measured on the local stack, `system ok` arrives about 2–3s after
   `SUBSCRIBED` on a warm tenant, and seconds more while the tenant is booting;
