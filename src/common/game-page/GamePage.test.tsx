@@ -28,11 +28,13 @@ import { NEW_GAME_CONFIRM } from '../floating-panels/confirmations'
 import { suspendConfirm } from '../pause-suspend/suspendConfirm'
 import type { CommonGame, useCommonGame } from './useCommonGame'
 
-const { mockUseCommonGame, mockNavigate, askConfirmation, mockManifestFor } = vi.hoisted(() => ({
+const { mockUseCommonGame, mockNavigate, askConfirmation, mockManifestFor, roster } = vi.hoisted(() => ({
   mockUseCommonGame: vi.fn(),
   mockNavigate: vi.fn(),
   askConfirmation: vi.fn(async (): Promise<'confirm' | 'alternative' | null> => 'confirm'),
   mockManifestFor: vi.fn(),
+  // What the roster fetch answers; a test sets `failure` to fail it.
+  roster: { members: [] as unknown[], failure: null as unknown },
 }))
 
 // The gate resolves the URL's gametype through the registry, so a test supplies
@@ -62,7 +64,7 @@ vi.mock('../supabase/db', () => ({
 }))
 vi.mock('../realtime/useClubPresence', () => ({ useClubPresence: () => [] }))
 vi.mock('../realtime/useClubSetupPresence', () => ({ useClubSetupPresence: () => undefined }))
-vi.mock('../club/useClubRoster', () => ({ useClubRoster: () => ({ members: [] }) }))
+vi.mock('../club/useClubRoster', () => ({ useClubRoster: () => roster }))
 vi.mock('../account/useAccountMenuSection', () => ({
   useAccountMenuSection: () => ({ items: [] }),
 }))
@@ -184,6 +186,7 @@ function bound(id: ActionId): BoundAction {
 const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0)) })
 
 beforeEach(() => {
+  roster.failure = null
   mockNavigate.mockClear()
   askConfirmation.mockClear()
   askConfirmation.mockResolvedValue('confirm')
@@ -234,6 +237,24 @@ describe('GamePage — mounting', () => {
     expect(screen.getByText(/There's no game type called/)).toBeInTheDocument()
     expect(screen.getByText('noodle')).toBeInTheDocument()
     expect(screen.queryByText('play')).toBeNull()
+  })
+})
+
+describe('GamePage — a roster that failed to load', () => {
+  it('keeps a short line in the header after the fault modal, saying to refresh', async () => {
+    // The page has no local slot, so the header's global one carries it; the
+    // modal itself is `readRows`' and is not this file's subject.
+    roster.failure = {
+      type: 'not-ok', data: null, outcome: null, severity: 'fault',
+      message: 'The read failed.', field: null, meta: null, dbcode: null, detail: null,
+    }
+    await mount()
+    expect(screen.getByText("Couldn't load. Refresh page.")).toBeInTheDocument()
+  })
+
+  it('says nothing when the roster loads', async () => {
+    await mount()
+    expect(screen.queryByText("Couldn't load. Refresh page.")).not.toBeInTheDocument()
   })
 })
 

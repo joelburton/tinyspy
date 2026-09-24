@@ -2,15 +2,6 @@
 
 ## Bugs
 
-- **A first-load roster read that fails leaves `members` at `[]` for the life
-  of the page.** `useClubRoster` deliberately leaves `members` alone rather
-  than emptying it when a read fails, which is right for a refetch — but on the
-  FIRST load "alone" is the empty initial value, and nothing retries. Every
-  consumer then renders its no-member fallback permanently: chat attributes no
-  message to anyone, and every identity disc is neutral. Found from the
-  `members` side, where those fallbacks live; the fix belongs here, with the
-  hook.
-
 ## Soon
 
 - **The `=` solo-handle convention is still written in two SQL sites** —

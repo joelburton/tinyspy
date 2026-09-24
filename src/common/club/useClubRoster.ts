@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { db as commonDb } from '../supabase/db'
 import { readRows } from '../supabase/dbResult'
+import type { NotOkEnvelope } from '../supabase/envelope'
 import type { Member } from '../members/member'
 
 /**
@@ -17,9 +18,16 @@ import type { Member } from '../members/member'
  * One-shot fetch (roster changes are rare); a member who joins mid-session
  * resolves after a reload. Returns an empty list until the fetch resolves, and
  * a no-op when `clubHandle` is empty (e.g. before a game row has loaded).
+ *
+ * Nothing retries: a failed read comes back as `failure`, after its fault modal,
+ * for the page to keep on screen — a reload is the recovery.
  */
-export function useClubRoster(clubHandle: string): { members: Member[] } {
+export function useClubRoster(clubHandle: string): {
+  members: Member[]
+  failure: NotOkEnvelope | null
+} {
   const [members, setMembers] = useState<Member[]>([])
+  const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
 
   useEffect(
     function loadClubRoster() {
@@ -36,7 +44,10 @@ export function useClubRoster(clubHandle: string): { members: Member[] } {
         // hook feeds names, colors and presence dots, so writing `[]` would
         // repaint the page as a club with nobody in it — a worse answer than a
         // stale one. `readRows` has already logged it and raised the modal.
-        if (rowsRes.type === 'not-ok') return
+        if (rowsRes.type === 'not-ok') {
+          setFailure(rowsRes)
+          return
+        }
 
         // ZERO ROWS is a club with no members, which cannot happen — creating
         // one seats its creator. Nothing to look up either way.
@@ -50,7 +61,10 @@ export function useClubRoster(clubHandle: string): { members: Member[] } {
           commonDb.from('profiles').select('user_id, username, color').in('user_id', userIds),
         )
         if (!mounted) return
-        if (profilesRes.type === 'not-ok') return
+        if (profilesRes.type === 'not-ok') {
+          setFailure(profilesRes)
+          return
+        }
         setMembers(profilesRes.data as Member[])
       }
       load()
@@ -61,5 +75,5 @@ export function useClubRoster(clubHandle: string): { members: Member[] } {
     [clubHandle],
   )
 
-  return { members }
+  return { members, failure }
 }

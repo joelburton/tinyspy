@@ -138,7 +138,7 @@ export function GamePage({
 
   // The FULL club roster (not just this game's players) — chat is club-wide, so
   // naming a sender (chat window + the feedback pill) needs every member.
-  const { members: clubMembers } = useClubRoster(clubHandle)
+  const { members: clubMembers, failure: rosterFailure } = useClubRoster(clubHandle)
 
   // ─── The turn's arrival ─────────────────────────────────────────────────
   // The bell when the turn becomes mine, rung here once for every game that
@@ -155,6 +155,16 @@ export function GamePage({
   // message in place of the players strip. One instance for the life of the
   // page; a PlayArea reaches it as `ctx.globalFeedbackSlot`.
   const globalFeedbackSlot = useFeedbackSlot('global')
+
+  // A roster read that failed has already raised its fault modal; the page
+  // carries on without names, so what to do about it stays in the header —
+  // the only slot this page has — until closed. Short, to fit a phone.
+  useEffect(function showRosterFailure() {
+    if (!rosterFailure) return
+    globalFeedbackSlot.show(
+      FeedbackMessage.notOk({ ...rosterFailure, message: "Couldn't load. Refresh page." }),
+    )
+  }, [globalFeedbackSlot, rosterFailure])
   // A game's menu sections (pushed via `ctx.menu.setGameSections`) live in
   // `gameMenuStore`, not here: only the menu reads them, so a push must not
   // re-render the page and the board with it. Cleared on unmount, so a menu
