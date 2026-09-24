@@ -57,16 +57,12 @@ create table codenamesduet.games (
   --   playing       — turn-based clue/guess loop (default at create).
   --   sudden_death  — turn budget ran out, agents remain.
   --   won           — all 15 greens revealed (terminal).
-  --   lost_assassin — assassin revealed (terminal).
-  --   lost_clock    — sudden-death reveal was non-green (terminal).
-  --   lost_timeout  — wall-clock countdown hit 0 (terminal).
+  --   lost          — status.reason says how (terminal): 'assassin'
+  --                   revealed, 'turns' (a non-green sudden-death
+  --                   reveal), or 'timeout' (the wall-clock countdown
+  --                   hit 0). Until 20260924000000_codenamesduet_lost_reason
+  --                   these were three play_states of their own.
   --   ended         — a player pressed End; neutral (terminal).
-  --
-  -- `lost_timeout` is distinct from `lost_clock`: the former is
-  -- the FE-driven wall-clock running out (setup.timer.countdown);
-  -- the latter is the Duet rulebook's "turn budget exhausted +
-  -- a wrong sudden-death guess." Conceptually both are
-  -- time-related losses but the mechanic and the UX copy differ.
   turns_remaining int not null default 9,
   turn_number int not null default 1,
   current_clue_giver text check (current_clue_giver in ('A', 'B')),

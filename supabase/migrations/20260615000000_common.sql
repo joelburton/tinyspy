@@ -380,7 +380,7 @@ create table common.gametypes (
 --   Play states (the game's rules-side situation, totally
 --   independent of view state):
 --     - play_state  — text; the gametype's enum value (e.g.
---                      'playing', 'won', 'lost_timeout'). Every
+--                      'playing', 'won', 'lost'). Every
 --                      gametype uses 'playing' for its standard
 --                      mid-game value — see docs/states.md for
 --                      the no-'active'-as-play_state rule.

@@ -96,11 +96,10 @@ of three things it is:
 Each of these renames a value stored in prod, so each needs a new migration
 and a backfill. Park them, or schedule some?
 
-- **codenamesduet's loss states.** It stores `lost_assassin` / `lost_clock` /
-  `lost_timeout` where the other five store `lost` plus a `reason`
-  (docs/states.md: the play state is the verdict, the reason is the cause).
-  Its `lost_clock` also means "the turns ran out", not the game clock, which
-  its own glossary says is a different thing. The one of these a player sees.
+- ~~**codenamesduet's loss states.**~~ Done 2026-09-24: `lost` plus the reason
+  `assassin` / `turns` / `timeout`
+  (`20260924000000_codenamesduet_lost_reason.sql`). "Clock" means only the
+  countdown timer.
 - **`status` count keys.** `found_secrets_count` (psychicnum),
   `found_words_count` (the bee games), `matched_count` (connections),
   `greens_found` (codenamesduet).

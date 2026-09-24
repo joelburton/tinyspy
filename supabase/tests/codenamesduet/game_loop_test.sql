@@ -13,7 +13,7 @@
 --      agent count moving with it), neutral guess (turn ends), pass
 --      (zero-guess turn ends).
 --   2. A fresh game where the first guess hits an assassin —
---      the game ends immediately in `lost_assassin` play_state.
+--      the game ends immediately, lost with reason `assassin`.
 --   3. A game a friend deletes mid-turn: a clue, a guess and a pass into
 --      it are each the shared race (PN485), not a fault.
 --
@@ -196,8 +196,8 @@ select is(
 -- Game 2: assassin reveal
 -- ============================================================
 -- Bea guesses Ada's assassin cell — game ends immediately, regardless
--- of turn count. play_state flips to lost_assassin and current_clue_giver
--- is cleared.
+-- of turn count. play_state flips to lost, the reason is the assassin, and
+-- current_clue_giver is cleared.
 
 -- Game 2 reuses the same club. common.create_game flips the prior
 -- current-view row to is_current_view=false before inserting the new one with
@@ -215,15 +215,15 @@ select pg_temp.envelope_is(
     (select id from g2),
     pg_temp.find_position((select id from g2), 'A', 'A')
   ),
-  '{"type":"ok","outcome":null,"data":{"result":"lost_assassin",
+  '{"type":"ok","outcome":null,"data":{"result":"lost","reason":"assassin",
     "revealed":"A","greens_found":0,"turns_used":0}}'::jsonb,
-  'an assassin guess answers ok/lost_assassin'
+  'an assassin guess answers ok/lost, reason assassin'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'lost_assassin',
-  'assassin reveal sets play_state = lost_assassin'
+  (select array[play_state, status->>'reason'] from common.games where id = (select id from g2)),
+  array['lost', 'assassin'],
+  'assassin reveal sets play_state = lost, reason = assassin'
 );
 
 -- ============================================================

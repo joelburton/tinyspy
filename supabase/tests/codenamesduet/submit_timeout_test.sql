@@ -6,12 +6,12 @@
 --
 -- The FE fires this RPC when its count-down timer hits 0. The
 -- server-side gate is the non-terminal-play_state check; common.end_game
--- records play_state='lost_timeout' + status.reason='timeout'. Idempotent
+-- records play_state='lost' + status.reason='timeout'. Idempotent
 -- on the gate — a second call (the partner's timer hitting 0 too) answers
 -- the shared game-over race.
 --
 -- Coverage:
---   - happy path from playing: play_state → lost_timeout, is_terminal,
+--   - happy path from playing: play_state → lost, is_terminal,
 --     status.reason
 --   - happy path from sudden_death (the other non-terminal state)
 --   - idempotency: second call on a terminal game answers the race
@@ -39,7 +39,7 @@ create temp table club on commit drop as
 select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- ============================================================
--- (1) Happy path: playing → lost_timeout via submit_timeout
+-- (1) Happy path: playing → lost via submit_timeout
 -- ============================================================
 
 create temp table g on commit drop as
@@ -66,8 +66,8 @@ select lives_ok(
 reset role;
 select is(
   (select play_state from common.games where id = (select id from g)),
-  'lost_timeout',
-  'submit_timeout: flips play_state to lost_timeout'
+  'lost',
+  'submit_timeout: flips play_state to lost'
 );
 
 -- end_game marks the common.games row terminal.
@@ -123,7 +123,7 @@ select pg_temp.envelope_is(
 -- ============================================================
 -- codenamesduet's other non-terminal play_state is `sudden_death`. The
 -- timer can expire in that state too — submit_timeout should
--- still flip to lost_timeout.
+-- still lose the game on the timeout, not the spent turns.
 
 reset role;
 update common.games set play_state = 'sudden_death'
@@ -140,9 +140,9 @@ select lives_ok(
 
 reset role;
 select is(
-  (select play_state from common.games where id = (select id from g2)),
-  'lost_timeout',
-  'submit_timeout: sudden_death → lost_timeout (not lost_clock)'
+  (select array[play_state, status->>'reason'] from common.games where id = (select id from g2)),
+  array['lost', 'timeout'],
+  'submit_timeout: sudden_death → lost, reason timeout (not turns)'
 );
 
 -- ============================================================

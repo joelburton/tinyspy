@@ -1405,7 +1405,7 @@ revoke execute on function common.update_state(uuid, text, jsonb) from public;
 --
 --   - common.games.ended_at        = now()
 --   - common.games.play_state      = play_state (the terminal
---                                     value: 'won', 'lost_timeout',
+--                                     value: 'won', 'lost',
 --                                     etc. — gametype-specific)
 --   - common.games.is_terminal     = true
 --   - common.games.status          = status (manifest-shaped jsonb

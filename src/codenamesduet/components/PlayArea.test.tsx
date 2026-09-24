@@ -319,7 +319,7 @@ describe('codenamesduet PlayArea — the board marks', () => {
     g.events = []
     const view = render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
     expect(grid().className).not.toMatch(/dimNotYourTurn/)
-    view.rerender(<PlayAreaLoader {...makeCtx({ playState: 'lost_assassin', isTerminal: true })} />)
+    view.rerender(<PlayAreaLoader {...makeCtx({ playState: 'lost', status: { reason: 'assassin' }, isTerminal: true })} />)
     expect(grid().className).not.toMatch(/dimNotYourTurn/)
     expect(grid().className).toMatch(/gameOverLost/)
   })
@@ -375,7 +375,7 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
 
   it('Reveal opens it for me alone, and Hide covers it again', async () => {
     const user = userEvent.setup()
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost_assassin' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost', status: { reason: 'assassin' } })} />)
 
     await user.click(screen.getByRole('button', { name: "Reveal key cards" }))
     expect(lastPeerKeyArg()).toBe(true)
@@ -393,7 +393,7 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
     expect(menuItems(live).get('act-reveal')?.disabled).toBe(true)
     unmount()
 
-    const done = makeCtx({ isTerminal: true, playState: 'lost_assassin' })
+    const done = makeCtx({ isTerminal: true, playState: 'lost', status: { reason: 'assassin' } })
     render(<PlayAreaLoader {...done} />)
     expect(menuItems(done).get('act-reveal')?.label).toBe("Reveal key cards")
     act(() => menuItems(done).get('act-reveal')!.run())
@@ -423,7 +423,7 @@ describe('codenamesduet PlayArea — the action row', () => {
   })
 
   it('at the end: Reveal, Restart, New game and Back to club — End is gone', () => {
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost_assassin' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost', status: { reason: 'assassin' } })} />)
     expect(buttons()).toEqual(['act-reveal', 'act-restart', 'act-new-game', 'act-back-to-club'])
   })
 
@@ -455,13 +455,13 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     expect(texts(ctx)).toContain('waiting for you')
 
-    const over: GamePageCtx = { ...ctx, playState: 'lost_clock', isTerminal: true }
+    const over: GamePageCtx = { ...ctx, playState: 'lost', status: { reason: 'turns' }, isTerminal: true }
     rerender(<PlayAreaLoader {...over} />)
     expect(texts(over)).not.toContain('waiting for you')
   })
 
   it('says nothing about the turn once the game is over', () => {
-    const ctx = makeCtx({ playState: 'lost_clock', isTerminal: true })
+    const ctx = makeCtx({ playState: 'lost', status: { reason: 'turns' }, isTerminal: true })
     render(<PlayAreaLoader {...ctx} />)
     expect(texts(ctx)).not.toContain('waiting for you')
   })
@@ -608,7 +608,7 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
     unmount()
 
     // No host this time: the RPC firing proves no question was asked.
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost_assassin' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost', status: { reason: 'assassin' } })} />)
     await user.click(control('act-restart')!)
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('replay_board', { target_game: 'g1' }))
   })

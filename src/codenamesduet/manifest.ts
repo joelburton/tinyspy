@@ -98,26 +98,28 @@ export const codenamesduetGame: GameManifest = {
   },
 
   // Render the per-row label from a common.games row. The verdict is
-  // the play state's own (STATUS_LABEL, below); the status adds the
-  // agent tally and, mid-game, the turns left. A play state missing
-  // from the map renders as its raw name.
+  // the play state's own (STATUS_LABEL, below), and a loss's cause is the
+  // reason's (LOSS_CAUSE); the status adds the agent tally and, mid-game, the
+  // turns left. A play state missing from the map renders as its raw name.
   labelFor: (row) => {
-    const st = (row.status ?? {}) as { greens_found?: number; turns_remaining?: number }
+    const st = (row.status ?? {}) as { greens_found?: number; turns_remaining?: number; reason?: string }
     // The agent tally is the useful "should I come back to this?" fact, so it
     // rides on every line. Mid-game the turn budget rides too.
     const agents = tally(st.greens_found, TOTAL_AGENTS, 'agents')
-    const verdict = STATUS_LABEL[row.play_state]
-    if (!verdict) return row.play_state
+    const label = row.play_state === 'lost'
+      ? verdict('Lost', LOSS_CAUSE[st.reason ?? ''])
+      : STATUS_LABEL[row.play_state]
+    if (!label) return row.play_state
     return row.play_state === 'playing'
-      ? statusLine(verdict, count(st.turns_remaining, 'turn left', 'turns left'), agents)
-      : statusLine(verdict, agents)
+      ? statusLine(label, count(st.turns_remaining, 'turn left', 'turns left'), agents)
+      : statusLine(label, agents)
   },
 
   // Called by common's GamePage when its countdown timer hits 0.
-  // submit_timeout flips play_state to 'lost_timeout' (distinct from
-  // 'lost_clock', the Duet rulebook's turns-exhausted ending) + writes
-  // common.games.status.reason='timeout' — the play_state carries the verdict,
-  // the reason names the cause. Idempotent, so peers racing to
+  // submit_timeout writes play_state 'lost' + common.games.status.reason
+  // 'timeout' (distinct from 'turns', the Duet rulebook's turns-spent
+  // ending) — the play_state carries the verdict, the reason names the
+  // cause. Idempotent, so peers racing to
   // fire it is fine. end_game is the irreversible in-game "End game" button.
   // Both are the shared one-arg dispatchers (see common/manifest/manifestRpcs).
   submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
@@ -132,12 +134,16 @@ const STATUS_LABEL: Record<string, string> = {
   // is the thing to scan a club list for.
   sudden_death: 'Sudden death',
   won: verdict('Won'),
-  lost_assassin: verdict('Lost', 'assassin'),
-  // "turns", not "tokens": the rulebook's physical timer-tokens are just
-  // the turn budget, and "tokens" doesn't help a player who never holds one.
-  lost_clock: verdict('Lost', 'out of turns'),
-  lost_timeout: verdict('Lost', 'out of time'),
   // Manual end (codenamesduet.end_game): the friends stopped on purpose.
   // Neutral phrasing — not a loss.
   ended: verdict('Ended'),
+}
+
+// A loss's cause, per `status.reason`, in the words the status line shows.
+const LOSS_CAUSE: Record<string, string> = {
+  assassin: 'assassin',
+  // "turns", not "tokens": the rulebook's physical timer-tokens are just
+  // the turn budget, and "tokens" doesn't help a player who never holds one.
+  turns: 'out of turns',
+  timeout: 'out of time',
 }

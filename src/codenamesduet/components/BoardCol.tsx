@@ -29,9 +29,9 @@ import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
 /**
- * What `submit_guess` answers. Five `ok`s: the three that end the game are
- * named for the play_state they set, and the two that leave it running are
- * named for what was turned over.
+ * What `submit_guess` answers. Four `ok`s: the two that end the game are
+ * named for the play_state they set and carry its reason, and the two that
+ * leave it running are named for what was turned over.
  *
  * `revealed` is the key-card label the guess hit ('G' | 'N' | 'A'), one field
  * among the board facts the reveal produced.
@@ -49,7 +49,9 @@ type GuessAnswer =
       play_state: 'playing' | 'sudden_death'
     }
   | {
-      result: 'won' | 'lost_assassin' | 'lost_clock'
+      result: 'won' | 'lost'
+      // The `status.reason` the ending wrote.
+      reason: 'solved' | 'assassin' | 'turns'
       revealed: 'G' | 'N' | 'A'
       greens_found: number
       turns_used: number
@@ -171,7 +173,7 @@ export function BoardCol({
         target_position: position,
       }))
       setPendingPos(null)
-      // Five answers, and every one of them says nothing here: each is a
+      // Four answers, and every one of them says nothing here: each is a
       // REVEAL, and the reveal arrives via Realtime → useBoard
       // refetches → the tile re-renders in its result color. No optimistic
       // update, no flash, and a pill would only repeat the board.
@@ -193,9 +195,7 @@ export function BoardCol({
         // shows the verdict into the slot (and pops the celebration). Saying
         // it here as well would say it twice.
         return
-      } else if (res.type === 'ok' && res.data.result === 'lost_assassin') {
-        return
-      } else if (res.type === 'ok' && res.data.result === 'lost_clock') {
+      } else if (res.type === 'ok' && res.data.result === 'lost') {
         return
       } else {
         reportUnhandled('submit_guess', res)

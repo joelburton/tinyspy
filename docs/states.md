@@ -100,9 +100,9 @@ Each gametype defines its own `play_state` enum, with `playing` for the default
 mid-game state and one or more terminal values. The specific set varies by
 gametype's rules — see each per-game doc's `### Play-state enum` / `### Play
 states` section for the full list. The simplest is psychicnum coop (`playing` /
-`won` / `lost` / `ended`); the broadest today is codenamesduet (multi-axis loss
-reasons: `lost_assassin` / `lost_clock` / `lost_timeout`). The set of terminal
-play_states varies per gametype.
+`won` / `lost` / `ended`). A game with several ways to lose still has one
+`lost` and names the way in `status.reason` (codenamesduet: `assassin`,
+`turns`, `timeout`). The set of terminal play_states varies per gametype.
 
 **Convention: don't use `'active'` as a play_state value.** "Active" overloads
 view-state and play-state — using it for play_state invites the confusion this
@@ -219,9 +219,10 @@ reachable play_states in its CASES matrix). The whole roster's vocabulary today:
 | `timeout` | the countdown reached 0 |
 | `manual` | a player fired the End-game action |
 | `conceded` | every player quit (`common.concede`'s last-racer path) |
-| `exhausted` | a budget ran out — guesses, swaps, or codenamesduet's turn counter |
+| `exhausted` | a budget ran out — guesses or swaps |
 | `mistakes` | the mistake limit was hit (connections) |
 | `assassin` | the assassin was revealed (codenamesduet) |
+| `turns` | the turn budget ran out and a sudden-death guess missed (codenamesduet) |
 | `solved` | the puzzle/grid/secrets were completed |
 | `target` | a score or rank target was crossed |
 | `cleared` | the stack was cleared (stackdown) |

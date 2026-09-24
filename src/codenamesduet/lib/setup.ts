@@ -25,7 +25,7 @@ export type CodenamesduetValues = {
   first_clue_giver_user_id: string
   // Browser-side wall-clock timer mode. `none` (no clock) and
   // `countup` (informational) are display-only; `countdown`
-  // flips the game to `lost_timeout` when the clock hits 0 (via
+  // loses the game, reason `timeout`, when the clock hits 0 (via
   // codenamesduet.submit_timeout). Validated server-side by
   // `common.require_valid_timer`.
   //

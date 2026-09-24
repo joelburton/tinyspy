@@ -121,9 +121,9 @@ loses.
 | play state | when | reason |
 |---|---|---|
 | `won` | the fifteenth agent is contacted | `solved` |
-| `lost_assassin` | an assassin is hit | `assassin` |
-| `lost_clock` | a bystander in sudden death (an assassin there is still `lost_assassin`) | `exhausted` |
-| `lost_timeout` | the wall-clock countdown ran out | `timeout` |
+| `lost` | an assassin is hit | `assassin` |
+| `lost` | a bystander in sudden death (an assassin there is still `assassin`) | `turns` |
+| `lost` | the wall-clock countdown ran out | `timeout` |
 | `ended` | somebody pressed End — neutral, not a loss | `manual` |
 
 Every ending is the same for both players, and only `won` is a win.
@@ -257,14 +257,15 @@ goes on; a bystander in ordinary play ends the turn, and the seat that clues
 next is the partner's unless the partner's agents are all found. In sudden
 death every guess is a turn of its own: an agent moves the turn number on, so
 the next guess — by either player — is the next turn. Three guesses
-end the game: the fifteenth agent (`won`), any assassin (`lost_assassin`),
-sudden death included, and a bystander in sudden death (`lost_clock`). Each ending records its
+end the game: the fifteenth agent (`won`), any assassin (`lost`, reason
+`assassin`), sudden death included, and a bystander in sudden death (`lost`,
+reason `turns`). Each ending records its
 reason, the turns used and the agents found, and both players get the same
 result.
 
 **Passed:** `{ "target_game": "88ae6f5a…", "target_position": 5 }`
 
-**Returned.** Five answers. The two that leave the game running are named for
+**Returned.** Four answers. The two that leave the game running are named for
 what was turned over and carry the turn state after it — B's first two guesses
 in this game:
 
@@ -277,14 +278,13 @@ in this game:
   `play_state` is `sudden_death` and `clue_giver` is null — sudden death has no
   clues, so nobody holds the seat.
 
-The three that end the game are named for the play state they set, and carry
-the label turned over, the agents found and the turns used:
+The two that end the game are named for the play state they set, and carry
+its reason, the label turned over, the agents found and the turns used:
 
-- `{ "result": "won", "revealed": "G", "greens_found": …, "turns_used": … }`
-- `{ "result": "lost_assassin", "revealed": "A", "greens_found": …, "turns_used": … }`
-- `{ "result": "lost_clock", "revealed": "N", "greens_found": …, "turns_used": … }`
+- `{ "result": "won", "reason": "solved", "revealed": "G", "greens_found": …, "turns_used": … }`
+- `{ "result": "lost", "reason": "assassin" | "turns", "revealed": "A" | "N", "greens_found": …, "turns_used": … }`
 
-The frontend says nothing about any of the five: each is a reveal, and the
+The frontend says nothing about any of the four: each is a reveal, and the
 board shows it when the words row arrives.
 
 ### `codenamesduet.pass_turn(target_game)`
@@ -336,8 +336,8 @@ since the model's answer is already in hand; the function logs that failure.
 
 `end_game`, `submit_timeout` and `replay_board` — the common shape every game
 has, doing here what they do everywhere. What is this game's: `end_game` is
-the neutral `ended` with the reason `manual`; `submit_timeout` is
-`lost_timeout`, a loss distinct from `lost_clock`, which is the budget running
+the neutral `ended` with the reason `manual`; `submit_timeout` is `lost` with
+the reason `timeout`, distinct from `turns`, which is the budget running
 out; both reach sudden death as well as ordinary play. `replay_board` is a
 mulligan: the same twenty-five words and the same two key cards, every reveal
 and every event wiped, seat A clueing turn 1 again. There is no `concede` — the
@@ -509,8 +509,8 @@ test finds a position by its label), `pg_temp.codenamesduet_setup()` and
 | `clue_giver_handoff_test` | a finished player gives no more clues, from either seat, and two live seats still alternate |
 | `cross_direction_test` | a bystander locks the guesser's side only; the partner can still contact the word; the two locks answer in different words |
 | `win_test` | the fourteenth agent plays on and the fifteenth wins, both players winning, with the turns spent recorded |
-| `sudden_death_test` | a real last pass enters it, with nobody holding the clue seat; a clue, a pass and the AI refused in its own words; an agent goes on, a bystander is `lost_clock` and an assassin `lost_assassin` |
-| `submit_timeout_test` | `lost_timeout` from both running states, the reason, both players losing, the turns spent, and a second call refused |
+| `sudden_death_test` | a real last pass enters it, with nobody holding the clue seat; a clue, a pass and the AI refused in its own words; an agent goes on, a bystander loses on `turns` and an assassin on `assassin` |
+| `submit_timeout_test` | a loss on `timeout` from both running states, the reason, both players losing, the turns spent, and a second call refused |
 | `end_game_test` | `ended` with the reason `manual`, nobody winning, the game row written for the realtime wake, and a second call refused |
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
 | `events_test` | what each move writes to the log, `took_turn` included, a hint under the seat that asked; the one-clue index and the payload CHECK |

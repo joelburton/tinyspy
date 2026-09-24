@@ -160,6 +160,7 @@ export function PlayArea({
   gameId,
   playState,
   isTerminal,
+  status,
   setup,
   globalFeedbackSlot,
   clubHandle,
@@ -284,11 +285,13 @@ export function PlayArea({
   // `useDismissLocalFeedbackOnKey`).
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  // The verdict, memoized on `playState` so the effect sees one object per
-  // outcome, shown on the terminal edge.
+  // The verdict, memoized on primitives so the effect sees one object per
+  // outcome, shown on the terminal edge. The cause is the server's word
+  // (`status.reason`), the same one the club-list label reads.
+  const reason = status?.reason as string | undefined
   const terminalMessage = useMemo(
-    () => (isTerminal ? buildTerminalMessage(playState) : null),
-    [isTerminal, playState],
+    () => (isTerminal ? buildTerminalMessage({ playState, reason }) : null),
+    [isTerminal, playState, reason],
   )
   useEffect(function showTerminalVerdict() {
     if (!terminalMessage) return

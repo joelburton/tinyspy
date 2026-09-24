@@ -14,8 +14,8 @@
 --      words that say sudden death rather than game over
 --   3. submit_guess works for either player (no turn enforcement), and a
 --      green reveal keeps the game going
---   4. a bystander ends the game in lost_clock
---   5. an assassin ends it in lost_assassin, as it does in ordinary play
+--   4. a bystander loses the game, reason turns
+--   5. an assassin loses it, reason assassin, as it does in ordinary play
 --
 -- For the reveal label, sudden_death uses the *partner's* view
 -- (the seat opposite the guesser). So when ada guesses, we
@@ -131,7 +131,7 @@ select is(
 );
 
 -- ============================================================
--- (4) Any non-green ends the game in lost_clock
+-- (4) Any non-green loses the game, reason turns
 -- ============================================================
 -- A neutral on the partner's view is enough.
 
@@ -140,15 +140,15 @@ select pg_temp.envelope_is(
     (select id from g),
     pg_temp.find_position((select id from g), 'B', 'N')
   ),
-  '{"type":"ok","outcome":null,"data":{"result":"lost_clock","revealed":"N",
-    "greens_found":1}}'::jsonb,
-  'a neutral in sudden death answers ok/lost_clock — the game is over'
+  '{"type":"ok","outcome":null,"data":{"result":"lost","reason":"turns",
+    "revealed":"N","greens_found":1}}'::jsonb,
+  'a neutral in sudden death answers ok/lost, reason turns — the game is over'
 );
 
 select is(
-  (select play_state from common.games where id = (select id from g)),
-  'lost_clock',
-  'a non-green reveal in sudden death sets play_state = lost_clock'
+  (select array[play_state, status->>'reason'] from common.games where id = (select id from g)),
+  array['lost', 'turns'],
+  'a non-green reveal in sudden death sets play_state = lost, reason = turns'
 );
 
 -- ============================================================
@@ -174,8 +174,8 @@ select pg_temp.envelope_is(
     (select id from g2),
     pg_temp.find_position((select id from g2), 'B', 'A')
   ),
-  '{"type":"ok","outcome":null,"data":{"result":"lost_assassin","revealed":"A"}}'::jsonb,
-  'an assassin in sudden death answers ok/lost_assassin, not lost_clock'
+  '{"type":"ok","outcome":null,"data":{"result":"lost","reason":"assassin","revealed":"A"}}'::jsonb,
+  'an assassin in sudden death answers ok/lost, reason assassin, not turns'
 );
 
 select is(

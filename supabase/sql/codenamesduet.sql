@@ -590,13 +590,14 @@ grant execute on function codenamesduet.submit_clue(uuid, text, int, boolean) to
 -- the Duet rules:
 --   - whose key view labels this reveal (the clue-giver's during
 --     active play; the partner's in sudden death)
---   - assassin reveal → lost_assassin
---   - non-green during sudden death → lost_clock
+--   - assassin reveal → lost, reason 'assassin'
+--   - non-green during sudden death → lost, reason 'turns'
 --   - green reveal → check win; turn continues
 --   - neutral reveal during active → turn ends via _end_turn
 --
--- Five `ok` answers. The three terminal ones are named for the play_state they
--- set; the two that leave the game running are named for what was turned over.
+-- Four `ok` answers. The two terminal ones are named for the play_state they
+-- set and carry its reason; the two that leave the game running are named for
+-- what was turned over.
 --
 -- Its rejections are all races but two, and the reason is the same one the clue
 -- form has: the tiles unlock when this RPC replies, while the board and the
@@ -628,6 +629,7 @@ declare
   turn_state jsonb;
   player_results jsonb;
   end_state text;
+  end_reason text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   if target_position < 0 or target_position > 24 then
@@ -790,20 +792,27 @@ begin
   -- branching on end_state keeps the branches focused.
   -- Each branch nulls out current_clue_giver on codenamesduet.games but the
   -- play_state write goes through common.end_game.
+  --
+  -- `end_state` is the verdict and `end_reason` the cause (docs/states.md →
+  -- `status.reason` names the CAUSE). 'turns' is the Duet turn budget, spent
+  -- and then a miss in sudden death.
   end_state := null;
 
   if revealed_label = 'A' then
     update codenamesduet.games set current_clue_giver = null
       where id = target_game;
-    end_state := 'lost_assassin';
+    end_state := 'lost';
+    end_reason := 'assassin';
   elsif current_play_state = 'sudden_death' and revealed_label <> 'G' then
     update codenamesduet.games set current_clue_giver = null
       where id = target_game;
-    end_state := 'lost_clock';
+    end_state := 'lost';
+    end_reason := 'turns';
   elsif revealed_label = 'G' and green_total >= 15 then
     update codenamesduet.games set current_clue_giver = null
       where id = target_game;
     end_state := 'won';
+    end_reason := 'solved';
   end if;
 
   if end_state is not null then
@@ -827,15 +836,7 @@ begin
       target_game,
       end_state,
       jsonb_build_object(
-        -- `reason` names the CAUSE; play_state already carries the verdict, so
-        -- it must not just repeat it (docs/states.md → `status.reason` names
-        -- the CAUSE). 'exhausted' is the roster's noun for a spent budget —
-        -- here the Duet turn counter.
-        'reason', case end_state
-                     when 'lost_assassin' then 'assassin'
-                     when 'lost_clock'    then 'exhausted'
-                     else 'solved'
-                   end,
+        'reason', end_reason,
         'turns_used', turns_used,
         -- Stated here rather than left to the merge. This branch can BE a green
         -- reveal — the 15th agent is what wins — and it returns before the
@@ -848,13 +849,15 @@ begin
       player_results
     );
 
-    -- The three terminal answers are NAMED for the play_state they just set,
-    -- so a call site branching on `result` is branching on the ending. Like
-    -- every answer here, it states the fact and carries no outcome: nothing
-    -- shows a single guess's verdict, because the tile turning over says it.
+    -- The terminal answers are NAMED for the play_state they just set and
+    -- carry its reason, so a call site branching on them is branching on the
+    -- ending. Like every answer here, it states the fact and carries no
+    -- outcome: nothing shows a single guess's verdict, because the tile turning
+    -- over says it.
     return common.ok_envelope(
       jsonb_build_object(
         'result', end_state,
+        'reason', end_reason,
         'revealed', revealed_label,
         'greens_found', green_total,
         'turns_used', turns_used
@@ -941,10 +944,9 @@ grant execute on function codenamesduet.submit_guess(uuid, int) to authenticated
 -- codenamesduet.submit_timeout — wall-clock countdown expired
 -- ============================================================
 -- The clock is common.timers, advanced by common.tick_timer; when
--- the countdown derived from it hits zero, the FE fires this. We flip the game to
--- `lost_timeout` (distinct from `lost_clock`, which is the
--- turns-exhausted Duet ending) and call common.end_game
--- with reason='timeout' (the play_state carries the verdict;
+-- the countdown derived from it hits zero, the FE fires this. We call
+-- common.end_game with play_state 'lost' and reason 'timeout' — distinct from
+-- 'turns', the turns-spent Duet ending (the play_state carries the verdict;
 -- the reason names only the cause — states.md).
 --
 -- Idempotency: both clients' timers hit zero together, and the lock
@@ -1000,7 +1002,7 @@ begin
   -- location) minus what's left.
   perform common.end_game(
     target_game,
-    'lost_timeout',
+    'lost',
     jsonb_build_object(
       'reason', 'timeout',
       'turns_used',
@@ -1107,8 +1109,8 @@ grant execute on function codenamesduet.replay_board(uuid) to authenticated;
 -- codenamesduet.end_game — manual stop
 -- ============================================================
 -- The friends' explicit "we're done here" button. codenamesduet has
--- plenty of *automatic* terminals (won / lost_assassin / lost_clock
--- / lost_timeout) — but the friends
+-- plenty of *automatic* terminals (won, and lost by assassin, spent turns or
+-- timeout) — but the friends
 -- may still want to abandon an in-progress game early. This RPC is that
 -- escape hatch.
 --
@@ -1123,7 +1125,7 @@ grant execute on function codenamesduet.replay_board(uuid) to authenticated;
 -- Modeled on submit_timeout above — same lock / auth / active-state
 -- gate / cooperative player_results shape. Two
 -- differences: it writes play_state='ended' + reason='manual' (vs
--- 'lost_timeout'), and it's fired by a player's deliberate click
+-- 'lost' + 'timeout'), and it's fired by a player's deliberate click
 -- rather than the FE's timer.
 --
 -- Idempotency: a second click, or a click racing a timer or assassin

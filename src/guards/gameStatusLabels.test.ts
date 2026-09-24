@@ -53,11 +53,11 @@ const CASES: Record<string, Family> = {
     playing: { greens_found: 12, turns_remaining: 5 },
     shared: [
       ['sudden_death', { greens_found: 12 }, 'sudden death'],
-      ['won', { greens_found: 15 }, 'won'],
-      ['lost_assassin', { greens_found: 12 }, 'assassin'],
-      ['lost_clock', { greens_found: 12 }, 'out of turns'],
-      ['lost_timeout', { greens_found: 12 }, 'timeout'],
-      ['ended', { greens_found: 12 }, 'manual end'],
+      ['won', { greens_found: 15, reason: 'solved' }, 'won'],
+      ['lost', { greens_found: 12, reason: 'assassin' }, 'assassin'],
+      ['lost', { greens_found: 12, reason: 'turns' }, 'out of turns'],
+      ['lost', { greens_found: 12, reason: 'timeout' }, 'timeout'],
+      ['ended', { greens_found: 12, reason: 'manual' }, 'manual end'],
     ],
   },
   // strands' coop loss is the clock alone: the roster's rule is "you lose if
@@ -467,7 +467,7 @@ describe('game status labels', () => {
    * even before someone remembers to add it to the transcribed list.
    */
   const ROSTER_REASONS = [
-    'timeout', 'manual', 'conceded', 'exhausted', 'mistakes', 'assassin',
+    'timeout', 'manual', 'conceded', 'exhausted', 'mistakes', 'assassin', 'turns',
     'solved', 'target', 'cleared', 'complete', 'blocked', 'revealed',
   ]
 
