@@ -1,4 +1,4 @@
-// cs-audited-grid-and-drag
+// cs-blessed-grid-and-drag
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './dragging.css'

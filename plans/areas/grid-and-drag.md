@@ -4,7 +4,7 @@ The folders it reads: `shared/grid-and-drag`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-24. All seven findings fixed and the closing re-read done; the doc.md harvest remains.**
+**Status: CLOSED 2026-09-24, blessed** (Joel: *"mark files in this as blessed, then clone the area, the commit"*).
 
 ## The roster
 
@@ -12,19 +12,19 @@ Agreed with Joel 2026-09-24 (*"i approve the field list. do the area audit."*):
 
 | file | lines | stamp |
 |---|---|---|
-| `src/shared/grid-and-drag/useDragGesture.ts` | 178 | `cs-audited-grid-and-drag` |
-| `src/shared/grid-and-drag/useDragGesture.test.ts` | 129 | `cs-audited-grid-and-drag` |
-| `src/shared/grid-and-drag/dragGhost.module.css` | 38 | `cs-audited-grid-and-drag` |
-| `src/shared/grid-and-drag/dragging.css` | 10 | `cs-audited-grid-and-drag` — created by F-grid-and-drag-3 |
-| `src/shared/grid-and-drag/doc.md` | 3 | (markdown carries no stamp) |
+| `src/shared/grid-and-drag/useDragGesture.ts` | 175 | `cs-blessed-grid-and-drag` |
+| `src/shared/grid-and-drag/useDragGesture.test.ts` | 179 | `cs-blessed-grid-and-drag` |
+| `src/shared/grid-and-drag/dragGhost.module.css` | 35 | `cs-blessed-grid-and-drag` |
+| `src/shared/grid-and-drag/dragging.css` | 10 | `cs-blessed-grid-and-drag` — created by F-grid-and-drag-3 |
+| `src/shared/grid-and-drag/doc.md` | 77 | (markdown carries no stamp) |
 | `src/shared/grid-and-drag/todo.md` | 11 | (markdown carries no stamp) |
 
 Dependencies listed and left, since they belong to bananagrams' and scrabble's
 areas: `bananagrams/components/BoardArena.tsx`, `HandCard.tsx`,
 `PlayerBoard.tsx` and `PlayerBoard.module.css`, `bananagrams/hooks/usePlayerBoard.ts`
 and its test; `scrabble/components/BoardCol.tsx` and `BoardCol.module.css`.
-Each game's `theme.css` holds the rule for its drag class, and
-F-grid-and-drag-1 and F-grid-and-drag-3 reach into them.
+Each game's `theme.css` held the rule for its drag class, and
+F-grid-and-drag-1 and F-grid-and-drag-3 reached into them.
 
 ## The READ
 
@@ -309,7 +309,8 @@ was (a), `hook-reads-the-cell`):**
 
 ## Notes
 
-- **Owed to `doc.md` at the harvest** (from the header F-grid-and-drag-5
+- **HARVESTED into `doc.md`** (2026-09-24, Joel: *"write doc.md."*): its intro
+  carries both halves below, and Details the rest. **Was owed to `doc.md` at the harvest** (from the header F-grid-and-drag-5
   removed): the hook owns the mechanics and each game keeps the meaning — its
   `onDrop` (stage, move, recall, reorder, dump), its `onTap` (move the cursor,
   mark for exchange), and its keyboard cursor and typing, which live in
@@ -359,6 +360,40 @@ It found:
 ## Closing
 
 - [x] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+  (nothing is owed, so `todo.md` stays empty)
+- [x] every file on the roster blessed, or its stamp says why not
+
+## Closing summary
+
+**`grid-and-drag` is CLOSED 2026-09-24, blessed** (Joel: *"mark files in this
+as blessed, then clone the area, the commit"*). `useDragGesture.ts`, its test,
+`dragGhost.module.css` and the new `dragging.css` are
+`cs-blessed-grid-and-drag`.
+
+It was a small folder whose biggest find sat next door. **What changed the
+app:** since the color-naming sweep of 2026-08-18, scrabble's and bananagrams'
+colors and shadows had been declared inside the body rule that exists only
+while a tile is dragged. So at rest, scrabble's rack had no wood, its tiles no
+shadows, and its premium letters the wrong ink, and bananagrams' tiles lost
+their shadows. A headless check proved it. The tokens now live in `:root`.
+
+The rest:
+- **Touch.** A finger no longer drags in scrabble, matching `docs/mobile.md`
+  and scrabble's own docs (Joel: a keyboard-attached tablet is the smallest
+  useful device).
+- **One dragging class.** The hook owns one body class and one rule. The rule
+  reaches every element, so the closed hand now shows over the board.
+- **One `cellAtPoint`.** The hook reads the grid cell itself; both games had
+  the same copy.
+- **Smaller fixes.** The ghost's tier moved into the shared rule, the hook got
+  a real docstring, and the test lost a false jsdom claim and gained a test of
+  the latest-options behavior.
+- **Waffle** keeps the browser's own drag, by Joel's ruling. `doc.md` states
+  the rule for which to use.
+
+The closing re-read found a stale sibling claim in scrabble's `Board.tsx`
+and five slips in the area's own new prose. `doc.md` now carries the design.
+
+**Handed off:** nothing. `todo.md` is empty.

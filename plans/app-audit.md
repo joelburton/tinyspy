@@ -19,8 +19,6 @@ the folders' `todo.md`.
 - `outcome-fix` — closed as a pass across every game's move path; its files
   are `cs-fixed-outcome-fix`, not blessed.
 
-**Open:** `grid-and-drag` — the READ is done; its findings await Joel.
-
 **Not opened yet:** the ten remaining games (Joel picks the next), and one
 shared family — `board-cursor`.
 
@@ -136,7 +134,7 @@ area file's closing summary.
 | 50 | `board-cursor` | `shared/board-cursor` | not opened · a cursor moving over a board |
 | 51 | `wordle-style` | `shared/wordle-style` | closed 09-22 · the per-letter color codes |
 | 52 | `onscreen-keyboard` | `shared/onscreen-keyboard` | closed 09-22 · the on-screen QWERTY |
-| 53 | `grid-and-drag` | `shared/grid-and-drag` | **open** 09-24 · dragging a tile onto the grid |
+| 53 | `grid-and-drag` | `shared/grid-and-drag` | closed 09-24 · dragging a tile onto the grid |
 | 54 | `bee-games` | `shared/bee-games` | closed 09-21 · what spellingbee and wordwheel share |
 | 55 | `found-words` | `shared/found-words` | closed 09-21 · the games that keep a found-words list |
 | | **The games** — one area each, keyed by codename; `psychicnum` first as the control | | |

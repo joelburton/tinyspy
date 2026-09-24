@@ -1,4 +1,4 @@
-/* cs-audited-grid-and-drag */
+/* cs-blessed-grid-and-drag */
 
 /* While a tile is being dragged (useDragGesture sets the class): no text
    selection, and the closed hand over everything — `*` because every square

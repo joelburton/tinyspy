@@ -80,7 +80,7 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
  * is the test.
  */
 const INTROS_OWED: string[] = [
-  'shared/board-cursor', 'shared/grid-and-drag',
+  'shared/board-cursor',
 ]
 
 /**
