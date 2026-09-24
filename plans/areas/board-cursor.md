@@ -4,8 +4,8 @@ The folders it reads: `shared/board-cursor`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-24. The READ is done; all five findings are worked.
-The closing is next.**
+**Status: CLOSED 2026-09-24, blessed** (Joel: *"bless the files in this area,
+close it, and commit"*).
 
 ## The roster
 
@@ -14,12 +14,12 @@ audit."*):
 
 | file | lines | stamp |
 |---|---|---|
-| `src/shared/board-cursor/useBoardCursorKeys.ts` | 100 | `cs-audited-board-cursor` |
-| `src/shared/board-cursor/useBoardCursorKeys.test.ts` | 143 | `cs-audited-board-cursor` |
-| `src/shared/board-cursor/gridCursor.ts` | 58 | `cs-audited-board-cursor` |
-| `src/shared/board-cursor/gridCursor.test.ts` | 66 | `cs-audited-board-cursor` |
-| `src/shared/board-cursor/gridCursor.module.css` | 48 | `cs-audited-board-cursor` |
-| `src/shared/board-cursor/doc.md` | 3 | (markdown carries no stamp) |
+| `src/shared/board-cursor/useBoardCursorKeys.ts` | 93 | `cs-blessed-board-cursor` |
+| `src/shared/board-cursor/useBoardCursorKeys.test.ts` | 140 | `cs-blessed-board-cursor` |
+| `src/shared/board-cursor/gridCursor.ts` | 72 | `cs-blessed-board-cursor` |
+| `src/shared/board-cursor/gridCursor.test.ts` | 102 | `cs-blessed-board-cursor` |
+| `src/shared/board-cursor/gridCursor.module.css` | 45 | `cs-blessed-board-cursor` |
+| `src/shared/board-cursor/doc.md` | 69 | (markdown carries no stamp) |
 | `src/shared/board-cursor/todo.md` | 11 | (markdown carries no stamp) |
 
 Dependencies listed and left, since they belong to bananagrams' and scrabble's
@@ -27,7 +27,9 @@ areas: `bananagrams/hooks/usePlayerBoard.ts` and its test,
 `bananagrams/components/BoardArena.tsx`; `scrabble/components/BoardCol.tsx`
 and `Board.tsx`. Mentions only: `crosswords/hooks/useGridKeyboard.ts` (a
 contrast in its docstring), `src/guards/vocabularies.test.ts` (a `pending`
-row), and the docs that link the folder.
+row), and the docs that link the folder. F-board-cursor-1, -3, -4 and -5
+reached into the games' files, and F-board-cursor-2 into `base.css` and the
+guard; their stamps are their own areas'.
 
 ## The READ
 
@@ -228,7 +230,57 @@ and bananagrams' test said "its 5%", pointing at the split that went.
 
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+**The re-read, 2026-09-24.** Every roster file end to end; `todo.md` empty
+before it; each worked finding grepped for across the repo, docs and plans
+included. What it found, all worked:
+
+- **F1's wording, next door.** `BoardCol.tsx`'s Recall comment still said ⌫
+  *"takes the last one back"* — the registry's copy of the same sentence was
+  fixed, this one was not. `docs/games/bananagrams.md` described the old
+  Backspace, including *"Backspace never deletes the cell it lands on"*, now
+  false.
+- **F5's roster and split, next door.** `docs/games/scrabble.md` said
+  *"scrabble's 5%"* and *"both games use"*; `docs/games/bananagrams.md` listed
+  the hook's two users. The scrabble line now also says Backspace passes over
+  committed tiles.
+- **The marker.** `useBoardCursorKeys.test.ts`'s `states` helper, a const
+  inside a `describe`, carried `/**`.
+- **The CSS header,** re-wrapped after F2's edit left it ragged; the
+  `z-index` note named scrabble's premium label in a shared file.
+
+- [x] the whole area re-read in one sitting after the last group
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
+  (2026-09-24: the intro, and Details harvested from the findings, What
+  checked out and Notes; the keyboard-nav plan's stale `enterOnSpace` fixed
+  on the way)
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+  (nothing is owed; the todo is empty)
+- [x] every file on the roster blessed, or its stamp says why not
+
+## Closing summary
+
+**`board-cursor` is CLOSED 2026-09-24, blessed** (Joel: *"bless the files in
+this area, close it, and commit"*). `useBoardCursorKeys.ts`, `gridCursor.ts`,
+their tests and `gridCursor.module.css` are `cs-blessed-board-cursor`.
+
+**What changed the app:** in both games, the first Backspace after typing
+removed nothing, because it cleared the empty cell the cursor had advanced to
+and only then stepped back onto the letter. Backspace now follows crosswords'
+two-step rule (Joel: *"do b"*, then *"b1"*): a tile under the cursor goes and
+the cursor stays; on an empty cell the cursor steps back and the tile there
+goes. In scrabble the step back passes over committed tiles, as typing does
+(*"skip-commited"*). The order is `planBackspace`, one helper both games call.
+
+The rest:
+- **The ring's widths are tokens.** The line is `--border-width-line`; the
+  heavy edges are the new `--mark-gridCursor-heavy-width` (5px, unchanged).
+- **One cursor type.** `ArrowKey` is declared once, and both games' hand-typed
+  `Cursor` shapes are `GridCursor`.
+- **`onEnter` is `onCommit`,** since a peel commits on Space too.
+- **Prose.** Game rosters and the 5%/95% split came out of the folder and the
+  game docs; the crosswords design moved to `doc.md`, and its naming split to a
+  Maybe in `src/crosswords/todo.md`.
+
+The closing re-read found F1's old Backspace wording and F5's roster still
+standing next door, in a scrabble comment and both game docs. `doc.md` now
+carries the design.

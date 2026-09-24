@@ -1,4 +1,4 @@
-// cs-audited-board-cursor
+// cs-blessed-board-cursor
 
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import type { BoundAction } from '@/common/actions/useBoundAction'

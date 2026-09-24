@@ -660,8 +660,9 @@ tablet viewports: fit invariants + the sheet round-trip).
 and its crossword cursor (arrow keys move it, a perpendicular arrow rotates →/↓,
 typing places a matching rack tile / a blank declared by the typed letter, then
 advances). The keyboard cursor rides the **shared `useBoardCursorKeys`** (the
-common 2-D board-cursor hook both games use, four bound actions); scrabble's 5%
-is that only STAGED tiles are editable — committed tiles are locked — and its
+2-D board-cursor hook, four bound actions); what scrabble supplies is that only
+STAGED tiles are editable — committed tiles are locked, and typing and
+Backspace both pass over them — and its
 COMMIT is `act-submit`, which plays the staged word (vs bananagrams' peel). The
 commit's availability is its own, narrower than the cursor's: you may stage a
 play before your turn in compete, and Enter waits with the button. Drag a tile

@@ -1,4 +1,4 @@
-// cs-audited-board-cursor
+// cs-blessed-board-cursor
 
 /**
  * The shared cursor math for a game that types tiles onto a grid: a

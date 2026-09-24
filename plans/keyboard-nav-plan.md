@@ -285,7 +285,7 @@ and the skip-Enter-when-a-button-has-focus nicety with it. Duplicating those is
 how you ship a board that steals typing.
 
 It needs: `onLetter` / `onBackspace` made optional, and an `onSpace` distinct from
-its current `enterOnSpace` (bananagrams' "Space also peels"). That edits a hook
+a peel's Space (which `act-peel` carries). That edits a hook
 **scrabble and bananagrams depend on**, so their suites get run deliberately, not
 incidentally.
 

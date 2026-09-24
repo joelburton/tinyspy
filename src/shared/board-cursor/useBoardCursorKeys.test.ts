@@ -1,4 +1,4 @@
-// cs-audited-board-cursor
+// cs-blessed-board-cursor
 
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
@@ -108,7 +108,7 @@ describe('useBoardCursorKeys', () => {
   })
 
   describe('what the four say about themselves', () => {
-    /** Each binding's state by id, read off the stack the dispatcher reads. */
+    // Each binding's state by id, read off the stack the dispatcher reads.
     const states = () =>
       Object.fromEntries(liveBindings().map((b) => [b.id, b.describe('button').state]))
 

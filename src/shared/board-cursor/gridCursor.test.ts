@@ -1,4 +1,4 @@
-// cs-audited-board-cursor
+// cs-blessed-board-cursor
 
 import { describe, expect, it } from 'vitest'
 import { moveCursor, planBackspace, stepBack, type BackspaceCell, type GridCursor } from './gridCursor'

@@ -1,14 +1,14 @@
-/* cs-audited-board-cursor */
+/* cs-blessed-board-cursor */
 
 /* The keyboard cursor on a grid board — the ring that shows which cell you're
  * typing into and which way the letters will run.
  *
- * The shape is a ring that's THICK ON THE AXIS OF TRAVEL: a line all round with
- * the two edges perpendicular to the direction thickened to
- * `--mark-gridCursor-heavy-width`. So a horizontal
- * cursor has heavy top and bottom rules (the letters will run left-to-right
- * between them) and a vertical one heavy left and right. Reading the direction
- * off the cursor is the whole job, so the asymmetry is the point, not decoration.
+ * The shape is a ring that's THICK ON THE AXIS OF TRAVEL: a line all round
+ * with the two edges perpendicular to the direction thickened to
+ * `--mark-gridCursor-heavy-width`. So a horizontal cursor has heavy top and
+ * bottom rules (the letters will run left-to-right between them) and a
+ * vertical one heavy left and right. Reading the direction off the cursor is
+ * the whole job, so the asymmetry is the point, not decoration.
  *
  * Render it as a positioned child of the CELL:
  *   cls(gridCursor.cursor, styles.cursor, dir === 'h' ? gridCursor.cursorH : gridCursor.cursorV)
@@ -22,7 +22,7 @@
   inset: 0;
   box-sizing: border-box;
   pointer-events: none;
-  /* Above the cell's own contents (letter + premium label). A local number, and
+  /* Above whatever the cell itself draws (its letter, a label). A local number, and
    * local is all it can be: the board is a stacking context (`.boardSeal` in
    * common/game-page/playArea.module.css), so this 5 is ranked against the
    * board's own pieces and nothing else. The drag ghost stays above it by

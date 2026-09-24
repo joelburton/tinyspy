@@ -825,7 +825,7 @@ export function BoardCol({
   })
 
   // Recall — every staged tile back to the rack at once. Distinct from ⌫, which
-  // takes the last one back.
+  // takes one back.
   const actRecallTiles = useBoundAction('act-recall-tiles', {
     describe: () => (staged.length > 0 ? 'active' : 'disabled'),
     run: recallAll,

@@ -79,9 +79,7 @@ function featureFolders(): { top: string; name: string; dir: string }[] {
  * tree is still undescribed — a progress marker that cannot drift, because it
  * is the test.
  */
-const INTROS_OWED: string[] = [
-  'shared/board-cursor',
-]
+const INTROS_OWED: string[] = []
 
 /**
  * An intro longer than this with nothing after it is carrying detail. The
