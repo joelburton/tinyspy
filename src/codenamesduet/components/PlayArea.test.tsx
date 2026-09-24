@@ -445,6 +445,16 @@ describe('codenamesduet PlayArea — the partner, in the header', () => {
     expect(texts(ctx)).toContain('waiting for you')
   })
 
+  it('takes the line down when it stops being true', () => {
+    const ctx = makeCtx()
+    const { rerender } = render(<PlayAreaLoader {...ctx} />)
+    expect(texts(ctx)).toContain('waiting for you')
+
+    const over: GamePageCtx = { ...ctx, playState: 'lost_clock', isTerminal: true }
+    rerender(<PlayAreaLoader {...over} />)
+    expect(texts(over)).not.toContain('waiting for you')
+  })
+
   it('says nothing about the turn once the game is over', () => {
     const ctx = makeCtx({ playState: 'lost_clock', isTerminal: true })
     render(<PlayAreaLoader {...ctx} />)

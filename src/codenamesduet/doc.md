@@ -463,7 +463,7 @@ What is codenamesduet's own:
 - **The AI button** is on the clue form. It opens the suggestion in a floating
   panel and fills the form with it; the player still presses Submit.
 - **The partner in the header.** The shell's turn line does not reach this game
-  (see the intro), so `useTurnStatus` says what the partner is doing, in
+  (see the intro), so `PlayArea` holds a line saying what the partner is doing, in
   `lib/answer.ts`'s words.
 - **The bell rings from here.** `GamePage`'s rings off the shared turn
   pointer, which this game never moves, so `PlayArea` calls `useTurnBell`

@@ -7,7 +7,6 @@ import { useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
-import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
 import { useTurnBell } from '@/common/sounds/useTurnBell'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
@@ -71,48 +70,6 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * `infoColText`, both until the player leaves. A win — only a win — also pops
  * `<CelebrationBlockingModal>` at the moment the last agent is contacted.
  */
-
-/**
- * Keep the current turn-state in the header — the global slot — for as long
- * as it holds. The header describes **what the PEER is doing** — never what
- * YOU should do (your own to-do is conveyed by the below-board clue UI) — as a
- * `peerStatus` that stays up until the state changes, when its owner effect
- * swaps it. Which state holds, and its words, are `lib/answer.ts`'s
- * (`turnAnswer`, `answerMessage`); nothing shows in sudden death or once the
- * game is over.
- */
-function useTurnStatus(args: {
-  // The body's derived phase, beside the two facts it was derived from.
-  phase: { isGuessPhase: boolean; isClueGiver: boolean; inSuddenDeath: boolean; gameOver: boolean }
-  players: Player[]
-  sessionUserId: string
-  globalFeedbackSlot: FeedbackSlot
-}) {
-  const { phase, players, sessionUserId, globalFeedbackSlot } = args
-
-  const answer = turnAnswer(phase)
-  // Derived to PRIMITIVES — the words, their outcome, and the peer's name +
-  // color — so the effect below re-runs only when one of them changes, not on
-  // every fresh `players` array a realtime refetch brings.
-  const message = answer === null ? null : answerMessage(answer)
-  const text = message?.text ?? null
-  const outcome = message?.outcome ?? null
-  const peer = players.find((p) => p.user_id !== sessionUserId)
-  const peerName = peer?.username
-  const peerColor = peer?.color
-
-  useEffect(function showTurnStatus() {
-    if (text === null || outcome === null) return
-    const id = globalFeedbackSlot.show(
-      FeedbackMessage.peerStatus(
-        peerName === undefined ? undefined : { username: peerName, color: peerColor ?? '' },
-        text,
-        { outcome },
-      ),
-    )
-    return () => globalFeedbackSlot.retract(id)
-  }, [globalFeedbackSlot, text, outcome, peerName, peerColor])
-}
 
 /**
  * The play surface's loader: runs the two reads — the game row, and the board
@@ -343,12 +300,25 @@ export function PlayArea({
   // About somebody else, which is what puts it in the global slot rather than
   // the local one (docs/ui.md → Feedback pill).
 
-  useTurnStatus({
-    phase: { isGuessPhase, isClueGiver, inSuddenDeath, gameOver },
-    players,
-    sessionUserId: session.user.id,
-    globalFeedbackSlot,
-  })
+  // What my partner is doing right now, in `lib/answer.ts`'s words, held while
+  // it is true: news in the header covers it and it comes back as the news
+  // fades. Derived to primitives so a realtime refetch's fresh `peer` object
+  // does not re-show it.
+  const partnerAnswer = turnAnswer({ isGuessPhase, isClueGiver, inSuddenDeath, gameOver })
+  const partnerMessage = partnerAnswer === null ? null : answerMessage(partnerAnswer)
+  const partnerText = partnerMessage?.text ?? null
+  const partnerOutcome = partnerMessage?.outcome ?? null
+  const peerName = peer?.username
+  const peerColor = peer?.color
+
+  useEffect(function showPartnerStatus() {
+    if (partnerText === null || partnerOutcome === null) return
+    const actor = peerName === undefined ? undefined : { username: peerName, color: peerColor ?? '' }
+    const id = globalFeedbackSlot.show(
+      FeedbackMessage.peerStatus(actor, partnerText, { outcome: partnerOutcome }),
+    )
+    return () => globalFeedbackSlot.retract(id)
+  }, [globalFeedbackSlot, partnerText, partnerOutcome, peerName, peerColor])
 
   // My partner asking the AI for a clue is narrated in the header, once, as it
   // lands; my own hint is not, since the suggestion dialog is its feedback. Old
