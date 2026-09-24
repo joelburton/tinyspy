@@ -304,7 +304,7 @@ export const ACTIONS = {
   'act-extend-trace': { label: 'Extend the trace', keys: [{ pattern: 'letter', label: 'A–Z' }] },
   'act-toggle-card': { label: 'Choose that card', keys: [{ pattern: 'letter', label: 'A–U' }] },
   'act-drop-last-cell': { label: 'Drop the last tile', icon: IconDelete, keys: [named('Backspace', '⌫')] },
-  'act-clear-selection': { label: 'Clear the selection', icon: IconDelete, keys: [named('Backspace', '⌫')] },
+  'act-clear-selection': { label: 'Clear selection', icon: IconDelete, keys: [named('Backspace', '⌫')] },
   // bananagrams asks the server whether the board reads as words RIGHT NOW —
   // always offered, whatever the game's word-check setting says, because that
   // setting governs when the server ENFORCES words rather than whether you may

@@ -40,7 +40,7 @@
 /* A button in the commit row — the Clear + Submit pair. The look is the
  * shared button's; this adds only the floor width. */
 /* @@ */ .inputButton {
-  min-width: 7rem;
+  min-width: 9rem;
 }
 
 @media (--phone) {

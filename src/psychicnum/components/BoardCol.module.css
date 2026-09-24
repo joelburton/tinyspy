@@ -24,3 +24,18 @@
   justify-content: flex-end;
   gap: 0.5rem;
 }
+
+/* A button in the commit row — the Clear + Submit pair. The look is the
+* shared button's; this adds only the floor width. */
+/* @@ */ .moveArea button {
+  min-width: 9rem;
+}
+
+@media (--phone) {
+  /* On a phone the Clear/Submit buttons go icon-only (BoardCol passes
+   * `show="icon"`), so drop the text-era floor width — they shrink to the icon and
+   * the tight commit row (mistakes readout + both buttons) fits a narrow screen. */
+  /* @@ */ .moveArea button {
+    min-width: 0;
+  }
+}
