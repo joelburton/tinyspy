@@ -131,7 +131,7 @@ export type GamePageCtx = {
   // owns its WHOLE menu — it calls `menu.setGameSections([...])` (usually via
   // the `buildGameMenu` helper) — and the shell hands down the three rows a
   // game cannot build itself: `menu.actHelp`, `menu.actBackToClub` and
-  // `menu.actChat`. See docs/ui.md → GamePage menu for the placement +
+  // `menu.actChat`. See common/menu/doc.md for the placement +
   // activation contract. Identity is stable across renders.
   menu: MenuApi
 }

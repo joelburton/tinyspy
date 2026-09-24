@@ -63,7 +63,7 @@
 /* @@ */   --floatingPanel-titlebar-color: #f0f0f0;
 
   /* THE OTHER TWO TEXT GRAYS. The four together are one of the eight
-     vocabularies (docs/ui.md → The non-color vocabularies) and the only one that is
+     vocabularies (docs/tokens.md → The non-color vocabularies) and the only one that is
      color, which is why it is here and the other seven are constants
      in base.css.
 

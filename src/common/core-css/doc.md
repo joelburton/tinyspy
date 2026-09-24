@@ -70,7 +70,7 @@ and the two declare disjoint tokens — but the order within the folder does:
   touch: `fixed.css`. Anything that is not a color and is read by more than a
   couple of rules: `base.css`. A game's brand color: that game's `theme.css`.
   A value with one reader: its own class, as a number. The rules for all of
-  this are [docs/ui.md](../../../docs/ui.md), which owns the color system and
+  this are [docs/tokens.md](../../../docs/tokens.md), which owns the color system and
   the non-color vocabularies; this folder is where the non-color half lives.
 - **Two page-height numbers, on purpose.** `--game-chrome-height` is the
   total lump a play surface subtracts from the viewport, written as one

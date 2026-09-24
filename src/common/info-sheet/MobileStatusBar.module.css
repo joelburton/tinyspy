@@ -23,7 +23,7 @@
    * shrinking by this row is the intended cost.
    *
    * Full `--page-text-color` (not muted): this is a real value the player reads, not
-   * background chrome (docs/ui.md → the two vocabularies). */
+   * background chrome (docs/tokens.md → Two vocabularies). */
 /* @@ */   .bar {
     display: flex;
     align-items: center;

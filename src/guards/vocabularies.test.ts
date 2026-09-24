@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
  * Guard: a converted surface writes VOCABULARY values, not literals.
  *
  * The sprint applies its vocabularies area by area, not in one sweep
- * (docs/ui.md → The a/b/c rule): a raw value
+ * (docs/tokens.md → The a/b/c rule): a raw value
  * equal to a vocabulary value is changed silently, one that isn't gets
  * looked at once, in context. Which means a guard that fails on every
  * unconverted file would be red for weeks, and a guard that only warns is

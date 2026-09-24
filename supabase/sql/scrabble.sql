@@ -1625,7 +1625,8 @@ grant execute on function scrabble.concede(uuid) to authenticated;
 -- Fired by the FE when a countdown hits 0. Runs final scoring (NOT
 -- neutral) — a Scrabble score is real, so the leader wins (the deliberate
 -- deviation from the roster's "timeout = no winner"; see docs §2.7). Coop:
--- a gentle score report. Idempotent on the play_state check.
+-- the team's score, and a loss — the one way a coop table loses. Idempotent
+-- on the play_state check.
 drop function if exists scrabble.submit_timeout(uuid);
 
 create or replace function scrabble.submit_timeout(target_game uuid)

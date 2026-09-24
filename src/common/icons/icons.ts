@@ -59,7 +59,9 @@ export {
   // from IconShuffle's single rotate glyph (reorder my OWN tiles, no server
   // trade).
   ArrowLeftRight as IconExchange,
-  // reshuffle my own tiles for a fresh look
+  // reshuffle my own tiles for a fresh look. RotateCw rather than lucide's
+  // crossing-arrows Shuffle: it reads clearer at button size, and it spins on
+  // hover
   RotateCw as IconShuffle,
   // bananagrams' "Peel" — draw a fresh round of tiles (or, when the bunch is
   // dry, go out and win). The banana glyph is on-the-nose for the Bananagrams
@@ -231,7 +233,9 @@ export {
 /**
  * Go UP ONE LEVEL — game → club today, and the same idea wherever it lands
  * next. Named for the direction rather than a destination, unlike every other
- * glyph here, and that's deliberate on two counts.
+ * glyph here, and that's deliberate on two counts: the ups never appear at the
+ * same time, so one glyph never has to tell two apart; and this chevron is the
+ * only thing on screen that teaches `<`, the key for every up.
  *
  * Made thicker so it's easier to read.
  */

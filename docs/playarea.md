@@ -675,7 +675,7 @@ collapsed in a hugging column.)
 
 **Single-glyph vs word tiles** is unchanged: scale a single glyph (a digit, an
 A-game letter) with the tile via `cqmin`/`cqi`; multi-char content auto-fits via
-`cqi` + `--len` (see [Tile content](ui.md#tile-content-letter-vs-word-a-vs-b-games)).
+`cqi` + `--len` (see `.tileWord` in `common/game-page/playArea.module.css`).
 
 ---
 

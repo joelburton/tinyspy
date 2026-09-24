@@ -36,7 +36,7 @@
  * weight. Weight 100–1000, width 25–151%, grade −200…150, slant 0…−10°, and
  * optical size 8–144. `font-stretch` is how CSS spells width, and declaring
  * the ranges here is what lets a rule ask for 62.5% or 700 without a second
- * download. docs/ui.md → The typeface has why this face and what each dial
+ * download. docs/tokens.md → The typeface has why this face and what each dial
  * buys.
  *
  * WIDTH IS THE ONE THAT EARNED IT. A word on a psychicnum or connections tile
@@ -61,7 +61,7 @@
  * The file is built by `scripts/subset-font.py` and committed. It carries the
  * Latin range plus `→ ← ≥ ≈ ≠`, and a symbol outside that set is a question
  * for the area that wants it, not something to add here quietly
- * (docs/ui.md → The typeface).
+ * (docs/tokens.md → The typeface).
  *
  * DIGITS ARE TABULAR — all ten advance identically, so a score or a timer
  * changing costs zero pixels, with no CSS from us. `font-variant-numeric:
@@ -89,10 +89,13 @@
      See patterns/page.css. */
   --pageMain-width: 480px;
 
-  /* Radii. */
+  /* Radii. A radius follows the SIZE of what it cuts, since a corner reads as a
+     proportion: a floating panel or a notice takes -lg, a menu, a popover or a
+     toast takes -md, and one value across both would make the large look sharp
+     or the small look soft. */
   --radius-sm:  4px;   /* small chips, tiles, hint pills */
-  --radius-md:  6px;   /* buttons, inputs, panels */
-  --radius-lg:  8px;   /* cards, modals */
+  --radius-md:  6px;   /* buttons, inputs, menus, popovers, toasts */
+  --radius-lg:  8px;   /* cards, floating panels */
   /* Not a fourth step — a SHAPE. Any radius past half the box's height rounds
      the ends into semicircles, so a wide box becomes a stadium (a circle with
      a flat middle) and a square one becomes a circle. `999px` is the usual way
@@ -109,7 +112,7 @@
      remember making. The radii above are one in the same sense, older
      than the list.
 
-     docs/ui.md → The non-color vocabularies names eight. Seven are the
+     docs/tokens.md → The non-color vocabularies names eight. Seven are the
      ones below, because a distance, a duration and a weight of line are
      the same in daylight and midnight. The eighth is the text grays,
      which is color and therefore lives in the theme.
@@ -689,7 +692,7 @@
      sets narrower than SF Pro and 110% measured indistinguishable from it, but
      that tune waits until we have used it a while — and until the areas
      already converted can be re-checked against it
-     (docs/ui.md → The typeface). */
+     (docs/tokens.md → The typeface). */
   font-family: 'Roboto Flex', system-ui, -apple-system, sans-serif;
   color: var(--page-text-color);
 }

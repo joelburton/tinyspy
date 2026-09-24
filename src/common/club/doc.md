@@ -94,6 +94,28 @@ is the one component here this page does not render — `HomePage` does.
   fresh game whose options you want to change first. The page reads it once,
   and closing the dialog drops it from the URL so a refresh does not reopen
   it. `useSetupDialog` is where a press and an arrival become one answer.
+- **The two filters persist differently, because they mean different things.**
+  The mode filter is a standing taste ("I'm here for compete games") that
+  narrows a menu of things you could start and hides nothing that exists, so it
+  sticks, per user, across clubs (`useStickyChoice`). The gametype filter
+  narrows the club's real games, so it is not remembered: a page that opened
+  already filtered from last week would read as "where did our games go?"
+- **A finished game's row is not dimmed, shrunk or lightened.** The corner flag
+  is the whole signal. Each extra "this one's done" channel cost something:
+  a fade dulled the logo and status colors, which carry information, and a type
+  change gave the list three row heights.
+- **The keyboard.** The page's tab ring is its two lists and nothing else, and
+  focus starts on the start list. Arrows move each list's own cursor and Enter
+  acts on it; a click moves the cursor too, so the mouse and the keys never
+  disagree about which row you are on. The current-game card is mouse-only, and
+  its border is a dark neutral because a blue ring means the keyboard cursor.
+- **The mode badge.** The mode is shown as a `ModeBadge`, never written into a
+  game's name, so a coop and compete pair carry the same name. The UI says
+  "Co-op" where the data says `coop` — `MODE_LABEL` in `gameManifest.ts` is the
+  one place the two spellings differ. The club editor always shows the badge,
+  solo club or not, because it lists both siblings and the badge is the only
+  thing telling two identically named rows apart. A game's status line never
+  repeats the mode (`labelFor`), since the badge beside it already says it.
 - **`useClubRoster` lives here and this page does not use it.** The game page
   does, for chat: a game knows its players, but chat is club-wide, and a sender
   who is not in the game still needs a name. It sits in this folder because

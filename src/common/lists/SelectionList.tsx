@@ -118,7 +118,7 @@ export function SelectionList<T>({
   const cursor = items.length === 0 ? -1 : Math.min(movedTo, items.length - 1)
   // Whether to PAINT the cursor. Hidden until a movement key asks — this is a
   // selection cursor, an alternative to clicking, and a mouse user has no use
-  // for a ring (docs/ui.md → Selection lists → Choosing, and the one mark).
+  // for a ring (common/lists/doc.md → Two kinds of cursor).
   // Enter and Space never reveal, so no impatient second press can commit
   // something the first press appeared to ignore. Separate from `movedTo`,
   // because a click moves the cursor without revealing it, so going back to

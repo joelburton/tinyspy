@@ -270,7 +270,7 @@ page does not want to make. Tabs say the two are equals and you are looking at
 one of them.
 
 **The list filters move with the tabs.** Each column's filter (see
-[ui.md → Filtering the two lists](ui.md#clubpage-header)) lives at the right of
+[common/club/doc.md](../src/common/club/doc.md)) lives at the right of
 its section heading on desktop — and the breakpoint hides those heading *rows*
 entirely, since the tab already names the view. So the filter for the showing
 tab renders instead in a row directly under the tab bar, right-aligned — where

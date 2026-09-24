@@ -6,12 +6,11 @@
 -- Coop loses on the clock: there was a reachable end (clear the deck) and the
 -- table did not reach it.
 --
--- Compete RANKS THE STANDINGS — the leader at the whistle wins. That is a
--- deliberate departure from scrabble-compete, the other game whose finish is
--- collective, which all-loses on timeout. The difference: here the count of
--- sets taken is the complete result at every instant, so the clock is just how
--- the session stops. With nobody scoring at all there is no one to crown, and
--- it falls back to a collective loss.
+-- Compete RANKS THE STANDINGS — the leader at the whistle wins. The finish is
+-- collective, so there are no finishers to rank, and the count of sets taken
+-- is the complete result at every instant: the clock is just how the session
+-- stops. With nobody scoring at all there is no one to crown, and it falls
+-- back to a collective loss.
 
 begin;
 set search_path = setgame, common, public, extensions;

@@ -5,7 +5,7 @@
  * PauseBoundary around the play surface in the middle, chat as a
  * floating panel.
  *
- * Header layout per docs/ui.md → "GamePage header":
+ * Header layout per common/page-header/doc.md:
  *   [logo] [chat scratchpad] [status-slot]     [pause] [timer-if-set]
  *
  *   - left: logo + panel-toggle pair (fixed) + status-slot (flex: 1).

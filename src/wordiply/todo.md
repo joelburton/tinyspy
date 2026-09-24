@@ -77,4 +77,24 @@
 
 ## Maybe
 
+- **A composite score for compete's ranking.** The winner is the
+  lexicographic comparator (length score → letter count → …), so the letter
+  count only matters on an exact length-score tie: in practice only the
+  marquee word counts, which flattens a five-guess game. The replacement:
+  normalize the letter count to 0–100 against its ceiling (5 ×
+  `max_word_length`) and rank on `w·length% + (1−w)·volume%`, one weight
+  deciding how many extra letters outweigh one letter of marquee (at `w = 0.6`
+  on a max-16 board, about a dozen). One number that IS the ranking is also
+  easier to read than a comparator. Co-winners stays as the exact-tie
+  fallback. The comparator lives in SQL and in the frontend's verdicts, so it
+  is a two-place change with its tests re-pinned. (The winner is already this
+  app's invention — Guardian's Wordiply crowns nobody — so the metric is ours.)
+- **A coop target.** Coop has no win: spending the five guesses is a neutral
+  end. A `target_score` (on the composite above, if it lands) would make
+  reaching it a win and arm the clock, the spellingbee pattern. With a target
+  set, spending the guesses below it becomes a LOSS rather than a neutral end
+  (`docs/win-lose.md` → Where a coop loss comes from) — the point of the
+  feature, and a bigger change than arming the clock. Without a target, coop
+  stays as it is.
+
 ## Won't do

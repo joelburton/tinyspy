@@ -164,6 +164,13 @@ the event log all read it. The shape is written out below.
 a game can produce: what does the pill say, what does the log row say, what does
 the board do? A game passes when one derivation answers all three.
 
+**The outcome follows the event, not the viewer's stake.** A found word is
+`won` green in both modes — a teammate's find in coop, and an opponent's in
+compete, adverse to me though it is. Recoloring by stake would give one event
+two colors depending on who is looking, which is hard to learn and easy to
+misread; the actor's disc already says *who*, so the outcome only has to say
+*what happened*.
+
 ### How a game does it
 
 The three rules above are the rule; this is the shape a game takes, and what a

@@ -7,7 +7,7 @@
  * "Co-op" on a game, "Solo" on a club. It says what KIND of thing
  * this is, not how the thing is going — a badge never reports a
  * result, which is why it takes none of the outcome colors
- * (docs/ui.md → Mode badges).
+ * (common/club/doc.md → the mode badge).
  *
  * One pattern, one file (docs/code-conventions.md → Patterns).
  * ============================================================ */
@@ -29,7 +29,7 @@
    is, a pill reports how something went.
 
    NOT uppercase. `text-transform` here would render "Co-op" as "CO-OP" and
-   silently overrule the spelling `MODE_LABEL` sets (docs/ui.md → Mode badges:
+   silently overrule the spelling `MODE_LABEL` sets (common/club/doc.md → the mode badge:
    the DB says `coop`, the UI says "Co-op"). A badge shows its label as
    written. */
 /* @@ */ .badge {

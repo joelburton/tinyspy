@@ -24,7 +24,7 @@ its own diagnostics line.
 
 **The sizes are not shared.** A page's title is sized by `h1` and the modal's
 by `h3`, each where its own heading level is decided
-([ui.md](../../../docs/ui.md#the-heading-levels)).
+(`core-css/base.css`, where each level's size is declared).
 
 **The body is a `.card` at `.pageMain` width.** A card is a bordered section of
 a page, which is what this is, and the default page width is what a page that

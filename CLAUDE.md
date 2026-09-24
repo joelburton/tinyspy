@@ -28,14 +28,15 @@ Context for AI assistants and contributors working on this repo. These are proje
 | [docs/outcomes.md](docs/outcomes.md) | The outcome vocabulary — won · lost · near · warning · neutral · noted (+ `error`, which is never an outcome); what each means and everywhere it's shown |
 | [docs/states.md](docs/states.md) | View-state / play-state vocabulary; suspend / current / pause |
 | [docs/testing.md](docs/testing.md) | Test theory, persona conventions, pgTAP + Vitest patterns, the repo-wide invariant guards, the screenshot gallery |
-| [docs/ui.md](docs/ui.md) | The FE visual language: layout stability, theme tokens, the color system, the feedback pill, page chrome, dialogs/toasts, tiles, the button taxonomy |
+| [docs/ui.md](docs/ui.md) | **Read before diving into the frontend.** The principles the UI is built on, one short section each with a pointer to the folder that implements it: layout stability, the page never scrolls, where a message goes, the moment vs the record, floating-panel families, keyboard ownership, identity as a disc, pieces vs controls, the button families, the menu as the legend |
+| [docs/tokens.md](docs/tokens.md) | How values are named and picked: themes, the color system (grammar, buckets, families, what derives from `-base`, alias vs copy), the non-color vocabularies and the a/b/c rule, the typeface, global vs per-game tokens |
 | [docs/buttons.html](docs/buttons.html) | The button tone grid as a rendered page (open off disk, it doesn't ship); the twin of `theme.css` → CHROME — the stylesheet wins if they disagree |
 | [docs/mobile.md](docs/mobile.md) | The mobile-appearance pass: the single desktop→mobile breakpoint, what's mobile-ready so far, recorded TODOs |
 | [docs/playarea.md](docs/playarea.md) | The play surface: PlayArea's two columns, info-column readouts, text entry, the event log + history viewer, board sizing |
 | [docs/keyboard-shortcuts.md](docs/keyboard-shortcuts.md) | Where the app's keys are listed (`gmake dev-keys` and Help, both read from the code), the two kinds of key row — actions and component keys — and where the routing rules live |
 | [src/common/pdf/doc.md](src/common/pdf/doc.md) | Printing boards to PDF: the printable design language + the shared helpers. **Lives in its folder** — `docs/pdf.md` is gone, absorbed by its area audit; which controls earn a recap row is [src/common/setup-form/doc.md → Setup rows](src/common/setup-form/doc.md#setup-rows) |
 | [docs/features.md](docs/features.md) | Games categorized by feature: dimensions (every game has exactly one value) vs tags |
-| [docs/win-lose.md](docs/win-lose.md) | The finish/defeat taxonomy: finish lines, race vs best, timeout adjudications, clock fairness, the priced-hint rule |
+| [docs/win-lose.md](docs/win-lose.md) | The ideas every game's winning and losing is built from — finish lines, race vs best, the reachable-end rule, the invariants (no survival wins, priced hints), clock fairness — and their vocabulary. Each game's own rules are in its doc |
 | [docs/game-status-labels.md](docs/game-status-labels.md) | A game's title + club-page status line: where each comes from, the title rules, where the status grammar lives, the guard |
 | [docs/deferred.md](docs/deferred.md) | Cross-cutting deferred work + the index of per-game registers (see its "Where an item goes") |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command + file lookup |
@@ -183,7 +184,7 @@ What this **doesn't** mean:
   keyboard-first by design, wordle/wordiply take physical keys, and the clue
   form traps Tab on purpose. That's for sighted keyboard users and stays.
 - **Contrast and legibility still matter** — the member-color palette, the
-  tile ramp, and the two-vocabularies rule in [docs/ui.md](docs/ui.md) are
+  tile ramp, and the two-vocabularies rule in [docs/tokens.md](docs/tokens.md) are
   about people *seeing* the board clearly.
 
 ## Production software — preserve the data, migrate forward

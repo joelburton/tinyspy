@@ -29,7 +29,7 @@
   /* The board is SQUARE, so it is bounded on BOTH axes — the width left
    * beside the info column, the height above the entry row, and a cap so a
    * big desktop doesn't inflate twelve letters into a wall. The boggle idiom
-   * (docs/ui.md → Board sizing); without a definite size here `.boardCol` is
+   * (docs/playarea.md → Board sizing); without a definite size here `.boardCol` is
    * `flex: 0 0 auto` and hugs the SVG's intrinsic size, which renders the
    * board as a postage stamp in a wide column. */
   /* --avail-h is a PER-GAME token (boggle / stackdown / waffle each define

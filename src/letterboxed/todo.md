@@ -3,7 +3,7 @@
 ## Bugs
 
 - Two `font-weight: 650` (`Board.module.css`, `PlayArea.module.css`). A
-  weight must be a multiple of 100 (docs/ui.md → The non-color
+  weight must be a multiple of 100 (docs/tokens.md → The non-color
   vocabularies); both are bugs to fix, not values to keep.
 - `act-new-game` answers `active` before the game row has loaded, so an
   early `+` asks the new-game question and then can do nothing. By the rule

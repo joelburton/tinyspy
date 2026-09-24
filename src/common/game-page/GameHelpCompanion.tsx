@@ -20,7 +20,7 @@ type Props = {
 /**
  * The shared help frame every game's `Help.tsx` renders its rules into — the
  * `FloatingPanel`, the uniform "How to play {brand}" title, and the key list
- * (docs/ui.md → "The keys in Help"). A game's `Help` is its rules and nothing
+ * (common/actions/doc.md → the key list). A game's `Help` is its rules and nothing
  * else; the chrome is identical everywhere because it is this file.
  *
  * **It closes by its ✕ and nothing else**, like every other companion — the

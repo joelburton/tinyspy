@@ -62,6 +62,6 @@ name comes first. The profile can land after first paint, so the heading may
 swap from "Welcome!" to the disc and name; both are one line and the disc sits
 inside the h1's line box, so nothing below it moves.
 
-The card's height bound and the scrolling list are
-[docs/ui.md](../../../docs/ui.md)'s; the clubs schema and solo clubs are
+The page's height bound is `core-css/patterns/page.css`, and the scrolling
+list is `lists/SelectionList`; the clubs schema and solo clubs are
 [docs/common.md](../../../docs/common.md)'s.

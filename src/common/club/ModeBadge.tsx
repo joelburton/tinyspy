@@ -25,7 +25,7 @@ type Props = {
  * sibling pair reads as one name told apart by its badge.
  *
  * `mode` is required; `soloClub` and `aiOpponent` together decide whether a
- * solo club sees anything at all. See docs/ui.md → "Mode badges".
+ * solo club sees anything at all. See common/club/doc.md → the mode badge.
  */
 export function ModeBadge({ mode, soloClub = false, aiOpponent = false }: Props) {
   if (soloClub) {

@@ -1,328 +1,156 @@
-# Win & lose: the finish/defeat taxonomy
+# Win & lose
 
-How every game decides winning and losing, in both modes — the analysis behind
-the (proposed, not yet built) idea of letting friends pick between "race" and
-"best" compete play. Everything in the tables describes the roster **as it is
-today**, verified against the status lines `npm run report:labels` prints
-(the generated ground truth) and the terminal SQL; the one forward-looking item is
-the `compete_style` knob, marked as proposed where it appears.
-
-This doc also fixes the **vocabulary** for talking about all of this — in
-conversation, in docs, and in codeful places (setup keys, function names,
-comments). Terms defined here are the canonical ones; see the table at the end.
+The ideas every game's winning and losing is built from, and the words for
+them. Each game's own rules — what wins, what loses, what its clock does — are
+in its doc; this is what those rules are made of, and the invariants none of
+them may break.
 
 ## The three primitives
 
-Almost everything below derives from three ideas:
-
 1. **The finish line** — what "done" means, and who supplies it:
-   - **built-in** — the game is its own goal (wordle: the word; crosswords:
-     the grid; strands: the consumed board).
-   - **target** — setup picks the finish line (`target_rank`, `win_percent`);
-     without it the game is **open-ended** and can only end neutrally.
-   - **none** — no finish line exists at all; playing just stops
-     (scrabble coop's bag, wordiply coop's five guesses).
-2. **The compete style** — what one player finishing means to the race:
+   - **built-in** — the game is its own goal: the word, the grid, the board
+     consumed.
+   - **target** — setup picks the finish line (a rank, a percentage); without
+     one the game is **open-ended** and can only end neutrally.
+   - **none** — no finish line at all; playing just stops (a bag running out,
+     a guess allowance spent), and that stop is neutral.
+2. **The compete style** — what one player finishing means to the others:
    - **race** — **first past the post**: the first finisher ends the game on
-     the spot. Ties are structurally impossible (the games-row lock
-     serializes simultaneous finishes: the first commits the winner, the
-     second finds a finished game).
-   - **best** — everyone **plays out**: a finisher goes *locally terminal*
-     ([playarea.md](playarea.md)) while the others continue, and a ranking
-     decides at the end. Tiebreaks are **quality-then-speed** everywhere
-     (`order by <metric> asc, solved_at asc`); wordiply's comparator alone
-     falls through to **co-winners**.
+     the spot. Ties cannot happen, because the game row's lock serializes two
+     simultaneous finishes: the first commits the winner and the second finds a
+     finished game.
+   - **best** — everyone **plays out**: a finisher goes **locally terminal**
+     while the others continue, and a ranking decides at the end. Ties break
+     **quality-then-speed** (`order by <metric>, solved_at`); a game whose
+     ranking deliberately has no speed component has **co-winners** instead.
 3. **The reachable-end rule** ([states.md](states.md)) — what the clock means:
-   *timeout is a loss iff the game had a reachable end you didn't reach.*
-   The three observable timeout behaviors all follow from it:
-   - **all lose** — a finish line existed, nobody crossed it → collective
-     loss, standings ignored (boggle-with-target is the purest ruling:
-     "nobody wins, however high the score").
-   - **rank the finishers** — a *per-player* finish line existed and some
-     crossed it → they get ranked; the mid-board players simply didn't
-     finish ("the winner is still 'solved, on the fewest hints', never 'got
-     furthest'" — strands' timeout comment).
-   - **rank the standings** — no finish line to have missed → the clock is
-     just how the session stops, and what you had *is* the result
-     (boggle-without-target's top scorer).
+   *a timeout is a loss iff the game had a reachable end you didn't reach.*
+   It gives the three things a timeout can do:
+   - **all lose** — a finish line existed and nobody crossed it: a collective
+     loss, standings ignored, however high the scores.
+   - **rank the finishers** — a per-player finish line existed and some crossed
+     it: they are ranked, and the players still mid-board simply didn't finish.
+     The winner is "solved, and best at it", never "got furthest".
+   - **rank the standings** — there was no finish line to miss, so the clock is
+     just how the session stops and what each player had IS the result.
 
-## The grid: every game+mode at a glance
+**A race's clock always all-loses**, and not by choice: a finisher ends a race,
+so a race still running at timeout has no finishers, and the reachable-end rule
+does the rest. A race cut short by the clock may instead rank the standings,
+when the game's partial progress is a real measure of it — a deliberate
+departure, recorded in that game's doc.
 
-One row per playable game+mode, win and loss conditions spelled out — the
-holistic read; the sections after it carry the analysis. Two omissions to
-keep the rows sharp: **manual End** (neutral `ended`, available everywhere)
-is neither a win nor a loss, and **every compete row also loses on
-all-conceded** (collective loss, roster-wide) — both left off rather than
-repeated fourteen times.
+**A collective finish has no finishers to rank** — the bag or the deck runs out
+for everyone at once. Its timeout crowns the leader when the standings at any
+moment are a complete result (a count of sets taken, a score), and otherwise is
+a collective loss.
 
-| game | win | loss |
-|---|---|---|
-| codenamesduet (coop) | find all 15 agents | hit the assassin OR out of turns OR out of time |
-| psychicnum-coop | find all 3 secrets | out of guesses OR out of time |
-| connections-coop | all 4 groups | 4 mistakes OR out of time |
-| waffle-coop | solve within the swap budget | out of swaps OR out of time |
-| wordle-coop | guess the word within 6 | out of guesses OR out of time |
-| stackdown-coop | clear the stack | out of time (only — play can't dead-end) |
-| crosswords-coop | complete the grid | out of time (only) |
-| strands-coop | consume the board | out of time (only — nothing to exhaust) |
-| letterboxed-coop | cover the 12 within the cap | out of time (only — the cap blocks, undo refunds) |
-| spellingbee-coop | reach the target rank OR no-win if no target | time expires with the target unmet OR no-loss if no target |
-| wordwheel-coop | reach the target rank OR no-win if no target | time expires with the target unmet OR no-loss if no target |
-| boggle-coop | reach the target % OR no-win if no target | time expires with the target unmet OR no-loss if no target |
-| scrabble-coop | no-win (bag-out is a neutral end) | out of time (only) |
-| wordiply-coop | no-win (guesses spent is a neutral end) | out of time (only) |
-| psychicnum-compete | first to find their own 3 secrets | every budget spent with nobody done OR out of time |
-| connections-compete | first to all 4 groups | everyone eliminated at 4 mistakes OR out of time |
-| bananagrams | first out (peel a dry bunch, all tiles placed) | out of time |
-| stackdown-compete | first to clear | out of time |
-| crosswords-compete | first correct grid | out of time (no natural loss — reveal is banned, dropping out is concede) |
-| spellingbee-compete | first to the target rank (target required) | time expires with nobody at the target |
-| wordwheel-compete | first to the target rank (target required) | time expires with nobody at the target |
-| boggle-compete | first to the target % OR (no target) top scorer at the whistle | time expires with nobody at the target OR (no target) no-loss — the whistle always crowns |
-| letterboxed-compete | first to cover the 12; at the whistle, most letters covered (→ fewest words → co-winners) | no-loss except all-conceded — the whistle adjudicates |
-| waffle-compete | fewest swaps among solvers (everyone plays out; the whistle ranks solvers too) | nobody solves — budgets spent or time up with zero solvers |
-| wordle-compete | fewest guesses among solvers (everyone plays out) | nobody solves — budgets spent or time up with zero solvers |
-| strands-compete | fewest hints among solvers, earliest solve breaking ties | time up with zero solvers |
-| wordiply-compete | best comparator once everyone's done (length% → letters → earlier → co-winners) | nobody scores a valid word — guesses spent or time up |
-| scrabble-compete | highest score at the natural end (bag out) | out of time — all lose, standings ignored |
-| setgame-coop | clear the deck — no sets left to find | out of time (only) |
-| setgame-compete | the most sets when the deck runs dry; a tie is a tie (co-winners) | out of time with nobody having scored |
+## Where a coop loss comes from
 
-## Coop
+Where the win comes from (the finish line) and where the loss comes from are
+two separate choices. The sources of a coop defeat:
 
-Two independent axes: where the **win** comes from, and where the **loss**
-comes from.
+- **move budget** — every move spends it (guesses, swaps).
+- **mistake budget** — only a wrong move spends it, so perfect play cannot lose.
+- **sudden death** — one fatal act ends it.
+- **clock only** — nothing to exhaust; the only way to lose is running out of
+  time. A game whose board cannot dead-end has only this.
+- **refundable budget** — a cap that blocks play but that undo refunds, so it
+  can never kill.
 
-| game | finish | defeat sources |
-|---|---|---|
-| codenamesduet | built-in — 15 agents | the assassin + turn budget (spent, it becomes **sudden death**, where any non-agent loses) + clock |
-| psychicnum | built-in — 3 secrets | move budget (size configurable) + clock |
-| connections | built-in — 4 groups | **mistake budget** (4; only wrong guesses spend it — perfect play cannot lose) + clock |
-| waffle | built-in — solve the board | move budget (swaps; margin configurable via `extra_swaps`) + clock |
-| wordle | built-in — the word | move budget (6 guesses) + clock |
-| stackdown | built-in — clear the stack | clock only (the no-trap board invariant means play can't dead-end) |
-| crosswords | built-in — complete the grid | clock only |
-| strands | built-in — consume the board | clock only (hints are *earned*, guesses unlimited — nothing to exhaust) |
-| letterboxed | built-in — cover the 12 | clock only — the chain cap is a **refundable budget**: it blocks, but undo refunds it, so it can never kill |
-| spellingbee | **target** (rank) or open-ended | clock only; timeout is a loss iff a target was set |
-| wordwheel | **target** (rank) or open-ended | clock only; same rule |
-| boggle | **target** (%) or open-ended | clock only; same rule |
-| scrabble | **none** — bag-out is a neutral session end | clock only (loss-able but never win-able) |
-| wordiply | **none** — guesses spent is a neutral session end | clock only (same shape as scrabble) |
-| setgame | built-in — clear the deck (no sets left to find) | clock only (nothing to exhaust; the deal rule means play can't dead-end) |
+A game with no finish line (`none`) can be moved to **target** with an opt-in
+setup knob, and the timeout-becomes-a-loss rule comes with it. Where the game
+also has a bounded session, reaching the session's end below the target then
+becomes a loss rather than a neutral stop — a bigger change than arming the
+clock, and one to make knowingly.
 
-Defeat-source vocabulary, in full: **move budget** (every move spends it),
-**mistake budget** (only errors spend it), **sudden death** (one fatal act),
-**clock only**, and letterboxed's **refundable budget** (a cap that can't
-kill). codenamesduet is the roster's only triple-threat, and connections'
-mistake budget and the assassin are the only two exotic loss shapes sixteen
-games have ever needed.
+## The invariants
 
-The `none` row is also the migration path: "invent a goal for wordiply" isn't
-a new category, it's moving a game into the **target** row with an opt-in
-setup knob — machinery spellingbee/wordwheel/boggle already establish
-(including timeout-becomes-a-loss when the target is set).
+**No survival wins.** Outliving never wins. All-conceded and all-eliminated
+are **collective losses** everywhere, and a last player standing must still
+finish. If surviving crowned you, conceding would hand out wins. This is the
+rule a newly ported game is most likely to break by accident.
 
-## Compete
+**Refusing to lose is out of scope** (ruled 2026-08-07). In a best-style game a
+trailing player could stall forever rather than be ranked. A site for strangers
+would defend against that; this one does not — the trust model (CLAUDE.md:
+friends, not strangers) answers it. **Don't propose anti-stall machinery.** The
+remedy is opt-in: play with a timer, whose clock ranks the finishers, and End
+is the social way out of a timerless standoff.
 
-Two axes again — the **style** and the **finish** — with the clock behavior
-*derived* from them via the reachable-end rule (one recorded deviation).
+**A hint in compete must be priced.** A hint is what a game hands a stuck
+player — a nudge, a reveal, a check, an AI suggestion — and in compete it must
+be one of:
 
-| game | style | finish | on timeout |
-|---|---|---|---|
-| psychicnum | race — own 3 secrets first | built-in | all lose |
-| connections | race — 4 groups first | built-in | all lose |
-| bananagrams | race — first out | built-in | all lose |
-| stackdown | race — first clear | built-in | all lose |
-| crosswords | race — first correct grid | built-in | all lose |
-| spellingbee | race — first to the target | **target** | all lose |
-| wordwheel | race — first to the target | **target** | all lose |
-| boggle (target set) | race — first to the target | **target** | all lose |
-| letterboxed | race — first coverage | built-in | ⚠ **rank the standings** (most letters covered) — the roster's one deviation, deliberate: "timeout resolves on coverage" |
-| waffle | best — fewest swaps | built-in (per-player solve) | rank the finishers |
-| wordle | best — fewest guesses | built-in (per-player solve) | rank the finishers |
-| strands | best — fewest hints (earliest solve breaks ties) | built-in (per-player solve) | rank the finishers |
-| wordiply | best — the comparator (length score → letters → earlier-if-timed → co-winners) | none (a bounded per-player session) | rank the standings |
-| boggle (no target) | best — highest score | none | rank the standings (the clock *is* the finish line) |
-| scrabble | best — highest score at the natural end | built-in but **collective** (the bag, not a per-player solve) | all lose — with no per-player finish there are no finishers to rank |
-| setgame | best — most sets, **no speed tiebreak** (ties → co-winners) | built-in but **collective** (the deck, not a per-player solve) | ⚠ **rank the standings** — the second deviation, see below |
-| *(any)* | **survival** | — | **EMPTY — see the invariant below** |
+- **banned** in compete;
+- **earned** by play;
+- **scored** into the ranking, which suits a best-style game (one more ranking
+  component) and not a race;
+- free only when **self-informative** — it can tell you you're wrong, never hand
+  you progress.
 
-Why race games' clocks all-lose isn't a choice per game — it's forced: in
-race style a finisher *ends the game*, so a running game at timeout by
-definition has zero finishers, and the reachable-end rule does the rest.
-Race games also never need tiebreakers (first past the post can't tie);
-the "quality metric as tiebreak" idea only enters a race when the clock cuts
-it short, which is exactly letterboxed's deviation.
+A free hint that hands over progress in a race is the one indefensible case:
+asking and then using the answer becomes a legal shortcut to the win.
 
-**setgame's timeout is the roster's second deviation**, and it sits in the same
-row as scrabble's while ruling the opposite way. Both have a collective finish
-(the bag; the deck), so neither has finishers to rank — but scrabble voids the
-game and setgame crowns the leader. The difference is whether a partial result
-means anything: scrabble's board mid-game is a position, not a score anyone
-would accept as an outcome, whereas setgame's count of sets taken IS the
-complete result at every instant. The clock there is simply how the session
-stops, which is boggle-without-a-target's reasoning applied to a game that
-happens to have a natural end as well. A race nobody scored in is still a
-collective loss.
+## Clock fairness
 
-**The no-survival invariant.** No game awards a win for outliving. All-conceded
-and all-eliminated are **collective losses** everywhere (`Lost (all conceded)`
-roster-wide; connections ends all-eliminated as "nobody solved" rather than
-crowning the survivor), and a last player standing must still finish. This is
-deliberate and load-bearing — if surviving crowned you, conceding would hand
-wins — and it's the invariant a ported game #16 could most plausibly break by
-accident.
+The shared game clock is fair exactly when play is **simultaneous**: wall time
+is every player's thinking time equally. In **turn-based compete** it is not —
+a rival's deliberation spends your time, and a slow opponent can lose the game
+for both of you. In turn-based coop the shared clock is right: a shared fate is
+the point of coop.
 
-**Out of scope, ruled explicitly (2026-08-07): refusing to lose.** In a
-best-style game a trailing player could simply never finish — stall until the
-leader gets bored and concedes or ends. A serious-competition site defends
-against this (e.g. by disallowing timerless games); we deliberately don't —
-it's the temporal flavor of cheating, and the trust model (CLAUDE.md: friends,
-not strangers) already answers it. **Don't propose anti-stall machinery.**
-The opt-in remedy exists for any group that wants it: play with a timer —
-best's clock ranks the finishers, so a staller loses to a finisher at the
-whistle — and manual End is the social escape hatch for a timerless wedge
-(neutral `ended`, nobody wins, which is the stall "succeeding" and is fine).
+The turn-based-compete answer is a **player clock** (a chess clock): each
+player's own budget, spent only on their own turns. **Flag fall is an automatic
+concede** — never chess's "flag falls, the opponent wins", which would be a
+survival win. As a concede it composes with everything already here: the
+survivor plays on and must still finish, and all flags fallen is all conceded,
+a collective loss. It is real work — today's timer is one game-level count, and
+a player clock needs per-player accounting and server-side flag-fall
+detection.
 
-## Clock fairness: shared vs turn-based play
+## Ideas, not built
 
-The shared game clock is fair exactly when play is **simultaneous** — wall
-time is every player's thinking time equally, which is every compete game in
-the roster except one. **scrabble compete is the roster's only turn-based
-compete game**, and there the shared clock is structurally unfair: your
-rival's deliberation spends *your* time, and a slow opponent can lose you
-both the game ("we both lose, and that wasn't my fault").
-
-codenamesduet has the same turn structure but is coop, where the shared
-clock is *correct* — a shared fate is the point of coop, even when one
-player's pace dominates. Mild frustration there is the game working.
-
-The turn-based-compete fix is a **player clock** (chess clock): each player
-gets their own configurable time budget, spent only on their own turns. The
-framing that keeps it consistent with the rest of this doc: **flag fall is
-an automatic concede** — NOT chess's "flag falls, opponent wins", which
-would be the roster's first survival win. As a concede, everything composes
-with existing machinery: the survivor plays on and still has to finish,
-all-flags-fallen = all-conceded = collective loss, and the Quit-vs-Lost
-verdict vocabulary already fits. (Cost note: this is real work — today's
-timer is one game-level count that every player advances by at most a tick a
-second; a player clock needs a per-player tick, per-turn elapsed accounting and
-server-side flag-fall detection. The
-cheap interim is for scrabble compete's setup to stop offering a countdown
-at all.)
-
-## Hints in compete
-
-**Hint** is the word for what a game hands a stuck player — a nudge, a reveal, a
-check, an AI suggestion. It is never called "help": help is the text explaining
-a form field, the rules of a game, or what an AI does, and nothing else. The
-roster's compete stances, verified against the SQL and game docs:
-
-| game | hint | in compete? | price |
-|---|---|---|---|
-| strands | the earned hint bar | yes — it's core | **scored**: fewest hints IS the ranking |
-| crosswords | check / reveal | check yes; reveal **banned** ("reveal-all would trivially win the compete race") | check deliberately free: "wrong is self-informative, not answer-leaking" |
-| letterboxed | hint / spoiler | **banned** (`hints_used` is a coop-only tally) | — |
-| setgame | the hint ladder | **banned** (`record_hint` raises `hint-in-compete`; the button still renders, disabled, saying why) | — |
-| psychicnum | hint / spoiler | **yes, both, free** (`_unfound_secret` scopes to the compete caller) | ⚠ **un-priced** |
-
-The principle the deliberate rows share: **a hint in compete must be priced** —
-**banned**, **earned**, **scored** into the ranking, or free only when
-**self-informative** (it can tell you you're wrong; it can't hand you
-progress). A free *generative* hint in a race is the one indefensible square,
-and psychicnum's compete spoiler sits in it: the spoiled word is still
-guessable, so ask-then-guess is a legal shortcut toward the win. Harmless
-among friends, but it's the roster's one undecided cell — decide it, don't
-inherit it. Pricing also composes with the styles: a **scored** hint fits
-*best* games (one more ranking component); *race* games only get banned /
-earned / self-informative.
-
-## Proposed (not built)
-
-Marked separately so the tables above stay pure current-state:
-
-- **`setup.compete_style: 'race' | 'best'`** — the exact shape of coop's
-  `coop_style: 'turns'`: an opt-in style field in setup, validated by
-  `create_game`, branched at the terminal transition. Not a new gametype.
-  **boggle is the existence proof**: setting `win_percent` already makes it
-  a race with an all-lose clock, leaving it unset already makes it a best
-  game whose clock is the finish line — the knob just names, per game, what
-  boggle does implicitly via its target. Pilot candidate: waffle (both
-  halves already exist in the roster — "best" is waffle today, "race" is
-  crosswords' solve branch), with wordle / strands / psychicnum /
-  letterboxed as natural second adopters and the rest degenerate under one
-  style or the other (see the tables — a game needs a *per-player* finish
-  for "best" to rank, and something slower than a typing contest for "race"
-  to mean anything).
-- **Standings on a collective loss** — when an all-lose timeout fires, keep
-  the verdict a loss but ATTACH the standings ("Lost (out of time) ·
-  closest: melissa 4/6"), rather than crowning anyone. This was weighed
-  against a per-game "crown the closest at timeout" option and rejected in
-  its favor: "closest" is ill-defined in most built-in-finish games (closest
-  at wordle by greens? by guesses left? neither is the game's own metric),
-  and crowning a collective failure muddies the won/lost vocabulary. A
-  ranking shown on the loss gets the social value — who was ahead — with
-  the reachable-end rule intact. Carriers exist (per-player `result` jsonb,
-  terminal RLS reveals); the work is the per-game standings-metric choices.
-- **The player clock** for scrabble compete (above), as flag-fall-concedes.
-- **Coop targets for the two no-win rows** — wordiply gains a
-  `target_score` on the composite metric below, scrabble coop a
-  `target_score` on plain points. Both migrate `finish: none` → `target`:
-  reaching it mid-play wins on the spot, and the clock arms per the
-  reachable-end rule — the spellingbee pattern, with wordiply's metric
-  doing double duty (the same composite ranks compete; build once, both
-  modes consume it). ⚠ One decision these two add that boggle never faced:
-  both have **bounded sessions** (five guesses; a finite bag), and with a
-  target set the natural session end stops being neutral — guesses spent /
-  bag out below the target is a **loss** (wordle's out-of-guesses shape),
-  not `Ended · 60%`. Setting a target converts the session end into a
-  pass/fail moment; that's the point of the feature, but it's a bigger
-  change than arming the clock and should be implemented knowingly.
-  Without a target, both rows stay exactly as today.
-- **A composite score for wordiply's "best"** — the current winner is a
-  lexicographic comparator (length score → letter count → …), which makes
-  the letter count matter only on an exact length-score tie: in practice
-  only the marquee word counts, flattening the five-guess game. The
-  replacement shape: normalize letter count to 0–100 against its ceiling
-  (5 × `max_word_length`), then rank on `w·length% + (1−w)·volume%` — one
-  tunable weight deciding how many extra letters overall outweigh one
-  letter of marquee (at `w = 0.6` on a max-16 board, ≈ a dozen). A composite
-  also fixes a legibility gap the comparator can't: one number that IS the
-  ranking. Co-winners survives as the exact-tie fallback; the comparator
-  lives in SQL *and* the FE verdicts, so this is a two-places change with
-  its tests re-pinned. (The winner is already our invention — Guardian
-  Wordiply shows both stats and crowns nobody — so the metric is ours to
-  own.)
+- **`setup.compete_style: 'race' | 'best'`** — an opt-in style in setup, the
+  shape of coop's `coop_style: 'turns'`, validated by `create_game` and branched
+  at the terminal transition; not a new gametype. boggle already does this
+  implicitly: a target makes it a race with an all-lose clock, and no target
+  makes it a best game whose clock is the finish line. A game needs a
+  per-player finish for "best" to rank anything, and something slower than a
+  typing contest for "race" to mean anything.
+- **Standings on a collective loss** — keep an all-lose verdict a loss, but
+  attach who was ahead ("Lost (out of time) · closest: melissa 4/6") rather than
+  crowning anyone. Weighed against crowning the closest and preferred: "closest"
+  is ill-defined in most built-in-finish games, and crowning a collective
+  failure muddies won and lost. The carriers exist (per-player `result`, the
+  terminal reveals); the work is each game's choice of standings metric.
 
 ## Vocabulary
 
-The canonical terms. Prefer these in docs, comments, identifiers and setup
-keys; retire ad-hoc synonyms on contact.
+Prefer these in docs, comments, identifiers and setup keys.
 
 | term | meaning |
 |---|---|
-| **finish (line)** | what "done" is for one player/team; sources: **built-in**, **target** (setup-chosen), or **none** |
-| **open-ended** | a target-capable game played without one — can only end neutrally |
-| **race** / **best** | the two compete styles: first finisher ends it vs everyone plays out and a ranking decides (proposed setup key: `compete_style`) |
-| **first past the post** | the race mechanism — instant end, lock-serialized, ties impossible |
-| **play out** | best-style property: the game waits for every racer |
-| **locally terminal** | a finished racer's state while others play on (existing term — [playarea.md](playarea.md)); `common.game_players.locally_terminal` is the flag the gametype sets, and the presence-pause roster reads |
+| **finish (line)** | what "done" is for one player or team; **built-in**, **target** (setup-chosen), or **none** |
+| **open-ended** | a target-capable game played without a target — it can only end neutrally |
+| **race** / **best** | the two compete styles: the first finisher ends it, or everyone plays out and a ranking decides |
+| **first past the post** | the race mechanism — an instant end, serialized by the lock, so no ties |
+| **play out** | the best-style property: the game waits for every player |
+| **locally terminal** | a finished player's state while others play on; `common.game_players.locally_terminal` ([common.md](common.md)) |
 | **standings** | partial progress read as a ranking |
-| **all lose** / **rank the finishers** / **rank the standings** | the three timeout adjudications |
-| **the reachable-end rule** | timeout is a loss iff an end was reachable and unreached ([states.md](states.md)) |
+| **all lose** / **rank the finishers** / **rank the standings** | the three things a timeout can do |
+| **the reachable-end rule** | a timeout is a loss iff an end was reachable and unreached ([states.md](states.md)) |
 | **collective loss** | everyone loses together — `lost` / `lost_compete`, no winner |
-| **no survival wins** | the invariant: outliving never wins; concede/elimination can't crown |
-| **move budget** / **mistake budget** / **sudden death** / **clock only** | the coop defeat sources |
-| **refundable budget** | a cap that blocks play but can't kill it (letterboxed's chain) |
-| **quality-then-speed** | best's universal tiebreak ordering (`<metric> asc, solved_at asc`) |
-| **co-winners** | a comparator exhausted with players still level — a shared win (wordiply); or a ranking with NO tiebreak at all, where a tie is simply a tie (setgame) |
-| **shared clock** | the game-level countdown every game has today — fair only under simultaneous play |
-| **player clock** | a per-player time budget spent on your own turns (chess clock) — the turn-based-compete answer; proposed, not built |
-| **flag fall** | a player clock running out — ruled an automatic **concede**, never a crowning (see no survival wins) |
-| **standings on a loss** | a collective loss that still records who was ahead — a ranking attached to the verdict, not an adjudication |
-| **hint** | what a game hands a stuck player: a nudge, a reveal, a check, an AI suggestion. **Never called "help"** — help is the text explaining a form field, the rules of a game, or what an AI does, and nothing else (Joel, 2026-09-17) |
-| **priced hint** | the compete rule: a hint must be **banned**, **earned**, **scored**, or free-only-if-**self-informative** — never free and generative |
-| **comparator** | a lexicographic ranking (wordiply today): later components matter only on exact ties |
-| **composite score** | a weighted blend of ranking components into one number that IS the ranking (proposed for wordiply) |
-| **refusing to lose** | stalling a best game to avoid the ranking — explicitly out of scope; never defended against (the trust model answers it; a timer is the opt-in remedy) |
+| **collective finish** | a finish nobody reaches alone: the bag or the deck running out for everyone |
+| **no survival wins** | outliving never wins; conceding or elimination can't crown anyone |
+| **move budget** / **mistake budget** / **sudden death** / **clock only** / **refundable budget** | where a coop loss comes from |
+| **quality-then-speed** | best's tiebreak ordering (`<metric>, solved_at`) |
+| **co-winners** | a shared win: a ranking exhausted with players still level, or one with no tiebreak at all |
+| **comparator** | a lexicographic ranking — later components matter only on an exact tie |
+| **composite score** | a weighted blend of ranking components into one number that IS the ranking |
+| **shared clock** / **player clock** | the one game-level countdown / a per-player budget spent on your own turns |
+| **flag fall** | a player clock running out — an automatic **concede**, never a crowning |
+| **standings on a loss** | a collective loss that records who was ahead, without adjudicating |
+| **hint** | what a game hands a stuck player: a nudge, a reveal, a check, an AI suggestion. **Never "help"** — help is the text explaining a form field, the rules of a game, or what an AI does (Joel, 2026-09-17) |
+| **priced hint** | the compete rule: banned, earned, scored, or free only if self-informative |
+| **refusing to lose** | stalling a best game to avoid the ranking — out of scope, never defended against |

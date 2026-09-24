@@ -236,10 +236,9 @@ every tied player gets `won = true`, `winner_user_id` goes **null** when there
 is more than one, and the FE reads its own flag.
 
 **On timeout, compete RANKS THE STANDINGS** — the leader at the whistle wins.
-That is a deliberate departure from scrabble-compete, the roster's other
-collective-finish game, which all-loses. The difference: scrabble has no
-meaningful partial result to rank, while here the count of sets taken IS the
-complete result at every instant, so the clock is simply how the session stops.
+With a collective finish there are no finishers to rank, and the count of sets
+taken IS the complete result at every instant, so the clock is simply how the
+session stops ([win-lose.md → The three primitives](../win-lose.md#the-three-primitives)).
 A race nobody scored in is still a collective loss.
 
 Concede is the standard per-player drop-out. A conceder keeps the sets they took

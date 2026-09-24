@@ -14,7 +14,7 @@
 /* Line 1: the shape test. Red, unmissable, no softening.
 
    An `<h1>` because on a page this IS the page's title, and it takes h1's size
-   — docs/ui.md → The heading levels names every error screen as one. Only the
+   — core-css/base.css names every error screen as one. Only the
    color, the weight and the killed margin are ours; the margin because `.page`
    sets the gap between all three lines. */
 /* @@ */ .heading {

@@ -74,8 +74,8 @@ export type KindDefaults = {
 
 /**
  * THE table. Every behavior a message has comes from its row here, and a
- * call site never writes one of these fields — it names a constructor.
- * docs/ui.md → Feedback pill describes each kind for a reader.
+ * call site never writes one of these fields — it names a constructor. The
+ * comment on each row says what the kind is for.
  */
 export const KINDS: Record<Kind, KindDefaults> = {
   // The server said no. Read why, press the ×. Above the verdict, so a move

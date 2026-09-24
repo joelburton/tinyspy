@@ -18,9 +18,8 @@ that constructor names is what decides the rest: whether the pill wears a
 tinted background, how long it stays, what takes it away, and which message
 wins when two are live. A call site therefore picks a *meaning* and gets an
 appearance, rather than picking an appearance and hoping sixteen games agree.
-The table of kinds is the whole of that decision, in one place, and
-[docs/ui.md](../../../docs/ui.md#feedback-pill) describes each row for a
-reader.
+The table of kinds is the whole of that decision, in one place — `KINDS` in
+`FeedbackMessage.tsx`, where the comment on each row says what the kind is for.
 
 That is enforced rather than encouraged, which is why a message is a class with
 a private constructor. An object literal cannot be one and a spread loses the
@@ -74,6 +73,12 @@ players strip while it does, so nothing belongs there for the length of a game.
   removes the top message only if that message's kind leaves by a gesture. So
   the rule lives in one place and a not-ok survives a keystroke without anyone
   re-checking for it.
+- **Tapping a pill is the next action, too.** The rule for a gesture-cleared
+  message was always "your next action clears it"; a keystroke or a tile click
+  is one, and so is tapping the message itself. On a touchscreen there is no
+  next keystroke, so the tap is the one way the rule can fire. A not-ok or a
+  hint keeps its × as the only target, since a body that swallowed the tap
+  would make the × look decorative.
 - **A peer's stream and a peer's state need different machinery.**
   `usePeerFeedback` watches an append-only stream and narrates each new row,
   seeding the backlog silently so a reconnect does not replay it. A signal read

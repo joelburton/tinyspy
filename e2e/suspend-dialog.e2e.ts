@@ -12,7 +12,7 @@ import {
 import { signIn } from './helpers/session'
 
 /**
- * The in-game confirm MODALS (docs/ui.md → Modals):
+ * The in-game confirm MODALS (docs/ui.md → Confirm modals):
  *
  *   - Suspend-back-to-club: shown ONLY for a non-terminal MULTIPLAYER game
  *     (the confirm exists because suspending drags peers back to the club).

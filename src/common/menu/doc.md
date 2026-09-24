@@ -4,10 +4,6 @@ The one menu in every page header — the chevron-wrapped logo that opens a list
 
 ## Intro to area
 
-docs/ui.md → GamePage menu states the rules: a game owns its whole menu, a row
-is an action, when rows are read, how focus behaves. This is how the code
-answers them.
-
 There is a single `<Menu>`, rendered by `PageHeaderMenu`, and everything else
 here exists so a caller can hand it rows without also handing it decisions. A row is an action (`common/actions`), so its words, its
 glyph, its shortcut and whether it applies right now all arrive with the
@@ -74,8 +70,21 @@ press that would otherwise walk off into the browser's chrome. Every key stops
 there, so arrowing through the menu never doubles as a move on a board that
 reads `window` keydowns. Closing runs before the row's action, so a modal the
 row opens takes focus cleanly after the trigger has it back. The game page
-alone asks for focus to fall to the page instead of the trigger on close;
-docs/ui.md → GamePage menu → Focus says why.
+alone asks for focus to fall to the page instead of the trigger on close
+(`GameHeaderMenu`): the trigger stops its own keys while focused, so a focused
+logo would swallow the arrows and Enter a keyboard-first board is waiting for.
+The other pages' menus keep the usual Escape-returns-focus.
+
+**Rows are read when the menu draws them, which is when it opens.** Nothing the
+player does reaches past an open menu, so the only staleness possible is a
+change from another player while it sits open; closing and reopening fixes it,
+and a stale row is safe to click, since the run reads the live binding.
+
+**A long menu never grows the page.** The popover is capped at the viewport's
+height less the header and scrolls inside itself.
+
+**A submenu opens on click, never hover.** Hover-open fires as you arrow past a
+row, and means nothing on a touchscreen.
 
 **The icon gutter is the icon language's legend.** Icon-only buttons carry
 their names in hover tooltips, which touch devices do not have; the menu spells
@@ -84,6 +93,16 @@ teaches the pairing once. The slot is reserved on every row, empty or not, so
 labels share one column and a leading mark has exactly one place it can be.
 The account row's identity disc takes that same slot — a row names a person or
 a deed, never both.
+
+So a button whose glyph has no menu row yet gets one ADDED; that is the whole
+remedy for an unexplained glyph. A grayed row still teaches, so an action that
+answers `disabled` keeps its row; only `hidden` drops it, for an action the
+mode never offers, where naming its glyph would teach something the surface
+never shows. **Four glyphs need no row**, because they are conventions every
+app the friends use already shares rather than merely guessable: Shuffle,
+Pause, Delete (backspace) and the up-arrow Submit. A lightbulb is guessable,
+but whether it hands you a clue or the answer is exactly what the row settles,
+so Hint and Spoiler are not exempt.
 
 **Every mark in a row is sized by the label it sits beside.** The identity
 disc, the leading glyph and the submenu mark are all `1em`, and the slot that

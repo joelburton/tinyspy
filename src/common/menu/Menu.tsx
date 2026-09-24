@@ -62,8 +62,8 @@ type Props = {
   // context.
   triggerLabel?: string
   // Whether closing returns focus to the trigger (default) or lets it fall to
-  // the page. The game page passes `false` — docs/ui.md → GamePage menu →
-  // Focus says why.
+  // the page. The game page passes `false` — common/menu/doc.md
+  // says why.
   returnFocusOnClose?: boolean
 }
 

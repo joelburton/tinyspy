@@ -40,10 +40,14 @@ The modal is a blocking modal like any other, one tier above the ordinary
 ones, so it can be read in the middle of whatever question was already open.
 What it shows is not written here. Its message is the envelope's own sentence,
 whoever wrote it, and the diagnostics under it are the same line the console
-carries, built once. docs/ui.md → Faults lays out the three lines.
+carries, built once. `FaultModal`'s docstring lays out the three lines.
 
 ## Details
 
+- **Where a failure shows and what it says are two separate decisions.** The
+  surface decides where a message goes; the raise decides its words and its
+  severity. A fault is always `error` and always logged, whichever surface it
+  also lands on.
 - **The store decides nothing.** `showFaultModal` queues and emits. The words
   and the `[db]` console line come from `reportDbFault` in `dbEnvelope.ts`,
   and the mandatory `else` at every call site reaches the queue through

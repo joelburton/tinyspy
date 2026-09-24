@@ -127,7 +127,7 @@ export type GameManifest = {
   // URL to this gametype's square SVG logo. Drawn by `<GameLogo>`, which
   // appears in the GamePage header and against every game in the club page's
   // list. Resolved by Vite via `import logoUrl from './logo.svg?url'` in each
-  // game's manifest. See docs/ui.md → "GamePage header".
+  // game's manifest. See common/page-header/doc.md.
   logoUrl: string
 
   // This gametype's "how to play" / rules modal. Opened from the "Help" item

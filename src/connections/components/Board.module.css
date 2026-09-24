@@ -7,7 +7,7 @@
  * BoardCol.module.css and the two-column shell is PlayArea.module.css.
  *
  * Here: the board wrapper; the grid, which holds the tiles AND the
- * solved-category bands (docs/ui.md → Board sizing); the band, which wears the
+ * solved-category bands (docs/playarea.md → Board sizing); the band, which wears the
  * shared tile face and adds only its full-width span and two lines; the
  * turn-history highlight; and `.peerPick`, whose geometry is this game's.
  *

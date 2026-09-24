@@ -41,7 +41,7 @@
  * The plain destructive treatment every other irreversible control wears — the
  * tone on the text and the border, no fill. NOT the LOST outcome's wash: an
  * outcome palette belongs to a game saying "you lost", not to a control
- * (docs/ui.md → The color system). */
+ * (docs/tokens.md → The color system). */
 /* @@ */ .deleteButtonActive {
   opacity: 1;
   /* Nothing here has to escape the icon-only square: `<StandardButton>` applies

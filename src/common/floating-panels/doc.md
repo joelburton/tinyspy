@@ -4,9 +4,12 @@ One shell for everything window-like that floats over the page, and what rides o
 
 ## Intro to area
 
-docs/ui.md → Floating panels states the rules: what the five families are, that
-immovability is the visible signal, what "dim" has to mean, who knows a panel's
-size, how a floating surface looks. This is how the code answers them.
+A floating panel is anything window-like over the page — its own rect, a
+titlebar or a heading, its own surface, dismissible — and panels differ by
+family, which is about intent: something kept beside you while you play, a
+question that can wait, a question worth thinking about, or the world stopping
+until you answer. The families, and what each means, are the first thing under
+Details.
 
 The load-bearing choice is that a panel declares one word and the shell supplies
 everything that follows from it. `FAMILY` in `FloatingPanel.tsx` is that word's
@@ -15,8 +18,8 @@ its parts — and a caller cannot reach past it. When those were separate props,
 each was a chance for a panel to claim one thing and do another, and they took
 it: a modal that dimmed nothing, dialogs that forgot the rect they are defined
 by, dimmed forms Tab could walk out behind. The claims are now data, so the
-document and the code cannot disagree; what a family means is prose in ui.md,
-and what it does is this record.
+document and the code cannot disagree; what a family means is the table under
+Details, and what it does is that record.
 
 One shell rather than a `Modal` and a `FloatingPanel` beside it, because every
 one of these is a floating panel underneath and forking would put the split at
@@ -41,10 +44,13 @@ in the same order and render the same box — the only thing that differs is
 whether storage is touched, and a branch above the hook was the same shape
 declared twice with nothing to separate it.
 
-Three questions stay props, because panels inside one family genuinely differ on
-them: who knows the size, under what key a rect is remembered, and the geometry
-seeds. Chat and Help are both companions and disagree about the first — the user
-knows how much chat history they want; Help's content knows how tall it is. A
+Three questions stay props, because panels can differ on them: who knows the
+size, under what key a rect is remembered, and the geometry seeds. Who knows
+the size is either the content — a form is as tall as its fields, so it passes
+`fitContent` and is not resizable (setup, the profile and club forms, the
+anagram finder) — or the user, and then the panel is resizable. **Every
+companion is the user's to size**, Help and chat alike: how much of the rules
+or the conversation to keep on screen is only the player's to say. A
 floor on that height is only meaningful on a panel you can drag, which is why
 `minHeight` defaults to nothing: a panel holding one line should be one line
 tall, and a floor there is the shell overruling content for nobody's benefit.
@@ -72,7 +78,7 @@ included, so at the companion rung the rules would appear behind the form you
 pressed "?" in. Chat is also the one panel that paints higher than it ranks —
 Escape should close the form you just opened, not the conversation you have kept
 open all game — and `escapeRank` exists for that one case. How the surface
-itself looks is the app-wide rule in docs/ui.md → The surface; the shell takes
+itself looks is the app-wide rule in the radius comment in `core-css/base.css` and daylight.css → SHADOW; the shell takes
 the large radius and the top rung of the shadow ladder, because a panel is a
 window over the page and not something resting on it.
 
@@ -110,6 +116,22 @@ unanswerable question is not consent.
 
 ## Details
 
+**The families.**
+
+| family | what it is | dims | movable |
+|---|---|---|---|
+| `companion` | something you keep nearby while you play — the scratchpad, Help, chat | no | yes |
+| `dialog` | a question that can wait — word lookup, the anagram finder | no | yes |
+| `modal-normal` | a question worth thinking about — setup, edit profile | lightly | yes |
+| `modal-blocking` | the world stops; deal with it now — a confirm, the celebration | dark | **no** |
+| `modal-fault` | as blocking, and above it, so an error is readable mid-question | dark | **no** |
+
+**Immovability is the visible signal**: if you can drag it you can leave it for
+later; if you can't, deal with it now — which is why the two immovable families
+are cards without a titlebar. **"Dim" means everything under it is inert**;
+for the two blocking families that is literal, and for `modal-normal` it means
+"focus is here", which is why chat may sit above one.
+
 **What is built on what, and who renders each.** Read downward as "is built
 on"; each line names the components that render that family, with their
 folders:
@@ -127,3 +149,26 @@ FloatingPanel                  the one shell: Rnd (react-rnd) + CloseButton (but
     └── AcknowledgeBlockingModal    a statement — one StandardButton
           └── useAcknowledge        the hook that mounts it; connections' and strands' play areas call it
 ```
+
+**"Panel" on its own means nothing and is not used** — in prose, in docs, or in
+a component name. "Floating panel" is the category, and **"draggable panel"**
+the subset you can drag (`useDraggablePanel`); a module-scoped `.panel` class
+is fine, since a local class states its own reach. Tooltips and menus are not
+floating panels.
+
+**A component entirely about one family takes the family's name as its
+suffix** — `GameScratchpadCompanion`, `AnagramDialog`, `SetupGameModal`,
+`ConfirmationBlockingModal` — and one shared across families keeps a generic
+name, as `FloatingPanel` does. `normal` is the unmarked member, so its suffix is
+plain `Modal`. "Modal" is a family word and never a member's name, since one
+string would otherwise mean both all three modal families and one of them.
+
+**Buttons don't decide the family.** The test is whether a button ENDS the
+thing: word lookup's *Look up* and the anagram finder's *Find* act inside the
+dialog and leave it open, which is what lets them be dialogs you keep beside a
+cryptic.
+
+**Mount a floating panel high in the tree** — at a PlayArea's layout root or at
+App level, never deep inside the play surface. react-rnd positions the panel
+from its element's static flow position, so one mounted inside a flex column
+inherits that column's offset and can open far off-screen.

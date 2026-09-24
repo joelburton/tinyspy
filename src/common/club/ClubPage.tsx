@@ -129,7 +129,7 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
 
   // ─── The two list filters ────────────────────────────────────────────────
   // One per column, each narrowing only its own list. Why one persists and the
-  // other does not is docs/ui.md → "Filtering the two lists".
+  // other does not is common/club/doc.md.
   //
   // Keyed by user id so two accounts sharing a browser don't inherit each
   // other's taste. `selfId` is prop-derived and available on the first render,
@@ -474,8 +474,8 @@ export function ClubPage({ club, members, initialGametypes, session }: Props) {
   // ─── Apply the two filters ───────────────────────────────────────
   // Everything downstream — rendering AND the keyboard cursors — reads the
   // VISIBLE lists, so a filtered-out game is unreachable by arrow keys too
-  // (the cursor indexes exactly what's on screen; see docs/ui.md → "A click
-  // selects, the same as an arrow key").
+  // (the cursor indexes exactly what's on screen; see common/club/doc.md →
+  // the keyboard).
   // A solo club only ever renders the "All" option (mode is noise with one
   // player — see ModeFilter), so pin the filter open there rather than trusting
   // that nothing can have set it: the alternative failure is a list filtered

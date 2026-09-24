@@ -27,7 +27,10 @@ type Props = {
   // is most of play; the row is then the buttons alone, in the same place.
   message?: InfoActionsMessage
   // The row's controls, left to right: what the game offers right now, and
-  // "back to club" last (`ctx.menu.actBackToClub`, like any other action).
+  // "back to club" last (`ctx.menu.actBackToClub`, like any other action),
+  // icon-only so four buttons still fit one line of a narrow column. Each takes
+  // its natural width: equal widths clipped a longer label's glyph, and unequal
+  // ones help recognition ("Hint is the short one").
   children?: ReactNode
 }
 

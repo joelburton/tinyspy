@@ -42,10 +42,8 @@ So `impliedBy` is one sentence over the two terms: **this player's
 board-solution IS the puzzle-solution.** It is asked per player and per run,
 never "was it won" — a race ends with a winner who may not be me, and a player
 who lost made no board-solution to begin with. `solvedByMe` is how each mode
-asks whether they made one. Which games answer which way, and why each does, is
-[docs/ui.md → Terminal
-results](../../../docs/ui.md#terminal-results--the-moment-vs-the-record); the
-table below says what each passes.
+asks whether they made one. The table below says which games answer which way,
+and what each passes.
 
 The games with no answer to show, and the three word games whose found/missed
 filter already IS the control, mount none of this.
@@ -87,9 +85,18 @@ puts it in FRONT of the call rather than inside: psychicnum hides the BUTTON
 while you are still hunting (`asker === 'button'`) and keeps the menu row and
 the Help list, which is where the glyph is named.
 
-**What the reveal adds where the two are the same thing, why crosswords keeps
-its reveal, and why coop asks the game rather than the player** are ui.md's
-(the section linked above); this file does not repeat them.
+**Coop asks the GAME, compete asks ME.** In compete the verdict is no proxy —
+a race is won by someone, and the racer three guesses off never produced the
+word. In coop there is one board and one outcome, so `playState === 'won'`
+answers it, and the per-player bit is unreliable there in a different way per
+game: stackdown writes `players.solved` only in compete, strands' coop branch
+never sets it, and psychicnum counts found secrets per CALLER, so two teammates
+finding two and one leave neither at three.
+
+**Every gated game offers the reveal twice** — an `<ActionButton>` in the
+terminal action row and a game-menu row, both placing the same `act-reveal`
+binding, so the two faces cannot come apart and a player on a phone, with the
+info column off-canvas, can still reach it.
 
 **A restart needs nothing from a game.** `GamePage` keys the play surface on
 `common.games.restarts`, so a replayed board mounts a fresh hook and starts
@@ -106,5 +113,4 @@ finished early cannot read the answer out while the rest are still racing. That
 is why a game shows the control disabled with "Can't reveal until all end"
 rather than hiding it, and why nothing here reasons about who is locally done.
 See [docs/common.md → Revealing the
-solution](../../../docs/common.md#revealing-the-solution) and [docs/ui.md →
-Terminal results](../../../docs/ui.md#terminal-results--the-moment-vs-the-record).
+solution](../../../docs/common.md#revealing-the-solution).

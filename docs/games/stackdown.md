@@ -401,7 +401,7 @@ outcome](../outcomes.md#one-event-one-outcome--and-who-decides-it).
 
 ### 5.3 Frontend (`src/stackdown/`)
 
-stackdown is a **v3** game ([ui.md → Game versions](../ui.md#game-versions-v1--v3)): it renders on the shared
+stackdown is a **v3** game: it renders on the shared
 two-column PlayArea scaffold (`common/game-page/playArea.module.css` — `.layout` /
 `.boardCol` / `.infoCol` / `.noShrinkRow`). The board column holds the stacked-tile
 board, the **word-entry row**, and a fixed-height **local feedback slot**; the
@@ -466,7 +466,7 @@ pill.
   scrabble's `historyBoard`; keyed by the **row's id** (the `#N` the log shows counts the rows on show), which
   is chronological across a shared coop log and unambiguous under any filter. Clicking a `GameEventLog` row's `#N` opens that turn on the
   board via the shared viewer (the same one scrabble/waffle use — frame + banner +
-  keystroke/click/✕ exits documented in [ui.md → Turn-history viewer](../playarea.md#turn-history-viewer)).
+  keystroke/click/✕ exits documented in [playarea.md → Turn-history viewer](../playarea.md#turn-history-viewer)).
 - **`hooks/useGame.ts`** — the realtime hook: one channel carrying
   postgres-changes on `games_state` / `players` / `events` (no Broadcast).
   The board the player sees is `game.tiles` minus `removedTileIds`

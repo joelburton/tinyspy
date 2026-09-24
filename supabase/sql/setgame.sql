@@ -885,12 +885,10 @@ grant execute on function setgame.record_hint(uuid, smallint[]) to authenticated
 -- the table didn't reach it, which is the reachable-end rule.
 --
 -- Compete: RANK THE STANDINGS — the leader (or leaders) at the whistle win.
--- This is a deliberate departure from scrabble-compete, the other game whose
--- finish is collective rather than per-player, which all-loses on timeout. The
--- difference is that scrabble has no meaningful partial result to rank, while
--- here the count of sets taken IS the complete result at every instant: the
--- clock is simply how the session stops. Nobody scoring at all is still a
--- collective loss — there is no one to crown.
+-- The finish is collective rather than per-player, so there are no finishers
+-- to rank, and the count of sets taken IS the complete result at every
+-- instant: the clock is simply how the session stops. Nobody scoring at all is
+-- still a collective loss — there is no one to crown.
 --
 -- Idempotent on the play_state check (a second caller raises P0001, which the
 -- manifest swallows).

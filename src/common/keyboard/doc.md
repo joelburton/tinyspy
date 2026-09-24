@@ -43,6 +43,17 @@ It lives here rather than beside the dispatcher because the dispatcher is not
 the only asker: the blinking-caret indicator and bananagrams' drag need the
 same answer, and a second copy of it is how `<select>` gets omitted.
 
+**Three kinds of surface, by who owns the keyboard.** A **real form** — setup,
+the profile and club forms, sign-in, a confirm — gives it to the focused
+element: Tab moves between fields, native `<select>`s are fine, focus rings are
+honest, Enter and Escape submit and cancel. **Everything else** — the pages,
+the boards, the info column — keeps it for the app: no Tab walk, **no focus
+rings**, and a dropdown is a `FilterSelect`, which never takes focus. And
+**focused text entry inside a non-form surface** — the chat box, the
+scratchpad, codenamesduet's clue fields — owns its keys only while focused,
+with Tab as the way back out. `data-floating-panel` is the machine-readable
+edge of the first kind.
+
 **Nothing on a play surface may keep focus after a click.** The dispatcher
 stands down for a focused text field and a floating panel and for nothing else,
 so a button or a `<summary>` left focused would answer Enter and Space itself

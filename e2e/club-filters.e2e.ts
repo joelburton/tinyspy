@@ -11,8 +11,7 @@ import {
 import { signIn } from './helpers/session'
 
 /**
- * ClubPage's two list filters (docs/ui.md → ClubPage "Filtering the two
- * lists"): mode buttons over "Start a new game", a gametype dropdown over
+ * ClubPage's two list filters (common/club/doc.md): mode buttons over "Start a new game", a gametype dropdown over
  * "Your games". The load-bearing claims are that each filter narrows only its
  * OWN list, and that the dropdown groups a coop/compete sibling pair into one
  * choice — so a "Wordle" filter keeps both wordle games.

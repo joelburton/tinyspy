@@ -73,6 +73,8 @@
   color: var(--page-text-color);
 }
 
+/* Centered, unlike a dialog's right-justified row: this is a banner standing in
+ * for the board, not a modal asking a question. */
 /* @@ */ .actions {
   margin-top: 1rem;
   display: flex;

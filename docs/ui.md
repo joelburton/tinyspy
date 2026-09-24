@@ -1,2488 +1,271 @@
 # UI
 
-Visual direction and design rationale for the frontend. The *what we render and why it looks that way* layer.
-
-For the mechanics — CSS Modules, file co-location, `cls()`, what we don't use — see [`code-conventions.md → CSS Modules + theme`](code-conventions.md#css-modules--theme). This file picks up where that one stops.
-
-Read this before:
-
-- Adding a shared component to `common/`.
-- Touching `common/themes/`, `common/core-css/`, or a per-game `theme.css`.
-- Designing the screens for a new gametype.
+The ideas the whole frontend is built on — read this before diving into the
+code. Each section is a principle and where it lives; the detail is in the
+folder that implements it. Values and the color system are
+[tokens.md](tokens.md); the play surface is [playarea.md](playarea.md); the
+phone is [mobile.md](mobile.md).
 
 ## Audience and platform: desktop-first
 
-The play surface is a laptop or desktop browser. Some games are awkward on mobile by their nature (crosswords, Boggle on a phone); even the ones that *would* play fine on mobile are most fun with a keyboard and a wider canvas. So:
-
-- **Default styles are written for desktop.** Mobile adjustments go in `@media (--mobile)` blocks that *override* the desktop rule, and only when something genuinely breaks. The opposite — mobile-first authoring, where the base rule is the phone and `@media (min-width: …)` overlays restore the desktop — once shipped in codenamesduet's three-column `PlayArea.module.css`, but that layout is gone and **the repo now has zero `min-width` media queries**; every one of its ~26 breakpoint blocks is a desktop-first override. Keep it that way: a `min-width` query in a diff is the signal that a rule got written backwards.
-- **Mobile gets graceful degradation, not engineering.** Phone users should be able to read the page and use the app; we don't chase pixel-perfect mobile layouts.
-- **The real mobile pass has begun.** It proceeds one screen at a time and is recorded in [`mobile.md`](mobile.md) — the single `56.25rem` (900px) desktop→mobile breakpoint, what's been made phone-safe so far, and how to verify no-scroll headless. Still desktop-first: mobile is a `max-width` exception that never changes the desktop layout.
+The play surface is a laptop or desktop browser, and styles are written for
+it. A phone gets a real layout, but always as a `max-width` override of the
+desktop rule (`@media (--mobile)`), never mobile-first — a `min-width` query in
+a diff is the sign a rule got written backwards. The single breakpoint and what
+each screen does on a phone are [mobile.md](mobile.md).
 
 ## Layout stability
 
-**A game page's shape is allocated at mount, and that shape doesn't change during play.** State updates rotate content *within* slots; they don't resize, reposition, or reflow the slots themselves. Rare, content-rich moments (error explanations, the win celebration) escape into modals rather than dedicating in-page space for the case where they're empty; the terminal verdict rotates into slots the page already reserves (see [Terminal results](#terminal-results--the-moment-vs-the-record)).
-
-Closest existing model: NYT Connections. The grid is the grid from start to finish; the lives row is always there; the matched-band stripe at the top is always there. What changes is *which tiles are dark, which bands are bright, which copy is in the feedback slot.* The frame is fixed.
-
-Why this matters here:
-
-- **Future games eat all the space.** A crossword board needs every available pixel; an extra `min-height` on a "your turn / waiting for partner" banner that grows by 24px when state flips is 24px the grid doesn't get.
-- **Reflow during play is jarring.** Tiles jumping because a status message above them gained a second line, or a result banner appearing mid-page and pushing everything down, breaks the "I'm playing a game" tone in a way "the layout is wrong" never quite does.
-
-### Patterns this implies
-
-- **Status-text rotation in a fixed slot.** "Your turn to give a clue," "Peer is giving a clue," "Clue: BIRD 3" all render into the same DOM region, sized at mount for the worst-case string. Empty / loading state ("No clue yet") is that same height too.
-- **Always-present feedback slot.** "Already tried that," "Correct!," "Out of guesses." A dedicated slot that's the same height whether populated or empty. Content fades in and out; the slot stays. (See "Feedback pill" below.)
-- **Scrollable regions for unbounded lists.** Guess history, clue history, chat. The outer container is fixed; the inner content scrolls. The game frame doesn't grow with the history.
-- **Modal for rare-and-rich.** The win *moment* → the `<CelebrationBlockingModal>` overlaying the static layout; the *record* (the verdict, the replay/new-game actions) rotates into reserved in-page slots instead — see [Terminal results](#terminal-results--the-moment-vs-the-record). The play surface stays visible in review mode either way.
-- **Disabled in place, not removed.** The clue-input field is always rendered; grayed out when it's not your turn. Same shape, different state.
-
-> **⚠️ The #1 offender — conditionally removing a flow element on state change.** Writing `{showInput && <CommitRow/>}` / `{isTerminal ? … : <WordEntryArea/>}` so the input/commit/entry row is *removed* at terminal looks harmless, but the board above is usually `flex: 1` — so when the row vanishes, **the board grows into the freed space.** That's a reflow on a state change, the exact thing this section forbids.
->
-> **Mechanical check, every time you write `{cond && <X>}` or a state ternary in a PlayArea:** does `<X>` take layout space, and is a sibling grow-to-fill (the board)? If yes, **don't remove it** — keep it mounted and (a) toggle `visibility: hidden` (exact height kept even under wrapping — connections' `.commitFrozen`), or (b) rotate the *content* in a fixed-height slot (psychicnum swaps the entry for the terminal reveal in the same slot), or (c) give the slot a mount-time `min-height`. The board's bottom boundary (the input/commit row) is where this bites most.
-- **Mono-width digits for ticking values.** Timer in a `font-variant-numeric: tabular-nums` slot so `0:09 → 0:10` doesn't shift the header.
-- **PauseOverlay is the canonical example.** PauseBoundary renders the play area OR the overlay in the same slot (never both), so the surrounding chrome doesn't reflow when pause flips on or off. New chrome should follow the same pattern.
-
-### The deliberate exception
-
-In-grid **game-mechanic animations** that change the partition between game regions are allowed and expected. connections' category bands growing into the tile-grid space is the game's central dopamine; hiding that behind a fixed partition would be wrong. The rule is about *UI-state reflow* (a status banner changing height, a result banner appearing mid-page), not about *game-content reflow* (a board area transitioning between game states).
-
-The distinction in one line: **if it's a side effect of state changing, fix the layout; if it's the state change you're celebrating, let it happen.**
-
-The other exempt case is **loading state**: "Loading game…" doesn't have to occupy the same shape as the loaded play surface. It's a brief moment, the loaded shape often depends on game state that's not yet fetched, and the principle is about reflow *during play*, not at mount.
-
-### Feedback pill
-
-A uniformly-styled component that carries every game's feedback ("Not a word," "Correct," "Waiting for ● moth…," "Hint: a fruit"). One visual register across games — connections' "Incorrect" looks like codenamesduet's rejected clue looks like boggle's "CAT — too short."
-
-The **same pill serves both feedback slots** — two role phrases we use consistently, naming *where feedback appears*: the **global feedback slot** — `<PageHeaderStatusSlot>` in the page header (see [GamePage header](#gamepage-header) below), left-justified, for peer/opponent/chat news (not the player's own moves) — and the **local feedback slot** — a fixed-height slot in the `belowBoard` region, centered, for the player's *own* results and standing conditions. In the header, a showing message replaces the default `<PageHeaderPlayersStrip>` content; when the slot empties, the strip reappears.
-
-The split is by **who the message is about**, and "Waiting for ● moth…" is the case that tests it: it names a peer but it is *your* standing condition — it says you cannot act — so it goes in the **local** slot, in every game. What earns the header is news the other player generated: their move narrated, their chat line, or a description of what they are doing that changes as they do it (codenamesduet's "● moth writing clue" versus "● moth guessing"). A message that holds the header holds it *against* chat and narrations and keeps the players strip hidden, so nothing goes there for the length of a game.
-
-**A slot holds every live message and draws the one that ranks highest.** A message is a `FeedbackMessage`, made by one of its named constructors and never by hand; each constructor names a **kind**, and the kind decides everything about how the message looks and leaves. A call site names what happened and shows it:
-
-```ts
-localFeedbackSlot.show(FeedbackMessage.result('lost', 'Not a word'))   // gone on your next action
-localFeedbackSlot.show(FeedbackMessage.notOk(res))                      // the server said no; × to dismiss
-globalFeedbackSlot.show(FeedbackMessage.peer(member, 'won', 'found APPLE +7'))  // fades after 3s
-
-// A standing condition is an effect on a primitive: shown on the rising
-// edge, retracted by the cleanup. Nothing else ever removes it.
-useEffect(function showWaiting() {
-  if (!waiting) return
-  const id = localFeedbackSlot.show(FeedbackMessage.waiting(member))
-  return () => localFeedbackSlot.retract(id)
-}, [localFeedbackSlot, waiting, member])
-```
-
-**The kinds**, lowest rank on top. A rank is a priority and nothing more: showing a message never takes another down, so messages stack and the one underneath is drawn again when the upper one leaves. Two kinds share a rank only where neither outranks the other, and the slot then draws the newest.
-
-| kind | what it is | look | rank | leaves by | constructors |
-|---|---|---|---|---|---|
-| `notOk` | the server said no — read why, press the ×; shows over the verdict so a move that raced the game's end still gets its "Someone got there first" | outline | 10 | the × | `notOk(res)` |
-| `terminalVerdict` | the game is over, and this is how it ended | **fill** | 20 | its owner (restart) | `terminalVerdict(over)` |
-| `standingState` | out while the others race on — or a game's own standing state, with its outcome and words | **fill** | 30 | its owner | `outOfRace(myConceded, activeText?)` · `standingState(outcome, text)` |
-| `result` | what your last action did, in the FE's own words | outline | 40 | your next action: any key, a tile click, a tap | `result(outcome, text)` |
-| `acknowledgment` | a success you already saw on the board | outline | 40 | a timer, 1.4s | `acknowledgment(outcome, text)` |
-| `hint` | a hint you asked for, kept while you hunt | outline | 50 | the × — a stray key must not cost you what you paid for | `hint(outcome, text)` |
-| `waiting` | whose turn it is, when it isn't yours | outline, neutral | 55 | its owner | `waiting(member)` |
-| `standingNote` | a state the board is in until something changes | outline, neutral | 60 | its owner | `note(text)` |
-| `prompt` | what an empty slot says | outline, neutral | 70 | its owner | `prompt(text)` |
-| `peerMilestone` | a peer crossed a threshold or finished | outline | 72 | a timer, 3s | `peerMilestone(member, outcome, text)` |
-| `chat` | a chat line, "● **moth**: hi" | outline, neutral | 75 | a timer, 2s | `chat(member, text)` |
-| `peer` | a peer did something; the header says so | outline | 80 | a timer, 3s | `peer(member, outcome, text)` |
-| `peerStatus` | what a peer is doing right now | outline, neutral | 85 | its owner | `peerStatus(member, text)` |
-
-**Four of those ranks answer a question the others don't raise.** `waiting` sits above `standingNote` because when both are true it is not your turn, so a note about the board describes something you couldn't act on anyway and the wait is what explains the screen. `chat` sits above `peer` because a person typing at you outranks an automatic narration. `peerStatus` sits at the bottom of the header because it is background — a standing description of what someone else is doing — so every piece of news shows over it, and it is drawn again when the news fades. And `peerMilestone` sits above them all, for the reason below.
-
-**`peerMilestone` versus `peer`, which is the line worth getting right.** A milestone narrates a **flag or level on the peer's player row** — solved, out of swaps, a rank climbed. A `peer` narrates a **row in a move stream** — a word found, a guess, a set claimed, a hint taken — however good the move was. So wordwheel's "● moth pangram 🦌 MOOSE +14" is a `peer`, and its "● moth reached Genius" is a `peerMilestone`: the first is a fine move in a stream of them, the second is a change in where that player stands. A milestone happens once or twice a game and is the thing you'd react to, so it outranks the stream — and it outranks chat too, which is the one real cost: a chat line arriving while a milestone holds the header is hidden, and its own two seconds can burn out unseen. That is why a milestone keeps `peer`'s 3s fuse rather than a longer one.
-
-Every constructor takes a trailing `overrides` — any of fill, rank, leaves-by, duration, outcome — for the rare site that has to bend its kind, in the open. The table itself is `KINDS` in [`FeedbackMessage.tsx`](../src/common/feedback/FeedbackMessage.tsx), and a message's getters read it.
-
-**Tapping the pill dismisses it** — the gesture-cleared kind, `result`. This isn't a new interaction: the rule was always *"your next action clears the feedback"* (a keystroke via the `act-dismiss-feedback` watcher, a tile click via the game's own handler), and tapping the message **is** an action. On touch that rule had one fewer way to fire — there is no next keystroke — so a player who read "Not a word" and tapped it got nothing, and had to start the next word to clear it (found on a phone playing letterboxed). Both slots behave the same way, because a rule the player has to learn twice isn't a rule.
-
-The ×-cleared kinds keep the `×` as their only target — a `notOk` or a `hint` is see-and-acknowledge, and a body that swallowed the gesture would make the `×` look decorative. The owner-cleared kinds aren't dismissable at all: a condition, not a message you've finished reading, and nothing would bring it back. The pill is a plain click target, never a `role="button"`: a game can show a hundred of these and none of them should become tab stops; `cursor: pointer` tells a mouse user what the tap teaches by working. Pinned by [`FeedbackPill.test.tsx`](../src/common/feedback/FeedbackPill.test.tsx) and [`letterboxed.e2e.ts`](../e2e/letterboxed.e2e.ts) at phone size.
-
-**The look.** Every pill's **whole border is the outcome color** (saturated `--outcomes-*-ink-color`) — a thick **left bar** (like the event-log outcome bars) plus thin sides in the *same* color, `--pill-bar-width` and `--pill-border-width`, uniform on every pill. (A pale-gray side border read as no border, so the sides carry the outcome too; `neutral` has no outcome color, so its border is a visible dark gray.) The kind only changes the **background**: a kind with `fill` — the verdict, out-of-race — gets a **lightened-outcome background**, so a final `lost` reads as *more* emphatically lost than a passing one, and everything else stays white. The fill is the "final for you" signal. **Peer identity is independent of it:** a message about another player ("● leah found APPLE") carries the actor as the leading name-and-disc mention whatever its kind — the disc, never the fill, says *who* (the rule from [Player identity = a colored disc](#player-identity--a-colored-disc)); on a phone the name drops and the disc stays.
-
-**Outcome follows the event, not the viewer's stake.** One event reads as **one color everywhere**, regardless of whether it helps or hurts the viewer. A *found word is green* in **both** modes: coop (a teammate found one) and compete (an opponent found one — adverse to me, but still "they found a word"). We do **not** recolor by competitive stake. Otherwise the player maintains two color-meanings for the same event — green-means-found in coop, something-else in compete — which is hard to learn and easy to misread; the actor already says *who*, so the outcome is free to say only *what happened*.
-
-**Semantics:**
-
-- `show(feedbackMsg)` returns an id; `retract(id)` takes a message back. Showing never removes anything: every live message stays until its own exit, and the slot simply draws the lowest rank (newest, within a rank).
-- The slot lives in its host — `useFeedbackSlot('local')` in a PlayArea, `useFeedbackSlot('global')` in a page — and dies with it, timers and all. The page hands its instance down as `ctx.globalFeedbackSlot`.
-- **Pause transitions don't clear feedback.** `<PauseOverlay>` covers the play surface, not the header; a showing message stays readable through a pause/resume cycle. A message that shouldn't survive a pause is its owner's to retract.
-- `window.puppill('hey', 'hint')` from the console shows a message into a mounted slot, the way `puptoast` does for toasts.
-
-#### Faults — "the app is broken", in a blocking modal
-
-A **fault** is a failure nobody planned for: a bug, or a request that never
-reached the server. It renders as a blocking **modal** (`<FaultModal>`, one
-host mounted in App.tsx) — a dark scrim, nothing outside it interactable —
-deliberately unlike every normal message. The phone-line shape test got even
-easier: *"did a box pop up?"* separates **"the game refused my move"** from
-**"the app is broken"** before anyone reads a word.
-
-Three lines (Joel's spec, 2026-08-13):
-
-1. **"Error"**, red.
-2. **The message** — never written here. It is the envelope's own `message`,
-   the sentence the RPC author wrote at the raise
-   ([envelopes.md](envelopes.md)); where nothing answered, it is one of the
-   environmental sentences the frontend owns.
-3. **The diagnostics**, small and muted — everything we know (the call, the
-   severity, SQLSTATE, HTTP status, DETAIL, timestamp): the SAME string the
-   `[db]` console line carries, from one shared builder, so screen and log can
-   never drift. The format is in
-   [envelopes.md → the `[db]` line](envelopes.md).
-
-Dismissal: the Close button or Esc — scrim clicks are deliberately inert
-(see-and-acknowledge). One fault at a time; each fault is its own modal
-(no batching); the queue caps at 5 and silently drops overflow from the UI —
-every dropped fault still has its `[db]` line, since the wrapper logs before
-it raises the modal.
-
-**The one rule:** *every failure that classifies as fault/transport pops the
-modal, on every surface; expected rejections, validation, and answers stay
-where they are.*
-
-**The modal is an ESCALATION, not a replacement** — the fault also appears in
-the pill or on the form line, like any other answer, so that dismissing the
-modal doesn't leave a form looking fine or a board still showing "FOOZLE: not a
-word" when the real news is that the server is down.
-
-Mechanics:
-
-- **Nothing authors a fault by hand, and nothing can.** The layer that received
-  the failure raises the modal itself — `reportDbFault` in
-  [`dbEnvelope.ts`](../src/common/supabase/dbEnvelope.ts), called from the
-  wrappers, with the transport facts no call site could rebuild
-  ([envelopes.md → How the frontend receives one](envelopes.md)). Every call
-  goes through a wrapper, so there is no second path.
-- **A fault therefore never reaches a feedback sink at all**, and no sink
-  checks for one. The wrapper raises the modal before a call site has an answer
-  to hand a sink, so a fault has no way to arrive where a pill is chosen. The
-  rule holds by construction, not by a branch — which is why neither a slot
-  nor `FeedbackPill` has a fault case to read.
-- **Form/panel surfaces** put the envelope's own `message` on their red line —
-  the setup dialog's validation, the club-name rules, the AI panels' "the model
-  declined — try again" — and a fault's modal has already fired. The two page
-  LOADS in ClubPage stay in-page: a page that failed to load has nothing to
-  render behind a modal, so its own error state is the right surface.
-- **Look and words are independent axes.** The surface decides where a message
-  goes; the raise decides the words and the severity. A fault is always
-  `error`-toned (a fault is never news) and always logged.
-- **Testing the look:** real faults are bugs or dead networks, so
-  `window.pupfault()` (registered by FaultModal) pops a canned one from the
-  browser console — `pupfault('text', 'diagnostics')` to shape your own. For
-  a genuine one: DevTools → Network → Offline, then any action.
-
-### Toasts
-
-A **toast** is a bottom-right **announcement** — a *different surface* from the feedback pill above, for a different job. Toasts **stack vertically** (newest nearest the corner), sit **above chat and every window** (`--z-toast`), though a blocking modal outranks them — the world stopping beats an announcement, and each carries an **✕** plus an optional single **action button** (e.g. "Join"). There are no validity tones here — a toast is neutral chrome with a tone accent stripe; it's an announcement, not a verdict.
-
-**Which of the three surfaces gets a message** is a question about *whose news it is*, not about how important it is:
-
-| surface | whose news | example |
-|---|---|---|
-| local feedback | **your own action**, answered where you did it | "Not a word" under the input |
-| global feedback (the header slot) | **other people** | a chat message, a peer's move |
-| a toast | **an announcement** — including your own action on a page with no local area | "Wordle deleted", a friend's invitation |
-
-The club page is what forces the third row: it has no local feedback area at all, so without this surface "I just deleted that game" would fall to the *global* slot — which is where other people's news goes, and which costs the members' presence strip for as long as it's up. An announcement in the corner is the right shape, and it sits nearer the list you acted on than the header does.
-
-One shared store + one host: any code calls `showToast(spec)` / `dismissToast(id)` (`common/toasts/toastStore.ts`), and the single `<ToastHost>` (`common/toasts/`, portaled to `<body>`, mounted once in `App.tsx`) renders the stack. The host is capped to the viewport and scrolls internally, so a flood of toasts never scrolls the *page* (the [page-never-scrolls](#page-height-fits-the-viewport) invariant). What calls it: anything with news that is not a verdict and has nowhere local to put it — an invitation arriving, a friend starting a game, a deletion you just made on a page with no feedback area. See [common-folders.md](common-folders.md) for the file homes.
-
-**Two lifetimes.** By default a toast waits for the ✕ or the action button — an invitation has to be there when you come back, and the setup heads-up mirrors live state, so it lasts exactly as long as the state does. A caller that wants one to go away by itself passes `ms`, usually `DEFAULT_TOAST_MS` (4000 — longer than a feedback pill, because a toast has to be *noticed* before it's read); the club page's "`<title>` deleted" is the one that does. A timed-out toast never fires its `onClose`: nobody dismissed anything.
-
-**Testing the look:** every real toast needs a real event behind it — an invitation arriving, a friend starting a game — so `window.puptoast()` (registered by `toastStore`) pops a canned one from the browser console, `puptoast('hey')` for your own words, `puptoast('hey', 'error')` for a tone. It always carries both exits, and logs which one you took: the action button closes without firing `onClose`, the ✕ fires it. The twin of `window.pupfault()` above.
-
-### Terminal results — the moment vs the record
-
-Game-end UI splits along one line: **the moment** (a win worth marking, which happens once and then is gone) and **the record** (what the page says about a finished game, every time anyone opens it). The record lives **in-page**; the moment is the only thing that gets a modal.
-
-**The record — two surfaces, one message.** Every game's `buildOver()` returns a [`TerminalMessage`](../src/common/terminal/terminalMessage.ts) — `{ pillText, infoColText, outcome, actor? }` — so the two surfaces can't drift:
-
-- `pillText` → the **below-board verdict**, shown into the local feedback slot as a `terminalVerdict` and occupying the slot the input/action UI used during play. Terse, leading with the outcome word, no trailing period: it's a one-line ellipsizing LABEL (~48 chars on a phone), not prose. "Won: fewest guesses" / "Lost: out of time" / "Game ended". A verdict that names a person carries them as `actor`, and the pill draws the mention ("● moth won").
-- `infoColText` → the **info-column outcome line**, which `<InfoActionsRow>` draws beside the buttons. Shorter still: "You won!" / "Out of guesses" / "Game over".
-- `outcome` (`won` / `lost` / `neutral`) colors both. The neutral manual-end message is shared outright (`gameEndedTerminalMessage()`) — the friends agreed to stop, so nobody won and nobody lost.
-
-**`<InfoActionsRow>`** (`common/info-sheet/`) is the shared info-column action row, in EVERY state: `children` are whatever the game offers right now, and an optional `message` — `{ text, outcome }` — is a bold line to their left. At terminal it takes two fields of the `TerminalMessage` (`over.infoColText`, `over.outcome`); *locally* terminal states — a compete player who conceded or ran out while the others race on — pass a `neutral` line, so dropping out reads as loudly as a real ending without claiming the game is over; while playing there is no line and the row is the buttons alone, in the same place. Back-to-club goes last and every game places it as an icon-only `<ActionButton>`, so the row survives a ~22rem column (Restart + Reveal + New game + Back to club is four items in a `nowrap` row — see [Button iconography](#button-iconography)).
-
-Neither replaces the page: it stays in *review mode* (the final board, connections' revealed categories, and — once asked for — codenamesduet's partner key card or psychicnum's secrets gone green; see [Don't reveal the solution on a loss](#terminal-results--the-moment-vs-the-record) below). And per [Layout stability](#layout-stability), the terminal row **rotates into a reserved slot** — it never adds or removes a flow element, which would let the `flex: 1` board grow.
-
-**Back-to-club skips suspend-confirm.** Terminal game = no progress to lose. Rows place `<ActionButton action={menu.actBackToClub}>` — the same binding as the menu row, whose terminal branch is direct navigation.
-
-**The moment — `<CelebrationBlockingModal>`.** `common/terminal/CelebrationBlockingModal.tsx` (confetti glyphs + a jingle) pops for a win and for nothing else, and **a terminal game pops no other modal** — its verdict is in-page. `useCelebration(won)` has three rules: never on mount (opening an already-won game is review, not winning), pop when `won` flips true mid-session (the flip lands on every client via the common realtime refetch, so the group celebrates together), one-shot until re-armed by a flip back to false (replay-board un-terminals the game, so win → restart → win celebrates again).
-
-**Gate it only on values that are correct on the FIRST render** — the `common.games` row (`playState`, `status.*`) plus the roster, all of which `GamePageLoader` awaits before the PlayArea mounts. A game's own rows count too **only where its loader holds the surface back until they are in** ([playarea.md → The shape of a game's PlayArea.tsx](playarea.md)); a PlayArea that runs its own hook has those rows null on its first render, so the fetch landing fakes a false→true flip and pops confetti at someone merely reviewing a finished game. (Caught live by an e2e; unit tests with synchronous mocks miss it.)
-
-**Which win counts is per-game, and the first-render rule is the whole test.** Most games celebrate the coop win (`playState === 'won'`; coop-only by the states vocabulary, since compete writes `won_compete`). A game celebrates a **compete** win when its own `common.games` row, its roster, or a game row its loader awaited names the winner that early — the self-vs-other test it can afford on the first render (psychicnum's is its own budget row, `found_secrets_count` against three) — and a game that can read both flips that way celebrates both (the coop solve and first-past-the-bar, a timed-out race's co-winners included, read off the per-row `won` flags). Where the win can only be known after a later fetch, or where a mode has no win state at all, nothing pops: the alternative is confetti at someone merely reviewing a finished game.
-
-**Losses stay quiet, deliberately.** Celebrate wins loudly; let losses land through the red pill. The asymmetry is the point — a consolation modal is a modal you have to dismiss on your way to feeling bad.
-
-**A loss never opens the answer, and neither does a game the friends agreed to stop.** Ten games hide their answer until a player asks — **waffle** (the grid), **wordle** (the word), **stackdown** (the six words), **psychicnum** (the three secrets), **crosswords** (the author's grid), **codenamesduet** (the partner's key card), **strands** (where the words hide, plus the words themselves), **letterboxed** (the seeded two-word solution), **connections** (the categories nobody got) and **wordiply** (the best possible word) — and the one thing that ever opens one by itself is having PRODUCED it (below). Force-reveal at the end and the replay becomes theater: you already know where the tree ends, and `replay_board` re-runs the *same* board in most of these. Under the friends-only trust model nothing needs re-shielding; the server unshields at terminal, so "is it on screen?" is purely a **display** question.
-
-Three properties, and each one is a decision (`common/reveal/useSolutionReveal.ts` holds all three):
-
-- **Personal.** My looking doesn't open the answer on a partner who is still turning the loss over. It used to be a shared flag — one player pressed Reveal and every board opened — which reads generous and plays badly: a post-mortem is people thinking out loud, and one impatient click ended everyone else's thinking. Each player now looks when they're ready.
-- **Temporary.** The same control puts it away: `act-reveal`'s `describe()` carries both faces, and swaps to `EyeOff` / *Hide* once the answer is up. This is the one that mattered most. For the games whose reveal **rewrites the board** — crosswords (fills the grid), strands (draws the unfound words), waffle (swaps in the solved grid), connections (bands replace the tiles) — a permanent reveal destroyed the only record of *how far the players actually got*. Now the board they finished with is always one click back.
-- **Unpersisted.** No RPC, no column, nothing on realtime, nothing to un-write on a replay, and a reload lands back on the board as it ended. A replay of the same board starts blind for free: `GamePage` keys the play surface on `common.games.restarts`, so a restart mounts a fresh surface and the local reveal goes with the old one — no game does anything to re-hide it.
-
-**A game you SOLVED starts revealed — and which games can say that turns on two different things both called the answer.** The **puzzle-solution** is the one the puzzle itself has, fixed at generation and the same for everybody: it is what the control shows. A **board-solution** is what one player's finished board amounts to — it belongs to that player and that run, and a player who never solved has none. In six of the ten games a board-solution IS the puzzle-solution, so asking the solver to press Reveal is asking them to uncover what they're looking at: **strands** (the theme words tile the board exactly, so solving consumes every cell), **psychicnum** (finding all three IS the win, and a found secret is already green), **stackdown** (you played all six words), **waffle** (your solved grid IS the solution), **connections** (each match resolves into a band, so all four are up), **wordle** (you typed it). Their Reveal goes **inert with "Solution already shown"** — present, never absent, so the row keeps its shape against a game that ended some other way. It keeps the **plain View eye, not EyeOff**: both readings are technically true (you can't hide what the win put there, and you can't show what's already shown), but a solver never pressed Reveal, so there is no "on" state for a struck-through eye to be the "off" of — it reads as a state they don't recognize.
-
-For three of them it's a real convenience rather than a no-op: stackdown's six words, strands' `Words:` line and wordle's answer line are the same answer gathered as **click-to-define text**, which the board itself doesn't give you. For waffle, connections and psychicnum the only visible change is the control going quiet.
-
-**The predicate is "did I SOLVE it", never "was the game won"** — but *which* question answers that depends on the mode, so it lives in one shared place, `solvedByMe`:
-
-- **Compete asks ME.** The verdict is no proxy: wordle writes `won_compete` when *someone* wins, and the racer three guesses off never produced the word — starting them revealed would hand over the answer unasked, the exact thing the personal reveal exists to prevent. It also gets strands compete right for free, where the race deliberately doesn't end on first solve: a player who solved but lost on hint count still consumed their board.
-- **Coop asks the GAME** (`playState === 'won'`), because there is one board and one outcome. That isn't a shortcut — the per-player bit is *unreliable* in coop, differently in each game: stackdown writes `players.solved` only `when mode = 'compete'`, strands' coop branch ends the game without touching it, and psychicnum counts `found_secrets_count` per CALLER, so two teammates finding 2 and 1 leaves neither at three. wordle and waffle *do* mirror it lock-step across coop rows and connections reads the shared matched set — but a rule that works in half the games isn't a rule.
-
-One implementation note that is easy to get wrong, and it is recorded in the hook: the default must be **derived, never a `useState` initializer**, since the per-player rows it reads are empty on the first render and a game can be won mid-session. The hook holds only the player's own explicit choice — there is no way to put that choice back, because a stale "no" would outrank the implied default and solving the replayed board would leave the answer stubbornly hidden. The run's remount is what clears it.
-
-**In the other four a board-solution never reaches the puzzle-solution, however well the game went** — so they ask every time, and no result could imply it: **letterboxed** (the puzzle-solution is the SEEDED pair; a win is any covering chain), **crosswords** (the AUTHOR's grid — rebuses and quantum clues mean a correct fill can legitimately differ from it, and the reveal grays the author's letters in over yours, so it reads as a diff as much as a reveal), **wordiply** (the BEST possible word; a winner beat their opponent, not the best word that exists), **codenamesduet** (the PARTNER's key card — a win contacts all fifteen agents and still never names which of *your* tiles they saw as bystanders).
-
-**A game whose readout is the word list needs no reveal control.** Its missed words fold into the list the moment the game ends, and the list's WHO select decides which half you are reading — so there is nothing to gate and no button to press ([`word-list/doc.md`](../src/common/word-list/doc.md)). Games with no solution (bananagrams, scrabble) have nothing to show.
-
-**The reveal is terminal-only**, and that part is still enforced by the server: each gametype's shield hands the solution over at `is_terminal` — ended for *everyone* — so a compete player who conceded, was eliminated, or finished early can't pull the answer while the others are still playing. There is no per-game "am I locally done?" reasoning anywhere in the path. Where a game shows a locally-terminal row, it keeps the control visible but disabled, tooltipped **"Can't reveal until all end"**: the row must not change shape when the last racer finishes, and "not yet" beats a control that vanished. That's also why the button never disables itself once used — it toggles instead.
-
-**Every gated game offers the reveal twice** — an `<ActionButton>` in the terminal action row *and* a game-menu item, both placing the SAME `act-reveal` binding, so the two faces cannot come apart — so a player who's scrolled past the row, or who is on the mobile layout where the info column is off-canvas, can still get to it.
-
-**Showing the answer means the whole answer.** crosswords learned this one late: its reveal filled the blanks but left a wrong letter standing, which is a half-corrected grid rather than the solution. The author's letter now replaces the player's in every cell, grayed — gray meaning "this letter is the author's, not yours", so the key doubles as a diff — and Hide brings their fill, marks and all, straight back. Overwriting what's on screen is only safe *because* it comes back.
-
-**The club-list title follows the same rule**: a title that spells the answer spoils the game from the outside, which is exactly what wordle's `_sync_title` did until 2026-08-02. It can't key on the reveal either — that's one player's private click, and the title is club-wide — so every game's title-writer names only what the players actually earned (wordle: the last guess, which on a win *is* the answer; stackdown: the words they cleared; waffle: the best board's correct words; psychicnum + codenamesduet: board words, never the key).
-
-**codenamesduet is gated for a different reason**, and it's the clearest illustration of why the reveal is personal. Its Restart is a mulligan that keeps both key cards, so the gate is not protecting a replay. The seconds right after an assassin are the post-mortem — "wait, I was about to pick APPLE" — and that conversation only happens while the partner's card is still covered. When the reveal was shared, one player opening the card ended the other's half of that conversation mid-sentence.
-
-**Restart** (`act-restart` + the per-game `<gametype>.replay_board` RPC on top of `common.reset_game`) serves three different players: the do-over (we lost, let us finish), the line-explorer (same puzzle, different tree), and the optimizer (I won, but I want to beat my swap count) — so it shows at *any* terminal, not just losses. Two accepted costs: replay wipes the win (the game sits "unwon" until re-solved) and wipes the previous attempt's event log.
-
-**All sixteen games have it.** The three that once didn't (restored 2026-08-03) were each opted out for a good local reason, and each reason lost to the same argument — a player who can't find Restart where every other game puts it concludes the app is broken, not that this game is special:
-
-- **codenamesduet** — its board *is* the secret, so a replay keeps the key cards and you know where the assassin is. Kept anyway, as an explicit **mulligan**: a first-guess assassin ends a game nobody got to play, and "let's just run it back" is what the friends actually say. Someone wanting a blind board has New game, one item down.
-- **bananagrams** — no shared puzzle, so a restart deals what New game would. Kept anyway because of the missing-affordance problem above, and built as a *real* reset (same row, same hands re-dealt from the immutable `bunch_seed`) rather than an alias, so the club list doesn't grow an entry.
-- **crosswords** — "can't surprise you twice once the answers have been read" (decided 2026-07-31, reversed 2026-08-03). It turned out to already *have* the feature under another name: **Clear board** wiped the fill and kept the grid. That's a restart with a different label and one missing power — it couldn't un-terminal a finished puzzle. Clear board is gone; Restart is the one name and one path.
-
-**Two surfaces, one rule.** The Restart **button** shows only at terminal, so mid-game boards aren't cluttered with an action nobody's reaching for — the terminal row is the only place it is placed. The **game-menu item is always there** — that's where a mid-game restart lives — and mid-game the shared run asks `RESTART_CONFIRM` first ("This clears everyone's progress and starts the same board again — you can't undo it"). At terminal it goes straight through, because there's nothing left to lose. No `replay_board` guards on `play_state`: it's a restart, and the confirm is the protection.
-
-**One answer, one refusal.** `replay_board` returns `{ result: 'replayed' }` and has no gates of its own — it is legal mid-game and at terminal, in both modes, for any player, and a replayed board is itself a perfectly legal thing to replay. The only thing that can refuse it is the game having been **deleted** underneath the page: `common.delete_game` is granted to any club member for any game in the club, so a friend tidying the list while you have it open really does take the row out from under you. That answers **PN485 "That game was already deleted"** — the words and the red of `delete_game`'s own PN010, since it is the same news. It is checked BEFORE membership, deliberately: the delete cascades `game_players` too, so a membership-first order answered "You are not in this game", which is true of the rows and false of the player (fixed 2026-09-01; [`gameDeletedFirst.test.ts`](../src/guards/gameDeletedFirst.test.ts) holds the order).
-
-### Confirm modals — never `window.confirm`
-
-In-game confirmations go through the shared
-[`<ConfirmationBlockingModal>`](../src/common/floating-panels/ConfirmationBlockingModal.tsx) — a
-true MODAL on the FloatingPanel shell: its family paints a dark scrim that
-blocks every pointer action on the board underneath, its tab ring is innermost so Tab stays inside it, the confirm button autoFocuses
-(Enter confirms), Esc cancels, and the action dispatcher stands down inside
-`[data-floating-panel]`. The confirm button always **names the act** ("End
-game", "Suspend") — never a bare "OK". **One way to ask it, from anywhere:**
-[`askConfirmation`](../src/common/floating-panels/confirmationService.ts)
-answers `'confirm'`, `'alternative'` (where the question offers a second way to
-say yes) or `null`, and the one `<ConfirmationHost>` in `App.tsx` draws whatever
-is pending. Components await it exactly as an action's shared run does, which is
-what keeps a second way to say yes available to every caller rather than to
-some of them.
-
-The standing questions — every one the registry carries (New game, Restart,
-End game, Concede, Reveal grid) plus Suspend, which is the page's own:
-
-- **End game** — ALWAYS confirmed, in every game and every entry point (the
-  info-row button, the menu item, the pause overlay's escape hatch), even
-  solo/coop: ending is terminal for the whole group and irreversible. One
-  canonical question object (`END_GAME_CONFIRM`) so the question reads
-  identically everywhere.
-- **New game** — confirmed only while a game is IN PROGRESS (at terminal
-  there's nothing to interrupt, so it goes straight through). `NEW_GAME_CONFIRM`
-  is the shared question, carried by the registry on `act-new-game` and asked by
-  the shared run, so every placement inherits it: the terminal button, the
-  menu row, and the `+` key. **⌥+** (`act-new-game-from-setup`) carries the
-  same question and hands off to ClubPage's setup dialog instead of dealing a
-  board. **Its text reassures rather than warns**, because starting a new
-  game does *not* end this one — `create_game` clears the club's current-view
-  flag and the old game stays resumable from the club page ("shelved, not
-  lost"). Phrasing it like End game's "you can't undo it" would be false. The
-  point is that an accidental `+` doesn't read as *I just lost my game*.
-- **Suspend / Back-to-club** — confirmed only when there are PEERS to
-  surprise. Three shapes (see
-  [states.md → Leaving the game page](states.md#leaving-the-game-page--terminal-vs-non-terminal)):
-  terminal → direct navigation, no dialog, no broadcast; solo mid-game →
-  suspend immediately, no dialog; multiplayer mid-game → the suspend question,
-  awaited through `askConfirmation` like every other question (`suspendConfirm`
-  in `common/pause-suspend/` holds its words, built per game title).
-
-No `window.confirm` remains anywhere. Every game action's question is asked by
-the registry through `askConfirmation` (`common/floating-panels/
-confirmationService.ts`), and a question only one game asks — scrabble's Pass,
-crosswords' and strands' one-offs — is asked the same way from inside that
-game's callback.
-
-### Dialog buttons
-
-macOS-style placement, consistent across every dialog / modal / confirm: the action row is **right-justified** (`justify-content: flex-end`), with the **default/primary action rightmost** and Cancel (the `secondary` button) to its left — so Cancel comes *first* in the DOM, the primary button *last*. One shared rule draws the row — [`modalActions.module.css`](../src/common/floating-panels/modalActions.module.css), imported directly and applied as `actionRow.modalActions` — carrying the `0.75rem` gap and the `6rem` button floor for every dialog. `PauseOverlay` is the deliberate exception — it's a page-context banner, not a modal, so its buttons center.
-
-The **setup dialog** (`<SetupGameModal>`) extends this: an icon-only Help button — `act-help`, the same command the in-game menu's Help row is — is pinned to the **far left** of the footer (`justify-content: space-between`), with the Cancel/Start pair keeping the standard right group. Clicking it opens the game's Help as its own `<FloatingPanel>` *on top of* the setup dialog (which stays open behind it) — so you can read the rules mid-setup, unlike the in-game menu's Help. The icon-only Help button is excluded from the `min-width: 6rem` floor (that floor is only for the two text buttons). Setup fields that recap a value (Timer everywhere; spellingbee's Dictionaries + Custom letters) sit behind a shared [`<SetupSection>`](../src/common/setup-form/SetupSection.tsx) disclosure whose summary shows the current value (`Timer: none`, `Dictionaries: 3 (Familiar) / 5 (Obscure)`, `Custom letters: A-CHIROT`), closed by default.
-
-**Back to club** is `act-back-to-club`, bound once by `GamePage` and placed as an `<ActionButton>` wherever it appears: a terminal row draws it icon-only, the game menu's row wears its `IconBack` and `<`, and the two surfaces that REPLACE the play area — `PauseOverlay` and `DeviceBlockNotice` — draw it with its words. So the glyph, the words, the key and the behavior are the registry's and the shell's everywhere, and leaving a live game is one act with one question in front of it, whichever surface you leave from. Replacing the play area does not put the binding out of reach: the action is `GamePage`'s, and `GamePage` stays mounted. `weight` only swaps the fill: `primary` is the filled accent, and `secondary` (outline) is the default.
-
-### Existing offenders to retrofit
-
-Not a big-bang refactor — these get fixed game-by-game as we work through the UI sweep:
-
-- **codenamesduet turn-state messaging.** Audit needed — does "your turn to write a clue" occupy the same space as "waiting for peer's clue" and "peer gave you: BIRD 3"?
-- **Guess / clue history scroll containment.** Verify each is a scrollable region inside a fixed outer, not a grow-with-content list.
-
-## Floating panels — five families, one shell
-
-**A floating panel is a window-like thing that floats over the page**: its
-own rect, out of the document's flow; a header bar carrying a title and a ✕
-(or, for a card, a heading in the body); its own surface and shadow;
-dismissible. Everything [`<FloatingPanel>`](../src/common/floating-panels/FloatingPanel.tsx)
-provides, and the category is *defined as* the things built on that shell,
-which is why the umbrella word and the component share a name.
-
-**"Panel" on its own means nothing and is banned** — in prose, in docs, in
-conversation, and in any component name. The evidence: connections' `HintList`
-was once called a "panel" while cataloging the dialog-like things, and it is a
-readout sitting in the info column's flow — no rect of its own, no titlebar, no
-✕, nothing to dismiss. "Floating panel" would have blocked the mistake and
-"panel" invited it. A module-scoped `.panel` class is fine, since a local class
-states its own blast radius. **"Draggable panel"** is the prose name for the
-subset you can drag (every family but the two below the line), and
-`useDraggablePanel` is its hook. Tooltips and menus are not floating panels:
-not window-like, and the menu already has a sharp name.
-
-### The families
-
-They differ in **intent**, not implementation — one component with a `family`
-prop, and the prop is required because a silent default is how the app once
-ended up with a modal that never dimmed. What each family claims is one table
-in `FloatingPanel.tsx`; this is what it means:
-
-| family | what it is | dims | movable | remembers its rect | resizable |
-|---|---|---|---|---|---|
-| `companion` | something you keep NEARBY while you play — open it, keep it open, put it where you want: the scratchpad, a setter's note, a clue explainer, help | no | yes | yes, position and size in one entry | **always** — a rule. Every one genuinely benefits from being sized in both axes, and they are the only floating panels you can drag shut |
-| `dialog` | a question that can wait: the anagram finder, word lookup, edit-word | no | yes | position, yes — that is what "opens where you left it" means | case by case; all of ours fit their content today, which is a fact about these three, not the family |
-| `modal-normal` | a question worth thinking or talking about: setup, edit profile | yes, light | yes — to see the board while filling a form | no — a fresh task each time, so it centers | case by case, same reason |
-| `modal-blocking` | the world stops. Deal with it now and it is gone: confirm end game, scrabble's blank picker, crosswords' jump-to-number — and the [win celebration](../src/common/terminal/CelebrationBlockingModal.tsx), which asks nothing but is the same shape, a card over a dimmed board you dismiss to get back to the game | yes, dark | **no** | no | never — a rule |
-| `modal-fault` | as blocking, but strictly above it — an error must be readable mid-question. Escape is swallowed, so a fault cannot be closed by accident, and nothing under it closes either | yes, dark | **no** | no | never — a rule |
-
-**Immovability is the visible signal**, and a better teacher than a scrim
-shade: if you can drag it, you can leave it for later; if you cannot, deal with
-it now. The two immovable families are also **cards, not windows**: the
-titlebar IS the drag handle, so a family that can never be dragged has no use
-for one, and its ✕ would be a third way out duplicating a button already on
-screen. A card keeps its size at every viewport so the thing the question is
-ABOUT stays visible behind it; a window becomes a full-page sheet on a phone.
-
-**What "dim" must mean: everything under it is inert.** For the two blocking
-families that is literally true — nothing may outrank them. For `modal-normal`
-it means "focus is here", and chat sitting above it is a deliberate exception
-rather than a lie, because a normal modal never claimed the world stopped. Tab
-needs no separate claim: every panel is a tab ring, and an open one's ring is
-innermost, so a keyboard user can never reach controls the scrim has made
-unclickable.
-
-**Buttons don't decide the family.** A dialog very likely carries a **Save** /
-**OK** / **Start** — it has an answer to give — and a companion very unlikely
-does, closing by its ✕. But the sharp test is whether the button ENDS the
-thing: word lookup and the anagram finder each have a primary button (*Look
-up*, *Find*) that acts INSIDE the dialog and leaves it open, which is what
-lets them be the patient kind you keep beside a cryptic while still being
-dialogs.
-
-**Resizing — who knows the right size?** *Content knows* → auto-fit, never
-resizable; a form is as tall as its fields. *The user knows* → resizable; how
-much scratchpad, how much chat history, how many anagram results is a question
-only the person can answer. A resizable blocking modal is broken; a resizable
-dialog is just a dialog nobody has needed to resize yet. A companion's
-MINIMUM size should come from what the body needs — "the titlebar, the
-composer and four messages" — not from what looked about right.
-
-### The surface: how round, and how high
-
-Every surface that floats — a panel, a menu, a popover, a toast, the
-device-block notice — takes the same background (`--default-bg-color`) and the
-same edge (`--border-width-line` solid `--page-surface-border-color`). The two
-that differ, differ for a reason, and **this subsection covers more than
-floating panels**: a menu and a popover are not panels, but they float, so the
-same two questions get asked of them.
-
-**Radius follows size.** A large surface takes `--radius-lg`, a small one
-`--radius-md` — the panel shell and the device-block notice against menus,
-popovers, dropdowns and toasts. A corner radius reads as a proportion of the
-thing it's cutting, so one value across both sizes makes the big surface look
-sharp or the small one look soft.
-
-**Depth follows how far the thing is from what's behind it.** Three rungs, and
-a surface picks the one its job asks for:
-
-| rung | what it says | who takes it |
-|---|---|---|
-| `--shadow-anchored` | attached to the thing it came from | the definition popover, a filter's dropdown |
-| `--shadow-lifted` | an edge against whatever is behind it, and no claim of altitude | menus and their flyouts |
-| `--shadow-floating` | a surface above the page | the panel shell, toasts, the device-block notice |
-
-A definition popover is *about* the word you clicked, so it should read as
-attached to it; a menu opens over arbitrary content and needs to be separable
-from it without pretending to be a window; a panel is a window.
-
-**Closer is darker**, which looks backwards and isn't: a tight shadow's peak
-lands near its nominal alpha where a wide one's never does, so holding the ink
-steady up the ladder would read as the top rung fading out. **The alphas are a
-theme's** (`daylight.css` → SHADOW) — a shadow can only darken, so the ground
-under it caps what it can say, and a dark page needs several times the ink for
-the same step. Depth for game surfaces is a different question and lives in
-`base.css`.
-
-### The names follow the families
-
-**A React component entirely about one family takes that family's name as its
-suffix**: `GameScratchpadCompanion`, `AnagramDialog`, `SetupGameModal`
-(`normal` is the unmarked member, so the suffix is plain `Modal`),
-`ConfirmationBlockingModal`, `FaultModal` (strictly `FaultFaultModal`, which
-is pointless — `Fault` names the member). A component shared ACROSS families
-keeps a generic name — `FloatingPanel` is the shell for all five, so naming it
-after any one would be a lie. **A CSS class names what it styles, not what it
-happens to be attached to**: `.floatingPanel` means "this changes every panel
-in the app"; `.dialog` means "this changes three components you can name".
-
-**"modal" is a family word, never a member.** Two members sit far above chat
-and the third far below it, so if the third were called `modal`, one string
-would mean both "all three" and "the one at 2200". `normal` because this repo
-already uses it for the unmarked member of a family
-(`--button-normal-primary-color`); `-nonblocking` was rejected as defining by
-negation, two characters from `-blocking` at reading speed.
-
-**The layers share the names.** `companion` is a kind of thing; `--z-companion`
-is where that kind of thing lives, and a second vocabulary for the second axis
-would mean every conversation saying which list it means, forever. So **a
-layer is where its family lives unless a component states otherwise**, and
-two do, each with the reason in its own file:
-
-- **`Chat` lives at `--z-chat`, above every dim below it**, because talking is
-  what the app is for, and chat is the one companion that can OPEN ITSELF (a
-  `!` message force-opens it for every recipient) — a self-opening panel
-  materializing under a setup modal would be worse than not opening at all.
-  It is a companion by every test and **does not take the family word**: a
-  name saying `companion` would point at the one layer it deliberately does
-  not live on.
-- **Help lives at `--z-help`**, above the companions, because it is summoned
-  FROM things — including the setup modal's footer "?" — and the rules must
-  never open behind the form you pressed "?" in.
-
-The full ladder, and the satellites that attach to a layer rather than
-occupying one (a scrim, a dropdown, a tooltip), are in
-[code-conventions.md → The z- layers](code-conventions.md#the-z--layers).
-
-**One panel is still off the shell, and that is a todo rather than a decision.**
-Crosswords' `CrosswordsNumberJumpBlockingModal` is a hand-rolled `position:
-fixed` box with its own scrim, tab ring and Escape. It already reads
-`--z-modal-blocking`, so converting it moves no layer; what the shell would take
-over is those three.
-
-## Real forms, and everything else
-
-**The rule is about who owns the keyboard.** In a real form the *focused element*
-owns it, so focus is meaningful, a focus ring is an honest signal, and Tab is
-the right way to move. Everywhere else the *app* owns the keyboard, focus is a
-liability rather than a state worth showing, and a ring is a lie about where
-your next keystroke will land. That's the same invariant `useGameHasKeyboard`
-encodes — *caret visible ⟺ keys reach the game* — and a real form is precisely
-where keys deliberately don't reach the game.
-
-Three categories:
-
-**1. Real forms** — things a player *fills out*. The setup dialog (including
-crosswords' puzzle pickers, which are blocking modals of their own), the
-profile form, claim-a-username, the
-get-magic-link and login-with-code forms, and the confirm dialogs
-(`ConfirmationBlockingModal`, `FaultModal` — nobody "fills them
-out", but the panel owns the keyboard and its buttons need visible focus).
-
-These may use Tab between elements, native `<select>`s, focus rings, and take
-RETURN / ESCAPE to submit / cancel alongside their buttons.
-
-The boundary is already machine-readable: **`data-floating-panel`**. The action
-dispatcher declines inside it, and the shell hangs the panel's own tab ring on
-the same element — which is how the setup dialog can be a real form while
-floating over a live game with no special-casing. An audit can start as a grep.
-
-**2. Not forms** — the home page, the club page (its filters and its game list),
-and the whole game surface: boards, info panels, event logs, word lists, mode
-pills.
-
-No general Tab navigation, and **no focus rings**. SPACE and ENTER are trapped
-for specific meanings rather than the browser's "act on the focused thing".
-Dropdowns here are **`<FilterSelect>`**, never a native `<select>` — see that
-component for why a native one can't be made to behave (short version: it takes
-focus to open its popup, and no event reliably tells you when to give the
-keyboard back).
-
-**3. Focused text entry inside a non-form surface** — the club chat box, the
-game scratchpad, codenamesduet's number + clue fields.
-
-These legitimately take focus and own the keyboard *while focused*, but they
-aren't forms: no Tab-to-everywhere, no form semantics. TAB and ESCAPE are
-trapped, and the interesting part is the **way out** —
-`handOffKeyboardOnTab` blurs on Tab to hand the keyboard back to the game
-(Shift-Tab is left alone so a panel's ✕ stays reachable). codenamesduet's two
-clue fields are the case where Tab moves between exactly two controls, and
-nowhere else.
-
-**Keyboard-only users are not a constraint here** (see
-[CLAUDE.md](../CLAUDE.md) → audience): the population is known, and nobody
-navigates the app by keyboard alone. Making an uncommon control
-non-keyboard-reachable is an acceptable trade for one control vocabulary across
-the app. This is *not* the same as dropping keyboard support — the boards are
-keyboard-first by design, and category 3 exists precisely to keep typing working.
+**A game page's shape is allocated at mount, and that shape doesn't change
+during play.** State rotates content *within* slots; it doesn't resize, move or
+reflow the slots. A status line is sized for its longest string, the feedback
+slot is the same height empty or full, a long list scrolls inside a fixed frame,
+and a control that isn't available right now is disabled in place, not removed.
+NYT Connections is the model: the grid is the grid from start to finish, and
+what changes is which tiles are dark and what the feedback says.
+
+It matters because the boards want every pixel (a banner that grows by a line is
+a line the crossword doesn't get), and because a tile jumping when a message
+above it wraps breaks the feeling of playing a game.
+
+**The #1 offender is removing a flow element on a state change.**
+`{isTerminal ? … : <WordEntryArea/>}` looks harmless, but the board above is
+usually `flex: 1`, so when the row vanishes the board grows into the space.
+Every time you write `{cond && <X>}` or a state ternary in a play surface, ask:
+does `<X>` take layout space, and does a sibling grow to fill? If so, keep it
+mounted and rotate its content, hide it with `visibility: hidden`, or give its
+slot a fixed height. The pause gate is the model: it renders the play area OR
+the pause banner in the same slot, never both.
+
+**The exception is the game itself.** A board transition that IS the game —
+connections' solved bands growing into the grid — is allowed: *if it's a side
+effect of state changing, fix the layout; if it's the state change you're
+celebrating, let it happen.* Loading is exempt too; the rule is about reflow
+during play.
 
 ## Page-height fits the viewport
 
-**A page's height equals the viewport's height — content scrolls within fixed sub-frames, not by scrolling the page itself.** Same intent as native apps and the games we replace (NYT Connections in the browser, Wordle, Boggle on a phone): the chrome stays put; growth-prone surfaces (chat, guess history, club's games list) absorb height inside their own frames via `overflow-y: auto`.
-
-Why this matters:
-
-- **Chrome stays predictable.** Headers, status slots, action rows live where the user expects them at all times — accidentally scrolling the page can't hide them.
-- **Game surfaces don't get clipped.** A crossword grid pushed half-off-screen because the user nudged a trackpad is broken UX. The page can't scroll; only the parts that *should* scroll do.
-- **Pairs with [Layout stability](#layout-stability).** Together: shape doesn't change during play (Layout stability), AND shape never grows past the viewport (this rule). State updates rotate content within slots; long lists scroll within sub-frames; the document itself never moves.
-
-### Rolling out
-
-Game-by-game and page-by-page, not a global `body { overflow: hidden }` bomb. Pages that already fit naturally don't need work; pages that overflow get a refactor when we sweep them.
-
-Today this principle binds on:
-
-- **ClubPage** — takes the shared `.pageHeaderAndMainArea` bound like every page; the "Your games" list is a fixed-size frame with internal scroll. (`svh`, not `vh` — see the reason on `body` in `base.css`.) See [ClubPage header](#clubpage-header) below.
-- **HomePage** — same bound, but as a **`max-height`** rather than a `height`, and the distinction is worth copying for any centered-card page. Home's body is a `.card` sized to its content, so a fixed height would stretch it to the full viewport and strand a two-club list at the top of a tall empty box. A max-height leaves the ordinary case looking exactly as it did and only binds when the clubs would otherwise scroll the page — at which point the club list scrolls instead. Getting there needs the whole ancestor chain to relay the bound (`.pageMain-fills` → `.card` → the clubs section → the `SelectionList`, each a flex column with `min-height: 0`); the fixed furniture above the list takes `flex-shrink: 0`, or the wordmark — a `width: 100%` `<img>` — absorbs the squeeze by getting shorter.
-
-Future targets:
-
-- GamePage (already mostly fits; needs a sweep for long terminal-state result lists).
-- Each per-game PlayArea — crosswords + future word-grid games are the most demanding.
-
-### Patterns that follow from it
-
-- **Internal scroll on growth-prone lists.** Chat history, guess log, clue list, game roster. The container has a fixed height (often via `flex: 1; min-height: 0` inside a column-flex parent that's bounded); `overflow-y: auto` makes it scroll.
-- **Two-column layouts above a certain content threshold.** When vertical space runs out, split sideways instead of letting one column grow. ClubPage's "active + start" vs "other games" is the canonical example.
-- **Modals for rare-and-rich.** When a page genuinely needs more space than the viewport offers and columns don't help, reach for a modal before letting the page grow. Note the counter-example: a terminal verdict is neither rare nor rich, so it stays in-page ([Terminal results](#terminal-results--the-moment-vs-the-record)) — a modal is for the *moment*, not the record.
-
-## Themes
-
-**A theme is almost entirely color.** Switching one shows the same pixels in
-the same places, differing only in color — no spacing, border, margin or
-font-size changes. The layout is precise and difficult to change; themes do
-not touch it. So a radius, a width, a duration and a page padding are the same
-under every theme, and they live outside the theme files
-([`core-css/base.css`](../src/common/core-css/base.css)).
-
-**A theme is one polarity.** There is no theme × polarity grid. Four names,
-two of which are thought experiments kept because *"what would cupcake do?"*
-is how a theme decision gets told apart from a standard one:
-
-| | |
-|---|---|
-| `daylight` | the classic light theme — what ships |
-| `midnight` | classic dark. A **spike**, reachable behind `?theme=midnight`; what it proved and what dark mode would still cost is [`plans/dark-mode.md`](../plans/dark-mode.md) |
-| `cupcake` | imaginary: pink, cheery, light |
-| `horror` | imaginary: dark, broody |
-
-**A theme declares its chain and loads it.** `loadTheme()` in
-[`common/themes/loadTheme.ts`](../src/common/themes/loadTheme.ts) picks one
-and loads that chain, the whole chain and only that one:
-
-```
-daylight  →  light-mode.css + daylight.css
-midnight  →  dark-mode.css  + midnight.css
-cupcake   →  light-mode.css + daylight.css + cupcake.css   (overrides only)
-```
-
-**The base loads because a theme asked for it, never as an unconditional
-default.** Put daylight on a bare `:root` and any role midnight forgets
-resolves silently to a light hex on a dark page — worse than an undefined
-token, because it resolves to something plausible.
-
-### The files
-
-```
-common/
-  themes/
-    light-mode.css   ONLY what is true of every light theme — nearly empty,
-    dark-mode.css    and that is the finding: almost everything that felt like
-                     "light mode" turned out to be a VALUE, which is daylight's
-                     job. What is left is `color-scheme`
-    daylight.css     the role → hex grid, complete
-    midnight.css     complete; the spike
-    loadTheme.ts     picks the chain
-  core-css/
-    fixed.css        colors EXEMPT from theming: member + wordle. Loaded once,
-                     outside the chain
-    base.css         element resets, and every shared value that is NOT a
-                     themed color — radii, spacing, durations, depth, the z-
-                     layers, the font
-    utilities.css    the global classes that are ADJUSTMENTS and name nothing:
-                     muted, error
-    patterns/        ONE NAMED PATTERN PER FILE — badge, empty-state,
-                     focus-ring, heading, page
-<game>/
-  theme.css          the game's --<game>-* brand tokens. Nothing else
-```
-
-`main.tsx` loads `fixed.css`, `base.css`, the patterns and `utilities.css`
-statically, then awaits `loadTheme()` before the first render, so the chain is
-in place before anything paints.
-
-### Light mode is the default language
-
-We only have light mode, Joel will probably always play light mode, and light
-mode is how he pictures the app. **Polarity-neutral language failed**: *"a
-hover moves away from the page"* is confusing to read and to write. In code,
-comments and conversation we speak from light mode — a button's hover is
-**dim-down** (darker), even though dark mode does the opposite. That makes
-writing dark mode harder (the author translates in their head) and everywhere
-else easier.
-
-The palette entries themselves are named for their **role**, which is what
-lets the sentence survive the flip: `--page-text-strong-color` is "the most ink
-available against this page", pure black in daylight and pure white in
-midnight.
-
-### Tokens are semantic, not literal
-
-Within each file, token names describe the *role* of the value, not the value itself:
-
-| good (semantic) | bad (literal) |
-|---|---|
-| `--page-bg-color`, `--default-bg-color`, `--page-text-color` | `--color-near-black`, `--color-light-gray` |
-| `--button-normal-primary-color`, `--chrome-fault-color` | `--color-blue`, `--color-red` |
-| `--codenamesduet-agent`, `--codenamesduet-assassin` | `--codenamesduet-green`, `--codenamesduet-red` |
-
-The reason: when (not if) we add a second theme, every literal name becomes a lie — "the green is actually pink in pink mode" reads wrong. Semantic names cascade cleanly through theme swaps.
-
-This rule applies *within each namespace separately*. `--codenamesduet-agent` is a codenamesduet token whose name says "agent" because that's what it means inside codenamesduet. It is **not** a step toward a cross-game `--color-agent` concept; see [Two vocabularies](#two-vocabularies) for why.
-
-### No `var()` fallbacks
-
-Reference tokens as `var(--default-bg-color)`, never `var(--default-bg-color, #fff)`. We own the entire custom-property namespace, so a fallback can't guard against a third-party theme not setting the token — it can only *mask* one of our own bugs: a typo, or a rename that didn't land everywhere. Worse, the fallback silently drifts (we found `var(--page-text-color, #1a1a1b)` against a real token of `#1a1a1a`), so the day the token *does* fail to resolve you get a subtly-wrong color, not a visible failure.
-
-The safety net is build-time, not a fallback: [`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) fails if any `var(--x)` references a token that isn't defined in a stylesheet or set inline from a component. That's the "make missing tokens obnoxious-pink" instinct done one better — it screams in CI before the bug can ship, instead of hoping someone looks at the affected pixel. A missing token is always a bug here; treat the test going red as a real failure, not noise.
-
-### User-selectable themes (deferred, with the column reserved)
-
-Dark / light / pink / etc. as a *user setting* is still deferred: there is no picker on the profile form and no switching mechanism beyond the `?theme=` spike flag. A dark theme is not a separate task — it folds into this one (dark becomes one selectable option, not a global re-swap). The foundation that does exist is the CSS side — vars at `:root`, semantic names — plus, since 2026-08-03, **`common.profiles.theme`**: a reserved free-form `text` column, nullable, unread by anything.
-
-Reserving a column while deferring the feature is deliberate and worth distinguishing from pre-engineering. It costs one line and no behavior, and it means the *shape* of the setting ("a per-user string on the profile") isn't being invented later under whatever pressure prompts the theming work. NULL means "no preference — use the app default", which is what every row says today; don't seed a magic default name, and constrain the column (a CHECK or an enum) once real theme names exist.
-
-Everything else about the feature stays YAGNI. **Don't pre-engineer the mechanism.**
-
-## The color system
-
-Every color in the app has a **name**, and every name says which **bucket** it
-belongs to. The palette grew a family at a time until nobody could say how many
-colors the app had; the sweep that fixed that (2026-08-17/18) left the naming
-scheme and the rules below, and a page you can look at.
-
-### The grammar
-
-```
---<bucket>-<thing>-<modifier>-<quality>
-   outcome     lost      fill      color
-   member      purple    dot       color
-   tile        selected  border    width
-```
-
-**The bucket comes first, and it is load-bearing**: it makes a cross-bucket
-borrow look wrong at the call site. `--button-destructive-primary-color` in a
-button reads as correct; `--outcomes-lost-fill-color` in a button reads as a
-mistake — which is exactly the error the audit kept finding. A leading `--color-`
-would bury the bucket in the middle, where the eye skips it.
-
-**The quality comes last, even for colors** — a closed set (`-color`, `-width`,
-`-radius`, `-gap`, `-duration`, `-shadow`) so we don't grow `-size` / `-thickness`
-/ `-time` as synonyms. Saying it costs the least informative word about sixty
-times and buys two things: nothing has an implicit default you have to know, and
-`grep -- '-color:'` enumerates the whole palette. The evidence it matters is in
-the file: `--tile-edge-width` sits beside `--tile-selected-edge-color`, and
-only the suffix tells you which is which.
-
-**Scales are the exception and stay quality-first.** `--radius-sm / -md / -lg` is
-not a thing with qualities; the quality *is* the thing. Stated so nobody "fixes"
-`--radius-md` into `--md-radius`.
-
-**A name without a bucket is a smell.** Names prefer the same word the code
-uses. The rest of the grammar:
-
-- **Hyphens separate DIFFERENT QUESTIONS; camelCase joins words that answer
-  one.** `--button-quiet-primary-hover-color` is hyphenated because `primary`
-  and `hover` are two questions — what am I doing (hovering) and on what (a
-  primary button, toned quiet). `inFlight`, `gameOver`, `terminalFrame` and
-  `centerTile` each join up because the two words are one quality. The test
-  for a multi-word layer is the same: `--z-modal-blocking` keeps its hyphen
-  because `blocking` clarifies `modal` — two questions, not one unsplittable
-  idea. **Part-count is not a thing to optimize**: five parts is fine, and
-  compressing to reach four is how the rule gets misapplied.
-- **A bucket that names a COMPONENT is spelled the way the code spells it** —
-  `--pageHeader-height`, `--iconButton-size`, `--wordEntryInput-font-size`,
-  `--floatingPanel-titlebar-height`, `--simpleScrollableList-row-height`,
-  `--infoCol-width`. The bucket is a pointer to a file, so kebabing it
-  (`--page-header-height`) breaks the one thing it is for: you can no longer
-  grep the name and land on `PageHeader.tsx`. This is not the camelCase rule
-  above wearing a hat — that one joins words that answer *one question*, while
-  this one preserves an identifier that already exists elsewhere. The
-  structural words after it stay hyphenated as always.
-
-  A bucket that names a CONCEPT rather than a component stays kebab, because
-  there is no identifier to preserve: `--page-*`, `--board-*`, `--toast-*`,
-  `--tile-*`, and every `--<game>-*`.
-- **Numbers or names?** Numbers when the scale has a visual intuition, names
-  when it doesn't; either way the name says the whole thing (`--font-size-2`,
-  never `--font-2`). [naming.md → Numbers or names?](naming.md#numbers-or-names)
-  has the test.
-- **Only the ENDS are parsed.** A guard matches the bucket at the front and the
-  variant + kind at the back; the middle is a label and needs no constraint.
-- **`_localName`** for a value built up over calculations inside one file:
-  `--_colWidth`. Narrow scope, no bucket needed.
-- **A game's own tokens take the game's name as the bucket**, and a
-  `--<game>-` token referenced from outside `src/<game>/` is an error — one
-  guard, one convention, and it makes co-location checkable. (No codename is
-  another's followed by a hyphen; re-check if a game is added.)
-- **Not every token is a design decision.** A **contract slot** is a blank a
-  game fills in (`--tile-bg-color`, `--grid-gap`), and **local math** is
-  arithmetic (`--cols`, `--side`). Neither is a color, so the game-prefix rule
-  doesn't apply to them.
-- **A value belonging to ONE component carries that component's WHOLE name —
-  and usually shouldn't be a token at all.** First ask whether it wants a name:
-  a value with one reader belongs inside its class as a number, and only
-  something a class cannot hold — a themed color, a slot a game fills — earns a
-  global token. If it does earn one, a shortened component name invents a
-  category: a token for `DeviceBlockNotice`'s shadow called `--shadow-notice`
-  would read as a family of notices with this as one member, and there is no
-  such family. Written correctly it is `--deviceBlockNotice-shadow` — or, as
-  here, the value turns out not to be its own at all and joins a real family
-  (`--shadow-floating`). **Shortening a name to make it look general is how a
-  one-off acquires the appearance of a system.** If there is genuinely a
-  family, name the family and say what its members are; if there is one
-  consumer, say its name in full.
-
-### The buckets
-
-| bucket | what it answers |
-|---|---|
-| `outcomes-*` | how a move or a game went — the seven families, one per outcome ([outcomes.md](outcomes.md) has what each word means) |
-| `gamelist-*` | the state of a game as an object in a list (club cards, the crossword picker) |
-| `button-*` | what kind of action a control offers — normal · success · destructive · caution · quiet — plus the treatment SLOTS a `.primary` / `.secondary` reads |
-| `chrome-*` | the app furniture that isn't a button or a field: fault / cursor / caret / link / floating-control |
-| `pill-*` | the feedback pill's seven tones — which ARE the outcome families, aliased |
-| `toast-*` | a toast's left stripe |
-| `view-*` | what you are looking at — history, share-preview |
-| `mark-*` | what a surface wears TEMPORARILY to say something about itself ([tile-feedback.md](../plans/tile-feedback.md) is the board-feedback design). The attention yellow and the grid cursor are in the theme; the three dims and the two flash durations sit in `base.css` under the same prefix, because neither is a color. Whether a dim can stay theme-blind is open — like a shadow, it is black over a ground, and how much it says depends on how light that ground is |
-| `member-*` | player identity, one per value of `common.profiles.color`: eight colors, each with a paired border. Already chosen, will not change, and have **no relationship to any other color** — a green player is not the winning green. Exempt from theming (`fixed.css`) |
-| `flex-color-*` | the app's two flexible colors, teal and purple — loosely the co-op and compete labels, but a pair that means nothing, so a badge has two ways to differ (see [Mode badges](#mode-badges)). **Fully built out and flexible for one-off cases**, so a rare need doesn't mint a new color |
-| `page-*`, `field-*` | the page's own surfaces and text; the things you type into |
-| `tile-*`, `kbd-*`, `rank-*` | the warm tile ramp, the on-screen keyboard, the word-rank ladder. The ramp has **no semantic meaning** and is fine to reuse for game-ish things (the scrabble rack uses a very dark tile); **the numbers ARE the meaning** — stackdown reads stack depth off them |
-| `wordle-*` | the letter-judgment palette, shared by wordle and waffle. Exempt from theming (`fixed.css`) |
-| `shadow-*` | how high a floating surface sits — anchored · lifted · floating ([the surface](#the-surface-how-round-and-how-high)). Not a color, and in the theme anyway: a shadow can only darken, so what it can say depends on the ground |
-| `board-*`, `timer-*`, `ink-*`, `entry-*`, `print-*` | the small ones: the ground a piece casts its shadow onto, the stopped clock, ink named for the ground it sits on (`-onDark` / `-onLight`), the entry row's illegal character, and paper — the one role no theme may flip |
-| per-game | **brand** colors, in that game's own `theme.css`. **NOT the same as any family**: spellingbee's honey is a different yellow from `outcomes-near`, `near` is not used in spellingbee, and the honey is not used elsewhere |
-
-**There are two cursors, and they are independent names.** The chrome one
-(`--chrome-cursor-color`, the ring in lists and menus — [the ring](#the-ring-that-says-the-keyboard-is-here))
-is defined once in the theme and consistent everywhere. The board one
-(`--mark-gridCursor-color`, the entry ring on a tile grid) is shared by every
-grid-entry game and is amber on purpose: scrabble's premium squares already
-use red and blue.
-
-**Two backgrounds, and everything else is an exception.** `--page-bg-color`
-is the PAGE's background, very light gray, and it is `<body>` and nothing
-else. `--default-bg-color` is white, and it is what a background is unless
-something says otherwise — cards, list frames, panels, every dialog, popovers,
-toasts, segments, the info sheet, the pause overlay, the feedback pill, inputs.
-Stated theme-neutrally so the rule survives midnight: **the default background
-is a step lighter than the page**, which is why neither name can carry a color.
-The exceptions — the hover gray, the open/active gray, a dialog titlebar,
-scrims, board dims, the two inverted near-blacks (the tooltip and the chat
-unread chip) — are known and deliberately unnamed until each is on screen.
-
-`wordle-*` is the one family named for colors rather than meanings, deliberately:
-"wordle green" is a phrase people say, so the name is read at speed where
-`-correct-` would have to be translated. The prefix is what keeps it honest — a
-pink-mode wordle still has a *wordle green* — and it disambiguates in code, where
-plain `green` is already a **player's identity color**. See
-[`tileColor.ts`](../src/shared/wordle-style/tileColor.ts), whose values are also the
-CSS class names, which is why the prefix lives in the type and not only in the
-stylesheet.
-
-### A family is a complete grid
-
-A family is a set of MEMBERS that each carry the same set of VARIANTS. The
-variant list differs per family — the tile ramp's two look nothing like a button
-family's eight — but **within one family it is the same list for every member,
-always.** A member missing a variant means the family isn't one.
-
-That includes cells nothing consumes yet. A family picked at one sitting is picked
-by one formula; a value derived alone in two years, next to the one button that
-needed it, is reasoned about differently and drifts out of family. `quiet` is the
-case that proves it — it spent months as an outline-only tone on a claim that was
-true of *Cancel the button* and false of *quiet the tone*, which made
-`tone="quiet" weight="primary"` paint itself blue.
-
-**We reserve cells, not concepts.** Filling a grid completes a formula already
-chosen; adding a *member* invents a meaning, and that waits for a real use.
-
-**Names are SEMANTIC, not colors.** `lost` is an outcome family and
-`destructive` is a button family; neither is `red`. Naming by color produced a
-layer of not-helpful names and brain-translation, and forced invented families
-(`direred`, `rust`) to hold two meanings that share a hue.
-
-**Variants are per-BUCKET.** Outcomes need a `bar`, buttons need a `hover`, and
-the two never share: a button never needs `piecefill`, an outcome never needs a
-button's fill. A status bar shows an outcome, so it is
-`--outcomes-lost-bar-color`. Unused cells are computed together, reserved, and
-**never removed by a sweep**.
-
-### How a value gets picked
-
-Each family has one chosen anchor, `base` — the color the family was designed
-from. Nothing paints it; everything derives from it, and siblings derive from
-BASE rather than from each other, so each formula stays independent and the
-set stays comparable: *"ink is base −10%"* reads the same in every family,
-which is what makes a family that needs −20% visibly the exception. Base
-should be a mid-tone; deriving outward from the middle is steadier than
-running a formula from one extreme to the other.
-
-Three ways a value gets picked:
-
-- **Joel-chosen** — the base.
-- **claude-derived** — a formula run at authoring time, its output recorded as
-  a hex so it can be eyeballed and tweaked.
-- **CSS-derived** — handed to the browser, computed at runtime.
-
-**The formula is recorded beside the value, always.** That is the rule the
-whole system rests on: a cached hex without its formula is a stranded value,
-and "change the base and let the rest follow" stops being true. **Chosen and
-derived are listed TOGETHER, in the theme.** A theme saying "ink is 10%
-darker" is a theme making a decision; hiding it in a shared file to save lines
-makes the theme lie about what it decided.
-
-> **Numbers in an example are illustrative.** "10% darker" above is a shape,
-> not a spec. Never change color methodology because an example used a
-> number — the methods are measured, and an offhand figure in prose does not
-> override one. The measurements themselves, and which variants derive
-> cleanly and which need a value per member, are
-> [What derives, measured](#what-derives-measured) below.
-
-**[`/palette`](../src/common/devtools/palette.ts) is how this holds.**
-It renders every family, members × variants, and it ships (unlinked, no session
-needed) so you can look at a family side by side when tuning one. It is also the
-mechanism: it references every token, so a reserved cell has a reader and the
-dead-token guard keeps its teeth everywhere else; and a token deleted out from
-under it becomes a phantom reference, which the same guard fails on. Its data file
-spells every token out in full inside `var(…)` — a name built from a template
-collapses to a prefix in the scanner and stops guarding anything.
-
-### The seven outcome variants
-
-| variant | for |
-|---|---|
-| **`-ink`** | text, and thin lines on a light ground: a pill's border, a verdict word, an outline ring. Must stay recognizably ITS color when thin |
-| **`-fill`** | filling a piece: a verdict tile, an event-log outcome bar. The tier a player meets most often |
-| **`-edge`** | the border on a piece wearing `-fill`. Quiet definition, not a ring: barely darker than the fill it edges |
-| **`-terminalFrame`** | the band around a board that is no longer a live position. Big areas, so it reads as a band without shouting the outcome at full saturation |
-| **`-wash`** | a much lighter version of the same message |
-| **`-base`** | the anchor the family was designed from. **Nothing paints it** — every other cell derives from IT rather than from a sibling, so no formula silently carries another's tweak |
-| **`-bar`** | a status bar showing an outcome: the event log's left bar. Every cell is `fill` today, so it is a name rather than a new decision — wanting a boring turn's neutral bar lighter than a neutral verdict tile is a real want that had nowhere to live |
-
-**Role names, not lightness names**, for the same reason tokens are semantic:
-`-pale` becomes the *darkest* thing on screen the moment a dark theme lands.
-
-**A decided piece takes `-fill`, not `-wash`** — the result palette at full
-saturation, so the decided color carries the same message as the game's other
-outcome signals. psychicnum once used the pale tier and it read as a weaker,
-different signal from its own guess outcomes.
-
-### What derives, measured
-
-Which variants a formula reproduces and which need a value per member,
-established 2026-08-20 by resolving each candidate in a real browser and
-comparing painted pixels rather than by reimplementing oklab, and verified
-identical under an sRGB and a display-p3 profile. This is the evidence behind
-"how a value gets picked": a variant that derives costs a theme nothing, and a
-variant that does not is one judgment per member, per theme.
-
-**Derives exactly:**
-
-- **`edge` is the fill × 0.84 on the gamma-encoded sRGB bytes** —
-  `color-mix(in srgb, <fill> 84%, black)`. Every consumer matched. An older
-  comment called this "16% toward black", right about the amount and wrong
-  about the space: in oklab the same 16% gives won `#4f9452` against the real
-  `#569d59`. The two spaces differ in step size, not character (sRGB −13%
-  chroma, oklab −16%).
-- **The four button tones reproduce all sixteen of their values from four
-  anchors**: hover is the anchor at oklab lightness −0.05, the outline's ink at
-  −0.115, the outline's hover at 8% over the card. This is the model working —
-  a family picked at one sitting by one formula — and it is what everything
-  else is measured against.
-- **`terminalFrame`** was first claimed as `oklch(0.45, 0.105, <family hue>)`
-  and that was wrong on two counts, corrected the same day in a browser: the
-  hue was the ink's, not base's (obvious in warning, whose ink sits 21.5° off
-  its own base because Material's ramps rotate), and Chrome's oklch lands 1–4
-  bytes off each recorded value, because the originals came from a different
-  oklab implementation. It now derives from BASE (Joel's call, a small shift
-  accepted), which moved won, lost and near by 1–3 bytes and warning by 10.
-  Won is lifted to 0.564 at the same chroma, because at the family's lightness
-  a green reads as black at normal zoom; neutral is achromatic.
-
-**Does not derive, and needs a value per member:**
-
-- **`ink`.** The step down from the fill runs 0.037 (near) to 0.305 (neutral):
-  0.115 in red, 0.117 in orange, 0.195 in green. Two families happen to match
-  the button step and three do not. This is where the gold problem lives: gold
-  cannot go dark without ceasing to be gold, so near's ink stopped short. The
-  midnight spike found the mirror image — gold cannot go light either — so the
-  family constrained at one end is constrained at the other by a different
-  amount ([`plans/dark-mode.md`](../plans/dark-mode.md)).
-- **`wash`.** Three of five reproduce as a mix with the card — won at 37%
-  oklab, warning at 35% sRGB, neutral at 15% oklab, already three recipes.
-  Lost and near reproduce as nothing: they are Material 100s, and Material's
-  ramps rotate, so they sit 14° and 18° off their own family's hue.
-- **Member borders.** The comment claimed they were seeded by formula (oklch
-  lightness clamped to `min(0.85 × fillL, 0.55)`); that reproduces one of the
-  eight. The rest were hand-tuned afterward, so there is no formula to invert
-  and a dark set is eight fresh judgments.
-- **The tile ramp.** Across all twelve values hue holds at 87–90° while
-  lightness falls 0.976 → 0.662 and chroma RISES 0.011 → 0.107 — one material
-  getting thicker, not a tint plus a darkening. A single-anchor mix with white
-  misses the deep end by 0.027 of lightness.
-
-**Two things the measurement says about the families as they stand**, neither
-fixed, both moving pixels when they are: `near` and `warning` fills sit 3.9° of
-hue apart, so two names that are meant to read differently barely do; and
-`warning` spans 21° between its own ink and fill, which is the family's shape
-under Material's rotation rather than a defect, but is the kind of thing a
-theme author has to know. Both are conversations for a color pass, recorded in
-[`plans/dark-mode.md` → What is left](../plans/dark-mode.md#4-what-is-left-if-we-build-it).
-
-### Every color has a NAME
-
-**A color literal or expression may appear only in a `--…:` line** — never at a
-use site. This is "no magic numbers, make a named constant", with a much smaller
-self-evident-value exception: `#fff` looks like a primitive and isn't (white is a
-design decision), while `transparent`, `currentColor` and `inherit` carry no
-decision at all. It covers expressions too — a `color-mix()` at a use site is the
-same problem wearing a function.
-
-**And a component module may reference a color, never hold one.** Values live in
-the theme — `themes/daylight.css` when shared, the game's `theme.css` when brand. This is the first
-rule's blind spot stated as its own rule: `--tile-slot-ink-color: #fff` *is* a `--…:`
-line, so it passes cleanly, and twelve boards used exactly that shape to write a
-raw white while `--ink-onDark-color` sat in the theme meaning the same thing. The
-value had a slot but no name, and a second theme would have reached nine of the
-whites and silently left twelve behind. Shadows are exempt: a shadow is geometry
-plus an alpha black, and a component may keep its own where it is
-close-but-not-equal to the shared one, with a note.
-
-Necessary, not sufficient: `--crosswords-wrong: #d33` passes cleanly and is
-exactly the drift the audit found. A machine catches a magic number; only a person
-catches a bad name.
-
-### Alias when it's a dependency, copy when it's a coincidence
-
-An alias is right when *the two differing would be a bug*.
-`--gamelist-won-color: var(--outcomes-won-fill-color)` is the canonical case: a
-game shown as won on the club page and a game won on the board say the identical
-thing. That holds even though one is a 4px stripe and the other a whole tile face
-— **a rendering difference does not make a coincidence.** If a thin stripe needed
-a lighter green to read, that is a variant within the won family, not a license to
-decouple.
-
-A copy is right when two messages merely agree today. `--chrome-fault-color` and
-`--button-destructive-primary-color` are one red, but "this will delete something"
-and "something broke" are different sentences, and either is free to move.
-
-**A COPY KEEPS THE SAME HEX.** Copying decouples the *name*; it never means
-inventing another shade. Without that half the rule reads backwards and inflates
-the palette it exists to shrink. Two names on one value is usually right, and it
-keeps a future theme at 100 colors to change rather than 200.
-
-**So the default is COPY, and an alias has to earn itself**, because the two
-mistakes aren't symmetric: a forgotten copy mints a stray hex, which is one grep
-away from being noticed; a wrong alias silently moves something you weren't
-looking at, in a part of the app you had no reason to open.
-
-"Uncertain" means uncertain about the MESSAGE, not the value. If you're reaching
-for an alias because a hex already exists, that's the coincidence case.
-
-### The rest
-
-- **No cross-bucket borrowing.** A control does not use an outcome color; a game
-  list does not use a chrome color. Where the hexes agree, that is what aliasing
-  (or copying) is for. The prefixes make a violation visible in review.
-- **Hand-picked or computed — both named, and the choice has a test.** Does the
-  value need to *track its source automatically*, or to be *right per hue*? An
-  `-edge` is a small relative step and computes cleanly; an `-ink` is hand-picked,
-  because gold text on white needs far more darkening than red to reach the same
-  legibility, and oklab equalizes lightness rather than legibility. A hand-picked
-  value carries its reason in the token's comment.
-- **Collapsing a lookalike onto a shared token needs CERTAINTY, not a hex match.**
-  The value matches, *and* the role matches, *and* nothing claims a reason for it
-  being its own thing. Otherwise leave it — named, but unmoved — and let the
-  decision happen when that game is on screen. A wrong collapse is invisible until
-  someone plays that game and finds a color they can't explain.
-
-### What's machine-checked
-
-[`src/guards/cssTokens.test.ts`](../src/guards/cssTokens.test.ts) fails when: a `var()` names a
-token nothing defines; a defined token has no reader; a family in the `button`,
-`outcomes` or `pill` bucket is short one of its variants, or any button token
-says "fill"; a color literal sits outside a
-`--…:` line; a component module holds a color value; a `var()` falls back to a
-color; or a `cursor: pointer` out-ranks the disabled cursor.
-[`palette.test.ts`](../src/common/devtools/palette.test.ts) fails when a
-family stops being a rectangle, and
-[`tileColor.test.ts`](../src/shared/wordle-style/tileColor.test.ts) fails when a
-stylesheet indexed by a `TileColor` doesn't define every class — which no
-rendering test can catch, since `css: false` in vitest means a CSS module is a
-proxy that fabricates any class name asked of it.
-
-## The non-color vocabularies
-
-Eight closed sets for the values that are not colors. Seven are constants in
-[`core-css/base.css`](../src/common/core-css/base.css); the text grays are the
-one themed set, because a theme is color and a distance is the same distance
-in daylight and midnight. **The names are settled; a value is one number to
-edit**, which is the whole point of a token — re-tuning it later is not a
-sweep.
-
-| # | vocabulary | steps |
+**A page is exactly the viewport's height, and the document never scrolls.**
+Content that can grow — chat, a game log, the club's games — scrolls inside its
+own frame (`flex: 1; min-height: 0; overflow-y: auto` in a bounded column), so
+the header, the status slots and the action rows are always where the player
+expects them, and a trackpad nudge can never push a board half off-screen.
+Together with layout stability: the shape doesn't change during play, and it
+never grows past the window. When space runs out, split into columns before
+letting anything grow. The shared bound is `core-css/patterns/page.css`.
+
+## Where a message goes
+
+**Which surface a message gets is a question of whose news it is**, not how
+important it is:
+
+| surface | whose news | example |
 |---|---|---|
-| 1 | `--spacer-1 … -5` | `1.5 · 1 · 0.75 · 0.5 · 0.25rem` |
-| 2 | `--font-size-1 … -3`, plus `--font-size-packed` | `1 · 0.85 · 0.75rem`, and `0.95rem` off the ramp — text where vertical space is the scarce thing (the info column and the mobile status bar), body loudness in a tighter space |
-| 3 | `--line-height-1 … -3` | `1.5 · 1.25 · 1` |
-| 4 | the text grays, ×4, **in the theme** | `--page-text-color` · `-muted-color` · `-label-color` · `-strong-color` |
-| 5 | `--opacity-1 … -2` | `0.7 · 0.5` — numbers as a holding position; opacity spans at least two KINDS (a disabled control, a separator) and wants role names once the spectrum is visible |
-| 6 | `--transition-duration-paint / -nudge / -travel` | `100 · 80 · 180ms` |
-| 7 | `--letter-spacing-label / -display / -wide` | `0.03em · 0.05em · 0.2em` |
-| 8 | `--border-width-line / -line-thick / -frame` | `1 · 2 · 4px` |
+| the **local** feedback slot, under the board | **my own** action, or a standing condition I'm in | "Not a word", "Waiting for ● moth…" |
+| the **global** slot, in the page header | **other people's** news | a chat line, a partner's move narrated |
+| a **toast**, bottom right | an **announcement** — including my own action on a page with no local slot | an invitation, "Wordle deleted" |
+| a **fault** modal | the app itself is **broken** | a bug, a dead network |
 
-**`font-weight` is deliberately not a ninth.** CSS already ships that
-vocabulary, `100 … 900`, so a token would only rename it. The rule is that **a
-font-weight must be a multiple of 100**; anything else is a bug. (The old
-argument that a `650` "only renders as 650 on a variable font" stopped being
-true the day the app loaded one; the closed set stands on its own.)
+"Waiting for ● moth…" is the case that tests it: it names a peer, but it says
+*I* can't act, so it is mine and goes in the local slot.
 
-**Tokens are for values with MANY READERS where position is meaningful. A
-value with one reader belongs inside its class as a number.** Size and
-spacing are a soft goal: the consistency people want is a class guarantee
-("every dialog's labels match"), delivered by there being one `Field` pattern,
-not by a ramp. Board geometry is excluded outright.
+### Feedback pill
 
-**A numbered scale is honest when the number is the WHOLE meaning, and
-dishonest when it displaces a meaning that already exists** (Joel,
-2026-08-21). There is no fact about "2-ness" hiding inside `--font-size-2`:
-bigger and smaller genuinely is all there is. A `--red-1` would have a fact
-underneath it — *this is the losing-move ink* — and the number pushes it out
-of view, so every reader translates, and translation is where drift gets in.
-The swap test: can two members trade places and still be the same kind of
-thing, just more or less of it? Font sizes, yes. An ink and an edge, no —
-those are two jobs that happen to share a hue. **A vocabulary of degrees
-narrows a choice; a vocabulary of meanings makes one.** That is why the
-spacers, font sizes and line heights above are numbered and the durations,
-letter-spacings and border widths are named: every numbered one is pure
-degree, every named one is different kinds. It is also why the text grays are
-`-muted` / `-label` / `-strong` and not `--gray-1/-2`, and why `--opacity-1 /
--2` is the row above that is on notice.
+Both slots draw the same pill, one look in every game. A message is a **kind**,
+made by a named constructor, and the kind decides everything else — its fill,
+how long it stays, what takes it away, and which message wins when two are
+live. A condition that holds for a while (it's not your turn) is shown on the
+rising edge of an effect and retracted in its cleanup, so "still true" and "on
+screen" are one fact. **The outcome follows the event, not the viewer's
+stake**: an opponent's found word is green like a teammate's, and the actor's
+disc says *who* ([outcomes.md](outcomes.md)). The mechanics are
+[`common/feedback`](../src/common/feedback/doc.md).
 
-### What the words mean
+### Faults
 
-- **1 · spacer, not space.** "Space" is a key on the keyboard, and casually the
-  room *inside* a button. "Spacer" is the space BETWEEN things; `gap` and
-  `margin` were rejected as implementation-tied, since the scale feeds both.
-  `--spacer-1` is the BIGGEST, `h1`-style, and reads naturally that way even
-  though it is numerically backwards. **The scale governs `gap` and `margin`;
-  padding is not on it** — the room inside a box tends to run smaller and is
-  usually a tuple fitted to that box, so paddings stay in their class.
-- **4 · the two text grays that looked like one.** `label` is the small
-  uppercase word that says what a GROUP of controls is. It is not `muted`:
-  muted means "this content is de-emphasized", where a label is not content,
-  it is structure, and it has to stay readable at 0.8rem in caps — which is why
-  it is a hair DARKER than muted, not lighter. `strong` is the other end, more
-  ink than body text; midnight answers it by translation, pure white, because
-  the role is "the most ink available against this page".
-- **6 · three transition buckets.** `-paint` is a color settling instead of
-  jumping (hover tints); `-nudge` is a piece answering the pointer by MOVING
-  (the tile lift); `-travel` is something arriving, leaving or growing (the
-  mobile info sheet), and these are slower for a reason — a sheet that snaps
-  in at 80ms reads as a glitch. `nudge` rather than `move` so it doesn't read
-  as a synonym of `travel`: a small response versus a real journey.
-  **Animations are not in this**: a verdict shake, a tile flip, a card-in are
-  game-surface and tuned, and get named when they start recurring.
-- **8 · border width.** `line` is the 1px of a divider or a field edge;
-  `line-thick` is 2px, the "this box is a thing" border (the feedback pill,
-  the info-panel box); `frame` is 4px, "something is happening to what's
-  inside" (the history ring, the game-over frame, the toast stripe). Not
-  `hairline`: in print that is a genuinely hair-thin rule, and on screen it
-  would imply 1px plus a gray to fake thinness. Two scales, one pattern —
-  `line` → `line-thick`, `frame` → `frame-thick` — and `frame-thick` is
-  hypothetical until something needs it.
+A **fault** is a failure nobody planned for, and it looks unlike every answer:
+a blocking modal, so "did a box pop up?" separates *the game refused my move*
+from *the app is broken* before anyone reads a word. No call site raises one —
+the database wrapper does, on its way back — and the same failure still lands
+on the pill or the form line, as an escalation rather than a replacement.
+[`common/faults`](../src/common/faults/doc.md), and
+[envelopes.md](envelopes.md) for how a failure is classified.
 
-### The a/b/c rule — a value that doesn't fit
+### Toasts
 
-**A value outside the vocabulary is surfaced and explicitly decided.** One of:
+A **toast** is an announcement, not a verdict: neutral chrome with a colored
+stripe, stacked in the corner above chat and every window. The club page is why
+they exist — it has no local slot, so "I just deleted that game" would
+otherwise fall to the header, which is other people's and costs the members'
+presence strip. [`common/toasts`](../src/common/toasts/doc.md).
 
-- **(a) add it to the vocabulary** — it is a level nobody had named;
-- **(b) fit it to an existing level** — the usual answer;
-- **(c) keep it bespoke** — rare, and it owes a reason written in the file.
+## Terminal results — the moment vs the record
 
-**Never silently kept because it is already there.** The test is Joel's:
-*"there is no such thing as 6 bespoke values."* Recurrence means a level
-nobody named, not six exceptions. A value that equals a vocabulary value is
-changed silently — nobody chose `4px` over `--radius-sm`, they're the same
-number; a near-miss (`3px` against 4, `0.45` against a disabled `0.5`) was
-almost always picked at a different time by a different hand, and gets looked
-at once, in context. Tuned surfaces are exempt: a board's radii and dims are
-fitted to the game, and that is the meaning of tuned. The same rule applies to
-characters outside the font's subset (see [The typeface](#the-typeface)).
+A finished game splits into **the record** — what the page says about it every
+time anyone opens it — and **the moment**, a win worth marking, which happens
+once. **The record is in-page**: the verdict rotates into the slot the entry
+used during play, and the info column's action row says it again beside the
+buttons, both from one `TerminalMessage` so they can't drift. **Only the
+moment gets a modal** — the celebration, for a win and for nothing else, and
+never on opening a game that was already won. **Losses stay quiet**: the red
+pill says it, and a consolation modal would be one more thing to dismiss on the
+way to feeling bad.
 
-## The typeface
+**A loss never opens the answer**, and neither does a game the friends agreed
+to stop. Revealing it is **personal** (my looking doesn't open my partner's),
+**temporary** (the same control hides it again, so the board as we finished it
+is always one click back) and **unpersisted** (nothing stored, and a restart
+starts blind). The one thing that opens an answer by itself is having produced
+it. **Restart is offered at every ending**, as a button once the game is over
+and a menu row all game. [`common/terminal`](../src/common/terminal/doc.md),
+[`common/reveal`](../src/common/reveal/doc.md),
+[`common/game-page`](../src/common/game-page/doc.md) for Restart.
 
-**The app ships `Roboto Flex`, self-hosted, one variable file for
-everything.** The `@font-face` and the reasoning are at the top of
-[`core-css/base.css`](../src/common/core-css/base.css); the subset is built by
-`scripts/subset-font.py`.
+## Confirm modals — never `window.confirm`
 
-**The point is not that the system font is bad.** Joel designs on macOS, so
-the app was tuned against SF Pro and looked right there. The point is that
-`system-ui` means three faces with three sets of metrics — SF Pro, Segoe UI
-Variable, Roboto — so the app had never been seen as designed by anyone on
-Windows or Android.
+Every question goes through one shared blocking modal (`askConfirmation`), and
+its confirm button **names the act** — "End game", "Suspend" — never a bare
+"OK". An action's standing question lives in the action registry and is asked
+by the shared run, so no placement can forget it: End game always asks; New
+game asks only mid-game, and says the old game is shelved, not lost; leaving a
+live game asks only when there are other players to surprise.
 
-**Width is the dial that decided it, and it fixes something that was
-broken.** psychicnum and connections put a whole word on a tile whose width
-the board fixes, so the only lever was making the text SMALLER — worst exactly
-where it hurts most, on a phone. A width dial takes the space out of the
-letters instead, so the word stays at a readable size and gets narrower.
-**Grade is ink without width**: every glyph keeps its exact advance, so text
-can darken or lighten with nothing on the page moving — the clean fix for
-light text on a dark ground reading heavier than the same weight dark-on-light.
-No other candidate face combined the two. All five dials ship (weight, width,
-grade, slant, optical size) even though optical size is the expensive one:
-Netlify is fast, the players have good connections, and the file is cached
-after the first visit. Dropping optical size is the lever if that ever stops
-being true, and it costs nothing but a re-subset. Slant stays because nine
-places ask for italics and this family has no drawn one — its own oblique
-beats the browser's synthesized skew.
+### Dialog buttons
 
-**Self-hosted, from the app's own origin.** Not Google's CDN: that is two
-extra servers, and the font's URL is not even known until their stylesheet
-arrives. The old argument for a shared CDN (someone else's visit warmed the
-cache) died when browsers partitioned caches per site. Not Supabase Storage
-either, which is the same third-origin problem wearing our own logo.
+Every dialog's buttons sit right-justified, **the primary action rightmost**
+and Cancel to its left, from one shared rule (`modalActions.module.css`). The
+pause banner is the exception: it stands in for the board rather than asking a
+question, so its buttons center.
 
-**`font-display: swap`.** A moment of system font on a cold load, then a
-switch. `optional` never swaps, and in an SPA a missed window means a whole
-SESSION in the fallback, because there is no second document load to pick the
-font up; `block` hides the text entirely rather than showing the wrong face.
-With the preload in `index.html`, `swap`'s window is small.
+## Floating panels — five families, one shell
 
-### The subset, and the rule that goes with it
+Everything window-like over the page — Help, chat, a dialog, a confirm — is one
+shell, `FloatingPanel`, and declares a **family**, which says what kind of thing
+it is: kept beside you while you play, a question that can wait, or the world
+stopping until you answer. The family decides everything that follows from
+that (whether it dims the page, moves, remembers where you put it), so a panel
+can't claim one thing and do another. **If you can drag it, you can leave it
+for later; if you can't, deal with it now.**
+[`common/floating-panels`](../src/common/floating-panels/doc.md) has the
+families, the names and the layers.
 
-**The subset is Latin plus `→ ← ≥ ≈ ≠`.** Those five are drawn in the
-original font and were dropped by Google's Latin slice; `→` alone is used
-dozens of times in the app's own sentences, so taking the slice unchanged would
-have put a fallback glyph mid-sentence.
+## Real forms, and everything else
 
-**A symbol outside the subset is surfaced and decided by the area that wants
-it** — the a/b/c rule, applied to characters. Twelve symbols the app uses are
-not in the font at all (`↔ ↗ ↵ ⇧ ⇒ ⌥ ⌫ ✓ ✕ ✗ ★ ⟲`), and deciding them out of
-context is how a rule becomes six exceptions. The two shapes the decision
-takes:
-
-- **a standalone mark is a clean lucide swap** — `✕` as a close affordance,
-  `★` on a scrabble premium square, `✓`/`✗` as a status mark. They are already
-  icon-shaped and lucide does them better than a text character;
-- **a glyph inside a sentence is not.** `⌥Z` in a keyboard hint is TEXT, with
-  a letter beside it; an inline SVG there has to be sized and baseline-aligned
-  by hand or it looks pasted in. A small design job per site.
-
-Why the boundary matters: `↑` and `↓` are in Google's slice and `←` and `→`
-are not, so an arrow-key hint would have rendered two arrows in the app font
-and two in a fallback, side by side. Emoji are separate and always were — the
-OS draws those, under `system-ui` too.
-
-### Facts that change how CSS gets written
-
-- **Digits are TABULAR by default** — all ten advance the same width. Scores,
-  timers and counts are width-stable with no CSS at all, which is the
-  [layout-stability](#layout-stability) rule getting a win for free. The font
-  carries `pnum` to go the other way if prose ever wants it.
-- **Anything that measures text to fit it must wait for the font.** A tile
-  that measures before the file lands measures the FALLBACK, fits to it, and
-  goes stale when the real font arrives. `document.fonts.ready` is the gate.
-  This only shows on a cold cache, which is exactly the bug nobody can
-  reproduce.
-- **Optical sizing changes advance widths**, and that is fine: it is a
-  function of the font-size, which any fitting code knows already.
-- **Resting width is 100% for now**, though the face sets narrower than SF
-  Pro; tuning it is a `core-css` todo.
-
-## Two vocabularies
-
-A token or class goes one of two places, and the two don't mix.
-
-### UI-state vocabulary — global
-
-Concepts about the *frame*, not the game. These earn global tokens / classes because consistency is the whole point — a player shouldn't have to relearn what a won-banner looks like per game:
-
-- `.outcome-won`, `.outcome-lost`, `.outcome-tie` — game-end banner styles.
-- `.error` — already global; validation feedback, RPC errors.
-- (Future) presence states, transient toast feedback, etc.
-
-A "you won" banner in codenamesduet should be visually indistinguishable from a "you won" banner in Boggle. That's the *point*.
-
-### Game vocabulary — per-game
-
-Concepts that belong to the game's rules and ontology:
-
-- codenamesduet's **agent / neutral / assassin**.
-- A future Boggle's **valid word / great word / not a word**.
-- Connections's **four difficulty colors** (yellow → green → blue → purple, themed by the game itself).
-
-These stay namespaced to the game's `theme.css` and **don't get collapsed**, even when two games happen to have a concept that *feels* "positive" or "negative."
-
-### The error to avoid
-
-Promoting a per-game concept to a global token because two games happen to share a visual register. Calling codenamesduet-agent and boggle-great-word both `--color-good` looks tidy on the surface and breaks the moment a third game's "good" wants to lean a different direction — at which point you either un-alias (admit the abstraction was wrong) or pollute the global token with game-specific exceptions.
-
-The asymmetry: walking a per-game token *up* to global later (when the recurrence is real) is easy; walking a global token *back down* to per-game is hard, because consumers everywhere depend on it.
-
-### Promotion rule
-
-A token (or class) earns promotion to global when **both**:
-
-1. Two or more games already use it, AND
-2. It would be *wrong or confusing* if the two games differed.
-
-"Both games happen to use green here" doesn't qualify. "Both games are showing the player they won" does. Default per-game; promote only on evidence.
+The rule is about **who owns the keyboard**. In a **real form** — setup, the
+profile and club forms, sign-in, a confirm — the focused element owns it, so
+Tab moves between fields and a focus ring is honest. **Everywhere else** — the
+pages, the boards, the info column — the app owns it: no Tab walk, no focus
+rings, and a keystroke is a command. **Focused text entry** inside a non-form
+surface — chat, the scratchpad, a clue field — owns its keys only while focused,
+and Tab is the way back out. `data-floating-panel` is the edge of the first
+kind. [`common/keyboard`](../src/common/keyboard/doc.md), and
+[keyboard-shortcuts.md](keyboard-shortcuts.md) for the keys.
 
 ## Consistency across games
 
-Players should be able to **switch between games without relearning the frame**. The chrome reads the same; only the play surface changes. This is the consistency goal that justifies extracting shared components even when only two games use them today.
-
-**The tool for checking it is [the screenshot gallery](testing.md#the-screenshot-gallery)** — `gmake gallery` puts every game into every state and photographs it into one scrollable contact sheet, so "do these sixteen games look like one app?" becomes a question you can actually answer by looking. Drift is invisible one game at a time and obvious in a column: reach for it before and after any visual pass, and when a change touches shared chrome. It's not a test and asserts nothing (bar one guard) — the reading is yours.
+**A player switches games without relearning the frame.** The chrome reads the
+same everywhere; only the play surface changes. The check is
+[the screenshot gallery](testing.md#the-screenshot-gallery) — `gmake gallery`
+puts every game into every state on one sheet, because drift is invisible one
+game at a time and obvious in a column.
 
 ### What every game has
 
-These aren't optional capabilities a gametype opts into — they're part of the shared frame, and every game must support them:
-
-- **Chat.** Every `<GamePage>` mounts `<Chat>`. The chat is per-club and persists across games; a new gametype gets it for free by mounting inside the common shell.
-- **Pause.** Presence-pause + manual-pause are uniform via `useCommonGame` + `<PauseBoundary>`. No per-game wiring.
-- **Timed / untimed setup choice.** Every game's setup form has a `<SetupTimerSection>` (None / Up / Down / MM:SS). Per-gametype default may differ (connections defaults to countdown 10:00; psychicnum and codenamesduet default to none), but the *option* is universal.
-- **Help.** Every gametype's manifest declares a `help: ComponentType<{ onClose: () => void; brand: string }>` — the rules / how-to-play modal opened from the "Help" item in the GamePage menu. codenamesduet's `Help.tsx` is the model; connections carries placeholder content until it earns real text.
-- **GamePage menu.** Click the logo to open a dropdown with common items (Help, Back to club) plus per-game items the PlayArea pushes via `ctx.menu`. See [GamePage menu](#gamepage-menu) below.
-- **Back-to-club + suspend-confirm.** Opened from the "Back to club" item in the GamePage menu (or browser back). Asks first only when there are peers to surprise — the three shapes are under [Confirm modals](#confirm-modals--never-windowconfirm). Owned by `<GamePage>`.
-
-A new gametype that wants to omit one of these isn't building "a new gametype" — it's stepping outside the frame, and that's a CLAUDE.md-priors conversation, not a manifest field to toggle.
-
-### GamePage header
-
-A layout-static row that every game shares. Same shape, same affordances, same positions — only the contents inside `<PageHeaderStatusSlot>` and the timer's presence/value differ per game.
-
-```
-[logo] [chat scratchpad] [status-slot]         [pause] [timer-if-set]
-```
-
-**Left, left-justified:**
-
-- **`<GameLogo manifest={…} />`** — square SVG (`src/<game>/logo.svg`). The logo is a menu trigger: click opens the GamePage menu (Help, Back to club, per-game items). See [GamePage menu](#gamepage-menu) below.
-- **`<ChatButton />`** — toggle for the floating chat panel. Same icon open or closed, but while **closed** it doubles as an unread indicator: the bubble fills with the latest unread sender's profile color, and a small count pill (top-left) shows how many messages arrived since this member last had the panel open. Opening clears it. The pill is **black**, not a player color — red and the other player hues are all valid profile colors, so a colored pill would read as "a sender" and could clash with the bubble's fill. Unread is tracked per-club via a localStorage `lastSeen` bookmark (`chatUnread.ts`), so it survives reloads and a never-opened panel shows the whole backlog as unread. Stays in place when chat is open per [Layout stability](#layout-stability).
-- **`<ScratchpadButton />`** — toggle for the floating scratchpad panel, rendered only when the game's manifest opts in (`scratchpad.enabled`). Grouped tight against the chat bubble (`.panelToggles`, a smaller gap than the header's) — the two are related in purpose (each toggles a floating panel), and the closeness signals the pairing.
-- **`<PageHeaderStatusSlot />`** — default content is `<PageHeaderPlayersStrip>` (colored usernames, one per `player`). While the page's global feedback slot holds a message (`ctx.globalFeedbackSlot.show()`, or the chat producer), the slot renders `<FeedbackPill>` instead. The underlying roster updates whether or not the pill is showing; the strip reappears when the slot empties.
-
-**Right, right-justified:**
-
-- **`<PauseButton />`** — **one button with two faces**: two bars while playing (press to pause, `sendManualPause`), a green play triangle while paused (press to resume, `sendManualUnpause`). A control that only pauses leaves the header saying "press to pause" about a game that is already stopped; one that changes face says both what the game is doing and what you can do about it, in the place the eye already goes. Resume needs no permission check — any connected player may resume, the same rule `<PauseOverlay>` follows. **A presence pause is not clearable here**: the triangle shows, because that is the state of the game, but it is dimmed and inert — the player we are waiting on has to come back. **Always present while play is live**, timer or no timer, because manual pause is the "moth is making tea" affordance; **absent once the game is over**, where `paused` is forced false and the button could only look live and do nothing.
-- **Timer** — `{ displaySeconds, expired }` from `useCommonGame`. `font-variant-numeric: tabular-nums` so digits don't shift the right edge as values change. **A stopped clock is red** (`--timer-stopped-color`) — paused or terminal, since red says "these digits are not moving", which is a fact about the clock rather than a judgment about why. **A count-up outlives the game and a countdown does not**: a countdown is a budget and can only read 0:00 once it is over, while a count-up answers "how long did that take?", which is exactly what you want when you are done (`useGameTimer` stops at `is_terminal`, so it freezes on the final figure).
-
-**What's gone:** the game title. Identifying the game is the logo's job; the per-instance title (e.g. connections' puzzle date) still lives in the club-page listing where it has room to breathe.
-
-**Why this lives in the common shell:** the consistency goal — a player switching from codenamesduet to connections shouldn't have to relearn the chrome. The header is implemented in `<GamePage>` (along with the chat + pause + suspend-confirm machinery it already owns); per-game `<PlayArea>` components render below it and don't see the header at all.
+Every game gets these from the shell, and a game that wants to omit one is
+stepping outside the frame, not toggling a feature: **chat**, **pause**
+(presence and manual), a **timer** option in setup, **Help** with its key list,
+the **game menu**, and **Back to club**, which asks first only when there are
+other players to surprise. [`common/game-page`](../src/common/game-page/doc.md).
 
 ### GamePage menu
 
-The logo is a menu trigger. Click opens a dropdown anchored below it; same trigger across games, same dropdown chrome, different items inside.
-
-**Each game owns its WHOLE menu.** The shell injects nothing — a rich game like crosswords needs Help at the top, several divided game sections, and Back-to-club at the bottom, and only the game knows that shape. The `<PlayArea>` pushes the entire section list via `ctx.menu.setGameSections([...])`, and the shell hands down the rows a game can't build itself: `ctx.menu.actHelp` (this game's rules), `ctx.menu.actBackToClub` (the terminal-vs-suspend "Back to club" logic, carrying `<`) and `ctx.menu.actChat`, which is bound at the app root.
-
-```
-[logo ▼]   ← click
-    │
-    └─→  ┌──────────────────────┐
-         │ Help                 │
-         │ Open chat           /│
-         ├──────────────────────┤
-         │ …game sections…      │
-         ├──────────────────────┤
-         │ End game / Concede ⌥⌫│
-         │ Back to club        <│
-         └──────────────────────┘
-```
-
-**The `buildGameMenu` helper** ([common/menu/gameMenu.ts](../src/common/menu/gameMenu.ts)) assembles the standard framing so games don't duplicate it: a **Help** + **Open chat** section at the top, the game's own `extra` sections in the middle, and a tail with the game's **exits** + **Back to club**. Chat has a bubble in the header and a `/` shortcut, and the menu row exists for both reasons: it's the labeled twin every other action has, and the row is where `/` is written down. Most games call it in one line with `extra: [{ items: [actPrintBoard] }]` (or `[]`); crosswords passes its full check/reveal/clear section list.
-
-**A row is an action** ([common/actions](../src/common/actions/doc.md)), so nothing about it is decided in the menu: its words, its glyph, its shortcut and whether it is available all come from the action, and a row the action calls hidden is simply not drawn. That is how one `exits` list serves both modes — End hides itself in a race, Concede outside one — and why the shortcut column can't drift from what the key actually fires.
-
-**The shortcut at a row's right edge** is the action's first chord, rendered right-aligned + muted. **⌥⌫** is End/Concede, **+** is New game, **`<`** is Back to club, and each works because the game bound that action, not because the shell went looking for a row by id. All bail inside any editable field, so ⌥Backspace stays "delete word" while typing.
-
-**⌥+ — "new game from setup"** is the one shortcut with **no menu row**: the power-user variant of `+`. Where `+` reuses this game's setup verbatim, `⌥+` stops at the setup dialog so you can change the options first. It asks the same `NEW_GAME_CONFIRM` mid-play, then hands off to `/c/<club>?new=<gametype>` — the setup dialog lives on ClubPage, and that's the same route crosswords' own New game uses. Canceling the dialog simply leaves you on the club page. Its chord is the registry's `altShift('Equal', '⌥+')` — matched on `code`, not `e.key`, because Option changes the character a key emits (⌥= is `≠` on a Mac) — the same reason ⌥⌫ matches `code`.
-
-**`<` means "up a level", not "back to club" specifically** — the ClubPage menu's *Back to home* row carries the same shortcut, taking you from a club to the club list. One key, one meaning, wherever you are.
-
-API on `GamePageCtx`:
-
-```ts
-menu: {
-  setGameSections: (sections: MenuSection[]) => void
-  actHelp: BoundAction          // this game's rules
-  actBackToClub: BoundAction    // terminal-nav or suspend-confirm, and `<`
-  actChat: BoundAction | null   // bound at the app root; null with no chat panel
-}
-```
-
-**`MenuSection`, `MenuItem` and the rest live in [`src/common/menu/menuModel.ts`](../src/common/menu/menuModel.ts) — read the shapes there, not here.** A section is items plus an optional `header`; an item is a bound action, or a submenu (`MenuSubmenu`: its own `label` and `icon`, and `items`, a list of bound actions, one level deep). There is no hand-written row shape: a row's words, glyph, shortcut and availability are read off the action by `menuRow()` when the menu draws, and a row the action calls hidden is dropped before anything counts rows. The file's own docstrings are thorough; the doc's job is what the menu is FOR, which is everything above and below this line.
-
-**When rows are read.** The menu asks each action `describe()` as it draws its rows, which is when it opens, and not in between: nothing the player does can reach past an open menu (activating a row closes it first, and the popover keeps its keys to itself), so the only staleness reachable is a change arriving from another player while the menu sits open. Closing and reopening is the fix, and clicking a stale row is safe regardless — the run reads the live binding.
-
-**Stability.** `setGameSections` pushes into [`gameMenuStore`](../src/common/menu/gameMenuStore.ts), whose one subscriber is the header menu, so a push re-renders the menu and not the page or the board. A PlayArea's menu-building effect still lists its rows in its deps, and a bound action's identity is stable, so the sections change only when the SHAPE of the menu does; an unstable row would only rebuild the menu more often than it needs to.
-
-**Focus.** The game menu is given `returnFocusOnClose={false}` by [`GameHeaderMenu`](../src/common/game-page/GameHeaderMenu.tsx), so closing it blurs the trigger and lets focus fall to `<body>`. The trigger stops its own keydowns from propagating while it has focus, so a focused logo would swallow the arrows and Enter the dispatcher would otherwise deliver to a keyboard-first board (crosswords). `Menu` also stops its popover's keydowns, so arrowing through the menu never doubles as a board move. Non-game menus (ClubPage's, HomePage's) keep the standard Esc-restores-focus a11y.
-
-**Overflow.** A long menu (crosswords lists ~20 items) never grows the page: the popover is capped at `max-height: calc(100svh - 5rem)` and scrolls internally.
-
-**Pause behavior.** The menu stays mounted and openable while paused — the header sits outside the pause boundary, so `?` still reaches it. Game sections vanish because PlayArea unmounts on pause; the cleanup return on the PlayArea's `setGameSections` effect clears them (`setGameSections([])`), so a paused menu holds only the account row until resume.
-
-**Keyboard.** Enter / Space on the logo opens the menu and focuses the first enabled item. Arrow up / down navigate; Enter or Space activates; `→` opens the focused row's submenu and `←` steps back out; Esc unwinds one level, out of a submenu first and then out of the menu. Tab while the menu is open closes it and is consumed — focus does not advance; the next press is the page's ring's ([common/menu/doc.md](../src/common/menu/doc.md)). Disabled items are skipped by arrow navigation.
-
-**Submenus** are a two-shape hybrid, one level deep. A row that is a [`MenuSubmenu`](../src/common/menu/menuModel.ts) rather than an action opens:
-
-- **desktop — a flyout** beside the parent row, parent left lit so it's clear which panel belongs to it;
-- **mobile — a drill-down** that replaces the list, headed by a `‹ <parent>` row.
-
-The split is by viewport because a flyout has nowhere to go on a phone: the popover already runs to its `max-width` cap there, so a second panel beside it would only ever land on top of the first. Both shapes share **one** piece of state, because in both an open submenu takes over keyboard navigation entirely — so the flat-index model survives and Back is modeled as a nav row rather than special-cased. `ArrowRight`/Enter opens, `ArrowLeft`/Escape steps back out (focus returning to the parent row), and **Escape unwinds one level at a time** rather than dismissing the whole menu. Opening is by **click, not hover** — hover-open fires as you arrow past a row and means nothing on a touchscreen laptop.
-
-Two consequences worth knowing. The flyout is `position: fixed`, not absolutely positioned inside the popover: `.popover` is `overflow-y: auto`, and the spec computes `overflow-x` to `auto` alongside it, so an absolutely-positioned child would be **clipped** at the popover's edge instead of overflowing. Scrolling the parent list therefore closes the flyout rather than letting it detach (crosswords' ~20-item menu really does scroll). And a submenu parent is not an action: opening is its whole behavior, so it has nothing to run, no key to advertise, and no `data-action` — its words are the grouping's own.
-
-**Every row says which action it is**, as `data-action="act-…"`, the same attribute `<ActionButton>` writes. What a row is CALLED is `describe()`'s to vary per game and per state, so a test or a stylesheet that wants a particular command asks for the id, not the words; [`e2e/helpers/actions.ts`](../e2e/helpers/actions.ts) wraps both surfaces.
-
-**Z-index.** Menu takes `--z-menu` (3200) — above the board it drops over, above every floating window, and above chat, because it is the shortest-lived thing on screen and you just asked for it. Below a toast and below anything that stopped the world, neither of which can co-occur with an open menu anyway: a scrim makes the header inert. The layers are in [code-conventions.md](code-conventions.md#the-z--layers).
-
-**Layout stability.** The menu is a popover anchored to the trigger; it overlays the page without reflowing anything underneath. Per [Layout stability](#layout-stability).
-
-**Reuse outside GamePage.** The `<Menu>` component is generic — trigger + sections + items + keyboard chrome, nothing game-specific. ClubPage adopts the same shape (see [ClubPage header](#clubpage-header) below) with a generic PuzPuzPuz logo as the trigger and its own bound actions as rows: Help, Back to home (`<`), Edit club and Rename club. On every page `?` opens the menu itself (`act-open-menu`); Help has no key of its own.
-
-**The keys in Help.** Every game's help companion, and the club's, ends with a generated list of the keys that work on that page — [`<KeyList>`](../src/common/actions/KeyList.tsx), a loop over the bound actions that have a key and are not hidden, one row per command however many places offer it. It reads the same registrations the dispatcher fires, which is what keeps it honest.
-
-### ClubPage header
-
-The club page wears the same chrome the game page does. Same "no title in the header" rule — the logo carries identity at the header level; the canonical club name + handle live in the main content well below. No right-hand group — clubs have no timer, no pause.
-
-```
-[puzpuzpuz-logo] [chat-bubble] [status-slot]
-```
-
-- **`<PuzpuzpuzLogo />`** — the app's "P" mark (`src/common/branding/puzpuzpuz.svg`), a white P on an indigo tile. It renders as the same bare 32×32 image `<GameLogo>` does, which is what keeps the two triggers interchangeable. Wrapped by `<PageHeaderMenu>` exactly like the game logo: click opens the club menu.
-- **`<ChatButton />`** — the same shared component as GamePage. Both pages bubble open/close the same Chat panel via the shared `chatOpenStore`.
-- **`<PageHeaderStatusSlot />`** — same shared component. Default content is the `<PageHeaderPlayersStrip>` of club **members** (the variable name in club context, per [naming.md](naming.md#member)). **Here each member's dot is a live presence light:** ClubPage feeds the strip the `useClubPresence` roster as `presentUserIds`, so a member who's connected (on the club page or in any of the club's games) shows a filled color dot and an absent one an empty outline — at-a-glance "who's in the club right now." (On GamePage the strip gets no `presentUserIds`, so every dot is simply filled.) While the page's global feedback slot holds a message, the strip is replaced by the `<FeedbackPill>` for as long as that message's kind keeps it up. Because that costs the presence lights, the slot is reserved for **other people's** news — a club chat message from another member (`useChatFeedback`) is the live case. Your own actions announce themselves in a [toast](#toasts) instead.
-
-**ClubPage menu items:**
-
-All four are bound actions (`act-help`, `act-back-to-home`, `act-edit-club`, `act-rename-club`), so the rows read their words and availability the way a game's do:
-
-- **Help** — opens `<ClubHelpCompanion>` (parity with the GamePage menu's Help, and like it ends with the generated key list). No key of its own: `?` opens the menu.
-- **Back to home** — `navigate('/')`, and `<`.
-- **Edit club** — opens the edit-club modal.
-- **Rename club** — placeholder. Click shows a "coming soon" `acknowledgment` in the header, which fades on its own.
-
-**Layout.** ClubPage's header is layout-static and fills the full content width (respecting the body's outer padding, same as the GamePage header). Below it the club's name spans the full width, and under that a two-column flex row takes the rest of the viewport height (per [Page-height fits the viewport](#page-height-fits-the-viewport)):
-
-- **Left column** — the current-game card (when there is one), and the start list: one row per gametype the club is enrolled in, alphabetical by brand. The rows are a **dense list**, not a stack of cards: one hairline rule between rows, no per-row border or radius, tight padding. Picking a game is scanning, and a scan-list wants rules, not boxes; the frame around the list still carries the card chrome, so the block reads as one panel. Hover tints the row rather than lighting a border — lighting only an underline would read as highlighting the row below. **Sibling-manifest families** (coop + compete variants of the same `baseGametype` — see [`common.md` → The sibling-manifest pattern](common.md#the-sibling-manifest-pattern)) render as two rows, adjacent in the alphabetical order (coop first within the tie), told apart by their mode badge.
-- **Right column** — the **"Your games (N)"** list as a fixed-size frame with internal `overflow-y: auto`, so the friends can scroll back through history without the rest of the page moving. It holds **every game the club has**, the current one included: that game also gets the callout above the start list, but withholding it here made the club's one live game the single thing missing from the list of its games (and put it out of the gametype filter's reach). Same **dense-row** treatment as the start list. All three game entries — the current-game card, a games-list row, a start-list row — draw one shared face, `<GameEntry>`; what differs is the box around it (a `SelectionList` row, or `CurrentGameCard`'s border) and `state`, which drives **only the corner flag** — orange for the current game, yellow for a shelved one, none for a finished one. That flag is the whole signal: terminal rows are not dimmed, nor set in a smaller or lighter face. Each extra channel repeating "this one's done" cost something real — the fade dulled the logo and status colors, which carry information, and the type changes gave the list three different row heights, which reads as noise rather than hierarchy. Every row in both panels shares one type spec (`1rem`/600 title over a `0.85rem` muted line, no gap between them) — literally, since they share `<GameEntry>`, so a row is the same object whichever panel it's in. Only the current-game card is scaled up, and only a step: a `1.25rem` title and an even `0.9rem` of padding — the rows' horizontal inset on all four sides, so its logo and text sit on the lists' vertical line and the box is no taller than its contents need. (It was `1.5rem`, which wrapped the longer algorithmic titles — connections' three words, scrabble's opening three — onto a second line and moved its height around. Its border and its position at the top of the column carry the prominence; the type doesn't have to.) Neither frame carries padding; the rows supply their own, so the space above the first item equals the space between any two and the rules run the panel's full width.
-
-**Filtering the two lists.** Each column's heading is a row: the `h3` on the left, that list's filter on the right ([`ModeFilter`](../src/common/club/ModeFilter.tsx) / [`GametypeFilter`](../src/common/club/GametypeFilter.tsx), sharing `clubFilters.module.css` so the paired controls can't drift). Both are pure FE state over data already in hand — nothing refetches — but they **persist differently**, because they mean different things. The mode filter is a standing taste ("I'm here to play compete games") that narrows a *menu of things you could start*, hiding nothing that exists, so re-picking it every visit is friction: it sticks, via [`useStickyChoice`](../src/common/web-storage/useStickyChoice.ts) in localStorage, keyed by user (across clubs — the taste is yours, not the club's). The gametype filter is **not** persisted: it narrows a list of the club's *real games*, so a remembered one hides games that are still there, and a club page that opened already filtered from last week would read as "where did our games go?"
-
-- **Start a new game → by mode.** Three `aria-pressed` toggle buttons, `All | Co-op | Compete`, mirroring the mobile tab bar's shape one size down. They decline focus on mousedown, exactly like the start rows below them, so narrowing the list doesn't blank the keyboard cursor you were about to arrow with. **A solo club gets no mode filter at all** — mode is noise with one player, the same call [`<ModeBadge>`](#mode-badges) makes when it drops the "Co-op" badge there, and a filter for a distinction the page isn't drawing is worse than the space it frees. (ClubPage still pins the effective mode to `all` there, so nothing can be left filtered by a control that isn't on screen; on mobile the filter row itself is skipped, since an empty one would still claim the frame's gap.)
-- **Your games → by gametype family.** A compact `<select>`, one choice per `baseGametype` **present in the list** (so a choice can never empty it), labeled with the brand and sorted by it. **Siblings collapse:** one "WordNerd" covers `wordle_coop` *and* `wordle_compete` — the friends think in games, not manifest entries, and the mode axis already has its own filter on the other column. A native select rather than more buttons because this is a list of up to sixteen, not a switch. It can't decline focus the way the mode buttons do (a select needs the press to open its popup), so it borrows the games list's focus — and ClubPage hands it straight back on `change`, which makes the detour a round trip: narrow the list, keep arrowing it.
-
-The heading's count and the keyboard cursors both read the **visible** list, so a filtered-out game is unreachable by arrow keys too. Guarded by [`club-filters.e2e.ts`](../e2e/club-filters.e2e.ts).
-
-**Keyboard navigation.** The page has exactly TWO keyboard tab stops: the
-start-a-new-game list and the "Your games" list (the containers
-themselves, `tabIndex=0`). **Focus starts on the start list on load** (no
-first Tab needed), and the page declares those two lists as its whole tab ring
-— focus toggles between them and can't wander into other controls, which are
-deliberately mouse-only. Within the focused list, Up/Down
-move a per-list cursor (clamped at the ends, no wrap; kept scrolled into the
-frame's view) and Enter acts on the item under it: a start row opens its
-SetupGameModal (a doesn't-fit gametype no-ops, like a click), a game row
-navigates into the game. Visuals: the focused list's border warms to the
-accent and the cursor item wears a 2px accent ring; the ring hides when the
-list isn't focused. An open overlay takes the keys — a text field keeps its
-own, the menu dropdown stops its keys at the popover, and a floating panel's
-ring is innermost while it is open; and while one of ClubPage's dialogs is up the
-list handlers go inert — and the global shortcuts (`/`, `?`, `~`) work
-unchanged. The current-game card is mouse-only for now (it's not one of the
-two lists) — and for that reason its prominence border is a dark NEUTRAL,
-not the accent: since this feature, a blue ring means "the keyboard cursor
-is here", and the current-game card must not impersonate it. Guarded by
-[`club-keyboard.e2e.ts`](../e2e/club-keyboard.e2e.ts).
-
-**A click selects, the same as an arrow key.** Clicking a start button or a game
-card moves the cursor onto it, so the mouse and the keyboard never disagree about
-which item is "selected". It matters most on the start list, which is the one
-place a click leaves you on the page: click a game, cancel its setup dialog, and
-the ring is on the game you clicked with the next arrow key stepping from there —
-before this it stayed wherever it had last been, and the next arrow key jumped
-somewhere unrelated. (This works only because those buttons decline focus on
-mousedown, so the container keeps focus and the ring stays visible.)
-
-**The same idiom on the club-list page.** `/` (the [`HomePage`](../src/common/home/HomePage.tsx)
-clubs list) navigates identically: the list container holds focus, which lands there on
-arrival, Up/Down move a clamped no-wrap cursor, and Enter opens the club under
-the ring — the same 2px accent ring, so "blue ring = the keyboard cursor is
-here" holds across both pages. **Tab never leaves the list**: the page's ring is
-that one list, so arrows + Enter are the whole keyboard story and a Tab pressed
-after a click on blank page simply puts the cursor back. Native Tab only led
-away — onto the header menu, then out into the browser's URL bar.
-The accepted cost is that `+ New club` isn't keyboard-reachable from this page;
-an open `<Menu>` is unaffected, since it `stopPropagation()`s its own keys and
-Tab still closes it. Clicking a row is unchanged.
-The solo club sorts first, and the cursor indexes one flattened display-ordered
-array — the rows render from that same array, so ring and row can't disagree.
-Clicking a row selects it too, for symmetry with ClubPage — though since every
-row here navigates away, that's an invariant rather than something you'd notice.
-Guarded by [`home-keyboard.e2e.ts`](../e2e/home-keyboard.e2e.ts).
-
-### Components
-
-Same principle, applied to components.
-
-**The chrome is shared.** Cards, banners, chat, login, the home page, the club page — these look the same regardless of which game is mounted. Current realization:
-
-- `Chat`, `PauseBoundary`, `PauseOverlay`, `SetupTimerSection`, `CurrentGameCard` are shared. The route-level `<GamePage>` mounts the cross-cutting ones (chat, pause, suspend confirm, timer in header) so every game inherits them.
-- `LoginScreen`, `HomePage`, `ClubPage` are shell-level, game-agnostic.
-- **The account submenu** ([`useAccountMenuSection`](../src/common/account/useAccountMenuSection.ts)) is the last section of every page's own menu — GamePage's, ClubPage's, and HomePage's. One row labeled with the **username**, opening **Profile**, **Add word** (editors only) and **Log out**.
-  - **Inside the page's menu rather than a control of its own.** A fixed chip would cost the header permanently reserved width at every viewport, and that is exactly the width the mobile game header needs for feedback.
-  - **User-focused only.** It carries no club- or game-specific items; the two mental models stay separate, by *nesting* rather than by a second menu. Correspondingly, a game menu never puts game actions inside it.
-  - **The label is the username, not "Account"** — "who am I signed in as" is the question a shared laptop raises, and a generic label answers it with nothing. (The color itself is on screen wherever identity matters: the players strip, the club member list, an event log's actor column.)
-  - **Home carries the same header strip for it** — the square site logo hard against the page's top-left opening the page menu, thin rule beneath, the trigger landing at the same x/y as ClubPage's. It is PAGE chrome, outside home's centered `.card`: inside, it would inherit the card's 2rem padding and border and read as content, lining up with nothing else in the app. The header is also where a future Help or other non-user item goes — home has nowhere else to put one.
-- **The `/` action is hidden on a page with no chat panel mounted.** Chat is club-scoped, so on HomePage `/` would flip the shared open flag and show nothing — a key that silently does nothing is worse than one that isn't bound, because the next person debugging it starts from "chat is broken" rather than "chat isn't here". Unbound, `/` is left to the browser's find-in-page. `?`, `~` and `⌥~` are page-independent and stay on. It is the action's own state (`<Chat>` says it is mounted), not a flag a page passes.
-- `<EditProfileModal>` — the Edit-profile dialog, a `<NormalModal>` (not a route) so the page underneath stays mounted and live. Mounted at App level and opened from the account submenu of whichever page menu is on screen — so the flag crosses subtrees and lives in a tiny store ([`editProfileStore`](../src/common/account/editProfileStore.ts)) rather than in App's own state. It stays mounted high in the tree deliberately: react-rnd positions a floating panel from its static flow position, so mounting it inside a page's flex column lands it far from where you expect (see the FloatingPanel gotcha below). It edits two fields, starting on what you have — **player color**, via `<ColorChoiceField>` (below), and **"Enable sounds"**, a `<CheckboxField>` that turns every sound the app plays on or off. Saves both via `common.update_profile`, then `setProfileFields` tells the shared profile store what the server now holds so the menu dot repaints and the next sound obeys the setting. Username is shown but immutable in v1. Dialog buttons follow the [Dialog buttons](#dialog-buttons) convention.
-- `<FloatingPanel>` — the shared draggable / resizable / closeable popover (react-rnd) behind `<EditProfileModal>`, `<ConfirmationBlockingModal>`, `<SetupGameModal>`, the help panels, and codenamesduet's AI clue-suggestion dialog. **Gotcha worth knowing: react-rnd positions the panel from its element's *static flow position*** — a panel mounted deep inside a flex column inherits that column's offset, so it can render far from where you expect. codenamesduet's clue-suggestion dialog first mounted ~180px *below* the viewport because it sat deep in the board column. **Mount a `<FloatingPanel>` high in the tree** — at the PlayArea `.layout` level or App level — never nested inside the play surface. The codenamesduet e2e guard (`e2e/codenamesduet.e2e.ts`) asserts the suggestion panel renders fully on-screen, pinning this.
-- `<ColorChoiceField>` — the shared player-color picker, and a field like any other: the 8-entry palette (`MEMBER_COLORS`) as a grid of swatches under the field's own caption, each swatch its actual color circle + capitalized name. A swatch is a quiet button and behaves like one — quiet's hover and press washes — and the color you have **chosen** carries its border in body ink. Controlled (`value` / `onChange`). Used by both `<EditProfileModal>` and the first-run `<ClaimHandleScreen>` (where it sits beside the username field, pre-selected from a deterministic FE hash of the username — `defaultColorFor` — so a new player isn't picking from a blank slate; the chosen color is sent to `claim_username`).
-- `.card`, `.muted`, `.error`, `.link-button`, `.definable` are universal utility classes in `common/core-css/utilities.css`.
-
-**The game-mechanic UI is per-game.** The board, rules display, input affordance (clue form vs number input vs guess box) — each game owns these. That's what the per-game `components/` directory is for.
-
-**Game-end UI** — the info column's row is `info-sheet/InfoActionsRow` in every state, terminal included: the game's actions, with `over`'s outcome line beside them once there is one. `common/terminal/` holds the words (`terminalMessage`) and the celebration. The verdict itself is in-page — the below-board pill — and the one modal in play is `<CelebrationBlockingModal>`, popped only at the moment of a win. `<GamePage>` binds `act-back-to-club`, which the row places as an `<ActionButton>`. See [Terminal results](#terminal-results--the-moment-vs-the-record) above for the full contract.
+**Each game owns its whole menu**, framing included — the shell injects
+nothing, and `buildGameMenu` assembles the standard shape. **A row is an
+action**, so its words, glyph, key and availability all come from the binding,
+and the menu decides nothing. **`<` means "up a level"** on every page.
+[`common/menu`](../src/common/menu/doc.md).
 
 ## Player identity = a colored disc
 
-A member's palette color (`MEMBER_COLORS` via `colorVarFor`), rendered as a **filled circle**, is the canonical visual anchor for "this player." It already recurs across the app — the `<PageHeaderPlayersStrip>` presence dots, the `<ChatButton>` unread fill, the `<ColorChoiceField>` swatches, the per-finder markers in the shared `<WordList>`, and the HomePage greeting ("● joel — welcome!"), where the disc says *you* rather than *someone else*: home is the last screen before a club, and inside a game the disc is how a player finds themselves. Treat it as a convention, not a coincidence: when a surface needs to say *who*, reach for a colored disc.
-
-**The disc is one shared component: `<Dot>`** (`common/members/Dot`). It draws the fill PLUS the color's paired **edge ring** (`--member-NAME-edge-color`, resolved via `borderVarFor` — OKLCH-darkened companions defined next to each fill in `core-css/fixed.css`). The ring is what lets a light fill (yellow) read against the page background, and it's why identity discs are never unicode `●` glyphs: a glyph can't wear a border, and its size/baseline drift by font. `<Dot hollow>` is the "nobody" variant — an empty outline for an away member (PageHeaderPlayersStrip presence) or an unfound word (WordList reveal). Size/ring-width/hollow-ring-color tune per site via `--dot-size` / `--dot-border-width` / `--dot-ring` on a caller class. A feedback message about a person carries the member as its `actor`, and the pill draws the name-and-disc mention (`<DotActor>`) before the text.
-
-**The name + disc cluster is `<ActorDot>` / `<DotActor>`** (`common/members/ActorMention`): a person's name and their identity disc, the "who did this" marker. The two differ only in ORDER, and each is **named in the order it draws** — `<ActorDot>` is actor-then-dot ("moth ●"), which is what an event log's rows want; `<DotActor>` is dot-then-actor ("● moth"), which is what a sentence wants. Pass either the resolved member (`<ActorDot actor={players.find(…)} />`); it owns the fallback name + the disc color, so the cluster looks identical wherever it appears. Its `show` prop is what lets a tight surface drop the name and keep just the disc on a phone, which is the mobile fallback the first rule below promises. Reach for one before re-rolling a name-span + ● by hand — hand-rolling is how a surface ends up coloring the name text instead, which that same rule forbids.
-
-Two rules keep the signal clean:
-
-- **Identity rides the disc, never the text.** Don't encode a player by coloring a *word* — a colored disc is a far better color carrier (bigger area, no legibility/antialiasing fight), and it discriminates better between palette hues. Keep text legible/neutral and let the disc carry color. The payoff is that any space-constrained surface (think mobile, where there's no room for a name) can fall back to **circle-only** with zero loss — players have already been trained that the circle *is* the person. This is why the `<WordList>` redesign moved color off the word and onto a leading ●, with the word itself black.
-- **Don't spend a colored circle on anything that isn't a player.** If a colored circle would read as "a player" where none is meant, pick a different shape or a non-palette color. Two existing instances of this discipline: the chat unread pill is **black**, not a player hue, so it doesn't read as a sender (see [GamePage header](#gamepage-header)); and the spellingbee rank ladder uses **squares**, not circles, for its tiers — a bright-yellow *circle* would muddy the "circle = player" signal, so rank tiers take a different shape (`RankBar.module.css`).
+**A player is a filled circle in their profile color** — the shared `<Dot>`,
+never a `●` glyph. **Identity rides the disc, never the text**: a name stays in
+ordinary ink, which keeps it legible and lets a tight surface drop the name and
+keep the disc with nothing lost. **Don't spend a colored circle on anything that
+isn't a player** — a rank tier is a square, the chat unread count is black.
+[`common/members`](../src/common/members/doc.md).
 
 ## Interactive tile states
 
-Board tiles a player can act on (psychicnum's word tiles, connections' category
-tiles; the pattern every game's tiles share) converge on **one look**, driven
-entirely by the `--tile-*` tokens in [`common/themes/daylight.css`](../src/common/themes/daylight.css)
-and the shared `.tile` / `.tileWord` classes in
-[`common/game-page/playArea.module.css`](../src/common/game-page/playArea.module.css).
-A player who learns the board in one game reads it in the next.
+Board pieces share one look, from the `--tile-*` tokens and the shared
+`.tileFace` / `.tile` classes, so a player who learns one board reads the next.
+**A state changes a tile by re-setting its tokens**, never by out-cascading the
+shared rule, which keeps it independent of stylesheet order. **A decided tile
+takes the full-saturation result color** — the same one its event-log bar wears.
+**Default to the warm tile ramp**, and leave it only when a game's tiles always
+carry a meaning, as wordle's do.
 
-- **Resting** — a warm fill from the shared **tile ramp** (`--tile-slot-fill-color`, which
-  aliases `--tile-3-fill-color`, the normal shade — see [The warm tile ramp](#the-warm-tile-ramp)),
-  a matching border a step darker (`--tile-slot-edge-color` = `--tile-3-edge-color`), near-black
-  ink (`--tile-slot-ink-color`), and a small drop shadow (`--tile-shadow`) so a tile reads as
-  a physical tile.
-- **Hover** — a **dark** ring (`box-shadow: 0 0 0 2px var(--tile-selected-bg)`,
-  composed with the resting shadow). Not accent-blue, not a fill change.
-- **Selected** — a **dark fill** with light ink (`--tile-selected-bg` /
-  `--tile-selected-text`): the recognizable "I picked this" state, shared by
-  both games (single-select in psychicnum, multi-select in connections).
-
-> **This reverses the earlier rule** ("accent-blue rings, never a fill change").
-> The NYT dark-fill select reads more clearly than a ring, and going dark-fill
-> for *both* games let them share their entire tile CSS. Hover stays a ring (so
-> it composes on top of any fill) but goes dark to match.
-
-The hover ring is a box-shadow in the inter-tile gap, so it never shifts layout.
-Crucially, **every state that changes a tile's color does so by re-setting the
-`--tile-*` tokens on the element** (or drawing an inset frame) — *not* by trying
-to out-cascade the shared `.tile` rule. `.tile` reads only the tokens for its
-colors, so a `.selected` / result / peer override that re-sets a token always
-wins, regardless of which stylesheet loaded last. (This is what makes the shared
-base safe to compose with per-game modules.)
-
-**Resting depth, no board frame.** Tiles read as physical tiles via the
-token-driven border + `--tile-shadow` — that's enough on its own. Neither
-psychicnum nor connections wraps the grid in a "tray" frame (a heavier border +
-inner padding): now that the tiles carry their own warm fill and depth, an outer
-frame is redundant, and connections' full-width bands want to sit edge-to-edge
-anyway. The grid fills its column edge-to-edge. (A tray remains available as a
-per-game option if a future board wants one.)
-
-**A game piece has no disabled state.** Unclickable is not disabled: *disabled*
-is a LOOK meaning "this isn't doing anything for you" — Submit with nothing to
-submit — and it belongs to controls. Pieces are unclickable constantly and
-disabled never, because a piece is unusable *because something happened to it,
-and the something is what gets shown* (measured across every game,
-2026-08-20):
-
-| game | the piece | what it wears |
-|---|---|---|
-| letterboxed | a used letter | a pale green wash — a state |
-| psychicnum | a decided tile | the saturated outcome color |
-| connections | a solved tile | its category color |
-| codenamesduet | a revealed card | agent / neutral / assassin |
-| waffle | a locked letter | green |
-| stackdown | a buried tile | further down the ramp |
-| scrabble | a rack tile now on the board | darker warm — "in use" |
-| setgame | every card, at every terminal | nothing — `opacity: 1`, overriding the global dim |
-
-Games actively fight the global rule to keep it that way: setgame overrides
-`button:disabled` and says why (dimming a card *"reads as a different card"*),
-and its `LastSet` is rendered as non-buttons purely to escape the same opacity.
-The mis-scope behind that is `button:disabled { opacity }` sitting on the bare
-ELEMENT, so it reaches pieces and paints "turned off" over a message. A
-disabled look on a board is a control's look on a piece, and a finding.
-
-### The verdict mark's state is per game, on purpose
-
-Two games wear the shake-and-ring verdict mark on a rejected row, and each
-holds its state its own way: connections keeps one `verdict` object written
-through a single function, wordle keeps a nonce and a tone as two states
-written together. **What is genuinely shared is the nonce discipline**, and it
-is the thing a third game would get wrong: a CSS animation replays only on a
-NEW element, so a counter has to ride in the row's `key`, and a boolean cannot
-distinguish "rejected again" from "still rejected". **What is not shared is
-the mark's LIFETIME**: wordle clears on a timer, while connections has no
-timer at all — the event log is its clock, clearing when the log shrinks (a
-restart) or grows with someone else's row. One is wall-clock, the other is
-derived from game state, and a shared hook would have to force one or take it
-as a callback and own almost nothing. With a population of two and both
-working, the extraction point is the third game that wants a shake.
-
-## The warm tile ramp
-
-Tile colors come from **one warm (slightly-yellow) family** in
-[`common/themes/daylight.css`](../src/common/themes/daylight.css) — five shades on a hand-tuned
-lightness ramp (lightest → darkest), each with a matching `-edge`, plus two
-extras. **Default to this ramp for any game's tiles**; diverge only with a real
-reason (below).
-
-| token | role |
-|---|---|
-| `--tile-1-fill-color` … `--tile-5-fill-color` (+ `-edge-color`) | the ramp, lightest → darkest |
-| `--tile-3-fill-color` = `--tile-slot-fill-color` | **the normal tile** — what most games use at rest |
-| `--tile-spent-fill-color` (+ `-edge-color`) | a darker shade **past** the ramp, for a tile out of play (e.g. a scrabble rack tile already on the board) |
-| `--mark-attention-tile-color` | the **opaque** yellow a tile wears for the beat of an attention flash — for that beat the tile simply IS yellow, and the fade hands the state color straight back. Not a blend: on a green tile a blend comes out sickly rather than urgent |
-| `--mark-gridCursor-color` | the shared keyboard/crossword **entry-cursor** ring (orange-brown, deliberately not red/blue since scrabble's premium squares use those) — scrabble, bananagrams |
-
-**Who uses what:** most games take `--tile-3-fill-color` via the shared `.tile`'s `--tile-slot-fill-color`
-(psychicnum, connections, boggle, scrabble — decided/result states then override by
-re-setting the tokens). **stackdown** shades its stack by depth off shades **1–4**
-(top = 1, deepest = 4). Legitimate divergences: **wordle** and **waffle** always
-color tiles by the wordle result palette (green/yellow/gray), so they never show a
-ramp shade; **codenamesduet** uses its role colors (agent green / neutral tan /
-assassin red) with the ramp only for unpicked cards; **spellingbee** uses `--tile-2-fill-color`
-for its hexes + an accent-yellow center. If a game's tiles are always meaning-coded
-(wordle), that's the reason to skip the ramp — otherwise reach for it.
-
-The ramp is **hand-tuned, not algorithmic** — a deliberate choice so an individual
-shade can be nudged, and because it does not derive from one anchor (hue holds
-while chroma rises as it darkens). A theme supplies a fresh ramp tuned against its
-background, edges included; the semantic token names make it a one-file swap.
-
-**The decided tile — a permanent result fill.** A tile is *decided* once its
-outcome is known and fixed (psychicnum: a submitted guess — green = a secret, red
-= a miss; connections: a tile placed into a solved category — it becomes part of
-that category's colored band). A decided tile colors **permanently** by re-setting
-`--tile-slot-fill-color` / `--tile-slot-edge-color`, dropping any spent/dim/gray treatment — the color
-*is* the "already decided" signal and a record of what's found vs ruled out. It's
-mutually exclusive with the selected dark-fill (a decided tile is `disabled`, so
-it's never both).
-
-The fill is the game's **result palette at full saturation**, not a washed-out
-pastel — psychicnum's decided tiles use `--outcomes-*-fill-color` (the exact tone
-the EventLog outcome bars use), and connections' use the four saturated rank
-colors of the bands. The rule and the reason live in
-[The seven outcome variants](#the-seven-outcome-variants).
-
-A *transient* flash (a brief pop on a just-made move) is a different thing —
-prefer the permanent fill when the result is durable.
-
-**Override the resting fill when it collides with a result color.** The beige
-resting fill (the default for an untouched tile everywhere) assumes a game's
-*result* colors read as distinct from it. codenamesduet is the one deliberate
-exception: its neutral (bystander) result is a warm tan (`#b4986e`) close enough
-to the beige that an unrevealed beige tile would read as "guessed neutral," so it
-sets never-revealed tiles to `--tile-1-fill-color`, the lightest shade of the ramp —
-still in the tile family, just clearly distinct from the tan. Default everywhere
-else stays the shared beige; deviate only when a result color forces it. See
-[codenamesduet's doc.md → Frontend](../src/codenamesduet/doc.md#frontend).
-
-**Peer-identity frame.** In a shared-selection game (connections coop), a
-*teammate's* selected tile is the resting beige + an inset ring in their member
-color (drawn inline), while the player's *own* selection is the dark fill. So the
-fill says "mine," the colored edge says "whose" — the
-[colored-disc identity rule](#player-identity--a-colored-disc) applied to a tile
-edge.
-
-### Tile content: letter vs word (A vs B games)
-
-Two kinds of tile, by what they carry:
-
-- **A — one letter per tile** (boggle, waffle, wordle, scrabble, spellingbee,
-  bananagrams). A fixed character; sizing is uniform.
-- **B — multi-character content per tile** (codenamesduet, psychicnum,
-  connections). The content varies in length, so a fixed font can't fit every
-  tile.
-
-**For B games, auto-fit the font to the tile** — pure CSS, no JS measuring (it
-reacts to the tile's real size, so it composes with the layout-constraint
-system). The heuristic lives **once**, in the shared `.tileWord`: the tile is a
-`container-type: inline-size` query container and the label is
-`font-size: clamp(var(--tile-font-min), calc(100cqi / (var(--len) *
-var(--tile-font-factor))), var(--tile-font-max))`, where `--len` is the content's
-character count (set inline by the board component) and `100cqi` is the tile's
-inner width. Each game tunes the **three knobs** by setting
-`--tile-font-{min,factor,max}` on *its* grid: **`factor`** ≈ width-per-char in
-`em` for the bold-uppercase glyphs (~0.9 — raise to shrink, lower to enlarge);
-**`min`** the floor so long content stays legible; **`max`** the ceiling so short
-content doesn't go cartoonish (the band between is where length differences
-*show* — too low a max makes every word clamp to one size). `container-type:
-inline-size` is font-fitting infrastructure, layout-safe — it doesn't change the
-tile's size.
-
-## The play surface → playarea.md
-
-The play-surface reference — the two-column PlayArea layout, the info-column
-readouts, text entry (capture, not `<input>`), the event log, the word list (its
-two-axis KIND/WHO filter + the both-lists terminal reveal), the turn-history
-viewer, and board sizing — lives in **[playarea.md](playarea.md)**, which also
-documents how each game's PlayArea is decomposed into `BoardCol` / `InfoCol`. This
-doc keeps the visual language around it: theme/tokens, tiles + the warm ramp, page
-chrome, modals/dialogs/toasts, mode pills, and iconography.
-
-### Game versions (v1 → v3)
-
-**v3 is the current standard — the full rule set this doc + playarea.md define**
-(semantic buttons + tones, the feedback-pill tone border + bar, opponent-strip
-identity discs + metric labels, the terminal look for locally-terminal states,
-sticky local feedback, natural-width action buttons). v1 was the original per-game
-layout; v2 the intermediate shared-layout scaffold. **The sweep is complete — all
-sixteen games are v3**, with bananagrams and crosswords the two documented layout
-exceptions (their own board layouts; see their game docs). There is no v4. A game
-doc calling a game "v3" means "conforms to this standard."
+**A game piece has no disabled state.** Unclickable is not disabled: a piece is
+unusable *because something happened to it*, and the something is what it shows
+— a used letter, a found word, a card that's gone. A disabled look on a board is
+a control's look on a piece, and a finding. How a board says what happened is
+[plans/tile-feedback.md](../plans/tile-feedback.md).
 
 ## The ring that says the keyboard is here
 
-One ring — `--chrome-cursor-ring` (`2px solid var(--chrome-cursor-color)`, in
-[`patterns/focus-ring.css`](../src/common/core-css/patterns/focus-ring.css)) — and the
-only thing that varies is the offset, which follows from what the element sits
-against rather than from taste:
-
-| offset | when | e.g. |
-|---|---|---|
-| `-2px` | the element **abuts** its neighbors; an outside ring would overlap the next one and be clipped by the frame | list rows, menu items |
-| `-1px` | the element has **its own border** to sit just inside | inputs, selects, the color swatch |
-| `+2px` | the element has **clear space** around it | a standalone button, the menu trigger |
-
-**The keyboard cursor is the same meaning by a different mechanism.** In a
-[SelectionList](#selection-lists) the *container* is the tab stop and holds real
-focus; arrows move a cursor through the rows, and the component's own `.cursor`
-marks which row Enter would act on. No element is focused, so no pseudo-class
-can say it. A menu does the same job with real focus, moving it item to item
-programmatically. Both mean "the keyboard is pointing here", so both wear the
-same ring.
-
-**It is not a selected state**, and nothing paints it to mean one. A control
-marking what you have *chosen* reaches for a dark neutral instead, so blue is
-only ever the keyboard and a control can wear both at once without ambiguity.
-
-## The page header
-
-Home, club and game all carry the same strip: the menu trigger hard against the
-page's top-left (the body's own padding is the only margin), a thin rule
-beneath, and whatever else that page needs on the line. It is the shared
-[`<PageHeader>`](../src/common/page-header/PageHeader.tsx) — a **component
-rather than a class**, because the two slots are structure, and three pages each
-assembling the same skeleton by hand is how they drifted apart before.
-
-|  | left slot | right slot |
-|---|---|---|
-| home | the menu | — |
-| club | menu · chat bubble · status slot | — |
-| game | menu · panel toggles · status slot | pause · timer · info switch |
-
-- **Both slots always render**, even when the right one is empty. One shape for
-  three pages, and putting something on the right later is adding a child rather
-  than restructuring a header.
-- **The height is a contract**, `--pageHeader-height` in `base.css`: what the
-  strip's tallest child needs — a 32px logo plus the menu trigger's `0.25rem`
-  of padding each side. The header reads it, and so does
-  `--game-header-bottom`, which positions the mobile `<InfoSheet>` under this
-  rule; two places agreeing by coincidence instead is how the sheet ends up
-  riding 4px over the rule at one viewport.
-- **The left slot takes `flex: 1` and `min-width: 0`** — that's the room a
-  `<PageHeaderStatusSlot>` has to render a feedback pill or the players strip into, and
-  the `min-width` is what lets it ellipsize instead of widening the strip.
-- **One gap on every page**, `0.375rem`, and it is a base rather than the
-  separation you see: each mark carries its own hover padding inside its box
-  as part of its look (`0.25rem` on the trigger, `0.3rem` on a header button),
-  so the visible distance between two marks is the gap plus both paddings,
-  and it differs per pair on purpose — the two panel bubbles on a game page
-  sit closest. The seen separations are not meant to be equal, which is why
-  the number is bespoke rather than a ramp step.
-
-## A segmented choice
-
-A few options in a row, exactly one chosen — the club page's mobile tabs and
-its co-op/compete/all filter. The shared
-[`<Segmented>`](../src/common/buttons/Segmented.tsx), which owns the frame and
-the group's label; the segments stay the caller's own buttons.
-
-- **Joined, not a row of buttons.** The shape is the message: the options are
-  mutually exclusive, so they share one border and touch. Separate buttons with
-  a gap read as independent toggles you could press several of.
-- **The segments are not standard buttons.** Giving each one its own border and
-  radius doesn't restyle a segmented control, it dismantles it. The frame owns the border and the rounding; a segment owns
-  only its fill — the same division a SelectionList makes with its rows.
-- **Its children are its segments**, no class per option. A caller wanting
-  full-width segments (the mobile tab bar) sets `flex: 1` on them from its own
-  module.
-- **The chosen one reads off `aria-pressed`**, which the markup already carries
-  for its own sake — so the state lives in one place instead of in a class that
-  styling and accessibility have to keep in step. It's filled in the action
-  family, the paint a primary button takes, because "this is the one" is the
-  same statement.
-
-The component deliberately does not hold the value or wire the clicks: a press
-means something different at each call site — one sets a filter, one switches
-which column the club page shows — and owning the value would make one of them
-lie about what pressing a segment does.
-
-**A button that opens the question is not a segment.** Pressing a segment IS
-the choice; a press that only puts a picker on screen has chosen nothing yet,
-so it is an ordinary [`<StandardButton>`](#what-a-button-is-the-fourteen-kinds)
-however few of them sit together. Crosswords' four puzzle sources are that row.
-
-## The heading levels
-
-Four levels, each with a meaning, declared in
-[`base.css`](../src/common/core-css/base.css). **The level is the decision** — a heading
-takes no class to be the right size. (The celebration's title, an `h2` drawn at
-`1.5rem`, is the exception.)
-
-| | meaning | size | margin |
-|---|---|---|---|
-| `h1` | the **page's** title — "Create a club", the club's name, the home greeting, every error screen | `1.5rem` | `0 0 1rem` |
-| `h2` | a **dialog or notice** title — DeviceBlockNotice | `1.25rem` | `1.25rem` |
-| `h3` | a **section** heading — "Your clubs", "Start a new game", the info column's panels | `1.15rem` | `1.15rem` |
-| `h4` | a **subsection** inside prose — a game's Help | `1rem` | `1rem` |
-
-Declared rather than left to the browser because the default matters: the space
-between a page's section heading and the list under it is load-bearing on the
-homepage and the club page, and left undeclared it is the UA's
-`margin-block: 1em` — a number nobody chose.
-
-**These sizes are for non-game pages.** A game's info column is the packed
-surface, so it steps its headings down and drops the margin —
-`infoPanel.heading` is `--font-size-packed` at weight 600 with the gap coming
-from its parent's `gap`. Expect the same of `h2` and `h4` if a game ever needs them.
-That override is the point of declaring a default: it's a deliberate step down
-from a stated size rather than a second guess at the browser's.
-
-## Headings that carry a control
-
-`<h1>`–`<h6>` are **headings**; the strip at the top of the page is a **header**
-(`<header>`) and is the shared
-[`<PageHeader>`](../src/common/page-header/PageHeader.tsx). Different
-words for different things.
-
-`.heading-with-controls` in
-[`patterns/heading.css`](../src/common/core-css/patterns/heading.css) is the first:
-
-```
-Your clubs                          [ + New club ]
-Start a new game                    [ Co-op ▾ ]
-Your games (7)                      [ All games ▾ ]
-```
-
-- **The control acts on what's BELOW the heading**, never on the page — the
-  picker filters the log beneath it, "+ New club" adds to the list beneath it.
-  That relationship is the pattern; "a flex row with space-between" would
-  describe half the app. A page-level control belongs in the page header.
-- **A bare heading takes no class.** The name is deliberately hard to talk
-  yourself into for an `<h3>` with nothing beside it.
-- **The gap is a minimum, not a spacing choice.** With `space-between` and two
-  children the heading sits left and the control right whatever the gap is; it
-  only takes effect once the row is full. So the shared `--spacer-4` costs
-  nothing on a wide screen — it's the tightest case's answer, a narrow column
-  with two selects beside a heading of several tallies.
-- **It never touches the heading's size or margin** — the level owns those (see
-  above). `h3` is one size on a page and a smaller one in a game's info column,
-  and a row like this is used in both, so zeroing the margin here would make the
-  row responsible for vertical rhythm it can't judge.
-- **The info column has the same shape and does NOT wear this class.** The event
-  log's `Turns [ Everyone ▾ ]` and the word list's
-  `Words: 34 · Score: 118 [ Kind ▾ ] [ Who ▾ ]` are `info-sheet/infoPanel`'s
-  `.headerRow`, the same five declarations in a module. Ruled 2026-09-18: this
-  pattern is a GLOBAL class written as a string, and its readers are pages, while
-  those two are shared components — a component in `common/` reaching for a
-  global class couples its look to the cascade instead of to a module it imports.
-  Neither of those headings needs the `min-width: 0` the pattern adds beyond the
-  five, which is what made the duplication the cheaper side.
-- **`min-width: 0` on the heading slot decides who gives** when the line runs
-  out. Without it the heading refuses to shrink and shoves the control off the
-  edge. It only makes yielding possible, though — the default is wrapping to a
-  second line, which we don't want, so a heading that can get long owes an
-  explicit answer: ellipsis, or dropping a whole clause the way the word list
-  hides `· Longest: 7` on mobile. Prefer dropping a clause when the heading is
-  made of facts; `Score: 11…` loses a number.
+**One ring, `--chrome-cursor-ring`, and it means only "the keyboard is here".**
+Real focus and a list's cursor both wear it. It never means *selected*: a
+chosen state uses a dark neutral instead, so a control can wear both without
+ambiguity. The ring's offset follows what it sits against
+(`core-css/patterns/focus-ring.css`).
 
 ## Selection lists
 
-**A SelectionList is a list you move a cursor through and choose from** — the
-homepage's clubs, a club's games, the games you can start, the crossword
-library. It is a component,
-[`<SelectionList>`](../src/common/lists/SelectionList.tsx), not a set
-of classes: the paint is a handful of rules, and the behavior is the part a
-call site would otherwise have to write itself.
+**A `SelectionList` is a list you move a cursor through and pick exactly one
+thing from** — the clubs, a club's games, the games to start. It is one tab
+stop; arrows move a cursor and Enter acts, immediately. Its cursor is a
+**selection** cursor, hidden until a movement key asks for it, where a board's
+is **geographic** and always shown — the test is whether hiding it would make
+the board harder to read. A menu is not one: a menu is actions and closes, a
+list is places that stay. [`common/lists`](../src/common/lists/doc.md).
 
-The name is deliberate. "List" alone also means a plain bulleted list of text,
-which is most of what the word points at in this repo (every game's Help panel).
-And the line that decides membership is **you pick exactly one thing** — not "a
-column of rows", which is what `Menu`, `FilterSelect`, the setup dialog's player
-checkboxes, `ColorChoiceField` and connections' `HintList` all look like from the
-outside without being one. `SelectField` isn't one either — that is the same job
-handed to a native `<select>` on purpose — and neither is any readout
-(`WordList`, `EventLog`, chat, `RankBar`, board rows, Help's `<ul>`s): you don't
-pick from those at all.
+## What a `<button>` is
 
-**Nowhere in the app selects more than one thing**, so there is no multi-select
-mode and none should be invented. The place that looks closest — the setup
-dialog's player roster — is check-many, which is a different control with a
-different keyboard, not this one with a flag flipped.
-
-### The shape
-
-- **One frame, rows abutting inside it**, with a hairline between them — not a
-  stack of separately-tinted tiles. The frame is what says "this is a list", so
-  a row draws no fill and no border of its own.
-- **The frame owns no padding.** The rows carry all of it, so the space above
-  the first row equals the space between any two, and each row's rule and hover
-  tint run the frame's full width instead of floating inside an inset.
-- **The hairline belongs to the list, not the row.** On the row it needs a
-  `:last-child` rule to suppress the final line, and that rule breaks the moment
-  a row is wrapped.
-- **The list hugs its rows** unless a caller passes `fills`. Whether a list
-  should absorb its parent's free space is a fact about the layout around it.
-- **Keyboard focus recolors the frame's border** rather than drawing a ring: a
-  ring outside a scrolling frame reads as a second frame. Which *row* the cursor
-  is on is a separate mark.
-- **A row is a plain `<div>`.** Not an anchor, not a button — so it isn't
-  focusable and isn't independently activatable, which makes the container the
-  only way in: one tab stop, one thing holding the keyboard. The cost is
-  cmd-click "open in new tab", which is worth little when you play one game and
-  view one club at a time.
-- **A game's status on a row is a corner flag, not a bar** — see
-  `ClubGameRow`'s `.openFlag`. It is deliberately more prominent than an outcome
-  bar and is a different thing entirely; don't reach for the event-log bar
-  vocabulary here.
-
-**The frame is always drawn, and every no-rows state goes inside it** — the
-`empty` prop, rendered as the shared `.emptyState`
-([`patterns/empty-state.css`](../src/common/core-css/patterns/empty-state.css)).
-Nothing having landed yet, nothing matching a filter, and the fetch having
-failed are all the same shape on screen: the list is there and it has nothing in
-it. Replacing the whole list with a sentence would make the page's furniture
-come and go with its contents, and it costs the answer a place to appear without
-moving anything.
-
-`.emptyState` is muted, **oblique**, left-aligned and carries its own inset. The
-slant is what separates it from a quiet value: muted color alone reads as a real
-row that happens to be unimportant, where the slant says the list is talking
-about itself. It is self-sufficient — do not also pass `muted`, which loads
-later and would take the font-size back. Everything that draws one uses it:
-`SelectionList`, `SimpleScrollableList`, `WordList` and `EventLog`.
-
-### The keyboard
-
-The container holds focus; the rows never do.
-
-| key | what it does | while the ring is hidden |
-|---|---|---|
-| ↑ ↓ | move the cursor, clamped, no wrap | reveals, does not move |
-| PageUp / PageDown | move by one visible page | reveals, does not move |
-| Home / End | jump to first / last | reveals **and** jumps |
-| Enter | activate the row under the cursor | **nothing** — it does not reveal either |
-| Space | **nothing** | nothing |
-
-- **Nothing does the native thing.** The focused element *is* the scroll box, so
-  Space and the four page keys would otherwise scroll it out from under the
-  cursor. All six are trapped, and a page is measured rather than guessed.
-- **Space does nothing** because choosing a row acts immediately, and moving a
-  cursor must not consent to an action. It is still trapped, or it would page
-  the box.
-- **The cursor lands on disabled rows** and Enter no-ops there. Skipping would
-  put the cursor index and the row index out of step, and leaves nowhere to go
-  when every row is disabled.
-- **The ring is hidden until a key asks for it** — see below.
-- **Tab belongs to the page, never to the list.** The club page's ring is its
-  two lists and Tab toggles between them; the homepage's is its one list; inside
-  a dialog Tab walks the fields. All the component guarantees is that a list is
-  exactly one tab stop.
-
-### Choosing, and the one mark
-
-**Choosing does the thing, immediately** (`onActivate`): you land on the club,
-the setup dialog opens, the puzzle starts. That is the only thing a row's choice
-can mean here, which is why Space is inert and why a row wears no lasting
-"chosen" mark — by the time one would show, you have left.
-
-So the list draws exactly one mark, the **cursor**: an `outline` in
-`--chrome-cursor-color`, inset, marking the row Enter would act on.
-
-**It is a SELECTION cursor, and hides until a key asks for it.** The app has two
-kinds, and the difference is what the mark is FOR:
-
-- A **geographic cursor** answers *where am I on this board*. You need it to
-  read the board at all, so it appears immediately and never hides — crosswords'
-  cell, and scrabble's and bananagrams' shared `gridCursor`.
-- A **selection cursor** is an alternative to clicking, and answers *which row
-  would Enter act on*. Someone using the mouse has no use for it, so showing one
-  unasked is just an unexplained blue ring. `SelectionList`'s is one.
-
-The test between them: if hiding the mark would make the board harder to READ,
-it is geographic.
-
-So focus alone warms the **frame's** border — that is what says "arrows work
-here" — and the row ring waits for a **movement** key. The first press of a
-relative one (arrows, PageUp/PageDown) only reveals, because "one from where I
-am" has no answer before there is a where-I-am; `Home` and `End` name a
-destination and so reveal and jump together.
-
-**Enter neither acts nor reveals while the ring is hidden.** Acting would take
-you somewhere you did not choose, and *revealing* would be worse than doing
-nothing: the natural response to a key that seems dead is to press it again,
-and that second press would commit. So an arrow is the only way in, and Enter
-stays a key that only ever means "this one". A click sets the cursor without
-revealing it, so going back to the keys resumes where your hand left off.
-
-The boards get the same rules as keyboard navigation reaches them
-([plans/keyboard-nav-plan.md](../plans/keyboard-nav-plan.md)).
-
-**The menu is not one of these.** It looks the same and isn't: a menu is a set
-of *actions* you pick from and it closes; a list is a set of *places* that stay
-put. If the two turn out to share code, the shared thing gets its own name and
-both read it.
-
-Two pick-one sites are bespoke by decision and not this: crosswords' clue lists
-(that game's to revisit) and scrabble's suggested-moves box
-([scrabble.md](games/scrabble.md) says why).
-
-## Mode badges
-
-A gametype's interaction `mode` (`'coop'` / `'compete'`, on the manifest) is **not** baked into its display `name` — it's shown at presentation time as a small colored badge via the shared [`<ModeBadge>`](../src/common/club/ModeBadge.tsx). So a coop + compete sibling pair carries the same `name` (e.g. both manifests say `wordle`), distinguished by the badge.
-
-Rules:
-
-- **Spelling.** The DB, code, and gametype strings spell it `coop`; the **UI says "Co-op"** (and "Compete"). The one place the FE text differs from the stored value — `MODE_LABEL` in [`lib/gameManifest.ts`](../src/common/manifest/gameManifest.ts) owns the mapping.
-- **Look.** The shared `.badge` — an outlined lozenge, transparent background, border and text both one color. That color is one of the app's two **flexible** colors (`--flex-color-1` / `--flex-color-2`, teal and purple today), and which mode gets which is arbitrary: the pair carries no meaning, and the two only have to be clearly different from each other. What isn't arbitrary is that they sit outside the won/lost/active outcome palette, so a mode never reads as a result.
-- **Solo clubs.** In a solo club (handle starts with `=`, one player) **nothing renders** — neither "Co-op" (no one to cooperate with) nor "Compete" — **with one exception**: a compete variant whose manifest declares **`aiOpponent: true`** (scrabble — solo play seats an autonomous AI opponent) shows an **"AI Compete"** badge, because there IS someone to beat. A compete variant *without* an AI (bananagrams) is "compete for 1" — a race with nobody to beat, effectively coop — so it shows none. The flag lives on the manifest so the club UI never has to know about specific games (the removability invariant); pass `soloClub` + the manifest's `aiOpponent` to `<ModeBadge>`.
-- **Where it shows.** Anywhere a gametype name appears next to its mode: every game entry on the club page, which draws it through the shared `<GameEntry>` (the start list, the games list, and the current-game card), plus the club editor (`EditClubModal`). The club page's entries pass `soloClub` (so solo clubs show nothing); the editor **never** passes it, so the badge always shows — it lists both siblings, and the badge is the only thing distinguishing two now-identically-named rows. The setup dialog confirms the mode in its title and on its Start button, in words rather than a badge: `MODE_LABEL` normally, and in a solo club the badge's rule — nothing, unless `aiOpponent`, where it says **"AI"**. The short form is deliberate: the dialog draws the tail after the game's name on a button that also has to fit Cancel, so it cannot carry "AI Compete".
-
-Because the badge carries the mode, the per-game `labelFor` status strings (shown on the same card) **do not** repeat it: they're bare (`solved`, `ada won the race`, `racing…`), never `coop · …` / `compete · …`. When adding a game, keep mode out of `labelFor`.
-
-## What a `<button>` is: the fourteen kinds
-
-`<button>` is the app's most-overloaded element, and most of them are not buttons
-in the sense a designer means. **So the bare element is NEUTRAL**: font, color,
-cursor and a radius, and nothing else. Chrome is opt-in — and a general button
-opts in by BEING one rather than by composing classes:
-
-```
-button                    neutral — font: inherit · color: inherit · cursor: pointer · border-radius
-<StandardButton>          the app's general button. Its whole look lives in its
-                          own module; there are no global button classes, and
-                          nothing outside that folder writes those class names
-<ActionButton>            a StandardButton that IS a command: words, glyph,
-                          tone, key and availability all read off the bound
-                          action (common/actions); the placement picks `show`
-                          and `weight`
-actionSurface(action)     the same for a control that keeps its own markup —
-                          the shuffle pill, the header marks — as props to
-                          spread on its <button>
-.tile                     a game piece (each board's module)
-.key                      a keycap (module-local)
-```
-
-**How a general button is BUILT is [that folder's own
-doc](../src/common/buttons/doc.md)** — the one component, what a call site
-passes it, why the two color axes are separate. This page is the taxonomy
-around it: which kinds of control the app has, which glyph means what, and when
-a button is offered at all.
-
-Two rules from there matter here because they are what makes the taxonomy
-enforceable. **Both treatments are marked and there is no unmarked default** —
-the class layer's twin of the token rule, so a button that says nothing can
-never silently mean the filled one. And **nobody hand-composes a button's
-classes**; a call site renders the component.
-[`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) holds both: each
-treatment declares all of background + border + label, the shape declares no
-color, and markup that spells those class names by hand fails.
-
-**To see the grid, open [`buttons.html`](buttons.html)** — every tone in both
-treatments, at rest, hovered and disabled, with the sliders that derive the whole
-family from its `-primary`. It is the rendered twin of `themes/daylight.css` →
-BUTTON, and the reason it is kept rather than deleted is that a picture of the
-palette cannot drift silently into prose the way a paragraph can.
-
-Two of the four base declarations look like chrome and aren't — they overrule
-browser defaults: a `<button>` does **not** inherit the page font (the UA hands it
-~13.33px system UI, invisible on a chunky filled button and glaring on a text
-link), and its default cursor is an arrow, not a hand. `border-radius` stays in
-the base by measurement, not tidiness: 19 rules cancel the fill without declaring
-a radius, and on a transparent element a radius is inert *until* something paints
-a background — which is exactly what a row or a menu item does on hover.
-
-**The fourteen kinds**, sorted into four families by *what feedback each should
-give* — which is the useful cut, not what they do:
+`<button>` is the most overloaded element in the app, so **the bare element is
+neutral** and chrome is opt-in. Controls sort into four families by the
+**feedback** they should give:
 
 | family | kinds | feedback |
 |---|---|---|
-| **Accidental** — don't look like buttons and shouldn't act like them | `trigger` · `row` · `textlink` · `surface` | *Surface* feedback, not button feedback: rows tint with `--page-surface-hover-color`, textlinks underline, surfaces do whatever their content wants |
-| **Game pieces** — don't look like buttons, have depth | `piece` | Depth on hover, darkening on press (below) |
-| **Keyboard** — look a bit like buttons, have some depth | `key` | Deliberately flatter than a piece, but it sits on a game surface, so not chrome-flat either |
-| **General buttons** — flat, but they get a hover so they don't look dead | `action` · `form` · `choice` · `toggle` · `tab` · `handle` · `dismiss` | Color only (below) |
+| **accidental** — not buttons to look at | a menu trigger, a list row, a text link, a whole content block (a chat bubble) | the surface's own: a row tints, a link underlines |
+| **game pieces** | tiles, cards, hexes, cells | **depth** on hover, darkening on press |
+| **keys** | on-screen keyboard caps | a little depth |
+| **general buttons** | commands, form buttons, choices, toggles, tabs, dismiss | **color only** — no motion, no shadow |
 
-What each kind is: `piece` a game object you press (tiles, cards, hexes, cells) ·
-`key` an on-screen keyboard cap · `action` a purpose button (Submit, Hint,
-Reveal, End game, Peel) · `form` a dialog's commit + cancel pair · `trigger`
-opens a floating thing (the Menu button, FilterSelect's trigger) · `choice` one
-of a mutually-exclusive set (ModeFilter, crosswords' source picker) · `toggle` a
-two-state switch drawn as a button (crosswords' pencil/pen) · `tab` switches
-which view you're looking at (ClubPage's mobile tabs) · `row` a whole list row
-that IS the control (a club-page start or game row, a Menu item, FilterSelect's
-options, the account color swatches) · `handle` a small inline control inside
-content (the event log's `#N`) · `dismiss` an icon-only ✕ or delete · `textlink`
-text that reads as prose or a link (`.link-button`, DefinitionView's
-cross-reference) · `surface` an entire content block that is a button
-(ChatButton, ScratchpadButton).
-
-**A kind is what a control IS, not what element it's built from.** `handle` is
-the case that shows it: the event log's `#N` is conceptually a button — you press
-it and the board jumps to that turn — but it ships as a clickable `<span>`, on
-purpose. A focused `<button>` re-fires its click on Space, so the shared
-"any key exits the history viewer" would instead re-select the turn you were
-trying to leave; a span with an `onClick` takes no keystroke and lets Space fall
-through. (Elsewhere the same problem doesn't arise, because the board takes no
-focus at all — setgame's cards are real buttons nothing ever focuses.) It stays in the
-taxonomy because the taxonomy sorts by **what feedback a control should give**,
-and that question has the same answer either way.
-
-`surface` belongs with the accidental kinds rather than the general ones: **a
-chat bubble is a message that happens to be clickable**, and if it grows button
-chrome it stops being a message. (They were tried with a
-`1px solid var(--field-edge-color)` border and are deliberately borderless.)
-
-**`float` is not a kind** — it's a *placement modifier* on an `action` or a
-`trigger` (the chat FAB, Shuffle, Pause, InfoSwitch). It earns a name only
-because [tile-feedback.md](../plans/tile-feedback.md) gives it a rule of its own: a
-control floating over a **board** keeps its shadow, where chrome otherwise gets
-none — it has a board to cast onto.
-
-### Pieces use DEPTH for hover and DARKENING for press
-
-A piece must not darken on hover, because **the darken is already spent on
-press**. The shared tile does three things in sequence: resting on the page,
-lifted under the pointer (shadow 2px→6px, tile rises 2px), pushed down under a
-finger (`scale(0.96)` + `brightness(0.92)` + shadow back to contact). If hover
-darkened too, press would have nothing left to say.
-
-The load-bearing reason the press owns the darken: **`prefers-reduced-motion`
-drops the shrink, and touch has no hover at all.** On a phone with reduced motion
-the darken is the *only* feedback a tap gets. It cannot be moved to hover.
-
-**One documented escape**, already hit twice: where depth demonstrably can't read
-— spellingbee's and wordwheel's packed hexes, the keyboard's near-white cap — a
-fill change is allowed *in addition*. Both are cases where the shadow has no
-surface to cast onto.
-
-### General buttons use COLOR only — no motion, no shadow
-
-Not conservatism: it's the load-bearing half of *depth belongs to game pieces,
-not chrome*. If a control could lift, nothing would separate it from a piece, and
-"a control that looks like a tile is a bug" would stop being a rule anyone can
-enforce.
-
-It needs no new colors — each family already carries both: filled hovers read
-`--button-<family>-primary-hover-color`, outline hovers
-`--button-<family>-secondary-hover-color`. Both treatments change the **background and
-nothing else**; each re-states its own border so a hover can never shift the
-hairline as a side effect.
-
-A **disabled** button is the deliberate exception to "everything gets a hover":
-it has none, and that missing answer is what tells you it's dead — see
-[A disabled button still gets a tooltip](#a-disabled-button-still-gets-a-tooltip--usually-a-better-one).
-
-**One general button deliberately isn't a `<StandardButton>`**, and it's
-recorded here so a future sweep doesn't "helpfully" convert it. The rule above
-is about *feedback* — color only, no motion, no shadow — and it obeys that; the
-shared component is one implementation of the rule, not the rule itself.
-
-| control | why it styles itself |
-|---|---|
-| crosswords' pencil/pen + scope buttons (`.btn`) | a game-surface control bar whose ON state is `--crosswords-cursor`, a **game** color. Its selected state can't come from a button family without lying about what the color means |
-
-The distinction that keeps this honest: what made the button sweep worth doing was
-that buttons were being handed chrome they never asked for. This one doesn't have
-that problem — it asks for exactly what it wants. Converting it would change how a
-control looks in order to make the stylesheet tidier, which is backwards.
-The cost of the exemption, since it isn't zero: its hover colors are hand-picked
-rather than derived from a tone, so a future theme has an extra place to visit.
-
-**A smaller button is a SIZE, not a kind** — the shared button's `small` prop,
-which brings the whole small treatment with it: tighter padding, smaller type, a
-glyph that follows both, and a smaller icon-only square. One prop rather than
-loose classes whose padding fought on declaration order. It composes with any
-tone and either treatment, and carries no meaning of its own; how important the
-button is has already been said by the tone. Several controls still write a
-small size by hand, in sizes that don't agree with each other or with the font
-ramp; that is [the buttons folder's to settle](../src/common/buttons/todo.md),
-and each surface then applies the rule at its own pass.
+**Depth belongs to pieces, color to controls** — a control that could lift
+would be indistinguishable from a tile. A piece darkens on press rather than on
+hover, because with reduced motion on a phone the darken is the only feedback a
+tap gets. A general button is `<StandardButton>`, or `<ActionButton>` when it is
+a command: **tone is the action's** (what it is — destructive, caution) and
+**weight is the placement's** (how loud it is there). Every command is an
+action, so a one-off hand-rolled `<button>` in a game is a finding.
+[`common/buttons`](../src/common/buttons/doc.md),
+[`common/actions`](../src/common/actions/doc.md).
 
 ## Button iconography
 
-Recurring action buttons share an **icon language** so a player learns a glyph
-once and reads it everywhere ([Consistency across games](#consistency-across-games)).
-
-**We use [Lucide](https://lucide.dev) SVG icon components (`lucide-react`) — not
-an icon font, not color emoji.** Why:
-
-- **Not an icon font.** Fonts put glyphs at private-use codepoints (a11y/SEO
-  hacks), ship a whole file or need subsetting, and can FOUT. The dated approach.
-- **Not color emoji** (`💡 🔑 ♻️ 🏁`). They render *differently per platform* and
-  as **color stickers** that clash with our monochrome line-art — and many
-  icons we need (hint, answer) have no good monochrome unicode at all.
-- **Lucide SVG components** are tree-shakeable (import per icon, only ship what
-  you use), monochrome line-art that inherits `currentColor` and scales with
-  `size`, one consistent 2px stroke — and it's the same *form* we already use
-  for the logos / chat bubble, just finished.
-
-**The map lives in code**, in the semantic icon registry
-[`common/icons/icons.ts`](../src/common/icons/icons.ts): each action is
-re-exported under a semantic name (`Lightbulb as IconHint`, …), so a component
-imports `<IconHint />` and never `lucide-react` directly, and changing a glyph
-there changes every button that draws it. The registry is also where each choice
-is *argued* — the comment beside an export says what the glyph was picked
-against — and the folder's [doc.md](../src/common/icons/doc.md) states the rules
-those comments follow (a name says the MEANING, one file imports Lucide, no size
-or color in the registry).
-
-This page deliberately does **not** list the glyphs: a second copy of the map
-goes stale the first time a glyph changes, and the registry is the copy that
-can't.
-
-**The menu is the legend.** Icon-only buttons carry their names in hover
-tooltips, and a touch device has no hover — `TooltipHost` disables the hover
-path there outright, because a tap's synthetic hover leaves a stuck bubble. So
-the glyphs had no legend on the surface with the least room for words. The fix
-is the menu row's glyph — the registry's own for an action, and
-[`MenuSubmenu.icon`](../src/common/menu/menuModel.ts) for a submenu parent: the game menu already spells
-these actions out (Restart, New game, Reveal solution, Hint, Spoiler, End game,
-Concede, Back to club, Print), so each row shows its glyph beside its name.
-A button whose glyph isn't in the menu yet gets a row **added** — that's how
-hint + spoiler reached letterboxed, psychicnum and stackdown, and how
-letterboxed got the Reveal solution row its terminal button had been missing.
-A grayed row still teaches, so an action whose `describe()` answers `disabled`
-keeps its row, grayed — only `hidden` drops it, which is the answer for an
-action the mode never offers at all (letterboxed's hint ladder in compete,
-crosswords' Reveal submenu), where naming a glyph the surface never shows would
-teach a lie. The pairing is taught
-once, at the point of need, and reads in all sixteen games afterwards — for no
-board space and no per-tap cost, which is what rules out a tap-to-reveal on the
-buttons themselves (it would tax every future tap to answer a first-encounter
-question) and a Help-page legend (nobody opens it at the moment of doubt).
-
-Two rules keep it honest. **Icons come from the semantic registry**, never
-`lucide-react` directly, so the menu can never teach a symbol the button doesn't
-use; `MenuSubmenu.icon` and the registry's `icon` are typed `AppIcon`, the icon registry's own type, so a menu row
-and a button can be handed the identical value — including a glyph the registry
-defines itself rather than aliasing from lucide. And **the gutter is
-reserved on every row**, whether or not that row has anything to put in it, so
-labels share one column instead of going ragged and a leading mark has exactly
-one place it can be. The disc and the glyph SHARE that slot: an account row names a person, an
-action names a deed, and no row is both. Which rows get one: everything with a
-button glyph, plus Print — a printer is instantly scannable in a list of words,
-and if a print button ever appears it has already been taught. Pinned by
-[`Menu.test.tsx`](../src/common/menu/Menu.test.tsx).
-
-**Four glyphs are self-evident and are exempt.** Not every icon-only button
-needs a menu row: some glyphs are read correctly by anyone who has used a
-computer, and a row for them would pad every menu to teach nothing.
-
-| exempt glyph | where |
-|---|---|
-| Shuffle / rotate (`IconShuffle`) | boggle, connections, psychicnum, scrabble, spellingbee, wordwheel, bananagrams |
-| Pause | the `GamePage` header, every game |
-| Delete / backspace (`IconDelete`) | the shared `WordEntryRow` |
-| Submit — the up-arrow (`IconSubmit`) | `WordEntryRow`, and each game's commit button |
-
-The test is whether the glyph is a *convention* — a backspace arrow and a pause
-bar mean the same thing in every app the friends already use — not whether it's
-merely *guessable*. A lightbulb is guessable; whether it hands you a clue or the
-answer is exactly what the menu row settles, so hint and spoiler are not exempt.
-The rest of the audited list (scrabble's commit row, the phone-only icon-only
-buttons, crosswords' lettered squares) is **still open** — not exempt, not yet
-paired.
-
-**Long-press names a button on touch.** Holding an icon-only control opens the
-same bubble hover would. Nothing is lost by claiming the gesture — a button has
-no text to select — and it costs nothing to anyone who already knows the glyph.
-**The load-bearing detail: the press must swallow the click that follows it.**
-Lifting after a long press still fires `click`, so without that, holding a
-button to learn it says "End game" would *end the game* — verified in a real
-browser, where removing the suppression opens the confirm dialog. The bubble is
-dismissed by the next touch (there's no pointer-leave to end it — a stuck bubble
-is the failure the old blanket gate avoided), a drag cancels it as a scroll, and
-`contextmenu` is suppressed on tooltip targets so Android's own menu doesn't
-open over it.
-
-**The two platforms need two different suppressions**, which is worth knowing
-before someone consolidates them. Android's long-press menu arrives as a
-`contextmenu` event, so `TooltipHost` calls `preventDefault()` on it. iOS
-Safari's callout (Copy / Look Up / Share) does **not** — Safari fires no
-`contextmenu` for a long press — so the JS half can't touch it; it takes
-`-webkit-touch-callout: none` (plus `user-select: none`, since the callout is
-the text-selection UI in another hat) on `[data-tooltip]` in
-`core-css/utilities.css`.
-Without it the bubble still opens on an iPhone, with the system menu sitting on
-top of it. No desktop browser reproduces this, headless or not, so the CSS rule
-is guarded by reading the stylesheet. Pinned by
-[`TooltipHost.test.tsx`](../src/common/tooltips/TooltipHost.test.tsx)
-and [`tooltip-longpress.e2e.ts`](../e2e/tooltip-longpress.e2e.ts).
-
-**One glyph names a direction, not a thing: `IconBack`.** Every other name in
-the registry names an action or an object; the chevron names "up one level"
-(game → club, and club → home behind `<`). That is deliberate — the ups never
-co-occur, and the chevron is the only thing on screen that teaches `<` — and
-the full argument sits beside the export in `icons.ts`. Read it before "fixing"
-the glyph into a `House` and a `Users`.
-
-**Conventions:**
-
-- **The icon is decorative; the button carries the label** (visible text, or
-  `aria-label` on icon-only buttons). So the icon is `aria-hidden`.
-- **Styled tooltips, not the native `title`.** Some browsers delay the native
-  bubble so long users never see it, so buttons carry a `data-tooltip`
-  attribute and the single **`<TooltipHost>`**
-  (`common/tooltips/`, mounted once in App.tsx like ToastHost)
-  draws a small dark bubble after a ~400ms beat (about a third of the native
-  delay; also on `:focus-visible` keyboard focus; hover is gated on
-  `(hover: hover)` so a touch tap doesn't leave a stuck bubble; hides
-  instantly on leave/blur/press/scroll). A standard button fills the attribute
-  itself: its tooltip defaults to its label, so an icon-only button always
-  names itself, and a caller passes `tooltip` to say something richer — or to
-  name a button whose drawn word is shorter than what it does. An action's
-  bubble is its name with its key on the end ("New game · +", through
-  `nameWithKey`), or the reason its `describe()` gives for its state ("Find 2
-  more valid words") — that is the only place a player learns a key from a
-  button. The bespoke controls get the same bubble from
-  `actionSurface().buttonProps`; anything else outside the component writes
-  `data-tooltip` itself.
-  The attribute is usable on ANY element as other spots want
-  tooltips later. The host measures and **clamps the bubble to the
-  viewport** — above the anchor by default, flipped below near the top edge
-  (no per-button placement flags), x pinned inside the edges — and the body
-  portal escapes `overflow: hidden` ancestors. (An earlier pure-CSS `::after`
-  version couldn't see the viewport and clipped at the edges; that's why this
-  is a JS host.) The bubble is `aria-hidden` — the accessible name stays on
-  the button itself. A disabled button shows its bubble like any other — see
-  "A disabled button still gets a tooltip" below for why that matters.
-- **Sizing is not a call site's business.** A standard button sizes its glyph
-  in `em`, so the icon tracks the button's own type rather than a number picked
-  per site; a glyph that reads denser or looser than the rest is tuned once, in
-  the component, by a multiplier. The controls outside that component pass a
-  `size` because they draw their own `<svg>`.
-- **The icon-and-label shape belongs to the component**, not to a class a
-  caller composes: one centered row, a gap, and a fixed square when no words are
-  drawn. A surface needing a different box re-points the size token in its own
-  class. **Not** for the bespoke controls — `ShuffleButton`'s round pill and the
-  header's `<PageHeaderButton>` marks — which style themselves and take their
-  action through `actionSurface`; bananagrams' zoom-to-fit is an ordinary
-  icon-only square.
-- **Decided picks worth noting:** **Submit-a-move = `Triangle`, pointing UP.**
-  A move-submit "sends" the move up to the other players (our boards put YOU at
-  the bottom, others above — codenamesduet's keycards literally so), and pointing
-  up keeps the RIGHT-pointing play triangle reserved for the play/resume idiom.
-  Same triangle family, direction = meaning. This is ONLY for sending a game
-  move/guess/clue — NOT the setup dialog or other form submits. **Shuffle/rotate
-  = `RotateCw`** (read clearer than the crossing-arrows `Shuffle`, and spins
-  nicely on the existing hover-spin).
-
-**Peel** (bananagrams) is `act-peel` (primary weight, `IconPeel` = Lucide
-`Banana` — on-brand for MonkeyGrams and reads as its own action, not a generic
-submit). The `🍌` emoji survives only in the **feedback pill** copy ("🍌 Peel!
-You drew 1 tile"), not the button. **`act-zoom-fit`** (`IconZoomFit` =
-`Fullscreen`) is bananagrams's zoom-to-fit — a plain square icon-only button. bananagrams's **dump** uses `ArrowLeftRight` (`IconExchange`),
-the same exchange glyph as scrabble's tile swap, in both the dump zone and the
-dump feedback pill (`FeedbackMsg.text` is a `ReactNode`, so a pill can lead with
-an inline icon).
-
-**Every game command is an action** ([`common/actions/`](../src/common/actions/doc.md)):
-the registry says what a command is called, what it wears and what it answers
-to, and `<ActionButton>` draws it — so a command's appearance is decided once,
-where the menu row and the key read the same entry. End and Concede appear in
-BOTH the info-column action row and the game menu, which is the point: they are
-one binding placed twice. What lives in
-[`common/buttons/`](../src/common/buttons/doc.md) is chrome — cancel, the form
-commit, close, delete — plus the bespoke controls that read an action through
-`actionSurface` but keep their own markup: the board's round shuffle pill, the
-score-carrying submit, and the header's pause, scratchpad and page-switch marks.
-Still on their old glyphs / pending: the chat bubble, the `×` close, and the
-`✓`/`✗` marks.
-
-**Two axes + natural width.** A general button carries **weight** (`primary` = the
-filled-accent main action like Submit; `secondary` = the outline everything else
-builds on) and **tone** (`quiet | normal | caution | destructive | success` —
-the BUTTON bucket's own vocabulary, not the outcome palette's: a control saying
-"this is irreversible" is a different question from a game saying "you lost").
-Each tone re-sets the slot tokens both treatments read, so a tone works in either
-weight. For a command the two axes split: **tone is the registry's** — a fact
-about the action, which `<ActionButton>` does not even accept as a prop — and
-**weight is the placement's**, since how loud a button is depends on where it
-sits. Where they land: the hint ladder — Hint, Spoiler, an AI suggestion — is
-`caution`, and so is scrabble's Pass, an uncommon act that forfeits the turn;
-End, Concede and Reveal are `destructive`, since all three are irreversible; a
-move commit, and codenamesduet's every-turn End turn, are `primary`; a dialog's
-Cancel is `quiet`+`secondary`. `success` is wired with no caller.
-
-**`primary` also draws the CHOSEN one in a row of buttons that name a choice**
-— crosswords' four puzzle sources. That is not a second meaning: a segmented
-control already fills its chosen segment with a primary button's paint, for the
-reason given under [a segmented choice](#a-segmented-choice) — "this is the one"
-is the same statement. A row of loose buttons says it the same way, with the
-weight rather than a class of its own, and says nothing when nothing is chosen.
-
-The tone deliberately avoids the word `action`, which is one of the fourteen
-BUTTON KINDS above — one word naming a purpose in one taxonomy and a color in
-another is a collision worth keeping out.
-
-**The grid is complete, and that is load-bearing.** All five families carry all
-six values — `-base-color` / `-primary-color` / `-primary-hover-color` /
-`-primary-ink-color` / `-secondary-color` / `-secondary-hover-color` — whether or
-not anything reads them yet, because a family picked at one sitting is picked by
-one formula. (`-base` is the anchor the other five derive from, and nothing
-paints it.) `quiet` is the cautionary tale: it spent a redesign as an
-outline-only tone on the argument that a filled quiet button would out-shout its
-neighbor, which is a claim about one USE promoted into a fact about the TONE —
-and it made `tone="quiet"` + `weight="primary"` silently paint blue. Cancel wants
-the outline because **secondary is the right treatment there**, which says
-nothing about the tone. Two guards in
-[`cssTokens.test.ts`](../src/guards/cssTokens.test.ts) hold the grid and the
-naming: every family in the `button`, `outcomes` and `pill` buckets carries every
-one of its variants, and no button token may say "fill" — the axis is
-primary/secondary, and the property is always a background. Action-row
-buttons size to their **own icon + label** (`flex: 0 0 auto`), left-aligned — they do
-**not** stretch to equal widths or the column's right edge: equalizing widths clipped
-a longer label's icon, and unequal widths actually *aid* recognition ("Hint is the
-short one"). Need a command that has no registry row yet? **Add one** — never
-hand-roll a one-off `<button>` in a game.
-
-**End vs Concede** are distinct acts: **End** (`act-end-game`) is the neutral
-mutual "we're done" that stops the game for everyone; **Concede**
-(`act-concede`) is one player dropping out of a race that continues without
-them. **A game draws one or the other, never both** — coop ends, a race
-concedes — which is why they share the `⌥⌫` chord and the same white-flag glyph
-with nothing to arbitrate.
-
-**A race that can ALSO stop the whole table asks instead of drawing two
-buttons.** bananagrams is the one today: conceding costs you the game while the
-others play on, ending gives nobody a result, and the difference is subtle
-enough that two red squares side by side can only name it. So Concede's question
-carries both answers and explains each — "Conceding puts you out and the others
-play on… Ending stops the game now for everyone, with no winner" — and its row
-reads "Concede / End game". That is `ConfirmOptions.alternativeLabel`: a
-confirmation with two ways to say yes, declared in the registry
-(`ActionSpec.confirmChoice`) and asked only where the binding has a body for the
-second answer. It stops at three buttons; past two positive answers it would be
-a menu, not a question.
-
-The one place End resurfaces in a race is for a player who has **already
-conceded**: their Concede is spent, and the question that carried both endings
-with it, so the table stop comes back out on its own. Choosing to end stays
-freely open to a conceder — they are still in the conversation — and the two are
-still never live at once.
-
-Both are `destructive` red, because both are irreversible.
-
-**End's label is the full "End game"**, not a bare "End". Most games draw it as
-a glyph alone, where the label *is* the accessible name and the tooltip, and
-"End" alone doesn't say end what. It also avoids substring-matching the pause
-overlay's "Susp**end** and return to club", which a test would otherwise have to
-work around.
+**Glyphs come from one registry** of Lucide icons named for what they MEAN
+(`IconHint`, never a lightbulb), so a glyph means one thing everywhere —
+[`common/icons`](../src/common/icons/doc.md). **The menu is the legend**: an
+icon-only button's name is a hover bubble, which a touchscreen doesn't have, so
+every action's glyph is drawn beside its name in the game menu, and a glyph the
+menu doesn't teach yet gets a row. A few glyphs are conventions every app
+shares and need no row ([`common/menu`](../src/common/menu/doc.md)).
 
 ### A disabled button still gets a tooltip — usually a *better* one
 
-**`disabled` means "you can't press this". It does not mean "inert".** A
-disabled button keeps its tooltip, and there is nothing inconsistent about that.
-
-The reason it matters is that a disabled control raises a question the enabled
-one never does: *why not?* A button that goes quiet and explains nothing leaves
-the player to work it out, which is the worst version of the interaction. So
-where a button is disabled for a **specific, nameable reason**, its tooltip
-should say the reason rather than repeat the action:
-
-> "No hints when competing" — not "Use a hint"
-
-Where there's no interesting reason, the ordinary tooltip is fine and the button
-just reads as not-yet-available. Either way, say something.
-
-This pairs with how `disabled` is drawn at all
-([base.css → `--chrome-disabled-opacity`](../src/common/core-css/base.css)). The fade is
-only 0.75 — deliberately small — because what actually tells you a control is
-dead is that **it doesn't answer the pointer**. The missing hover carries the
-message; the color only has to be different enough to spot the odd one out in a
-row of buttons; and the tooltip finishes the job by saying why. Fading harder
-was solving a problem it created, since the thing it cost was reading the label
-well enough to know what the button would have done.
-
-## Explicitly deferred
-
-- **Responsive mobile layouts** beyond graceful degradation.
-- **User-selectable themes** (dark / light / pink picker). Foundation is there; mechanism + UI + persistence aren't.
-- **Animations and transitions** beyond the existing `:hover` brightness on tiles.
-- **A literal palette layer** (`--color-gray-100`, etc.). Overkill at ~15 tokens; revisit at ~50+.
-- **Font-size tokens** (`--text-sm`, `--text-base`, …). Components pick raw rem values ad-hoc; standardize when the variety becomes noise.
-- **Promoting the board `.board` wrapper + `.grid` base into the shared
-  `PlayArea.module.css`.** Today psychicnum's `Board.module.css` and
-  connections' `PlayArea.module.css` carry a byte-identical `.board` wrapper
-  (`flex: 1 1 0; min-height: 0; display: flex; flex-direction: column`) and a
-  near-identical `.grid` base (the per-game bits being the track definition + the
-  `--tile-font-*` knobs). Tempting to share now, but both current boards are the
-  same shape (a grid of equal tiles filling the column). The deferral condition —
-  "wait until a structurally different board exists" — **has since been met**:
-  scrabble's 15×15 premium board, boggle's dice grid, and crosswords' grid are all
-  live and genuinely different shapes. So this is now a **judgment call, not a
-  blocked item**: the promotion could be done, extracting what's actually common
-  across the real range of boards rather than guessing — but it hasn't been, and
-  there's no forcing reason to. (The per-game `.board` comments already name this
-  as the future single place a framed board would live.)
-- **Per-game UI testing** beyond what already exists. Manual smoke is the bar for now.
+**Disabled means "you can't press this", not "inert".** A disabled control
+raises a question an enabled one doesn't — *why not?* — so where there is a
+nameable reason, its tooltip says it ("No hints when competing") rather than
+repeating the action. The fade is slight on purpose: what tells you a control
+is dead is that it doesn't answer the pointer.
+[`common/tooltips`](../src/common/tooltips/doc.md).

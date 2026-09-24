@@ -53,14 +53,20 @@ apart.
 ## Details
 
 - **What is not here, and why.** The line that decides membership is *you pick
-  exactly one thing*; docs/ui.md → Selection lists draws it. A menu is actions
-  and closes (`common/menu`); a `SelectField` is a real form control that takes
-  focus on purpose (`common/fields`); `WordList` and `EventLog` are readouts you
-  do not pick from.
-- **Two kinds of cursor.** `SelectionList`'s is a selection cursor, hidden
-  until asked for. A board's is geographic, always shown. The taxonomy and the
-  test between them live in docs/ui.md → Selection lists → Choosing, and the
-  one mark.
+  exactly one thing*. A menu is actions and closes (`common/menu`); a
+  `SelectField` is a real form control that takes focus on purpose
+  (`common/fields`); `WordList` and `EventLog` are readouts you do not pick
+  from. Nowhere in the app picks more than one, so there is no multi-select
+  mode: the setup dialog's player roster is check-many, a different control
+  with a different keyboard. Two pick-one sites stay bespoke by decision —
+  crosswords' clue lists and scrabble's suggested-moves box.
+- **Two kinds of cursor.** A **geographic** cursor answers *where am I on this
+  board*; you need it to read the board, so it is always shown — crosswords'
+  cell, the `gridCursor` scrabble and bananagrams share. A **selection** cursor
+  is an alternative to clicking and answers *which row would Enter act on*; a
+  mouse user has no use for it, so `SelectionList`'s hides until a movement key
+  asks for it. The test: if hiding the mark would make the board harder to
+  READ, it is geographic.
 - **`.emptyState` is self-sufficient.** Do not also pass `muted`; it loads later
   and takes the font-size back. The pattern is
   `core-css/patterns/empty-state.css`.

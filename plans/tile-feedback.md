@@ -1394,7 +1394,7 @@ Cross-cutting, not owned by any one game:
 The 2026-08-17 color census measured every stylesheet against the nearest shared
 token and deliberately **answered almost nothing**: collapsing a lookalike needs
 certainty, not a hex match, and certainty needs the game on screen
-([ui.md → The color system](../docs/ui.md#the-color-system)). So each conversion inherits
+([tokens.md → The color system](../docs/tokens.md#the-color-system)). So each conversion inherits
 one question. **Nothing here is a to-do** — it is what to look at when that game's
 turn comes.
 

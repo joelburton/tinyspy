@@ -540,13 +540,13 @@ organized by area.
 | # | step | state |
 |---|---|---|
 | 1 | this doc | done; trimmed 2026-09-05 |
-| 2 | build the theme | **DONE 2026-08-20.** [docs/ui.md → Themes](../docs/ui.md#themes) |
+| 2 | build the theme | **DONE 2026-08-20.** [docs/tokens.md → Themes](../docs/tokens.md#themes) |
 | 3 | rebuild `/palette` | **swatch half DONE 2026-08-20.** The in-situ half — every variant rendered DOING ITS JOB, ink as text, bar in a list row, fill on a tile — is DEFERRED, not skipped: it was built by hand, was wrong about the pill in three ways at once, and got reverted. It returns when the demos can render the REAL components (`<FeedbackPill>`, `<Dot>`, `<EventLogOutcomeBar>`, the shared `.tile`), which may mean after those components' areas. An invented example is worse than none — it manufactures evidence about the stylesheet. `/palette` and `/font` are otherwise OUT of the sprint (§3) |
 | 4 | the midnight spike | **DONE 2026-08-21.** [dark-mode.md](dark-mode.md) has everything it found; dark mode is not part of this sprint |
 | 5 | shallow whole-app pattern pass | **DONE 2026-08-21.** The rules it produced are [docs/code-conventions.md → Patterns](../docs/code-conventions.md#patterns--a-class-a-token-or-a-utility); the patterns still unbuilt are `todo.md` items in `forms`, `floating-panels`, `core-css`, `buttons`, `lists` |
 | 6 | homepage · clubpage, with the pattern half of the toolkit | **STOPPED 2026-08-21 on purpose**, because the vocabularies didn't exist yet and every conversion was picking a spacing value by hand. Both pages are re-audited from scratch as areas (§3) |
 | 6a | the conversion process + the allowlist guard | **DONE.** §5 and [docs/code-conventions.md → The CSS checklist](../docs/code-conventions.md#the-css-checklist) rule 7 |
-| 6b | the vocabularies | **NAMED 2026-08-21, LANDED 2026-08-22.** [docs/ui.md → The non-color vocabularies](../docs/ui.md#the-non-color-vocabularies). Values are provisional and get tuned area by area |
+| 6b | the vocabularies | **NAMED 2026-08-21, LANDED 2026-08-22.** [docs/tokens.md → The non-color vocabularies](../docs/tokens.md#the-non-color-vocabularies). Values are provisional and get tuned area by area |
 | 6c | the z- layers | **DONE 2026-08-25.** [docs/code-conventions.md → The z- layers](../docs/code-conventions.md#the-z--layers) and [docs/ui.md → Floating panels](../docs/ui.md#floating-panels--five-families-one-shell) |
 | 7 | **the areas** | All the remaining reading, run **area by area** — the process is §4, the order is §3. Each area's audit and working notes live in `plans/areas/<area>.md` while it is open. **Areas are named, never numbered** |
 | 11 | assets | 17 game logos carry baked color; the wordmark and favicon carry near-whites that fail on a dark page. All of it at once, at the end — doing one per game argues about a tree sixteen times |
@@ -934,7 +934,7 @@ What a durable file says instead:
 
 - **the reason, in its own words.** If the words are already there, the cite
   was a courtesy and just goes.
-- **the doc that owns the rule** — `docs/ui.md → The grammar`. When the rule
+- **the doc that owns the rule** — `docs/tokens.md → The grammar`. When the rule
   has not reached a doc yet, moving it is part of the same edit.
 - **nothing**, when the cite was a handoff to an area that has not opened. A
   handoff is a `todo.md` item.
@@ -1087,7 +1087,7 @@ an area is being converted, for each raw value in it:
   every near-miss was picked at a different time by a different hand, not
   decided. Asking once, in context, is how we find the few that were. What
   the answer may be is the a/b/c rule
-  ([docs/ui.md → The a/b/c rule](../docs/ui.md#the-abc-rule--a-value-that-doesnt-fit)):
+  ([docs/tokens.md → The a/b/c rule](../docs/tokens.md#the-abc-rule--a-value-that-doesnt-fit)):
   add a level, fit an existing one, or keep it bespoke with a written reason —
   and *"there is no such thing as 6 bespoke values."*
 

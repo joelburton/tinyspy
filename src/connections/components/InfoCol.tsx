@@ -204,7 +204,7 @@ export function InfoCol({
           <ActionButton action={actEndGame} show="icon" />
           {/* Leaving, last. Filled at terminal, outline while the game runs:
               `weight` is the placement's to choose rather than the action's,
-              which is why it is a condition here (docs/ui.md → Back to club). */}
+              which is why it is a condition here (docs/ui.md → What a `<button>` is). */}
           <ActionButton
             action={actBackToClub}
             show="icon"

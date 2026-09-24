@@ -28,6 +28,8 @@ export function describeReveal({
   impliedBySolve?: boolean
   isTerminal: boolean
 }): Described {
+  // The plain eye, not the crossed one: a solver never pressed Reveal, so there
+  // is no "on" for a struck-through eye to be the "off" of.
   if (impliedBySolve) return { state: 'disabled', label: 'Solution already shown' }
   if (revealed) return { state: 'active', label: `Hide ${noun}`, icon: IconHideSolution }
   // Named in the inert case too: the registry's bare "Reveal" would make the

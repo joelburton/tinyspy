@@ -73,7 +73,10 @@ moving from the club to a game does not close the conversation.
 tree, and neither is the other's parent — so two module-level stores stand
 between them. `chatOpenStore` holds the open flag, persisted, and also records
 that a panel is mounted at all, which is how the `/` shortcut knows whether
-this page has a chat to bind. `chatUnread` holds the badge's count, and with it
+this page has a chat to bind. Where it has none (the home page), `/` answers
+`hidden` and is left to the browser's find-in-page: a key that silently does
+nothing is worse than one that isn't bound, because whoever debugs it starts
+from "chat is broken" rather than "chat isn't here". `chatUnread` holds the badge's count, and with it
 the palette-color name of the latest unread sender — a fact, not a paint:
 resolving a sender needs the roster, which only this side has, while what the
 mark then looks like is the mark's own decision. `<ChatButton>` subscribes to

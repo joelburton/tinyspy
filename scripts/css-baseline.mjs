@@ -156,7 +156,7 @@ for (const r of rows) {
 for (const [name, s] of [...bySurface].sort((a, b) => b[1].lines - a[1].lines))
   console.log(`| ${name} | ${s.files} | ${s.lines} | ${s.rules} | ${s.decls} | ${s.tokenDefs} | ${s.hexes.size} |`)
 
-// ── Purpose classification (the buckets: docs/ui.md → The color system) ───────────────────────
+// ── Purpose classification (the buckets: docs/tokens.md → The color system) ───────────────────────
 // The value-kind split above is mechanical. This is the one that took judgment:
 // what each token is FOR. Six buckets, not the four the plan first named.
 const GAMES = readdirSync(SRC).filter(

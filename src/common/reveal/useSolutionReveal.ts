@@ -33,7 +33,7 @@ export interface SolutionReveal {
  * **Coop ignores `mine` and asks the game**, because one board means one
  * answer: if the table solved it, every player is looking at the solution. Pass
  * whatever the game has; it is not read. (Why a per-player row can't stand in
- * for the game here: docs/ui.md → Terminal results.)
+ * for the game here: this folder's doc.md.)
  *
  * `playState === 'won'` is the coop win in the shared vocabulary (docs/states.md);
  * 'ended' and 'lost' are terminals nobody solved.

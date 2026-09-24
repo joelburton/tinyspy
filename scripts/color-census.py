@@ -4,7 +4,7 @@
 measured against the nearest token in common/theme.css (oklab distance) so a
 lookalike can be spotted.
 
-Written for the palette sweep that produced docs/ui.md → The color system, and kept because it is
+Written for the palette sweep that produced docs/tokens.md → The color system, and kept because it is
 also the "did we get them all" check afterwards: run it again and the per-game
 lists should be brand colors and nothing else.
 

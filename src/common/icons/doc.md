@@ -1,10 +1,9 @@
 # icons
 
 One file that re-exports Lucide's icon components under names that say what they
-MEAN, so a component asks for `<IconHint />` and never for a lightbulb. The icon
-language itself — why Lucide, how the game menu teaches each glyph — is
-[ui.md → Button iconography](../../../docs/ui.md#button-iconography); this folder
-is the mapping.
+MEAN, so a component asks for `<IconHint />` and never for a lightbulb. How the
+game menu teaches each glyph is [`common/menu/doc.md`](../menu/doc.md); this
+folder is the mapping.
 
 ## Intro to area
 
@@ -40,6 +39,12 @@ is still a named button.
 
 ## Details
 
+- **Why Lucide SVG components**, not an icon font or emoji. An icon font puts
+  glyphs at private-use codepoints, ships a whole file and can flash in late;
+  color emoji render differently per platform, as stickers that clash with the
+  app's monochrome line-art, and have no good glyph for much of what we need
+  (a hint, an answer). Lucide's components are imported per icon, inherit
+  `currentColor`, scale with `size` and share one stroke weight.
 - **The grouping**, in `icons.ts`: a move the player makes · the app handing
   something over · a mark that is no control at all · the shell around the
   board · the one glyph that means nothing. A new export goes with its group

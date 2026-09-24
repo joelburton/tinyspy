@@ -62,7 +62,7 @@ were not looking at while a forgotten copy is one grep away.
 
 ## Details
 
-- **`docs/ui.md` owns the rules** — the color system, the buckets, how a
+- **`docs/tokens.md` owns the rules** — the color system, the buckets, how a
   value gets picked, alias versus copy, what is machine-checked. This folder
   is where those rules are answered, one role at a time, and the comments in
   `daylight.css` are the working record of each choice.

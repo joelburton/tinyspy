@@ -183,7 +183,7 @@ All of it is color work, not structural work.
   per-theme judgment.
 - **The tile ramp**, twelve values picked in one sitting and never eyeballed.
 - **The family questions that move pixels**, each measured 2026-08-20
-  ([`docs/ui.md` → What derives, measured](../docs/ui.md#what-derives-measured))
+  ([`docs/ui.md` → What derives, measured](../docs/tokens.md#how-a-value-gets-picked))
   and each a conversation rather than a formula: `near` and `warning` fills sit
   3.9° of hue apart, so the two names barely read as two; `warning` spans 21°
   between its ink and its fill; `lost`'s and `near`'s washes are off-hue

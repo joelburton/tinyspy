@@ -36,7 +36,12 @@
 
 /* Every square in the bar — the two Fill glyphs and the six scope buttons — is
    the SAME box as a shared icon-only action button (`--iconButton-size`), so
-   the End / Concede button passed in as children sits flush with them. */
+   the End / Concede button passed in as children sits flush with them. Not a
+   StandardButton, on purpose: the pencil's ON state is `--crosswords-cursor`, a
+   GAME color, which no button family can carry without lying about what the
+   color means. It still follows the button rule — color only on hover, no
+   motion and no shadow — and its hover colors are picked here rather than
+   derived from a tone. */
 /* @@ */ .btn {
   width: var(--iconButton-size);
   height: var(--iconButton-size);

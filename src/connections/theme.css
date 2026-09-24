@@ -12,7 +12,7 @@
  * The rank palette matches the NYT Connections convention: yellow / green /
  * blue / purple, mapped to category rank 0..3, slightly darkened so the bands
  * read on a light surface. Semantic names tied to connections' vocabulary
- * (`rank-0`, not `yellow`) per docs/ui.md → "Two vocabularies". */
+ * (`rank-0`, not `yellow`) per docs/tokens.md → "Two vocabularies". */
 /* @@ */ :root {
 /* @@ */   --connections-rank-0:    #f9df6d;  /* yellow — easiest */
 /* @@ */   --connections-rank-1:    #a0c35a;  /* green */

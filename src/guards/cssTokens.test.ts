@@ -64,7 +64,7 @@ function scanTokens() {
   //   UNDERSCORE a leading --_ marks a name private to one file
   //              (--_cardGap), the CSS answer to a local variable.
   //
-  // Both conventions are docs/ui.md → The grammar. A narrower class does not
+  // Both conventions are docs/tokens.md → The grammar. A narrower class does not
   // reject them — it makes them INVISIBLE here, so a typo'd --_crdGap would
   // never fail this guard. That is the failure mode to protect against.
   const TOKEN = String.raw`--[a-zA-Z0-9_-]+`
@@ -167,7 +167,7 @@ describe('CSS custom-property tokens', () => {
    * below would otherwise fail on.
    *
    * The CSS sprint lands a vocabulary as a whole ramp and then converts
-   * surfaces to it area by area (docs/ui.md → The non-color vocabularies), so for a while
+   * surfaces to it area by area (docs/tokens.md → The non-color vocabularies), so for a while
    * most of a ramp has nowhere reading it. The alternative — parking the
    * scale in a comment until someone needs a step — is worse than it sounds:
    * a commented token is invisible to every instrument we own. This guard,
@@ -491,7 +491,7 @@ describe('the color families are complete rectangles', () => {
  * and is exactly the drift the 2026-08-17 audit found: a machine can catch a
  * magic number, but only a person catches a bad name. The human half — brand, or
  * a UI color that belongs in common? — is asked per game as each converts
- * (docs/ui.md → The color system).
+ * (docs/tokens.md → The color system).
  */
 /**
  * Guard: every THEME answers exactly the same roles.
@@ -638,7 +638,7 @@ describe('no unnamed colors', () => {
    *
    * So: values live in a `theme.css` — common's if the color is shared, the
    * game's if it is brand — and a `.module.css` references them. That is the
-   * audit preference docs/ui.md → The color system states, made checkable now that
+   * audit preference docs/tokens.md → The color system states, made checkable now that
    * it is true everywhere but one deliberate exception.
    *
    * SHADOWS ARE NOT COLORS and are exempt: a shadow is a composite of geometry
