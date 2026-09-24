@@ -271,7 +271,7 @@ export function BoardCol({
     pick(picked === word ? null : word)
   }
 
-  const { point, actCommit } = useBoardSelectionCursor({
+  const { cursor, point, actCommit } = useBoardSelectionCursor({
     shape,
     enabled: canPlay,
     onToggle: toggleAt,
@@ -309,6 +309,7 @@ export function BoardCol({
         words={shuffledWords}
         results={results}
         selected={isViewingHistory ? null : selected}
+        cursor={cursor}
         decidedBy={decidedBy}
         gameOver={gameOver}
         notMyTurn={notMyTurn}

@@ -12,6 +12,7 @@ import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import { eventToOutcome } from '../lib/answer'
 import { boardShape } from '../lib/boardShape'
+import type { Cell } from '@/common/board-cursor/stepCell'
 import styles from './Board.module.css'
 
 /** Empty word set — the resting value of the head-shake mark, so a board with
@@ -27,6 +28,9 @@ type Props = {
   // this to the viewer's own guesses; in coop it's the shared board. While
   // viewing history this is the snapshot's results (guesses up to that turn).
   results: ReadonlyMap<string, boolean>
+  // The keyboard's selection cursor — the cell to ring — or null when it is
+  // not drawn (see `useBoardSelectionCursor`).
+  cursor?: Cell | null
   // The currently-picked word (highlighted), or null.
   selected: string | null
   // Pick a word tile. Omitted when the board is non-interactive (terminal, the
@@ -88,6 +92,7 @@ export function Board({
   words,
   results,
   selected,
+  cursor = null,
   onPick,
   isViewingHistory = false,
   historyLitWord = null,
@@ -170,7 +175,7 @@ export function Board({
           gridTemplateRows: `repeat(${rows}, 1fr)`,
         }}
       >
-        {words.map((word) => {
+        {words.map((word, i) => {
           const guessed = results.has(word)
           const correct = results.get(word)
           // What a decided tile's permanent fill SAYS is the answer table's
@@ -198,6 +203,8 @@ export function Board({
                 decided === 'won' && styles.decidedWon,
                 decided === 'lost' && styles.decidedLost,
                 selected === word && shared.selected,
+                // Tiles fill the grid row by row, so tile i is at (i % cols, i / cols).
+                cursor !== null && cursor.y * cols + cursor.x === i && styles.cursor,
                 word === inFlightWord && shared.dimInFlight,
                 flashing.has(word) && shared.attentionFlash,
                 // NO — the head-shake, once the flash has handed the tile its
