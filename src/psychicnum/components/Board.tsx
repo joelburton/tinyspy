@@ -27,8 +27,7 @@ type Props = {
   // this to the viewer's own guesses; in coop it's the shared board. While
   // viewing history this is the snapshot's results (guesses up to that turn).
   results: ReadonlyMap<string, boolean>
-  // The currently-picked word (highlighted), or null. Kept in sync with the
-  // word entry by the parent.
+  // The currently-picked word (highlighted), or null.
   selected: string | null
   // Pick a word tile. Omitted when the board is non-interactive (terminal, the
   // viewer is out of guesses, or viewing history) — tiles render inert then.
@@ -74,8 +73,7 @@ type Props = {
  * grid (`cols ≈ √N`), and both the column and row tracks are `1fr`, so the tiles
  * grow with the board.
  *
- * Clicking a tile sets the pending guess (mirrored by the word entry below the
- * board); once guessed, a word's tile colors **permanently** — green if it was
+ * Clicking a tile picks it as the guess; once guessed, a word's tile colors **permanently** — green if it was
  * a secret, red if not — so the board doubles as an at-a-glance record of what's
  * been found and ruled out. In compete mode RLS scopes `results` to the caller,
  * so it reflects only the viewer's own attempts.
@@ -215,8 +213,8 @@ export function Board({
               // NOT a focus target: `preventDefault` on mousedown so a CLICK
               // can't park focus here. Otherwise the next keystroke promotes
               // the clicked tile to `:focus-visible` and leaves a ring on it —
-              // see connections' Board for the same note. A tile is clicked or
-              // typed; it is never a keyboard target.
+              // see connections' Board for the same note. The keyboard reaches a
+              // tile through the selection cursor, never through focus.
               onMouseDown={(e) => e.preventDefault()}
             >
               {/* --len drives the shared .tileWord auto-fit font heuristic. */}

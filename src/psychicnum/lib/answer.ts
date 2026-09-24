@@ -36,8 +36,6 @@ export type Answer =
   // public count.
   | { answerType: 'found_peer' }
 
-  // Refused here: the board does not hold that word.
-  | { answerType: 'not_on_board' }
   // Refused here: this board has already decided that word.
   | { answerType: 'already_guessed' }
 
@@ -68,9 +66,6 @@ export function answerMessage(answer: Answer): AnswerMessage {
 
     case 'found_peer':
       return { outcome: 'won', text: 'guessed a word' }
-
-    case 'not_on_board':
-      return { outcome: 'lost', text: 'Not on the board' }
 
     case 'already_guessed':
       return { outcome: 'warning', text: 'Already guessed' }

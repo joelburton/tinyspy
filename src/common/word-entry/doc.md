@@ -79,8 +79,8 @@ by others.
 
 **One knob, `--wordEntryInput-font-size`.** Its default is at `:root` in
 `core-css/base.css`, and a game raises it by re-setting the token on the box or
-anywhere above it — psychicnum on the row, strands on the box, both reaching
-`.box` because a custom property cascades. The caret's height is in `em` so it
+anywhere above it — strands does it on the box, and a token set on the row
+reaches `.box` too, because a custom property cascades. The caret's height is in `em` so it
 follows without a second knob. That token and a `className` are the whole of the
 per-game tuning; everything else about how an entry looks is the same in every
 game on purpose.
@@ -104,7 +104,7 @@ two would empty the row's ends.
 
 **What may be entered is the game's, and it is the only per-game rule.**
 `charFor` maps a pressed key to the character to append — letters in the stored
-case for most, digits for psychicnum — and the length cap, the ⌫, the ↵ and the
+case, and letterboxed's only the board's twelve — and the length cap, the ⌫, the ↵ and the
 any-key dismissal are uniform, in `useCaptureKeys`. A game writes no entry-key
 branch.
 

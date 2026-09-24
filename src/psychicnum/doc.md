@@ -36,8 +36,9 @@ nine-letter word for texture. **Three of them are secret**, the same
 three for everyone, and hidden server-side — a client cannot tell which, even
 with devtools open (see Schema). Win by finding all three.
 
-A guess must be a board word. Click a tile or type it; a hit turns the tile
-green and a miss red, **permanently**, so the board is the record of what has
+A guess is a board word. Click a tile and Submit, or from the keyboard: arrows
+move a cursor over the tiles, Space picks the word under it, and Enter guesses.
+A hit turns the tile green and a miss red, **permanently**, so the board is the record of what has
 been ruled out. Every guess costs one from a budget of 3, 5, 7 or 9.
 
 **Two assists, and the difference between them is the thing this game is
@@ -65,7 +66,7 @@ the budget to zero first — or when a countdown timer expires.
 **Turn order is opt-in.** The setup dialog offers free-for-all (the default) or
 turn-by-turn, and in the second the server holds `current_turn_user_id` and
 advances it after each accepted guess. A player waiting their turn keeps the
-board but the entry is inert.
+board but it is inert.
 
 ### Compete
 
@@ -257,7 +258,6 @@ pill, the log and the header cannot disagree about one move.
 | `spoiler` | me | *(nothing)* | `lost` |
 | `spoiler_peer` | about a coop teammate | `got spoiler` | `lost` |
 | `found_peer` | about a compete opponent | `guessed a word` | `won` |
-| `not_on_board` | me | `Not on the board` | `lost` |
 | `already_guessed` | me | `Already guessed` | `warning` |
 
 **An answer is mine or somebody else's, and the `_peer` suffix is which.** The
@@ -267,11 +267,12 @@ a glance who is told what. Two things it makes visible: asking for a hint or a
 spoiler shows ME nothing (the clue and the word are rows, and the event log is
 where they belong), and `found_peer` carries no word at all.
 
-**Two of them never reach the server**: the board is face-up and its results
-are already here, so `not_on_board` and `already_guessed` are answered locally
-and write nothing down. The server keeps both checks, which is what makes *its*
-answers to them mean something sharper — a word not on the board is a `fault`
-(the frontend let it through), and a duplicate is a `race`.
+**`already_guessed` never reaches the server**: the board is face-up and its
+results are already here, so it is answered locally and writes nothing down.
+A word not on the board cannot be named at all — a guess is a board tile. The
+server keeps both checks, which is what makes *its* answers to them mean
+something sharper — a word not on the board is a `fault` (the frontend let it
+through), and a duplicate is a `race`.
 
 **Where the secrecy rule lives is in the type, not in anybody's memory.** A
 racer may learn *that* an opponent found a secret and never *which*, so
@@ -290,7 +291,7 @@ answer does not.
         │     ├── Board                  the grid of word tiles
         │     │     ├── Dot ←            who decided a tile (coop, >1 player)
         │     │     └── ShuffleButton ←  floats on the board, not in the action row
-        │     └── WordEntryArea ←        the typed guess; no <input>, keys off the window
+        │     └── Clear · Submit         the move row; the pill takes its place
         │           └── HistoryBanner ←  overlays it while a past turn is open
         └── InfoSheet ←                  off-canvas on a phone, a flex child on desktop
               └── InfoCol                the readouts and the action row

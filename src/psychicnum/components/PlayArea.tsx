@@ -106,7 +106,7 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
 
 /**
  * psychicnum's play surface — the coordinator. It holds no board and draws no
- * control of its own: `<BoardCol>` takes the board and the guess entry,
+ * control of its own: `<BoardCol>` takes the board and Clear/Submit,
  * `<InfoCol>` the readouts and the action row, and this component decides what
  * each of them is handed.
  *
@@ -668,10 +668,11 @@ function PlayArea({
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}
         isStillPlaying={isStillPlaying}
-        // Turn-order: gates the ENTRY input only (not the play-vs-terminal look
-        // above). Always true for free-for-all / solo. When false the waiting
-        // message takes the entry slot (WordEntryArea's designed swap — same height),
-        // so the frozen input explains itself instead of silently ignoring taps.
+        // Turn-order: gates the board and Clear/Submit only (not the
+        // play-vs-terminal look above). Always true for free-for-all / solo.
+        // When false the waiting message takes the below-board slot (same
+        // height), so the frozen board explains itself instead of silently
+        // ignoring taps.
         isMyTurn={isMyTurn}
         // ── The below-board slot: BoardCol shows results into it and draws it ──
         localFeedbackSlot={localFeedbackSlot}

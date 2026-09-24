@@ -2,7 +2,7 @@
 
 /* psychicnum's board-column bits. The board itself is <Board> (its own module);
  * this file styles only the below-board move-input REGION under it — the slot that
- * swaps between the guess entry, an own-move / terminal / waiting pill, and (while
+ * swaps between Clear/Submit, an own-move / terminal / waiting pill, and (while
  * viewing history) the banner overlay. The board-column scaffold (.boardCol /
  * .moveAreaOrLocalFeedback / .localFeedback / .floatingShuffle) is the shared
  * common/game-page/playArea.module.css. */
@@ -15,20 +15,12 @@
   display: contents;
 }
 
-/* psychicnum's one deliberate entry tweak: a bigger
- * entry font — a single short guess word reads large. Applied to the shared
- * <WordEntryArea>'s row; the var cascades down to the WordEntryInput inside it. */
-/* @@ */ .bigEntry {
-/* @@ */   --wordEntryInput-font-size: 2rem;
+/* The move controls: Clear and Submit, right-justified. Lives inside the shared
+ * `.moveAreaOrLocalFeedback` swap box — which reserves the height — and the pill
+ * takes its place when there's feedback. */
+/* @@ */ .moveArea {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
-
-/* On a phone the board fills the screen and 2rem reads oversized, so dial the
- * enlargement back toward the default. Safe below the 16px iOS floor because the
- * WordEntryInput is a display <div>, not a focusable <input> — it never raises the
- * keyboard, so it can't trigger focus-zoom. Phones only; tablets/desktop keep 2rem. */
-@media (--phone) {
-/* @@ */   .bigEntry {
-/* @@ */     --wordEntryInput-font-size: 1.5rem;
-  }
-}
-

@@ -9,10 +9,17 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { ShuffleButton } from '@/common/buttons/ShuffleButton'
-import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
+import { ActionButton } from '@/common/actions/ActionButton'
 import { useBoundAction } from '@/common/actions/useBoundAction'
+import { FeedbackPill } from '@/common/feedback/FeedbackPill'
+import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
+import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
+import { useIsPhone } from '@/common/mobile/useIsPhone'
+import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
+import type { Cell } from '@/common/board-cursor/stepCell'
 import { db } from '../db'
 import { answerMessage, type Answer } from '../lib/answer'
+import { boardShape } from '../lib/boardShape'
 import { Board } from './Board'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import shared from '@/common/game-page/playArea.module.css'
@@ -28,14 +35,15 @@ type GuessAnswer = { verdict: 'hit' | 'miss'; found_all: boolean }
 
 /**
  * psychicnum's board column — the `Board` (with the floating Shuffle) plus the
- * fixed-height below-board slot under it (the turn-viewer banner, the guess
- * entry, or the local feedback slot's top message: an own-move result, the
+ * fixed-height below-board slot under it (the turn-viewer banner, Clear and
+ * Submit, or the local feedback slot's top message: an own-move result, the
  * whose-turn note, the verdict).
  *
- * This is the **input engine**: the pending guess (a board tile click and the entry
- * drive the same word), the local board shuffle, and — because the guess is a board
- * gesture with its result arriving via realtime (no deep entangled state) — the
- * `submit_guess` RPC itself, kept beside the entry it commits. Like the other games'
+ * This is the **input engine**: the picked word (a tile click, or the keyboard's
+ * selection cursor and Space — `useBoardSelectionCursor`), the local board
+ * shuffle, and — because the guess is a board gesture with its result arriving
+ * via realtime (no deep entangled state) — the `submit_guess` RPC itself, kept
+ * beside the Submit that commits it. Like the other games'
  * BoardCol it does NOT own the game state: PlayArea hands it **the board to render**
  * (the live `results` OR a historical snapshot) and the viewed turn's label, from
  * which it derives `isViewingHistory` — which is what makes the turn-history
@@ -73,7 +81,7 @@ export function BoardCol({
   mobileStatus: ReactNode
 
   // ── Board to render ──
-  // The board words (the shuffle source + the client-side board-word check).
+  // The board words (the shuffle source).
   words: string[]
   // Guessed words → was-it-a-secret — the live map OR a snapshot's (PlayArea picks).
   results: ReadonlyMap<string, boolean>
@@ -91,16 +99,17 @@ export function BoardCol({
 
   // ── Guess dispatch ──
   gameId: string
-  // Am I a live participant? Picks the entry (vs a waiting / terminal pill) — the
-  // play-vs-done LOOK. NOT turn-aware: a waiting player is still a participant.
+  // Am I a live participant? The play-vs-done LOOK. NOT turn-aware: a waiting
+  // player is still a participant.
   isStillPlaying: boolean
   // Turn-order: may I act THIS moment? Always true for free-for-all / solo. When
-  // false the entry stays visible but inert (the tiles + capture are frozen); the
-  // InfoCol's TurnStatusLine explains whose turn it is. Kept separate from
-  // `isStillPlaying` so a non-current turn doesn't read as "out of guesses".
+  // false Clear and Submit stay visible but gray (the tiles and the keys are
+  // frozen); the InfoCol's TurnStatusLine explains whose turn it is. Kept
+  // separate from `isStillPlaying` so a non-current turn doesn't read as "out
+  // of guesses".
   isMyTurn: boolean
   // PlayArea's below-board slot. This column shows the guess results into it
-  // (Correct / Wrong / a rejected guess) and the entry row draws its top.
+  // (Correct / Wrong / a rejected guess) and draws its top.
   localFeedbackSlot: FeedbackSlot
 
   // ── Board-scope marks (see `<Board>`) ──
@@ -119,22 +128,22 @@ export function BoardCol({
   // Live, or a past turn's snapshot. PlayArea has already picked which `results`
   // to hand down, so this column only needs to know WHICH it got — and then
   // everything that would WRITE to the board answers to it: the tiles go inert,
-  // the selection and the in-flight dim are dropped, the entry is disabled, and
-  // the banner overlays the slot.
+  // the selection and the in-flight dim are dropped, the keys and Clear/Submit
+  // go inert, and the banner overlays the slot.
 
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
   // conventions: one prop says so, and the flag is derived, never passed).
   const isViewingHistory = historyLabel !== null
 
-  // ─── The pending guess ─────────────────────────────────
-  // The word being assembled, and everything that reads it. A board tile click
-  // and a typed letter are the same gesture as far as this column is concerned:
-  // both set `pending`, and both go through `handleEntryChange`.
+  // May I act on the board right now — pick, clear, guess?
+  const canPlay = isStillPlaying && isMyTurn && !isViewingHistory
 
-  // The pending guess, shared by the board tiles and the entry below the board.
-  const [pending, setPending] = useState('')
-  // The last submitted guess, handed to the entry as its `recall`.
-  const [lastGuess, setLastGuess] = useState('')
+  // ─── The picked word ───────────────────────────────────
+  // The guess being built, and everything that reads it. A tile click and the
+  // keyboard's Space are the same gesture as far as this column is concerned:
+  // both go through `pick`.
+
+  const [picked, setPicked] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   // The word currently with the server; its tile takes the shared in-flight dim.
   // Held until the RESULT lands rather than until the RPC resolves: the reply and
@@ -152,34 +161,28 @@ export function BoardCol({
   // surface when the run changes (common/game-page/doc.md).
   const inFlightWord = submittedWord !== null && !results.has(submittedWord) ? submittedWord : null
 
-  // Picking a tile or typing both drive this one pending guess word. (A partial word
-  // won't equal any board word, so the board only highlights once a tile is clicked
-  // or the full word is typed.)
-  //
   // Drawn only while I can still play: a selection means "the move I am
   // building", and a finished board or a player out of the race builds
   // nothing — so a tile picked just before that moment must not keep the
   // border, since nothing else would ever take it off. Waiting my turn is not
-  // that: the word stays in the entry for when the turn comes back.
-  const selected = pending === '' || !isStillPlaying ? null : pending
+  // that: the pick stays for when the turn comes back.
+  const selected = isStillPlaying ? picked : null
 
-  // A user-driven entry change — typing a letter, or clicking a board tile — is
-  // the player's next action, so it dismisses a gesture-cleared result: route
-  // both through here. (submitGuess sets `pending` to '' directly, NOT through
+  // Picking (or un-picking) is the player's next action, so it dismisses a
+  // gesture-cleared result. (submitGuess clears `picked` directly, NOT through
   // this, so it doesn't dismiss the result it is about to show.)
-  const handleEntryChange = useCallback(
-    (next: string) => {
+  const pick = useCallback(
+    (word: string | null) => {
       localFeedbackSlot.dismiss()
-      setPending(next)
+      setPicked(word)
     },
     [localFeedbackSlot],
   )
 
   // ─── Committing a guess ────────────────────────────────
 
-  // Every submit clears the entry and shows a flash IN the box (success or error) —
-  // so feedback always lands in the entry's already-claimed space, never a new line
-  // that would reflow the board.
+  // Every submit clears the pick and shows its answer in the below-board slot's
+  // already-claimed space, never a new line that would reflow the board.
   const submitGuess = async () => {
     // Every answer this function has reaches the player the same way: one
     // `Answer` in, its words and its color out of `lib/answer.ts`.
@@ -188,22 +191,16 @@ export function BoardCol({
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text));
     }
 
-    const guess = pending.trim().toLowerCase()
-    // Remembered for the entry's recall — including a guess the server refuses,
-    // which is the case where recalling it is worth something.
-    setLastGuess(pending)
-    setPending('')
-    // Two refusals the board can make itself, because it is face-up and its
-    // results are already here. Neither reaches the server; the server keeps
-    // both checks, and its answer to either is then a race or a fault rather
-    // than a verdict (docs/envelopes.md → "was anything local consulted
-    // first?"). The words are the server's, so the two routes read alike.
-    if (!words.includes(guess)) {
-      show({ answerType: 'not_on_board' })
-      return
-    }
-    // `results` is scoped exactly as the server's check is — everyone's guesses
-    // in coop, the caller's own in compete, since RLS never shows more.
+    const guess = picked
+    if (guess === null) return
+    setPicked(null)
+    // A refusal the board can make itself, because it is face-up and its
+    // results are already here: a teammate may have guessed the word since I
+    // picked it. It never reaches the server; the server keeps the check, and
+    // its answer is then a race rather than a verdict (docs/envelopes.md →
+    // "was anything local consulted first?"). `results` is scoped exactly as
+    // the server's check is — everyone's guesses in coop, the caller's own in
+    // compete, since RLS never shows more.
     if (results.has(guess)) {
       show({ answerType: 'already_guessed' })
       return
@@ -258,7 +255,50 @@ export function BoardCol({
     run: handleShuffle,
   })
 
+  // ─── The keyboard ──────────────────────────────────────
+  // The selection cursor: arrows move it over the tiles, Space picks the word
+  // under it, Enter guesses. It sits on a CELL, so a shuffle moves the words
+  // under it while the pick, being a word, moves with its tile.
+
+  const shape = boardShape(shuffledWords.length)
+  const wordAt = (cell: Cell) => shuffledWords[cell.y * shape.cols + cell.x]
+
+  // Space toggles, so a second press un-picks. A decided tile can't be picked,
+  // as it can't be clicked.
+  function toggleAt(cell: Cell) {
+    const word = wordAt(cell)
+    if (word === undefined || results.has(word)) return
+    pick(picked === word ? null : word)
+  }
+
+  const { point, actCommit } = useBoardSelectionCursor({
+    shape,
+    enabled: canPlay,
+    onToggle: toggleAt,
+    onCommit: () => void submitGuess(),
+    canCommit: picked !== null && !submitting,
+  })
+
+  // A tile click: the pick, and the cursor moves there, hidden.
+  function handleTileClick(word: string) {
+    const i = shuffledWords.indexOf(word)
+    point({ x: i % shape.cols, y: Math.floor(i / shape.cols) })
+    pick(word)
+  }
+
+  // Clear un-picks, on its button or ⌫.
+  const actClearSelection = useBoundAction('act-clear-selection', {
+    describe: () => (canPlay && picked !== null ? 'active' : 'disabled'),
+    run: () => pick(null),
+  })
+
+  // Any key clears a gesture-cleared result, as a click on a tile does.
+  useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
+
   // ─── Render ────────────────────────────────────────────
+
+  const phone = useIsPhone()
+  const top = useTopFeedbackMessage(localFeedbackSlot)
 
   return (
     <div className={shared.boardCol}>
@@ -278,7 +318,7 @@ export function BoardCol({
         // Never while viewing a past turn — that board is not the one the guess
         // is in flight on, the same reason `selected` is dropped above.
         inFlightWord={isViewingHistory ? null : inFlightWord}
-        onPick={isStillPlaying && isMyTurn && !isViewingHistory ? handleEntryChange : undefined}
+        onPick={canPlay ? handleTileClick : undefined}
         isViewingHistory={isViewingHistory}
         historyLitWord={historyLitWord}
         // Shuffle floats over the board's top-right — purely visual (a fresh scan
@@ -295,39 +335,33 @@ export function BoardCol({
       />
       {/* The below-board slot: one fixed-height slot below the top-anchored board. It
           ALWAYS renders (never null) so it can't collapse and let the flex:1 board
-          grow (docs/ui.md → Layout stability). The entry row is always mounted;
-          while the local feedback slot holds a message and nothing is typed, the
-          row draws that message in place of its controls — the verdict at
-          terminal, "out of guesses" while the others play on, the whose-turn
-          note, an own-move result — and the history banner overlays it all
-          while a past turn is open. */}
+          grow (docs/ui.md → Layout stability). While the local feedback slot
+          holds a message it takes the place of Clear and Submit — the verdict
+          at terminal, "out of guesses" while the others play on, the
+          whose-turn note, an own-move result — and the history banner
+          overlays it all while a past turn is open. */}
       <div className={styles.belowBoard}>
         <div className={cls(shared.moveAreaOrLocalFeedback, isViewingHistory && history.historyBannerHost)}>
-          {/* The shared banner overlays this slot while a past turn is open — the
-              entry / pill stays mounted underneath, its capture frozen. */}
           {isViewingHistory && (
             <HistoryBanner label={historyLabel} actor={historyActor} onExit={onExitHistory} />
           )}
-          {/* The shared <WordEntryArea> (icon-only Delete + the WordEntryInput + icon-only
-              Submit + the capture keyboard). `bigEntry` bumps the entry font
-              (psychicnum's one short guess word reads large). */}
-          <WordEntryArea
-            value={pending}
-            onChange={handleEntryChange}
-            onSubmit={submitGuess}
-            placeholder="Click on a tile or type"
-            busy={submitting}
-            // Disabled while viewing history (capture is a hard no-op so typing
-            // behind the banner never accumulates, and the viewer's
-            // `act-exit-history` consumes the keystroke), when it's not my turn,
-            // and once I'm done (out of guesses, conceded, the game over) —
-            // the entry stays, inert, under whatever the slot shows.
-            disabled={isViewingHistory || !isMyTurn || !isStillPlaying}
-            onAnyKey={localFeedbackSlot.dismiss}
-            recall={lastGuess}
-            className={styles.bigEntry}
-            localFeedbackSlot={localFeedbackSlot}
-          />
+          {top !== null ? (
+            <div className={shared.localFeedback}>
+              <FeedbackPill slot={localFeedbackSlot} />
+            </div>
+          ) : (
+            <div className={styles.moveArea}>
+              <ActionButton
+                action={actClearSelection}
+                show={phone ? 'icon' : 'both'}
+              />
+              <ActionButton
+                action={actCommit}
+                show={phone ? 'icon' : 'both'}
+                weight="primary"
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

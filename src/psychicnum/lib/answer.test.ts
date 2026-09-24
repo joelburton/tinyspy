@@ -77,7 +77,6 @@ describe('answerMessage', () => {
     [{ answerType: 'spoiler' }, 'lost', ''],
     [{ answerType: 'spoiler_peer' }, 'lost', 'got spoiler'],
     [{ answerType: 'found_peer' }, 'won', 'guessed a word'],
-    [{ answerType: 'not_on_board' }, 'lost', 'Not on the board'],
     [{ answerType: 'already_guessed' }, 'warning', 'Already guessed'],
   ]
 
@@ -93,7 +92,7 @@ describe('answerMessage', () => {
     expect(types.size).toBe(CASES.length)
     expect(types).toEqual(new Set([
       'hit', 'hit_peer', 'miss', 'miss_peer', 'hint', 'hint_peer',
-      'spoiler', 'spoiler_peer', 'found_peer', 'not_on_board', 'already_guessed',
+      'spoiler', 'spoiler_peer', 'found_peer', 'already_guessed',
     ]))
   })
 })
