@@ -186,6 +186,53 @@ game loads), five Soon (the leaderboard helper, the unread result keys, the
 status-merges comments, the action-row collapse, the two shuffles), one
 Maybe (`s`-heavy seeds), one Won't do (the board-stylesheet fold).
 
+### Step 2 — the loader / loaded split (readability 3.1) — DONE 2026-09-23
+
+spellingbee's shape, copied: `PlayAreaLoader` owns `useGame` and the three
+gates — `<Loading>`, `<EnvelopeErrorPage>`, `<NoSuchGamePage>` (its `detail`
+names the read that came back empty, `rows=0 view=wordwheel.games_state`) —
+and hands `PlayArea` a non-null game, the found-words rows, `rowsLoaded`, and
+a narrowed `setup`. The cast happens once, in the loader's JSX; the inner
+component takes `setup: WordwheelSetup` through `Omit<GamePageCtx, 'setup'>`.
+The manifest's lazy line names the loader, and the test file mounts it at all
+29 sites with `useGame` mocked exactly as before.
+
+**What went with it**, all in this commit: the `wordwheelSetup` cast (its
+readers now read `setup`), `game?.mode ?? 'coop'` twice, `game ? {center,
+outer} : null`, `if (!game) return` inside Print's run and its `describe: ()
+=> (game ? 'active' : 'hidden')`, `if (!game) return m` in `letterCounts`,
+`game?.requiredWords ?? []` and its bonus twin, `game?.center_letter
+.toLowerCase() ?? ''`, `game?.mode === 'compete' ? 'compete' : 'coop'`, the
+`gameMode` variable with its readers and its `if (!gameMode) return //
+menu exists pre-load`, `game?.required_words_score ?? 0` twice, the remaining
+`game?.mode` reads (the scored rows, both narrations, `isCompete`), and the two
+inline gates (`surface.loading` / `surface.empty`). boggle still reads both
+classes, so nothing went dead in the shared sheet; `shared/found-words/todo.md`
+waits on boggle alone now. The rank-climb effect's dep went `game` →
+`game.mode`, which is all it reads.
+
+**Two comments the split made false came out with their guards:** the peer
+narration's *"Called unconditionally, before the early returns, and reads
+`game?.mode` (null while loading …)"* and the standing conditions' *"Above the
+early returns because effects must be."* There are no early returns in
+`PlayArea` now. The rest of the comments wait for Step 8.
+
+**The play-surface docstring was orphaned the same way spellingbee's was**: it
+sat above `type SubmittedWord`, which has its own, so `PlayArea` had none. The
+type moved up above the loader, and the docstring sits on its component, with
+one sentence added saying the rows arrive from the loader.
+
+**One behavior change, stated now**, the same one the earlier games
+made: while the read is out the header menu has no game rows and `+` does
+nothing, where before the rows were published pre-load and `+` asked the
+new-game question and then could not act. **That IS the Bug in `todo.md`**,
+which is deleted there — `describe: () => 'active'` is now true rather than
+optimistic. The loading placeholder changes too: the shared `<Loading>` and
+`<NoSuchGamePage>` replace the two bare divs.
+
+**Verified:** `tsc -b` and eslint clean; wordwheel, found-words and the
+guards: 45 files, 407 tests green.
+
 ## Findings
 
 *(`F-wordwheel-1 · slug · title`, one heading each; a status prefix when it
