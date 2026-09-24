@@ -34,7 +34,8 @@ Agreed with Joel 2026-09-23 (*"i do; stamp the files"*), `cs-met-wordwheel` —
 and carries none; both are on the roster all the same, as is
 `docs/games/wordwheel.md`, deleted into `src/wordwheel/doc.md` in pass 2.
 **`src/wordwheel/doc.md` was written at Step 3** (2026-09-23), markdown like
-the todo, roster all the same.
+the todo, roster all the same. **`lib/terminal.ts` and `lib/terminal.test.ts`
+were created at Step 6**, stamped `cs-met-wordwheel`.
 
 ### What is NOT on it
 
@@ -411,6 +412,38 @@ still takes a `setup` prop it never reads (spellingbee's F-2), and Print's
 
 **Verified:** `tsc -b` clean, lint clean over `src/wordwheel/`; the game's
 unit tests and the guards: 41 files, 378 tests green.
+
+### Step 6 — the builder leaves the component file (readability 3.4) — DONE 2026-09-23
+
+spellingbee's Step 6 (`8f600f6a`), copied, names and all: the builder is
+**`buildTerminalMessage`** in `lib/terminal.ts`, the value it produces is
+`terminalMessage`, and InfoCol's `over` prop is `terminalMessage` too.
+`PlayArea.tsx` no longer imports `gameEndedTerminalMessage`, the
+`TerminalMessage` type or `Actor`; the `useMemo` on primitives that feeds the
+verdict effect stays there.
+
+**Checked before copying:** wordwheel's `buildOver` and its docstring were
+byte-identical to spellingbee's as it stood before that game's Step 6
+(`e3306824`), once the game names are swapped. So `lib/terminal.ts` and
+`lib/terminal.test.ts` are spellingbee's Step-6 files with the names swapped —
+the same body, the same `statusOutcome` → `reason` rename (a name left from
+before `status.outcome` became `status.reason`), the same three docstring lines
+saying "reason". No word a player reads changed.
+
+`lib/terminal.test.ts` walks the whole input space — every terminal play state
+in both modes, the caller winning and beaten, the winner known to the roster
+and not, both collective losses told apart by reason — and ends on the table
+check: no cell pairs a winning sentence with a losing outcome, and both texts
+are filled. **Both files join the roster at `cs-met-wordwheel`.** The one test
+comment naming `buildOver` names the new function; the old
+`docs/games/wordwheel.md` never mentioned it.
+
+**Still standing for Step 8:** `PlayArea`'s surface docstring describes
+verdicts that do not exist (the Step 3 note); the builder's own docstring,
+which moved with it, is right.
+
+**Verified:** `tsc -b` clean, lint clean over `src/wordwheel/`; the game's
+unit tests and the guards: 42 files, 386 tests green.
 
 ## Findings
 

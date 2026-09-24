@@ -34,7 +34,7 @@ export function InfoCol({
   // same idea — see docs/playarea.md.
   isCompete,
   isTerminal,
-  over,
+  terminalMessage,
   isLocallyDone,
   foundWordsScore,
   requiredWordsScore,
@@ -59,7 +59,7 @@ export function InfoCol({
   isCompete: boolean
   isTerminal: boolean
   /** The terminal message when the game is over (the action row's line), else null. */
-  over: TerminalMessage | null
+  terminalMessage: TerminalMessage | null
   /** I conceded a compete race while the others race on — the action row says so. */
   isLocallyDone: boolean
 
@@ -109,8 +109,8 @@ export function InfoCol({
 }) {
   // The row's one varying part: the verdict at terminal, a line while a race
   // runs on without you, nothing while you can play.
-  const rowMessage: InfoActionsMessage | undefined = over
-    ? { text: over.infoColText, outcome: over.outcome }
+  const rowMessage: InfoActionsMessage | undefined = terminalMessage
+    ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
     : isLocallyDone
       ? { text: 'You conceded', outcome: 'neutral' }
       : undefined
@@ -168,7 +168,7 @@ export function InfoCol({
           {/* `weight` is the placement's to choose, not the action's — filled
               at terminal, outline while the game runs (docs/ui.md → Back to
               club). */}
-          <ActionButton action={actBackToClub} show="icon" weight={over ? 'primary' : 'secondary'} />
+          <ActionButton action={actBackToClub} show="icon" weight={terminalMessage ? 'primary' : 'secondary'} />
         </InfoActionsRow>
 
         {/* Setup options — what was picked at create time, behind the shared
