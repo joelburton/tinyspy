@@ -27,6 +27,21 @@
 
 ## Someday
 
+- **Tell a relay failure from a function that threw.** functions-js raises
+  `FunctionsRelayError` when the request never reached our code (and sets
+  `x-relay-error`), and `FunctionsHttpError` when our function answered.
+  `edgeFnTransport` reads neither distinction, so both become the same fault.
+  The first is the platform's problem and reads like a `service-error`; the
+  second is ours.
+
 ## Maybe
+
+- **Carry the HTTP status on the envelope.** The wrappers know it and log it on
+  the call's `[db]` line, then return the envelope without it, so
+  `reportUnhandled` leaves `status=` blank for a not-ok (a declared refusal
+  arrives 200, a raw fault 4xx). A tenth key would fix it, but every builder in
+  SQL, Deno and TypeScript writes every key, so it first means deciding whether
+  the wire shape and the shape a call site reads are still one type. A
+  `WeakMap` side channel was considered and rejected.
 
 ## Won't do

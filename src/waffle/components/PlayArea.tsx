@@ -72,7 +72,7 @@ type SwapAnswer = {
  * FE (see lib/history + lib/colors); at a compete terminal it replays an
  * opponent's board as readily as your own. See docs/playarea.md.
  *
- * **Feedback split** (docs/deferred.md → Feedback channels): the player's OWN
+ * **Feedback split** (src/common/feedback/doc.md): the player's OWN
  * not-oks (a refused swap, a failed End) show in BoardCol's below-board slot; the
  * header's global slot carries PEER news — in compete, when an opponent solves
  * or runs out of swaps (coop needs none: the swap log already shows every move).

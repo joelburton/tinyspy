@@ -25,3 +25,10 @@
   those games' areas.
 
 ## Won't do
+
+- **Versioning the saved setup blob.** `clubs_gametypes.default_setup` is
+  stored as written, so renaming a setup field would silently reset a club's
+  saved choice for it. No rename is planned; if one happens, the migration that
+  ships it clears the incompatible rows. Added fields, dropped fields and
+  narrowed types already behave: manifest defaults merge under the blob, and
+  strict validators reject on Start.

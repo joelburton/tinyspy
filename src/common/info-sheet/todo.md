@@ -18,14 +18,22 @@
   from the shared one and the **component** never knows its style comes from two
   places. *"not having the component itself know which parts of its style comes
   from one module vs another is a real win."* The repo uses `composes` nowhere
-  today; see [docs/deferred.md](../../../docs/deferred.md) → Common /
-  architecture.
+  today.
 
   The CSS split is done and did not need this; this needs the slots named and
   decided first (what is a slot, what is free-form, what a game that wants none
   of one does).
 
 ## Someday
+
+- **The open sheet has only half of dialog behavior.** It is `role="dialog"` +
+  `aria-modal`, Escape closes it, and the closed sheet is `visibility: hidden`.
+  It doesn't move focus in on open or restore it on close, trap Tab, make the
+  page behind it `inert`, or close on a tap outside (and it deliberately has no
+  ✕: the header's switch button is the one way out). On a phone the switch
+  button covers all of this; it matters for a keyboard tablet. Direction: a
+  focus ref moved on open and close, `inert` on the rest of the page, and a
+  backdrop that closes on tap.
 
 ## Maybe
 

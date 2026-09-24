@@ -36,3 +36,7 @@
   if a third caller appears; for two, a file is more than the duplication.
 
 ## Won't do
+
+- **Adding a newly registered gametype to every existing club automatically.**
+  A club gets it through the Edit club dialog, or through a backfill in that
+  game's own migration. Neither is common enough to need a standing mechanism.

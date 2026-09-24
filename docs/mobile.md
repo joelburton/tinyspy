@@ -93,7 +93,7 @@ desktop-only — is [features.md → Mobile suitability](features.md#mobile-suit
 - **`:hover` on anything tappable belongs inside `@media (hover: hover)`.** A
   touchscreen keeps `:hover` on the last element tapped, so a hover style sits
   there after every move looking like state. Most boards don't gate it yet
-  ([deferred.md → Mobile](deferred.md#mobile)).
+  ([common/core-css/todo.md](../src/common/core-css/todo.md)).
 - **Long user strings are bounded twice**: handles and club names are capped in
   SQL, and the surfaces that show them carry `overflow-wrap: anywhere`, because
   a short token with no break opportunity still pushes a phone page sideways.
@@ -160,4 +160,4 @@ Layout is checked in a real browser, never jsdom: each converted game has a
 `page-no-scroll.e2e.ts`, `tap-targets.e2e.ts` and `panels-touch.e2e.ts` cover
 the shared rules. What headless Playwright can't reproduce — the safe-area
 insets on a notched phone, iOS's gesture heuristics — is owed as an on-device
-check in [deferred.md → Mobile](deferred.md#mobile).
+check in the app-wide [todo.md](../todo.md).

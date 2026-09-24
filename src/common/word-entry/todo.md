@@ -16,7 +16,7 @@
   it was renamed to lowercase `playArea.module.css` on 2026-09-14 because no
   `PlayArea` component exists in `game-page` — and lowercase is exactly the
   repo's mark for a sheet others may read
-  ([docs/deferred.md](../../../docs/deferred.md) → Common / architecture). And
+  (docs/code-conventions.md → CSS). And
   `.localFeedback` is play-surface chrome by its readers: seven games wrap a
   pill in it themselves, none of them touching this folder, and `WordEntryArea` does
   the identical thing for the five typing games. **What would reopen it:** the

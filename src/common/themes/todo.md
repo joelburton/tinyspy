@@ -32,6 +32,12 @@
   shows a state instead, and setgame overrides the global dim because dimming
   a card "reads as a different card". Keep the cell out of the button
   families; invent it if ever needed.
+- **A caution orange that carries white ink.** The filled caution button puts
+  white on `--button-caution-base-color` at about 3.7:1, under the 4.5 floor for
+  a label. Find a deeper orange that clears it and still reads as orange rather
+  than destructive's maroon (dark ink on the current orange would also flip the
+  hover direction). `--button-caution-secondary-color` is the fallback if no
+  orange works.
 
 ## Maybe
 

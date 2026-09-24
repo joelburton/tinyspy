@@ -499,7 +499,7 @@ function reportUnhandledAsBug(call: string, answer: Envelope): void {
   // the wrapper knew, and logged it on the call's own `[db]` line one line up,
   // but that fact stops at the wrapper's `return`. So it is left off rather than
   // guessed — the one line where a blank `status=` means "not known here"
-  // rather than "nothing answered". docs/deferred.md holds the change that
+  // rather than "nothing answered". common/supabase/todo.md holds the change that
   // would make it known: the status in the envelope.
   //
   // Through `reportDbFault` rather than `showFaultModal` directly, which is the

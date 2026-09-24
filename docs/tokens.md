@@ -228,6 +228,7 @@ is a choice from a list rather than a fresh decision. The steps are in
 | `--transition-duration-paint / -nudge / -travel` | a color settling · a piece answering the pointer by moving · something arriving or growing |
 | `--letter-spacing-label / -display / -wide` | tracking |
 | `--border-width-line / -line-thick / -frame` | a divider or field edge · "this box is a thing" · "something is happening to what's inside" |
+| `--radius-sm / -md / -lg`, `--radius-round` | chosen by what the thing IS: a chip takes sm, a panel md, a card lg; `round` fully caps a shape's ends (a badge, a counter chip) |
 
 **`font-weight` has no tokens**: CSS already names it, and a weight must be a
 multiple of 100.

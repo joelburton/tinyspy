@@ -269,9 +269,16 @@ The design side — tokens, themes, the color system, the vocabularies — is
 
 **CSS Modules, one `*.module.css` per component, beside its `.tsx`.** Values come
 from tokens at `:root` via `var(--token)`. Classes are combined at the call site
-with `cls()` ([`utils/cls.ts`](../src/common/utils/cls.ts)), never with
-`composes:`, so the composition is visible where the element is written. No
-global `.css` for components, no CSS-in-JS, no Tailwind.
+with `cls()` ([`utils/cls.ts`](../src/common/utils/cls.ts)); nothing uses
+`composes:` today (whether a game should extend a shared look with it is open
+in `common/info-sheet/todo.md`). No global `.css` for components, no
+CSS-in-JS, no Tailwind.
+
+**A capitalized stylesheet is one component's; a lowercase one is shared.**
+`Foo.module.css` is the look of `Foo`, and only `Foo` (and its test) imports
+it, so it can be changed worrying only about `Foo`. A sheet meant to be read by
+several components is named in lowercase (`historyViewer.module.css`,
+`playArea.module.css`), because it is not any one component's.
 
 ### A module styles its own elements
 

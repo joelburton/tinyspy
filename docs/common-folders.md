@@ -237,8 +237,7 @@ and re-classifying is a move up the file:
   that it is not recommended again (Joel, 2026-09-19). So the bullet **names
   the proposal, not the outcome** — "the action box should reserve its height",
   then the ruling, the date, and why — in the same shape
-  [`docs/deferred.md`](deferred.md#where-an-item-goes) uses for the
-  cross-cutting ones. Two things it is not: an item that is merely unlikely is
+  the root [`todo.md`](../todo.md) uses for the cross-cutting ones. Two things it is not: an item that is merely unlikely is
   a `Maybe` (the difference is whether somebody ruled), and **an item that got
   DONE never lands here** — that one is deleted.
 - **`Bugs`, not `Broken`** — deliberately. The app audit gives "broken" a
@@ -252,9 +251,9 @@ and re-classifying is a move up the file:
 - **A done item is deleted**, not struck through. A ruled-against one is
   neither: it moves to `Won't do` and keeps its reason.
 
-**`docs/deferred.md` narrows rather than migrates.** It keeps what crosses
-folders; a folder-scoped item moves to that folder's `todo.md` when the folder's
-area is audited. No sweep.
+**An item no single folder owns goes in the root [`todo.md`](../todo.md)**,
+with the same five sections. `docs/deferred.md` takes no new items: each area
+moves its own items into its `todo.md` when it opens, and the file drains.
 
 ## `src/common/`
 

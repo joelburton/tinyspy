@@ -47,10 +47,10 @@
 
 /* @@ */ .card:disabled {
   cursor: default;
-  /* Override the global `button:disabled { opacity: 0.5 }`. A card's COLORS
-   * are one of its four attributes, so dimming them doesn't read as "you can't
-   * press this", it reads as a different card. The board is disabled at every
-   * terminal, which is exactly when people are studying it. */
+  /* Override the global disabled fade (`--chrome-disabled-opacity`). A card's
+   * COLORS are one of its four attributes, so dimming them doesn't read as
+   * "you can't press this", it reads as a different card. The board is
+   * disabled at every terminal, which is exactly when people are studying it. */
   opacity: 1;
 }
 

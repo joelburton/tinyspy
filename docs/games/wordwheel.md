@@ -367,7 +367,7 @@ into three buckets:
   folding them means picking one vocabulary, and a honeycomb has hexes where a
   wheel has tiles. Renaming one to match the other trades [tokens.md's
   two-vocabularies rule](../tokens.md#two-vocabularies--global-and-per-game) for ~40 lines of dedup. See
-  [deferred.md](../deferred.md) if that trade ever looks worth it.
+  [Deferred](#deferred) if that trade ever looks worth it.
 - **Per-game seams by design** (not duplicates to eliminate): `Help` (rules
   copy), `db.ts` (schema-scoped client), `manifest.ts` (brand lives only here),
   `theme.css` (palette).

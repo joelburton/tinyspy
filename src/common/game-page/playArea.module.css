@@ -9,7 +9,7 @@
  * **Lowercase because it is read by others.** A leading cap means one
  * component's stylesheet, which only that component imports; this one is worn
  * by every game and there is no `PlayArea` component in this folder for it to
- * belong to. docs/deferred.md → Common / architecture states the rule.
+ * belong to. docs/code-conventions.md → CSS states the rule.
  *
  * Four concerns live here, and only the first is the file's namesake:
  *   1. the two-column SHELL (.layout / .boardCol / .mobileFill /

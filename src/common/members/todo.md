@@ -56,4 +56,11 @@
 
 ## Maybe
 
+- **Do peer marks want the edge shade?** Crosswords' peer cursor frame and
+  connections' peer band draw a member's FILL color as a thin line, and a light
+  fill like yellow has the contrast problem there that `borderVarFor`'s edge
+  shade solved for the dot. Decide whether the edge token is the answer, or
+  whether "legible against a board" is a different shade from "legible against
+  its own fill".
+
 ## Won't do

@@ -176,7 +176,7 @@ const VOCABULARIES: Vocabulary[] = [
     },
     fix:
       'Use `--radius-sm` / `-md` / `-lg`, chosen by what the thing IS — a card ' +
-      'takes lg, a panel md, a chip sm (docs/deferred.md) — or `--radius-round` ' +
+      'takes lg, a panel md, a chip sm (docs/tokens.md) — or `--radius-round` ' +
       'for a shape whose ends are fully capped (a badge, a counter chip). A ' +
       'value that is not one of them is a question for Joel, not a rounding.',
   },

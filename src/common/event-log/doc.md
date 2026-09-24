@@ -115,8 +115,8 @@ components draw themselves — the box, the table, the outcome bar, the turn
 number, the who column — and a game never imports it. `gameEventLog.module.css`
 is the row vocabulary a game puts on its own `<tr>`s and `<td>`s: `.divider`,
 `.main`, `.other`, `.primary`, `.entryHead`, `.entryCont`, `.muted`. The
-capital/lowercase pair is the repo's rule for it (docs/deferred.md → Common /
-architecture): a capital name is one component's and only that component may
+capital/lowercase pair is the repo's rule for it (docs/code-conventions.md →
+CSS): a capital name is one component's and only that component may
 import it; a lowercase one is shared.
 
 The split is by READER, and measuring it is what produced these two lists: of

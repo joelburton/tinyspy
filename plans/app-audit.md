@@ -784,9 +784,10 @@ Adding an area or reordering the list touches §3 and nothing else.
 - **the area file** — the audit, the findings, the record of what the sprint
   did here, and the working notes. Everything, including archaeology, while the
   area is open; nothing that has to outlive it.
-- **the standing register** — `docs/games/<game>.md` → Deferred for a game,
-  `docs/deferred.md` otherwise — only for something genuinely OUT of the
-  sprint's scope, added deliberately and by name.
+- **the root `todo.md`** — only for work no single folder owns, added
+  deliberately and by name. `docs/deferred.md` and the `## Deferred` sections
+  of `docs/games/<game>.md` take no new items; every game folder has its own
+  `todo.md`.
 
 The split is by *whose work it is*, not by whether it is finished.
 
@@ -816,7 +817,11 @@ drowning this process is built to prevent. A game's roster is `src/<game>/`,
 its two SQL files, and `docs/games/<game>.md`.
 
 **An area's first read is its folder's `todo.md`**, so it does not start by
-re-deriving what earlier areas already handed it.
+re-deriving what earlier areas already handed it. **Before reading it, drain
+into it:** every item for this area in `docs/deferred.md`, and for a game the
+`## Deferred` / `## Won't do` of `docs/games/<game>.md`, moves into the
+folder's `todo.md` under the section that fits, and is deleted where it was.
+Those registers take no new items; they empty as the areas open.
 
 **Then read what moved under it.** The shell keeps changing while the sprint
 runs, so an area's code was written against a `common/game-page` that may no

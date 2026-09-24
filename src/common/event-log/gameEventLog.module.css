@@ -2,8 +2,8 @@
 
 /* The row vocabulary — what a GAME's `GameEventLog.tsx` puts on the `<tr>`s and
  * `<td>`s it renders inside a `<EventLog>`. Lowercase, because it is read by every
- * game with a log rather than owned by one component (docs/deferred.md → Common /
- * architecture: capital means one component's, lowercase means shared).
+ * game with a log rather than owned by one component (docs/code-conventions.md →
+ * CSS: capital means one component's, lowercase means shared).
  *
  * `EventLog.module.css` is the other half and is NOT this: it holds what
  * `<EventLog>` and its atoms draw themselves — the box, the table, the outcome

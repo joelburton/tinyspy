@@ -136,7 +136,7 @@ holds), and `create_game` claims a random board **of the chosen band**.
 
 > **Hints + higher bands.** `reveal_next_hint` reads `common.words.hint`, which
 > is populated for every band-1 (len-5) word and all but two band-2 ones
-> (`docs/deferred.md`). Those two are a data gap, not a shape the game handles:
+> (`src/stackdown/todo.md`). Those two are a data gap, not a shape the game handles:
 > a missing hint is a **fault**, and the RPC says so rather than answering
 > "no hint for this word".
 

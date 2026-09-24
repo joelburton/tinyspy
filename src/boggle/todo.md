@@ -74,6 +74,14 @@
 
 ## Maybe
 
+- **A compete "dupes-cancel" mode: a word more than one player finds scores
+  zero for everyone.** The paper Boggle rule. Today each player keeps every
+  word they find (primary key `(game_id, user_id, word)`). It would be a
+  scoring change in `submit_word` / `_finish` plus a setup flag, and would
+  unlock the ⦻ marker in `common/word-list`. Decide first how a player finds
+  out: compete finds are private until the end, so a word would be accepted
+  and then zeroed at scoring. Is that reveal the fun?
+
 ## Won't do
 
 - **Share the bee games' `useGame` factory.** boggle reads `boggle.games`

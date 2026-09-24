@@ -31,4 +31,10 @@
 
 ## Maybe
 
+- **Rename the `--button-slot-secondary-*` tokens after what they hold?**
+  `secondary` is a treatment and the slot holds a tone, so the name says who
+  fills it rather than what it holds; its twin `--button-slot-primary-*` reads
+  correctly. Declared in `StandardButton.module.css` and the two themes;
+  `FeedbackPill.module.css` re-sets one to borrow a tone.
+
 ## Won't do

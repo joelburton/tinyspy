@@ -693,7 +693,7 @@ allowlist.
   Raised 2026-08-26 in the CSS sprint's `forms` area, while writing the three
   components above.
 
-- **Compete classic dupes-cancel** scoring as an opt-in — moved to [`deferred.md → Far future`](../deferred.md#far-future) (2026-08-03): the open question is whether we want the rule at all, not how to build it.
+- **Compete classic dupes-cancel** scoring as an opt-in — moved to [`src/boggle/todo.md`](../../src/boggle/todo.md) → Maybe: the open question is whether we want the rule at all, not how to build it.
 
 ## 12. Won't do
 

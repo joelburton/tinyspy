@@ -20,7 +20,7 @@ import { boardReady } from './helpers/ready'
  * (Measured across thirteen games: every other one sizes off `--avail-h` and
  * fits at 560px. letterboxed sits ~5px over at short heights — small, constant,
  * unrelated to this; re-measured 2026-09-15 and still 5px, now filed in
- * docs/deferred.md rather than only noted here.)
+ * src/letterboxed/todo.md rather than only noted here.)
  *
  * wordle's fix is a `max-width` on the grid derived from the leftover height.
  * That rule already existed — it was gated to `@media (--mobile)`, on the

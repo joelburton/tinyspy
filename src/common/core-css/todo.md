@@ -39,14 +39,17 @@
 - **Should `:hover` be gated to pointer devices, app-wide?** A touch device
   applies `:hover` when you tap and leaves it applied until you tap elsewhere,
   so on a phone a tapped row or button stays in its hover look indefinitely.
-  The app has never used `@media (hover: hover)`. The model that makes it a
+  The model that makes it a
   decision: hover is a state only a pointer can be in — "I am over this and
   have not committed" — and a finger has no such state, it is off or pressing.
   So the answer pairs with its other half: gate `:hover` to `(hover: hover)`
   and give touch its own feedback with `:active`, which the app has almost
-  nowhere. The header's marks are where it first bites (their background
-  would carry both hover and press); the header may take it as a local rule
-  first. Not decided.
+  nowhere. The gate is already used by spellingbee's hexes, strands' tiles and
+  the header's marks (which pair it with `:active`); the shared `.tile`, the
+  on-screen keyboard's `.key`, and the boards of stackdown, wordwheel, boggle,
+  letterboxed, setgame and connections' peer pick are not. Not decided —
+  docs/mobile.md → The rules every screen keeps states the gate as the rule,
+  so if the answer is no, that doc changes too.
 - **`.card` names two different things.** Global `.card` is the bordered
   section of a page; four module stylesheets also declare a local `.card`
   that is not it — a popover's box, a device notice's box, setgame's playing

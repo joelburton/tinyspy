@@ -181,10 +181,10 @@
 
 /* @@ */ .tile:disabled {
   cursor: default;
-  /* Override the global `button:disabled { opacity: 0.5 }`. These are LETTERS,
-   * not a control whose unavailability needs signalling — and at terminal the
-   * whole board is disabled, which grayed out the finished puzzle exactly when
-   * it becomes the thing everyone wants to read. */
+  /* Override the global disabled fade (`--chrome-disabled-opacity`). These
+   * are LETTERS, not a control whose unavailability needs signalling — and at
+   * terminal the whole board is disabled, which grayed out the finished puzzle
+   * exactly when it becomes the thing everyone wants to read. */
   opacity: 1;
 }
 

@@ -6,7 +6,7 @@
  *
  * **Lowercase because it is read by others** — a leading cap means one
  * component's sheet, which only that component imports, and no component owns
- * these (docs/deferred.md → Common / architecture states the rule).
+ * these (docs/code-conventions.md → CSS states the rule).
  *
  * **The line between this and `game-page/playArea.module.css` is which ELEMENT
  * wears the class.** A game's PlayArea root div wears the shell's `.layout`,

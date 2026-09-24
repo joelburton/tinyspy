@@ -43,7 +43,7 @@
  * from this scan. Measured across `src/`: every such region is inside
  * `src/guards/`, so no storage touch is hidden today, but the hole is real.
  * Closing it needs a tokenizer, and three other guards carry the same stripper,
- * so it is filed in `docs/deferred.md` as one change to all four rather than
+ * so it is filed in the app-wide `todo.md` as one change to all four rather than
  * fixed in one. The other half of the same hole — a URL's `//` swallowing the
  * rest of its line — IS handled; see `stripComments`.
  */

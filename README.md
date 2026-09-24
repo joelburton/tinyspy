@@ -173,4 +173,4 @@ The detail behind everything above lives in `docs/`. **[CLAUDE.md](CLAUDE.md) ca
 
 In production with real accounts, games and chat history, so schema changes migrate forward and preserve data (see [`CLAUDE.md`](CLAUDE.md)). Sixteen games are live — bananagrams, boggle, codenamesduet, connections, crosswords, letterboxed, psychicnum, scrabble, setgame, spellingbee, stackdown, strands, waffle, wordiply, wordle, wordwheel — most multiplayer ones a coop + compete sibling pair (codenamesduet is coop-only, bananagrams a single competitive race); psychicnum is a deliberately-tiny toy that keeps the multi-game architecture honest. Further games slot into the same shape — one new folder under `src/`, one new line in `src/gametypes.ts`, one new Postgres schema.
 
-Known cosmetic gaps and deferred work are in [`docs/deferred.md`](docs/deferred.md).
+Known cosmetic gaps and deferred work are in [`todo.md`](todo.md) and each folder's own `todo.md`.

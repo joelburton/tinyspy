@@ -170,6 +170,23 @@ describe('every feature folder', () => {
     ).toEqual([])
   })
 
+  it('and the app-wide todo.md at the root carries the same five sections', () => {
+    const src = readFileSync(join(CWD, 'todo.md'), 'utf8')
+    expect(src.split('\n')[0]).toBe('# app-wide — todo')
+    expect(headings(src)).toEqual(TODO_SECTIONS)
+  })
+
+  it('and docs/deferred.md takes no new items, and only drains', () => {
+    // A ratchet: the file holds no items of its own, only the index of game
+    // docs whose `## Deferred` still has to move into the game's todo.md.
+    // When a game's register moves, delete its row AND lower this number.
+    const REGISTERS_LEFT = 7
+    const src = readFileSync(join(CWD, 'docs/deferred.md'), 'utf8')
+    expect(src.match(/^\s*- /gm) ?? [], 'deferred.md takes no new items; file it in a todo.md').toEqual([])
+    const rows = (src.match(/^\| \w+ \| \[/gm) ?? []).length
+    expect(rows, `deferred.md registers: lower REGISTERS_LEFT as they drain`).toBe(REGISTERS_LEFT)
+  })
+
   it('has a doc.md', () => {
     const missing = featureFolders()
       .filter((f) => !existsSync(join(f.dir, 'doc.md')))

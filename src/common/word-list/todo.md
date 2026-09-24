@@ -14,7 +14,7 @@
   truthfully show post-terminal in compete, though it could be live in coop.
 - **⦻ (U+29BB), "scored zero because more than one player found it."**
   Reserved, and it only ever ships with the dupes-cancel scoring mode it
-  labels, which is a far-future question in
-  [docs/deferred.md](../../../docs/deferred.md#far-future).
+  labels, which is an open question in
+  [boggle's todo](../../boggle/todo.md).
 
 ## Won't do

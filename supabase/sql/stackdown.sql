@@ -638,7 +638,7 @@ begin
   -- EVERY word a stackdown board can use has a hint: the setup form offers
   -- bands 1..2 and the board library holds only those, and common.words carries
   -- a hint for every 5-letter word at those bands (2496/2496 and 1665/1667 —
-  -- the two exceptions are a known data gap, docs/deferred.md). So a null here
+  -- the two exceptions are a known data gap, src/stackdown/todo.md). So a null here
   -- is the dictionary being wrong, not this game being unusual. The word rides
   -- in the detail so the `[db]` line names the row to fix.
   if hint_text is null then

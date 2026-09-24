@@ -24,7 +24,7 @@
 ## Soon
 
 - **`game-page/playArea.module.css` is four concerns in one file.** Renamed to
-  lowercase 2026-09-14 (docs/deferred.md → Common / architecture: a sheet read
+  lowercase 2026-09-14 (docs/code-conventions.md → CSS: a sheet read
   by others is not a component's), and the info column's concern left 2026-09-18
   — **subdividing the rest is still open.** What remains: the two-column shell
   (`.layout`, `.boardCol`, `.mobileFill`, `.responsiveInfoCol`, `.hugRectWidth`,
@@ -54,7 +54,7 @@
   one import, so moving a class is a rename at each call site — the info-column
   move cost eighteen files — and `composes:` would let declarations move while a
   consumer keeps one import. The repo uses it nowhere yet; it is the open
-  decision in docs/deferred.md's third bullet under the same heading, and Joel's
+  decision in `common/info-sheet/todo.md`, and Joel's
   steer 2026-09-18 is to take it up after a game or two has been audited, when
   there is a real sense of how much per-game styling the column needs. The
   rename risk is not the argument for it: `src/guards/cssClasses.test.ts` fails

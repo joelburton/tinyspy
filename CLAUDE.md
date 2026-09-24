@@ -119,7 +119,8 @@ rules this implies.
 | [src/common/pdf/doc.md](src/common/pdf/doc.md) | Printing a board to PDF |
 | [docs/testing.md](docs/testing.md) | Where a test goes, the pgTAP and Vitest patterns, the guards, the gallery |
 | [docs/features.md](docs/features.md) | Every game, categorized by feature |
-| [docs/deferred.md](docs/deferred.md) | Cross-cutting deferred work, and the index of per-game registers |
+| [todo.md](todo.md) | App-wide todos only; a todo almost always belongs in its folder's `todo.md` |
+| [docs/deferred.md](docs/deferred.md) | Retired: takes no new items; indexes the game docs' old registers until they drain |
 | [docs/cheatsheet.md](docs/cheatsheet.md) | One-screen command and file lookup |
 | [README.md](README.md) | The project narrative, setup and deploy |
 
@@ -203,7 +204,7 @@ a public list."
 **Screen-reader support is not a goal of this project. Don't propose it.** No
 `aria-label`s for board tiles, no live regions for turn announcements, no
 "a screen-reader user would hear X" findings in reviews, and no accessibility
-items in [docs/deferred.md](docs/deferred.md). This follows from the audience
+items in any `todo.md`. This follows from the audience
 prior above: the user population is known and none of them use one.
 
 These games are also intensely visual — a grid of colored tiles, a crossword,
