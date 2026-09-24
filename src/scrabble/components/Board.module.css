@@ -17,7 +17,7 @@
   height: var(--side);
   container-type: inline-size;
   user-select: none;
-  touch-action: none;
+  touch-action: manipulation;
 }
 
 /* The "you're viewing a past turn" board frame is the shared history outline — see

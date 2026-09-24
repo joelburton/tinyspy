@@ -156,7 +156,8 @@ export function useDragGesture<TSource, TCell>(
   /**
    * Arm a gesture from a pointer-down. Call this from the cell / rack / hand
    * `onPointerDown` after any game-specific guard (e.g. "it's my turn"). Ignores
-   * non-primary buttons and prevents the default text-selection drag.
+   * non-primary buttons and prevents the default text-selection drag. A touch
+   * press can only tap.
    */
   const start = useCallback(
     (source: TSource, letter: string | null, cell: TCell | null, e: React.PointerEvent) => {
@@ -164,7 +165,8 @@ export function useDragGesture<TSource, TCell>(
       e.preventDefault()
       gestureRef.current = {
         source,
-        letter,
+        // A finger taps but never drags: dragging is a mouse affordance (docs/mobile.md).
+        letter: e.pointerType === 'touch' ? null : letter,
         cell,
         startX: e.clientX,
         startY: e.clientY,

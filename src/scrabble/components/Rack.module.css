@@ -32,7 +32,7 @@
   color: var(--scrabble-tile-ink);
   cursor: grab;
   box-shadow: var(--scrabble-rack-shadow);
-  touch-action: none;
+  touch-action: manipulation;
 }
 /* An unplaced blank shows a faint "?" where its letter will go (it has no
    letter until it's placed and declared) — see Rack.tsx. */

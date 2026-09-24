@@ -16,8 +16,8 @@ type Src = { kind: 'tile'; id: number }
 type Cell = { x: number; y: number }
 
 /** A synthetic React pointer-down at (x, y); `button` defaults to primary. */
-function down(x: number, y: number, button = 0): React.PointerEvent {
-  return { button, clientX: x, clientY: y, preventDefault: vi.fn() } as unknown as React.PointerEvent
+function down(x: number, y: number, button = 0, pointerType = 'mouse'): React.PointerEvent {
+  return { button, pointerType, clientX: x, clientY: y, preventDefault: vi.fn() } as unknown as React.PointerEvent
 }
 function pointer(type: 'pointermove' | 'pointerup' | 'pointercancel', x = 0, y = 0) {
   window.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true }))
@@ -115,6 +115,17 @@ describe('useDragGesture', () => {
     act(() => pointer('pointerup', 300, 300))
     expect(onDrop).not.toHaveBeenCalled()
     expect(onTap).toHaveBeenCalledTimes(1) // it settles as a tap
+  })
+
+  it('a touch press never drags, even past the threshold — it settles as a tap', () => {
+    const { view, onDrop, onTap } = setup()
+    act(() => view.result.current.start(SOURCE, 'A', { x: 3, y: 4 }, down(100, 100, 0, 'touch')))
+    act(() => pointer('pointermove', 300, 300))
+    expect(view.result.current.drag).toBeNull()
+    expect(document.body.classList.contains('x-dragging')).toBe(false)
+    act(() => pointer('pointerup', 300, 300))
+    expect(onDrop).not.toHaveBeenCalled()
+    expect(onTap).toHaveBeenCalledTimes(1)
   })
 
   it('ignores a non-primary button (right-click)', () => {

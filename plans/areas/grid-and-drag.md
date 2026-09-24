@@ -89,7 +89,7 @@ drag rule now holds only `user-select` and `cursor`. No value changed.
 Re-checked headless: all 20 of scrabble's tokens and all 13 of bananagrams'
 resolve at rest. The guards pass. The boards themselves were not looked at.
 
-## F-grid-and-drag-2 · `touch-drag` · scrabble drags by touch; its docs and `mobile.md` say it doesn't and mustn't
+## FIXED · F-grid-and-drag-2 · `touch-drag` · scrabble drags by touch; its docs and `mobile.md` say it doesn't and mustn't
 
 `useDragGesture` never looks at `pointerType`, and a finger fires pointer
 events like a mouse. scrabble's board and rack set `touch-action: none` (since
@@ -114,6 +114,22 @@ bananagrams is blocked on every touch device, so this is scrabble only.
 - **(b) Follow the code.** Keep touch drag in scrabble, and correct
   `scrabble.md`, the `PlayArea.tsx` comment and `features.md`; `mobile.md`'s
   rule gains scrabble as its stated exception.
+
+**Resolution (Joel, 2026-09-24: *"follow-the-docs. realistically, even if drag
+works perfectly on a phone, it would be unpleasant. the minimal really useful
+device would be a tablet with a keyboard attached."*):**
+
+- **The hook.** `start` arms a touch press with no letter, so it can tap but
+  never drag. `start`'s docstring says so.
+- **scrabble's CSS.** The board and the rack tiles go from `touch-action: none`
+  to `manipulation`, which is what the shared `.tile` in
+  `game-page/playArea.module.css` gives every tapped surface: no double-tap
+  zoom, no tap delay.
+- **The docs already said this,** so none changed.
+- **A new test** checks that a touch press past the threshold settles as a
+  tap. Planting the old line turns it red.
+- **Verified:** the scrabble, bananagrams and folder suites, the guards,
+  `tsc -b` and eslint pass. Not tried on a device.
 
 ## F-grid-and-drag-3 · `drag-class` · Each game names its own body class for the same rule, and the grab cursor rarely shows
 
