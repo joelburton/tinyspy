@@ -826,10 +826,366 @@ pointers at the deleted doc, repointed); `deno test`, 15 green;
 `gmake db-sql ENV=local` then `npm run test:db`, 182 files, 2656 tests,
 PASS.
 
+### The audit's read — 2026-09-24
+
+**The READ is DONE.** Every roster file end to end, React, SQL and CSS
+together: the manifest, `db.ts`, `useGame.ts`, the seven `lib/` files and
+their five tests, the eight components and their three stylesheets,
+`theme.css`, the printer, `PlayArea.test.tsx` and `SetupForm.test.tsx`,
+`doc.md`, `todo.md`; the repeatable SQL file whole, the frozen migration,
+`setup.psql` and all twelve pgTAP files, plus `rank_idx_test.sql` as
+evidence; and the edge function's three files.
+
+**The checks beside the files:** the shell commits since the area opened
+(`ed8f81c4`..HEAD is this area's thirteen and nothing else — no commit under
+`src/common`, `src/shared`, `common.sql`, `_shared/` or the docs the roster
+cites); what `common.end_game`, `common.reset_game`, `common.concede`,
+`_raise_game_deleted` and `_raise_game_over` do (`end_game` and
+`update_state` MERGE the status, `reset_game` assigns it; the game-over helper
+scopes itself to the two end RPCs by its own docstring, so `submit_word`'s
+own PN357 for the same words is the sibling's shape too and is not raised
+here); what `makeBeeGame` refetches (the found list; the header once);
+`useFoundWordSubmit`'s contract, which is where F-15 turns — its `submit`
+clears the word through its own setter, so nothing the game wired to
+`onChange` runs on a submit; `WordEntryArea`'s `submitDisabled` (a per-value
+veto the key and the button read together); `common/utils/shuffle.ts` (exists,
+takes `Math.random` by default); every sibling answer spellingbee's audit
+settled (its F-1 to F-17 and R-1 to R-5, each checked for a twin here — the
+twins are F-1 to F-14 below; F-10 and F-12 have none, `submit_word` already
+calling `_raise_game_deleted` and the narration ruled for both games); every
+`doc → Section` pointer the roster cites (`prosePointers` green); and what
+reads the per-player result keys (nothing but `won`, F-2).
+
+What the game IS, for the record: the code held up where spellingbee's did,
+and the fork's own mechanism — the claims, the spend order, the submit gate —
+is where the read found something spellingbee's could not. The trusting-commit
+split is clean end to end, the compete privacy rests on the same one policy
+with its three arms pinned, the edge function's pure core is separated and
+tested with the fit rule at its center, and the terminals say what they
+should. What the read found is of four kinds: the four items `todo.md`
+already held (F-1 to F-4, each a spellingbee ruling with a twin here); ten
+more spellingbee twins the prose pass and the steps had noted (F-5 to F-14);
+**two bugs in the claim mechanism, both proved with a scratch test and both
+this game's own** (F-15, F-16); and one naming (F-17). Seventeen findings.
+`todo.md` → Soon empties when F-1 to F-4 ship.
+
 ## Findings
 
 *(`F-wordwheel-1 · slug · title`, one heading each; a status prefix when it
 has one, no prefix means OPEN)*
+
+### F-wordwheel-1 · `leaderboard-four-times` · the compete leaderboard query is written out four times
+
+From `todo.md` → Soon; spellingbee's F-11, ruled *"1 — the leaderboard
+alone."* The subquery that sums each player's `found_words` into `{ user_id,
+found_words_score, rank_idx, found_words_count }` appears in `submit_word`
+twice (the win, with two redundant `coalesce`s, and the running update), in
+`submit_timeout` and in `end_game`, the same `left join … group by
+gp.user_id` each time. Options: **a helper**, `wordwheel._leaderboard
+(target_game uuid, required_score int) returns jsonb`, `language sql
+stable`, revoked from public with no grant, the four sites one assignment
+each and the three re-keys into `common.end_game`'s shape staying inline —
+spellingbee's helper with the schema swapped; or leave it. Recommendation:
+the helper, as ruled there. `compete_test`'s mid-game score and the win's
+leaderboard pin its content.
+
+### F-wordwheel-2 · `results-unread-keys` · the per-player results carry keys nothing reads
+
+From `todo.md` → Soon; spellingbee's F-16 (coop) and R-1 (compete), both
+ruled. The coop endings — `submit_timeout`, `end_game` — write `{ won:
+false, finished: true, team_score, team_rank_idx }` per player where the win
+writes `{ won: true }`; the compete endings — `submit_word`'s win,
+`submit_timeout`, `end_game` — write `{ won, found_words_score, rank_idx }`.
+The app reads `result.won` and nothing else (`terminalOutcomeVerb`; no SQL
+reads `result`). Options: **every result is `{ won }`** in both modes, the
+three compete re-keys shrinking to a roster-built `jsonb_object_agg(user_id,
+{won})`, with `coop_target_test` and `compete_test` pinning a result as
+exactly `{ won }`; or leave them. Recommendation: `{ won }` everywhere, as
+ruled twice there.
+
+### F-wordwheel-3 · `status-merges` · two SQL comments, a test comment and a test label say `common.end_game` replaces the status, and it merges
+
+From `todo.md` → Soon; spellingbee's F-14, ruled *"the prose."*
+`common.end_game` merges (`coalesce(status, '{}') || end_game.status`).
+Written when it replaced: `submit_timeout`'s and `end_game`'s compete
+branches (*"common.end_game REPLACES status wholesale, so we must re-emit"*),
+`compete_test`'s comment above its timeout assertions, and
+`coop_target_test`'s label *"(end_game replaces status wholesale)"*. The
+code is right either way; what keeps the re-emission is `common.end_game`'s
+own header — a terminal write states what the ending adds, a final tally
+among them. Options: **correct the prose** (each comment gives that reason;
+the two tests lose the claim); or also drop the re-emission. Recommendation:
+the prose, as ruled there.
+
+### F-wordwheel-4 · `two-shuffles` · two hand-written Fisher–Yates shuffles, one per side
+
+From `todo.md` → Soon; spellingbee's F-6, ruled *"do both."* `shuffled` in
+`components/BoardCol.tsx` and `shuffled` in the edge function's `index.ts`
+are the same loop over `Math.random`, and `src/common/utils/shuffle.ts`
+exports `shuffle` (a copy back, `Math.random` by default, no imports so an
+edge function can load it by relative path). Options: **both call the shared
+util** — the component by alias, the edge function as
+`'../../../src/common/utils/shuffle.ts'` the way `spellingbee-build-board`
+and `scrabble-ai-move` import — the edge function's docstring line about
+varying the center moving to the call site; or leave them. Recommendation:
+both, and `deno test` plus a boot probe to prove the cross-folder import
+resolves, as spellingbee's did.
+
+### F-wordwheel-5 · `race-winner-celebration` · the race's winner gets no confetti
+
+spellingbee's F-1 (Step 8's note), ruled *"do f1"* — and connections',
+psychicnum's and wordle's before it. `useCelebration(playState === 'won')`
+in `PlayArea.tsx` is coop only, and the comment says so as a fact with no
+reason. The winner is on the common row as `winnerId`, so a gate that names
+the race's winner is right on the first render, as `useCelebration`
+requires. The modal's body reads `setup.target_rank ?? 6` directly, where the
+derived `targetRankIdx` beside it is the same value. No test pins the
+current behavior either way. Options: **the same here** — the gate becomes
+`playState === 'won' || (playState === 'won_compete' && winnerId ===
+session.user.id)`, `winnerId` moving up beside the hook, the body reading
+`targetRankIdx` and adding *first* in a race, and `PlayArea.test.tsx`
+gaining spellingbee's five celebration cases; `doc.md` says the rule in
+three places and its Tests row, and `lib/terminal.ts`'s docstring in one;
+or keep coop only with a comment that says it is a choice. Recommendation:
+the same here, for the reason the four siblings gave.
+
+### F-wordwheel-6 · `unused-setup-prop` · `InfoCol` takes a `setup` it never reads
+
+spellingbee's F-2 (Step 5's note), ruled *"delete it."* `InfoCol`'s props
+type declares `setup: WordwheelSetup` under the setup disclosure, `PlayArea`
+passes `setup={setup}`, and the component destructures only `setupRows`
+beside it; the `WordwheelSetup` import has no other use. `PlayArea`'s own
+`setup` stays (the setup rows, `hasBonus`, `targetRankIdx`, the celebration
+body). Options: **delete it** (the member, the pass-through, the import), or
+keep it for a reader nobody has named. Recommendation: delete it.
+
+### F-wordwheel-7 · `print-recomputes-rank` · the print handler works out the rank the component already has
+
+spellingbee's F-3 (Step 5's note), ruled *"fix."* `PlayArea.tsx` computes
+`selfRankIdx = currentRankIndex(foundWordsScore, game.required_words_score)`
+in Derived; the print handler computes `rankIdx` from the same call with the
+same two inputs, and only its coop header reads it. Options: **read
+`selfRankIdx`** and drop `rankIdx`, or leave it. Recommendation: read it.
+
+### F-wordwheel-8 · `empty-letters-guard` · `BoardCol` guards against outer letters that cannot be empty
+
+spellingbee's F-4, ruled *"fix."* The `outerShuffled` memo opens with `if
+(!outerLetters) return []`. `outerLetters` is `game.outer_letters`, `char(8)
+not null` in the migration, typed `string`, off a row the loader has already
+held the surface for; `create_game` refuses anything but eight lowercase
+letters, and `Array.from('')` is `[]` anyway. Options: **delete the line**,
+or keep it as a defense. Recommendation: delete it; a guard for a state the
+column forbids tells the reader that state exists.
+
+### F-wordwheel-9 · `ungated-hover` · a tap leaves a tile raised on a touchscreen
+
+spellingbee's F-7, ruled *"gate it."* `.tile:not(.used):not(.inert):hover`
+and its `.face` rule in `Tile.module.css` lift the face and lighten its
+shadow; a touchscreen keeps `:hover` on the last element tapped, so after
+every letter one face stays raised. `common/mobile/todo.md`'s `:hover`
+question lists wordwheel's board among the ungated (Step 1 checked it).
+spellingbee and strands wrap the rule in `@media (hover: hover)`, the gate
+`docs/ui.md` → Button iconography uses for tooltips; `:active` stays
+ungated (a press ends when the finger lifts), and so does the reduced-motion
+block (its `transform: none` is a no-op on a face that no longer lifts).
+Options: **gate the two hover rules**, and take this game's name off the
+shared item in `common/mobile/todo.md`; or leave it. Recommendation: gate
+it, and look at it on a phone.
+
+### F-wordwheel-10 · `unread-fetch-fields` · the board builder carries two fields nothing reads
+
+spellingbee's F-8, ruled *"do it"*, plus one of this game's own.
+`fetchCandidateWords` in `index.ts` adds `is_legal: true` to every row,
+`CandidateRow` in `board.ts` declares it, `board_test.ts`'s rows set it, and
+no line in `board.ts` reads it — `candidate_words` already filters to the
+legal band. And `fetchPangrams` selects `difficulty` from the pool, the
+`.lte('difficulty', …)` filter having already used it server-side;
+`PangramRow` declares it, `board_test.ts`'s pool rows set it, and nothing
+reads it (the prose pass corrected its "Kept for logging" to say so).
+Options: **drop both** — `is_legal` from the type, the mapping and the test
+helper, with a docstring saying the rows are legal by construction;
+`difficulty` from the select, the type and the test rows — or drop one, or
+leave them. Recommendation: drop both; `deno check` makes a reader of either
+a type error.
+
+### F-wordwheel-11 · `help-text` · the Help modal promises a pangram a custom board need not have, and omits bonus words and the modes
+
+spellingbee's F-13, ruled *"1"* — the rewrite. `Help.tsx` says of the
+pangram *"Every board has at least one."* True of a random board (grown from
+a nine-letter seed), false of a custom one: the player's letters need only
+yield one required word. The modal also says nothing about bonus words (the
+dot, and why a score can pass the maximum), the target rank, or what a race
+is. spellingbee's body is the shape: the pangram line made true, a paragraph
+on bonus words, a paragraph on the two modes with *Coop:* and *Compete:* in
+bold, the default height 500. This game's own lines — the tile used at most
+once, the purple center — stay. Options: **rewrite the body** the way
+spellingbee's was, the words shown before they ship since it is UI copy; or
+fix the false sentence only. Recommendation: the rewrite.
+
+### F-wordwheel-12 · `small-shapes` · code that says a little more or less than it does
+
+spellingbee's F-16, ruled *"do it"* — its four have twins here — and two of
+this game's own:
+
+- **PN183's message** reads *"BUG: legal difficulty of % below the required
+  % "* — a trailing space, and wrong when the legal band is above 6, which
+  the same raise also catches.
+- **The band casts are unguarded.** `(setup->>'required')::int` and `legal`
+  raise a bare 22P02 on a non-number and escape the envelope as a crash,
+  where `target_rank`'s identical cast is caught and becomes PN180. The
+  dialog never sends one, so this is shape; spellingbee's took two new
+  codes from `raiseCodes.test.ts` rather than reusing.
+- **Two dead branches**: `submit_timeout`'s compete `case when
+  current_target_rank is not null then 'lost_compete' else 'ended'` (a race
+  always has a target; `create_game` refuses one without), and the compete
+  `labelFor`'s `ended` arm checking `reason === 'timeout'`, which a compete
+  game cannot reach (`docs/game-status-labels.md` already shows only
+  `Ended · nobody reached`).
+- **`Tile` gates the click twice.** `onClick={disabled ? undefined :
+  onClick}` sits under `.tile.used { pointer-events: none }`, which already
+  takes the click; and that rule's `cursor: default` is unreachable, since
+  a box with no pointer events never shows a cursor of its own.
+- **`Wheel` recomputes the ordinals.** `Wheel.tsx` derives each tile's
+  ordinal among same-letter tiles inline, in a block, and `lib/spend.ts`
+  has the same loop as its private `ordinals`. One export, two readers.
+
+Options: **fix all six**; or pick. Recommendation: all six.
+
+### F-wordwheel-13 · `test-gaps` · rules nothing exercises
+
+spellingbee's F-17, ruled *"fix"*, four twins here — plus the two tests
+F-15 and F-16 need, which ship with them:
+
+- **A conceder cannot submit** (PN358). `doc.md` states it twice as the
+  reason a conceder cannot win; `concede_test` never submits after a
+  concede.
+- **The realtime touches.** `submit_timeout`, `end_game` and the last
+  `concede` update every `found_words` row in place, and `replay_board` its
+  `games` row; the three headers call them load-bearing and nothing asserts
+  them. Read off `ctid`, not `xmin` (a pgTAP file is one transaction).
+- **New game drops the custom letters.** `createNewGame` strips both keys;
+  the `PlayArea.test` case starts from a setup with none, so it cannot tell.
+- **The frozen leaderboard.** A win freezes it "as it stood"; `compete_test`
+  checks the mid-game one and the winner's id, not the final entries.
+
+Options: **write all four** (three pgTAP, one Vitest), each planted to prove
+it can fail; or pick. Recommendation: all four.
+
+### F-wordwheel-14 · `stale-claims` · sentences on the roster that survived the prose pass
+
+The read's case, as it was spellingbee's (its F-15): these are in bodies
+and labels the prose pass, reading headers, did not reach.
+
+- **`lib/setup.ts`**: *"The board pool is selected so the pangram is
+  gettable at the required band … so any choice is solvable"* — PN195 and
+  PN198 exist because a narrow band can starve the builder;
+  `wordwheelSetupError`'s docstring says the manifest *"shows the returned
+  string and disables Start until it's `null`"* and `legalError`'s /
+  `customLettersError`'s say *"or `null`"* — all three return `FormErrors`
+  (`{}` when fine).
+- **`theme.css`**: *"Only the TEXT color is per-game now"*.
+- **`PlayArea.test.tsx`'s `loadedGame` and `answer.test.ts`'s header**: the
+  wheel is *"outer `cabdfg`"* — six letters; the fixture is `cabdfghi`.
+- **pgTAP**: `gameplay_test` — five labels naming *"42501"* / *"P0001"* for
+  PN253 / PN357 / PN486, three sections numbered *(10)*, and the header's
+  list numbered apart from its sections; `replay_test` — *"42501 =
+  common.require_game_player's 'not-a-player|'"* (PN253); `schema_test` —
+  *"to exercise the conditional-exposure case"* and *"outer_letters is
+  char(8) now"*; `create_game_test`'s header OVERCLAIMS — it names
+  `is_current_view`, the center's shape, the outer alphabet and
+  `target_rank`'s range, and asserts none of the first three and only the
+  range's top (the same overclaim spellingbee's R-2 found).
+- **The frozen migration** keeps its *"useWordSubmit"*, *"band <= 3"* and
+  *"the red center circle"*. An applied migration's comments may be
+  corrected, and the prose pass repointed this one's doc pointers on Joel's
+  own precedent (`f2d5ff34`), so these three are in scope on the same
+  ground, and listed here rather than left.
+
+Options: **fix them all** in one sitting; or leave them. Recommendation: fix
+them all, the migration's three included.
+
+### F-wordwheel-15 · `claims-survive-submit` · a clicked tile's claim outlives the word it was clicked for — a BUG
+
+**Proved with a scratch test, then deleted.** Click the outer E on a wheel
+whose center is also E, type the rest, press Enter (the word is refused or
+accepted; either clears the box), then type a bare `e`: the OUTER E marks,
+where the rule says a typed letter spends the center.
+
+The engine's `submit` clears the typed word through its own `setWordState('')`
+(`useFoundWordSubmit.ts`), never through the `onChange` the game wired, so
+`BoardCol`'s `handleChange` — whose comment says the box clearing on submit
+trims the claims — does not run on a submit. The claims array keeps every
+click from the last word; the next keystroke's `trimClaims` keeps any whose
+letter the new word has, and `spentTiles` honors it first. `lib/spend.ts`'s
+docstring (*"a click is recorded as a CLAIM … and the claims are honored
+first"*) and the `PlayArea.test` case *spends the tile you CLICKED* are
+both true within one word; nothing types a second word after a click.
+Options: **clear the claims in `onAnswer`** — every submit passes through it
+once, after the engine has cleared the word — with a `PlayArea.test` case
+(click the outer E, submit, type `e`, the center is spent); **derive** the
+honored claims at render as `trimClaims(claims, word)` (not enough on its
+own: a stale older claim still ranks before a fresh click, since `trimClaims`
+keeps in order); or **route the engine's clear through `onChange`**, a
+shared-hook change for one caller. Recommendation: clear in `onAnswer`, and
+`handleChange`'s comment says the submit path is that line.
+
+### F-wordwheel-16 · `refusal-ignores-claims` · a refused word's tiles are picked by render order, not by the tiles the word spent — a BUG
+
+**Proved with the same scratch test.** Click the outer E, type `bd`, Enter:
+`EBD` is too short, and the CENTER E shakes and wears the answer, though the
+outer E was the tile in the word until the moment of submit.
+
+`BoardCol`'s `onAnswer` hands `useMark` only the word's letter counts;
+`Wheel` then picks the tiles with `spentTiles(letters, counts, [])` — no
+claims — so a twin that was clicked answers on its sibling. `doc.md` →
+Frontend says the tiles *"it would have spent"* shake, and the case *fills
+one tile per use of a letter, never both twins* passes because it types the
+letter. `BoardCol` has everything at `onAnswer` time to say which tiles:
+`claims`, the counts and `outerShuffled` (the render order). Options: **the
+mark carries the tile indices** — `onAnswer` computes `spentTiles([center,
+...outerShuffled], counts, claims)` and `Wheel` reads the set straight off
+the mark (computed before F-15's clear, if both ship); or **leave it**, twins
+being identical tiles. Recommendation: the indices — the board's own rule
+for a click is that it answers the question that was asked, and a refusal
+is the same question a beat later. A `PlayArea.test` case: click the outer
+E, refuse, the outer E shakes and the center does not.
+
+### F-wordwheel-17 · `tile-spent-naming` · one tile state, four names
+
+A tile the typed word is spending is `disabled` (the `Tile` prop),
+`.used` (its class), `data-disabled` (its test hook) and *spent* (`doc.md`,
+`lib/spend.ts`, the token `--tile-spent-edge-color`, every comment). The prop
+name already produced one false docstring (Step 8's *"once this tile's
+letter is already in the typed word"*), and `disabled` is the word the shared
+`.tile:disabled` uses for the read-only state this component calls `inert`.
+Options: **rename to `spent`** — the prop, the class (`.spent`), the hook
+(`data-spent`), and the eight test sites that read `data-disabled`; or leave
+it. Recommendation: rename; the name should carry the rule the docstring
+has to keep restating.
+
+### What checked out
+
+The multiset is threaded consistently: `tileCounts` / `fitsTiles` in the
+builder, `wordFitsWheel` at the submit gate, `TypedWord`'s per-character
+count and `spentTiles`' per-letter spend all agree, and the pgTAP dup-board
+fixture and the Deno tests pin the same rule from both ends. The
+`unique_letters` path — form key, edge-function filter, PN196 under the
+checkbox, saved with the default, ignored for custom letters — is complete
+and its refusal test lands where the doc says. `candidate_words` stays a set
+test and the test that pins that boundary holds. The five edge-function
+refusals are each under the right field, PN197 on the form's own line
+included. The read-only board (the engine move's `readOnly`) is one flag end
+to end.
+`narrateRankClimbs`' double narration at a race's end was ruled no change at
+spellingbee's F-12 for both games. The `_raise_game_over` helper's docstring
+scopes it to the two end RPCs, so `submit_word`'s own *Game over* (PN357) is
+consistent with spellingbee and not raised. `wordwheel.pangrams.word_counts`
+is written by the import and read by nothing in the app (the migration says a
+future gate may filter on it); data stays. The builder's worst case — 25
+seeds × up to 9 centers, each a `candidate_words` round trip before PN198 —
+is the same shape as spellingbee's 25 × 7 and has not been seen to bite.
+`PlayArea.module.css`'s claim that all three found-words games reserve 24rem
+is true (boggle's and spellingbee's are 24rem).
 
 ## Notes
 
