@@ -505,6 +505,20 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     expect(es[0]?.hasAttribute('data-center')).toBe(true)
   })
 
+  it('answers on the twin that was CLICKED, not its sibling', async () => {
+    // The refusal is the same question the click answered a beat earlier, so
+    // the outer E the player clicked is the E that shakes.
+    h.result = loaded(loadedGame({ outer_letters: 'bacdfghe' }))
+    const user = userEvent.setup()
+    render(<WithKeys {...makeCtx()} />)
+    await user.click(document.querySelector('[data-tile="E"]:not([data-center])')!)
+    await user.keyboard('bd{Enter}')
+
+    const es = answeredTiles().filter((t) => t.getAttribute('data-tile') === 'E')
+    expect(es).toHaveLength(1)
+    expect(es[0]?.hasAttribute('data-center')).toBe(false)
+  })
+
   it("takes the fill off after the word-answer beat", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })

@@ -1334,7 +1334,22 @@ keeps in order); or **route the engine's clear through `onChange`**, a
 shared-hook change for one caller. Recommendation: clear in `onAnswer`, and
 `handleChange`'s comment says the submit path is that line.
 
-### F-wordwheel-16 · `refusal-ignores-claims` · a refused word's tiles are picked by render order, not by the tiles the word spent — a BUG
+### SHIPPED · F-wordwheel-16 · `refusal-ignores-claims` · a refused word's tiles are picked by render order, not by the tiles the word spent — a BUG
+
+**Joel, 2026-09-24: "i'll take your rec"** — the mark carries the CLAIMS, not
+the tile indices this finding first recommended: the mark stays up for
+`WORD_ANSWER_MS` with Shuffle live, and an index would then point at a seat
+holding a different letter, where a claim's ordinal survives the shuffle (the
+reason claims exist). `onAnswer` keeps the word's claims before F-15's clear
+and passes them on the mark; `Wheel` picks the answered tiles with
+`spentTiles(letters, counts, claims)`, as it picks the spent ones. The
+mark's type gains `claims`; both comments say what it carries. `doc.md`'s
+Tests row names the case.
+
+**Verified:** a `PlayArea.test` case — click the outer E, type `bd`, Enter:
+the outer E answers and the center does not. **Planted** the `[]` back: that
+case red, the bug reproduced. Restored. `tsc -b` and eslint clean; wordwheel
+and the guards, 42 files, 399 tests green.
 
 **Proved with the same scratch test.** Click the outer E, type `bd`, Enter:
 `EBD` is too short, and the CENTER E shakes and wears the answer, though the

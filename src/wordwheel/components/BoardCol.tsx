@@ -140,8 +140,10 @@ export function BoardCol({
 
   // A refused word's tiles shake and wear its answer for a beat — as many of
   // each letter as the word used, since a letter can sit on two tiles and only
-  // the ones the word would have spent should answer (the Wheel picks them).
-  const [refused, showRefused] = useMark<{ counts: Map<string, number>; outcome: Outcome }>(WORD_ANSWER_MS)
+  // the ones the word would have spent should answer. Its clicks ride along so
+  // a clicked twin answers rather than its sibling (the Wheel picks them).
+  const [refused, showRefused] =
+    useMark<{ counts: Map<string, number>; claims: Claim[]; outcome: Outcome }>(WORD_ANSWER_MS)
 
   // WHICH tile each use of a letter spends. A click claims the tile it landed
   // on; everything else falls to the render order (`lib/spend.ts`).
@@ -189,6 +191,8 @@ export function BoardCol({
       // word also answers ON the board: the tiles it used shake and take the
       // same outcome, so the two cannot disagree.
       onAnswer: (report) => {
+        // The word's clicks, kept for the refusal below before the box's are dropped.
+        const wordClaims = claims
         // The engine has already emptied the box, without going through
         // `handleChange`, so the last word's clicks are dropped here.
         setClaims([])
@@ -197,7 +201,7 @@ export function BoardCol({
         if (report.answer === 'accepted') return
         const counts = new Map<string, number>()
         for (const ch of report.word.toLowerCase()) counts.set(ch, (counts.get(ch) ?? 0) + 1)
-        showRefused({ counts, outcome })
+        showRefused({ counts, claims: wordClaims, outcome })
       },
     })
 

@@ -27,11 +27,11 @@ type Props = {
   // clicked tile is always the one that marks.
   claims: readonly Claim[]
   // A refused word's mark, while its answer is up: how many of each letter it
-  // used, and the outcome. The tiles it would have spent shake and wear that
-  // outcome. The nonce keys those tiles, so refusing the same letters again
+  // used, the tiles it had clicked, and the outcome. The tiles it would have
+  // spent shake and wear that outcome. The nonce keys those tiles, so refusing the same letters again
   // remounts them and the shake plays again — a CSS animation restarts on a
   // remount, not on a class that is already there.
-  refused: Mark<{ counts: Map<string, number>; outcome: Outcome }> | null
+  refused: Mark<{ counts: Map<string, number>; claims: readonly Claim[]; outcome: Outcome }> | null
   // A control floated over the wheel's top-right (the Shuffle button). Rendered
   // inside the shrink-wrapped `.floatAnchor` around the grid, so it hugs the
   // VISUAL wheel rather than the column, which the vertically-centered wheel
@@ -65,9 +65,12 @@ export function Wheel({
 }: Props) {
   const letters = [centerLetter, ...outerLetters]
   const spent = spentTiles(letters, typedCounts, claims)
-  // The refused word's tiles: as many of each letter as it used, never both
-  // twins for one use. A letter off the wheel has no tile and takes nothing.
-  const answered = refused ? spentTiles(letters, refused.value.counts, []) : new Set<number>()
+  // The refused word's tiles: the ones it was spending — a clicked twin over
+  // its sibling — as many of each letter as it used. A letter off the wheel
+  // has no tile and takes nothing.
+  const answered = refused
+    ? spentTiles(letters, refused.value.counts, refused.value.claims)
+    : new Set<number>()
   // Each tile's ordinal among same-letter tiles, in render order — what a click
   // reports, so the claim survives a shuffle (a tile INDEX wouldn't).
   const tileOrdinals = ordinals(letters)
