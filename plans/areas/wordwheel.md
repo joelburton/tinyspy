@@ -1073,8 +1073,8 @@ gated now.
 **Verified:** `vite build` emits `@media (hover:hover){…tile…:hover{z-index:1}
 …:hover …face{…}}` with `:active` after it, outside; wordwheel and the guards,
 42 files, 396 tests green. jsdom evaluates neither media queries nor
-`:hover`, so no unit test sees it. **Not checked on a device:** the tile
-should still lift under a mouse and sit flat after a tap on a phone.
+`:hover`, so no unit test sees it. **Checked on a device by Joel,
+2026-09-24: "f9 works."**
 
 spellingbee's F-7, ruled *"gate it."* `.tile:not(.used):not(.inert):hover`
 and its `.face` rule in `Tile.module.css` lift the face and lighten its
@@ -1430,6 +1430,10 @@ a dependency listed and left. Anything durable goes to `todo.md` or
 ## Predicted test breaks
 
 *(the spec names, written when the area starts changing things)*
+
+**E2E after F-1 to F-17, 2026-09-24** (Joel: "run the related e2e"): the four
+wordwheel specs — `wordwheel`, `wordwheel-coop-win` (2), `wordwheel-mobile`
+(2 viewports), `wordwheel-print` — 6 passed, 12.1s. None broke.
 
 ## Closing
 
