@@ -445,6 +445,59 @@ which moved with it, is right.
 **Verified:** `tsc -b` clean, lint clean over `src/wordwheel/`; the game's
 unit tests and the guards: 42 files, 386 tests green.
 
+### Step 7 — the section order (readability 3.2) — DONE 2026-09-23
+
+spellingbee's Step 7 (`a83dd240`), copied, header words and all.
+`PlayArea.tsx` reads:
+
+1. Page hooks — `useTabRing`, `useInfoSheet`, `useCelebration`
+2. Derived — `summaryRows`, `hasBonus`, `myConceded`, `isCompete`, the found
+   rows and their score + count, `selfRankIdx`, `targetRankIdx`,
+   `isLocallyDone`
+3. The local slot, and its two standing conditions — the slot, the terminal
+   message and its winner derivations, out-of-race
+4. **The move — a typed word, and its answer** — `letterCounts`,
+   `legalIndex`, the refused-tiles mark, `center`, the engine
+5. Narration — the coop peer-word line and the compete rank climb
+6. The commands, bound — the shared trio, New game, Print
+7. The menu
+8. Render — `concededIds`, the leaderboard and `rankByUser`, `wordRows`, then
+   the columns
+
+**The move is the section the doc's eight do not have**, exactly as it was at
+spellingbee's Step 7: the engine is still in the PlayArea. spellingbee then
+moved its engine into `BoardCol` as a separate step on Joel's ruling
+(*"in general, if pieces can be pushed down, that seems like a good thing?"*),
+which removed the section again — and wrote that wordwheel would keep its
+engine "until their areas open". **Not done here; asked** — see below.
+
+`BoardCol.tsx` reads in three: **The pending guess** (the tile claims, the
+letter click, the change handler that trims claims, the typed word's letter
+counts) · **The board's display order** (the shuffle's seed, memo and binding)
+· **Render**.
+
+**Every code line in both files is a pure move, checked by diff** — the
+non-comment lines of each file before and after, sorted, are identical (446
+in `PlayArea.tsx`, 188 in `BoardCol.tsx`). The old `// ───` sub-headers are
+plain comments now (the celebration, the tile counts, the slot, the engine,
+the shared trio, New game, the two narrations); the "two standing conditions"
+block's header became the section's. Comments that moved or split with their
+code, as spellingbee's did: `myConceded`'s kept its first sentence and
+`concededIds` got its own (it went to Render); the parenthetical "`selfRankIdx`
+… is derived above, beside the verdict" became `selfRankIdx`'s own comment in
+Derived; the menu's comment is its section's header text; the out-of-race
+effect's comment moved with `isLocallyDone` into Derived, and the effect got
+spellingbee's one line.
+
+**Left for Step 8, the comment pass:** the archaeological "(The local
+outer-letter shuffle + the letter-click input moved into BoardCol)"; the
+narration's "Peer/opponent activity → header feedback pills" paragraph, which
+repeats the new header; the shared trio's "New game stays below"; and the
+surface docstring's nonexistent verdicts (Step 3's note).
+
+**Verified:** `tsc -b` clean, lint clean over `src/wordwheel/`; the game's
+unit tests and the guards: 42 files, 386 tests green.
+
 ## Findings
 
 *(`F-wordwheel-1 · slug · title`, one heading each; a status prefix when it
