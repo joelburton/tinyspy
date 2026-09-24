@@ -93,9 +93,9 @@ Deno.test('lengthScore: 1 for a 4-letter word, length for ≥5', () => {
 
 Deno.test('buildBoard: partitions required vs bonus, tallies required only', () => {
   const words: CandidateRow[] = [
-    { word: 'bead', is_required: true, is_legal: true },   // 4 → 1pt, required
-    { word: 'faced', is_required: true, is_legal: true },  // 5 → 5pt, required
-    { word: 'cabbie', is_required: false, is_legal: true }, // bonus (won't fit; see below)
+    { word: 'bead', is_required: true },   // 4 → 1pt, required
+    { word: 'faced', is_required: true },  // 5 → 5pt, required
+    { word: 'cabbie', is_required: false }, // bonus (won't fit; see below)
   ]
   // Wheel with a single 'b' tile so 'cabbie' (two b's) is DROPPED — proves
   // the tile-fit filter runs before scoring, on bonus words too.
@@ -111,7 +111,7 @@ Deno.test('buildBoard: partitions required vs bonus, tallies required only', () 
 Deno.test('buildBoard: a 9-letter word that fits IS a pangram (+15)', () => {
   // 'abcdefghi' uses all nine distinct tiles once — fits and is a pangram.
   const words: CandidateRow[] = [
-    { word: 'abcdefghi', is_required: true, is_legal: true },
+    { word: 'abcdefghi', is_required: true },
   ]
   const board = buildBoard('abcdefgh', 'i', words)
   eq(board.required_words_count, 1, 'the pangram counts')
@@ -121,7 +121,7 @@ Deno.test('buildBoard: a 9-letter word that fits IS a pangram (+15)', () => {
 
 Deno.test('buildBoard: bonus words score but do not touch the required tally', () => {
   const words: CandidateRow[] = [
-    { word: 'bead', is_required: false, is_legal: true }, // bonus, fits
+    { word: 'bead', is_required: false }, // bonus, fits
   ]
   const board = buildBoard('abcdfgi', 'e', words)
   eq(board.required_words_count, 0, 'no required')
@@ -135,9 +135,9 @@ Deno.test('buildBoard: bonus words score but do not touch the required tally', (
 Deno.test('applyOverlapCap: drops seeds sharing > 5 of 9 letters with the previous board', () => {
   const previous = letterMask('abcdefghi') // 9 distinct
   const pool = [
-    { letters: 'abcdefghi', mask: letterMask('abcdefghi').toString(), difficulty: 1, has_rare_letters: false }, // 9 shared → drop
-    { letters: 'abcdejklm', mask: letterMask('abcdejklm').toString(), difficulty: 1, has_rare_letters: false }, // 5 shared → keep
-    { letters: 'jklmnopqr', mask: letterMask('jklmnopqr').toString(), difficulty: 1, has_rare_letters: false }, // 0 shared → keep
+    { letters: 'abcdefghi', mask: letterMask('abcdefghi').toString(), has_rare_letters: false }, // 9 shared → drop
+    { letters: 'abcdejklm', mask: letterMask('abcdejklm').toString(), has_rare_letters: false }, // 5 shared → keep
+    { letters: 'jklmnopqr', mask: letterMask('jklmnopqr').toString(), has_rare_letters: false }, // 0 shared → keep
   ]
   const kept = applyOverlapCap(pool, previous)
   eq(kept.length, 2, 'the 9-overlap seed is dropped, ≤5 kept')
@@ -146,15 +146,15 @@ Deno.test('applyOverlapCap: drops seeds sharing > 5 of 9 letters with the previo
 
 Deno.test('applyOverlapCap: null previous mask keeps the whole pool', () => {
   const pool = [
-    { letters: 'abcdefghi', mask: '1', difficulty: 1, has_rare_letters: false },
+    { letters: 'abcdefghi', mask: '1', has_rare_letters: false },
   ]
   eq(applyOverlapCap(pool, null).length, 1, 'no previous board → no filtering')
 })
 
 Deno.test('buildWeightedPool: rare-letter seeds appear 3×', () => {
   const pool = [
-    { letters: 'aaaaaaaaa', mask: '1', difficulty: 1, has_rare_letters: false },
-    { letters: 'jqxzbcdef', mask: '2', difficulty: 1, has_rare_letters: true },
+    { letters: 'aaaaaaaaa', mask: '1', has_rare_letters: false },
+    { letters: 'jqxzbcdef', mask: '2', has_rare_letters: true },
   ]
   const weighted = buildWeightedPool(pool)
   eq(weighted.length, 1 + 3, 'common ×1 + rare ×3')

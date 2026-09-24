@@ -1089,7 +1089,18 @@ Options: **gate the two hover rules**, and take this game's name off the
 shared item in `common/mobile/todo.md`; or leave it. Recommendation: gate
 it, and look at it on a phone.
 
-### F-wordwheel-10 · `unread-fetch-fields` · the board builder carries two fields nothing reads
+### SHIPPED · F-wordwheel-10 · `unread-fetch-fields` · the board builder carries two fields nothing reads
+
+**Joel, 2026-09-24: "i'll take your rec"** — both dropped. `is_legal` left
+`CandidateRow`, the fetch's mapping and `board_test.ts`'s rows, and the type's
+docstring says every row is legal by construction (spellingbee's wording).
+`difficulty` left `fetchPangrams`' select (the `.lte('difficulty', …)` filter
+stays), `PangramRow` with its "Not read here" comment, and the test's pool
+rows.
+
+**Verified:** `deno check` clean on `index.ts` and `board_test.ts`; `deno
+test`, 15 green; the local function boots (a POST answers `PN112`, its own
+envelope). No board built; no e2e run.
 
 spellingbee's F-8, ruled *"do it"*, plus one of this game's own.
 `fetchCandidateWords` in `index.ts` adds `is_legal: true` to every row,

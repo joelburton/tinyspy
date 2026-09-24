@@ -190,7 +190,7 @@ async function fetchPangrams(
     const { data, error } = await supabase
       .schema('wordwheel')
       .from('pangrams')
-      .select('letters, mask, difficulty, has_rare_letters')
+      .select('letters, mask, has_rare_letters')
       .lte('difficulty', requiredBand)
       // Order by the primary key so successive .range() windows are stable
       // pages of ONE ordering — without it Postgres gives no cross-statement
@@ -255,17 +255,15 @@ async function fetchCandidateWords(
       legal_band: legalBand,
     })
   if (error) throw new Error(`fetchCandidateWords: ${error.message}`)
-  // The RPC returns (word, letter_mask, is_required); is_legal isn't on the
-  // row because the function pre-filters on it. Synthesize is_legal=true.
-  // letter_mask is dropped — the fit check counts the word's letters
-  // directly, since a mask can't carry multiplicity.
+  // The RPC returns (word, letter_mask, is_required). letter_mask is dropped —
+  // the fit check counts the word's letters directly, since a mask can't carry
+  // multiplicity.
   return ((data ?? []) as Array<{
     word: string
     is_required: boolean
   }>).map((row) => ({
     word: row.word,
     is_required: row.is_required,
-    is_legal: true,
   }))
 }
 
