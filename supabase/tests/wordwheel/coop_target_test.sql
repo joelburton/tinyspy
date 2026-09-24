@@ -100,7 +100,7 @@ select is(
 select is(
   (select (status->>'target_rank')::int from common.games where id = (select id from g)),
   3,
-  'coop: the terminal status re-emits target_rank (end_game replaces status wholesale)'
+  'coop: the terminal status carries target_rank'
 );
 
 -- EVERY player wins, including bea who wasn't the one to submit: it's a team.

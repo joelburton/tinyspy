@@ -4,11 +4,6 @@
 
 ## Soon
 
-- **Two SQL comments say `common.end_game` replaces the status**
-  (`submit_timeout`'s and `end_game`'s compete branches); it merges. The
-  re-emitted keys stay — the ending states its final tally — and the
-  comments say so, as spellingbee's F-14 did (2026-09-23).
-
 - **Two hand-written Fisher–Yates shuffles, one per side** — `shuffled` in
   `components/BoardCol.tsx` and `shuffled` in
   `supabase/functions/wordwheel-build-board/index.ts`. Both become

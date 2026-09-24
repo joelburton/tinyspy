@@ -1003,12 +1003,10 @@ begin
       ),
       player_results);
   else
-    -- compete: freeze the leaderboard at timeout, no winner. common.end_game
-    -- REPLACES status wholesale, so we must re-emit target_rank + the display
-    -- leaderboard the mid-game status carried — otherwise the club label reads
-    -- "no winner at Start" (target_rank ?? 0) and the terminal OpponentStrip
-    -- shows every player "Lost at Start" (empty leaderboard). Same array shape
-    -- as submit_word's win path.
+    -- compete: freeze the leaderboard at timeout, no winner. The status merges,
+    -- so target_rank and the last leaderboard would survive on their own; the
+    -- ending states its final tally anyway, as common.end_game's header says a
+    -- terminal write does. Same array shape as submit_word's win path.
     select (setup->>'target_rank')::int into current_target_rank
       from common.games where id = target_game;
 
@@ -1148,9 +1146,8 @@ begin
       player_results);
   else
     -- compete: per-player aggregates, no winner (the players agreed to stop).
-    -- Same shape as submit_timeout's compete branch — re-emit target_rank +
-    -- the display leaderboard so the terminal label + OpponentStrip don't fall
-    -- back to "Start" (common.end_game replaces status wholesale).
+    -- Same shape as submit_timeout's compete branch: the ending states its
+    -- final tally, though the merged status would keep the last one anyway.
     select (setup->>'target_rank')::int into current_target_rank
       from common.games where id = target_game;
 

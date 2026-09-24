@@ -932,7 +932,15 @@ three compete re-keys shrinking to a roster-built `jsonb_object_agg(user_id,
 exactly `{ won }`; or leave them. Recommendation: `{ won }` everywhere, as
 ruled twice there.
 
-### F-wordwheel-3 · `status-merges` · two SQL comments, a test comment and a test label say `common.end_game` replaces the status, and it merges
+### SHIPPED · F-wordwheel-3 · `status-merges` · two SQL comments, a test comment and a test label say `common.end_game` replaces the status, and it merges
+
+**Joel, 2026-09-24: "i'll take your rec"** — the prose, spellingbee's
+wording. `submit_timeout`'s and `end_game`'s compete comments say the status
+merges and the ending states its final tally anyway; `compete_test`'s comment
+says what the club label and the OpponentStrip read off the terminal status;
+`coop_target_test`'s label is *"the terminal status carries target_rank"*. No
+code changed; the re-emission stays. The `todo.md` → Soon entry is gone.
+**Verified:** `gmake db-sql ENV=local`, `npm run test:db` PASS; guards green.
 
 From `todo.md` → Soon; spellingbee's F-14, ruled *"the prose."*
 `common.end_game` merges (`coalesce(status, '{}') || end_game.status`).

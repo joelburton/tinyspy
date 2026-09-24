@@ -227,9 +227,9 @@ select is(
   'compete submit_timeout: every player gets {won: false} (no winner on timer-out)'
 );
 
--- The terminal status must still carry target_rank + the leaderboard array —
--- common.end_game replaces status wholesale, so dropping them would make the
--- club label read "no winner at Start" and the OpponentStrip "Lost at Start".
+-- The terminal status carries target_rank + the leaderboard array: the club
+-- label names the rank nobody reached, and the OpponentStrip reads each
+-- player's final rank.
 select is(
   (select (status->>'target_rank')::int from common.games where id = (select id from g_timeout)),
   5,
