@@ -569,7 +569,7 @@ export function usePlayerBoard({
     // A peel FLUSHES the board, so it waits until every tile is placed — the
     // same answer grays the button and stops Enter/Space firing a no-op.
     canCommit: derivedHand.length === 0 && !declaring,
-    onEnter: () => void doPeel(),
+    onCommit: () => void doPeel(),
     onArrow: (k) => setCursor(moveCursor(cursorRef.current, k, GRID - 1)),
     onBackspace: () => {
       const { remove, cursor } = planBackspace(

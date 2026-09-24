@@ -31,7 +31,7 @@ function setup(over: Partial<BoardCursorKeysOptions> = {}) {
     onArrow: vi.fn(),
     onLetter: vi.fn(),
     onBackspace: vi.fn(),
-    onEnter: vi.fn(),
+    onCommit: vi.fn(),
   }
   const view = renderHook(() => {
     useActionDispatcher()
@@ -50,7 +50,7 @@ describe('useBoardCursorKeys', () => {
     expect(cb.onArrow).toHaveBeenCalledWith('ArrowLeft')
     expect(cb.onLetter).toHaveBeenCalledWith('A')
     expect(cb.onBackspace).toHaveBeenCalledTimes(1)
-    expect(cb.onEnter).toHaveBeenCalledTimes(1)
+    expect(cb.onCommit).toHaveBeenCalledTimes(1)
     cb.view.unmount()
   })
 
@@ -59,12 +59,12 @@ describe('useBoardCursorKeys', () => {
   it('Space commits only for a peel', async () => {
     const submit = setup()
     await press(' ')
-    expect(submit.onEnter).not.toHaveBeenCalled()
+    expect(submit.onCommit).not.toHaveBeenCalled()
     submit.view.unmount()
 
     const peel = setup({ commit: 'act-peel' })
     await press(' ')
-    expect(peel.onEnter).toHaveBeenCalledTimes(1)
+    expect(peel.onCommit).toHaveBeenCalledTimes(1)
     peel.view.unmount()
   })
 
@@ -77,7 +77,7 @@ describe('useBoardCursorKeys', () => {
         onArrow: vi.fn(),
         onLetter: vi.fn(),
         onBackspace: vi.fn(),
-        onEnter: cb,
+        onCommit: cb,
       }),
     )
     expect(result.current.actCommit.id).toBe('act-peel')
@@ -92,7 +92,7 @@ describe('useBoardCursorKeys', () => {
     const cb = setup({ canCommit: false })
     await press('Enter')
     await press('a')
-    expect(cb.onEnter).not.toHaveBeenCalled()
+    expect(cb.onCommit).not.toHaveBeenCalled()
     expect(cb.onLetter).toHaveBeenCalledWith('A')
     cb.view.unmount()
   })
@@ -106,7 +106,7 @@ describe('useBoardCursorKeys', () => {
     expect(cb.onLetter).not.toHaveBeenCalled()
     expect(cb.onArrow).not.toHaveBeenCalled()
     expect(cb.onBackspace).not.toHaveBeenCalled()
-    expect(cb.onEnter).not.toHaveBeenCalled()
+    expect(cb.onCommit).not.toHaveBeenCalled()
     cb.view.unmount()
   })
 

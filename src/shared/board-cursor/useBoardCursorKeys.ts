@@ -19,10 +19,10 @@ export type BoardCursorKeysOptions = {
   onLetter: (letter: string) => void
   /** Backspace — remove a tile, the one `planBackspace` picks. */
   onBackspace: () => void
-  /** The commit action for Enter (and Space in bananagrams, whose `act-peel`
-   *  carries both): scrabble plays the staged word, bananagrams peels. The
-   *  callback does its own "is it legal right now" check. */
-  onEnter: () => void
+  /** The commit: scrabble plays the staged word, bananagrams peels. It fires
+   *  on whichever keys `commit`'s action carries. The callback does its own
+   *  "is it legal right now" check. */
+  onCommit: () => void
   /** Which action the commit IS, since the two games commit different things:
    *  bananagrams peels, scrabble submits. Its keys come with it — Enter alone
    *  for a submit, Enter and Space for a peel. */
@@ -69,7 +69,7 @@ export function useBoardCursorKeys({
   onArrow,
   onLetter,
   onBackspace,
-  onEnter,
+  onCommit,
   commit,
   canCommit,
 }: BoardCursorKeysOptions): BoardCursorKeys {
@@ -92,7 +92,7 @@ export function useBoardCursorKeys({
 
   const actCommit = useBoundAction(commit, {
     describe: () => (enabled && (canCommit ?? true) ? 'active' : 'disabled'),
-    run: onEnter,
+    run: onCommit,
   })
 
   return { actCommit }

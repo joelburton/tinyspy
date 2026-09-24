@@ -801,7 +801,7 @@ export function BoardCol({
     onArrow: (k) => setCursor((cur) => moveCursor(cur, k, BOARD_SIZE - 1)),
     onLetter: (letter) => typeLetter(letter),
     onBackspace: backspace,
-    onEnter: () => void submit(),
+    onCommit: () => void submit(),
   })
 
   // The Submit button's live score preview: the play's score when tiles are staged

@@ -152,6 +152,11 @@ Enter (and Space in bananagrams…)"*. The option beside it is already called
 folder's test, and bananagrams' test harness, which reads
 `keyCfg.current.onEnter`.
 
+**Worked 2026-09-24** (*"do next"*): renamed at both call sites and in the
+folder's test, and the docstring says it fires on whichever keys the commit's
+action carries. bananagrams' harness never read `onEnter` after all; nothing
+there changed.
+
 ## F-board-cursor-5 · `prose` · Stale claims, rosters, archaeology and the docstring marker
 
 - **Backspace, three places** (worked with F-board-cursor-1). The hook's `onBackspace` note says it removes
