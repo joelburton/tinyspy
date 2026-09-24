@@ -1035,7 +1035,12 @@ beside it; the `WordwheelSetup` import has no other use. `PlayArea`'s own
 body). Options: **delete it** (the member, the pass-through, the import), or
 keep it for a reader nobody has named. Recommendation: delete it.
 
-### F-wordwheel-7 · `print-recomputes-rank` · the print handler works out the rank the component already has
+### SHIPPED · F-wordwheel-7 · `print-recomputes-rank` · the print handler works out the rank the component already has
+
+**Joel, 2026-09-24: "i'll take your rec"** — the handler's `rankIdx` line is
+gone and the coop header reads `selfRankIdx`; the printed header cannot
+change. **Verified:** `tsc -b` and eslint clean; wordwheel and the guards, 42
+files, 396 tests green. No unit test reaches the print handler; no e2e run.
 
 spellingbee's F-3 (Step 5's note), ruled *"fix."* `PlayArea.tsx` computes
 `selfRankIdx = currentRankIndex(foundWordsScore, game.required_words_score)`
