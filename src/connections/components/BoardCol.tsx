@@ -15,7 +15,10 @@ import { ActionButton } from '@/common/actions/ActionButton'
 import { StrikeMarks } from './StrikeMarks'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
+import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
+import type { Cell } from '@/common/board-cursor/stepCell'
 import { db } from '../db'
+import { boardShape } from '../lib/boardShape'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
 import { answerMessage, type GuessResult } from '../lib/answer'
 import { reconcileLocalOrder } from '../lib/localOrder'
@@ -55,7 +58,8 @@ type GuessAnswer = { result: GuessResult }
  * local slot's top message, or the history banner while a past turn is open.
  *
  * It owns the marks on the guessed tiles (the in-flight dim, the verdict
- * fill), this client's view of the tile order, and the `submit_guess` call.
+ * fill), this client's view of the tile order, the keyboard's selection cursor
+ * over it (`useBoardSelectionCursor`), and the `submit_guess` call.
  * The tile SELECTION is `useGame`'s, since coop shares it over Broadcast, so
  * PlayArea hands the selection primitives down and this column renders and
  * commits them; the board it draws is whatever PlayArea hands it, live or a
@@ -166,6 +170,8 @@ export function BoardCol({
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
   // conventions: one prop says so, and the flag is derived, never passed).
   const isViewingHistory = historySnap !== null
+  // May I act on the board right now — click a tile, move the cursor, pick?
+  const interactive = showInput && isMyTurn && !isViewingHistory
   // On a phone the below-board commit row is tight.
   const phone = useIsPhone()
 
@@ -396,6 +402,30 @@ export function BoardCol({
     run: handleShuffle,
   })
 
+  // ─── The keyboard ──────────────────────────────────────
+  // The selection cursor: arrows move it over the loose tiles, and Space does
+  // what a click on the tile under it does. It sits on a CELL, so a shuffle
+  // moves the tiles under it, and a solved band — a row fewer — pulls it onto
+  // the nearest tile left. Enter is Submit's, above.
+
+  const shape = boardShape(displayedTiles.length)
+
+  const { point } = useBoardSelectionCursor({
+    shape,
+    enabled: interactive,
+    onToggle: (cell: Cell) => {
+      const tile = displayedTiles[cell.y * shape.cols + cell.x]
+      if (tile !== undefined) handleToggle(tile)
+    },
+  })
+
+  // A tile click: the cursor moves there, hidden, and the click does its move.
+  function handleTileClick(tile: string) {
+    const i = displayedTiles.indexOf(tile)
+    point({ x: i % shape.cols, y: Math.floor(i / shape.cols) })
+    handleToggle(tile)
+  }
+
   // ─── Render ────────────────────────────────────────────
   return (
     <div className={shared.boardCol}>
@@ -414,12 +444,12 @@ export function BoardCol({
         // in here as well as on the click guard: a tile that hovers, lifts and
         // shows a pointer while silently swallowing the click is a promise the
         // board can't keep, and the dim beside it would be saying the opposite.
-        interactive={showInput && isMyTurn && !isViewingHistory}
+        interactive={interactive}
         // No selection is drawn on a board that can't take a move — a past
         // turn, or a player who is finished — though the broadcast state
         // itself outlives both.
         ownerByTile={isViewingHistory || !showInput ? NO_OWNERS : ownerByTile}
-        onToggle={handleToggle}
+        onToggle={handleTileClick}
         inFlightTiles={inFlightTiles}
         verdict={verdictShown ? verdict : null}
         colorByUserId={colorByUserId}
