@@ -133,7 +133,7 @@ revoke execute on function wordiply._length_score(int, int) from public;
 -- be the answer.
 --
 -- security invoker + stable: invoker so it runs with the caller's access
--- to common.words (public reference data, RLS off); stable so a single
+-- to common.words (public reference data, readable by every player); stable so a single
 -- SELECT can call it without repeated re-execution.
 create or replace function wordiply.matching_words(base text, legal_band int)
 returns table(word text, len int)

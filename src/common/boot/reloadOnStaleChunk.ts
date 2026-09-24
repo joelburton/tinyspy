@@ -9,7 +9,7 @@ import { rememberReloadForUpdate } from './reloadNotice'
  * the other.
  *
  * Every game's PlayArea / SetupForm / Help ships in its own lazily-imported
- * chunk named by content hash (docs/common.md → Code-splitting). Netlify
+ * chunk named by content hash (common/boot/doc.md). Netlify
  * deploys are atomic: publishing a new build deletes the previous build's
  * hashed assets. So a tab opened before a deploy, opening its first game after
  * one, asks for a chunk that is no longer there.

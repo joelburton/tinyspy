@@ -171,8 +171,8 @@ select is(
 -- takes the end_game branch instead. end_game MERGES its status object, so a
 -- blob that doesn't mention greens_found leaves the previous value — 14 — and
 -- the club page reads "Won · 14/15 agents" on a game where all fifteen were
--- found. Terminal writes state their own numbers (docs/common.md →
--- `common.end_game`), which is what makes this assertable at all.
+-- found. Terminal writes state their own numbers (docs/common-schema.md →
+-- Title, status and last activity), which is what makes this assertable at all.
 select is(
   (select (status->>'greens_found')::int from common.games where id = (select id from g)),
   15,

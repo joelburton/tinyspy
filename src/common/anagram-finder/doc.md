@@ -9,7 +9,7 @@ A player holding a rack of letters wants to know what words are in it. This
 dialog answers that anywhere in the app: press ⌥~, type the letters, press
 Enter, and the words appear in a list, easiest first, with the difficulty band
 beside each. The matching is the server's, in `common.anagrams`
-([docs/common.md](../../../docs/common.md) → The ⌥~ anagram finder); the dialog
+([docs/word-list.md](../../../docs/word-list.md) → The anagram query); the dialog
 only tidies what was typed and shows the rows.
 
 The pattern is more than a scramble. A lowercase letter may land anywhere, `?`

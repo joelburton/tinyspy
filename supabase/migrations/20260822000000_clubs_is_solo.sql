@@ -3,7 +3,7 @@
 -- ============================================================
 -- common.clubs.is_solo — the `=` prefix, said once, in the DB
 -- ============================================================
--- A club is SOLO when its handle starts with `=` (docs/common.md → Solo clubs):
+-- A club is SOLO when its handle starts with `=` (docs/common-schema.md → Solo clubs):
 -- `claim_username` materializes one per profile as `=<username>`, and the `=`
 -- lives in a slug-space user-typed names can't reach, because
 -- `slugify_club_name` strips it. So the prefix is a reliable test — it is just

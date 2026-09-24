@@ -233,7 +233,7 @@ alter publication supabase_realtime add table psychicnum.guesses;
 -- `hides_solution`: this game keeps its answer covered when a game ends without
 -- a win, so a replay of the same board is a genuine second try. The players
 -- open it with the terminal Reveal (common.reveal_solution). See
--- common.md → Revealing the solution.
+-- common-schema.md → Revealing the solution.
 -- default_enroll false: psychicnum is the deliberately-minimal toy that
 -- exercises the multi-game architecture, not a game a new club should be
 -- handed. Clubs that want it opt in via the club-settings games editor.

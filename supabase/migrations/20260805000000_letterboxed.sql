@@ -354,7 +354,7 @@ alter publication supabase_realtime add table letterboxed.events;
 -- try. Without it the answer lands on screen the moment anyone stops the
 -- game, and the post-mortem — "what were you going to play next?" — is
 -- over before it starts. The players open it with the terminal Reveal
--- (common.reveal_solution). See common.md → Revealing the solution.
+-- (common.reveal_solution). See common-schema.md → Revealing the solution.
 insert into common.gametypes (gametype, min_players, hides_solution) values
   ('letterboxed_coop', 1, true),
   ('letterboxed_compete', 2, true)

@@ -24,7 +24,7 @@
  * `play_word`'s** (2026-08-03): `slur = 0 AND crude = 0` drops 612 of ~277k.
  * Profanity stays legal in scrabble — a *player* may still play it, because
  * `play_word` queries `common.words` directly and never reads this file. The
- * asymmetry is the app-wide rule in docs/common.md → Which words a game may
+ * asymmetry is the app-wide rule in docs/word-list.md → Which words a game may
  * use: a word a player chooses to type is theirs; a word the app produces and
  * puts on a shared board is ours. Both AI paths (the advisory suggester and
  * the autonomous opponent in `scrabble-ai-move`) share this one trie, so this

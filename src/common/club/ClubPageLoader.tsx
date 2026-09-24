@@ -68,7 +68,7 @@ export function ClubPageLoader({ handle, session }: Props) {
 
     async function load() {
       // One call for the club, its roster and its enrolled gametypes; why it
-      // is one call is docs/common.md → `get_club_page`.
+      // is one call is docs/common-schema.md → RPCs.
       const res = await runRpc<ClubPageData>(
         commonDb.rpc('get_club_page', { target_handle: handle }),
         { presentFaults: false },

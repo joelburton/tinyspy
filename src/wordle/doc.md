@@ -105,7 +105,7 @@ race back, board by board.
 
 A racer is **done** when they solve it, spend their budget, or concede, and
 the game marks them so on the common roster, which is what stops the
-presence-pause waiting on them (docs/common.md → Done, but not out). The race
+presence-pause waiting on them (docs/common-schema.md → Done, but not out). The race
 ends when nobody is still racing. The winner is whoever solved in the fewest
 guesses, the earliest solve breaking a tie; a conceder forfeits any win, and
 a race nobody solved is a loss for everyone. A countdown running out resolves
@@ -244,7 +244,7 @@ colors, and charged to the budget. In coop every player's row moves in
 lock-step, and the guess that solves it wins for the team while the last one
 that does not loses. In compete only the caller's row moves; a racer who has
 solved it or spent their budget is marked done for the shared roster, so the
-presence-pause stops waiting on them (docs/common.md → Done, but not out), and
+presence-pause stops waiting on them (docs/common-schema.md → Done, but not out), and
 the race ends when nobody is still racing — `_maybe_finish_compete` is the one
 place that rule is written — and `_finish_compete` writes the ending, picking
 the winner by fewest guesses, then earliest solve, conceders excluded. **The

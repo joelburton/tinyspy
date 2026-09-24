@@ -68,7 +68,7 @@ const myRow: PlayerRow = {
 
 /**
  * A loaded board header. The two word lists are the two TIERS
- * (docs/common.md → the word list's filter rule): `playableWords` is what a
+ * (docs/word-list.md → the word list's filter rule): `playableWords` is what a
  * player may TYPE (band only), `cleanWords` is what the hint may SUGGEST.
  * They're equal unless a test says otherwise, so only the tests about the
  * asymmetry have to think about it.
@@ -305,7 +305,7 @@ describe('letterboxed PlayArea — why there is no hint', () => {
  * (`slur = 1`), so the old single-list board refused it from a player's own
  * keyboard. Now the accept list is band-gated only and the hint search reads a
  * clean subset — "we don't put a slur in front of you, and we don't stop you
- * typing one" (docs/common.md → the word list's filter rule).
+ * typing one" (docs/word-list.md → the word list's filter rule).
  */
 describe('letterboxed PlayArea — the accept list is wider than the hint list', () => {
   function askHint(ctx: GamePageCtx) {

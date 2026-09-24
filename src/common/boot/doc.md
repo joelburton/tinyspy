@@ -49,6 +49,13 @@ line, and the theme loader it awaits belongs to `common/themes`.
 
 ## Details
 
+**What the main bundle holds.** The shell, `common/` and every manifest's
+constants; a game's play surface, setup form and Help are lazy, and its
+`theme.css` is imported from its `PlayArea.tsx`, so its JS and CSS both land in
+its own chunk. **`version.json` is never cached**: it falls under
+`public/_headers`' `/*` rule (`max-age=0, must-revalidate`), the same as
+`index.html`, which is what lets a stale tab see a new stamp.
+
 **What `main.tsx` and `App` render.** The root of every other folder's tree;
 which folder owns a node is in parentheses:
 

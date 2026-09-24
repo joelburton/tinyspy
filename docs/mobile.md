@@ -907,7 +907,7 @@ wording into the fixed-height below-board feedback slot as a standing note
 — shown by each game's whose-turn effect only while it ISN'T your turn (the
 turn signal is the note leaving), costing no layout since the slot already
 exists. See
-[common.md → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
+[common-schema.md → Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
 ### Tap feedback — one canonical treatment
 

@@ -2,8 +2,7 @@
 
 Being added to a game by a friend, and how you hear about it: a watcher that
 notices, the small pure pieces that decide whether a game is news to you, and a
-headless component that turns the answer into toasts. [docs/common.md → Joining
-a game](../../../docs/common.md) owns the rule this folder serves.
+headless component that turns the answer into toasts.
 
 ## Intro to area
 
@@ -72,3 +71,11 @@ corner as every other announcement and an open chat panel never covers it.
   since the next insert or reconnect scans again.
 - **Unmounting dismisses its own toasts,** so a sign-out leaves none lingering
   over the sign-in screen.
+- **There is no way to decline.** Friends always join eventually, and the game
+  waits for them, paused, until every seated player has arrived.
+- **"Moth added you" names `common.games.created_by`**, the player who pressed
+  Start, which `common.create_game` records.
+- **Nothing else pulls a player in.** The club's current-game pointer drives the
+  club page and nothing more; entering a game is always the player's own click,
+  and joining one while playing another simply leaves the first, which pauses
+  for the others.

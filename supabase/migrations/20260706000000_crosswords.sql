@@ -125,7 +125,7 @@ alter publication supabase_realtime add table crosswords.cells;
 -- `hides_solution`: this game keeps its answer covered when a game ends without
 -- a win, so a replay of the same board is a genuine second try. The players
 -- open it with the terminal Reveal (common.reveal_solution). See
--- common.md → Revealing the solution.
+-- common-schema.md → Revealing the solution.
 insert into common.gametypes (gametype, min_players, hides_solution) values
   ('crosswords_coop', 1, true),
   ('crosswords_compete', 2, true)

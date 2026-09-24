@@ -258,7 +258,7 @@ Signatures mirror wordwheel one-for-one except the board shape and the validated
     `submit_guess` gates on `common._require_turn`, and calls `common._advance_turn` only on
     an accepted, non-terminal guess — never on a guard reject (too-short / missing-base /
     duplicate) or the guess that ends the game. See
-    [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
+    [common-schema.md → Turn-order](../common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 
 - **Board-builder SQL helpers** (all `security invoker`, edge-fn-only):
   - **`wordiply.matching_words(base text, legal_band int) → table(word, len)`** — legal clean

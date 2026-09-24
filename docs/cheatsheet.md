@@ -99,7 +99,7 @@ accounts included.
 gmake help                                   # every target, with descriptions
 
 # data + assets — `gmake g-<TAB>` narrows to one game
-gmake all-words ENV=local                    # common.words from ~/src/gamelist/words.tsv, read
+gmake all-words ENV=local                    # common.words from ~/src/gamelist/output/words.tsv, read
                                              #   live (override WORDS_TSV); psql COPY, needs psql
 gmake all-pangrams ENV=local                 # spellingbee + wordwheel seeds (follows words)
 gmake all-tries                              # both edge-function word bundles — needed before

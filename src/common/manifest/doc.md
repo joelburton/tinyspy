@@ -22,8 +22,9 @@ the monorepo's structural integrity check rather than a convenience.
 Most of a manifest is data the shell reads. Three members are functions the
 shell CALLS — starting a game, ending one, and answering a countdown that
 expired — and all three answer in the envelope every RPC answers in, because
-the shell has to branch on them without knowing which game it is holding.
-`manifestRpcs.ts` builds two of the three, since every game's version is the
+the shell has to branch on them without knowing which game it is holding —
+and, for starting one, so a refusal that names a setup field can land under the
+box that wrote it. `manifestRpcs.ts` builds the other two, since every game's version is the
 same closure over a different schema.
 
 The one thing this folder produces rather than describes is the **status

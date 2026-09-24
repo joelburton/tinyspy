@@ -29,7 +29,7 @@
  *
  * Secrets / env: SUPABASE_URL + SUPABASE_ANON_KEY (auto-injected). The
  * caller's JWT carries every authorization signal: common.words is
- * authenticated-readable (RLS off), and waffle.create_game is SECURITY
+ * authenticated-readable (a permissive policy), and waffle.create_game is SECURITY
  * DEFINER and re-checks club membership. No service-role needed.
  *
  * Calling shape (from the FE):

@@ -327,7 +327,7 @@ its BoardCol to draw; the four word-list games show their results through
 move controls never reflows the board. In the eight turn-order coop games the
 same slot also carries the "Waiting for ● Name…" standing note
 (`FeedbackMessage.waiting()`), which ranks under the verdict, out-of-race and a
-result ([common.md → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games)).
+result ([common-schema.md → Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games)).
 
 **Terminal reveal goes where the entry was.** When the game ends, render the
 reveal ("The words were …") in the slot the entry vacated — *below* the

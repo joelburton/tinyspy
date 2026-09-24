@@ -11,7 +11,7 @@ import { rememberReloadForUpdate } from './reloadNotice'
  * that chunk is gone and `reloadOnStaleChunk` catches the failed import. If
  * every chunk it needs is already in memory, nothing fetches and nothing
  * throws: old code just runs against a server that has moved on, and every
- * wire-shape change makes it silently wrong (docs/common.md → Code-splitting
+ * wire-shape change makes it silently wrong (common/boot/doc.md
  * has the incident). No loader hook can see a module that is already loaded,
  * so this half asks the server directly.
  *

@@ -96,7 +96,7 @@ export type GamePageCtx = {
   // The game's live `common.games.status` jsonb — the per-
   // gametype "where is this game now" snapshot maintained by
   // each state-transition RPC (the duplicate-write discipline; see
-  // docs/common.md → `common.update_state`). Typed as `Record<string, unknown> | null`
+  // docs/common-schema.md → Title, status and last activity). Typed as `Record<string, unknown> | null`
   // here because each gametype writes its own shape; per-game
   // PlayAreas cast to their own status type on access. Reflects
   // the latest value seen by `useCommonGame`'s realtime

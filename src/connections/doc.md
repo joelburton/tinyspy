@@ -229,7 +229,7 @@ eliminates the racer while the others play on; the race ends when nobody is
 left alive, and `_maybe_finish_compete` is the one place that rule is written
 (a conceder counts as not alive). An elimination also sets
 `common.game_players.locally_terminal`, which is how the shared presence-pause
-learns to stop waiting on that racer (docs/common.md → Done, but not out). In turn-order coop every recorded guess
+learns to stop waiting on that racer (docs/common-schema.md → Done, but not out). In turn-order coop every recorded guess
 hands the turn on.
 
 **Passed:**

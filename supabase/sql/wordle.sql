@@ -272,7 +272,7 @@ begin
   -- ─── Pick a random target ────────────────────────────────
   -- BOTH branches use the app-wide CLEAN filter — `slur = 0 AND crude = 0 AND
   -- american AND NOT slang` — because the target is a word every player is
-  -- required to arrive at, which is the rule's whole domain (docs/common.md →
+  -- required to arrive at, which is the rule's whole domain (docs/word-list.md →
   -- Which words a game may use). The permissive half of that rule governs
   -- GUESSES, not the answer: submit_guess deliberately filters on difficulty
   -- alone, so you may still type a slur at the board, it just won't be right.

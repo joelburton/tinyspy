@@ -42,7 +42,7 @@ export type Bands = { dict2: number; dict3plus: number }
  * are excluded from the bundle, so this predicate answers "may the AI play
  * it?", not "is it legal?". A human may still play a word the AI can't find —
  * and the AI won't extend one already on the board, since the cross-word it
- * would form isn't in its trie. That's intended (docs/common.md → Which words
+ * would form isn't in its trie. That's intended (docs/word-list.md → Which words
  * a game may use).
  *
  * Applied to EVERY word a placement forms: main words and the perpendicular

@@ -6,7 +6,7 @@
 --
 -- common.words is the shared master word list; its `definition` /
 -- `definition_source` columns power the click-to-define popover +
--- "look up any word" shortcut (see docs/common.md → The word list).
+-- "look up any word" shortcut (see docs/word-list.md → The word list).
 -- Coverage:
 --   - grants: authenticated can SELECT (public reference data) but
 --     CANNOT UPDATE directly or EXECUTE cache_definition — writes

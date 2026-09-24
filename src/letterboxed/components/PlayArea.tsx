@@ -323,7 +323,7 @@ export function PlayArea(ctx: GamePageCtx) {
       if (!game) return
       // `cleanWords`, NOT `playableWords` — the accept list carries crude,
       // slur, slang and dialect words because the PLAYER may type them, and a
-      // hint is the game speaking (docs/common.md → the word list's filter
+      // hint is the game speaking (docs/word-list.md → the word list's filter
       // rule). Searching the accept list would let a spoiler answer "the word
       // is BITCH", which is precisely the asymmetry the two tiers exist for.
       //

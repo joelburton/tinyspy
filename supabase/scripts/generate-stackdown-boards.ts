@@ -510,7 +510,7 @@ console.log(
 //
 // `not slang` joined the filter 2026-08-03: every word here is one a player
 // MUST spell to clear the stack, which is the app-wide clean-filter rule
-// (docs/common.md → Which words a game may use). It was the lone omission.
+// (docs/word-list.md → Which words a game may use). It was the lone omission.
 const raw = execFileSync(
   'psql',
   [

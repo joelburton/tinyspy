@@ -23,7 +23,7 @@ no profile, no color and no solo club. The screen asks for the username rather
 than deriving one, because the name is permanent, checks the rules as you type
 for instant feedback, and leaves the database as the referee. The RPC, the
 profile table and the solo club it creates are
-[docs/common.md](../../../docs/common.md#username-claim-flow)'s.
+[docs/common.md](../../../docs/common-schema.md#username-claim-flow)'s.
 
 ## Details
 

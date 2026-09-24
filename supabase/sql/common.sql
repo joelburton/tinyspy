@@ -1138,10 +1138,10 @@ revoke execute on function common.create_game(text, text, uuid[], text, jsonb, j
 -- Returns the caller's user_id, which mid-game RPCs use for
 -- their downstream inserts.
 --
--- Raises:
---   - 42501 'must be authenticated'    when auth.uid() is null
---   - 42501 'not playing this game'    when caller isn't in
---                                       common.game_players
+-- Raises, both faults:
+--   - PN252 'Signed out; try refresh'   when auth.uid() is null
+--   - PN253 'You are not in this game'  when the caller isn't in
+--                                        common.game_players
 
 create or replace function common.require_game_player(target_game uuid)
 returns uuid
@@ -1574,13 +1574,12 @@ revoke execute on function common.reset_game(uuid, jsonb) from public;
 -- The shared first half of "a player concedes": guard the action
 -- and flip the per-player `conceded` flag. Split out from
 -- common.concede so that gametypes whose game-over rule is
--- game-specific (the ELIMINATION games — wordle, connections,
--- psychicnum, waffle — where a player can be "done" without the
--- table ending) can reuse the exact same guarded flag-flip and
--- then run their OWN terminal check + winner computation. The
--- non-elimination games (spellingbee, boggle, stackdown, scrabble,
--- bananagrams) don't need that and call common.concede below,
--- which pairs this with the generic "everyone's out" end.
+-- game-specific (a game where a player can be "done" without the
+-- table ending — eliminated, out of budget, or not on turn) can
+-- reuse the exact same guarded flag-flip and then run their OWN
+-- terminal check + winner computation. A game where the only way to
+-- stop racing is to win doesn't need that and calls common.concede
+-- below, which pairs this with the generic "everyone's out" end.
 --
 -- Guards, in order:
 --   - game exists + is locked FOR UPDATE (serialize concurrent
@@ -1684,30 +1683,30 @@ revoke execute on function common._set_locally_terminal(uuid, uuid) from public;
 -- rule is NOT game-specific — i.e. games with no independent
 -- per-player "eliminated" state, where the only reason a
 -- non-conceded player isn't still racing is that they already
--- WON (which would have ended the game). For those
--- (spellingbee / boggle / stackdown / scrabble / bananagrams) the
+-- WON (which would have ended the game). For those the
 -- active set is exactly "not conceded", so the whole game ends
 -- precisely when the LAST active player concedes.
 --
--- Semantics (docs/common.md → Concede): mark the caller out; if
+-- Semantics (docs/common-schema.md → Concede): mark the caller out; if
 -- anyone is still racing, return and let them finish (concede
 -- NEVER ends the table for others). Only when the caller was the
 -- last one standing does the game end — as a collective loss
 -- (`lost_compete` for a sibling compete gametype, plain `lost` for a
--- single-mode one; everyone {"won": false}, outcome 'conceded'), the
+-- single-mode one; everyone {"won": false}, reason 'conceded'), the
 -- same shape as a whole-table timeout. That's not "we all agreed to
 -- stop": each player who wants out clicks Concede, and the final
 -- click happens to be the one that ends it.
 --
--- ELIMINATION games do NOT use this — they call common._set_conceded
--- and then their own terminal check (which counts conceded as
--- "done" alongside solved / out-of-guesses). See wordle.concede.
+-- A game where a player can be done without the table ending does NOT
+-- use this — it calls common._set_conceded and then its own terminal
+-- check (which counts conceded as "done" alongside solved /
+-- out-of-guesses). See wordle.concede.
 --
--- Answers in an ENVELOPE, and catches for the ten wrappers that
--- delegate to it: seven of them are `return common.concede(...)`
--- and have nothing of their own to catch, so putting the handler
--- here is what keeps them one line. The wrappers still carry their
--- own, because `require_compete` raises BEFORE this is reached.
+-- Answers in an ENVELOPE, and catches for the wrappers that delegate
+-- to it: most are `return common.concede(...)` and have nothing of
+-- their own to catch, so putting the handler here is what keeps them
+-- one line. The wrappers still carry their own, because
+-- `require_compete` raises BEFORE this is reached.
 drop function if exists common.concede(uuid);
 
 create or replace function common.concede(target_game uuid)
@@ -2122,20 +2121,19 @@ grant execute on function common.delete_game(uuid) to authenticated;
 -- ============================================================
 --
 -- Creates a new club + its full membership + its clubs_gametypes
--- entries in a single transaction. Returns the new club's handle
--- (the URL slug AND the PK).
+-- entries in a single transaction, and answers ok
+-- {"result": "created", "handle": …} — the handle is the URL slug
+-- AND the PK.
 --
--- Reject reasons (all P0001 unless noted):
---
---   - not authenticated (42501)
---   - club name slugifies to an empty handle ("!!!" etc.)
---   - club name slugifies to a handle that doesn't start with
---     a letter ("123 club" → "123-club", which the handle CHECK
---     would reject anyway; we surface a friendlier P0001 instead
---     of a constraint violation)
---   - one or more member_usernames don't exist (P0002)
---   - resulting membership has fewer than 2 members
---   - handle collision with an existing club (unique_violation, 23505)
+-- Outcomes:
+--   - not-ok/fault            PN002 not signed in; PN003–PN006 a name
+--                             the form's own checks would have refused
+--                             (over 20 characters, no letter or digit, a
+--                             handle not starting with a letter, one
+--                             under 3 characters)
+--   - not-ok/form-validation  PN007 an unknown username, PN008 fewer
+--                             than 2 members, PN009 the handle is taken
+--                             (caught from the PK's unique_violation)
 --
 -- Caller is automatically added if not already in member_usernames,
 -- so a UI that lets the creator type only their friends doesn't
@@ -2625,9 +2623,10 @@ grant execute on function common.send_message(text, text) to authenticated;
 --
 -- Outcomes:
 --   - ok               {"result": "claimed"}, and data.username is the name
---   - not-ok/validation  PN017 — that username is taken. The ONE thing here a
---                      player can act on, and the one the form cannot know.
---   - not-ok/error     PN016 — this profile already has a username
+--   - not-ok/form-validation  PN017 — that username is taken. The ONE thing
+--                      here a player can act on, and the one the form cannot
+--                      know.
+--   - not-ok/service-error  PN016 — this profile already has a username
 --   - not-ok/fault     PN013 not signed in · PN014 bad username format ·
 --                      PN015 off-palette color · PN018 the auth.users row is
 --                      gone. The first three are unreachable from the app: the
@@ -2838,7 +2837,8 @@ grant execute on function common.word_letter_mask(text) to authenticated;
 -- Public reference data: an English dictionary isn't secret and
 -- leaks no per-game answer key (a spellingbee board's legal words live
 -- in the hidden spellingbee.games_state columns, not here). Readable by
--- any signed-in user; no RLS. The only write path is the lazy
+-- any signed-in user, under a permissive policy (below). The only write
+-- path besides curation is the lazy
 -- definition fill through cache_definition (SECURITY DEFINER), so
 -- authenticated gets SELECT only. The bulk seed importer connects as
 -- the superuser and bypasses grants.
@@ -2871,7 +2871,7 @@ create policy words_select on common.words
 -- **No content filter, ruled deliberately (2026-08-07):** the player typed
 -- the letters, so the whole dictionary answers — crude/slur/slang words
 -- included. This is the opposite of the app-surfaces tier the scrabble AI
--- uses (docs/common.md → Which words a game may use), on purpose; a pgTAP
+-- uses (docs/word-list.md → Which words a game may use), on purpose; a pgTAP
 -- test pins it so a future cleanup doesn't quietly re-filter.
 --
 -- Match runs in three stages, cheapest first, over the len-exact subset:

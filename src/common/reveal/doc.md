@@ -112,5 +112,5 @@ EVERYONE, never per-player done — so a player who conceded, was eliminated or
 finished early cannot read the answer out while the rest are still racing. That
 is why a game shows the control disabled with "Can't reveal until all end"
 rather than hiding it, and why nothing here reasons about who is locally done.
-See [docs/common.md → Revealing the
-solution](../../../docs/common.md#revealing-the-solution).
+See [docs/common-schema.md → Revealing the
+solution](../../../docs/common-schema.md#revealing-the-solution).

@@ -668,7 +668,7 @@ order is `strands.games` → `common.games` on every path, so no deadlock.
 
 Its refusals are `common`'s, like every other game's: "no such game" and "not
 compete" are what `common.require_compete` and `common._set_conceded` already
-say, so a null mode falls through the first and is refused by the second. See [common.md → Concede](../common.md#concede--per-player-drop-out).
+say, so a null mode falls through the first and is refused by the second. See [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
 
 The manual **End** stays neutral in both modes. A race called off early didn't
 finish, and handing the trophy to whoever was ahead would reward stopping at the

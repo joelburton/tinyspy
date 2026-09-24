@@ -7,7 +7,7 @@
  * american OR british, all difficulty bands, minus slurs + profanity — one
  * line per word, `"<difficulty><word>"`). That last clause makes it NARROWER
  * than play_word's: a player may play a crude word, the AI may not (see
- * generate-scrabble-wordlist.ts, and docs/common.md → Which words a game may
+ * generate-scrabble-wordlist.ts, and docs/word-list.md → Which words a game may
  * use). It is GENERATED and git-ignored (~1.2 MB): run
  * `gmake g-scrabble-trie` to (re)create it from `common.words` before
  * `supabase functions serve`; `gmake deploy-funcs` does it automatically.

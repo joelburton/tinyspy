@@ -189,7 +189,7 @@ export const psychicnumCompeteGame: GameManifest = {
 
 ### Reserved coop-turn setup keys
 
-Two setup keys are a **common convention** any coop game can adopt to opt into turn-by-turn play (see [`common.md` → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games) for the mechanism):
+Two setup keys are a **common convention** any coop game can adopt to opt into turn-by-turn play (see [`common.md` → Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games) for the mechanism):
 
 - `setup.coop_style: 'turns' | 'free-for-all'` — the pacing choice (default `'free-for-all'`). It **DOES round-trip** as a `default_setup` — "we like taking turns" is a reusable club preference.
 - `setup.first_turn_user_id: string (uuid)` — who goes first. It is **stripped from `default_setup`** server-side in each game's `create_game` (`setup - 'first_turn_user_id'`), exactly like codenamesduet strips `first_clue_giver_user_id`: a specific person isn't a reusable club preference — the club default should remember the *style*, not who happened to go first last time.

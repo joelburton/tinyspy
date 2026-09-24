@@ -58,7 +58,7 @@ the rest of the table hostage, and the second is not a kind of the first: in
 wordle, waffle and strands the first player to go locally terminal is the one
 who SOLVED. A player invited but not yet arrived DOES count — a fresh
 game sits paused, waiting, until everyone has joined, which is the point
-([docs/common.md](../../../docs/common.md) → the game waits for invitees). The
+(`common/invitations/doc.md`). The
 flag is also forced false once the game has ended, so a finished board shows its
 result instead of a banner.
 

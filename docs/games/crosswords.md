@@ -432,7 +432,7 @@ sizing).
   it is disabled there.
 - **Scratchpad** — the shared `common/` feature (opt-in via the manifest
   `scratchpad` field): shared pad in coop (Broadcast takeover lock), private pad
-  per player in compete. See [docs/common.md](../common.md) → "The shared
+  per player in compete. See [common/scratchpad/doc.md](../../src/common/scratchpad/doc.md) → "The shared
   scratchpad" for the architecture.
 - **Terminal** — no modal carries the verdict
   ([ui.md → Terminal results](../ui.md#terminal-results--the-moment-vs-the-record)):

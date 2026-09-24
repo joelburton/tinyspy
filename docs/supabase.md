@@ -197,7 +197,7 @@ colors.)
 
 **`took_turn` answers "did this event use up one of the actor's goes?"** — in
 every game and every mode, whether or not a rotation is running
-([common.md → Turn-order](common.md#turn-order--opt-in-turn-by-turn-for-coop-games)
+([common-schema.md → Turn-order](common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games)
 is the rotation itself, and it is a different question). Joel's rule: *"all games
 have a 'turn'; this may not always be important except in compete ('claude won
 because he used fewer turns') or turn-by-turn coop, but we still track the
@@ -495,7 +495,7 @@ Related server-side subtleties:
 
 Server-side conventions
 ([code-conventions.md → RPC functions](code-conventions.md#rpc-functions),
-[common.md → RPCs](common.md#rpcs)):
+[common-schema.md → RPCs](common-schema.md#rpcs)):
 
 - All callable RPCs are `SECURITY DEFINER` with a pinned
   `search_path = <game>, common, public, extensions`; cross-schema calls
@@ -554,7 +554,7 @@ holds that.
 ## RLS & grants
 
 The philosophy is in [CLAUDE.md → Trust model](../CLAUDE.md) and
-[common.md → Row-level security](common.md#row-level-security); the shapes:
+[common-schema.md → Row-level security](common-schema.md#row-level-security); the shapes:
 
 - **Viewing is club-gated, acting is player-gated.** SELECT policies use
   `common.is_club_member` (STABLE, SECURITY DEFINER helper); move RPCs use

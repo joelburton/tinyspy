@@ -2,6 +2,21 @@
 
 ## Bugs
 
+- **`concede` may wedge a race in `playing`: it re-runs a two-table end check
+  without locking `wordiply.games` first.** `wordiply.concede` calls
+  `common.concede` (which locks only `common.games`), then re-runs the "every
+  active player has spent five" check, reading `wordiply.events` and
+  `game_players.conceded`. `submit_guess` asks the same question under a lock
+  on `wordiply.games`. If a racer's fifth guess and another's concede land
+  together, each may read a snapshot from before the other's write, both find
+  someone still racing, and neither ends the game — the wedge the lock-order
+  rule prevents (`docs/common-schema.md` → Concede). Not yet shown to happen:
+  whether it can depends on where `submit_guess` touches `common.games`
+  relative to its check. The likely fix is the elimination games' shape — lock
+  `wordiply.games` before `common.concede`. `src/guards/concedeLock.test.ts`
+  does not see this, since it keys off calling `_set_conceded`, and wordiply
+  calls `common.concede`; the guard's key may want widening to "any concede
+  that re-checks game tables".
 - `act-new-game` answers `active` before the game row has loaded, so an
   early `+` asks the new-game question and then can do nothing. By the rule
   in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`

@@ -159,7 +159,7 @@ async function attemptBoard(
   if (candErr) throw new Error(`candidate_words failed: ${candErr.message}`)
 
   // candidate_words gates on band + board shape only; purity rides along as
-  // `is_clean` (docs/common.md → the word list's filter rule). `playable_words`
+  // `is_clean` (docs/word-list.md → the word list's filter rule). `playable_words`
   // is therefore the ACCEPT list — everything a player may legally type here —
   // while the clean subset is what the board is JUDGED on below.
   const candRowsTyped = (candRows as Array<{ word: string; is_clean: boolean }> | null) ?? []

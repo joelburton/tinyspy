@@ -226,7 +226,7 @@ hands off natively, "I ended on T, you start on T"; undo COSTS the turn there)
 (A per-game setup choice — `coop_style: 'turns'` — that rotates moves through the
 players instead of free-for-all. Discrete-move coop games only; the shared
 primitive lives on `common.games.current_turn_user_id` + `common.game_players.
-turn_seat`. See docs/common.md → Turn-order. Distinct from TS, whose turns are
+turn_seat`. See docs/common-schema.md → Turn-order. Distinct from TS, whose turns are
 fixed at the gametype level, not an opt-in.)
 
 ## Word-finding as core play

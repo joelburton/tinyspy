@@ -842,7 +842,7 @@ begin
         -- update_state below that bumps the count. common.end_game MERGES its
         -- status object, so leaving this out would keep the previous value and
         -- list a won game as "14/15 agents". Every terminal write states its
-        -- own number (docs/common.md → `common.end_game`).
+        -- own number (docs/common-schema.md → Title, status and last activity).
         'greens_found', green_total
       ),
       player_results

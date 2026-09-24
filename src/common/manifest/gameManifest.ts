@@ -191,7 +191,7 @@ export type GameManifest = {
   //     can seat a game its own caller cannot then open, since the game page
   //     gates on `require_game_player`. Left permissive on purpose: friends do
   //     not hand-build requests, and the lock is a UX decision rather than a
-  //     defense (docs/common.md → Membership gates viewing).
+  //     defense (docs/common-schema.md → Membership gates viewing).
   //
   // Returns the ENVELOPE, so a validation that names a column can reach the
   // box that wrote it: `SetupGameModal` writes `errors[field]`, and the setup
@@ -218,7 +218,7 @@ export type GameManifest = {
   // row to the matching manifest's labelFor. The state-transition
   // RPCs are responsible for writing whatever the gametype's
   // labelFor needs into `common.games.status` (jsonb) — the
-  // duplicate-write discipline; see docs/common.md → `common.update_state`.
+  // duplicate-write discipline; see docs/common-schema.md → Title, status and last activity.
   labelFor: (row: CommonGameListRow) => string
 
   // Fire this gametype's timeout RPC. Called by GamePage when
@@ -283,7 +283,7 @@ export type CommonGameListRow = {
   is_terminal: boolean
   // HOW IT IS GOING — the gametype's own progress payload, rewritten by each
   // state-transition RPC as the game is played (the duplicate-write
-  // discipline — docs/common.md → `common.update_state`). Per-gametype shape,
+  // discipline — docs/common-schema.md → Title, status and last activity). Per-gametype shape,
   // so a label casts it.
   status: Record<string, unknown> | null
   // HOW IT WAS SET UP — the setup blob frozen at creation and never written

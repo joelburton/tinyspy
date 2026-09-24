@@ -535,8 +535,8 @@ they fire at CREATE time and land on the setup dialog's error line.
 Band is the ONLY filter on what a player may type. `candidate_words` gates on
 band, length, the board's letter set and the no-doubled-letter rule — nothing
 else — so `playable_words` holds crude, slur, slang and dialect-only words too.
-That's the may-enter tier ([common.md → the word list's filter
-rule](../common.md#the-word-list-commonwords)): a player typing `BITCH` (band 1, `slur = 1`)
+That's the may-enter tier ([word-list.md → the word list's filter
+rule](../word-list.md#the-word-list-commonwords)): a player typing `BITCH` (band 1, `slur = 1`)
 chose it, and the game has no business refusing it. It used to, until
 2026-08-10.
 

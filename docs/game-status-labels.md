@@ -49,7 +49,7 @@ Multi-word titles join with a dash: `APPLE-BERRY-CHERRY`.
 ## The status line
 
 `manifest.labelFor(row)`: a **pure, synchronous** function of one
-`common.games` row (see [common.md → labelFor](common.md)), which ClubPage
+`common.games` row (see [`common/manifest`](../src/common/manifest/doc.md)), which ClubPage
 calls through each row's gametype. Everything a label needs must therefore
 already be on the row, which is why the RPCs write a `status` jsonb blob for
 it to read. And because `status` is club-readable, the rule for titles holds

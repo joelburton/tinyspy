@@ -95,7 +95,7 @@ Inputs (defaults point at the `/tmp` files the harness produced):
 # required word list (uppercase, len 3–15), from the gamelist TSV
 awk -F'\t' '$2<=3 && $3=="t" && $7==0 && $8==0 && $9=="f" \
    && length($1)>=3 && length($1)<=15 && $1 ~ /^[a-z]+$/ {print toupper($1)}' \
-   ~/src/gamelist/words.tsv | LC_ALL=C sort -u > /tmp/req_sorted.txt
+   ~/src/gamelist/output/words.tsv | LC_ALL=C sort -u > /tmp/req_sorted.txt
 
 # the DAWG for bench_before is built from that list via ~/src/cboggle/make-dawg
 # the fixed board stream is written by the JS harness (gen_stream.mjs)

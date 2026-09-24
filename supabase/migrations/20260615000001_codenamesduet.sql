@@ -207,7 +207,7 @@ alter publication supabase_realtime add table codenamesduet.guesses;
 
 -- `hides_solution` was dropped by 20260815000000_drop_solution_revealed.sql;
 -- the partner's card is now covered by each player's own local reveal. See
--- docs/common.md → Revealing the solution.
+-- docs/common-schema.md → Revealing the solution.
 insert into common.gametypes (gametype, min_players, hides_solution)
 values ('codenamesduet', 2, true)
 on conflict do nothing;

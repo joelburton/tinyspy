@@ -76,7 +76,7 @@ is the one component here this page does not render — `HomePage` does.
   where that shows, so after a short grace period it clears the flag itself.
   Presence is the evidence — a game page announces its game on the club's
   presence channel — and how the pointer sticks in the first place is
-  [docs/common.md](../../../docs/common.md) → the current-view pointer.
+  [docs/common-schema.md](../../../docs/common-schema.md) → View state and play state.
 - **Deleting the current game is a broadcast, then the RPC.** Its players may
   be on the game page, so the page sends the same `suspend` event the suspend
   confirm does, waits a beat for them to leave, and only then deletes. The

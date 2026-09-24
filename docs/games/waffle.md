@@ -231,7 +231,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
     `common._advance_turn` only on an accepted, non-terminal swap — never on a
     guard reject (bad position, hole, out of swaps) or the swap that solves /
     exhausts the board. See
-    [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
+    [common-schema.md → Turn-order](../common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 - **`submit_timeout(game)`** — only when a countdown timer is set; reuse the
   spellingbee "realtime touch" pattern so the FE wakes up on expiry.
 - **`concede(game)`** — the compete "Concede" action-row button: a per-player
@@ -242,7 +242,7 @@ everything reveals post-terminal. **Coop** shows the shared board to all members
   among solved, non-conceded players). The FE shows Concede in compete / End in
   coop, marks a conceder "out" in the OpponentStrip, and folds them into the
   existing solved/out-of-swaps locally-terminal look. Full mechanism:
-  [common.md → Concede](../common.md#concede--per-player-drop-out). pgTAP:
+  [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
   `concede_test.sql`.
 - **`replay_board(game)`** — the **"Restart"** game-menu item (both modes,
   any state). Restarts the SAME board from scratch for everyone: resets every

@@ -183,7 +183,7 @@ Two natural end triggers, plus the universal manual / timeout paths:
   **Coop has no blocked-end** (and no turns/passes): it ends *only* on going-out
   or **End game**.
 - **Manual end** (`end_game`): any player stops the game. **Compete** is the
-  uniform neutral stop ([common.md → Manual end](../common.md#manual-end--every-gametypes-end_gametarget_game))
+  uniform neutral stop ([common-schema.md → Manual end](../common-schema.md#manual-end--every-gametypes-end_gametarget_game))
   — no winner, no scoring. **Coop deviates** (see below): it *forfeits* the
   leftover-tile value.
 - **Timeout** (`submit_timeout`): a countdown clock hit 0.
@@ -252,7 +252,7 @@ Scrabble, not a trivializing exploit.)
 ### 3.3 The dictionary (difficulty bands, by word length)
 
 The legal word set is the shared `common.words` list (see
-[common.md → The word list](../common.md#the-word-list-commonwords)), gated by
+[word-list.md → The word list](../word-list.md#the-word-list-commonwords)), gated by
 **two per-game difficulty bands** chosen at setup — one for **2-letter** words
 (`dict_2`) and one for **3+-letter** words (`dict_3plus`), both 1..6. A word is
 legal iff `difficulty ≤ the band for its length` and it's valid in the
@@ -264,7 +264,7 @@ dictionaries include them), the same way spellingbee's *legal* tier carries no c
 restriction. **The AI is held to a stricter bar than the players** (2026-08-03):
 its bundled vocabulary drops slurs + profanity, because a word the app puts on a
 shared board is the app's, not the player's — see [§11](#11-the-move-suggester-ai)
-and [common.md → Which words a game may use](../common.md#which-words-a-game-may-use--the-two-tier-rule).
+and [word-list.md → Which words a game may use](../word-list.md#which-words-a-game-may-use--the-two-tier-rule).
 
 **The bands are the acceptance gate — scrabble deviates from the roster default
 here.** The general convention (common.md) is "validation accepts the *full* 1–6
@@ -410,7 +410,7 @@ declared letter).
    its own `scrabble.games.current_seat` + `scrabble._advance_seat` (which also
    drive the AI opponent, [§12](#12-the-ai-opponent-compete)), coop uses the
    common pointer. See
-   [common.md → Turn-order](../common.md#turn-order--opt-in-turn-by-turn-for-coop-games).
+   [common-schema.md → Turn-order](../common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 4. **Integrity guards** (cheap; data-consistency, *not* anti-cheat): every
    placement is in-bounds and lands on an empty square; the consumed tiles
    (`?` per blank, else the letter) are actually in the acting rack (compete:
@@ -544,7 +544,7 @@ score), and `scrabble.concede` hands the turn off if it was the conceder's, or
 ends the game (final scoring, nobody eligible to win) when the last active player
 drops. FE: `act-concede` (hidden in coop) in compete, conceder "out" in the OpponentStrip
 (and `Quit · score` at terminal via `terminalOutcomeVerb`), input disabled once
-conceded. See [common.md → Concede](../common.md#concede--per-player-drop-out).
+conceded. See [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
 pgTAP: `concede_test.sql`. All the terminal paths do the realtime-touch self-write
 on a `scrabble` row so the FE subscription wakes to reveal final racks.
 
@@ -915,7 +915,7 @@ commit), not the TS-owned geometry/scoring:
   elimination games name theirs — it has ONE caller here, since scrabble's move
   paths end a game by going out or by the pass streak and neither is reachable
   once everybody has dropped out, but the shared name is what
-  [common.md → Concede](../common.md#concede--per-player-drop-out) keys its
+  [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out) keys its
   lock-order rule off.
 - `ai_players` — AI seats ([§12](#12-the-ai-opponent-compete)): `create_game`
   seats them (and rejects a dictionary narrower than the AI's band, bad counts,

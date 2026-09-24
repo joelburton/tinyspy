@@ -4,7 +4,8 @@
 /**
  * Seed `common.words` — the master playable-word list shared by every
  * word game — directly from the word-list project's working copy at
- * `~/src/gamelist/words.tsv`, via psql `COPY`.
+ * `~/src/gamelist/output/words.tsv` (`WORDS_TSV` overrides it), via psql
+ * `\copy`.
  *
  * Why read the source directly (rather than a vendored snapshot in this
  * repo): the word list and this app are developed in tandem, and a

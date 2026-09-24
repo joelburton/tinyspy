@@ -748,7 +748,7 @@ grant execute on function psychicnum.submit_guess(uuid, text) to authenticated;
 -- The collective-loss check, named as the other five elimination games name
 -- theirs. Extracted from `concede` on 2026-09-01: it was the same two-table
 -- decision they make, written inline, which hid it from the rule that governs
--- it (common.md → Concede — the lock order).
+-- it (common-schema.md → Concede — the lock order).
 --
 -- MUST be called with this game's psychicnum.games row already locked — see
 -- the caller. Returns whether it ended the game.
