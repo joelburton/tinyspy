@@ -186,9 +186,10 @@ revoke execute on function common.raised_envelope(text, text, text, text, text, 
 --   - `default_enroll` — the registry's off-by-default flag (psychicnum,
 --     the architecture-exercise toy). Off-by-default, not banned: the
 --     club-settings games editor (set_club_gametypes) can opt back in.
---   - Solo clubs — handle prefixed '=', see common.clubs — have a single
---     member, so they only get gametypes playable by one person
---     (`min_players <= 1`); friend clubs get everything that remains.
+--   - Solo clubs (`common.clubs.is_solo`) have a single member, so they
+--     only get gametypes playable by one person (`min_players <= 1`);
+--     friend clubs get everything that remains. Read off the club's row,
+--     so both callers insert the club before they ask.
 -- Centralizing both rules here keeps claim_username, create_club, and
 -- the per-game backfills from drifting apart.
 -- Returns a one-column `gametype` set so callers can `select ...,
@@ -201,10 +202,11 @@ language sql
 stable
 set search_path = common, public, extensions
 as $$
-  select gametype
-    from common.gametypes
-   where default_enroll
-     and (target_handle not like '=%' or min_players <= 1)
+  select gt.gametype
+    from common.gametypes gt
+    join common.clubs c on c.handle = target_handle
+   where gt.default_enroll
+     and (not c.is_solo or gt.min_players <= 1)
 $$;
 revoke execute on function common.default_gametypes_for_club(text) from public;
 

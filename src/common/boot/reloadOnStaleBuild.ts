@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-boot
 
 import { readStored, writeStored } from '../web-storage/storage'
 import { rememberReloadForUpdate } from './reloadNotice'

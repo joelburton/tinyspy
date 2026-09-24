@@ -19,21 +19,6 @@
   + its CDC filter, `GameScratchpadCompanion`'s prop, `GamePage`'s call site,
   and the pgTAP that names the column.
 
-- **Rename the table `common.game_scratchpads` → `common.games_scratchpads`**
-  (Joel, 2026-09-22): it is a junction — its logical key is `(game_id,
-  owner_id)`, many games against many players, with `body` as the payload — and
-  the repo spells a junction plural-plural in `clubs_members` and
-  `clubs_gametypes`. **The thing to settle first is `game_players`**, which is
-  the same shape (many games ↔ many players) spelled singular-plural, so the
-  repo currently says it both ways and this rename picks a side for one table
-  while leaving the twin. Either rename both, or write the rule down —
-  `docs/code-conventions.md` → Tables and columns says only "plural for tables"
-  and is silent on junctions. Cost beyond the rename: a forward migration, the
-  Realtime publication membership (pinned by
-  `tests/common/realtime_publication_test.sql`), the FK-delete-rules test, the
-  grant, the policy, `set_scratchpad`'s insert + `on conflict on constraint`,
-  and the generated types.
-
 ## Someday
 
 ## Maybe

@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-boot
 
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { installFakeStorage, type InstalledStorage } from '../web-storage/storage.fake'

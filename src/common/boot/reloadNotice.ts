@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-blessed-boot
 
 import { readStored, removeStored, writeStored } from '../web-storage/storage'
 

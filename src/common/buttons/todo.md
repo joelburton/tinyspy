@@ -19,14 +19,6 @@
   decisions. Picking one number is a `core-css` question; what belongs to a
   button is only that its tell is the missing hover, which every hover rule
   delivers by asking `:not(:disabled)`.
-- **The plus in "+ New club" is a typed `+` character, not a glyph** — the
-  last glyph-shaped affordance not in the icon registry. (Carried over from the
-  small-buttons item, which is settled: see the folder's doc. A small BUTTON
-  takes the `small` prop, which brings type, padding and the icon box together;
-  the controls that write a small size by hand are links, triggers and list
-  rows, so each is its own folder's to settle. Notes are filed with crosswords
-  and scrabble, the two games holding one.)
-
 ## Someday
 
 ## Maybe
@@ -38,3 +30,8 @@
   `FeedbackPill.module.css` re-sets one to borrow a tone.
 
 ## Won't do
+
+- **The "+" in "+ New club" stays a typed character, not an icon.** Joel,
+  2026-09-24: the button is shown at a very small size, where an icon wouldn't
+  read well; the "+" is fine.
+

@@ -4,6 +4,8 @@
 
 ## Soon
 
+## Someday
+
 - **Emerge a shared `<InfoCol>` component.** Every game has its own
   `InfoCol.tsx`, and each opens with the same skeleton: `.infoCol` → `.noShrinkRow` → state line → `<OpponentStrip>` when
   compete → action row → help → `<SetupDisclosure>` → event log.
@@ -23,8 +25,6 @@
   The CSS split is done and did not need this; this needs the slots named and
   decided first (what is a slot, what is free-form, what a game that wants none
   of one does).
-
-## Someday
 
 - **The open sheet has only half of dialog behavior.** It is `role="dialog"` +
   `aria-modal`, Escape closes it, and the closed sheet is `visibility: hidden`.

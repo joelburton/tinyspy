@@ -16,9 +16,6 @@
   every "which panel" locator, not just this one. The sibling half — our own
   hashed class sniffed for the "next up" line — was fixed in setup-form.
 
-- **Action row** — the end-aligned row of buttons that closes a floating
-  panel (`modalActions`), plus a pinned-to-bottom variant `WordEditDialog`
-  wrote its own copy of.
 - **`FaultModal` draws its own title instead of passing one.** It renders
   `<BlockingModal>` with no `title` and puts the red "Error" in the body as an
   `<h3>` it styles itself, where every other blocking modal hands its title to
@@ -52,3 +49,9 @@
 ## Maybe
 
 ## Won't do
+
+- **The action row's pin-to-bottom stays `WordEditDialog`'s own.** The row is
+  shared (`modalActions.module.css`); `WordEditDialog` adds only `.pinBottom`
+  (`margin-top: auto`) so the row sits at the foot of that tall dialog however
+  short the form. Joel, 2026-09-24: *"keep only for wordeditdialog"* — one
+  dialog wants it, so it is not a shared variant.
