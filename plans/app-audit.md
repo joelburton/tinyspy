@@ -19,6 +19,10 @@ the folders' `todo.md`.
 - `outcome-fix` — closed as a pass across every game's move path; its files
   are `cs-fixed-outcome-fix`, not blessed.
 
+**Next: [cross-game-consistency.md](cross-game-consistency.md)** — the six
+closed games checked against each other, worked before the ten remaining games
+open.
+
 **Not opened yet:** the ten remaining games (Joel picks the next).
 
 **Before opening anything, read §4.** §3 is the order and the progress.

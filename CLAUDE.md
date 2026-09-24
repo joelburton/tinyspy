@@ -164,6 +164,7 @@ game's area, consult both.
 | file | the work |
 |---|---|
 | [plans/app-audit.md](plans/app-audit.md) | **The live sprint.** Start a session here: "Where to start" says what's next |
+| [plans/cross-game-consistency.md](plans/cross-game-consistency.md) | The six closed games checked against each other; worked before the ten remaining games open |
 | [plans/tile-feedback.md](plans/tile-feedback.md) | The design target for board feedback; read it per game area |
 | [plans/playarea-readability.md](plans/playarea-readability.md) | The target shape for each game's `PlayArea.tsx`; read it per game area |
 | [plans/spectating.md](plans/spectating.md) | Proposed, nothing decided: what a watching club member sees |
