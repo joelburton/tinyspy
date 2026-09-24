@@ -1567,7 +1567,13 @@ not-a-number bands. **Verified:** `npm run test:db` PASS; guards green.
 - The Refused list's *"the bands out of range, or legal below required"*
   omits F-12's not-a-number refusals (PN505, PN506).
 
-### R-wordwheel-5 · `unread-caller-count` · `submit_word` computes a count nothing reads
+### SHIPPED · R-wordwheel-5 · `unread-caller-count` · `submit_word` computes a count nothing reads
+
+**Joel, 2026-09-24: "i'll take your rec"** — dropped: the declaration and the
+`count(*)`; the compete select reads `caller_score` alone, and its comment
+says what the score is for and that every racer's count is `_leaderboard`'s.
+**Verified:** `gmake db-sql ENV=local`, `npm run test:db`, 182 files, 2668
+tests, PASS; guards green.
 
 `caller_found_words_count` is selected into in the compete branch and read by
 nothing; its declaration says *"caller's all-rows count (display +

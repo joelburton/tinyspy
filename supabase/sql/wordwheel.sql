@@ -699,7 +699,6 @@ declare
   team_found_words_count int;     -- count of ALL rows; for the status display
   team_rank_idx int;
   caller_score int;
-  caller_found_words_count int;   -- caller's all-rows count (display + leaderboard)
   caller_rank_idx int;
   status_leaderboard jsonb;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
@@ -844,13 +843,11 @@ begin
     );
 
   else
-    -- compete: per-player aggregates. caller_found_words_count counts
-    -- ALL of caller's rows (required + bonus), matching the Stats card, and
-    -- caller_score includes bonus points, so a player who finds bonus
-    -- pangrams can reach the target faster than the displayed max suggests.
-    select coalesce(sum(fw.points), 0),
-           count(*)
-      into caller_score, caller_found_words_count
+    -- compete: the caller's own score, bonus points included, so a player who
+    -- finds bonus pangrams can reach the target faster than the displayed max
+    -- suggests. (Every racer's count is the leaderboard's, `_leaderboard`.)
+    select coalesce(sum(fw.points), 0)
+      into caller_score
       from wordwheel.found_words fw
      where fw.game_id = target_game and fw.user_id = caller_id;
     caller_rank_idx := common._rank_idx(caller_score, g_row.required_words_score);
