@@ -15,7 +15,11 @@ import type { WordRow } from '../hooks/useBoard'
 import type { ClueEvent } from '../lib/events'
 import type { Player } from '../lib/seats'
 import type { KeyLabel } from '../lib/labels'
-import type { Seat } from '../lib/phase'
+import { isGuessable, type Seat } from '../lib/phase'
+import { BOARD_SHAPE, cellAt, positionAt } from '../lib/boardShape'
+import { useBoundAction } from '@/common/actions/useBoundAction'
+import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
+import type { Cell } from '@/common/board-cursor/stepCell'
 import { Board } from './Board'
 import { ClueStrip, type SuggestState } from './ClueStrip'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
@@ -56,8 +60,9 @@ type GuessAnswer =
  * below-board slot: the `ClueStrip` during play, or the local slot's top message
  * (a not-ok, the terminal verdict), with the turn viewer's banner over either.
  *
- * A two-input game: a guess is a tile click, and this column owns `submit_guess`
- * with the pending tile it marks; a clue is the `ClueStrip` form, which owns
+ * A two-input game: a guess is a tile click — or the keyboard's pick and Enter
+ * (`useBoardSelectionCursor`) — and this column owns `submit_guess` with the
+ * pending tile it marks; a clue is the `ClueStrip` form, which owns
  * `submit_clue`, `pass_turn` and the AI suggestion. Neither owns game state —
  * the reveal arrives by Realtime, and PlayArea hands this column the board to
  * render, live or a viewed turn's snapshot. Not-oks show into PlayArea's local
@@ -206,6 +211,73 @@ export function BoardCol({
   // first guess commits (you shouldn't guess again until the reveal resolves).
   const [handleGuess] = useSingleFlight(submitGuess)
 
+  // ─── The keyboard ──────────────────────────────────────
+  // The selection cursor: arrows move it over the words, Space PICKS the word
+  // under it, and Enter guesses the pick. A click still guesses at once — the
+  // pointer's aim is its confirmation — but an arrow can land a cell off, and a
+  // guess can be the assassin, so the keyboard confirms with a second key.
+
+  // May I guess right now? The phase's answer, and never over a past turn.
+  const canGuess = cellsClickable && !isViewingHistory
+
+  // The word the keyboard has picked — a board position — shown only while it
+  // can still be guessed: a turn that ends, or a partner who turns it over in
+  // sudden death, takes the pick away without anything having to clear it.
+  const [pickedAt, setPickedAt] = useState<number | null>(null)
+  const pickedWord = pickedAt === null ? undefined : words[pickedAt]
+  const picked =
+    canGuess && pickedAt !== null && pickedWord !== undefined && isGuessable(pickedWord, mySeat)
+      ? pickedAt
+      : null
+
+  // Space toggles, so a second press un-picks and a press elsewhere moves the
+  // pick. A word the click couldn't guess can't be picked either.
+  function toggleAt(cell: Cell) {
+    const position = positionAt(cell.x, cell.y)
+    const word = words[position]
+    if (word === undefined || !isGuessable(word, mySeat)) return
+    localFeedbackSlot.dismiss() // a pick is the next move
+    setPickedAt(picked === position ? null : position)
+  }
+
+  const { point } = useBoardSelectionCursor({
+    shape: BOARD_SHAPE,
+    enabled: canGuess,
+    onToggle: toggleAt,
+  })
+
+  // A tile click: the cursor moves there, hidden, any pick goes, and the
+  // click is the guess.
+  function handleTileClick(position: number) {
+    point(cellAt(position))
+    setPickedAt(null)
+    void handleGuess(position)
+  }
+
+  // Enter guesses the pick. Key-only — the click is the board's own guess
+  // button — so the action names itself for the key list, and it hides when I
+  // am not the one guessing.
+  useBoundAction('act-submit', {
+    describe: () => {
+      if (!canGuess) return 'hidden'
+      return { state: picked !== null && pendingPos === null ? 'active' : 'disabled', label: 'Guess' }
+    },
+    run: () => {
+      if (picked === null) return
+      setPickedAt(null)
+      void handleGuess(picked)
+    },
+  })
+
+  // ⌫ un-picks.
+  useBoundAction('act-clear-selection', {
+    describe: () => {
+      if (!canGuess) return 'hidden'
+      return picked !== null ? 'active' : 'disabled'
+    },
+    run: () => setPickedAt(null),
+  })
+
   // Whatever the slot holds on top takes the clue strip's place; an empty
   // slot hands it back.
   const top = useTopFeedbackMessage(localFeedbackSlot)
@@ -222,7 +294,7 @@ export function BoardCol({
         gameOver={gameOver}
         cellsClickable={cellsClickable && !isViewingHistory}
         pendingPos={pendingPos}
-        onGuess={handleGuess}
+        onGuess={handleTileClick}
         isViewingHistory={isViewingHistory}
         historyLitTiles={historyLitTiles}
         notMyTurn={notMyTurn}
