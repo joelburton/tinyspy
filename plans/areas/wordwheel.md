@@ -954,7 +954,25 @@ among them. Options: **correct the prose** (each comment gives that reason;
 the two tests lose the claim); or also drop the re-emission. Recommendation:
 the prose, as ruled there.
 
-### F-wordwheel-4 · `two-shuffles` · two hand-written Fisher–Yates shuffles, one per side
+### SHIPPED · F-wordwheel-4 · `two-shuffles` · two hand-written Fisher–Yates shuffles, one per side
+
+**Joel, 2026-09-24: "i'll take your rec"** — both. The two private
+`shuffled`s are gone. `BoardCol` imports `shuffle` from
+`@/common/utils/shuffle`; the edge function imports it as
+`'../../../src/common/utils/shuffle.ts'`, as `spellingbee-build-board` does.
+The deleted docstring's reason for shuffling the centers (repeated boards on
+one seed vary their center) moved to the call site as a comment. Same
+algorithm, same `Math.random`, on both sides. The `todo.md` → Soon entry is
+gone, which empties Soon.
+
+**Verified:** `tsc -b` and eslint clean; wordwheel, the guards and
+`common/utils`, 46 files, 419 tests green; `deno check` clean and `deno test`,
+15 green. **Booted:** a POST to the local function with the anon key came back
+as the function's own envelope (`PN112`, no club), so the cross-folder import
+resolves at runtime. That probe returns before the center loop, so no board
+was built. A follow-up plant (the import pointed at a missing file) took the
+local edge-runtime container down rather than answering `BOOT_ERROR`; the file
+is restored, and the container needs a restart.
 
 From `todo.md` → Soon; spellingbee's F-6, ruled *"do both."* `shuffled` in
 `components/BoardCol.tsx` and `shuffled` in the edge function's `index.ts`

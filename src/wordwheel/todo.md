@@ -4,14 +4,6 @@
 
 ## Soon
 
-- **Two hand-written Fisher–Yates shuffles, one per side** — `shuffled` in
-  `components/BoardCol.tsx` and `shuffled` in
-  `supabase/functions/wordwheel-build-board/index.ts`. Both become
-  `src/common/utils/shuffle.ts`: the component calls `shuffle(items)` (the
-  default rng is `Math.random` and a copy comes back, so behavior is
-  unchanged), and the edge function imports the util by relative path with an
-  explicit `.ts`, the way `scrabble-ai-move` imports `mulberry32`.
-
 ## Someday
 
 ## Maybe

@@ -92,6 +92,7 @@ import { type SupabaseClient } from 'jsr:@supabase/supabase-js@2'
 import { preflight } from '../_shared/http.ts'
 import { crash, fault, formValidation } from '../_shared/envelope.ts'
 import { parseBuildBoardRequest, invokeCreateGame } from '../_shared/startGame.ts'
+import { shuffle } from '../../../src/common/utils/shuffle.ts'
 import {
   type Board,
   type CandidateRow,
@@ -149,17 +150,6 @@ const MAX_SEED_ATTEMPTS = 25
 // ───────────────────────────────────────────────────────────
 // Sampling (impure — uses Math.random)
 // ───────────────────────────────────────────────────────────
-
-/** Fisher–Yates shuffle of a copy — used to try a seed's 9 candidate centers
- *  in random order (so repeated boards on the same seed vary their center). */
-function shuffled<T>(arr: T[]): T[] {
-  const out = [...arr]
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[out[i], out[j]] = [out[j], out[i]]
-  }
-  return out
-}
 
 /** Sample a pangram mask uniformly from the weighted pool. The pool is
  *  already gated at import time (≥15 required words at each seed's own
@@ -449,7 +439,9 @@ serve(async (req) => {
         const seed = sampleMask(weighted)
         const mask = BigInt(seed.mask)
         const letters = seed.letters
-        for (const center of shuffled([...new Set(letters)])) {
+        // The distinct centers in random order, so repeated boards on the
+        // same seed vary their center.
+        for (const center of shuffle([...new Set(letters)])) {
           const centerBit = 1n << BigInt(center.charCodeAt(0) - 97)
           const candidates = await fetchCandidateWords(supabase, mask, centerBit, requiredBand, legalBand)
           // replace() removes exactly ONE occurrence — a duplicated center

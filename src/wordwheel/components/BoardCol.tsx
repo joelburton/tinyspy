@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState, type SetStateAction } from 'react'
 import { cls } from '@/common/utils/cls'
+import { shuffle } from '@/common/utils/shuffle'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import type { Outcome } from '@/common/outcomes/outcomes'
@@ -37,16 +38,6 @@ type SubmittedWord =
   | { result: 'pangram'; points: number }
   | { result: 'won'; points: number }
   | null
-
-/** Fisher–Yates shuffle on a copy. Pure — doesn't mutate input. */
-function shuffled<T>(arr: readonly T[]): T[] {
-  const out = arr.slice()
-  for (let i = out.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[out[i], out[j]] = [out[j], out[i]]
-  }
-  return out
-}
 
 /**
  * wordwheel's board column — the `<Wheel>`, a floating Shuffle over its
@@ -255,7 +246,7 @@ export function BoardCol({
   const outerShuffled = useMemo(() => {
     if (!outerLetters) return []
     void shuffleSeed
-    return shuffled(Array.from(outerLetters))
+    return shuffle(Array.from(outerLetters))
   }, [outerLetters, shuffleSeed])
 
   // A fresh visual scan of the SAME letters, never a move. The floating button
