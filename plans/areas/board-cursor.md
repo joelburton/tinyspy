@@ -87,6 +87,18 @@ cursor to the hand"*, starting with the cursor already on the tile.
 Either change is per game (the removal differs), but the ORDER could be one
 shared helper in `gridCursor.ts` beside `stepBack`, so the two can't drift.
 
+**Ruled 2026-09-24: (b), exactly as crosswords does it** (*"do b"*, then
+*"b1"*): a removable tile under the cursor goes and the cursor stays; on an
+empty cell the cursor steps back and the tile there goes. Then *"skip-commited"*:
+the step back passes over scrabble's committed tiles, as typing passes over
+them going forward. The order is `planBackspace` in `gridCursor.ts`; each game
+reports a cell as `removable`, `locked` or `empty` (bananagrams: any tile is
+removable; scrabble: staged is removable, committed is locked) and does its own
+removal.
+**Worked:** the helper and its tests; both games' `onBackspace`; bananagrams'
+test gains the type-then-Backspace case; the Backspace wording from
+F-board-cursor-5 (the hook's note, `BoardCol.tsx`, the registry) goes with it.
+
 ## F-board-cursor-2 · `cursor-widths` · The ring's `1px` and `5px` are on the vocabulary guard's pending list
 
 `vocabularies.test.ts` carries `gridCursor.module.css: ['1px', '5px']` as
@@ -132,7 +144,7 @@ folder's test, and bananagrams' test harness, which reads
 
 ## F-board-cursor-5 · `prose` · Stale claims, rosters, archaeology and the docstring marker
 
-- **Backspace, three places.** The hook's `onBackspace` note says it removes
+- **Backspace, three places** (worked with F-board-cursor-1). The hook's `onBackspace` note says it removes
   *"the tile behind the cursor / the last staged one"*. scrabble's
   `BoardCol.tsx` says Backspace *"takes the last one back"*, and the registry's
   `act-recall-tiles` comment says `act-remove-tile` *"takes back the last

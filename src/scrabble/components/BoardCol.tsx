@@ -16,7 +16,7 @@ import { Dot } from '@/common/members/Dot'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
 import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
 import { cellAtPoint, useDragGesture, type DragGesture } from '@/shared/grid-and-drag/useDragGesture'
-import { moveCursor, stepBack } from '@/shared/board-cursor/gridCursor'
+import { moveCursor, planBackspace } from '@/shared/board-cursor/gridCursor'
 import { db } from '../db'
 import { BLANK, BOARD_SIZE, cellIndex, inBounds } from '../lib/board'
 import { historyBoard, evaluatePlay, type Placement } from '../lib/play'
@@ -611,9 +611,12 @@ export function BoardCol({
   )
 
   const backspace = useCallback(() => {
-    setStaged((prev) => prev.filter((s) => !(s.x === cursor.x && s.y === cursor.y)))
-    setCursor((cur) => stepBack(cur, BOARD_SIZE - 1))
-  }, [cursor])
+    const { remove, cursor: next } = planBackspace(cursor, BOARD_SIZE - 1, (x, y) =>
+      stagedAt(x, y) ? 'removable' : committedAt(x, y) ? 'locked' : 'empty',
+    )
+    if (remove) setStaged((prev) => prev.filter((s) => !(s.x === remove.x && s.y === remove.y)))
+    setCursor(next)
+  }, [cursor, stagedAt, committedAt])
 
   const recallAll = useCallback(() => setStaged([]), [])
   const shuffle = useCallback(() => setOrder((prev) => [...prev].sort(() => Math.random() - 0.5)), [])
@@ -782,7 +785,8 @@ export function BoardCol({
 
   // Board-cursor keyboard — the shared 2-D placement engine (bananagrams' twin),
   // four bound actions. scrabble supplies its 5%: type stages a tile, Backspace
-  // takes the last one back, and the commit is a SUBMIT of the staged word.
+  // takes a staged one back (`planBackspace` picks which), and the commit is a
+  // SUBMIT of the staged word.
   //
   // Leaving a turn viewer is not the board's concern: `useHistoryViewer` binds
   // that itself, and the dispatcher runs an any-key MODE ahead of any particular

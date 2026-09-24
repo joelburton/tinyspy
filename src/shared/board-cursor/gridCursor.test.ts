@@ -1,7 +1,7 @@
 // cs-audited-board-cursor
 
 import { describe, expect, it } from 'vitest'
-import { moveCursor, stepBack, type GridCursor } from './gridCursor'
+import { moveCursor, planBackspace, stepBack, type BackspaceCell, type GridCursor } from './gridCursor'
 
 /**
  * The crossword-style cursor rule that bananagrams and scrabble both run: an
@@ -13,9 +13,10 @@ import { moveCursor, stepBack, type GridCursor } from './gridCursor'
  * the caller's, which is why one case runs the two real grids side by side:
  * 14 for scrabble's 15×15, 24 for bananagrams's 25×25.
  *
- * Nothing here touches what a keypress PLACES or REMOVES, or where the cursor
- * goes after a placement — those differ deeply between the two games and stay
- * per-game by design (see the module docstring), so they are tested there.
+ * Backspace's rule is here as WHICH cell it empties; nothing here touches how a
+ * keypress places or removes a tile, or where the cursor goes after a placement
+ * — those differ deeply between the two games and stay per-game by design (see
+ * the module docstring), so they are tested there.
  */
 
 const C = (x: number, y: number, dir: 'h' | 'v'): GridCursor => ({ x, y, dir })
@@ -62,5 +63,43 @@ describe('stepBack', () => {
   it('clamps at 0', () => {
     expect(stepBack(C(0, 5, 'h'), 14)).toEqual(C(0, 5, 'h'))
     expect(stepBack(C(5, 0, 'v'), 14)).toEqual(C(5, 0, 'v'))
+  })
+})
+
+describe('planBackspace', () => {
+  // A row of cells from x = 0, one character each: R removable, L locked, . empty.
+  const row =
+    (cells: string) =>
+    (x: number): BackspaceCell =>
+      cells[x] === 'R' ? 'removable' : cells[x] === 'L' ? 'locked' : 'empty'
+  const plan = (x: number, cells: string) => planBackspace(C(x, 5, 'h'), 14, row(cells))
+
+  it('removes the tile under the cursor and leaves the cursor there', () => {
+    expect(plan(5, '....RR')).toEqual({ remove: { x: 5, y: 5 }, cursor: C(5, 5, 'h') })
+  })
+
+  it('on an empty cell, steps back and removes the tile there — one press after typing', () => {
+    expect(plan(5, '....R.')).toEqual({ remove: { x: 4, y: 5 }, cursor: C(4, 5, 'h') })
+    expect(planBackspace(C(5, 5, 'v'), 14, (_, y) => (y === 4 ? 'removable' : 'empty'))).toEqual({
+      remove: { x: 5, y: 4 },
+      cursor: C(5, 4, 'v'),
+    })
+  })
+
+  it('passes over locked tiles to the removable one behind them', () => {
+    expect(plan(5, '..RLL.')).toEqual({ remove: { x: 2, y: 5 }, cursor: C(2, 5, 'h') })
+    expect(plan(4, '..RLL.')).toEqual({ remove: { x: 2, y: 5 }, cursor: C(2, 5, 'h') }) // starting ON a locked tile
+  })
+
+  it('steps back and removes nothing when it lands on an empty cell', () => {
+    expect(plan(5, '......')).toEqual({ remove: null, cursor: C(4, 5, 'h') })
+    expect(plan(5, '..LL..')).toEqual({ remove: null, cursor: C(4, 5, 'h') })
+    expect(plan(5, '.LLL.')).toEqual({ remove: null, cursor: C(4, 5, 'h') })
+    expect(plan(4, '.LLL.')).toEqual({ remove: null, cursor: C(0, 5, 'h') }) // over the locks to the gap
+  })
+
+  it('stops at the grid edge', () => {
+    expect(plan(0, '......')).toEqual({ remove: null, cursor: C(0, 5, 'h') })
+    expect(plan(3, 'LLL...')).toEqual({ remove: null, cursor: C(0, 5, 'h') })
   })
 })

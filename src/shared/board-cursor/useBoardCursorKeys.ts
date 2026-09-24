@@ -18,7 +18,7 @@ export type BoardCursorKeysOptions = {
   /** A typed A–Z letter, uppercased — place it (bananagrams: from the hand;
    *  scrabble: stage it on the board). */
   onLetter: (letter: string) => void
-  /** Backspace — remove the tile behind the cursor / the last staged one. */
+  /** Backspace — remove a tile, the one `planBackspace` picks. */
   onBackspace: () => void
   /** The commit action for Enter (and Space in bananagrams, whose `act-peel`
    *  carries both): scrabble plays the staged word, bananagrams peels. The

@@ -24,7 +24,7 @@ import {
   shuffleString,
 } from '../lib/board'
 import { cellAtPoint, useDragGesture, type DragGesture, type DragState } from '@/shared/grid-and-drag/useDragGesture'
-import { moveCursor, stepBack } from '@/shared/board-cursor/gridCursor'
+import { moveCursor, planBackspace } from '@/shared/board-cursor/gridCursor'
 import { useBoardCursorKeys } from '@/shared/board-cursor/useBoardCursorKeys'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import type { BoundAction } from '@/common/actions/useBoundAction'
@@ -557,8 +557,8 @@ export function usePlayerBoard({
   // it binds the arrows, the letters and Backspace as actions, and the commit as
   // whichever action the game commits WITH). bananagrams supplies its 5%: EVERY
   // cell is editable (typing over a filled cell swaps its tile back to the hand
-  // — no "committed" tiles, unlike scrabble), Backspace returns the tile under
-  // the cursor, and the commit is a PEEL, whose action carries Enter and Space
+  // — no "committed" tiles, unlike scrabble), Backspace returns a tile to the
+  // hand (`planBackspace` picks which), and the commit is a PEEL, whose action carries Enter and Space
   // (`doPeel` self-no-ops when a peel isn't legal). Every one goes inert while
   // conceded: the board freezes and the others keep racing.
   //
@@ -573,9 +573,13 @@ export function usePlayerBoard({
     onEnter: () => void doPeel(),
     onArrow: (k) => setCursor(moveCursor(cursorRef.current, k, GRID - 1)),
     onBackspace: () => {
-      const cur = cursorRef.current
-      if (boardRef.current[idx(cur.x, cur.y)] !== '.') boardToHand(cur.x, cur.y)
-      setCursor(stepBack(cur, GRID - 1))
+      const { remove, cursor } = planBackspace(
+        cursorRef.current,
+        GRID - 1,
+        (x, y) => (boardRef.current[idx(x, y)] === '.' ? 'empty' : 'removable'),
+      )
+      if (remove) boardToHand(remove.x, remove.y)
+      setCursor(cursor)
     },
     onLetter: (letter: string) => {
       const cur = cursorRef.current

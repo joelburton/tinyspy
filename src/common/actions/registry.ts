@@ -247,7 +247,7 @@ export const ACTIONS = {
   'act-spoiler': { label: 'Spoiler', icon: IconSpoiler, tone: 'caution' },
   'act-share-preview': { label: 'Share preview', icon: IconShare },
   // scrabble's Recall: take every STAGED tile back to the rack at once. Distinct
-  // from `act-remove-tile`, which takes back the last one — hence its own id
+  // from `act-remove-tile`, which takes back one — hence its own id
   // rather than a second meaning for ⌫, which the board cursor already owns
   // here. Keyless: it is a button.
   'act-recall-tiles': { label: 'Recall', icon: IconClear },

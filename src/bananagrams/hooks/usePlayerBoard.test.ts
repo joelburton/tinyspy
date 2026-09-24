@@ -108,6 +108,15 @@ describe('keyboard cursor', () => {
     expect(result.current.board[CENTER]).toBe('A')
     act(() => keyCfg.current.onBackspace())
     expect(result.current.board[CENTER]).toBe('.') // cleared → re-derives into the hand
+    expect(result.current.cursor.x).toBe(C) // the cursor stays
+  })
+
+  it('one Backspace right after typing returns the letter just typed', () => {
+    const { result } = render({ tiles: 'A', initialBoard: EMPTY })
+    act(() => keyCfg.current.onLetter('A' as never)) // cursor advances past it
+    act(() => keyCfg.current.onBackspace())
+    expect(result.current.board).toBe(EMPTY)
+    expect(result.current.cursor.x).toBe(C) // back on the emptied cell
   })
 })
 
