@@ -45,7 +45,10 @@ export function Help({ onClose, brand }: Props) {
       <h3>Turns</h3>
       <ol>
         <li>The clue-giver types a <strong>count</strong> and <strong>one word</strong>.</li>
-        <li>The partner guesses one word at a time.</li>
+        <li>
+          The partner guesses one word at a time — click it, or move with the
+          arrow keys, pick with Space, and guess with Enter.
+        </li>
         <li>An agent — keep going. A bystander — the turn ends and one turn is spent. An assassin — game over.</li>
         <li>The guesser can stop at any time with <strong>Pass &amp; End Turn</strong>; that spends a turn too.</li>
       </ol>

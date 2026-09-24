@@ -353,7 +353,10 @@ is the server's.
 **A clue** is typed into the strip under the board — a count, then a word,
 uppercased as it is typed — and sent with Submit or Enter. `clued` clears the form; the
 strip swaps to the guess view when the clue row arrives by realtime. **A
-guess** is a tile click; the tile shows it is committing, and all five `ok`s
+guess** is a tile click — or, from the keyboard, arrows to a word, Space to pick
+it, and Enter (`act-submit`, called "Guess") to send it; the second key is the
+confirmation a click's aim gives, since an arrow can land a cell off and the
+word can be the assassin. The tile shows it is committing, and all five `ok`s
 leave the frontend silent, because the tile's color arriving IS the answer.
 **A pass** is the guesser's Pass & End Turn button; `passed` says nothing
 either, since the new turn arrives on the game row. A terminal is not answered
@@ -448,7 +451,12 @@ What is codenamesduet's own:
   asked. A bystander hit from one side is a triangle pointing at the player who
   hit it: my partner's above the word, mine below. The phase decides which
   tiles take a click (`lib/phase.ts`), and a word I hit as a bystander stays
-  locked to me alone.
+  locked to me alone — `isGuessable`, which the keyboard's Space asks too.
+- **The keyboard's selection cursor** (`useBoardSelectionCursor`, the shape
+  `lib/boardShape.ts`) is the guesser's alone: the clue-giver's form is real
+  text fields. Its pick wears the shared selected border and drops by itself
+  when the word stops being guessable. No cue teaches Enter — the line under
+  the board has no room — so Help and the key list do (`todo.md`, Someday).
 - **The board marks are the shared ones** (`plans/tile-feedback.md`, tf2): a
   guessed tile dims until the reply; a tile a guess turns over flashes, mine
   included, and a bystander or the assassin then shakes; the board dims while

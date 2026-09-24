@@ -67,8 +67,9 @@ type SwapAnswer = {
  *     disclosure, terminal answer reveal, and the coop swap log. Named callbacks up.
  *
  * Mode is read from `game.mode`. Moves go through `waffle.submit_swap`; board/colors
- * update via the realtime refetch in `useGame` (Pattern A) — a live swap needs no
- * optimistic local state. Turn-history replays past boards, coloring them on the
+ * update via the realtime refetch in `useGame` (Pattern A); a live swap moves its
+ * two letters at once and leaves their colors to the server (`optimisticSwap`,
+ * below). Turn-history replays past boards, coloring them on the
  * FE (see lib/history + lib/colors); at a compete terminal it replays an
  * opponent's board as readily as your own. See docs/playarea.md.
  *
@@ -95,8 +96,9 @@ export function PlayArea({
   goToGame,
   menu,
 }: GamePageCtx) {
-  // The board is worked by clicks and typing, so Tab has nowhere to go here —
-  // and an empty ring is what keeps it from walking out to the browser.
+  // The board is worked by taps, drags and its own keys, so Tab has nowhere to
+  // go here — and an empty ring is what keeps it from walking out to the
+  // browser.
   useTabRing([])
   const { game, players: playerStates, swaps, loading, failure } = useGame(gameId)
   // The setup recap, built ONCE and handed to both consumers — the info column
@@ -110,8 +112,7 @@ export function PlayArea({
   // The below-board slot: a refused swap, a failed End, and the three standing
   // conditions further down — never the header (that's the peer channel).
   const localFeedbackSlot = useFeedbackSlot('local')
-  // Any key is the player's next move → dismiss a gesture-cleared message,
-  // even though waffle has no keyboard entry (swaps are clicks).
+  // Any key is the player's next move → dismiss a gesture-cleared message.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   // ─── Turn-history viewer ───────────────────────────────

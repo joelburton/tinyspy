@@ -483,18 +483,25 @@ layout](../playarea.md#playarea-layout)):
   the column rectangularly, waffle stays a **top-aligned square** (it's a
   waffle, with holes), sized via container-query units. Tiles use the shared
   `.tile` chrome, painted with the shared **Wordle colors** (`--wordle-*` in
-  `common/themes/daylight.css`, shared with wordle); a picked-up tile gets
-  waffle's own ring (the shared dark `.selected` fill would bury the color).
-  While a `submit_swap` is **in flight** (a second or two against prod), the
-  submitted pair wears a **pulsing ring** (same outline vocabulary as the pick
-  ring, animating `outline-color` only — no layout shift; reduced-motion holds a
-  steady ring) and swap input **single-flights** (`useSingleFlight`; tap, drag,
-  and keyboard all funnel through the same two gated paths) — without both,
-  players read the silent gap as a missed click and tap the same two tiles
-  again, queueing the REVERSE swap. An optimistic local swap was considered and
-  rejected: in coop a peer's swap can land first, so a preview could show an
-  exchange that never happens that way (the comment in `PlayArea` records the
-  decision). Below it the **`.belowBoard` local-feedback slot** holds a centered
+  `common/themes/daylight.css`, shared with wordle); a picked-up tile wears
+  the shared `.selected` border.
+- **The keyboard swaps too.** Arrows move a selection cursor over the tiles,
+  jumping the holes (`useBoardSelectionCursor`, the shape
+  `lib/boardShape.ts`); Space picks up to two — a third is refused — and Enter
+  (`act-submit`, called "Swap") swaps them. The second keyboard pick WAITS,
+  where the second tap is the swap: an arrow can land a cell off, and a swap
+  costs one from the budget. A tap with two keyboard picks starts over from
+  the tapped tile. No cue teaches Enter; Help and the key list do (`todo.md`,
+  Someday).
+- **A swap in flight** (a second or two against prod) moves its two letters at
+  once — a board that didn't move would read as a swap that didn't happen —
+  and leaves their colors to the server: the pair goes unjudged gray under the
+  shared in-flight dim until the realtime board arrives, and the colors land
+  for everyone together (the comment above `optimisticSwap` in `PlayArea`).
+  Swap input **single-flights** (`useSingleFlight`) and every way of making a
+  swap — tap, drag, Space, Enter — is quiet meanwhile; without both, players
+  read the silent gap as a missed click and tap the same two tiles again,
+  queueing the REVERSE swap. Below it the **`.belowBoard` local-feedback slot** holds a centered
   `<FeedbackPill>` — a refused swap during play, the "waiting" state when the
   player is locally terminal, whose turn it is, or the filled verdict at
   game-over. (The `SolutionReveal` answer list is NOT here — it lives in the

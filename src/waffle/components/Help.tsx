@@ -19,7 +19,8 @@ export function Help({ onClose, brand }: Props) {
         <strong>Unscramble the waffle.</strong> The grid spells six
         five-letter words — three across, three down — but the letters
         are jumbled. <strong>Swap two tiles</strong> at a time (tap one,
-        then tap another) to put every letter in its place.
+        then tap another — or move with the arrow keys, pick two with Space,
+        and swap with Enter) to put every letter in its place.
       </p>
 
       <p>Each tile is colored like Wordle, and updates as you swap:</p>

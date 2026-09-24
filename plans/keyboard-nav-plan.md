@@ -262,12 +262,19 @@ Enter (the key list under it is automatic).
 band takes a row away (`clampCell`); and the ring became the shared
 `.selectionCursor`.
 
-Then **waffle**, which brings the one real behavior change the feature asks of a
-game: a selection that must stop auto-committing (today the second click *is*
-the swap; the keyboard needs to hold two selections and wait for `Enter`). The
-mouse keeps its current two-click swap. Then **codenamesduet** (guesser only — the clue-giver's input is a
-real text field and arrows there belong to the field), **strands** last, since it
-brings the move-end state mark with it.
+**codenamesduet third — DONE 2026-09-24.** The first game where the keys and
+the click make the move differently: a click guesses at once, the keyboard
+picks with Space and guesses with Enter. The guesser's alone (the clue-giver's
+form is real text fields); the "can I guess this word" rule moved to
+`lib/phase.ts`'s `isGuessable` so the click and Space ask one rule; Enter is
+its own `act-submit`, key-only, called "Guess"; no cue.
+
+**waffle fourth — DONE 2026-09-24.** The selection that must stop
+auto-committing: the second tap still swaps, but two keyboard picks wait for
+Enter ("Swap"). A third pick is refused; a tap with two picked starts over; the
+holes are jumped; no cue.
+
+Then **strands** last, since it brings the move-end state mark with it.
 
 ## psychicnum — the first rollout
 
@@ -325,10 +332,10 @@ games follow.
 
 | game | absent coords | `Space` selects | `Enter` commits | extra |
 |---|---|---|---|---|
-| waffle | 4 holes | up to **two** tiles; a third is refused | the swap | must hold 2 selections without firing; its own `act-submit` on Enter, labeled "Swap"; a tap acts on what is picked (with two picked it starts over); no cue |
+| waffle — **DONE** | 4 holes | up to **two** tiles; a third is refused | the swap | must hold 2 selections without firing; its own `act-submit` on Enter, labeled "Swap"; a tap acts on what is picked (with two picked it starts over); no cue |
 | psychicnum | trailing cells | one word | the guess | Submit stays, as the commit's button; no cue |
 | connections — **DONE** | — | up to four | the group | index clamps when a band collapses; peer rings nest |
-| codenamesduet | — | one word | the guess | guesser only; its own `act-submit` on Enter, no button, labeled "Guess"; no cue |
+| codenamesduet — **DONE** | — | one word | the guess | guesser only; its own `act-submit` on Enter, no button, labeled "Guess"; no cue |
 | strands | — | letters, adjacency-gated | the word | tail-end is state; `⌫` steps back one |
 
 ## The `⏎ to guess` cue
