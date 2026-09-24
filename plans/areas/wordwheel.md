@@ -1048,7 +1048,11 @@ in Derived; the print handler computes `rankIdx` from the same call with the
 same two inputs, and only its coop header reads it. Options: **read
 `selfRankIdx`** and drop `rankIdx`, or leave it. Recommendation: read it.
 
-### F-wordwheel-8 · `empty-letters-guard` · `BoardCol` guards against outer letters that cannot be empty
+### SHIPPED · F-wordwheel-8 · `empty-letters-guard` · `BoardCol` guards against outer letters that cannot be empty
+
+**Joel, 2026-09-24: "i'll take your rec"** — the `if (!outerLetters) return
+[]` line is gone. **Verified:** `tsc -b` and eslint clean; wordwheel and the
+guards, 42 files, 396 tests green.
 
 spellingbee's F-4, ruled *"fix."* The `outerShuffled` memo opens with `if
 (!outerLetters) return []`. `outerLetters` is `game.outer_letters`, `char(8)
