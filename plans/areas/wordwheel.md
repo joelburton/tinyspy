@@ -330,6 +330,45 @@ words outside it.
 377 tests green (one fewer assertion in `answer.test.ts`, the empty-center
 line).
 
+### Step 4 — the `AnswerMessage` conversion — DONE 2026-09-23, nothing to convert
+
+**Already done, by spellingbee's Step 4** (`d55648b8`, 2026-09-22): that step
+changed the shared engine's contract — the engine reports, the game says — so
+wordwheel converted in the same commit as part of the rollout. `lib/answer.ts`
+is `Answer` (seven answers: spellingbee's eight less `bad_letters`, since the
+submit gate vetoes an unspellable word before the engine sees it),
+`answerMessage()`, `answerOf(report, center)` and `peerAnswerMessage(row)`.
+`PlayArea`'s `onAnswer` shows the pill and drives the refused tiles from one
+call; both peer narrations read the same file.
+
+**What this step checked:**
+
+- **No player's words about a move are written anywhere else.** Every other
+  string on the roster that reaches a player is a standing condition, not an
+  answer: `buildOver`'s terminal verdicts (Step 6 moves it), the out-of-race
+  line, and `InfoCol`'s `You conceded`. The engine's `not-ok` is the server's
+  sentence, a race or a bug.
+- **The SQL half is pinned.** `submit_word`'s `ok`s carry no outcome, and the
+  pgTAP says so on the accepted word (`gameplay_test.sql`, outcome and message
+  both) and on both wins (`coop_target_test.sql`, `compete_test.sql`, written
+  out as `"outcome":null` because `envelope_is` is containment). Planted and
+  seen red at spellingbee's Step 4; not re-planted here, since neither the SQL
+  nor the pins have changed since.
+- **`answer.ts` against spellingbee's**, name-for-name: the differences are
+  the game's (no `bad_letters`, the moose for the bee, a miss split by the
+  center alone).
+
+**One sentence fixed:** `answerMessage`'s docstring said *"The pill and the
+header's peer lines read it"* — the refused word's tiles have read the same
+call since `1bfeb02a`; it now names all three, as spellingbee's does.
+
+**Left for pass 2's prose pass:** `answerMessage`'s docstring still carries a
+second paragraph (*"The readings are its siblings' …"*) that spellingbee's no
+longer has.
+
+**Verified:** wordwheel's unit tests and the guards: 41 files, 377 tests
+green.
+
 ## Findings
 
 *(`F-wordwheel-1 · slug · title`, one heading each; a status prefix when it

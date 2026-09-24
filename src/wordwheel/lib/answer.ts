@@ -32,8 +32,8 @@ export type Answer =
   | { answerType: 'reached_peer'; rank: string }
 
 /**
- * How an answer reads — **the one place this game decides that.** The pill and
- * the header's peer lines read it.
+ * How an answer reads — **the one place this game decides that.** The pill, the
+ * tiles a refused word used, and the header's peer lines all read it.
  *
  * The readings are its siblings', because it is the same event: the letters are
  * in front of you and the list is the ordinary English one, so a word that does
