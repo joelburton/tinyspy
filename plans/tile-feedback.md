@@ -680,8 +680,8 @@ nothing on any background, might be the half doing the work.
 ### Hover may need more than a shadow on packed boards
 
 A drop-shadow works because it reads as elevation against the surface around the
-tile. Where tiles are **packed edge to edge** — spellingbee's and wordwheel's
-hexes — there is barely any surface to cast onto, and the shadow lands on a
+tile. Where tiles are **packed edge to edge** — spellingbee's hexes and
+wordwheel's circles — there is barely any surface to cast onto, and the shadow lands on a
 neighbor instead of on the board. Those boards may add a **subtle dim-up** to
 make the hovered tile feel more active.
 
@@ -694,6 +694,12 @@ shadow demonstrably doesn't read.
 edge to edge any more — each is drawn 3% inside its cell (`HEX_SHRINK`), so the
 drop shadow has a gap to fall into, and the hover keeps the shared lift and
 shadow alone. Revisit only if a hovered hex is seen not to lift.
+
+**wordwheel: not needed** (its tf2, 2026-09-24). Its SEATS touch, but the
+piece is the face inside each one, inset by a mustard ring (`--wheel-ring`),
+so the shadow falls onto the seat rather than a neighbor; the hover keeps the
+shared lift and shadow alone. Revisit only if a hovered tile is seen not to
+lift.
 
 ### Position splits in two: the cursor, and where my move ends
 
@@ -1267,16 +1273,22 @@ coordinate units (`Letter.module.css`).
 
 ### wordwheel · shape 1 (nothing changes on the board)
 
-**Today.** A spellingbee fork: a letter in the word wears the khaki selected
+**Today** (tf2, 2026-09-24). A spellingbee fork: a letter in the word wears the khaki selected
 edge, verdicts in the pill, finds in the shared list, rank milestones as peer
 pills. **A refused word answers on the board as spellingbee's does**: the
 tiles the word used shake, each on its own, and wear the refusal's fill, edge
 and white ink for `WORD_ANSWER_MS`. The wheel is a multiset, so a letter can be
 used more than once — which is why both the used edge and the refusal's fill
-mark TILES, each worth one use, chosen by the same spend order: a word using
-one E colors one of two E tiles, never both.
+mark TILES, each worth one use, chosen by the same spend order — a clicked
+twin over its sibling, then the center first: a word using one E colors one
+of two E tiles, never both.
 
 **Trust + race.** Trusting-commit, like spellingbee.
+
+**Its tile is its own**: a circle inset in its seat, sized in the wheel's
+units. It is a CSS box and could compose `.tileFace`, but would override most
+of it, so it keeps its own box and takes the shared values
+(`Tile.module.css`).
 
 **What we want** (proposals):
 - **Nothing more on the board.** The refusal now reads the same on both bee
@@ -1322,8 +1334,8 @@ is a fact about history, not a destination.
 
 ### Where each game stands
 
-**4 of 16 at tf2** (wordle, psychicnum, connections, spellingbee) — 1 at tf1,
-11 at tf0.
+**6 of 16 at tf2** (wordle, psychicnum, connections, codenamesduet,
+spellingbee, wordwheel) — 1 at tf1, 9 at tf0.
 
 The order is chosen by which decisions a game forces, not by size: in the first
 round wordle needed the fewest, waffle moved the framework into shared code,
@@ -1346,7 +1358,7 @@ the background. Pick the next one up from the "forces" column.
 | crosswords | tf0 | — | printed notation on the cell (circles, shades, break marks), `.peerFrame`, and the position channel's other half |
 | boggle | tf0 | — | packed tiles where a hover shadow may not read; its own tile |
 | **spellingbee** | **tf2** | **tf2 2026-09-23** | **Passed as pass 3 of its app-audit area**, and the board held up: shape 1, the hex's rest / hover / press the shared gesture re-stated in coordinate units (an SVG polygon cannot wear `.tileFace`), a finished or conceded board inert, the refusal answer on `useMark` at `WORD_ANSWER_MS`, restart a remount. **Three rulings (Joel):** the khaki selected edge stays for all three word-finding games, and is now written into The channels; the refusal's hexes take `--verdict-edge` for their stroke, as every verdict-filled piece does (they had worn the fill twice); the center yellow and its amber edge are BRAND tokens. **The refusal mark had no test that could fail on its outcome or its lifetime** — the one case pinned a `lost` refusal, which a hard-wired red passes; a `warning` case and a lifetime case were added and each planted red |
-| wordwheel | tf0 | — | circles, packed edge to edge in a mustard tray. Its press, hover and spent-tile mark are the shared ones now, and its board left SVG for boxes — but that was a pass through the MARKS, not the framework |
+| **wordwheel** | **tf2** | **tf2 2026-09-24** | **Passed as pass 3 of its app-audit area**, and like spellingbee's the board held up — much of it had been settled at spellingbee's pass, which ruled for both bee games: shape 1, the khaki spent edge, the refusal's fill, `--verdict-edge` and white ink on `useMark` at `WORD_ANSWER_MS` with each tile shaking on its own, a finished or conceded board inert with no spent edges, restart a remount, the purple center a BRAND token. The refusal mark already had its `warning` and lifetime cases. **One ruling (Joel):** the face keeps its own box rather than composing `.tileFace` — a circle inset in its seat would have to override most of what the shared face sets, which is more confusing than a box of its own; it takes the shared values instead, and `Tile.module.css` says so. No hover brightening: each face sits inside a mustard ring, so the shadow has room. What the audit before it fixed on this board: a click's claim ending with its word, and a refusal answering on the twin that was clicked |
 | wordiply | tf0 | — | OPEN: at terminal its verdict pill takes over the KEYBOARD's space, where wordle leaves that space empty and keeps the verdict above. Not worth categorizing until its turn |
 
 ### The sanity check: a converted game should have LESS CSS
@@ -1435,7 +1447,7 @@ roll their own:
 |---|---|
 | boggle | `PlayArea.module.css` |
 | spellingbee | `Letter.module.css` (hexes — an SVG polygon, which cannot wear the CSS-box face) |
-| wordwheel | `Tile.module.css` (circles in a tray) |
+| wordwheel | `Tile.module.css` (a circle inset in its seat — a CSS box, so it COULD compose `.tileFace`, but it would override most of it; ruled at its tf2 to keep its own box and take the shared values) |
 | stackdown | `Board.module.css` |
 | strands | `Board.module.css` |
 | setgame | `Card.module.css` |

@@ -44,7 +44,13 @@
  * read as one flower rather than nine coins.
  *
  * The border is drawn TRANSPARENT at rest so a spent tile changes only its color
- * and nothing moves — the same trick every other board's selected tile uses. */
+ * and nothing moves — the same trick every other board's selected tile uses.
+ *
+ * It does not wear the shared `.tileFace`: that is a square filling its cell,
+ * and this face is a circle inset in its seat, sized in `--u`, with its own
+ * border width and font — composing it would mean overriding most of what it
+ * sets. It takes the shared VALUES instead (`--tile-shadow`,
+ * `--tile-hover-shadow`, `--tile-selected-edge-width`, the verdict tokens). */
 /* @@ */ .face {
   --wheel-ring: calc(14 * var(--u));
   width: calc(var(--d) - 2 * var(--wheel-ring));
@@ -78,17 +84,19 @@
   font-size: calc(40 * var(--u));
 }
 
-/* The piece rises while its shadow falls away — the gap between them IS the
- * elevation, which is why neither half works alone. `z-index` is on the SEAT and
- * is the part a wheel needs that a grid doesn't: the seats overlap, so a face
- * lifting with no stacking order would rise UNDER its neighbors. */
 /* A read-only board (the game is over, or I conceded): the tile keeps its
  * resting shadow and full color, and loses the pointer, the rise and the press
  * — the shared `.tile:disabled`'s answer, for a tile that is not a button. */
 /* @@ */ .inert {
   cursor: default;
 }
-/* Only on a device that really hovers: a touchscreen keeps `:hover` on the
+
+/* The piece rises while its shadow falls away — the gap between them IS the
+ * elevation, which is why neither half works alone. `z-index` is on the SEAT and
+ * is the part a wheel needs that a grid doesn't: the seats overlap, so a face
+ * lifting with no stacking order would rise UNDER its neighbors.
+ *
+ * Only on a device that really hovers: a touchscreen keeps `:hover` on the
  * last-tapped tile, which would sit raised after every letter. Same gate as
  * spellingbee's hexes, strands' tiles and the tooltip bubble
  * (common/tooltips/doc.md). */

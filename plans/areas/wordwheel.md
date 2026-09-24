@@ -1420,6 +1420,42 @@ is the same shape as spellingbee's 25 × 7 and has not been seen to bite.
 `PlayArea.module.css`'s claim that all three found-words games reserve 24rem
 is true (boggle's and spellingbee's are 24rem).
 
+## Pass 3 — tile-feedback
+
+Read 2026-09-24 against `plans/tile-feedback.md` and spellingbee's pass 3
+(`673bf142`, and the per-hex shake `dce68b6d`). **The board held up**, most
+of it settled at spellingbee's pass, which ruled for both bee games. Already
+true, and left alone: T-1's khaki spent edge and its reason in the comment;
+T-2's `--verdict-edge` on the answered face; T-3's `warning` and lifetime
+cases in `PlayArea.test`; T-5's purple center as a BRAND token; each tile
+shaking on its own, both grain lists already saying so; a finished or
+conceded board inert with no spent edges (`typedCounts` empties when read
+only); restart a remount (`GamePage` keys on `restarts`).
+
+- **RULED — NO · A · `own-tile`** — *"no, it'll be to confusing to use a class
+  and just override everything."* The face is a CSS box, so unlike the hex it
+  COULD compose `.tileFace`, but a circle inset in its seat would override
+  width, height, padding, radius, border width and font. It keeps its own box;
+  `Tile.module.css` says which shared values it takes, and the plan's
+  own-tile table and wordwheel section record it as a choice.
+- **SHIPPED · the plan** — wordwheel's roster row at **tf2**; the count line
+  at 6 of 16 (it read 4 — codenamesduet's tf2 on 2026-09-23 had never been
+  counted); the section marked tf2, its spend sentence naming the clicked
+  twin (F-16), and an own-tile paragraph; the packed-boards hover section says
+  wordwheel's circles need no brightening, each face sitting inside a mustard
+  ring, and no longer calls them hexes.
+- **SHIPPED · `hover-comment-orphaned`** — `Tile.module.css`'s "the piece
+  rises while its shadow falls away … `z-index` is on the SEAT" sat above
+  `.inert`, away from the rule it explains; it now heads the hover gate with
+  F-9's sentence.
+
+**Seen, and left:** `docs/ui.md` → Interactive tile states still describes
+selection as a dark fill and hover as a ring (spellingbee's pass noted it too);
+not this area's.
+
+**Verified:** wordwheel and the guards green; `vite build` clean. No behavior
+changed.
+
 ## Notes
 
 *(things worth remembering about this area that are neither a finding nor
@@ -1440,6 +1476,6 @@ wordwheel specs — `wordwheel`, `wordwheel-coop-win` (2), `wordwheel-mobile`
 - [ ] the whole area re-read in one sitting after the last group
 - [ ] `docs/games/wordwheel.md` reconciled with `todo.md`: its Deferred
       section moved into the todo, or deliberately kept as the standing register
-- [ ] the tile-feedback pass done, and the game's tf level updated there
+- [x] the tile-feedback pass done, and the game's tf level updated there (tf2, 2026-09-24)
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
