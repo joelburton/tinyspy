@@ -46,7 +46,7 @@ beside it:
 
 ## Findings
 
-## F-grid-and-drag-1 · `theme-tokens` · Two games' tokens exist only while a tile is being dragged
+## FIXED · F-grid-and-drag-1 · `theme-tokens` · Two games' tokens exist only while a tile is being dragged
 
 The palette sweep (`2d88083e`, 2026-08-18) named each game's colors and
 shadows in its `theme.css` and appended them to the last rule in the file.
@@ -82,6 +82,12 @@ drag rule keeps only `user-select` and `cursor`. It restores the look the
 tokens were named from, so it is a visible change on both boards. Both files
 are outside the roster; the fix ships with this area because this area found
 it.
+
+**Resolution (Joel, 2026-09-24: *"commit, then do f1."*):** in both
+`theme.css` files every token, with its comments, moved into `:root`, and the
+drag rule now holds only `user-select` and `cursor`. No value changed.
+Re-checked headless: all 20 of scrabble's tokens and all 13 of bananagrams'
+resolve at rest. The guards pass. The boards themselves were not looked at.
 
 ## F-grid-and-drag-2 · `touch-drag` · scrabble drags by touch; its docs and `mobile.md` say it doesn't and mustn't
 

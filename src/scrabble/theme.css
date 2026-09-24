@@ -25,12 +25,6 @@
   /* (No cursor alias: the keyboard cursor is the shared gridCursor module, which
      reads --mark-gridCursor-color directly. This game-named alias pointed straight at it
      and had no other reader.) */
-}
-
-/* While dragging a tile, suppress text selection + show the grab cursor. */
-/* @@ */ body.scrabble-dragging {
-  user-select: none;
-  cursor: grabbing;
 
   /* ── Premium-square ink + board chrome, named during the palette sweep ────
    * The premium letters are the board's printed notation, one color per premium
@@ -49,4 +43,10 @@
 /* @@ */   --scrabble-rack-bg-color:  #6b4a2a;
 /* @@ */   --scrabble-rack-shadow:    0 2px 0 rgb(0 0 0 / 20%);
 /* @@ */   --scrabble-rack-selected-outline-color: #e6b324;
+}
+
+/* While dragging a tile, suppress text selection + show the grab cursor. */
+/* @@ */ body.scrabble-dragging {
+  user-select: none;
+  cursor: grabbing;
 }

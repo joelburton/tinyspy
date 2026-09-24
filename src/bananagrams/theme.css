@@ -22,15 +22,6 @@
      gets looked at. See plans/tile-feedback.md → the roster. */
 /* @@ */   --bananagrams-error: #d84a4a;
 /* @@ */   --bananagrams-grid-edge: #8893a3; /* thick outer border = the real edge of the arena */
-}
-
-/* Set while a tile is being dragged (toggled on document.body by
- * PlayerBoard). Global — not a module class — because it targets the
- * body element directly to kill text selection + show the grab cursor
- * app-wide for the duration of the drag. */
-/* @@ */ body.mg-dragging {
-  user-select: none;
-  cursor: grabbing;
 
   /* ── Board chrome, named during the palette sweep ─────────────────────────
    * Values unchanged and deliberately NOT collapsed onto the shared elevation
@@ -45,4 +36,13 @@
    * the vocabulary will want to own once this game converts. */
 /* @@ */   --bananagrams-drop-ok-fill-color:  rgb(120 200 130 / 22%);
 /* @@ */   --bananagrams-drop-ok-edge-color:  rgb(120 200 130 / 80%);
+}
+
+/* Set while a tile is being dragged (toggled on document.body by
+ * PlayerBoard). Global — not a module class — because it targets the
+ * body element directly to kill text selection + show the grab cursor
+ * app-wide for the duration of the drag. */
+/* @@ */ body.mg-dragging {
+  user-select: none;
+  cursor: grabbing;
 }
