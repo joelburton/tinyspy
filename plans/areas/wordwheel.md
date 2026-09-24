@@ -874,7 +874,23 @@ this game's own** (F-15, F-16); and one naming (F-17). Seventeen findings.
 *(`F-wordwheel-1 · slug · title`, one heading each; a status prefix when it
 has one, no prefix means OPEN)*
 
-### F-wordwheel-1 · `leaderboard-four-times` · the compete leaderboard query is written out four times
+### SHIPPED · F-wordwheel-1 · `leaderboard-four-times` · the compete leaderboard query is written out four times
+
+**Joel, 2026-09-24: "i'll take your rec"** — the helper. `wordwheel._leaderboard
+(target_game, required_score) returns jsonb`, `language sql stable`, beside
+`candidate_words`, revoked from public with no grant: spellingbee's with the
+schema swapped. The four sites are one assignment each; the win's two
+redundant `coalesce`s went with its copy. The three re-keys into
+`common.end_game`'s per-player shape stay inline (F-2 is theirs). The
+`todo.md` → Soon entry is gone.
+
+**Verified:** `gmake db-sql ENV=local`, then `npm run test:db`, 182 files,
+2656 tests, PASS. **Planted** every score in the helper as 0: ONE case red,
+`compete_test`'s mid-game score — spellingbee's plant turned three, because
+its frozen-leaderboard cases came with its F-17, and this game's twin is
+F-13's fourth bullet. The other three sites call the same helper, so its
+content is pinned through the mid-game site, and a lost call would empty the
+leaderboard, which `compete_test`'s entry-count checks catch. Restored.
 
 From `todo.md` → Soon; spellingbee's F-11, ruled *"1 — the leaderboard
 alone."* The subquery that sums each player's `found_words` into `{ user_id,

@@ -4,11 +4,6 @@
 
 ## Soon
 
-- **The compete leaderboard query is written out four times** in
-  `supabase/sql/wordwheel.sql` — `submit_word` twice, `submit_timeout`,
-  `end_game`. spellingbee made it one helper, `spellingbee._leaderboard`
-  (its F-11, 2026-09-23); the same helper here.
-
 - **The per-player results carry keys nothing reads.** The coop endings write
   `{ won, finished, team_score, team_rank_idx }` and the compete ones
   `{ won, found_words_score, rank_idx }`; the app reads `result.won` alone.

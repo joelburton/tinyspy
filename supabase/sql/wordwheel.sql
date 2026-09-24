@@ -224,6 +224,46 @@ revoke execute on function wordwheel.candidate_words(bigint, bigint, int, int) f
 grant execute on function wordwheel.candidate_words(bigint, bigint, int, int) to authenticated;
 
 -- ============================================================
+-- wordwheel._leaderboard — every racer's standing, for the status
+-- ============================================================
+-- Every player's score, word count and rank, as `status.leaderboard` carries
+-- them for the club label and the Rank strip: one entry per seated player,
+-- zeros for a player with no finds. Counts ALL of a player's rows, bonus
+-- included, to match their own Stats card. Written once for its four
+-- readers: submit_word (mid-race and at the win), submit_timeout and
+-- end_game.
+--
+-- Internal: no grant, so only this schema's definer RPCs reach it.
+
+create or replace function wordwheel._leaderboard(target_game uuid, required_score int)
+returns jsonb
+language sql
+stable
+set search_path = wordwheel, common, public, extensions
+as $$
+  select jsonb_agg(
+           jsonb_build_object(
+             'user_id', p.user_id,
+             'found_words_score', p.found_words_score,
+             'rank_idx', common._rank_idx(p.found_words_score, required_score),
+             'found_words_count', p.found_words_count
+           )
+         )
+    from (
+      select gp.user_id,
+             coalesce(sum(fw.points), 0)::int as found_words_score,
+             count(fw.word)::int as found_words_count
+        from common.game_players gp
+        left join wordwheel.found_words fw
+               on fw.game_id = target_game and fw.user_id = gp.user_id
+       where gp.game_id = target_game
+       group by gp.user_id
+    ) p;
+$$;
+
+revoke execute on function wordwheel._leaderboard(uuid, int) from public;
+
+-- ============================================================
 -- wordwheel.create_game — mode is a positional arg
 -- ============================================================
 --
@@ -798,27 +838,7 @@ begin
     if caller_rank_idx >= current_target_rank then
       -- Compete win: caller hit the target rank first. Freeze the
       -- leaderboard at the moment of victory.
-      select jsonb_agg(
-               jsonb_build_object(
-                 'user_id', p.user_id,
-                 'found_words_score', coalesce(p.found_words_score, 0),
-                 'rank_idx', common._rank_idx(coalesce(p.found_words_score, 0), g_row.required_words_score),
-                 'found_words_count', coalesce(p.found_words_count, 0)
-               )
-             )
-        into player_results
-        from (
-          select gp.user_id,
-                 coalesce(sum(fw.points), 0)::int as found_words_score,
-                 -- All rows (required + bonus): a required-only count would
-                 -- diverge from what the player sees in their own Stats card.
-                 count(fw.word)::int as found_words_count
-            from common.game_players gp
-            left join wordwheel.found_words fw
-                   on fw.game_id = target_game and fw.user_id = gp.user_id
-           where gp.game_id = target_game
-           group by gp.user_id
-        ) p;
+      player_results := wordwheel._leaderboard(target_game, g_row.required_words_score);
 
       perform common.end_game(
         target_game, 'won_compete',
@@ -850,28 +870,8 @@ begin
       return common.ok_envelope(jsonb_build_object(
         'result', 'won', 'points', coalesce(points, 0)));
     else
-      -- Build the full leaderboard for the status label.
-      select jsonb_agg(
-               jsonb_build_object(
-                 'user_id', p.user_id,
-                 'found_words_score', p.found_words_score,
-                 'rank_idx', common._rank_idx(p.found_words_score, g_row.required_words_score),
-                 'found_words_count', p.found_words_count
-               )
-             )
-        into player_results
-        from (
-          select gp.user_id,
-                 coalesce(sum(fw.points), 0)::int as found_words_score,
-                 -- All rows (required + bonus): a required-only count would
-                 -- diverge from what the player sees in their own Stats card.
-                 count(fw.word)::int as found_words_count
-            from common.game_players gp
-            left join wordwheel.found_words fw
-                   on fw.game_id = target_game and fw.user_id = gp.user_id
-           where gp.game_id = target_game
-           group by gp.user_id
-        ) p;
+      -- The full leaderboard, for the status label and the Rank strip.
+      player_results := wordwheel._leaderboard(target_game, g_row.required_words_score);
 
       perform common.update_state(
         target_game, 'playing',
@@ -1022,25 +1022,7 @@ begin
     select (setup->>'target_rank')::int into current_target_rank
       from common.games where id = target_game;
 
-    select jsonb_agg(
-             jsonb_build_object(
-               'user_id', p.user_id,
-               'found_words_score', p.found_words_score,
-               'rank_idx', common._rank_idx(p.found_words_score, g_row.required_words_score),
-               'found_words_count', p.found_words_count
-             )
-           )
-      into status_leaderboard
-      from (
-        select gp.user_id,
-               coalesce(sum(fw.points), 0)::int as found_words_score,
-               count(fw.word)::int as found_words_count
-          from common.game_players gp
-          left join wordwheel.found_words fw
-                 on fw.game_id = target_game and fw.user_id = gp.user_id
-         where gp.game_id = target_game
-         group by gp.user_id
-      ) p;
+    status_leaderboard := wordwheel._leaderboard(target_game, g_row.required_words_score);
 
     -- A compete race always has a target rank, so the clock beating everyone
     -- to it is a real LOSS for the table — the same rule coop already applies
@@ -1193,25 +1175,7 @@ begin
     select (setup->>'target_rank')::int into current_target_rank
       from common.games where id = target_game;
 
-    select jsonb_agg(
-             jsonb_build_object(
-               'user_id', p.user_id,
-               'found_words_score', p.found_words_score,
-               'rank_idx', common._rank_idx(p.found_words_score, g_row.required_words_score),
-               'found_words_count', p.found_words_count
-             )
-           )
-      into status_leaderboard
-      from (
-        select gp.user_id,
-               coalesce(sum(fw.points), 0)::int as found_words_score,
-               count(fw.word)::int as found_words_count
-          from common.game_players gp
-          left join wordwheel.found_words fw
-                 on fw.game_id = target_game and fw.user_id = gp.user_id
-         where gp.game_id = target_game
-         group by gp.user_id
-      ) p;
+    status_leaderboard := wordwheel._leaderboard(target_game, g_row.required_words_score);
 
     perform common.end_game(
       target_game, 'ended',
