@@ -66,7 +66,9 @@ apart.
   is an alternative to clicking and answers *which row would Enter act on*; a
   mouse user has no use for it, so `SelectionList`'s hides until a movement key
   asks for it. The test: if hiding the mark would make the board harder to
-  READ, it is geographic.
+  READ, it is geographic. The selection cursor's rules are
+  `useSelectionCursor` (`common/board-cursor`), which the picking boards run
+  too, so a list and a board cannot drift apart on them.
 - **`.emptyState` is self-sufficient.** Do not also pass `muted`; it loads later
   and takes the font-size back. The pattern is
   `core-css/patterns/empty-state.css`.

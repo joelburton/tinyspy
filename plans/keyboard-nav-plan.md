@@ -229,7 +229,7 @@ Both are wanted regardless of whether the cursor feature survives contact.
 four shuffle games (boggle, spellingbee, wordwheel, psychicnum), so `Space` is
 free for one app-wide meaning.
 
-**2. psychicnum drops its `WordEntryArea`.** It is the only arrow collision in the
+**2. psychicnum drops its `WordEntryArea` — DONE.** It is the only arrow collision in the
 whole set (`act-recall-last` and `act-clear-entry` bind `↑`/`↓`), and typing a
 word that is visible on screen was always the odd input. It goes with the
 `words.includes(guess)` pre-check and its `not_on_board` answer (typing was the
@@ -242,11 +242,16 @@ only worth paying for in a race.
 
 ## Build order
 
-**psychicnum first**, and it builds the shared pieces: the `useBoardCursorKeys`
-extension, the selection-cursor hook (with `<SelectionList>` moved onto it), and
-the reachability test. Its geometry has absent coordinates (the short last row),
-and its selection already waits for a commit, so the only behavior it changes is
-dropping the entry. See [psychicnum — the first rollout](#psychicnum--the-first-rollout).
+**psychicnum first — DONE 2026-09-24.** It built the shared pieces, all in
+`common/board-cursor/`: the `useBoardCursorKeys` extension,
+`useSelectionCursor` (which `<SelectionList>` runs too), `stepCell`,
+`useBoardSelectionCursor` over the three, and `reachability.fixture.ts`. See
+[psychicnum — the first rollout](#psychicnum--the-first-rollout).
+
+A later game brings a `BoardShape`, a reachability test over it, an `onToggle`
+and an `onCommit`, and draws the ring from the `cursor` it gets back.
+`useBoardSelectionCursor`'s commit is `act-submit`; a game whose move is not a
+submit (waffle's swap) decides then whether that is the right action.
 
 Then **waffle**, which brings the one real behavior change the feature asks of a
 game: a selection that must stop auto-committing (today the second click *is*
@@ -257,6 +262,9 @@ real text field and arrows there belong to the field), **strands** last, since i
 brings the move-end state mark with it.
 
 ## psychicnum — the first rollout
+
+**DONE 2026-09-24.** Kept until the plan goes, as the worked example the later
+games follow.
 
 ### What changes for a player
 

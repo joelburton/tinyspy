@@ -223,9 +223,10 @@ ambiguity. The ring's offset follows what it sits against
 **A `SelectionList` is a list you move a cursor through and pick exactly one
 thing from** — the clubs, a club's games, the games to start. It is one tab
 stop; arrows move a cursor and Enter acts, immediately. Its cursor is a
-**selection** cursor, hidden until a movement key asks for it, where a board's
-is **geographic** and always shown — the test is whether hiding it would make
-the board harder to read. A menu is not one: a menu is actions and closes, a
+**selection** cursor, hidden until a movement key asks for it — as is the ring a
+picking board (psychicnum's) moves over its pieces — where a typing cursor
+(crosswords' cell, the letter-grid games') is **geographic** and always shown.
+The test is whether hiding it would make the board harder to read. A menu is not one: a menu is actions and closes, a
 list is places that stay. [`common/lists`](../src/common/lists/doc.md).
 
 ## What a `<button>` is

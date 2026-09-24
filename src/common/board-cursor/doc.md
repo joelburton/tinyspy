@@ -1,26 +1,34 @@
 # board-cursor
 
-Arrows move a cursor over a board — the key handling every board-cursor game reuses, and the axis-cursor math the letter-grid games use. `useBoardCursorKeys` binds five actions: `act-move-cursor`, `act-place-tile`, `act-remove-tile`, `act-toggle-tile`, and the game's own commit.
+Arrows move a cursor over a board — the key handling every board-cursor game reuses, the axis-cursor math the letter-grid games use, and the selection cursor the picking boards and `<SelectionList>` use. `useBoardCursorKeys` binds five actions: `act-move-cursor`, `act-place-tile`, `act-remove-tile`, `act-toggle-tile`, and the game's own commit.
 
 ## Intro to area
+
+Two kinds of cursor live here, and they answer different questions.
 
 In bananagrams and scrabble you can build words from the keyboard as well as
 by dragging tiles. A cursor sits on one cell of the grid, pointing across or
 down. Type a letter and a tile for it goes there and the cursor moves on;
 Backspace takes one back; the commit's key makes the move. It is a
-crossword's cursor, laid over a board of loose tiles.
+crossword's cursor, laid over a board of loose tiles — a GEOGRAPHIC cursor,
+which the player needs to read the board, so it always shows.
+`gridCursor.ts` is its math: where an arrow moves it, and which cell a
+Backspace empties. `gridCursor.module.css` is its ring, heavy on the two edges
+the letters will run between, so the direction reads at a glance.
 
-The folder is the part of that the games share, in three pieces.
-`useBoardCursorKeys` binds the keys as actions and hands each press to the
-game. `gridCursor.ts` is the cursor's math: where an arrow moves it, and which
-cell a Backspace empties. `gridCursor.module.css` is the ring drawn on the
-cell, heavy on the two edges the letters will run between, so the direction
-reads at a glance.
+In psychicnum you pick a word from the keyboard as well as by clicking one.
+Arrows move a ring over the tiles, Space picks the word under it, Enter
+guesses. That is a SELECTION cursor — an alternative to clicking, so it stays
+hidden until an arrow asks for it. `useSelectionCursor` holds its show/hide
+rules, which `<SelectionList>` keeps too; `stepCell` says where an arrow takes
+it over a board's cells; `useBoardSelectionCursor` puts those together with
+the keys.
 
-What stays in each game is what a key means there: where a placed tile comes
-from, which tiles may be removed, where the cursor goes after a placement,
-and what the commit is. The pointer side of the same boards is
-`shared/grid-and-drag`'s.
+Both kinds take their keys from `useBoardCursorKeys`, which binds them as
+actions and hands each press to the game. What stays in each game is what a
+key means there: where a placed tile comes from, which tiles may be removed,
+what a pick is, and what the commit is. The pointer side of the letter-grid
+boards is `shared/grid-and-drag`'s.
 
 ## Details
 
@@ -35,6 +43,7 @@ common/board-cursor/
  └── reachability.fixture.ts  for a test: the cells a cursor can never reach on a board's shape
 bananagrams/hooks/usePlayerBoard.ts     runs the hook and the math; BoardArena renders the ring
 scrabble/components/BoardCol.tsx        runs the hook and the math; Board renders the ring
+psychicnum/components/BoardCol.tsx      runs useBoardSelectionCursor; Board renders the ring
 common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
 ```
 
@@ -59,7 +68,7 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
   passing over locked tiles as typing passes over them going forward, and the
   tile it lands on goes. The game reports each cell as `removable`, `locked`
   or `empty`; `planBackspace` answers which cell, and the game removes it.
-- **The ring is a positioned child of the cell.** Its `z-index` is local,
+- **The letter-grid ring is a positioned child of the cell.** Its `z-index` is local,
   inside the board's stacking context. The game's own `.cursor` carries only
   `border-radius`, to match its cell. Its color is `--mark-gridCursor-color`
   (per theme) and its heavy edges `--mark-gridCursor-heavy-width` (in
@@ -73,11 +82,23 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
 - **Not `useCaptureKeys`.** That hook (`common/keyboard`) takes typed entry
   into a word with no cursor; this is the board-cursor sibling, not a
   superset.
-- **The selection cursor is being built here.**
-  [plans/keyboard-nav-plan.md](../../../plans/keyboard-nav-plan.md) builds a
-  board's selection cursor, `useBoardSelectionCursor`, from
-  `useSelectionCursor`, `stepCell` and `useBoardCursorKeys` (through
-  `onToggle`). On a board Space acts on the cursor and is inert while it is
-  hidden; Enter commits the selection, which is always drawn, so it is not. `<SelectionList>` already runs
-  `useSelectionCursor`, which is why the folder is in `common/`. The ring and
-  `gridCursor` are outside that plan.
+- **A selection cursor's rules are one hook, for boards and lists alike.**
+  `useSelectionCursor`: hidden until a movement key asks; a relative key's
+  first press only shows it; an absolute key (Home, End) shows it and moves;
+  a click moves it and hides it. `<SelectionList>` runs it, which is why the
+  folder is in `common/` (common never imports shared).
+- **On a board, Space acts on the cursor and Enter does not.** Space picks the
+  piece under the cursor, so it is inert while the cursor is hidden. Enter
+  commits the selection, which is always drawn (the picked border), so it
+  commits with the cursor hidden — a click then Enter makes the move. It is
+  also the Submit button's action, and an action cannot be off for its key and
+  on for its button.
+- **Arrows move by shape, never by state.** `stepCell` goes to the next cell
+  that EXISTS in the arrow's direction, passing over a hole, and stays put at
+  an edge or a short last row. A decided piece still exists: the cursor rests
+  on it and Space does nothing there, so the same press always goes the same
+  place. Every board's shape carries a reachability test
+  (`reachability.fixture.ts`).
+- **The selection ring is the game's to draw**, as `outline:
+  var(--chrome-cursor-ring)` on the piece `cursor` names, outside it
+  ([tile-feedback.md](../../../plans/tile-feedback.md) → Position).

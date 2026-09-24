@@ -64,7 +64,7 @@ ordering rule.
 | **border color** | **verdict** on my action, where it isn't — its PILL's tone | until my next action |
 | **outline, dashed** | **hint** | until used or cleared |
 | **box-shadow** | **hover** — mouse only, subtle | while hovered |
-| **border color** | the CURSOR — where the keyboard is pointing | until it moves; hidden until an arrow |
+| **outline**, solid, the cursor blue | the CURSOR — where the keyboard is pointing | until it moves; hidden until an arrow |
 | **background**, a shade of the state | where my move currently ENDS (strands' tail, letterboxed's chain) | until the move grows or ends |
 | **dim-down, tile** | **in flight** — sent, waiting on the server | until the answer arrives |
 | **dim-down, board** | **not your turn** | until it is |
@@ -568,8 +568,8 @@ verdict goes on each of them (as a fill, per the rule above). That is not an
 exception, it is the rule with the answer geography gives.
 
 So: **where the judged pieces don't form a geographic unit, the verdict is always
-on the distinct pieces, and never an outline** (on a tile, an outline is a hint or
-the history viewer). Where they do, drawing the unit is available — but it stays a
+on the distinct pieces, and never an outline** (on a tile, an outline is a hint,
+the keyboard's cursor, or the history viewer). Where they do, drawing the unit is available — but it stays a
 decision about that board's geometry, made by the game that has it, not inherited
 from wordle. Either way the tone is still the pill's.
 
@@ -708,10 +708,15 @@ looked like one thing. They are two, and separating them answers all three:
 
 - **The CURSOR is where my INPUT is pointing.** It moves as I look around, commits
   nothing, and belongs to the keyboard: crosswords' cell cursor, and the arrow
-  cursor the five board games are getting (plans/keyboard-nav-plan.md). It takes
-  **border color**, which is free because the two other claimants on that channel
-  can't co-occur with it — a verdict lands on a submitted action, and a peer's
-  presence is an inset ring.
+  cursor the five board games are getting (plans/keyboard-nav-plan.md). The
+  arrow cursor takes an **outline**: the app's cursor ring
+  (`--chrome-cursor-ring`, the one `<SelectionList>` draws on a row), outside
+  the piece. It touches nothing the piece already wears — the picked border sits
+  inside it, and a decided piece's fill shows through — and the other outlines
+  on a tile can't co-occur with it: the history ring draws only on a board in
+  the viewer, which takes no cursor, and a hint is dashed. The geographic cursors (crosswords' cell, the
+  letter-grid games' `gridCursor`) draw their own, since they also say which
+  way the letters run.
 - **The MOVE'S END is where the thing I am building currently stops.** strands'
   most-recently-taken letter, letterboxed's chain end. That is **state**, drawn as
   a shade of the state color, and the test that proves it: arrowing over a
