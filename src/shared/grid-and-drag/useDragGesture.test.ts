@@ -13,7 +13,7 @@ import { cellAtPoint, DRAGGING_CLASS, useDragGesture, type DragGesture } from '.
 
 type Src = { kind: 'tile'; id: number }
 
-/** A grid square the way a game marks one. */
+/** A grid cell, marked the way a game marks one. */
 function square(x: number, y: number): HTMLElement {
   const el = document.createElement('div')
   el.dataset.cell = ''
@@ -54,12 +54,12 @@ afterEach(() => {
 })
 
 describe('cellAtPoint', () => {
-  it('reads the square under the point from its data-x and data-y', () => {
+  it('reads the cell under the point from its data-x and data-y', () => {
     underPointer = square(7, 3)
     expect(cellAtPoint(0, 0)).toEqual({ x: 7, y: 3 })
   })
 
-  it('finds the square from an element inside it', () => {
+  it('finds the cell from an element inside it', () => {
     const cell = square(2, 9)
     const letter = document.createElement('span')
     cell.appendChild(letter)
@@ -74,7 +74,6 @@ describe('cellAtPoint', () => {
 })
 
 describe('useDragGesture', () => {
-
   it('a press + tiny move + release is a TAP, not a drag', () => {
     const { view, onDrop, onTap } = setup()
     act(() => view.result.current.start(SOURCE, 'A', { x: 7, y: 7 }, down(100, 100)))
@@ -117,7 +116,7 @@ describe('useDragGesture', () => {
     expect(document.body.classList.contains(DRAGGING_CLASS)).toBe(true)
     expect(view.result.current.drag).not.toBeNull()
 
-    // A touch-scroll takeover / OS gesture cancels the pointer — no pointerup.
+    // The browser takes the pointer for a pan, or an OS gesture does — no pointerup.
     act(() => pointer('pointercancel'))
     expect(onDrop).not.toHaveBeenCalled()
     expect(onTap).not.toHaveBeenCalled()

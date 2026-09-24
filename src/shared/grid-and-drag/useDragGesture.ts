@@ -8,11 +8,11 @@ const DRAG_THRESHOLD = 4 // px a press must travel before it counts as a drag (v
 /** The body class set while a tile is being dragged; `dragging.css` styles it. */
 export const DRAGGING_CLASS = 'tile-dragging'
 
-/** A square of the grid: `x` is its column, `y` its row. */
+/** A cell of the grid: `x` is its column, `y` its row. */
 export type GridCell = { x: number; y: number }
 
 /**
- * The grid square under a screen point, or null off the grid. A square is an
+ * The grid cell under a screen point, or null off the grid. A cell is an
  * element carrying `data-cell`, with its column and row in `data-x` and
  * `data-y`.
  */
@@ -26,7 +26,7 @@ export function cellAtPoint(x: number, y: number): GridCell | null {
 export type DragGesture<TSource> = {
   // What was picked up (game-defined: a rack slot, a board cell, a hand tile…).
   source: TSource
-  // The letter being moved, or null when the press can't drag (an empty square,
+  // The letter being moved, or null when the press can't drag (an empty cell,
   // a finger). A null letter can only ever tap.
   letter: string | null
   // The board cell pressed, or null when the press began off the grid (on the
@@ -64,10 +64,10 @@ export type UseDragGestureOpts<TSource> = {
  *
  * A press armed with `start` becomes a drag once it travels a few pixels with
  * a letter to carry; released before that, it is a tap. While a drag is in
- * flight, `drag` holds the ghost's letter and position, `hover` the grid
- * square under the pointer (`cellAtPoint`, so the grid must mark its squares
- * the way that says), and the body carries `DRAGGING_CLASS`. A canceled
- * pointer ends it with neither a drop nor a tap.
+ * flight, `drag` holds the ghost's letter and position, `hover` the grid cell
+ * under the pointer (found by `cellAtPoint`, which says how a grid marks its
+ * cells), and the body carries `DRAGGING_CLASS`. A canceled pointer ends it
+ * with neither a drop nor a tap.
  *
  * The options are read fresh on every event, so they may be new closures on
  * every render.
@@ -121,7 +121,7 @@ export function useDragGesture<TSource>(opts: UseDragGestureOpts<TSource>) {
         onTap(g)
       }
     }
-    // A canceled pointer (touch-scroll takeover, an OS gesture) fires
+    // A canceled pointer (the browser taking it for a pan, an OS gesture) fires
     // pointercancel and NO pointerup — without this the armed gesture is
     // stranded: the ghost tile stays rendered and the body `DRAGGING_CLASS` stays
     // applied until some unrelated future pointerup. Tear the gesture down as

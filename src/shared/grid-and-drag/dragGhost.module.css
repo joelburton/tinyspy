@@ -13,9 +13,10 @@
  *   z-index: --z-ghost       its tier, which is not a game's choice
  *   a centered bold letter
  *
- * Neither is where it renders: OUTSIDE the board root. A board is a stacking
- * context (`.boardSeal` in game-page/playArea.module.css), and a ghost confined
- * to one could not follow the pointer onto the rack or hand it came from.
+ * Where it renders isn't a game's choice either: OUTSIDE the board root. A
+ * board is a stacking context (`.boardSeal` in game-page/playArea.module.css),
+ * and a ghost confined to one could not follow the pointer onto the rack or
+ * hand it came from.
  *
  * WHAT'S NOT HERE is the look. A ghost imitates the tile it lifted — its size,
  * face, edge, radius and shadow — so the game's own rule sets those. A ghost

@@ -4,7 +4,7 @@ The folders it reads: `shared/grid-and-drag`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-24. All seven findings fixed; the closing re-read and the harvest remain.**
+**Status: OPEN 2026-09-24. All seven findings fixed and the closing re-read done; the doc.md harvest remains.**
 
 ## The roster
 
@@ -322,9 +322,43 @@ was (a), `hook-reads-the-cell`):**
 
 *(none yet)*
 
+## The closing re-read
+
+Done 2026-09-24, in one sitting (Joel: *"do the re-read"*):
+- **Read end to end:** the four roster code files (`useDragGesture.ts`, its
+  test, `dragGhost.module.css`, `dragging.css`), `doc.md` and `todo.md`.
+- **Read where the fixes landed:** both `theme.css` files, both games' ghost
+  rules, and scrabble's `BoardCol.tsx` and bananagrams' `usePlayerBoard.ts`
+  around the drag.
+- **Grepped the fault classes repo-wide:** per-game drag classes, `TCell` and
+  row/col claims, touch claims, who runs the drag, `elementFromPoint` and
+  `data-cell` contract claims.
+
+It found:
+
+- **A sibling's stale claim.** scrabble's `Board.tsx` said it forwards
+  pointer-downs "so PlayArea can run the shared drag gesture". BoardCol runs
+  it, and the comment now says so.
+- **In the area's own new prose:**
+  - It called a grid cell a "square" in some places and a "cell" in others,
+    beside `GridCell` and `data-cell`. It now says "cell" throughout.
+  - The hook's docstring had a garbled clause about how a grid marks its
+    cells.
+  - The cancel comment, in the hook and in the test, gave a touch scroll as
+    its example. A finger can no longer start a drag, so the example is now
+    the browser taking the pointer for a pan.
+  - The ghost header's "Neither is where it renders" didn't parse.
+  - A stray blank line opened the hook's `describe`.
+- **Checked and true:** jsdom has no `elementFromPoint`, as the test's new
+  comment says. bananagrams' `BoardArena` and `HandCard` still describe the
+  `data-cell` contract correctly. It now lives in the hook's `cellAtPoint`,
+  and the views still carry it.
+- **Verified:** the scrabble, bananagrams and folder suites, the guards,
+  `tsc -b` and eslint pass.
+
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
+- [x] the whole area re-read in one sitting after the last group
 - [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
 - [ ] `todo.md` holds everything still owed; nothing durable left in this file
 - [ ] every file on the roster blessed, or its stamp says why not
