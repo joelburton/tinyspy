@@ -2,7 +2,7 @@
 
 import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
-import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Tile } from '../lib/board'
 import styles from './WordEntry.module.css'
@@ -85,7 +85,7 @@ export function WordEntry({
               // attention flash, because the eye is already on this row.
               answering && filled && styles.verdict,
               answering && filled && shared.verdictFill,
-              answering && filled && outcome !== null && VERDICT_TONE[outcome],
+              answering && filled && outcome !== null && OUTCOME_TO_VERDICT_CLASS[outcome],
               // Motion is the refusal channel, not a second verdict: only a word
               // that lost the turn shakes its slots.
               answering && filled && outcome === 'lost' && shared.verdictShake,

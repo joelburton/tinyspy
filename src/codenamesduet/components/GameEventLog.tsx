@@ -6,7 +6,7 @@ import gameEventLog from '@/common/event-log/gameEventLog.module.css'
 import { useEventLogPlayerPicker } from '@/common/event-log/useEventLogPlayerPicker'
 import { cls } from '@/common/utils/cls'
 import { IconAI } from '@/common/icons/icons'
-import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import { isSuddenDeathTurn, type ClueEvent, type WordedGuess } from '../lib/events'
 import { answerMessage } from '../lib/answer'
 import type { Player } from '../lib/seats'
@@ -216,7 +216,7 @@ export function GameEventLog({
                   // outcome, which `lib/answer.ts` decides. A clue the giver
                   // edited, or thought of alone, wears nothing.
                   <span
-                    className={cls(styles.aiClueMark, VERDICT_TONE[AI_CLUE_OUTCOME])}
+                    className={cls(styles.aiClueMark, OUTCOME_TO_VERDICT_CLASS[AI_CLUE_OUTCOME])}
                     data-tooltip="AI clue"
                   >
                     <IconAI size="1em" aria-hidden />

@@ -5,12 +5,12 @@
 ## Soon
 
 - **Rename `status.outcome` → `status.terminal_cause`.** The repo spends
-  `outcome` on two unrelated closed lists: this vocabulary (the TONE a thing
+  `outcome` on two unrelated closed lists: this vocabulary (what a thing
   reads as — `won`, `near`, `warning`, …) and the game-status key naming WHY a
   game stopped (`timeout`, `manual`, `solved`, `conceded`, …,
   [docs/states.md](../../../docs/states.md)). Having one of the app's most
   central terms also mean something else is not a documentation problem, and
-  the tone list is the one that keeps the word — it is the older, wider claim,
+  this vocabulary is the one that keeps the word — it is the older, wider claim,
   and `outcome` is what a pill, a tile, a log bar and an envelope all say.
 
   `terminal_cause` is the right name on both halves: `terminal` is already how

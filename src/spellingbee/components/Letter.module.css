@@ -112,7 +112,7 @@
 
 /* THE ANSWER on a refused word's letters: the outcome's own fill, its edge a
  * step darker, and white ink — the three colors a verdict-filled piece wears on
- * every board (`.tileFace.verdictFill`). The tone classes beside this one
+ * every board (`.tileFace.verdictFill`). The verdict classes beside this one
  * are the shared vocabulary's and set nothing but the verdict tokens read
  * here, which is why a hex can take one without being a `.tileFace`.
  *

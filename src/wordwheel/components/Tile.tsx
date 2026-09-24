@@ -3,7 +3,7 @@
 import type { CSSProperties } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import shared from '@/common/game-page/playArea.module.css'
 import { RING_W } from '../lib/wheel'
 import styles from './Tile.module.css'
@@ -55,10 +55,10 @@ export function Tile({ letter, isCenter, pos, onClick, spent, answer }: Props) {
         !onClick && styles.inert,
         isCenter && styles.center,
         spent && styles.spent,
-        // The tone class sets only the verdict tokens (`VERDICT_TONE`);
+        // The verdict class sets only the verdict tokens (`OUTCOME_TO_VERDICT_CLASS`);
         // `.answered` maps them onto the face.
         answer && styles.answered,
-        answer && VERDICT_TONE[answer],
+        answer && OUTCOME_TO_VERDICT_CLASS[answer],
       )}
       // The tile's own place on the wheel, in the geometry's units scaled by
       // `--u` — the same numbers the PDF draws by. `--d` is the outer diameter

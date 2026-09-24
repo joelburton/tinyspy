@@ -16,12 +16,12 @@
 }
 
 /* The mark after a clue given exactly as the AI suggested it. Its color is that
- * answer's outcome, read off the `VERDICT_TONE` class it wears beside this one —
- * `--verdict-tone`, the tier legible on the page; `--verdict-ink` is the white
+ * answer's outcome, read off the `OUTCOME_TO_VERDICT_CLASS` class it wears beside this one —
+ * `--verdict-line`, the tier legible on the page; `--verdict-ink` is the white
  * ink for text on a filled piece, and on the log it draws nothing. */
 /* @@ */ .aiClueMark {
   margin-inline-start: 0.35em;
-  color: var(--verdict-tone);
+  color: var(--verdict-line);
   vertical-align: -0.125em;
 }
 

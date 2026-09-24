@@ -4,7 +4,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
-import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import type { FeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import type { TraceCells } from '../lib/boardTrace'
 import { WordEntryArea } from '@/common/word-entry/WordEntryArea'
@@ -275,7 +275,7 @@ export function BoardCol({
                   // what you typed and where it went.
                   answeredCells?.cells.has(`${y}-${x}`) && styles.answered,
                   answeredCells?.cells.has(`${y}-${x}`) &&
-                    VERDICT_TONE[answeredCells.outcome],
+                    OUTCOME_TO_VERDICT_CLASS[answeredCells.outcome],
                   answeredCells?.cells.has(`${y}-${x}`) && shared.verdictShake,
                   // A blank takes no clicks (its handlers are dropped below), so
                   // it takes none of the pointer/hover/press treatment either —

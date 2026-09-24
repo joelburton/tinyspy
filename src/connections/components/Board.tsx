@@ -9,7 +9,7 @@ import type { Mark } from '@/common/board-marks/useMark'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
-import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
@@ -264,9 +264,9 @@ export function Board({
                 inFlight && shared.dimInFlight,
                 // The answer fills the tile, in a PALE tier of its pill's outcome.
                 isVerdict && shared.verdictFill,
-                isVerdict && verdict && VERDICT_TONE[verdict.value.outcome],
+                isVerdict && verdict && OUTCOME_TO_VERDICT_CLASS[verdict.value.outcome],
                 isHistoryLit && shared.verdictFill,
-                isHistoryLit && VERDICT_TONE[historyLitOutcome],
+                isHistoryLit && OUTCOME_TO_VERDICT_CLASS[historyLitOutcome],
                 isHistoryLit && styles.historyTile,
               )}
               style={ownerColor ? { ['--peer-color' as string]: ownerColor } : undefined}

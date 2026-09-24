@@ -4,7 +4,7 @@ import { cls } from '@/common/utils/cls'
 import shared from '@/common/game-page/playArea.module.css'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
-import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import history from '@/common/event-log/historyViewer.module.css'
 import { DimmedBaseWord } from './DimmedBaseWord'
 import styles from './GuessBoard.module.css'
@@ -66,7 +66,7 @@ export function GuessBoard({
     cls(
       a.phase === 'attention' && shared.attentionFlash,
       a.phase === 'answer' && styles.answered,
-      a.phase === 'answer' && VERDICT_TONE[a.value.outcome],
+      a.phase === 'answer' && OUTCOME_TO_VERDICT_CLASS[a.value.outcome],
       // Side to side means "not a winning move", so only a win is spared it.
       a.phase === 'answer' && a.value.outcome !== 'won' && shared.verdictShake,
     )
@@ -82,7 +82,7 @@ export function GuessBoard({
             <li
               key={`answer-${held.word}`}
               // The row keeps its own shape — the word left, the badge right —
-              // and only its colors change. The shared tone classes carry
+              // and only its colors change. The shared verdict classes carry
               // nothing but the two custom properties `.answered` reads, which
               // is why a row can wear a verdict without being a `.tileFace`.
               className={cls(

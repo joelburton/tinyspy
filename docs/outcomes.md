@@ -342,8 +342,8 @@ If one is genuinely needed:
 2. Give it all seven `--outcomes-*` roles in **both** themes — the grid is a
    rectangle and a guard says so, so this is not optional and not "the ones
    something reads today".
-3. Give it a tone class in `common/game-page/playArea.module.css` and name it in
-   `VERDICT_TONE` — that map is total, so this one will not compile until you
+3. Give it a verdict class in `common/game-page/playArea.module.css` and name it
+   in `OUTCOME_TO_VERDICT_CLASS` — that map is total, so this one will not compile until you
    do. Same for the event log's bar class. Both are deliberate gates: a new word
    that reaches a board or a log before anyone has decided what it looks like
    gets whatever color the nearest branch happened to end on.

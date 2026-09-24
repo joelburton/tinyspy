@@ -541,7 +541,7 @@
 /* @@ */   --pill-error-tint-color:    color-mix(in oklab, var(--outcomes-error-base-color) 8%, var(--default-bg-color));
 
   /* One value, seven cells. Not an alias chain and not a single shared
-     token: each tone owns its ink so any one of them can move alone,
+     token: each outcome owns its ink so any one of them can move alone,
      which is the whole reason for writing the column out. */
 /* @@ */   --pill-won-ink-color:       var(--page-text-color);
 /* @@ */   --pill-lost-ink-color:      var(--page-text-color);

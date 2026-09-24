@@ -205,7 +205,7 @@
 }
 
 /* THE ANSWER on a refused word's tiles: the outcome's own fill and white ink,
- * the same two colors a piece wears anywhere. The tone classes beside this one
+ * the same two colors a piece wears anywhere. The verdict classes beside this one
  * are the shared vocabulary's and set nothing but the two custom properties read
  * here, which is why a boggle tile can take one without being a `.tileFace`. */
 /* @@ */ .answered {

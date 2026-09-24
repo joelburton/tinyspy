@@ -5,7 +5,7 @@ import { cls } from '@/common/utils/cls'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
-import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
 import { WORD_LENGTH } from '../lib/setup'
 import shared from '@/common/game-page/playArea.module.css'
@@ -151,7 +151,7 @@ export function Board({
                 // The rejected word is still sitting in the active typing row —
                 // it was never accepted, so it never became a submitted one.
                 isActive && reject && shared.verdictRing,
-                isActive && reject && VERDICT_TONE[reject.value],
+                isActive && reject && OUTCOME_TO_VERDICT_CLASS[reject.value],
               )}
               role="row"
             >

@@ -2,7 +2,7 @@
 
 import { cls } from '@/common/utils/cls'
 import type { Outcome } from '@/common/outcomes/outcomes'
-import { VERDICT_TONE } from '@/common/game-page/verdictTone'
+import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import shared from '@/common/game-page/playArea.module.css'
 import { HEX_W, HEX_H, HEX_VERTS, HEX_SHRINK } from '../lib/honeycomb'
 import styles from './Letter.module.css'
@@ -53,11 +53,11 @@ export function Letter({ letter, isCenter, pos, onClick, used, answer }: Props) 
         !onClick && styles.inert,
         isCenter && styles.center,
         used && styles.used,
-        // The tone class sets only the verdict tokens (`VERDICT_TONE`), which
+        // The verdict class sets only the verdict tokens (`OUTCOME_TO_VERDICT_CLASS`), which
         // is why a hex can wear one without being a `.tileFace`; `.answered`
         // maps them onto the shape and the text.
         answer && styles.answered,
-        answer && VERDICT_TONE[answer],
+        answer && OUTCOME_TO_VERDICT_CLASS[answer],
         // The shared head-shake: every answer this hex can wear is a refusal.
         answer && shared.verdictShake,
       )}

@@ -365,9 +365,9 @@
  * not on the pill. The two are one message, so they share a color and a
  * lifetime.
  *
- * The TONE IS THE PILL'S — a tone class here, matching the pill's, rather than a
- * color of its own. A red pill beside a gold mark reads as two different
- * verdicts. Whatever tone this level of answer takes in a pill is the tone it
+ * The OUTCOME IS THE PILL'S — a verdict class here, matching the pill's, rather
+ * than a color of its own. A red pill beside a gold mark reads as two different
+ * verdicts. Whatever outcome this level of answer takes in a pill is the one it
  * takes here (docs/ui.md → Feedback pill): "not a word" is an error, "already
  * guessed" is a warning, "one away" is a near miss.
  *
@@ -402,7 +402,7 @@
  * keys the element on a nonce (wordle's Board; the rule in full is beside
  * `.verdictShake` below). */
 /* @@ */ .verdictRing {
-  outline: 3px solid var(--verdict-tone);
+  outline: 3px solid var(--verdict-line);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
   animation: verdict-shake var(--mark-verdict-shake-duration) ease-in-out;
@@ -424,8 +424,9 @@
 /* @@ */   --tile-slot-edge-color: var(--verdict-edge);
 }
 
-/* Each tone carries three forms: `--verdict-tone` for a ring around a group (the
- * legible-on-white 800 tier, since a ring is a thin line on the page),
+/* Each outcome's class carries three forms: `--verdict-line` for a mark drawn on
+ * the page itself — a ring around a group, a line of the event log's text — in
+ * the legible-on-white 800 tier, since a ring is a thin line on the page;
  * `--verdict-edge` for the piece's own border (the fill stepped toward black —
  * quiet definition of the same hue, never the 800 tier, which is a line meant
  * for white), and `--verdict-fill` for the piece — the 400 tier, WHICH IS THE
@@ -434,7 +435,7 @@
  * minute later, and neither place is free to pick its own shade. Same family,
  * three tiers, one meaning. */
 /* @@ */ .verdictLost {
-/* @@ */   --verdict-tone: var(--outcomes-lost-ink-color);
+/* @@ */   --verdict-line: var(--outcomes-lost-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-lost-fill-color);
 /* @@ */   --verdict-edge: var(--outcomes-lost-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
@@ -447,7 +448,7 @@
  * under the 3:1 floor and blessed there (2026-09-15) alongside the outcome green
  * and wordle's yellow; judged on screen rather than on the number. */
 /* @@ */ .verdictWarning {
-/* @@ */   --verdict-tone: var(--outcomes-warning-ink-color);
+/* @@ */   --verdict-line: var(--outcomes-warning-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-warning-fill-color);
 /* @@ */   --verdict-edge: var(--outcomes-warning-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
@@ -460,14 +461,14 @@
  * stops at 2.4 rather than clearing the floor for the reason wordle's yellow
  * keeps dark ink — a gold dark enough to carry white is not gold any more. */
 /* @@ */ .verdictNear {
-/* @@ */   --verdict-tone: var(--outcomes-near-ink-color);
+/* @@ */   --verdict-line: var(--outcomes-near-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-near-fill-color);
 /* @@ */   --verdict-edge: var(--outcomes-near-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
 /* The three below complete the vocabulary: a tile can now wear ANY outcome its
- * pill can, which is what lets `VERDICT_TONE` be TOTAL. A map covering only the
+ * pill can, which is what lets `OUTCOME_TO_VERDICT_CLASS` be TOTAL. A map covering only the
  * words one game happened to use forced the one call site whose tone comes from
  * the SERVER to hand-map seven onto three, painting anything unrecognized red
  * (Joel, 2026-08-29). Unreachable from a connections guess today — that is the
@@ -477,31 +478,31 @@
  * the vocabulary's: there, a correct guess's four tiles become a band on the
  * same render, so nothing is left to mark. A game whose winning piece STAYS —
  * stackdown's word sits in its slots for a beat before the tiles go — has
- * something to mark, so the tone exists. White on this fill is the blessed
+ * something to mark, so the class exists. White on this fill is the blessed
  * 2.36:1 pair. */
 /* @@ */ .verdictWon {
-/* @@ */   --verdict-tone: var(--outcomes-won-ink-color);
+/* @@ */   --verdict-line: var(--outcomes-won-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-won-fill-color);
 /* @@ */   --verdict-edge: var(--outcomes-won-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
 /* @@ */ .verdictError {
-/* @@ */   --verdict-tone: var(--outcomes-error-ink-color);
+/* @@ */   --verdict-line: var(--outcomes-error-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-error-fill-color);
 /* @@ */   --verdict-edge: var(--outcomes-error-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
 /* @@ */ .verdictNeutral {
-/* @@ */   --verdict-tone: var(--outcomes-neutral-ink-color);
+/* @@ */   --verdict-line: var(--outcomes-neutral-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-neutral-fill-color);
 /* @@ */   --verdict-edge: var(--outcomes-neutral-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
 }
 
 /* @@ */ .verdictNoted {
-/* @@ */   --verdict-tone: var(--outcomes-noted-ink-color);
+/* @@ */   --verdict-line: var(--outcomes-noted-ink-color);
 /* @@ */   --verdict-fill: var(--outcomes-noted-fill-color);
 /* @@ */   --verdict-edge: var(--outcomes-noted-edge-color);
 /* @@ */   --verdict-ink: var(--ink-onDark-color);
@@ -608,7 +609,7 @@
  * has only one outline, so the board drops this while the viewer is open — the
  * viewer is the state you chose and the one you can leave. */
 /* @@ */ .gameOverFrame {
-  /* Neutral unless a tone class below re-sets it — an ENDED game (nobody beat
+  /* Neutral unless an outcome class below re-sets it — an ENDED game (nobody beat
    * anybody) keeps the plain gray. */
 /* @@ */   --game-over-frame: var(--outcomes-neutral-terminalFrame-color);
   outline: 4px solid var(--game-over-frame);
