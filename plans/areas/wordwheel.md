@@ -1116,7 +1116,16 @@ helper, with a docstring saying the rows are legal by construction;
 leave them. Recommendation: drop both; `deno check` makes a reader of either
 a type error.
 
-### F-wordwheel-11 · `help-text` · the Help modal promises a pangram a custom board need not have, and omits bonus words and the modes
+### SHIPPED · F-wordwheel-11 · `help-text` · the Help modal promises a pangram a custom board need not have, and omits bonus words and the modes
+
+**Joel, 2026-09-24: "i'll take your rec"** — the rewrite, in the words shown
+him. The pangram line says a random board always has one and hand-picked
+letters may not; a paragraph on bonus words (the dot, a score past the total);
+a paragraph on the two modes, *Coop:* and *Compete:* in bold; this game's tile
+and center lines kept; the default height 500. The docstring says what the
+modal covers and that one text serves both modes. **Verified:** `tsc -b` and
+eslint clean; wordwheel and the guards, 42 files, 396 tests green. No test
+reads the Help copy; not looked at on screen.
 
 spellingbee's F-13, ruled *"1"* — the rewrite. `Help.tsx` says of the
 pangram *"Every board has at least one."* True of a random board (grown from
