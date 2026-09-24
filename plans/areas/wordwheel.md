@@ -555,7 +555,10 @@ green with `disabled={false}` planted on the entry. wordwheel's copy now
 asserts first that `act-type-letter` answers `disabled` — red with the plant,
 green restored. **spellingbee's test was planted the same way and stays green**;
 filed in `src/spellingbee/todo.md` → Soon rather than edited, since that area
-is closed and blessed.
+is closed and blessed. **Then fixed on Joel's word** (*"let's fix the todo you
+just filed for spellingbee"*): the same assertion added there, red with the
+open entry planted, green restored; the todo item deleted. The file keeps its
+`cs-blessed-spellingbee` stamp — only Joel moves it.
 
 **The CSS is not visually verified** — jsdom has no hover; the class is
 asserted, the look is not. The old `docs/games/wordwheel.md`'s one sentence

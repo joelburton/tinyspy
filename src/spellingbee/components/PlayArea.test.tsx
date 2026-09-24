@@ -243,6 +243,9 @@ describe('spellingbee PlayArea — the hexes the word is using', () => {
         })}
       />,
     )
+    // The keys themselves are closed — the marks alone would not show it, since
+    // a read-only board draws none whatever the word holds.
+    expect(bound('act-type-letter').describe('key').state).toBe('disabled')
     await user.keyboard('bed')
     expect(usedHexes()).toEqual([])
   })
