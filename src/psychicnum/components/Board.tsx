@@ -11,6 +11,7 @@ import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedba
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import { eventToOutcome } from '../lib/answer'
+import { boardShape } from '../lib/boardShape'
 import styles from './Board.module.css'
 
 /** Empty word set — the resting value of the head-shake mark, so a board with
@@ -138,8 +139,7 @@ export function Board({
     return () => clearTimeout(timer)
   }, [wrongKey, shakeWrong])
 
-  const cols = Math.ceil(Math.sqrt(words.length))
-  const rows = Math.ceil(words.length / cols)
+  const { cols, rows } = boardShape(words.length)
   return (
     <div
       className={cls(shared.boardSeal, styles.board)}
