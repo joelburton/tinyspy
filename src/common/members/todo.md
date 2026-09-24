@@ -17,14 +17,6 @@
   or leave both, but don't rename one: half the pair is a worse mismatch than
   either whole scheme.
 
-- **`ActorMention.tsx` exports two components**, `ActorDot` and `DotActor`, so
-  "the filename is the component" is false in it. They differ only in order and
-  share every piece, which is why this wants a look rather than a mechanical
-  split. (The same question is open in `event-log` for `EventLog.tsx` and in
-  setgame for `Card.tsx`. `game-page` had it too, in `PlayAreaMountLog.tsx`,
-  and answered it by finding one of the two components no longer earned its
-  keep — worth trying before reaching for a split.)
-
 - **`ActorDot` and `DotActor` default `show` differently** — `both` and
   `auto` — so a caller who switches one for the other because they only want
   the disc on the other side gets a name that starts hiding on phones, or
@@ -52,3 +44,7 @@
   its own fill".
 
 ## Won't do
+
+- **Splitting `ActorMention.tsx` into one file per component.** It exports
+  `ActorDot` and `DotActor`, which differ only in order and share every piece;
+  they stay together (Joel, 2026-09-24: *"keep them both"*).

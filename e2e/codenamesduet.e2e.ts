@@ -107,8 +107,8 @@ test.describe('codenamesduet below-board layout stability', () => {
     // mounts at the .layout level. Assert the whole panel is inside the viewport.
     const viewport = pageAlice.viewportSize()!
     const panel = await pageAlice
-      .locator('.react-draggable, [class*="rnd"]')
-      .first()
+      .locator('[data-floating-panel]')
+      .filter({ hasText: 'Clue suggestion' })
       .boundingBox()
     expect(panel).not.toBeNull()
     expect(panel!.x).toBeGreaterThanOrEqual(0)

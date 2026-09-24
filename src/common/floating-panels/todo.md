@@ -4,18 +4,6 @@
 
 ## Soon
 
-- **A test cannot find one panel among several, so an e2e sniffs react-rnd's
-  classes.** `e2e/puzzle-pickers.e2e.ts` scopes the crosswords NYT picker with
-  `.locator('.react-draggable, [class*="rnd"]')` filtered by its heading,
-  because once a picker opens there are TWO "Cancel" buttons on screen — the
-  picker's and the setup dialog's underneath — and the test has to press the
-  right one. Those are the LIBRARY's class names, not ours, so nothing in this
-  repo keeps them true. Left here by F-setup-form-11 (Joel: option 1, 2026-09-14)
-  because what a panel offers a test is this folder's call: a `data-testid`
-  derived from the panel's title is the obvious candidate, and it would serve
-  every "which panel" locator, not just this one. The sibling half — our own
-  hashed class sniffed for the "next up" line — was fixed in setup-form.
-
 - **`FaultModal` draws its own title instead of passing one.** It renders
   `<BlockingModal>` with no `title` and puts the red "Error" in the body as an
   `<h3>` it styles itself, where every other blocking modal hands its title to

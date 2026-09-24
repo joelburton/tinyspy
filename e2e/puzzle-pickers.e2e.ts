@@ -190,8 +190,11 @@ test.describe('puzzle pickers', () => {
     // setup dialog's underneath it, both the same shared CancelButton. Scope to
     // the picker by the panel carrying its heading, so this cancels the picker
     // and not the dialog behind it (which is the whole point of the test).
+    // Our own marker, not react-rnd's class names. The picker opens from inside
+    // the setup dialog's tree, so the dialog's panel holds the heading too: the
+    // picker is the panel with the heading and no panel inside it.
     const nytPicker = page
-      .locator('.react-draggable, [class*="rnd"]')
+      .locator('[data-floating-panel]:not(:has([data-floating-panel]))')
       .filter({ has: page.getByRole('heading', { name: 'New York Times' }) })
     await nytPicker.getByRole('button', { name: 'Cancel' }).click()
 
