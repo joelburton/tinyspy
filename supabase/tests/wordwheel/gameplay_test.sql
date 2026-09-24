@@ -18,18 +18,22 @@
 -- scoring 9 + 15 = 24 (spellingbee's is 7-letter, +10). The fixture
 -- required_words_score is 62 across 19 words.
 --
--- Coverage mirrors spellingbee's:
+-- Coverage, by section:
 --   1. coop happy: required word → 'accepted', row inserted, status updated.
 --   2. coop pangram: trusted is_pangram (24 pt) → 'pangram'.
 --   3. coop bonus: trusted is_bonus → 'bonus'; 3b bonus+pangram → 'pangram'.
---   4. coop duplicate → the race refusal; compete duplicate is per-player.
---   5. compete target-rank-hit → terminal 'won_compete'; leaderboard populated.
---   6. hard rejections: post-terminal is a race; a non-player is refused.
---   7. coop has NO auto-terminal past required_words_count.
---   8. submit_timeout / end_game terminal transitions + idempotency + auth,
---      and each touching the found rows.
---   9. games_state exposes required_words during play + at terminal.
---  10. a word into a game deleted under it is the shared race (PN485).
+--   4. coop duplicate → the race refusal.
+--   5. a non-player is refused.
+--   6. compete duplicate is per-player.
+--   7. compete target-rank hit → 'won', terminal 'won_compete', the winner named.
+--   8. a submit after the end is the game-over race.
+--   9. coop has NO auto-terminal past required_words_count.
+--  10. submit_timeout: terminal, reason 'timeout', idempotent, the rows touched,
+--      and games_state still exposing the required list.
+--  11. end_game: terminal, reason 'manual', the live tally, idempotent, the rows
+--      touched, and a non-player refused.
+--  12. a repeat-letter word spending both tiles of a letter is accepted.
+--  13. a word into a game deleted under it is the shared race (PN485).
 
 begin;
 
@@ -196,7 +200,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
   wordwheel.submit_word((select id from g), 'fade', 1, false, false),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN253"}'::jsonb,
-  'submit_word: non-player (dee, outsider) is rejected with 42501'
+  'submit_word: non-player (dee, outsider) is rejected (PN253)'
 );
 
 -- ============================================================
@@ -269,14 +273,14 @@ select is(
 );
 
 -- ============================================================
--- (8) Post-terminal submission is rejected with P0001
+-- (8) Post-terminal submission is the game-over race (PN357)
 -- ============================================================
 
 -- A RACE, not a bug: the game can end while a submission is in flight.
 select pg_temp.envelope_is(
   wordwheel.submit_word((select id from compete_g), 'face', 1, false, false),
   '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN357","message":"Game over"}'::jsonb,
-  'post-terminal submit_word raises P0001'
+  'post-terminal submit_word is the game-over race'
 );
 
 -- ============================================================
@@ -402,15 +406,15 @@ select is(
   'submit_timeout: status.reason=timeout'
 );
 
--- Idempotency: a second call raises P0001 (peers racing the countdown).
+-- Idempotency: a second call is the game-over race (peers racing the countdown).
 select pg_temp.envelope_is(
   wordwheel.submit_timeout((select id from timeout_g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'submit_timeout: second call raises P0001 (idempotent at the FE-swallow layer)');
+  'submit_timeout: a second call is the game-over race');
 
--- games_state exposes the full required-words list (un-gated: available during
--- play AND at terminal — the FE ships it from game start).
+-- games_state exposes the full required-words list at terminal as it did in
+-- play: the FE ships it from game start.
 select is(
   (select jsonb_array_length(required_words) from wordwheel.games_state
     where id = (select id from timeout_g)),
@@ -482,12 +486,12 @@ select is(
   'end_game: status.found_words_count reflects the live count'
 );
 
--- Idempotency: a second call raises P0001.
+-- Idempotency: a second call is the game-over race.
 select pg_temp.envelope_is(
   wordwheel.end_game((select id from end_g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'end_game: second call raises P0001 (idempotent at the FE-swallow layer)');
+  'end_game: a second call is the game-over race');
 
 -- Auth: dee (outsider) cannot end a game they're not in. Fresh game (the previous
 -- one is terminal and would short-circuit on play_state).
@@ -508,10 +512,10 @@ select pg_temp.envelope_is(
   wordwheel.end_game((select id from auth_g)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'end_game: non-player (dee, outsider) is rejected with 42501');
+  'end_game: non-player (dee, outsider) is rejected (PN253)');
 
 -- ============================================================
--- (10) DUPLICATE-letter board smoke: repeat-letter words are ordinary
+-- (12) DUPLICATE-letter board smoke: repeat-letter words are ordinary
 -- ============================================================
 -- A game on the multiset fixture (wheel {a,b,c,d,e,e,f,g,g}). 'egged'
 -- spends both e-tiles AND both g-tiles; submit_word is trusting-commit,
@@ -543,7 +547,7 @@ select is(
 );
 
 -- ============================================================
--- (10) A call into a game a friend just deleted
+-- (13) A call into a game a friend just deleted
 -- ============================================================
 -- The delete takes the game's rows and every membership together, so the call
 -- is answered by the shared race rather than by a fault, or by "You are not in

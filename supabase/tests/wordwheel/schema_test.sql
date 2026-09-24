@@ -81,7 +81,7 @@ select is(
 -- Set up: a wordwheel game in ada+bea's club
 -- ============================================================
 -- Direct insert (no RPC here). A non-terminal game we'll later flip
--- terminal to exercise the conditional-exposure case.
+-- terminal, to show the word lists stay exposed there.
 
 create temp table club on commit drop as
 select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
@@ -108,7 +108,7 @@ insert into common_g (id) select id from ins;
 
 -- The word lists. Small synthetic lists; they only need to be present
 -- + retrievable. mode column locked to 'coop' to match the
--- common.games gametype above. outer_letters is char(8) now.
+-- common.games gametype above. outer_letters is char(8).
 insert into wordwheel.games
   (id, club_handle, mode, outer_letters, center_letter,
    required_words_score, required_words_count, required_words, bonus_words)

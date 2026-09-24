@@ -1236,7 +1236,33 @@ F-15 and F-16 need, which ship with them:
 Options: **write all four** (three pgTAP, one Vitest), each planted to prove
 it can fail; or pick. Recommendation: all four.
 
-### F-wordwheel-14 · `stale-claims` · sentences on the roster that survived the prose pass
+### SHIPPED · F-wordwheel-14 · `stale-claims` · sentences on the roster that survived the prose pass
+
+**Joel, 2026-09-24: "i'll take your rec"** — all of them, the migration's
+three included, in the wording shown him:
+
+- **`lib/setup.ts`**: the bands paragraph says a narrow `required` can leave
+  no board with 15 required words, refused under that field; `legalError`
+  and `customLettersError` return an error under their field or `{}`;
+  `wordwheelSetupError` has spellingbee's wording.
+- **`theme.css`**: *"per-game now"* → *"per-game"*.
+- **The fixtures**: *"outer `cabdfg`"* → `cabdfghi` in `PlayArea.test.tsx`
+  and `answer.test.ts`.
+- **pgTAP**: `gameplay_test`'s five 42501 / P0001 labels name the race or
+  PN253; its sections run (1)–(13) and the header lists them by section (the
+  old header's *"leaderboard populated"* and *"during play"* claimed what the
+  file never checked, and went with it); `replay_test`'s comment names PN253;
+  `schema_test`'s two; `create_game_test`'s header lists what the file checks,
+  adds *4b. The word bands*, and names what is not pinned.
+- **The applied migration**: the bands are the setup's (3 / 5 by default),
+  the hook is `useFoundWordSubmit`, the center is the purple tile. Comments
+  only — no SQL line changed.
+
+**Verified:** `npm run test:db`, 182 files, 2668 tests, PASS; `tsc -b` and
+eslint clean; wordwheel and the guards, 42 files, 397 tests green.
+
+**Left, and said:** spellingbee's `lib/setup.ts` keeps the same *"or
+`null`"* in `legalError` and `customLettersError`; that area is closed.
 
 The read's case, as it was spellingbee's (its F-15): these are in bodies
 and labels the prose pass, reading headers, did not reach.

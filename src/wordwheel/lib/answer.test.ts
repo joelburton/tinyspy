@@ -5,7 +5,7 @@ import { answerMessage, answerOf, peerAnswerMessage } from './answer'
 
 /**
  * Everything wordwheel says about a word, and how the engine's report becomes
- * one of its answers. The words are `PlayArea.test.tsx`'s wheel: outer `cabdfg`,
+ * one of its answers. The words are `PlayArea.test.tsx`'s wheel: outer `cabdfghi`,
  * center `e`.
  *
  * The SQL half is `supabase/tests/wordwheel/`: `submit_word`'s `ok` carries no

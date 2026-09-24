@@ -7,20 +7,24 @@
 -- A fork of spellingbee's create_game_test. Coverage:
 --   1. Coop happy path: ada creates a game; common.games +
 --      wordwheel.games rows materialize; mode='coop'; gametype
---      string is 'wordwheel_coop'; title formula correct;
---      is_current_view flips on; status seeded with coop shape.
+--      string is 'wordwheel_coop'; title formula correct; status
+--      seeded with coop shape.
 --   2. Compete happy path: separate game with mode='compete'
 --      + target_rank=4; mode column + gametype string match;
 --      compete-shape status seeded (target_rank + empty leaderboard).
 --   3. Auth + membership: dee (outsider) rejected.
 --   4. mode arg validation: invalid value;
 --      compete with <2 players; target_rank required iff compete;
---      target_rank range.
---   5. Board validation: outer_letters length (8) / alphabet;
---      center shape; DUPLICATES ACCEPTED (the wheel is a multiset —
---      repeated outers + a center repeating an outer are ordinary
---      boards); required_words_count ≥ 15 gate (NOT 30 — the
---      wordwheel fork).
+--      target_rank above 6.
+--   4b. The word bands: required out of range, legal below required
+--      or above 6, either one not a number; required = 1 and an
+--      explicit 4 / 6 accepted.
+--   5. Board validation: outer_letters length (8); DUPLICATES
+--      ACCEPTED (the wheel is a multiset — repeated outers + a center
+--      repeating an outer are ordinary boards); required_words_count
+--      ≥ 15 gate (NOT 30 — the wordwheel fork). (Not pinned here: the
+--      outer alphabet, the center's own shape, and a target_rank below
+--      0.)
 --   6. THE FORK: 's' is ALLOWED in outer_letters (a tile is spent per
 --      use, so 's' can't pluralize explosively — spellingbee bans it,
 --      wordwheel does not).

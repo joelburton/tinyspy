@@ -26,11 +26,12 @@ import type { FormErrors } from '@/common/forms/formState'
  *     the right pick for a group that just wants to find words.
  *   - `required` / `legal` — the vocabulary bands. `required`
  *     (1..6) is where the displayed goal words come from; `legal`
- *     (required..6) is the wider set of accepted/bonus words. The
- *     board pool is selected so the pangram is gettable at the
- *     required band (the difficulty-tagged seed table), so any
- *     choice is solvable; `legal` must contain `required` (see
- *     `legalError`).
+ *     (required..6) is the wider set of accepted/bonus words;
+ *     `legal` must contain `required` (see `legalError`). The seed
+ *     pool is tagged by difficulty, so a random board's pangram is
+ *     findable at the required band, but a narrow `required` can
+ *     still leave no board with 15 required words, which the edge
+ *     function refuses under this field.
  *   - `custom_center` + `custom_letters` — an OPTIONAL player-
  *     specified letter set: the center letter + the eight other
  *     letters. When both are set (and valid — see
@@ -75,9 +76,10 @@ export type WordwheelValues = {
  *  `setupSummary.ts` and `PlayArea` read back. */
 export type WordwheelSetup = SetupOf<WordwheelValues>
 /**
- * Why the current `legal` band is too low to start, or `null`: the legal set
- * must contain the required set, so `legal >= required`. The dialog gates Start
- * on this (via the manifest's `validate`); `create_game` re-checks server-side.
+ * Why the current `legal` band is too low to start, under `legal`; `{}` when it
+ * isn't: the legal set must contain the required set, so `legal >= required`.
+ * The dialog gates Start on this (via the manifest's `validate`); `create_game`
+ * re-checks server-side.
  */
 export function legalError(setup: WordwheelSetup): FormErrors {
   if (setup.legal < setup.required) {
@@ -92,8 +94,9 @@ export function legalError(setup: WordwheelSetup): FormErrors {
 const bad = (message: string): FormErrors => ({ custom_letters: message })
 
 /**
- * Why the optional custom-letters override is invalid, or `null` if it's fine
- * (including the common "left blank" case → a random board).
+ * Why the optional custom-letters override is invalid, under `custom_letters`;
+ * `{}` when it's fine (including the common "left blank" case → a random
+ * board).
  *
  * Mirrors the letter rules `wordwheel.create_game` enforces server-side, so the
  * dialog fails fast before the round-trip: if EITHER field is filled, BOTH must
@@ -117,9 +120,9 @@ export function customLettersError(setup: WordwheelSetup): FormErrors {
 }
 
 /**
- * The single Start-gate validator for both manifests: the legal-band rule OR the
- * custom-letters rule, whichever fails first (the manifest's `validate` shows the
- * returned string and disables Start until it's `null`).
+ * The single Start-gate validator for both manifests: the legal-band rule and
+ * the custom-letters rule, each under its own field. The manifest's `validate`
+ * returns it, and Start stays disabled while it holds any error.
  */
 export function wordwheelSetupError(setup: WordwheelSetup): FormErrors {
   return { ...legalError(setup), ...customLettersError(setup) }

@@ -58,7 +58,7 @@ vi.mock('@/common/supabase/dbResult', async (orig) => ({
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 const startEdgeFn = runEdgeFn as unknown as ReturnType<typeof vi.fn>
 
-/** A loaded coop game: outer `cabdfg` + center `e`; required `bead` + the pangram
+/** A loaded coop game: outer `cabdfghi` + center `e`; required `bead` + the pangram
  *  `abcdefg`; one bonus word `bcdfge`. Override the mode per test. */
 function loadedGame(over: Partial<WordwheelGame> = {}): WordwheelGame {
   return {

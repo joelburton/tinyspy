@@ -16,8 +16,9 @@
 -- common.words (the categorized
 -- master list shared across games); wordwheel filters it into a
 -- smaller REQUIRED set (the goal shown to players: difficulty band
--- <= 3, american, no slang, no slurs) and a larger LEGAL set (band
--- <= 5, the acceptance bar). Words in legal but not required are
+-- <= the setup's `required`, 3 by default, american, no slang, no
+-- slurs) and a larger LEGAL set (band <= the setup's `legal`, 5 by
+-- default, the acceptance bar). Words in legal but not required are
 -- BONUS: accepted and scored, but not part of the displayed goal.
 --
 -- This is a targeted FORK of spellingbee (see spellingbee.sql +
@@ -60,8 +61,9 @@ create schema if not exists wordwheel;
 -- wordwheel's word reference is the shared common.words master list,
 -- not a wordwheel table — every word game filters the same
 -- categorized source. wordwheel's slice is computed on the fly in
--- wordwheel.candidate_words (below): legal = difficulty <= 5,
--- required = difficulty <= 3 AND american AND NOT slang AND clean
+-- wordwheel.candidate_words (below): legal = difficulty <= the legal
+-- band, required = difficulty <= the required band AND american AND
+-- NOT slang AND clean
 -- (slur = 0 AND crude = 0), len >= 4. The `letter_mask & ~puzzle_mask = 0` subset
 -- test (every letter of the word is in the puzzle) reads the
 -- generated common.words.letter_mask column — same bit convention.
@@ -158,7 +160,7 @@ create index wordwheel_pangrams_difficulty_idx on wordwheel.pangrams (difficulty
 -- `required_words` and `bonus_words` are the board's answer key,
 -- and they ship to the FE from game start. The FE validates +
 -- scores every guess against required ∪ bonus locally (via the
--- shared `useWordSubmit` hook) and submits trusting-commit, the
+-- shared `useFoundWordSubmit` hook) and submits trusting-commit, the
 -- same model as boggle. The trust model doesn't withhold them
 -- (friends, not anti-cheat), so there's no column-grant gate and
 -- no terminal-reveal helper: the FE reads both lists straight off
@@ -177,7 +179,7 @@ create table wordwheel.games (
   -- wider/narrower strings raise a type error at insert time,
   -- catching bad input early.
   outer_letters char(8) not null,
-  -- The mandatory center letter (the red center circle). Single
+  -- The mandatory center letter (the purple center tile). Single
   -- lowercase character; may also appear among outer_letters.
   center_letter char(1) not null,
   -- Cached at create-game time from the wordlists. Pure

@@ -145,7 +145,7 @@ select is(
 
 -- ── Non-player rejected ─────────────────────────────────────
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
--- 42501 = common.require_game_player's 'not-a-player|'.
+-- PN253 = common.require_game_player's refusal.
 select pg_temp.envelope_is(
   wordwheel.replay_board((select id from g1)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",

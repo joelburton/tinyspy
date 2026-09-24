@@ -38,7 +38,7 @@
 
   /* Shared-component token: the common <RankBar> / <Stats> read this generic
    * name so one copy serves both hive-family games. Only the TEXT color is
-   * per-game now — the ladder's own fill + edge are shared (`--rank-bar-fill-color` /
+   * per-game — the ladder's own fill + edge are shared (`--rank-bar-fill-color` /
    * `--rank-bar-edge-color` in common/themes/daylight.css). wordwheel's purple stays the WHEEL's
    * accent; the ladder is yellow in both games on purpose. */
 /* @@ */   --rank-text:               var(--wordwheel-tile-text);
