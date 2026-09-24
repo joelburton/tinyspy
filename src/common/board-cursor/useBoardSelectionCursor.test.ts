@@ -65,6 +65,25 @@ describe('useBoardSelectionCursor', () => {
     s.view.unmount()
   })
 
+  it('follow carries a shown cursor along, and the next arrow steps from there', async () => {
+    const s = setup()
+    await press('ArrowRight')
+    act(() => s.view.result.current.follow({ x: 1, y: 1 }))
+    expect(s.cursor()).toEqual({ x: 1, y: 1 })
+    await press('ArrowRight')
+    expect(s.cursor()).toEqual({ x: 2, y: 1 })
+    s.view.unmount()
+  })
+
+  it('follow leaves a hidden cursor hidden, and the next arrow shows it there', async () => {
+    const s = setup()
+    act(() => s.view.result.current.follow({ x: 2, y: 0 }))
+    expect(s.cursor()).toBeNull()
+    await press('ArrowDown')
+    expect(s.cursor()).toEqual({ x: 2, y: 0 })
+    s.view.unmount()
+  })
+
   it('a board you cannot play draws no cursor and takes no keys, and keeps its cell', async () => {
     const s = setup()
     await press('ArrowRight')

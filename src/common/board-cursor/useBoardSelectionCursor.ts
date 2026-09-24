@@ -22,6 +22,9 @@ export type BoardSelectionCursor = {
   cursor: Cell | null
   // A click on a cell: the cursor goes there and hides.
   point: (cell: Cell) => void
+  // The move reached a cell another way (a typed letter): the cursor goes
+  // there, shown or hidden as it already was.
+  follow: (cell: Cell) => void
 }
 
 /**
@@ -68,5 +71,6 @@ export function useBoardSelectionCursor({
   return {
     cursor: enabled && selection.revealed ? at : null,
     point: selection.point,
+    follow: selection.follow,
   }
 }
