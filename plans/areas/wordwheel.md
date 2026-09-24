@@ -97,6 +97,34 @@ The roster's many `docs/games/wordwheel.md` pointers (the manifest, the edge
 function, both SQL files, `PlayArea.tsx`) are all live today and all go stale
 at pass 2, when that doc moves into `src/wordwheel/doc.md`.
 
+## The restructure
+
+Each step is one commit Joel reads; that reading is his careful read of the
+code, made on the shape that will stay. Every step is behavior-preserving
+unless its heading says otherwise, verified by the net below.
+
+### Step 0 — the baseline — DONE 2026-09-23
+
+Run on the untouched tree at `ed8f81c4`, the roster stamped
+`cs-met-wordwheel` (Joel: *"commit then continue"*, then *"both"* to the e2e
+question):
+
+- `tsc -b` clean; lint clean over `src/wordwheel/` and
+  `supabase/functions/wordwheel-build-board/`.
+- The game's unit tests and the guards: 41 files, 377 tests (1 skipped), green.
+- The edge function under `deno test --allow-all
+  supabase/functions/wordwheel-build-board/`: 15 tests, green.
+- pgTAP, the whole suite: `gmake db-sql ENV=local` then `npm run test:db` —
+  182 files, 2656 tests, PASS. `rank_idx_test.sql` is `rank-ladder`'s and ran
+  with the roster's thirteen.
+- The geometry harness re-seeded with `BASELINE=1`: 21 boards written, and the
+  new file **byte-identical to the one it replaced**, so no board had drifted
+  since the last seed. (Nothing to commit — the file is gitignored.)
+- wordwheel's four e2e specs: **6 tests, green in 13.7s** (`wordwheel` 1,
+  `wordwheel-coop-win` 2, `wordwheel-mobile` 2, `wordwheel-print` 1).
+
+**A later red is the step's.**
+
 ## Findings
 
 *(`F-wordwheel-1 · slug · title`, one heading each; a status prefix when it
