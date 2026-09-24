@@ -372,6 +372,21 @@ describe('wordwheel PlayArea — icon-only action rows', () => {
       expect(ctx.goToGame).toHaveBeenCalledWith('wordwheel_coop', 'fresh-game-id'),
     )
   })
+
+  it('"New game" after a hand-picked board asks for a random one', async () => {
+    // Custom letters are a one-off: the follow-up keeps every other setting and
+    // drops the two letter keys, so the edge function takes the random path.
+    startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
+    const user = userEvent.setup()
+    const setup = { required: 4, legal: 5, timer: { kind: 'none' }, custom_center: 'e', custom_letters: 'abcdfghi' }
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'ended', setup })} />)
+    await user.click(screen.getByRole('button', { name: 'New game' }))
+    await waitFor(() => expect(startEdgeFn).toHaveBeenCalled())
+    const sent = startEdgeFn.mock.calls[0]![1].setup
+    expect(sent.custom_center).toBeUndefined()
+    expect(sent.custom_letters).toBeUndefined()
+    expect(sent.required).toBe(4)
+  })
 })
 
 describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', () => {

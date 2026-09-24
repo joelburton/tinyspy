@@ -11,7 +11,8 @@
 --
 --   - First-to-target-rank ends the race with the caller as the
 --     winner (status.winner_user_id) and play_state=won_compete,
---     each result exactly { won }.
+--     the leaderboard frozen as it stood and each result exactly
+--     { won }.
 --   - Per-player duplicate rule: bea finding a word ada already
 --     found is fresh for bea; ada's own repeat is the race refusal.
 --   - Mid-game status carries the leaderboard with per-player
@@ -27,7 +28,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(24);
+select plan(26);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -142,6 +143,32 @@ select is(
   (select (status->>'winner_user_id')::uuid from common.games where id = (select id from g)),
   'cade3333-3333-3333-3333-333333333333'::uuid,
   'compete: status.winner_user_id = caller (cade)'
+);
+
+-- The leaderboard is frozen as it stood at the winning word: the winner's
+-- entry includes it, and a rival's is what they had.
+select is(
+  (
+    select (entry->>'found_words_score')::int || '/' || (entry->>'rank_idx')
+      from common.games cg,
+           jsonb_array_elements(cg.status->'leaderboard') entry
+     where cg.id = (select id from g)
+       and (entry->>'user_id')::uuid = 'cade3333-3333-3333-3333-333333333333'::uuid
+  ),
+  '24/3',
+  'compete: the frozen leaderboard carries the winner''s final score and rank (24 pts, Nice)'
+);
+
+select is(
+  (
+    select (entry->>'found_words_score')::int
+      from common.games cg,
+           jsonb_array_elements(cg.status->'leaderboard') entry
+     where cg.id = (select id from g)
+       and (entry->>'user_id')::uuid = 'ada11111-1111-1111-1111-111111111111'::uuid
+  ),
+  1,
+  'compete: the frozen leaderboard carries a rival''s score as it stood'
 );
 
 select is(

@@ -1193,7 +1193,30 @@ this game's own:
 
 Options: **fix all six**; or pick. Recommendation: all six.
 
-### F-wordwheel-13 · `test-gaps` · rules nothing exercises
+### SHIPPED · F-wordwheel-13 · `test-gaps` · rules nothing exercises
+
+**Joel, 2026-09-24: "i'll take your rec"** — all four, spellingbee's F-17
+assertions with this game's names and numbers:
+
+- **A conceder cannot submit** — `concede_test` asserts PN358.
+- **The realtime touches**, read off `ctid`: `gameplay_test`'s timeout and
+  manual end, `concede_test`'s last concede (and a non-final concede NOT
+  touching), `replay_test`'s `games` row.
+- **The frozen leaderboard** — `compete_test`: the winner's entry `24/3`
+  (Nice), a rival's score as it stood (1).
+- **New game drops the custom letters** — a `PlayArea.test` case from a
+  hand-picked setup. `doc.md`'s Tests row had already claimed this case; it
+  exists now.
+
+`doc.md`'s four pgTAP rows say what their files now pin. The two tests F-15
+and F-16 need ship with them.
+
+**Verified:** `npm run test:db`, 182 files, 2668 tests, PASS; PlayArea.test
+54 green. **Planted**, one at a time, each red on exactly its own case: each
+of the four touches commented out; the concede touch made unconditional (the
+non-final case); the conceded gate made never-true; the helper's scores
+zeroed (the mid-game case and both frozen cases — three, as spellingbee's);
+New game keeping the letter keys. All restored.
 
 spellingbee's F-17, ruled *"fix"*, four twins here — plus the two tests
 F-15 and F-16 need, which ship with them:

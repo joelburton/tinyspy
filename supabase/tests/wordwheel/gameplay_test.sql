@@ -26,7 +26,8 @@
 --   5. compete target-rank-hit → terminal 'won_compete'; leaderboard populated.
 --   6. hard rejections: post-terminal is a race; a non-player is refused.
 --   7. coop has NO auto-terminal past required_words_count.
---   8. submit_timeout / end_game terminal transitions + idempotency + auth.
+--   8. submit_timeout / end_game terminal transitions + idempotency + auth,
+--      and each touching the found rows.
 --   9. games_state exposes required_words during play + at terminal.
 --  10. a word into a game deleted under it is the shared race (PN485).
 
@@ -34,7 +35,7 @@ begin;
 
 set search_path = wordwheel, common, public, extensions;
 
-select plan(50);
+select plan(52);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -369,7 +370,19 @@ select is(
   'submit_word: face accepted in timeout-game setup'
 );
 
+-- The row's version before the end, to see the realtime touch land: the no-op
+-- update writes a new version (a new ctid; this file is one transaction, so
+-- xmin would not move).
+create temp table timeout_before on commit drop as
+select ctid::text as version from wordwheel.found_words where game_id = (select id from timeout_g);
+
 select wordwheel.submit_timeout((select id from timeout_g));
+
+select isnt(
+  (select ctid::text from wordwheel.found_words where game_id = (select id from timeout_g)),
+  (select version from timeout_before),
+  'submit_timeout: touches the found rows, so a compete client refetches the reveal'
+);
 
 select is(
   (select play_state from common.games where id = (select id from timeout_g)),
@@ -428,7 +441,16 @@ select is(
   'submit_word: bead accepted in end_game setup'
 );
 
+create temp table end_before on commit drop as
+select ctid::text as version from wordwheel.found_words where game_id = (select id from end_g);
+
 select wordwheel.end_game((select id from end_g));
+
+select isnt(
+  (select ctid::text from wordwheel.found_words where game_id = (select id from end_g)),
+  (select version from end_before),
+  'end_game: touches the found rows, so a compete client refetches the reveal'
+);
 
 select is(
   (select play_state from common.games where id = (select id from end_g)),

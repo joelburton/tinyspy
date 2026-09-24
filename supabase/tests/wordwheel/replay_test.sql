@@ -7,8 +7,9 @@
 -- all game, a button at terminal. Clears the found-words log (the game's only
 -- working state), un-terminals the row with the same initial status
 -- create_game seeds, and zeroes the shared clock. The frozen board
--- (letters + word lists) survives. Any game player may call it, mid-game
--- or post-terminal; a non-player is rejected.
+-- (letters + word lists) survives, and the games row is touched, since that
+-- write is what wakes every client (a DELETE may not). Any game player may
+-- call it, mid-game or post-terminal; a non-player is rejected.
 --
 -- THE FORK: the fixture pangram 'abcdefghi' scores 24; outer_letters is
 -- 8 letters ('abcdfghi').
@@ -19,7 +20,7 @@ set search_path = wordwheel, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(13);
+select plan(14);
 
 -- ── Coop: find words, manual-end, then replay → fully reset ──
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -46,10 +47,19 @@ select is(
   true, 'precondition — manually ended game is terminal');
 -- Age the shared clock so the replay's clock-zeroing is observable.
 update common.timers set ticks = 99 where game_id = (select id from g1);
+-- The games row's version, to see the realtime touch land (a new ctid; this
+-- file is one transaction, so xmin would not move).
+create temp table games_before on commit drop as
+select ctid::text as version from wordwheel.games where id = (select id from g1);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select wordwheel.replay_board((select id from g1));
 reset role;
+
+select isnt(
+  (select ctid::text from wordwheel.games where id = (select id from g1)),
+  (select version from games_before),
+  'replay → the games row is touched, which is what wakes every client (a DELETE may not)');
 
 select is(
   (select play_state from common.games where id = (select id from g1)),
