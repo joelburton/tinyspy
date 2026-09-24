@@ -155,16 +155,6 @@
   z-index: 1;
 }
 
-/* The keyboard's selection cursor — the app's cursor ring, the one
- * `<SelectionList>` draws on a row. OUTSIDE the tile, with the same 2px gap as
- * the history ring below: the tiles have clear space around them, and outside
- * the ring stays clear of the picked border and a decided tile's fill. The
- * history ring never meets it — a board in the viewer takes no cursor. */
-/* @@ */ .cursor {
-  outline: var(--chrome-cursor-ring);
-  outline-offset: 2px;
-}
-
 /* The tile the VIEWED past turn guessed — the shared history BLUE, the same
  * signal the board frame and the viewed log #N wear, in the shared ring's
  * geometry (`--history-tile-ring-*`, base.css). On an EDGE tile it overlaps the board frame's outline by 2px — moving the

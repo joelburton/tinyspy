@@ -410,7 +410,7 @@ export function BoardCol({
 
   const shape = boardShape(displayedTiles.length)
 
-  const { point } = useBoardSelectionCursor({
+  const { cursor, point } = useBoardSelectionCursor({
     shape,
     enabled: interactive,
     onToggle: (cell: Cell) => {
@@ -450,6 +450,7 @@ export function BoardCol({
         // itself outlives both.
         ownerByTile={isViewingHistory || !showInput ? NO_OWNERS : ownerByTile}
         onToggle={handleTileClick}
+        cursor={cursor}
         inFlightTiles={inFlightTiles}
         verdict={verdictShown ? verdict : null}
         colorByUserId={colorByUserId}

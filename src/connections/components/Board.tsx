@@ -7,6 +7,7 @@ import type { MatchedCategory } from '../hooks/useGame'
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
+import type { Cell } from '@/common/board-cursor/stepCell'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
@@ -44,6 +45,9 @@ type Props = {
   // guess being built, and whose pick each one was.
   ownerByTile: ReadonlyMap<string, string>
   onToggle: (tile: string) => void
+  // The keyboard's selection cursor — the cell of the loose tiles to ring, four
+  // across — or null when it is not drawn (see `useBoardSelectionCursor`).
+  cursor: Cell | null
   // The tiles of a guess that is OUT — sent, waiting on the server. They wear
   // the shared in-flight dim until the answer lands.
   inFlightTiles: ReadonlySet<string>
@@ -115,6 +119,7 @@ export function Board({
   interactive,
   ownerByTile,
   onToggle,
+  cursor,
   inFlightTiles,
   verdict,
   colorByUserId,
@@ -222,7 +227,7 @@ export function Board({
       >
         {sortedMatched.map((mc) => band(mc, false))}
         {unmatched.map((c) => band(c, true))}
-        {tiles.map((tile) => {
+        {tiles.map((tile, i) => {
           const ownerId = ownerByTile.get(tile)
           // WHOSE pick this is, on a board where that is worth saying: everyone's
           // on a shared one (mine included), nobody's otherwise. Undefined also
@@ -268,6 +273,9 @@ export function Board({
                 isHistoryLit && shared.verdictFill,
                 isHistoryLit && OUTCOME_TO_VERDICT_CLASS[historyLitOutcome],
                 isHistoryLit && styles.historyTile,
+                // The loose tiles fill their rows four across, so tile i is at
+                // (i % COLS, i / COLS).
+                cursor !== null && cursor.y * COLS + cursor.x === i && shared.selectionCursor,
               )}
               style={ownerColor ? { ['--peer-color' as string]: ownerColor } : undefined}
               onClick={() => onToggle(tile)}

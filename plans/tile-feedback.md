@@ -711,7 +711,7 @@ looked like one thing. They are two, and separating them answers all three:
   cursor the five board games are getting (plans/keyboard-nav-plan.md). The
   arrow cursor takes an **outline**: the app's cursor ring
   (`--chrome-cursor-ring`, the one `<SelectionList>` draws on a row), outside
-  the piece. It touches nothing the piece already wears — the picked border sits
+  the piece — the shared `.selectionCursor`. It touches nothing the piece already wears — the picked border sits
   inside it, and a decided piece's fill shows through — and the other outlines
   on a tile can't co-occur with it: the history ring draws only on a board in
   the viewer, which takes no cursor, and a hint is dashed. The geographic cursors (crosswords' cell, the

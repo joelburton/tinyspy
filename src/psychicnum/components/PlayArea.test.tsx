@@ -852,7 +852,7 @@ describe('psychicnum PlayArea — the selection cursor', () => {
 
   const tileFor = (word: string) => document.querySelector(`[data-tile="${word}"]`) as HTMLElement
   /** The words wearing the cursor ring — at most one. */
-  const ringed = () => WORDS.filter((w) => /cursor/.test(tileFor(w).className))
+  const ringed = () => WORDS.filter((w) => /selectionCursor/.test(tileFor(w).className))
   const isPicked = (word: string) => /selected/.test(tileFor(word).className)
   // Awaited: a bound action's run settles a microtask after the keystroke.
   const key = (k: string) => act(async () => press({ key: k }))

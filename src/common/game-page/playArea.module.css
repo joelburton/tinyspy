@@ -954,4 +954,17 @@
   border-color: var(--tile-selected-edge-color);
 }
 
+/* THE SELECTION CURSOR — where the keyboard is pointing, on a board whose arrows
+ * move a ring over its pieces (`common/board-cursor/useBoardSelectionCursor`).
+ *
+ * The app's cursor ring, the one `<SelectionList>` draws on a row, OUTSIDE the
+ * piece with the same 2px gap as the history ring: the picked border and a
+ * peer's inset ring sit inside it, and a fill shows through. The history ring
+ * never meets it — a board in the viewer takes no cursor. See
+ * plans/tile-feedback.md → Position. */
+/* @@ */ .selectionCursor {
+  outline: var(--chrome-cursor-ring);
+  outline-offset: 2px;
+}
+
 

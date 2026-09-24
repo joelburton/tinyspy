@@ -97,6 +97,7 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
   on it and Space does nothing there, so the same press always goes the same
   place. Every board's shape carries a reachability test
   (`reachability.fixture.ts`).
-- **The selection ring is the game's to draw**, as `outline:
-  var(--chrome-cursor-ring)` on the piece `cursor` names, outside it
+- **The selection ring is a shared mark**, `.selectionCursor` in
+  `common/game-page/playArea.module.css`: the app's cursor ring, outside the
+  piece. The game puts it on the piece `cursor` names
   ([tile-feedback.md](../../../plans/tile-feedback.md) → Position).

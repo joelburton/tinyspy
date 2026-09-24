@@ -204,7 +204,7 @@ export function Board({
                 decided === 'lost' && styles.decidedLost,
                 selected === word && shared.selected,
                 // Tiles fill the grid row by row, so tile i is at (i % cols, i / cols).
-                cursor !== null && cursor.y * cols + cursor.x === i && styles.cursor,
+                cursor !== null && cursor.y * cols + cursor.x === i && shared.selectionCursor,
                 word === inFlightWord && shared.dimInFlight,
                 flashing.has(word) && shared.attentionFlash,
                 // NO — the head-shake, once the flash has handed the tile its
