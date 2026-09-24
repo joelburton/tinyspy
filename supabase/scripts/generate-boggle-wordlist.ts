@@ -9,8 +9,8 @@
  * function rather than query the DB at cold start (~2× faster cold start, no DB
  * load on every isolate spin-up; the dictionary is stable — see
  * `docs/games/boggle.md` §5). The required band is a per-game pick, so we ship
- * every difficulty band tagged, and the function builds a band-filtered trie at
- * cold start.
+ * every difficulty band tagged, and the function builds one trie of every word
+ * at cold start, filtering it per band.
  *
  * Output: `supabase/functions/boggle-build-board/wordlist.ts`, exporting a
  * gzip+base64 blob — one line per word, `"<difficulty><clean><word>"`: the

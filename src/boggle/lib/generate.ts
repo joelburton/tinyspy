@@ -117,8 +117,8 @@ export function generateBoard(
  * `generateBoard`'s roll→solve→reject loop, because board-creation constraints are
  * judged on the *required* set only (see `docs/games/boggle.md`). Shipping the
  * bonus list to the FE is what lets the client validate + score bonus guesses
- * locally (no `common.words` round-trip); when `legalTrie` covers the same band as
- * the required trie the result is empty.
+ * locally (no `common.words` round-trip). It is usually non-empty even when the
+ * two bands match, since the required set is clean-only and the legal set is not.
  */
 export function listBonusWords(
   legalTrie: Trie,

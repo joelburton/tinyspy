@@ -1,4 +1,4 @@
-// cs-audited-dict-trie
+// cs-blessed-dict-trie
 
 /**
  * Flat typed-array trie — the shared dictionary structure for word games.
@@ -21,7 +21,7 @@ export interface Trie {
   // `children[node * 26 + letter]` is the child's node index, 0 for none. Node 0
   // is the root, which nothing points back to, so 0 is unambiguous.
   children: Int32Array
-  // Per node: 0, or the word ending there's terminal value (see Terminals).
+  // Per node: 0 if no word ends there, else that word's terminal value.
   eow: Uint8Array
   // How many nodes are in use — what a caller sizes a per-node array by. The
   // arrays themselves may be longer.
@@ -86,8 +86,8 @@ export function buildTrie(words: readonly string[], ratings?: readonly number[])
   return { children, eow, nNodes: n }
 }
 
-/** Walk a word from the root, in either case as `buildTrie` stores it; the node
- *  reached, or -1 if the trie has no such path. `trie.eow[node]` then answers
+/** Walk a word, in either case, from the root: `buildTrie` lower-cases what it
+ *  stores, and so does this. The node reached, or -1 if there is no such path. `trie.eow[node]` then answers
  *  is-it-a-word (and its terminal value). Handy at boundaries — inner loops walk
  *  `children` themselves, one letter at a time.
  *

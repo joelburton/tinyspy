@@ -1,4 +1,4 @@
-// cs-audited-dict-trie
+// cs-blessed-dict-trie
 
 import { describe, expect, it } from 'vitest'
 import { buildTrie, walkWord } from './trie'
@@ -8,15 +8,13 @@ import { buildTrie, walkWord } from './trie'
  * parity suite does that, against a C oracle's output on fixed fixture boards.
  * This covers what the extraction added on top and what a caller can get wrong.
  *
- * **Rated terminals**, including the guard: the terminal is a `Uint8Array` cell
- * whose truthiness IS "this is a word", so a rating outside 1..255 would erase
- * an accepted word silently, and `buildTrie` throws instead. The subtle case is
- * the last one — a word skipped for non-`a`–`z` characters never writes a
- * terminal, so its rating is never consulted and never validated.
+ * **Rated terminals**, including the guard: a rating outside 1..255 would erase
+ * an accepted word silently, so `buildTrie` throws — except for a word it
+ * skips, whose rating is never consulted.
  *
  * **`walkWord`'s contract**, which exists for callers rather than for the code:
- * it returns a real node or -1, and never 0. The empty-string case is the one
- * that makes that a promise rather than an accident.
+ * it returns a real node or -1, never 0, and finds a word in either case. The
+ * empty-string case is what makes "never 0" a promise rather than an accident.
  */
 
 describe('buildTrie', () => {
@@ -55,9 +53,6 @@ describe('buildTrie', () => {
   })
 
   it('throws when a supplied rating is missing or outside 1..255', () => {
-    // The terminal is a Uint8Array cell whose truthiness IS "is a word", so a
-    // missing rating (short array), a 0, or a value that wraps mod 256 would
-    // silently erase an accepted word. Reject at build time instead.
     expect(() => buildTrie(['at', 'cat'], [1])).toThrow(/rating for "cat"/) // undefined
     expect(() => buildTrie(['at'], [0])).toThrow(/1\.\.255/)
     expect(() => buildTrie(['at'], [256])).toThrow(/1\.\.255/)

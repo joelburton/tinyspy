@@ -163,6 +163,11 @@
 
 ## Someday
 
+- **`rank.test.ts` reads `trie.eow[walkWord(…)]` without checking for -1.** On
+  a miss that reads `eow[-1]`, which is `undefined` rather than a difficulty.
+  Every word the test asks about is in its trie, so nothing fails today; the
+  helper would hide a miss rather than report one.
+
 - **Compete could drop scrabble's own turn pointer and use the common one.**
   The compete rotation is seat-shaped because it had to include players who
   were not users, and the bots being real accounts removes that reason. It

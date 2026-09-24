@@ -4,7 +4,7 @@ The folders it reads: `shared/dict-trie`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN** (2026-09-24). The READ is done and every finding is resolved; the closing steps remain.
+**Status: CLOSED 2026-09-24, blessed** (Joel: *"bless the files and then close the area and commit"*).
 
 ## The roster
 
@@ -13,8 +13,8 @@ audit"*):
 
 | file | lines | stamp |
 |---|---|---|
-| `src/shared/dict-trie/trie.ts` | 100 | `cs-audited-dict-trie` |
-| `src/shared/dict-trie/trie.test.ts` | 85 | `cs-audited-dict-trie` |
+| `src/shared/dict-trie/trie.ts` | 100 | `cs-blessed-dict-trie` |
+| `src/shared/dict-trie/trie.test.ts` | 85 | `cs-blessed-dict-trie` |
 | `src/shared/dict-trie/doc.md` | 3 | (markdown carries no stamp) |
 | `src/shared/dict-trie/todo.md` | 19 | (markdown carries no stamp) |
 
@@ -260,17 +260,67 @@ unrated terminals "the boggle contract", and boggle now builds a rated trie.
   `import.meta.dirname` is `string | undefined`, passed to `resolve`. It
   predates this area and is not from this change; it goes to boggle's todo.
 
-- `rank.test.ts` indexes `trie.eow[walkWord(…)]` without checking for -1, which
-  reads `undefined` on a miss. That is scrabble's test. It is noted for
-  scrabble's area, not raised here.
+- `rank.test.ts` indexes `trie.eow[walkWord(…)]` without checking for -1.
+  Handed to `src/scrabble/todo.md` (Someday).
 
 ## Predicted test breaks
 
 *(none yet)*
 
+## The closing re-read
+
+Done 2026-09-24, in one sitting: `trie.ts`, `trie.test.ts`, `todo.md`, and
+`boggle-build-board/dict.ts`, which the area rewrote. The fault classes were
+grepped repo-wide, not the phrases fixed: claims of two tries or a per-band
+build, a `.toLowerCase()` before `walkWord`, claims about unrated boggle
+terminals, and the old header's phrases. It found:
+
+- **Two siblings of F-dict-trie-1's prose, in files it touched.**
+  `generate-boggle-wordlist.ts` still said the function "builds a band-filtered
+  trie". `generate.ts`'s `listBonusWords` said the bonus list "is empty" when
+  the bands match. That was false before this area: `docs/games/boggle.md`
+  says it is usually non-empty, because the required set is clean-only. Both
+  now say what is true.
+- **In the area's own new prose:**
+  - `eow`'s field note was garbled.
+  - `walkWord`'s first line read two ways.
+  - The test header and one test repeated the same explanation, so the
+    in-test copy went and the header now names the case rule.
+  - `dict.ts`'s `DIFFICULTY_BITS` is a mask, so it is now `DIFFICULTY_MASK`,
+    and its 100-column condition became a named `admitted`.
+- **Verified:** tests, lint, `tsc -b` and `deno check` pass. The local function
+  answered `ok` at 1 / 1, 3 / 5 and 6 / 6 (twice).
+
 ## Closing
 
-- [ ] the whole area re-read in one sitting after the last group
-- [ ] the folder's `doc.md` Design written; its row off `INTROS_OWED`
-- [ ] `todo.md` holds everything still owed; nothing durable left in this file
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] the whole area re-read in one sitting after the last group
+- [x] the folder's `doc.md` Design written; its row off `INTROS_OWED`
+- [x] `todo.md` holds everything still owed; nothing durable left in this file
+- [x] every file on the roster blessed, or its stamp says why not
+
+## Closing summary
+
+**`dict-trie` is CLOSED 2026-09-24, blessed** (Joel: *"bless the files and
+then close the area and commit"*). `trie.ts` and `trie.test.ts` are
+`cs-blessed-dict-trie`.
+
+It was a small folder with one large finding. **What changed the app:** the
+READ measured a full-dictionary trie at about 110 MB against an edge worker's
+256 MB. The local stack, which enforces the same limit, confirmed that boggle
+at band 6 built two such tries and died (`WORKER_LIMIT`, then a `RangeError`
+in `grow`). Boggle now builds one trie with each word's difficulty and clean
+flag on its terminal, and serves its two word sets as views. The fix gave
+identical words on 7,200 boards, and every band pairing now passes.
+
+The rest were the trie's own edges:
+- an empty word no longer marks the root as a word;
+- `walkWord` takes either case, and five callers dropped their copies;
+- the header, the docstrings, the dense growth code and two stale claims were
+  fixed.
+
+The closing re-read found two more stale sentences in boggle files the fix had
+touched. `doc.md` now carries the design.
+
+**Handed off:** Soon in `src/boggle/todo.md`, `deno check` failing on the
+wordlist generator; Someday in `src/scrabble/todo.md`, a test indexing `eow`
+with -1.

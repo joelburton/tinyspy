@@ -32,7 +32,7 @@ import { WORDLIST_GZ_B64 } from './wordlist.ts'
 
 // A terminal's value: the difficulty (1..6) in the low bits, plus CLEAN when the
 // word is required-eligible. Never 0, so every word still reads as a word.
-const DIFFICULTY_BITS = 7
+const DIFFICULTY_MASK = 7
 const CLEAN = 8
 
 let fullTriePromise: Promise<Trie> | null = null
@@ -71,7 +71,8 @@ async function viewFor(band: number, cleanOnly: boolean, cache: Map<number, Trie
   const eow = new Uint8Array(full.nNodes)
   for (let node = 0; node < full.nNodes; node++) {
     const t = full.eow[node]
-    if (t !== 0 && (t & DIFFICULTY_BITS) <= band && (!cleanOnly || (t & CLEAN) !== 0)) eow[node] = 1
+    const admitted = t !== 0 && (t & DIFFICULTY_MASK) <= band && (!cleanOnly || (t & CLEAN) !== 0)
+    if (admitted) eow[node] = 1
   }
   const view = { children: full.children, eow, nNodes: full.nNodes }
   cache.set(band, view)
