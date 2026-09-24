@@ -136,8 +136,8 @@ export function useStandardGameActions({
 
   // Concede — a real loss for the conceder; the others keep racing. It is a
   // race's ONE way out while you can still play, and its question is where
-  // conceding and stopping the table are told apart: `runAlternative` is what
-  // makes the registry ask the two-answer version.
+  // conceding and stopping the table are told apart: `runAlternative` is the
+  // body for its second answer.
   const actConcede = useBoundAction('act-concede', {
     terminal: isTerminal,
     describe: (): ActionState | { state: ActionState; label: string } => {

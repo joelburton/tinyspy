@@ -61,12 +61,9 @@ export type LiveAction = {
   // Do the thing. A pattern action (any letter, any arrow) receives the key
   // that fired it. May be async; the wrapper waits for it.
   run: (key?: string) => void | Promise<void>
-  // The SECOND act, for an action whose registry entry has a `confirmChoice`:
-  // supply this and the question with two ways to say yes is the one asked,
-  // leave it out and the ordinary `confirm` is. So "does this game offer the
-  // second act" is answered by whether there is a body for it, rather than by a
-  // flag that could disagree with one. Concede is where this applies: a race
-  // that can also stop the whole table passes the end-for-everyone call here.
+  // The SECOND act, for an action whose question has two ways to say yes
+  // (`ConfirmOptions.alternativeLabel`): what picking the other answer does.
+  // Concede is where this applies — its second answer ends the game for all.
   runAlternative?: () => void | Promise<void>
   // What the action looks like right now, to whoever is asking. Called at read
   // time, so it may read anything the component can see. A bare state is
@@ -213,10 +210,9 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
   const ask = useCallback(
     async (key?: string) => {
       const asked = liveRef.current
-      // Which question, if any: the one with two ways to say yes when this
-      // binding has a body for the second act, otherwise the plain one. At
-      // terminal neither is asked — there is nothing left to interrupt.
-      const question = asked.runAlternative ? (spec.confirmChoice ?? spec.confirm) : spec.confirm
+      // At terminal the question is not asked — there is nothing left to
+      // interrupt.
+      const question = spec.confirm
       let answer: ConfirmAnswer = 'confirm'
       if (question && !asked.terminal) {
         askingRef.current = question
@@ -232,8 +228,8 @@ export function useBoundAction(id: ActionId, live: LiveAction): BoundAction {
       // is up (realtime, the clock), and the body that runs must be the one
       // from the moment of the answer, not the moment of the press.
       const now = liveRef.current
-      if (answer === 'alternative' && now.runAlternative) {
-        await now.runAlternative()
+      if (answer === 'alternative') {
+        await now.runAlternative?.()
         return
       }
       await now.run(key)

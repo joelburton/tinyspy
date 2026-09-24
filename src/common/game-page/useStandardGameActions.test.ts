@@ -207,11 +207,10 @@ describe('concede', () => {
   })
 
   /**
-   * The two endings behind one action. Which question gets asked is decided by
-   * whether there is a body for the second one, and a race always has one.
+   * The two endings behind one action: Concede's question offers both.
    */
   describe('in a race', () => {
-    it('asks the two-answer question, not the plain one', () => {
+    it('asks the two-answer question', () => {
       const { result } = setup({ mode: 'compete' })
       act(() => result.current.actConcede.run())
       expect(lastQuestion()).toMatchObject({

@@ -123,8 +123,7 @@ peel does not scroll the page. A hidden binding leaves the key alone.
 **The live half has two knobs besides `run` and `describe`.** `terminal` is
 what skips the registry's question — at terminal there is nothing left to
 interrupt — and a binding whose row carries a `confirm` passes it. `runAlternative`
-is the body for a question's second answer, and its presence is what selects
-that question. A `BoundAction` also carries `pending`, true from the press until
+is the body for a question's second answer. A `BoundAction` also carries `pending`, true from the press until
 the run settles, the question included; every surface reads it to gray.
 
 **The shell's four keys are bound once, at the app root.** `AppActionsHost`
@@ -210,12 +209,10 @@ ref that outlived it.
 **A question may have two ways to say YES.** Conceding a race and ending it for
 everyone are both things to do and they differ in what they do — subtly enough
 that two red buttons side by side can only name the difference, where a question
-has room to explain it. So the registry can carry a second question
-(`confirmChoice`) whose answer says which act was picked, and the binding
-decides which question applies by supplying a body for the second act
-(`runAlternative`) or not. There is no flag: a game cannot end up offering an
-answer it has nothing to carry out with. It stops at two — past that it is a
-menu, not a question.
+has room to explain it. So a registry question can carry a second answer
+(`alternativeLabel`), and the binding supplies its body (`runAlternative`); the
+answer says which act was picked. It stops at two — past that it is a menu,
+not a question.
 
 **The run is single-flight**, so a second press while the first is still out is
 dropped and every surface shares one wait. The gate closes on the press, before
