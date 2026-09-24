@@ -26,9 +26,9 @@
 -- the perspective the suite doesn't otherwise cover: the LOSER of a
 -- compete race that a DIFFERENT player ended by hitting the target rank.
 --
--- It also pins the DB fact behind the PlayArea caller-only-score fix:
--- post-terminal, summing EVERY visible found_words row no longer equals
--- the caller's own score — so the FE must filter to self in compete.
+-- It also pins the DB fact behind PlayArea scoring the caller's own rows
+-- in compete: post-terminal, summing EVERY visible found_words row no
+-- longer equals the caller's own score — so the FE must filter to self.
 --
 -- THE FORK numbers: the pangram 'abcdefghi' scores 24 (9 + 15); the
 -- fixture required list has 19 entries; required_words_score = 62.

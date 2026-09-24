@@ -205,8 +205,8 @@ describe('wordwheel PlayArea — render smoke', () => {
  * told apart only by `status.reason` — the two-places trap's third surface
  * (labelFor and the report fixtures assert the club card; nothing else asserts
  * the in-game verdict). These pin buildTerminalMessage to the terminals the server
- * actually writes: common.concede → 'lost_compete' + outcome 'conceded',
- * submit_timeout → 'lost_compete' + outcome 'timeout'.
+ * actually writes: common.concede → 'lost_compete' + reason 'conceded',
+ * submit_timeout → 'lost_compete' + reason 'timeout'.
  */
 describe('wordwheel PlayArea — compete terminal verdicts', () => {
   const competeCtx = (playState: string, reason: string) =>
@@ -222,17 +222,17 @@ describe('wordwheel PlayArea — compete terminal verdicts', () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
   })
 
-  it('all-conceded (lost_compete + outcome conceded) says so', () => {
+  it('all-conceded (lost_compete + reason conceded) says so', () => {
     render(<PlayAreaLoader {...competeCtx('lost_compete', 'conceded')} />)
     expect(screen.getByText('Lost: all conceded')).toBeInTheDocument()
   })
 
-  it('timeout (lost_compete + outcome timeout) blames the clock', () => {
+  it('timeout (lost_compete + reason timeout) blames the clock', () => {
     render(<PlayAreaLoader {...competeCtx('lost_compete', 'timeout')} />)
     expect(screen.getByText('Lost: ran out of time')).toBeInTheDocument()
   })
 
-  it('manual end (ended + outcome manual) stays neutral', () => {
+  it('manual end (ended + reason manual) stays neutral', () => {
     render(<PlayAreaLoader {...competeCtx('ended', 'manual')} />)
     expect(screen.getByText(/game ended/i)).toBeInTheDocument()
   })
@@ -648,9 +648,7 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     // its outer twin clickable; a second 'e' spends the twin too.
     h.result = loaded(loadedGame({ outer_letters: 'bacdfghe' }))
     render(<WithKeys {...makeCtx()} />)
-    // Two tiles share the letter, so the center is told apart by `data-center`
-    // rather than by an accessible name — which is also the only reason those
-    // names existed (Tile.tsx).
+    // Two tiles share the letter, so the center is told apart by `data-center`.
     const centerE = () => document.querySelector('[data-tile="E"][data-center]')!
     const outerE = () => document.querySelector('[data-tile="E"]:not([data-center])')!
     expect(centerE()).not.toHaveAttribute('data-spent')
@@ -795,7 +793,7 @@ describe('wordwheel PlayArea — compete opponent rank climb', () => {
   // The compete channel is a hand-rolled rank-delta detector over
   // `status.leaderboard` (opponents' words are private, so it reads the aggregate
   // rank). It seeds each opponent's rank on the first render, then shows a
-  // `peer` message when a rank INCREASES.
+  // `peerMilestone` when a rank INCREASES.
   const entry = (rank_idx: number) => ({
     user_id: 'u2',
     rank_idx,

@@ -1,35 +1,37 @@
 -- cs-met-wordwheel
 
 -- ============================================================
--- Test: wordwheel.create_game (sibling-manifest era)
+-- Test: wordwheel.create_game
 -- ============================================================
 --
--- A fork of spellingbee's create_game_test. Coverage:
---   1. Coop happy path: ada creates a game; common.games +
---      wordwheel.games rows materialize; mode='coop'; gametype
---      string is 'wordwheel_coop'; title formula correct; status
---      seeded with coop shape.
---   2. Compete happy path: separate game with mode='compete'
---      + target_rank=4; mode column + gametype string match;
---      compete-shape status seeded (target_rank + empty leaderboard).
---   3. Auth + membership: dee (outsider) rejected.
---   4. mode arg validation: invalid value;
---      compete with <2 players; target_rank required iff compete;
---      target_rank above 6.
---   4b. The word bands: required out of range, legal below required
---      or above 6, either one not a number; required = 1 and an
---      explicit 4 / 6 accepted.
---   5. Board validation: outer_letters length (8); DUPLICATES
---      ACCEPTED (the wheel is a multiset — repeated outers + a center
---      repeating an outer are ordinary boards); required_words_count
---      ≥ 15 gate (NOT 30 — the wordwheel fork). (Not pinned here: the
---      outer alphabet, the center's own shape, and a target_rank below
---      0.)
---   6. THE FORK: 's' is ALLOWED in outer_letters (a tile is spent per
---      use, so 's' can't pluralize explosively — spellingbee bans it,
---      wordwheel does not).
---   7. Title formula: "<CENTER>·<OUTER-SORTED>".
---   8. Player-count upper bound: 7+ entries rejected.
+-- A fork of spellingbee's create_game_test. Coverage, by section:
+--    1. Coop happy path: common.games + wordwheel.games rows
+--       materialize; mode='coop'; gametype 'wordwheel_coop'; play_state
+--       'playing'; the outer letters stored verbatim.
+--    2. Title formula: "<CENTER>·<OUTER-SORTED>".
+--    3. Coop status seeded with the coop shape.
+--    4. Compete happy path: mode='compete' + target_rank=4; mode column
+--       + gametype string match; compete-shape status seeded
+--       (target_rank + empty leaderboard).
+--    5. Auth: dee (outsider) rejected.
+--    6. mode arg: an invalid value rejected.
+--    7. Compete with fewer than 2 players rejected.
+--    8. target_rank required iff compete, and above 6 rejected; coop may
+--       set one, and it is echoed into the status.
+--    9. The word bands: required out of range, legal below required or
+--       above 6, either one not a number; required = 1 and an explicit
+--       4 / 6 accepted.
+--   10. Board validation: DUPLICATES ACCEPTED (repeated outers + a center
+--       repeating an outer are ordinary boards, the title carrying the
+--       repeat); outer_letters of the wrong length refused.
+--   11. THE FORK: 's' is ALLOWED in outer_letters (a tile is spent per
+--       use, so 's' can't pluralize explosively — spellingbee bans it);
+--       and the ≥ 15 required-words gate (NOT 30 — the wordwheel floor).
+--   12. Player-count upper bound: 7+ entries rejected.
+--   13. Both gametype strings registered in common.gametypes.
+--
+-- Not pinned here: the outer alphabet, the center's own shape, and a
+-- target_rank below 0.
 --
 -- Fixture board (pg_temp.wordwheel_board): 19 required words scoring 62.
 
@@ -115,7 +117,7 @@ select is(
 );
 
 -- ============================================================
--- (3)-(6) Coop status jsonb seeding
+-- (3) Coop status jsonb seeding
 -- ============================================================
 
 select is(
@@ -143,7 +145,7 @@ select is(
 );
 
 -- ============================================================
--- (7) Compete happy path
+-- (4) Compete happy path
 -- ============================================================
 
 create temp table compete_club on commit drop as
@@ -193,7 +195,7 @@ select is(
 );
 
 -- ============================================================
--- (12) Auth: dee (outsider) cannot create a wordwheel game
+-- (5) Auth: dee (outsider) cannot create a wordwheel game
 -- ============================================================
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
@@ -206,7 +208,7 @@ select pg_temp.envelope_is(
   'dee (non-member) cannot create a wordwheel game');
 
 -- ============================================================
--- (13) mode arg: invalid value rejected
+-- (6) mode arg: invalid value rejected
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -222,7 +224,7 @@ select pg_temp.envelope_is(
 
 
 -- ============================================================
--- (15) Compete needs ≥2 players
+-- (7) Compete needs ≥2 players
 -- ============================================================
 
 select pg_temp.envelope_is(
@@ -236,7 +238,7 @@ select pg_temp.envelope_is(
   'compete with 1 player rejected');
 
 -- ============================================================
--- (16) target_rank required iff compete
+-- (8) target_rank required iff compete
 -- ============================================================
 
 select pg_temp.envelope_is(
@@ -287,7 +289,7 @@ select is(
 );
 
 -- ============================================================
--- (16b) Word-difficulty band validation
+-- (9) Word-difficulty band validation
 -- ============================================================
 -- The setup carries two vocabulary bands: `required` (the goal words,
 -- 1..6) and `legal` (the wider accepted set, required..6). create_game
@@ -385,12 +387,12 @@ select isnt(
 );
 
 -- ============================================================
--- (19)-(22) Board validation
+-- (10) Board validation
 -- ============================================================
 
 -- The MULTISET acceptance: the dup fixture's outer letters 'abcdefgg' repeat
--- 'g' on two tiles AND carry an 'e' that duplicates the center — both were
--- rejections under the old nine-distinct rule, both are ordinary boards now.
+-- 'g' on two tiles AND carry an 'e' that duplicates the center, and both are
+-- ordinary boards.
 create temp table dup_g on commit drop as
 select (wordwheel.create_game(
   (select pg_temp.create_club('Dup letters ok', array['ada','bea']) as handle),
@@ -423,7 +425,7 @@ select pg_temp.envelope_is(
   'rejects outer_letters with wrong length (not 8)');
 
 -- ============================================================
--- (21) THE FORK: 's' is ALLOWED in outer_letters
+-- (11) THE FORK: 's' is ALLOWED in outer_letters
 -- ============================================================
 -- spellingbee REJECTS an 's' in the board letters (each tile is reusable
 -- there, so 's' would pluralize almost anything). word wheel spends a
@@ -455,7 +457,7 @@ select pg_temp.envelope_is(
   'rejects board.required_words_count < 15 (puzzle-quality gate — the wordwheel floor)');
 
 -- ============================================================
--- (23) Player-count upper bound (max 6)
+-- (12) Player-count upper bound (max 6)
 -- ============================================================
 
 select pg_temp.envelope_is(
@@ -475,7 +477,7 @@ select pg_temp.envelope_is(
   'rejects player_user_ids with > 6 entries (max 6)');
 
 -- ============================================================
--- (24) Both gametype strings land on common.gametypes
+-- (13) Both gametype strings land on common.gametypes
 -- ============================================================
 
 select is(

@@ -1,25 +1,28 @@
 -- cs-met-wordwheel
 
 -- ============================================================
--- Test: wordwheel compete mode (sibling-manifest era)
+-- Test: wordwheel compete mode
 -- ============================================================
 --
 -- A fork of spellingbee's compete_test. Coverage for the compete-
 -- specific behavior. The shared coop contract is exercised by
 -- create_game_test.sql + gameplay_test.sql + rls_test.sql — this file
--- focuses on the compete delta:
+-- focuses on the compete delta. Coverage, by section:
 --
---   - First-to-target-rank ends the race with the caller as the
---     winner (status.winner_user_id) and play_state=won_compete,
---     the leaderboard frozen as it stood and each result exactly
---     { won }.
---   - Per-player duplicate rule: bea finding a word ada already
---     found is fresh for bea; ada's own repeat is the race refusal.
---   - Mid-game status carries the leaderboard with per-player
---     score + rank_idx + found_words_count.
---   - submit_timeout in compete: everyone {won: false}, reason='timeout'.
---   - end_game in compete: everyone {won: false}, reason='manual'.
---   - RLS mid-game scopes finds to caller; post-terminal opens the reveal.
+--   1. Per-player duplicate rule: bea finding a word ada already
+--      found is fresh for bea; ada's own repeat is the race refusal.
+--   2. Mid-game status carries the leaderboard, one entry per player,
+--      with each player's score.
+--   3. First-to-target-rank ends the race with the caller as the
+--      winner (status.winner_user_id) and play_state=won_compete,
+--      the leaderboard frozen as it stood and each result exactly
+--      { won }; a survivor can no longer submit.
+--   4. submit_timeout in compete: lost_compete, reason='timeout',
+--      everyone {won: false}, the target rank and leaderboard kept.
+--   5. end_game in compete: reason='manual', everyone {won: false},
+--      the target rank kept.
+--   6. RLS mid-game scopes finds to the caller; post-terminal opens
+--      the reveal.
 --
 -- THE FORK numbers: the fixture pangram 'abcdefghi' scores 24 (9 + 15).
 -- fixture required_words_score = 62.
@@ -57,7 +60,7 @@ select (wordwheel.create_game(
 )->'data'->>'id')::uuid as id;
 
 -- ============================================================
--- (1)–(2) Per-player duplicate rule
+-- (1) Per-player duplicate rule
 -- ============================================================
 
 select is(
@@ -83,7 +86,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (3) Mid-game status carries the leaderboard
+-- (2) Mid-game status carries the leaderboard
 -- ============================================================
 
 reset role;
@@ -118,7 +121,7 @@ select is(
 );
 
 -- ============================================================
--- (4)–(7) First-to-target ends the race
+-- (3) First-to-target ends the race
 -- ============================================================
 -- Cade submits the synthetic pangram (24 pt → rank 3 ≥ target 2).
 -- play_state flips to 'won_compete'; status.winner_user_id = cade;
@@ -211,7 +214,7 @@ select pg_temp.envelope_is(
 );
 
 -- ============================================================
--- (10)–(12) submit_timeout in compete
+-- (4) submit_timeout in compete
 -- ============================================================
 -- Fresh 2-player compete game; immediately fire submit_timeout.
 
@@ -270,7 +273,7 @@ select is(
 );
 
 -- ============================================================
--- (13)–(14) end_game in compete — manual stop, no winner
+-- (5) end_game in compete — manual stop, no winner
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -310,7 +313,7 @@ select is(
 );
 
 -- ============================================================
--- (15)–(17) RLS in compete: caller-only mid-game; reveal on terminal
+-- (6) RLS in compete: caller-only mid-game; reveal on terminal
 -- ============================================================
 -- Fresh 3-player compete game; ada + bea each submit one word.
 -- Cade (no submissions) sees zero rows mid-game (own list is empty).

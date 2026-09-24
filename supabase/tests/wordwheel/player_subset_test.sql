@@ -27,7 +27,7 @@ set search_path = wordwheel, common, public, extensions;
 select plan(4);
 
 -- 3-member club; the game is created for ada + bea only — cade is a
--- member but NOT a player (he arrived after the game started).
+-- member but NOT a player (not dealt into this game).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
 select pg_temp.create_club('Subset club', array['ada', 'bea', 'cade']) as handle;

@@ -1619,7 +1619,22 @@ does have the one E its comment says. The two seven-letter strings left in
 - **`board_test`'s first `fitsTiles` case says** *"Wheel 'abcdefgi' + center
   'e' → one 'e' tile"*; `'abcdefgi'` already holds an E, so there are two.
 
-### R-wordwheel-8 · `test-prose` · test names and comments that survived F-14
+### SHIPPED · R-wordwheel-8 · `test-prose` · test names and comments that survived F-14
+
+**Joel, 2026-09-24: "i'll take your rec"** — all of it, in the wording shown
+him. `setup.test`'s names say "is empty", "puts a band error under legal",
+"eight other letters"; `PlayArea.test`'s verdict docstring and names say
+"reason", the rank climb says `peerMilestone`, the accessible-name history
+is gone; the two "(sibling-manifest era)" titles are plain; `create_game_test`
+and `compete_test` number their banners in order (1–13, 1–6) under a
+"Coverage, by section:" header, `create_game_test` keeping its not-pinned
+line and listing the gametype-registration section it never named;
+`schema_test`, `player_subset_test`, `reveal_partition_test` and `doc.md`'s
+Tests row say what is true. **One more, found while renumbering:**
+`create_game_test` section 10's *"rejections under the old nine-distinct
+rule … ordinary boards now"* was the same archaeology, and went with the
+rest. **Verified:** `npm run test:db`, 182 files, 2668 tests, PASS;
+wordwheel and the guards, 42 files, 400 tests green; eslint clean.
 
 - `setup.test`: three names say *"is null"* (the validators return `{}`, the
   docstrings' F-14 twin); *"surfaces the legal-band error first"* (since F-14

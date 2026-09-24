@@ -21,12 +21,12 @@ const onLetters = (pattern: RegExp) => ({ custom_letters: expect.stringMatching(
 const onLegal = (pattern: RegExp) => ({ legal: expect.stringMatching(pattern) })
 
 describe('customLettersError', () => {
-  it('is null when both custom fields are blank (→ random board)', () => {
+  it('is empty when both custom fields are blank (→ random board)', () => {
     expect(customLettersError(base)).toEqual({})
     expect(customLettersError({ ...base, custom_center: '', custom_letters: '' })).toEqual({})
   })
 
-  it('accepts a valid center + eight distinct other letters', () => {
+  it('accepts a valid center + eight other letters', () => {
     expect(customLettersError({ ...base, custom_center: 'e', custom_letters: 'abcdfghi' })).toEqual({})
   })
 
@@ -65,7 +65,7 @@ describe('customLettersError', () => {
 })
 
 describe('wordwheelSetupError — combines legal-band + custom-letters', () => {
-  it('surfaces the legal-band error first', () => {
+  it('puts a band error under legal', () => {
     const bad: WordwheelSetup = { ...base, required: 5, legal: 3 }
     expect(wordwheelSetupError(bad)).toEqual(legalError(bad))
     expect(wordwheelSetupError(bad)).toEqual(onLegal(/legal words/i))
@@ -75,11 +75,11 @@ describe('wordwheelSetupError — combines legal-band + custom-letters', () => {
     expect(wordwheelSetupError({ ...base, custom_center: 'e', custom_letters: 'abc' })).toEqual(onLetters(/eight other letters/i))
   })
 
-  it('is null for a valid setup (no custom letters)', () => {
+  it('is empty for a valid setup (no custom letters)', () => {
     expect(wordwheelSetupError(base)).toEqual({})
   })
 
-  it('is null for a valid setup WITH custom letters', () => {
+  it('is empty for a valid setup WITH custom letters', () => {
     expect(
       wordwheelSetupError({ ...base, custom_center: 'e', custom_letters: 'abcdfghi' }),
     ).toEqual({})

@@ -5,10 +5,10 @@
 -- ============================================================
 --
 -- A fork of spellingbee's schema_test. The migration laid down the
--- tables, grants, helpers, and view; this file exercises the schema
--- *directly* — inserting rows as the postgres superuser (bypassing
--- the "no INSERT grant on authenticated" rule) to set up the state
--- we want to assert about.
+-- tables, and supabase/sql/wordwheel.sql the grants, helpers and view;
+-- this file exercises the schema *directly* — inserting rows as the
+-- postgres superuser (bypassing the "no INSERT grant on authenticated"
+-- rule) to set up the state we want to assert about.
 --
 -- What this file covers:
 --   1. The gametype is registered in common.gametypes.
