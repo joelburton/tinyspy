@@ -219,13 +219,18 @@ export function BoardCol({
     [localFeedbackSlot, setWord],
   )
 
-  // Every OTHER way the word changes — a keystroke, a Backspace, the recall —
-  // can only take claims away, never make one: the player named no tile.
-  // Trimming against the new word is the whole of it. A submit clears the box
-  // without coming through here, so `onAnswer` drops the claims instead.
+  // A letter typed or Backspaced at the END of the word only takes claims away,
+  // never makes one: the player named no tile. Anything else — the recall, the
+  // clear — is a different word, and none of its letters was picked off the
+  // board. A submit clears the box without coming through here, so `onAnswer`
+  // drops the claims instead.
   const handleChange = useCallback(
     (next: SetStateAction<string>) => {
-      setClaims((c) => trimClaims(c, typeof next === 'string' ? next : next(word)))
+      const value = typeof next === 'string' ? next : next(word)
+      const isEdit =
+        (value.length === word.length + 1 && value.startsWith(word)) ||
+        value === word.slice(0, -1)
+      setClaims((c) => (isEdit ? trimClaims(c, value) : []))
       setWord(next)
     },
     [setWord, word],

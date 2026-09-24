@@ -624,6 +624,22 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
     expect(outerE()).not.toHaveAttribute('data-spent')
   })
 
+  it('forgets a click when ArrowUp recalls a different word over it', async () => {
+    // The recalled word's letters were never picked off the board, so its E
+    // falls to the center, as a typed one does.
+    const user = userEvent.setup()
+    h.result = loaded(loadedGame({ outer_letters: 'bacdfghe' }))
+    render(<WithKeys {...makeCtx()} />)
+    const centerE = () => document.querySelector('[data-tile="E"][data-center]')!
+    const outerE = () => document.querySelector('[data-tile="E"]:not([data-center])')!
+
+    await user.keyboard('bead{Enter}')
+    await user.click(outerE())
+    await user.keyboard('{ArrowUp}')
+    expect(centerE()).toHaveAttribute('data-spent', 'true')
+    expect(outerE()).not.toHaveAttribute('data-spent')
+  })
+
   it('spends duplicate tiles one per occurrence, the center first', async () => {
     const user = userEvent.setup()
     // A wheel where the CENTER letter 'e' is duplicated on an outer tile:

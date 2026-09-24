@@ -80,10 +80,6 @@ export function spentTiles(
 /**
  * Forget the clicks the word no longer has letters for — the MOST RECENT first,
  * which is the one a Backspace just took off.
- *
- * Called on every change that isn't a click, so clearing the box or recalling a
- * word drops every claim: those letters were not picked off the board, and the
- * next one that is should still land where it was clicked.
  */
 export function trimClaims(claims: readonly Claim[], word: string): Claim[] {
   const left = new Map<string, number>()

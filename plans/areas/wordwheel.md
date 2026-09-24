@@ -1456,6 +1456,162 @@ not this area's.
 **Verified:** wordwheel and the guards green; `vite build` clean. No behavior
 changed.
 
+## The closing re-read — 2026-09-24
+
+The whole roster once more in one sitting after the last change (pass 3,
+`d69a2d22`): `doc.md` end to end; the repeatable SQL whole and the frozen
+migration; every component, lib file, stylesheet, `theme.css`, the printer;
+every Vitest and pgTAP file, and `setup.psql`; the edge function's three
+files. The files this area edited today were read line by line; the long
+pgTAP bodies not edited (`rls`, `custom_letters`, `coop_target`) by their
+comments, labels and assertions.
+
+**The sibling check came first**, one grep per worked finding across all 51
+roster files: the leaderboard subquery (one, the helper), the unread result
+keys, "wholesale", a hand-written Fisher–Yates, a trailing-space message, the
+unguarded casts (the rest read a validated setup), `P0001` / `42501` (two
+left in `rls_test`, both the real privilege error of a direct insert),
+`disabled` / `used` for spent, the six-letter fixture. **None recurs.**
+
+**Nine findings.** One is a bug, the claims' third leak (R-1). The rest are
+the pattern every re-read finds: twins of spellingbee's F-15 and R-5 that
+wordwheel's F-14 missed, fixtures still describing spellingbee's board, and
+two small shapes this area's own edits left.
+
+### SHIPPED · R-wordwheel-1 · `recall-keeps-claim` · ArrowUp's recall keeps a click's claim on the recalled word — a BUG
+
+**Joel, 2026-09-24: "i'll take your rec"** — an edit trims, anything else
+clears. `handleChange` trims the claims only for a letter typed or
+Backspaced at the END of the word (`value` one longer and starting with the
+word, or the word minus its last letter); the recall and ArrowDown's clear
+drop every claim. Its comment says so, and `trimClaims`' docstring now says
+only what it does. `doc.md`'s Tests row names the case.
+
+**Verified:** a `PlayArea.test` case — submit `bead`, click the outer E,
+ArrowUp: the center E is spent, the outer is not. **Planted** the plain trim
+back: that case red, the bug reproduced. Restored. `tsc -b` and eslint clean;
+wordwheel and the guards, 42 files, 400 tests green.
+
+**Proved with a scratch test, then deleted.** Submit `bead`, click the outer
+E, press ArrowUp: the box holds BEAD, recalled, and the OUTER E is spent where
+the center should be — the recalled letters were never picked off the board.
+`useArrowHistory` recalls by `onChange(lastWord)`, so the recall reaches
+`handleChange`, and `trimClaims` keeps any claim whose letter the new word
+has. Two sentences say otherwise: `trimClaims`' docstring (*"clearing the box
+or recalling a word drops every claim"*, and *"called on every change that
+isn't a click"*, false since F-15 moved the submit's clear to `onAnswer`) and
+`handleChange`'s comment, which lists the recall among the changes that only
+take claims away. Options: **a replacement drops every claim** —
+`handleChange` keeps trimming for an edit at the END of the word (a letter
+typed, one Backspaced) and clears the claims for anything else (the recall,
+ArrowDown's clear); or **recall clears explicitly**, which needs the shared
+word-entry area to tell the game which gesture changed the word. Either way
+the two sentences are corrected and a `PlayArea.test` case pins it.
+
+### R-wordwheel-2 · `migration-comments` · seven false sentences in the applied migration
+
+An applied migration's comments may be corrected (F-14 did three).
+- *"the full final state (schema, RLS, the FE-shipped word lists, RPCs)"* —
+  the RPCs, grants and policies are `supabase/sql/`'s.
+- *"the difficulty-tagged pangrams seed table (above)"* — it is below.
+- *"wordwheel.candidate_words (below)"* — not in this file at all.
+- *"See candidate_words for the measured rationale"* — its header measures
+  nothing.
+- *"bonus words are never shown in the reveal"* and *"the missed-words reveal,
+  which is required-only"* — the reveal includes bonus words whenever the
+  bands differ (`hasBonus`, `buildWordListRows`).
+- *"wordwheel's schema_test asserts both memberships"* — the publication is
+  guarded in `common/realtime_publication_test.sql`; `schema_test` says so.
+- *"reject as alreadyFound"* — the answer is `already_found`, and at the
+  server it is a race.
+
+### R-wordwheel-3 · `rls-off` · two comments say the reference tables have no RLS
+
+`candidate_words`' header (*"common.words … public reference data, RLS off"*)
+and `schema_test` (*"Reference data — public SELECT, no RLS"*). RLS is on for
+both `common.words` and `wordwheel.pangrams`
+(`20260813000000_rls_seed_tables.sql`), with a permissive policy; the grant
+is the gate. spellingbee's F-15 corrected its twin to *"a SELECT grant, and
+RLS on with a permissive policy"*.
+
+### R-wordwheel-4 · `create-game-comments` · four comments in `create_game` that say less than the code
+
+- The saved-default comment names *"target_rank + timer"*; the bands and
+  unique-letters are saved too.
+- The status-seed comment says the compete label *"only needs target_rank +
+  required_words_count"*; the label reads `target_rank`, `reason` and
+  `winner_username`, never the count (spellingbee's R-5, both of these).
+- *"Setup shape (server validates)"* lists `target_rank` and `timer`; the
+  server validates `required` and `legal` too, and the custom letters decide
+  the gate.
+- The Refused list's *"the bands out of range, or legal below required"*
+  omits F-12's not-a-number refusals (PN505, PN506).
+
+### R-wordwheel-5 · `unread-caller-count` · `submit_word` computes a count nothing reads
+
+`caller_found_words_count` is selected into in the compete branch and read by
+nothing; its declaration says *"caller's all-rows count (display +
+leaderboard)"*, and the leaderboard now counts through `_leaderboard`. It was
+already unread when the area opened, so F-1 did not strand it. Options: drop
+it (the select keeps `caller_score`); or leave it. spellingbee's twin is in a
+closed area.
+
+### R-wordwheel-6 · `custom-letters-example` · the custom-letters placeholder shows eight letters for a nine-letter field
+
+`SetupForm`'s placeholder is *"A-CHIROTS"* — a center and SEVEN others; the
+field takes eight. `splitCustomLetters`' docstring and the summary comment
+cite *"A-CHIROT"*, spellingbee's seven-letter example. `doc.md`'s own board,
+`D-AEEGINNR`, is the obvious replacement — nine tiles, a doubled E and N, so
+it shows the multiset too.
+
+### R-wordwheel-7 · `spellingbee-fixtures` · test fixtures that describe spellingbee's board
+
+- **The frontend's "pangram" is spellingbee's**: `abcdefg`, 17 points (seven
+  letters + 10), in `PlayArea.test`'s `loadedGame` and its docstring, the
+  pangram-flourish case, the five celebration cases (*"17 of the board's 18
+  points"*), and `answer.test`. A wordwheel pangram uses all nine tiles and
+  adds 15 — the peer-narration case already uses `duplicate`, 24. The tests
+  pass because the shipped points are trusted; they read as the wrong game.
+- **`board_test`'s partition cases build on `'abcdfgi'`** — seven outer
+  letters, a spellingbee wheel.
+- **`board_test`'s first `fitsTiles` case says** *"Wheel 'abcdefgi' + center
+  'e' → one 'e' tile"*; `'abcdefgi'` already holds an E, so there are two.
+
+### R-wordwheel-8 · `test-prose` · test names and comments that survived F-14
+
+- `setup.test`: three names say *"is null"* (the validators return `{}`, the
+  docstrings' F-14 twin); *"surfaces the legal-band error first"* (since F-14
+  both errors come back, each under its field); *"eight distinct other
+  letters"* (distinctness is not a rule here).
+- `PlayArea.test`: the compete-verdicts docstring and its three names say
+  *"outcome"* for the status REASON (spellingbee's F-15 twin); the rank-climb
+  block says it shows a *"`peer`"* message and asserts `peerMilestone`; the
+  duplicate-tiles case explains `data-center` by *"an accessible name — which
+  is also the only reason those names existed"*, archaeology for names that
+  no longer exist.
+- `create_game_test` and `compete_test` titles: *"(sibling-manifest era)"*
+  (spellingbee's F-15 twin); their section numbers skip and repeat against
+  their own header lists, as `gameplay_test`'s did before F-14.
+- `schema_test`: *"The migration laid down the tables, grants, helpers, and
+  view"* — only the tables are the migration's.
+- `player_subset_test`: cade *"arrived after the game started"*, where line 17
+  says cade simply wasn't dealt in.
+- `reveal_partition_test`: *"the PlayArea caller-only-score fix"* — history;
+  what it pins is that the frontend filters to self in compete.
+- `doc.md` → Tests, `create_game_test`: *"every board-shape fault"* — F-14
+  established it pins neither the outer alphabet nor the center's shape.
+
+### R-wordwheel-9 · `small-shapes` · a few lines that read worse than they need to
+
+- `Wheel.tsx`'s `refused` prop comment has a 110-column line F-16's edit left.
+- `SetupForm`'s custom-letters `onChange` wraps its two `set` calls in a bare
+  `{ … }` block.
+- `index.ts`'s `sampleMask` throws on an empty pool that PN197 has already
+  answered — F-8's kind of guard, and its docstring's *"e.g. the overlap cap
+  excluded everything"* is the case PN197 catches first.
+- `submit_timeout`'s coop comment about `lost` vs `ended` sits above the
+  results aggregation rather than the `end_game` call it explains.
+
 ## Notes
 
 *(things worth remembering about this area that are neither a finding nor
