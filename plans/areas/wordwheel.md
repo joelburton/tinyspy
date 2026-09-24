@@ -33,6 +33,8 @@ Agreed with Joel 2026-09-23 (*"i do; stamp the files"*), `cs-met-wordwheel` —
 `src/wordwheel/logo.svg` has nowhere to put a stamp, and `todo.md` is markdown
 and carries none; both are on the roster all the same, as is
 `docs/games/wordwheel.md`, deleted into `src/wordwheel/doc.md` in pass 2.
+**`src/wordwheel/doc.md` was written at Step 3** (2026-09-23), markdown like
+the todo, roster all the same.
 
 ### What is NOT on it
 
@@ -232,6 +234,101 @@ optimistic. The loading placeholder changes too: the shared `<Loading>` and
 
 **Verified:** `tsc -b` and eslint clean; wordwheel, found-words and the
 guards: 45 files, 407 tests green.
+
+### Step 3 — the `doc.md` skeleton, with the RPCs and FE submissions written — DONE 2026-09-23
+
+spellingbee's shape: `src/wordwheel/doc.md`, seven headings, with the lede, a
+short intro, the RPCs and the FE submissions written from
+`supabase/sql/wordwheel.sql`, the edge function and the call sites — not from
+the old doc — and Game rules, Schema, Frontend and Tests marked owed to pass 2.
+The RPC section is the `ok` answers only; a refusal that is part of the story
+is a clause without a code.
+
+**The intro leads with the multiset**, the one thing this game is that
+spellingbee is not: the tile-spend rule is why the builder post-filters, why
+the frontend has a submit gate, why the tiles mark as a word is typed, and why
+there is no S rule. Then the three paragraphs spellingbee's intro has — the
+frontend knows the answer key, the board is built outside the database, and
+whose list a word lands on — shortened where they are the same.
+
+**The board example is a REAL board**, `D·AEEGINNR`: the seed `adeeginnr`
+from the local `wordwheel.pangrams`, run through `candidate_words` at bands
+3 / 5 and the edge function's own `buildBoard` (imported under Deno) — 83
+required words for 401 points, 65 bonus; three required pangrams
+(`endearing`, `engrained`, `grenadine`, 24 points each). Every example word in
+the doc was checked against those lists: `dean` (required, 1), `dinner`
+(required, 6 — both N tiles), `dene` (bonus, 1), `den` (three letters),
+`rein` (fits the tiles, no D), `drean` (fits the tiles, has the D, not in
+`common.words`), `dared` (two D tiles wanted, one on the wheel — dropped by
+`buildBoard`, and the frontend's submit gate refuses it).
+
+**Written against the code, where the code's own comments disagree:**
+
+- The edge function's header table lists five codes with PN197 a `fault` and
+  says *"this game has four"* form-validations; the code returns five
+  `formValidation`s, PN197 among them, on the form's own line. The doc says
+  five, as clauses (`PlayArea.tsx`'s New-game comment already says FIVE).
+- `submit_timeout`'s header says compete ends `'ended' (nobody reached the
+  target)`; the code writes `lost_compete` whenever `target_rank` is set, which
+  a race always has. The doc says always `lost_compete` in a race.
+- `concede`'s all-conceded ending: the doc uses spellingbee's corrected wording
+  (*"adds only its reason over the race's last readout"*), since
+  `common.end_game` merges — the `todo.md` Soon item on the two comments that
+  say *replaces* still stands.
+
+**One Step 2 leftover rides in this diff, said now:** `answerOf`'s
+`center !== '' &&` guarded the `?? ''` that Step 2 removed — the center is
+never empty once the loader holds the gate — so it came out with its docstring
+clause (*"and empty until the game has loaded"*) and the test line that
+exercised an empty center. spellingbee removed the same guard in its own
+Step 2 (`explainReject`'s `center &&`); I missed it in this game's.
+
+**Already done, which makes Step 4 small:** `lib/answer.ts` is ALREADY the
+`AnswerMessage` shape — `Answer`, `answerMessage`, `answerOf`,
+`peerAnswerMessage`, the words and the outcome together, arrived with
+`outcome-fix`. The FE-submissions table reads it directly; there is no
+inventory of scattered strings to convert, as spellingbee had. What Step 4
+still owes is a read of whether anything else in the game writes a player's
+words outside it.
+
+**Seen with the code open, left for pass 2** (stale claims, the prose pass's):
+
+- `wordwheel.sql` → `create_game`'s header: `bonus_words` shown as
+  `[text, …]` (it is `{ word, points, is_pangram }` objects); the title example
+  `E·CABDNO` (six letters, unsorted — a wheel has eight outer letters, sorted);
+  *"Reject reasons (all 'P0001' unless noted)"*, from before the envelope.
+- `submit_word`'s header: *"Throws (hard rejections): … P0001 … P0002"*, from
+  before the envelope; and *"(src/wordwheel/lib/answer.ts and the shared
+  word-hunt engine)"* — an off-wheel letter is refused by `BoardCol`'s submit
+  gate, not by `answer.ts`, and word-hunt is `found-words` now.
+- `submit_timeout`'s header: *"rejects everyone after the first with P0001
+  (which the FE swallows silently)"* — a race envelope now.
+- `end_game`'s header: `status.outcome='manual'` (the key is `reason`, the
+  residue spellingbee found too), and *"declared by wordwheel's PlayArea via
+  ctx.menu.setGameItems"* (it is `buildGameMenu` into `setGameSections`).
+- The edge function's header: step 7 *"Return { id } to the FE"* (it relays
+  `create_game`'s envelope), and the calling shape's setup lists
+  `{timer, required?, legal?, target_rank?}` without `custom_center`,
+  `custom_letters` or `unique_letters`.
+- `board.ts` → `validateCustomLetters` wears three stacked comments, the middle
+  one saying it *"Returns the fe-error-key"* and citing *"docs/supabase.md →
+  Server errors"*; it returns a `LetterFault`.
+- `manifest.ts`'s `startGameInClub` docstring: the edge function *"strips
+  `setup.mode` if present"* — `parseBuildBoardRequest` strips nothing (the
+  same claim spellingbee's manifest had).
+- `lib/setup.ts`'s docstring: `create_game` *"rejects a `mode` field on setup
+  with a loud P0001"* — no such check exists.
+- `db.ts`'s docstring: `games_state` *"conditionally exposes the hidden
+  `required_words` answer key based on common.games.is_terminal"* — both lists
+  ship at load; read the view at pass 2 before rewording.
+- `PlayArea`'s surface docstring still describes verdicts that do not exist
+  (*"Genius (rank ≥ 6) vs Stopped"*, *"You won the race!"* vs *"Beaten to the
+  punch."*, *"No winner at <rank>"*); `buildOver` writes none of them. Step 8
+  reaches it first.
+
+**Verified:** `tsc -b` and eslint clean; wordwheel and the guards: 41 files,
+377 tests green (one fewer assertion in `answer.test.ts`, the empty-center
+line).
 
 ## Findings
 

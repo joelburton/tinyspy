@@ -77,7 +77,7 @@ export function answerMessage(answer: Answer): AnswerMessage {
  * Which of this game's answers the engine's report is. The engine knows only
  * that a word missed the list; the wheel's center says whether that is why.
  *
- * `center` is lowercase, and empty until the game has loaded.
+ * `center` is lowercase.
  */
 export function answerOf(report: WordSubmitReport, center: string): Answer {
   const word = report.word
@@ -95,7 +95,7 @@ export function answerOf(report: WordSubmitReport, center: string): Answer {
     case 'too_short':
       return { answerType: 'too_short', word }
     case 'not_legal':
-      return center !== '' && !word.includes(center)
+      return !word.includes(center)
         ? { answerType: 'missing_center', word, center }
         : { answerType: 'not_a_word', word }
   }

@@ -46,8 +46,6 @@ describe('answerOf', () => {
     expect(answerOf({ answer: 'not_legal', word: 'cabs' }, 'e'))
       .toEqual({ answerType: 'missing_center', word: 'cabs', center: 'e' })
     expect(answerOf({ answer: 'not_legal', word: 'dace' }, 'e').answerType).toBe('not_a_word')
-    // Before the game loads there is no center to be missing.
-    expect(answerOf({ answer: 'not_legal', word: 'cabs' }, '').answerType).toBe('not_a_word')
   })
 
   it('carries the entry\'s points and flags', () => {
