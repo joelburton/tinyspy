@@ -1596,7 +1596,17 @@ cite *"A-CHIROT"*, spellingbee's seven-letter example. `doc.md`'s own board,
 `D-AEEGINNR`, is the obvious replacement — nine tiles, a doubled E and N, so
 it shows the multiset too.
 
-### R-wordwheel-7 · `spellingbee-fixtures` · test fixtures that describe spellingbee's board
+### SHIPPED · R-wordwheel-7 · `spellingbee-fixtures` · test fixtures that describe spellingbee's board
+
+**Joel, 2026-09-24: "i'll take your rec"** — all three. The frontend's pangram
+is `abcdefghi`, 24 (9 + 15), the pgTAP fixture's own; the board totals 25, and
+the pangram-flourish case, the five celebration cases and `answer.test`
+moved with it. `board_test`'s partition cases build on `'abcdfghi'`, eight
+outer letters, and its first `fitsTiles` wheel is `'abcdfghi' + 'e'`, which
+does have the one E its comment says. The two seven-letter strings left in
+`board_test` are the refusal case and a valid eight-letter repeat, on purpose.
+**Verified:** wordwheel and the guards, 42 files, 400 tests; `deno test`, 15;
+`tsc -b` and eslint clean.
 
 - **The frontend's "pangram" is spellingbee's**: `abcdefg`, 17 points (seven
   letters + 10), in `PlayArea.test`'s `loadedGame` and its docstring, the

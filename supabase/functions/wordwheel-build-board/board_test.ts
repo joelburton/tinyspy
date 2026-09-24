@@ -59,8 +59,8 @@ Deno.test('tileCounts: per-letter multiplicity, not a set', () => {
 })
 
 Deno.test('fitsTiles: a word may spend a letter only as many times as it has tiles', () => {
-  // Wheel 'abcdefgi' + center 'e' → one 'e' tile (letters: a b c d e f g i, e).
-  const wheel = tileCounts('abcdefgi' + 'e')
+  // Wheel 'abcdfghi' + center 'e' → one 'e' tile (letters: a b c d f g h i, e).
+  const wheel = tileCounts('abcdfghi' + 'e')
   eq(fitsTiles('bead', wheel), true, "'bead' fits (each letter once)")
   eq(fitsTiles('faced', wheel), true, "'faced' fits")
   // 'seeded' needs three 'e's but the wheel has one → rejected. This is the
@@ -99,12 +99,12 @@ Deno.test('buildBoard: partitions required vs bonus, tallies required only', () 
   ]
   // Wheel with a single 'b' tile so 'cabbie' (two b's) is DROPPED — proves
   // the tile-fit filter runs before scoring, on bonus words too.
-  const board = buildBoard('abcdfgi', 'e', words)
+  const board = buildBoard('abcdfghi', 'e', words)
   eq(board.required_words_count, 2, 'two required words counted')
   eq(board.required_words_score, 1 + 5, 'required score = 1 + 5')
   eq(board.required_words.length, 2, 'required list has 2')
   eq(board.bonus_words.length, 0, "'cabbie' dropped (two b's, one b-tile)")
-  eq(board.outer_letters, 'abcdfgi', 'outer letters echoed')
+  eq(board.outer_letters, 'abcdfghi', 'outer letters echoed')
   eq(board.center_letter, 'e', 'center echoed')
 })
 
@@ -123,7 +123,7 @@ Deno.test('buildBoard: bonus words score but do not touch the required tally', (
   const words: CandidateRow[] = [
     { word: 'bead', is_required: false }, // bonus, fits
   ]
-  const board = buildBoard('abcdfgi', 'e', words)
+  const board = buildBoard('abcdfghi', 'e', words)
   eq(board.required_words_count, 0, 'no required')
   eq(board.required_words_score, 0, 'required score 0')
   eq(board.bonus_words.length, 1, 'one bonus word')

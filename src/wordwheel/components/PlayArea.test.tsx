@@ -58,8 +58,9 @@ vi.mock('@/common/supabase/dbResult', async (orig) => ({
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 const startEdgeFn = runEdgeFn as unknown as ReturnType<typeof vi.fn>
 
-/** A loaded coop game: outer `cabdfghi` + center `e`; required `bead` + the pangram
- *  `abcdefg`; one bonus word `bcdfge`. Override the mode per test. */
+/** A loaded coop game: outer `cabdfghi` + center `e`; required `bead` + the
+ *  nine-tile pangram `abcdefghi`; one bonus word `bcdfge`. Override the mode per
+ *  test. */
 function loadedGame(over: Partial<WordwheelGame> = {}): WordwheelGame {
   return {
     id: 'g1',
@@ -67,12 +68,12 @@ function loadedGame(over: Partial<WordwheelGame> = {}): WordwheelGame {
     mode: 'coop',
     outer_letters: 'cabdfghi',
     center_letter: 'e',
-    required_words_score: 18,
+    required_words_score: 25,
     required_words_count: 2,
     created_at: '2026-01-01T00:00:00Z',
     requiredWords: [
       { word: 'bead', points: 1, is_pangram: false },
-      { word: 'abcdefg', points: 17, is_pangram: true },
+      { word: 'abcdefghi', points: 24, is_pangram: true },
     ],
     bonusWords: [{ word: 'bcdfge', points: 6, is_pangram: false }],
     ...over,
@@ -245,9 +246,9 @@ describe('wordwheel PlayArea — compete terminal verdicts', () => {
  */
 describe('wordwheel PlayArea — the celebration', () => {
   const target = { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } }
-  /** My pangram: 17 of the board's 18 points. */
+  /** My pangram: 24 of the board's 25 points. */
   const myPangram: FoundWordRow = {
-    game_id: 'g1', user_id: 'u1', word: 'abcdefg', points: 17,
+    game_id: 'g1', user_id: 'u1', word: 'abcdefghi', points: 24,
     is_pangram: true, is_bonus: false, found_at: '2026-01-01T00:00:01Z',
   }
 
@@ -259,7 +260,7 @@ describe('wordwheel PlayArea — the celebration', () => {
     h.result = loaded(loadedGame(), [myPangram])
     rerender(<PlayAreaLoader {...makeCtx({ ...base, isTerminal: true, playState: 'won' })} />)
     expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
-    expect(screen.getByText('Reached "Amazing" — 17/18 points.')).toBeInTheDocument()
+    expect(screen.getByText('Reached "Amazing" — 24/25 points.')).toBeInTheDocument()
   })
 
   it('does not pop when mounted into a coop game already won', () => {
@@ -280,7 +281,7 @@ describe('wordwheel PlayArea — the celebration', () => {
       />,
     )
     expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
-    expect(screen.getByText('Reached "Amazing" first — 17/18 points.')).toBeInTheDocument()
+    expect(screen.getByText('Reached "Amazing" first — 24/25 points.')).toBeInTheDocument()
   })
 
   it('does not pop for a race somebody else won', () => {
@@ -412,8 +413,8 @@ describe('wordwheel PlayArea — submit behavior (shared useFoundWordSubmit)', (
   it('shows the pangram flourish for a pangram', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    await user.keyboard('abcdefg{Enter}')
-    expect(screen.getByText(/pangram \+17/)).toBeInTheDocument()
+    await user.keyboard('abcdefghi{Enter}')
+    expect(screen.getByText(/pangram \+24/)).toBeInTheDocument()
     expect(rpc).toHaveBeenCalledWith('submit_word', expect.objectContaining({ is_pangram: true }))
   })
 
