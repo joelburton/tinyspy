@@ -1,31 +1,18 @@
 // cs-audited-board-cursor
 
 /**
- * The shared keyboard-cursor *movement* math for the two grid games
- * (bananagrams + scrabble). Both run an identical crossword-style cursor: a
- * position `{ x, y }` plus a direction `'h'`/`'v'`. An arrow either rotates the
- * cursor onto its axis (when it's currently pointing the other way) or steps
- * one cell along its current axis; Backspace empties the cell under the cursor,
- * or steps one cell BACK along the axis and empties that one.
- * Positions are clamped to `[0, max]` (max = the grid's last index).
+ * The shared cursor math for a game that types tiles onto a grid: a
+ * crossword-style cursor, a position `{ x, y }` plus a direction `'h'`/`'v'`.
+ * An arrow either rotates the cursor onto its axis (when it's currently
+ * pointing the other way) or steps one cell along its current axis; Backspace
+ * empties the cell under the cursor, or steps one cell BACK along the axis and
+ * empties that one. Positions are clamped to `[0, max]` (max = the grid's last
+ * index).
  *
- * ONLY this cursor math is shared. What a keypress *places* differs deeply
- * between the games (bananagrams's derived-multiset hand vs scrabble's rack
- * slots + blanks + a locked-committed tier), as does how Backspace *removes* a
- * tile and how the cursor *advances after a placement* — all of that stays
- * per-game, wrapped around these helpers. Pure (no React) so they're trivially
+ * ONLY this cursor math is shared. What a keypress *places*, how Backspace
+ * *removes* a tile and how the cursor *advances after a placement* stay with
+ * each game, wrapped around these helpers. Pure (no React) so they're trivially
  * unit-tested.
- *
- * **Crosswords is a third grid game and deliberately does not use this.** Its
- * cursor is GRID-AWARE — it skips blocked cells and can jump to a word's edge —
- * so movement there is a function of the puzzle, not just of a bound, which is
- * the difference between a crossword and a rack game. It keeps its own
- * `moveCursor` in `crosswords/lib/cursor.ts`, and parameterizing this one over
- * "does the grid have holes" would make a framework out of eleven lines of
- * arithmetic. Its cursor also speaks a different vocabulary — `{ row, col }`
- * with `'across'`/`'down'`, against `{ x, y }` with `'h'`/`'v'` here — which is
- * a real cross-game naming split (docs/naming.md wants one name per concept)
- * and a bigger question than this module.
  */
 
 export type Dir = 'h' | 'v'
@@ -57,7 +44,7 @@ export function stepBack(cursor: GridCursor, max: number): GridCursor {
 }
 
 /** What a cell holds, as Backspace sees it: a tile it may remove, a tile it may
- *  not (scrabble's committed tiles), or nothing. */
+ *  not (one already committed), or nothing. */
 export type BackspaceCell = 'removable' | 'locked' | 'empty'
 
 /**

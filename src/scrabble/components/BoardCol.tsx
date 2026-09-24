@@ -783,8 +783,8 @@ export function BoardCol({
   // rather than a branch inside the board's keys.
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
-  // Board-cursor keyboard — the shared 2-D placement engine (bananagrams' twin),
-  // four bound actions. scrabble supplies its 5%: type stages a tile, Backspace
+  // Board-cursor keyboard — the shared 2-D placement engine, four bound
+  // actions. scrabble supplies what the keys do: type stages a tile, Backspace
   // takes a staged one back (`planBackspace` picks which), and the commit is a
   // SUBMIT of the staged word.
   //

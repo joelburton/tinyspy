@@ -22,9 +22,6 @@
      brighter + more yellow, so it clearly stands out from the committed C tiles. */
 /* @@ */   --scrabble-tile-attention: linear-gradient(var(--mark-attention-tile-color), var(--mark-attention-tile-color)), var(--scrabble-tile-bg);
 /* @@ */   --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
-  /* (No cursor alias: the keyboard cursor is the shared gridCursor module, which
-     reads --mark-gridCursor-color directly. This game-named alias pointed straight at it
-     and had no other reader.) */
 
   /* ── Premium-square ink + board chrome, named during the palette sweep ────
    * The premium letters are the board's printed notation, one color per premium

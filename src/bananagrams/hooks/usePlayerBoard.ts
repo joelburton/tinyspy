@@ -552,9 +552,9 @@ export function usePlayerBoard({
     }
   }, [isTerminal, isConceded, gameId, onCheckResult, save])
 
-  // Board-cursor keyboard — the shared 2-D placement engine (scrabble's twin;
-  // it binds the arrows, the letters and Backspace as actions, and the commit as
-  // whichever action the game commits WITH). bananagrams supplies its 5%: EVERY
+  // Board-cursor keyboard — the shared 2-D placement engine (it binds the
+  // arrows, the letters and Backspace as actions, and the commit as whichever
+  // action the game commits WITH). bananagrams supplies what the keys do: EVERY
   // cell is editable (typing over a filled cell swaps its tile back to the hand
   // — no "committed" tiles, unlike scrabble), Backspace returns a tile to the
   // hand (`planBackspace` picks which), and the commit is a PEEL, whose action carries Enter and Space

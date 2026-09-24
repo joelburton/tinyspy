@@ -4,7 +4,8 @@ The folders it reads: `shared/board-cursor`. The process is
 [app-audit.md](../app-audit.md) §4; the plan holds the order, this file holds
 the reading. Owed work lives in each folder's `todo.md`, not here.
 
-**Status: OPEN 2026-09-24. The READ is done; five findings await Joel.**
+**Status: OPEN 2026-09-24. The READ is done; all five findings are worked.
+The closing is next.**
 
 ## The roster
 
@@ -186,6 +187,14 @@ there changed.
   it means `moveCursor` may turn the cursor instead of moving it.
 
 **No decision in it**, apart from the Backspace wording.
+
+**Worked 2026-09-24** (*"do f5"*): each bullet as written. The crosswords
+paragraph is `doc.md`'s first Details item, and the naming split is a Maybe in
+`src/crosswords/todo.md`. bananagrams' accent note now says in the present that
+`--bananagrams-cursor` is not the cursor, since the name still says it is. Two
+more found on the way: the hook's docstring said three of its actions are
+pattern actions (two are: the arrows and the letters), and both games' comments
+and bananagrams' test said "its 5%", pointing at the split that went.
 
 ## What checked out
 

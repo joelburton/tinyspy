@@ -1,23 +1,21 @@
 // cs-audited-board-cursor
 
-/**
- * Tests for the shared 2-D board-cursor keyboard (bananagrams + scrabble): arrows
- * move the cursor, a letter places, Backspace removes, and the commit fires on
- * the keys its OWN action carries — Enter for a submit, Enter or Space for a
- * peel. Everything is inert while disabled, and each binding says so — the
- * commit on its own narrower gate, the four together on `enabled`.
- *
- * The gates are NOT retested here. They stopped being this hook's work when its
- * keys became bound actions: a modified chord never matches a pattern, a
- * keystroke aimed at chat never reaches an action, and dismissing feedback or
- * leaving a turn viewer are their own actions that the dispatcher runs first.
- * `chord.test.ts` and `dispatcher.test.tsx` own all of that.
- */
 import { act, renderHook } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { useActionDispatcher } from '@/common/actions/dispatcher'
 import { liveBindings } from '@/common/actions/useBoundAction'
 import { useBoardCursorKeys, type BoardCursorKeysOptions } from './useBoardCursorKeys'
+
+// The shared 2-D board-cursor keyboard: arrows move the cursor, a letter
+// places, Backspace removes, and the commit fires on the keys its OWN action
+// carries — Enter for a submit, Enter or Space for a peel. Everything is inert
+// while disabled, and each binding says so — the commit on its own narrower
+// gate, the rest together on `enabled`.
+//
+// The dispatcher's gates are NOT retested here: a modified chord never matches
+// a pattern, a keystroke aimed at chat never reaches an action, and dismissing
+// feedback or leaving a turn viewer are their own actions that the dispatcher
+// runs first. `chord.test.ts` and `dispatcher.test.tsx` own all of that.
 
 /** A real window keydown. Awaited: an action's run settles a microtask later. */
 async function press(key: string) {
@@ -87,8 +85,7 @@ describe('useBoardCursorKeys', () => {
   })
 
   it('the commit has its OWN availability, narrower than the cursor keys', async () => {
-    // bananagrams peels only once the hand is empty; scrabble plays only a
-    // staged word. The board keeps moving meanwhile.
+    // A move that isn't available yet, while the board keeps moving.
     const cb = setup({ canCommit: false })
     await press('Enter')
     await press('a')

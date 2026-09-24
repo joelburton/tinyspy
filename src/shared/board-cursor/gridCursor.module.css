@@ -1,10 +1,7 @@
 /* cs-audited-board-cursor */
 
 /* The keyboard cursor on a grid board — the ring that shows which cell you're
- * typing into and which way the letters will run. Shared by the two games with
- * keyboard entry onto a grid (scrabble's board, bananagrams's player board);
- * scrabble's copy of this was even commented "(bananagrams style)", which is the
- * standing signal to make the match structural rather than remembered.
+ * typing into and which way the letters will run.
  *
  * The shape is a ring that's THICK ON THE AXIS OF TRAVEL: a line all round with
  * the two edges perpendicular to the direction thickened to
@@ -16,10 +13,9 @@
  * Render it as a positioned child of the CELL:
  *   cls(gridCursor.cursor, styles.cursor, dir === 'h' ? gridCursor.cursorH : gridCursor.cursorV)
  *
- * The per-game `styles.cursor` carries ONE declaration: `border-radius`, which
- * tracks the cell it sits in — 3px on scrabble's rounded squares, and its own
- * value on bananagrams's. That genuinely differs per board, so it stays local;
- * everything else here is identical in both.
+ * The game's own `styles.cursor` carries ONE declaration: `border-radius`,
+ * which tracks the cell it sits in. That genuinely differs per board, so it
+ * stays local; everything else is here.
  */
 /* @@ */ .cursor {
   position: absolute;

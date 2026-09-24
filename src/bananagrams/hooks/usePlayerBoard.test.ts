@@ -32,8 +32,8 @@ vi.mock('@/shared/grid-and-drag/useDragGesture', () => ({
   useDragGesture: () => ({ drag: null, hover: null, start: mockStart }),
 }))
 // The cursor keyboard is captured rather than driven: what this file tests is
-// the 5% bananagrams supplies (the callbacks), not the shared binding. It hands
-// back a commit binding now, so the fake does too.
+// what bananagrams supplies (the callbacks), not the shared binding. It hands
+// back a commit binding, so the fake does too.
 vi.mock('@/shared/board-cursor/useBoardCursorKeys', () => ({
   useBoardCursorKeys: (cfg: typeof keyCfg.current) => {
     keyCfg.current = cfg
