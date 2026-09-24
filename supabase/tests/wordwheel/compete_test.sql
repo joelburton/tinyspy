@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordwheel
 
 -- ============================================================
 -- Test: wordwheel compete mode (sibling-manifest era)

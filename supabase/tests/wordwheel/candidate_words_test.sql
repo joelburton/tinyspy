@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordwheel
 
 -- ============================================================
 -- Test: wordwheel.candidate_words — the SUBSET set, NOT the isogram set

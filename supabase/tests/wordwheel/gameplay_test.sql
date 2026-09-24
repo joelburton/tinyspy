@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordwheel
 
 -- ============================================================
 -- Test: wordwheel.submit_word + wordwheel.submit_timeout + end_game

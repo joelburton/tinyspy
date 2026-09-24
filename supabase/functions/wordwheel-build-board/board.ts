@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordwheel
 
 /**
  * wordwheel-build-board — the PURE board-building core.

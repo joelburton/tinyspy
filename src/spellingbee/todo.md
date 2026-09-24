@@ -40,6 +40,6 @@
   mechanically easy, and the reason
   not to is that it means picking ONE vocabulary for the shared names when a
   honeycomb has hexes where a wheel has tiles. The full entry, with what a
-  revisit would tractably share, is [`wordwheel.md →
-  Deferred`](../../docs/games/wordwheel.md#deferred); wordwheel is the fork and
+  revisit would tractably share, is [wordwheel's `todo.md` → Won't
+  do](../wordwheel/todo.md#wont-do); wordwheel is the fork and
   owns the pair's shared-vs-not ledger, so that copy is the one that governs.

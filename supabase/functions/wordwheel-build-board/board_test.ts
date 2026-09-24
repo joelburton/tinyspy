@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordwheel
 
 /**
  * `deno test supabase/functions/wordwheel-build-board/board_test.ts`

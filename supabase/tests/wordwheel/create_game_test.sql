@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordwheel
 
 -- ============================================================
 -- Test: wordwheel.create_game (sibling-manifest era)

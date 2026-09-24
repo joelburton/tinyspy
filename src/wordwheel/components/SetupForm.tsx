@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordwheel
 
 import { DictBandField } from '@/common/fields/DictBandField'
 import { PlayersSection } from '@/common/setup-form/PlayersSection'

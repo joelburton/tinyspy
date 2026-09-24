@@ -383,7 +383,8 @@ cleanly into three buckets:
   picking one vocabulary, and a honeycomb has hexes where a wheel has tiles.
   Renaming one to match the other trades [tokens.md's two-vocabularies
   rule](../tokens.md#two-vocabularies--global-and-per-game) for ~40 lines of
-  dedup. See [Deferred](#deferred) if that trade ever looks worth it.
+  dedup. See [`todo.md` → Won't do](../../src/wordwheel/todo.md#wont-do) if
+  that trade ever looks worth it.
 - **Per-game seams by design** (not duplicates to eliminate): `Help` (rules
   copy), `db.ts` (schema-scoped client), `manifest.ts` (brand lives only here),
   `theme.css` (palette).
@@ -563,31 +564,3 @@ survive grayscale: it's larger and has a thicker border. See
 | Board geometry | `src/wordwheel/lib/wheel.ts` (shared: board + PDF) |
 | pgTAP tests | `supabase/tests/wordwheel/` |
 | Registry | `src/gametypes.ts`; schema in `supabase/config.toml` `[api].schemas` |
-
-## Deferred
-
-- **spellingbee's `Letters.module.css` + `Letter.module.css` /
-  `Wheel.module.css` are deliberately NOT folded** (2026-07-31, the CSS audit's
-  §2.1). The rest of the fork pair's CSS is shared with spellingbee (this doc,
-  [Frontend](#frontend)) — but these remain separate copies. They're
-  structurally parallel in their skeletons (`.board`, `.grid`, `.floatAnchor`, a
-  tile), so a fold looks mechanically easy. The reason not to: it means picking
-  ONE vocabulary for the shared class names, and a honeycomb has hexes where a
-  wheel has tiles. That trades [tokens.md's two-vocabularies
-  rule](../tokens.md#two-vocabularies--global-and-per-game) — names track the
-  game's own concepts — for a few dozen lines of dedup, and the rules inside
-  don't share anyway. They share LESS than they used to: the hive is still SVG
-  polygons (a hexagon can't be a bordered box) where the wheel is round boxes,
-  so the hive's depth is a filter in user units and the wheel's is the shared
-  box-shadow. **If it's ever revisited**, the tractable middle is the
-  interaction layer under neutral names, leaving each game's shape rules local.
-  Don't fold the whole file just because the skeletons rhyme. *(Lives here
-  rather than in spellingbee's doc because wordwheel is the fork and this doc
-  owns the pair's shared-vs-not ledger.)*
-- **`s`-heavy seeds**: an `s` tile lets each word pluralize once — the classic
-  wheel's behavior, kept deliberately. If wheels with an `s` (especially an `s`
-  *center*, which makes every word an s-word) feel too plural-y in play, a
-  seed-level filter (or center exclusion) is a one-line follow-up in the import
-  / edge fn.
-- The `SetupForm` custom-letters helper text is still `.muted`, kept for parity
-  with spellingbee's form; revisit both together if muted setup copy is retired.

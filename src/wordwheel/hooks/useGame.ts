@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordwheel
 
 import type { Member } from '@/common/members/member'
 import { makeBeeGame } from '@/shared/bee-games/makeBeeGame'

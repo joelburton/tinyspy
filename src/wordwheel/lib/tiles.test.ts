@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordwheel
 
 import { describe, expect, it } from 'vitest'
 import { wordFitsWheel } from './tiles'

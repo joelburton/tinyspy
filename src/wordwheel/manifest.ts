@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordwheel
 
 import { lazy } from 'react'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'

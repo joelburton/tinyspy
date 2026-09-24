@@ -1,4 +1,4 @@
-// cs-unmet
+// cs-met-wordwheel
 
 /**
  * Render + behavior tests for wordwheel's PlayArea.

@@ -20,4 +20,3 @@ How an area opens), and this file goes when the last one does.
 | letterboxed | [docs/games/letterboxed.md → Deferred](games/letterboxed.md#deferred) |
 | setgame | [docs/games/setgame.md → Deferred](games/setgame.md#deferred) |
 | stackdown | [docs/games/stackdown.md → Deferred](games/stackdown.md#7-deferred) |
-| wordwheel | [docs/games/wordwheel.md → Deferred](games/wordwheel.md#deferred) |

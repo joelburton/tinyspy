@@ -1,4 +1,4 @@
--- cs-unmet
+-- cs-met-wordwheel
 
 -- ============================================================
 -- wordwheel — Guardian-Word-Wheel-style word finder (MooseWheel)

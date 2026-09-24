@@ -180,7 +180,7 @@ describe('every feature folder', () => {
     // A ratchet: the file holds no items of its own, only the index of game
     // docs whose `## Deferred` still has to move into the game's todo.md.
     // When a game's register moves, delete its row AND lower this number.
-    const REGISTERS_LEFT = 7
+    const REGISTERS_LEFT = 6
     const src = readFileSync(join(CWD, 'docs/deferred.md'), 'utf8')
     expect(src.match(/^\s*- /gm) ?? [], 'deferred.md takes no new items; file it in a todo.md').toEqual([])
     const rows = (src.match(/^\| \w+ \| \[/gm) ?? []).length
