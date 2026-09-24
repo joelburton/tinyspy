@@ -37,8 +37,8 @@ export function orderSelfFirst<T extends { user_id: string; username: string }>(
  * Find a member in a roster by user id — the "who is this `user_id`?" lookup
  * every game does to attribute a guess or a turn to its actor.
  *
- * Returns `undefined` for an unknown id (a departed member, a roster that
- * hasn't loaded yet), so a caller rendering a name needs a fallback.
+ * Returns `undefined` for an id the roster doesn't hold yet — it loads after the
+ * page, or failed to load — so a caller rendering a name needs a fallback.
  */
 export function memberById<T extends { user_id: string }>(
   members: readonly T[],

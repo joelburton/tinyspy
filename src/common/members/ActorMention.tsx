@@ -16,8 +16,8 @@ export type ActorShow = 'auto' | 'both' | 'name' | 'dot' | 'none'
 
 type Props = {
   // The person who acted. `undefined`/`null` → the `fallback` name + a neutral
-  // disc (a departed member, or a row whose player hasn't loaded yet). An
-  // `Actor` is the two shown fields, so a whole `Member` passes too.
+  // disc (a row whose player hasn't loaded yet). An `Actor` is the two shown
+  // fields, so a whole `Member` passes too.
   actor?: Actor | null
   // Name shown when `actor` is missing.
   fallback?: string

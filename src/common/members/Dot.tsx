@@ -7,7 +7,7 @@ import styles from './Dot.module.css'
 type Props = {
   // The member's profile-color NAME ('red' … 'pink'). Missing/unknown falls
   // back to a body-text-colored disc (same contract as `colorVarFor`) — the
-  // neutral disc for a departed member. Ignored when `hollow`.
+  // neutral disc for someone the roster doesn't hold yet. Ignored when `hollow`.
   color?: string | null
   // The "nobody" ring: an empty outline instead of a filled disc — an away
   // member on the club strip, an unfound word in a reveal list. Ring color
