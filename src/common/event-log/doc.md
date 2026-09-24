@@ -50,14 +50,22 @@ across its rows gets them lined up — the numbers under the numbers, the actors
 at the right edge — which a flex stack of rows cannot do without every game
 agreeing on widths. So a row's pieces each get their own `<td>`, and a second
 line of a turn is a second `<tr>` under a `rowSpan`ned bar, not a nested flexbox
-inside one cell. The cost is that the shared cell styling has to be beatable by
-a game's own class, which is why the default sits on `:where(.eventLogTable) td`.
+inside one cell and not two lines stacked in one. A lone cell, often `colSpan`ned,
+is right only when the row really is one piece — a phrase like `Hint: <clue>` —
+never a way to fit a verdict and an actor side by side. The cost is that the
+shared cell styling has to be beatable by a game's own class, which is why the
+default sits on `:where(.eventLogTable) td`.
 
 **What stays the game's, on the viewer's side of the seam.** How a snapshot is
 computed from the open turn (the board shape differs per game, and it is derived
 after the loading guard where the log lives); how a row is identified, which is
 why the hook is generic — every game names one by the events row's own id,
-codenamesduet's turns by the id of the clue that heads each; and where the banner hangs, since the below-board region each game gives it is its
+codenamesduet's turns by the id of the clue that heads each; which side of the
+move a snapshot stands on — a board a move adds to shows the turn with its move
+in, a board a move takes from shows the fuller board before it; the ring on the
+viewed turn's own tiles, which each game's board draws from the shared
+`--history-tile-ring-width` / `--history-tile-ring-offset` in `base.css`; and
+where the banner hangs, since the below-board region each game gives it is its
 own.
 
 **Every handle is live, under every filter.** A filtered log renumbers what it
@@ -85,7 +93,16 @@ its default selection, the aggregate's label (which differs by mode), the row
 filter, and the empty-state wording. The last is the one
 with a rule behind it — in compete, RLS hides an opponent's rows until the game
 ends, so an empty opponent log has to say "Hidden until game ends." rather than
-claim they have not played.
+claim they have not played. The other half of that rule is in SQL: a compete
+game's events row policy carries an `or cg.is_terminal` arm, or the rows never
+reveal and the finished log stays hidden.
+
+**On a phone, opening a turn leaves the info page.** Below the breakpoint the
+`#N` handle is on the off-canvas info page and the board it replays is on the
+other one, so `showHistory` closes the info sheet as well as opening the turn.
+Without that the viewer opens behind the page you are on, and the tap on
+"Switch views" that would reveal it counts as a click away and drops you back
+to live.
 
 **The input under the banner is frozen to the eye and alive underneath.** The
 banner is opaque and covers the whole below-board region, but the game's entry

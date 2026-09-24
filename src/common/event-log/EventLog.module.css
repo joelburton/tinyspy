@@ -8,7 +8,7 @@
  * are flat (no card border): a game's turn carries its outcome as a colored LEFT
  * BAR (<EventLogOutcomeBar>, inset so the bars read as individual segments) and a divider
  * line between turns; no vertical borders between cells. See EventLog.tsx and
- * docs/playarea.md → "Event log".
+ * doc.md.
  *
  * The classes a GAME puts on its own rows — the divider, the sizing and emphasis
  * classes, the multi-row hug — are the other file, `gameEventLog.module.css`.

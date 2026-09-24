@@ -84,7 +84,7 @@ type Props = {
  *
  * What stays with the host: the below-board *slot* (its board-matched width +
  * reserved height), the capture *values* (`value`/`onSubmit`/`charFor`/…), and
- * which messages go into the slot. See docs/playarea.md → "Text entry".
+ * which messages go into the slot. See ./doc.md → Details.
  */
 export function WordEntryArea({
   value,

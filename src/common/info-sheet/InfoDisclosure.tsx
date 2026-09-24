@@ -9,8 +9,8 @@ import styles from './InfoDisclosure.module.css'
  * "Setup options" is one (`<SetupDisclosure>`); a game may add its own.
  *
  * **It is the allowed exception to the column's no-growth rule**: opening it
- * grows the column, and closing it reclaims the space (docs/playarea.md →
- * PlayArea layout). Closed on every load.
+ * grows the column, and closing it reclaims the space (docs/ui.md → Layout
+ * stability). Closed on every load.
  *
  * **A click must not leave focus on it** — see the `onMouseDown` below: a
  * focused summary would take the next key the game wanted.

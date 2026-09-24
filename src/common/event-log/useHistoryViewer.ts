@@ -89,7 +89,7 @@ export function useHistoryViewer<Id = number>(): HistoryViewer<Id> {
 
   // Opening a turn means "show me the board as it was", so opening one LEAVES the
   // info page: below the breakpoint the `#N` handle is on the off-canvas info page
-  // and the board it replays is on the other one (docs/playarea.md tells the story).
+  // and the board it replays is on the other one (doc.md → Details).
   //
   // Unconditional, not mobile-gated: the flag is already false on desktop (the info
   // column is inline there, and useInfoSheet clears it when crossing the

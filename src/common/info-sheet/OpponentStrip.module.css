@@ -4,7 +4,7 @@
  * metric to show (see OpponentStrip.tsx). Small + wraps on overflow, but NOT
  * muted: its content is real per-player data (who, and their score/rank) — the
  * player's score is the whole point of the strip, so it must read at full
- * strength (docs/playarea.md → Info-column readouts (Opponent strip)).
+ * strength.
  * Understatement comes from size, not from dimming. */
 /* @@ */ .strip {
   display: flex;

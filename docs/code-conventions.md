@@ -408,7 +408,7 @@ The decision rule is mechanical: "does this game's per-row state name specific s
 
 Concrete examples in the tree today:
 - Shared: `<GamePage>`, `<PauseBoundary>`, `<Chat>`, `<SetupTimerSection>`, `<CurrentGameCard>`, `useCommonGame`, `useGameTimer`, `useHistoryViewer`.
-- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameEventLog` (every game with an event log; its "whose turns?" header dropdown is the shared [`useEventLogPlayerPicker`](../src/common/event-log/useEventLogPlayerPicker.tsx) — **every** event-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [playarea.md → Whose turns?](playarea.md#whose-turns--the-shared-player-picker) — the event-log component was unified on this name, retiring stackdown's `FoundWords` and scrabble's `PlayLog`), `lib/history` (every game with a turn-history viewer — scrabble is the exception, its replay is `historyBoard` in `lib/play.ts`).
+- Same name, per-game body: `PlayArea` (every game), `BoardCol` / `InfoCol` (every standard two-column game — see the decomposition note below), `SetupForm` (every game), `Help` (every game), `useGame` (every game), `GameEventLog` (every game with an event log; its "whose turns?" header dropdown is the shared [`useEventLogPlayerPicker`](../src/common/event-log/useEventLogPlayerPicker.tsx) — **every** event-log game carries it, on one vocabulary, and it brings the filter, the `#N`-handle gate and the honest RLS-hidden empty line with it; see [src/common/event-log/doc.md](../src/common/event-log/doc.md)), `lib/history` (every game with a turn-history viewer — scrabble is the exception, its replay is `historyBoard` in `lib/play.ts`).
 - Extracted-to-common after recurrence: `InfoActionsRow`, `ChatButton`, `PageHeaderPlayersStrip`, `PageHeaderStatusSlot`, `Menu`, `PauseButton`, `GameLogo`, `PuzpuzpuzLogo` — each used by multiple call sites with the per-game variability flowing through props.
 
 #### PlayArea decomposition — `BoardCol` / `InfoCol`
@@ -424,9 +424,8 @@ coordination (e.g. the turn-history `historyId`). The load-bearing contract:
 historical snapshot) + a `readOnly` flag — which is what makes the turn-history
 viewer a drop-in. **bananagrams is the exception** (its input engine spans both
 columns, so it uses an engine-hook + two views instead — `usePlayerBoard` /
-`BoardArena` / `HandCard`). The full recipe, the prop conventions (one shared
-vocabulary across games), and the per-game deviations live in
-[docs/playarea.md](playarea.md).
+`BoardArena` / `HandCard`). The full recipe and the prop conventions (one shared
+vocabulary across games) live in [docs/playarea.md](playarea.md).
 
 ### Import-direction rules
 

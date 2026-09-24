@@ -72,7 +72,7 @@ typed. The kinds and their exits are [`common/feedback`](../feedback/doc.md)'s.
 **The pill's box is the play surface's, not this folder's.** `WordEntryArea` draws
 its `<FeedbackPill>` inside `game-page/playArea.module.css`'s `.localFeedback`,
 which centers a lone pill in the below-board slot and reserves its height. That
-is a class seven games already wear directly for the same purpose, so the row is
+is a class games also wear directly for the same purpose, so the row is
 one wearer among them rather than a folder reaching into another's private
 sheet — the lowercase name is the repo's mark for a stylesheet meant to be read
 by others.
@@ -107,3 +107,10 @@ two would empty the row's ends.
 case for most, digits for psychicnum — and the length cap, the ⌫, the ↵ and the
 any-key dismissal are uniform, in `useCaptureKeys`. A game writes no entry-key
 branch.
+
+**Capture is for a single token; free text is a real `<input>`.** A word or a
+number is typed at the board and read off the window. Entry that is several
+words edited mid-string — codenamesduet's clue — is a real
+`<input data-game-input>` instead, because there the native cursor, selection
+and editing are the point. The attribute is how the keyboard gates tell a
+game's own field from chat ([`common/keyboard`](../keyboard/doc.md)).

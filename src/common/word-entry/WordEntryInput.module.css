@@ -6,8 +6,7 @@
  * caret, so the typed word reads as the focus rather than as a form field.
  * Per-game appearance (how it sits in a row, its width) comes from a `className`
  * the consumer appends; the *entered-text* look — bold, uppercase, lightly
- * letter-spaced — is common here, so it's uniform wherever the box is rendered
- * (docs/playarea.md → Text entry). */
+ * letter-spaced — is common here, so it's uniform wherever the box is rendered. */
 /* @@ */ .box {
   display: flex;
   align-items: center;

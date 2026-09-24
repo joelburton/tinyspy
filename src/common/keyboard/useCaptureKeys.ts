@@ -73,16 +73,15 @@ export type CaptureKeysOptions = {
  * "A–Z types into the entry" in the help list beside "⌥⌫ ends the game", and it
  * is why no game writes an entry key branch.
  *
- * What it owns is the universal plumbing — the bits docs/playarea.md → "Text
- * entry" mandate for *every* such game, so they stay identical and can't
- * drift: the length cap, Backspace deleting the last character, Enter
+ * What it owns is the universal plumbing — the bits that are the same for
+ * *every* such game, so they stay identical and can't drift: the length cap, Backspace deleting the last character, Enter
  * submitting only a non-empty value, and the two gates (`disabled` for a done
  * entry, `busy` for one mid-submit).
  *
  * What stays per-game is *what may be entered* (`charFor` — letters vs digits,
  * the stored case).
  *
- * **Layering** (docs/playarea.md → Text entry): the history arrows — `ArrowUp`
+ * **Layering** (word-entry/doc.md → Details): the history arrows — `ArrowUp`
  * recalls the last entry, `ArrowDown` clears it — are NOT here. They are the
  * separate `word-entry/useArrowHistory`, a different question (the whole entry
  * coming back, rather than the characters going in) that a game may want without

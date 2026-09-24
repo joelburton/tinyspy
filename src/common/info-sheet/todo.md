@@ -7,9 +7,8 @@
 - **Emerge a shared `<InfoCol>` component.** Every game has its own
   `InfoCol.tsx`, and each opens with the same skeleton: `.infoCol` → `.noShrinkRow` → state line → `<OpponentStrip>` when
   compete → action row → help → `<SetupDisclosure>` → event log.
-  [docs/playarea.md](../../../docs/playarea.md) → Info-column readouts calls
-  that order "enforced on every standard game", which today means documented and
-  obeyed by hand — and it records codenamesduet having drifted out of it once. A
+  That order is written in this folder's doc.md → Details and obeyed by hand,
+  and a game has drifted out of it before. A
   shared component would make the order structural and, more to the point here,
   would build on the column's own stylesheet, `infoCol.module.css`, which landed
   2026-09-18.

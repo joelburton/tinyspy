@@ -108,7 +108,7 @@
 
 /* ─── The readout kinds ──────────────────────────────────────────────────
  * Three recurring kinds of info, each a named class (not raw `muted`) so they
- * read the same across games — see docs/playarea.md → "Info-column readouts".
+ * read the same across games — see doc.md → Details for their order.
  * A game's own InfoCol applies these to its own markup, which is what makes
  * them shared. STATE (the live state) is important → full text color; HELP (UI
  * instructions) is muted; ACTIONS is the button row.

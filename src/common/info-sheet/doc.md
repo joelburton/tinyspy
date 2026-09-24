@@ -127,13 +127,46 @@ mount, so a sheet left open in one game never greets you already-open in the nex
 that the flag is sticky, and a widen-then-narrow round trip drops you back on the
 info page you thought you had left.
 
+**The rows run in one order, top to bottom:** the state (the game's own line and
+the turn line), the opponent strip, the action row, the help line, a terminal
+extra, the disclosures, then the log. A terminal extra sits above the setup recap
+because the reveal is the payoff and the recap is bookkeeping — the recap must
+never push the answer down.
+
+**The action row holds what changes the game or the turn** — Hint, Reveal, End.
+A control that changes only how the board is seen, like Shuffle, floats on the
+board instead, and stays live at terminal ("could I have found that with a
+reshuffle?"). A move itself — a clue, a typed word — is entered in the board
+column, not here.
+
+**At terminal the column swaps rather than grows.** The state line and the setup
+recap stay; the help line goes; the action row trades its play buttons for the
+verdict line and the game's terminal actions. The one row allowed to appear is
+`.terminalExtra`, for an end-of-game readout too tall for the below-board slot
+(its comment in `infoCol.module.css` says why that growth is safe). The one
+growth allowed during play is a disclosure, which the player opens and closes.
+
 **The turn line renders in every state, including the finished one.** Its presence
 is fixed for the whole game — whether a game is turn-ordered is decided at
 create-time and the pointer is either set all game or never — so the line never
-appears or disappears under the reader. What it may say once the game is over is
-`docs/playarea.md` → Info-column readouts: a finished game has nobody's turn, and
-the two shapes a turn readout may take at terminal are its rule, not this
-folder's.
+appears or disappears under the reader.
+
+**A finished game has nobody's turn, so no readout may keep asserting one.** A
+line that is only a turn indicator goes inert and keeps its height, which is
+`TurnStatusLine` at terminal. A line that carries other live state replaces only
+its turn clause with "Ended" and keeps the rest behind the same `·` — scrabble
+compete's `Your turn · 7 in bag` becomes `Ended · 0 in bag`, because a bare
+"0 in bag" reads as a fragment. Either way it names the state, never the result:
+the verdict is already in the action row and the below-board slot, and a third
+copy is noise. A turn count is state, not a claim about whose turn it is, and
+needs no terminal branch.
+
+**Being locally terminal looks like being over.** A player who can no longer act
+while the others play on gets the terminal look — a bold line in the action row
+("You conceded") beside their buttons, not a quietly changed help line — and the
+below-board slot says it too, a little fuller ("Conceded — race continues",
+`FeedbackMessage.outOfRace`). That holds for terminal too: both places, always,
+and the second is not a redundancy to trim.
 
 **The don't-move rule is kept row by row, not by the column.** `.noShrinkRow`
 wraps every row of the column except the log, so the log is the one thing
