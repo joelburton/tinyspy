@@ -1582,7 +1582,13 @@ already unread when the area opened, so F-1 did not strand it. Options: drop
 it (the select keeps `caller_score`); or leave it. spellingbee's twin is in a
 closed area.
 
-### R-wordwheel-6 · `custom-letters-example` · the custom-letters placeholder shows eight letters for a nine-letter field
+### SHIPPED · R-wordwheel-6 · `custom-letters-example` · the custom-letters placeholder shows eight letters for a nine-letter field
+
+**Joel, 2026-09-24: "i'll take your rec"** — `D-AEEGINNR`, `doc.md`'s own
+board: the placeholder, `splitCustomLetters`' docstring and the summary
+comment. Ten characters with the hyphen, inside the field's `chars` /
+`maxLength`. **Verified:** `tsc -b` and eslint clean; wordwheel and the
+guards, 42 files, 400 tests green. Not looked at on screen.
 
 `SetupForm`'s placeholder is *"A-CHIROTS"* — a center and SEVEN others; the
 field takes eight. `splitCustomLetters`' docstring and the summary comment

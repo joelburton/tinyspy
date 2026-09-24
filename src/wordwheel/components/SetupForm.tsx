@@ -22,7 +22,7 @@ const cleanLetters = (raw: string, max: number) =>
 /**
  * Split the one typed field into the two setup keys.
  *
- * THE HYPHEN IS OPTIONAL. `A-CHIROT` and `ACHIROT` mean the same thing — the
+ * THE HYPHEN IS OPTIONAL. `D-AEEGINNR` and `DAEEGINNR` mean the same thing — the
  * first letter is the center and the rest are the outer ring — because the
  * hyphen is punctuation in a display form, not data. `cleanLetters` drops it
  * either way; this just decides where the cut falls, which is always after the
@@ -202,7 +202,7 @@ export function SetupForm({
       </SetupSection>
 
       {/* Optional custom letters, behind a disclosure whose summary shows the
-          chosen letters (e.g. "Custom letters: A-CHIROT") or "(optional)" when
+          chosen letters (e.g. "Custom letters: D-AEEGINNR") or "(optional)" when
           blank. Both blank → a random board (the normal path); fill both to build
           a board from your own letters. The Start button is gated on
           `customLettersError` (via the manifest's validate), so an invalid partial
@@ -218,7 +218,7 @@ export function SetupForm({
             const { center, letters } = splitCustomLetters(raw)
             { set('custom_center', center); set('custom_letters', letters) }
           }}
-          placeholder="A-CHIROTS"
+          placeholder="D-AEEGINNR"
           chars={10}
           maxLength={10}
           // The center, then the ring — so the hyphen the summary has always
