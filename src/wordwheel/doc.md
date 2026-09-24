@@ -49,7 +49,7 @@ below-board pill says it, the action row's line repeats it, and the word list
 fills in every word nobody found — the bonus words too, being the same shipped
 data. The wheel stays on screen, inert, with Shuffle still live, and Restart
 replays the same letters from an empty list. A coop team that set a target
-celebrates once, at the moment they cross it.
+celebrates once, at the moment they cross it, and so does a race's winner.
 
 ## Game rules
 
@@ -470,7 +470,7 @@ then `PlayArea` in the eight sections.
         │           ├── InfoActionsRow ← one row, every action, in the menu's order
         │           ├── SetupDisclosure ←
         │           └── WordList ←       the found words, and at terminal the missed ones
-        └── CelebrationBlockingModal ←   a coop win, as it lands
+        └── CelebrationBlockingModal ←   a win, as it lands — the team's, or mine in a race
 
   ← belongs to common/ ; ⇐ to shared/ ; everything else is this folder's
 ```
@@ -516,8 +516,9 @@ What is wordwheel's own:
   play surface when the info column is off-canvas. Coop shows the team's;
   compete the caller's own, with the Rank strip for the rivals.
 - **The terminal** is the pill and the row's line (`lib/terminal.ts`), the
-  inert wheel, and the list with its missed words. A coop win celebrates once,
-  on the flip; nothing pops for any other ending.
+  inert wheel, and the list with its missed words. A win celebrates once, on
+  the flip — the team's in coop, and in a race only the winner's screen, read
+  off `status.winner_user_id`; nothing pops for any other ending.
 - **The setup form** offers the target rank — *Win at* in coop with a *None*,
   *Target rank* in compete — the two dictionary bands, *unique letters only*
   under a board-constraints section of its own, and one box for custom letters
@@ -579,7 +580,7 @@ Vitest, beside the code:
 | `lib/answer.test` · `lib/terminal.test` | every answer's words and outcome, and the two-way split of a miss by the center; every terminal sentence per mode, play state and reason, as a table with no cell pairing a win with a loss |
 | `lib/setup.test` · `components/SetupForm.test` | the letter rules and the band rule, each refusal under the field it names; the form's settings in order, the compete caption, the solo club's missing picker, the unique-letters key dropped rather than stored false, and where a server refusal lands — the letters box, the band, or the checkbox that narrowed the pool |
 | `lib/spend.test` · `lib/tiles.test` · `components/TypedWord.test` | which tile a use spends: the center first for a typed letter, the clicked tile for a click, a claim ignored once the word drops its letter, and the most recent click forgotten first; whether a word fits the tiles; a typed letter dimming past its tile count or off the wheel |
-| `components/PlayArea.test` | the surface mounts in every mode and state; a required, bonus and pangram word accepted with the right call, a word the tiles cannot spell held back rather than refused, and a miss refused with its reason and answered on the board — its own tiles and no others, one per use of a letter, shaking and wearing its own outcome for `WORD_ANSWER_MS`, and shaking again when refused again; the tiles a word spends, marked and given back, the clicked tile over its twin, and the center first when it is duplicated; the inert board after a concede or an ending; the two peer narrations; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, End, Concede |
+| `components/PlayArea.test` | the surface mounts in every mode and state; a required, bonus and pangram word accepted with the right call, a word the tiles cannot spell held back rather than refused, and a miss refused with its reason and answered on the board — its own tiles and no others, one per use of a letter, shaking and wearing its own outcome for `WORD_ANSWER_MS`, and shaking again when refused again; the tiles a word spends, marked and given back, the clicked tile over its twin, and the center first when it is duplicated; the inert board after a concede or an ending; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, End, Concede |
 
 Playwright, in `e2e/`: `wordwheel` (a submitted word lands in the list and
 moves the score with no refresh), `wordwheel-coop-win` (crossing the target

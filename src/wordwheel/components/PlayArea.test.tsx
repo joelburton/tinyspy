@@ -238,6 +238,79 @@ describe('wordwheel PlayArea — compete terminal verdicts', () => {
 })
 
 /**
+ * The win's confetti fires at the MOMENT the game is won — the playState flip —
+ * never on mounting a game already won: the team's in coop, and in a race MY
+ * win, read off the server's `status.winner_user_id`. The dialog's handle is
+ * its title; the pill and the row's line say the verdict in their own words.
+ */
+describe('wordwheel PlayArea — the celebration', () => {
+  const target = { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } }
+  /** My pangram: 17 of the board's 18 points. */
+  const myPangram: FoundWordRow = {
+    game_id: 'g1', user_id: 'u1', word: 'abcdefg', points: 17,
+    is_pangram: true, is_bonus: false, found_at: '2026-01-01T00:00:01Z',
+  }
+
+  it('pops when the coop team crosses its target mid-session', () => {
+    const base = { players: twoMembers, setup: target }
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(base)} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    h.result = loaded(loadedGame(), [myPangram])
+    rerender(<PlayAreaLoader {...makeCtx({ ...base, isTerminal: true, playState: 'won' })} />)
+    expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
+    expect(screen.getByText('Reached "Amazing" — 17/18 points.')).toBeInTheDocument()
+  })
+
+  it('does not pop when mounted into a coop game already won', () => {
+    h.result = loaded(loadedGame(), [myPangram])
+    render(<PlayAreaLoader {...makeCtx({ players: twoMembers, setup: target, isTerminal: true, playState: 'won' })} />)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('pops for the race I won, at the moment it ends', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    const base = { players: twoMembers, setup: target }
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(base)} />)
+
+    h.result = loaded(loadedGame({ mode: 'compete' }), [myPangram])
+    rerender(
+      <PlayAreaLoader
+        {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { reason: 'target', winner_user_id: 'u1' } })}
+      />,
+    )
+    expect(screen.getByRole('dialog', { name: 'You win! 🎉' })).toBeInTheDocument()
+    expect(screen.getByText('Reached "Amazing" first — 17/18 points.')).toBeInTheDocument()
+  })
+
+  it('does not pop for a race somebody else won', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    const base = { players: twoMembers, setup: target }
+    const { rerender } = render(<PlayAreaLoader {...makeCtx(base)} />)
+
+    rerender(
+      <PlayAreaLoader
+        {...makeCtx({ ...base, isTerminal: true, playState: 'won_compete', status: { reason: 'target', winner_user_id: 'u2' } })}
+      />,
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('does not pop when mounted into a race I already won', () => {
+    h.result = loaded(loadedGame({ mode: 'compete' }), [myPangram])
+    render(
+      <PlayAreaLoader
+        {...makeCtx({
+          players: twoMembers, setup: target, isTerminal: true, playState: 'won_compete',
+          status: { reason: 'target', winner_user_id: 'u1' },
+        })}
+      />,
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+})
+
+/**
  * The icon-only action row (the waffle arrangement — labels live in tooltips):
  * one row listing every action, each deciding for itself whether it is on
  * screen. Restart = wordwheel.replay_board (unconfirmed at terminal); New

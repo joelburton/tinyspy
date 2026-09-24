@@ -986,7 +986,24 @@ varying the center moving to the call site; or leave them. Recommendation:
 both, and `deno test` plus a boot probe to prove the cross-folder import
 resolves, as spellingbee's did.
 
-### F-wordwheel-5 · `race-winner-celebration` · the race's winner gets no confetti
+### SHIPPED · F-wordwheel-5 · `race-winner-celebration` · the race's winner gets no confetti
+
+**Joel, 2026-09-24: "i'll take your rec"** — the same here. The gate is
+`playState === 'won' || (playState === 'won_compete' && winnerId ===
+session.user.id)`, `winnerId` moving up beside the hook that reads it; the
+modal's body reads `targetRankIdx` and says *first* in a race.
+`PlayArea.test.tsx` gains spellingbee's five celebration cases. `doc.md`'s
+three statements of the rule and its Tests row, and `lib/terminal.ts`'s
+docstring, say the rule now.
+
+**Verified:** `tsc -b` and eslint clean; wordwheel and the guards green.
+**Planted** the gate back to coop only (*"pops for the race I won"* red) and to
+any `won_compete` (*"does not pop for a race somebody else won"* red).
+Restored. No e2e run: `wordwheel-coop-win` exercises the coop half only.
+
+(The local stack was restarted with Joel's leave after F-4's plant took the
+edge runtime down; the database came back from its backup, pgTAP green, and
+`wordwheel-build-board` answers its own envelope again.)
 
 spellingbee's F-1 (Step 8's note), ruled *"do f1"* — and connections',
 psychicnum's and wordle's before it. `useCelebration(playState === 'won')`
