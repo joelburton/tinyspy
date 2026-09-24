@@ -369,6 +369,49 @@ longer has.
 **Verified:** wordwheel's unit tests and the guards: 41 files, 377 tests
 green.
 
+### Step 5 — the actions and the row (readability 3.6, 3.7) — DONE 2026-09-23
+
+spellingbee's Step 5 (`e3306824`), copied. **The row is one `<InfoActionsRow>`
+now**, in the order `docs/playarea.md` states: Restart · New game · Concede ·
+End | Back to club, Back to club filled only at terminal. The three-way fork
+(`over ? … : isLocallyDone ? … : …`) is gone; the only thing that varies is
+the row's line — the verdict, "You conceded", nothing while you can play. The
+InfoCol's destructure, its prop-type block and the PlayArea's prop list read
+in that order, and so does the menu. **No divider**: wordwheel has no hint and
+no spoiler, so nothing sits left of it.
+
+**The conventions, per binding:** New game is a button only at terminal,
+`(asker) => asker === 'button' && !isTerminal ? 'hidden' : 'active'`, a menu
+row and `+` all game; Restart, Concede and End were already the shared hook's.
+`createNewGame` was already a plain `async` function, and no in-flight flag
+existed to remove. **One `useCallback` dropped:** BoardCol's `handleShuffle`
+had the shuffle binding as its only reader, so the binding's `run` is the
+setter call itself; `handleLetterClick` and `handleChange` keep theirs, since
+children read them. **Every binding in one section, in one order:** Print
+moved from above the tile counts to after New game — the shared trio, New
+game, Print — unchanged in body.
+
+**Two behavior changes, stated now**, spellingbee's same two. *A conceded
+racer gets Back to club* — the conceded row held only the grayed Concede,
+which is what the todo named as the fork's loss. *The menu lists Restart · New
+game above Print*, where Print came first, so the menu and the row read alike.
+Back to club keeps `weight={over ? 'primary' : 'secondary'}`.
+
+**The todo's Soon item is deleted.** Two tests pin the conventions, spellingbee's
+two: Restart and New game are menu rows all game and buttons only at the end;
+and the conceded racer's test now asserts Concede grayed, Back to club
+present, and Restart / New game menu-only. **Verified by planting** New game's
+old `'active'` and a Back to club that the conceded row drops: exactly those
+two tests red; restored from scratchpad copies, green.
+
+**Seen, left for pass 2** (both were spellingbee findings there): `InfoCol`
+still takes a `setup` prop it never reads (spellingbee's F-2), and Print's
+`run` recomputes `rankIdx` where the component already has `selfRankIdx`
+(spellingbee's F-3).
+
+**Verified:** `tsc -b` clean, lint clean over `src/wordwheel/`; the game's
+unit tests and the guards: 41 files, 378 tests green.
+
 ## Findings
 
 *(`F-wordwheel-1 · slug · title`, one heading each; a status prefix when it
