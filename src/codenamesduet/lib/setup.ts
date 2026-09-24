@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import type { TimerMode } from '@/common/manifest/gameManifest'
 import type { SetupOf } from '@/common/setup-form/setupForm'

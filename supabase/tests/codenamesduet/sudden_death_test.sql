@@ -1,4 +1,4 @@
--- cs-met-codenamesduet
+-- cs-blessed-codenamesduet
 
 -- ============================================================
 -- Test: sudden death rules

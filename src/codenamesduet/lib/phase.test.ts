@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * Tests for `derivePhase` — the pure function that decides which UI

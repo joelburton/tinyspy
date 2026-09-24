@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * The one-character role a cell occupies on a key card:

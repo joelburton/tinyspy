@@ -1824,4 +1824,9 @@ a dependency listed and left. Anything durable goes to `todo.md` or
       — 2026-09-23: the two Someday items ruled into Won't do (Joel: the
       companion's size *"is fine as is"*; a not-ok covering the sudden-death
       notice *"is what we want"*). Only Won't do remains
-- [ ] every file on the roster blessed, or its stamp says why not
+- [x] every file on the roster blessed, or its stamp says why not — 2026-09-23,
+      seventy-seven files `cs-blessed-codenamesduet` (Joel: *"bless all the
+      area's files, then close the area, then commit."*); `list
+      met-codenamesduet` prints nothing
+
+**CLOSED 2026-09-23.**

@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import { Companion } from '@/common/floating-panels/Companion'
 import type { SuggestState } from './ClueStrip'

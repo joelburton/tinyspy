@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * `lib/events.ts` — the one place a `codenamesduet.events` row, every payload

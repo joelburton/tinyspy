@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * The board's per-tile marks and gates: the per-seat bystander lock (a word I

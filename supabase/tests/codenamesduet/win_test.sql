@@ -1,4 +1,4 @@
--- cs-met-codenamesduet
+-- cs-blessed-codenamesduet
 
 -- ============================================================
 -- Test: winning by finding all 15 agents

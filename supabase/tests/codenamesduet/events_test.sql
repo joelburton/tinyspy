@@ -1,4 +1,4 @@
--- cs-met-codenamesduet
+-- cs-blessed-codenamesduet
 
 -- ============================================================
 -- Test: codenamesduet.events — what each move writes

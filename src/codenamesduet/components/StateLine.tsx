@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import { isSuddenDeathTurn } from '../lib/events'
 import { TOTAL_AGENTS } from '../lib/agents'

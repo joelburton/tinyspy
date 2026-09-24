@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import type { Outcome } from '@/common/outcomes/outcomes'
 import type { GuessEvent } from './events'

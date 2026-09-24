@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import { runRpc } from '@/common/supabase/dbResult'
 import { useEffect, useState, useMemo } from 'react'

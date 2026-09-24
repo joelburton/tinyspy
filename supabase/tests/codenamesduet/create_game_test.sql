@@ -1,4 +1,4 @@
--- cs-met-codenamesduet
+-- cs-blessed-codenamesduet
 
 -- ============================================================
 -- Test: codenamesduet.create_game(target_club, setup, player_user_ids)

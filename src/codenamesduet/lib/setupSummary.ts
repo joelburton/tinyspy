@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import type { Member } from '@/common/members/member'
 import { rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'

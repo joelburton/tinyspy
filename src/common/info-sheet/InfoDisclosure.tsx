@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import type { ReactNode } from 'react'
 import styles from './InfoDisclosure.module.css'

@@ -1,4 +1,4 @@
--- cs-met-codenamesduet
+-- cs-blessed-codenamesduet
 
 -- ============================================================
 -- codenamesduet.clues + codenamesduet.guesses → codenamesduet.events

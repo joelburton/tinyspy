@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import type { Database } from '@/types/db'
 import type { KeyLabel } from './labels'

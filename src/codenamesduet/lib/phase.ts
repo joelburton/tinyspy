@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /** A seat at the table. Seat A gives the first clue. */
 export type Seat = 'A' | 'B'

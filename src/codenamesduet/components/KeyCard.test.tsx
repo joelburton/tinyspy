@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * KeyCard: a player's dealt key as a 5×5 of key colors, in board order — one

@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import type { AnswerMessage } from '@/common/feedback/FeedbackMessage'
 

@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import { useEffect } from 'react'
 import { cls } from '@/common/utils/cls'

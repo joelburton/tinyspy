@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * `lib/answer.ts` — what this game says, and which of it holds:

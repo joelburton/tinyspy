@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import { DotActor } from '@/common/members/ActorMention'
 import { cls } from '@/common/utils/cls'

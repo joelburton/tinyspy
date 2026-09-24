@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * Render + behavior tests for codenamesduet's play surface, mounted through the

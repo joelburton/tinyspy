@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * Tests for useBoard: the load (the words, the caller's own key, the events

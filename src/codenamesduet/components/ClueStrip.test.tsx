@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * The clue strip: the clue inputs' tag, the one-digit count, when a clue counts

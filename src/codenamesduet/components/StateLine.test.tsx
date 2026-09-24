@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'

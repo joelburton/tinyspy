@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import { test, expect, type Browser } from '@playwright/test'
 import {

@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * Tests for turnOutcome — the per-turn outcome-bar verdict for the GameEventLog.

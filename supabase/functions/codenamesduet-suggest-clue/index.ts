@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * suggest-clue — Edge Function called from the clue form's AI button when the

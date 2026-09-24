@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import { cls } from '@/common/utils/cls'
 import type { KeyLabel } from '../lib/labels'

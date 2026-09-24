@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'

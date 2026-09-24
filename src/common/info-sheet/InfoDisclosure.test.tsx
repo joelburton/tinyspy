@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * THE INFO COLUMN'S DISCLOSURE (see InfoDisclosure.tsx): closed on every load,

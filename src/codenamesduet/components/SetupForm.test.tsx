@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * codenamesduet's setup form: what it offers, in what order, what it writes,

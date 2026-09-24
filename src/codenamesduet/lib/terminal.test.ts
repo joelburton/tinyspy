@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 /**
  * Unit test for codenamesduet's terminal message (lib/terminal.ts). Pure — no

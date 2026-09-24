@@ -1,4 +1,4 @@
-// cs-met-codenamesduet
+// cs-blessed-codenamesduet
 
 import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
