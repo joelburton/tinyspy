@@ -37,6 +37,8 @@ function draw(mySeat: Seat) {
       cellsClickable
       pendingPos={null}
       onGuess={vi.fn()}
+      cursor={null}
+      picked={null}
       notMyTurn={false}
       myTurnJustStarted={false}
       moveCount={0}
@@ -57,6 +59,8 @@ function drawWith(over: Partial<ComponentProps<typeof Board>> = {}) {
       cellsClickable
       pendingPos={null}
       onGuess={vi.fn()}
+      cursor={null}
+      picked={null}
       notMyTurn={false}
       myTurnJustStarted={false}
       moveCount={0}
@@ -171,7 +175,7 @@ describe('codenamesduet Board — attention and the shake', () => {
   const props = (over: Partial<ComponentProps<typeof Board>> = {}) => ({
     words, myKey: Array.from({ length: 25 }, () => 'N' as const), peerKey: null,
     mySeat: 'A' as const, gameOver: false, cellsClickable: true, pendingPos: null,
-    onGuess: vi.fn(), notMyTurn: false, myTurnJustStarted: false, moveCount: 2,
+    onGuess: vi.fn(), cursor: null, picked: null, notMyTurn: false, myTurnJustStarted: false, moveCount: 2,
     terminalOutcome: null, ...over,
   })
   const turned = (p: number, as: 'G' | 'A') => words.map((w) => (w.position === p ? { ...w, revealed_as: as } : w))

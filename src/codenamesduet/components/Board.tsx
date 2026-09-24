@@ -9,6 +9,8 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import type { WordRow } from '../hooks/useBoard'
 import type { KeyLabel } from '../lib/labels'
 import { isGuessable, type Seat } from '../lib/phase'
+import { positionAt } from '../lib/boardShape'
+import type { Cell } from '@/common/board-cursor/stepCell'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import styles from './Board.module.css'
@@ -54,6 +56,12 @@ type Props = {
   // A click on a clickable tile. BoardCol owns `submit_guess`; this component
   // only reports the position.
   onGuess: (position: number) => void
+  // The keyboard's selection cursor — the cell to ring — or null when it is
+  // not drawn (see `useBoardSelectionCursor`).
+  cursor: Cell | null
+  // The word the keyboard has picked, waiting for Enter — its position, drawn
+  // with the selected border — or null.
+  picked: number | null
   // A past turn's board is open: `words` is then its snapshot, the frame rings
   // the board, and clicks fall through to the viewer's own exit.
   isViewingHistory?: boolean
@@ -74,8 +82,9 @@ type Props = {
 /**
  * The 5×5 codenamesduet board — presentational. It owns the per-tile render
  * alone: the result fill, the key-card and triangle overlays, the click gate,
- * and the shared board marks (plans/tile-feedback.md) — the in-flight dim, the
- * attention flash and the shake on a tile, the turn dim and flash and the
+ * and the shared board marks (plans/tile-feedback.md) — the keyboard's pick and
+ * cursor ring, the in-flight dim, the attention flash and the shake on a tile,
+ * the turn dim and flash and the
  * game-over frame on the board. A click calls `onGuess`; BoardCol dispatches
  * the guess, and the reveal arrives by Realtime — `useBoard` refetches and the
  * tile re-renders in its result color.
@@ -89,6 +98,8 @@ export function Board({
   cellsClickable,
   pendingPos,
   onGuess,
+  cursor,
+  picked,
   isViewingHistory = false,
   historyLitTiles = NO_TILES,
   notMyTurn,
@@ -192,6 +203,9 @@ export function Board({
                 shared.tile,
                 styles.overlayTile,
                 bgCls,
+                // The keyboard's pick, waiting for Enter, and its cursor.
+                picked === w.position && shared.selected,
+                cursor !== null && positionAt(cursor.x, cursor.y) === w.position && shared.selectionCursor,
                 isPending && shared.dimInFlight,
                 flashing.has(w.position) && shared.attentionFlash,
                 shaking.has(w.position) && shared.verdictShake,

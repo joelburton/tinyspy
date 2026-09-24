@@ -240,7 +240,7 @@ export function BoardCol({
     setPickedAt(picked === position ? null : position)
   }
 
-  const { point } = useBoardSelectionCursor({
+  const { cursor, point } = useBoardSelectionCursor({
     shape: BOARD_SHAPE,
     enabled: canGuess,
     onToggle: toggleAt,
@@ -295,6 +295,8 @@ export function BoardCol({
         cellsClickable={cellsClickable && !isViewingHistory}
         pendingPos={pendingPos}
         onGuess={handleTileClick}
+        cursor={cursor}
+        picked={picked}
         isViewingHistory={isViewingHistory}
         historyLitTiles={historyLitTiles}
         notMyTurn={notMyTurn}
