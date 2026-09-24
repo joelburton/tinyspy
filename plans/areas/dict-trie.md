@@ -168,7 +168,7 @@ pinned the root being marked now pins the skip, rating included. Planting the
 old behavior turns that test red. `walkWord`'s test lost the half that
 described the old behavior.
 
-## F-dict-trie-5 · `walk-case` · `buildTrie` lower-cases; `walkWord` does not
+## FIXED · F-dict-trie-5 · `walk-case` · `buildTrie` lower-cases; `walkWord` does not
 
 `walkWord(trie, 'CAT')` answers -1 on a trie built from `['CAT']`. The
 docstring says the input is lowercase, and every caller lower-cases first
@@ -178,6 +178,13 @@ docstring says the input is lowercase, and every caller lower-cases first
 - **(a)** Keep it. The inner loops never call `walkWord`, so it is a boundary
   helper and one `toLowerCase` there would cost nothing.
 - **(b)** Lower-case inside `walkWord` and drop the callers' copies.
+
+**Resolution (Joel, 2026-09-24: *"do 1"*):** `walkWord` lower-cases its input,
+matching `buildTrie`, and its docstring says so. Five callers dropped their own
+`.toLowerCase()`: `scrabble/lib/policy.ts`, `rank.test.ts` (twice),
+`suggest.test.ts`, and `scrabble-suggest-move/index.ts`. The finding had
+counted four and missed the edge function. A new test pins lookup in either
+case, and planting the old behavior turns it red.
 
 ## F-dict-trie-6 · `dense-lines` · `buildTrie`'s growth and insert are three statements a line
 

@@ -77,8 +77,8 @@ export function buildTrie(words: readonly string[], ratings?: readonly number[])
   return { children, eow, nNodes: n }
 }
 
-/** Walk a (lowercase `a`–`z`) word from the root; the node reached, or -1 if
- *  the trie has no such path. `trie.eow[node]` then answers is-it-a-word (and
+/** Walk a word from the root, in either case as `buildTrie` stores it; the
+ *  node reached, or -1 if the trie has no such path. `trie.eow[node]` then answers is-it-a-word (and
  *  at what difficulty). Handy at boundaries — inner loops walk `children`
  *  themselves, one letter at a time.
  *
@@ -90,9 +90,10 @@ export function buildTrie(words: readonly string[], ratings?: readonly number[])
  *  root can come back. */
 export function walkWord(trie: Trie, word: string): number {
   if (word.length === 0) return -1
+  const w = word.toLowerCase()
   let node = 0
-  for (let i = 0; i < word.length; i++) {
-    const c = word.charCodeAt(i) - A
+  for (let i = 0; i < w.length; i++) {
+    const c = w.charCodeAt(i) - A
     if (c < 0 || c >= 26) return -1
     node = trie.children[node * 26 + c]
     if (node === 0) return -1

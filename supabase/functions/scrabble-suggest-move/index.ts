@@ -95,7 +95,7 @@ serve(async (req: Request): Promise<Response> => {
     // Trie lookup for the vocabCap lever; a word missing from the trie (can't
     // happen for generated moves) reads as harder than any cap.
     const wordDifficulty = (word: string) => {
-      const node = walkWord(trie, word.toLowerCase())
+      const node = walkWord(trie, word)
       return node > 0 ? trie.eow[node] : 7
     }
     // Max strength (all levers at their defaults) — the strength slider is a

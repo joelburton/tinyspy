@@ -102,7 +102,7 @@ export type PlayChoice =
  *  predicate the edge function uses. */
 function makeWordDifficulty(trie: Trie): (word: string) => number {
   return (word: string) => {
-    const node = walkWord(trie, word.toLowerCase())
+    const node = walkWord(trie, word)
     return node > 0 ? trie.eow[node] : 7
   }
 }

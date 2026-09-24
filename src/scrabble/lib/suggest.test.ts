@@ -77,7 +77,7 @@ const canonKey = (ps: Placement[]): string =>
 
 /** String-level legality: the word exists in the trie AND passes its band. */
 const wordLegal = (trie: ReturnType<typeof buildTrie>, bands: Bands, word: string): boolean => {
-  const node = walkWord(trie, word.toLowerCase())
+  const node = walkWord(trie, word)
   return node > 0 && isLegal(trie, bands, node, word.length)
 }
 

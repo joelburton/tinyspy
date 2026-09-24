@@ -154,7 +154,7 @@ describe('rankMoves', () => {
     const rack = ['C', 'A', 'T', 'S', 'E', 'R', 'O']
     const first = emptyBoard()
     const moves = generateMoves(first, rack, trie, bands)
-    const wordDifficulty = (word: string) => trie.eow[walkWord(trie, word.toLowerCase())]
+    const wordDifficulty = (word: string) => trie.eow[walkWord(trie, word)]
     const keyOf = (words: { word: string }[], score: number) =>
       [...words.map((w) => w.word)].sort().join(',') + `|${score}`
 
@@ -185,7 +185,7 @@ describe('rankMoves', () => {
     const moves = generateMoves(midGame, rack, trie, bands)
     expect(moves.length).toBeGreaterThan(0)
 
-    const wordDifficulty = (word: string) => trie.eow[walkWord(trie, word.toLowerCase())]
+    const wordDifficulty = (word: string) => trie.eow[walkWord(trie, word)]
     const ranked = rankMoves(midGame, moves, rack, wordDifficulty)
     expect(ranked.length).toBeLessThanOrEqual(5)
     // The head of the list has the max equity over the FULL move list.

@@ -76,6 +76,12 @@ describe('walkWord', () => {
     expect(walkWord(trie, 'c-t')).toBe(-1)
   })
 
+  it('finds a word in either case, as buildTrie stores it', () => {
+    const trie = buildTrie(['CAT'])
+    expect(walkWord(trie, 'CAT')).toBe(walkWord(trie, 'cat'))
+    expect(walkWord(trie, 'Cat')).toBeGreaterThan(0)
+  })
+
   it('returns -1 for the empty string rather than the root node', () => {
     // Walking nothing lands on node 0, which is also `children`'s "no child"
     // sentinel — so returning it would hand back a value that means the
