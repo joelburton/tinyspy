@@ -297,6 +297,9 @@ export const ACTIONS = {
   'act-move-cursor': { label: 'Move the cursor', keys: [{ pattern: 'arrow', shift: false, label: '↑ ↓ ← →' }], repeat: true },
   'act-place-tile': { label: 'Place a tile', keys: [{ pattern: 'letter', label: 'A–Z' }], repeat: true },
   'act-remove-tile': { label: 'Take the tile back', icon: IconDelete, keys: [named('Backspace', '⌫')], repeat: true },
+  // The selection cursor's Space: the tile under the cursor into or out of the
+  // move. No repeat — a held Space would flicker the tile in and out.
+  'act-toggle-tile': { label: 'Pick the tile', keys: [named(' ', 'Space')] },
   'act-pick-tile': { label: 'Play that tile', keys: [{ pattern: 'letter', label: 'A–Z' }] },
   'act-extend-trace': { label: 'Extend the trace', keys: [{ pattern: 'letter', label: 'A–Z' }] },
   'act-toggle-card': { label: 'Choose that card', keys: [{ pattern: 'letter', label: 'A–U' }] },

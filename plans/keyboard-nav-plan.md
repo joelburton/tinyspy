@@ -49,8 +49,9 @@ One grammar for all five games, and for the home/club lists as far as it applies
 **`Enter` is the only key that ever commits, in every game.** That is the whole
 safety property, and it is worth the asymmetry it creates with the mouse:
 
-- Three of the five commit on a *click* today — codenamesduet and psychicnum on the
-  first pick, waffle on the second. Those keep their mouse behavior exactly.
+- Two of the five commit on a *click* today — codenamesduet on the first pick,
+  waffle on the second. Those keep their mouse behavior exactly. psychicnum's
+  click only picks; its Submit button commits, and that stays too.
 - **The mouse's confirmation is spatial; the keyboard's has to be temporal.**
   Getting a pointer onto a tile is deliberate aiming, so a click can safely
   commit. Arrow-stepping has no aim — you can be one cell off from where you think
@@ -73,22 +74,26 @@ channels applied to a fourth question ("where am I?").
 
 | radius / property | mark | channel |
 |---|---|---|
-| border **color** | **the cursor** — where the keyboard is pointing | new: position-by-input |
+| **outline** ring, `--chrome-cursor-ring` | **the cursor** — where the keyboard is pointing | new: position-by-input |
 | border **width** | my selection (thick) | existing |
 | **inset ring**, member color | a peer is holding this piece | existing in connections + crosswords; to be named |
 | background **shade** | where my move currently *ends* (strands' tail, letterboxed's chain) | state |
 
-Four consequences of that table:
+What follows from that table:
 
-- **The look already exists.** `HomePage.module.css` draws the list cursor as
-  `outline: 2px solid var(--chrome-action-color)` inset — so the app already teaches
-  "thin blue ring = where the keyboard is pointing", and the boards should adopt it
-  rather than invent one. It gets **its own token** initialized to the accent, so
-  the meaning has one value app-wide and can move away from
-  `--member-blue-dot-color` (currently the same hex) without touching a call site.
-- **Cursor and selection compose** — width says "in my move", color says "I am
-  here", and neither needs to know about the other. A selected-and-cursored tile
-  is a thick blue edge, which is what we want and not a special case.
+- **The look already exists.** `<SelectionList>`'s `.cursor` draws the list
+  cursor as `outline: var(--chrome-cursor-ring)` — 2px of `--chrome-cursor-color`,
+  its own token per theme (core-css/patterns/focus-ring.css) — so the app already
+  teaches "thin blue ring = where the keyboard is pointing", and the boards adopt
+  that ring rather than invent one. Only the offset is the board's own:
+  focus-ring.css leaves a board piece's offset to its board.
+- **Cursor and selection compose** — the border says "in my move", the outline
+  says "I am here", and neither needs to know about the other. A
+  selected-and-cursored tile is the dark picked border inside the blue ring, which
+  is what we want and not a special case.
+- **The history ring never meets it.** psychicnum's `.historyTile` is also an
+  outline, but it only draws while a past turn is open, and a board in the
+  history viewer takes no cursor.
 - **The peer ring nests inside both.** connections draws it as
   `inset 0 0 0 4px <member color>` and crosswords as `.peerFrame`; because it sits
   *inside* the edge, moth's ring and my cursor show at once and neither overrides
@@ -184,7 +189,9 @@ that will drift if it is not shared:
 
 Extract *only* that (a dozen lines of state), not the steppers: 1-D clamping and
 2-D-with-absences are genuinely different, and forcing them together is
-contortion.
+contortion. **It is extracted with the first board** (psychicnum), and
+`<SelectionList>` moves onto it in the same change rather than keeping its
+inline copy.
 
 **The lists changed first.** `<SelectionList>` showed its ring as soon as the
 list took focus, which meant a mouse user landing on the homepage saw a blue
@@ -213,52 +220,107 @@ rendered mark, with keys captured at the window.
 
 Both are wanted regardless of whether the cursor feature survives contact.
 
-**1. `⌥Z` takes over the shuffle, in all four shuffle games** (boggle,
-spellingbee, wordwheel, psychicnum). `Space` is the board shuffle in those today,
-and freeing it for one app-wide meaning is the point: if `Space` meant shuffle in
-boggle and activate in psychicnum, that is exactly the drift this project exists
-to remove. `⌥Z` is free (`⌥S` is not — it opens the scratchpad), and the Z-shape
-is a good mnemonic for a shuffle.
+**1. `⌥Z` takes over the shuffle — DONE.** `act-shuffle` carries `⌥Z` in all
+four shuffle games (boggle, spellingbee, wordwheel, psychicnum), so `Space` is
+free for one app-wide meaning.
 
 **2. psychicnum drops its `WordEntryArea`.** It is the only arrow collision in the
-whole set (`useArrowHistory` binds `↑`/`↓` to recall-last-guess and clear-entry),
-and typing a word that is visible on screen was always the odd input. It goes with
-the `words.includes(guess)` pre-check and its "Not on the board" pill (typing was
-the only way to name a word that isn't there). The below-board slot becomes
-waffle-shaped: the pill area alone, height reserved, no reflow. Under the pace
+whole set (`act-recall-last` and `act-clear-entry` bind `↑`/`↓`), and typing a
+word that is visible on screen was always the odd input. It goes with the
+`words.includes(guess)` pre-check and its `not_on_board` answer (typing was the
+only way to name a word that isn't there); the local `already_guessed` check
+stays. **The entry also carries psychicnum's only Submit button**, which is a
+phone's only way to guess — so the below-board slot becomes connections-shaped,
+not waffle-shaped: **Clear · Submit**, height reserved, no reflow. Under the pace
 rule this costs nothing — the entry *was* direct addressing, but addressing is
 only worth paying for in a race.
 
 ## Build order
 
-**waffle first**: already converted, and it exercises both hard parts at once —
-absent coordinates (its holes) and a selection that must stop auto-committing
-(today the second click *is* the swap; the keyboard needs to hold two selections
-and wait for `Enter`). That is the one real behavior change the feature asks of a
-game, and the mouse keeps its current two-click swap.
+**psychicnum first**, and it builds the shared pieces: the `useBoardCursorKeys`
+extension, the selection-cursor hook (with `<SelectionList>` moved onto it), and
+the reachability test. Its geometry has absent coordinates (the short last row),
+and its selection already waits for a commit, so the only behavior it changes is
+dropping the entry. See [psychicnum — the first rollout](#psychicnum--the-first-rollout).
 
-Then **psychicnum** (after its prerequisite), **connections** (peer rings + a
+Then **waffle**, which brings the one real behavior change the feature asks of a
+game: a selection that must stop auto-committing (today the second click *is*
+the swap; the keyboard needs to hold two selections and wait for `Enter`). The
+mouse keeps its current two-click swap. Then **connections** (peer rings + a
 collapsing grid), **codenamesduet** (guesser only — the clue-giver's input is a
 real text field and arrows there belong to the field), **strands** last, since it
 brings the move-end state mark with it.
+
+## psychicnum — the first rollout
+
+### What changes for a player
+
+| today | after |
+|---|---|
+| Click a tile to pick it; Submit or `Enter` guesses | **Unchanged** |
+| Type a word into the entry below the board | **Gone** — no typing |
+| `↑` recalls the last guess, `↓` clears the entry | **Gone** — the arrows move the cursor |
+| Naming a word not on the board answers "Not on the board" | **Gone** — only a board word can be picked |
+| The entry row: Delete · the typed word · Submit | **Clear · Submit**, connections-shaped; the picked tile's border shows the word |
+| — | **Arrows**: the first press shows the ring; each press after moves it one cell |
+| — | **`Space`**: picks the word under the ring, or un-picks it |
+| — | **`Enter`**: guesses the picked word; inert while the ring is hidden |
+| — | **`⌫`**: un-picks |
+| — | A click moves the ring to that tile and hides it |
+
+- **A missing cell is a wall.** The board is `cols = ⌈√N⌉` with a short last row,
+  so `↓` into a cell the last row lacks does nothing. A decided tile is not a
+  wall: the ring rests on it and `Space` does nothing, as a click does nothing.
+- **No ring, no keys** when it is not my turn, when I am out of guesses, at game
+  over, and in the history viewer (whose first arrow returns to live, as any
+  key does today).
+- **Shuffle (`⌥Z`)** rearranges the words under a ring that stays on its cell.
+  The pick belongs to the word, so it moves with the word.
+
+### The steps
+
+1. **Extend `useBoardCursorKeys`** — see [Code](#code). Run scrabble's and
+   bananagrams' suites.
+2. **The selection-cursor hook**, in `shared/board-cursor/`: the cursor cell, the
+   visibility rules, and the stepper for a `cols × rows` grid with a short last
+   row. `<SelectionList>` moves onto its visibility rules.
+3. **The reachability test** over every psychicnum board size (5–20 words),
+   verified by planting a break.
+4. **psychicnum's `BoardCol`**: prerequisite 2 (the entry, the recall state, the
+   pre-check and `not_on_board` — in `answer.ts`, `answer.test.ts` and
+   `doc.md`); the cursor state beside `pending`; `commit: 'act-submit'`, with
+   the returned `actCommit` placed as the Submit button; Clear is
+   `act-clear-selection`, as in connections.
+5. **psychicnum's `Board`**: a `cursor` prop and the ring, `outline:
+   var(--chrome-cursor-ring)` with an offset tuned to the board. A click sets the
+   cursor hidden. Tiles still never take DOM focus.
+6. **Tests** — the list under [Tests](#tests), in `PlayArea.test.tsx`; the typing
+   tests go. `psychicnum-mobile.e2e.ts` and `psychicnum-turn-order.e2e.ts` tap
+   Submit by name, which keeps its name.
+7. **Docs**: `psychicnum/doc.md` ("Click a tile or type it"),
+   `board-cursor/doc.md` (its second kind of cursor), and the durable parts of
+   this plan into [tile-feedback.md](tile-feedback.md).
 
 ## Per-game notes
 
 | game | absent coords | `Space` selects | `Enter` commits | extra |
 |---|---|---|---|---|
 | waffle | 4 holes | up to **two** tiles | the swap | must hold 2 selections without firing |
-| psychicnum | trailing cells | one word | the guess | needs a submit trigger it lacks today |
+| psychicnum | trailing cells | one word | the guess | Submit stays, as the commit's button; no cue |
 | connections | — | up to four | the group | index clamps when a band collapses; peer rings nest |
 | codenamesduet | — | one word | the guess | guesser only; needs a submit trigger |
 | strands | — | letters, adjacency-gated | the word | tail-end is state; `⌫` steps back one |
 
-## The `⏎ to guess` hint
+## The `⏎ to guess` cue
 
-In the three auto-commit games, `Enter` is an invisible affordance — mouse users
-have no submit button to learn it from. Every one of them already has a
-height-reserved below-board slot, so it can carry a **`⏎ to guess`** hint *only
+In the two auto-commit games (codenamesduet, waffle), `Enter` is an invisible
+affordance — there is no submit button to learn it from. Both already have a
+height-reserved below-board slot, so it can carry a **`⏎ to guess`** cue *only
 while a keyboard selection is pending*: it teaches the key exactly when it is
 relevant and never touches the mouse experience.
+
+**psychicnum takes no cue**: its Submit button is on screen, and its hover
+bubble carries the shortcut (`Submit · ↵`).
 
 ## Decided, so nobody re-opens them
 
@@ -284,10 +346,9 @@ focused-field guard that stops a keystroke meant for chat reaching the board,
 and the skip-Enter-when-a-button-has-focus nicety with it. Duplicating those is
 how you ship a board that steals typing.
 
-It needs: `onLetter` / `onBackspace` made optional, and an `onSpace` distinct from
-a peel's Space (which `act-peel` carries). That edits a hook
-**scrabble and bananagrams depend on**, so their suites get run deliberately, not
-incidentally.
+**DONE:** `onLetter` / `onBackspace` are optional, and `onToggle` is Space, on
+the new `act-toggle-tile`. A key with no callback answers hidden, so its
+keystroke goes on to the browser ([board-cursor/doc.md](../src/shared/board-cursor/doc.md)).
 
 Above it, a new hook owns what is actually new: the cursor index, the stepper, the
 visibility rule, and activation. Per game that leaves a geometry, an

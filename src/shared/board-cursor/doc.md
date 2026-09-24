@@ -1,6 +1,6 @@
 # board-cursor
 
-Arrows move a cursor over a board — the key handling every board-cursor game reuses, and the axis-cursor math the letter-grid games use. `useBoardCursorKeys` binds four actions: `act-move-cursor`, `act-place-tile`, `act-remove-tile`, and the game's own commit.
+Arrows move a cursor over a board — the key handling every board-cursor game reuses, and the axis-cursor math the letter-grid games use. `useBoardCursorKeys` binds five actions: `act-move-cursor`, `act-place-tile`, `act-remove-tile`, `act-toggle-tile`, and the game's own commit.
 
 ## Intro to area
 
@@ -26,7 +26,7 @@ and what the commit is. The pointer side of the same boards is
 
 ```
 shared/board-cursor/
- ├── useBoardCursorKeys.ts    the four bound actions; the game's callbacks
+ ├── useBoardCursorKeys.ts    the five bound actions; the game's callbacks
  ├── gridCursor.ts            moveCursor · stepBack · planBackspace
  └── gridCursor.module.css    the ring: .cursor + .cursorH / .cursorV
 bananagrams/hooks/usePlayerBoard.ts     runs the hook and the math; BoardArena renders the ring
@@ -37,9 +37,15 @@ scrabble/components/BoardCol.tsx        runs the hook and the math; Board render
   so the dispatcher's gates come with them: a modified chord never matches, a
   keystroke aimed at a focused field never arrives, and a disabled action
   still keeps its key from the browser (Space never scrolls the page).
-  `enabled` disables all four; `canCommit` disables only the commit, and the
+  `enabled` disables them all; `canCommit` disables only the commit, and the
   same answer grays the commit's button, which is the binding the hook
   returns.
+- **A board takes only the keys it has.** `onLetter`, `onBackspace` and
+  `onToggle` (Space) are each optional, and an action with no callback answers
+  HIDDEN rather than disabled: Help does not list it, and its keystroke goes
+  on to the browser, where a disabled one would be swallowed. A letter-grid
+  game passes the first two; a game that picks pieces passes `onToggle`, and
+  never with `act-peel`, whose keys include Space.
 - **The commit brings its own keys.** `commit` names the action, and the
   registry says which keys it carries: `act-submit` Enter, `act-peel` Enter
   and Space.
@@ -64,6 +70,5 @@ scrabble/components/BoardCol.tsx        runs the hook and the math; Board render
   superset.
 - **The hook expects another user.**
   [plans/keyboard-nav-plan.md](../../../plans/keyboard-nav-plan.md) builds its
-  selection cursor on `useBoardCursorKeys`: `onLetter` and `onBackspace` made
-  optional, and an `onSpace` apart from a peel's Space. The ring and
+  selection cursor on `useBoardCursorKeys`, through `onToggle`. The ring and
   `gridCursor` are outside that plan.
