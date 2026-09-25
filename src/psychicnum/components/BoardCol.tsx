@@ -145,21 +145,25 @@ export function BoardCol({
 
   const [picked, setPicked] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  // The word currently with the server; its tile takes the shared in-flight dim.
-  // Held until the RESULT lands rather than until the RPC resolves: the reply and
-  // the colored row are two separate events, and un-dimming at the first would
-  // flash an undecided tile back to normal.
+  // The word I last sent, or null. It outlives the guess: nothing clears it when
+  // the result lands, so what is still in flight is derived below.
   const [submittedWord, setSubmittedWord] = useState<string | null>(null)
-  // …and the SERVER'S answer is what ends it: once the word is in `results` it is
-  // decided, whatever this component still remembers. DERIVED rather than cleared,
-  // so no branch can leave a dim stuck on a tile forever.
+  // Its result is on the board. The SERVER'S answer is what ends the flight —
+  // once the word is in `results` it is decided, whatever this component still
+  // remembers — and deriving it, rather than clearing the state, means no branch
+  // can leave a dim stuck on a tile forever.
+  const submittedLanded = submittedWord !== null && results.has(submittedWord)
+  // The word with the server, whose tile takes the shared in-flight dim; null
+  // when nothing is out. Held until the RESULT lands rather than until the RPC
+  // resolves: the reply and the colored row are two separate events, and
+  // un-dimming at the first would flash an undecided tile back to normal.
   //
-  // Two cases where the derivation reads "in flight" for a word that is not:
-  // a past turn's snapshot cannot contain a word guessed after it, which the
-  // `<Board>` call below gates on `isViewingHistory`; and a restart empties
-  // `results` entirely, which needs no gate because the page unmounts this whole
-  // surface when the run changes (common/game-page/doc.md).
-  const inFlightWord = submittedWord !== null && !results.has(submittedWord) ? submittedWord : null
+  // Two cases where this reads "in flight" for a word that is not: a past turn's
+  // snapshot cannot contain a word guessed after it, which the `<Board>` call
+  // below gates on `isViewingHistory`; and a restart empties `results` entirely,
+  // which needs no gate because the page unmounts this whole surface when the
+  // run changes (common/game-page/doc.md).
+  const inFlightWord = submittedLanded ? null : submittedWord
 
   // Drawn only while I can still play: a selection means "the move I am
   // building", and a finished board or a player out of the race builds

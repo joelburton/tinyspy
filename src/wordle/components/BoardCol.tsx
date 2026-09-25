@@ -55,7 +55,8 @@ type GuessAnswer =
  * turn-viewer banner, the local-feedback pill slot, and the on-screen keyboard.
  *
  * It owns the guess being typed (`current`), the one out for judgment
- * (`pending`) and the `submit_guess` RPC that turns the first into the second.
+ * (`submittedWord`, in flight until its row lands) and the `submit_guess` RPC
+ * that turns the first into the second.
  * The physical keys and the on-screen caps drive that same `current`.
  *
  * Everything else is handed down: the board to draw (the live `rows`, or
@@ -84,7 +85,7 @@ export function BoardCol({
 }: {
   // ── Board to render ──
   // The LIVE board rows (the viewer's own / the coop team board) — drives the
-  // keyboard letter-coloring, the in-flight `pendingWord` check, and the grid when
+  // keyboard letter-coloring, the `submittedLanded` check, and the grid when
   // not viewing history.
   rows: HistorySnapshotRow[]
   // The open history turn's snapshot (its rows + ringed row + banner label), or null
@@ -128,23 +129,23 @@ export function BoardCol({
   // Viewing a past turn ⟺ a snapshot is open (PlayArea sets `historySnap` only then).
   const isViewingHistory = historySnap !== null
 
-  // ─── The pending guess ─────────────────────────────────
+  // ─── The guess in flight ───────────────────────────────
   // The state this column owns — the letters being typed and the word that is
   // out — and everything that reads or resets it.
 
   const [current, setCurrent] = useState('')
-  // The accepted-but-not-yet-rendered guess: kept on the board (uncolored) from the
-  // moment we submit until its colored server row arrives via realtime, so the letters
-  // don't blink out during the round-trip. The row then flips in place. Cleared on
-  // soft-reject, or once it lands.
-  const [pending, setPending] = useState<string | null>(null)
-
-  // The pending word, shown until its colored row lands and takes its place.
-  // `pending` may linger stale after that, but this is the value everything
-  // reads — harmless, since `rows` only grows: a Restart remounts the whole
-  // surface (GamePage keys it on `restarts`), so nothing here outlives a run.
-  const pendingLanded = pending != null && rows.some((r) => r.guess === pending)
-  const pendingWord = pending && !pendingLanded ? pending : ''
+  // The word I last sent, or null. Cleared on a soft reject; it outlives an
+  // accepted guess, so what is still in flight is derived below.
+  const [submittedWord, setSubmittedWord] = useState<string | null>(null)
+  // Its colored row is on the board. Harmless to keep asking after that, since
+  // `rows` only grows: a Restart remounts the whole surface (GamePage keys it on
+  // `restarts`), so nothing here outlives a run.
+  const submittedLanded = submittedWord !== null && rows.some((r) => r.guess === submittedWord)
+  // The accepted-but-not-yet-rendered guess, or null: kept on the board
+  // (uncolored) from the moment it is sent until its colored row arrives via
+  // realtime, so the letters don't blink out during the round-trip. The row then
+  // flips in place.
+  const inFlightWord = submittedLanded ? null : submittedWord
 
   // Typing a letter is the player's "next move", so it dismisses a
   // gesture-cleared soft reject. Both keyboards route through here — the
@@ -172,7 +173,7 @@ export function BoardCol({
   const [submitting, setSubmitting] = useState(false)
   // The live gate: the game permits guessing (PlayArea) AND I'm not mid-submit / with a
   // word in flight (this column's input state).
-  const canGuess = !readOnly && !submitting && !pendingWord
+  const canGuess = !readOnly && !submitting && inFlightWord === null
 
   /**
    * What BOTH soft rejects do — `duplicate` and `notAWord`. The rules were
@@ -186,7 +187,7 @@ export function BoardCol({
   const softReject = useCallback(
     (answerType: 'duplicate' | 'not_a_word') => {
       const { outcome, text } = answerMessage({ answerType })
-      setPending(null)
+      setSubmittedWord(null)
       showRefused(outcome)
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
     },
@@ -204,13 +205,13 @@ export function BoardCol({
       setSubmitting(true)
       // Optimistically keep the letters on the board through the round-trip so they
       // don't blink out. Reverted on any soft-reject below.
-      setPending(word)
+      setSubmittedWord(word)
       const res = await runRpc<GuessAnswer>(
         db.rpc('submit_guess', { target_game: gameId, guess: word }),
       )
       setSubmitting(false)
       if (res.type === 'not-ok') {
-        setPending(null)
+        setSubmittedWord(null)
         // The mark wears the refusal's own outcome — the same word the pill
         // reads off the envelope — not whatever the last soft reject left.
         showRefused(notOkOutcome(res))
@@ -223,7 +224,7 @@ export function BoardCol({
         softReject('not_a_word')
         return
       } else if (res.type === 'ok' && res.data.result === 'correct') {
-        // Accepted: clear the typing buffer. `pending` holds the word in place
+        // Accepted: clear the typing buffer. `inFlightWord` holds the word in place
         // until its colored row lands (then flips). Solving shows NOTHING extra
         // here — the win arrives with the colored row over realtime, the same
         // way it reaches everyone else.
@@ -237,7 +238,7 @@ export function BoardCol({
       } else {
         // The optimistic word is on the board waiting for a row that may never
         // arrive, so take it back before screaming.
-        setPending(null)
+        setSubmittedWord(null)
         reportUnhandled('submit_guess', res)
         return
       }
@@ -290,7 +291,7 @@ export function BoardCol({
         rows={historySnap ? historySnap.rows : rows}
         liveRowCount={rows.length}
         current={current}
-        pending={historySnap ? '' : pendingWord}
+        inFlightWord={historySnap ? null : inFlightWord}
         maxGuesses={maxGuesses}
         active={!isViewingHistory && canGuess}
         brand={brand}

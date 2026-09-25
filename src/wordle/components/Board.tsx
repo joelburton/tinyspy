@@ -31,8 +31,8 @@ type Props = {
   // A just-submitted word awaiting its colored server row. Shown in the
   // next slot as an uncolored (filled) row so the letters stay put
   // during the round-trip; when the real row lands it flips in place.
-  // Empty when there's nothing in flight.
-  pending: string
+  // Null when there's nothing in flight.
+  inFlightWord: string | null
   // Total rows to draw — the guess budget (`max_guesses`).
   maxGuesses: number
   // Whether the active typing row should show (game still in play for
@@ -44,7 +44,7 @@ type Props = {
   // Wear the shared viewing frame and make the board
   // click-through (so a board click falls to the document exit listener).
   // While viewing, BoardCol also hands the snapshot's `rows` + `active={false}`
-  // + no `pending`, and rows never flip (they're already-final history).
+  // + a null `inFlightWord`, and rows never flip (they're already-final history).
   isViewingHistory: boolean
   // Ring this row (the guess the viewed turn added), or -1 = none.
   // The row keeps its g/y/x tile colors; the ring just marks which one.
@@ -82,7 +82,7 @@ export function Board({
   rows,
   liveRowCount,
   current,
-  pending,
+  inFlightWord,
   maxGuesses,
   active,
   brand,
@@ -136,8 +136,8 @@ export function Board({
         {Array.from({ length: maxGuesses }, (_, r) => {
           const submitted = rows[r]
           const isActive = r === activeIndex
-          // The pending (in-flight) word sits in the first empty slot.
-          const isPending = !submitted && !!pending && r === rows.length
+          // The in-flight word sits in the first empty slot.
+          const isInFlight = !submitted && inFlightWord !== null && r === rows.length
           // Historical rows never flip — they're already-final, not fresh guesses.
           const flipping = !isViewingHistory && !!submitted && r >= flipBaseline
           return (
@@ -161,8 +161,8 @@ export function Board({
                 if (submitted) {
                   letter = submitted.guess[c] ?? ''
                   color = tileColor(submitted.colors[c])
-                } else if (isPending) {
-                  letter = pending[c] ?? ''
+                } else if (isInFlight) {
+                  letter = inFlightWord?.[c] ?? ''
                 } else if (isActive) {
                   letter = current[c] ?? ''
                 }
@@ -185,8 +185,8 @@ export function Board({
                       letter && color === 'blank' && styles.filled,
                       // Sent, waiting on the server — the middle gray under the
                       // shared in-flight dim, matching waffle's two cells.
-                      isPending && styles.inFlight,
-                      isPending && shared.dimInFlight,
+                      isInFlight && styles.inFlight,
+                      isInFlight && shared.dimInFlight,
                     )}
                     style={
                       flipping

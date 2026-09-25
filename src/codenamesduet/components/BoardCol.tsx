@@ -160,19 +160,19 @@ export function BoardCol({
 
   // The guess move — a board click. The reveal arrives by realtime, so there is
   // no optimistic state; the only own-move feedback is a not-ok, shown into the
-  // slot. `pendingPos` says WHICH tile is committing — Board marks that one
-  // pending and disables it — so the single-flight flag below can't stand in
+  // slot. `inFlightPos` says WHICH tile is committing — Board dims that one in
+  // flight and disables it — so the single-flight flag below can't stand in
   // for it.
-  const [pendingPos, setPendingPos] = useState<number | null>(null)
+  const [inFlightPos, setInFlightPos] = useState<number | null>(null)
   const submitGuess = useCallback(
     async (position: number) => {
       localFeedbackSlot.dismiss() // a click is the next move
-      setPendingPos(position)
+      setInFlightPos(position)
       const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
         target_game: gameId,
         target_position: position,
       }))
-      setPendingPos(null)
+      setInFlightPos(null)
       // Four answers, and every one of them says nothing here: each is a
       // REVEAL, and the reveal arrives via Realtime → useBoard
       // refetches → the tile re-renders in its result color. No optimistic
@@ -206,7 +206,7 @@ export function BoardCol({
   )
 
   // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
-  // A tile's `disabled` can't do it: that follows `pendingPos` → re-render, so
+  // A tile's `disabled` can't do it: that follows `inFlightPos` → re-render, so
   // it misses a same-tick double-tap, and a click on a DIFFERENT tile while the
   // first guess commits (you shouldn't guess again until the reveal resolves).
   const [handleGuess] = useSingleFlight(submitGuess)
@@ -260,7 +260,7 @@ export function BoardCol({
   useBoundAction('act-submit', {
     describe: () => {
       if (!canGuess) return 'hidden'
-      return { state: picked !== null && pendingPos === null ? 'active' : 'disabled', label: 'Guess' }
+      return { state: picked !== null && inFlightPos === null ? 'active' : 'disabled', label: 'Guess' }
     },
     run: () => {
       if (picked === null) return
@@ -293,7 +293,7 @@ export function BoardCol({
         mySeat={mySeat}
         isTerminal={isTerminal}
         cellsClickable={cellsClickable && !isViewingHistory}
-        pendingPos={pendingPos}
+        inFlightPos={inFlightPos}
         onGuess={handleTileClick}
         cursor={cursor}
         picked={picked}

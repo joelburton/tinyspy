@@ -172,7 +172,7 @@ beforeEach(() => {
 
 /**
  * A second guess while one is in flight fires no second `submit_guess`. A
- * tile's `disabled` follows `pendingPos` a render late, and covers only the tile
+ * tile's `disabled` follows `inFlightPos` a render late, and covers only the tile
  * clicked; `useSingleFlight` closes both. This clicks a DIFFERENT tile.
  */
 describe('codenamesduet PlayArea — guess in-flight guard', () => {

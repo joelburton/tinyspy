@@ -35,7 +35,7 @@ function draw(mySeat: Seat) {
       mySeat={mySeat}
       isTerminal={false}
       cellsClickable
-      pendingPos={null}
+      inFlightPos={null}
       onGuess={vi.fn()}
       cursor={null}
       picked={null}
@@ -57,7 +57,7 @@ function drawWith(over: Partial<ComponentProps<typeof Board>> = {}) {
       mySeat="A"
       isTerminal={false}
       cellsClickable
-      pendingPos={null}
+      inFlightPos={null}
       onGuess={vi.fn()}
       cursor={null}
       picked={null}
@@ -145,7 +145,7 @@ describe('codenamesduet Board — the board marks', () => {
   const grid = (c: HTMLElement) => c.querySelector('[data-board] > div') as HTMLElement
 
   it('dims the tile whose guess is in flight, and no other', () => {
-    const c = drawWith({ pendingPos: 3 })
+    const c = drawWith({ inFlightPos: 3 })
     const dimmed = [...c.querySelectorAll('button')].filter((b) => b.classList.contains(shared.dimInFlight))
     expect(dimmed.map((b) => b.textContent)).toEqual(['word3'])
   })
@@ -174,7 +174,7 @@ describe('codenamesduet Board — the board marks', () => {
 describe('codenamesduet Board — attention and the shake', () => {
   const props = (over: Partial<ComponentProps<typeof Board>> = {}) => ({
     words, myKey: Array.from({ length: 25 }, () => 'N' as const), peerKey: null,
-    mySeat: 'A' as const, isTerminal: false, cellsClickable: true, pendingPos: null,
+    mySeat: 'A' as const, isTerminal: false, cellsClickable: true, inFlightPos: null,
     onGuess: vi.fn(), cursor: null, picked: null, notMyTurn: false, myTurnJustStarted: false, moveCount: 2,
     terminalOutcome: null, ...over,
   })

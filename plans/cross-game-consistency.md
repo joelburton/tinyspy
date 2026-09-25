@@ -200,6 +200,12 @@ Each needs a failing test before its fix.
   cannot hit this. Owed when their areas open: the other ten games hold
   failure several ways (split header/rows failures, one-shot header reads) —
   check each for a zero-rows return ahead of its clear.
+- **codenamesduet un-dims a guess before its reveal lands** (found 2026-09-24,
+  in N3; not yet looked at). `inFlightPos` is cleared when `submit_guess`
+  replies, but the reveal arrives separately, by realtime — so the guessed
+  tile can read as untouched for a beat: the flash psychicnum's
+  `submittedLanded` comment names. psychicnum and wordle hold the dim until the
+  result is on the board; connections needs no such hold (the answer is local).
 
 ## 4. Naming — cheap renames (code and `supabase/sql/` only)
 
@@ -209,7 +215,7 @@ Most worth fixing first.
 |---|---|---|
 | ~~N1~~ | `gameOver` is the ending (`TerminalOutcome \| null`) on psychicnum / connections / wordle's `Board` and `BoardCol`; in codenamesduet it is a boolean, and its ending is `terminalOutcome` | Done 2026-09-24, the other way round: the ending is `terminalOutcome` everywhere (it says what it holds; `gameOver` reads as a yes/no), the yes/no is `isTerminal`, typed `TerminalOutcome \| null` in all four. The shared `gameOver*` CSS classes stay. `common/game-page/GamePage.tsx`'s own yes/no is `isTerminal` too, read off `is_terminal` (it was `ended_at !== null`) — the answer every PlayArea is handed. waffle's is outside the six |
 | ~~N2~~ | the refused-word mark: `answered` (spellingbee `Letters`), `refused` (wordwheel `Wheel`), `reject` (wordle `Board`); the bee pair also swaps `answered` / `refused` between them | Done 2026-09-24: `refused` / `showRefused` in all three. The per-tile slice is `mark` in both bees, and the single tile's prop stays `answer` (`Letter`, `Tile`) |
-| N3 | the move still with the server: `inFlightWord` (psychicnum), `inFlightTiles` (connections), `pending` / `pendingWord` / `.inFlight` (wordle), `pendingPos` (codenamesduet) | `inFlight…`, the shared mark's name |
+| ~~N3~~ | the move still with the server: `inFlightWord` (psychicnum), `inFlightTiles` (connections), `pending` / `pendingWord` / `.inFlight` (wordle), `pendingPos` (codenamesduet) | Done 2026-09-24: `inFlight…` everywhere (`inFlightWord`, `inFlightTiles`, `inFlightPos`), and a board's per-tile/row local is `isInFlight`. psychicnum and wordle, whose result lands by realtime, share one shape in named steps: state `submittedWord` (the word I last sent), `submittedLanded` (its result is on the board), `inFlightWord = submittedLanded ? null : submittedWord` — `null`, not `''`, for nothing out. The single-flight `pending` is a different thing and stays |
 | N4 | may the board take a click: `interactive` (connections), `cellsClickable` (codenamesduet), the handler left out (psychicnum, the bee games) | `readOnly`, the glossary's gate |
 | N5 | am I still in the game: `isStillPlaying` (psychicnum), `showInput` (connections, wordle — where it gates a help line) | `isStillPlaying` |
 | N6 | psychicnum, the control, is the odd one: `turnHolderName` / `turnHolderColor`; `useGame` returns budget rows as `players`; the move answers `verdict` + `found_all` | `holderName` / `holderColor`; `playerBudgets`; `result` |

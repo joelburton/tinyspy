@@ -236,7 +236,7 @@ export function Board({
           // invalid declaration rather than a subtle bug.
           const ownerColor =
             sharedBoard && ownerId !== undefined ? colorByUserId.get(ownerId) : undefined
-          const inFlight = inFlightTiles.has(tile)
+          const isInFlight = inFlightTiles.has(tile)
           const isVerdict = verdict?.value.tiles.has(tile) ?? false
           // One of the four tiles the viewed turn guessed — tinted the outcome
           // color and outlined in the history blue.
@@ -266,7 +266,7 @@ export function Board({
                 // mark, two beats, so the phase is the whole of the ordering.
                 isVerdict && verdict?.phase === 'attention' && shared.attentionFlash,
                 isVerdict && verdict?.phase === 'answer' && shared.verdictShake,
-                inFlight && shared.dimInFlight,
+                isInFlight && shared.dimInFlight,
                 // The answer fills the tile, in a PALE tier of its pill's outcome.
                 isVerdict && shared.verdictFill,
                 isVerdict && verdict && OUTCOME_TO_VERDICT_CLASS[verdict.value.outcome],

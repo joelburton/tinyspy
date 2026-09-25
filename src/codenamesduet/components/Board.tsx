@@ -52,7 +52,7 @@ type Props = {
   cellsClickable: boolean
   // The tile whose guess is in flight — dimmed until the reply — or null.
   // BoardCol's, which dispatches the guess.
-  pendingPos: number | null
+  inFlightPos: number | null
   // A click on a clickable tile. BoardCol owns `submit_guess`; this component
   // only reports the position.
   onGuess: (position: number) => void
@@ -96,7 +96,7 @@ export function Board({
   mySeat,
   isTerminal,
   cellsClickable,
-  pendingPos,
+  inFlightPos,
   onGuess,
   cursor,
   picked,
@@ -192,7 +192,7 @@ export function Board({
           // is `isGuessable`'s, which the keyboard's Space asks too. (A past
           // turn open is already in `cellsClickable`.)
           const clickable = cellsClickable && isGuessable(w, mySeat)
-          const isPending = pendingPos === w.position
+          const isInFlight = inFlightPos === w.position
 
           return (
             <button
@@ -206,13 +206,13 @@ export function Board({
                 // The keyboard's pick, waiting for Enter, and its cursor.
                 picked === w.position && shared.selected,
                 cursor !== null && positionAt(cursor.x, cursor.y) === w.position && shared.selectionCursor,
-                isPending && shared.dimInFlight,
+                isInFlight && shared.dimInFlight,
                 flashing.has(w.position) && shared.attentionFlash,
                 shaking.has(w.position) && shared.verdictShake,
                 // Turn-history: this cell was decided on the turn being viewed.
                 historyLitTiles.has(w.position) && styles.historyTile,
               )}
-              disabled={!clickable || isPending}
+              disabled={!clickable || isInFlight}
               onClick={() => clickable && onGuess(w.position)}
             >
               {/* The peer's key-card square — top-right, once the game is over
