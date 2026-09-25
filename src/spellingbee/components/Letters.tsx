@@ -25,7 +25,7 @@ type Props = {
   // keys those hexes, so refusing the same letters again remounts them and
   // the shake plays again — a CSS animation restarts on a remount, not on a
   // class that is already there.
-  answered: Mark<{ letters: Set<string>; outcome: Outcome }> | null
+  refused: Mark<{ letters: Set<string>; outcome: Outcome }> | null
   // A control floated over the hive's top-right (the Shuffle button). Rendered
   // inside the shrink-wrapped `.floatAnchor` around the svg, so it hugs the
   // VISUAL hive rather than the column, which the vertically-centered hive
@@ -53,7 +53,7 @@ export function Letters({
   centerLetter,
   onLetterClick,
   usedLetters,
-  answered,
+  refused,
   floatingControl,
 }: Props) {
   const letters = [centerLetter, ...outerLetters]
@@ -63,15 +63,15 @@ export function Letters({
         <svg className={styles.grid} viewBox="0 0 256 267" data-hive>
           {letters.map((letter, i) => {
             // The refusal's mark, when this hex is one of the word's letters.
-            const refused = answered?.value.letters.has(letter.toUpperCase()) ? answered : null
+            const mark = refused?.value.letters.has(letter.toUpperCase()) ? refused : null
             return (
               <Letter
-                key={refused ? `${letter}-${i}#${refused.nonce}` : `${letter}-${i}`}
+                key={mark ? `${letter}-${i}#${mark.nonce}` : `${letter}-${i}`}
                 letter={letter}
                 isCenter={i === 0}
                 pos={HEX_POSITIONS[i] ?? HEX_POSITIONS[0]}
                 used={usedLetters.has(letter.toUpperCase())}
-                answer={refused?.value.outcome}
+                answer={mark?.value.outcome}
                 onClick={onLetterClick && (() => onLetterClick(letter))}
               />
             )

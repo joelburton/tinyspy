@@ -163,7 +163,7 @@ export function BoardCol({
   // it cannot name two different words. `WORD_ANSWER_MS` is the beat for a word
   // wearing its answer, and the row keys on the mark's nonce, so refusing the
   // same word twice shakes twice.
-  const [reject, showReject] = useMark<Outcome>(WORD_ANSWER_MS)
+  const [refused, showRefused] = useMark<Outcome>(WORD_ANSWER_MS)
 
   // ─── Committing a guess ────────────────────────────────
   // The move RPC and the two commands beside it, kept with the entry they
@@ -187,10 +187,10 @@ export function BoardCol({
     (answerType: 'duplicate' | 'not_a_word') => {
       const { outcome, text } = answerMessage({ answerType })
       setPending(null)
-      showReject(outcome)
+      showRefused(outcome)
       localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
     },
-    [localFeedbackSlot, showReject],
+    [localFeedbackSlot, showRefused],
   )
 
   // Submit a guess (stable across keystrokes).
@@ -213,7 +213,7 @@ export function BoardCol({
         setPending(null)
         // The mark wears the refusal's own outcome — the same word the pill
         // reads off the envelope — not whatever the last soft reject left.
-        showReject(notOkOutcome(res))
+        showRefused(notOkOutcome(res))
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'duplicate') {
@@ -242,7 +242,7 @@ export function BoardCol({
         return
       }
     },
-    [gameId, localFeedbackSlot, softReject, showReject],
+    [gameId, localFeedbackSlot, softReject, showRefused],
   )
 
   // The physical keyboard, driving the same `current` the on-screen one does.
@@ -296,7 +296,7 @@ export function BoardCol({
         brand={brand}
         isViewingHistory={isViewingHistory}
         historyLitBoardRow={historySnap ? historySnap.historyLitBoardRow : -1}
-        reject={reject}
+        refused={refused}
         terminalOutcome={terminalOutcome}
         notMyTurn={notMyTurn}
         myTurnJustStarted={myTurnJustStarted}

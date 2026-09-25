@@ -321,7 +321,7 @@ reply or its own refusal, `BoardCol` names an `answerType` and calls
 `answerMessage()`; holding a logged row, the log calls `eventToOutcome(row)`
 for its bar and `PlayArea` calls `peerAnswerMessage(row)` for a teammate's
 header line. One function underneath all of them, so the below-board pill,
-the board's reject mark, the log and the header cannot disagree about one
+the board's refused mark, the log and the header cannot disagree about one
 move.
 
 | answerType | said to | text | outcome |

@@ -134,7 +134,7 @@ export function BoardCol({
 
   // The letters the refused word used: they wear its answer and shake. Captured
   // here because the entry has already cleared by the time the answer shows.
-  const [answered, showAnswer] = useMark<{ letters: Set<string>; outcome: Outcome }>(WORD_ANSWER_MS)
+  const [refused, showRefused] = useMark<{ letters: Set<string>; outcome: Outcome }>(WORD_ANSWER_MS)
 
   const center = centerLetter.toLowerCase()
   const { word, setWord, lastWord, submit } =
@@ -181,7 +181,7 @@ export function BoardCol({
         const { outcome, text } = answerMessage(answerOf(report, { letters: allowedLetters, center }))
         localFeedbackSlot.show(FeedbackMessage.result(outcome, text))
         if (report.answer === 'accepted') return
-        showAnswer({ letters: new Set(report.word.toUpperCase()), outcome })
+        showRefused({ letters: new Set(report.word.toUpperCase()), outcome })
       },
     })
 
@@ -245,7 +245,7 @@ export function BoardCol({
         </div>
       </MobileStatusBar>
       <Letters
-        answered={answered}
+        refused={refused}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
         onLetterClick={readOnly ? undefined : handleLetterClick}

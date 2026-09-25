@@ -53,7 +53,7 @@ type Props = {
   // row rings and shakes in the outcome the mark carries. The pill says WHAT was
   // wrong; this says WHERE. The row keys on the mark's nonce so a repeat
   // rejection replays the shake rather than doing nothing.
-  reject: Mark<Outcome> | null
+  refused: Mark<Outcome> | null
   // The game is finished, and how it ended — the board takes a band in that
   // outcome's gray (neutral for a game merely ended), null while it's live.
   // The shared board-scope mark; see common/board-marks/doc.md.
@@ -88,7 +88,7 @@ export function Board({
   brand,
   isViewingHistory,
   historyLitBoardRow,
-  reject,
+  refused,
   terminalOutcome,
   notMyTurn,
   myTurnJustStarted,
@@ -144,14 +144,14 @@ export function Board({
             <div
               // The mark's nonce rides in the active row's KEY: a CSS animation
               // only replays if its element is remounted.
-              key={isActive && reject ? `${r}-${reject.nonce}` : r}
+              key={isActive && refused ? `${r}-${refused.nonce}` : r}
               className={cls(
                 styles.row,
                 r === historyLitBoardRow && styles.historyRow,
-                // The rejected word is still sitting in the active typing row —
+                // The refused word is still sitting in the active typing row —
                 // it was never accepted, so it never became a submitted one.
-                isActive && reject && shared.verdictRing,
-                isActive && reject && OUTCOME_TO_VERDICT_CLASS[reject.value],
+                isActive && refused && shared.verdictRing,
+                isActive && refused && OUTCOME_TO_VERDICT_CLASS[refused.value],
               )}
               role="row"
             >

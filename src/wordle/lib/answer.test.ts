@@ -10,7 +10,7 @@ import { answerMessage, eventToOutcome, peerAnswerMessage, type Answer } from '.
  * shows; `eventToOutcome` and `peerAnswerMessage` are the two ways a logged row
  * asks it — the log wants the color alone, a teammate's header line wants the
  * peer words. The table in the middle walks every member of the union, which
- * is the point of the file: the pill, the board's reject mark, the log bar and
+ * is the point of the file: the pill, the board's refused mark, the log bar and
  * the header line all read one function, so a word or a color changed here
  * changes in all of them — and a new answer nobody gave words to is a compile
  * error in `answerMessage` rather than a blank pill.
