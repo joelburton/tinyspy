@@ -376,7 +376,12 @@ where it fixes a behavior:
    the chain's × takes a word back, a move sent to the server, so it asks
    `isMyTurn`, and the entry freezes on `!isBoardInteractive || chainFull`;
    the conceder's row places End — failing test first; unit + its 15 e2e +
-   the cross-game specs green).
+   the cross-game specs green). crosswords done 2026-09-25 (`myConceded` /
+   `isPlayable` / `isLocallyDone` gone; `useGridKeyboard`'s own `readOnly`
+   — navigable but not writable — is `isBoardInteractive`, the right way
+   round; the conceder's row places End — failing test first. The five
+   games whose out-of-the-race row lacked End are all fixed; unit + its 14
+   e2e + the cross-game specs green).
    **Step 6 renames only the standing terms** (Joel, 2026-09-25). A game's
    other names that the plan has already settled are owed when its audit
    area opens — the names below, found while converting, with the games

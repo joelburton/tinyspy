@@ -21,10 +21,11 @@ export type GridKeysOptions = {
    *  player has conceded mid-race — every key below goes disabled, which also
    *  leaves the keystroke for whoever else wants it. */
   enabled: boolean
-  /** The board is frozen (terminal) but still navigable: the movement keys work
-   *  so the solver can walk the revealed grid, while anything that would WRITE
-   *  (letters, ⌫, rebus, edge marks) is disabled. */
-  readOnly: boolean
+  /** The board responds to me (the page's `isBoardInteractive`). When false
+   *  but `enabled` (terminal), the board is still navigable: the movement keys
+   *  work so the solver can walk the revealed grid, while anything that would
+   *  WRITE (letters, ⌫, rebus, edge marks) is disabled. */
+  isBoardInteractive: boolean
   // One of crosswords' OWN overlays has the keyboard — the rebus box or the
   // number-jump popup. Both are focused inputs that `stopPropagation()` their
   // keydowns before the dispatcher sees anything, so this gate is
@@ -85,7 +86,7 @@ export type GridKeys = {
  */
 export function useGridKeyboard({
   enabled,
-  readOnly,
+  isBoardInteractive,
   suspended,
   grid,
   cursor,
@@ -106,7 +107,7 @@ export function useGridKeyboard({
    *  puzzle is part of the post-game. */
   const nav = (): ActionState => (ready ? 'active' : 'disabled')
   /** Changing the grid: everything `nav` allows, minus the frozen board. */
-  const write = (): ActionState => (ready && !readOnly ? 'active' : 'disabled')
+  const write = (): ActionState => (ready && isBoardInteractive ? 'active' : 'disabled')
 
   /** Every body below is written against a loaded board. */
   const onBoard =

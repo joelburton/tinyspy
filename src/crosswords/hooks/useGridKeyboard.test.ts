@@ -70,7 +70,7 @@ function setup(over: Partial<GridKeysOptions> = {}) {
     useActionDispatcher()
     return useGridKeyboard({
       enabled: true,
-      readOnly: false,
+      isBoardInteractive: true,
       suspended: false,
       grid: grid(['...', '...', '...']),
       cursor: { row: 0, col: 0, dir: 'across' },
@@ -271,9 +271,9 @@ describe('navigation keys', () => {
   })
 })
 
-describe('readOnly (terminal): navigation works, writes are ignored', () => {
+describe('an inert board (terminal): navigation works, writes are ignored', () => {
   it('ignores a letter, ⌫, the rebus and the marks', async () => {
-    const s = setup({ readOnly: true })
+    const s = setup({ isBoardInteractive: false })
     await press({ key: 'a' })
     await press({ key: 'Backspace' })
     await press({ key: 'Enter', shiftKey: true })
@@ -285,7 +285,7 @@ describe('readOnly (terminal): navigation works, writes are ignored', () => {
   })
 
   it('still moves the cursor with arrows — reading back a solved grid is the point', async () => {
-    const s = setup({ readOnly: true })
+    const s = setup({ isBoardInteractive: false })
     await press({ key: 'ArrowDown' })
     expect(s.setCursor).toHaveBeenCalledTimes(1)
     s.view.unmount()

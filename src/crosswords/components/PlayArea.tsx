@@ -97,7 +97,7 @@ type RevealAnswer = { result: 'revealed'; solved: boolean }
 type ExportAnswer = { result: 'exported'; solution: (string[] | null)[][] }
 
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, isLocallyTerminal, playState, session, status, menu, clubHandle } = ctx
+  const { gameId, players, isTerminal, isConceded, isLocallyTerminal, isBoardInteractive, playState, session, status, menu, clubHandle } = ctx
   const myId = session.user.id
 
   const { game, loading, failure } = useGame(gameId)
@@ -220,8 +220,6 @@ export function PlayArea(ctx: GamePageCtx) {
     if (seed) setCursor(seed)
   }
 
-  const myConceded = players.find((p) => p.user_id === myId)?.conceded ?? false
-  const isPlayable = playState === 'playing' && !isTerminal && !myConceded
 
   // Coop presence on the SHARED grid: teammates' cursors + a short flash on
   // cells they just filled. All empty in compete (private grids).
@@ -307,10 +305,10 @@ export function PlayArea(ctx: GamePageCtx) {
   // it does at the moment the key lands.
   const { actRebus } = useGridKeyboard({
     // Terminal keeps the keys ALIVE for navigation — walking the revealed grid
-    // with arrows/Tab is part of the post-game — while `readOnly` freezes the
-    // writing half. (Paused / conceded-mid-race stay fully disabled.)
-    enabled: isPlayable || isTerminal,
-    readOnly: !isPlayable,
+    // with arrows/Tab is part of the post-game — while an inert board freezes
+    // the writing half. (Paused / conceded-mid-race stay fully disabled.)
+    enabled: isBoardInteractive || isTerminal,
+    isBoardInteractive,
     // One of this game's own overlays owns the keyboard.
     suspended: rebus !== null || numberJumpOpen,
     grid,
@@ -658,7 +656,7 @@ type Explained =
 
   /** Every tool in the bar — the hint ladder, and the pencil beside it —
    *  applies while the board is writable, and grays with it. */
-  const writableState = (): ActionState => (isPlayable ? 'active' : 'disabled')
+  const writableState = (): ActionState => (isBoardInteractive ? 'active' : 'disabled')
   /** …and Reveal is coop-only: revealing your own grid would trivially win a
    *  race, so in compete it isn't there at all. */
   const revealState = (): ActionState => (mode === 'coop' ? writableState() : 'hidden')
@@ -821,8 +819,8 @@ type Explained =
           // square), and as two rows they no longer need a divider between them.
           {
             items: [
-              { id: 'check', label: 'Check', disabled: !isPlayable, items: [actCheckLetter, actCheckWord, actCheckPuzzle] },
-              { id: 'reveal', label: 'Reveal', disabled: !isPlayable, items: [actRevealLetter, actRevealWord, actRevealPuzzle] },
+              { id: 'check', label: 'Check', disabled: !isBoardInteractive, items: [actCheckLetter, actCheckWord, actCheckPuzzle] },
+              { id: 'reveal', label: 'Reveal', disabled: !isBoardInteractive, items: [actRevealLetter, actRevealWord, actRevealPuzzle] },
             ],
           },
           { items: [actRestart, actReveal, actNewGame] },
@@ -830,7 +828,7 @@ type Explained =
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, actConcede, actEndGame, actPencil, actRebus, actCollapseRebuses, actShowNote, actExplainClue, actOpenScratchpad, actPrintBoard, actDownloadIpuz, actPrintSolution, actCheckLetter, actCheckWord, actCheckPuzzle, actRevealLetter, actRevealWord, actRevealPuzzle, actRestart, actReveal, actNewGame, isPlayable])
+  }, [menu, game, actConcede, actEndGame, actPencil, actRebus, actCollapseRebuses, actShowNote, actExplainClue, actOpenScratchpad, actPrintBoard, actDownloadIpuz, actPrintSolution, actCheckLetter, actCheckWord, actCheckPuzzle, actRevealLetter, actRevealWord, actRevealPuzzle, actRestart, actReveal, actNewGame, isBoardInteractive])
 
   // ─── The two standing conditions of the local slot ───
   // Each is an effect on a primitive edge that shows on true and retracts in
@@ -870,12 +868,12 @@ type Explained =
 
   // Out of the race while the others play on — a conceded compete player, so
   // their grayed-out input has an explanation.
-  const isLocallyDone = myConceded && !isTerminal
+  // (The page's `isLocallyTerminal` — in this game only by conceding.)
   useEffect(function showOutOfRace() {
-    if (!isLocallyDone) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    if (isTerminal || !isLocallyTerminal) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyDone])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
   if (loading) {
     return (
@@ -994,7 +992,7 @@ type Explained =
                   <ActionButton action={actNewGame} show="icon" />
                   <ActionButton action={menu.actBackToClub} show="icon" weight="primary" />
                 </div>
-              ) : myConceded ? (
+              ) : isLocallyTerminal ? (
                 <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
                   {/* Inert, but present: the solution isn't even on this client
                       until the game is over for EVERYONE (_solution_for gates on
@@ -1002,7 +1000,11 @@ type Explained =
                       live race — and the row keeps its shape for when the last
                       solver finishes. */}
                   <ActionButton action={actReveal} show="icon" />
+                  {/* Both exits are placed and each says whether it applies:
+                      out of the race, Concede hides and End comes out in its
+                      place — one flag, since anyone may end it for all. */}
                   <ActionButton action={actConcede} show="icon" />
+                  <ActionButton action={actEndGame} show="icon" />
                 </InfoActionsRow>
               ) : (
                 <div className={styles.toolRow}>
