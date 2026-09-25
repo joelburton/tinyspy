@@ -22,14 +22,20 @@
 --
 -- It is NOT a second spelling of `conceded`. A conceder walked away and
 -- forfeits any win; a locally terminal player may well be the winner, which
--- is exactly why marking a solver "conceded" instead was not an option. The
--- two are read together and mean different things:
+-- is exactly why marking a solver "conceded" instead was not an option.
 --
---     still playing := not conceded and not locally_terminal
+-- Since 20260924000010_conceded_is_locally_terminal.sql, conceding is one of
+-- the reasons a player is locally terminal: `common._set_conceded` sets both
+-- flags, so the presence-pause roster is
+--
+--     not locally_terminal
+--
+-- and `conceded` alone says the win is forfeit.
 --
 -- Written by `common._set_locally_terminal` from inside the gametype RPC that
--- detects the local terminal, and cleared by `common.reset_game` along with
--- `conceded`, so a restart puts everyone back in.
+-- detects the local terminal, and by `common._set_conceded`; cleared by
+-- `common.reset_game` along with `conceded`, so a restart puts everyone back
+-- in.
 --
 -- ADD COLUMN, which appends — the frozen baseline is not edited, so the
 -- column order `db-drift` compares takes care of itself.

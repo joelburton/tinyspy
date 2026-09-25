@@ -180,15 +180,18 @@ path that ends the race through it; a game that hands the ending to
 `src/guards/endingTouchesGame.test.ts` holds the rule for every RPC that can
 end a game.
 
-### Done, but not out — `locally_terminal`
+### Not playing any more — `locally_terminal`
 
-**A racer can stop racing without conceding** — out of guesses, or solved in a
-race that plays on to rank everyone — and the presence-pause must not wait for
-them. `game_players.locally_terminal` is that flag, set by
-`common._set_locally_terminal` from inside the game RPC that detects it and
-cleared on restart. It is not a second spelling of `conceded`: a locally
-terminal player may be the WINNER. Compete only; the pause watches
-`not conceded and not locally_terminal`.
+**A racer can stop playing while the game goes on** — out of guesses,
+eliminated, solved in a race that plays on to rank everyone, or conceded — and
+the presence-pause must not wait for them. `game_players.locally_terminal` is
+that flag, set by `common._set_locally_terminal` from inside the game RPC that
+detects it, set by `common._set_conceded` along with `conceded`, and cleared on
+restart. `conceded` is the separate fact that forfeits a win: a locally
+terminal player who did not concede may be the WINNER. Compete only; the pause
+watches `not locally_terminal`, and `common._advance_turn` skips a locally
+terminal seat. The terms are defined in [win-lose.md → Where a player
+stands](win-lose.md#where-a-player-stands--the-terms-as-formulas).
 
 ## Turn-order — opt-in turn-by-turn for coop games
 

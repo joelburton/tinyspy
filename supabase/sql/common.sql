@@ -1233,11 +1233,11 @@ $$;
 
 revoke execute on function common._assign_turn_order(uuid, uuid) from public;
 
--- Advance the pointer to the next player by turn_seat (wraps; skips conceded).
--- No-op when the game isn't a turn game (pointer null ⇒ no seats ⇒ nothing to
--- advance), so it's safe to call unconditionally on a game's accepted-move
--- path. skip-conceded is inert in coop (coop never concedes) — it's kept only
--- to mirror the scrabble port this is copied from, and to future-proof.
+-- Advance the pointer to the next player by turn_seat (wraps; skips anyone
+-- locally terminal, conceders included). No-op when the game isn't a turn game
+-- (pointer null ⇒ no seats ⇒ nothing to advance), so it's safe to call
+-- unconditionally on a game's accepted-move path. The skip is inert today:
+-- turn order is coop-only, and nobody goes locally terminal in coop.
 create or replace function common._advance_turn(target_game uuid)
 returns void
 language plpgsql
@@ -1265,16 +1265,17 @@ begin
   select count(*) into n_players
     from common.game_players where game_id = target_game;
 
-  -- Walk forward to the next non-conceded seat. With no conceders this is just
-  -- (cur_seat + 1) % n. We never loop forever: the current player is itself a
-  -- non-conceded seat, so at worst we wrap all the way back to them.
+  -- Walk forward to the next seat still playing. With nobody out this is just
+  -- (cur_seat + 1) % n. The loop is bounded by n: if everyone else is out it
+  -- wraps back to the current seat, and if that player is out too, next_seat
+  -- stays null and the pointer is left where it is.
   next_seat := null;
   for i in 1..n_players loop
     select gp.turn_seat into next_seat
       from common.game_players gp
      where gp.game_id = target_game
        and gp.turn_seat = (cur_seat + i) % n_players
-       and not gp.conceded;
+       and not gp.locally_terminal;
     exit when next_seat is not null;
   end loop;
 
@@ -1634,8 +1635,10 @@ begin
       detail = 'this player''s conceded flag is already set';
   end if;
 
+  -- A conceder is out, so locally terminal too (docs/win-lose.md → Where a
+  -- player stands); `conceded` is the separate fact that forfeits a win.
   update common.game_players
-     set conceded = true, conceded_at = now()
+     set conceded = true, conceded_at = now(), locally_terminal = true
    where game_id = target_game and user_id = caller_id;
 
   return caller_id;
@@ -1647,17 +1650,16 @@ $$;
 revoke execute on function common._set_conceded(uuid) from public;
 
 -- ─── common._set_locally_terminal ──────────────────────────
--- Mark one player DONE while the game plays on — the flag's one
--- writer. What put them there is the gametype's own business
--- (connections' fourth mistake, psychicnum's spent budget, a solve
--- in the best-style races), which is why the fact has to be told to
--- `common` rather than derived here.
+-- Mark one player DONE while the game plays on, for a reason that is
+-- the gametype's own business (connections' fourth mistake,
+-- psychicnum's spent budget, a solve in the best-style races), which
+-- is why the fact has to be told to `common` rather than derived
+-- here. Conceding is the one reason `common` knows itself:
+-- `_set_conceded` sets the flag directly.
 --
--- The roster that presence-pause watches is `not conceded and not
--- locally_terminal`: a finished player's closed tab must not stop
--- the game for everyone still playing. The column's migration
--- carries the full reasoning, including why this is not a second
--- spelling of `conceded`.
+-- The roster that presence-pause watches is `not locally_terminal`:
+-- a finished player's closed tab must not stop the game for everyone
+-- still playing. The column's migration carries the reasoning.
 --
 -- NO GUARDS, deliberately. Every caller is a gametype RPC that has
 -- already locked the game, checked membership and decided the local

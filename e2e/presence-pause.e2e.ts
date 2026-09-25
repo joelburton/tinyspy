@@ -25,7 +25,7 @@ import { boardReady } from './helpers/ready'
  * same window passes quietly, with the survivor's board still taking moves.
  *
  * wordle compete stands in for the six games with a per-player finish
- * (docs/common-schema.md → Done, but not out). Its solve is a single typed word whose
+ * (docs/common-schema.md → Not playing any more). Its solve is a single typed word whose
  * target the pgTAP suites already read as the superuser, so "this player is
  * finished" costs one keystroke line — in connections or psychicnum it would
  * be a dozen moves of setup for the same rule.

@@ -13,7 +13,8 @@
 --      at the first player
 --   2. _advance_turn walks the rotation by seat and WRAPS back to 0
 --   3. _require_turn passes the current player, rejects anyone else
---      with P0001 'not your turn'
+--      with P0001 'not your turn'; _advance_turn skips a player who is
+--      locally terminal
 --   4. Free-for-all (never assigned, pointer null) ⇒ _require_turn
 --      passes EVERYONE; _advance_turn is a no-op
 --   5. Solo (1 player) ⇒ pointer is that player; advance wraps to self;
@@ -30,7 +31,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(14);
+select plan(15);
 
 \ir ../_shared/setup.psql
 
@@ -137,6 +138,18 @@ select throws_ok(
   'Not your turn',
   'a non-current player is rejected'
 );
+
+-- ─── (3a) Advance skips a player who is out ──────────────────
+-- Pointer is on seat 0. Seat 1 goes locally terminal (finished, eliminated,
+-- out of budget, or conceded), so the turn passes from seat 0 straight to 2.
+select common._set_locally_terminal(
+  current_setting('test.turn_game')::uuid,
+  (select user_id from common.game_players
+    where game_id = current_setting('test.turn_game')::uuid and turn_seat = 1)
+);
+select common._advance_turn(current_setting('test.turn_game')::uuid);
+select is(pg_temp.current_seat(current_setting('test.turn_game')::uuid), 2,
+  'advance skips a locally terminal player');
 
 -- ─── (4) Free-for-all: never assigned ⇒ pointer null ⇒ all pass ──
 select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');

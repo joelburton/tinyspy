@@ -255,15 +255,15 @@ where it fixes a behavior:
    the standing terms, not `readOnly` / `isLocallyDone`; codenamesduet's doc
    states the rulebook's sudden death. docs/games/stackdown.md's `readOnly`
    goes with its game in step 6.
-2. **The database.** `common._set_conceded` also sets `locally_terminal`; one
-   migration backfills `locally_terminal = true` wherever `conceded` is;
-   `common._advance_turn` skips locally terminal players, not only conceded
-   ones (latent today: turn order is coop-only and locally terminal is
-   compete-only, so they never meet); the original migration's comment ("NOT
-   a second spelling of `conceded`") gets a note naming the change. pgTAP: a
-   concede sets both flags; the turn skips a locally terminal player.
-   Rehearsed over a fresh prod backup (the cut from `supabase migration list
-   --linked`).
+2. ~~**The database.**~~ Done 2026-09-24: `common._set_conceded` also sets
+   `locally_terminal`; `20260924000010_conceded_is_locally_terminal.sql`
+   backfills it wherever `conceded` is; `common._advance_turn` skips a
+   locally terminal seat (latent: turn order is coop-only); the 2026-09-19
+   migration's comment names the change; docs/common-schema.md says so.
+   Failing pgTAP first in `common/concede_test.sql` and
+   `common/turn_order_test.sql`. Rehearsed over the 2026-09-24 22:35 prod
+   backup — which holds no conceded rows, so the backfill is a no-op there
+   today; drift none. Not yet deployed.
 3. **The shared page.** `useCommonGame` reads `turn_seat` and returns, for
    every PlayArea: `isPlayer`, `isConceded`, `isLocallyTerminal`,
    `isStillPlaying`, `turnHolderId`, `isTurnBased`, `isMyTurn` (the new

@@ -9,7 +9,8 @@
 -- the LAST active player conceding ends it, as a collective loss.
 -- Covers:
 --   1. Concede marks JUST the caller (game_players.conceded +
---      conceded_at), game stays non-terminal while others race
+--      conceded_at, and locally_terminal), game stays non-terminal
+--      while others race
 --   2. Idempotency: a second concede by the same player raises P0001
 --   3. A middle concede keeps the game going (one racer left)
 --   4. The LAST active player conceding ends the game as a COLLECTIVE
@@ -27,7 +28,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(14);
+select plan(15);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -92,6 +93,15 @@ select isnt(
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   null,
   'conceded_at is stamped'
+);
+-- Locally terminal is "not playing any more, for whatever reason", conceding
+-- included (docs/win-lose.md → Where a player stands).
+select is(
+  (select locally_terminal from common.game_players
+    where game_id = current_setting('test.game_id')::uuid
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  true,
+  'the conceder is locally terminal too'
 );
 select is(
   (select conceded from common.game_players
