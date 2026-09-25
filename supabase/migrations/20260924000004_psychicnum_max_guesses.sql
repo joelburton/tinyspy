@@ -5,8 +5,8 @@
 -- ============================================================
 -- The guess budget chosen at setup (3, 5, 7 or 9). wordle stores the same
 -- setting as `max_guesses`; psychicnum's bare `guesses` read as a list of
--- guesses rather than a limit. The per-player countdown,
--- `psychicnum.players.guesses_remaining`, is seeded from it and keeps its name.
+-- guesses rather than a limit. The per-player count is measured against it
+-- (`psychicnum.players.guesses_used` since 20260924000009).
 --
 -- A DATA migration, because the key lives in stored jsonb: every psychicnum
 -- game's `common.games.setup`, and each club's saved setup for the next game,

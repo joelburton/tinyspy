@@ -27,7 +27,7 @@
 --
 -- Coop assertions:
 --   - a word not on the board is rejected
---   - wrong guess decrements EVERYONE's budget, verdict 'miss'
+--   - wrong guess counts up EVERYONE's budget, verdict 'miss'
 --   - finding a secret (not the last) is verdict 'hit', with
 --     `found_all` false — the game continues, and it bumps the caller's
 --     players.found_secrets_count
@@ -40,7 +40,7 @@
 --   - submit_timeout flips to 'lost'
 --
 -- Compete assertions:
---   - wrong guess decrements ONLY the caller's budget
+--   - wrong guess counts up ONLY the caller's budget
 --   - finding all three (caller's own) carries `found_all` true,
 --     play_state='won_compete'
 --   - game ends for everyone on the win, even those with budget left
@@ -100,7 +100,7 @@ select pg_temp.envelope_is(
   'coop: non-player submit_guess rejected'
 );
 
--- (3) ada submits wrong (zdelta): decrement EVERY player's budget
+-- (3) ada submits wrong (zdelta): count up EVERY player's budget
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zdelta'),
@@ -111,10 +111,10 @@ select pg_temp.envelope_is(
 
 reset role;
 select is(
-  (select array_agg(guesses_remaining order by user_id) from psychicnum.players
+  (select array_agg(guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from coop_g)),
-  array[4, 4],
-  'coop: wrong guess decrements EVERY player budget (5→4 for both)'
+  array[1, 1],
+  'coop: wrong guess counts up EVERY player (0→1 of 5 for both)'
 );
 
 -- (4) ada finds a secret (zalpha): a hit with found_all false, game continues
@@ -210,13 +210,13 @@ select is(
   'coop: took_turn is true on guesses, and on neither the hint nor the spoiler'
 );
 
--- (11) neither the hint nor the spoiler spent any budget (still 3 each: one
--- wrong + one find)
+-- (11) neither the hint nor the spoiler spent any budget (still 2 used each:
+-- one wrong + one find)
 select is(
-  (select array_agg(guesses_remaining order by user_id) from psychicnum.players
+  (select array_agg(guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from coop_g)),
-  array[3, 3],
-  'coop: request_hint / request_spoiler do not decrement the budget'
+  array[2, 2],
+  'coop: request_hint / request_spoiler do not spend the budget'
 );
 
 -- (12) bea finds zbravo, then zcharlie (the last) → team wins
@@ -368,16 +368,16 @@ update psychicnum.games
        secrets = array['zalpha','zbravo','zcharlie']
  where id = (select id from comp_g);
 
--- (1) ada submits wrong (zdelta): decrement ONLY ada's budget
+-- (1) ada submits wrong (zdelta): count up ONLY ada's budget
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select psychicnum.submit_guess((select id from comp_g), 'zdelta');
 
 reset role;
 select is(
-  (select array_agg(guesses_remaining order by user_id) from psychicnum.players
+  (select array_agg(guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from comp_g)),
-  array[2, 3],
-  'compete: wrong guess decrements ONLY caller (ada→2, bea stays at 3)'
+  array[1, 0],
+  'compete: wrong guess counts up ONLY caller (ada→1, bea stays at 0)'
 );
 
 -- (2) bea finds all three on her own → wins

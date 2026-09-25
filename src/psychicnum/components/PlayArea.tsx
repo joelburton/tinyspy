@@ -191,20 +191,21 @@ function PlayArea({
   // are guess budgets. (`concededIds` below is the same fact for everyone.)
   const myConceded = players.find((p) => p.user_id === session.user.id)?.conceded ?? false
 
-  // My remaining guesses, and from it the "can I still act?" gate — read by the
-  // Hint / Spoiler bindings, so their menu rows and their InfoCol buttons gray
-  // together.
-  const selfBudget = myBudgetRow?.guesses_remaining ?? 0
+  // The guess budget, and how much of it I have used — from it the "can I still
+  // act?" gate, read by the Hint / Spoiler bindings, so their menu rows and
+  // their InfoCol buttons gray together.
+  const maxGuesses = setup.max_guesses
+  const guessesUsed = myBudgetRow?.guesses_used ?? maxGuesses
   // Still in this game: it is live, I have guesses left, and I have not
   // conceded. Drives the terminal-vs-play LOOK in both columns.
   //
   // NOT about whose turn it is — waiting your turn is still playing, and
   // `isMyTurn` (passed to BoardCol) is what gates the actual input.
   //
-  // A club member WATCHING reads false here through `selfBudget`'s `?? 0`
-  // rather than through a test of their own — so give that default a non-zero
-  // placeholder and a watcher silently becomes a player.
-  const isStillPlaying = !isTerminal && selfBudget > 0 && !myConceded
+  // A club member WATCHING reads false here through `guessesUsed`'s
+  // `?? maxGuesses` rather than through a test of their own — so give that
+  // default anything smaller and a watcher silently becomes a player.
+  const isStillPlaying = !isTerminal && guessesUsed < maxGuesses && !myConceded
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array (common/setup-form/doc.md →
@@ -633,10 +634,6 @@ function PlayArea({
     guesses.filter((g) => g.kind === 'guess' && g.is_correct).map((g) => g.word),
   ).size
   const found = mode === 'coop' ? teamFound : selfSecretsFound
-
-  // The info column's numbers.
-  const maxGuesses = setup.max_guesses
-  const guessesUsed = maxGuesses - selfBudget
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>

@@ -1330,7 +1330,7 @@ revoke execute on function common._require_turn(uuid, uuid) from public;
 -- The mid-game state-write helper. Per-gametype RPCs call this
 -- after any state transition that's NOT a game-end — connections'
 -- mistake-count bump, codenamesduet's sudden-death entry, psychicnum's
--- guesses_remaining decrement, etc. Updates `play_state` (the
+-- guesses_used count, etc. Updates `play_state` (the
 -- gametype's enum value) + `status` (the listing-label jsonb) +
 -- `is_terminal` (always false here by definition; the column
 -- exists so the same write-pattern works for both mid-game and

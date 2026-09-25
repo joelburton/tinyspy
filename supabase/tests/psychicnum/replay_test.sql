@@ -10,9 +10,8 @@
 -- non-player is rejected.
 --
 -- Two psychicnum-specific things pinned here:
---   - the guess budget is restored from `setup->>'max_guesses'`, NOT from the
---     players rows (which have been decremented all game and can't say what
---     the budget was);
+--   - every player's used count goes back to 0, against the unchanged
+--     `setup->>'max_guesses'`;
 --   - turn-order coop rewinds the pointer to the player seated first.
 --
 -- Same non-word board as gameplay_test (a `z`-prefixed NATO alphabet), pinned
@@ -75,11 +74,11 @@ select is((select count(*) from psychicnum.events where game_id = (select id fro
   0::bigint, 'coop: replay → the guess log is cleared');
 select is(
   (select count(*) from psychicnum.players
-    where game_id = (select id from g1) and guesses_remaining = 3 and found_secrets_count = 0),
-  2::bigint, 'coop: replay → both players back to the full budget, nothing found');
+    where game_id = (select id from g1) and guesses_used = 0 and found_secrets_count = 0),
+  2::bigint, 'coop: replay → both players back to no guesses used, nothing found');
 select is(
-  (select (status->>'guesses_remaining')::int from common.games where id = (select id from g1)),
-  3, 'coop: replay → status shows the shared budget again');
+  (select (status->>'guesses_used')::int from common.games where id = (select id from g1)),
+  0, 'coop: replay → status shows no guesses used again');
 select is(
   (select count(*) from common.game_players
     where game_id = (select id from g1) and result is null and not conceded),
@@ -118,8 +117,8 @@ reset role;
 select ok((select not is_terminal from common.games where id = (select id from g2)),
   'compete: replay → is_terminal cleared');
 select is(
-  (select (status->>'guesses_remaining')::int from common.games where id = (select id from g2)),
-  6, 'compete: replay → status sums both players'' restored budgets');
+  (select (status->>'guesses_used')::int from common.games where id = (select id from g2)),
+  0, 'compete: replay → status sums both players'' used counts, back to 0');
 
 -- ── Turn-order coop rewinds to the first-seated player ──────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

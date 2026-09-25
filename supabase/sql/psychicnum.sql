@@ -155,10 +155,10 @@ revoke insert, update, delete on psychicnum.games_state from authenticated;
 -- nine-letter word; three of them become the hidden secrets.
 --
 -- max_guesses meaning:
---   - coop: shared budget (every player row gets the same
---     initial value; decrement all on every guess).
---   - compete: per-player budget (every player row gets the
---     same initial value; only the guesser's row decrements).
+--   - coop: shared budget (every player row's `guesses_used`
+--     counts up together on every guess).
+--   - compete: per-player budget (only the guesser's row's
+--     `guesses_used` counts up).
 --
 -- Player-count check: compete needs 2+ players (one-player
 -- compete is "racing yourself" — degenerate, hidden by the FE
@@ -223,7 +223,7 @@ begin
   s_guesses := (setup->>'max_guesses')::int;
   -- A sane range, not the form's menu: which budgets are offered is the setup
   -- form's choice (GUESS_OPTIONS). 9 is the ceiling of the
-  -- `players.guesses_remaining` column check.
+  -- `players.guesses_used` column check.
   if s_guesses not between 1 and 9 then
     raise exception 'BUG: guess budget of %', s_guesses
       using errcode = 'PN044', hint = 'fault', column = '_',
@@ -346,30 +346,30 @@ begin
   insert into psychicnum.games (id, club_handle, mode, words, secrets)
   values (new_id, target_club, mode, s_words, s_secrets);
 
-  -- One player row per player_user_ids entry, all seeded with
-  -- the same initial guess budget. Coop will decrement all of
-  -- them in lock-step; compete decrements each independently.
-  insert into psychicnum.players (game_id, user_id, guesses_remaining)
-  select new_id, uid, s_guesses
+  -- One player row per player_user_ids entry, each with no guesses used yet
+  -- (the column's default). Coop counts all of them up in lock-step; compete
+  -- counts each independently. The budget stays in `setup.max_guesses`.
+  insert into psychicnum.players (game_id, user_id)
+  select new_id, uid
     from unnest(player_user_ids) as uid;
 
   -- Seed the club-list readout, in the SAME shape submit_guess maintains.
   -- Without this `status` stays NULL until the first guess and a brand-new
   -- game reads as a bare "Playing" while every other game on the roster shows
-  -- its opening state. Coop carries the shared budget + the 0/N found tally;
-  -- compete carries only the SUMMED budget, because this column is club-wide
-  -- readable and a shared found-count would tell you how close your opponent
-  -- is (see the submit_guess writer for the same split).
+  -- its opening state. Coop carries the shared used count + the 0/N found
+  -- tally; compete carries only the SUMMED used count, because this column is
+  -- club-wide readable and a shared found-count would tell you how close your
+  -- opponent is (see the submit_guess writer for the same split). The budget
+  -- itself is `setup.max_guesses`, which the label reads.
   perform common.update_state(
     new_id,
     'playing',
     case when mode = 'coop'
          then jsonb_build_object(
-                'guesses_remaining', s_guesses,
+                'guesses_used', 0,
                 'found_secrets_count', 0,
                 'required_secrets_count', array_length(s_secrets, 1))
-         else jsonb_build_object(
-                'guesses_remaining', s_guesses * array_length(player_user_ids, 1))
+         else jsonb_build_object('guesses_used', 0)
     end
   );
 
@@ -453,8 +453,9 @@ declare
   current_play_state text;
   initial_guesses int;
   is_correct boolean;
-  caller_remaining int;
-  total_remaining int;
+  caller_used int;
+  racers_with_budget int;
+  total_used int;
   found_count int;
   required_secrets_count int;
   player_results jsonb;
@@ -515,17 +516,17 @@ begin
   end if;
 
   -- Per-mode budget check on the caller's row.
-  select guesses_remaining into caller_remaining
+  select guesses_used into caller_used
     from psychicnum.players
    where game_id = target_game and user_id = caller_id;
-  if caller_remaining is null then
+  if caller_used is null then
     -- Shouldn't happen — require_game_player passed, so the row
     -- exists. Defensive.
     raise exception 'You are not in this game'
       using errcode = 'PN271', hint = 'fault', column = '_',
       detail = 'no psychicnum.players budget row for the caller';
   end if;
-  if caller_remaining <= 0 then
+  if caller_used >= initial_guesses then
     -- The FE knows your budget, so reaching this is a bug rather than a bad
     -- move.
     raise exception 'No guesses left'
@@ -558,21 +559,20 @@ begin
   insert into psychicnum.events (game_id, user_id, word, is_correct, kind, took_turn)
   values (target_game, caller_id, w, is_correct, 'guess', true);
 
-  -- ─── Budget decrement: coop = everyone, compete = caller ─
+  -- ─── Count the guess: coop = everyone, compete = caller ──
   if g.mode = 'coop' then
     update psychicnum.players
-       set guesses_remaining = guesses_remaining - 1
+       set guesses_used = guesses_used + 1
      where game_id = target_game;
   else
     update psychicnum.players
-       set guesses_remaining = guesses_remaining - 1
+       set guesses_used = guesses_used + 1
      where game_id = target_game and user_id = caller_id;
 
     -- A racer whose budget is gone is done while the others play on, so the
     -- common roster has to hear about it: a player nothing is waiting for must
     -- not hold the presence-pause open (see the flag's migration).
-    if (select guesses_remaining from psychicnum.players
-         where game_id = target_game and user_id = caller_id) <= 0 then
+    if caller_used + 1 >= initial_guesses then
       perform common._set_locally_terminal(target_game, caller_id);
     end if;
   end if;
@@ -585,15 +585,21 @@ begin
      where game_id = target_game and user_id = caller_id;
   end if;
 
-  -- Total remaining budget across the whole game (coop: N × the shared value;
-  -- compete: sum of independent counters). Drives the all-exhausted loss.
-  -- A CONCEDER contributes 0 — they've dropped out, so their leftover budget
+  -- How many players still have budget left. Drives the all-exhausted loss.
+  -- A CONCEDER does not count — they've dropped out, so their leftover budget
   -- must not keep the game alive (coop never concedes, so this is a no-op there).
-  select coalesce(sum(pp.guesses_remaining), 0) into total_remaining
+  select count(*) into racers_with_budget
     from psychicnum.players pp
     join common.game_players gp
       on gp.game_id = pp.game_id and gp.user_id = pp.user_id
-   where pp.game_id = target_game and not gp.conceded;
+   where pp.game_id = target_game and not gp.conceded
+     and pp.guesses_used < initial_guesses;
+
+  -- The used count across the whole game, for compete's status (coop's is the
+  -- shared count, which every row holds).
+  select coalesce(sum(pp.guesses_used), 0) into total_used
+    from psychicnum.players pp
+   where pp.game_id = target_game;
 
   -- Distinct secrets found in scope (coop: the team; compete: the caller).
   -- Counting real guesses keeps this independent of the found_secrets_count tally.
@@ -653,7 +659,7 @@ begin
   -- ─── Budget exhausted before completing the set = loss ───
   -- Applies to the guess (right or wrong) that drops the last available
   -- budget anywhere in the game without the set being complete.
-  if total_remaining <= 0 then
+  if racers_with_budget = 0 then
     if g.mode = 'coop' then
       select jsonb_object_agg(user_id::text, '{"won": false}'::jsonb)
         into player_results
@@ -707,15 +713,15 @@ begin
   -- guess never advances either — the same player retries.
   perform common._advance_turn(target_game);
 
-  -- For the listing label, surface (coop) the shared remaining value, or
-  -- (compete) the caller's own remaining value.
+  -- For the listing label, surface (coop) the shared used count, or
+  -- (compete) the sum across racers.
   perform common.update_state(
     target_game,
     'playing',
-    jsonb_build_object('guesses_remaining',
+    jsonb_build_object('guesses_used',
       case when g.mode = 'coop'
-           then caller_remaining - 1
-           else total_remaining
+           then caller_used + 1
+           else total_used
       end)
       -- How far along the team is, for the club-list readout. COOP ONLY: in
       -- compete each racer hunts the same three secrets on their own, and this
@@ -769,7 +775,9 @@ begin
     select 1 from psychicnum.players pp
       join common.game_players gp
         on gp.game_id = pp.game_id and gp.user_id = pp.user_id
-     where pp.game_id = target_game and not gp.conceded and pp.guesses_remaining > 0
+      join common.games cg on cg.id = pp.game_id
+     where pp.game_id = target_game and not gp.conceded
+       and pp.guesses_used < (cg.setup->>'max_guesses')::int
   ) then
     return false;
   end if;
@@ -1106,7 +1114,6 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g psychicnum.games%rowtype;
   current_play_state text;
-  initial_guesses int;
   player_results jsonb;
   terminal_state text;
   terminal_reason text;
@@ -1120,8 +1127,7 @@ begin
 
   perform common.require_game_player(target_game);
 
-  select play_state, (setup->>'max_guesses')::int
-    into current_play_state, initial_guesses
+  select play_state into current_play_state
     from common.games where id = target_game;
 
   if current_play_state <> 'playing' then
@@ -1146,10 +1152,8 @@ begin
     terminal_state,
     jsonb_build_object(
       'reason', terminal_reason,
-      'guesses_used', initial_guesses - (
-        select coalesce(sum(guesses_remaining), 0)::int / greatest(
-          (select count(*)::int from psychicnum.players where game_id = target_game),
-          1)
+      'guesses_used', (
+        select coalesce(sum(guesses_used), 0)::int / greatest(count(*)::int, 1)
           from psychicnum.players where game_id = target_game)
     ),
     player_results
@@ -1287,10 +1291,8 @@ grant execute on function psychicnum.end_game(uuid) to authenticated;
 -- it's a restart). Both modes reset ALL players (a group "run it back",
 -- per the friends trust model).
 --
--- The guess budget is re-read from `common.games.setup->>'max_guesses'`
--- rather than from `psychicnum.players` — those rows have been
--- decremented all game, so they can't say what the budget WAS. It's the
--- same value create_game seeded them with.
+-- Every player's used count goes back to 0; the budget itself is
+-- `setup.max_guesses`, which a replay does not touch.
 --
 -- Turn-order coop rewinds the pointer to the player seated first
 -- (`game_players.turn_seat = 0`). The rotation was assigned at create
@@ -1316,8 +1318,6 @@ as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_row     psychicnum.games;
-  v_guesses int;
-  v_players int;
 begin
   -- FOR UPDATE: a replay racing a move must not interleave with it (the move
   -- RPCs lock the same row), or the reset could land on a half-applied move —
@@ -1335,11 +1335,8 @@ begin
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
   perform common.require_game_player(target_game);
 
-  select (setup->>'max_guesses')::int into v_guesses
-    from common.games where id = target_game;
-
   update psychicnum.players
-     set guesses_remaining = v_guesses,
+     set guesses_used = 0,
          found_secrets_count = 0
    where game_id = target_game;
 
@@ -1354,16 +1351,9 @@ begin
          )
    where id = target_game and current_turn_user_id is not null;
 
-  -- The club-list label: coop shows the shared remaining budget, compete the
-  -- sum across players — the same two shapes submit_guess writes.
-  select count(*) into v_players from psychicnum.players where game_id = target_game;
-  perform common.reset_game(
-    target_game,
-    jsonb_build_object(
-      'guesses_remaining',
-      case when g_row.mode = 'coop' then v_guesses else v_guesses * v_players end
-    )
-  );
+  -- The club-list label: nothing used yet, in either mode — the same key
+  -- submit_guess writes.
+  perform common.reset_game(target_game, jsonb_build_object('guesses_used', 0));
   return common.ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

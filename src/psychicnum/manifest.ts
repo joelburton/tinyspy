@@ -4,7 +4,7 @@ import { lazy } from 'react'
 import { runRpc } from '@/common/supabase/dbResult'
 import type { CreatedGame, GameManifest } from '@/common/manifest/gameManifest'
 import { db } from './db'
-import { count, verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
+import { setupNum, verdict, statusLine, tally, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
 import { DEFAULT_PSYCHICNUM_SETUP, type PsychicnumSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
@@ -81,8 +81,9 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 //
 // What `status` carries, as the SQL writes it (create_game seeds it,
 // submit_guess and the terminal RPCs maintain it):
-//   coop, mid-game:    { guesses_remaining, found_secrets_count, required_secrets_count }
-//   compete, mid-game: { guesses_remaining }   — the SUM across racers
+//   coop, mid-game:    { guesses_used, found_secrets_count, required_secrets_count }
+//   compete, mid-game: { guesses_used }   — the SUM across racers
+//   (the budget itself is `setup.max_guesses`, read off the row's setup)
 //   a win adds  { outcome, winner_username }; a loss adds { outcome, guesses_used },
 //   and coop's loss restates the found tally too.
 //
@@ -93,7 +94,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 // Each mode's labelFor handles its own play_state set; the
 // shared helper below covers what's identical between them.
 type StatusBlob = {
-  guesses_remaining?: number
+  guesses_used?: number
   found_secrets_count?: number
   required_secrets_count?: number
   winner_username?: string
@@ -102,16 +103,19 @@ type StatusBlob = {
 
 /**
  * The mid-game progress, COOP only. In compete every racer holds their own
- * budget and hunts the same three secrets independently — `guesses_remaining`
- * is the SUM across the table there (a 2-player game would read "10 guesses
- * left"), and a shared found-count would tell you exactly how close your
- * opponent is. This line is club-wide readable, so compete says nothing.
+ * budget and hunts the same three secrets independently — `guesses_used` is
+ * the SUM across the table there (a 2-player game would read "4/5 guesses"),
+ * and a shared found-count would tell you exactly how close your opponent is.
+ * This line is club-wide readable, so compete says nothing.
+ *
+ * `maxGuesses` is the setup's budget, which never changes, so it is read off
+ * the row's `setup` rather than copied into every status write.
  */
-function labelMidGame(s: StatusBlob) {
+function labelMidGame(s: StatusBlob, maxGuesses: number | null) {
   return statusLine(
     verdict('Playing'),
     tally(s.found_secrets_count, s.required_secrets_count, 'found'),
-    count(s.guesses_remaining, 'guess left', 'guesses left'),
+    tally(s.guesses_used, maxGuesses, 'guesses'),
   )
 }
 
@@ -161,7 +165,7 @@ export const psychicnumCoopGame: GameManifest = {
     const found = tally(s.found_secrets_count, s.required_secrets_count, 'found')
     switch (row.play_state) {
       case 'playing':
-        return labelMidGame(s)
+        return labelMidGame(s, setupNum(row.setup, 'max_guesses'))
       case 'won':
         // A team win, but naming who landed the third secret is the fun bit.
         return statusLine(verdict('Won'), s.winner_username && `${s.winner_username} guessed it`)

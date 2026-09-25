@@ -76,7 +76,7 @@ const GAME_ROW = {
   secrets: null,
   created_at: '2026-09-01T00:00:00Z',
 }
-const PLAYER_ROW = { user_id: 'u1', guesses_remaining: 5, found_secrets_count: 1 }
+const PLAYER_ROW = { user_id: 'u1', guesses_used: 2, found_secrets_count: 1 }
 const EVENT_ROW = {
   id: 1, user_id: 'u1', word: 'apple', is_correct: true,
   kind: 'guess', created_at: '2026-09-01T00:01:00Z',

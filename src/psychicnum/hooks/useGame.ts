@@ -47,8 +47,8 @@ export type PsychicnumGame = {
 /**
  * One row from `psychicnum.players` — per-player guess budget.
  *
- * In coop: every player row carries the same value (decremented
- * in lock-step). In compete: each row decrements independently
+ * In coop: every player row carries the same value (counted up
+ * in lock-step). In compete: each row counts up independently
  * when its owner submits.
  *
  * Always visible to the whole club regardless of mode — the
@@ -58,7 +58,9 @@ export type PsychicnumGame = {
  */
 export type PlayerRow = {
   user_id: string
-  guesses_remaining: number
+  // Guesses this player has spent, against `setup.max_guesses`. In coop every
+  // row counts up together.
+  guesses_used: number
   // How many distinct secrets this player has found (0..3). Public to the
   // club; drives the compete opponent-progress feedback.
   found_secrets_count: number
@@ -160,7 +162,7 @@ export function useGame(gameId: string): {
         readRows(
           db
             .from('players')
-            .select('user_id, guesses_remaining, found_secrets_count')
+            .select('user_id, guesses_used, found_secrets_count')
             .eq('game_id', gameId),
         ),
         readRows(

@@ -1936,19 +1936,19 @@ export type Database = {
         Row: {
           found_secrets_count: number
           game_id: string
-          guesses_remaining: number
+          guesses_used: number
           user_id: string
         }
         Insert: {
           found_secrets_count?: number
           game_id: string
-          guesses_remaining: number
+          guesses_used?: number
           user_id: string
         }
         Update: {
           found_secrets_count?: number
           game_id?: string
-          guesses_remaining?: number
+          guesses_used?: number
           user_id?: string
         }
         Relationships: [

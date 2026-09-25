@@ -29,7 +29,7 @@ type Case = [state: string, status: Record<string, unknown>, note: string]
  *  whatever the label's `?? 0` fallbacks invent. `shared` is for the mode-less games. */
 type Family = {
   playing: Record<string, unknown>
-  /** The game's frozen setup, for the labels that name a setup choice (`dict`). */
+  /** The game's frozen setup, for the labels that read a setup choice (`dict`, a budget). */
   setup?: Record<string, unknown>
   shared?: Case[]
   coop?: Case[]
@@ -85,7 +85,9 @@ const CASES: Record<string, Family> = {
     ],
   },
   psychicnum: {
-    playing: { guesses_remaining: 5, found_secrets_count: 2, required_secrets_count: 3 },
+    playing: { guesses_used: 2, found_secrets_count: 2, required_secrets_count: 3 },
+    // The budget the mid-game line reads guesses_used against.
+    setup: { max_guesses: 7 },
     shared: [['ended', { reason: 'manual', found_secrets_count: 2, required_secrets_count: 3 }, 'manual end']],
     coop: [
       ['won', W, 'found it'],

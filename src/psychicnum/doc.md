@@ -59,9 +59,9 @@ its guesser's dot where a revealed one has none.
 ### Coop
 
 One board, one budget, every guess and assist visible to everyone. A guess
-decrements every player's row in lock-step, so the budgets are always equal.
-The team wins by finding all three together, and loses on the guess that takes
-the budget to zero first — or when a countdown timer expires.
+counts up every player's row in lock-step, so the counts are always equal.
+The team wins by finding all three together, and loses on the guess that spends
+the last of the budget first — or when a countdown timer expires.
 
 **Turn order is opt-in.** The setup dialog offers free-for-all (the default) or
 turn-by-turn, and in the second the server holds `current_turn_user_id` and
@@ -76,8 +76,8 @@ racer sees their own guesses and assists, every rival's **remaining budget**,
 and a count of how many secrets each rival has found — never which words, and
 never a rival's rows, which RLS withholds until the game ends.
 
-First to all three wins and the game ends for everyone. If every budget reaches
-zero with nobody finished, everyone loses; a countdown expiring does the same.
+First to all three wins and the game ends for everyone. If every budget is
+spent with nobody finished, everyone loses; a countdown expiring does the same.
 There is no way to stop a race for the whole table — see
 `common/game-page/todo.md`.
 
@@ -113,14 +113,15 @@ Three tables and a view, in `supabase/migrations/20260615000002_psychicnum.sql`
 | | |
 |---|---|
 | `psychicnum.games` | one row per game — the board `words`, the three `secrets`, the `mode`. Keyed to `common.games` |
-| `psychicnum.players` | one row per player: `guesses_remaining` and `found_secrets_count`. **Club-wide readable in both modes** — the budget strip and compete's opponent tension are built on it |
+| `psychicnum.players` | one row per player: `guesses_used` (counting up against `setup.max_guesses`) and `found_secrets_count`. **Club-wide readable in both modes** — the budget strip and compete's opponent tension are built on it |
 | `psychicnum.events` | the turn log, append-only. `kind` is `guess`, `hint` or `spoiler`; `word` holds the guessed word, the clue, or the spoiled word depending on which |
 | `psychicnum.games_state` | the view the frontend reads. Every readable column of `games`, plus `secrets` through `_secrets_for()` |
 
-**The club page's "guesses left" is a SUM in compete.** `common.games.status`
-carries one number for the listing, and a race has no single budget to report —
+**The status's `guesses_used` is a SUM in compete.** `common.games.status`
+carries one number for the listing, and a race has no single count to report —
 so coop writes the shared value and compete writes every player's added
-together. A number larger than any setup offers is that, not a bug.
+together. The club page shows coop's against `setup.max_guesses` ("3/7
+guesses"); compete's it never shows, since a racer's count is their own.
 
 ### Two things worth knowing before reading the SQL
 

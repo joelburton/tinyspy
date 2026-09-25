@@ -149,9 +149,10 @@ and a backfill. Park them, or schedule some?
 - ~~**The guess budget.**~~ Done 2026-09-24: psychicnum's setup `guesses` →
   `max_guesses`, as wordle has it, and `totalGuesses` → `maxGuesses`
   (`20260924000004_psychicnum_max_guesses.sql`). codenamesduet's `turns` stays:
-  its budget is turns. Not yet ruled: the counting direction (psychicnum's
-  `guesses_remaining` down, wordle's `guesses_used` up; Claude's verdict: not
-  worth it, both names are accurate).
+  its budget is turns. The counting direction: psychicnum counts UP like
+  wordle — `players.guesses_used` and the status key `guesses_used`, against
+  `setup.max_guesses`, which the club-page line reads off the row's setup
+  ("3/7 guesses", coop only) (`20260924000009_psychicnum_guesses_used.sql`).
 - ~~**The guessed word's column.**~~ Done 2026-09-24: `wordle.events.guess` →
   `word`, as every other event table has it
   (`20260924000006_wordle_events_word.sql`). `submit_guess`'s `guess`

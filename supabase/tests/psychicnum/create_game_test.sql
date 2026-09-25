@@ -266,10 +266,10 @@ select is(
 );
 
 select is(
-  (select array_agg(guesses_remaining order by user_id) from psychicnum.players
+  (select array_agg(guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from coop_game)),
-  array[5, 5],
-  'coop: every player_row starts with setup.max_guesses'
+  array[0, 0],
+  'coop: every player_row starts with no guesses used'
 );
 
 -- (10) The board and its secrets
@@ -342,12 +342,12 @@ select is(
   'compete: per-player rows inserted'
 );
 
--- (15) Compete budgets seeded from setup.max_guesses
+-- (15) Compete players start with no guesses used
 select is(
-  (select array_agg(guesses_remaining order by user_id) from psychicnum.players
+  (select array_agg(guesses_used order by user_id) from psychicnum.players
     where game_id = (select id from compete_game)),
-  array[3, 3],
-  'compete: every player_row starts with setup.max_guesses'
+  array[0, 0],
+  'compete: every player_row starts with no guesses used'
 );
 
 -- (16) is_current_view flipped to true for the new game; the
@@ -426,12 +426,12 @@ create temp table seeded_cmp on commit drop as
 reset role;
 select is(
   (select status from common.games where id = (select id from seeded_coop)),
-  '{"found_secrets_count": 0, "required_secrets_count": 3, "guesses_remaining": 7}'::jsonb,
-  'coop seeds the shared budget + the 0/3 found tally at create');
+  '{"found_secrets_count": 0, "required_secrets_count": 3, "guesses_used": 0}'::jsonb,
+  'coop seeds the shared used count + the 0/3 found tally at create');
 select is(
   (select status from common.games where id = (select id from seeded_cmp)),
-  '{"guesses_remaining": 14}'::jsonb,
-  'compete seeds only the SUMMED budget (2 players x 7) — no shared progress');
+  '{"guesses_used": 0}'::jsonb,
+  'compete seeds only the SUMMED used count — no shared progress');
 
 -- ── PN049: an unseeded dictionary ──
 -- Emptying the pool is the only way to reach this raise, so it goes LAST —

@@ -131,7 +131,8 @@ create index psychicnum_games_club_handle_idx on psychicnum.games (club_handle);
 -- psychicnum.players — per-player budget tracking
 -- ============================================================
 -- Created at game-start time: one row per player_user_ids entry,
--- with `guesses_remaining` seeded from `setup.max_guesses`.
+-- with `guesses_remaining` seeded from `setup.max_guesses` (replaced by
+-- `guesses_used`, counting up, in 20260924000009_psychicnum_guesses_used).
 --
 -- In coop mode: every row shares the same value (and decrements
 -- in lock-step with every guess). The shape is symmetric across
@@ -212,7 +213,8 @@ alter table psychicnum.guesses enable row level security;
 -- Three tables broadcast so the FE can subscribe to:
 --   - games   — terminal-state flip (used to re-fetch the view
 --                with secrets now revealed)
---   - players — guesses_remaining decrement (drives the budget
+--   - players — the budget count (`guesses_used` since
+--                20260924000009) (drives the budget
 --                strip's live update + own-budget UI in compete)
 --   - guesses — new entry (in coop everyone sees; in compete
 --                the receiver's RLS hides others' entries, but

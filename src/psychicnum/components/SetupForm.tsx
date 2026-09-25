@@ -78,7 +78,7 @@ export function SetupForm({
         {/* The text is mode-neutral on purpose — the same SetupForm
             backs both psychicnum_coop and psychicnum_compete
             manifests. In coop this is the shared pool (per-player
-            value equals shared value because everyone decrements
+            value equals shared value because everyone counts up
             in lock-step); in compete each player gets this many
             independently. The number-on-the-radio carries the
             same meaning either way. */}
