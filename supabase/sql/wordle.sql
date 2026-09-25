@@ -576,6 +576,18 @@ begin
   -- before the soft-rejects so an out-of-turn guess is rejected outright.
   perform common._require_turn(target_game, caller_id);
 
+  -- A conceded player is out of the race — no more guesses. The FE hides the
+  -- entry once you concede, so this only fires on a race (a guess in flight
+  -- when the concede commits, or a stale second tab). Without it a conceder
+  -- could solve and be recorded the winner. Coop never concedes, so it is a
+  -- no-op there.
+  if (select conceded from common.game_players
+        where game_id = target_game and user_id = caller_id) then
+    raise exception 'Already conceded'
+      using errcode = 'PN507', hint = 'race', column = '_',
+      detail = 'caller already dropped out of this compete race';
+  end if;
+
   -- ─── Malformed entry: a fault ────────────────────────────
   -- Not a soft reject: `doSubmit` refuses a short word before it calls, so a
   -- malformed one arriving means a broken client.

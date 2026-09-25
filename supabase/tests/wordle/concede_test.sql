@@ -9,7 +9,8 @@
 -- (common._set_conceded) then re-runs its own terminal check
 -- (_maybe_finish_compete), which counts a conceder as done; the ending it
 -- hands to _finish_compete excludes them from the win. Covers:
---   1. A concede while an opponent still races keeps the game going
+--   1. A concede while an opponent still races keeps the game going, and the
+--      conceder's own next guess is refused
 --   2. When the last racer finishes, the game ends and the CONCEDER
 --      forfeits (recorded a loss even though the game had a winner)
 --   3. Everyone conceding ends it as a collective loss (no winner), and the
@@ -24,7 +25,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(13);
+select plan(14);
 
 -- ─── A 2-player compete game (ada + bea) ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -53,6 +54,16 @@ reset role;
 select is(
   (select is_terminal from common.games where id = (select id from g)),
   false, 'the game continues while bea still races');
+
+-- A guess in flight when the concede committed (or a stale second tab) must
+-- not land: the conceder could otherwise solve and be recorded the winner.
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  wordle.submit_guess((select id from g), (select w from tgt)),
+  '{"type":"not-ok","severity":"race","field":"_","dbcode":"PN507",
+    "message":"Already conceded"}'::jsonb,
+  'a conceder cannot guess');
+reset role;
 
 -- ─── (2) bea solves → game ends; bea wins, ada (conceded) forfeits ───
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');

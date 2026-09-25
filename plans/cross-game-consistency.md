@@ -163,10 +163,10 @@ and a backfill. Park them, or schedule some?
 
 Each needs a failing test before its fix.
 
-- **wordle lets a conceded racer guess.** `wordle.submit_guess` checks game
-  over, already solved and no guesses left, never already conceded; the other
-  four compete games refuse. The FE likely hides the input; the server should
-  decide.
+- ~~**wordle lets a conceded racer guess.**~~ Fixed 2026-09-24: a conceder's
+  guess — the target itself, in the failing test — was accepted; it now
+  answers the "Already conceded" race (PN507), as the other four do
+  (`wordle/concede_test.sql`).
 - **An ending some games' FE does not hear.** `wordle.concede`,
   `connections.concede` and connections' compete timeout can end the game
   without touching a row the game's FE subscribes to, so the revealed answer

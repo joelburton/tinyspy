@@ -274,7 +274,8 @@ nothing, which has no colors:
 - not in the word list — `{ "result": "notAWord", "guesses_used": 2, "solved": false, "terminal": false }`
 
 A guess that arrives after the game has ended, out of turn, or from a racer
-who has already solved it or spent their budget is not an `ok` at all.
+who has already solved it, spent their budget or conceded is not an `ok` at
+all.
 
 ### The rest
 
