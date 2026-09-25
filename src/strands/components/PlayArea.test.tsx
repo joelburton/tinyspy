@@ -5,6 +5,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
@@ -102,25 +103,25 @@ function loaded(over: Partial<GameHook> = {}): GameHook {
   }
 }
 
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
+ *  the page derives it (`whereIStand`), so a test sets up the facts and never
+ *  hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    players: [gp('u1', 'me', 'red')],
+    isTerminal: false,
+    isTurnBased: false,
+    turnHolderId: null,
+    ...over,
+  }
+  return {
     gameId: 'g1',
     brand: 'PaulPath',
     title: 'Test game',
-    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
-    isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
-    isTurnBased: false,
-    isBoardInteractive: true,
-    isWaitingForTurn: false,
-    turnHolderId: null,
     setup: { puzzle_id: 'p1', hint_cost: 3, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -132,7 +133,15 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actChat: boundActionFixture('act-open-chat'),
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
-    ...over,
+    ...facts,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId: facts.turnHolderId,
+      draftsOffTurn: false,
+    }),
   } as unknown as GamePageCtx
 }
 
@@ -222,10 +231,22 @@ describe('strands PlayArea — the three phases', () => {
     // solved on the fewest hints — so a solver goes LOCALLY terminal.
     const me = player({ solved: true })
     h.result = loaded({ game: loadedGame({ mode: 'compete' }), me, players: [me] })
-    render(<PlayArea {...makeCtx({ isTerminal: false, playState: 'playing' })} />)
+    const solver = gp('u1', 'me', 'red', { locally_terminal: true })
+    render(<PlayArea {...makeCtx({ players: [solver], isTerminal: false, playState: 'playing' })} />)
     expect(screen.getByText('You solved it — waiting')).toBeInTheDocument()
     // …and cannot pull the answer while a rival is still tracing.
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
+  })
+
+  it('compete: a racer who is out still has the one flag — End for all', () => {
+    // Conceding is closed to a player already out; ending the game for all is
+    // open to anyone in it, so the row's flag is End.
+    const me = player({ solved: true })
+    h.result = loaded({ game: loadedGame({ mode: 'compete' }), me, players: [me] })
+    const solver = gp('u1', 'me', 'red', { locally_terminal: true })
+    render(<PlayArea {...makeCtx({ players: [solver], isTerminal: false, playState: 'playing' })} />)
+    expect(control('act-concede')).toBeNull()
+    expect(control('act-end-game')).not.toBeNull()
   })
 })
 
@@ -637,7 +658,16 @@ describe('strands PlayArea — the selection cursor', () => {
   })
 
   it('a board I cannot play takes no ring and no keys', async () => {
-    render(<WithKeys {...makeCtx({ turnHolderId: 'u2', isMyTurn: false })} />)
+    // A teammate holds the move.
+    render(
+      <WithKeys
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
+          isTurnBased: true,
+          turnHolderId: 'u2',
+        })}
+      />,
+    )
     await keys('ArrowRight', ' ')
     expect(ringAt()).toBeNull()
     expect(traced()).toEqual([])

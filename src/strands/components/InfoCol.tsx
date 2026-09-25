@@ -21,8 +21,9 @@ import styles from './PlayArea.module.css'
 type Props = {
   // ── Mode + phase ──
   isCompete: boolean
-  /** Compete: my race is over (solved, or conceded) while others play on. */
-  isLocallyDone: boolean
+  /** Compete: my race is over (solved, or conceded) while others play on —
+   *  the page's `isLocallyTerminal`. */
+  isLocallyTerminal: boolean
   /** Solved, as opposed to conceded — they read very differently. */
   iSolved: boolean
   isTerminal: boolean
@@ -33,6 +34,9 @@ type Props = {
    *  board draws paths and never spells anything out, so without this the
    *  reveal makes you read the words off the grid letter by letter. */
   solutionWords: string[] | null
+  /** A turn-order game: render the shared TurnStatusLine, which names the
+   *  holder of `turnHolderId`. */
+  isTurnBased: boolean
   turnHolderId: string | null
   // ── State ──
   clue: string
@@ -86,11 +90,12 @@ type Props = {
  */
 export function InfoCol({
   isCompete,
-  isLocallyDone,
+  isLocallyTerminal,
   iSolved,
   isTerminal,
   over,
   solutionWords,
+  isTurnBased,
   turnHolderId,
   clue,
   wordsFound,
@@ -150,11 +155,11 @@ export function InfoCol({
           />
         )}
 
-        {/* Whose-turn line — ONLY for a turn-order game (pointer non-null). The
-            component itself doesn't guard: its contract is that the caller
-            decides, and rendering it unconditionally puts a "Waiting for
-            someone…" nag on a free-for-all board where nobody is waiting. */}
-        {turnHolderId !== null && (
+        {/* Whose-turn line — ONLY for a turn-order game. The component itself
+            doesn't guard: its contract is that the caller decides, and
+            rendering it unconditionally puts a "Waiting for someone…" nag on a
+            free-for-all board where nobody is waiting. */}
+        {isTurnBased && (
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
@@ -175,14 +180,16 @@ export function InfoCol({
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : isLocallyDone ? (
+        ) : isLocallyTerminal ? (
           /* Compete, my race over while the others play on: the terminal LOOK
-             (a status line + a disabled action), so the frozen board has an
+             (a status line + the one flag), so the frozen board has an
              explanation beside it. */
           <InfoActionsRow message={{ text: iSolved ? 'You solved it — waiting' : 'You conceded', outcome: 'neutral' }}>
-            {/* Concede grays itself once you have solved or dropped out — the
-                row keeps its shape and the button says why. */}
+            {/* Both exits are placed and each says whether it applies: out of
+                the race, Concede hides and End comes out in its place — one
+                flag, since anyone in a game may end it for all. */}
             <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>
@@ -195,7 +202,7 @@ export function InfoCol({
         )}
 
         {/* ── Help ── only while it's actionable; never silently swapped. */}
-        {!over && !isLocallyDone && (
+        {!over && !isLocallyTerminal && (
           <p className={shared.infoHelp}>
             Click letters in order — they may touch diagonally. After the first,
             you can type the rest. Press <kbd>Enter</kbd> (or the Submit button)

@@ -347,7 +347,36 @@ where it fixes a behavior:
    `isLocallyTerminal`; `selfSolved` stays, its own fact; the Board takes
    `isBoardInteractive` for its `disabled` and adds the history viewer
    itself; the two comments still describing a gray Concede corrected; unit +
-   its 9 e2e + the cross-game specs green).
+   its 9 e2e + the cross-game specs green). strands done 2026-09-25
+   (`myConceded` / `isLocallyDone` / `waiting` gone; `boardDisabled` is
+   `!isBoardInteractive || busy`, a word in flight staying its own; the hint
+   stays un-turn-gated on `isStillPlaying`; unit + its 11 e2e + the
+   cross-game specs green).
+   **A bug it found, and four more games have it:** the out-of-the-race row
+   of the action row places only Concede, which hides there — so the row
+   has NO flag, End surviving only in the menu. For a conceder this has been
+   so since End began coming back out for conceders (2026-09-04); step 4
+   added strands' solvers to it. strands' row now places both exits (failing
+   test first). The same row, Concede alone, is in wordiply, stackdown,
+   letterboxed and crosswords — each gets the fix and a failing test in its
+   own commit.
+   **Step 6 renames only the standing terms** (Joel, 2026-09-25). A game's
+   other names that the plan has already settled are owed when its audit
+   area opens — the names below, found while converting, with the games
+   that still use them (2026-09-25):
+   - `over` — the ending's `TerminalMessage | null` — is `terminalMessage`
+     (the six audited games, N1); where it is asked a yes/no
+     (`{!over && …}`), that is `isTerminal`. bananagrams, boggle,
+     crosswords, letterboxed, scrabble, setgame, stackdown, strands, waffle,
+     wordiply.
+   - `busy` — my move is with the server, set around the move RPC — is
+     `submitting`, as psychicnum, connections and wordle name it (the move
+     itself is `inFlight…`, N3). codenamesduet, crosswords, letterboxed,
+     strands.
+   - waffle's Board prop `gameOver` is `terminalOutcome` (N1).
+   - The solved flag: `mySolved` (wordle), `iSolved` (strands),
+     `selfSolved` (stackdown, waffle) — one name, settled with §3b's
+     `hasSolved`.
 7. **codenamesduet's turns.** It keeps its turns in its own table
    (`current_clue_giver` and the phase), so the shared `isMyTurn` is always
    true there. It moves onto the common turn order: both players seated

@@ -188,9 +188,9 @@ function buildOver({
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, isLocallyTerminal, playState, players, session,
+    gameId, isTerminal, isConceded, isLocallyTerminal, isStillPlaying, playState, players, session,
     setup, clubHandle, goToGame, menu, brand, title,
-    isMyTurn, turnHolderId,
+    isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
   } = ctx
 
   const selfId = session.user.id
@@ -361,20 +361,16 @@ export function PlayArea(ctx: GamePageCtx) {
     if (trace.length) void submit(trace)
   }, [trace, submit])
 
-  // COMPETE: solving (or conceding) ends YOUR race while the others keep going.
-  // The board freezes and the standard "you're out" look applies, but the game
-  // is not over — the winner isn't known until nobody is still racing.
-  const myConceded = players.find((p) => p.user_id === selfId)?.conceded ?? false
-  const isLocallyDone = !isTerminal && isCompete && ((me?.solved ?? false) || myConceded)
+  // Where I stand comes from the page (docs/win-lose.md → Where a player
+  // stands). COMPETE: solving (or conceding) ends YOUR race while the others
+  // keep going — the server marks it `isLocallyTerminal` — and the board
+  // freezes with the standard "you're out" look, but the game is not over: the
+  // winner isn't known until nobody is still racing.
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
-  // is null in a free-for-all game, so this is false there — the pill's
-  // presence is fixed for the game's life, no reflow. (wordle's shape.)
-  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
-
-  // The board refuses clicks — terminal, out of the race, a word in flight, a
-  // teammate's turn. The keyboard's cursor asks the same, and the viewer too.
-  const boardDisabled = isTerminal || isLocallyDone || busy || waiting
+  // The board refuses clicks — not mine to touch (over, out of the race, a
+  // teammate's turn), or a word in flight. The keyboard's cursor asks the same,
+  // and the viewer too.
+  const boardDisabled = !isBoardInteractive || busy
 
   // The keyboard's selection cursor: arrows move a ring over the letters, and
   // Space is a CLICK on the ringed one — extend, back up, or start over, by
@@ -396,13 +392,14 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ⌫ and Enter, as the two bindings the word-entry row places. ONE gate for both:
   // with nothing traced there is nothing to take back OR submit, and a frozen
-  // board freezes them too. They go DISABLED rather than hidden, so the row
+  // board freezes them too — submitting asks the turn, and strands does not
+  // draft off-turn, so taking a letter back asks the same. They go DISABLED rather than hidden, so the row
   // keeps its slot and never reflows — and a disabled action leaves its key for
   // whoever else wants it, which is how the history viewer gets Backspace.
   //
   // `describe` can be read on ANY render — the key list asks every binding when
   // Help opens — so everything it names is derived above the loading guards.
-  const entryOff = () => trace.length === 0 || isTerminal || isLocallyDone || busy || waiting
+  const entryOff = () => trace.length === 0 || !isMyTurn || busy
   const actDropLastCell = useBoundAction('act-drop-last-cell', {
     describe: () => (entryOff() ? 'disabled' : 'active'),
     run: deleteLast,
@@ -452,7 +449,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // board is not the player's to touch — and while a past turn is open, which is
   // the viewer's key rather than the board's.
   useBoundAction('act-extend-trace', {
-    describe: () => (isTerminal || busy || !isMyTurn || historyViewer.isViewingHistory ? 'disabled' : 'active'),
+    describe: () => (!isBoardInteractive || busy || historyViewer.isViewingHistory ? 'disabled' : 'active'),
     run: (key) => {
       if (!game || !key) return
       const r = typeLetter(trace, key, game.board, consumed)
@@ -530,7 +527,8 @@ export function PlayArea(ctx: GamePageCtx) {
       const showing = (me?.active_hint_coords ?? null) !== null
       const points = me?.hint_points ?? 0
       const cost = game?.hint_cost ?? 0
-      if (isTerminal || isLocallyDone || busy || historyViewer.isViewingHistory || showing) {
+      // Not turn-gated: spending a hint is a team decision, not a move.
+      if (!isStillPlaying || busy || historyViewer.isViewingHistory || showing) {
         return { state: 'disabled', tooltip: showing ? 'A hint is already showing' : undefined }
       }
       return points >= cost
@@ -792,18 +790,18 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, over])
 
-  // Out of the race while the others play on. `isLocallyDone` folds solved
+  // Out of the race while the others play on. `isLocallyTerminal` folds solved
   // and conceded together, and solving is the GOOD one — compete is won by
   // fewest hints, decided when everyone finishes, so a solver may well be
   // winning. The default 'Lost — race continues' would be flatly wrong for
   // them (wordle/waffle's identical branch makes the same call).
   useEffect(function showOutOfRace() {
-    if (!isLocallyDone) return
+    if (isTerminal || !isLocallyTerminal) return
     const id = localFeedbackSlot.show(
-      FeedbackMessage.outOfRace(myConceded, 'Solved — waiting on the rest'),
+      FeedbackMessage.outOfRace(isConceded, 'Solved — waiting on the rest'),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyDone, myConceded])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
   // Whose turn it is, under turn order. On a phone the InfoCol's TurnStatusLine
   // is off-canvas, so this is the only whose-turn indicator beside the frozen
@@ -812,14 +810,14 @@ export function PlayArea(ctx: GamePageCtx) {
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
-    if (!waiting) return
+    if (!isWaitingForTurn) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
         holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
       ),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, waiting, holderName, holderColor])
+  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
 
   // The THEME, quoted, on an untouched board — what an empty slot says before
   // anything has happened. The clue also sits in the info column, but that
@@ -911,8 +909,8 @@ export function PlayArea(ctx: GamePageCtx) {
         hintCoords={historyViewer.isViewingHistory ? historySnap?.hintCoords ?? null : me?.active_hint_coords ?? null}
         onTileClick={handleTileClick}
         cursor={cursor}
-        // `waiting` folds in turn-order (coop only): a waiting player's board
-        // is inert, and the slot below says why.
+        // A waiting player's board is inert (turn-order coop), and the slot
+        // below says why.
         disabled={boardDisabled}
         // The hint bar keeps its own gate: spend_hint is deliberately NOT
         // turn-gated (a team decision, not a move), so waiting must not dim
@@ -938,14 +936,15 @@ export function PlayArea(ctx: GamePageCtx) {
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           isCompete={isCompete}
-          isLocallyDone={isLocallyDone}
+          isLocallyTerminal={isLocallyTerminal}
           iSolved={me?.solved ?? false}
           hintsByUser={new Map(playerStates.map((p) => [p.user_id, p.hints_spent]))}
           solvedIds={new Set(playerStates.filter((p) => p.solved).map((p) => p.user_id))}
           isTerminal={isTerminal}
           over={over}
           solutionWords={solutionWords}
-          turnHolderId={ctx.turnHolderId ?? null}
+          isTurnBased={isTurnBased}
+          turnHolderId={turnHolderId}
           clue={game.clue}
           wordsFound={found.length}
           hintsSpent={me?.hints_spent ?? 0}
