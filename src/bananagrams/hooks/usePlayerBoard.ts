@@ -119,11 +119,11 @@ export type UsePlayerBoardInput = {
   /** Server-owned holdings (everything the player holds). LIVE: a peel/dump changes it
    *  upstream and the derived hand follows. */
   tiles: string
-  /** True once the game is over — disables Peel (the race is run). */
-  isTerminal?: boolean
-  /** True once THIS player has conceded (game still live for the others): freezes the
-   *  board (no placing / dragging / typing) and disables peel + dump. */
-  isConceded?: boolean
+  /** The board responds to me (the page's `isBoardInteractive`). False once the
+   *  game is over or THIS player has conceded (the game still live for the
+   *  others): freezes the board (no placing / dragging / typing) and disables
+   *  peel, check and dump. */
+  isBoardInteractive: boolean
   /** Peel: draws a tile for everyone, or wins if the bunch can't refill the table.
    *  Resolves to `{ illegalCells }` when a winning peel was BLOCKED by the legal-board
    *  check (those cells get painted red); `null` otherwise. */
@@ -207,8 +207,7 @@ export function usePlayerBoard({
   gameId,
   initialBoard,
   tiles,
-  isTerminal,
-  isConceded,
+  isBoardInteractive,
   onPeel,
   onCheckResult,
   onDump,
@@ -259,7 +258,7 @@ export function usePlayerBoard({
   // live), so the on-screen and printed "final" board would silently diverge
   // from the stored one. The always-on pointer/key handlers read this ref to
   // bail (they're stable, so they can't close over the props directly).
-  const frozen = !!isConceded || !!isTerminal
+  const frozen = !isBoardInteractive
   const frozenRef = useRef(frozen)
   useEffect(() => {
     boardRef.current = board
@@ -497,7 +496,7 @@ export function usePlayerBoard({
   // path can't act on stale state. Flushes the board first so the server's `placed ==
   // tiles` check sees the latest placements.
   const doPeel = useCallback(async () => {
-    if (!onPeel || isTerminal || isConceded || declaringRef.current) return
+    if (!onPeel || !isBoardInteractive || declaringRef.current) return
     if (deriveHand(tilesRef.current, boardRef.current).length !== 0) return
     setDeclaring(true)
     try {
@@ -513,7 +512,7 @@ export function usePlayerBoard({
     } finally {
       setDeclaring(false)
     }
-  }, [onPeel, isTerminal, isConceded, save])
+  }, [onPeel, isBoardInteractive, save])
 
   // Check words — the same legality test a winning peel runs (one connected mass,
   // every word real), on demand and read-only. Flushes the board first for the same
@@ -523,7 +522,7 @@ export function usePlayerBoard({
   // board they were judged against — so they paint identically and clear themselves
   // on the player's next edit, with no second mechanism to keep in step.
   const doWordCheck = useCallback(async () => {
-    if (isTerminal || isConceded || checkingRef.current) return
+    if (!isBoardInteractive || checkingRef.current) return
     setChecking(true)
     try {
       await save()
@@ -550,7 +549,7 @@ export function usePlayerBoard({
     } finally {
       setChecking(false)
     }
-  }, [isTerminal, isConceded, gameId, onCheckResult, save])
+  }, [isBoardInteractive, gameId, onCheckResult, save])
 
   // Board-cursor keyboard — the shared 2-D placement engine (it binds the
   // arrows, the letters and Backspace as actions, and the commit as whichever

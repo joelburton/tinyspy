@@ -34,8 +34,7 @@ export function HandCard({
   onHandPointerDown,
   actShuffle,
   hasDump,
-  isTerminal,
-  isConceded,
+  isBoardInteractive,
   bunchCount,
   bagCount,
 }: {
@@ -55,14 +54,15 @@ export function HandCard({
   actShuffle: BoundAction
   /** Is dumping wired (PlayArea passed `onDump`)? Gates the dump zone. */
   hasDump: boolean
-  isTerminal: boolean
-  isConceded: boolean
+  /** The board responds to me (the page's `isBoardInteractive`) — the dump and
+   *  rotate show only then: not once the game is over or I am out of it. */
+  isBoardInteractive: boolean
   /** Bunch + bag counts — the dump can draw from both; too low ⇒ the slot disables. */
   bunchCount?: number
   bagCount?: number
 }) {
-  const showDump = hasDump && !isTerminal && !isConceded
-  const showControls = !isTerminal && !isConceded // rotate is hidden once out of the race
+  const showDump = hasDump && isBoardInteractive
+  const showControls = isBoardInteractive // rotate is hidden once out of the race
   // A dump draws from the bunch + bag together (see usePlayerBoard's finishDrag).
   const drawable = bunchCount === undefined ? undefined : bunchCount + (bagCount ?? 0)
   const dumpTooLow = drawable !== undefined && drawable < DUMP_COUNT

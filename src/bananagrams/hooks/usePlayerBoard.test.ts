@@ -48,7 +48,7 @@ const withCenter = (letter: string) => setChar(EMPTY, CENTER, letter)
 
 function render(input: Partial<UsePlayerBoardInput> = {}) {
   return renderHook(() =>
-    usePlayerBoard({ gameId: 'g1', initialBoard: EMPTY, tiles: 'A', ...input }),
+    usePlayerBoard({ gameId: 'g1', initialBoard: EMPTY, tiles: 'A', isBoardInteractive: true, ...input }),
   )
 }
 
@@ -140,9 +140,9 @@ describe('doPeel', () => {
     expect(result.current.invalidCells.has(CENTER)).toBe(true)
   })
 
-  it('is inert once the game is terminal', async () => {
+  it('is inert once the board is (the game over, or I conceded)', async () => {
     const onPeel = vi.fn(() => Promise.resolve(null))
-    const { result } = render({ tiles: 'A', initialBoard: withCenter('A'), onPeel, isTerminal: true })
+    const { result } = render({ tiles: 'A', initialBoard: withCenter('A'), onPeel, isBoardInteractive: false })
     await act(async () => {
       await result.current.doPeel()
     })
@@ -151,8 +151,8 @@ describe('doPeel', () => {
 })
 
 describe('frozen (conceded / terminal)', () => {
-  it('disables the keyboard and blocks pointer-down when conceded', () => {
-    const { result } = render({ tiles: 'A', isConceded: true })
+  it('disables the keyboard and blocks pointer-down on an inert board', () => {
+    const { result } = render({ tiles: 'A', isBoardInteractive: false })
     expect(keyCfg.current.enabled).toBe(false)
     result.current.onCellPointerDown(C, C, {} as never)
     expect(mockStart).not.toHaveBeenCalled()

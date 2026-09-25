@@ -21,6 +21,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
@@ -77,25 +78,25 @@ const SETUP = {
   timer: { kind: 'none' },
 }
 
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
+ *  the page derives it (`whereIStand`), so a test sets up the facts and never
+ *  hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    players: [gp('u1', 'me', 'red')],
+    isTerminal: false,
+    isTurnBased: false,
+    turnHolderId: null,
+    ...over,
+  }
+  return {
     gameId: 'g1',
     brand: 'MonkeyGrams',
     title: 'Test game',
-    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
-    isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
-    isTurnBased: false,
-    isBoardInteractive: true,
-    isWaitingForTurn: false,
-    turnHolderId: null,
     setup: SETUP,
     status: { bunch_remaining: 100, bag_remaining: 0 },
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -107,7 +108,15 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actChat: boundActionFixture('act-open-chat'),
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
-    ...over,
+    ...facts,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId: facts.turnHolderId,
+      draftsOffTurn: false,
+    }),
   }
 }
 
@@ -197,7 +206,7 @@ describe('bananagrams PlayArea — render smoke', () => {
   it('renders the locally-terminal "you conceded" state (frozen, others racing)', () => {
     // Concede now lives on the common roster (ctx.players), not progress.
     h.progress = [progressRow({ user_id: 'u1' })]
-    render(<PlayArea {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true })] })} />)
+    render(<PlayArea {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true })] })} />)
     // The action row is the shared <InfoActionsRow> "You conceded" (the same
     // label every other game uses) — no Peel and no Concede, since the conceder
     // is frozen out and the row is the terminal look.
@@ -314,12 +323,13 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
     h.progress = [progressRow({ user_id: 'u1' }), progressRow({ user_id: 'u2', unplaced: 3 })]
     rerender(<PlayArea {...makeCtx({
       players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), two[1]],
-      isConceded: true,
-      isLocallyTerminal: true,
-      isStillPlaying: false,
     })} />)
     expect(stateOf('act-end-game')).toBe('active')
     expect(stateOf('act-concede')).toBe('hidden')
+    // …and the button follows the binding: the "You conceded" row draws End,
+    // the one flag.
+    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
+    expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
   })
 
   it('Restart mid-game asks, and goes straight through at terminal', async () => {

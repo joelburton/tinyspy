@@ -102,7 +102,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // desktop-only, and are deliberately left un-gated — see docs/mobile.md.)
   const isTouch = useIsCoarsePointer()
 
-  const { gameId, isTerminal, menu, brand, title } = ctx
+  const { gameId, isTerminal, isConceded, isLocallyTerminal, menu, brand, title } = ctx
 
   // The live board lives in the `usePlayerBoard` engine (inside `<PlayerBoard>`), not
   // here — but the "Print board (PDF)" menu item lives here (this is where `ctx.menu`
@@ -258,7 +258,7 @@ export function PlayArea(ctx: GamePageCtx) {
     gameId,
     isTerminal,
     mode: 'compete',
-    isLocallyTerminal: ctx.isLocallyTerminal,
+    isLocallyTerminal,
     localFeedbackSlot,
   })
 
@@ -459,16 +459,14 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, over])
 
-  // Locally terminal: I've conceded but the game is still live for the others.
-  // Shown as the terminal LOOK (frozen board + "you're out"), not a silent
-  // swap. Concede lives on the shared roster (ctx.players →
-  // common.game_players).
-  const isConceded = !!ctx.players.find((p) => p.user_id === selfId)?.conceded && !isTerminal
+  // Out of the race while the others play on (the page's `isLocallyTerminal` —
+  // in this game only by conceding). Shown as the terminal LOOK (frozen board +
+  // "you're out"), not a silent swap.
   useEffect(function showOutOfRace() {
-    if (!isConceded) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    if (isTerminal || !isLocallyTerminal) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isConceded])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
   // Desktop-only block (see `isTouch` above). Rendered AFTER every hook so the
   // Rules of Hooks hold, and in place of the whole play surface so the drag
@@ -533,7 +531,7 @@ export function PlayArea(ctx: GamePageCtx) {
       <PeersStrip players={ctx.players} progress={progress} selfId={selfId} />
 
       {/* Help — only while the player can still act. */}
-      {!over && !isConceded && (
+      {!over && !isLocallyTerminal && (
         <p className={shared.infoHelp}>
           Drag tiles or click a cell and type. Peel when your hand is empty.
         </p>
@@ -552,17 +550,21 @@ export function PlayArea(ctx: GamePageCtx) {
   // tooltip carries each label). At terminal the stay-here option (New game)
   // sits left of the leave option (Club), matching every other game's terminal
   // row; Restart is a menu row, not a terminal-row twin. The locally-terminal
-  // "you're out" row keeps Club alone — the race is still running, so offering
-  // to start a different game there would be a distraction.
+  // "you're out" row offers no New game — the race is still running, so
+  // offering to start a different game there would be a distraction.
   const infoActions = over ? (
     <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
       <ActionButton action={actNewGame} show="icon" />
       <ActionButton action={ctx.menu.actBackToClub} show="icon" weight="primary" />
     </InfoActionsRow>
-  ) : isConceded ? (
-    // No Concede button to carry: bananagrams' conceded row is the status line
-    // plus the way out, since the race running on is the whole point.
-    <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }} />
+  ) : isLocallyTerminal ? (
+    <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
+      {/* Both exits are placed and each says whether it applies: out of the
+          race, Concede hides and End comes out in its place — one flag, since
+          anyone in a game may end it for all. */}
+      <ActionButton action={actConcede} show="icon" />
+      <ActionButton action={actEndGame} show="icon" />
+    </InfoActionsRow>
   ) : (
     // Both exits are placed, but only Concede draws while you are racing: its
     // question offers ending the table as the second answer.
@@ -579,8 +581,7 @@ export function PlayArea(ctx: GamePageCtx) {
         gameId={gameId}
         initialBoard={initialBoard}
         tiles={tiles}
-        isTerminal={ctx.isTerminal}
-        isConceded={isConceded}
+        isBoardInteractive={ctx.isBoardInteractive}
         onPeel={peel}
         onCheckResult={showCheckResult}
         onDump={dump}

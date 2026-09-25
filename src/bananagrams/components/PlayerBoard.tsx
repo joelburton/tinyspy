@@ -55,11 +55,11 @@ type Props = {
    *  not-ok, "you're out", the verdict), drawn in the fixed-height slot under
    *  the board so the arena never reflows. */
   localFeedbackSlot: FeedbackSlot
-  /** True once the game is over — disables Peel (the race is run). */
-  isTerminal?: boolean
-  /** True once THIS player has conceded (game still live for the others): freezes the
-   *  board + disables peel/dump — they're out of the race. */
-  isConceded?: boolean
+  /** The board responds to me (the page's `isBoardInteractive`). False once the
+   *  game is over, or once THIS player has conceded (the game still live for the
+   *  others): freezes the board + disables peel/check/dump, and the action row
+   *  takes its out-of-the-race look. */
+  isBoardInteractive: boolean
   /** Peel: draws a tile for everyone, or wins if the bunch can't refill the table.
    *  Resolves to `{ illegalCells }` when a winning peel was BLOCKED (those cells paint
    *  red); `null` otherwise. */
@@ -86,8 +86,7 @@ export function PlayerBoard({
   infoTop,
   infoActions,
   localFeedbackSlot,
-  isTerminal,
-  isConceded,
+  isBoardInteractive,
   onPeel,
   onCheckResult,
   onDump,
@@ -99,8 +98,7 @@ export function PlayerBoard({
     gameId,
     initialBoard,
     tiles,
-    isTerminal,
-    isConceded,
+    isBoardInteractive,
     onPeel,
     onCheckResult,
     onDump,
@@ -157,8 +155,7 @@ export function PlayerBoard({
           onHandPointerDown={arena.onHandPointerDown}
           actShuffle={arena.actShuffle}
           hasDump={!!onDump}
-          isTerminal={!!isTerminal}
-          isConceded={!!isConceded}
+          isBoardInteractive={isBoardInteractive}
           bunchCount={bunchCount}
           bagCount={bagCount}
         />
@@ -171,7 +168,7 @@ export function PlayerBoard({
             driven from realtime, not this click) — the action says so, and the
             Enter/Space that also peels reads the same answer. At terminal /
             locally-terminal the row becomes the outcome line + back-to-club. */}
-        <div className={cls(shared.infoActions, (isTerminal || isConceded) && shared.terminalActions)}>
+        <div className={cls(shared.infoActions, !isBoardInteractive && shared.terminalActions)}>
           {infoActions}
           {/* Check words sits LEFT of Peel: it's the question you ask before
               committing to the move on its right. Unlike Peel it has no
@@ -180,10 +177,10 @@ export function PlayerBoard({
               hint-flavoured buttons in other games it's always offered,
               whatever `setup.word_check` says (that option governs when the
               SERVER enforces words, not whether you may ask). */}
-          {!isTerminal && !isConceded && (
+          {isBoardInteractive && (
             <ActionButton action={arena.actCheckBoard} show="icon" />
           )}
-          {onPeel && !isTerminal && !isConceded && (
+          {onPeel && isBoardInteractive && (
             <ActionButton action={arena.actPeel} show="both" />
           )}
         </div>
