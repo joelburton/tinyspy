@@ -623,6 +623,11 @@ begin
                              where gp.game_id = target_game and not gp.conceded)
            then 'conceded' else 'mistakes' end),
     player_results);
+
+  -- Wake the boards: the last concede writes no connections row of its own —
+  -- without this, open boards never re-read and the rivals' guesses, released
+  -- at terminal, never load (docs/common-schema.md → Manual end, step 5).
+  update connections.games set club_handle = club_handle where id = target_game;
   return true;
 end;
 $$;
@@ -1191,6 +1196,11 @@ begin
       ),
       player_results);
   end if;
+
+  -- Wake the boards: common.end_game writes only common.games, so without
+  -- this open boards never re-read and a race's rivals' guesses, released at
+  -- terminal, never load (docs/common-schema.md → Manual end, step 5).
+  update connections.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then

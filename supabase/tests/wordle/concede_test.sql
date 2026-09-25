@@ -25,7 +25,7 @@ set search_path = wordle, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(14);
+select plan(15);
 
 -- ─── A 2-player compete game (ada + bea) ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -93,12 +93,21 @@ select (wordle.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete')->'data'->>'id')::uuid as id;
 select wordle.concede((select id from g2)); -- ada out, bea still racing
+reset role;
+-- The row's physical address before the ending: any write to it moves it, and
+-- a write is what wakes useGame's subscription so the answer reaches the board.
+create temp table g2_before on commit drop as
+select ctid::text as at from wordle.games where id = (select id from g2);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select wordle.concede((select id from g2)); -- last racer out
 reset role;
 select is(
   (select play_state from common.games where id = (select id from g2)),
   'lost_compete', 'everyone conceding → no winner (lost_compete)');
+select isnt(
+  (select ctid::text from wordle.games where id = (select id from g2)),
+  (select at from g2_before),
+  'the ending concede writes wordle.games, so open boards re-read and can reveal the answer');
 select is(
   (select status->>'winner_user_id' from common.games where id = (select id from g2)),
   null, 'no winner recorded when all conceded');

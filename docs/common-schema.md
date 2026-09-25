@@ -166,6 +166,16 @@ Concede answers `{ result: 'conceded' }`. Whether it also ended the game is not
 in the answer; every client, the conceder's included, learns that by
 subscription.
 
+**The concede that ends the game touches a row the frontend subscribes to**,
+for the reason End does (step 5 above): it writes nothing of the game's own,
+and a board that never re-reads never gets what the ending releases — wordle's
+answer, a race's rivals' guesses. The game's `_finish_compete` (or
+`_maybe_finish_compete`, where the ending is there) does it once, for every
+path that ends the race through it; a game that hands the ending to
+`common.concede` touches in its own `<game>.concede` wrapper.
+`src/guards/endingTouchesGame.test.ts` holds the rule for every RPC that can
+end a game.
+
 ### Done, but not out — `locally_terminal`
 
 **A racer can stop racing without conceding** — out of guesses, or solved in a

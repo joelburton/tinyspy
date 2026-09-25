@@ -850,6 +850,9 @@ begin
       player_results);
   end if;
 
+  -- Wake the boards: the last concede and the clock write no strands row of
+  -- their own (docs/common-schema.md → Concede).
+  update strands.games set club_handle = club_handle where id = target_game;
   return true;
 end;
 $$;
@@ -1474,6 +1477,8 @@ begin
     target_game, 'ended',
     jsonb_build_object('reason', 'manual', 'words_found', v_found),
     player_results);
+  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  update strands.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1688,6 +1693,8 @@ begin
     target_game, 'lost',
     jsonb_build_object('reason', 'timeout', 'words_found', v_found),
     player_results);
+  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  update strands.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then

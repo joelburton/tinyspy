@@ -33,7 +33,7 @@ begin;
 
 set search_path = connections, common, public, extensions;
 
-select plan(29);
+select plan(30);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -382,6 +382,12 @@ select (connections.create_game(
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete')->'data'->>'id')::uuid as id;
 
+-- The row's physical address before the ending: any write to it moves it, and
+-- a write is what wakes useGame's subscription so the rivals' guesses load.
+reset role;
+create temp table g3_before on commit drop as
+select ctid::text as at from connections.games where id = (select id from g3);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select connections.submit_timeout((select id from g3));
 
 reset role;
@@ -389,6 +395,12 @@ select is(
   (select play_state from common.games where id = (select id from g3)),
   'lost_compete',
   'submit_timeout (compete): writes lost_compete play_state'
+);
+
+select isnt(
+  (select ctid::text from connections.games where id = (select id from g3)),
+  (select at from g3_before),
+  'submit_timeout (compete): writes connections.games, so open boards re-read'
 );
 
 select is(

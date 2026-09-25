@@ -454,6 +454,12 @@ begin
                                              and wp.user_id = winner_id)),
     player_results
   );
+
+  -- Wake the boards: every way a race ends passes through here, and the last
+  -- concede writes no wordle row of its own — without this, open boards never
+  -- re-read and the answer never reaches Reveal (docs/common-schema.md →
+  -- Manual end, step 5).
+  update wordle.games set club_handle = club_handle where id = target_game;
 end;
 $$;
 

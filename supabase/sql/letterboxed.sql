@@ -1472,6 +1472,8 @@ begin
                              where p.game_id = target_game limit 1)),
       player_results
     );
+    -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+    update letterboxed.games set club_handle = club_handle where id = target_game;
     return common.ok_envelope(jsonb_build_object('result', 'ended'));
   end if;
 
@@ -1534,6 +1536,8 @@ begin
                          where p.game_id = target_game)),
     player_results
   );
+  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  update letterboxed.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1603,6 +1607,8 @@ begin
          end,
     player_results
   );
+  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  update letterboxed.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1637,6 +1643,7 @@ set search_path = letterboxed, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+  v_answer jsonb;
 begin
   -- letterboxed has a coop mode, where dropping out is not a thing a player can
   -- do — the chain is shared and ending it ends the table. Every other wrapper
@@ -1644,7 +1651,11 @@ begin
   perform common.require_compete((select mode from letterboxed.games where id = target_game));
   -- common.concede answers in an envelope and catches its own raises, so its
   -- refusals relay untouched; the handler below is for require_compete's.
-  return common.concede(target_game);
+  v_answer := common.concede(target_game);
+  -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
+  -- → Concede).
+  update letterboxed.games set club_handle = club_handle where id = target_game;
+  return v_answer;
 
 exception when others then
   get stacked diagnostics

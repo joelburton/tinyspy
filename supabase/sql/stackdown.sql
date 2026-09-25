@@ -826,11 +826,16 @@ set search_path = stackdown, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+  v_answer jsonb;
 begin
   perform common.require_compete((select mode from stackdown.games where id = target_game));
   -- common.concede answers in an envelope and catches its own raises, so its
   -- refusals relay untouched; the handler below is for require_compete's.
-  return common.concede(target_game);
+  v_answer := common.concede(target_game);
+  -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
+  -- → Concede).
+  update stackdown.games set club_handle = club_handle where id = target_game;
+  return v_answer;
 
 exception when others then
   get stacked diagnostics

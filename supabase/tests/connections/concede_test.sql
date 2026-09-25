@@ -18,7 +18,7 @@ set search_path = connections, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(5);
+select plan(6);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club on commit drop as
@@ -46,6 +46,11 @@ select is(
   false, 'the game continues while bea is alive');
 
 -- (2) bea (last alive) concedes → nobody alive, nobody solved → lost_compete.
+-- The row's physical address before the ending: any write to it moves it, and
+-- a write is what wakes useGame's subscription so the rivals' guesses load.
+reset role;
+create temp table g_before on commit drop as
+select ctid::text as at from connections.games where id = (select id from g);
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select connections.concede((select id from g));
 reset role;
@@ -53,6 +58,10 @@ select set_config('request.jwt.claims', '', true);
 select is(
   (select play_state from common.games where id = (select id from g)),
   'lost_compete', 'both conceding ends the game as a collective loss');
+select isnt(
+  (select ctid::text from connections.games where id = (select id from g)),
+  (select at from g_before),
+  'the ending concede writes connections.games, so open boards re-read');
 
 -- (3) coop concede rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

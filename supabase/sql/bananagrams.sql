@@ -1311,10 +1311,16 @@ language plpgsql
 security definer
 set search_path = bananagrams, common, public, extensions
 as $$
+declare
+  v_answer jsonb;
 begin
   -- No `require_compete`: bananagrams has no coop sibling, so there is no mode
   -- to refuse. Every other wrapper checks, and every other wrapper needs to.
-  return common.concede(target_game);
+  v_answer := common.concede(target_game);
+  -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
+  -- → Concede).
+  update bananagrams.games set club_handle = club_handle where id = target_game;
+  return v_answer;
 end;
 $$;
 

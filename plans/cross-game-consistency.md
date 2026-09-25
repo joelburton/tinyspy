@@ -167,11 +167,17 @@ Each needs a failing test before its fix.
   guess — the target itself, in the failing test — was accepted; it now
   answers the "Already conceded" race (PN507), as the other four do
   (`wordle/concede_test.sql`).
-- **An ending some games' FE does not hear.** `wordle.concede`,
-  `connections.concede` and connections' compete timeout can end the game
-  without touching a row the game's FE subscribes to, so the revealed answer
-  may wait for the next change. psychicnum and the bee games touch one. Read
-  in the SQL, not seen in the app.
+- ~~**An ending some games' FE does not hear.**~~ Fixed 2026-09-24: the last
+  concede in wordle (Reveal had no answer) and in connections, and
+  connections' timeout (a race's rivals' guesses never loaded), now write
+  their game row — in `wordle._finish_compete`,
+  `connections._maybe_finish_compete` and `connections.submit_timeout`. The
+  failing tests check the row's `ctid` moved; the rule is in
+  docs/common-schema.md → Concede. Then across all sixteen games:
+  `src/guards/endingTouchesGame.test.ts` (planted — removing wordle's touch
+  names `wordle.concede`) found 15 more entry points in 7 games — bananagrams,
+  boggle, crosswords, letterboxed, setgame, stackdown, strands — each now
+  touched; no exceptions list.
 - **`wordle.end_game` does not lock its row** (it uses `if not exists`),
   against step 1 of the end contract in docs/common-schema.md.
 - **Concede in a deleted game faults.** psychicnum, connections and wordle

@@ -1332,6 +1332,8 @@ begin
     jsonb_build_object('mode', v_mode, 'reason', 'manual'),
     v_results
   );
+  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  update crosswords.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
@@ -1360,11 +1362,16 @@ set search_path = crosswords, common, public, extensions
 as $$
 declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
+  v_answer jsonb;
 begin
   perform common.require_compete((select mode from crosswords.games where id = target_game));
   -- common.concede answers in an envelope and catches its own raises, so its
   -- refusals relay untouched; the handler below is for require_compete's.
-  return common.concede(target_game);
+  v_answer := common.concede(target_game);
+  -- Wake the boards: common.concede writes only common.* (docs/common-schema.md
+  -- → Concede).
+  update crosswords.games set club_handle = club_handle where id = target_game;
+  return v_answer;
 
 exception when others then
   get stacked diagnostics
@@ -1419,6 +1426,8 @@ begin
     jsonb_build_object('mode', v_mode, 'reason', 'timeout'),
     v_results
   );
+  -- Wake the boards (docs/common-schema.md → Manual end, step 5).
+  update crosswords.games set club_handle = club_handle where id = target_game;
   return common.ok_envelope(jsonb_build_object('result', 'ended'));
 
 exception when others then
