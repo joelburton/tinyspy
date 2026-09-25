@@ -52,7 +52,7 @@ export function InfoCol({
   over,
   myConceded,
   isTerminal,
-  currentTurnUserId,
+  turnHolderId,
   currentMember,
   teamScore,
   bagCount,
@@ -85,7 +85,7 @@ export function InfoCol({
   /** COOP turn-order pointer, or null for a free-for-all coop game. Non-null ⇒
    *  render the shared TurnStatusLine below the team-score line (compete uses its
    *  OWN seat-based turn line above, which also names AI seats). */
-  currentTurnUserId: string | null
+  turnHolderId: string | null
 
   // ── State readout (turn / team score + the bag) ──
   /** The player whose turn it is (compete) — its color + name drive the "Turn: ● name"
@@ -176,9 +176,9 @@ export function InfoCol({
             score (compete's own seat turn line is inline above). Only for a
             turn-order coop game (pointer non-null); fixed at create-time, so no
             reflow. */}
-        {!isCompete && currentTurnUserId !== null && (
+        {!isCompete && turnHolderId !== null && (
           <TurnStatusLine
-            currentTurnUserId={currentTurnUserId}
+            turnHolderId={turnHolderId}
             players={players}
             selfId={selfId}
             isTerminal={isTerminal}

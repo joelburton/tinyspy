@@ -15,7 +15,9 @@ import { useState } from 'react'
  *   2. **Rising edge only.** The turn leaving changes nothing here; the turn
  *      coming back is a fresh arrival.
  *
- * In a free-for-all game `myTurn` is permanently true, so the count stays 0.
+ * In a free-for-all game `myTurn` is true for as long as I'm playing, so the
+ * count stays 0 — a restart remounts the play surface, and `GamePage`'s bell
+ * passes false for a game with no turn order.
  * A caller that must not mark an arrival in some state — a finished game —
  * passes `false` for it, which is a falling edge rather than an arrival.
  *

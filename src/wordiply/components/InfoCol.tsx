@@ -37,7 +37,7 @@ export function InfoCol({
   actReveal,
   over,
   isLocallyDone,
-  currentTurnUserId,
+  turnHolderId,
   // ── State ──
   guessesUsed,
   longest,
@@ -80,7 +80,7 @@ export function InfoCol({
   isLocallyDone: boolean
   /** Whose turn it is under turn-order, or null for a free-for-all game.
    *  Non-null ⇒ render the shared TurnStatusLine (a turn game). */
-  currentTurnUserId: string | null
+  turnHolderId: string | null
 
   // ── State (the caller's / team's track) ──
   guessesUsed: number
@@ -158,9 +158,9 @@ export function InfoCol({
             ADJACENT line: wordiply's state region is a bespoke stateBlock (not the
             shared .infoState), so TurnStatusLine sits beside it rather than replacing
             it. Its presence is fixed at create-time, so it can't reflow. */}
-        {currentTurnUserId !== null && (
+        {turnHolderId !== null && (
           <TurnStatusLine
-            currentTurnUserId={currentTurnUserId}
+            turnHolderId={turnHolderId}
             players={players}
             selfId={selfId}
             isTerminal={isTerminal}

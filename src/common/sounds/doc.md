@@ -35,8 +35,9 @@ arrival, never on mount, and preloads the file so the first ring is not late.
 
 **`GamePage` calls `useTurnBell` once**, with the common turn pointer
 (`common.games.current_turn_user_id`, moved by `common._advance_turn`), so
-every game on that pointer rings with no game code. It passes false once the
-game is over. A game whose turn is its own — scrabble compete's seat,
+every game on that pointer rings with no game code. It passes
+`isTurnBased && isMyTurn`, so a finished game never rings, and neither does a
+free-for-all restarting. A game whose turn is its own — scrabble compete's seat,
 codenamesduet's clue to give or to guess from — rings from its own code.
 
 **The setting is written by `common.update_profile`** from the Edit profile

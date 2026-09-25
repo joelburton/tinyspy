@@ -113,7 +113,13 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
-    currentTurnUserId: null,
+    isPlayer: true,
+    isConceded: false,
+    isLocallyTerminal: false,
+    isStillPlaying: true,
+    isTurnBased: false,
+    isBoardInteractive: true,
+    turnHolderId: null,
     setup: { puzzle_id: 'p1', hint_cost: 3, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -630,7 +636,7 @@ describe('strands PlayArea — the selection cursor', () => {
   })
 
   it('a board I cannot play takes no ring and no keys', async () => {
-    render(<WithKeys {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false })} />)
+    render(<WithKeys {...makeCtx({ turnHolderId: 'u2', isMyTurn: false })} />)
     await keys('ArrowRight', ' ')
     expect(ringAt()).toBeNull()
     expect(traced()).toEqual([])

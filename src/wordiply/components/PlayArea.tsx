@@ -83,7 +83,7 @@ type GuessResult =
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
-    isMyTurn, currentTurnUserId,
+    isMyTurn, turnHolderId,
     setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, guesses, validGuesses, loading, rowsLoaded, failure } = useGame(gameId)
@@ -492,12 +492,12 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isLocallyDone])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
   // is null in a free-for-all game, so this never fires there. On a phone the
   // InfoCol's TurnStatusLine is off-canvas, so this is the only whose-turn
   // indicator beside the frozen keyboard.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
+  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((p) => p.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
@@ -573,7 +573,7 @@ export function PlayArea(ctx: GamePageCtx) {
           isTerminal={isTerminal}
           over={over}
           isLocallyDone={isLocallyDone}
-          currentTurnUserId={currentTurnUserId}
+          turnHolderId={turnHolderId}
           guessesUsed={guessesUsed}
           longest={longest}
           letters={letters}

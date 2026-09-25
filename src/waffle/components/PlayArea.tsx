@@ -88,7 +88,7 @@ export function PlayArea({
   isTerminal,
   timer,
   isMyTurn,
-  currentTurnUserId,
+  turnHolderId,
   setup,
   status,
   globalFeedbackSlot,
@@ -499,12 +499,12 @@ export function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, selfDone, myConceded, selfSolved])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
   // is null in a free-for-all game, so this never fires there. On a phone the
   // InfoCol's TurnStatusLine is off-canvas, so this is the only whose-turn
   // indicator beside the dimmed board.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  const turnHolder = players.find((m) => m.user_id === currentTurnUserId)
+  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((m) => m.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
@@ -665,7 +665,7 @@ export function PlayArea({
         isPlayer={isPlayer}
         selfDone={selfDone}
         myConceded={myConceded}
-        currentTurnUserId={currentTurnUserId}
+        turnHolderId={turnHolderId}
         selfSolved={self?.solved ?? false}
         swapsUsed={swapsUsed}
         maxSwaps={game.max_swaps}

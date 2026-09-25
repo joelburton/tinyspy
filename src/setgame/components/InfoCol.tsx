@@ -25,7 +25,7 @@ type Props = {
   isLocallyDone: boolean
   /** The terminal message when the game is over (drives the action row), else null. */
   over: TerminalMessage | null
-  currentTurnUserId: string | null
+  turnHolderId: string | null
   // ── State ──
   /** Sets taken by the whole table. */
   teamFound: number
@@ -85,7 +85,7 @@ export function InfoCol({
   isTerminal,
   isLocallyDone,
   over,
-  currentTurnUserId,
+  turnHolderId,
   teamFound,
   deckLeft,
   lastClaim,
@@ -115,9 +115,9 @@ export function InfoCol({
           <Counts items={countsFor('info', { isCompete, teamFound, deckLeft, hintsUsed })} />
         </div>
 
-        {currentTurnUserId !== null && (
+        {turnHolderId !== null && (
           <TurnStatusLine
-            currentTurnUserId={currentTurnUserId}
+            turnHolderId={turnHolderId}
             players={players}
             selfId={selfId}
             isTerminal={isTerminal}

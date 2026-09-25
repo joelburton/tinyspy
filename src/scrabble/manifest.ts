@@ -112,6 +112,8 @@ export const scrabbleCoopGame: GameManifest = {
   help: helpLoader,
   // Solo or coop up to 4. Must agree with require_player_count_max(4).
   numberOfPlayers: [1, 4],
+  // Pre-play: a waiting player may lay a move out; only committing waits.
+  draftsOffTurn: true,
   PlayArea: playAreaLoader,
   setupForm: {
     Component: setupFormLoader,
@@ -141,6 +143,8 @@ export const scrabbleCompeteGame: GameManifest = {
   // 1 (solo vs AI). The real "≥2 total (humans + AI)" floor is enforced by the
   // setup `validate` below + the RPC. Max 4 total.
   numberOfPlayers: [1, 4],
+  // Pre-play: a waiting player may lay a move out; only committing waits.
+  draftsOffTurn: true,
   PlayArea: playAreaLoader,
   // `validate` blocks Start when an AI is present and the dictionary is too
   // narrow for its level, or the head-count doesn't fit (docs/games/scrabble.md).

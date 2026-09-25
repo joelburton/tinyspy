@@ -36,7 +36,7 @@ export function InfoCol({
   isPlayer,
   selfDone,
   myConceded,
-  currentTurnUserId,
+  turnHolderId,
   selfSolved,
   swapsUsed,
   maxSwaps,
@@ -66,7 +66,7 @@ export function InfoCol({
   isPlayer: boolean
   /** Whose turn it is under turn-order, or null for a free-for-all game.
    *  Non-null ⇒ render the shared TurnStatusLine (a turn game). */
-  currentTurnUserId: string | null
+  turnHolderId: string | null
   /** I can't act any more, but the game continues for others (compete: solved / out
    *  of swaps / conceded) — drives the terminal LOOK. The broader analog of the other
    *  games' concede-only `isLocallyDone`: waffle is a per-player-board race, so you can
@@ -168,9 +168,9 @@ export function InfoCol({
         </p>
         {/* Whose-turn line — only for a turn-order game (pointer non-null). A
             separate line below the state readout; never replaces it. */}
-        {currentTurnUserId !== null && (
+        {turnHolderId !== null && (
           <TurnStatusLine
-            currentTurnUserId={currentTurnUserId}
+            turnHolderId={turnHolderId}
             players={players}
             selfId={selfId}
             isTerminal={over !== null}

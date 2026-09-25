@@ -51,12 +51,11 @@ there and calls this helper with them. A `usePause` would need either a second
 channel or a share of the first, and both are worse than a function.
 
 **Who counts as expected is `useCommonGame`'s decision**: the game's players
-minus everyone the game is no longer waiting for — anyone who conceded, and
-anyone `common.game_players.locally_terminal` says is DONE (eliminated, out of
-budget, or finished ahead of the others in a best-style race). Neither holds
-the rest of the table hostage, and the second is not a kind of the first: in
-wordle, waffle and strands the first player to go locally terminal is the one
-who SOLVED. A player invited but not yet arrived DOES count — a fresh
+minus everyone the game is no longer waiting for — anyone
+`common.game_players.locally_terminal` says is out (conceded, eliminated, out
+of budget, or finished ahead of the others in a best-style race), and the bots.
+None of them holds the rest of the table hostage. A player invited but not yet
+arrived DOES count — a fresh
 game sits paused, waiting, until everyone has joined, which is the point
 (`common/invitations/doc.md`). The
 flag is also forced false once the game has ended, so a finished board shows its

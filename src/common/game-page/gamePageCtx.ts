@@ -74,17 +74,29 @@ export type GamePageCtx = {
     displaySeconds: number
     expired: boolean
   }
-  // Turn-order gate for the opt-in turn-by-turn coop mode. True when
-  // the viewer may act right now — ALWAYS true for free-for-all games
-  // (the default) and solo, so a game that doesn't opt in is
-  // unaffected. A turn game AND-s this into its existing input gate
-  // (canGuess/readOnly/…). Derived once in `useCommonGame`.
+  // ─── Where I stand ───
+  // Each means exactly what its formula says (docs/win-lose.md → Where a
+  // player stands), and a game reads these rather than recomputing its own.
+  // Derived once in `useCommonGame`.
+  //
+  // I'm seated in this game; a club member watching is not.
+  isPlayer: boolean
+  // I walked away from a race, and forfeit any win.
+  isConceded: boolean
+  // I'm not playing any more, for whatever reason — conceding included.
+  isLocallyTerminal: boolean
+  // A player, and the game still wants moves from me.
+  isStillPlaying: boolean
+  // This game has a turn order, fixed when it was created.
+  isTurnBased: boolean
+  // The turn pointer as stored (`common.games.current_turn_user_id`): a record,
+  // not a claim — it outlives the game's end. Turn games pass it to
+  // `<TurnStatusLine>`.
+  turnHolderId: string | null
+  // Still playing, and the move is mine.
   isMyTurn: boolean
-  // Whose turn it is (`common.games.current_turn_user_id`), or null
-  // for a free-for-all game. Turn games pass it to `<TurnStatusLine>`
-  // to render "Your turn" / "Waiting for ● Name…"; free-for-all games
-  // ignore it.
-  currentTurnUserId: string | null
+  // The board responds to me; a commit asks `isMyTurn`.
+  isBoardInteractive: boolean
   // The game's setup blob from `common.games.setup` — the
   // choices the SetupGameModal collected at start. Typed as
   // `Record<string, unknown>` here because each gametype's

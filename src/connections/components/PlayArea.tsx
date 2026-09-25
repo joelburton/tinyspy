@@ -157,7 +157,7 @@ function PlayArea({
   isTerminal,
   status,
   isMyTurn,
-  currentTurnUserId,
+  turnHolderId,
   setup,
   globalFeedbackSlot,
   clubHandle,
@@ -319,13 +319,13 @@ function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, locallyDone, isTerminal, myConceded])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
   // is null in a free-for-all game, so this never fires there. It carries the
   // whose-turn answer on MOBILE, where the InfoCol's TurnStatusLine is
   // off-canvas; without it a frozen board just ignored taps. The holder is
   // read as two primitives so the effect settles in one pass.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
+  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((p) => p.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
@@ -643,7 +643,7 @@ function PlayArea({
         terminalMessage={terminalMessage}
         showInput={showInput}
         myConceded={myConceded}
-        currentTurnUserId={currentTurnUserId}
+        turnHolderId={turnHolderId}
         // ── State readout ──
         found={found}
         categoryCount={CATEGORY_COUNT}

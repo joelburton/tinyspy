@@ -66,7 +66,13 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
-    currentTurnUserId: null,
+    isPlayer: true,
+    isConceded: false,
+    isLocallyTerminal: false,
+    isStillPlaying: true,
+    isTurnBased: false,
+    isBoardInteractive: true,
+    turnHolderId: null,
     // A realistic setup blob — the info column reads `max_guesses` + `band`.
     setup: { max_guesses: 7, word_count: 10, band: 3, timer: { kind: 'none' } },
     status: null,
@@ -333,7 +339,7 @@ describe('psychicnum PlayArea — turn order', () => {
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
           isMyTurn: false,
-          currentTurnUserId: 'u2',
+          turnHolderId: 'u2',
         })}
       />,
     )
@@ -367,7 +373,7 @@ describe('psychicnum PlayArea — turn order', () => {
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
           isMyTurn: true,
-          currentTurnUserId: 'u1',
+          turnHolderId: 'u1',
         })}
       />,
     )
@@ -383,7 +389,7 @@ describe('psychicnum PlayArea — turn order', () => {
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
           isMyTurn: true,
-          currentTurnUserId: null,
+          turnHolderId: null,
         })}
       />,
     )
@@ -609,14 +615,14 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
   it('dims the board while a teammate holds the move, and flashes when it arrives', () => {
     const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
     const { container, rerender } = render(
-      <PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: two })} />,
+      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', isMyTurn: false, players: two })} />,
     )
     expect(gridIn(container).className).toMatch(/dimNotYourTurn/)
     // An EVENT, so never on mount: opening a game on your own turn is not being
     // handed it.
     expect(gridIn(container).className).not.toMatch(/yourTurnFlash/)
 
-    rerender(<PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u1', isMyTurn: true, players: two })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ turnHolderId: 'u1', isMyTurn: true, players: two })} />)
 
     expect(gridIn(container).className).toMatch(/yourTurnFlash/)
     expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)

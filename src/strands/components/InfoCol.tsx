@@ -33,7 +33,7 @@ type Props = {
    *  board draws paths and never spells anything out, so without this the
    *  reveal makes you read the words off the grid letter by letter. */
   solutionWords: string[] | null
-  currentTurnUserId: string | null
+  turnHolderId: string | null
   // ── State ──
   clue: string
   wordsFound: number
@@ -91,7 +91,7 @@ export function InfoCol({
   isTerminal,
   over,
   solutionWords,
-  currentTurnUserId,
+  turnHolderId,
   clue,
   wordsFound,
   hintsSpent,
@@ -154,9 +154,9 @@ export function InfoCol({
             component itself doesn't guard: its contract is that the caller
             decides, and rendering it unconditionally puts a "Waiting for
             someone…" nag on a free-for-all board where nobody is waiting. */}
-        {currentTurnUserId !== null && (
+        {turnHolderId !== null && (
           <TurnStatusLine
-            currentTurnUserId={currentTurnUserId}
+            turnHolderId={turnHolderId}
             players={players}
             selfId={selfId}
             isTerminal={isTerminal}

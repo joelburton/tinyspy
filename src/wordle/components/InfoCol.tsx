@@ -35,7 +35,7 @@ export function InfoCol({
   showInput,
   myConceded,
   isPlayer,
-  currentTurnUserId,
+  turnHolderId,
   // ── State (guess count) ──
   guessesUsed,
   maxGuesses,
@@ -76,7 +76,7 @@ export function InfoCol({
   isPlayer: boolean
   // Whose turn it is under turn-order, or null for a free-for-all game.
   // Non-null ⇒ render the shared TurnStatusLine (a turn game).
-  currentTurnUserId: string | null
+  turnHolderId: string | null
 
   // ── State ──
   guessesUsed: number
@@ -153,9 +153,9 @@ export function InfoCol({
         </p>
         {/* Whose-turn line — only for a turn-order game (pointer non-null). A
             separate line below the state readout; never replaces it. */}
-        {currentTurnUserId !== null && (
+        {turnHolderId !== null && (
           <TurnStatusLine
-            currentTurnUserId={currentTurnUserId}
+            turnHolderId={turnHolderId}
             players={players}
             selfId={selfId}
             isTerminal={isTerminal}

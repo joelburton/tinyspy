@@ -38,10 +38,17 @@ export function GamePageLoader({ gameId, session, manifest }: GameShellProps) {
     sendManualUnpause,
     sendSuspend,
     timer,
+    isPlayer,
+    isConceded,
+    isLocallyTerminal,
+    isStillPlaying,
+    isTurnBased,
+    turnHolderId,
     isMyTurn,
+    isBoardInteractive,
     loading,
     failure,
-  } = useCommonGame(gameId, session)
+  } = useCommonGame(gameId, session, manifest.draftsOffTurn ?? false)
 
   if (loading) return <Loading />
   // A failed read is NOT a missing game — both leave `commonGame` null, and
@@ -66,7 +73,14 @@ export function GamePageLoader({ gameId, session, manifest }: GameShellProps) {
       sendManualUnpause={sendManualUnpause}
       sendSuspend={sendSuspend}
       timer={timer}
+      isPlayer={isPlayer}
+      isConceded={isConceded}
+      isLocallyTerminal={isLocallyTerminal}
+      isStillPlaying={isStillPlaying}
+      isTurnBased={isTurnBased}
+      turnHolderId={turnHolderId}
       isMyTurn={isMyTurn}
+      isBoardInteractive={isBoardInteractive}
     />
   )
 }

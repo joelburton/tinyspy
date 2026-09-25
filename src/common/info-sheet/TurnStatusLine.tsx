@@ -7,7 +7,7 @@ import shared from './infoCol.module.css'
 type Props = {
   // The common turn pointer (commonGame.current_turn_user_id). In a
   // turn game it's always set; the terminal branch is handled below.
-  currentTurnUserId: string | null
+  turnHolderId: string | null
   // The game's players, to resolve the current player's name + color.
   players: Member[]
   // The viewer's user id — decides "Your turn" vs "Waiting for …".
@@ -23,7 +23,7 @@ type Props = {
  * yours, "Waiting for ● Name…" when it's a teammate's. One indicator,
  * identical in every game that has a turn to point at.
  *
- * An InfoCol renders it when `currentTurnUserId !== null`, which is the
+ * An InfoCol renders it when `turnHolderId !== null`, which is the
  * whole game or none of it: whether a game is turn-ordered is fixed at
  * create-time, so this line's presence never changes mid-game and no
  * reflow comes from it appearing. Within a turn game it renders in EVERY
@@ -35,7 +35,7 @@ type Props = {
  * alongside, never replacing, the per-game state text.
  */
 export function TurnStatusLine({
-  currentTurnUserId,
+  turnHolderId,
   players,
   selfId,
   isTerminal,
@@ -53,7 +53,7 @@ export function TurnStatusLine({
     return <p className={shared.infoState}>{' '}</p>
   }
 
-  if (currentTurnUserId === selfId) {
+  if (turnHolderId === selfId) {
     return (
       <p className={shared.infoState}>
         <strong>Your turn</strong>
@@ -65,5 +65,5 @@ export function TurnStatusLine({
   // possessive "name's turn" — we don't apostrophize usernames), an
   // ellipsis for the wait. Shares `waitingForText` with the below-board
   // whose-turn message, so the two surfaces can't word it differently.
-  return <p className={shared.infoState}>{waitingForText(players.find((p) => p.user_id === currentTurnUserId))}</p>
+  return <p className={shared.infoState}>{waitingForText(players.find((p) => p.user_id === turnHolderId))}</p>
 }

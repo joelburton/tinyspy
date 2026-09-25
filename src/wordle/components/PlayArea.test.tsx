@@ -76,7 +76,13 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
-    currentTurnUserId: null,
+    isPlayer: true,
+    isConceded: false,
+    isLocallyTerminal: false,
+    isStillPlaying: true,
+    isTurnBased: false,
+    isBoardInteractive: true,
+    turnHolderId: null,
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
     // would crash timerLabel, exactly the kind of render bug these tests guard).
     setup: { max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' } },
@@ -855,7 +861,7 @@ describe('wordle PlayArea — the board-scope marks', () => {
   })
 
   it('dims the board while a teammate holds the move', () => {
-    render(<PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: twoMembers })} />)
+    render(<PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', isMyTurn: false, players: twoMembers })} />)
 
     expect(board().className).toMatch(/dimNotYourTurn/)
     // The turn arriving is an EVENT, so it must not fire on mount — a player
@@ -864,11 +870,11 @@ describe('wordle PlayArea — the board-scope marks', () => {
   })
 
   it('flashes the frame at the moment the turn becomes mine', async () => {
-    const ctx = makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: twoMembers })
+    const ctx = makeCtx({ turnHolderId: 'u2', isMyTurn: false, players: twoMembers })
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     expect(board().className).not.toMatch(/yourTurnFlash/)
 
-    rerender(<PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u1', isMyTurn: true, players: twoMembers })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ turnHolderId: 'u1', isMyTurn: true, players: twoMembers })} />)
 
     expect(board().className).toMatch(/yourTurnFlash/)
     expect(board().className).not.toMatch(/dimNotYourTurn/)

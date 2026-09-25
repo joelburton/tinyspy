@@ -400,11 +400,17 @@ describe('GamePage — the turn bell', () => {
     setProfile(null)
   })
 
-  /** A turn-order game whose pointer names `holder`. */
-  const turnState = (holder: string, game: Partial<CommonGame> = {}) => ({
-    ...commonGameState({ players: [ADA, BEA], game: { current_turn_user_id: holder, ...game } }),
-    isMyTurn: holder === 'ada',
-  })
+  /** A turn-order game whose pointer names `holder` — the standing
+   *  `useCommonGame` would compute for ada. */
+  const turnState = (holder: string, game: Partial<CommonGame> = {}) => {
+    const isTerminal = game.is_terminal ?? false
+    return {
+      ...commonGameState({ players: [ADA, BEA], game: { current_turn_user_id: holder, ...game } }),
+      isTurnBased: true,
+      turnHolderId: holder,
+      isMyTurn: !isTerminal && holder === 'ada',
+    }
+  }
 
   /** Hand the page a new common row, as a realtime refetch would. */
   function moveTo(view: Awaited<ReturnType<typeof mount>>['view'], next: CommonGameState) {
@@ -431,6 +437,23 @@ describe('GamePage — the turn bell', () => {
   it('does not ring for a turn arriving in a finished game', async () => {
     const { view } = await mount(turnState('bea'))
     moveTo(view, turnState('ada', { ended_at: '2026-09-10T01:00:00Z', is_terminal: true }))
+    expect(play).not.toHaveBeenCalled()
+  })
+
+  it('does not ring when a game with no turn order is restarted', async () => {
+    // Every move is mine in a free-for-all game, so restarting a finished one
+    // makes `isMyTurn` rise — but no turn arrived.
+    const ended = { ended_at: '2026-09-10T01:00:00Z', is_terminal: true }
+    const { view } = await mount({
+      ...commonGameState({ players: [ADA, BEA], game: ended }),
+      isTurnBased: false,
+      isMyTurn: false,
+    } as CommonGameState)
+    moveTo(view, {
+      ...commonGameState({ players: [ADA, BEA], game: { restarts: 1 } }),
+      isTurnBased: false,
+      isMyTurn: true,
+    } as CommonGameState)
     expect(play).not.toHaveBeenCalled()
   })
 

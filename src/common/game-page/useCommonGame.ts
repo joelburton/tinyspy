@@ -57,12 +57,11 @@ export type CommonGame = {
   status: Record<string, unknown> | null
   started_at: string
   ended_at: string | null
-  // Whose turn it is, for the opt-in turn-by-turn coop mode (setup
-  // coop_style='turns'). NULL for free-for-all games (the default) — i.e. every
-  // game that doesn't opt in. Rotated server-side by common._advance_turn; the
-  // FE reads it only to gate input + render the waiting line. Compare to
-  // session.user.id (see the hook's `isMyTurn` below). Scrabble compete does NOT
-  // use this — it keeps its own seat pointer.
+  // The turn pointer, for the opt-in turn-by-turn coop mode (setup
+  // coop_style='turns'), rotated server-side by common._advance_turn. The hook
+  // hands it on as `turnHolderId`; whether a game has turns at all is
+  // `isTurnBased`, never a null here. Scrabble compete does NOT use this — it
+  // keeps its own seat pointer.
   current_turn_user_id: string | null
 }
 
@@ -113,6 +112,11 @@ type SetAnswer = { result: 'set' } | null
  * the last peer to leave it is who clears the club's current-view pointer.
  * doc.md argues why that name can never take a per-tab suffix.
  *
+ * It also says where the viewing player stands — the standing terms
+ * (docs/win-lose.md → Where a player stands), each computed once here so no
+ * game recomputes them. `draftsOffTurn` is the manifest's, and only `isBoardInteractive` reads
+ * it.
+ *
  * Every field of the returned object is documented on the return type below.
  * Nothing here half-runs: the hook joins the channel and asserts
  * `set_current_view` as soon as it is called, so the caller must already know
@@ -121,6 +125,7 @@ type SetAnswer = { result: 'set' } | null
 export function useCommonGame(
   gameId: string,
   session: Session,
+  draftsOffTurn: boolean,
 ): {
   // The common.games row, or null while loading — and also when the read failed
   // or the game is gone, which `failure` below tells apart.
@@ -129,9 +134,9 @@ export function useCommonGame(
   players: GamePlayer[]
   // The presence-pause roster: `players` minus everyone the game is no longer
   // waiting for. This is the exact set the pause machinery watches — a player
-  // who quit or who is DONE (eliminated, out of budget, or finished while the
-  // others play out) is excluded, because their absence must not wedge the
-  // game for the people still playing.
+  // who is locally terminal (conceded, eliminated, out of budget, or finished
+  // while the others play out) is excluded, because their absence must not
+  // wedge the game for the people still playing.
   // The pause overlay lists these members (present ones filled, absent ones a
   // hollow ring).
   activePlayers: GamePlayer[]
@@ -157,12 +162,17 @@ export function useCommonGame(
   sendSuspend: () => void
   // The game clock — seconds to show, and whether a countdown has run out.
   timer: { displaySeconds: number; expired: boolean }
-  // True when the caller may act right now under turn-order. Always true for
-  // free-for-all games (the pointer is null) and for solo, so games that don't
-  // opt in are unaffected — they can gate on this unconditionally. Turn games
-  // AND-it into their existing input gate (canGuess/readOnly/etc.). Pre-load
-  // (commonGame null) it's true, matching the "nothing to gate yet" posture.
+  // Where the viewing player stands. Each means exactly what its formula says
+  // (docs/win-lose.md → Where a player stands), and nothing else. Before the
+  // row loads, nobody is a player and every flag is false.
+  isPlayer: boolean
+  isConceded: boolean
+  isLocallyTerminal: boolean
+  isStillPlaying: boolean
+  isTurnBased: boolean
+  turnHolderId: string | null
   isMyTurn: boolean
+  isBoardInteractive: boolean
   // False once the initial fetch has settled, however it settled.
   loading: boolean
   // Set when a read FAILED, which is not the same as the game being absent.
@@ -171,6 +181,9 @@ export function useCommonGame(
 } {
   const [commonGame, setCommonGame] = useState<CommonGame | null>(null)
   const [players, setPlayers] = useState<GamePlayer[]>([])
+  // Whether the players were seated in a turn order (any `turn_seat` set) —
+  // fixed when the game is created. Read off the roster with the players.
+  const [isTurnBased, setIsTurnBased] = useState(false)
   const [presentUserIds, setPresentUserIds] = useState<Set<string>>(
     () => new Set(),
   )
@@ -270,7 +283,7 @@ export function useCommonGame(
         readRows(
           commonDb
             .from('game_players')
-            .select('user_id, conceded, conceded_at, locally_terminal, result')
+            .select('user_id, conceded, conceded_at, locally_terminal, result, turn_seat')
             .eq('game_id', gameId),
         ),
       ])
@@ -304,6 +317,7 @@ export function useCommonGame(
       if (!gameData) {
         setCommonGame(null)
         setPlayers([])
+        setIsTurnBased(false)
         setLoading(false)
         return
       }
@@ -360,6 +374,7 @@ export function useCommonGame(
         status: gameData.status as CommonGame['status'],
       })
       setPlayers(playerList)
+      setIsTurnBased((playerRows ?? []).some((r) => r.turn_seat !== null))
       setLoading(false)
     }
 
@@ -638,20 +653,18 @@ export function useCommonGame(
   // Without this, a terminal-during-pause edge case (stale-tab
   // peer fires submit_timeout, etc.) would leave the overlay
   // stuck up over a game that's already done.
-  // Conceded players are dropped from the presence-pause roster: a
-  // conceder has willfully quit the race, so their leaving the tab
-  // must NOT wedge everyone else behind a "Waiting for <quitter>…"
-  // overlay. This is the documented contract (docs/common.md: a
-  // conceder drops out "while the others keep racing"). Invited-but-
-  // not-yet-joined players stay counted — that presence-pause IS
-  // deliberate; only a real concede removes someone.
+  // Locally terminal players are dropped from the presence-pause roster: a
+  // player who conceded or is otherwise done must NOT wedge everyone else
+  // behind a "Waiting for <name>…" overlay when they close the tab.
+  // Invited-but-not-yet-joined players stay counted — that presence-pause IS
+  // deliberate.
   // …and minus the bots. A bot holds a seat and can win, but it never opens a
   // tab, so counting it here would park every game with one behind the pause
   // overlay forever. Filtered HERE rather than inside computePause because
   // `activePlayers` is also what the overlay draws its present/absent dots
   // from — patching the flag alone would leave a permanently hollow bot ring.
   const activePlayers = players.filter(
-    (p) => !p.conceded && !p.locally_terminal && !p.ai_member,
+    (p) => !p.locally_terminal && !p.ai_member,
   )
   const presencePaused = computePause(presentUserIds, activePlayers)
   const manuallyPausedBy: Member | null = manuallyPausedById
@@ -680,13 +693,17 @@ export function useCommonGame(
     running: commonGame != null && !commonGame.is_terminal,
   })
 
-  // Turn-order gate. Null pointer ⇒ free-for-all (or solo, where the
-  // sole player always is the pointer) ⇒ everyone may act. Otherwise
-  // only the named player may. Derived here (the hook already has the
-  // session) so every game page gets it without new plumbing.
-  const isMyTurn =
-    commonGame?.current_turn_user_id == null ||
-    commonGame.current_turn_user_id === session.user.id
+  // ─── Where I stand ─── formula for formula (docs/win-lose.md → Where a
+  // player stands).
+  const me = players.find((p) => p.user_id === session.user.id)
+  const isTerminal = commonGame?.is_terminal ?? false
+  const isPlayer = me !== undefined
+  const isConceded = me?.conceded ?? false
+  const isLocallyTerminal = me?.locally_terminal ?? false
+  const isStillPlaying = isPlayer && !isTerminal && !isLocallyTerminal
+  const turnHolderId = commonGame?.current_turn_user_id ?? null
+  const isMyTurn = isStillPlaying && (!isTurnBased || turnHolderId === session.user.id)
+  const isBoardInteractive = draftsOffTurn ? isStillPlaying : isMyTurn
 
   return {
     commonGame,
@@ -699,7 +716,14 @@ export function useCommonGame(
     sendManualUnpause,
     sendSuspend,
     timer,
+    isPlayer,
+    isConceded,
+    isLocallyTerminal,
+    isStillPlaying,
+    isTurnBased,
+    turnHolderId,
     isMyTurn,
+    isBoardInteractive,
     loading,
     failure,
   }

@@ -52,8 +52,8 @@ type Props = GameShellProps & {
   commonGame: CommonGame
   // Everyone in the game.
   players: GamePlayer[]
-  // The presence-pause roster: `players` minus anyone who conceded. What
-  // PauseBoundary watches and the overlay lists.
+  // The presence-pause roster: `players` minus anyone locally terminal, and the
+  // bots. What PauseBoundary watches and the overlay lists.
   activePlayers: GamePlayer[]
   // Somebody in `activePlayers` is off the channel, or somebody clicked Pause.
   // Forced false once the game has ended.
@@ -70,9 +70,16 @@ type Props = GameShellProps & {
   sendSuspend: () => void
   // The game clock — seconds to show, and whether a countdown has run out.
   timer: { displaySeconds: number; expired: boolean }
-  // True when the local player may act right now under turn-order; always true
-  // for free-for-all and solo games.
+  // Where the viewing player stands, handed on to the PlayArea as they are; see
+  // `GamePageCtx`.
+  isPlayer: boolean
+  isConceded: boolean
+  isLocallyTerminal: boolean
+  isStillPlaying: boolean
+  isTurnBased: boolean
+  turnHolderId: string | null
   isMyTurn: boolean
+  isBoardInteractive: boolean
 }
 
 /**
@@ -107,7 +114,14 @@ export function GamePage({
   sendManualUnpause,
   sendSuspend,
   timer,
+  isPlayer,
+  isConceded,
+  isLocallyTerminal,
+  isStillPlaying,
+  isTurnBased,
+  turnHolderId,
   isMyTurn,
+  isBoardInteractive,
 }: Props) {
   // ─── What this page is about ────────────────────────────────────────────
   const gametype = manifest.gametype
@@ -146,8 +160,9 @@ export function GamePage({
   // The bell when the turn becomes mine, rung here once for every game that
   // moves the common turn pointer — the turn is the shell's to know, so no
   // game has to remember it. A game whose turn is its own rings from its own
-  // code. Silent once the game is over, when the pointer may still move.
-  useTurnBell(isMyTurn && !isTerminal)
+  // code. Only a turn-based game has a turn to arrive: every move is mine in a
+  // free-for-all, so its `isMyTurn` rising (a restart) is no arrival.
+  useTurnBell(isTurnBased && isMyTurn)
 
   // ─── The shell's own state ──────────────────────────────────────────────
   // Whether the per-game Help companion is mounted. Opened by `act-help`,
@@ -468,8 +483,14 @@ export function GamePage({
                 playState={commonGame.play_state}
                 isTerminal={isTerminal}
                 timer={timer}
+                isPlayer={isPlayer}
+                isConceded={isConceded}
+                isLocallyTerminal={isLocallyTerminal}
+                isStillPlaying={isStillPlaying}
+                isTurnBased={isTurnBased}
+                turnHolderId={turnHolderId}
                 isMyTurn={isMyTurn}
-                currentTurnUserId={commonGame.current_turn_user_id}
+                isBoardInteractive={isBoardInteractive}
                 setup={commonGame.setup}
                 status={commonGame.status}
                 clubHandle={commonGame.club_handle}

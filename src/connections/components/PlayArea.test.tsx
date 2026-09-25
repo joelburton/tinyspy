@@ -122,7 +122,13 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
-    currentTurnUserId: null,
+    isPlayer: true,
+    isConceded: false,
+    isLocallyTerminal: false,
+    isStillPlaying: true,
+    isTurnBased: false,
+    isBoardInteractive: true,
+    turnHolderId: null,
     setup: { puzzle_id: 'p1', timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -458,7 +464,7 @@ describe('connections PlayArea — the board-scope marks', () => {
   it('dims the board while a teammate holds the move, and flashes when it arrives', () => {
     h.result = loaded({ game: game('coop') })
     const { container, rerender } = render(
-      <PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', isMyTurn: false, players: twoMembers })} />,
     )
     expect(gridIn(container).className).toMatch(/dimNotYourTurn/)
     // An EVENT, so never on mount: opening a game on your own turn is not the
@@ -466,7 +472,7 @@ describe('connections PlayArea — the board-scope marks', () => {
     expect(gridIn(container).className).not.toMatch(/yourTurnFlash/)
 
     rerender(
-      <PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u1', isMyTurn: true, players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u1', isMyTurn: true, players: twoMembers })} />,
     )
 
     expect(gridIn(container).className).toMatch(/yourTurnFlash/)
@@ -478,7 +484,7 @@ describe('connections PlayArea — the board-scope marks', () => {
     const toggleTile = vi.fn()
     h.result = loaded({ game: game('coop'), toggleTile })
     render(
-      <PlayAreaLoader {...makeCtx({ currentTurnUserId: 'u2', isMyTurn: false, players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', isMyTurn: false, players: twoMembers })} />,
     )
 
     const tile = document.querySelector('[data-tile="a"]') as HTMLButtonElement
@@ -948,7 +954,7 @@ describe('connections PlayArea — the keys', () => {
 
   it("both leave on a teammate's turn — hidden, not merely inert", () => {
     h.result = fourPicked()
-    render(<WithKeys {...makeCtx({ isMyTurn: false, currentTurnUserId: 'u2', players: twoMembers })} />)
+    render(<WithKeys {...makeCtx({ isMyTurn: false, turnHolderId: 'u2', players: twoMembers })} />)
     expect(bound('act-submit').describe('button').state).toBe('hidden')
     expect(bound('act-clear-selection').describe('button').state).toBe('hidden')
   })

@@ -108,7 +108,7 @@ export function PlayArea({
   playState,
   isTerminal,
   isMyTurn,
-  currentTurnUserId,
+  turnHolderId,
   setup,
   status,
   globalFeedbackSlot,
@@ -282,11 +282,11 @@ export function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isLocallyDone, myConceded, mySolved])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
   // is null in a free-for-all game, so this never fires there. The holder is
   // read as two primitives so the effect settles in one pass.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  const turnHolder = currentTurnUserId === null ? undefined : memberById(members, currentTurnUserId)
+  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  const turnHolder = turnHolderId === null ? undefined : memberById(members, turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
@@ -544,7 +544,7 @@ export function PlayArea({
         showInput={showInput}
         myConceded={myConceded}
         isPlayer={!!self}
-        currentTurnUserId={currentTurnUserId}
+        turnHolderId={turnHolderId}
         // ── State ──
         guessesUsed={guessesUsed}
         maxGuesses={maxGuesses}

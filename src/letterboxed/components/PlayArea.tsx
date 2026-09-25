@@ -102,7 +102,7 @@ type RungAnswer = {
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
-    isMyTurn, currentTurnUserId,
+    isMyTurn, turnHolderId,
     setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, playerRows, myRow, events, loading, rowsLoaded, failure } = useGame(gameId, session.user.id)
@@ -661,12 +661,12 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isLocallyDone])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
   // is null in a free-for-all game, so this never fires there. On a phone the
   // InfoCol's TurnStatusLine is off-canvas, so this is the only whose-turn
   // indicator.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
+  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((p) => p.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
@@ -771,7 +771,7 @@ export function PlayArea(ctx: GamePageCtx) {
           isTerminal={isTerminal}
           isLocallyDone={isLocallyDone}
           isTurnGame={letterboxedSetup.coop_style === 'turns'}
-          currentTurnUserId={currentTurnUserId}
+          turnHolderId={turnHolderId}
           chain={chain}
           maxWords={maxWords}
           lettersCovered={lettersCovered}

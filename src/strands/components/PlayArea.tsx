@@ -190,7 +190,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session,
     setup, clubHandle, goToGame, menu, brand, title,
-    isMyTurn, currentTurnUserId,
+    isMyTurn, turnHolderId,
   } = ctx
 
   const selfId = session.user.id
@@ -367,10 +367,10 @@ export function PlayArea(ctx: GamePageCtx) {
   const myConceded = players.find((p) => p.user_id === selfId)?.conceded ?? false
   const isLocallyDone = !isTerminal && isCompete && ((me?.solved ?? false) || myConceded)
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
   // is null in a free-for-all game, so this is false there — the pill's
   // presence is fixed for the game's life, no reflow. (wordle's shape.)
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
+  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
 
   // The board refuses clicks — terminal, out of the race, a word in flight, a
   // teammate's turn. The keyboard's cursor asks the same, and the viewer too.
@@ -811,7 +811,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // Whose turn it is, under turn order. On a phone the InfoCol's TurnStatusLine
   // is off-canvas, so this is the only whose-turn indicator beside the frozen
   // board.
-  const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
+  const turnHolder = players.find((p) => p.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
@@ -948,7 +948,7 @@ export function PlayArea(ctx: GamePageCtx) {
           isTerminal={isTerminal}
           over={over}
           solutionWords={solutionWords}
-          currentTurnUserId={ctx.currentTurnUserId ?? null}
+          turnHolderId={ctx.turnHolderId ?? null}
           clue={game.clue}
           wordsFound={found.length}
           hintsSpent={me?.hints_spent ?? 0}

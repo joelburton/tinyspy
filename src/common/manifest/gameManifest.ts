@@ -114,6 +114,13 @@ export type GameManifest = {
   // docs/common.md).
   aiOpponent?: boolean
 
+  // The board stays live while I wait for my turn, so I can try a move out
+  // (scrabble: place tiles, not play them); committing still waits for the
+  // turn. Absent/false, the board takes input only on my turn. Read by
+  // `useCommonGame`'s `isBoardInteractive` (docs/win-lose.md → Where a player
+  // stands).
+  draftsOffTurn?: boolean
+
   // Human-readable name shown in pickers and titles.
   name: string
 

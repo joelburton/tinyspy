@@ -64,7 +64,7 @@ export function PlayArea({
   playState,
   isTerminal,
   isMyTurn,
-  currentTurnUserId,
+  turnHolderId,
   status,
   setup,
   clubHandle,
@@ -542,15 +542,15 @@ type Suggested =
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, isLocallyDone])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `currentTurnUserId`
+  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
   // is null in a free-for-all game, so this never fires there. (Compete is
   // ALWAYS turn-based, but its status line already names the current player,
   // so the note would be redundant — hence the coop-only pointer, which
   // compete leaves null.) The note lands where the commit buttons would be:
   // they're useless on a teammate's turn, so swapping them for the reason is
   // exactly right.
-  const waiting = currentTurnUserId !== null && !isMyTurn && !isTerminal
-  const turnHolder = players.find((m: Member) => m.user_id === currentTurnUserId)
+  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  const turnHolder = players.find((m: Member) => m.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
@@ -628,7 +628,7 @@ type Suggested =
           over={over}
           myConceded={myConceded}
           isTerminal={isTerminal}
-          currentTurnUserId={currentTurnUserId}
+          turnHolderId={turnHolderId}
           currentMember={currentMember}
           teamScore={game.teamScore}
           bagCount={game.bagCount}

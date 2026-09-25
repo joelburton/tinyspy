@@ -199,8 +199,10 @@ Co-op is free-for-all by default: anyone may act at any time. A game whose moves
 are discrete can offer **turn-by-turn** instead, with the same rules and board
 and only *who may act now* changing. The mechanism is all common:
 
-- **`games.current_turn_user_id`** — whose turn it is; null means free-for-all.
-  **`game_players.turn_seat`** — each player's place in the rotation.
+- **`games.current_turn_user_id`** — whose turn it is; null in a free-for-all
+  game. **`game_players.turn_seat`** — each player's place in the rotation.
+  Whether a game has turns at all is `turn_seat` being set (the frontend's
+  `isTurnBased`), never read off a null pointer.
 - **`common._assign_turn_order`**, once, from `create_game` when
   `setup.coop_style = 'turns'`: seat 0 is the chosen first player, the rest
   shuffled.
@@ -209,7 +211,7 @@ and only *who may act now* changing. The mechanism is all common:
   when the pointer is null.
 - **`common._advance_turn`**, after an **accepted, non-terminal** move only: a
   refused word must not cost the turn, and a move that ends the game has no one
-  to hand it to.
+  to hand it to. It skips anyone locally terminal.
 - **Restart rewinds the pointer** to seat 0.
 
 Two setup keys carry the choice, both written by the shared

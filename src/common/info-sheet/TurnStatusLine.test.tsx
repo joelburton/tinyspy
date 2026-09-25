@@ -13,7 +13,7 @@ describe('TurnStatusLine', () => {
   it('says "Your turn" when the pointer is the viewer', () => {
     render(
       <TurnStatusLine
-        currentTurnUserId="ada"
+        turnHolderId="ada"
         players={players}
         selfId="ada"
         isTerminal={false}
@@ -26,7 +26,7 @@ describe('TurnStatusLine', () => {
   it('names the current player when it is a teammate’s turn', () => {
     render(
       <TurnStatusLine
-        currentTurnUserId="bea"
+        turnHolderId="bea"
         players={players}
         selfId="ada"
         isTerminal={false}
@@ -42,7 +42,7 @@ describe('TurnStatusLine', () => {
   it('falls back to "a player" for an unknown pointer', () => {
     render(
       <TurnStatusLine
-        currentTurnUserId="ghost"
+        turnHolderId="ghost"
         players={players}
         selfId="ada"
         isTerminal={false}
@@ -54,7 +54,7 @@ describe('TurnStatusLine', () => {
   it('goes inert at terminal (no "Your turn" / "Waiting for" nag)', () => {
     render(
       <TurnStatusLine
-        currentTurnUserId="bea"
+        turnHolderId="bea"
         players={players}
         selfId="ada"
         isTerminal

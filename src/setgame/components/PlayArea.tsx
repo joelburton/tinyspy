@@ -89,7 +89,7 @@ type LeaderRow = {
 export function PlayArea(ctx: GamePageCtx) {
   const {
     gameId, isTerminal, playState, players, session, status,
-    isMyTurn, currentTurnUserId,
+    isMyTurn, turnHolderId,
     setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, players: rows, events, claims, lastClaim, teamFound, loading, failure } =
@@ -501,7 +501,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // note renaming itself IS the news that the previous player claimed, and
   // the log and counts both say so.
   usePeerFeedback({
-    enabled: game?.mode === 'coop' && currentTurnUserId === null,
+    enabled: game?.mode === 'coop' && turnHolderId === null,
     ready: !loading,
     items: claims,
     keyOf: (c) => String(c.id),
@@ -523,11 +523,11 @@ export function PlayArea(ctx: GamePageCtx) {
   // `isMyTurn`. Deps are PRIMITIVES — the holder's name and color, not the
   // member object — so a fresh `players` array on a re-render doesn't look
   // like a change.
-  const turnHolder = players.find((p) => p.user_id === currentTurnUserId)
+  const turnHolder = players.find((p) => p.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   // Turn-by-turn is fixed at create time, so this never changes mid-game.
-  const isTurnGame = currentTurnUserId !== null
+  const isTurnGame = turnHolderId !== null
   const waiting = isTurnGame && !isMyTurn && !isTerminal
   useEffect(function showWaiting() {
     if (!waiting) return
@@ -648,7 +648,7 @@ export function PlayArea(ctx: GamePageCtx) {
           isTerminal={isTerminal}
           isLocallyDone={isLocallyDone}
           over={over}
-          currentTurnUserId={currentTurnUserId}
+          turnHolderId={turnHolderId}
           teamFound={teamFound}
           deckLeft={game.deck_left}
           lastClaim={lastClaim}

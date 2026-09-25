@@ -36,7 +36,7 @@ export function InfoCol({
   isTerminal,
   isLocallyDone,
   isTurnGame,
-  currentTurnUserId,
+  turnHolderId,
   // ── State (the chain and its readouts) ──
   chain,
   maxWords,
@@ -74,7 +74,7 @@ export function InfoCol({
   /** Turn-by-turn co-op. Fixed at create time, so the turn line's presence
    *  never changes mid-game and can't reflow the column. */
   isTurnGame: boolean
-  currentTurnUserId: string | null
+  turnHolderId: string | null
   // ── State (the chain and its readouts) ──
   chain: string[]
   maxWords: number
@@ -137,7 +137,7 @@ export function InfoCol({
             since the pointer is null there. */}
         {isTurnGame && (
           <TurnStatusLine
-            currentTurnUserId={currentTurnUserId}
+            turnHolderId={turnHolderId}
             players={players}
             selfId={selfId}
             isTerminal={isTerminal}

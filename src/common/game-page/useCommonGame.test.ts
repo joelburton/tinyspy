@@ -155,23 +155,25 @@ const GAME_ROW = {
 }
 
 // ada = self, bea = a live peer, cara = a peer who has conceded, dai = a racer
-// who is DONE (finished, eliminated, out of budget — the game is not waiting
-// for them), zed-bot = an AI opponent. Each of the last three exercises one
-// exclusion from the presence-pause roster, and they are three different
-// reasons: cara quit, dai has nothing left to do, and zed-bot is never going
-// to open a tab at all.
+// who is DONE without conceding (finished, eliminated, out of budget — the game
+// is not waiting for them), zed-bot = an AI opponent. Each of the last three
+// exercises one exclusion from the presence-pause roster: cara quit, dai has
+// nothing left to do, and zed-bot is never going to open a tab at all. A
+// conceder is locally terminal too, as the server writes it. Nobody has a
+// `turn_seat`: a free-for-all game.
 const PLAYER_ROWS = [
-  { user_id: 'ada', conceded: false, conceded_at: null, locally_terminal: false, result: null },
-  { user_id: 'bea', conceded: false, conceded_at: null, locally_terminal: false, result: null },
+  { user_id: 'ada', conceded: false, conceded_at: null, locally_terminal: false, result: null, turn_seat: null },
+  { user_id: 'bea', conceded: false, conceded_at: null, locally_terminal: false, result: null, turn_seat: null },
   {
     user_id: 'cara',
     conceded: true,
     conceded_at: '2026-01-01T00:00:00Z',
-    locally_terminal: false,
+    locally_terminal: true,
     result: null,
+    turn_seat: null,
   },
-  { user_id: 'dai', conceded: false, conceded_at: null, locally_terminal: true, result: null },
-  { user_id: 'zed-bot', conceded: false, conceded_at: null, locally_terminal: false, result: null },
+  { user_id: 'dai', conceded: false, conceded_at: null, locally_terminal: true, result: null, turn_seat: null },
+  { user_id: 'zed-bot', conceded: false, conceded_at: null, locally_terminal: false, result: null, turn_seat: null },
 ]
 const PROFILES = [
   { user_id: 'ada', username: 'ada', color: 'red', ai_member: false },
@@ -190,7 +192,7 @@ const GAME_PLAYERS = [
     color: 'green',
     conceded: true,
     conceded_at: '2026-01-01T00:00:00Z',
-    locally_terminal: false,
+    locally_terminal: true,
     result: null,
     ai_member: false,
   },
@@ -279,7 +281,7 @@ function firePresenceSync() {
 
 describe('useCommonGame — initial load', () => {
   it('populates commonGame + players + club_handle and clears loading', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.commonGame).toMatchObject({
@@ -289,6 +291,107 @@ describe('useCommonGame — initial load', () => {
       title: 'Game One',
     })
     expect(result.current.players).toEqual(GAME_PLAYERS)
+  })
+})
+
+/**
+ * **Where I stand** — the standing terms, one formula each (docs/win-lose.md →
+ * Where a player stands), computed once here for every PlayArea.
+ */
+describe('useCommonGame — where I stand', () => {
+  type PlayerRow = Omit<(typeof PLAYER_ROWS)[number], 'turn_seat'> & { turn_seat: number | null }
+
+  // Answer the reads with this game row and roster instead of the defaults.
+  function serve(game: Record<string, unknown>, rows: PlayerRow[]) {
+    mockSchemaFrom.mockImplementation((table: string) => {
+      if (table === 'games') {
+        return { select: () => ({ eq: () => Promise.resolve({ data: [{ ...GAME_ROW, ...game }], error: null, status: 200 }) }) }
+      }
+      if (table === 'game_players') {
+        return { select: () => ({ eq: () => Promise.resolve({ data: rows, error: null, status: 200 }) }) }
+      }
+      return { select: () => ({ in: () => Promise.resolve({ data: PROFILES, error: null, status: 200 }) }) }
+    })
+  }
+
+  async function standing(draftsOffTurn = false, session = fakeSession) {
+    const { result } = renderHook(() => useCommonGame('g1', session, draftsOffTurn))
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    const {
+      isPlayer, isConceded, isLocallyTerminal, isStillPlaying,
+      isTurnBased, turnHolderId, isMyTurn, isBoardInteractive,
+    } = result.current
+    return {
+      isPlayer, isConceded, isLocallyTerminal, isStillPlaying,
+      isTurnBased, turnHolderId, isMyTurn, isBoardInteractive,
+    }
+  }
+
+  // ada and bea seated in a turn order.
+  const SEATED = [
+    { ...PLAYER_ROWS[0], turn_seat: 0 },
+    { ...PLAYER_ROWS[1], turn_seat: 1 },
+  ]
+
+  it('a free-for-all game: still playing, and every move is mine', async () => {
+    serve({ current_turn_user_id: null }, PLAYER_ROWS)
+    expect(await standing()).toEqual({
+      isPlayer: true, isConceded: false, isLocallyTerminal: false, isStillPlaying: true,
+      isTurnBased: false, turnHolderId: null, isMyTurn: true, isBoardInteractive: true,
+    })
+  })
+
+  it('a turn game on a teammate\'s turn: still playing, not my turn, the board inert', async () => {
+    serve({ current_turn_user_id: 'bea' }, SEATED)
+    expect(await standing()).toMatchObject({
+      isStillPlaying: true, isTurnBased: true, turnHolderId: 'bea',
+      isMyTurn: false, isBoardInteractive: false,
+    })
+  })
+
+  it('a game that drafts off-turn keeps the board live while I wait', async () => {
+    serve({ current_turn_user_id: 'bea' }, SEATED)
+    expect(await standing(true)).toMatchObject({ isMyTurn: false, isBoardInteractive: true })
+  })
+
+  it('a turn game on my turn', async () => {
+    serve({ current_turn_user_id: 'ada' }, SEATED)
+    expect(await standing()).toMatchObject({ isMyTurn: true, isBoardInteractive: true })
+  })
+
+  it('a turn game whose pointer names nobody is nobody\'s turn, never everybody\'s', async () => {
+    serve({ current_turn_user_id: null }, SEATED)
+    expect(await standing()).toMatchObject({ isTurnBased: true, turnHolderId: null, isMyTurn: false })
+  })
+
+  it('a finished game is nobody\'s turn, though the pointer still names me', async () => {
+    serve({ current_turn_user_id: 'ada', is_terminal: true, play_state: 'won' }, SEATED)
+    expect(await standing()).toMatchObject({
+      isStillPlaying: false, turnHolderId: 'ada', isMyTurn: false, isBoardInteractive: false,
+    })
+  })
+
+  it('a conceder is locally terminal, and out', async () => {
+    serve({}, [{ ...PLAYER_ROWS[0], conceded: true, locally_terminal: true }, PLAYER_ROWS[1]])
+    expect(await standing(true)).toMatchObject({
+      isConceded: true, isLocallyTerminal: true, isStillPlaying: false,
+      isMyTurn: false, isBoardInteractive: false,
+    })
+  })
+
+  it('a racer who is done without conceding is locally terminal, not conceded', async () => {
+    serve({}, [{ ...PLAYER_ROWS[0], locally_terminal: true }, PLAYER_ROWS[1]])
+    expect(await standing()).toMatchObject({
+      isConceded: false, isLocallyTerminal: true, isStillPlaying: false, isMyTurn: false,
+    })
+  })
+
+  it('a club member watching is not a player, and never has the turn', async () => {
+    serve({}, PLAYER_ROWS)
+    const watcher = { user: { id: 'eve' } } as unknown as Session
+    expect(await standing(true, watcher)).toMatchObject({
+      isPlayer: false, isStillPlaying: false, isMyTurn: false, isBoardInteractive: false,
+    })
   })
 })
 
@@ -316,7 +419,7 @@ describe('useCommonGame — a dead read is not an absent game', () => {
       }
       return { select: () => ({ eq: () => Promise.resolve({ data: [], error: null, status: 200 }) }) }
     })
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.failure).toMatchObject({ type: 'not-ok', message: 'permission denied' })
     expect(result.current.commonGame).toBeNull()
@@ -332,7 +435,7 @@ describe('useCommonGame — a dead read is not an absent game', () => {
         in: () => Promise.resolve({ data: [], error: null, status: 200 }),
       }),
     }))
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.failure).toBeNull()
     expect(result.current.commonGame).toBeNull()
@@ -341,7 +444,7 @@ describe('useCommonGame — a dead read is not an absent game', () => {
 
 describe('useCommonGame — paused unification', () => {
   it('paused is false when no one is missing and no manual pause is in effect', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Mark both players present.
@@ -355,7 +458,7 @@ describe('useCommonGame — paused unification', () => {
   })
 
   it('paused is true (presence) when a peer is missing', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Only ada is present; bea is missing.
@@ -372,7 +475,7 @@ describe('useCommonGame — paused unification', () => {
     // cara conceded (quit the race), then closed her tab. The
     // remaining players must keep racing — a conceder's absence
     // must NOT raise the presence-pause overlay for everyone else.
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // ada + bea present; cara (conceded) absent.
@@ -397,7 +500,7 @@ describe('useCommonGame — paused unification', () => {
     // parked behind the pause overlay. dai did NOT concede: in wordle, waffle
     // and strands the first player to go locally terminal is the one who
     // SOLVED, and may be the winner.
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     presenceStateRecord = {
@@ -419,7 +522,7 @@ describe('useCommonGame — paused unification', () => {
     // end_game writes it a result — but it has no tab and no presence. If it
     // counted here, every game with an AI opponent would sit behind the pause
     // overlay from the first move to the last.
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Every HUMAN who has not conceded is present; the bot is not, and never
@@ -440,7 +543,7 @@ describe('useCommonGame — paused unification', () => {
   })
 
   it('paused is true (manual) when sendManualPause fires, even with everyone present', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Everyone present.
@@ -456,7 +559,7 @@ describe('useCommonGame — paused unification', () => {
   })
 
   it('sendManualUnpause clears the manual pause', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
@@ -511,7 +614,7 @@ describe('useCommonGame — paused unification', () => {
       throw new Error(`unexpected table: ${table}`)
     })
 
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     // Put the game into a manual-paused state with someone missing.
@@ -538,7 +641,7 @@ describe('useCommonGame — paused unification', () => {
 
 describe('useCommonGame — manual-pause broadcast wiring', () => {
   it('sendManualPause broadcasts a manualPause event with the local user id', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     act(() => result.current.sendManualPause())
@@ -550,7 +653,7 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
   })
 
   it('sendManualUnpause broadcasts a manualUnpause event', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     act(() => result.current.sendManualPause())
@@ -564,7 +667,7 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
   })
 
   it('receives a peer manualPause broadcast and sets manuallyPausedBy', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
@@ -584,7 +687,7 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
   })
 
   it('a manualPause from a non-player (spectator) still pauses, labeled "Someone"', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
@@ -606,7 +709,7 @@ describe('useCommonGame — manual-pause broadcast wiring', () => {
   })
 
   it('receives a peer manualUnpause and clears manuallyPausedBy', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
     presenceStateRecord = {
       ada: [{ user_id: 'ada' }],
@@ -637,7 +740,7 @@ describe('useCommonGame — deaf-window closer', () => {
   // what closes that window (postgresAttached.ts; pinned end-to-end by
   // e2e/realtime-deaf-window.e2e.ts).
   it('re-loads when the postgres_changes attach is confirmed', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     const gamesReads = () =>
@@ -650,7 +753,7 @@ describe('useCommonGame — deaf-window closer', () => {
   })
 
   it('ignores system payloads that are not the attach ok', async () => {
-    const { result } = renderHook(() => useCommonGame('g1', fakeSession))
+    const { result } = renderHook(() => useCommonGame('g1', fakeSession, false))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     const gamesReads = () =>

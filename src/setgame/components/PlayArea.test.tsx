@@ -102,7 +102,13 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
-    currentTurnUserId: null,
+    isPlayer: true,
+    isConceded: false,
+    isLocallyTerminal: false,
+    isStillPlaying: true,
+    isTurnBased: false,
+    isBoardInteractive: true,
+    turnHolderId: null,
     setup: { deck: 'full', palette: 'traditional', timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -274,7 +280,7 @@ describe('setgame PlayArea — when the board is not yours to touch', () => {
 
   it("a teammate's turn takes no letters, and does not swallow them either", async () => {
     const user = userEvent.setup()
-    render(<WithKeys {...makeCtx({ isMyTurn: false, currentTurnUserId: 'u2' })} />)
+    render(<WithKeys {...makeCtx({ isMyTurn: false, turnHolderId: 'u2' })} />)
     await user.keyboard('a')
     expect(selectedCards()).toHaveLength(0)
     expect(cardKeyState()).toBe('hidden')

@@ -264,14 +264,18 @@ where it fixes a behavior:
    `common/turn_order_test.sql`. Rehearsed over the 2026-09-24 22:35 prod
    backup — which holds no conceded rows, so the backfill is a no-op there
    today; drift none. Not yet deployed.
-3. **The shared page.** `useCommonGame` reads `turn_seat` and returns, for
-   every PlayArea: `isPlayer`, `isConceded`, `isLocallyTerminal`,
-   `isStillPlaying`, `turnHolderId`, `isTurnBased`, `isMyTurn` (the new
-   meaning — today's `isMyTurn` is the pointer alone, and becomes
-   `turnHolderId`), and `isBoardInteractive` (with `draftsOffTurn`, a new
-   manifest field, true for scrabble).
-   The pause roster becomes `!p.locally_terminal`. GamePage's own readers
-   (the turn bell, the timer) move to the new names.
+3. ~~**The shared page.**~~ Done 2026-09-24: `useCommonGame` reads
+   `turn_seat` and returns the eight standing terms, and `GamePageCtx` hands
+   them to every PlayArea; `isMyTurn` has the new meaning, and the pointer is
+   `turnHolderId` everywhere (`currentTurnUserId` renamed in all sixteen games
+   and `TurnStatusLine`, nothing else changed in them). `draftsOffTurn` is an
+   optional manifest field, true in both scrabble manifests (its `canPlace`
+   ignores the turn in coop too). The pause roster is `!p.locally_terminal`.
+   The bell rings on `isTurnBased && isMyTurn` — it used to ring for everyone
+   when a free-for-all game restarted (failing test first, in
+   `GamePage.test.tsx`); the timer never read the turn. Every game still reads
+   a null `turnHolderId` as "no turns" and ignores the new terms; step 6
+   moves them.
 4. **The Concede bug** (found here): Concede hides only on `isTerminal ||
    myConceded` (`useStandardGameActions`), so a compete racer who has SOLVED
    can concede and forfeit a win they may have earned. It hides on
