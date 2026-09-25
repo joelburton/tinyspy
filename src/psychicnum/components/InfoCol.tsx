@@ -32,8 +32,9 @@ export function InfoCol({
   isCompete,
   terminalMessage,
   isStillPlaying,
-  myConceded,
+  isConceded,
   isMyTurn,
+  isTurnBased,
   turnHolderId,
   found,
   secretCount,
@@ -61,17 +62,16 @@ export function InfoCol({
   isCompete: boolean
   // The terminal message when the game is over (drives the action row), else null.
   terminalMessage: TerminalMessage | null
-  // May I still guess? Gates the play action row + help (vs the locally-done look).
+  // The page's standing terms (docs/win-lose.md → Where a player stands).
+  // Still in the game — gates the play action row (vs the out-of-the-race look).
   isStillPlaying: boolean
-  // I conceded a compete race (a real loss; the others keep racing) — picks the
-  // locally-done status wording.
-  myConceded: boolean
-  // Turn-order: may I act THIS moment? The shell's one answer, the same one
-  // BoardCol gates the board and Submit on. Always true for free-for-all / solo.
+  // I conceded — picks the out-of-the-race wording.
+  isConceded: boolean
+  // The move is mine — gates the help line, as BoardCol gates Submit on it.
   isMyTurn: boolean
-  // Whose turn it is under turn-order, or null for a free-for-all game.
-  // Non-null ⇒ render the shared `<TurnStatusLine>` (this is a turn game);
-  // null ⇒ omit it entirely (the default free-for-all games).
+  // A turn-order game: render the shared `<TurnStatusLine>`, which names the
+  // holder of `turnHolderId`.
+  isTurnBased: boolean
   turnHolderId: string | null
 
   // ── State readout (secrets found + the guess counter) ──
@@ -139,7 +139,7 @@ export function InfoCol({
     ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
     : isStillPlaying
       ? undefined
-      : { text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
+      : { text: isConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
 
   return (
     <div className={shared.infoCol}>
@@ -159,10 +159,10 @@ export function InfoCol({
             maxGuesses={maxGuesses}
           />
         </p>
-        {/* Whose-turn line — ONLY for a turn-order game (turnHolderId
-            non-null). A separate line below the state readout, never replacing
-            it. Its presence is fixed at create-time, so it can't reflow. */}
-        {turnHolderId !== null && (
+        {/* Whose-turn line — ONLY for a turn-order game. A separate line below
+            the state readout, never replacing it. Its presence is fixed at
+            create-time, so it can't reflow. */}
+        {isTurnBased && (
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
@@ -223,13 +223,13 @@ export function InfoCol({
           />
         </InfoActionsRow>
 
-        {/* Help — shown ONLY while you can actually act on it: still playing, and
-            it is my move (the board is inert while I wait, so the prompt would
-            misdirect; Hint / Reveal / End stay available). It never silently
-            swaps text: the "out of guesses, waiting" state is carried loudly by
-            the action row above (the terminal look), not by a quietly-changed
-            help line. Below the action row, per the InfoCol order. */}
-        {isStillPlaying && isMyTurn && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
+        {/* Help — shown ONLY while you can actually act on it: it is my move
+            (the board is inert while I wait, so the prompt would misdirect;
+            Hint / Reveal / End stay available). It never silently swaps text:
+            the "out of guesses, waiting" state is carried loudly by the action
+            row above (the terminal look), not by a quietly-changed help line.
+            Below the action row, per the InfoCol order. */}
+        {isMyTurn && <p className={shared.infoHelp}>Click on or type a word and hit submit.</p>}
 
         {/* Setup — shown in BOTH states, behind a disclosure, LAST before the event log
             (docs/playarea.md → Info-column readouts). Open, it grows (which we

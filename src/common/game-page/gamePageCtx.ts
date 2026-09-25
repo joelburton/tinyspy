@@ -95,6 +95,9 @@ export type GamePageCtx = {
   turnHolderId: string | null
   // Still playing, and the move is mine.
   isMyTurn: boolean
+  // Still playing, and the move is someone else's — the waiting message reads
+  // it, and a board dims on it unless it is interactive.
+  isWaitingForTurn: boolean
   // The board responds to me; a commit asks `isMyTurn`.
   isBoardInteractive: boolean
   // The game's setup blob from `common.games.setup` — the

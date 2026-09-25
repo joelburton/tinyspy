@@ -291,9 +291,10 @@ where it fixes a behavior:
    PN508, a race). Failing tests first (the hook's, with a one-flag invariant
    over every state; `common/concede_test.sql`). strands' `conceded_test`
    encoded the old solve-then-concede forfeit and now tests the refusal.
-5. **The shared functions' parameter.** `myConceded` → `isConceded` in
-   `FeedbackMessage.outOfRace` — a rename only. (`useStandardGameActions` no
-   longer takes it, since step 4.)
+5. ~~**The shared functions' parameter.**~~ Done 2026-09-24:
+   `FeedbackMessage.outOfRace` takes `isConceded`, and `useSingleFlight`'s
+   docstring names `isLocallyTerminal`. No shared code says `myConceded` now;
+   each game's own `myConceded` local goes in step 6.
 6. **All sixteen games** (Joel: a future audit must never read an old-meaning
    `isLocallyTerminal`) — one commit per game, that game's e2e run each time.
    Each reads the page's values instead of its own: psychicnum's
@@ -304,17 +305,38 @@ where it fixes a behavior:
    Every board takes `isBoardInteractive` and a required handler (N4):
    connections' `interactive` and codenamesduet's `cellsClickable` go, and
    psychicnum and the bees stop passing `undefined` for "inert". The
-   `notMyTurn` props become `!isMyTurn` (or `isNotMyTurn`) — checking per
-   board that the ending's own look wins over a "teammate's move" dim, since
-   `!isMyTurn` is now also true at the end and for a player who is out. Each
-   unaudited game is checked for `draftsOffTurn`.
+   `notMyTurn` props become the page's `isWaitingForTurn` (still playing, and
+   the move is someone else's — Joel, 2026-09-24: the audited boards dim only
+   for that, never at the end or for a player who is out), and a board dims on
+   `isWaitingForTurn && !isBoardInteractive`, so scrabble's live board does
+   not. The waiting message and `TurnStatusLine` show on `isTurnBased` /
+   `isWaitingForTurn`, never on a null `turnHolderId`. Each unaudited game is
+   checked for `draftsOffTurn`. scrabble's commit follows step 8.
+   A game's tests build their ctx through `whereIStand` (common/game-page,
+   the page's own formulas), setting the facts — the roster's flags,
+   `isTerminal`, `isTurnBased`, `turnHolderId` — and never a hand-written
+   answer; a fixture that concedes sets `locally_terminal` too, as the server
+   does.
+   **Progress:** psychicnum done 2026-09-24 (its own `myConceded` /
+   `isStillPlaying` / `canPlay` / `waiting` gone; pick vs commit gated
+   separately; unit + its 8 e2e + the cross-game specs green).
 7. **codenamesduet's turns.** It keeps its turns in its own table
    (`current_clue_giver` and the phase), so the shared `isMyTurn` is always
-   true there. It seats both players (`turn_seat`) and sets the shared pointer
-   to whoever must act now — the clue-giver while a clue is owed, the guesser
-   once it is given. In sudden death it supplies `isMyTurn` itself: the move
-   belongs to whoever still has words to guess (the rulebook's, below), which
-   one pointer cannot say when both do.
+   true there. It moves onto the common turn order: both players seated
+   (`turn_seat`), and the shared pointer names whoever must act now — the
+   clue-giver while a clue is owed, the guesser once it is given, and in
+   sudden death the one player who still has words to guess. The ONE
+   exception is sudden death with both players holding words: the rulebook
+   lets either guess, which one pointer cannot say, so only there does the
+   game supply `isMyTurn` (true for both) itself. The partner with nothing
+   left to guess is then `isWaitingForTurn`, and their board dims.
+8. **scrabble compete joins the common turn order.** Its AI seats are
+   ordinary players now, so nothing keeps it on its own
+   `scrabble.games.current_seat`: `_assign_turn_order`, `_require_turn` and
+   `_advance_turn` replace it, and `useCommonGame` answers `isMyTurn` there as
+   everywhere. Stored data — games in progress hold their turn in
+   `current_seat` — so a migration moves it to `turn_seat` and the pointer,
+   rehearsed over a prod backup.
 
 ## 3b. How it ended for me — won, lost, quit, no result, solved (not started)
 

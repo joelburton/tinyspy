@@ -128,6 +128,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isStillPlaying: true,
     isTurnBased: false,
     isBoardInteractive: true,
+    isWaitingForTurn: false,
     turnHolderId: null,
     setup: { puzzle_id: 'p1', timer: { kind: 'none' } },
     status: null,

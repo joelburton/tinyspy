@@ -110,6 +110,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isStillPlaying: true,
     isTurnBased: false,
     isBoardInteractive: true,
+    isWaitingForTurn: false,
     turnHolderId: null,
     setup: { extra_words: 3, difficulty: 3, timer: { kind: 'none' } },
     status: null,

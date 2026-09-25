@@ -12,8 +12,8 @@ import { useCallback, useRef, useState } from 'react'
  * a dropped press. Guard the HANDLER rather than a control, and every trigger —
  * button, menu row, keyboard shortcut — is covered at once. NOT for an
  * idempotent call every client fires (`submit_timeout`), and not for an action a
- * state flag already gates (End / Concede stop once `isTerminal` / `myConceded`
- * flips). This folder's `doc.md` has the rest: which callers use it, and why the
+ * state flag already gates (End / Concede stop once `isTerminal` /
+ * `isLocallyTerminal` flips). This folder's `doc.md` has the rest: which callers use it, and why the
  * guard sits where it does.
  *
  * Two facts about the timing a caller has to know. The gate closes on the FIRST

@@ -341,7 +341,7 @@ the same in both, or reading the second game means re-deriving the first.
   together to one child, such as the OpponentStrip's inputs.
 - **One vocabulary.** The standing terms — `isTerminal`, `isPlayer`,
   `isConceded`, `isLocallyTerminal`, `isStillPlaying`, `isMyTurn`,
-  `isBoardInteractive` — mean what [win-lose.md → Where a player
+  `isWaitingForTurn`, `isBoardInteractive` — mean what [win-lose.md → Where a player
   stands](win-lose.md#where-a-player-stands--the-terms-as-formulas) defines, and
   nothing else. Beside them: `terminalMessage`, `isCompete`, `historyLabel`, `onExitHistory`,
   `onShowHistory`, `players`, `myId`, `playerStates`, `concededIds`, `setup`,

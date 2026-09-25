@@ -195,8 +195,8 @@ export class FeedbackMessage {
    * you conceded, or the game's own words for the other way out — out of
    * guesses, out of swaps, solved and waiting.
    */
-  static outOfRace(myConceded: boolean, activeText = 'Lost — race continues', overrides?: Overrides): FeedbackMessage {
-    const text = myConceded ? 'Conceded — race continues' : activeText
+  static outOfRace(isConceded: boolean, activeText = 'Lost — race continues', overrides?: Overrides): FeedbackMessage {
+    const text = isConceded ? 'Conceded — race continues' : activeText
     return new FeedbackMessage('standingState', text, undefined, defaultsFor('standingState', 'neutral', overrides))
   }
 

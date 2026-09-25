@@ -79,6 +79,7 @@ type Props = GameShellProps & {
   isTurnBased: boolean
   turnHolderId: string | null
   isMyTurn: boolean
+  isWaitingForTurn: boolean
   isBoardInteractive: boolean
 }
 
@@ -121,6 +122,7 @@ export function GamePage({
   isTurnBased,
   turnHolderId,
   isMyTurn,
+  isWaitingForTurn,
   isBoardInteractive,
 }: Props) {
   // ─── What this page is about ────────────────────────────────────────────
@@ -490,6 +492,7 @@ export function GamePage({
                 isTurnBased={isTurnBased}
                 turnHolderId={turnHolderId}
                 isMyTurn={isMyTurn}
+                isWaitingForTurn={isWaitingForTurn}
                 isBoardInteractive={isBoardInteractive}
                 setup={commonGame.setup}
                 status={commonGame.status}

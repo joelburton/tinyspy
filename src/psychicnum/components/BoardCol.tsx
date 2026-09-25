@@ -65,11 +65,12 @@ export function BoardCol({
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
   isStillPlaying,
+  isBoardInteractive,
   isMyTurn,
   localFeedbackSlot,
   decidedBy,
   terminalOutcome,
-  notMyTurn,
+  isWaitingForTurn,
   myTurnJustStarted,
   moveCount,
 }: {
@@ -99,14 +100,14 @@ export function BoardCol({
 
   // ── Guess dispatch ──
   gameId: string
-  // Am I a live participant? The play-vs-done LOOK. NOT turn-aware: a waiting
-  // player is still a participant.
+  // The page's standing terms (docs/win-lose.md → Where a player stands).
+  // Still in the game — whether a pick is drawn. Waiting my turn is still
+  // playing.
   isStillPlaying: boolean
-  // Turn-order: may I act THIS moment? Always true for free-for-all / solo. When
-  // false Clear and Submit stay visible but gray (the tiles and the keys are
-  // frozen); the InfoCol's TurnStatusLine explains whose turn it is. Kept
-  // separate from `isStillPlaying` so a non-current turn doesn't read as "out
-  // of guesses".
+  // The board takes a pick — the tiles, the cursor and Clear.
+  isBoardInteractive: boolean
+  // The move is mine — Submit. When false Clear and Submit stay visible but
+  // gray; the waiting message or the verdict explains why.
   isMyTurn: boolean
   // PlayArea's below-board slot. This column shows the guess results into it
   // (Correct / Wrong / a rejected guess) and draws its top.
@@ -117,8 +118,8 @@ export function BoardCol({
   decidedBy: ReadonlyMap<string, Actor | undefined> | null
   // The game is finished, and how — bands the board in that outcome's gray.
   terminalOutcome: TerminalOutcome | null
-  // Turn-order coop: a teammate holds the move, so the board dims.
-  notMyTurn: boolean
+  // A teammate holds the move, so the board dims.
+  isWaitingForTurn: boolean
   // True for a beat as the turn becomes mine — the frame flashes.
   myTurnJustStarted: boolean
   // Guesses the server has recorded — the CAUSE the attention flash reads.
@@ -135,8 +136,10 @@ export function BoardCol({
   // conventions: one prop says so, and the flag is derived, never passed).
   const isViewingHistory = historyLabel !== null
 
-  // May I act on the board right now — pick, clear, guess?
-  const canPlay = isStillPlaying && isMyTurn && !isViewingHistory
+  // May I pick (or clear) a word right now, and may I guess it? A past turn on
+  // screen blocks both: any click or key there leaves history.
+  const canPick = isBoardInteractive && !isViewingHistory
+  const canCommit = isMyTurn && !isViewingHistory
 
   // ─── The picked word ───────────────────────────────────
   // The guess being built, and everything that reads it. A tile click and the
@@ -277,7 +280,7 @@ export function BoardCol({
 
   const { cursor, point } = useBoardSelectionCursor({
     shape,
-    enabled: canPlay,
+    enabled: canPick,
     onToggle: toggleAt,
   })
 
@@ -291,13 +294,13 @@ export function BoardCol({
   // Submit guesses the picked word, on its button or Enter — whether or not the
   // cursor shows, since the pick is always drawn.
   const actSubmit = useBoundAction('act-submit', {
-    describe: () => (canPlay && picked !== null && !submitting ? 'active' : 'disabled'),
+    describe: () => (canCommit && picked !== null && !submitting ? 'active' : 'disabled'),
     run: submitGuess,
   })
 
   // Clear un-picks, on its button or ⌫.
   const actClearSelection = useBoundAction('act-clear-selection', {
-    describe: () => (canPlay && picked !== null ? 'active' : 'disabled'),
+    describe: () => (canPick && picked !== null ? 'active' : 'disabled'),
     run: () => pick(null),
   })
 
@@ -321,14 +324,15 @@ export function BoardCol({
         cursor={cursor}
         decidedBy={decidedBy}
         terminalOutcome={terminalOutcome}
-        notMyTurn={notMyTurn}
+        isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
         moveCount={moveCount}
         // The word with the server, if any: its tile dims until the answer lands.
         // Never while viewing a past turn — that board is not the one the guess
         // is in flight on, the same reason `selected` is dropped above.
         inFlightWord={isViewingHistory ? null : inFlightWord}
-        onPick={canPlay ? handleTileClick : undefined}
+        isBoardInteractive={isBoardInteractive}
+        onPick={handleTileClick}
         isViewingHistory={isViewingHistory}
         historyLitWord={historyLitWord}
         // Shuffle floats over the board's top-right — purely visual (a fresh scan

@@ -104,6 +104,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isStillPlaying: true,
     isTurnBased: false,
     isBoardInteractive: true,
+    isWaitingForTurn: false,
     turnHolderId: null,
     // A realistic setup blob — the info-column disclosure + rank target read it.
     setup: { required_band: 3, legal_band: 5, timer: { kind: 'none' } },

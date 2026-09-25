@@ -45,6 +45,7 @@ export function GamePageLoader({ gameId, session, manifest }: GameShellProps) {
     isTurnBased,
     turnHolderId,
     isMyTurn,
+    isWaitingForTurn,
     isBoardInteractive,
     loading,
     failure,
@@ -80,6 +81,7 @@ export function GamePageLoader({ gameId, session, manifest }: GameShellProps) {
       isTurnBased={isTurnBased}
       turnHolderId={turnHolderId}
       isMyTurn={isMyTurn}
+      isWaitingForTurn={isWaitingForTurn}
       isBoardInteractive={isBoardInteractive}
     />
   )

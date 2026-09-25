@@ -20,6 +20,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
@@ -57,22 +58,23 @@ function loaded(game: PsychicnumGame, players: PlayerRow[] = [me]): GameHook {
 /** A board word list — Board renders a tile per word; needs at least one. */
 const WORDS = ['alpha', 'bravo', 'charlie', 'delta', 'echo']
 
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
+ *  the page derives it (`whereIStand`), so a test sets up the facts and never
+ *  hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
-    gameId: 'g1',
     players: [gp('u1', 'me', 'red')],
-    playState: 'playing',
     isTerminal: false,
-    timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
     isTurnBased: false,
-    isBoardInteractive: true,
     turnHolderId: null,
+    ...over,
+  }
+  return {
+    gameId: 'g1',
+    playState: 'playing',
+    timer: { displaySeconds: 0, expired: false },
     // A realistic setup blob — the info column reads `max_guesses` + `band`.
     setup: { max_guesses: 7, word_count: 10, band: 3, timer: { kind: 'none' } },
     status: null,
@@ -85,7 +87,15 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actChat: boundActionFixture('act-open-chat'),
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
-    ...over,
+    ...facts,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId: facts.turnHolderId,
+      draftsOffTurn: false,
+    }),
   } as unknown as GamePageCtx
 }
 
@@ -201,7 +211,7 @@ describe('psychicnum PlayArea — concede', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })],
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })],
         })}
       />,
     )
@@ -213,7 +223,7 @@ describe('psychicnum PlayArea — concede', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
-          players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
+          players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')],
         })}
       />,
     )
@@ -338,7 +348,7 @@ describe('psychicnum PlayArea — turn order', () => {
       <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
-          isMyTurn: false,
+          isTurnBased: true,
           turnHolderId: 'u2',
         })}
       />,
@@ -372,7 +382,7 @@ describe('psychicnum PlayArea — turn order', () => {
       <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
-          isMyTurn: true,
+          isTurnBased: true,
           turnHolderId: 'u1',
         })}
       />,
@@ -382,13 +392,13 @@ describe('psychicnum PlayArea — turn order', () => {
     expect(screen.getByRole('button', { name: /hint/i })).toBeInTheDocument()
   })
 
-  it('free-for-all (no pointer): renders no turn line', () => {
+  it('free-for-all (no turn order): renders no turn line', () => {
     h.result = loaded(coopGame, [me, moth])
     render(
       <PlayAreaLoader
         {...makeCtx({
           players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
-          isMyTurn: true,
+          isTurnBased: false,
           turnHolderId: null,
         })}
       />,
@@ -454,10 +464,13 @@ describe('psychicnum PlayArea — the game menu names the help glyphs', () => {
     menuItems(ctx).get('act-spoiler')?.run()
     expect(rpc).toHaveBeenCalledWith('request_spoiler', { target_game: 'g1' })
 
-    // Out of budget: disabled, but STILL THERE — a grayed row still teaches its
+    // Out of budget in a race that goes on — the server marks me locally
+    // terminal: disabled, but STILL THERE — a grayed row still teaches its
     // glyph, which is why the pair is never dropped.
-    h.result = loaded(coopGame, [{ ...me, guesses_used: 7 }])
-    const spent = makeCtx()
+    h.result = loaded(competeGame, [{ ...me, guesses_used: 7 }, moth])
+    const spent = makeCtx({
+      players: [gp('u1', 'me', 'red', { locally_terminal: true }), gp('u2', 'moth', 'blue')],
+    })
     render(<PlayAreaLoader {...spent} />)
     const items = menuItems(spent)
     expect(items.get('act-hint')?.disabled).toBe(true)
@@ -615,14 +628,14 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
   it('dims the board while a teammate holds the move, and flashes when it arrives', () => {
     const two = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
     const { container, rerender } = render(
-      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', isMyTurn: false, players: two })} />,
+      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: two })} />,
     )
     expect(gridIn(container).className).toMatch(/dimNotYourTurn/)
     // An EVENT, so never on mount: opening a game on your own turn is not being
     // handed it.
     expect(gridIn(container).className).not.toMatch(/yourTurnFlash/)
 
-    rerender(<PlayAreaLoader {...makeCtx({ turnHolderId: 'u1', isMyTurn: true, players: two })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u1', players: two })} />)
 
     expect(gridIn(container).className).toMatch(/yourTurnFlash/)
     expect(gridIn(container).className).not.toMatch(/dimNotYourTurn/)
@@ -658,7 +671,7 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     await user.click(tile())
     expect(tile().className).toMatch(/selected/)
 
-    rerender(<PlayAreaLoader {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true }), two[1]] })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), two[1]] })} />)
     expect(tile().className).not.toMatch(/selected/)
   })
 
@@ -961,7 +974,16 @@ describe('psychicnum PlayArea — the selection cursor', () => {
   })
 
   it('a board I cannot play takes no ring and no keys', async () => {
-    render(<WithKeys {...makeCtx({ isMyTurn: false })} />)
+    // A teammate holds the move.
+    render(
+      <WithKeys
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
+          isTurnBased: true,
+          turnHolderId: 'u2',
+        })}
+      />,
+    )
     await key('ArrowRight')
     await key(' ')
     await key('Enter')

@@ -101,6 +101,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isStillPlaying: true,
     isTurnBased: false,
     isBoardInteractive: true,
+    isWaitingForTurn: false,
     turnHolderId: null,
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
     // would crash timerLabel / the difficulty lookups, exactly what this guards).

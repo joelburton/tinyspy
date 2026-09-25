@@ -16,6 +16,7 @@ import type { TimerMode } from '../manifest/gameManifest'
 import type { GamePlayer, Member } from '../members/member'
 import { useGameTimer } from '../timer/useGameTimer'
 import { reportUnhandled } from '../supabase/dbEnvelope'
+import { whereIStand } from './whereIStand'
 
 /**
  * The subset of common.games a game page sees. Mirrors the row shape, so the
@@ -172,6 +173,7 @@ export function useCommonGame(
   isTurnBased: boolean
   turnHolderId: string | null
   isMyTurn: boolean
+  isWaitingForTurn: boolean
   isBoardInteractive: boolean
   // False once the initial fetch has settled, however it settled.
   loading: boolean
@@ -693,17 +695,24 @@ export function useCommonGame(
     running: commonGame != null && !commonGame.is_terminal,
   })
 
-  // ─── Where I stand ─── formula for formula (docs/win-lose.md → Where a
-  // player stands).
-  const me = players.find((p) => p.user_id === session.user.id)
-  const isTerminal = commonGame?.is_terminal ?? false
-  const isPlayer = me !== undefined
-  const isConceded = me?.conceded ?? false
-  const isLocallyTerminal = me?.locally_terminal ?? false
-  const isStillPlaying = isPlayer && !isTerminal && !isLocallyTerminal
+  // ─── Where I stand ─── see `whereIStand`.
   const turnHolderId = commonGame?.current_turn_user_id ?? null
-  const isMyTurn = isStillPlaying && (!isTurnBased || turnHolderId === session.user.id)
-  const isBoardInteractive = draftsOffTurn ? isStillPlaying : isMyTurn
+  const {
+    isPlayer,
+    isConceded,
+    isLocallyTerminal,
+    isStillPlaying,
+    isMyTurn,
+    isWaitingForTurn,
+    isBoardInteractive,
+  } = whereIStand({
+    players,
+    myId: session.user.id,
+    isTerminal: commonGame?.is_terminal ?? false,
+    isTurnBased,
+    turnHolderId,
+    draftsOffTurn,
+  })
 
   return {
     commonGame,
@@ -723,6 +732,7 @@ export function useCommonGame(
     isTurnBased,
     turnHolderId,
     isMyTurn,
+    isWaitingForTurn,
     isBoardInteractive,
     loading,
     failure,

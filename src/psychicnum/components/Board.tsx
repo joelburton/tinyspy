@@ -33,9 +33,11 @@ type Props = {
   cursor?: Cell | null
   // The currently-picked word (highlighted), or null.
   selected: string | null
-  // Pick a word tile. Omitted when the board is non-interactive (terminal, the
-  // viewer is out of guesses, or viewing history) — tiles render inert then.
-  onPick?: (word: string) => void
+  // The board responds to me (the page's `isBoardInteractive`); when false, or
+  // while a past turn is open, the tiles render inert.
+  isBoardInteractive: boolean
+  // Pick a word tile.
+  onPick: (word: string) => void
   // Render read-only under the blue viewer frame (a past turn's
   // board). Off during live play.
   isViewingHistory?: boolean
@@ -55,8 +57,9 @@ type Props = {
   // The game is finished, and how it ended — the board takes a band in that
   // outcome's gray (neutral for a game merely ended). Null while it's live.
   terminalOutcome?: TerminalOutcome | null
-  // A teammate holds the move (turn-order coop): dim the whole board.
-  notMyTurn?: boolean
+  // A teammate holds the move (the page's `isWaitingForTurn`): the whole board
+  // dims, unless it is interactive.
+  isWaitingForTurn?: boolean
   // True for a beat at the moment the turn becomes mine — flash the frame.
   myTurnJustStarted?: boolean
   // Guesses the server has recorded. The CAUSE the attention flash reads: a
@@ -93,13 +96,14 @@ export function Board({
   results,
   selected,
   cursor = null,
+  isBoardInteractive,
   onPick,
   isViewingHistory = false,
   historyLitWord = null,
   decidedBy = null,
   inFlightWord = null,
   terminalOutcome = null,
-  notMyTurn = false,
+  isWaitingForTurn = false,
   myTurnJustStarted = false,
   moveCount,
   floatingControl,
@@ -162,7 +166,7 @@ export function Board({
           shared.hugRectWidth,
           styles.grid,
           isViewingHistory && history.historyFrame,
-          notMyTurn && shared.dimNotYourTurn,
+          isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
           // Both frames are outlines, so they take turns: the viewer owns it while
           // open, being the state you chose and the one you can leave.
@@ -214,9 +218,9 @@ export function Board({
                 // This tile is the guess the viewed turn decided.
                 historyLitWord === word && styles.historyTile,
               )}
-              disabled={guessed || !onPick}
+              disabled={guessed || !isBoardInteractive || isViewingHistory}
               aria-pressed={selected === word || undefined}
-              onClick={onPick ? () => onPick(word) : undefined}
+              onClick={() => onPick(word)}
               // NOT a focus target: `preventDefault` on mousedown so a CLICK
               // can't park focus here. Otherwise the next keystroke promotes
               // the clicked tile to `:focus-visible` and leaves a ring on it —

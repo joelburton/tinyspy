@@ -319,11 +319,11 @@ describe('useCommonGame — where I stand', () => {
     await waitFor(() => expect(result.current.loading).toBe(false))
     const {
       isPlayer, isConceded, isLocallyTerminal, isStillPlaying,
-      isTurnBased, turnHolderId, isMyTurn, isBoardInteractive,
+      isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
     } = result.current
     return {
       isPlayer, isConceded, isLocallyTerminal, isStillPlaying,
-      isTurnBased, turnHolderId, isMyTurn, isBoardInteractive,
+      isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
     }
   }
 
@@ -337,26 +337,31 @@ describe('useCommonGame — where I stand', () => {
     serve({ current_turn_user_id: null }, PLAYER_ROWS)
     expect(await standing()).toEqual({
       isPlayer: true, isConceded: false, isLocallyTerminal: false, isStillPlaying: true,
-      isTurnBased: false, turnHolderId: null, isMyTurn: true, isBoardInteractive: true,
+      isTurnBased: false, turnHolderId: null, isMyTurn: true, isWaitingForTurn: false,
+      isBoardInteractive: true,
     })
   })
 
-  it('a turn game on a teammate\'s turn: still playing, not my turn, the board inert', async () => {
+  it('a turn game on a teammate\'s turn: still playing, waiting, the board inert', async () => {
     serve({ current_turn_user_id: 'bea' }, SEATED)
     expect(await standing()).toMatchObject({
       isStillPlaying: true, isTurnBased: true, turnHolderId: 'bea',
-      isMyTurn: false, isBoardInteractive: false,
+      isMyTurn: false, isWaitingForTurn: true, isBoardInteractive: false,
     })
   })
 
   it('a game that drafts off-turn keeps the board live while I wait', async () => {
     serve({ current_turn_user_id: 'bea' }, SEATED)
-    expect(await standing(true)).toMatchObject({ isMyTurn: false, isBoardInteractive: true })
+    expect(await standing(true)).toMatchObject({
+      isMyTurn: false, isWaitingForTurn: true, isBoardInteractive: true,
+    })
   })
 
   it('a turn game on my turn', async () => {
     serve({ current_turn_user_id: 'ada' }, SEATED)
-    expect(await standing()).toMatchObject({ isMyTurn: true, isBoardInteractive: true })
+    expect(await standing()).toMatchObject({
+      isMyTurn: true, isWaitingForTurn: false, isBoardInteractive: true,
+    })
   })
 
   it('a turn game whose pointer names nobody is nobody\'s turn, never everybody\'s', async () => {
@@ -367,7 +372,8 @@ describe('useCommonGame — where I stand', () => {
   it('a finished game is nobody\'s turn, though the pointer still names me', async () => {
     serve({ current_turn_user_id: 'ada', is_terminal: true, play_state: 'won' }, SEATED)
     expect(await standing()).toMatchObject({
-      isStillPlaying: false, turnHolderId: 'ada', isMyTurn: false, isBoardInteractive: false,
+      isStillPlaying: false, turnHolderId: 'ada', isMyTurn: false, isWaitingForTurn: false,
+      isBoardInteractive: false,
     })
   })
 
@@ -375,7 +381,7 @@ describe('useCommonGame — where I stand', () => {
     serve({}, [{ ...PLAYER_ROWS[0], conceded: true, locally_terminal: true }, PLAYER_ROWS[1]])
     expect(await standing(true)).toMatchObject({
       isConceded: true, isLocallyTerminal: true, isStillPlaying: false,
-      isMyTurn: false, isBoardInteractive: false,
+      isMyTurn: false, isWaitingForTurn: false, isBoardInteractive: false,
     })
   })
 

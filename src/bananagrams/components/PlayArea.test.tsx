@@ -94,6 +94,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isStillPlaying: true,
     isTurnBased: false,
     isBoardInteractive: true,
+    isWaitingForTurn: false,
     turnHolderId: null,
     setup: SETUP,
     status: { bunch_remaining: 100, bag_remaining: 0 },

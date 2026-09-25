@@ -191,6 +191,16 @@ turnHolderId = common.games.current_turn_user_id
 //   still has words to guess) supplies isMyTurn itself — by this same meaning.
 isMyTurn = isStillPlaying && (!isTurnBased || turnHolderId === me)
 
+// isWaitingForTurn — I'm still playing, and the move is someone else's.
+//   Only possible in a turn-based game: in a free-for-all isMyTurn is
+//   isStillPlaying.
+//   Doesn't mean: I'm out, or the game is over — nothing is coming to either.
+//   Doesn't mean: the board is inert — a game that drafts off-turn (scrabble)
+//   keeps it live while I wait. So a board dims on
+//   isWaitingForTurn && !isBoardInteractive, and the whose-turn line and the
+//   waiting message read isWaitingForTurn alone.
+isWaitingForTurn = isStillPlaying && !isMyTurn
+
 // draftsOffTurn — the game lets a waiting player try out a move on the board
 //   (scrabble: place tiles, not play them). A fixed fact about the game — its
 //   manifest.

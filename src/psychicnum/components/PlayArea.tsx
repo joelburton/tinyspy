@@ -128,9 +128,14 @@ function PlayArea({
   players,
   playState,
   isTerminal,
+  isConceded,
   isLocallyTerminal,
-  isMyTurn,
+  isStillPlaying,
+  isTurnBased,
   turnHolderId,
+  isMyTurn,
+  isWaitingForTurn,
+  isBoardInteractive,
   setup,
   status,
   globalFeedbackSlot,
@@ -182,31 +187,16 @@ function PlayArea({
   const turnFlash = useTurnStartFlash(isMyTurn)
 
   // ─── Derived ───────────────────────────────────────────
-  // Who I am in this game and what I may still do, read off the props and
-  // `playerBudgets`. Named here because the sections below share them: the
-  // standing conditions, the bindings' `describe`s, and both columns all ask
-  // the same questions, and they must not answer them differently.
+  // Who I am in this game and what I may still do. Where I stand — conceded,
+  // still playing, whose move it is — comes from the page, already computed
+  // (docs/win-lose.md → Where a player stands); what is this game's own is
+  // read off `playerBudgets`.
 
-  // I dropped out of a compete race (a real loss; the others keep racing). Read
-  // from the common roster (prop `players`), not from `playerBudgets` — those
-  // are guess budgets. (`concededIds` below is the same fact for everyone.)
-  const myConceded = players.find((p) => p.user_id === session.user.id)?.conceded ?? false
-
-  // The guess budget, and how much of it I have used — from it the "can I still
-  // act?" gate, read by the Hint / Spoiler bindings, so their menu rows and
-  // their InfoCol buttons gray together.
+  // The guess budget, and how much of it I have used, for the readouts. A
+  // spent budget is where I stand already: the server marks the racer locally
+  // terminal, and the page's `isStillPlaying` goes false.
   const maxGuesses = setup.max_guesses
   const guessesUsed = myBudgetRow?.guesses_used ?? maxGuesses
-  // Still in this game: it is live, I have guesses left, and I have not
-  // conceded. Drives the terminal-vs-play LOOK in both columns.
-  //
-  // NOT about whose turn it is — waiting your turn is still playing, and
-  // `isMyTurn` (passed to BoardCol) is what gates the actual input.
-  //
-  // A club member WATCHING reads false here through `guessesUsed`'s
-  // `?? maxGuesses` rather than through a test of their own — so give that
-  // default anything smaller and a watcher silently becomes a player.
-  const isStillPlaying = !isTerminal && guessesUsed < maxGuesses && !myConceded
 
   // The setup recap, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array (common/setup-form/doc.md →
@@ -278,25 +268,23 @@ function PlayArea({
   // Out of the race while the others play on: out of guesses, or conceded.
   // A standing state with the fill; the verdict outranks it when the game ends.
   useEffect(function showOutOfRace() {
-    if (isTerminal || isStillPlaying) return
+    if (isTerminal || !isLocallyTerminal) return
     const id = localFeedbackSlot.show(
-      FeedbackMessage.outOfRace(myConceded, 'Out of guesses — race continues'),
+      FeedbackMessage.outOfRace(isConceded, 'Out of guesses — race continues'),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isTerminal, isStillPlaying, myConceded])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
-  // is null in a free-for-all game, so this never fires there. It carries the
-  // whose-turn answer on MOBILE, where the InfoCol's TurnStatusLine is
-  // off-canvas; without it a frozen board just ignored taps. The holder is
-  // read as two primitives so the effect settles in one pass — a fresh
-  // `players` array on a re-render would look like a change.
-  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  // A teammate holds the move (turn-order coop; never in a free-for-all). It
+  // carries the whose-turn answer on MOBILE, where the InfoCol's
+  // TurnStatusLine is off-canvas; without it a frozen board just ignored taps.
+  // The holder is read as two primitives so the effect settles in one pass — a
+  // fresh `players` array on a re-render would look like a change.
   const turnHolder = players.find((p) => p.user_id === turnHolderId)
   const turnHolderName = turnHolder?.username
   const turnHolderColor = turnHolder?.color
   useEffect(function showWaiting() {
-    if (!waiting) return
+    if (!isWaitingForTurn) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
         turnHolderName === undefined
@@ -305,7 +293,7 @@ function PlayArea({
       ),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, waiting, turnHolderName, turnHolderColor])
+  }, [localFeedbackSlot, isWaitingForTurn, turnHolderName, turnHolderColor])
 
   // ─── Narration — what a PEER did, in the header slot ───
   // Both of these are about somebody else, which is what puts them in the
@@ -665,12 +653,11 @@ function PlayArea({
         onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}
+        // Where I stand, as the page computed it. While I wait, the waiting
+        // message takes the below-board slot (same height), so the frozen board
+        // explains itself instead of silently ignoring taps.
         isStillPlaying={isStillPlaying}
-        // Turn-order: gates the board and Clear/Submit only (not the
-        // play-vs-terminal look above). Always true for free-for-all / solo.
-        // When false the waiting message takes the below-board slot (same
-        // height), so the frozen board explains itself instead of silently
-        // ignoring taps.
+        isBoardInteractive={isBoardInteractive}
         isMyTurn={isMyTurn}
         // ── The below-board slot: BoardCol shows results into it and draws it ──
         localFeedbackSlot={localFeedbackSlot}
@@ -678,7 +665,7 @@ function PlayArea({
         // The finished board wears its verdict; it is the same terminal message
         // the below-board slot shows, so the two can't disagree.
         terminalOutcome={terminalMessage ? terminalMessage.outcome : null}
-        notMyTurn={waiting}
+        isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={turnFlash}
         // The CAUSE the attention flash reads: a board that changed while this
         // stood still was revealed or re-dealt, not played into. Restart deletes
@@ -692,10 +679,10 @@ function PlayArea({
         isCompete={mode === 'compete'}
         terminalMessage={terminalMessage}
         isStillPlaying={isStillPlaying}
-        myConceded={myConceded}
-        // ── Turn-order: the shell's one answer (gates the help line), and the
-        //    holder's id (null for free-for-all games → no TurnStatusLine) ──
+        isConceded={isConceded}
+        // ── Turn-order: my move (gates the help line), and whose-turn line ──
         isMyTurn={isMyTurn}
+        isTurnBased={isTurnBased}
         turnHolderId={turnHolderId}
         // ── State readout ──
         found={found}

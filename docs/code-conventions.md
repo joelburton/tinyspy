@@ -176,7 +176,8 @@ shows the other players carry the full name.
 
 **The standing terms** — `isTerminal`, `isPlayer`, `isConceded`,
 `isLocallyTerminal`, `isStillPlaying`, `isTurnBased`, `turnHolderId`,
-`isMyTurn`, `isBoardInteractive` — each mean exactly one thing, defined as a
+`isMyTurn`, `isWaitingForTurn`, `isBoardInteractive` — each mean exactly one
+thing, defined as a
 formula in [win-lose.md → Where a player
 stands](win-lose.md#where-a-player-stands--the-terms-as-formulas). Use a term
 only for that thing; a close idea gets its own name.
