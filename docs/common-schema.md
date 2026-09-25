@@ -113,7 +113,11 @@ The contract every game's `end_game` mirrors:
 
 1. Lock the game's own row `for update`; a missing row answers the shared
    deleted-game race (`common._raise_game_deleted`) — asked BEFORE membership,
-   because a deleted game has no players left to be one of.
+   because a deleted game has no players left to be one of. The lock is what
+   makes an End racing the winning move wait for it and read the game as over;
+   `common.end_game` itself overwrites whatever ending came first.
+   `src/guards/endLock.test.ts` holds it for every `end_game` and
+   `submit_timeout`.
 2. `common.require_game_player` — playership gates acting.
 3. A game already over answers the shared race (`common._raise_game_over`), so
    a double click or a click racing a timeout is harmless.

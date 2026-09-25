@@ -938,7 +938,11 @@ declare
   current_play_state text;
   player_results     jsonb;
 begin
-  if not exists (select 1 from wordle.games where id = target_game) then
+  -- Locked, so an End racing the winning move waits for it and then reads the
+  -- game as over, rather than overwriting the win (docs/common-schema.md →
+  -- Manual end, step 1).
+  perform 1 from wordle.games where id = target_game for update;
+  if not found then
     perform common._raise_game_deleted('wordle');
   end if;
 

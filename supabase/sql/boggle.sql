@@ -661,7 +661,7 @@ begin
   -- boggle had NO check at all: `play_state` came back null for a deleted game,
   -- fell into the `is distinct from` below, and returned SILENTLY — which the
   -- frontend renders as success.
-  perform 1 from boggle.games where id = target_game;
+  perform 1 from boggle.games where id = target_game for update;
   if not found then
     perform common._raise_game_deleted('boggle');
   end if;
@@ -825,7 +825,7 @@ declare
   g_playstate text;
 begin
   -- Row check before the gate, and a check at all — see end_game above.
-  perform 1 from boggle.games where id = target_game;
+  perform 1 from boggle.games where id = target_game for update;
   if not found then
     perform common._raise_game_deleted('boggle');
   end if;

@@ -178,8 +178,13 @@ Each needs a failing test before its fix.
   names `wordle.concede`) found 15 more entry points in 7 games — bananagrams,
   boggle, crosswords, letterboxed, setgame, stackdown, strands — each now
   touched; no exceptions list.
-- **`wordle.end_game` does not lock its row** (it uses `if not exists`),
-  against step 1 of the end contract in docs/common-schema.md.
+- ~~**`wordle.end_game` does not lock its row**~~ Fixed 2026-09-24, and it
+  was six functions: `end_game` in wordle, bananagrams, boggle and crosswords,
+  and `submit_timeout` in boggle and crosswords. Unlocked, an End or timeout
+  racing the winning move read `playing`, then overwrote the win with
+  `ended`. Each now reads its row `for update`; `src/guards/endLock.test.ts`
+  (red on the six, planted) holds it for every `end_game` and
+  `submit_timeout`.
 - **Concede in a deleted game faults.** psychicnum, connections and wordle
   lock the row without checking it exists, so a deleted game answers PN481
   (a fault) where PN485 (the deleted race) belongs.

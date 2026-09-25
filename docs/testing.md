@@ -618,6 +618,7 @@ before trusting a green run. The full set:
 | `gameDeletedFirst` | a deleted game is checked BEFORE membership, at every player-callable site |
 | `concedeLock` | each elimination game locks its own row before `_set_conceded` |
 | `endingTouchesGame` | every RPC that can end a game writes one of its own rows, so open boards re-read |
+| `endLock` | every `end_game` and `submit_timeout` locks its own games row before ending the game |
 | `schemaExposure.e2e` | the running PostgREST stack, per registered schema |
 | `docLinks` | link targets in `docs/`, `plans/`, every folder's `doc.md` / `todo.md`, `CLAUDE.md`, `README.md` |
 | `prosePointers` | every file — a prose pointer to a doc's section names a heading or bold phrase that exists |

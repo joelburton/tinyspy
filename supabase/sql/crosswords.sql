@@ -1307,8 +1307,9 @@ declare
 begin
   -- Row check before the gate, and a check at all — crosswords had neither, so
   -- a deleted game read `mode` as null, failed the coop test, and reported the
-  -- WRONG refusal. See boggle.end_game for the ordering rule.
-  select mode into v_mode from crosswords.games where id = target_game;
+  -- WRONG refusal. See boggle.end_game for the ordering rule. Locked, so an End
+  -- racing the winning move waits for it (docs/common-schema.md → Manual end).
+  select mode into v_mode from crosswords.games where id = target_game for update;
   if v_mode is null then
     perform common._raise_game_deleted('crosswords');
   end if;
@@ -1402,8 +1403,8 @@ declare
   v_playstate text;
   v_results   jsonb;
 begin
-  -- Row check before the gate, and a check at all — see end_game above.
-  select mode into v_mode from crosswords.games where id = target_game;
+  -- Row check before the gate, and a check at all, locked — see end_game above.
+  select mode into v_mode from crosswords.games where id = target_game for update;
   if v_mode is null then
     perform common._raise_game_deleted('crosswords');
   end if;
