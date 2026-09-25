@@ -466,7 +466,8 @@ What is codenamesduet's own:
   when the word stops being guessable. No cue teaches Enter — the line under
   the board has no room — so Help and the key list do (`todo.md`, Someday).
 - **The board marks are the shared ones** (`plans/tile-feedback.md`, tf2): a
-  guessed tile dims until the reply; a tile a guess turns over flashes, mine
+  guessed tile dims until its reveal lands, and no other guess goes out
+  meanwhile; a tile a guess turns over flashes, mine
   included, and a bystander or the assassin then shakes; the board dims while
   my partner holds the move (`isWaitingForTurn` — in sudden death, too, for
   the player with no words left) and its frame flashes as the move becomes
@@ -538,7 +539,7 @@ Vitest, beside the code:
 | `lib/turnOutcome.test` · `lib/terminal.test` · `lib/answer.test` | a turn's outcome, sudden death's included; every ending's words; the header's words about the partner |
 | `lib/events.test` · `lib/history.test` | the log's rows typed by kind; a past turn's board, its bystanders per side and its own tiles ringed |
 | `hooks/useGame.test` · `hooks/useBoard.test` | the game row, a vanished row dropped rather than drawn on, a failed read kept and later cleared; the board's reads, the partner's card only when asked for, a gone game clearing my key (the no-such-game page), and a failed read kept as a failure rather than an empty board |
-| `components/PlayArea.test` | a second guess while one is in flight sends nothing; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the finished-player banners; that no bell is rung here, and the sudden-death board of the player with no words; the board's turn dim and flash, and a guess's flash through the log; the keys, New game's players and setup included |
+| `components/PlayArea.test` | a second guess while one is in flight sends nothing, and a guess stays in flight from its reply until its reveal lands; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the finished-player banners; that no bell is rung here, and the sudden-death board of the player with no words; the board's turn dim and flash, and a guess's flash through the log; the keys, New game's players and setup included |
 | `components/Board.test` · `components/StateLine.test` | the per-seat bystander lock, my key card hidden while I guess, the partner's only at the end and when asked, and the two triangles, above and below the word; the board marks — the in-flight dim, the turn dim and flash, the game-over frame, attention on the move log and the shake; the readout's turns spent and sudden death |
 | `components/GameEventLog.test` · `components/ClueStrip.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows and history link; the clue inputs' tag, the one-digit count, when a clue counts as the AI's, the form clearing when the clue lands, and the sudden-death notice; the key card's grid; the setup form's fields |
 | `pdf/model.test` | the partner's card never printed mid-game; each cell's mark and triangles; the clue log |

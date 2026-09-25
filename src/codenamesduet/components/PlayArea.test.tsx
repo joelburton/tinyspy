@@ -25,6 +25,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
+import shared from '@/common/game-page/playArea.module.css'
 import { db } from '../db'
 import { PlayAreaLoader } from './PlayArea'
 
@@ -226,6 +227,26 @@ describe('codenamesduet PlayArea — guess in-flight guard', () => {
     fireEvent.click(berry) // a DIFFERENT tile — not disabled, but the ref must block it
     expect(rpc).toHaveBeenCalledTimes(1)
     expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', target_position: 0 })
+  })
+
+  // The reply and the reveal are two events: the reveal comes by realtime, a
+  // beat after `submit_guess` answers. Until it lands the guess is still out.
+  it('holds the guess in flight after the reply, until its reveal lands', async () => {
+    rpc.mockReturnValue(Promise.resolve(okEnvelope({ result: 'agent' })))
+    const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
+    const apple = () => screen.getByRole('button', { name: /apple/i })
+    await act(async () => {
+      fireEvent.click(apple())
+    })
+    // Replied, not yet revealed: still dimmed, and no second guess goes out.
+    expect(apple()).toHaveClass(shared.dimInFlight)
+    fireEvent.click(screen.getByRole('button', { name: /berry/i }))
+    expect(rpc).toHaveBeenCalledTimes(1)
+
+    // The reveal lands.
+    g.agentsAt = [0]
+    rerender(<PlayAreaLoader {...makeCtx()} />)
+    expect(apple()).not.toHaveClass(shared.dimInFlight)
   })
 })
 

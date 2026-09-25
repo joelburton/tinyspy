@@ -203,8 +203,12 @@ Each needs a failing test before its fix.
   cannot hit this. Owed when their areas open: the other ten games hold
   failure several ways (split header/rows failures, one-shot header reads) —
   check each for a zero-rows return ahead of its clear.
-- **codenamesduet un-dims a guess before its reveal lands** (found 2026-09-24,
-  in N3; not yet looked at). `inFlightPos` is cleared when `submit_guess`
+- ~~**codenamesduet un-dims a guess before its reveal lands**~~ Fixed
+  2026-09-25: psychicnum's shape — state `submittedPos`, derived
+  `submittedLanded` (the tile is no longer guessable for me: every accepted
+  guess writes it) and `inFlightPos`; a tile click and Enter wait for the
+  reveal too, since the gap also let a second guess out. Failing test first
+  (`PlayArea.test`). Found 2026-09-24, in N3: `inFlightPos` was cleared when `submit_guess`
   replies, but the reveal arrives separately, by realtime — so the guessed
   tile can read as untouched for a beat: the flash psychicnum's
   `submittedLanded` comment names. psychicnum and wordle hold the dim until the

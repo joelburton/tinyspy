@@ -157,30 +157,45 @@ export function BoardCol({
 
   // The guess move — a board click. The reveal arrives by realtime, so there is
   // no optimistic state; the only own-move feedback is a not-ok, shown into the
-  // slot. `inFlightPos` says WHICH tile is committing — Board dims that one in
-  // flight and disables it — so the single-flight flag below can't stand in
-  // for it.
-  const [inFlightPos, setInFlightPos] = useState<number | null>(null)
+  // slot.
+  //
+  // The position I last guessed, or null. It outlives the guess: nothing clears
+  // it when the reveal lands, so what is still in flight is derived below.
+  const [submittedPos, setSubmittedPos] = useState<number | null>(null)
+  // Its reveal is on the board. Every accepted guess writes the tile — an agent,
+  // the assassin, or my own bystander mark — so it stops being guessable for me.
+  const submittedWord = submittedPos === null ? undefined : words[submittedPos]
+  const submittedLanded = submittedWord !== undefined && !isGuessable(submittedWord, mySeat)
+  // The tile with the server, which Board dims and disables; null when nothing
+  // is out. Held until the REVEAL lands rather than until the RPC resolves: the
+  // reply and the reveal are two separate events, and releasing at the first
+  // would flash an undecided tile back to normal, clickable again.
+  //
+  // A past turn's snapshot cannot hold a reveal newer than it, which the
+  // `<Board>` call below gates on `isViewingHistory`; a restart needs no gate,
+  // because the page unmounts this whole surface when the run changes
+  // (common/game-page/doc.md).
+  const inFlightPos = submittedLanded ? null : submittedPos
   const submitGuess = useCallback(
     async (position: number) => {
       localFeedbackSlot.dismiss() // a click is the next move
-      setInFlightPos(position)
+      setSubmittedPos(position)
       const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
         target_game: gameId,
         target_position: position,
       }))
-      setInFlightPos(null)
       // Four answers, and every one of them says nothing here: each is a
       // REVEAL, and the reveal arrives via Realtime → useBoard
       // refetches → the tile re-renders in its result color. No optimistic
       // update, no flash, and a pill would only repeat the board.
       //
       // The refusals are the opposite — nothing on the board changes, so this
-      // is the only place they can be said. Most of them are races (orange):
-      // the tiles unlock on this reply while the board and the turn state
+      // is the only place they can be said, and no reveal is coming to release
+      // the tile. Most of them are races (orange): the board and the turn state
       // arrive by subscription, and in sudden death the partner is guessing at
       // the same time as you.
       if (res.type === 'not-ok') {
+        setSubmittedPos(null)
         localFeedbackSlot.show(FeedbackMessage.notOk(res))
         return
       } else if (res.type === 'ok' && res.data.result === 'agent') {
@@ -195,6 +210,9 @@ export function BoardCol({
       } else if (res.type === 'ok' && res.data.result === 'lost') {
         return
       } else {
+        // Nothing named this answer, so the tile must not keep claiming to be
+        // in flight — there is no reveal coming that would release it.
+        setSubmittedPos(null)
         reportUnhandled('submit_guess', res)
         return
       }
@@ -205,7 +223,8 @@ export function BoardCol({
   // Guards a non-idempotent request from firing twice; see `useSingleFlight`.
   // A tile's `disabled` can't do it: that follows `inFlightPos` → re-render, so
   // it misses a same-tick double-tap, and a click on a DIFFERENT tile while the
-  // first guess commits (you shouldn't guess again until the reveal resolves).
+  // first guess commits. From the reply until the reveal lands, `inFlightPos`
+  // itself holds the next guess back (handleTileClick, act-submit).
   const [handleGuess] = useSingleFlight(submitGuess)
 
   // ─── The keyboard ──────────────────────────────────────
@@ -244,8 +263,10 @@ export function BoardCol({
   })
 
   // A tile click: the cursor moves there, hidden, any pick goes, and the
-  // click is the guess.
+  // click is the guess — unless one is still out, since you shouldn't guess
+  // again until its reveal lands.
   function handleTileClick(position: number) {
+    if (inFlightPos !== null) return
     point(cellAt(position))
     setPickedAt(null)
     void handleGuess(position)
@@ -290,7 +311,7 @@ export function BoardCol({
         mySeat={mySeat}
         isTerminal={isTerminal}
         isBoardInteractive={isBoardInteractive}
-        inFlightPos={inFlightPos}
+        inFlightPos={isViewingHistory ? null : inFlightPos}
         onGuess={handleTileClick}
         cursor={cursor}
         picked={picked}
