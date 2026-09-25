@@ -5,9 +5,9 @@ import { difficultyValue } from '@/common/setup-form/difficulty'
 import { coopRows, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import type { WordleSetup } from './setup'
 
-/** Where the hidden target is drawn from. `0` = the curated NYT-Wordle answer
- *  list; `1..6` = a clean word of that difficulty band or easier. */
-function answerSourceLabel(n: number): string {
+/** The setup row's value for the answer band. `0` = the curated NYT-Wordle
+ *  answer list; `1..6` = a clean word of that difficulty band or easier. */
+function answerBandValue(n: number): string {
   return n === 0 ? 'NYT Wordle list' : `${difficultyValue(n)} or easier`
 }
 
@@ -24,7 +24,7 @@ export function setupRows(
     rosterRow(players),
     ...coopRows(setup, mode, players),
     { key: 'max_guesses', label: 'Guesses', value: String(setup.max_guesses) },
-    { key: 'answer_source', label: 'Answer', value: answerSourceLabel(setup.answer_source) },
+    { key: 'answer_band', label: 'Answer', value: answerBandValue(setup.answer_band) },
     { key: 'legal_band', label: 'Dictionary', value: difficultyValue(setup.legal_band) },
     timerRow(setup.timer),
   ]

@@ -39,7 +39,7 @@ export function SetupForm({
   // — so it formats as "0 (Wordle)".
   const guessesLabel = `Guesses: ${s.max_guesses}`
   const answerValue =
-    s.answer_source === 0 ? '0 (Wordle)' : difficultyValue(s.answer_source)
+    s.answer_band === 0 ? '0 (Wordle)' : difficultyValue(s.answer_band)
   const dictLabel = `Dictionaries: ${answerValue} / ${difficultyValue(s.legal_band)}`
 
   return (
@@ -81,15 +81,15 @@ export function SetupForm({
       </SetupSection>
       <SetupSection label={dictLabel}>
         <DictBandField
-          name="answer_source"
-          error={errors.answer_source}
+          name="answer_band"
+          error={errors.answer_band}
           label="Answer source"
           length={WORD_LENGTH}
           extraLowOption={{ value: 0, label: 'Wordle' }}
           minBand={1}
           maxBand={6}
-          value={s.answer_source}
-          onChange={(answer_source) => set('answer_source', answer_source)}
+          value={s.answer_band}
+          onChange={(answer_band) => set('answer_band', answer_band)}
         />
         <DictBandField
           name="legal_band"

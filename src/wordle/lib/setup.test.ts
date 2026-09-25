@@ -23,12 +23,12 @@ const setup = (over: Partial<typeof DEFAULT_WORDLE_SETUP> = {}) => ({
 
 describe('answerMaxBand', () => {
   it("reads the Wordle list as band 2, since it has no band of its own", () => {
-    expect(answerMaxBand(setup({ answer_source: 0 }))).toBe(2)
+    expect(answerMaxBand(setup({ answer_band: 0 }))).toBe(2)
   })
 
   it('is the answer band itself for every dictionary source', () => {
-    for (const answer_source of [1, 2, 3, 4, 5, 6]) {
-      expect(answerMaxBand(setup({ answer_source }))).toBe(answer_source)
+    for (const answer_band of [1, 2, 3, 4, 5, 6]) {
+      expect(answerMaxBand(setup({ answer_band }))).toBe(answer_band)
     }
   })
 })
@@ -39,28 +39,28 @@ describe('legalError', () => {
   })
 
   it('accepts a legal band at or above the answer band', () => {
-    expect(legalError(setup({ answer_source: 4, legal_band: 4 }))).toEqual({})
-    expect(legalError(setup({ answer_source: 4, legal_band: 6 }))).toEqual({})
+    expect(legalError(setup({ answer_band: 4, legal_band: 4 }))).toEqual({})
+    expect(legalError(setup({ answer_band: 4, legal_band: 6 }))).toEqual({})
   })
 
   it('refuses a legal band below the answer band, UNDER Legal guesses', () => {
     // The exact setup that reaches it from the dialog: leave Legal guesses at
     // its default of 4 and raise Answer source to 5.
-    expect(legalError(setup({ answer_source: 5, legal_band: 4 }))).toEqual({
+    expect(legalError(setup({ answer_band: 5, legal_band: 4 }))).toEqual({
       legal_band: expect.stringMatching(/at least band 5/),
     })
   })
 
   it('names the band you have to reach, not the one you set', () => {
-    expect(legalError(setup({ answer_source: 6, legal_band: 2 }))).toEqual({
+    expect(legalError(setup({ answer_band: 6, legal_band: 2 }))).toEqual({
       legal_band: expect.stringMatching(/at least band 6/),
     })
   })
 
   it('holds for the Wordle list too, whose floor is 2 rather than 0', () => {
-    expect(legalError(setup({ answer_source: 0, legal_band: 1 }))).toEqual({
+    expect(legalError(setup({ answer_band: 0, legal_band: 1 }))).toEqual({
       legal_band: expect.stringMatching(/at least band 2/),
     })
-    expect(legalError(setup({ answer_source: 0, legal_band: 2 }))).toEqual({})
+    expect(legalError(setup({ answer_band: 0, legal_band: 2 }))).toEqual({})
   })
 })

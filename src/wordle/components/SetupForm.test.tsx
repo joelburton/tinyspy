@@ -59,7 +59,7 @@ describe('wordle setup — what it offers', () => {
       'player_user_ids',
       'coop_style',
       'max_guesses',
-      'answer_source',
+      'answer_band',
       'legal_band',
       'timer',
     ])
@@ -78,7 +78,7 @@ describe('wordle setup — what it offers', () => {
 
 describe('wordle setup — the two dictionaries', () => {
   it('offers the curated Wordle list as an answer source, below band 1', () => {
-    // `answer_source` 0 is not a difficulty at all — it is the published list —
+    // `answer_band` 0 is not a difficulty at all — it is the published list —
     // which is why this field has an option the band ladder does not.
     draw()
     expect(screen.getByRole('option', { name: /0: Wordle/ })).toBeInTheDocument()
@@ -87,7 +87,7 @@ describe('wordle setup — the two dictionaries', () => {
   it('will not let legal guesses sit below the answer band', () => {
     // The form floors the control rather than letting you pick an impossible
     // pair; `create_game` raises PN056 as the backstop.
-    draw({ values: { answer_source: 5, legal_band: 5 } })
+    draw({ values: { answer_band: 5, legal_band: 5 } })
     const legal = document.querySelector('[name="legal_band"]')!
     const options = [...legal.querySelectorAll('option')]
     expect(options.find((o) => o.value === '4')).toBeDisabled()
@@ -118,8 +118,8 @@ describe('wordle setup — where a refusal lands', () => {
   // validation would need, and it is cheaper to hold than to rediscover.
   it('lets the answer-source picker carry a field error, if one ever lands', () => {
     const message = 'No answers available from that source'
-    draw({ errors: { answer_source: message } })
-    expect(errorUnder('answer_source')).toBe(message)
+    draw({ errors: { answer_band: message } })
+    expect(errorUnder('answer_band')).toBe(message)
   })
 
   it('lets the first-player picker carry one too, once it exists', () => {

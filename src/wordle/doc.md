@@ -66,11 +66,14 @@ whatever band the dictionary files it under today: the target is compared
 before the dictionary is consulted, so a word edit can never make a game
 unwinnable.
 
-Where the target comes from is the **answer source**: `0` draws from the
-curated Wordle answer list, `1`–`6` from any clean five-letter word of that
-difficulty band or easier. The legal band must reach the answer's hardest band
-— band 2 for the list — so that every possible answer is itself a legal guess;
-the setup dialog floors the control there and `create_game` checks it again.
+Where the target comes from is the **answer source**, stored as `answer_band`:
+`0` draws from the curated Wordle answer list, `1`–`6` from any clean
+five-letter word of that difficulty band or easier. The legal band must reach
+the answer's hardest band so that every possible answer is itself a legal
+guess; the setup dialog floors the control there and `create_game` checks it
+again. For a real band that is the band itself; `0` is not a real band, but
+every word on the list is at band 2 or easier, so its floor is 2
+(`answerMaxBand` in `lib/setup.ts` explains it).
 
 ### Vocabulary
 
@@ -81,7 +84,7 @@ the setup dialog floors the control there and `create_game` checks it again.
 | **colors** | five characters, one per letter — `g`, `y`, `x` — computed by the server when the row is written. The frontend paints them and never recomputes them |
 | **soft reject** | `duplicate` or `notAWord`: the rules applied, nothing spent, nothing written. Answered as an `ok` naming the case |
 | **budget** | `max_guesses`, 5–8. The team's in coop, each racer's own in compete |
-| **answer source** · **legal band** | `answer_source` picks where the target is drawn from; `legal_band` is the band a guess must be in. Only the second is stored on the game — the first is spent at creation |
+| **answer source** · **legal band** | `answer_band` picks where the target is drawn from; `legal_band` is the band a guess must be in. Only the second is stored on the game — the first is spent at creation |
 
 ### Coop
 
@@ -146,7 +149,7 @@ Three tables and a view, in `supabase/migrations/20260625000000_wordle.sql`
 
 | | |
 |---|---|
-| `wordle.games` | one row per game: the `mode`, the `target`, the budget as `max_guesses`, and `legal_band` — stored so `submit_guess` reads the band off the row it locks. `answer_source` is not kept; it is spent picking the target |
+| `wordle.games` | one row per game: the `mode`, the `target`, the budget as `max_guesses`, and `legal_band` — stored so `submit_guess` reads the band off the row it locks. `answer_band` is not kept; it is spent picking the target |
 | `wordle.players` | one row per player: `guesses_used`, `solved`, `solved_at`. **Club-wide readable in both modes** — compete's Guesses strip and its winner are built on it. Coop keeps every row identical |
 | `wordle.events` | the guess log, append-only: `word`, `colors`, `is_correct`; `kind` is `guess` and `took_turn` is true, since the table holds accepted guesses only and an accepted guess spends a go. Read `order by id` — that is the order of play |
 | `wordle.games_state` | the view the frontend reads: every readable column of `games`, plus `target` through `_target_for()`, which is null until the game is terminal |
@@ -190,7 +193,7 @@ picks its branch by that word and nothing else.
 Starts a game on a fresh random word. It checks the setup — a guess budget of
 five to eight, an answer source, and a legal-guess band that must reach the
 hardest band an answer can come from — then picks the target: from the curated
-Wordle answer list when `answer_source` is `0`, otherwise any five-letter
+Wordle answer list when `answer_band` is `0`, otherwise any five-letter
 dictionary word of that difficulty band or easier. Either way the word is
 clean, and the frontend is never told it. It writes the `common.games` row
 titled `New game` (coop) or `New compete`, a `wordle.games` row holding the
@@ -208,7 +211,7 @@ and a race needs two; the server checks both.
   "target_club": "moths",
   "setup": {
     "max_guesses": 6,
-    "answer_source": 0,
+    "answer_band": 0,
     "legal_band": 4,
     "timer": { "kind": "countdown", "seconds": 300 },
     "coop_style": "turns",

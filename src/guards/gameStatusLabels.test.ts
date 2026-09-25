@@ -198,7 +198,7 @@ const CASES: Record<string, Family> = {
   },
   wordle: {
     playing: { guesses_used: 3, max_guesses: 6 },
-    setup: { answer_source: 0 },
+    setup: { answer_band: 0 },
     shared: [
       // No 'revealed' case: the mid-game give-up that wrote it is gone
       // (2026-08-03) — revealing is a display decision on an already-ended

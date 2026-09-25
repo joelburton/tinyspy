@@ -768,7 +768,7 @@ export async function createWordleGame(
     .schema('wordle')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { max_guesses: 6, answer_source: 0, legal_band: 4, timer: { kind: 'none' } },
+      setup: { max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' } },
       player_user_ids: playerUserIds,
       mode,
     })

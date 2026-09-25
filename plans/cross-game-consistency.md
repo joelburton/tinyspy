@@ -142,8 +142,10 @@ and a backfill. Park them, or schedule some?
   ONE band names it `band`: psychicnum's `difficulty` → `band`
   (`20260924000007_psychicnum_band.sql`). Owed when their areas open:
   boggle's bare `band` → `required_band`; waffle's and wordiply's
-  `difficulty` → `band`. Not yet ruled: wordle's `answer_source` (Claude's
-  verdict: not worth it — 0 is the curated answer list, not a band).
+  `difficulty` → `band`. wordle's `answer_source` → `answer_band`
+  (`20260924000008_wordle_answer_band.sql`): 0 — the curated list — is not a
+  real band, but reads clearer as one; `answerMaxBand` in
+  `src/wordle/lib/setup.ts` explains why its floor is 2.
 - ~~**The guess budget.**~~ Done 2026-09-24: psychicnum's setup `guesses` →
   `max_guesses`, as wordle has it, and `totalGuesses` → `maxGuesses`
   (`20260924000004_psychicnum_max_guesses.sql`). codenamesduet's `turns` stays:

@@ -176,7 +176,7 @@ grant select on wordle.games_state to authenticated;
 -- ============================================================
 -- Setup shape (server validates):
 --   { "max_guesses": 5..8 (default 6),
---     "answer_source": 0..6 (0 = curated Wordle answer list; 1..6 =
+--     "answer_band": 0..6 (0 = curated Wordle answer list; 1..6 =
 --       that difficulty band of common.words),
 --     "legal_band": 1..6 (the band a typed guess must exist in to
 --       count; default 4; must reach the answer's hardest band),
@@ -185,7 +185,7 @@ grant select on wordle.games_state to authenticated;
 --     "first_turn_user_id": a player (with 'turns'; stripped from the
 --       club's saved default) }
 -- `mode` ('coop' | 'compete') routes the gametype string and the
--- working-state semantics. Picks a hidden target per `answer_source`
+-- working-state semantics. Picks a hidden target per `answer_band`
 -- (always clean — see the pick below) and seeds one players row per player.
 -- Dropped first because `create or replace` cannot change a function's return
 -- type; `if exists` because this file is re-applied in full on every deploy,
@@ -207,7 +207,7 @@ declare
   new_id          uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_max_guesses   int;
-  s_answer_source int;
+  s_answer_band int;
   s_legal_band   int;
   s_answer_max    int;
   v_target        char(5);
@@ -239,15 +239,17 @@ begin
   end if;
 
   -- ─── Validate the word bands ─────────────────────────────
-  -- answer_source: 0 = the curated Wordle list, 1..6 = a difficulty band.
+  -- answer_band: 0 = the curated Wordle list, 1..6 = a difficulty band.
   -- legal_band: 1..6. A guess must be able to spell any possible answer, so
   -- legal_band must reach the answer's hardest band — 2 for the Wordle list
-  -- (it tops out at band 2), else answer_source.
-  s_answer_source := coalesce((setup->>'answer_source')::int, 0);
-  if s_answer_source < 0 or s_answer_source > 6 then
-    raise exception 'BUG: answer source of %', s_answer_source
+  -- (0 is not a real band, but every word on the list is at band 2 or
+  -- easier), else answer_band. The frontend's `answerMaxBand` (lib/setup.ts)
+  -- holds the full explanation.
+  s_answer_band := coalesce((setup->>'answer_band')::int, 0);
+  if s_answer_band < 0 or s_answer_band > 6 then
+    raise exception 'BUG: answer band of %', s_answer_band
       using errcode = 'PN054', hint = 'fault', column = '_',
-      detail = 'setup.answer_source must be 0..6';
+      detail = 'setup.answer_band must be 0..6';
   end if;
   s_legal_band := coalesce((setup->>'legal_band')::int, 4);
   if s_legal_band < 1 or s_legal_band > 6 then
@@ -255,7 +257,7 @@ begin
       using errcode = 'PN055', hint = 'fault', column = '_',
       detail = 'setup.legal_band must be 1..6';
   end if;
-  s_answer_max := case when s_answer_source = 0 then 2 else s_answer_source end;
+  s_answer_max := case when s_answer_band = 0 then 2 else s_answer_band end;
   if s_legal_band < s_answer_max then
     -- A CROSS-FIELD rule: every answer has to be a legal guess, so the legal
     -- band is raised to meet the answer band rather than the answer band
@@ -277,14 +279,14 @@ begin
   -- GUESSES, not the answer: submit_guess deliberately filters on difficulty
   -- alone, so you may still type a slur at the board, it just won't be right.
   --
-  -- answer_source 0: the curated 5-letter NYT answers. Clean-filtering the
+  -- answer_band 0: the curated 5-letter NYT answers. Clean-filtering the
   -- curated list is a deliberate small divergence from the original: it drops
   -- the list's slurs and non-American spellings, which is the point, and also
   -- the words the `slang` tag catches for a slang SENSE (ONION, OWNER, GOOSE),
   -- which is the part of the trade we're accepting rather than the part we want.
   -- 1..6: any clean 5-letter word of that band or easier (a higher band can be
   -- obscure).
-  if s_answer_source = 0 then
+  if s_answer_band = 0 then
     select word into v_target
       from common.words
      where wordle and len = 5
@@ -293,13 +295,13 @@ begin
   else
     select word into v_target
       from common.words
-     where len = 5 and difficulty <= s_answer_source
+     where len = 5 and difficulty <= s_answer_band
        and slur = 0 and crude = 0 and american and not slang
      order by random() limit 1;
   end if;
   if v_target is null then
     -- FAULT: can't pick an answer because no clean 5-letter words in PG. The
-    -- bands are cumulative (`difficulty <= n`), so no `answer_source` empties
+    -- bands are cumulative (`difficulty <= n`), so no `answer_band` empties
     -- the pool on its own — every source fails together.
     raise exception 'BUG: Too few words on server to pick an answer'
       using errcode = 'PN057', hint = 'fault', column = '_',

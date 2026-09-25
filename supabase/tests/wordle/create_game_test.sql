@@ -95,8 +95,8 @@ select pg_temp.envelope_is(
   '{"type":"ok","data":{"result":"created"}}'::jsonb,
   'two racers is the case the guard must not eat');
 
--- ── Word bands: answer_source + legal_band ─────────────────
--- g used the default setup → answer_source 0 → target from the Wordle list.
+-- ── Word bands: answer_band + legal_band ─────────────────
+-- g used the default setup → answer_band 0 → target from the Wordle list.
 reset role;
 select set_config('request.jwt.claims', '', true);
 select ok(
@@ -104,14 +104,14 @@ select ok(
     select 1 from common.words
      where word = trim((select target from wordle.games where id = (select id from g)))
        and wordle),
-  'answer_source 0 (default) draws the target from the curated Wordle list');
+  'answer_band 0 (default) draws the target from the curated Wordle list');
 
 -- A difficulty-band answer source: target is band-1-or-easier; legal_band stored.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g1 on commit drop as
 select (wordle.create_game(
   (select handle from club),
-  '{"max_guesses": 6, "answer_source": 1, "legal_band": 6, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 6, "answer_band": 1, "legal_band": 6, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 reset role;
 select set_config('request.jwt.claims', '', true);
@@ -121,19 +121,19 @@ select is(
 select ok(
   (select difficulty from common.words
      where word = trim((select target from wordle.games where id = (select id from g1)))) <= 1,
-  'answer_source 1 draws a band-1-or-easier target');
+  'answer_band 1 draws a band-1-or-easier target');
 
 -- Band validation (as a member).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordle.create_game(
-    (select handle from club), '{"max_guesses":6,"answer_source":7,"legal_band":6,"timer":{"kind":"none"}}'::jsonb,
+    (select handle from club), '{"max_guesses":6,"answer_band":7,"legal_band":6,"timer":{"kind":"none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN054"}'::jsonb,
-  'answer_source above 6 is a fault');
+  'answer_band above 6 is a fault');
 select pg_temp.envelope_is(
   wordle.create_game(
-    (select handle from club), '{"max_guesses":6,"answer_source":1,"legal_band":7,"timer":{"kind":"none"}}'::jsonb,
+    (select handle from club), '{"max_guesses":6,"answer_band":1,"legal_band":7,"timer":{"kind":"none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN055"}'::jsonb,
   'legal_band above 6 is a fault');
@@ -142,7 +142,7 @@ select pg_temp.envelope_is(
 -- check is a fault like the rest — nothing the form offers can reach it.
 select pg_temp.envelope_is(
   wordle.create_game(
-    (select handle from club), '{"max_guesses":6,"answer_source":5,"legal_band":4,"timer":{"kind":"none"}}'::jsonb,
+    (select handle from club), '{"max_guesses":6,"answer_band":5,"legal_band":4,"timer":{"kind":"none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN056"}'::jsonb,
   'a legal_band below the answer band is a fault');
@@ -161,14 +161,14 @@ delete from common.words where len = 5;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   wordle.create_game(
-    (select handle from club), '{"max_guesses":6,"answer_source":0,"legal_band":6,"timer":{"kind":"none"}}'::jsonb,
+    (select handle from club), '{"max_guesses":6,"answer_band":0,"legal_band":6,"timer":{"kind":"none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN057",
     "message":"BUG: Too few words on server to pick an answer"}'::jsonb,
   'the curated source with no words is a fault');
 select pg_temp.envelope_is(
   wordle.create_game(
-    (select handle from club), '{"max_guesses":6,"answer_source":1,"legal_band":6,"timer":{"kind":"none"}}'::jsonb,
+    (select handle from club), '{"max_guesses":6,"answer_band":1,"legal_band":6,"timer":{"kind":"none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN057"}'::jsonb,
   '…and so is every band');

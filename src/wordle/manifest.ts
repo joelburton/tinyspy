@@ -72,7 +72,7 @@ function labelFor(mode: 'coop' | 'compete') {
       // The WINNER's own count, written at terminal (see _finish_compete).
       winner_guesses?: number
     }
-    const dict = answerSourceLabel(setupNum(row.setup, 'answer_source'))
+    const dict = answerDictLabel(setupNum(row.setup, 'answer_band'))
     const used =
       mode === 'coop' && s.guesses_used != null && s.max_guesses != null
         ? `${s.guesses_used}/${s.max_guesses} guesses`
@@ -113,14 +113,14 @@ const COMPETE_LOSS: Record<string, string> = {
 }
 
 /**
- * `setup.answer_source`: 0 is the curated NYT-Wordle answer list, 1..6 are the
+ * `setup.answer_band`: 0 is the curated NYT-Wordle answer list, 1..6 are the
  * shared dictionary bands. Rendered in the same `dict "…"` slot the other
  * band-sensitive games use, because to a player it answers the same question —
  * how hard are the words here?
  */
-function answerSourceLabel(source: number | null): string | null {
-  if (source === 0) return 'dict "Wordle"'
-  return dictLabel(source)
+function answerDictLabel(band: number | null): string | null {
+  if (band === 0) return 'dict "Wordle"'
+  return dictLabel(band)
 }
 
 // Single source of truth for this game's user-facing brand name — both

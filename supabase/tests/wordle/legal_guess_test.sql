@@ -6,7 +6,7 @@
 -- A guess is "not a word" unless it's a real 5-letter word of difficulty ≤ the
 -- game's legal_band band. So the SAME word can be illegal in a strict game and
 -- legal in a permissive one. We use "moxie" (a real band-3 word, not on the
--- Wordle answer list — so never the target when answer_source is 0).
+-- Wordle answer list — so never the target when answer_band is 0).
 -- ============================================================
 
 begin;
@@ -22,7 +22,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (wordle.create_game(
   '=ada',
-  '{"max_guesses": 6, "answer_source": 0, "legal_band": 2, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 6, "answer_band": 0, "legal_band": 2, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(
@@ -35,7 +35,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g6 on commit drop as
 select (wordle.create_game(
   '=ada',
-  '{"max_guesses": 6, "answer_source": 0, "legal_band": 6, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 6, "answer_band": 0, "legal_band": 6, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select is(

@@ -20,8 +20,8 @@ export type WordleValues = CoopTurnSetup & {
   // Where the hidden target is drawn from. `0` = the curated NYT-Wordle answer
   // list (`wordle=true`, the classic feel — default). `1..6` = any 5-letter
   // word of that difficulty band or easier (a higher band can yield an obscure
-  // answer). See `wordle.create_game`.
-  answer_source: number
+  // answer). 0 is not a real band; see `answerMaxBand`.
+  answer_band: number
   // What counts as a legal guess: any real 5-letter word of difficulty ≤ this
   // (1..6). Must reach the answer's hardest band so every possible answer is
   // itself a legal guess — see `legalError` / `answerMaxBand`.
@@ -41,10 +41,10 @@ export type WordleValues = CoopTurnSetup & {
  *  `setupSummary.ts` and `PlayArea` read back. */
 export type WordleSetup = SetupOf<WordleValues>
 /** Initial setup the manifest hands the dialog as `defaults`. Defaults to the
- *  classic game: the NYT answer list (source 0), guesses accepted up to band 4. */
+ *  classic game: the NYT answer list (answer band 0), guesses accepted up to band 4. */
 export const DEFAULT_WORDLE_SETUP: WordleSetup = {
   max_guesses: 6,
-  answer_source: 0,
+  answer_band: 0,
   legal_band: 4,
   timer: { kind: 'none' },
   // Coop pacing: free-for-all by default; the setup dialog's "Co-op"
@@ -62,12 +62,19 @@ export const GUESS_OPTIONS: ReadonlyArray<number> = [5, 6, 7, 8]
 export const WORD_LENGTH = 5
 
 /**
- * The hardest band a possible answer can be, given the source. The curated
- * Wordle list (source 0) tops out at band 2; a difficulty band N tops out at N.
- * (Kept in sync with create_game's server-side check.)
+ * The hardest band a possible answer can be — the floor `legal_band` must
+ * reach, since every possible answer has to be a word the game accepts as a
+ * guess.
+ *
+ * The real bands 1..6 accumulate: band N is every word at difficulty N or
+ * easier, so band 2 contains all of band 1. An answer band of N therefore tops
+ * out at N. Answer band 0 is not a band: it is the curated NYT-Wordle answer
+ * list, which matches neither band 1 nor band 2 — but every word on it is at
+ * band 2 or easier, so it tops out at 2. (Kept in sync with the same rule in
+ * `wordle.create_game`.)
  */
 export function answerMaxBand(setup: WordleSetup): number {
-  return setup.answer_source === 0 ? 2 : setup.answer_source
+  return setup.answer_band === 0 ? 2 : setup.answer_band
 }
 
 /**
@@ -79,7 +86,7 @@ export function answerMaxBand(setup: WordleSetup): number {
 export function legalError(setup: WordleSetup): FormErrors {
   const min = answerMaxBand(setup)
   if (setup.legal_band < min) {
-    // Under `legal_band`, not `answer_source`, though moving EITHER can cause
+    // Under `legal_band`, not `answer_band`, though moving EITHER can cause
     // it: the legal band is the one the sentence asks you to raise, and its own
     // select disables everything below the floor, so the other field has
     // nothing wrong with it to ring.

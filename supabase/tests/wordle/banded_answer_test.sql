@@ -26,7 +26,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g on commit drop as
 select (wordle.create_game(
   '=ada',
-  '{"max_guesses": 6, "answer_source": 0, "legal_band": 2, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 6, "answer_band": 0, "legal_band": 2, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- The word edit: shove the answer far above the game's band, as the
