@@ -100,12 +100,12 @@ const CASES: Record<string, Family> = {
     ],
   },
   connections: {
-    playing: { matched_count: 2, mistake_count: 1 },
-    shared: [['ended', { reason: 'manual', matched_count: 2 }, 'manual end']],
+    playing: { found_categories_count: 2, mistake_count: 1 },
+    shared: [['ended', { reason: 'manual', found_categories_count: 2 }, 'manual end']],
     coop: [
-      ['won', { matched_count: 4, mistake_count: 1 }, 'solved'],
-      ['lost', { reason: 'mistakes', matched_count: 2 }, 'four mistakes'],
-      ['lost', { reason: 'timeout', matched_count: 2 }, 'timeout'],
+      ['won', { found_categories_count: 4, mistake_count: 1 }, 'solved'],
+      ['lost', { reason: 'mistakes', found_categories_count: 2 }, 'four mistakes'],
+      ['lost', { reason: 'timeout', found_categories_count: 2 }, 'timeout'],
     ],
     compete: [
       ['won_compete', W, 'won the race'],

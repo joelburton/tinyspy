@@ -79,7 +79,7 @@ export function InfoCol({
   // The roster (identity + per-player concede flags).
   players: Player[]
   selfId: string
-  // Opponents' public categories-found counts (`connections.players.matched_count`).
+  // Opponents' public categories-found counts (`connections.players.found_categories_count`).
   metricByUser: ReadonlyMap<string, number>
   // Who has conceded (drives the OpponentStrip "out" mid-game).
   concededIds: Set<string>
@@ -159,7 +159,7 @@ export function InfoCol({
         )}
 
         {/* Opponent strip (compete) — the race comparison: each player's categories
-            FOUND (public via players.matched_count). */}
+            FOUND (public via players.found_categories_count). */}
         {isCompete && (
           <OpponentStrip
             players={players}

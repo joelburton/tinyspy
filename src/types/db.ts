@@ -1183,20 +1183,20 @@ export type Database = {
       }
       players: {
         Row: {
+          found_categories_count: number
           game_id: string
-          matched_count: number
           mistake_count: number
           user_id: string
         }
         Insert: {
+          found_categories_count?: number
           game_id: string
-          matched_count?: number
           mistake_count?: number
           user_id: string
         }
         Update: {
+          found_categories_count?: number
           game_id?: string
-          matched_count?: number
           mistake_count?: number
           user_id?: string
         }
@@ -4202,6 +4202,10 @@ export type Database = {
       }
     }
     Functions: {
+      _leaderboard: {
+        Args: { required_score: number; target_game: string }
+        Returns: Json
+      }
       candidate_words: {
         Args: {
           center_bit: number

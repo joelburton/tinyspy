@@ -114,7 +114,7 @@ export const connectionsCoopGame: GameManifest = {
 
   labelFor: (row) => {
     const s = (row.status ?? {}) as StatusBlob
-    const matched = (s.matched_count as number | undefined) ?? 0
+    const matched = (s.found_categories_count as number | undefined) ?? 0
     const mistakes = (s.mistake_count as number | undefined) ?? 0
     // "categories", the game's own noun (doc.md → Vocabulary), throughout.
     const categories = tally(matched, CATEGORY_COUNT, 'categories')

@@ -129,7 +129,7 @@ the events rename is `20260917000005_connections_events.sql`) and
 |---|---|
 | `connections.puzzles` | the archive: `source_id` (the NYT number), `puzzle_date`, `categories` jsonb. Imported daily by `.github/workflows/connections-import.yml`; public, and pristine — a game copies from it |
 | `connections.games` | one row per game: the `board`, the `mode`, and the puzzle's date frozen as `puzzle_date`. `puzzle_id` is a soft, provenance-only FK (`on delete set null`): everything needed to play is on the row |
-| `connections.players` | one row per player: `mistake_count` and `matched_count`. **Club-wide readable in both modes** — compete's Found strip is built on it |
+| `connections.players` | one row per player: `mistake_count` and `found_categories_count`. **Club-wide readable in both modes** — compete's Found strip is built on it |
 | `connections.events` | the guess log, append-only: `kind` is `guess`, `took_turn` is true, `result` is the wire word (`correct` · `oneAway` · `wrong`), `matched_category_rank` is set iff correct. `mode` is copied from the game so the indexes and the policy need no join |
 
 The `board`:
@@ -179,7 +179,7 @@ e2e fixtures pin a board). It copies the puzzle's categories onto the game,
 shuffles the sixteen tiles into this game's `tileOrder`, titles the game
 `<date>: <TILE1>-<TILE2>` from the first two tiles alphabetically, writes the
 `common.games` row and one `connections.players` row per player, and seeds
-the club-list readout — `{ matched_count: 0, mistake_count: 0 }` in coop,
+the club-list readout — `{ found_categories_count: 0, mistake_count: 0 }` in coop,
 `{}` in compete, where each racer's counts are their own. A coop game with
 `coop_style: 'turns'` also seats the turn order, starting at
 `first_turn_user_id`. Compete needs two or more players; either mode takes

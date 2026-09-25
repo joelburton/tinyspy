@@ -101,7 +101,9 @@ and a backfill. Park them, or schedule some?
   (`20260924000000_codenamesduet_lost_reason.sql`). "Clock" means only the
   countdown timer.
 - **`status` count keys.** `found_secrets_count` (psychicnum),
-  `found_words_count` (the bee games), `matched_count` (connections),
+  `found_words_count` (the bee games), ~~`matched_count` (connections)~~ —
+  done 2026-09-24: `found_categories_count`, the `players` column and the
+  status key (`20260924000002_connections_found_categories_count.sql`),
   ~~`greens_found` (codenamesduet)~~ — done 2026-09-24:
   `found_agents_count` (`20260924000001_codenamesduet_found_agents_count.sql`).
   The shape is `found_<noun>_count`, "found" even where a game's own verb

@@ -416,7 +416,7 @@ create temp table seeded_cmp on commit drop as
 reset role;
 select is(
   (select status from common.games where id = (select id from seeded_coop)),
-  '{"matched_count": 0, "mistake_count": 0}'::jsonb,
+  '{"found_categories_count": 0, "mistake_count": 0}'::jsonb,
   'coop seeds the 0/4 tallies at create');
 select is(
   (select status from common.games where id = (select id from seeded_cmp)),

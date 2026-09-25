@@ -82,7 +82,7 @@ create policy events_select on connections.events
   );
 
 -- Players: club-wide visible in BOTH modes. Compete's Found strip reads every
--- racer's matched_count from it — the two counts are intentionally public to
+-- racer's found_categories_count from it — the two counts are intentionally public to
 -- the club; what stays private is the guesses. Same shape as
 -- psychicnum.players's RLS policy.
 drop policy if exists players_select on connections.players;
@@ -550,7 +550,7 @@ begin
     new_id,
     'playing',
     case when mode = 'coop'
-         then jsonb_build_object('matched_count', 0, 'mistake_count', 0)
+         then jsonb_build_object('found_categories_count', 0, 'mistake_count', 0)
          else '{}'::jsonb
     end
   );
@@ -679,7 +679,7 @@ declare
   current_play_state text;
   caller_mistakes int;
   caller_matched int;
-  matched_count int;
+  found_categories_count int;
   player_results jsonb;
   winner_name text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
@@ -820,16 +820,16 @@ begin
        and gu.user_id = caller_id
        and gu.result = 'correct';
     update connections.players
-       set matched_count = caller_matched
+       set found_categories_count = caller_matched
      where game_id = target_game and user_id = caller_id;
 
     if g_row.mode = 'coop' then
       -- Coop win check: 4 correct rows total ⇒ won.
-      select count(*) into matched_count
+      select count(*) into found_categories_count
         from connections.events gu
        where gu.game_id = target_game and gu.result = 'correct';
 
-      if matched_count >= 4 then
+      if found_categories_count >= 4 then
         select jsonb_object_agg(user_id::text, '{"won": true}'::jsonb)
           into player_results
           from common.game_players
@@ -844,7 +844,7 @@ begin
           jsonb_build_object(
             'reason', 'solved',
             'mistake_count', caller_mistakes,
-            'matched_count', 4
+            'found_categories_count', 4
           ),
           player_results);
       else
@@ -858,7 +858,7 @@ begin
           'playing',
           jsonb_build_object(
             'mistake_count', caller_mistakes,
-            'matched_count', matched_count
+            'found_categories_count', found_categories_count
           )
         );
       end if;
@@ -965,7 +965,7 @@ begin
      where game_id = target_game
      limit 1;
 
-    select count(*) into matched_count
+    select count(*) into found_categories_count
       from connections.events gu
      where gu.game_id = target_game and gu.result = 'correct';
 
@@ -981,7 +981,7 @@ begin
         jsonb_build_object(
           'reason', 'mistakes',
           'mistake_count', caller_mistakes,
-          'matched_count', matched_count
+          'found_categories_count', found_categories_count
         ),
         player_results);
     else
@@ -995,7 +995,7 @@ begin
         'playing',
         jsonb_build_object(
           'mistake_count', caller_mistakes,
-          'matched_count', matched_count
+          'found_categories_count', found_categories_count
         )
       );
     end if;
@@ -1131,7 +1131,7 @@ declare
   player_results jsonb;
   terminal_state text;
   terminal_reason text;
-  matched_count int;
+  found_categories_count int;
   caller_mistakes int;
 begin
   select * into g_row from connections.games
@@ -1160,9 +1160,9 @@ begin
     terminal_state := 'lost';
     terminal_reason := 'timeout';
 
-    -- Coop final snapshot: mistake_count + matched_count for the
+    -- Coop final snapshot: mistake_count + found_categories_count for the
     -- listing label.
-    select count(*) into matched_count
+    select count(*) into found_categories_count
       from connections.events gu
      where gu.game_id = target_game and gu.result = 'correct';
     select mistake_count into caller_mistakes
@@ -1176,7 +1176,7 @@ begin
       jsonb_build_object(
         'reason', terminal_reason,
         'mistake_count', caller_mistakes,
-        'matched_count', matched_count
+        'found_categories_count', found_categories_count
       ),
       player_results);
   else
@@ -1233,7 +1233,7 @@ grant execute on function connections.submit_timeout(uuid) to authenticated;
 -- Same shape as submit_timeout with three differences:
 --   - one branch for both modes (the per-player result is the bare
 --     {"won": false}, identical coop and compete — there's no
---     mistake_count/matched_count snapshot to take because nothing
+--     mistake_count/found_categories_count snapshot to take because nothing
 --     was "achieved", the friends just stopped)
 --   - status.reason = 'manual' (vs submit_timeout's 'timeout')
 --   - an EXPLICIT Realtime touch at the tail — see the long
@@ -1387,7 +1387,7 @@ begin
 
   update connections.players
      set mistake_count = 0,
-         matched_count = 0
+         found_categories_count = 0
    where game_id = target_game;
 
   delete from connections.events where game_id = target_game;

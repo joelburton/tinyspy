@@ -69,8 +69,8 @@ export type PlayerRow = {
   user_id: string
   mistake_count: number
   // The player's own categories-found count (public; drives the compete
-  // "Found" opponent strip). See connections.players.matched_count.
-  matched_count: number
+  // "Found" opponent strip). See connections.players.found_categories_count.
+  found_categories_count: number
 }
 
 /**
@@ -196,7 +196,7 @@ export function useGame(
         readRows(
           db
             .from('players')
-            .select('user_id, mistake_count, matched_count')
+            .select('user_id, mistake_count, found_categories_count')
             .eq('game_id', gameId),
         ),
       ])
@@ -399,14 +399,14 @@ export function useGame(
   const selfPlayer = players.find((p) => p.user_id === session.user.id)
   const mistakeCount = selfPlayer?.mistake_count ?? 0
 
-  // Opponents' categories-found counts (public via players.matched_count) —
+  // Opponents' categories-found counts (public via players.found_categories_count) —
   // drives the compete "Found" opponent strip. Empty Map in coop (the caller's
   // own found is matchedCategories.length; a coop opponent comparison is noise).
   const opponentFound = new Map<string, number>()
   if (game?.mode === 'compete') {
     for (const p of players) {
       if (p.user_id === session.user.id) continue
-      opponentFound.set(p.user_id, p.matched_count)
+      opponentFound.set(p.user_id, p.found_categories_count)
     }
   }
 
