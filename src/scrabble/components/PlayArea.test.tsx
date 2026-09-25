@@ -19,6 +19,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
@@ -27,10 +28,12 @@ import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import type { EventRow, PlayerRow, ScrabbleGame } from '../hooks/useGame'
+import { runEdgeFn } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import { PlayArea } from './PlayArea'
 
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
+const edgeFn = runEdgeFn as unknown as ReturnType<typeof vi.fn>
 
 type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 
@@ -39,6 +42,12 @@ type GameHook = ReturnType<typeof import('../hooks/useGame').useGame>
 const h = vi.hoisted(() => ({ result: null as unknown as GameHook }))
 vi.mock('../hooks/useGame', () => ({ useGame: () => h.result }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
+// The AI poke calls the `scrabble-ai-move` edge function; stubbed so a test can
+// see it fire without an edge runtime.
+vi.mock('@/common/supabase/dbResult', async (orig) => ({
+  ...(await orig<typeof import('@/common/supabase/dbResult')>()),
+  runEdgeFn: vi.fn(async () => ({ type: 'ok', data: { result: 'moved', turns: 1 } })),
+}))
 // The coop "show a move" transport opens a real Broadcast channel; stub it so the
 // render tests never hit the network (a real `supabase.channel().subscribe()`
 // throws an undici WebSocket error under jsdom). The stub captures the `onReceive`
@@ -68,8 +77,6 @@ function loadedGame(over: Partial<ScrabbleGame> = {}): ScrabbleGame {
     bagCount: 86,
     sharedRack: RACK,
     teamScore: 0,
-    currentSeat: null,
-    currentUserId: null,
     ...over,
   }
 }
@@ -100,25 +107,26 @@ function wordPlay(over: Partial<EventRow> = {}): EventRow {
 
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster, `isTerminal` and the turn pointer — exactly as the page derives it
+ *  (`whereIStand`). A compete game (the loaded `h.result`) is always seated in
+ *  a turn order, and its turn is mine unless a test sets `turnHolderId`. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const isTurnBased = over.isTurnBased ?? h.result.game?.mode === 'compete'
+  const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    players: [gp('u1', 'me', 'red')],
+    isTerminal: false,
+    isTurnBased,
+    turnHolderId: isTurnBased ? 'u1' : null,
+    ...over,
+  }
+  return {
     gameId: 'g1',
     brand: 'RackAttack',
     title: 'SCOWL · TABLE · QUARTZ',
-    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
-    isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
-    isTurnBased: false,
-    isBoardInteractive: true,
-    isWaitingForTurn: false,
-    turnHolderId: null,
     setup: { dict_2: 3, dict_3plus: 3, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -130,7 +138,15 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actChat: boundActionFixture('act-open-chat'),
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
-    ...over,
+    ...facts,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId: facts.turnHolderId,
+      draftsOffTurn: true,
+    }),
   } as unknown as GamePageCtx
 }
 
@@ -178,15 +194,40 @@ beforeEach(() => {
   h.result = loaded(loadedGame(), [selfPlayer()])
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null })
+  edgeFn.mockClear()
 })
 
 /** A loaded compete game with two seated players (u1 + u2). */
 function loadedCompete(over: Partial<ScrabbleGame> = {}) {
   return loaded(
-    loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, currentSeat: 0, currentUserId: 'u1', ...over }),
+    loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, ...over }),
     [selfPlayer({ score: 0, rack: RACK }), { user_id: 'u2', seat: 1, score: 0, rack: null, rack_count: 7, ai_level: null }],
   )
 }
+
+describe('scrabble PlayArea — the turn (compete)', () => {
+  it('names the player on the turn pointer', () => {
+    h.result = loadedCompete()
+    render(<PlayArea {...makeCtx({ players: twoMembers, turnHolderId: 'u2' })} />)
+    expect(screen.queryByText(/Your turn/)).not.toBeInTheDocument()
+    expect(screen.getAllByText(/moth/).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Turn:/)).toHaveLength(2)
+  })
+
+  it('pokes the AI when a bot holds the turn, and not when a person does', () => {
+    h.result = loaded(
+      loadedGame({ mode: 'compete', sharedRack: null, teamScore: null }),
+      [selfPlayer({ score: 0, rack: RACK }), { user_id: 'bot', seat: 1, score: 0, rack: null, rack_count: 7, ai_level: 'easy' }],
+    )
+    const players = [gp('u1', 'me', 'red'), gp('bot', 'ada-bot', 'blue', { ai_member: true })]
+    const { unmount } = render(<PlayArea {...makeCtx({ players, turnHolderId: 'u1' })} />)
+    expect(edgeFn).not.toHaveBeenCalled()
+    unmount()
+
+    render(<PlayArea {...makeCtx({ players, turnHolderId: 'bot' })} />)
+    expect(edgeFn).toHaveBeenCalledWith('scrabble-ai-move', { game_id: 'g1' })
+  })
+})
 
 describe('scrabble PlayArea — render smoke', () => {
   it('renders the 15×15 board + the 7-tile rack + state line in coop play', () => {
@@ -205,7 +246,7 @@ describe('scrabble PlayArea — render smoke', () => {
 
   it('renders the OpponentStrip (Score) + rack in compete play', () => {
     h.result = loaded(
-      loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, currentUserId: 'u1' }),
+      loadedGame({ mode: 'compete', sharedRack: null, teamScore: null }),
       [selfPlayer({ score: 0, rack: RACK }), { user_id: 'u2', seat: 1, score: 0, rack: null, rack_count: 7, ai_level: null }],
     )
     const { container } = render(<PlayArea {...makeCtx({ players: twoMembers })} />)
@@ -311,17 +352,20 @@ describe('scrabble PlayArea — concede', () => {
     h.result = loadedCompete()
     render(
       <PlayArea
-        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })] })}
+        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })] })}
       />,
     )
     expect(screen.getByText('out')).toBeInTheDocument()
   })
 
   it('shows the "You conceded" look after I concede', () => {
-    h.result = loadedCompete({ currentUserId: 'u2' }) // turn already handed to u2
+    h.result = loadedCompete()
     render(
       <PlayArea
-        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')] })}
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')],
+          turnHolderId: 'u2', // the turn already handed to u2
+        })}
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
@@ -343,7 +387,7 @@ describe('scrabble PlayArea — concede', () => {
 
   it('distinguishes Quit / Lost / Won at terminal in the strip', () => {
     h.result = loaded(
-      loadedGame({ mode: 'compete', sharedRack: null, teamScore: null, currentUserId: 'u1' }),
+      loadedGame({ mode: 'compete', sharedRack: null, teamScore: null }),
       [
         selfPlayer({ score: 5, rack: RACK }), // self → Lost
         { user_id: 'u2', seat: 1, score: 12, rack: null, rack_count: 7, ai_level: null }, // → Quit
@@ -358,7 +402,7 @@ describe('scrabble PlayArea — concede', () => {
           status: { reason: 'compete' },
           players: [
             gp('u1', 'me', 'red', { result: { won: false } }),
-            gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }),
+            gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true, result: { won: false } }),
             gp('u3', 'cade', 'green', { result: { won: true } }),
           ],
         })}

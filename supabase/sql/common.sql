@@ -1182,21 +1182,18 @@ $$;
 revoke execute on function common.require_game_player(uuid) from public;
 
 -- ============================================================
--- Turn-order primitive — opt-in turn-by-turn for coop games
+-- Turn-order primitive — opt-in turn-by-turn
 -- ============================================================
 -- Free-for-all is the default and unchanged: common.games.current_turn_user_id
--- stays NULL and all three helpers below are inert. A coop game that opts in
--- (setup coop_style='turns') calls _assign_turn_order once at create-time to
--- seat the rotation; each ACCEPTED, non-terminal move then calls _advance_turn;
--- and each move RPC gates on _require_turn right after it locks the game row +
--- resolves the caller.
+-- stays NULL and all three helpers below are inert. A game that opts in (a coop
+-- game's setup coop_style='turns', or a game that always takes turns) seats
+-- the rotation once at create-time; each ACCEPTED, non-terminal move then
+-- calls _advance_turn; and each move RPC gates on _require_turn right after it
+-- locks the game row + resolves the caller.
 --
 -- The whole rotation lives on the COMMON tables (game_players.turn_seat +
 -- games.current_turn_user_id), so every gametype inherits it without a per-game
--- turn table — even wordiply, which has no players table of its own. This is
--- the common port of scrabble compete's own seat system (scrabble.games.
--- current_seat + scrabble._advance_seat); scrabble compete keeps that, coop
--- uses this, and the two coexist deliberately.
+-- turn table — even wordiply, which has no players table of its own.
 
 -- Seat the rotation for a freshly-created turn game. Seat 0 = the chosen
 -- first player; everyone else is shuffled after them (only "who goes first"
@@ -1236,8 +1233,8 @@ revoke execute on function common._assign_turn_order(uuid, uuid) from public;
 -- Advance the pointer to the next player by turn_seat (wraps; skips anyone
 -- locally terminal, conceders included). No-op when the game isn't a turn game
 -- (pointer null ⇒ no seats ⇒ nothing to advance), so it's safe to call
--- unconditionally on a game's accepted-move path. The skip is inert today:
--- turn order is coop-only, and nobody goes locally terminal in coop.
+-- unconditionally on a game's accepted-move path. The skip is what steps the
+-- rotation past a scrabble compete player who conceded.
 create or replace function common._advance_turn(target_game uuid)
 returns void
 language plpgsql

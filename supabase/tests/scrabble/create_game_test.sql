@@ -100,7 +100,7 @@ select is(
     where game_id = (select id from gp) and array_length(rack, 1) = 7),
   2, 'compete deals a private 7-tile rack to each player');
 select ok(
-  (select current_seat from scrabble.games where id = (select id from gp)) in (0, 1),
+  pg_temp.sc_current_seat((select id from gp)) in (0, 1),
   'compete picks a seated player to go first');
 select is(
   (select array_length(bag, 1) from scrabble.games where id = (select id from gp)),

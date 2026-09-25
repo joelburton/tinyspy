@@ -58,11 +58,9 @@ export type CommonGame = {
   status: Record<string, unknown> | null
   started_at: string
   ended_at: string | null
-  // The turn pointer, for the opt-in turn-by-turn coop mode (setup
-  // coop_style='turns'), rotated server-side by common._advance_turn. The hook
-  // hands it on as `turnHolderId`; whether a game has turns at all is
-  // `isTurnBased`, never a null here. Scrabble compete does NOT use this — it
-  // keeps its own seat pointer.
+  // The turn pointer, for a game played in turns (docs/common-schema.md →
+  // Turn-order). The hook hands it on as `turnHolderId`; whether a game has
+  // turns at all is `isTurnBased`, never a null here.
   current_turn_user_id: string | null
 }
 

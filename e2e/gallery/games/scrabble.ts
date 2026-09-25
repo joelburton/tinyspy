@@ -32,8 +32,8 @@ function rackOf(gameId: string, mode: 'coop' | 'compete'): string {
     mode === 'coop'
       ? `select array_to_string(shared_rack, '') from scrabble.games where id = '${gameId}';`
       : `select array_to_string(p.rack, '') from scrabble.players p
-           join scrabble.games g on g.id = p.game_id
-          where p.game_id = '${gameId}' and p.seat = g.current_seat;`
+           join common.games g on g.id = p.game_id
+          where p.game_id = '${gameId}' and p.user_id = g.current_turn_user_id;`
   return q(sql).replace(/[^A-Z]/g, '')
 }
 
@@ -110,8 +110,8 @@ export const scrabbleGallery: GameGallery = {
     /** Whoever's turn it is (coop has one shared rack, so it's always seat 0). */
     const onTurn = (): E2EMember => {
       if (cell.mode === 'coop') return viewer
-      const seat = q(`select current_seat from scrabble.games where id = '${id}';`)
-      return club.members.find((_m, i) => String(i) === seat) ?? viewer
+      const holder = q(`select current_turn_user_id from common.games where id = '${id}';`)
+      return club.members.find((m) => m.userId === holder) ?? viewer
     }
     const version = () => Number(q(`select version from scrabble.games where id = '${id}';`))
 

@@ -545,11 +545,6 @@ but correctly aren't (recorded so a future consistency pass doesn't "fix" them):
   name in one statement and errors. Same trap as `psychicnum.submit_guess`'s
   local `is_correct` next to the column of that name (there the fix was
   qualifying the column; here it's the distinct param name).
-- **`scrabble._advance_seat` vs `common._advance_turn`** — two different
-  pointers, and BOTH are called from scrabble's `play_word` a few lines apart:
-  the seat pointer for compete turns, the common pointer for opt-in coop turn
-  order. They were `scrabble._advance_turn` / `common._advance_turn` until
-  2026-08-02, telling apart only by schema qualifier.
 - **`common._require_turn` is `_`-prefixed while the other `require_*` gates
   aren't** — it belongs to the turn-order primitives (`_assign_turn_order` /
   `_advance_turn` / `_require_turn`), which share the prefix as one opt-in

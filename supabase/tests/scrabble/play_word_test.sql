@@ -165,14 +165,14 @@ select pg_temp.sc_bag((select id from gc), array['X','Y','Z','N','M','P','L']);
 
 -- Not your turn: bea can't play while it's ada's turn.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
--- Also a fault, for the same reason: `current_seat` travels on the same row as
--- `version`, so a matching version means the client agreed about whose turn it
--- was and then acted otherwise.
+-- A race: the turn pointer lives on common.games and reaches the client on its
+-- own subscription, so a matching version does not mean the client knew the
+-- turn had moved.
 select pg_temp.envelope_is(
   scrabble.play_word((select id from gc), 0,
     '[{"x":7,"y":7,"letter":"C","blank":false}]'::jsonb, array['CO'], 4),
-  '{"type":"not-ok","severity":"fault","dbcode":"PN438",
-    "message":"BUG: a move out of turn"}'::jsonb,
+  '{"type":"not-ok","severity":"race","dbcode":"PN243",
+    "message":"Not your turn"}'::jsonb,
   'a player cannot play out of turn (compete)');
 
 -- ada plays → turn advances to bea.

@@ -36,7 +36,6 @@ import styles from './PlayArea.module.css'
 import '../theme.css'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
-import { useTurnBell } from '@/common/sounds/useTurnBell'
 
 /**
  * scrabble's play surface (coop + compete). PlayArea is the **coordinator**: it holds
@@ -169,15 +168,7 @@ export function PlayArea({
   // Concede lives on the common roster (ctx.players → `players`).
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
-  // Compete gates by scrabble's own seat pointer (`game.currentUserId`); coop
-  // uses the COMMON turn pointer via ctx `isMyTurn` (true for free-for-all coop,
-  // so nothing changes there; false when a turn-order coop game isn't your turn).
-  const myTurn = isCompete ? game?.currentUserId === session.user.id : isMyTurn
-  // The turn bell for a race: the shell rings for the common pointer, which
-  // compete leaves empty, so the seat's own turn rings here (`sounds/useTurnBell`).
-  // Coop passes false — the shell has it. `null` until the row loads, so the
-  // load itself is not an arrival.
-  useTurnBell(game ? isCompete && myTurn && !isTerminal : null)
+  const myTurn = isMyTurn
   const nameOf = useCallback(
     (userId: string | null) => players.find((m: Member) => m.user_id === userId)?.username ?? 'someone',
     [players],
@@ -192,33 +183,18 @@ export function PlayArea({
   const canShare = game?.mode === 'coop' && players.length >= 2
 
   // ─── AI opponents (compete; docs/games/scrabble.md) ──────────
-  // A bot is a player: its name and dot come off its profile like anyone's, and
-  // `players` already holds it. What stays scrabble-local is the SEAT — which
-  // seats are the bots' is `ai_level`, on the per-seat state.
-  const aiSeatNumbers = useMemo(
-    () => new Set(playerStates.filter((p) => p.ai_level != null).map((p) => p.seat)),
-    [playerStates],
-  )
-  const memberOfSeat = useCallback(
-    (seat: number | null): Member | undefined => {
-      if (seat == null) return undefined
-      const uid = playerStates.find((p) => p.seat === seat)?.user_id
-      return uid ? players.find((m) => m.user_id === uid) : undefined
-    },
-    [playerStates, players],
-  )
-
   // Drive the AI opponent: when the turn lands on an AI seat, poke the
   // scrabble-ai-move edge function — it plays the AI seat(s) forward until a
   // human's turn. Any connected client may fire it (the RPCs it calls are
-  // seat+version guarded, so a duplicate poke is a harmless no-op). Fire once per
+  // turn+version guarded, so a duplicate poke is a harmless no-op). Fire once per
   // board `version` so we don't spam while the bot is thinking; a real move bumps
   // the version and re-arms this.
-  // Asked of the SEAT, not of the user: a bot has a user_id now, so "nobody is
-  // sitting here" stopped being the question. Get this wrong and nothing pokes
-  // the edge function — the bot never moves and the table stalls.
-  const currentSeatIsAi =
-    isCompete && game != null && game.currentSeat != null && aiSeatNumbers.has(game.currentSeat)
+  // A bot is a player with a user_id, so the question is whether the turn
+  // holder's seat carries an `ai_level` (a bot's name and dot come off its
+  // profile like anyone's). Get this wrong and nothing pokes the edge function —
+  // the bot never moves and the table stalls.
+  const turnHolderIsAi =
+    isCompete && playerStates.find((p) => p.user_id === turnHolderId)?.ai_level != null
   /** What `scrabble-ai-move` puts in `data`. `turns` is how many seats it
    *  played this invocation — 0..40, and 0 is COMMON: every client pokes and
    *  only one wins the race. Nothing reads it; the poke is fire-and-forget. */
@@ -226,7 +202,7 @@ export function PlayArea({
 
   const aiPokeVersionRef = useRef<number | null>(null)
   useEffect(() => {
-    if (!currentSeatIsAi || !game || isTerminal) return
+    if (!turnHolderIsAi || !game || isTerminal) return
     if (aiPokeVersionRef.current === game.version) return
     const pokedVersion = game.version
     aiPokeVersionRef.current = pokedVersion
@@ -260,7 +236,7 @@ export function PlayArea({
         reportUnhandled('scrabble-ai-move', res)
       }
     })
-  }, [currentSeatIsAi, game, gameId, isTerminal])
+  }, [turnHolderIsAi, game, gameId, isTerminal])
 
   // Peer-move news → the GLOBAL header (the peer channel; my own move goes to
   // the below-board slot — docs/ui.md → Where a message goes).
@@ -546,11 +522,10 @@ type Suggested =
   // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
   // is null in a free-for-all game, so this never fires there. (Compete is
   // ALWAYS turn-based, but its status line already names the current player,
-  // so the note would be redundant — hence the coop-only pointer, which
-  // compete leaves null.) The note lands where the commit buttons would be:
-  // they're useless on a teammate's turn, so swapping them for the reason is
-  // exactly right.
-  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  // so the note would be redundant — hence coop only.) The note lands where
+  // the commit buttons would be: they're useless on a teammate's turn, so
+  // swapping them for the reason is exactly right.
+  const waiting = !isCompete && turnHolderId !== null && !isMyTurn && !isTerminal
   const turnHolder = players.find((m: Member) => m.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
@@ -584,10 +559,6 @@ type Suggested =
     suggest.status === 'ready' && (isTerminal || suggest.version !== game.version)
       ? { status: 'idle' }
       : suggest
-  // The player whose turn it is (compete) — for the "Turn: ● name" state line.
-  // Whoever holds the seat — a person or a bot, both of them on `players`.
-  const currentMember =
-    players.find((m: Member) => m.user_id === game.currentUserId) ?? memberOfSeat(game.currentSeat)
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -597,7 +568,7 @@ type Suggested =
             isCompete={isCompete}
             isTerminal={isTerminal}
             myTurn={myTurn}
-            currentMember={currentMember}
+            currentMember={turnHolder}
             teamScore={game.teamScore}
             bagCount={game.bagCount}
           />
@@ -630,7 +601,7 @@ type Suggested =
           myConceded={myConceded}
           isTerminal={isTerminal}
           turnHolderId={turnHolderId}
-          currentMember={currentMember}
+          currentMember={turnHolder}
           teamScore={game.teamScore}
           bagCount={game.bagCount}
           players={players}

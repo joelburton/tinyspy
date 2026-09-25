@@ -109,7 +109,7 @@ revoke execute on function scrabble._remove_tiles(text[], text[]) from public;
 -- view; the FE never validates words.)
 grant select
   (id, club_handle, mode, board, version,
-   shared_rack, team_score, current_seat, consecutive_passes, created_at)
+   shared_rack, team_score, consecutive_passes, created_at)
   on scrabble.games to authenticated;
 drop policy if exists games_select on scrabble.games;
 create policy games_select on scrabble.games
@@ -200,8 +200,8 @@ $$;
 revoke execute on function scrabble._rack_count_for(uuid, int) from public;
 grant execute on function scrabble._rack_count_for(uuid, int) to authenticated;
 
--- The seat a human occupies in this game (null if not seated). The turn-check
--- key: the human move RPCs compare the caller's seat to games.current_seat.
+-- The seat a human occupies in this game (null if not seated): the human move
+-- RPCs hand it to the shared cores, which act on that seat's rack.
 create or replace function scrabble._seat_of(g_id uuid, p_user uuid)
 returns int
 language sql
@@ -224,7 +224,6 @@ create view scrabble.games_state with (security_invoker = true) as
          g.version,
          g.shared_rack,
          g.team_score,
-         g.current_seat,
          g.consecutive_passes,
          g.created_at,
          scrabble._bag_count_for(g.id) as bag_count
@@ -254,7 +253,7 @@ grant select on scrabble.players_state to authenticated;
 
 -- The status jsonb the club-list label reads (manifest.labelFor). Coop:
 -- the team score + tiles left. Compete: the per-player leaderboard (scores
--- aren't hidden — the public board reveals them) + whose turn + tiles left.
+-- aren't hidden — the public board reveals them) + tiles left.
 create or replace function scrabble._status(g_id uuid)
 returns jsonb
 language plpgsql
@@ -275,7 +274,6 @@ begin
   else
     return jsonb_build_object(
       'mode', 'compete',
-      'current_seat', g.current_seat,
       'bag_count', coalesce(array_length(g.bag, 1), 0),
       'leaderboard', coalesce((
         select jsonb_agg(jsonb_build_object(
@@ -314,51 +312,35 @@ $$;
 
 revoke execute on function scrabble._title_for(uuid) from public;
 
--- Advance compete's turn pointer to the next seat (wraps around).
--- Named `_advance_seat`, not `_advance_turn`: common has an `_advance_turn`
--- for the coop turn-order primitive, and BOTH are called from this file (a
--- few lines apart in play_word). Schema-qualifying them was the only thing
--- telling them apart until 2026-08-02. This one walks the compete SEAT
--- pointer, skipping conceders; common's advances the shared coop pointer.
-create or replace function scrabble._advance_seat(g_id uuid)
+-- Seat compete's rotation on the common turn order and hand the turn to
+-- `first_seat`. Each player's `turn_seat` is their scrabble seat, so the turn
+-- walks the opponent strip (humans, then bots); `common._assign_turn_order`
+-- would shuffle everyone after the opener instead. Safe to call again on a
+-- seated game, which is how replay_board picks a new opener.
+create or replace function scrabble._seat_turn_order(g_id uuid, first_seat int)
 returns void
-language plpgsql
+language sql
 security definer
 set search_path = scrabble, common, public, extensions
 as $$
-declare
-  n_players int;
-  cur_seat  int;
-  next_seat int;
-  i         int;
-begin
-  select count(*) into n_players from scrabble.players where game_id = g_id;
-  select current_seat into cur_seat from scrabble.games where id = g_id;
-  -- Walk forward to the next seat whose occupant hasn't CONCEDED — a drop-out is
-  -- skipped in the turn order (with no conceders this is just seat+1). Humans
-  -- Concede is tracked in common.game_players, which every seat has — a bot's
-  -- row is simply never set (nothing concedes on a bot's behalf), so it plays
-  -- every turn it's dealt. LEFT JOIN + coalesce so a seat missing that row
-  -- still reads as active rather than vanishing from the rotation. We never
-  -- loop forever: scrabble.concede ends the game before the last active player
-  -- is gone, so at least one non-conceded seat always exists here.
-  next_seat := null;
-  for i in 1..n_players loop
-    select p.seat into next_seat
-      from scrabble.players p
-      left join common.game_players gp
-        on gp.game_id = p.game_id and gp.user_id = p.user_id
-     where p.game_id = g_id
-       and p.seat = (cur_seat + i) % n_players
-       and not coalesce(gp.conceded, false);
-    exit when next_seat is not null;
-  end loop;
-  if next_seat is not null then
-    update scrabble.games set current_seat = next_seat where id = g_id;
-  end if;
-end;
+  update common.game_players gp
+     set turn_seat = p.seat
+    from scrabble.players p
+   where p.game_id = g_id and gp.game_id = g_id and gp.user_id = p.user_id;
+
+  update common.games
+     set current_turn_user_id = (
+       select user_id from scrabble.players where game_id = g_id and seat = first_seat
+     )
+   where id = g_id;
 $$;
-revoke execute on function scrabble._advance_seat(uuid) from public;
+revoke execute on function scrabble._seat_turn_order(uuid, int) from public;
+
+-- RETIRED: compete's own seat pointer gave way to the common turn order
+-- (2026-09-25). Dropped here because removing a `create or replace` from this
+-- file does NOT remove the object from a database that already has it — this
+-- file is re-applied, not diffed, so a retired signature has to say so.
+drop function if exists scrabble._advance_seat(uuid);
 
 -- Tally final scores and end the game. `outcome` ∈ complete | timeout |
 -- blocked (NOT manual — manual end is neutral, see scrabble.end_game).
@@ -690,8 +672,8 @@ begin
     -- Random first seat among ALL seats (humans 0..h-1, then AI) — an AI may open.
     v_first_seat := floor(random() * v_total)::int;
     insert into scrabble.games
-      (id, club_handle, mode, dict_2, dict_3plus, board, bag, current_seat)
-    values (new_id, target_club, mode, s_dict_2, s_dict_3plus, v_empty_board, v_bag, v_first_seat);
+      (id, club_handle, mode, dict_2, dict_3plus, board, bag)
+    values (new_id, target_club, mode, s_dict_2, s_dict_3plus, v_empty_board, v_bag);
 
     -- Deal 7 tiles to each human seat (0..h-1), threading the bag down.
     foreach uid in array player_user_ids loop
@@ -713,6 +695,7 @@ begin
     end loop;
     -- Qualify the column: `returns table(id uuid)` puts an `id` in scope too.
     update scrabble.games gm set bag = v_bag where gm.id = new_id;
+    perform scrabble._seat_turn_order(new_id, v_first_seat);
   else
     -- Coop: one shared rack, one team score; seat is positional only.
     v_drawn := v_bag[1:7];
@@ -728,8 +711,7 @@ begin
 
     -- Opt-in turn-by-turn coop: when setup.coop_style='turns', seat the COMMON
     -- rotation so _commit_word / _commit_exchange gate the shared-rack moves.
-    -- (Coop uses the common pointer; compete keeps scrabble.games.current_seat.)
-    -- Free-for-all coop leaves the pointer null. Compete never reaches here.
+    -- Free-for-all coop leaves the pointer null.
     if setup->>'coop_style' = 'turns' then
       first_turn := (setup->>'first_turn_user_id')::uuid;
       if first_turn is null or not (first_turn = any(player_user_ids)) then
@@ -819,7 +801,7 @@ begin
 
   select g2.play_state into play_state from common.games g2 where g2.id = target_game;
   if play_state <> 'playing' then
-    -- A RACE, and one of only two here, because `play_state` lives on
+    -- A RACE, because `play_state` lives on
     -- common.games and a teammate ending the game does NOT bump this game's
     -- `version` — so the gate below cannot catch it first.
     raise exception 'Game over'
@@ -833,10 +815,12 @@ begin
   -- opponent's or the AI's. Nothing was validated and nothing is written: the
   -- move was built on a board that no longer exists.
   --
-  -- It is also why every check BELOW is a fault. Any server state a later gate
-  -- could disagree with — the turn, the rack, the bag, the board — would have
-  -- bumped `version` on its way, so reaching one of them with a version that
-  -- MATCHES means this client's own state is wrong.
+  -- It is also why every check BELOW but the turn is a fault. Any server state
+  -- a later gate could disagree with — the rack, the bag, the board — would
+  -- have bumped `version` on its way, so reaching one of them with a version
+  -- that MATCHES means this client's own state is wrong. The turn is the
+  -- exception: it lives on common.games and reaches the client on its own
+  -- subscription, so a client can hold this version and a stale turn.
   --
   -- The version rides in DETAIL rather than in the answer: nothing reads it
   -- (the frontend's `game.version` comes from the games-row subscription, which
@@ -850,21 +834,11 @@ begin
                       g.version, base_version);
   end if;
 
-  -- ─── Turn check (compete only) ───────────────────────────
-  -- By SEAT (current_seat), so the same gate works whoever occupies it.
-  if g.mode = 'compete' and p_seat is distinct from g.current_seat then
-    raise exception 'BUG: a move out of turn'
-      using errcode = 'PN438', hint = 'fault', column = '_',
-      detail = 'another seat holds the turn';
-  end if;
-
-  -- ─── Coop turn-order (opt-in) ────────────────────────────
-  -- Compete uses its own seat pointer above; coop uses the COMMON pointer
-  -- (the two turn systems coexist). No-op for free-for-all coop (pointer
-  -- null). v_user is the acting seat's user (coop seats are all human).
-  if g.mode = 'coop' then
-    perform common._require_turn(target_game, v_user);
-  end if;
+  -- ─── Turn check ──────────────────────────────────────────
+  -- The common turn pointer: compete always, coop when it was set up turn by
+  -- turn (a no-op for free-for-all coop). v_user is the acting seat's user,
+  -- a bot's as much as a person's.
+  perform common._require_turn(target_game, v_user);
 
   if coalesce(array_length(p_words, 1), 0) = 0 then
     -- Every check from here down is a FAULT, and the version gate above is why:
@@ -974,13 +948,8 @@ begin
       target_game, 'complete',
       case when g.mode = 'compete' then p_seat else null end);
   else
-    if g.mode = 'compete' then
-      perform scrabble._advance_seat(target_game);
-    else
-      -- Coop turn-order: hand the turn to the next player on the COMMON
-      -- pointer (no-op for free-for-all coop). Non-terminal branch only.
-      perform common._advance_turn(target_game);
-    end if;
+    -- Hand the turn on (a no-op for free-for-all coop).
+    perform common._advance_turn(target_game);
     perform common.update_state(target_game, 'playing', scrabble._status(target_game));
   end if;
 
@@ -1062,7 +1031,8 @@ grant execute on function scrabble.play_word(uuid, int, jsonb, text[], int) to a
 -- (trust model — membership is the gate), and `p_seat` must be an AI seat. The
 -- edge function (scrabble-ai-move) computes words+score with the same lib the FE
 -- uses, so the trusting-commit core validates them identically. The core's own
--- turn check (p_seat = current_seat) prevents playing out of turn / double-play.
+-- turn check (the seat's bot holds the turn pointer) prevents playing out of
+-- turn / double-play.
 create or replace function scrabble.ai_play_word(
   target_game  uuid,
   p_seat       int,
@@ -1159,17 +1129,8 @@ begin
       detail = format('the board is at version %s, this swap was built on %s',
                       g.version, base_version);
   end if;
-  if g.mode = 'compete' and p_seat is distinct from g.current_seat then
-    raise exception 'BUG: a swap out of turn'
-      using errcode = 'PN448', hint = 'fault', column = '_',
-      detail = 'another seat holds the turn';
-  end if;
-
-  -- Coop turn-order (opt-in): gate the shared-rack exchange on the common
-  -- pointer. No-op for free-for-all coop. (Compete gates by seat above.)
-  if g.mode = 'coop' then
-    perform common._require_turn(target_game, v_user);
-  end if;
+  -- The common turn pointer; a no-op for free-for-all coop.
+  perform common._require_turn(target_game, v_user);
 
   v_n := coalesce(array_length(rack_tiles, 1), 0);
   if v_n = 0 then
@@ -1202,9 +1163,6 @@ begin
   if g.mode = 'coop' then
     update scrabble.games set shared_rack = v_rack, bag = v_bag, version = version + 1
      where id = target_game;
-    -- Coop turn-order: an exchange consumes the turn (it never ends the game),
-    -- so hand it on via the common pointer (no-op for free-for-all coop).
-    perform common._advance_turn(target_game);
   else
     update scrabble.players set rack = v_rack
      where game_id = target_game and seat = p_seat;
@@ -1218,8 +1176,10 @@ begin
        set bag = v_bag, version = version + 1,
            consecutive_passes = 0
      where id = target_game;
-    perform scrabble._advance_seat(target_game);
   end if;
+  -- An exchange consumes the turn and never ends the game, so the turn always
+  -- moves on (a no-op for free-for-all coop).
+  perform common._advance_turn(target_game);
 
   perform common.update_state(target_game, 'playing', scrabble._status(target_game));
 
@@ -1378,11 +1338,7 @@ begin
       detail = format('the board is at version %s, this pass was built on %s',
                       g.version, base_version);
   end if;
-  if p_seat is distinct from g.current_seat then
-    raise exception 'BUG: a pass out of turn'
-      using errcode = 'PN457', hint = 'fault', column = '_',
-      detail = 'another seat holds the turn';
-  end if;
+  perform common._require_turn(target_game, v_user);
 
   insert into scrabble.events (game_id, user_id, seat, kind, took_turn)
   values (target_game, v_user, p_seat, 'pass', true);
@@ -1398,21 +1354,19 @@ begin
   --
   -- The threshold is the number of seats that can still take a turn, so it
   -- tracks drop-outs: in a 3-player game where one conceded, two passes end it
-  -- (_advance_seat skips conceders, so a conceded seat can never contribute a
-  -- pass and would otherwise make the streak unreachable). LEFT JOIN + coalesce
-  -- so a seat missing its game_players row reads as active; a bot holds a seat
-  -- and passes like anyone else, and never concedes.
+  -- (common._advance_turn skips a player who is locally terminal, so their seat
+  -- can never contribute a pass and would otherwise make the streak
+  -- unreachable). A bot holds a seat and passes like anyone else, and never
+  -- concedes.
   select count(*) into v_active
-    from scrabble.players p
-    left join common.game_players gp
-      on gp.game_id = p.game_id and gp.user_id = p.user_id
-   where p.game_id = target_game and not coalesce(gp.conceded, false);
+    from common.game_players gp
+   where gp.game_id = target_game and not gp.locally_terminal;
 
   if g.consecutive_passes + 1 >= v_active then
     v_terminal := true;
     perform scrabble._finish(target_game, 'blocked', null);
   else
-    perform scrabble._advance_seat(target_game);
+    perform common._advance_turn(target_game);
     perform common.update_state(target_game, 'playing', scrabble._status(target_game));
   end if;
 
@@ -1560,7 +1514,7 @@ revoke execute on function scrabble._maybe_finish_compete(uuid) from public;
 -- scrabble.concede — a player drops out of a compete game
 -- ============================================================
 -- Turn-based, so concede is more than a flag: the conceder is removed
--- from the turn order (_advance_seat skips them), forfeits any win
+-- from the turn order (common._advance_turn skips them), forfeits any win
 -- (_finish picks the winner among non-conceded players), and if it was
 -- their turn we hand off so the game isn't stuck. When the LAST active
 -- player concedes the game ends — final scoring with nobody eligible to
@@ -1595,10 +1549,10 @@ begin
 
   -- Others are still playing. If it was the conceder's turn, hand off to the
   -- next non-conceded seat (else the game would stall on a drop-out).
-  select (current_seat = scrabble._seat_of(target_game, caller_id)) into is_current
-    from scrabble.games where id = target_game;
+  select (current_turn_user_id = caller_id) into is_current
+    from common.games where id = target_game;
   if is_current then
-    perform scrabble._advance_seat(target_game);
+    perform common._advance_turn(target_game);
   end if;
   -- Bump version so optimistic-concurrency readers refetch, and mirror state.
   update scrabble.games set version = version + 1 where id = target_game;
@@ -1854,8 +1808,8 @@ grant execute on function scrabble.get_suggest_context(uuid) to authenticated;
 -- with the board + version + seat. Authorization: any game MEMBER may drive the
 -- AI (trust model — a human at the table pokes the bot along).
 --
--- Seat-less by design: it inspects `current_seat` and returns that seat's AI
--- context IF it's an AI seat's turn, else `{ "done": true }` (a human's turn,
+-- Seat-less by design: it finds the seat whose player holds the turn pointer
+-- and returns that seat's AI context IF it's an AI seat's turn, else `{ "done": true }` (a human's turn,
 -- terminal, or coop). So the edge function just loops "get context → play →
 -- repeat until done", which also walks a chain of consecutive AI seats. It
 -- never raises for the ordinary stop cases (only for a missing game), so a
@@ -1870,6 +1824,7 @@ declare
   g          scrabble.games%rowtype;
   pl         scrabble.players%rowtype;
   cur_state  text;
+  turn_holder uuid;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
   -- The row first: a friend may delete the game from the club list at any
@@ -1882,17 +1837,18 @@ begin
 
   perform common.require_game_player(target_game);
 
-  select play_state into cur_state from common.games where id = target_game;
+  select cg.play_state, cg.current_turn_user_id into cur_state, turn_holder
+    from common.games cg where cg.id = target_game;
   -- TWO `ok`s, and `done` is the ordinary one rather than an exception: every
   -- client pokes this on every version bump, so "nothing for the bot to do" is
   -- the answer most calls get. `done` stays in `data` exactly as it was; the
   -- new `result` is what lets the edge function branch on the answer rather
   -- than on the presence of a key.
-  if g.mode <> 'compete' or cur_state <> 'playing' or g.current_seat is null then
+  if g.mode <> 'compete' or cur_state <> 'playing' or turn_holder is null then
     return common.ok_envelope(jsonb_build_object('result', 'done', 'done', true));
   end if;
 
-  select * into pl from scrabble.players where game_id = target_game and seat = g.current_seat;
+  select * into pl from scrabble.players where game_id = target_game and user_id = turn_holder;
   if pl.ai_level is null then
     -- A human seat holds the turn.
     return common.ok_envelope(jsonb_build_object('result', 'done', 'done', true));
@@ -1900,7 +1856,7 @@ begin
 
   return common.ok_envelope(jsonb_build_object(
     'result', 'context',
-    'seat', g.current_seat,
+    'seat', pl.seat,
     'board', g.board,
     'rack', to_jsonb(pl.rack),
     'dict_2', g.dict_2,
@@ -1948,7 +1904,7 @@ grant execute on function scrabble.get_ai_context(uuid) to authenticated;
 --     commit a move against the fresh deal; bumping keeps it monotonic,
 --     so every in-flight move fails its version check, which is exactly
 --     right — that move was for the old deal.
---   - **compete re-randomizes `current_seat`**, matching create_game. The
+--   - **compete re-randomizes the opener**, matching create_game. The
 --     deal is new, so who opens is drawn afresh.
 --   - **coop turn-order rewinds** to the player seated first
 --     (`game_players.turn_seat = 0`). The rotation itself was assigned at
@@ -2011,8 +1967,9 @@ begin
     v_first := floor(random() * v_seats)::int;
     update scrabble.games
        set board = v_board, bag = v_bag, version = g_row.version + 1,
-           current_seat = v_first, consecutive_passes = 0
+           consecutive_passes = 0
      where id = target_game;
+    perform scrabble._seat_turn_order(target_game, v_first);
   else
     -- Coop: one shared rack + one team score on the game row; the player rows
     -- carry only seats (score/rack stay null), so they need no reset.

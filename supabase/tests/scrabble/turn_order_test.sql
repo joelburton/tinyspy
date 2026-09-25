@@ -3,9 +3,8 @@
 -- ============================================================
 -- Test: scrabble COOP turn-order (opt-in turn-by-turn)
 -- ============================================================
--- scrabble is the reconciliation case: compete keeps its OWN seat pointer
--- (scrabble.games.current_seat), while coop opts into the COMMON pointer.
--- create_game seats the common rotation when setup.coop_style='turns', and
+-- Compete always rides the common pointer (compete_turn_order_test); coop opts
+-- into it. create_game seats the common rotation when setup.coop_style='turns', and
 -- the shared-rack move cores (_commit_word / _commit_exchange) gate on
 -- _require_turn + advance the common pointer. Exchange is the move exercised
 -- here (no dictionary/placement needed); the gate + advance sit in the same

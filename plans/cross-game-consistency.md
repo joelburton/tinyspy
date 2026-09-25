@@ -450,13 +450,26 @@ where it fixes a behavior:
    lets either guess, which one pointer cannot say, so only there does the
    game supply `isMyTurn` (true for both) itself. The partner with nothing
    left to guess is then `isWaitingForTurn`, and their board dims.
-8. **scrabble compete joins the common turn order.** Its AI seats are
-   ordinary players now, so nothing keeps it on its own
-   `scrabble.games.current_seat`: `_assign_turn_order`, `_require_turn` and
-   `_advance_turn` replace it, and `useCommonGame` answers `isMyTurn` there as
-   everywhere. Stored data — games in progress hold their turn in
-   `current_seat` — so a migration moves it to `turn_seat` and the pointer,
-   rehearsed over a prod backup.
+8. ~~**scrabble compete joins the common turn order.**~~ Done 2026-09-25.
+   Each player's `turn_seat` is their scrabble seat, so the turn walks the
+   opponent strip as before (Joel's pick over `_assign_turn_order`'s shuffle):
+   `scrabble._seat_turn_order` seats it and points a random opener, at create
+   and restart. `_require_turn` gates word, swap and pass in both modes — the
+   three out-of-turn faults (PN438 / PN448 / PN457) retire into the shared
+   PN243 race, since the pointer reaches a client apart from `version` — and
+   `_advance_turn` hands the turn on; `_advance_seat` is dropped. The blocked
+   end counts `not locally_terminal`, the set the rotation walks.
+   `get_ai_context` and the `PlayArea` poke find the bot through the pointer.
+   Migration `20260925000001_scrabble_turn_order.sql` seats every compete
+   game, points the ones in progress, strips `current_seat` from the stored
+   status, and drops the column (Joel's pick). The front end reads the page's
+   `isMyTurn`, and its own bell is gone (the page's rings on the pointer).
+   Nothing visible changes: compete keeps its "Turn: ● name" line, and its
+   board does not dim (`draftsOffTurn`). pgTAP `compete_turn_order_test`.
+   **Owed to scrabble's step 6:** the coop-only waiting note (`waiting` is
+   gated `!isCompete`, since compete's state line already names the player)
+   meets the step-6 rule that the waiting message shows on
+   `isWaitingForTurn`; which one compete follows is Joel's call.
 
 ## 3b. How it ended for me — won, lost, quit, no result, solved (not started)
 

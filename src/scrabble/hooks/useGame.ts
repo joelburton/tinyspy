@@ -55,12 +55,6 @@ export type ScrabbleGame = {
   /** Coop: the shared team rack + score. Null in compete. */
   sharedRack: string[] | null
   teamScore: number | null
-  /** Compete: whose SEAT's turn it is. Null in coop. */
-  currentSeat: number | null
-  /** Compete: the user_id at `currentSeat` — null in coop. A bot's seat names
-   *  the bot, like any other. Derived from the players; which seats are AI is
-   *  `ai_level`, and that is what the AI poke asks. */
-  currentUserId: string | null
 }
 
 /**
@@ -108,9 +102,7 @@ export function useGame(gameId: string): {
         readRows(
           db
             .from('games_state')
-            .select(
-              'id, club_handle, mode, board, version, bag_count, shared_rack, team_score, current_seat',
-            )
+            .select('id, club_handle, mode, board, version, bag_count, shared_rack, team_score')
             .eq('id', gameId),
         ),
         readRows(
@@ -164,12 +156,6 @@ export function useGame(gameId: string): {
         setLoading(false)
         return
       }
-      const playerRows = playersRes.data as PlayerRow[]
-      const currentSeat = r.current_seat as number | null
-      // Turns are seat-based; map the current seat back to its user for the
-      // FE's myTurn / "whose turn" checks (null when it's an AI seat's turn).
-      const currentUserId =
-        currentSeat === null ? null : (playerRows.find((p) => p.seat === currentSeat)?.user_id ?? null)
       setGame({
         id: r.id as string,
         club_handle: r.club_handle as string,
@@ -179,10 +165,8 @@ export function useGame(gameId: string): {
         bagCount: (r.bag_count ?? 0) as number,
         sharedRack: r.shared_rack as string[] | null,
         teamScore: r.team_score as number | null,
-        currentSeat,
-        currentUserId,
       })
-      setPlayers(playerRows)
+      setPlayers(playersRes.data as PlayerRow[])
       setPlays(playsRes.data as EventRow[])
       setLoading(false)
     },

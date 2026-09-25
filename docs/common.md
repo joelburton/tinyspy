@@ -90,7 +90,7 @@ Each step is one or two sentences here; the folder named has the rest.
   Realtime brings the change to everyone
   ([`common/realtime`](../src/common/realtime/doc.md),
   [supabase.md](supabase.md)). The clock ticks while someone is playing; the
-  game pauses when a player is missing; turn-by-turn co-op moves a shared
+  game pauses when a player is missing; a game played in turns moves a shared
   turn pointer ([common-schema.md](common-schema.md)).
 - **Ending.** A game ends by its own rules, by the clock running out, or by
   someone choosing to stop: **End** for everyone in co-op, **Concede** for

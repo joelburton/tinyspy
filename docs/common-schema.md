@@ -231,7 +231,6 @@ a specific person is not. Each game's `create_game` does the strip itself
 go it was — the event log's `took_turn` is
 ([supabase.md](supabase.md#every-games-log-is-gameevents)). **A bot can take a
 seat only where something pokes it to move**, since a bot has no client.
-scrabble compete keeps its own seat pointer, a deliberate second mechanism.
 
 **A game whose turn does not simply rotate** seats its players the same way
 but writes the pointer itself, from its own state, instead of calling
@@ -239,6 +238,12 @@ but writes the pointer itself, from its own state, instead of calling
 partner's agents are all found, so `codenamesduet._point_turn` names whoever
 must act now — the clue-giver, then the guesser, then in sudden death the one
 player with words left, or nobody when either may guess.
+
+**A game that always takes turns** seats them in `create_game` whatever the
+setup says. scrabble compete does, with its own seating: `scrabble._seat_turn_order`
+sets each player's `turn_seat` to their scrabble seat (humans, then bots), so
+the turn walks the opponent strip, and points the turn at a random seat — on a
+restart too. It advances, gates and skips conceders with the common three.
 
 ## Players and clubs
 

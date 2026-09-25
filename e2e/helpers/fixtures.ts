@@ -923,7 +923,7 @@ export function pinScrabbleSeat(gameId: string, seat: number, rack: string[]): v
       'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
       '-v', 'ON_ERROR_STOP=1',
       '-c', `update scrabble.players set rack = '{${rack.join(',')}}' where game_id = '${gameId}' and seat = ${seat};`,
-      '-c', `update scrabble.games set current_seat = ${seat} where id = '${gameId}';`,
+      '-c', `update common.games set current_turn_user_id = (select user_id from scrabble.players where game_id = '${gameId}' and seat = ${seat}) where id = '${gameId}';`,
     ],
     { stdio: 'pipe' },
   )

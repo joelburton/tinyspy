@@ -296,7 +296,7 @@ stackdown's `20260626`).
 
 | table | what it holds | visibility |
 |---|---|---|
-| `games` | one row per game. `mode`, `dict_2` + `dict_3plus` (the two acceptance bands, server-only — not granted), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `current_seat int` (whose turn — by **seat**, not user, so a seat may be an AI) + `consecutive_passes` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
+| `games` | one row per game. `mode`, `dict_2` + `dict_3plus` (the two acceptance bands, server-only — not granted), `board` jsonb (the placed tiles, a flat 225-cell array — PUBLIC), `bag` text[] (remaining draw order — **HIDDEN**), `version` int (the move counter for optimistic-concurrency — see [§6](#6-where-validation-lives)). **Coop-only:** `shared_rack` text[] (PUBLIC — the team rack) + `team_score`. **Compete-only:** `consecutive_passes` (the blocked-end counter — coop has no blocked-end). | `board`/`version` granted; `bag` column-excluded; coop rack/score public |
 | `players` | PK `(game_id, user_id)` — a player is in a game once. `seat` is the turn order (compete) and owns the rack, under its own unique `(game_id, seat)`. Every seat has a player, bot or person; `ai_level` is non-null on a seat playing at an AI strength, which is a fact about the GAME rather than about the account sitting there. `score` (compete per-seat). **Compete:** `rack` (**HIDDEN** — own-rack-only mid-game; peers' revealed at terminal for leftover scoring). Coop leaves `rack`/`score` null (they live on `games`). | club members; `rack` column-excluded (`ai_level` public — the FE marks which seats play at an AI strength) |
 | `events` | durable move log, keyed by a `bigint identity` and read `order by id`. Each row carries `seat` (the seat that played it — the rack's owner and the display order) and `user_id`, the player who made the move: a person or one of the bots, which hold profiles like anyone. `kind`: `'word'` (`placements` jsonb, `words text[]`, `score`) / `'exchange'` (`tile_count`) / `'pass'` / `'leftovers'` (`tile_count` returned, negative `score` for the leftover penalty). `took_turn` is true on the three moves and false on `leftovers`, which no player made. | club members, both modes |
 
@@ -398,23 +398,16 @@ declared letter).
    games-row subscription, which is the authority).
 
    **This gate is also why almost everything below it is a `fault`.** Any server
-   state a later check could disagree with — the turn, the rack, the bag, the
-   board — would have bumped `version` on its way, so reaching one of those
-   checks with a version that MATCHES means the client's own state is wrong.
-   Only `play_state` escapes it: that lives on `common.games`, so a peer ending
-   the game bumps nothing here, which is why "Game over" is the other race.
-3. **Compete:** reject unless it's the acting seat's turn — the check is `g.mode
-   = 'compete' and p_seat is distinct from g.current_seat` → **`PN438`, a
-   fault** (`current_seat` travels on the same row as `version`, so see the gate
-   above), keyed on the scrabble-local seat system. **Coop:** free-for-all by
-   default (any player), but the coop sibling also supports **opt-in
-   turn-by-turn** play (setup `coop_style = 'turns'`) — when on, the shared
-   `_commit_word` core gates on the **common** `common._require_turn` and
-   advances `common._advance_turn` on an accepted, non-terminal commit. The two
-   turn systems coexist deliberately: compete keeps its own
-   `scrabble.games.current_seat` + `scrabble._advance_seat` (which also drive
-   the AI opponent, [§12](#12-the-ai-opponent-compete)), coop uses the common
-   pointer. See [common-schema.md →
+   state a later check could disagree with — the rack, the bag, the board —
+   would have bumped `version` on its way, so reaching one of those checks with
+   a version that MATCHES means the client's own state is wrong. `play_state`
+   and the turn escape it: both live on `common.games`, so a peer ending the
+   game or the turn moving on reaches the client apart from `version`.
+3. **The turn:** `common._require_turn` refuses a move by anyone but the
+   player on the common turn pointer — **`PN243`, a race**. Compete always has
+   a pointer; coop is free-for-all by default (any player, the pointer null),
+   and turn-by-turn when set up that way (`coop_style = 'turns'`). See
+   [common-schema.md →
    Turn-order](../common-schema.md#turn-order--opt-in-turn-by-turn-for-coop-games).
 4. **Integrity guards** (cheap; data-consistency, *not* anti-cheat): every
    placement is in-bounds and lands on an empty square; the consumed tiles
@@ -433,10 +426,9 @@ declared letter).
    server owns this — fairness without trust); add the trusted `score` (compete:
    `players.score`; coop: `games.team_score`); insert the `plays` row;
    `version += 1`; reset `consecutive_passes = 0`.
-7. **Compete:** advance the seat pointer via
-   `scrabble._advance_seat(target_game)`. **Both:** check end conditions
-   ([§2.7](#27-ending-the-game)); end the game if met, else
-   `common.update_state`.
+7. Check end conditions ([§2.7](#27-ending-the-game)); end the game if met,
+   else hand the turn on (`common._advance_turn`, a no-op in free-for-all coop)
+   and `common.update_state`.
 8. An `ok` · `{result:'accepted', drawn, version, terminal}` in outcome `won` —
    the newly-drawn tiles (so the FE updates the rack without leaking the rest of
    the bag) and the new version.
@@ -450,16 +442,15 @@ raises BEFORE it delegates, so the core's block never sees it.
 **The version gate is what classifies everything below it.** Any server state
 a later check could disagree with would have bumped `version` first, so a
 MATCHING version plus a disagreement means the client's own state is wrong —
-which is why every check after the gate is a fault. Only `play_state` escapes,
-living on `common.games` where no scrabble version tracks it, and that is why
-"Game over" is the other race.
+which is why every check after the gate is a fault. `play_state` and the turn
+pointer escape, living on `common.games` where no scrabble version tracks them,
+and that is why "Game over" and "Not your turn" are races too.
 
 | | | |
 |---|---|---|
 | `PN437` / `PN447` / `PN456` "Board changed" | `race` | the version gate, one per core |
 | `PN436` / `PN446` / `PN455` "Game over" | `race` | `play_state`, which bumps no version |
-| `PN243` "Not your turn" | `race` | coop turn-order, from `common._require_turn` |
-| `PN438` / `PN448` / `PN457` `BUG: a move/swap/pass out of turn` | `fault` | |
+| `PN243` "Not your turn" | `race` | the turn pointer, from `common._require_turn` |
 | `PN439`–`PN442` `BUG: …` | `fault` | no word formed, a tile off the board, on an occupied square, not in the rack |
 | `PN449` / `PN450` `BUG: a swap of no tiles` / `…against a bag under seven` | `fault` | |
 | `PN454` `BUG: a pass in a coop game` | `fault` | see Deferred — the rule itself is in question |
@@ -517,8 +508,8 @@ every seat. Three subtleties:
   holding a stale mid-game version commit against the fresh deal; bumping keeps
   it monotonic so every in-flight move fails its check — correct, since that
   move was for the old deal.
-- **Compete re-randomizes `current_seat`**, matching `create_game`: the deal is
-  new, so who opens is drawn afresh.
+- **Compete re-randomizes the opener**, matching `create_game`: the deal is
+  new, so who opens is drawn afresh (`scrabble._seat_turn_order`).
 - **Coop turn-order rewinds** to the player seated first
   (`game_players.turn_seat = 0`). The rotation was assigned at create time and
   doesn't change, so this restores the original opener without re-reading
@@ -543,7 +534,7 @@ compete, whose question offers the whole-table End as its second answer
 (`useStandardGameActions`, for every race), so the neutral compete branch is
 reachable from the board. `scrabble.concede` is the per-player "I quit, the others keep
 playing". Because scrabble is turn-based, concede is more than a flag:
-`scrabble._advance_seat` **skips** conceders, `scrabble._finish` picks the
+`common._advance_turn` **skips** conceders, `scrabble._finish` picks the
 winner among **non-conceded** players (a drop-out forfeits even a tying score),
 and `scrabble.concede` hands the turn off if it was the conceder's, or ends the
 game (final scoring, nobody eligible to win) when the last active player drops.
@@ -849,7 +840,7 @@ The `status` jsonb (written by the state-transition RPCs) drives the club-list
 
 - **Coop:** `{ mode:'coop', team_score, bag_count, outcome? }` (`outcome` ∈
   `complete` / `timeout` / `manual` at terminal).
-- **Compete, mid-game:** `{ mode:'compete', current_seat, bag_count,
+- **Compete, mid-game:** `{ mode:'compete', bag_count,
   leaderboard:[{seat, user_id, ai_level, score}] }` — the leaderboard is
   seat-keyed (every entry names its player, bot or person, plus the seat's
   `ai_level` when it is playing at one) and drives the
@@ -916,11 +907,14 @@ commit), not the TS-owned geometry/scoring:
   the leftover-tile value (the `forfeit` log row + `5 − 11 = −6` team score) vs
   compete's neutral stop, `submit_timeout`'s final scoring, and the
   realtime touch.
-- `turn_order` — coop's **opt-in turn-by-turn** (the reconciliation case:
-  compete keeps its own `current_seat`, coop rides the common pointer):
-  `create_game` seats the rotation under `coop_style='turns'`, and the shared
-  move cores gate on `_require_turn` + advance the common pointer (exercised
-  via exchange — no dictionary needed).
+- `turn_order` — coop's **opt-in turn-by-turn**: `create_game` seats the
+  rotation under `coop_style='turns'`, and the shared move cores gate on
+  `_require_turn` + advance the common pointer (exercised via exchange — no
+  dictionary needed).
+- `compete_turn_order` — compete's turn on the common pointer: every player
+  seated at their scrabble seat, the out-of-turn race, the turn handed on by an
+  exchange, a pass and a bot's pass, `get_ai_context` finding the bot through
+  the pointer, a conceder handing it on and being skipped, and a restart.
 - `replay` — the re-deal ([§5.5](#55-replay_board)): setup restored, version
   **bumped** not zeroed, compete's first seat re-randomized, coop turn-order
   rewound.
@@ -1022,18 +1016,13 @@ Distinct from the always-best suggester above: an autonomous **AI player** you
 can seat in a **compete** game — 0–3 of them, all at one chosen skill level —
 built on the same engine.
 
-**Seat-based, and the bot is an account.** Turns key on
-`scrabble.games.current_seat` (an int), not a user id, which is what lets a seat
-be played by something that never signs in. An AI seat is a row in
-`scrabble.players` carrying an `ai_level` and held by one of the three bots —
-ordinary accounts with `common.profiles.ai_member` set, seated in
-`common.game_players` like any player but in **no human's club**, which is what
-keeps them off the club roster. Presence-pause skips them by the same mark.
-`create_game` seats humans then bots; `_advance_seat` / `_finish` / the turn
-checks all rotate + resolve by seat, and a bot wins by uuid and handle like
-anyone. (The helper is deliberately named `_advance_seat`, not `_advance_turn`:
-`common._advance_turn` — the coop turn-order pointer — is called nearby in the
-same file, and the rename [2026-08-02] stops the two shadowing each other.) The
+**The bot is an account.** An AI seat is a row in `scrabble.players` carrying
+an `ai_level` and held by one of the three bots — ordinary accounts with
+`common.profiles.ai_member` set, seated in `common.game_players` like any
+player but in **no human's club**, which is what keeps them off the club
+roster. Presence-pause skips them by the same mark. `create_game` seats humans
+then bots, and the turn walks the seats in that order on the common turn
+pointer; a bot takes its turn, and wins by uuid and handle, like anyone. The
 human move RPCs (`play_word` / `exchange_tiles` / `pass_turn`) and the AI twins
 (`ai_play_word` / `ai_exchange_tiles` / `ai_pass_turn`) share one seat-driven
 core (`_commit_word` / `_commit_exchange` / `_commit_pass`), so there's no
@@ -1054,11 +1043,13 @@ beginner / casual / intermediate / strong / best. The knobs:
 | `equityNoise` | Gaussian jitter on equity before the argmax (doesn't reliably *find* the best) | fallibility |
 
 **Orchestration** — a client-invoked edge function `scrabble-ai-move` loops
-`get_ai_context` (seat-less: returns the *current* seat's AI context, or
-`{done}` when it's a human's turn / terminal) → `choosePlay` → the matching
-`ai_*` RPC, walking a chain of consecutive AI seats in one invocation until a
-human's turn. Any connected client may poke it (a move that hands off to an AI,
-or game load on an AI turn); the RPCs are seat + version guarded, so a
+`get_ai_context` (seat-less: returns the AI context of the seat whose bot holds
+the turn pointer, or `{done}` when it's a human's turn / terminal) →
+`choosePlay` → the matching `ai_*` RPC, walking a chain of consecutive AI seats
+in one invocation until a human's turn. Any connected client may poke it — the
+`PlayArea` effect fires when the turn holder's seat carries an `ai_level` (a
+move that hands off to an AI, or game load on an AI turn); the RPCs are turn +
+version guarded, so a
 duplicate/concurrent poke resolves to a `stale` no-op. `get_ai_context` is the
 `SECURITY DEFINER` door to the AI seat's hidden rack + the grant-hidden bands —
 the twin of `get_suggest_context`.
@@ -1088,42 +1079,6 @@ e2e: `scrabble-ai-player.e2e.ts` (a human-vs-AI game against the real edge
 function).
 
 ## Deferred
-
-**Compete could drop scrabble's own turn pointer and use the common one**
-(raised 2026-09-17, by the work that made the bots real accounts). scrabble runs
-two rotations: coop uses `common.games.current_turn_user_id` +
-`game_players.turn_seat`, while compete keeps `scrabble.games.current_seat` +
-`scrabble._advance_seat`. The rotation had to be seat-shaped because it had to
-include players who were not users — the compete gate is by seat and says so,
-`_advance_seat` wraps over AI seats, and the common rotation walks
-`game_players.turn_seat`, which an AI seat had no row for. **That reason is
-gone**: a bot is an account with a `game_players` row like anyone.
-
-Retiring it would shed `current_seat`, `_advance_seat` and the mode branch in
-three move RPCs, and compete would GAIN what the shell already gives coop — the
-shared `<TurnStatusLine>` ("Waiting for ● ada-bot…") and the not-your-turn board
-dim. So it is a visible change, not purely internal, which is why it is a
-decision rather than a tidy.
-
-Three things to settle first:
-
-1. **Seating order.** `common._assign_turn_order` shuffles everyone after the
-   chosen first player; scrabble deliberately seats bots *after* the humans.
-   Either keep scrabble's seating and adopt only the pointer, or teach the
-   common seater an explicit order.
-2. **The AI driver is seat-shaped on both sides.** `scrabble.get_ai_context`
-   asks whether the seat at `current_seat` carries an `ai_level`, and
-   `PlayArea.tsx`'s poke effect asks the same of the current seat. Both must be
-   rewritten against `current_turn_user_id` and `profiles.ai_member` — miss the
-   frontend one and nothing pokes the edge function, so the bot never moves and
-   the table stalls with no error to explain it. The disarm path beside that
-   effect (a wedged poke ref "wedges the game permanently") has to survive the
-   rewrite.
-3. **`seat` itself stays.** It owns the rack and the display order, and
-   `(game_id, seat)` stays unique. Only the POINTER is retired.
-
-[common.md](../common.md) currently says unifying the two pointers is out of
-scope, and that sentence is what this would rewrite.
 
 **Passing is refused in turn-by-turn coop, and probably should not be** (raised
 2026-09-01, converting the area to envelopes). Scrabble supports the opt-in

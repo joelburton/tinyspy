@@ -6,7 +6,7 @@
 -- An AI seat is a real player: the bot holds a `common.profiles` row marked
 -- `ai_member`, a `common.game_players` row, and a `scrabble.players` row that
 -- carries both its user_id and the game's `ai_level`. What is still
--- scrabble-local is the SEAT — turns are seat-based in compete.
+-- scrabble-local is the SEAT, which owns the rack and the `ai_level`.
 --
 -- The suite carries its own bot — `abe-bot`, a persona in `_shared/setup.psql`
 -- alongside ada and bea. These tests name the seat's holder by `ai_member` and
@@ -121,7 +121,7 @@ create temp table aiw on commit drop as
       {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb, array['CAT'], 10) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from aiw), 'accepted', 'the AI seat can commit a word');
-select is((select current_seat from scrabble.games where id = (select id from gai)), 0,
+select is(pg_temp.sc_current_seat((select id from gai)), 0,
   'the turn advances to the human seat');
 select is((select score from scrabble.players where game_id = (select id from gai) and seat = 1),
   10, 'the AI seat banks its score');
@@ -147,7 +147,7 @@ create temp table aip on commit drop as
     (select version from scrabble.games where id = (select id from gai))) as res;
 reset role;
 select is((select res -> 'data' ->> 'result' from aip), 'passed', 'the AI seat can pass');
-select is((select current_seat from scrabble.games where id = (select id from gai)), 0,
+select is(pg_temp.sc_current_seat((select id from gai)), 0,
   'the AI pass advances the turn');
 
 -- ─── _finish crowns an AI winner ──────────────────────────

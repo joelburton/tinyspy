@@ -422,7 +422,12 @@ export type Database = {
     }
     Functions: {
       _end_turn: { Args: { target_game: string }; Returns: Json }
+      _point_turn: { Args: { target_game: string }; Returns: undefined }
       _require_clue_giver: { Args: { target_game: string }; Returns: string }
+      _seat_has_agents_left: {
+        Args: { seat: string; target_game: string }
+        Returns: boolean
+      }
       create_game: {
         Args: { player_user_ids: string[]; setup: Json; target_club: string }
         Returns: Json
@@ -2118,7 +2123,6 @@ export type Database = {
           club_handle: string
           consecutive_passes: number
           created_at: string
-          current_seat: number | null
           dict_2: number
           dict_3plus: number
           id: string
@@ -2133,7 +2137,6 @@ export type Database = {
           club_handle: string
           consecutive_passes?: number
           created_at?: string
-          current_seat?: number | null
           dict_2: number
           dict_3plus: number
           id: string
@@ -2148,7 +2151,6 @@ export type Database = {
           club_handle?: string
           consecutive_passes?: number
           created_at?: string
-          current_seat?: number | null
           dict_2?: number
           dict_3plus?: number
           id?: string
@@ -2210,7 +2212,6 @@ export type Database = {
           club_handle: string | null
           consecutive_passes: number | null
           created_at: string | null
-          current_seat: number | null
           id: string | null
           mode: string | null
           shared_rack: string[] | null
@@ -2223,7 +2224,6 @@ export type Database = {
           club_handle?: string | null
           consecutive_passes?: number | null
           created_at?: string | null
-          current_seat?: number | null
           id?: string | null
           mode?: string | null
           shared_rack?: string[] | null
@@ -2236,7 +2236,6 @@ export type Database = {
           club_handle?: string | null
           consecutive_passes?: number | null
           created_at?: string | null
-          current_seat?: number | null
           id?: string | null
           mode?: string | null
           shared_rack?: string[] | null
@@ -2292,7 +2291,6 @@ export type Database = {
       }
     }
     Functions: {
-      _advance_seat: { Args: { g_id: string }; Returns: undefined }
       _bag_count_for: { Args: { g_id: string }; Returns: number }
       _commit_exchange: {
         Args: {
@@ -2334,6 +2332,10 @@ export type Database = {
         Returns: string[]
       }
       _seat_of: { Args: { g_id: string; p_user: string }; Returns: number }
+      _seat_turn_order: {
+        Args: { first_seat: number; g_id: string }
+        Returns: undefined
+      }
       _status: { Args: { g_id: string }; Returns: Json }
       _tile_value: { Args: { ch: string }; Returns: number }
       _title_for: { Args: { g_id: string }; Returns: string }
