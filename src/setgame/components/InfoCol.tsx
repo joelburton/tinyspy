@@ -21,10 +21,14 @@ type Props = {
   // ── Mode + phase ──
   isCompete: boolean
   isTerminal: boolean
-  /** Compete: I conceded but the others race on — the terminal LOOK. */
-  isLocallyDone: boolean
+  /** Compete: I conceded but the others race on — the terminal LOOK (the
+   *  page's `isLocallyTerminal`; in this game only by conceding). */
+  isLocallyTerminal: boolean
   /** The terminal message when the game is over (drives the action row), else null. */
   over: TerminalMessage | null
+  /** A turn-order game: render the shared TurnStatusLine, which names the
+   *  holder of `turnHolderId`. */
+  isTurnBased: boolean
   turnHolderId: string | null
   // ── State ──
   /** Sets taken by the whole table. */
@@ -83,8 +87,9 @@ type Props = {
 export function InfoCol({
   isCompete,
   isTerminal,
-  isLocallyDone,
+  isLocallyTerminal,
   over,
+  isTurnBased,
   turnHolderId,
   teamFound,
   deckLeft,
@@ -115,7 +120,7 @@ export function InfoCol({
           <Counts items={countsFor('info', { isCompete, teamFound, deckLeft, hintsUsed })} />
         </div>
 
-        {turnHolderId !== null && (
+        {isTurnBased && (
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
@@ -149,11 +154,13 @@ export function InfoCol({
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : isLocallyDone ? (
+        ) : isLocallyTerminal ? (
           <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
-            {/* Concede disables itself once conceded — the row keeps its shape
-                and the button says why it can't be pressed again. */}
+            {/* Both exits are placed and each says whether it applies: out of
+                the race, Concede hides and End comes out in its place — one
+                flag, since anyone in a game may end it for all. */}
             <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>

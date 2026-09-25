@@ -22,8 +22,9 @@ type Props = {
   ringed: readonly CardCode[]
   flashes: ReadonlyMap<CardCode, FlashKind>
   disabled: boolean
-  // Turn-by-turn coop, someone else's turn — fades the table. See `Board`.
-  waiting: boolean
+  // A teammate holds the move (the page's `isWaitingForTurn`) — fades the
+  // table. See `Board`.
+  isWaitingForTurn: boolean
   // ── The mobile status bar's contents ──
   isCompete: boolean
   teamFound: number
@@ -71,7 +72,7 @@ export function BoardCol({
   ringed,
   flashes,
   disabled,
-  waiting,
+  isWaitingForTurn,
   isCompete,
   teamFound,
   deckLeft,
@@ -101,7 +102,7 @@ export function BoardCol({
         ringed={ringed}
         flashes={flashes}
         disabled={disabled}
-        waiting={waiting}
+        isWaitingForTurn={isWaitingForTurn}
         onCardClick={onCardClick}
       />
       {/* `bannerHost` only WHILE VIEWING — the banner is `position: absolute;

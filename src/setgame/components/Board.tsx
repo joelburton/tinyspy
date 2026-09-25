@@ -24,11 +24,11 @@ type Props = {
   // Transient marks, keyed by card code.
   flashes: ReadonlyMap<CardCode, FlashKind>
   disabled: boolean
-  // Turn-by-turn coop, and it is someone else's turn — the board fades.
-  // A STRICT SUBSET of `disabled`, and deliberately its own flag: the board is
-  // also disabled at every terminal and while replaying a past turn, neither of
-  // which should fade (both are states people sit and study).
-  waiting: boolean
+  // A teammate holds the move (the page's `isWaitingForTurn`) — the board
+  // fades while it is also inert. Deliberately its own flag, not `disabled`:
+  // the board is also disabled at every terminal and while replaying a past
+  // turn, neither of which should fade (both are states people sit and study).
+  isWaitingForTurn: boolean
   onCardClick: (card: CardCode) => void
 }
 
@@ -58,7 +58,7 @@ export function Board({
   ringed,
   flashes,
   disabled,
-  waiting,
+  isWaitingForTurn,
   onCardClick,
 }: Props) {
   const cols = Math.ceil(board.length / 3)
@@ -81,9 +81,10 @@ export function Board({
       // `disabled` deliberately paints NOTHING — see the prop's comment: a board
       // is also disabled at every terminal and while replaying a past turn, and
       // neither should fade, because both are states people sit and study. Only
-      // `waiting` fades. (It carried `styles.disabled` for a while, a class that
-      // never existed; the intent and the effect happened to agree.)
-      className={cls(shared.boardSeal, styles.board, waiting && styles.waiting)}
+      // waiting for a turn on an inert board fades. (It carried `styles.disabled`
+      // for a while, a class that never existed; the intent and the effect
+      // happened to agree.)
+      className={cls(shared.boardSeal, styles.board, isWaitingForTurn && disabled && styles.waiting)}
       style={{ '--cols': widest } as React.CSSProperties}
     >
       <CardDefs />

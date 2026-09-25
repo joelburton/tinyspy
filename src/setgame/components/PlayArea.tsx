@@ -88,8 +88,8 @@ type LeaderRow = {
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, isLocallyTerminal, playState, players, session, status,
-    isMyTurn, turnHolderId,
+    gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, session, status,
+    isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
     setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, players: rows, events, claims, lastClaim, teamFound, loading, failure } =
@@ -113,7 +113,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // Concede's, and the standing conditions further down.
   const localFeedbackSlot = useFeedbackSlot('local')
 
-  const myConceded = players.find((m) => m.user_id === selfId)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   const board = useMemo(() => game?.board ?? [], [game?.board])
@@ -246,10 +245,11 @@ export function PlayArea(ctx: GamePageCtx) {
     [gameId, localFeedbackSlot],
   )
 
-  // NOT gated on a claim being in flight: the rest of the board stays live so a
+  // The board takes a pick while it is mine to touch (the page's
+  // `isBoardInteractive` — not over, not conceded, not a teammate's turn). NOT
+  // gated on a claim being in flight: the rest of the board stays live so a
   // fast player can start their next set while this one is still traveling.
   // The three cards being claimed are made unclickable individually.
-  const active = !isTerminal && !myConceded && isMyTurn
   // Derived here, above the loading guards, because the Hint binding's
   // `describe` names it and can be read on any render — the key list asks every
   // binding when Help opens.
@@ -257,7 +257,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const onCardClick = useCallback(
     (card: CardCode) => {
-      if (!active) return
+      if (!isBoardInteractive) return
       localFeedbackSlot.dismiss() // a click is the next move, like a keystroke
       const next = toggleCard(selected, card)
       if (next.length < CLAIM_SIZE) {
@@ -277,7 +277,7 @@ export function PlayArea(ctx: GamePageCtx) {
         )
       }
     },
-    [active, selected, submitClaim, localFeedbackSlot],
+    [isBoardInteractive, selected, submitClaim, localFeedbackSlot],
   )
 
   // ─── Keyboard ──────────────────────────────────────────
@@ -295,7 +295,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // but a live card key over a frozen historical board would be lying about
   // what it can do.
   useBoundAction('act-toggle-card', {
-    describe: () => (active && !historyViewer.isViewingHistory ? 'active' : 'hidden'),
+    describe: () => (isBoardInteractive && !historyViewer.isViewingHistory ? 'active' : 'hidden'),
     run: (key) => {
       const slot = slotForKey(key ?? '')
       if (slot < 0 || slot >= shown.length) return
@@ -305,7 +305,7 @@ export function PlayArea(ctx: GamePageCtx) {
     },
   })
   useBoundAction('act-clear-selection', {
-    describe: () => (active && !historyViewer.isViewingHistory ? 'active' : 'hidden'),
+    describe: () => (isBoardInteractive && !historyViewer.isViewingHistory ? 'active' : 'hidden'),
     run: () => {
       setPicked([])
       localFeedbackSlot.dismiss()
@@ -371,7 +371,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // ladder against the ring and board of the first.
   const actHint = useBoundAction('act-hint', {
     describe: () => ({
-      state: isCompete || !active ? 'disabled' : 'active',
+      state: isCompete || !isBoardInteractive ? 'disabled' : 'active',
       label: hintLabel(isCompete),
     }),
     run: askHint,
@@ -501,7 +501,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // note renaming itself IS the news that the previous player claimed, and
   // the log and counts both say so.
   usePeerFeedback({
-    enabled: game?.mode === 'coop' && turnHolderId === null,
+    enabled: game?.mode === 'coop' && !isTurnBased,
     ready: !loading,
     items: claims,
     keyOf: (c) => String(c.id),
@@ -526,11 +526,8 @@ export function PlayArea(ctx: GamePageCtx) {
   const turnHolder = players.find((p) => p.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
-  // Turn-by-turn is fixed at create time, so this never changes mid-game.
-  const isTurnGame = turnHolderId !== null
-  const waiting = isTurnGame && !isMyTurn && !isTerminal
   useEffect(function showWaiting() {
-    if (!waiting) return
+    if (!isWaitingForTurn) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
         holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
@@ -539,7 +536,7 @@ export function PlayArea(ctx: GamePageCtx) {
     // The cleanup covers every way the wait can end — the turn arriving, the
     // game finishing, a peer conceding, leaving the page.
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, waiting, holderName, holderColor])
+  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
 
   // The terminal message, memoized on primitives so the verdict effect sees
   // one object per outcome. The compete names are reduced to strings here.
@@ -577,20 +574,20 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, over])
 
-  // Locally terminal (compete only): I conceded but the others race on.
-  const isLocallyDone = isCompete && myConceded && !isTerminal
+  // Out of the race while the others play on (compete only; the page's
+  // `isLocallyTerminal` — in this game only by conceding).
   useEffect(function showOutOfRace() {
-    if (!isLocallyDone) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    if (isTerminal || !isLocallyTerminal) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyDone])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
   // In turn-by-turn coop the slot prompts you when the table is waiting on
   // YOU — the counterpart to the faded board and to "Waiting for ● Name…"
   // while it isn't. A `prompt`, which everything else outranks:
   // "Not a set" and "Someone got there first" both land while it is your
   // turn, and show over it rather than being evicted by it.
-  const myMove = isTurnGame && isMyTurn && !isTerminal && !isLocallyDone
+  const myMove = isTurnBased && isMyTurn
   useEffect(function showYourTurnPrompt() {
     if (!myMove) return
     const id = localFeedbackSlot.show(FeedbackMessage.prompt('Waiting for your move'))
@@ -626,8 +623,8 @@ export function PlayArea(ctx: GamePageCtx) {
         selected={historySnap ? [] : selected}
         ringed={historySnap ? historySnap.historyLitCards : ring}
         flashes={flashes}
-        disabled={!active || historySnap !== null}
-        waiting={waiting}
+        disabled={!isBoardInteractive || historySnap !== null}
+        isWaitingForTurn={isWaitingForTurn}
         isCompete={isCompete}
         teamFound={teamFound}
         deckLeft={game.deck_left}
@@ -646,8 +643,9 @@ export function PlayArea(ctx: GamePageCtx) {
         <InfoCol
           isCompete={isCompete}
           isTerminal={isTerminal}
-          isLocallyDone={isLocallyDone}
+          isLocallyTerminal={isLocallyTerminal}
           over={over}
+          isTurnBased={isTurnBased}
           turnHolderId={turnHolderId}
           teamFound={teamFound}
           deckLeft={game.deck_left}

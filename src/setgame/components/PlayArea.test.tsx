@@ -20,6 +20,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
@@ -91,25 +92,25 @@ function loaded(over: Partial<GameHook> = {}): GameHook {
   }
 }
 
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
+ *  the page derives it (`whereIStand`), so a test sets up the facts and never
+ *  hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    players: [gp('u1', 'me', 'red')],
+    isTerminal: false,
+    isTurnBased: false,
+    turnHolderId: null,
+    ...over,
+  }
+  return {
     gameId: 'g1',
     brand: 'HareTrigger',
     title: 'Test game',
-    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
-    isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
-    isTurnBased: false,
-    isBoardInteractive: true,
-    isWaitingForTurn: false,
-    turnHolderId: null,
     setup: { deck: 'full', palette: 'traditional', timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -121,7 +122,15 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actChat: boundActionFixture('act-open-chat'),
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
-    ...over,
+    ...facts,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId: facts.turnHolderId,
+      draftsOffTurn: false,
+    }),
   } as unknown as GamePageCtx
 }
 
@@ -281,7 +290,7 @@ describe('setgame PlayArea — when the board is not yours to touch', () => {
 
   it("a teammate's turn takes no letters, and does not swallow them either", async () => {
     const user = userEvent.setup()
-    render(<WithKeys {...makeCtx({ isMyTurn: false, turnHolderId: 'u2' })} />)
+    render(<WithKeys {...makeCtx({ players: twoMembers, isTurnBased: true, turnHolderId: 'u2' })} />)
     await user.keyboard('a')
     expect(selectedCards()).toHaveLength(0)
     expect(cardKeyState()).toBe('hidden')
@@ -336,6 +345,30 @@ describe('setgame PlayArea — before the game has loaded', () => {
  * binding, the binding asks the registry's question mid-game and skips it at
  * terminal, and the answer runs the same call the button does.
  */
+describe('setgame PlayArea — a conceder keeps the one flag', () => {
+  it('shows "You conceded" with End for all, not a hidden Concede', () => {
+    // Conceding is spent; ending the game for all is open to anyone in it, so
+    // End takes Concede's place in the row.
+    h.result = loaded({
+      game: { ...loaded().game!, mode: 'compete' },
+      players: [
+        { game_id: 'g1', user_id: 'u1', sets_found: 0, hints_used: 0 },
+        { game_id: 'g1', user_id: 'u2', sets_found: 0, hints_used: 0 },
+      ],
+    })
+    render(
+      <WithKeys
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), twoMembers[1]],
+        })}
+      />,
+    )
+    expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
+    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
+  })
+})
+
 describe('setgame PlayArea — the command keys', () => {
   const ended = () => makeCtx({ isTerminal: true, playState: 'ended' })
 

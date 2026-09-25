@@ -389,6 +389,13 @@ where it fixes a behavior:
    (`myConceded` — the verdict builder's parameter included — /
    `isLocallyDone` / BoardCol's `readOnly` gone; the conceder's row places
    End — failing test first; unit + its 7 e2e + the cross-game specs green).
+   setgame done 2026-09-25 (`myConceded` / `active` / `isTurnGame` /
+   `waiting` / `isLocallyDone` gone — `isTurnGame` read a null pointer as "no
+   turns", and so did the peer narration's gate, both now `isTurnBased`; the
+   your-move prompt is `isTurnBased && isMyTurn`; the board fades on
+   `isWaitingForTurn && disabled`, its deliberate rule that only waiting
+   fades; the conceder's row places End — failing test first; unit + its 9
+   e2e + the cross-game spec green).
    **Step 6 renames only the standing terms** (Joel, 2026-09-25). A game's
    other names that the plan has already settled are owed when its audit
    area opens — the names below, found while converting, with the games
