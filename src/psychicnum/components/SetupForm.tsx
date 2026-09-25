@@ -46,7 +46,7 @@ export function SetupForm({
 
   // Disclosure summaries carry the current values, so a section reads without
   // being opened. Singular "Dictionary": this game draws from one band.
-  const guessesLabel = `Guesses: ${s.guesses}`
+  const guessesLabel = `Guesses: ${s.max_guesses}`
   const wordsLabel = `Words on board: ${s.word_count}`
   const dictLabel = `Dictionary: ${difficultyValue(s.difficulty)}`
 
@@ -84,11 +84,11 @@ export function SetupForm({
             same meaning either way. */}
         <RadioRow
           help="How many guesses each player starts with."
-          name="guesses"
-          error={errors.guesses}
+          name="max_guesses"
+          error={errors.max_guesses}
           options={GUESS_OPTIONS.map((n) => ({ value: n, label: n }))}
-          value={s.guesses}
-          onChange={(guesses) => set('guesses', guesses)}
+          value={s.max_guesses}
+          onChange={(budget) => set('max_guesses', budget)}
         />
       </SetupSection>
       <SetupSection label={wordsLabel}>

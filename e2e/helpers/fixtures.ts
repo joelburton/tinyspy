@@ -290,10 +290,10 @@ export async function createGame(
     .rpc('create_game', {
       target_club: club.handle,
       // psychicnum's setup validation requires word_count (5..20) and
-      // difficulty (1..6) alongside guesses + timer — a complete, valid setup.
-      // timer stays `none` on purpose: a countdown could flip the game to
-      // 'lost' mid-test and make presence/heal assertions flaky.
-      setup: { guesses: 7, word_count: 10, difficulty: 3, timer: { kind: 'none' } },
+      // difficulty (1..6) alongside max_guesses + timer — a complete, valid
+      // setup. timer stays `none` on purpose: a countdown could flip the game
+      // to 'lost' mid-test and make presence/heal assertions flaky.
+      setup: { max_guesses: 7, word_count: 10, difficulty: 3, timer: { kind: 'none' } },
       player_user_ids: playerUserIds,
       mode,
     })
@@ -314,7 +314,7 @@ export async function createTurnGame(
     .schema('psychicnum')
     .rpc('create_game', {
       setup: {
-        guesses: 7,
+        max_guesses: 7,
         word_count: 10,
         difficulty: 3,
         timer: { kind: 'none' },

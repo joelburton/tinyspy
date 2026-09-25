@@ -44,7 +44,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table turn_g on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
+  ('{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
    || '"coop_style": "turns",'
    || '"first_turn_user_id": "ada11111-1111-1111-1111-111111111111"}')::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -155,7 +155,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
+    ('{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
      || '"coop_style": "turns",'
      || '"first_turn_user_id": "cade3333-3333-3333-3333-333333333333"}')::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
@@ -172,7 +172,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table ffa_g on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -205,7 +205,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table solo_g on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  ('{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
+  ('{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"},'
    || '"coop_style": "turns",'
    || '"first_turn_user_id": "ada11111-1111-1111-1111-111111111111"}')::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid],

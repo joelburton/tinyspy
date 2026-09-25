@@ -635,8 +635,8 @@ function PlayArea({
   const found = mode === 'coop' ? teamFound : selfSecretsFound
 
   // The info column's numbers.
-  const totalGuesses = setup.guesses
-  const guessesUsed = totalGuesses - selfBudget
+  const maxGuesses = setup.max_guesses
+  const guessesUsed = maxGuesses - selfBudget
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -648,7 +648,7 @@ function PlayArea({
             found={found}
             secretCount={SECRET_COUNT}
             guessesUsed={guessesUsed}
-            totalGuesses={totalGuesses}
+            maxGuesses={maxGuesses}
           />
         }
         // ── Board to render (live OR the historical snapshot — picked here) ──
@@ -703,7 +703,7 @@ function PlayArea({
         found={found}
         secretCount={SECRET_COUNT}
         guessesUsed={guessesUsed}
-        totalGuesses={totalGuesses}
+        maxGuesses={maxGuesses}
         // ── Players (OpponentStrip, compete) ──
         players={players}
         selfId={session.user.id}

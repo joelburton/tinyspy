@@ -91,6 +91,32 @@ of three things it is:
 
 "Selected" has no job outside the cursor's own code.
 
+## 1c. The server bounds a setup number; the form picks the menu (Joel, 2026-09-24)
+
+Where a setup number is arbitrary — changing it forces no real change in the
+game logic or the UI — `create_game` checks a sane RANGE and the setup form
+owns which values are offered, so a new choice (an 8-guess game) is a
+frontend edit alone. waffle already works this way: `extra_swaps` is checked
+`0..15` while the form offers 3 / 5 / 8. psychicnum's `max_guesses` moved to
+`1..9` (the ceiling of its `players.guesses_remaining` column check) with the
+`max_guesses` rename. Real limits stay exact: the six dictionary bands, the
+rank ladder, board positions, seat counts.
+
+The survey of 2026-09-24, ruled by Joel the same day:
+
+| game | setting | server | form offers | ruling |
+|---|---|---|---|---|
+| codenamesduet | `turns` | 7..15 (was exactly 9, 10, 11) | 9, 10, 11 | widened, SQL only — done |
+| bananagrams | `hand_size` | exactly 15, 21 | 15, 21 | keep |
+| wordle | `max_guesses` | 5..8 | 5, 6, 7, 8 | keep — a bigger budget needs a UI change, so it is not arbitrary |
+| boggle | `win_percent` | 50..100, steps of 5 | 50, 55 … 100 | keep |
+| letterboxed | `extra_words` | 0..8 (was 0..5) | 0 … 5 | widened — done; `max_words`'s column check went 2..7 → 2..10 (`20260924000005_letterboxed_max_words_range.sql`) |
+| psychicnum | `word_count` | 5..20 | 5 … 20 | keep |
+
+Already wider than the form, and fine: waffle `extra_swaps`, strands
+`hint_cost` (1..10 vs 1–5) and `min_word_length` (3..8 vs 3–6), boggle
+`min_word_length` (3..9 vs 3–5).
+
 ## 2. Open question — the renames that change stored data
 
 Each of these renames a value stored in prod, so each needs a new migration
@@ -116,9 +142,12 @@ and a backfill. Park them, or schedule some?
   boggle's area opens: its bare `band` → `required_band`. Not yet ruled:
   psychicnum's `difficulty` and wordle's `answer_source` (Claude's verdict:
   not worth it — neither is the legal/required pair).
-- **The guess budget.** Setup `guesses` (psychicnum) vs `max_guesses`
-  (wordle) vs `turns` (codenamesduet); psychicnum's `guesses_remaining`
-  counts down where wordle's `guesses_used` counts up.
+- ~~**The guess budget.**~~ Done 2026-09-24: psychicnum's setup `guesses` →
+  `max_guesses`, as wordle has it, and `totalGuesses` → `maxGuesses`
+  (`20260924000004_psychicnum_max_guesses.sql`). codenamesduet's `turns` stays:
+  its budget is turns. Not yet ruled: the counting direction (psychicnum's
+  `guesses_remaining` down, wordle's `guesses_used` up; Claude's verdict: not
+  worth it, both names are accurate).
 - **The guessed word's column.** `psychicnum.events.word` vs
   `wordle.events.guess`.
 

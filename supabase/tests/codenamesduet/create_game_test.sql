@@ -133,7 +133,7 @@ select pg_temp.envelope_is(
     $q$ select codenamesduet.create_game(
       %L,
       jsonb_build_object(
-        'turns', 7,
+        'turns', 6,
         'first_clue_giver_user_id', 'ada11111-1111-1111-1111-111111111111'
       ),
       pg_temp.codenamesduet_players()
@@ -141,7 +141,7 @@ select pg_temp.envelope_is(
     (select handle from club2)
   )),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN088"}'::jsonb,
-  'create_game: setup.turns outside {9,10,11} is rejected'
+  'create_game: setup.turns outside 7..15 is rejected'
 );
 
 -- turns missing entirely

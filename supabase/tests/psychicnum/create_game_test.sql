@@ -39,7 +39,7 @@ select set_config('role', 'postgres', true);
 select pg_temp.envelope_is(
   psychicnum.create_game(
     'placeholder-club',
-    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -71,7 +71,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -87,7 +87,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'bogus'),
@@ -105,7 +105,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'compete'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN042"}'::jsonb,
@@ -122,7 +122,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop'),
   '{"type":"ok"}'::jsonb,
@@ -138,12 +138,12 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 4, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 10, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN044"}'::jsonb,
-  'guesses out of range names the guesses field'
+  'max_guesses out of range names the max_guesses field'
 );
 
 select pg_temp.envelope_is(
@@ -154,13 +154,13 @@ select pg_temp.envelope_is(
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN043"}'::jsonb,
-  'missing guesses names the guesses field'
+  'missing max_guesses names the max_guesses field'
 );
 
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 7, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -171,7 +171,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 7, "word_count": 4, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 4, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -191,7 +191,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 7, "word_count": 8, "difficulty": 3}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "difficulty": 3}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -202,7 +202,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "countdown", "seconds": 99999}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "countdown", "seconds": 99999}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -213,7 +213,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 7, "word_count": 8, "difficulty": 9, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "difficulty": 9, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -230,7 +230,7 @@ select pg_temp.envelope_is(
 create temp table coop_created on commit drop as
 select psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop') as env;
@@ -269,7 +269,7 @@ select is(
   (select array_agg(guesses_remaining order by user_id) from psychicnum.players
     where game_id = (select id from coop_game)),
   array[5, 5],
-  'coop: every player_row starts with setup.guesses'
+  'coop: every player_row starts with setup.max_guesses'
 );
 
 -- (10) The board and its secrets
@@ -315,7 +315,7 @@ select throws_ok(
 create temp table compete_game on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete')->'data'->>'id')::uuid as id;
@@ -342,12 +342,12 @@ select is(
   'compete: per-player rows inserted'
 );
 
--- (15) Compete budgets seeded from setup.guesses
+-- (15) Compete budgets seeded from setup.max_guesses
 select is(
   (select array_agg(guesses_remaining order by user_id) from psychicnum.players
     where game_id = (select id from compete_game)),
   array[3, 3],
-  'compete: every player_row starts with setup.guesses'
+  'compete: every player_row starts with setup.max_guesses'
 );
 
 -- (16) is_current_view flipped to true for the new game; the
@@ -398,7 +398,7 @@ select is(
 
 -- (20) clubs_gametypes default_setup auto-saved
 select is(
-  (select default_setup->>'guesses' from common.clubs_gametypes
+  (select default_setup->>'max_guesses' from common.clubs_gametypes
     where club_handle = (select handle from club)
       and gametype = 'psychicnum_compete'),
   '3',
@@ -415,12 +415,12 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table seeded_coop on commit drop as
   select (psychicnum.create_game((select handle from club),
-    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 create temp table seeded_cmp on commit drop as
   select (psychicnum.create_game((select handle from club),
-    '{"guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
@@ -445,7 +445,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),

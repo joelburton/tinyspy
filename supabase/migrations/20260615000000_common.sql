@@ -361,7 +361,7 @@ create table common.gametypes (
 -- listings (e.g. a future Boggle's "5x5" badge from setup.boardSize),
 -- and (c) the FE-side `useCommonGame` hook reads timer + paused
 -- state from one place. Each gametype's `create_game` does its own
--- field-level validation (e.g. setup.guesses ∈ {3,5,7,9}) AND
+-- field-level validation (e.g. setup.max_guesses in 1..9) AND
 -- calls `common.require_valid_timer(setup->'timer')` before passing
 -- the whole blob up to `common.create_game`.
 -- View-state vs play-state vocabulary (see docs/states.md):

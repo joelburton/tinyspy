@@ -17,7 +17,7 @@ export function StateLine({
   found,
   secretCount,
   guessesUsed,
-  totalGuesses,
+  maxGuesses,
 }: {
   // Secrets found (mine in compete, the team's in coop).
   found: number
@@ -25,7 +25,7 @@ export function StateLine({
   secretCount: number
   // Guesses spent out of the budget.
   guessesUsed: number
-  totalGuesses: number
+  maxGuesses: number
 }) {
   return (
     <>
@@ -34,7 +34,7 @@ export function StateLine({
       </strong>{' '}
       found ·{' '}
       <strong>
-        {guessesUsed}/{totalGuesses}
+        {guessesUsed}/{maxGuesses}
       </strong>{' '}
       guesses used
     </>

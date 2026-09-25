@@ -57,7 +57,7 @@ describe('psychicnum setup — what it offers', () => {
     expect(fieldNames(container)).toEqual([
       'player_user_ids',
       'coop_style',
-      'guesses',
+      'max_guesses',
       'word_count',
       'difficulty',
       'timer',
@@ -88,7 +88,7 @@ describe('psychicnum setup — writing a setting', () => {
 
     await user.click(screen.getByRole('radio', { name: '9' }))
 
-    expect(set).toHaveBeenCalledWith('guesses', 9)
+    expect(set).toHaveBeenCalledWith('max_guesses', 9)
   })
 })
 
@@ -107,8 +107,8 @@ describe('psychicnum setup — where a refusal lands', () => {
   it('leaves the other fields able to carry one, whoever writes it', () => {
     // The routing is not create_game's alone: a client-side check writes into
     // the same object, and every field reads its own key.
-    draw({ errors: { guesses: 'nope', word_count: 'also nope' } })
-    expect(errorUnder('guesses')).toBe('nope')
+    draw({ errors: { max_guesses: 'nope', word_count: 'also nope' } })
+    expect(errorUnder('max_guesses')).toBe('nope')
     expect(errorUnder('word_count')).toBe('also nope')
   })
 })

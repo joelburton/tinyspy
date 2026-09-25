@@ -166,7 +166,7 @@ one to six.
 {
   "target_club": "moths",
   "setup": {
-    "guesses": 7,
+    "max_guesses": 7,
     "word_count": 12,
     "difficulty": 3,
     "timer": { "kind": "countdown", "seconds": 300 }

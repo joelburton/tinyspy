@@ -10,10 +10,9 @@ import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
  * validated server-side in `psychicnum.create_game` (the
  * canonical authority for what shapes are accepted).
  *
- * The literal-union on `guesses` mirrors the SQL check; the
- * TypeScript narrowing here is advisory (a curious client could
- * always send something else). The server rejects anything that
- * doesn't match — see `create_game` in `supabase/sql/psychicnum.sql`.
+ * Which values the form offers is this file's choice (`GUESS_OPTIONS`);
+ * the server only holds each field to a sane range — see `create_game`
+ * in `supabase/sql/psychicnum.sql`.
  *
  * Lives in `lib/` rather than inline in `manifest.ts` so the
  * Setup body component can import the same type without dragging
@@ -22,8 +21,8 @@ import type { CoopTurnSetup } from '@/common/setup-form/SetupCoopStyleSection'
  */
 export type PsychicnumValues = CoopTurnSetup & {
   // Starting guess budget — shared by the team in coop, each racer's own in
-  // compete. The dialog offers 3, 5, 7 or 9.
-  guesses: 3 | 5 | 7 | 9
+  // compete. The dialog offers `GUESS_OPTIONS`; the server accepts 1..9.
+  max_guesses: number
   // How many words sit on the board (5..20). Three of them are the
   // hidden secrets; a bigger board means more haystack around the
   // three needles. Validated server-side by `psychicnum.create_game`.
@@ -55,7 +54,7 @@ export type PsychicnumSetup = SetupOf<PsychicnumValues>
  * gentle baseline, with no clock.
  */
 export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
-  guesses: 7,
+  max_guesses: 7,
   word_count: 10,
   difficulty: 3,
   timer: { kind: 'none' },
@@ -66,7 +65,7 @@ export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
   coop_style: 'free-for-all',
 }
 
-/** The allowed `guesses` values — drives the radio rendering. */
+/** The allowed `max_guesses` values — drives the radio rendering. */
 export const GUESS_OPTIONS = [3, 5, 7, 9] as const
 
 /** Inclusive bounds for the board's word count (the setup picker range). */

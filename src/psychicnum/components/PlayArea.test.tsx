@@ -67,8 +67,8 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     timer: { displaySeconds: 0, expired: false },
     isMyTurn: true,
     currentTurnUserId: null,
-    // A realistic setup blob — the info column reads `guesses` + `difficulty`.
-    setup: { guesses: 7, word_count: 10, difficulty: 3, timer: { kind: 'none' } },
+    // A realistic setup blob — the info column reads `max_guesses` + `difficulty`.
+    setup: { max_guesses: 7, word_count: 10, difficulty: 3, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',

@@ -191,7 +191,7 @@ revoke execute on function codenamesduet._end_turn(uuid) from public;
 --
 -- Setup shape:
 --   {
---     "turns": 9 | 10 | 11,
+--     "turns": 7..15,
 --     "first_clue_giver_user_id": "<uuid; must be one of player_user_ids>",
 --     "timer": { "kind": ... }   (common.require_valid_timer)
 --   }
@@ -246,10 +246,12 @@ begin
       detail = 'setup.turns absent';
   end if;
   s_turns := (setup->>'turns')::int;
-  if s_turns not in (9, 10, 11) then
+  -- A sane range, not the form's menu: which budgets are offered is the setup
+  -- form's choice (TURN_OPTIONS).
+  if s_turns not between 7 and 15 then
     raise exception 'BUG: turn budget of %', s_turns
       using errcode = 'PN088', hint = 'fault', column = '_',
-      detail = 'setup.turns must be 9, 10 or 11';
+      detail = 'setup.turns must be 7..15';
   end if;
 
   if (setup->>'first_clue_giver_user_id') is null then

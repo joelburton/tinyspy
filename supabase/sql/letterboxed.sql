@@ -591,7 +591,7 @@ drop function if exists letterboxed._end_game(uuid, text, jsonb, jsonb);
 -- letterboxed.create_game — mode is a positional arg
 -- ============================================================
 -- Setup shape (server validates):
---   { "extra_words": 0..5  (default 3) — how many words ABOVE PAR the
+--   { "extra_words": 0..8  (default 3) — how many words ABOVE PAR the
 --       chain may run to. Stored resolved as `max_words = PAR +
 --       extra_words`, the shape waffle uses for `max_swaps = par +
 --       extra_swaps`.
@@ -677,10 +677,12 @@ begin
 
   -- ─── Validate setup ──────────────────────────────────────
   s_extra_words := coalesce((setup->>'extra_words')::int, 3);
-  if s_extra_words < 0 or s_extra_words > 5 then
+  -- A sane range, not the form's menu: which counts are offered is the setup
+  -- form's choice. 8 keeps `max_words` inside its column check (2..10).
+  if s_extra_words < 0 or s_extra_words > 8 then
     raise exception 'BUG: spare-word count of %', s_extra_words
       using errcode = 'PN200', hint = 'fault', column = '_',
-      detail = 'setup.extra_words must be 0..5';
+      detail = 'setup.extra_words must be 0..8';
   end if;
   -- PAR = 2 on every board this pipeline builds (see the header). Resolved
   -- here rather than stored as a `par` column, which would be a constant

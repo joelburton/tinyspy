@@ -38,7 +38,7 @@ export function InfoCol({
   found,
   secretCount,
   guessesUsed,
-  totalGuesses,
+  maxGuesses,
   players,
   selfId,
   playerBudgets,
@@ -78,7 +78,7 @@ export function InfoCol({
   found: number
   secretCount: number
   guessesUsed: number
-  totalGuesses: number
+  maxGuesses: number
 
   // ── Players (the OpponentStrip — compete) ──
   // The roster (identity + per-player concede flags).
@@ -156,7 +156,7 @@ export function InfoCol({
             found={found}
             secretCount={secretCount}
             guessesUsed={guessesUsed}
-            totalGuesses={totalGuesses}
+            maxGuesses={maxGuesses}
           />
         </p>
         {/* Whose-turn line — ONLY for a turn-order game (currentTurnUserId

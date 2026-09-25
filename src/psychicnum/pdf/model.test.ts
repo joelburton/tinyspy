@@ -35,7 +35,7 @@ const base = {
     { user_id: 'u2', username: 'moth' },
   ],
   selfId: 'u1',
-  setup: [{ key: 'guesses', label: 'Guesses', value: '7' }],
+  setup: [{ key: 'max_guesses', label: 'Guesses', value: '7' }],
 }
 
 describe('buildPsychicnumPrintModel — compete splits per player', () => {

@@ -186,7 +186,7 @@ game on the local stack, `PAGE-CHAIN-EGG`, seat A giving the first clue.
 
 ### `codenamesduet.create_game(target_club, setup, player_user_ids)`
 
-Starts a game. It checks the setup — a turn budget of 9, 10 or 11, a
+Starts a game. It checks the setup — a turn budget of 7 to 15, a
 first clue-giver who is one of the players, the timer — and that there are
 exactly two players. It draws twenty-five words at random from
 `codenamesduet.word_pool`, titles the game after the first three in board

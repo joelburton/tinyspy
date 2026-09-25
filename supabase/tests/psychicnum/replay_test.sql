@@ -10,7 +10,7 @@
 -- non-player is rejected.
 --
 -- Two psychicnum-specific things pinned here:
---   - the guess budget is restored from `setup->>'guesses'`, NOT from the
+--   - the guess budget is restored from `setup->>'max_guesses'`, NOT from the
 --     players rows (which have been decremented all game and can't say what
 --     the budget was);
 --   - turn-order coop rewinds the pointer to the player seated first.
@@ -35,7 +35,7 @@ select pg_temp.create_club('Psychic rp', array['ada','bea']) as handle;
 create temp table g1 on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -92,7 +92,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g2 on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'
@@ -126,7 +126,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g3 on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  jsonb_build_object('guesses', 3, 'word_count', 8, 'difficulty', 3,
+  jsonb_build_object('max_guesses', 3, 'word_count', 8, 'difficulty', 3,
                      'timer', jsonb_build_object('kind', 'none'),
                      'coop_style', 'turns',
                      'first_turn_user_id', 'ada11111-1111-1111-1111-111111111111'),

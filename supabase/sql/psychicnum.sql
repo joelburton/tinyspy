@@ -144,7 +144,7 @@ revoke insert, update, delete on psychicnum.games_state from authenticated;
 --   - is validated by a CHECK constraint regardless
 --
 -- Setup shape (same in both modes):
---   { "guesses":    3 | 5 | 7 | 9,
+--   { "max_guesses": 1..9,
 --     "word_count": 5..20,           -- how many words on the board
 --     "difficulty": 1..6,            -- dictionary band (common.words.difficulty)
 --     "timer":   { "kind": "none" | "countup" }
@@ -154,7 +154,7 @@ revoke insert, update, delete on psychicnum.games_state from authenticated;
 -- clean + american + difficulty-≤-band filter — five-letter words and one
 -- nine-letter word; three of them become the hidden secrets.
 --
--- guesses meaning:
+-- max_guesses meaning:
 --   - coop: shared budget (every player row gets the same
 --     initial value; decrement all on every guess).
 --   - compete: per-player budget (every player row gets the
@@ -215,16 +215,19 @@ begin
   perform common.require_player_count_max(player_user_ids, 6);
 
   -- ─── Validate setup shape ────────────────────────────
-  if (setup->>'guesses') is null then
+  if (setup->>'max_guesses') is null then
     raise exception 'BUG: game with no guess budget'
       using errcode = 'PN043', hint = 'fault', column = '_',
-      detail = 'setup.guesses absent';
+      detail = 'setup.max_guesses absent';
   end if;
-  s_guesses := (setup->>'guesses')::int;
-  if s_guesses not in (3, 5, 7, 9) then
+  s_guesses := (setup->>'max_guesses')::int;
+  -- A sane range, not the form's menu: which budgets are offered is the setup
+  -- form's choice (GUESS_OPTIONS). 9 is the ceiling of the
+  -- `players.guesses_remaining` column check.
+  if s_guesses not between 1 and 9 then
     raise exception 'BUG: guess budget of %', s_guesses
       using errcode = 'PN044', hint = 'fault', column = '_',
-      detail = 'setup.guesses must be 3, 5, 7 or 9';
+      detail = 'setup.max_guesses must be 1..9';
   end if;
 
   -- ─── Validate the board size (how many words) ──────────────
@@ -481,7 +484,7 @@ begin
   -- Auth + game-player gate.
   caller_id := common.require_game_player(target_game);
 
-  select play_state, (setup->>'guesses')::int
+  select play_state, (setup->>'max_guesses')::int
     into current_play_state, initial_guesses
     from common.games where id = target_game;
 
@@ -1117,7 +1120,7 @@ begin
 
   perform common.require_game_player(target_game);
 
-  select play_state, (setup->>'guesses')::int
+  select play_state, (setup->>'max_guesses')::int
     into current_play_state, initial_guesses
     from common.games where id = target_game;
 
@@ -1284,7 +1287,7 @@ grant execute on function psychicnum.end_game(uuid) to authenticated;
 -- it's a restart). Both modes reset ALL players (a group "run it back",
 -- per the friends trust model).
 --
--- The guess budget is re-read from `common.games.setup->>'guesses'`
+-- The guess budget is re-read from `common.games.setup->>'max_guesses'`
 -- rather than from `psychicnum.players` — those rows have been
 -- decremented all game, so they can't say what the budget WAS. It's the
 -- same value create_game seeded them with.
@@ -1332,7 +1335,7 @@ begin
   -- which is both wrong and unhelpful — they WERE in it; it is gone.
   perform common.require_game_player(target_game);
 
-  select (setup->>'guesses')::int into v_guesses
+  select (setup->>'max_guesses')::int into v_guesses
     from common.games where id = target_game;
 
   update psychicnum.players
