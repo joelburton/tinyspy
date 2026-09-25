@@ -100,4 +100,18 @@ describe('codenamesduet useGame', () => {
     expect(result.current.failure).toBeNull()
     expect(result.current.game).toEqual(ROW)
   })
+
+  it('clears a failed read’s envelope when the next load finds the game gone', async () => {
+    // A friend deleted the game during the outage: the read works and finds
+    // zero rows. That is "not found", and the stale outage sentence must not
+    // stand in front of it.
+    const { result, refetchNow } = mount()
+    mockReadRows.mockResolvedValueOnce(readFailed())
+    await refetchNow()
+    expect(result.current.failure).not.toBeNull()
+    mockReadRows.mockResolvedValueOnce(ok([]))
+    await refetchNow()
+    expect(result.current.failure).toBeNull()
+    expect(result.current.game).toBeNull()
+  })
 })

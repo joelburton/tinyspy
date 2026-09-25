@@ -191,9 +191,15 @@ Each needs a failing test before its fix.
   (PN485); PN481 is retired. Failing tests in `spellingbee/concede_test.sql`
   (the `common.concede` path) and `wordle/concede_test.sql` (a game's own);
   `gameDeletedFirst` now holds `_set_conceded` too.
-- **An empty refetch keeps the error page.** psychicnum's and codenamesduet's
-  `useGame` return on an empty result before clearing an earlier failure;
-  wordle and connections clear first.
+- ~~**An empty refetch keeps the error page.**~~ Fixed 2026-09-24: psychicnum's
+  and codenamesduet's `useGame` now clear the failure right after the game
+  read succeeds, before the zero-rows return, as wordle and connections do —
+  so a game deleted during an outage reads "not found", not the outage.
+  Failing tests in each `hooks/useGame.test.ts`. The bee pair's
+  `makeBeeGame` reads its header once and clears its rows' failure, so it
+  cannot hit this. Owed when their areas open: the other ten games hold
+  failure several ways (split header/rows failures, one-shot header reads) —
+  check each for a zero-rows return ahead of its clear.
 
 ## 4. Naming — cheap renames (code and `supabase/sql/` only)
 

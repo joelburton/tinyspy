@@ -147,6 +147,13 @@ export function useGame(gameId: string): {
         setLoading(false)
         return
       }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      // Cleared HERE, before the zero-rows return below, so a game deleted
+      // during the outage reads as "not found" rather than as the outage.
+      setFailure(null)
+
       // ZERO ROWS is the caller's to read: no game with that id, or one this
       // club cannot see.
       const gameData = gameRes.data[0]
@@ -186,10 +193,6 @@ export function useGame(gameId: string): {
         setLoading(false)
         return
       }
-      // A load that worked clears a previous one's failure: this refetches on
-      // every realtime event, so an outage that ends should take its sentence
-      // with it rather than leaving the surface behind a stale explanation.
-      setFailure(null)
 
       setGame({
         id: gameData.id as string,

@@ -69,6 +69,13 @@ export function useGame(gameId: string) {
         setLoading(false)
         return
       }
+      // A load that worked clears a previous one's failure: this refetches on
+      // every realtime event, so an outage that ends should take its sentence
+      // with it rather than leaving the surface behind a stale explanation.
+      // Cleared HERE, before the not-found return below, so a game deleted
+      // during the outage reads as "not found" rather than as the outage.
+      setFailure(null)
+
       if (!gameRes.data[0]) {
         // Explicit null on not-found — without this, a server-side
         // delete leaves the previously-loaded game state in place and
@@ -78,10 +85,6 @@ export function useGame(gameId: string) {
         return
       }
 
-      // A load that worked clears a previous one's failure: this refetches on
-      // every realtime event, so an outage that ends should take its sentence
-      // with it rather than leaving the surface behind a stale explanation.
-      setFailure(null)
       setGame(gameRes.data[0])
       setLoading(false)
     },

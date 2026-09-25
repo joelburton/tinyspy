@@ -191,4 +191,23 @@ describe('psychicnum useGame — the outage that ended', () => {
     expect(result.current.failure).toBeNull()
     expect(result.current.game?.id).toBe(GAME_ID)
   })
+
+  it('clears it too when the next load finds the game gone', async () => {
+    // A friend deleted the game during the outage: the read works and finds
+    // zero rows. That is "not found", and the stale outage sentence must not
+    // stand in front of it.
+    answer({ games_state: readFailed('PN301') })
+    const { result } = renderHook(() => useGame(GAME_ID))
+    await act(async () => {
+      await refetch.load!({ mounted: () => true })
+    })
+    expect(result.current.failure).not.toBeNull()
+
+    answer({ games_state: ok([]) })
+    await act(async () => {
+      await refetch.load!({ mounted: () => true })
+    })
+    expect(result.current.failure).toBeNull()
+    expect(result.current.game).toBeNull()
+  })
 })
