@@ -8,7 +8,6 @@ import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
-import { useTurnBell } from '@/common/sounds/useTurnBell'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
 import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { cls } from '@/common/utils/cls'
@@ -161,6 +160,8 @@ export function PlayArea({
   playState,
   isTerminal,
   isLocallyTerminal,
+  isStillPlaying,
+  isMyTurn: pageIsMyTurn,
   status,
   setup,
   globalFeedbackSlot,
@@ -242,27 +243,27 @@ export function PlayArea({
   const currentTurnClue =
     clues.find((c) => c.turn_number === game.turn_number) ?? null
 
-  // Who may click what, and when — `lib/phase.ts` carries the matrix.
+  // Who may move, and on what — `lib/phase.ts` carries the matrix. The server
+  // points the shared turn pointer at whoever must act now (the clue-giver,
+  // the guesser, in sudden death the one player with words left), so the
+  // page's `isMyTurn` is the answer — except in sudden death with words on
+  // both sides, where the pointer names nobody and this game supplies the
+  // turn itself.
   const inSuddenDeath = playState === 'sudden_death'
-  const { isGuessPhase, isClueGiver, cellsClickable } = derivePhase({
-    isTerminal,
+  const { isGuessPhase, isClueGiver, isWaitingForTurn, isBoardInteractive } = derivePhase({
     inSuddenDeath,
     currentClueGiver: game.current_clue_giver as Seat | null,
     mySeat,
     hasCurrentTurnClue: currentTurnClue !== null,
+    pageIsMyTurn,
+    isStillPlaying,
+    myAgentsDone,
+    peerAgentsDone,
   })
 
-  // My turn: there is something for me to do. This game never moves the shared
-  // turn pointer `GamePage` rings from, so it marks its own — the bell and the
-  // board's frame flash on the arrival, and the board dims while my partner
-  // holds the move. Sudden death and a finished game have no turn at all.
-  const cluesStillGiven = !isTerminal && !inSuddenDeath
-  const myClueToGive = isClueGiver && !isGuessPhase
-  const myClueToGuess = !isClueGiver && isGuessPhase
-  const myTurn = cluesStillGiven && (myClueToGive || myClueToGuess)
-  const partnersTurn = cluesStillGiven && !myTurn
-  useTurnBell(myTurn)
-  const turnFlash = useTurnStartFlash(myTurn)
+  // The board frame flashes the moment the turn arrives — the same arrival the
+  // page's bell rings on (the shared pointer), so the two land together.
+  const turnFlash = useTurnStartFlash(pageIsMyTurn)
 
   // ─── The local slot, and its standing condition ─────
   // A condition is an effect on a primitive edge that shows on true and
@@ -528,10 +529,10 @@ export function PlayArea({
         peerKey={peerKey}
         mySeat={mySeat}
         isTerminal={isTerminal}
-        readOnly={!cellsClickable}
+        isBoardInteractive={isBoardInteractive}
         historyLitTiles={historySnap?.historyLitTiles}
         // ── Board marks (tile-feedback): the turn, the move log, the ending ──
-        notMyTurn={partnersTurn}
+        isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={turnFlash}
         moveCount={guesses.length}
         terminalOutcome={terminalMessage?.outcome ?? null}

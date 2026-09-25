@@ -79,10 +79,10 @@ export function BoardCol({
   peerKey,
   mySeat,
   isTerminal,
-  readOnly,
+  isBoardInteractive,
   historyLitTiles,
   // ── Board marks ──
-  notMyTurn,
+  isWaitingForTurn,
   myTurnJustStarted,
   moveCount,
   terminalOutcome,
@@ -115,15 +115,14 @@ export function BoardCol({
   // The caller's seat.
   mySeat: Seat
   isTerminal: boolean
-  // The board gate (glossary `readOnly`): tiles are inert. Derived in PlayArea
-  // from the phase; this column ORs in `isViewingHistory` before handing the
-  // leaf `<Board>` its `cellsClickable`.
-  readOnly: boolean
+  // The board takes my guess — this game's `isBoardInteractive`, derived in
+  // PlayArea (`derivePhase`). A past turn open blocks it on top.
+  isBoardInteractive: boolean
   // The positions the viewed turn decided — ringed (undefined while live).
   historyLitTiles: ReadonlySet<number> | undefined
 
   // ── Board marks ── straight through to `<Board>`; see its props.
-  notMyTurn: boolean
+  isWaitingForTurn: boolean
   myTurnJustStarted: boolean
   moveCount: number
   terminalOutcome: TerminalOutcome | null
@@ -155,8 +154,6 @@ export function BoardCol({
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
   // conventions: one prop says so, and the flag is derived, never passed).
   const isViewingHistory = historyLabel !== null
-  // The positive of the `readOnly` gate, which is what the leaf `<Board>` takes.
-  const cellsClickable = !readOnly
 
   // The guess move — a board click. The reveal arrives by realtime, so there is
   // no optimistic state; the only own-move feedback is a not-ok, shown into the
@@ -218,7 +215,7 @@ export function BoardCol({
   // guess can be the assassin, so the keyboard confirms with a second key.
 
   // May I guess right now? The phase's answer, and never over a past turn.
-  const canGuess = cellsClickable && !isViewingHistory
+  const canGuess = isBoardInteractive && !isViewingHistory
 
   // The word the keyboard has picked — a board position — shown only while it
   // can still be guessed: a turn that ends, or a partner who turns it over in
@@ -292,14 +289,14 @@ export function BoardCol({
         peerKey={peerKey}
         mySeat={mySeat}
         isTerminal={isTerminal}
-        cellsClickable={cellsClickable && !isViewingHistory}
+        isBoardInteractive={isBoardInteractive}
         inFlightPos={inFlightPos}
         onGuess={handleTileClick}
         cursor={cursor}
         picked={picked}
         isViewingHistory={isViewingHistory}
         historyLitTiles={historyLitTiles}
-        notMyTurn={notMyTurn}
+        isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
         moveCount={moveCount}
         terminalOutcome={terminalOutcome}

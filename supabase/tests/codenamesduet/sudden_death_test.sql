@@ -12,8 +12,9 @@
 --   1. the pass answers `sudden_death`, with no clue-giver, and both rows say so
 --   2. a clue, a pass and the AI suggester are each refused, as races, in
 --      words that say sudden death rather than game over
---   3. submit_guess works for either player (no turn enforcement), and a
---      green reveal keeps the game going
+--   3. submit_guess works for a player with words left to guess (both have
+--      them here; `turn_pointer_test.sql` covers the side that does not),
+--      and a green reveal keeps the game going
 --   4. a bystander loses the game, reason turns
 --   5. an assassin loses it, reason assassin, as it does in ordinary play
 --

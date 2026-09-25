@@ -233,6 +233,13 @@ go it was — the event log's `took_turn` is
 seat only where something pokes it to move**, since a bot has no client.
 scrabble compete keeps its own seat pointer, a deliberate second mechanism.
 
+**A game whose turn does not simply rotate** seats its players the same way
+but writes the pointer itself, from its own state, instead of calling
+`_advance_turn`. codenamesduet does: its clue-giver can stay put when a
+partner's agents are all found, so `codenamesduet._point_turn` names whoever
+must act now — the clue-giver, then the guesser, then in sudden death the one
+player with words left, or nobody when either may guess.
+
 ## Players and clubs
 
 ### Solo clubs

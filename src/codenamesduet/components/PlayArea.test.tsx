@@ -23,6 +23,7 @@ import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { db } from '../db'
 import { PlayAreaLoader } from './PlayArea'
@@ -79,8 +80,8 @@ vi.mock('../hooks/useBoard', () => ({
   ),
 }))
 vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
-// What PlayArea tells the bell, per state; the ring on arrival is
-// `useTurnBell`'s own spec.
+// Watched so a test can say this surface rings no bell of its own: the page
+// rings on the shared pointer.
 const turnBell = vi.hoisted(() => vi.fn())
 vi.mock('@/common/sounds/useTurnBell', () => ({ useTurnBell: turnBell }))
 
@@ -129,27 +130,52 @@ function menuItems(ctx: GamePageCtx) {
   return new Map(sections.flatMap((s) => s.items).map(menuRow).map((r) => [r.id, r]))
 }
 
+/** Who the server's shared turn pointer names for the fixture's game state —
+ *  `codenamesduet._point_turn`'s rule, so a test that sets up a state gets the
+ *  pointer the server would write for it: the clue-giver until the clue is in,
+ *  then the guesser; in sudden death the one player with words left, or
+ *  nobody when both have them. */
+function pointerFor(playState: string): string | null {
+  const seatUser = (seat: string | null) =>
+    seat === 'A' ? g.game.user_a_id : seat === 'B' ? g.game.user_b_id : null
+  if (playState === 'playing') {
+    const hasClue = (g.events as { kind: string; turn_number: number }[])
+      .some((e) => e.kind === 'clue' && e.turn_number === g.game.turn_number)
+    const giver = g.game.current_clue_giver as string | null
+    return seatUser(hasClue ? (giver === 'A' ? 'B' : 'A') : giver)
+  }
+  if (playState === 'sudden_death') {
+    // I guess off my partner's key, so I have words while their agents are not
+    // all found — and they while mine are not.
+    const meHasWords = !g.agentsDone.peer
+    const peerHasWords = !g.agentsDone.mine
+    if (meHasWords && peerHasWords) return null
+    return meHasWords ? 'me' : peerHasWords ? 'peer' : null
+  }
+  return null
+}
+
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster, `isTerminal`, a turn order, and the pointer the server would write
+ *  for the fixture's game state — exactly as the page derives it
+ *  (`whereIStand`), unless a test sets `turnHolderId` itself. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const facts = {
     session: { user: { id: 'me' } } as unknown as GamePageCtx['session'],
-    gameId: 'g1',
-    brand: 'TinySpy',
     players: [
       { user_id: 'me', username: 'me', color: 'red' },
       { user_id: 'peer', username: 'peer', color: 'blue' },
-    ],
+    ] as GamePageCtx['players'],
     playState: 'playing',
     isTerminal: false,
+    isTurnBased: true,
+    ...over,
+  }
+  const turnHolderId = 'turnHolderId' in over ? (over.turnHolderId ?? null) : pointerFor(facts.playState)
+  return {
+    gameId: 'g1',
+    brand: 'TinySpy',
     timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
-    isTurnBased: false,
-    isBoardInteractive: true,
-    isWaitingForTurn: false,
-    turnHolderId: null,
     setup: { turns: 9, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -161,7 +187,16 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actChat: boundActionFixture('act-open-chat'),
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
-    ...over,
+    ...facts,
+    turnHolderId,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId,
+      draftsOffTurn: false,
+    }),
   } as unknown as GamePageCtx
 }
 
@@ -243,37 +278,27 @@ describe('codenamesduet PlayArea — input gating', () => {
 })
 
 /**
- * The bell: it is my turn when there is something for me to do — a clue to
- * give, or one to guess from — and never in sudden death or once it is over.
+ * The turn is the shared pointer's: the server points it at whoever must act
+ * now, so the page rings the bell for this game as for every other, and this
+ * surface rings none of its own. Whose turn each state is, is the server's
+ * `_point_turn` (codenamesduet/turn_pointer_test.sql) and `derivePhase`'s.
  */
-describe('codenamesduet PlayArea — the turn bell', () => {
-  const lastTurn = () => turnBell.mock.calls.at(-1)?.[0]
-
-  it('is my turn as the guesser once the clue is in', () => {
-    render(<PlayAreaLoader {...makeCtx()} />) // peer A clued; I guess
-    expect(lastTurn()).toBe(true)
-  })
-
-  it('is my turn as the clue-giver before my clue, and not after it', () => {
+describe('codenamesduet PlayArea — the turn', () => {
+  it('rings no bell of its own — the page rings on the shared pointer', () => {
     asClueGiver()
-    const view = render(<PlayAreaLoader {...makeCtx()} />)
-    expect(lastTurn()).toBe(true)
-    g.events = [{ ...g.PEER_CLUE, user_id: 'me', seat: 'B' }]
-    view.rerender(<PlayAreaLoader {...makeCtx()} />)
-    expect(lastTurn()).toBe(false)
+    render(<PlayAreaLoader {...makeCtx()} />)
+    expect(turnBell).not.toHaveBeenCalled()
   })
 
-  it('is not my turn while my partner writes the clue', () => {
-    g.events = []
-    render(<PlayAreaLoader {...makeCtx()} />) // peer A holds the clue seat
-    expect(lastTurn()).toBe(false)
-  })
-
-  it('is nobody’s turn in sudden death, or once the game is over', () => {
-    const view = render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
-    expect(lastTurn()).toBe(false)
-    view.rerender(<PlayAreaLoader {...makeCtx({ playState: 'won', isTerminal: true })} />)
-    expect(lastTurn()).toBe(false)
+  it('in sudden death, the player with no words left has an inert, dimmed board', () => {
+    // My partner's agents are all found: a guess reads their key, so I have
+    // nothing to guess, and the pointer names my partner.
+    g.agentsDone = { mine: false, peer: true }
+    g.game = { ...g.game, current_clue_giver: null as unknown as string }
+    render(<PlayAreaLoader {...makeCtx({ playState: 'sudden_death' })} />)
+    expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
+    const grid = document.querySelector('[data-board] > div') as HTMLElement
+    expect(grid.className).toMatch(/dimNotYourTurn/)
   })
 })
 

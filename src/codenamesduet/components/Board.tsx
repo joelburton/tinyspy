@@ -47,9 +47,10 @@ type Props = {
   mySeat: Seat
   // Gates the peer's key-card square, shown only once the game is over.
   isTerminal: boolean
-  // Whether the caller may click tiles right now — the phase's answer
-  // (`derivePhase`), with the viewer ORed in by BoardCol.
-  cellsClickable: boolean
+  // The board takes my guess right now — this game's `isBoardInteractive`
+  // (`derivePhase`): the move is mine and it is a guess. A past turn open on
+  // top of it makes the tiles inert too.
+  isBoardInteractive: boolean
   // The tile whose guess is in flight — dimmed until the reply — or null.
   // BoardCol's, which dispatches the guess.
   inFlightPos: number | null
@@ -68,8 +69,9 @@ type Props = {
   // The board positions the viewed turn decided — ringed in the history blue
   // ("added this turn"). Empty / omitted when live.
   historyLitTiles?: ReadonlySet<number>
-  // My partner holds the move: the board dims.
-  notMyTurn: boolean
+  // My partner holds the move (`isWaitingForTurn`): the board dims, unless it
+  // takes input.
+  isWaitingForTurn: boolean
   // True for a beat as the move becomes mine: the board's frame flashes.
   myTurnJustStarted: boolean
   // Guesses the server has recorded — the CAUSE the attention flash reads. A
@@ -95,18 +97,21 @@ export function Board({
   peerKey,
   mySeat,
   isTerminal,
-  cellsClickable,
+  isBoardInteractive,
   inFlightPos,
   onGuess,
   cursor,
   picked,
   isViewingHistory = false,
   historyLitTiles = NO_TILES,
-  notMyTurn,
+  isWaitingForTurn,
   myTurnJustStarted,
   moveCount,
   terminalOutcome,
 }: Props) {
+  // I am guessing on this board right now: it takes my guess, and it is the
+  // live board rather than a past turn.
+  const isGuessing = isBoardInteractive && !isViewingHistory
   // ATTENTION — the tiles a guess just turned over, mine included: the answer
   // arrives in the tile I am watching, and a partner's lands anywhere. Gated on
   // the guess log, not on the board differing, so a restart, the history
@@ -155,7 +160,7 @@ export function Board({
           shared.hugRectWidth,
           styles.grid,
           isViewingHistory && history.historyFrame,
-          notMyTurn && shared.dimNotYourTurn,
+          isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
           // Both frames are outlines, so they take turns: the viewer owns it
           // while open, being the state you chose and the one you can leave.
@@ -189,9 +194,8 @@ export function Board({
             : styles.bgWhite
 
           // Clickable unless revealed, or *I* already neutraled it — the rule
-          // is `isGuessable`'s, which the keyboard's Space asks too. (A past
-          // turn open is already in `cellsClickable`.)
-          const clickable = cellsClickable && isGuessable(w, mySeat)
+          // is `isGuessable`'s, which the keyboard's Space asks too.
+          const clickable = isGuessing && isGuessable(w, mySeat)
           const isInFlight = inFlightPos === w.position
 
           return (
@@ -244,7 +248,7 @@ export function Board({
               {/* My key-card square — bottom-left. Hidden while I am the one
                   guessing (my own key says nothing about my partner's clue);
                   shown the rest of the time — cluing, waiting, game over. */}
-              {!cellsClickable && (
+              {!isGuessing && (
                 <span
                   className={cls(styles.keySquare, styles.keyMine, styles[KEY_SQUARE[myLabel]])}
                   aria-hidden

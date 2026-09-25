@@ -34,12 +34,12 @@ function draw(mySeat: Seat) {
       peerKey={null}
       mySeat={mySeat}
       isTerminal={false}
-      cellsClickable
+      isBoardInteractive
       inFlightPos={null}
       onGuess={vi.fn()}
       cursor={null}
       picked={null}
-      notMyTurn={false}
+      isWaitingForTurn={false}
       myTurnJustStarted={false}
       moveCount={0}
       terminalOutcome={null}
@@ -56,12 +56,12 @@ function drawWith(over: Partial<ComponentProps<typeof Board>> = {}) {
       peerKey={null}
       mySeat="A"
       isTerminal={false}
-      cellsClickable
+      isBoardInteractive
       inFlightPos={null}
       onGuess={vi.fn()}
       cursor={null}
       picked={null}
-      notMyTurn={false}
+      isWaitingForTurn={false}
       myTurnJustStarted={false}
       moveCount={0}
       terminalOutcome={null}
@@ -90,11 +90,11 @@ describe('codenamesduet Board — the per-seat bystander lock', () => {
 describe('codenamesduet Board — my key card', () => {
   // While I guess, my own card says nothing about my partner's clue.
   it('is hidden while I am the one guessing', () => {
-    expect(drawWith({ cellsClickable: true }).querySelectorAll(`.${styles.keyMine}`)).toHaveLength(0)
+    expect(drawWith({ isBoardInteractive: true }).querySelectorAll(`.${styles.keyMine}`)).toHaveLength(0)
   })
 
   it('is shown the rest of the time — cluing, waiting, game over', () => {
-    expect(drawWith({ cellsClickable: false }).querySelectorAll(`.${styles.keyMine}`)).toHaveLength(25)
+    expect(drawWith({ isBoardInteractive: false }).querySelectorAll(`.${styles.keyMine}`)).toHaveLength(25)
   })
 })
 
@@ -151,7 +151,7 @@ describe('codenamesduet Board — the board marks', () => {
   })
 
   it('dims the board while my partner holds the move, and flashes its frame as it becomes mine', () => {
-    expect(grid(drawWith({ notMyTurn: true })).className).toMatch(shared.dimNotYourTurn)
+    expect(grid(drawWith({ isWaitingForTurn: true, isBoardInteractive: false })).className).toMatch(shared.dimNotYourTurn)
     expect(grid(drawWith({ myTurnJustStarted: true })).className).toMatch(shared.yourTurnFlash)
     const live = grid(drawWith()).className
     expect(live).not.toMatch(shared.dimNotYourTurn)
@@ -174,8 +174,8 @@ describe('codenamesduet Board — the board marks', () => {
 describe('codenamesduet Board — attention and the shake', () => {
   const props = (over: Partial<ComponentProps<typeof Board>> = {}) => ({
     words, myKey: Array.from({ length: 25 }, () => 'N' as const), peerKey: null,
-    mySeat: 'A' as const, isTerminal: false, cellsClickable: true, inFlightPos: null,
-    onGuess: vi.fn(), cursor: null, picked: null, notMyTurn: false, myTurnJustStarted: false, moveCount: 2,
+    mySeat: 'A' as const, isTerminal: false, isBoardInteractive: true, inFlightPos: null,
+    onGuess: vi.fn(), cursor: null, picked: null, isWaitingForTurn: false, myTurnJustStarted: false, moveCount: 2,
     terminalOutcome: null, ...over,
   })
   const turned = (p: number, as: 'G' | 'A') => words.map((w) => (w.position === p ? { ...w, revealed_as: as } : w))

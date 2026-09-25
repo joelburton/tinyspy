@@ -56,6 +56,106 @@ grant select on codenamesduet.words to authenticated;
 grant select on codenamesduet.events to authenticated;
 
 -- ============================================================
+-- codenamesduet._seat_has_agents_left — internal helper
+-- ============================================================
+-- Does this seat still have an agent its partner hasn't contacted? A seat's
+-- agents are the 'G' cells on its own key; "contacted" is the global
+-- revealed_as = 'G' (a green reveal is true for both seats the moment it
+-- happens). The rulebook turns on it twice: a seat whose agents are all found
+-- gives no more clues (`_end_turn`), and in sudden death — where a guess is
+-- read off the PARTNER's key — a player has words to guess only while their
+-- partner's seat still has agents left.
+create or replace function codenamesduet._seat_has_agents_left(target_game uuid, seat text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+  select exists (
+    select 1
+      from codenamesduet.words w
+      join codenamesduet.games g on g.id = w.game_id
+     where w.game_id = target_game
+       and ((case seat when 'A' then g.key_card_a else g.key_card_b end) ->> w.position) = 'G'
+       and w.revealed_as is distinct from 'G'
+  );
+$$;
+
+revoke execute on function codenamesduet._seat_has_agents_left(uuid, text) from public;
+
+-- ============================================================
+-- codenamesduet._point_turn — internal helper
+-- ============================================================
+-- Mirrors this game's own turn onto the common turn order, so the page reads
+-- whose move it is the way it does in every game (docs/win-lose.md → Where a
+-- player stands). The game's turn stays in its own state — the clue seat, and
+-- whether this turn's clue is in — and this writes, from that state, who
+-- must act now into common.games.current_turn_user_id:
+--
+--   playing, no clue yet this turn    → the clue-giver
+--   playing, the clue is in           → the guesser
+--   sudden death, one side with words → the player who still has words
+--   sudden death, both with words     → nobody: the rulebook lets either
+--                                       guess, which one pointer cannot say;
+--                                       the page supplies the turn itself
+--
+-- A finished game's pointer is left where it was: the page never reads it as
+-- anyone's turn once the game is over. Every RPC that changes the turn calls
+-- this after writing its own state and play_state.
+create or replace function codenamesduet._point_turn(target_game uuid)
+returns void
+language plpgsql
+security definer
+set search_path = codenamesduet, common, public, extensions
+as $$
+declare
+  g_row codenamesduet.games%rowtype;
+  cur_play_state text;
+  has_clue boolean;
+  actor_seat text;
+  a_has_words boolean;
+  b_has_words boolean;
+begin
+  select * into g_row from codenamesduet.games where id = target_game;
+  select play_state into cur_play_state from common.games where id = target_game;
+
+  if cur_play_state = 'playing' then
+    has_clue := exists (
+      select 1 from codenamesduet.events e
+       where e.game_id = target_game and e.kind = 'clue'
+         and e.turn_number = g_row.turn_number
+    );
+    actor_seat := case
+      when not has_clue then g_row.current_clue_giver
+      when g_row.current_clue_giver = 'A' then 'B'
+      else 'A'
+    end;
+  elsif cur_play_state = 'sudden_death' then
+    -- A guesses off B's key, B off A's.
+    a_has_words := codenamesduet._seat_has_agents_left(target_game, 'B');
+    b_has_words := codenamesduet._seat_has_agents_left(target_game, 'A');
+    actor_seat := case
+      when a_has_words and b_has_words then null
+      when a_has_words then 'A'
+      when b_has_words then 'B'
+    end;
+  else
+    return;
+  end if;
+
+  update common.games
+     set current_turn_user_id = case actor_seat
+       when 'A' then g_row.user_a_id
+       when 'B' then g_row.user_b_id
+     end
+   where id = target_game;
+end;
+$$;
+
+revoke execute on function codenamesduet._point_turn(uuid) from public;
+
+-- ============================================================
 -- codenamesduet._end_turn — internal helper
 -- ============================================================
 -- Advances the turn counter and swaps the clue-giver. Also handles
@@ -97,30 +197,20 @@ as $$
 declare
   remaining int;
   giver text;
-  key_a jsonb;
-  key_b jsonb;
   candidate text;
   partner_has_agents boolean;
   next_giver text;
   new_turn_number int;
 begin
-  select turns_remaining, current_clue_giver, key_card_a, key_card_b
-    into remaining, giver, key_a, key_b
+  select turns_remaining, current_clue_giver
+    into remaining, giver
     from codenamesduet.games where id = target_game for update;
 
   -- Who would normally pick up the clue (strict alternation)…
   candidate := case giver when 'A' then 'B' else 'A' end;
   -- …but only if that seat still has a green agent the partner hasn't
-  -- contacted yet. A seat's agents are the 'G' cells on its own key
-  -- view; "contacted" is the global revealed_as = 'G' (green reveals
-  -- are global — true for both seats the moment they happen).
-  select exists (
-    select 1
-    from codenamesduet.words w
-    where w.game_id = target_game
-      and ((case candidate when 'A' then key_a else key_b end) ->> w.position) = 'G'
-      and w.revealed_as is distinct from 'G'
-  ) into partner_has_agents;
+  -- contacted yet.
+  partner_has_agents := codenamesduet._seat_has_agents_left(target_game, candidate);
   next_giver := case when partner_has_agents then candidate else giver end;
 
   if remaining <= 1 then
@@ -141,6 +231,7 @@ begin
         'turns_remaining', 0
       )
     );
+    perform codenamesduet._point_turn(target_game);
     return jsonb_build_object(
       'turn_number', new_turn_number,
       'turns_remaining', 0,
@@ -162,6 +253,7 @@ begin
         'turns_remaining', remaining - 1
       )
     );
+    perform codenamesduet._point_turn(target_game);
     return jsonb_build_object(
       'turn_number', new_turn_number,
       'turns_remaining', remaining - 1,
@@ -402,6 +494,11 @@ begin
     )
   );
 
+  -- Seat both players on the common turn order — seat A first, so the seats
+  -- read the same everywhere — and point it at A, who owes the first clue.
+  perform common._assign_turn_order(new_id, seat_a);
+  perform codenamesduet._point_turn(new_id);
+
   -- Insert the 25 words.
   for i in 0..24 loop
     insert into codenamesduet.words (game_id, position, word)
@@ -554,6 +651,9 @@ begin
     submit_clue.clue_word, submit_clue.clue_count, submit_clue.clue_from_ai
   )
   returning * into stored;
+
+  -- The clue is in, so the move is now the guesser's.
+  perform codenamesduet._point_turn(target_game);
 
   -- `result` NAMES the answer; the rest is the clue as it was recorded, read
   -- back from the row that now exists rather than from the request — which is
@@ -711,6 +811,15 @@ begin
     key_owner_seat := g_row.current_clue_giver;
   else
     key_owner_seat := case caller_seat when 'A' then 'B' else 'A' end;
+    -- The rulebook: "If only one player has words remaining, that player
+    -- guesses." A guess here reads the partner's key, so a player whose
+    -- partner's agents are all found has nothing left to guess. A race: the
+    -- board goes inert for them the moment the last of those agents lands.
+    if not codenamesduet._seat_has_agents_left(target_game, key_owner_seat) then
+      raise exception 'No words left to guess'
+        using errcode = 'PN509', hint = 'race', column = '_',
+        detail = 'in sudden death the caller''s partner has no agents left';
+    end if;
   end if;
 
   -- Already resolved FOR THIS GUESSER? Two different facts, and they get two
@@ -909,6 +1018,11 @@ begin
       'found_agents_count', green_total
     )
   );
+  -- In sudden death an agent can leave one side with nothing to guess, which
+  -- moves the turn to the other player.
+  if current_play_state = 'sudden_death' then
+    perform codenamesduet._point_turn(target_game);
+  end if;
 
   -- In ordinary play the turn does NOT end on an agent, so this answer reports
   -- the turn state unchanged — the same four keys the bystander answer carries,
@@ -1092,6 +1206,8 @@ begin
     target_game,
     jsonb_build_object('turn_number', 1, 'turns_remaining', s_turns, 'found_agents_count', 0)
   );
+  -- Back to seat A, who owes the first clue.
+  perform codenamesduet._point_turn(target_game);
   return common.ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

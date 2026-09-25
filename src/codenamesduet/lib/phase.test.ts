@@ -16,11 +16,14 @@ import { derivePhase, isGuessable, type PhaseInputs } from './phase'
 /** Reusable defaults so each test only states what it changes. */
 function inputs(overrides: Partial<PhaseInputs> = {}): PhaseInputs {
   return {
-    isTerminal: false,
     inSuddenDeath: false,
     currentClueGiver: 'A',
     mySeat: 'A',
     hasCurrentTurnClue: false,
+    pageIsMyTurn: true,
+    isStillPlaying: true,
+    myAgentsDone: false,
+    peerAgentsDone: false,
     ...overrides,
   }
 }
@@ -50,57 +53,93 @@ describe('derivePhase — isGuessPhase', () => {
   })
 })
 
-describe('derivePhase — cellsClickable', () => {
-  // The interesting matrix. The expected behavior:
-  //   isTerminal                                → never
-  //   sudden death (regardless of seat)       → always
-  //   guess phase + not clue-giver            → yes (the guesser's window)
-  //   clue phase                              → no (no clue to guess against)
-  //   guess phase + clue-giver                → no (you submitted the clue)
+describe('derivePhase — isMyTurn', () => {
+  // The shared pointer names whoever must act now — the clue-giver, then the
+  // guesser, then in sudden death the one player with words left — so the
+  // page's `isMyTurn` is the answer, with ONE exception: sudden death with
+  // words on both sides, where the pointer names nobody and the rulebook lets
+  // either guess.
 
-  it('is false when the game is over, for the guesser in a guess phase too', () => {
-    expect(
-      derivePhase(inputs({ isTerminal: true, mySeat: 'B', hasCurrentTurnClue: true })).cellsClickable,
-    ).toBe(false)
+  it('is the page\'s answer in ordinary play', () => {
+    expect(derivePhase(inputs({ pageIsMyTurn: true })).isMyTurn).toBe(true)
+    expect(derivePhase(inputs({ pageIsMyTurn: false })).isMyTurn).toBe(false)
   })
 
-  it('is true in sudden death for either seat', () => {
-    expect(
-      derivePhase(inputs({ inSuddenDeath: true, mySeat: 'A', currentClueGiver: null })).cellsClickable,
-    ).toBe(true)
-    expect(
-      derivePhase(inputs({ inSuddenDeath: true, mySeat: 'B', currentClueGiver: null })).cellsClickable,
-    ).toBe(true)
+  it('is the page\'s answer in sudden death when only one side has words', () => {
+    // My partner's agents are all found, so I have nothing to guess: the
+    // pointer names my partner.
+    expect(derivePhase(inputs({
+      inSuddenDeath: true, currentClueGiver: null, pageIsMyTurn: false, peerAgentsDone: true,
+    })).isMyTurn).toBe(false)
   })
 
-  it('is true for the guesser during guess phase in active play', () => {
-    expect(
-      derivePhase(inputs({
-        mySeat: 'B',
-        currentClueGiver: 'A',
-        hasCurrentTurnClue: true,
-      })).cellsClickable,
-    ).toBe(true)
+  it('is true for both in sudden death when both have words', () => {
+    expect(derivePhase(inputs({
+      inSuddenDeath: true, currentClueGiver: null, pageIsMyTurn: false,
+    })).isMyTurn).toBe(true)
   })
 
-  it('is false for the clue-giver even during guess phase', () => {
-    expect(
-      derivePhase(inputs({
-        mySeat: 'A',
-        currentClueGiver: 'A',
-        hasCurrentTurnClue: true,
-      })).cellsClickable,
-    ).toBe(false)
+  it('is false once I am no longer playing, even in sudden death with words on both sides', () => {
+    expect(derivePhase(inputs({
+      inSuddenDeath: true, currentClueGiver: null, pageIsMyTurn: false, isStillPlaying: false,
+    })).isMyTurn).toBe(false)
+  })
+})
+
+describe('derivePhase — isWaitingForTurn', () => {
+  it('is true while I play and the move is my partner\'s', () => {
+    expect(derivePhase(inputs({ pageIsMyTurn: false })).isWaitingForTurn).toBe(true)
   })
 
-  it('is false during the clue phase (no clue yet this turn)', () => {
-    expect(
-      derivePhase(inputs({
-        mySeat: 'B',
-        currentClueGiver: 'A',
-        hasCurrentTurnClue: false,
-      })).cellsClickable,
-    ).toBe(false)
+  it('is true in sudden death for the player with no words left', () => {
+    expect(derivePhase(inputs({
+      inSuddenDeath: true, currentClueGiver: null, pageIsMyTurn: false, peerAgentsDone: true,
+    })).isWaitingForTurn).toBe(true)
+  })
+
+  it('is false for both in sudden death with words on both sides, and once I am not playing', () => {
+    expect(derivePhase(inputs({
+      inSuddenDeath: true, currentClueGiver: null, pageIsMyTurn: false,
+    })).isWaitingForTurn).toBe(false)
+    expect(derivePhase(inputs({ pageIsMyTurn: false, isStillPlaying: false })).isWaitingForTurn).toBe(false)
+  })
+})
+
+describe('derivePhase — isBoardInteractive', () => {
+  // The board takes a guess, and nothing else: the clue-giver holds the turn
+  // too, but their move is the clue form.
+
+  it('is true for the guesser once the clue is in', () => {
+    expect(derivePhase(inputs({
+      mySeat: 'B', currentClueGiver: 'A', hasCurrentTurnClue: true, pageIsMyTurn: true,
+    })).isBoardInteractive).toBe(true)
+  })
+
+  it('is false for the clue-giver, whose move is the clue', () => {
+    expect(derivePhase(inputs({
+      mySeat: 'A', currentClueGiver: 'A', hasCurrentTurnClue: false, pageIsMyTurn: true,
+    })).isBoardInteractive).toBe(false)
+  })
+
+  it('is false while my partner holds the move', () => {
+    expect(derivePhase(inputs({
+      mySeat: 'B', currentClueGiver: 'A', hasCurrentTurnClue: false, pageIsMyTurn: false,
+    })).isBoardInteractive).toBe(false)
+  })
+
+  it('in sudden death, is true for whoever may guess, and false for the player with no words', () => {
+    expect(derivePhase(inputs({
+      inSuddenDeath: true, currentClueGiver: null, pageIsMyTurn: false,
+    })).isBoardInteractive).toBe(true)
+    expect(derivePhase(inputs({
+      inSuddenDeath: true, currentClueGiver: null, pageIsMyTurn: false, peerAgentsDone: true,
+    })).isBoardInteractive).toBe(false)
+  })
+
+  it('is false once I am no longer playing', () => {
+    expect(derivePhase(inputs({
+      mySeat: 'B', hasCurrentTurnClue: true, pageIsMyTurn: false, isStillPlaying: false,
+    })).isBoardInteractive).toBe(false)
   })
 })
 

@@ -209,8 +209,11 @@ Each needs a failing test before its fix.
   tile can read as untouched for a beat: the flash psychicnum's
   `submittedLanded` comment names. psychicnum and wordle hold the dim until the
   result is on the board; connections needs no such hold (the answer is local).
-- **codenamesduet lets a player with no words left guess in sudden death**
-  (found 2026-09-24; not yet fixed). The rulebook: *"If only one player has
+- ~~**codenamesduet lets a player with no words left guess in sudden death**~~
+  Fixed 2026-09-25, with §3a step 7: `submit_guess` refuses them ("No words
+  left to guess", PN509, a race), and their board is inert and dimmed; failing
+  pgTAP first in `supabase/tests/codenamesduet/turn_pointer_test.sql`. Found
+  2026-09-24: The rulebook: *"If only one player has
   words remaining, that player guesses. If both do, you may guess in any order
   without discussing strategy"* — and a player whose partner's agents are all
   found "has no words left to guess". The doc and `submit_guess` say "either
@@ -425,7 +428,19 @@ where it fixes a behavior:
    - The solved flag: `mySolved` (wordle), `iSolved` (strands),
      `selfSolved` (stackdown, waffle) — one name, settled with §3b's
      `hasSolved`.
-7. **codenamesduet's turns.** It keeps its turns in its own table
+7. ~~**codenamesduet's turns.**~~ Done 2026-09-25, as below: the SQL helper
+   `_point_turn` writes the pointer from the game's own state at every change
+   (`create_game`, `submit_clue`, `_end_turn`, a sudden-death agent,
+   `replay_board`); `create_game` seats both; migration
+   `20260925000000_codenamesduet_turn_order.sql` seats every stored game and
+   points the ones in progress. The front end's `derivePhase` supplies
+   `isMyTurn` / `isWaitingForTurn` / `isBoardInteractive` (the board takes a
+   guess only — the clue-giver's move is the clue form); `readOnly` /
+   `cellsClickable` / `partnersTurn` gone. The bell is the page's, on the
+   pointer (Joel's pick): the one player with words left in sudden death hears
+   it as sudden death begins; with words on both sides, nobody does. Failing
+   tests first (pgTAP `turn_pointer_test`, `phase.test`).
+   It keeps its turns in its own table
    (`current_clue_giver` and the phase), so the shared `isMyTurn` is always
    true there. It moves onto the common turn order: both players seated
    (`turn_seat`), and the shared pointer names whoever must act now — the

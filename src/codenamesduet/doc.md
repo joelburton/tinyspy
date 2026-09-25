@@ -26,12 +26,16 @@ lopsided on purpose and both players are told so. When the budget is spent the
 game drops into sudden death — no more clues, whoever still has words to
 guess guesses, and any word that is not an agent loses the game.
 
-Because "your turn" is the clue arriving, not a shared pointer moving, the
-shell's turn machinery does not reach this game: it never writes
-`current_turn_user_id`. The header says what the partner is doing instead,
-the board and clue strip are drawn from the seat on the game row and the
-turn's clue, and the game rings its own bell when a clue is yours to give or
-to guess from.
+The turn lives in the game's own state — the seat that holds the clue, and
+whether this turn's clue is in — and the server mirrors it onto the shared
+turn order (`_point_turn`): both players are seated, and the pointer names
+whoever must act now — the clue-giver, then the guesser, and in sudden death
+the one player with words left. So the page reads the turn and rings the bell
+for this game as for any other. The one moment one pointer cannot say is
+sudden death with words on both sides, where either may guess; the pointer
+names nobody, and the game supplies the turn itself. The header says what
+the partner is doing, and the board and clue strip are drawn from the seat on
+the game row and the turn's clue.
 
 Everything a player does — a clue, a guess, a pass, asking the AI — is one row
 of `codenamesduet.events`, the log every game keeps. Only the log's drawing is
@@ -193,7 +197,8 @@ first clue-giver who is one of the players, the timer — and that there are
 exactly two players. It draws twenty-five words at random from
 `codenamesduet.word_pool`, titles the game after the first three in board
 order (`PAGE-CHAIN-EGG`: the top-left three cells, which never move), seats the
-first clue-giver as A and the other player as B, and deals the two key cards
+first clue-giver as A and the other player as B — on the common turn order
+too, A first, with the pointer on A — and deals the two key cards
 from the rulebook's fixed joint distribution, shuffled: each card has nine
 agents, three assassins and thirteen bystanders, and three words are agents on
 both. The club-list readout is seeded at turn 1 with the whole budget and no
@@ -380,6 +385,7 @@ since the clue was never recorded:
 | a guess or a pass, the turn rolled over | me | `No clue yet this turn` | `warning` | `submit_guess`, `pass_turn` |
 | a guess, the word is turned over | me | `That word is already revealed` | `warning` | `submit_guess` |
 | a guess, my own bystander | me | `You already tried that word` | `warning` | `submit_guess` |
+| a sudden-death guess, my partner's agents all found | me | `No words left to guess` | `warning` | `submit_guess` |
 | a pass, the game ended under it | me | `Game over` | `warning` | `pass_turn` |
 | a pass, the last turn spent under it | me | `Sudden death — no turn to pass` | `warning` | `pass_turn` |
 | a pass, I became the giver | me | `You're giving the clue this turn` | `warning` | `pass_turn` |
@@ -462,8 +468,9 @@ What is codenamesduet's own:
 - **The board marks are the shared ones** (`plans/tile-feedback.md`, tf2): a
   guessed tile dims until the reply; a tile a guess turns over flashes, mine
   included, and a bystander or the assassin then shakes; the board dims while
-  my partner holds the move and its frame flashes as the move becomes mine, on
-  the value the bell reads (never in sudden death); a finished board wears the
+  my partner holds the move (`isWaitingForTurn` — in sudden death, too, for
+  the player with no words left) and its frame flashes as the move becomes
+  mine, on the shared pointer the page's bell reads; a finished board wears the
   game-over frame in its outcome; a viewed past turn rings its tiles outside
   the tile, in the shared ring geometry.
 - **The clue strip under the board** is one line in every state, so the board
@@ -472,13 +479,14 @@ What is codenamesduet's own:
   notice. The clue form keeps Tab on its two inputs.
 - **The AI button** is on the clue form. It opens the suggestion in a floating
   panel and fills the form with it; the player still presses Submit.
-- **The partner in the header.** The shell's turn line does not reach this game
-  (see the intro), so `PlayArea` holds a line saying what the partner is doing, in
-  `lib/answer.ts`'s words.
-- **The bell rings from here.** `GamePage`'s rings off the shared turn
-  pointer, which this game never moves, so `PlayArea` calls `useTurnBell`
-  itself: it is my turn when there is a clue for me to give or one to guess
-  from, and nobody's in sudden death or once the game is over.
+- **The partner in the header.** `PlayArea` holds a line saying what the
+  partner is doing, in `lib/answer.ts`'s words — richer than the shell's
+  whose-turn line, which this game does not draw.
+- **Who may move, and on what** is `lib/phase.ts`'s `derivePhase`: the page's
+  `isMyTurn`, except in sudden death with words on both sides; the board takes
+  a guess only when the move is mine and it is a guess — the clue-giver holds
+  the turn too, but their move is the clue form. The bell is the page's, on
+  the shared pointer.
 - **The finished-player banner** tells each player, in the info column, when
   one of them has found all their agents: in green to the one who finished,
   in tan to their partner, who now gives every clue.
@@ -512,6 +520,7 @@ test finds a position by its label), `pg_temp.codenamesduet_setup()` and
 | `cross_direction_test` | a bystander locks the guesser's side only; the partner can still contact the word; the two locks answer in different words |
 | `win_test` | the fourteenth agent plays on and the fifteenth wins, both players winning, with the turns spent recorded |
 | `sudden_death_test` | a real last pass enters it, with nobody holding the clue seat; a clue, a pass and the AI refused in its own words; an agent goes on, a bystander loses on `turns` and an assassin on `assassin` |
+| `turn_pointer_test` | both players seated on the common turn order; the pointer names the clue-giver, then the guesser, then the next giver, and A again on a restart; in sudden death nobody with words on both sides, else the one player with words — and the other's guess is refused ("No words left to guess") |
 | `submit_timeout_test` | a loss on `timeout` from both running states, the reason, both players losing, the turns spent, and a second call refused |
 | `end_game_test` | `ended` with the reason `manual`, nobody winning, the game row written for the realtime wake, and a second call refused |
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
@@ -529,7 +538,7 @@ Vitest, beside the code:
 | `lib/turnOutcome.test` · `lib/terminal.test` · `lib/answer.test` | a turn's outcome, sudden death's included; every ending's words; the header's words about the partner |
 | `lib/events.test` · `lib/history.test` | the log's rows typed by kind; a past turn's board, its bystanders per side and its own tiles ringed |
 | `hooks/useGame.test` · `hooks/useBoard.test` | the game row, a vanished row dropped rather than drawn on, a failed read kept and later cleared; the board's reads, the partner's card only when asked for, a gone game clearing my key (the no-such-game page), and a failed read kept as a failure rather than an empty board |
-| `components/PlayArea.test` | a second guess while one is in flight sends nothing; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the finished-player banners; what the bell is told; the board's turn dim and flash, and a guess's flash through the log; the keys, New game's players and setup included |
+| `components/PlayArea.test` | a second guess while one is in flight sends nothing; a refused guess's sentence in the local slot; tile gating; the reveal; the action row and the menu; the partner's line and hint in the header; Pass and the AI button; the finished-player banners; that no bell is rung here, and the sudden-death board of the player with no words; the board's turn dim and flash, and a guess's flash through the log; the keys, New game's players and setup included |
 | `components/Board.test` · `components/StateLine.test` | the per-seat bystander lock, my key card hidden while I guess, the partner's only at the end and when asked, and the two triangles, above and below the word; the board marks — the in-flight dim, the turn dim and flash, the game-over frame, attention on the move log and the shake; the readout's turns spent and sudden death |
 | `components/GameEventLog.test` · `components/ClueStrip.test` · `components/KeyCard.test` · `components/SetupForm.test` | the log's turns, picker, sudden-death rows and history link; the clue inputs' tag, the one-digit count, when a clue counts as the AI's, the form clearing when the clue lands, and the sudden-death notice; the key card's grid; the setup form's fields |
 | `pdf/model.test` | the partner's card never printed mid-game; each cell's mark and triangles; the clue log |
