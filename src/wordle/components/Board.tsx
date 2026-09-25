@@ -57,7 +57,7 @@ type Props = {
   // The game is finished, and how it ended — the board takes a band in that
   // outcome's gray (neutral for a game merely ended), null while it's live.
   // The shared board-scope mark; see common/board-marks/doc.md.
-  gameOver: TerminalOutcome | null
+  terminalOutcome: TerminalOutcome | null
   // A teammate holds the move (turn-order coop): dim the whole board.
   notMyTurn: boolean
   // True for a beat at the moment the turn becomes mine — flash the frame.
@@ -89,7 +89,7 @@ export function Board({
   isViewingHistory,
   historyLitBoardRow,
   reject,
-  gameOver,
+  terminalOutcome,
   notMyTurn,
   myTurnJustStarted,
 }: Props) {
@@ -125,9 +125,9 @@ export function Board({
           myTurnJustStarted && shared.yourTurnFlash,
           // Both frames are outlines, so they take turns rather than nest: the
           // viewer owns it while open, being the state you chose and can leave.
-          gameOver !== null && !isViewingHistory && shared.gameOverFrame,
-          gameOver === 'won' && !isViewingHistory && shared.gameOverWon,
-          gameOver === 'lost' && !isViewingHistory && shared.gameOverLost,
+          terminalOutcome !== null && !isViewingHistory && shared.gameOverFrame,
+          terminalOutcome === 'won' && !isViewingHistory && shared.gameOverWon,
+          terminalOutcome === 'lost' && !isViewingHistory && shared.gameOverLost,
         )}
         role="grid"
         aria-label={`${brand} board`}

@@ -676,7 +676,7 @@ function PlayArea({
         // ── Board-scope marks ──
         // The finished board wears its verdict; it is the same terminal message
         // the below-board slot shows, so the two can't disagree.
-        gameOver={terminalMessage ? terminalMessage.outcome : null}
+        terminalOutcome={terminalMessage ? terminalMessage.outcome : null}
         notMyTurn={waiting}
         myTurnJustStarted={turnFlash}
         // The CAUSE the attention flash reads: a board that changed while this

@@ -78,7 +78,7 @@ export function BoardCol({
   readOnly,
   localFeedbackSlot,
   // ── Board-scope marks (see <Board>) ──
-  gameOver,
+  terminalOutcome,
   notMyTurn,
   myTurnJustStarted,
 }: {
@@ -115,7 +115,7 @@ export function BoardCol({
   // ── Board-scope marks ──
   // The game is finished, and how — bands the board in that outcome. Null while
   // live.
-  gameOver: TerminalOutcome | null
+  terminalOutcome: TerminalOutcome | null
   // Turn-order coop: a teammate holds the move, so the board dims.
   notMyTurn: boolean
   // True for a beat as the turn becomes mine — the frame flashes yellow.
@@ -297,7 +297,7 @@ export function BoardCol({
         isViewingHistory={isViewingHistory}
         historyLitBoardRow={historySnap ? historySnap.historyLitBoardRow : -1}
         reject={reject}
-        gameOver={gameOver}
+        terminalOutcome={terminalOutcome}
         notMyTurn={notMyTurn}
         myTurnJustStarted={myTurnJustStarted}
       />

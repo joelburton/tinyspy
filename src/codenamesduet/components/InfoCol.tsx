@@ -55,7 +55,7 @@ export function InfoCol({
   guesses,
   players,
   selfId,
-  gameOver,
+  isTerminal,
   historyId,
   onShowHistory,
 }: {
@@ -112,7 +112,7 @@ export function InfoCol({
   players: Player[]
   // The viewer — the log's player picker orders them first.
   selfId: string
-  gameOver: boolean
+  isTerminal: boolean
   // The event whose turn is open in the board viewer, or null.
   historyId: number | null
   // Straight through to the log, which addresses a turn by an event id — its
@@ -196,7 +196,7 @@ export function InfoCol({
         players={players}
         selfId={selfId}
         currentTurn={turnNumber}
-        gameOver={gameOver}
+        isTerminal={isTerminal}
         turnBudget={setup.turns}
         historyId={historyId}
         onShowHistory={onShowHistory}

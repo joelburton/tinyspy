@@ -218,7 +218,7 @@ describe('codenamesduet PlayArea — input gating', () => {
   })
 
   it('tiles are blocked at terminal', () => {
-    render(<PlayAreaLoader {...makeCtx({ playState: 'won', isTerminal: true })} />) // gameOver
+    render(<PlayAreaLoader {...makeCtx({ playState: 'won', isTerminal: true })} />)
     expect(screen.getByRole('button', { name: /apple/i })).toBeDisabled()
   })
 

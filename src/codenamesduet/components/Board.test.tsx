@@ -33,7 +33,7 @@ function draw(mySeat: Seat) {
       myKey={Array.from({ length: 25 }, () => 'N' as const)}
       peerKey={null}
       mySeat={mySeat}
-      gameOver={false}
+      isTerminal={false}
       cellsClickable
       pendingPos={null}
       onGuess={vi.fn()}
@@ -55,7 +55,7 @@ function drawWith(over: Partial<ComponentProps<typeof Board>> = {}) {
       myKey={Array.from({ length: 25 }, () => 'N' as const)}
       peerKey={null}
       mySeat="A"
-      gameOver={false}
+      isTerminal={false}
       cellsClickable
       pendingPos={null}
       onGuess={vi.fn()}
@@ -102,15 +102,15 @@ describe('codenamesduet Board — my partner’s key card', () => {
   const theirs = Array.from({ length: 25 }, () => 'G' as const)
 
   it('is shown once the game is over and I have asked to see it', () => {
-    expect(drawWith({ gameOver: true, peerKey: theirs }).querySelectorAll(`.${styles.keyPeer}`)).toHaveLength(25)
+    expect(drawWith({ isTerminal: true, peerKey: theirs }).querySelectorAll(`.${styles.keyPeer}`)).toHaveLength(25)
   })
 
   it('is not shown mid-game, even when handed one', () => {
-    expect(drawWith({ gameOver: false, peerKey: theirs }).querySelectorAll(`.${styles.keyPeer}`)).toHaveLength(0)
+    expect(drawWith({ isTerminal: false, peerKey: theirs }).querySelectorAll(`.${styles.keyPeer}`)).toHaveLength(0)
   })
 
   it('is not shown at the end until I ask', () => {
-    expect(drawWith({ gameOver: true, peerKey: null }).querySelectorAll(`.${styles.keyPeer}`)).toHaveLength(0)
+    expect(drawWith({ isTerminal: true, peerKey: null }).querySelectorAll(`.${styles.keyPeer}`)).toHaveLength(0)
   })
 })
 
@@ -174,7 +174,7 @@ describe('codenamesduet Board — the board marks', () => {
 describe('codenamesduet Board — attention and the shake', () => {
   const props = (over: Partial<ComponentProps<typeof Board>> = {}) => ({
     words, myKey: Array.from({ length: 25 }, () => 'N' as const), peerKey: null,
-    mySeat: 'A' as const, gameOver: false, cellsClickable: true, pendingPos: null,
+    mySeat: 'A' as const, isTerminal: false, cellsClickable: true, pendingPos: null,
     onGuess: vi.fn(), cursor: null, picked: null, notMyTurn: false, myTurnJustStarted: false, moveCount: 2,
     terminalOutcome: null, ...over,
   })

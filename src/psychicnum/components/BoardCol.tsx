@@ -68,7 +68,7 @@ export function BoardCol({
   isMyTurn,
   localFeedbackSlot,
   decidedBy,
-  gameOver,
+  terminalOutcome,
   notMyTurn,
   myTurnJustStarted,
   moveCount,
@@ -116,7 +116,7 @@ export function BoardCol({
   // Who decided each tile, for the identity dot — null outside coop.
   decidedBy: ReadonlyMap<string, Actor | undefined> | null
   // The game is finished, and how — bands the board in that outcome's gray.
-  gameOver: TerminalOutcome | null
+  terminalOutcome: TerminalOutcome | null
   // Turn-order coop: a teammate holds the move, so the board dims.
   notMyTurn: boolean
   // True for a beat as the turn becomes mine — the frame flashes.
@@ -316,7 +316,7 @@ export function BoardCol({
         selected={isViewingHistory ? null : selected}
         cursor={cursor}
         decidedBy={decidedBy}
-        gameOver={gameOver}
+        terminalOutcome={terminalOutcome}
         notMyTurn={notMyTurn}
         myTurnJustStarted={myTurnJustStarted}
         moveCount={moveCount}

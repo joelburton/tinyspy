@@ -89,7 +89,7 @@ function renderLog(props: {
   clues: ClueEvent[]
   guesses: WordedGuess[]
   currentTurn?: number
-  gameOver?: boolean
+  isTerminal?: boolean
 }) {
   return render(
     <GameEventLog
@@ -98,7 +98,7 @@ function renderLog(props: {
       players={PLAYERS}
       selfId="ada"
       currentTurn={props.currentTurn ?? 99}
-      gameOver={props.gameOver ?? false}
+      isTerminal={props.isTerminal ?? false}
       turnBudget={9}
       historyId={null}
       onShowHistory={() => {}}
@@ -172,14 +172,14 @@ describe('GameEventLog', () => {
 
   it('reads "(clue given)" for the current, still-live turn with no guesses yet', () => {
     const clues = [clue({ id: 1, turn_number: 3, seat: 'A', clue_word: 'WAIT', clue_count: 1 })]
-    renderLog({ clues, guesses: [], currentTurn: 3, gameOver: false })
+    renderLog({ clues, guesses: [], currentTurn: 3, isTerminal: false })
     expect(screen.getByText('(clue given)')).toBeInTheDocument()
     expect(screen.queryByText('(no guesses)')).not.toBeInTheDocument()
   })
 
   it('reads "(no guesses)" once a guess-less turn has ended (no longer current)', () => {
     const clues = [clue({ id: 1, turn_number: 1, seat: 'A', clue_word: 'PASS', clue_count: 1 })]
-    renderLog({ clues, guesses: [], currentTurn: 2, gameOver: false })
+    renderLog({ clues, guesses: [], currentTurn: 2, isTerminal: false })
     expect(screen.getByText('(no guesses)')).toBeInTheDocument()
     expect(screen.queryByText('(clue given)')).not.toBeInTheDocument()
   })
@@ -198,7 +198,7 @@ describe('GameEventLog', () => {
 
   it('reads "(no guesses)" for a guess-less current turn once the game is over', () => {
     const clues = [clue({ id: 1, turn_number: 4, seat: 'A', clue_word: 'DONE', clue_count: 1 })]
-    renderLog({ clues, guesses: [], currentTurn: 4, gameOver: true })
+    renderLog({ clues, guesses: [], currentTurn: 4, isTerminal: true })
     expect(screen.getByText('(no guesses)')).toBeInTheDocument()
   })
 })
@@ -288,7 +288,7 @@ describe('GameEventLog — the history link', () => {
         players={PLAYERS}
         selfId="ada"
         currentTurn={99}
-        gameOver={false}
+        isTerminal={false}
         turnBudget={9}
         historyId={null}
         onShowHistory={onShowHistory}

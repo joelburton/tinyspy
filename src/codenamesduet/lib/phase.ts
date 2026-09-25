@@ -6,7 +6,7 @@ export type Seat = 'A' | 'B'
 /** The server state `derivePhase` decides from. */
 export type PhaseInputs = {
   // The shell's `isTerminal` — the one answer to "is the game over?".
-  gameOver: boolean
+  isTerminal: boolean
   // play_state is 'sudden_death': the budget is spent and nobody clues.
   inSuddenDeath: boolean
   // games.current_clue_giver — null in sudden death and once the game has ended.
@@ -37,10 +37,10 @@ export type PhaseDerived = {
  * (`phase.test.ts`).
  */
 export function derivePhase(inputs: PhaseInputs): PhaseDerived {
-  const { gameOver, inSuddenDeath, currentClueGiver, mySeat, hasCurrentTurnClue } = inputs
+  const { isTerminal, inSuddenDeath, currentClueGiver, mySeat, hasCurrentTurnClue } = inputs
   const isGuessPhase = hasCurrentTurnClue
   const isClueGiver = mySeat !== undefined && mySeat === currentClueGiver
-  const cellsClickable = !gameOver && (inSuddenDeath || (isGuessPhase && !isClueGiver))
+  const cellsClickable = !isTerminal && (inSuddenDeath || (isGuessPhase && !isClueGiver))
   return { isGuessPhase, isClueGiver, cellsClickable }
 }
 

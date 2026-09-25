@@ -207,7 +207,7 @@ Most worth fixing first.
 
 | # | today | settle on |
 |---|---|---|
-| N1 | `gameOver` is the ending (`TerminalOutcome \| null`) on psychicnum / connections / wordle's `Board` and `BoardCol`; in codenamesduet it is a boolean, and its ending is `terminalOutcome` | codenamesduet: `gameOver` → `isTerminal`, then `terminalOutcome` → `gameOver` |
+| ~~N1~~ | `gameOver` is the ending (`TerminalOutcome \| null`) on psychicnum / connections / wordle's `Board` and `BoardCol`; in codenamesduet it is a boolean, and its ending is `terminalOutcome` | Done 2026-09-24, the other way round: the ending is `terminalOutcome` everywhere (it says what it holds; `gameOver` reads as a yes/no), the yes/no is `isTerminal`, typed `TerminalOutcome \| null` in all four. The shared `gameOver*` CSS classes stay. `common/game-page/GamePage.tsx`'s own yes/no is `isTerminal` too, read off `is_terminal` (it was `ended_at !== null`) — the answer every PlayArea is handed. waffle's is outside the six |
 | N2 | the refused-word mark: `answered` (spellingbee `Letters`), `refused` (wordwheel `Wheel`), `reject` (wordle `Board`); the bee pair also swaps `answered` / `refused` between them | `refused` for the mark |
 | N3 | the move still with the server: `inFlightWord` (psychicnum), `inFlightTiles` (connections), `pending` / `pendingWord` / `.inFlight` (wordle), `pendingPos` (codenamesduet) | `inFlight…`, the shared mark's name |
 | N4 | may the board take a click: `interactive` (connections), `cellsClickable` (codenamesduet), the handler left out (psychicnum, the bee games) | `readOnly`, the glossary's gate |

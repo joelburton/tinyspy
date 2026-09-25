@@ -9,7 +9,7 @@ import { FeedbackPill } from '@/common/feedback/FeedbackPill'
 import { useTopFeedbackMessage } from '@/common/feedback/useFeedbackSlot'
 import { runRpc } from '@/common/supabase/dbResult'
 import { MobileStatusBar } from '@/common/info-sheet/MobileStatusBar'
-import type { Outcome } from '@/common/outcomes/outcomes'
+import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { db } from '../db'
 import type { WordRow } from '../hooks/useBoard'
 import type { ClueEvent } from '../lib/events'
@@ -78,7 +78,7 @@ export function BoardCol({
   myKey,
   peerKey,
   mySeat,
-  gameOver,
+  isTerminal,
   readOnly,
   historyLitTiles,
   // ── Board marks ──
@@ -114,7 +114,7 @@ export function BoardCol({
   peerKey: KeyLabel[] | null
   // The caller's seat.
   mySeat: Seat
-  gameOver: boolean
+  isTerminal: boolean
   // The board gate (glossary `readOnly`): tiles are inert. Derived in PlayArea
   // from the phase; this column ORs in `isViewingHistory` before handing the
   // leaf `<Board>` its `cellsClickable`.
@@ -126,7 +126,7 @@ export function BoardCol({
   notMyTurn: boolean
   myTurnJustStarted: boolean
   moveCount: number
-  terminalOutcome: Outcome | null
+  terminalOutcome: TerminalOutcome | null
 
   // The viewed turn's description while inspecting history (drives the banner), or
   // null when live.
@@ -291,7 +291,7 @@ export function BoardCol({
         myKey={myKey}
         peerKey={peerKey}
         mySeat={mySeat}
-        gameOver={gameOver}
+        isTerminal={isTerminal}
         cellsClickable={cellsClickable && !isViewingHistory}
         pendingPos={pendingPos}
         onGuess={handleTileClick}

@@ -5,7 +5,7 @@ import { cls } from '@/common/utils/cls'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { useMark } from '@/common/board-marks/useMark'
 import { ATTENTION_FADE_MS, VERDICT_SHAKE_MS } from '@/common/board-marks/feedbackTiming'
-import type { Outcome } from '@/common/outcomes/outcomes'
+import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import type { WordRow } from '../hooks/useBoard'
 import type { KeyLabel } from '../lib/labels'
 import { isGuessable, type Seat } from '../lib/phase'
@@ -46,7 +46,7 @@ type Props = {
   // triangles and the click gate.
   mySeat: Seat
   // Gates the peer's key-card square, shown only once the game is over.
-  gameOver: boolean
+  isTerminal: boolean
   // Whether the caller may click tiles right now — the phase's answer
   // (`derivePhase`), with the viewer ORed in by BoardCol.
   cellsClickable: boolean
@@ -76,7 +76,7 @@ type Props = {
   // restart deletes them, so it drops rather than advances.
   moveCount: number
   // The ending's outcome, for the game-over frame's color; null while playing.
-  terminalOutcome: Outcome | null
+  terminalOutcome: TerminalOutcome | null
 }
 
 /**
@@ -94,7 +94,7 @@ export function Board({
   myKey,
   peerKey,
   mySeat,
-  gameOver,
+  isTerminal,
   cellsClickable,
   pendingPos,
   onGuess,
@@ -217,7 +217,7 @@ export function Board({
             >
               {/* The peer's key-card square — top-right, once the game is over
                   and the caller has asked to see it. */}
-              {gameOver && peerLabel !== null && (
+              {isTerminal && peerLabel !== null && (
                 <span
                   className={cls(styles.keySquare, styles.keyPeer, styles[KEY_SQUARE[peerLabel]])}
                   aria-hidden

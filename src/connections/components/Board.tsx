@@ -71,7 +71,7 @@ type Props = {
   // The game's outcome once it is over — the board wears the frame in it.
   // `'neutral'` also covers a player who is out of a compete race while
   // the others play on: their board is inert even though the game isn't.
-  gameOver: TerminalOutcome | null
+  terminalOutcome: TerminalOutcome | null
   // ATTENTION's cause, the server's move marker: the guess log's length. A band
   // arriving is only news when a MOVE put it there — the terminal reveal swaps
   // four bands in without one (`useMoveAttention`).
@@ -126,7 +126,7 @@ export function Board({
   sharedBoard,
   notMyTurn,
   myTurnJustStarted,
-  gameOver,
+  terminalOutcome,
   moveCount,
   isViewingHistory,
   historyLitTiles = NO_TILES,
@@ -220,9 +220,9 @@ export function Board({
           // Both frames are outlines, so they take turns rather than nest: while
           // the viewer is open it owns the outline, being the state you chose and
           // the one you can leave.
-          gameOver !== null && !isViewingHistory && shared.gameOverFrame,
-          gameOver === 'won' && !isViewingHistory && shared.gameOverWon,
-          gameOver === 'lost' && !isViewingHistory && shared.gameOverLost,
+          terminalOutcome !== null && !isViewingHistory && shared.gameOverFrame,
+          terminalOutcome === 'won' && !isViewingHistory && shared.gameOverWon,
+          terminalOutcome === 'lost' && !isViewingHistory && shared.gameOverLost,
         )}
       >
         {sortedMatched.map((mc) => band(mc, false))}

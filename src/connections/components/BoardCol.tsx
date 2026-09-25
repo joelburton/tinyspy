@@ -79,7 +79,7 @@ export function BoardCol({
   isMyTurn,
   notMyTurn,
   myTurnJustStarted,
-  gameOver,
+  terminalOutcome,
   onExitHistory,
   // ── Tile selection (state owned by useGame; this renders + commits it) ──
   ownerByTile,
@@ -129,7 +129,7 @@ export function BoardCol({
   // True for a beat as the turn arrives (the shared your-turn flash).
   myTurnJustStarted: boolean
   // The outcome the game-over frame wears, or null while the board is live.
-  gameOver: TerminalOutcome | null
+  terminalOutcome: TerminalOutcome | null
   // Return to the live board (the banner click / ✕).
   onExitHistory: () => void
 
@@ -457,7 +457,7 @@ export function BoardCol({
         sharedBoard={sharedBoard}
         notMyTurn={notMyTurn}
         myTurnJustStarted={myTurnJustStarted}
-        gameOver={gameOver}
+        terminalOutcome={terminalOutcome}
         // ATTENTION's cause, read off the log rather than off the board: how many
         // guesses the server has recorded, and whether the newest was mine.
         moveCount={guesses.length}

@@ -54,7 +54,7 @@ type Props = {
   inFlightWord?: string | null
   // The game is finished, and how it ended — the board takes a band in that
   // outcome's gray (neutral for a game merely ended). Null while it's live.
-  gameOver?: TerminalOutcome | null
+  terminalOutcome?: TerminalOutcome | null
   // A teammate holds the move (turn-order coop): dim the whole board.
   notMyTurn?: boolean
   // True for a beat at the moment the turn becomes mine — flash the frame.
@@ -98,7 +98,7 @@ export function Board({
   historyLitWord = null,
   decidedBy = null,
   inFlightWord = null,
-  gameOver = null,
+  terminalOutcome = null,
   notMyTurn = false,
   myTurnJustStarted = false,
   moveCount,
@@ -166,9 +166,9 @@ export function Board({
           myTurnJustStarted && shared.yourTurnFlash,
           // Both frames are outlines, so they take turns: the viewer owns it while
           // open, being the state you chose and the one you can leave.
-          gameOver !== null && !isViewingHistory && shared.gameOverFrame,
-          gameOver === 'won' && !isViewingHistory && shared.gameOverWon,
-          gameOver === 'lost' && !isViewingHistory && shared.gameOverLost,
+          terminalOutcome !== null && !isViewingHistory && shared.gameOverFrame,
+          terminalOutcome === 'won' && !isViewingHistory && shared.gameOverWon,
+          terminalOutcome === 'lost' && !isViewingHistory && shared.gameOverLost,
         )}
         style={{
           gridTemplateColumns: `repeat(${cols}, 1fr)`,

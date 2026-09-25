@@ -16,7 +16,7 @@ import { derivePhase, isGuessable, type PhaseInputs } from './phase'
 /** Reusable defaults so each test only states what it changes. */
 function inputs(overrides: Partial<PhaseInputs> = {}): PhaseInputs {
   return {
-    gameOver: false,
+    isTerminal: false,
     inSuddenDeath: false,
     currentClueGiver: 'A',
     mySeat: 'A',
@@ -52,7 +52,7 @@ describe('derivePhase — isGuessPhase', () => {
 
 describe('derivePhase — cellsClickable', () => {
   // The interesting matrix. The expected behavior:
-  //   gameOver                                → never
+  //   isTerminal                                → never
   //   sudden death (regardless of seat)       → always
   //   guess phase + not clue-giver            → yes (the guesser's window)
   //   clue phase                              → no (no clue to guess against)
@@ -60,7 +60,7 @@ describe('derivePhase — cellsClickable', () => {
 
   it('is false when the game is over, for the guesser in a guess phase too', () => {
     expect(
-      derivePhase(inputs({ gameOver: true, mySeat: 'B', hasCurrentTurnClue: true })).cellsClickable,
+      derivePhase(inputs({ isTerminal: true, mySeat: 'B', hasCurrentTurnClue: true })).cellsClickable,
     ).toBe(false)
   })
 

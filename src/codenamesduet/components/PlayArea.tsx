@@ -230,11 +230,6 @@ export function PlayArea({
     [setup, players],
   )
 
-  // `gameOver` is the shell's `isTerminal`, the one answer to "is it over?";
-  // `playState` carries this game's own value, read for sudden death and the
-  // verdict.
-  const gameOver = isTerminal
-
   // Seat/roster derivations, read by the print model (built in the binding's
   // run) and the render alike, so both see the SAME values.
   const peer = players.find((p) => p.user_id !== session.user.id)
@@ -249,7 +244,7 @@ export function PlayArea({
   // Who may click what, and when — `lib/phase.ts` carries the matrix.
   const inSuddenDeath = playState === 'sudden_death'
   const { isGuessPhase, isClueGiver, cellsClickable } = derivePhase({
-    gameOver,
+    isTerminal,
     inSuddenDeath,
     currentClueGiver: game.current_clue_giver as Seat | null,
     mySeat,
@@ -260,7 +255,7 @@ export function PlayArea({
   // turn pointer `GamePage` rings from, so it marks its own — the bell and the
   // board's frame flash on the arrival, and the board dims while my partner
   // holds the move. Sudden death and a finished game have no turn at all.
-  const cluesStillGiven = !gameOver && !inSuddenDeath
+  const cluesStillGiven = !isTerminal && !inSuddenDeath
   const myClueToGive = isClueGiver && !isGuessPhase
   const myClueToGuess = !isClueGiver && isGuessPhase
   const myTurn = cluesStillGiven && (myClueToGive || myClueToGuess)
@@ -307,7 +302,7 @@ export function PlayArea({
   // it is true: news in the header covers it and it comes back as the news
   // fades. Derived to primitives so a realtime refetch's fresh `peer` object
   // does not re-show it.
-  const partnerAnswer = turnAnswer({ isGuessPhase, isClueGiver, inSuddenDeath, gameOver })
+  const partnerAnswer = turnAnswer({ isGuessPhase, isClueGiver, inSuddenDeath, isTerminal })
   const partnerMessage = partnerAnswer === null ? null : answerMessage(partnerAnswer)
   const partnerText = partnerMessage?.text ?? null
   const partnerOutcome = partnerMessage?.outcome ?? null
@@ -511,7 +506,7 @@ export function PlayArea({
   // remaining turn. Both players are told, so the lopsided turn flow does not
   // read as a bug. Only in normal play — nobody clues in sudden death, and
   // nothing is owed once the game is over.
-  const bannerEligible = !gameOver && !inSuddenDeath
+  const bannerEligible = !isTerminal && !inSuddenDeath
   const viewerFinished = bannerEligible && myAgentsDone
   const peerFinished = bannerEligible && peerAgentsDone
 
@@ -531,7 +526,7 @@ export function PlayArea({
         myKey={myKey}
         peerKey={peerKey}
         mySeat={mySeat}
-        gameOver={gameOver}
+        isTerminal={isTerminal}
         readOnly={!cellsClickable}
         historyLitTiles={historySnap?.historyLitTiles}
         // ── Board marks (tile-feedback): the turn, the move log, the ending ──
@@ -584,7 +579,7 @@ export function PlayArea({
         guesses={guesses}
         players={players}
         selfId={session.user.id}
-        gameOver={gameOver}
+        isTerminal={isTerminal}
         historyId={historyId}
         onShowHistory={showHistory}
         />

@@ -530,7 +530,7 @@ export function PlayArea({
         // The finished board wears its verdict, and the keyboard goes with it:
         // `terminalMessage` is the same one the slot shows, so the two can't
         // disagree about how this game went.
-        gameOver={terminalMessage ? terminalMessage.outcome : null}
+        terminalOutcome={terminalMessage ? terminalMessage.outcome : null}
         notMyTurn={waiting}
         myTurnJustStarted={turnFlash}
       />

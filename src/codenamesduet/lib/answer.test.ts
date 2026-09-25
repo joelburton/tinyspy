@@ -27,7 +27,7 @@ describe('answerMessage', () => {
 })
 
 describe('turnAnswer', () => {
-  const live = { inSuddenDeath: false, gameOver: false }
+  const live = { inSuddenDeath: false, isTerminal: false }
 
   it('before the clue: my partner writes it, or waits for mine', () => {
     expect(turnAnswer({ ...live, isGuessPhase: false, isClueGiver: false }))
@@ -44,7 +44,7 @@ describe('turnAnswer', () => {
   })
 
   it('says nothing in sudden death, or once the game is over', () => {
-    expect(turnAnswer({ isGuessPhase: false, isClueGiver: false, inSuddenDeath: true, gameOver: false })).toBeNull()
-    expect(turnAnswer({ isGuessPhase: true, isClueGiver: true, inSuddenDeath: false, gameOver: true })).toBeNull()
+    expect(turnAnswer({ isGuessPhase: false, isClueGiver: false, inSuddenDeath: true, isTerminal: false })).toBeNull()
+    expect(turnAnswer({ isGuessPhase: true, isClueGiver: true, inSuddenDeath: false, isTerminal: true })).toBeNull()
   })
 })

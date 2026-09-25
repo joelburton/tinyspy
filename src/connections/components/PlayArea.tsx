@@ -613,7 +613,7 @@ function PlayArea({
         // wears the verdict's outcome), or this player is out of a compete race while the
         // others play on. The second has no verdict yet, so it takes the neutral
         // gray — their board is inert, which is all the frame claims.
-        gameOver={terminalMessage ? terminalMessage.outcome : locallyDone ? 'neutral' : null}
+        terminalOutcome={terminalMessage ? terminalMessage.outcome : locallyDone ? 'neutral' : null}
         onExitHistory={exitHistory}
         // ── Tile selection (state in useGame; BoardCol renders and commits it) ──
         ownerByTile={ownerByTile}

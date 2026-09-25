@@ -79,9 +79,9 @@ export function turnAnswer(phase: {
   isGuessPhase: boolean
   isClueGiver: boolean
   inSuddenDeath: boolean
-  gameOver: boolean
+  isTerminal: boolean
 }): Answer | null {
-  if (phase.gameOver || phase.inSuddenDeath) return null
+  if (phase.isTerminal || phase.inSuddenDeath) return null
   if (!phase.isGuessPhase) {
     return { answerType: phase.isClueGiver ? 'waiting_for_clue_peer' : 'writing_clue_peer' }
   }

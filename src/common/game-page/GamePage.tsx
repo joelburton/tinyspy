@@ -115,7 +115,9 @@ export function GamePage({
   // announcements come off it, and it is always a real handle — the loader
   // waited for the row.
   const clubHandle = commonGame.club_handle
-  const gameOver = commonGame.ended_at !== null
+  // Is the game over? `is_terminal`, the same answer every PlayArea is handed,
+  // so the page and the game cannot disagree.
+  const isTerminal = commonGame.is_terminal
   const HelpComponent = manifest.help
   const PlayArea = manifest.PlayArea
 
@@ -145,7 +147,7 @@ export function GamePage({
   // moves the common turn pointer — the turn is the shell's to know, so no
   // game has to remember it. A game whose turn is its own rings from its own
   // code. Silent once the game is over, when the pointer may still move.
-  useTurnBell(isMyTurn && !gameOver)
+  useTurnBell(isMyTurn && !isTerminal)
 
   // ─── The shell's own state ──────────────────────────────────────────────
   // Whether the per-game Help companion is mounted. Opened by `act-help`,
@@ -216,14 +218,14 @@ export function GamePage({
   //     broadcasts + navigates self; peers navigate themselves on receipt, and
   //     the last leaver clears is_current_view via cleanup.
   const requestBackToClub = useCallback(async () => {
-    if (gameOver) navigate(clubPath(clubHandle))
+    if (isTerminal) navigate(clubPath(clubHandle))
     // `activePlayers`, not `players`: the question is "are there peers this
     // would surprise", and a bot is nobody to surprise — a game whose only
     // other seat is an AI leaves the same way a solo game does, without a
     // confirm.
     else if (activePlayers.length <= 1) sendSuspend()
     else if ((await askConfirmation(suspendConfirm(commonGame.title))) === 'confirm') sendSuspend()
-  }, [clubHandle, commonGame.title, gameOver, activePlayers.length, sendSuspend])
+  }, [clubHandle, commonGame.title, isTerminal, activePlayers.length, sendSuspend])
   // `<` → Back to club. The menu's row is this same binding, which is what makes
   // the key discoverable: the row shows it.
   const actBackToClub = useBoundAction('act-back-to-club', {
@@ -244,7 +246,7 @@ export function GamePage({
   // `?new=<gametype>`; canceling it just leaves you on the club page, which is
   // a fine place to be. The registry asks NEW_GAME_CONFIRM first, mid-game.
   useBoundAction('act-new-game-from-setup', {
-    terminal: gameOver,
+    terminal: isTerminal,
     describe: () => 'active',
     run: () => {
       navigate(`${clubPath(clubHandle)}?new=${gametype}`)
@@ -281,7 +283,7 @@ export function GamePage({
     }
   }
   const actEndGame = useBoundAction('act-end-game', {
-    terminal: gameOver,
+    terminal: isTerminal,
     describe: () => (paused ? 'active' : 'hidden'),
     run: endTheGameFromTheOverlay,
   })
@@ -295,12 +297,12 @@ export function GamePage({
   // ticking at `is_terminal`, so it freezes on the final figure.
   const timerKind = commonGame.setup.timer?.kind
   const showTimer =
-    timerKind === 'countup' || (timerKind === 'countdown' && !gameOver)
+    timerKind === 'countup' || (timerKind === 'countdown' && !isTerminal)
   // The clock is STOPPED whenever it is not counting — paused, or the game is
   // over (`useGameTimer` keys `running` off `is_terminal`). Both go red: red
   // says "these digits are not moving", which is a fact about the clock rather
   // than a judgment about why.
-  const timerStopped = paused || gameOver
+  const timerStopped = paused || isTerminal
 
   // Fire the timeout-loss when the countdown hits 0 — on the expired
   // TRANSITION (false → true), not the level. Replay-board un-terminals a
@@ -320,7 +322,7 @@ export function GamePage({
     const wasExpired = prevExpiredRef.current
     prevExpiredRef.current = timer.expired
     if (!timer.expired || wasExpired) return
-    if (commonGame.ended_at !== null) return // a peer already ended it
+    if (isTerminal) return // a peer already ended it
     void manifest.submitTimeout(gameId).then(function logHowTheTimeoutLanded(res) {
       // THE RACE IS THE NORMAL CASE and it is not shown to anyone. Every
       // connected client fires this on the same countdown edge, so in a
@@ -340,7 +342,7 @@ export function GamePage({
         reportUnhandled('submit_timeout', res)
       }
     })
-  }, [timer.expired, paused, commonGame, gameId, manifest])
+  }, [timer.expired, paused, isTerminal, gameId, manifest])
 
   return (
     <div className={styles.pageHeaderAndPlaySurface}>
@@ -373,7 +375,7 @@ export function GamePage({
                 {/* Gone once the game is over: `paused` is forced false at
                     `ended_at`, so a pause button there could only look live and
                     do nothing. */}
-                {!gameOver && (
+                {!isTerminal && (
                   <PauseButton
                     paused={paused}
                     manual={manuallyPausedBy !== null}
@@ -439,7 +441,7 @@ export function GamePage({
           gametype={gametype}
           gameId={gameId}
           playState={commonGame.play_state}
-          isTerminal={commonGame.is_terminal}
+          isTerminal={isTerminal}
         >
           <PlayAreaErrorBoundary>
             <Suspense fallback={<Loading />}>
@@ -464,7 +466,7 @@ export function GamePage({
                 title={commonGame.title}
                 players={players}
                 playState={commonGame.play_state}
-                isTerminal={commonGame.is_terminal}
+                isTerminal={isTerminal}
                 timer={timer}
                 isMyTurn={isMyTurn}
                 currentTurnUserId={commonGame.current_turn_user_id}
