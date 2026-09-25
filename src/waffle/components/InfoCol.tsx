@@ -34,8 +34,9 @@ export function InfoCol({
   isCompete,
   over,
   isPlayer,
-  selfDone,
-  myConceded,
+  isLocallyTerminal,
+  isConceded,
+  isTurnBased,
   turnHolderId,
   selfSolved,
   swapsUsed,
@@ -64,18 +65,17 @@ export function InfoCol({
   over: TerminalMessage | null
   /** Am I a player in this game (gates the action row + help). */
   isPlayer: boolean
-  /** Whose turn it is under turn-order, or null for a free-for-all game.
-   *  Non-null ⇒ render the shared TurnStatusLine (a turn game). */
+  // A turn-order game: render the shared TurnStatusLine, which names the
+  // holder of `turnHolderId`.
+  isTurnBased: boolean
   turnHolderId: string | null
-  /** I can't act any more, but the game continues for others (compete: solved / out
-   *  of swaps / conceded) — drives the terminal LOOK. The broader analog of the other
-   *  games' concede-only `isLocallyDone`: waffle is a per-player-board race, so you can
-   *  also be locally done by solving your board or running out of swaps, not just by
-   *  conceding — which is why it needs its own name. */
-  selfDone: boolean
-  /** I conceded (vs solved / out of swaps) — picks the `selfDone` status wording. */
-  myConceded: boolean
-  /** I solved my board — picks the `selfDone` status wording. */
+  // The page's `isLocallyTerminal`: I can't act any more, but the game continues
+  // for others (compete: solved / out of swaps / conceded) — drives the
+  // terminal LOOK.
+  isLocallyTerminal: boolean
+  // I conceded (vs solved / out of swaps) — picks the out-of-the-race wording.
+  isConceded: boolean
+  // I solved my board — picks the out-of-the-race wording.
   selfSolved: boolean
 
   // ── State readout (the swap count line) ──
@@ -96,8 +96,8 @@ export function InfoCol({
   /** The whole table stops, with no result. Hidden in a race that doesn't offer
    *  it, so the pair can be placed unconditionally. */
   actEndGame: BoundAction
-  /** Drop out of a race; the others keep going. Hidden outside one, and gray
-   *  once you have solved — see `selfSolved` in useStandardGameActions. */
+  /** Drop out of a race; the others keep going. Hidden outside one, and once
+   *  you are out (solved, out of swaps, conceded), when End takes its place. */
   actConcede: BoundAction
   /** Restart THIS board from scratch. */
   actRestart: BoundAction
@@ -136,12 +136,9 @@ export function InfoCol({
   // ("I give up, you keep racing"); coop ENDS (a neutral mutual "we're done"). Two
   // semantically distinct actions (docs/ui.md → Button iconography, End vs
   // Concede), each placed as an `<ActionButton>` — and each hides itself in the
-  // mode that isn't its own, so both are placed and the row asks nothing.
-  //
-  // Concede is disabled once you've SOLVED: _maybe_finish_compete excludes
-  // conceded players from the winner query, so a solved-and-waiting player who
-  // clicked Concede ("I'm done waiting") would silently forfeit a win they may
-  // have already banked. A solved player waits it out via Back-to-club instead.
+  // mode that isn't its own, so both are placed and the row asks nothing. Once
+  // you are out of the race, Concede hides and End comes out in its place
+  // (useStandardGameActions): one flag either way.
   // Icon-only (the waffle experiment): the styled tooltip carries the label.
   const exits = (
     <>
@@ -166,9 +163,9 @@ export function InfoCol({
             parSwaps={parSwaps}
           />
         </p>
-        {/* Whose-turn line — only for a turn-order game (pointer non-null). A
-            separate line below the state readout; never replaces it. */}
-        {turnHolderId !== null && (
+        {/* Whose-turn line — only for a turn-order game. A separate line below
+            the state readout; never replaces it. */}
+        {isTurnBased && (
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
@@ -211,7 +208,7 @@ export function InfoCol({
             tooltips carry the labels). TERMINAL: the bold outcome line +
             Restart / Reveal / New game / back-to-club (primary). LOCALLY
             TERMINAL (compete: solved / out of swaps, the rest race on): the
-            terminal LOOK — a bold status + Concede. PLAYING: End/Concede +
+            terminal LOOK — a bold status + End. PLAYING: End/Concede +
             back-to-club (secondary, via the suspend-confirm flow). WATCHING
             (not in the game): a bold note, no button. */}
         {over ? (
@@ -223,9 +220,9 @@ export function InfoCol({
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : selfDone ? (
+        ) : isLocallyTerminal ? (
           <InfoActionsRow
-            message={{ text: myConceded ? 'You conceded' : selfSolved ? 'Solved — waiting' : 'Out of swaps', outcome: 'neutral' }}
+            message={{ text: isConceded ? 'You conceded' : selfSolved ? 'Solved — waiting' : 'Out of swaps', outcome: 'neutral' }}
           >
             {/* Reveal keeps its slot while the others race, but inert: the
                 solution opens only when the game is over for EVERYONE
@@ -247,7 +244,7 @@ export function InfoCol({
 
         {/* Help — shown ONLY while you can actually act on it (the locally-terminal /
             watching states are carried loudly by the action row above). */}
-        {isPlayer && !over && !selfDone && (
+        {isPlayer && !over && !isLocallyTerminal && (
           <p className={shared.infoHelp}>Tap two tiles to swap them.</p>
         )}
 

@@ -47,8 +47,9 @@ type Props = {
   board: string
   // 25-char per-tile color codes (g/y/x/.), or null before load.
   colors: string | null
-  // When true, tiles aren't interactive (terminal / paused / viewing history).
-  disabled?: boolean
+  // The board responds to me (the page's `isBoardInteractive`). When false —
+  // or while a past swap is open — the tiles take no pick, drag or key.
+  isBoardInteractive: boolean
   // Draw the gray-blue "viewing a past turn" frame + suppress the
   // attention flash (the ringed cells mark what the viewed swap did instead).
   isViewingHistory?: boolean
@@ -62,10 +63,11 @@ type Props = {
   // or two, and the reflexive did-I-misclick re-tap of the same two tiles
   // would otherwise queue the REVERSE swap.
   pendingSwap?: readonly [number, number] | null
-  // A teammate holds the move (turn-order coop): dim the whole board. The dim
-  // on a board says "you cannot act at all", the same verb the in-flight dim
-  // above uses on a tile — the element it lands on says what is inactive.
-  notMyTurn?: boolean
+  // A teammate holds the move (the page's `isWaitingForTurn`): dim the whole
+  // board, unless it is interactive. The dim on a board says "you cannot act
+  // at all", the same verb the in-flight dim above uses on a tile — the
+  // element it lands on says what is inactive.
+  isWaitingForTurn?: boolean
   // True for a beat at the moment the turn becomes mine — flashes the board
   // frame yellow. The dim lifting is a state change; this is the event, and
   // you are by definition looking elsewhere when it happens.
@@ -101,16 +103,19 @@ type Props = {
 export function Board({
   board,
   colors,
-  disabled,
+  isBoardInteractive,
   isViewingHistory = false,
   historyLitTiles,
   onSwap,
   pendingSwap = null,
-  notMyTurn = false,
+  isWaitingForTurn = false,
   myTurnJustStarted = false,
   gameOver = null,
   moveCount,
 }: Props) {
+  // No pick, drag or key while the board is inert, or while a past swap is on
+  // screen — any click or key there leaves history.
+  const disabled = !isBoardInteractive || isViewingHistory
   // The picked tiles, in pick order: one from a tap, up to two from the
   // keyboard.
   const [picks, setPicks] = useState<readonly number[]>([])
@@ -242,7 +247,7 @@ export function Board({
         className={cls(
           styles.grid,
           isViewingHistory && history.historyFrame,
-          notMyTurn && shared.dimNotYourTurn,
+          isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
           // Both frames are outlines, so they take turns rather than nest: while
           // the viewer is open it owns the outline, because that is the state you
           // chose and the one you can leave.

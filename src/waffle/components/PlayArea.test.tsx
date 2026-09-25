@@ -21,6 +21,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
@@ -136,25 +137,25 @@ const competeGame: WaffleGame = {
   id: 'g1', mode: 'compete', scramble: BOARD, par_swaps: 9, max_swaps: 14, solution: null,
 }
 
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
+ *  the page derives it (`whereIStand`), so a test sets up the facts and never
+ *  hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    players: [gp('u1', 'me', 'red')],
+    isTerminal: false,
+    isTurnBased: false,
+    turnHolderId: null,
+    ...over,
+  }
+  return {
     gameId: 'g1',
     brand: 'SyrupSwap',
     title: 'Test game',
-    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
-    isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
-    isTurnBased: false,
-    isBoardInteractive: true,
-    isWaitingForTurn: false,
-    turnHolderId: null,
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
     // would crash timerLabel, exactly the kind of render bug these tests guard).
     setup: { difficulty: 2, extra_swaps: 5, timer: { kind: 'none' } },
@@ -168,7 +169,15 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actChat: boundActionFixture('act-open-chat'),
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
-    ...over,
+    ...facts,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId: facts.turnHolderId,
+      draftsOffTurn: false,
+    }),
   }
 }
 
@@ -294,7 +303,7 @@ describe('waffle PlayArea — concede', () => {
     h.result = loaded(competeGame, [me, moth])
     render(
       <PlayArea
-        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })] })}
+        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })] })}
       />,
     )
     expect(screen.getByText('out')).toBeInTheDocument()
@@ -304,7 +313,7 @@ describe('waffle PlayArea — concede', () => {
     h.result = loaded(competeGame, [me, moth])
     render(
       <PlayArea
-        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')] })}
+        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')] })}
       />,
     )
     // The bold action-row status (exact) — the below-board pill carries the
@@ -972,7 +981,16 @@ describe('waffle PlayArea — the selection cursor', () => {
   })
 
   it('a board I cannot play takes no ring and no keys', async () => {
-    render(<WithKeys {...makeCtx({ isMyTurn: false })} />)
+    // A teammate holds the move.
+    render(
+      <WithKeys
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')],
+          isTurnBased: true,
+          turnHolderId: 'u2',
+        })}
+      />,
+    )
     await key('ArrowRight')
     await key(' ')
     expect(ringed()).toEqual([])

@@ -16,22 +16,23 @@ import styles from './BoardCol.module.css'
  * feedback pill + the turn-viewer banner). The move IS the board (tap two tiles to
  * swap), so there are no below-board input controls — `onSwap` is the one committed
  * action up. Like the other games' BoardCol, it does NOT own game state: PlayArea
- * hands it **the board to render** (the live board OR a historical snapshot) + a
- * `readOnly` flag, which is what makes the turn-history viewer a drop-in. See
+ * hands it **the board to render** (the live board OR a historical snapshot) and
+ * the viewed swap's label, which is what makes the turn-history viewer a
+ * drop-in. See
  * docs/playarea.md.
  */
 export function BoardCol({
   mobileStatus,
   board,
   colors,
-  readOnly,
+  isBoardInteractive,
   historyLitTiles,
   historyLabel,
   historyActor,
   onExitHistory,
   onSwap,
   pendingSwap,
-  notMyTurn,
+  isWaitingForTurn,
   myTurnJustStarted,
   gameOver,
   moveCount,
@@ -49,8 +50,9 @@ export function BoardCol({
   board: string
   // 25-char g/y/x colors (server-computed live, FE-computed for a snapshot), or null.
   colors: string | null
-  // Board inert (terminal / not a player / locally done / viewing a past swap).
-  readOnly: boolean
+  // The board responds to me (the page's `isBoardInteractive`); the history
+  // viewer blocks input on top of it.
+  isBoardInteractive: boolean
   // The two tiles the viewed swap moved — ring them (undefined while live).
   historyLitTiles: ReadonlySet<number> | undefined
 
@@ -69,8 +71,8 @@ export function BoardCol({
   // The swap currently in flight (its two cells take the in-flight dim; input is
   // gated), or null. See PlayArea's `pendingSwap`.
   pendingSwap: readonly [number, number] | null
-  // Turn-order coop: a teammate holds the move, so the whole board dims.
-  notMyTurn: boolean
+  // A teammate holds the move, so the whole board dims.
+  isWaitingForTurn: boolean
   // True for a beat at the moment the turn becomes mine — the board frame
   // flashes yellow. Always false in a free-for-all game.
   myTurnJustStarted: boolean
@@ -102,12 +104,12 @@ export function BoardCol({
       <Board
         board={board}
         colors={colors}
-        disabled={readOnly}
+        isBoardInteractive={isBoardInteractive}
         isViewingHistory={isViewingHistory}
         historyLitTiles={historyLitTiles}
         onSwap={onSwap}
         pendingSwap={pendingSwap}
-        notMyTurn={notMyTurn}
+        isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
         gameOver={gameOver}
         moveCount={moveCount}

@@ -61,7 +61,7 @@ type SwapAnswer = {
  * two presentational columns:
  *
  *   - **`<BoardCol>`** — the square Board + the below-board feedback slot. Takes
- *     the board to render (live OR a historical snapshot) + `readOnly`; emits a swap
+ *     the board to render (live OR a historical snapshot) + `isBoardInteractive`; emits a swap
  *     up (`onSwap`) and "back to live" (`onExitHistory`).
  *   - **`<InfoCol>`** — the swap-state readout, OpponentStrip, action row, setup
  *     disclosure, terminal answer reveal, and the coop swap log. Named callbacks up.
@@ -86,10 +86,15 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
+  isPlayer,
+  isConceded,
   isLocallyTerminal,
   timer,
-  isMyTurn,
+  isTurnBased,
   turnHolderId,
+  isMyTurn,
+  isWaitingForTurn,
+  isBoardInteractive,
   setup,
   status,
   globalFeedbackSlot,
@@ -119,10 +124,10 @@ export function PlayArea({
   // ─── Turn-history viewer ───────────────────────────────
   // The shared coordination state: which swap-log row (by its own id) is open on
   // the board, or null = live. When set, PlayArea feeds BoardCol that swap's
-  // historical snapshot + readOnly; BoardCol shows the gray-blue frame + banner
-  // and freezes input. Any key returns to live: the hook binds `act-exit-history`
-  // itself, so nothing is wired here.
-  const { historyId, historyN, isViewingHistory, showHistory, exitHistory } = useHistoryViewer()
+  // historical snapshot and its label; BoardCol shows the gray-blue frame +
+  // banner and freezes input. Any key returns to live: the hook binds
+  // `act-exit-history` itself, so nothing is wired here.
+  const { historyId, historyN, showHistory, exitHistory } = useHistoryViewer()
 
   // Mobile: below --mobile the board fills the screen and the whole info column
   // becomes the off-canvas info page, reached by the header's page switch (the
@@ -146,7 +151,7 @@ export function PlayArea({
   // board dimming is what says "not yours"; its lifting is a removal, and a
   // removal is a poor signal — you have been waiting, so you are looking
   // somewhere else when it happens. Never fires in a free-for-all game
-  // (`isMyTurn` is permanently true there), so it needs no mode gate.
+  // (`isMyTurn` holds for as long as I play there), so it needs no mode gate.
   const turnFlash = useTurnStartFlash(isMyTurn)
 
   // ─── Compete peer news (header pill) ───────────────────
@@ -247,12 +252,6 @@ export function PlayArea({
     [gameId, localFeedbackSlot],
   )
   const [handleSwap] = useSingleFlight(doSwap)
-
-  // Concede lives on the COMMON roster (ctx `players`), computed here (before the
-  // handlers + the menu effect) so both can read it. Drives the shared trio's
-  // concede guard, the menu's coop-End-vs-compete-Concede pick, the "You
-  // conceded" copy, and the conceded-opponent 'out' marker below.
-  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
 
   // ─── The answer shows only when I ask for it ──────────
   // Never automatically for a player who did not solve it (the one who did is
@@ -453,7 +452,6 @@ export function PlayArea({
   // its cleanup — the slot draws whichever ranks highest. Above the early
   // returns because effects must be.
   const self = playerStates.find((p) => p.user_id === session.user.id)
-  const isPlayer = self !== undefined
   const swapsUsed = self?.swaps_used ?? 0
   const remaining = Math.max(0, (game?.max_swaps ?? 0) - swapsUsed)
 
@@ -478,42 +476,39 @@ export function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, over])
 
-  // LOCALLY TERMINAL (compete only): the game continues but *I* can't act —
-  // I've solved my board (waiting), run out of swaps, OR conceded (a real
-  // loss, the rest race on). Shown with the terminal LOOK, not a quietly
-  // swapped help line. Like wordle, this is compete-only, so a waiting coop
-  // player sees only the inert board + the whose-turn note — no false "out
-  // of swaps".
+  // Out of the race while the others play on (compete only; the page's
+  // `isLocallyTerminal`): I've solved my board (waiting), run out of swaps, OR
+  // conceded (a real loss, the rest race on). Shown with the terminal LOOK,
+  // not a quietly swapped help line; a waiting coop player sees only the inert
+  // board + the whose-turn note — no false "out of swaps". `selfSolved` is
+  // waffle's own fact, and picks the words.
   const selfSolved = self?.solved === true
-  const selfDone = isPlayer && (selfSolved || remaining === 0 || myConceded)
   useEffect(function showOutOfRace() {
-    if (!selfDone) return
+    if (!isLocallyTerminal) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.outOfRace(
-        myConceded,
+        isConceded,
         selfSolved ? 'Solved — waiting on the rest' : 'Out of swaps — waiting',
       ),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, selfDone, myConceded, selfSolved])
+  }, [localFeedbackSlot, isLocallyTerminal, isConceded, selfSolved])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
-  // is null in a free-for-all game, so this never fires there. On a phone the
-  // InfoCol's TurnStatusLine is off-canvas, so this is the only whose-turn
-  // indicator beside the dimmed board.
-  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  // A teammate holds the move (turn-order coop; never in a free-for-all). On a
+  // phone the InfoCol's TurnStatusLine is off-canvas, so this is the only
+  // whose-turn indicator beside the dimmed board.
   const turnHolder = players.find((m) => m.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
-    if (!waiting) return
+    if (!isWaitingForTurn) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
         holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
       ),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, waiting, holderName, holderColor])
+  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
 
   if (loading) return <p>Loading game…</p>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -527,7 +522,6 @@ export function PlayArea({
   const isCompete = game.mode === 'compete'
 
   // `concededIds` marks a conceded opponent 'out' in the strip mid-game.
-  // (`myConceded` — my own drop-out flag — is derived at the top.)
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   // Turn viewer: the historical board for the swap being viewed, or null when
@@ -615,11 +609,6 @@ export function PlayArea({
     revealSolution ? allGreen(revealSolution) : (self?.colors ?? null),
   )
 
-  // The board is inert whenever I can't act OR I'm peeking at history. `!isMyTurn`
-  // folds in turn-order (coop only): a waiting player's board freezes. Always true
-  // for free-for-all / solo.
-  const readOnly = isTerminal || !isPlayer || selfDone || isViewingHistory || !isMyTurn
-
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
       <BoardCol
@@ -633,14 +622,14 @@ export function PlayArea({
         }
         board={board}
         colors={colors}
-        readOnly={readOnly}
+        isBoardInteractive={isBoardInteractive}
         historyLitTiles={historySnap?.historyLitTiles}
         historyLabel={historySnap ? historySnap.historyLabel : null}
         historyActor={historyActor}
         onExitHistory={exitHistory}
         onSwap={handleSwap}
         pendingSwap={pendingSwap}
-        notMyTurn={waiting}
+        isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={turnFlash}
         // The finished board wears its verdict: `over` is the same
         // TerminalMessage the below-board verdict and the info-column line
@@ -661,8 +650,9 @@ export function PlayArea({
         isCompete={isCompete}
         over={over}
         isPlayer={isPlayer}
-        selfDone={selfDone}
-        myConceded={myConceded}
+        isLocallyTerminal={isLocallyTerminal}
+        isConceded={isConceded}
+        isTurnBased={isTurnBased}
         turnHolderId={turnHolderId}
         selfSolved={self?.solved ?? false}
         swapsUsed={swapsUsed}

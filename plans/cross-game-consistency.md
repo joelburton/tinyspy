@@ -342,7 +342,12 @@ where it fixes a behavior:
    among them, green). Five of the six audited games are done;
    codenamesduet's `readOnly` / `cellsClickable` go with its step 7, since
    its turn is what decides them. The ten unaudited games are next, one
-   commit each.
+   commit each. waffle done 2026-09-25 (`myConceded` / `selfDone` / `readOnly`
+   / `waiting` / its own `isPlayer` gone — `selfDone` was exactly
+   `isLocallyTerminal`; `selfSolved` stays, its own fact; the Board takes
+   `isBoardInteractive` for its `disabled` and adds the history viewer
+   itself; the two comments still describing a gray Concede corrected; unit +
+   its 9 e2e + the cross-game specs green).
 7. **codenamesduet's turns.** It keeps its turns in its own table
    (`current_clue_giver` and the phase), so the shared `isMyTurn` is always
    true there. It moves onto the common turn order: both players seated
