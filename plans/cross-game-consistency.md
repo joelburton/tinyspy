@@ -36,9 +36,12 @@ one.
 viewing player reads clearly as being about me; a boolean reads as a yes/no
 question — `is…` by default, `amI…` where that is the clearer question. Pick
 the one that reads most naturally: `isMyTurn` (not `amIOnTurn`),
-`amIConceded` (not `isMeConceded`), `isEliminated`, `myId`. A bare past
-participle is not a boolean name — `won` may be a message or a winner — so a
-flag always carries its `is` / `amI`. How much name is scope-sized: a small
+`isEliminated`, `myId`. The viewing player's standing reads as a set with
+`isTerminal` / `isLocallyTerminal`, so it is `isConceded`, not `amIConceded`
+(Joel, 2026-09-24: "hard to read") — the full set is docs/win-lose.md → Where
+a player stands. A bare past participle is not a boolean name — `won` may be
+a message or a winner — so a flag always carries its `is` / `amI`. How much
+name is scope-sized: a small
 component that shows only me takes the bare word (`solved`); state, and a
 long component, or any component that also shows the other players, carries
 the full name.
@@ -206,6 +209,96 @@ Each needs a failing test before its fix.
   tile can read as untouched for a beat: the flash psychicnum's
   `submittedLanded` comment names. psychicnum and wordle hold the dim until the
   result is on the board; connections needs no such hold (the answer is local).
+- **codenamesduet lets a player with no words left guess in sudden death**
+  (found 2026-09-24; not yet fixed). The rulebook: *"If only one player has
+  words remaining, that player guesses. If both do, you may guess in any order
+  without discussing strategy"* — and a player whose partner's agents are all
+  found "has no words left to guess". The doc and `submit_guess` say "either
+  player may guess", with no check. The server should refuse the guess, and
+  §3a step 7's `isMyTurn` keeps the board from offering it.
+
+## 3a. Where a player stands — the formulas, applied (agreed 2026-09-24; not started)
+
+The terms for a player's standing — terminal, locally terminal, conceded, still
+playing, whose turn, read-only — were used loosely, recomputed per game under
+six names (`isStillPlaying`, `showInput`, `locallyDone`, `isLocallyDone`,
+`canPlay`, `interactive`), and in two places wrongly. The agreed definitions
+live in docs/win-lose.md → Where a player stands, one formula per term with
+what it means and what it doesn't; this is the work of making the code say
+the same. N4 (may the board take a click) folds into it.
+
+**The rules this carries** (Joel, 2026-09-24):
+
+- **One name, one meaning.** Two close ideas get two names, never one name
+  stretched over both.
+- **A negation is `!isFoo`, or an `isNotFoo` that means exactly `!isFoo`** —
+  written `const isNotFoo = !isFoo`, never a formula of its own, and never
+  negated (`!isNotFoo`). A negated idea that needs its own formula is a new
+  term, with its own definition.
+- **Locally terminal is "not playing any more, for whatever reason"** —
+  finished, eliminated, out of budget, or conceded. `conceded` stays the one
+  separate fact that forfeits a win. No new word for either.
+- **The turn pointer is a record (`turnHolderId`); `isMyTurn` is the human
+  claim** — still playing, and the move is mine. Whether a game has turns at
+  all is its own fact (`isTurnBased`), never read off a null pointer.
+- **An interactive board is not the same as "my turn"**: scrabble lets a
+  waiting player try tiles out. A board takes `isBoardInteractive`; a commit
+  asks `isMyTurn`. `readOnly` is retired.
+
+**Steps**, in order — each its own commit, each with a failing test first
+where it fixes a behavior:
+
+1. **The docs.** The formulas themselves are written (docs/win-lose.md →
+   Where a player stands: `isTurnBased`, `isMyTurn`, `draftsOffTurn`,
+   `isBoardInteractive`, the `isNotFoo` rule). Left: the docs that disagree —
+   docs/playarea.md ("`readOnly` is `viewing || !canPlay`"), docs/naming.md's
+   board-gate entry, codenamesduet's doc on sudden death, and the `isConceded`
+   and `isNotFoo` rules into docs/code-conventions.md.
+2. **The database.** `common._set_conceded` also sets `locally_terminal`; one
+   migration backfills `locally_terminal = true` wherever `conceded` is;
+   `common._advance_turn` skips locally terminal players, not only conceded
+   ones (latent today: turn order is coop-only and locally terminal is
+   compete-only, so they never meet); the original migration's comment ("NOT
+   a second spelling of `conceded`") gets a note naming the change. pgTAP: a
+   concede sets both flags; the turn skips a locally terminal player.
+   Rehearsed over a fresh prod backup (the cut from `supabase migration list
+   --linked`).
+3. **The shared page.** `useCommonGame` reads `turn_seat` and returns, for
+   every PlayArea: `isPlayer`, `isConceded`, `isLocallyTerminal`,
+   `isStillPlaying`, `turnHolderId`, `isTurnBased`, `isMyTurn` (the new
+   meaning — today's `isMyTurn` is the pointer alone, and becomes
+   `turnHolderId`), and `isBoardInteractive` (with `draftsOffTurn`, a new
+   manifest field, true for scrabble).
+   The pause roster becomes `!p.locally_terminal`. GamePage's own readers
+   (the turn bell, the timer) move to the new names.
+4. **The Concede bug** (found here): Concede hides only on `isTerminal ||
+   myConceded` (`useStandardGameActions`), so a compete racer who has SOLVED
+   can concede and forfeit a win they may have earned. It hides on
+   `isTerminal || isLocallyTerminal`. Failing test first.
+5. **The shared functions' parameter.** `myConceded` → `isConceded` in
+   `useStandardGameActions` and `FeedbackMessage.outOfRace` — sixteen call
+   sites each, a rename only.
+6. **All sixteen games** (Joel: a future audit must never read an old-meaning
+   `isLocallyTerminal`) — one commit per game, that game's e2e run each time.
+   Each reads the page's values instead of its own: psychicnum's
+   `isStillPlaying` / `canPlay`, connections' `showInput` / `locallyDone` /
+   `interactive`, wordle's `isLocallyDone` / `showInput` / `readOnly`, the bee
+   pair's `isLocallyDone` / `readOnly`, codenamesduet's `readOnly` /
+   `cellsClickable` double flip, and the ten unaudited games' equivalents.
+   Every board takes `isBoardInteractive` and a required handler (N4):
+   connections' `interactive` and codenamesduet's `cellsClickable` go, and
+   psychicnum and the bees stop passing `undefined` for "inert". The
+   `notMyTurn` props become `!isMyTurn` (or `isNotMyTurn`) — checking per
+   board that the ending's own look wins over a "teammate's move" dim, since
+   `!isMyTurn` is now also true at the end and for a player who is out. Each
+   unaudited game is checked for `draftsOffTurn`.
+7. **codenamesduet's turns.** It keeps its turns in its own table
+   (`current_clue_giver` and the phase), so the shared `isMyTurn` is always
+   true there. It seats both players (`turn_seat`) and sets the shared pointer
+   to whoever must act now — the clue-giver while a clue is owed, the guesser
+   once it is given. In sudden death it supplies `isMyTurn` itself: the move
+   belongs to whoever still has words to guess (the rulebook's, below), which
+   one pointer cannot say when both do.
 
 ## 4. Naming — cheap renames (code and `supabase/sql/` only)
 
@@ -216,7 +309,7 @@ Most worth fixing first.
 | ~~N1~~ | `gameOver` is the ending (`TerminalOutcome \| null`) on psychicnum / connections / wordle's `Board` and `BoardCol`; in codenamesduet it is a boolean, and its ending is `terminalOutcome` | Done 2026-09-24, the other way round: the ending is `terminalOutcome` everywhere (it says what it holds; `gameOver` reads as a yes/no), the yes/no is `isTerminal`, typed `TerminalOutcome \| null` in all four. The shared `gameOver*` CSS classes stay. `common/game-page/GamePage.tsx`'s own yes/no is `isTerminal` too, read off `is_terminal` (it was `ended_at !== null`) — the answer every PlayArea is handed. waffle's is outside the six |
 | ~~N2~~ | the refused-word mark: `answered` (spellingbee `Letters`), `refused` (wordwheel `Wheel`), `reject` (wordle `Board`); the bee pair also swaps `answered` / `refused` between them | Done 2026-09-24: `refused` / `showRefused` in all three. The per-tile slice is `mark` in both bees, and the single tile's prop stays `answer` (`Letter`, `Tile`) |
 | ~~N3~~ | the move still with the server: `inFlightWord` (psychicnum), `inFlightTiles` (connections), `pending` / `pendingWord` / `.inFlight` (wordle), `pendingPos` (codenamesduet) | Done 2026-09-24: `inFlight…` everywhere (`inFlightWord`, `inFlightTiles`, `inFlightPos`), and a board's per-tile/row local is `isInFlight`. psychicnum and wordle, whose result lands by realtime, share one shape in named steps: state `submittedWord` (the word I last sent), `submittedLanded` (its result is on the board), `inFlightWord = submittedLanded ? null : submittedWord` — `null`, not `''`, for nothing out. The single-flight `pending` is a different thing and stays |
-| N4 | may the board take a click: `interactive` (connections), `cellsClickable` (codenamesduet), the handler left out (psychicnum, the bee games) | `readOnly`, the glossary's gate |
+| N4 | may the board take a click: `interactive` (connections), `cellsClickable` (codenamesduet), the handler left out (psychicnum, the bee games) | Folded into §3a, step 6: every board takes `isBoardInteractive` and a required handler |
 | N5 | am I still in the game: `isStillPlaying` (psychicnum), `showInput` (connections, wordle — where it gates a help line) | `isStillPlaying` |
 | N6 | psychicnum, the control, is the odd one: `turnHolderName` / `turnHolderColor`; `useGame` returns budget rows as `players`; the move answers `verdict` + `found_all` | `holderName` / `holderColor`; `playerBudgets`; `result` |
 | N7 | the print model's `setup: SetupRow[]` (`common/pdf/eventLog.ts` and four game models) where the columns say `setupRows` | `setupRows` |

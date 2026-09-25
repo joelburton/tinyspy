@@ -125,6 +125,96 @@ detection.
   failure muddies won and lost. The carriers exist (per-player `result`, the
   terminal reveals); the work is each game's choice of standings metric.
 
+## Where a player stands — the terms, as formulas
+
+Each term means exactly one thing, and code uses the term only for that thing.
+Where two ideas are close, they get two names, never one name stretched over
+both. The frontend names are below; the database columns they read are named
+in each formula. (The code is converging on these —
+[plans/cross-game-consistency.md](../plans/cross-game-consistency.md) tracks
+what still differs.)
+
+**A negation is `!isFoo`, or an `isNotFoo` that means exactly `!isFoo`.**
+`isNotFoo` is only ever written `const isNotFoo = !isFoo` — a spelling for
+readability, never a formula of its own. A negated idea that needs its own
+formula is not `isNot…` of anything: it is a new term, and it goes here with
+its own means and doesn't-mean. And never `!isNotFoo` — write `isFoo`.
+
+```js
+// isTerminal — the game is over, for everyone.
+//   Doesn't mean: I'm out. A racer who finished or conceded while the others
+//   play on doesn't make it true.
+isTerminal = common.games.is_terminal
+
+// isPlayer — I'm seated in this game.
+//   Doesn't mean: I'm still playing. A player stays a player after the game,
+//   or their part in it, ends. A club member watching is not a player.
+isPlayer = /* I have a common.game_players row */
+
+// isConceded — I walked away from a race, and forfeit any win.
+//   Doesn't mean: I'm out for any other reason. A racer who solved, was
+//   eliminated or spent their budget has not conceded. Never true in coop: a
+//   team can't concede.
+isConceded = me.conceded                     // common.game_players.conceded
+
+// isLocallyTerminal — I'm not playing any more, for whatever reason: finished,
+//   eliminated, out of budget, or conceded. The game may go on for the others.
+//   Doesn't mean: the game is over — that is isTerminal. Doesn't say why: for
+//   the reason, read isConceded or the game's own fact (solved, eliminated,
+//   budget spent). A locally terminal player who did NOT concede may still win.
+isLocallyTerminal = me.locally_terminal      // common.game_players.locally_terminal
+// so every conceder is locally terminal:
+//   isConceded → isLocallyTerminal
+
+// isStillPlaying — I'm a player, and the game still wants moves from me.
+//   Doesn't mean: it's my turn. Waiting for my turn is still playing.
+//   Implied by isMyTurn: whoever has the turn is still playing.
+isStillPlaying = isPlayer && !isTerminal && !isLocallyTerminal
+
+// isTurnBased — this game has a turn order. Fixed when the game is created.
+//   Doesn't mean: someone holds the turn right now.
+isTurnBased = /* the players were seated in a turn order: common.game_players.turn_seat is set */
+
+// turnHolderId — the turn pointer as stored: the player the turn order names,
+//   or null if it names nobody. A record, not a claim about who is playing.
+//   Doesn't mean: that player is still playing, or that the game is still on —
+//   the pointer is not cleared when a game ends, and a player can go locally
+//   terminal while holding it. Doesn't mean "free-for-all" when null — that is
+//   !isTurnBased. Never ask "is it my turn?" of this alone.
+turnHolderId = common.games.current_turn_user_id
+
+// isMyTurn — I'm still playing, and the move is mine: I hold the turn, or the
+//   game has no turn order (a free-for-all game, where every player may move).
+//   Doesn't mean: the pointer merely names me. A player who is out, or a
+//   finished game, never has the turn; and a turn-based game whose pointer
+//   names nobody is nobody's turn, never everybody's. A game with its own turn
+//   structure (codenamesduet's sudden death, where the move belongs to whoever
+//   still has words to guess) supplies isMyTurn itself — by this same meaning.
+isMyTurn = isStillPlaying && (!isTurnBased || turnHolderId === me)
+
+// draftsOffTurn — the game lets a waiting player try out a move on the board
+//   (scrabble: place tiles, not play them). A fixed fact about the game — its
+//   manifest.
+//   Doesn't mean: a move can be committed off-turn. Committing always asks
+//   isMyTurn.
+draftsOffTurn = manifest.draftsOffTurn
+
+// isBoardInteractive — the board responds to me: things hover, and it takes a
+//   click, a drag or a key. When it isn't, it is shown but inert.
+//   Doesn't mean: I may commit a move — that is isMyTurn, and a game that
+//   drafts off-turn has an interactive board while !isMyTurn. Doesn't mean:
+//   I'm not viewing a past turn — the history viewer blocks input itself.
+//   Doesn't mean: no move is in flight — the single-flight `pending` blocks
+//   that.
+isBoardInteractive = draftsOffTurn ? isStillPlaying : isMyTurn
+
+// isViewingHistory — a past turn is drawn on the board.
+//   Doesn't mean: !isBoardInteractive. It changes what the board SHOWS; the
+//   live board's isBoardInteractive is unchanged underneath it, and any click
+//   or key leaves history.
+isViewingHistory = /* the history viewer has a turn open */
+```
+
 ## Vocabulary
 
 Prefer these in docs, comments, identifiers and setup keys.
@@ -136,7 +226,7 @@ Prefer these in docs, comments, identifiers and setup keys.
 | **race** / **best** | the two compete styles: the first finisher ends it, or everyone plays out and a ranking decides |
 | **first past the post** | the race mechanism — an instant end, serialized by the lock, so no ties |
 | **play out** | the best-style property: the game waits for every player |
-| **locally terminal** | a finished player's state while others play on; `common.game_players.locally_terminal` ([common.md](common.md)) |
+| **locally terminal** | not playing any more, for whatever reason — finished, eliminated, out of budget, or conceded — while others may play on; `common.game_players.locally_terminal` ([common.md](common.md)). See [Where a player stands](#where-a-player-stands--the-terms-as-formulas) |
 | **standings** | partial progress read as a ranking |
 | **all lose** / **rank the finishers** / **rank the standings** | the three things a timeout can do |
 | **the reachable-end rule** | a timeout is a loss iff an end was reachable and unreached ([states.md](states.md)) |
