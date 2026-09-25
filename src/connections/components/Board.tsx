@@ -37,10 +37,11 @@ type Props = {
   // record of how far the players got) and step aside only for the reveal,
   // whose bands take their grid rows.
   tiles: string[]
-  // May these tiles be clicked? False on a frozen board, which marks them
-  // `disabled` — the shared `.tile` chrome then drops the pointer cursor and
-  // the hover lift, so a record doesn't advertise itself as an input.
-  interactive: boolean
+  // The board responds to me (the page's `isBoardInteractive`). False — or a
+  // past turn on screen — marks the tiles `disabled`: the shared `.tile`
+  // chrome then drops the pointer cursor and the hover lift, so a record
+  // doesn't advertise itself as an input.
+  isBoardInteractive: boolean
   // tile → user_id (the inverted selections map). Says which tiles are in the
   // guess being built, and whose pick each one was.
   ownerByTile: ReadonlyMap<string, string>
@@ -63,9 +64,9 @@ type Props = {
   // Is this board SHARED — a coop game with somebody else in it? Only then is
   // a pick ringed in its picker's color, and then every pick is, mine included.
   sharedBoard: boolean
-  // Turn-order (coop, opt-in): a teammate holds the move, so the whole board
-  // is inactive — the board-scope dim.
-  notMyTurn: boolean
+  // A teammate holds the move (the page's `isWaitingForTurn`): the board-scope
+  // dim, unless the board is interactive.
+  isWaitingForTurn: boolean
   // True for a beat as the turn becomes mine (useTurnStartFlash).
   myTurnJustStarted: boolean
   // The game's outcome once it is over — the board wears the frame in it.
@@ -116,7 +117,7 @@ export function Board({
   matched,
   unmatched,
   tiles,
-  interactive,
+  isBoardInteractive,
   ownerByTile,
   onToggle,
   cursor,
@@ -124,7 +125,7 @@ export function Board({
   verdict,
   colorByUserId,
   sharedBoard,
-  notMyTurn,
+  isWaitingForTurn,
   myTurnJustStarted,
   terminalOutcome,
   moveCount,
@@ -215,7 +216,7 @@ export function Board({
           shared.hugRectWidth,
           styles.grid,
           isViewingHistory && history.historyFrame,
-          notMyTurn && shared.dimNotYourTurn,
+          isWaitingForTurn && !isBoardInteractive && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
           // Both frames are outlines, so they take turns rather than nest: while
           // the viewer is open it owns the outline, being the state you chose and
@@ -253,7 +254,7 @@ export function Board({
               // Shuffle control lives inside the board root, so "a button in
               // the board" isn't specific enough to mean "a tile").
               data-tile={tile}
-              disabled={!interactive}
+              disabled={!isBoardInteractive || isViewingHistory}
               className={cls(
                 shared.tileFace,
                 shared.tile,

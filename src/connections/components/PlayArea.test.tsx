@@ -16,6 +16,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
@@ -111,25 +112,25 @@ function loaded(over: Partial<GameHook> = {}): GameHook {
   }
 }
 
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
+ *  the page derives it (`whereIStand`), so a test sets up the facts and never
+ *  hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    players: [gp('u1', 'me', 'red')],
+    isTerminal: false,
+    isTurnBased: false,
+    turnHolderId: null,
+    ...over,
+  }
+  return {
     gameId: 'g1',
     brand: 'WordKnit',
     title: 'Test game',
-    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
-    isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
-    isTurnBased: false,
-    isBoardInteractive: true,
-    isWaitingForTurn: false,
-    turnHolderId: null,
     setup: { puzzle_id: 'p1', timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -141,9 +142,20 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actChat: boundActionFixture('act-open-chat'),
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
-    ...over,
+    ...facts,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId: facts.turnHolderId,
+      draftsOffTurn: false,
+    }),
   }
 }
+
+/** Me, out of the race — eliminated or finished — as the server marks it. */
+const meOut = gp('u1', 'me', 'red', { locally_terminal: true })
 
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
@@ -240,7 +252,7 @@ describe('connections PlayArea — concede', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
-          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })],
+          players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })],
         })}
       />,
     )
@@ -252,7 +264,7 @@ describe('connections PlayArea — concede', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
-          players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
+          players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')],
         })}
       />,
     )
@@ -267,8 +279,8 @@ describe('connections PlayArea — concede', () => {
       <PlayAreaLoader
         {...makeCtx({
           players: [
-            gp('u1', 'me', 'red', { conceded: true }),
-            gp('u2', 'moth', 'blue', { conceded: true }),
+            gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }),
+            gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true }),
           ],
           isTerminal: true,
           playState: 'lost_compete',
@@ -334,7 +346,7 @@ describe('connections PlayArea — the ended board + the terminal reveal', () =>
 
   it('an eliminated compete player sees no answer while the others race', () => {
     h.result = loaded({ game: game('compete'), isEliminated: true, mistakeCount: 4 })
-    render(<PlayAreaLoader {...makeCtx({ isTerminal: false, playState: 'playing' })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTerminal: false, playState: 'playing', players: [meOut] })} />)
 
     // Their board freezes and says so, but the puzzle stays unspoiled — sitting
     // out with something left to think about beats being handed the answer.
@@ -456,7 +468,7 @@ describe('connections PlayArea — the board-scope marks', () => {
     // The game is still on for the survivors, so there is no verdict to color
     // the frame with — but this board is inert, which is all the frame claims.
     h.result = loaded({ game: game('compete'), isEliminated: true, mistakeCount: 4 })
-    const { container } = render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
+    const { container } = render(<PlayAreaLoader {...makeCtx({ players: [meOut, twoMembers[1]] })} />)
 
     expect(gridIn(container).className).toMatch(/gameOverFrame/)
     expect(gridIn(container).className).not.toMatch(/gameOverWon|gameOverLost/)
@@ -465,7 +477,7 @@ describe('connections PlayArea — the board-scope marks', () => {
   it('dims the board while a teammate holds the move, and flashes when it arrives', () => {
     h.result = loaded({ game: game('coop') })
     const { container, rerender } = render(
-      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', isMyTurn: false, players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />,
     )
     expect(gridIn(container).className).toMatch(/dimNotYourTurn/)
     // An EVENT, so never on mount: opening a game on your own turn is not the
@@ -473,7 +485,7 @@ describe('connections PlayArea — the board-scope marks', () => {
     expect(gridIn(container).className).not.toMatch(/yourTurnFlash/)
 
     rerender(
-      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u1', isMyTurn: true, players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u1', players: twoMembers })} />,
     )
 
     expect(gridIn(container).className).toMatch(/yourTurnFlash/)
@@ -485,7 +497,7 @@ describe('connections PlayArea — the board-scope marks', () => {
     const toggleTile = vi.fn()
     h.result = loaded({ game: game('coop'), toggleTile })
     render(
-      <PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', isMyTurn: false, players: twoMembers })} />,
+      <PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />,
     )
 
     const tile = document.querySelector('[data-tile="a"]') as HTMLButtonElement
@@ -955,7 +967,7 @@ describe('connections PlayArea — the keys', () => {
 
   it("both leave on a teammate's turn — hidden, not merely inert", () => {
     h.result = fourPicked()
-    render(<WithKeys {...makeCtx({ isMyTurn: false, turnHolderId: 'u2', players: twoMembers })} />)
+    render(<WithKeys {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />)
     expect(bound('act-submit').describe('button').state).toBe('hidden')
     expect(bound('act-clear-selection').describe('button').state).toBe('hidden')
   })
@@ -981,7 +993,7 @@ describe('connections PlayArea — the keys', () => {
 
     it('Hints is gone, row and button, once I can no longer submit', () => {
       h.result = loaded({ isEliminated: true })
-      render(<WithKeys {...makeCtx()} />)
+      render(<WithKeys {...makeCtx({ players: [meOut] })} />)
       expect(bound('act-hint').describe('button').state).toBe('hidden')
       expect(bound('act-hint').describe('menu').state).toBe('hidden')
       // …and the Reveal button appears in its place, grayed until everyone is done.
@@ -1239,7 +1251,8 @@ describe('connections PlayArea — the selection cursor', () => {
   it('a board I cannot play takes no ring and no keys', async () => {
     const toggleTile = vi.fn()
     h.result = loaded({ toggleTile })
-    render(<WithKeys {...makeCtx({ isMyTurn: false })} />)
+    // A teammate holds the move.
+    render(<WithKeys {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />)
     await key('ArrowRight')
     await key(' ')
     expect(ringed()).toEqual([])

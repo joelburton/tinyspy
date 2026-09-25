@@ -155,10 +155,15 @@ function PlayArea({
   players,
   playState,
   isTerminal,
+  isConceded,
   isLocallyTerminal,
+  isStillPlaying,
   status,
-  isMyTurn,
+  isTurnBased,
   turnHolderId,
+  isMyTurn,
+  isWaitingForTurn,
+  isBoardInteractive,
   setup,
   globalFeedbackSlot,
   clubHandle,
@@ -217,22 +222,12 @@ function PlayArea({
   const turnFlash = useTurnStartFlash(isMyTurn)
 
   // ─── Derived ───────────────────────────────────────────
-  // Who I am in this game and what I may still do, read off the props and
-  // the hook's rows. Named here because the sections below share them: the
-  // standing conditions, the bindings' `describe`s, the print model and both
-  // columns all ask the same questions, and they must not answer them
-  // differently.
-
-  // I dropped out of a compete race (a real loss; the others keep racing). Read
-  // from the common roster (prop `players`), not from `connections.players`.
-  const myConceded =
-    players.find((p) => p.user_id === session.user.id)?.conceded ?? false
-  // Locally terminal (compete, not game-over): out of the race — eliminated on
-  // a fourth mistake, or conceded — while the game continues for the survivors.
-  const locallyDone = isEliminated || myConceded
-  // May I still submit? Gates the tiles, the hint list and the help line; read
-  // by the Hint and Reveal bindings, so their buttons and menu rows agree.
-  const showInput = !isTerminal && !locallyDone
+  // Who I am in this game and what I may still do. Where I stand — conceded,
+  // out of the race, still playing, whose move it is — comes from the page,
+  // already computed (docs/win-lose.md → Where a player stands); an elimination
+  // on the fourth mistake is one way out, and the server marks it so.
+  // `isStillPlaying` gates the tiles, the hint list and the help line, and the
+  // Hint and Reveal bindings read it, so their buttons and menu rows agree.
 
   // The terminal reveal — derived state, because the Reveal binding below reads
   // it. The categories nobody got are shown only when this viewer asks: an
@@ -296,13 +291,12 @@ function PlayArea({
   // label reads the same column.
   const reason = status?.reason as string | undefined
   const selfWon = iMatchedThemAll
-  const selfEliminated = mistakeCount >= MISTAKE_BUDGET
   const terminalMessage = useMemo(
     () =>
       isTerminal
-        ? buildTerminalMessage({ mode, playState, reason, selfWon, selfEliminated })
+        ? buildTerminalMessage({ mode, playState, reason, selfWon, selfEliminated: isEliminated })
         : null,
-    [isTerminal, mode, playState, reason, selfWon, selfEliminated],
+    [isTerminal, mode, playState, reason, selfWon, isEliminated],
   )
   useEffect(function showTerminalVerdict() {
     if (!terminalMessage) return
@@ -315,29 +309,27 @@ function PlayArea({
   // It freezes this player's input and does not open the answer, which waits
   // for the game to be over for everyone.
   useEffect(function showOutOfRace() {
-    if (!locallyDone || isTerminal) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(myConceded))
+    if (!isLocallyTerminal || isTerminal) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, locallyDone, isTerminal, myConceded])
+  }, [localFeedbackSlot, isLocallyTerminal, isTerminal, isConceded])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
-  // is null in a free-for-all game, so this never fires there. It carries the
-  // whose-turn answer on MOBILE, where the InfoCol's TurnStatusLine is
-  // off-canvas; without it a frozen board just ignored taps. The holder is
-  // read as two primitives so the effect settles in one pass.
-  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  // A teammate holds the move (turn-order coop; never in a free-for-all). It
+  // carries the whose-turn answer on MOBILE, where the InfoCol's
+  // TurnStatusLine is off-canvas; without it a frozen board just ignored taps.
+  // The holder is read as two primitives so the effect settles in one pass.
   const turnHolder = players.find((p) => p.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
-    if (!waiting) return
+    if (!isWaitingForTurn) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
         holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
       ),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, waiting, holderName, holderColor])
+  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
 
   // ─── Narration — what a PEER did, in the header slot ───
   // About somebody else, which is what puts it in the global slot rather than
@@ -398,7 +390,7 @@ function PlayArea({
   // row and button, once you can no longer submit.
   const actHint = useBoundAction('act-hint', {
     describe: () =>
-      showInput ? { state: 'active', label: hintsOpen ? 'Hide hints' : 'Hints' } : 'hidden',
+      isStillPlaying ? { state: 'active', label: hintsOpen ? 'Hide hints' : 'Hints' } : 'hidden',
     run: () => setHintsOpen((o) => !o),
   })
 
@@ -411,7 +403,7 @@ function PlayArea({
       // so a player who dropped out cannot spoil a race still running. The
       // menu row keeps it all game, grayed, because it NAMES the glyph
       // (docs/ui.md → the menu is the legend).
-      if (showInput && asker === 'button') return 'hidden'
+      if (isStillPlaying && asker === 'button') return 'hidden'
       return describeReveal({ noun: 'solution', revealed: solutionShown, impliedBySolve, isTerminal })
     },
     run: toggleSolution,
@@ -557,7 +549,7 @@ function PlayArea({
   // nothing here is a hook, which is why it may sit after the menu effect.
 
   // Who has bowed out of the race — the opponent strip's "out" cell. From the
-  // common roster, like `myConceded`.
+  // common roster, like `isConceded`.
   const concededIds = new Set(
     players.filter((p) => p.conceded).map((p) => p.user_id),
   )
@@ -605,16 +597,17 @@ function PlayArea({
         solutionShown={solutionShown}
         historySnap={historySnap}
         historyActor={historyActor}
-        showInput={showInput}
+        isStillPlaying={isStillPlaying}
+        isBoardInteractive={isBoardInteractive}
         isMyTurn={isMyTurn}
-        notMyTurn={waiting}
+        isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={turnFlash}
         // The frame says "this board is not a live position", which is true in
         // two situations, not one: the game is over for everybody (the frame
         // wears the verdict's outcome), or this player is out of a compete race while the
         // others play on. The second has no verdict yet, so it takes the neutral
         // gray — their board is inert, which is all the frame claims.
-        terminalOutcome={terminalMessage ? terminalMessage.outcome : locallyDone ? 'neutral' : null}
+        terminalOutcome={terminalMessage ? terminalMessage.outcome : isLocallyTerminal ? 'neutral' : null}
         onExitHistory={exitHistory}
         // ── Tile selection (state in useGame; BoardCol renders and commits it) ──
         ownerByTile={ownerByTile}
@@ -642,8 +635,9 @@ function PlayArea({
         // ── Mode + phase ──
         isCompete={mode === 'compete'}
         terminalMessage={terminalMessage}
-        showInput={showInput}
-        myConceded={myConceded}
+        isStillPlaying={isStillPlaying}
+        isConceded={isConceded}
+        isTurnBased={isTurnBased}
         turnHolderId={turnHolderId}
         // ── State readout ──
         found={found}

@@ -319,7 +319,11 @@ where it fixes a behavior:
    does.
    **Progress:** psychicnum done 2026-09-24 (its own `myConceded` /
    `isStillPlaying` / `canPlay` / `waiting` gone; pick vs commit gated
-   separately; unit + its 8 e2e + the cross-game specs green).
+   separately; unit + its 8 e2e + the cross-game specs green). connections
+   done 2026-09-25 (`myConceded` / `locallyDone` / `showInput` / `interactive`
+   / `waiting` gone; `selfEliminated` reads `useGame`'s `isEliminated` — N13;
+   unit + its 9 e2e + the cross-game specs green). Noticed, not changed:
+   connections shows its help line while I wait my turn, psychicnum hides it.
 7. **codenamesduet's turns.** It keeps its turns in its own table
    (`current_clue_giver` and the phase), so the shared `isMyTurn` is always
    true there. It moves onto the common turn order: both players seated
@@ -407,7 +411,7 @@ Most worth fixing first.
 | N10 | `picked` (state) renamed `selected` on psychicnum's `Board` | §1b |
 | N11 | wordle's `players: members` rename, with no stated reason (codenamesduet states one) | `players` |
 | N12 | `totalGuesses` (psychicnum) vs `maxGuesses` (wordle); connections' print model `mistakes` / `maxMistakes` vs its columns' `mistakeCount` / `mistakeBudget`; codenamesduet's `turns` / `turnBudget` / `turnCap` and `turnNumber` / `currentTurn` | `maxGuesses`; `mistakeCount` / `mistakeBudget`; `turnBudget` / `turnNumber` |
-| N13 | connections' `selfEliminated` recomputes the `isEliminated` its `useGame` returns | use `isEliminated` |
+| ~~N13~~ | connections' `selfEliminated` recomputes the `isEliminated` its `useGame` returns | Done 2026-09-25, in §3a step 6: the verdict reads `isEliminated` |
 | N14 | codenamesduet: `DuetPrintModel` / `buildDuetPrintModel`, `PrintCell` / `drawCell`, `CodenamesduetAISuggestCompanion.tsx`, the pdf `Mark` type that clashes with common's `Mark<T>` | `CodenamesduetPrintModel` / `buildCodenamesduetPrintModel`, `PrintTile`, `AISuggestCompanion`, `KeyRole` |
 | N15 | spellingbee's board is `Letters.tsx`; its glossary word is "hive" | `Hive.tsx` |
 | N16 | wordle declares no `Player` type; its row types `SubmittedRow` and `HistorySnapshotRow` are one shape; `WordlePlayerState` where the house form is `PlayerRow` | `Player`, one `BoardRow`, `PlayerRow` |

@@ -75,9 +75,10 @@ export function BoardCol({
   solutionShown,
   historySnap,
   historyActor,
-  showInput,
+  isStillPlaying,
+  isBoardInteractive,
   isMyTurn,
-  notMyTurn,
+  isWaitingForTurn,
   myTurnJustStarted,
   terminalOutcome,
   onExitHistory,
@@ -114,18 +115,17 @@ export function BoardCol({
   historySnap: HistorySnapshot | null
   // Whose board is on screen, when it is not the viewer's own.
   historyActor?: Actor | null
-  // May I still submit? Gates the tiles + the commit row (vs a terminal / waiting pill).
-  // Participant-level (terminal / eliminated / conceded) — NOT turn-aware.
-  showInput: boolean
-  // Turn-order: may I act THIS moment? Always true for free-for-all / solo. When
-  // false, tile selection + submit are frozen (the InfoCol TurnStatusLine explains
-  // why). Kept apart from `showInput` so a non-turn doesn't read as terminal /
-  // eliminated (which would flip to the reveal view).
+  // The page's standing terms (docs/win-lose.md → Where a player stands).
+  // Still in the game — the shuffle, the drawn selection. Waiting my turn is
+  // still playing.
+  isStillPlaying: boolean
+  // The board takes a pick — the tiles, the cursor and Clear.
+  isBoardInteractive: boolean
+  // The move is mine — Submit.
   isMyTurn: boolean
-  // Turn-order: a teammate holds the move, so the board wears the shared dim.
-  // Narrower than `!isMyTurn` — a terminal board is inactive for a different
-  // reason and says so with the frame instead.
-  notMyTurn: boolean
+  // A teammate holds the move, so the board wears the shared dim. A finished
+  // board is inactive for a different reason and says so with the frame.
+  isWaitingForTurn: boolean
   // True for a beat as the turn arrives (the shared your-turn flash).
   myTurnJustStarted: boolean
   // The outcome the game-over frame wears, or null while the board is live.
@@ -170,8 +170,10 @@ export function BoardCol({
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
   // conventions: one prop says so, and the flag is derived, never passed).
   const isViewingHistory = historySnap !== null
-  // May I act on the board right now — click a tile, move the cursor, pick?
-  const interactive = showInput && isMyTurn && !isViewingHistory
+  // May I pick (or clear) a tile right now, and may I submit? A past turn on
+  // screen blocks both: any click or key there leaves history.
+  const canPick = isBoardInteractive && !isViewingHistory
+  const canCommit = isMyTurn && !isViewingHistory
   // On a phone the below-board commit row is tight.
   const phone = useIsPhone()
 
@@ -344,7 +346,7 @@ export function BoardCol({
   // gray rather than firing a no-op.
   const actSubmit = useBoundAction('act-submit', {
     describe: () => {
-      if (!showInput || !isMyTurn || isViewingHistory) return 'hidden'
+      if (!canCommit) return 'hidden'
       if (submitting) return { state: 'disabled', label: 'Submitting…' }
       return unionTiles.length === TILES_PER_CATEGORY ? 'active' : 'disabled'
     },
@@ -355,7 +357,7 @@ export function BoardCol({
   // too.
   const actClearSelection = useBoundAction('act-clear-selection', {
     describe: () => {
-      if (!showInput || !isMyTurn || isViewingHistory) return 'hidden'
+      if (!canPick) return 'hidden'
       return unionTiles.length === 0 ? 'disabled' : 'active'
     },
     run: sendClear,
@@ -368,7 +370,7 @@ export function BoardCol({
     // A frozen board still DRAWS its tiles (the record of where the players
     // got to), and a waiting player must not build or broadcast a selection, so
     // the guard is explicit.
-    if (!showInput || !isMyTurn) return
+    if (!isBoardInteractive) return
     localFeedbackSlot.dismiss()
     // The fill goes with the pill it belongs to — one message, one dismissal.
     clearVerdict()
@@ -396,7 +398,7 @@ export function BoardCol({
   // is not acting on the board.
   const actShuffle = useBoundAction('act-shuffle', {
     describe: () => {
-      if (!showInput || isViewingHistory) return 'hidden'
+      if (!isStillPlaying || isViewingHistory) return 'hidden'
       return displayedTiles.length === 0 ? 'disabled' : 'active'
     },
     run: handleShuffle,
@@ -412,7 +414,7 @@ export function BoardCol({
 
   const { cursor, point } = useBoardSelectionCursor({
     shape,
-    enabled: interactive,
+    enabled: canPick,
     onToggle: (cell: Cell) => {
       const tile = displayedTiles[cell.y * shape.cols + cell.x]
       if (tile !== undefined) handleToggle(tile)
@@ -440,22 +442,22 @@ export function BoardCol({
         // for the reveal, whose bands need the rows (bands + ceil(tiles/4) is a
         // fixed row count).
         tiles={historySnap ? historySnap.tiles : solutionShown ? [] : displayedTiles}
-        // A historical snapshot is a record too — never clickable. `isMyTurn` is
-        // in here as well as on the click guard: a tile that hovers, lifts and
-        // shows a pointer while silently swallowing the click is a promise the
-        // board can't keep, and the dim beside it would be saying the opposite.
-        interactive={interactive}
+        // The board's gate is here as well as on the click guard: a tile that
+        // hovers, lifts and shows a pointer while silently swallowing the click
+        // is a promise the board can't keep. A historical snapshot is a record
+        // too, and the Board makes it inert itself.
+        isBoardInteractive={isBoardInteractive}
         // No selection is drawn on a board that can't take a move — a past
         // turn, or a player who is finished — though the broadcast state
         // itself outlives both.
-        ownerByTile={isViewingHistory || !showInput ? NO_OWNERS : ownerByTile}
+        ownerByTile={isViewingHistory || !isStillPlaying ? NO_OWNERS : ownerByTile}
         onToggle={handleTileClick}
         cursor={cursor}
         inFlightTiles={inFlightTiles}
         verdict={verdictShown ? verdict : null}
         colorByUserId={colorByUserId}
         sharedBoard={sharedBoard}
-        notMyTurn={notMyTurn}
+        isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
         terminalOutcome={terminalOutcome}
         // ATTENTION's cause, read off the log rather than off the board: how many
@@ -467,7 +469,7 @@ export function BoardCol({
         // Shuffle floats over the board's top-right, only while the grid is
         // shown; Board anchors it to the visual board.
         floatingControl={
-          showInput &&
+          isStillPlaying &&
           !isViewingHistory && (
             <ShuffleButton
               action={actShuffle}

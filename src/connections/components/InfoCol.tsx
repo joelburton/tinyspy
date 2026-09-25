@@ -32,8 +32,9 @@ export function InfoCol({
   // same idea — see docs/playarea.md.
   isCompete,
   terminalMessage,
-  showInput,
-  myConceded,
+  isStillPlaying,
+  isConceded,
+  isTurnBased,
   turnHolderId,
   found,
   categoryCount,
@@ -61,12 +62,14 @@ export function InfoCol({
   isCompete: boolean
   // The terminal message when the game is over (drives the action row), else null.
   terminalMessage: TerminalMessage | null
-  // May I still submit? Gates the hint list + help (vs the locally-done look).
-  showInput: boolean
-  // I conceded / was eliminated in a compete race — picks the locally-done wording.
-  myConceded: boolean
-  // Whose turn it is under turn-order, or null for a free-for-all game.
-  // Non-null ⇒ render the shared TurnStatusLine (a turn game).
+  // The page's standing terms (docs/win-lose.md → Where a player stands).
+  // Still in the game — gates the hint list + help (vs the out-of-the-race look).
+  isStillPlaying: boolean
+  // I conceded — picks the out-of-the-race wording.
+  isConceded: boolean
+  // A turn-order game: render the shared TurnStatusLine, which names the
+  // holder of `turnHolderId`.
+  isTurnBased: boolean
   turnHolderId: string | null
 
   // ── State readout (categories found + mistakes) ──
@@ -128,9 +131,9 @@ export function InfoCol({
   // runs on without you, and nothing at all while you can still play.
   const rowMessage: InfoActionsMessage | undefined = terminalMessage
     ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
-    : showInput
+    : isStillPlaying
       ? undefined
-      : { text: myConceded ? 'You conceded' : 'You’re out', outcome: 'neutral' }
+      : { text: isConceded ? 'You conceded' : 'You’re out', outcome: 'neutral' }
 
   return (
     <div className={shared.infoCol}>
@@ -147,9 +150,9 @@ export function InfoCol({
           </strong>{' '}
           mistakes
         </p>
-        {/* Whose-turn line — only for a turn-order game (pointer non-null). A
-            separate line below the state readout; never replaces it. */}
-        {turnHolderId !== null && (
+        {/* Whose-turn line — only for a turn-order game. A separate line below
+            the state readout; never replaces it. */}
+        {isTurnBased && (
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
@@ -214,11 +217,11 @@ export function InfoCol({
         {/* The per-player hint reveals — unfolds right under the action row when
             Hints is on; stays mounted (so revealed tiles persist across toggles),
             and folds with the Hints button once you can no longer submit. */}
-        <HintList categories={categories} open={hintsOpen && showInput} />
+        <HintList categories={categories} open={hintsOpen && isStillPlaying} />
 
-        {/* Help — shown only while you can act on it (never silently swaps); the
-            eliminated state is carried loudly by the action row above. */}
-        {showInput && (
+        {/* Help — shown only while you are in the game (never silently swaps);
+            the eliminated state is carried loudly by the action row above. */}
+        {isStillPlaying && (
           <p className={shared.infoHelp}>Pick 4 tiles that share a category, then Submit.</p>
         )}
 
