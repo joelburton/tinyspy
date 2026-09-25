@@ -360,6 +360,12 @@ where it fixes a behavior:
    test first). The same row, Concede alone, is in wordiply, stackdown,
    letterboxed and crosswords — each gets the fix and a failing test in its
    own commit.
+   wordiply done 2026-09-25 (`myConceded` / `isLocallyDone` / `active` /
+   `waiting` gone; the entry freezes on `!isBoardInteractive`; its
+   conceder's row now places End — failing test first. wordiply marks the
+   CONCEDER alone: a racer who has spent five guesses is locally terminal too
+   but keeps the playing row, which shows End since step 4 — kept, as the
+   game's own choice; unit + its 4 e2e + the cross-game specs green).
    **Step 6 renames only the standing terms** (Joel, 2026-09-25). A game's
    other names that the plan has already settled are owed when its audit
    area opens — the names below, found while converting, with the games

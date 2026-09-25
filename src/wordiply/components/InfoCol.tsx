@@ -36,7 +36,8 @@ export function InfoCol({
   solutionShown,
   actReveal,
   over,
-  isLocallyDone,
+  isConceded,
+  isTurnBased,
   turnHolderId,
   // ── State ──
   guessesUsed,
@@ -77,9 +78,10 @@ export function InfoCol({
   /** The terminal message when the game is over (drives the action row), else null. */
   over: TerminalMessage | null
   /** Compete: I conceded but the others race on — the terminal LOOK. */
-  isLocallyDone: boolean
-  /** Whose turn it is under turn-order, or null for a free-for-all game.
-   *  Non-null ⇒ render the shared TurnStatusLine (a turn game). */
+  isConceded: boolean
+  /** A turn-order game: render the shared TurnStatusLine, which names the
+   *  holder of `turnHolderId`. */
+  isTurnBased: boolean
   turnHolderId: string | null
 
   // ── State (the caller's / team's track) ──
@@ -154,11 +156,11 @@ export function InfoCol({
             </div>
           )}
         </div>
-        {/* Whose-turn line — only for a turn-order game (pointer non-null). An
+        {/* Whose-turn line — only for a turn-order game. An
             ADJACENT line: wordiply's state region is a bespoke stateBlock (not the
             shared .infoState), so TurnStatusLine sits beside it rather than replacing
             it. Its presence is fixed at create-time, so it can't reflow. */}
-        {turnHolderId !== null && (
+        {isTurnBased && (
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
@@ -186,8 +188,8 @@ export function InfoCol({
         )}
 
         {/* Action row — ICON-ONLY. TERMINAL: outcome line + Restart / Reveal /
-            New game / Club. CONCEDED (others race on): the terminal look + disabled
-            Concede. PLAYING: End (coop) / Concede (compete) + back-to-club. */}
+            New game / Club. CONCEDED (others race on): the terminal look + End.
+            PLAYING: End (coop) / Concede (compete) + back-to-club. */}
         {over ? (
           <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             <ActionButton action={actRestart} show="icon" />
@@ -199,11 +201,13 @@ export function InfoCol({
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : isLocallyDone ? (
+        ) : isConceded ? (
           <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
-            {/* Concede disables itself once conceded — the row keeps its shape
-                and the button says why it can't be pressed again. */}
+            {/* Both exits are placed and each says whether it applies: out of
+                the race, Concede hides and End comes out in its place — one
+                flag, since anyone in a game may end it for all. */}
             <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>

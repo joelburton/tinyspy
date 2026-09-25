@@ -82,8 +82,8 @@ type GuessResult =
 
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, isLocallyTerminal, playState, players, session, status,
-    isMyTurn, turnHolderId,
+    gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, session, status,
+    isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
     setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, guesses, validGuesses, loading, rowsLoaded, failure } = useGame(gameId)
@@ -112,7 +112,6 @@ export function PlayArea(ctx: GamePageCtx) {
   const { revealed: solutionShown, toggle: toggleSolution } =
     useSolutionReveal()
 
-  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   // The board's rows. Coop shares one track (every guess); compete shows only
@@ -484,31 +483,30 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, over])
 
-  // Locally terminal (compete only): I conceded but the others race on.
-  const isLocallyDone = isCompete && myConceded && !isTerminal
+  // I conceded, and the others race on (compete only). wordiply marks the
+  // conceder alone: a racer who has spent their five guesses is locally
+  // terminal too, but keeps the playing look while the others finish.
   useEffect(function showOutOfRace() {
-    if (!isLocallyDone) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    if (isTerminal || !isConceded) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyDone])
+  }, [localFeedbackSlot, isTerminal, isConceded])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
-  // is null in a free-for-all game, so this never fires there. On a phone the
-  // InfoCol's TurnStatusLine is off-canvas, so this is the only whose-turn
-  // indicator beside the frozen keyboard.
-  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  // A teammate holds the move (turn-order coop; never in a free-for-all). On a
+  // phone the InfoCol's TurnStatusLine is off-canvas, so this is the only
+  // whose-turn indicator beside the frozen keyboard.
   const turnHolder = players.find((p) => p.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
-    if (!waiting) return
+    if (!isWaitingForTurn) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
         holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
       ),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, waiting, holderName, holderColor])
+  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
 
   if (loading) return <div className={styles.loading}>Loading…</div>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -519,8 +517,6 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const guessesByUser = new Map(leaderboard.map((e) => [e.user_id, e.guesses_used ?? 0]))
   const scoreByUser = new Map(leaderboard.map((e) => [e.user_id, e.length_score ?? 0]))
-
-  const active = !isTerminal && !myConceded && guessesUsed < MAX_GUESSES
 
   // WHOSE board a `#N` replays is the row's own author's. Mid-game compete that
   // is always me — RLS shows me nothing else — but at TERMINAL every player's
@@ -548,9 +544,9 @@ export function PlayArea(ctx: GamePageCtx) {
         historyLabel={historySnap?.historyLabel ?? ''}
         historyActor={historyActor}
         onExitHistory={exitHistory}
-        // `!isMyTurn` folds in turn-order (coop only): a waiting player's entry
-        // freezes. Always true for free-for-all / solo.
-        entryDisabled={!active || !isMyTurn}
+        // The entry freezes whenever the board is not mine to type into: the
+        // game over, my five guesses spent, conceded, or a teammate's turn.
+        entryDisabled={!isBoardInteractive}
         word={word}
         onChange={setWord}
         onSubmit={submit}
@@ -572,7 +568,8 @@ export function PlayArea(ctx: GamePageCtx) {
           isCompete={isCompete}
           isTerminal={isTerminal}
           over={over}
-          isLocallyDone={isLocallyDone}
+          isConceded={isConceded}
+          isTurnBased={isTurnBased}
           turnHolderId={turnHolderId}
           guessesUsed={guessesUsed}
           longest={longest}

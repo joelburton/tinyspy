@@ -17,6 +17,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { ATTENTION_FADE_MS } from '@/common/board-marks/feedbackTiming'
 import { gp } from '@/common/members/gamePlayer.fixture'
@@ -95,24 +96,24 @@ function reject(
 
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
 
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
+ *  the page derives it (`whereIStand`), so a test sets up the facts and never
+ *  hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    players: [gp('u1', 'me', 'red')],
+    isTerminal: false,
+    isTurnBased: false,
+    turnHolderId: null,
+    ...over,
+  }
+  return {
     gameId: 'g1',
     brand: 'WordWire',
-    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
-    isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
-    isTurnBased: false,
-    isBoardInteractive: true,
-    isWaitingForTurn: false,
-    turnHolderId: null,
     setup: { difficulty: 5, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -124,7 +125,15 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actChat: boundActionFixture('act-open-chat'),
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
-    ...over,
+    ...facts,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId: facts.turnHolderId,
+      draftsOffTurn: false,
+    }),
   } as unknown as GamePageCtx
 }
 
@@ -392,6 +401,24 @@ describe('wordiply PlayArea — compete terminal verdicts', () => {
       />,
     )
     expect(screen.getByText(/game ended/i)).toBeInTheDocument()
+  })
+})
+
+describe('wordiply PlayArea — a conceder keeps the one flag', () => {
+  it('shows "You conceded" with End for all, not a hidden Concede', () => {
+    // Conceding is closed to a player already out; ending the game for all is
+    // open to anyone in it, so the row's flag is End.
+    h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), twoMembers[1]],
+        })}
+      />,
+    )
+    expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
+    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
   })
 })
 
