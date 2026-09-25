@@ -17,9 +17,11 @@ type Props = {
   centerLetter: string
   // Called with the clicked letter and WHICH of that letter's tiles was hit
   // (its ordinal in render order); the caller appends the letter to the typed
-  // word and records the claim. Absent when the board is read-only, and then
-  // no tile takes a click, a hover or a press.
-  onLetterClick?: (letter: string, ordinal: number) => void
+  // word and records the claim.
+  onLetterClick: (letter: string, ordinal: number) => void
+  // The board responds to me (the page's `isBoardInteractive`). When false no
+  // tile takes a click, a hover or a press.
+  isBoardInteractive: boolean
   // Per-letter counts of the typed word, lower-cased. Each use SPENDS one
   // tile of its letter, which wears the selected edge and takes no click.
   typedCounts: Map<string, number>
@@ -58,6 +60,7 @@ export function Wheel({
   outerLetters,
   centerLetter,
   onLetterClick,
+  isBoardInteractive,
   typedCounts,
   claims,
   refused,
@@ -89,7 +92,8 @@ export function Wheel({
                 pos={TILE_POSITIONS[i] ?? TILE_POSITIONS[0]}
                 spent={spent.has(i)}
                 answer={mark?.value.outcome}
-                onClick={onLetterClick && (() => onLetterClick(letter, tileOrdinals[i] ?? 0))}
+                // A tile with no handler is inert — no click, hover or press.
+                onClick={isBoardInteractive ? () => onLetterClick(letter, tileOrdinals[i] ?? 0) : undefined}
               />
             )
           })}

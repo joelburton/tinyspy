@@ -51,7 +51,8 @@ type SubmittedWord =
  * local outer-letter shuffle — a per-player, view-only rearrange — and the
  * letter click that appends to the word and claims the tile it landed on.
  *
- * Everything else comes down: the wheel's letters, `readOnly`, the lists a
+ * Everything else comes down: the wheel's letters, where I stand
+ * (`isBoardInteractive`, `isMyTurn`), the lists a
  * word is judged against, and the feedback slot, which is the PlayArea's —
  * its standing conditions and InfoCol's End / Concede show into it too. See
  * docs/playarea.md.
@@ -70,7 +71,8 @@ export function BoardCol({
   gameId,
   mode,
   selfId,
-  readOnly,
+  isBoardInteractive,
+  isMyTurn,
   foundWords,
   requiredWords,
   bonusWords,
@@ -95,10 +97,12 @@ export function BoardCol({
   gameId: string
   mode: 'coop' | 'compete'
   selfId: string
-  // No more words from me: the game is over, or I conceded a race the others
-  // play on. The engine refuses, the entry closes and the wheel goes inert, all
-  // on this one flag (docs/playarea.md).
-  readOnly: boolean
+  // The page's standing terms (docs/win-lose.md → Where a player stands). The
+  // wheel and the entry take letters while the board is interactive; the
+  // engine commits a word while the move is mine. Both go false once the game
+  // is over or I conceded a race the others play on.
+  isBoardInteractive: boolean
+  isMyTurn: boolean
   // The committed rows, the engine's dedup source (mode-aware: the team's in
   // coop, mine in compete).
   foundWords: FoundWordRow[]
@@ -154,7 +158,7 @@ export function BoardCol({
     useFoundWordSubmit({
       mode,
       userId: selfId,
-      isMyTurn: !readOnly,
+      isMyTurn,
       minWordLength: 4,
       localFeedbackSlot,
       foundWords,
@@ -238,14 +242,14 @@ export function BoardCol({
 
   // Per-letter counts of the typed word, lower-cased: each use SPENDS one tile
   // of its letter, and `lib/spend.ts` says which. Empty once the board is
-  // read-only, so a word left half-typed when the game ended, or when I
-  // conceded, drops its marks.
+  // inert, so a word left half-typed when the game ended, or when I conceded,
+  // drops its marks.
   const typedCounts = useMemo(() => {
     const m = new Map<string, number>()
-    if (readOnly) return m
+    if (!isBoardInteractive) return m
     for (const ch of word.toLowerCase()) m.set(ch, (m.get(ch) ?? 0) + 1)
     return m
-  }, [readOnly, word])
+  }, [isBoardInteractive, word])
 
   // ─── The board's display order ─────────────────────────
   // The shuffle — purely visual, touches nothing else.
@@ -288,7 +292,8 @@ export function BoardCol({
         refused={refused}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
-        onLetterClick={readOnly ? undefined : handleLetterClick}
+        isBoardInteractive={isBoardInteractive}
+        onLetterClick={handleLetterClick}
         claims={claims}
         typedCounts={typedCounts}
         // Passed into Wheel so it anchors to the visual wheel rather than the
@@ -310,7 +315,7 @@ export function BoardCol({
             onChange={handleChange}
             onSubmit={submit}
             placeholder="Type or click letters"
-            disabled={readOnly}
+            disabled={!isBoardInteractive}
             onAnyKey={localFeedbackSlot.dismiss}
             charFor={asciiLetters('upper')}
             recall={lastWord}

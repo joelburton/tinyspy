@@ -336,7 +336,13 @@ where it fixes a behavior:
    no caller passed the game's end — is `isMyTurn` (a commit asks it); boggle
    and wordiply pass the page's, and wordwheel bridges `!readOnly` until its
    own commit. Unit + spellingbee's, boggle's and wordiply's e2e + the
-   cross-game specs green.
+   cross-game specs green. wordwheel done 2026-09-25 (the same shape as
+   spellingbee's; the Wheel takes `isBoardInteractive` and a required
+   `onLetterClick`; unit + its 6 e2e + the cross-game specs, `concede`
+   among them, green). Five of the six audited games are done;
+   codenamesduet's `readOnly` / `cellsClickable` go with its step 7, since
+   its turn is what decides them. The ten unaudited games are next, one
+   commit each.
 7. **codenamesduet's turns.** It keeps its turns in its own table
    (`current_clue_giver` and the phase), so the shared `isMyTurn` is always
    true there. It moves onto the common turn order: both players seated

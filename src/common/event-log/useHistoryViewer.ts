@@ -21,8 +21,9 @@ export interface HistoryViewer<Id> {
   // current value WITHOUT re-subscribing (e.g. scrabble's board-drag pointerdown,
   // registered once). Most games don't need it.
   historyIdRef: RefObject<Id | null>
-  // `historyId !== null` — "am I viewing a past turn?" Gates the board's readOnly /
-  // viewing frame and the "click to exit" wiring.
+  // `historyId !== null` — "am I viewing a past turn?" Gates the board's input
+  // (on top of `isBoardInteractive`, which it leaves alone), the viewing frame
+  // and the "click to exit" wiring.
   isViewingHistory: boolean
   // Open a turn in the viewer — wire straight to the log's `onShowHistory`, which
   // hands up both halves of a `#N`: the row's id and the number the reader saw.

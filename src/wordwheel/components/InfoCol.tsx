@@ -30,7 +30,7 @@ export function InfoCol({
   isCompete,
   isTerminal,
   terminalMessage,
-  isLocallyDone,
+  isLocallyTerminal,
   // ── State (RankBar + Stats) ──
   foundWordsScore,
   requiredWordsScore,
@@ -60,8 +60,9 @@ export function InfoCol({
   isTerminal: boolean
   // The terminal message when the game is over (the action row's line), else null.
   terminalMessage: TerminalMessage | null
-  // I conceded a compete race while the others race on — the action row says so.
-  isLocallyDone: boolean
+  // I am out of a compete race while the others race on (the page's
+  // `isLocallyTerminal`; in this game only by conceding) — the action row says so.
+  isLocallyTerminal: boolean
 
   // ── State (RankBar + Stats — one unit) ──
   foundWordsScore: number
@@ -109,7 +110,7 @@ export function InfoCol({
   // runs on without you, nothing while you can play.
   const rowMessage: InfoActionsMessage | undefined = terminalMessage
     ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
-    : isLocallyDone
+    : isLocallyTerminal
       ? { text: 'You conceded', outcome: 'neutral' }
       : undefined
 
