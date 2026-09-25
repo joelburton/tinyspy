@@ -32,9 +32,10 @@ export function InfoCol({
   isCompete,
   isTerminal,
   terminalMessage,
-  showInput,
-  myConceded,
+  isStillPlaying,
+  isConceded,
   isPlayer,
+  isTurnBased,
   turnHolderId,
   // ── State (guess count) ──
   guessesUsed,
@@ -66,16 +67,18 @@ export function InfoCol({
   isTerminal: boolean
   // The terminal message when the game is over (drives the action row), else null.
   terminalMessage: TerminalMessage | null
-  // May I still submit? Gates the help line, and picks the row's line: false
-  // with the game still on means I am done in a race the others are still
+  // The page's standing terms (docs/win-lose.md → Where a player stands).
+  // Still in the game — gates the help line, and picks the row's line: false
+  // with the game still on means I am out of a race the others are still
   // running — solved, out of guesses, or conceded.
-  showInput: boolean
-  // I specifically conceded (vs. solved or ran out) — picks the locally-done wording.
-  myConceded: boolean
+  isStillPlaying: boolean
+  // I specifically conceded (vs. solved or ran out) — picks the out-of-the-race wording.
+  isConceded: boolean
   // Am I a player in this game? (Else the "watching" notice.)
   isPlayer: boolean
-  // Whose turn it is under turn-order, or null for a free-for-all game.
-  // Non-null ⇒ render the shared TurnStatusLine (a turn game).
+  // A turn-order game: render the shared TurnStatusLine, which names the
+  // holder of `turnHolderId`.
+  isTurnBased: boolean
   turnHolderId: string | null
 
   // ── State ──
@@ -103,7 +106,8 @@ export function InfoCol({
   // while the create is in flight.
   actNewGame: BoundAction
   // Drop out of a race while the others play on — hidden outside compete, and
-  // gray once you have SOLVED it (conceding would forfeit a banked win).
+  // once you are out (solved, out of guesses, conceded), when End takes its
+  // place.
   actConcede: BoundAction
   // End the game for the whole table — coop's exit; it hides itself in a race.
   actEndGame: BoundAction
@@ -136,9 +140,9 @@ export function InfoCol({
   // runs on without you, and nothing at all while you can still play.
   const rowMessage: InfoActionsMessage | undefined = terminalMessage
     ? { text: terminalMessage.infoColText, outcome: terminalMessage.outcome }
-    : showInput
+    : isStillPlaying
       ? undefined
-      : { text: myConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
+      : { text: isConceded ? 'You conceded' : 'Waiting for others', outcome: 'neutral' }
 
   return (
     <div className={shared.infoCol}>
@@ -151,9 +155,9 @@ export function InfoCol({
         <p className={shared.infoState}>
           <strong>{guessesUsed}/{maxGuesses}</strong> guesses
         </p>
-        {/* Whose-turn line — only for a turn-order game (pointer non-null). A
-            separate line below the state readout; never replaces it. */}
-        {turnHolderId !== null && (
+        {/* Whose-turn line — only for a turn-order game. A separate line below
+            the state readout; never replaces it. */}
+        {isTurnBased && (
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
@@ -199,8 +203,8 @@ export function InfoCol({
         </InfoActionsRow>
 
         {/* Help — only while you can act; the action row above carries the
-            locally-done state. */}
-        {showInput && (
+            out-of-the-race state. */}
+        {isStillPlaying && (
           <p className={shared.infoHelp}>Type a 5-letter word, then Enter.</p>
         )}
 

@@ -324,6 +324,12 @@ where it fixes a behavior:
    / `waiting` gone; `selfEliminated` reads `useGame`'s `isEliminated` — N13;
    unit + its 9 e2e + the cross-game specs green). Noticed, not changed:
    connections shows its help line while I wait my turn, psychicnum hides it.
+   wordle done 2026-09-25 (`myConceded` / `isLocallyDone` / `showInput` /
+   `readOnly` / `waiting` gone; `mySolved` stays, its own fact; unit + its 5
+   e2e + the cross-game specs green). Its test "a racer who is done sees …
+   Concede" had kept passing since step 4 only because its hand-set context
+   said the racer was not out; built through `whereIStand`, it failed and now
+   asserts End. Expect the same in each game's tests as it converts.
 7. **codenamesduet's turns.** It keeps its turns in its own table
    (`current_clue_giver` and the phase), so the shared `isMyTurn` is always
    true there. It moves onto the common turn order: both players seated

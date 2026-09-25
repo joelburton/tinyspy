@@ -58,8 +58,9 @@ type Props = {
   // outcome's gray (neutral for a game merely ended), null while it's live.
   // The shared board-scope mark; see common/board-marks/doc.md.
   terminalOutcome: TerminalOutcome | null
-  // A teammate holds the move (turn-order coop): dim the whole board.
-  notMyTurn: boolean
+  // A teammate holds the move (the page's `isWaitingForTurn`): dim the whole
+  // board, unless it takes input (`active`).
+  isWaitingForTurn: boolean
   // True for a beat at the moment the turn becomes mine — flash the frame.
   myTurnJustStarted: boolean
 }
@@ -90,7 +91,7 @@ export function Board({
   historyLitBoardRow,
   refused,
   terminalOutcome,
-  notMyTurn,
+  isWaitingForTurn,
   myTurnJustStarted,
 }: Props) {
   const activeIndex = active ? rows.length : -1
@@ -121,7 +122,7 @@ export function Board({
           shared.hugRectWidth,
           styles.grid,
           isViewingHistory && history.historyFrame,
-          notMyTurn && shared.dimNotYourTurn,
+          isWaitingForTurn && !active && shared.dimNotYourTurn,
           myTurnJustStarted && shared.yourTurnFlash,
           // Both frames are outlines, so they take turns rather than nest: the
           // viewer owns it while open, being the state you chose and can leave.

@@ -20,6 +20,7 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
@@ -55,6 +56,8 @@ const moth: WordlePlayerState = { user_id: 'u2', guesses_used: 0, solved: false,
 
 /** Two club members, for the peer-narration tests (the lookup is by ctx.players). */
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
+/** Me, out of the race — solved or out of guesses — as the server marks it. */
+const meOut = gp('u1', 'me', 'red', { locally_terminal: true })
 
 /** A loaded game-hook result; override the game header + player states per test. */
 function loaded(
@@ -65,25 +68,25 @@ function loaded(
   return { game, playerStates, guesses, loading: false, failure: null }
 }
 
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
+ *  the page derives it (`whereIStand`), so a test sets up the facts and never
+ *  hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
+    players: [gp('u1', 'me', 'red')],
+    isTerminal: false,
+    isTurnBased: false,
+    turnHolderId: null,
+    ...over,
+  }
+  return {
     gameId: 'g1',
     brand: 'WordNerd',
     title: 'Test game',
-    players: [gp('u1', 'me', 'red')],
     playState: 'playing',
-    isTerminal: false,
     timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
-    isTurnBased: false,
-    isBoardInteractive: true,
-    isWaitingForTurn: false,
-    turnHolderId: null,
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
     // would crash timerLabel, exactly the kind of render bug these tests guard).
     setup: { max_guesses: 6, answer_band: 0, legal_band: 4, timer: { kind: 'none' } },
@@ -97,7 +100,15 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
       actChat: boundActionFixture('act-open-chat'),
       actBackToClub: boundActionFixture('act-back-to-club'),
     },
-    ...over,
+    ...facts,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId: facts.turnHolderId,
+      draftsOffTurn: false,
+    }),
   }
 }
 
@@ -219,17 +230,19 @@ describe('wordle PlayArea — icon-only action row', () => {
     }
   })
 
-  it('a racer who is done sees Reveal grayed, Concede, and Back to club', () => {
+  it('a racer who is done sees Reveal grayed, End, and Back to club', () => {
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [
       { ...me, solved: true }, moth,
     ])
-    render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
+    render(<PlayAreaLoader {...makeCtx({ players: [meOut, twoMembers[1]] })} />)
     expect(screen.getByText('Waiting for others')).toBeInTheDocument()
     // Possible here, not right now: the answer waits for the race to end for
     // everyone, and the tooltip says so.
     expect(bound('act-reveal').describe('button').state).toBe('disabled')
     expect(control('act-reveal')).toBeDisabled()
-    expect(control('act-concede')).toBeInTheDocument()
+    // Out of the race, so conceding is closed and ending for all is the flag.
+    expect(control('act-concede')).not.toBeInTheDocument()
+    expect(control('act-end-game')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Back to club' })).toBeInTheDocument()
     // Moving on is still a menu thing until the game is over.
     expect(bound('act-restart').describe('button').state).toBe('hidden')
@@ -743,7 +756,7 @@ describe('wordle PlayArea — concede', () => {
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     render(
       <PlayAreaLoader
-        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true })] })}
+        {...makeCtx({ players: [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue', { conceded: true, locally_terminal: true })] })}
       />,
     )
     expect(screen.getByText('out')).toBeInTheDocument()
@@ -753,7 +766,7 @@ describe('wordle PlayArea — concede', () => {
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [me, moth])
     render(
       <PlayAreaLoader
-        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')] })}
+        {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')] })}
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
@@ -862,7 +875,7 @@ describe('wordle PlayArea — the board-scope marks', () => {
   })
 
   it('dims the board while a teammate holds the move', () => {
-    render(<PlayAreaLoader {...makeCtx({ turnHolderId: 'u2', isMyTurn: false, players: twoMembers })} />)
+    render(<PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />)
 
     expect(board().className).toMatch(/dimNotYourTurn/)
     // The turn arriving is an EVENT, so it must not fire on mount — a player
@@ -871,11 +884,11 @@ describe('wordle PlayArea — the board-scope marks', () => {
   })
 
   it('flashes the frame at the moment the turn becomes mine', async () => {
-    const ctx = makeCtx({ turnHolderId: 'u2', isMyTurn: false, players: twoMembers })
+    const ctx = makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     expect(board().className).not.toMatch(/yourTurnFlash/)
 
-    rerender(<PlayAreaLoader {...makeCtx({ turnHolderId: 'u1', isMyTurn: true, players: twoMembers })} />)
+    rerender(<PlayAreaLoader {...makeCtx({ isTurnBased: true, turnHolderId: 'u1', players: twoMembers })} />)
 
     expect(board().className).toMatch(/yourTurnFlash/)
     expect(board().className).not.toMatch(/dimNotYourTurn/)
@@ -941,7 +954,7 @@ describe('wordle PlayArea — a solved racer cannot concede', () => {
 
   it('solved and waiting: the flag is End, not Concede', () => {
     h.result = loaded(compete, [], [{ ...me, solved: true }, moth])
-    render(<PlayAreaLoader {...makeCtx({ players: twoMembers, isLocallyTerminal: true, isStillPlaying: false })} />)
+    render(<PlayAreaLoader {...makeCtx({ players: [meOut, twoMembers[1]] })} />)
     expect(screen.getByText('Waiting for others')).toBeInTheDocument()
     expect(stateOf('act-concede')).toBe('hidden')
     expect(stateOf('act-end-game')).toBe('active')

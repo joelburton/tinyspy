@@ -60,8 +60,8 @@ type GuessAnswer =
  * The physical keys and the on-screen caps drive that same `current`.
  *
  * Everything else is handed down: the board to draw (the live `rows`, or
- * `historySnap` when a past turn is open), and `readOnly`, which this column
- * ORs with its own mid-submit state. The feedback slot belongs to PlayArea —
+ * `historySnap` when a past turn is open), and `isBoardInteractive`, which this
+ * column ANDs with its own mid-submit state. The feedback slot belongs to PlayArea —
  * this column shows its soft rejects into it and draws it. See docs/playarea.md.
  */
 export function BoardCol({
@@ -76,11 +76,11 @@ export function BoardCol({
   onExitHistory,
   // ── Guess dispatch (this column owns submit_guess) ──
   gameId,
-  readOnly,
+  isBoardInteractive,
   localFeedbackSlot,
   // ── Board-scope marks (see <Board>) ──
   terminalOutcome,
-  notMyTurn,
+  isWaitingForTurn,
   myTurnJustStarted,
 }: {
   // ── Board to render ──
@@ -105,10 +105,11 @@ export function BoardCol({
 
   // ── Guess dispatch ──
   gameId: string
-  // The GAME-STATE half of the board gate — the board is inert (not a player,
-  // terminal, solved/conceded, out of guesses). This column ORs it with its own
-  // mid-submit / word-in-flight state to get the live `canGuess`.
-  readOnly: boolean
+  // The GAME-STATE half of the board gate — the page's `isBoardInteractive`.
+  // wordle does not draft off-turn, so it is also the turn: typing a word and
+  // submitting it are one input. This column ANDs it with its own mid-submit /
+  // word-in-flight state to get the live `canGuess`.
+  isBoardInteractive: boolean
   // PlayArea's below-board slot. This column shows the soft rejects and RPC
   // not-oks into it and draws its top between the board and the keyboard.
   localFeedbackSlot: FeedbackSlot
@@ -117,8 +118,8 @@ export function BoardCol({
   // The game is finished, and how — bands the board in that outcome. Null while
   // live.
   terminalOutcome: TerminalOutcome | null
-  // Turn-order coop: a teammate holds the move, so the board dims.
-  notMyTurn: boolean
+  // A teammate holds the move, so the board dims.
+  isWaitingForTurn: boolean
   // True for a beat as the turn becomes mine — the frame flashes yellow.
   myTurnJustStarted: boolean
 }) {
@@ -173,7 +174,7 @@ export function BoardCol({
   const [submitting, setSubmitting] = useState(false)
   // The live gate: the game permits guessing (PlayArea) AND I'm not mid-submit / with a
   // word in flight (this column's input state).
-  const canGuess = !readOnly && !submitting && inFlightWord === null
+  const canGuess = isBoardInteractive && !submitting && inFlightWord === null
 
   /**
    * What BOTH soft rejects do — `duplicate` and `notAWord`. The rules were
@@ -299,7 +300,7 @@ export function BoardCol({
         historyLitBoardRow={historySnap ? historySnap.historyLitBoardRow : -1}
         refused={refused}
         terminalOutcome={terminalOutcome}
-        notMyTurn={notMyTurn}
+        isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={myTurnJustStarted}
       />
       {/* The below-board region. The feedback slot sits BETWEEN the board and

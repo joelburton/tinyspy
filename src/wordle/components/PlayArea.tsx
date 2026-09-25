@@ -107,9 +107,15 @@ export function PlayArea({
   players: members,
   playState,
   isTerminal,
+  isPlayer,
+  isConceded,
   isLocallyTerminal,
-  isMyTurn,
+  isStillPlaying,
+  isTurnBased,
   turnHolderId,
+  isMyTurn,
+  isWaitingForTurn,
+  isBoardInteractive,
   setup,
   status,
   globalFeedbackSlot,
@@ -150,24 +156,24 @@ export function PlayArea({
   )
 
   // The board frame flashes yellow the moment the move becomes mine. Never
-  // fires in a free-for-all game (`isMyTurn` is permanently true there), so it
-  // needs no mode gate.
+  // fires in a free-for-all game (`isMyTurn` holds for as long as I play
+  // there), so it needs no mode gate.
   const turnFlash = useTurnStartFlash(isMyTurn)
 
   // ─── Derived ───────────────────────────────────────────
-  // Who I am in this game and what I may still do, read off the props and the
-  // hook's rows. Named here because the sections below share them: the
-  // standing conditions, the bindings' `describe`s, the print model and both
-  // columns all ask the same questions, and they must not answer them
-  // differently.
+  // Who I am in this game and what I may still do. Where I stand — conceded,
+  // out of the race, still playing, whose move it is — comes from the page,
+  // already computed (docs/win-lose.md → Where a player stands); in compete,
+  // solving and running out of guesses are both ways out, and the server marks
+  // them so. What is wordle's own is read off the hook's rows.
 
   const self = playerStates.find((p) => p.user_id === session.user.id)
   const isCompete = mode === 'compete'
   const maxGuesses = game.max_guesses
   const guessesUsed = self?.guesses_used ?? 0
+  // I solved it — which picks the out-of-the-race words and the verdict's. Not
+  // "won": compete ranks solvers by guesses.
   const mySolved = self?.solved ?? false
-  // Concede lives on the common roster (ctx `members`), not wordle.players.
-  const myConceded = members.find((m) => m.user_id === session.user.id)?.conceded ?? false
   // Who has solved it — the compete narration, Concede's gate and the print
   // model all read it. Memoized so the narration hook re-runs only when it
   // changes.
@@ -204,25 +210,6 @@ export function PlayArea({
   } = useSolutionReveal({
     impliedBy: solvedByMe({ isCompete, playState, mine: mySolved }),
   })
-
-  // Locally terminal (compete only): I'm done — solved, out of my own guesses,
-  // or conceded — while the game runs on for the others. Coop has no such
-  // state, one shared board being over for everyone at once. Solving is one of
-  // the ways in, and a good one: compete is won by fewest guesses, decided when
-  // everyone finishes, so a solver waiting here may well be winning.
-  const isLocallyDone =
-    !isTerminal && isCompete && (mySolved || guessesUsed >= maxGuesses || myConceded)
-  // May I still submit? Gates the help line and the row's line; read by the
-  // Reveal binding, so its button and its menu row agree.
-  const showInput = !isTerminal && !isLocallyDone
-
-  // The GAME-STATE half of the board gate — BoardCol ORs in its own mid-submit
-  // state. `readOnly` (glossary): the board is inert when there is no self row,
-  // the game is terminal, I have solved or conceded, or I am out of guesses.
-  // `!isMyTurn` folds in turn-order, and is permanently true in a free-for-all
-  // game, so it only tightens a turn one.
-  const readOnly =
-    !self || isTerminal || mySolved || myConceded || guessesUsed >= maxGuesses || !isMyTurn
 
   // ─── The local slot, and its three standing conditions ─
   // Each condition is an effect on a primitive edge that shows on true and
@@ -274,31 +261,32 @@ export function PlayArea({
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, terminalMessage])
 
-  // Out of the race while the others play on.
+  // Out of the race while the others play on — solved, out of guesses, or
+  // conceded (compete only: a coop board is over for everyone at once). A
+  // solver waiting here may well be winning: compete is won by fewest guesses,
+  // decided when everyone finishes.
   useEffect(function showOutOfRace() {
-    if (!isLocallyDone) return
+    if (isTerminal || !isLocallyTerminal) return
     const id = localFeedbackSlot.show(
-      FeedbackMessage.outOfRace(myConceded, mySolved ? 'Solved — waiting on the rest' : 'Out of guesses — waiting'),
+      FeedbackMessage.outOfRace(isConceded, mySolved ? 'Solved — waiting on the rest' : 'Out of guesses — waiting'),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyDone, myConceded, mySolved])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded, mySolved])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
-  // is null in a free-for-all game, so this never fires there. The holder is
-  // read as two primitives so the effect settles in one pass.
-  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  // A teammate holds the move (turn-order coop; never in a free-for-all). The
+  // holder is read as two primitives so the effect settles in one pass.
   const turnHolder = turnHolderId === null ? undefined : memberById(members, turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
-    if (!waiting) return
+    if (!isWaitingForTurn) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
         holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
       ),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, waiting, holderName, holderColor])
+  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
 
   // ─── Narration — what a PEER did, in the header slot ───
   // About somebody else, which is what puts it in the global slot rather than
@@ -375,7 +363,7 @@ export function PlayArea({
       // The one narrowing this game adds: no BUTTON while you can still play.
       // The menu row keeps it all game, grayed, because it NAMES the glyph
       // (docs/ui.md → the menu is the legend).
-      if (showInput && asker === 'button') return 'hidden'
+      if (isStillPlaying && asker === 'button') return 'hidden'
       return describeReveal({ noun: 'solution', revealed: answerShown, impliedBySolve, isTerminal })
     },
     run: toggleAnswer,
@@ -479,7 +467,7 @@ export function PlayArea({
   // nothing here is a hook, which is why it may sit after the menu effect.
 
   // Who has bowed out of the race — the opponent strip's "out" cell. From the
-  // common roster, like `myConceded`.
+  // common roster, like `isConceded`.
   const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
 
   const rows = myGuesses.map((g) => ({ guess: g.word, colors: g.colors }))
@@ -521,7 +509,7 @@ export function PlayArea({
         onExitHistory={exitHistory}
         // ── Guess dispatch (BoardCol owns submit_guess) ──
         gameId={gameId}
-        readOnly={readOnly}
+        isBoardInteractive={isBoardInteractive}
         // ── The below-board slot: BoardCol shows rejects into it and draws it ──
         localFeedbackSlot={localFeedbackSlot}
         // ── Board-scope marks ──
@@ -529,7 +517,7 @@ export function PlayArea({
         // `terminalMessage` is the same one the slot shows, so the two can't
         // disagree about how this game went.
         terminalOutcome={terminalMessage ? terminalMessage.outcome : null}
-        notMyTurn={waiting}
+        isWaitingForTurn={isWaitingForTurn}
         myTurnJustStarted={turnFlash}
       />
       {/* Info column — off-canvas sheet on mobile, flex child on desktop. */}
@@ -539,9 +527,10 @@ export function PlayArea({
         isCompete={isCompete}
         isTerminal={isTerminal}
         terminalMessage={terminalMessage}
-        showInput={showInput}
-        myConceded={myConceded}
-        isPlayer={!!self}
+        isStillPlaying={isStillPlaying}
+        isConceded={isConceded}
+        isPlayer={isPlayer}
+        isTurnBased={isTurnBased}
         turnHolderId={turnHolderId}
         // ── State ──
         guessesUsed={guessesUsed}
