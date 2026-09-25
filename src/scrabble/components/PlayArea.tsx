@@ -62,8 +62,12 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
+  isConceded,
   isLocallyTerminal,
+  isTurnBased,
   isMyTurn,
+  isWaitingForTurn,
+  isBoardInteractive,
   turnHolderId,
   status,
   setup,
@@ -166,9 +170,7 @@ export function PlayArea({
   const self = playerStates.find((p) => p.user_id === session.user.id)
   const isCompete = game?.mode === 'compete'
   // Concede lives on the common roster (ctx.players → `players`).
-  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
-  const myTurn = isMyTurn
   const nameOf = useCallback(
     (userId: string | null) => players.find((m: Member) => m.user_id === userId)?.username ?? 'someone',
     [players],
@@ -512,20 +514,19 @@ type Suggested =
   // InfoCol's action-row line carries the terse half of this; dual placement
   // is the rule (docs/playarea.md), and on a phone the InfoCol is off-canvas,
   // making this the ONLY copy the player sees.
-  const isLocallyDone = isCompete && myConceded && !isTerminal
   useEffect(function showOutOfRace() {
-    if (!isLocallyDone) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    if (isTerminal || !isLocallyTerminal) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyDone])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
-  // is null in a free-for-all game, so this never fires there. (Compete is
-  // ALWAYS turn-based, but its status line already names the current player,
-  // so the note would be redundant — hence coop only.) The note lands where
-  // the commit buttons would be: they're useless on a teammate's turn, so
-  // swapping them for the reason is exactly right.
-  const waiting = !isCompete && turnHolderId !== null && !isMyTurn && !isTerminal
+  // Turn-order (coop, opt-in): a teammate holds the move. Never in a
+  // free-for-all game, where the move is always mine. (Compete is ALWAYS
+  // turn-based, but its status line already names the current player, so the
+  // note would be redundant — hence coop only; src/scrabble/todo.md.) The note
+  // lands where the commit buttons would be: they're useless on a teammate's
+  // turn, so swapping them for the reason is exactly right.
+  const waiting = !isCompete && isWaitingForTurn
   const turnHolder = players.find((m: Member) => m.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
@@ -567,7 +568,7 @@ type Suggested =
           <StateLine
             isCompete={isCompete}
             isTerminal={isTerminal}
-            myTurn={myTurn}
+            isMyTurn={isMyTurn}
             currentMember={turnHolder}
             teamScore={game.teamScore}
             bagCount={game.bagCount}
@@ -576,9 +577,8 @@ type Suggested =
         game={game}
         gameId={gameId}
         self={self}
-        myTurn={myTurn}
-        isTerminal={isTerminal}
-        myConceded={myConceded}
+        isMyTurn={isMyTurn}
+        isBoardInteractive={isBoardInteractive}
         localFeedbackSlot={localFeedbackSlot}
         plays={plays}
         historyTarget={historyTarget}
@@ -596,10 +596,11 @@ type Suggested =
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
           isCompete={isCompete}
-          myTurn={myTurn}
+          isMyTurn={isMyTurn}
           over={over}
-          myConceded={myConceded}
+          isLocallyTerminal={isLocallyTerminal}
           isTerminal={isTerminal}
+          isTurnBased={isTurnBased}
           turnHolderId={turnHolderId}
           currentMember={turnHolder}
           teamScore={game.teamScore}

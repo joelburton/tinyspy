@@ -160,6 +160,16 @@
   The kind is `leftovers` (renamed from `forfeit` by the events work — "penalty"
   and "forfeit" both imply a judgment this row deliberately does not make; it is
   arithmetic, and its outcome is `neutral`).
+- **Where "Waiting for ● name…" belongs.** Joel, 2026-09-25: to investigate
+  when auditing scrabble. Today the two modes differ. Turn-by-turn coop shows it
+  as a pill in the local feedback slot, which takes the place of the commit
+  buttons beside the rack, and a tap on the rack or board dismisses it, though
+  scrabble lets a player draft off-turn. Compete shows no pill; its whose-turn is
+  the InfoCol's `<StateLine>` ("Turn: ● moth"), which the mobile status bar
+  repeats above the board. The local slot has very little room while the rack
+  shows, which argues for the InfoCol in both. But coop's whose-turn line there
+  is the shared `<TurnStatusLine>`, which the mobile status bar does not carry,
+  so dropping coop's pill would leave a phone with no whose-turn at all.
 
 ## Someday
 

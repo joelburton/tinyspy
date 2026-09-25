@@ -369,6 +369,10 @@ describe('scrabble PlayArea — concede', () => {
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
+    // The one flag: conceding is spent, and ending the game for all is open to
+    // anyone in it, so End takes Concede's place.
+    expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
+    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
   })
 
   // Pins scrabble's terminal-strip verbs — the ` · `-separated format (distinct from

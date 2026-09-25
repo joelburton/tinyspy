@@ -22,7 +22,7 @@ import type { Member } from '@/common/members/member'
 export function StateLine({
   isCompete,
   isTerminal,
-  myTurn,
+  isMyTurn,
   currentMember,
   teamScore,
   bagCount,
@@ -41,9 +41,9 @@ export function StateLine({
    * this line predates the shared one it was extracted into).
    */
   isTerminal: boolean
-  /** Compete: is it my seat's turn? (Always true in coop, which has no turns.) */
-  myTurn: boolean
-  /** Whose turn it is — a human from the roster, or the synthetic "AI n" member. */
+  /** The page's `isMyTurn`. Read only in compete, whose first clause is the turn. */
+  isMyTurn: boolean
+  /** Whose turn it is — the player on the turn pointer, a person or a bot. */
   currentMember: Member | undefined
   /** Coop's shared score (compete reads per-player scores off the OpponentStrip). */
   teamScore: number | null
@@ -59,7 +59,7 @@ export function StateLine({
         // the live line uses, so terminal isn't a new shape — just a new subject.
         isTerminal ? (
           <>Ended</>
-        ) : myTurn ? (
+        ) : isMyTurn ? (
           <strong>Your turn</strong>
         ) : (
           <>

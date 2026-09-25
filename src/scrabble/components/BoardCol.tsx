@@ -187,9 +187,8 @@ export function BoardCol({
   game,
   gameId,
   self,
-  myTurn,
-  isTerminal,
-  myConceded,
+  isMyTurn,
+  isBoardInteractive,
   localFeedbackSlot,
   plays,
   historyTarget,
@@ -215,10 +214,11 @@ export function BoardCol({
   gameId: string
   // My player row (rack in compete; null in coop where the rack is shared). undefined = I'm watching.
   self: PlayerRow | undefined
-  // Is it my turn (compete); always true in coop. Gates committing (canCommit).
-  myTurn: boolean
-  isTerminal: boolean
-  myConceded: boolean
+  // The page's `isMyTurn`: gates committing (canCommit).
+  isMyTurn: boolean
+  // The page's `isBoardInteractive`: gates staging (canPlace). scrabble drafts
+  // off-turn, so this is true on another player's turn too.
+  isBoardInteractive: boolean
 
   // ── Below-board feedback (the slot is PlayArea's) ──
   // PlayArea's below-board slot. The turn machine shows its results into it
@@ -298,12 +298,12 @@ export function BoardCol({
     () => (mode === 'coop' ? (game.sharedRack ?? []) : (self?.rack ?? [])),
     [mode, game.sharedRack, self?.rack],
   )
-  // Two gates. `canPlace` — may stage / recall / reorder tiles: in COMPETE this is
-  // allowed even when it ISN'T your turn ("pre-play"). `canCommit` — may actually
-  // commit a turn-consuming move (Submit / Swap / Pass), which requires it to be
-  // your turn. In coop myTurn is always true, so the two coincide.
-  const canPlace = !!self && !isTerminal && !myConceded && !submitting
-  const canCommit = canPlace && myTurn
+  // Two gates, each closed while a move is in flight. `canPlace` — may stage /
+  // recall / reorder tiles, allowed on another player's turn too ("pre-play").
+  // `canCommit` — may commit a turn-consuming move (Submit / Swap / Pass), which
+  // requires it to be my turn. In free-for-all coop the two coincide.
+  const canPlace = isBoardInteractive && !submitting
+  const canCommit = isMyTurn && !submitting
 
   const usedRackIdx = useMemo(() => new Set(staged.map((s) => s.rackIdx)), [staged])
   const tentativeMap = useMemo(() => {

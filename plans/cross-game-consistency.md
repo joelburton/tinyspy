@@ -408,9 +408,13 @@ where it fixes a behavior:
    read End off its binding, never off the page). Its comment claimed the row
    "keeps Club alone"; it never placed Club, and the comment now says what
    the row does. Unit + its 11 e2e + the cross-game specs, `concede` among
-   them, green.
-   **Step 6 is done for all sixteen but codenamesduet (step 7) and scrabble
-   (after step 8).**
+   them, green. scrabble done 2026-09-25, after step 8 (`myConceded` /
+   `myTurn` / `isLocallyDone` gone; BoardCol's `canPlace` is
+   `isBoardInteractive && !submitting` and `canCommit` is
+   `isMyTurn && !submitting`; the coop TurnStatusLine shows on `isTurnBased`,
+   the coop waiting note on `isWaitingForTurn`; the conceder's row places End
+   — failing test first; unit + its 9 e2e + the cross-game specs green).
+   **Step 6 is done for all sixteen.**
    **Step 6 renames only the standing terms** (Joel, 2026-09-25). A game's
    other names that the plan has already settled are owed when its audit
    area opens — the names below, found while converting, with the games
@@ -466,10 +470,10 @@ where it fixes a behavior:
    `isMyTurn`, and its own bell is gone (the page's rings on the pointer).
    Nothing visible changes: compete keeps its "Turn: ● name" line, and its
    board does not dim (`draftsOffTurn`). pgTAP `compete_turn_order_test`.
-   **Owed to scrabble's step 6:** the coop-only waiting note (`waiting` is
-   gated `!isCompete`, since compete's state line already names the player)
-   meets the step-6 rule that the waiting message shows on
-   `isWaitingForTurn`; which one compete follows is Joel's call.
+   **scrabble's waiting note stays coop-only** (Joel, 2026-09-25): the local
+   slot has little room beside the rack, and compete's InfoCol state line
+   already names the player. Step 6 keeps it as it is; where the note belongs
+   is `src/scrabble/todo.md`'s, for the scrabble audit.
 
 ## 3b. How it ended for me — won, lost, quit, no result, solved (not started)
 

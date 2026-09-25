@@ -48,10 +48,11 @@ export function InfoCol({
   // block below name each group. Names are shared with the other games' columns for the
   // same idea — see docs/playarea.md.
   isCompete,
-  myTurn,
+  isMyTurn,
   over,
-  myConceded,
+  isLocallyTerminal,
   isTerminal,
+  isTurnBased,
   turnHolderId,
   currentMember,
   teamScore,
@@ -75,16 +76,19 @@ export function InfoCol({
 }: {
   // ── Mode + phase ──
   isCompete: boolean
-  /** Whose turn it is is mine (compete); always true in coop. */
-  myTurn: boolean
+  /** The page's `isMyTurn` — for the compete state line's "Your turn". */
+  isMyTurn: boolean
   /** The terminal message when the game is over (drives the action row), else null. */
   over: TerminalMessage | null
-  /** I conceded (compete) — drives the "You conceded" terminal look. */
-  myConceded: boolean
+  /** The page's `isLocallyTerminal` (in this game only by conceding) — drives
+   *  the "You conceded" row. */
+  isLocallyTerminal: boolean
   isTerminal: boolean
-  /** COOP turn-order pointer, or null for a free-for-all coop game. Non-null ⇒
-   *  render the shared TurnStatusLine below the team-score line (compete uses its
-   *  OWN seat-based turn line above, which also names AI seats). */
+  /** The page's `isTurnBased`. In turn-by-turn coop the shared TurnStatusLine
+   *  shows below the team-score line; compete names the turn in its state line
+   *  above instead. */
+  isTurnBased: boolean
+  /** The page's `turnHolderId`, for the TurnStatusLine. */
   turnHolderId: string | null
 
   // ── State readout (turn / team score + the bag) ──
@@ -166,17 +170,16 @@ export function InfoCol({
           <StateLine
             isCompete={isCompete}
             isTerminal={isTerminal}
-            myTurn={myTurn}
+            isMyTurn={isMyTurn}
             currentMember={currentMember}
             teamScore={teamScore}
             bagCount={bagCount}
           />
         </p>
         {/* Coop turn-order: whose turn it is, as a separate line below the team
-            score (compete's own seat turn line is inline above). Only for a
-            turn-order coop game (pointer non-null); fixed at create-time, so no
-            reflow. */}
-        {!isCompete && turnHolderId !== null && (
+            score (compete's turn line is inline above). Only for a turn-order
+            coop game; fixed at create-time, so no reflow. */}
+        {!isCompete && isTurnBased && (
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
@@ -229,11 +232,13 @@ export function InfoCol({
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : isCompete && myConceded ? (
+        ) : isLocallyTerminal ? (
           <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
-            {/* Concede disables itself once conceded — the row keeps its shape
-                and the button says why it can't be pressed again. */}
+            {/* Both exits are placed and each says whether it applies: out of
+                the race, Concede hides and End comes out in its place — one
+                flag, since anyone in a game may end it for all. */}
             <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>
