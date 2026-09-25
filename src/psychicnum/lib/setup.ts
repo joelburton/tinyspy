@@ -31,7 +31,7 @@ export type PsychicnumValues = CoopTurnSetup & {
   // `common.words.difficulty` value. The board words are sampled from
   // the dictionary at `difficulty ≤ this` (plus a clean + american +
   // non-slang filter). Validated server-side.
-  difficulty: number
+  band: number
   // Browser-side timer mode. `none` and `countup` are
   // informational; `countdown` ends the game as a loss when the
   // clock hits 0 (via psychicnum.submit_timeout). Validated
@@ -56,7 +56,7 @@ export type PsychicnumSetup = SetupOf<PsychicnumValues>
 export const DEFAULT_PSYCHICNUM_SETUP: PsychicnumSetup = {
   max_guesses: 7,
   word_count: 10,
-  difficulty: 3,
+  band: 3,
   timer: { kind: 'none' },
   // Coop pacing defaults to free-for-all; the setup
   // dialog's "Co-op" section (coop, 2+ players) offers turn-by-turn.

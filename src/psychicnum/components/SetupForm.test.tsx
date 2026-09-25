@@ -59,7 +59,7 @@ describe('psychicnum setup — what it offers', () => {
       'coop_style',
       'max_guesses',
       'word_count',
-      'difficulty',
+      'band',
       'timer',
     ])
   })
@@ -100,8 +100,8 @@ describe('psychicnum setup — where a refusal lands', () => {
   // future validation would need.
   it('lets the difficulty picker carry a field error, if one ever lands', () => {
     const message = 'Not enough words at that difficulty for a board this size'
-    draw({ errors: { difficulty: message } })
-    expect(errorUnder('difficulty')).toBe(message)
+    draw({ errors: { band: message } })
+    expect(errorUnder('band')).toBe(message)
   })
 
   it('leaves the other fields able to carry one, whoever writes it', () => {

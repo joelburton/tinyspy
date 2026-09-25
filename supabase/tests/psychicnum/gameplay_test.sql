@@ -71,7 +71,7 @@ select pg_temp.create_club('test club', array['ada','bea']) as handle;
 create temp table coop_g on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"max_guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 5, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -259,7 +259,7 @@ select pg_temp.envelope_is(
 create temp table coop_loss on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"max_guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 3, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -311,7 +311,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table coop_loss_hit on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"max_guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 3, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -357,7 +357,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table comp_g on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"max_guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 3, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'
@@ -436,7 +436,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table comp_loss on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"max_guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 3, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete'
@@ -528,7 +528,7 @@ create temp table hinted on commit drop as
 create temp table hint_g on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"max_guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 5, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -564,7 +564,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table coop_to on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
+  '{"max_guesses": 7, "word_count": 8, "band": 3, "timer": {"kind": "countdown", "seconds": 60}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'
@@ -593,7 +593,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table gone_g on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"max_guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 5, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop'

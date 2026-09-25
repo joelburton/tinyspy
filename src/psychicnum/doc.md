@@ -168,7 +168,7 @@ one to six.
   "setup": {
     "max_guesses": 7,
     "word_count": 12,
-    "difficulty": 3,
+    "band": 3,
     "timer": { "kind": "countdown", "seconds": 300 }
   },
   "player_user_ids": ["7b1e…", "c904…"],

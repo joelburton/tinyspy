@@ -8,7 +8,7 @@
 --   1. Auth + membership gating (same in both modes)
 --   2. Mode validation: rejected when not in {coop, compete}
 --   3. Compete-mode player-count floor (>= 2 players)
---   4. Setup-shape validation: guesses, word_count, difficulty, timer
+--   4. Setup-shape validation: max_guesses, word_count, band, timer
 --   5. Happy path (coop): writes psychicnum_coop gametype,
 --      seeds per-player budget rows, mode='coop' on the row,
 --      word_count board words + three distinct secrets drawn from them
@@ -39,7 +39,7 @@ select set_config('role', 'postgres', true);
 select pg_temp.envelope_is(
   psychicnum.create_game(
     'placeholder-club',
-    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -71,7 +71,7 @@ select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -87,7 +87,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'bogus'),
@@ -105,7 +105,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'compete'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN042"}'::jsonb,
@@ -122,7 +122,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop'),
   '{"type":"ok"}'::jsonb,
@@ -138,7 +138,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 10, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 10, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -160,7 +160,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 7, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -171,7 +171,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 7, "word_count": 4, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 4, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -191,7 +191,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 7, "word_count": 8, "difficulty": 3}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "band": 3}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -202,7 +202,7 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "countdown", "seconds": 99999}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "band": 3, "timer": {"kind": "countdown", "seconds": 99999}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
@@ -213,12 +213,12 @@ select pg_temp.envelope_is(
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 7, "word_count": 8, "difficulty": 9, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "band": 9, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
            'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN048"}'::jsonb,
-  'a band outside 1..6 names the difficulty field'
+  'a band outside 1..6 names the band field'
 );
 
 -- ============================================================
@@ -230,7 +230,7 @@ select pg_temp.envelope_is(
 create temp table coop_created on commit drop as
 select psychicnum.create_game(
   (select handle from club),
-  '{"max_guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 5, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop') as env;
@@ -315,7 +315,7 @@ select throws_ok(
 create temp table compete_game on commit drop as
 select (psychicnum.create_game(
   (select handle from club),
-  '{"max_guesses": 3, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 3, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'compete')->'data'->>'id')::uuid as id;
@@ -415,12 +415,12 @@ select is(
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table seeded_coop on commit drop as
   select (psychicnum.create_game((select handle from club),
-    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 create temp table seeded_cmp on commit drop as
   select (psychicnum.create_game((select handle from club),
-    '{"max_guesses": 7, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 7, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid], 'compete')->'data'->>'id')::uuid as id;
 reset role;
@@ -445,7 +445,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.create_game(
     (select handle from club),
-    '{"max_guesses": 5, "word_count": 8, "difficulty": 3, "timer": {"kind": "none"}}'::jsonb,
+    '{"max_guesses": 5, "word_count": 8, "band": 3, "timer": {"kind": "none"}}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid,
           'bea22222-2222-2222-2222-222222222222'::uuid],
     'coop'),

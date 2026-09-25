@@ -146,7 +146,7 @@ revoke insert, update, delete on psychicnum.games_state from authenticated;
 -- Setup shape (same in both modes):
 --   { "max_guesses": 1..9,
 --     "word_count": 5..20,           -- how many words on the board
---     "difficulty": 1..6,            -- dictionary band (common.words.difficulty)
+--     "band": 1..6,                  -- dictionary band (common.words.difficulty)
 --     "timer":   { "kind": "none" | "countup" }
 --             |  { "kind": "countdown", "seconds": 1..3600 } }
 --
@@ -186,7 +186,7 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_guesses int;
   s_word_count int;
-  s_difficulty int;
+  s_band int;
   s_words text[];
   s_secrets text[];
   game_title text;
@@ -244,16 +244,16 @@ begin
   end if;
 
   -- ─── Validate the dictionary difficulty band ───────────────
-  if (setup->>'difficulty') is null then
+  if (setup->>'band') is null then
     raise exception 'BUG: game with no word difficulty'
       using errcode = 'PN047', hint = 'fault', column = '_',
-      detail = 'setup.difficulty absent';
+      detail = 'setup.band absent';
   end if;
-  s_difficulty := (setup->>'difficulty')::int;
-  if s_difficulty < 1 or s_difficulty > 6 then
-    raise exception 'BUG: word difficulty of %', s_difficulty
+  s_band := (setup->>'band')::int;
+  if s_band < 1 or s_band > 6 then
+    raise exception 'BUG: word difficulty of %', s_band
       using errcode = 'PN048', hint = 'fault', column = '_',
-      detail = 'setup.difficulty must be 1..6';
+      detail = 'setup.band must be 1..6';
   end if;
 
   perform common.require_valid_timer(setup->'timer');
@@ -266,18 +266,18 @@ begin
     from (
       (select word from common.words
         where slur = 0 and crude = 0 and american and not slang
-          and difficulty <= s_difficulty and len = 5
+          and difficulty <= s_band and len = 5
         order by random() limit s_word_count - 1)
       union all
       (select word from common.words
         where slur = 0 and crude = 0 and american and not slang
-          and difficulty <= s_difficulty and len = 9
+          and difficulty <= s_band and len = 9
         order by random() limit 1)
     ) picked;
 
   if coalesce(array_length(s_words, 1), 0) < s_word_count then
     -- FAULT: can't build a board because not enough clean words in PG. No
-    -- `difficulty` empties the pool on its own — band 1 is the smallest and
+    -- `band` empties the pool on its own — band 1 is the smallest and
     -- still holds thousands, against a `word_count` capped at 20 — so reaching
     -- here means the word import never ran.
     raise exception 'BUG: Too few words on server to build a board'

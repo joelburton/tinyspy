@@ -138,10 +138,12 @@ and a backfill. Park them, or schedule some?
   and its key says so — `legal_band` / `required_band`, as boggle and
   letterboxed already had it. wordle's `legal_guess` (setup and column) and
   the bee games' `legal` / `required` renamed, in stored setups and the
-  clubs' saved ones (`20260924000003_word_band_setup_keys.sql`). Owed when
-  boggle's area opens: its bare `band` → `required_band`. Not yet ruled:
-  psychicnum's `difficulty` and wordle's `answer_source` (Claude's verdict:
-  not worth it — neither is the legal/required pair).
+  clubs' saved ones (`20260924000003_word_band_setup_keys.sql`). A game with
+  ONE band names it `band`: psychicnum's `difficulty` → `band`
+  (`20260924000007_psychicnum_band.sql`). Owed when their areas open:
+  boggle's bare `band` → `required_band`; waffle's and wordiply's
+  `difficulty` → `band`. Not yet ruled: wordle's `answer_source` (Claude's
+  verdict: not worth it — 0 is the curated answer list, not a band).
 - ~~**The guess budget.**~~ Done 2026-09-24: psychicnum's setup `guesses` →
   `max_guesses`, as wordle has it, and `totalGuesses` → `maxGuesses`
   (`20260924000004_psychicnum_max_guesses.sql`). codenamesduet's `turns` stays:

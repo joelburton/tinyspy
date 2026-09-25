@@ -48,7 +48,7 @@ export function SetupForm({
   // being opened. Singular "Dictionary": this game draws from one band.
   const guessesLabel = `Guesses: ${s.max_guesses}`
   const wordsLabel = `Words on board: ${s.word_count}`
-  const dictLabel = `Dictionary: ${difficultyValue(s.difficulty)}`
+  const dictLabel = `Dictionary: ${difficultyValue(s.band)}`
 
   return (
     <>
@@ -112,14 +112,14 @@ export function SetupForm({
         {/* Dictionary band: board words are drawn from common.words at
             difficulty ≤ this (harder bands add more obscure words). */}
         <DictBandField
-          name="difficulty"
-          error={errors.difficulty}
+          name="band"
+          error={errors.band}
           help="How obscure the board words can get."
           length={null}
           minBand={1}
           maxBand={6}
-          value={s.difficulty}
-          onChange={(difficulty) => set('difficulty', difficulty)}
+          value={s.band}
+          onChange={(band) => set('band', band)}
         />
       </SetupSection>
       <SetupTimerSection
