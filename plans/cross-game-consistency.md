@@ -185,9 +185,12 @@ Each needs a failing test before its fix.
   `ended`. Each now reads its row `for update`; `src/guards/endLock.test.ts`
   (red on the six, planted) holds it for every `end_game` and
   `submit_timeout`.
-- **Concede in a deleted game faults.** psychicnum, connections and wordle
-  lock the row without checking it exists, so a deleted game answers PN481
-  (a fault) where PN485 (the deleted race) belongs.
+- ~~**Concede in a deleted game faults.**~~ Fixed 2026-09-24, and it was every
+  game: all fifteen concedes end in `common._set_conceded`, whose missing-row
+  branch raised the PN481 fault. It now raises the shared deleted-game race
+  (PN485); PN481 is retired. Failing tests in `spellingbee/concede_test.sql`
+  (the `common.concede` path) and `wordle/concede_test.sql` (a game's own);
+  `gameDeletedFirst` now holds `_set_conceded` too.
 - **An empty refetch keeps the error page.** psychicnum's and codenamesduet's
   `useGame` return on an empty result before clearing an earlier failure;
   wordle and connections clear first.

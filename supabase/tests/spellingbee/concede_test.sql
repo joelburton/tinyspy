@@ -22,7 +22,7 @@ set search_path = spellingbee, common, public, extensions;
 \ir ../_shared/envelope.psql
 \ir setup.psql
 
-select plan(9);
+select plan(10);
 
 -- ─── A 3-player compete game (ada, bea, cade) ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -110,6 +110,28 @@ select pg_temp.envelope_is(
   '{"type":"not-ok","severity":"fault","dbcode":"PN484",
     "message":"BUG: a concede in a coop game"}'::jsonb,
   'conceding a coop game is rejected');
+
+-- ─── (4) a concede into a game a friend deleted ───
+-- Any club member may delete a game, taking its rows and every membership
+-- with it; the concede answers the shared race, not a fault
+-- (docs/envelopes.md → a missing game row is PN485).
+create temp table gd on commit drop as
+select (spellingbee.create_game(
+  (select handle from club),
+  pg_temp.spellingbee_setup() || '{"target_rank": 2}'::jsonb,
+  array['ada11111-1111-1111-1111-111111111111'::uuid,
+        'bea22222-2222-2222-2222-222222222222'::uuid],
+  'compete',
+  pg_temp.spellingbee_board()
+)->'data'->>'id')::uuid as id;
+reset role;
+delete from common.games where id = (select id from gd);
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  spellingbee.concede((select id from gd)),
+  '{"type":"not-ok","severity":"race","outcome":"lost","dbcode":"PN485",
+    "message":"That game was already deleted"}'::jsonb,
+  'a concede into a deleted game is the shared race (PN485)');
 
 select * from finish();
 rollback;

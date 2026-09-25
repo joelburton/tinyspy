@@ -1585,7 +1585,8 @@ revoke execute on function common.reset_game(uuid, jsonb) from public;
 --
 -- Guards, in order:
 --   - game exists + is locked FOR UPDATE (serialize concurrent
---     concedes / a concede racing a move that ends the game)
+--     concedes / a concede racing a move that ends the game); a missing
+--     game is the shared deleted-game race, asked before membership
 --   - caller is a player of this game
 --   - the game isn't already over (is_terminal)
 --   - the caller hasn't already conceded (idempotency: concede once)
@@ -1604,11 +1605,9 @@ declare
 begin
   perform 1 from common.games where id = target_game for update;
   if not found then
-    -- Every id the frontend holds came from a row it read, so a missing one is
-    -- a broken client rather than a game that ended under it.
-    raise exception 'BUG: a concede for a game that does not exist'
-      using errcode = 'PN481', hint = 'fault', column = '_',
-      detail = 'no common.games row for target_game';
+    -- Any club member may delete a game, taking its rows and every membership
+    -- with it, so a player still on the page can concede into one that is gone.
+    perform common._raise_game_deleted('common');
   end if;
 
   caller_id := common.require_game_player(target_game);

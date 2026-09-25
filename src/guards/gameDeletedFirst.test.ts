@@ -64,6 +64,8 @@ describe('a deleted game says so', () => {
       'codenamesduet.pass_turn', 'codenamesduet.replay_board',
       'codenamesduet.submit_clue', 'codenamesduet.submit_guess',
       'codenamesduet.submit_timeout',
+      // Every concede reaches it — the ten through common.concede too.
+      'common._set_conceded',
       'connections.end_game', 'connections.replay_board', 'connections.submit_guess',
       'connections.submit_timeout',
       'crosswords.end_game', 'crosswords.export_solution', 'crosswords.replay_board',
