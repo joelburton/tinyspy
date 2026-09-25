@@ -75,7 +75,7 @@ export function BoardCol({
   onSubmit,
   localFeedbackSlot,
   lastWord,
-  readOnly,
+  isBoardInteractive,
 }: {
   // ── Mobile-only status block ──
   /** The figures behind the 4-cell `<Stats>` grid — the SAME component the info
@@ -113,8 +113,9 @@ export function BoardCol({
   localFeedbackSlot: FeedbackSlot
   /** The last submitted word, for ArrowUp recall. */
   lastWord: string
-  /** Freeze entry (terminal / conceded). */
-  readOnly: boolean
+  /** The board responds to me (the page's `isBoardInteractive`); entry and
+   *  taps freeze when it doesn't — over, or conceded. */
+  isBoardInteractive: boolean
 }) {
   // Number of 90° clockwise turns applied to the displayed grid (local view only).
   const [turns, setTurns] = useState(0)
@@ -176,7 +177,7 @@ export function BoardCol({
   // `handleTyping`); submitting clears it (fresh word).
   const [path, setPath] = useState<Cell[]>([])
   const handleTap = (y: number, x: number) => {
-    if (readOnly || view[y][x] === '?') return // frozen, or a blank (matches nothing)
+    if (!isBoardInteractive || view[y][x] === '?') return // frozen, or a blank (matches nothing)
     localFeedbackSlot.dismiss() // a tap is the next move, like a keystroke
     const idx = path.findIndex((c) => c.y === y && c.x === x)
     let next: Cell[]
@@ -331,7 +332,7 @@ export function BoardCol({
             onChange={handleTyping}
             onSubmit={handleSubmit}
             placeholder="Type or tap letters"
-            disabled={readOnly}
+            disabled={!isBoardInteractive}
             onAnyKey={localFeedbackSlot.dismiss}
             charFor={asciiLetters('upper')}
             recall={lastWord}

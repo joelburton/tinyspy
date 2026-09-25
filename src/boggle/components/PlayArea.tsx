@@ -76,7 +76,7 @@ type SubmittedWord =
   | null
 
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, isLocallyTerminal, playState, setup, clubHandle, goToGame, session, status, globalFeedbackSlot, menu, brand, title } = ctx
+  const { gameId, players, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive, playState, setup, clubHandle, goToGame, session, status, globalFeedbackSlot, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
 
   // The entry is typed at the window rather than into an input, so nothing here
@@ -161,9 +161,9 @@ export function PlayArea(ctx: GamePageCtx) {
     return m
   }, [game?.required_words, game?.bonus_words])
 
-  // Concede state (from the common roster). A conceder can't submit and sees the
-  // locally-terminal look while the others race; peers show as "out" in the strip.
-  const myConceded = players.find((m) => m.user_id === myId)?.conceded ?? false
+  // Concede state (the page's `isConceded`, off the common roster). A conceder
+  // can't submit and sees the out-of-the-race look while the others race;
+  // peers show as "out" in the strip.
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   /** The tiles a refused word used, wearing its answer. Board-cell indices —
@@ -180,7 +180,7 @@ export function PlayArea(ctx: GamePageCtx) {
     useFoundWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: myId,
-      isMyTurn: ctx.isMyTurn,
+      isMyTurn,
       minWordLength: game?.min_word_length ?? 3,
       localFeedbackSlot,
       foundWords,
@@ -480,7 +480,7 @@ export function PlayArea(ctx: GamePageCtx) {
             statusOutcome,
             myCount,
             myScore,
-            myConceded,
+            isConceded,
             selfId: myId,
             winnerId,
             winner: winnerName === undefined ? undefined : { username: winnerName, color: winnerColor ?? '' },
@@ -488,7 +488,7 @@ export function PlayArea(ctx: GamePageCtx) {
             leader: leaderName === undefined ? undefined : { username: leaderName, color: leaderColor ?? '' },
           })
         : null,
-    [isTerminal, gameMode, playState, statusOutcome, myCount, myScore, myConceded, myId,
+    [isTerminal, gameMode, playState, statusOutcome, myCount, myScore, isConceded, myId,
      winnerId, winnerName, winnerColor, leaderMax, leaderName, leaderColor],
   )
   useEffect(function showTerminalVerdict() {
@@ -497,14 +497,14 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, over])
 
-  // Locally terminal (compete only): I conceded but the game continues for the
-  // others. boggle has no elimination, so conceding is the only path to it.
-  const isLocallyDone = isCompete && myConceded && !isTerminal
+  // Out of the race while the others play on (compete only; the page's
+  // `isLocallyTerminal`). boggle has no elimination, so conceding is the only
+  // path to it.
   useEffect(function showOutOfRace() {
-    if (!isLocallyDone) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    if (isTerminal || !isLocallyTerminal) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyDone])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
   if (loading) return <div className={surface.loading}>Loading…</div>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -582,7 +582,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // this is the ONLY copy the player sees), the verdict.
         localFeedbackSlot={localFeedbackSlot}
         lastWord={lastWord}
-        readOnly={isTerminal || myConceded}
+        isBoardInteractive={isBoardInteractive}
       />
 
       {/* Info column — off-canvas full-width sheet on mobile, flex child on desktop. */}
@@ -592,7 +592,7 @@ export function PlayArea(ctx: GamePageCtx) {
         isCompete={isCompete}
         isTerminal={isTerminal}
         over={over}
-        isLocallyDone={isLocallyDone}
+        isLocallyTerminal={isLocallyTerminal}
         // ── State readout ──
         score={myScore}
         stats={stats}
@@ -655,7 +655,7 @@ function buildOver({
   statusOutcome,
   myCount,
   myScore,
-  myConceded,
+  isConceded,
   selfId,
   winnerId,
   winner,
@@ -670,7 +670,7 @@ function buildOver({
   statusOutcome: string | null
   myCount: number
   myScore: number
-  myConceded: boolean
+  isConceded: boolean
   selfId: string
   /** A target crosser — `status.winner_user_id`, or null. */
   winnerId: string | null
@@ -710,7 +710,7 @@ function buildOver({
   // Compete — most points wins (no dupes-cancel; see boggle.md §12).
   // A conceder forfeited the race: they see a plain loss even if their
   // banked score was the highest (mirrors the server's won:false).
-  if (myConceded) {
+  if (isConceded) {
     return {
       pillText: 'Lost: conceded',
       infoColText: 'You conceded',

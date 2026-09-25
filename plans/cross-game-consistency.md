@@ -379,9 +379,16 @@ where it fixes a behavior:
    the cross-game specs green). crosswords done 2026-09-25 (`myConceded` /
    `isPlayable` / `isLocallyDone` gone; `useGridKeyboard`'s own `readOnly`
    — navigable but not writable — is `isBoardInteractive`, the right way
-   round; the conceder's row places End — failing test first. The five
-   games whose out-of-the-race row lacked End are all fixed; unit + its 14
-   e2e + the cross-game specs green).
+   round; the conceder's row places End — failing test first; unit + its 14
+   e2e + the cross-game specs green). **Correction:** the survey that found
+   five games with the End-less row cut its output short. A check of every
+   "You conceded" row finds FOUR more: boggle, setgame and scrabble place
+   Concede alone, and bananagrams' row places no button at all (its comment,
+   "No Concede button to carry", predates End coming back out). Each is fixed
+   with a failing test in its own commit. boggle done 2026-09-25
+   (`myConceded` — the verdict builder's parameter included — /
+   `isLocallyDone` / BoardCol's `readOnly` gone; the conceder's row places
+   End — failing test first; unit + its 7 e2e + the cross-game specs green).
    **Step 6 renames only the standing terms** (Joel, 2026-09-25). A game's
    other names that the plan has already settled are owed when its audit
    area opens — the names below, found while converting, with the games

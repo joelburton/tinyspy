@@ -31,7 +31,7 @@ export function InfoCol({
   isCompete,
   isTerminal,
   over,
-  isLocallyDone,
+  isLocallyTerminal,
   score,
   stats,
   players,
@@ -52,8 +52,9 @@ export function InfoCol({
   isTerminal: boolean
   /** The terminal message when the game is over (drives the action row), else null. */
   over: TerminalMessage | null
-  /** I conceded a compete race — the terminal LOOK while the others race on. */
-  isLocallyDone: boolean
+  /** I conceded a compete race — the terminal LOOK while the others race on
+   *  (the page's `isLocallyTerminal`; in this game only by conceding). */
+  isLocallyTerminal: boolean
 
   // ── State readout ──
   /** The caller/team's TOTAL score (required + bonus) — the OpponentStrip metric. */
@@ -144,11 +145,13 @@ export function InfoCol({
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : isLocallyDone ? (
+        ) : isLocallyTerminal ? (
           <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
-            {/* Concede disables itself once conceded — the row keeps its shape
-                and the button says why it can't be pressed again. */}
+            {/* Both exits are placed and each says whether it applies: out of
+                the race, Concede hides and End comes out in its place — one
+                flag, since anyone in a game may end it for all. */}
             <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>
@@ -162,7 +165,7 @@ export function InfoCol({
 
         {/* Help — only while the player can act on it (never silently swapped);
             hidden once conceded, when entry is disabled. */}
-        {!over && !isLocallyDone && (
+        {!over && !isLocallyTerminal && (
           <p className={shared.infoHelp}>
             Type a word, then Enter. <kbd>↑</kbd> recalls your last word.
           </p>
