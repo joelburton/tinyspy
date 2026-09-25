@@ -104,16 +104,16 @@ select pg_temp.envelope_is(
     pg_temp.find_position((select id from g1), 'A', 'G')
   ),
   '{"type":"ok","outcome":null,"data":{"result":"agent","revealed":"G",
-    "greens_found":1,"turn_number":1,"turns_remaining":9,
+    "found_agents_count":1,"turn_number":1,"turns_remaining":9,
     "clue_giver":"A","play_state":"playing"}}'::jsonb,
   'a green guess answers ok/agent, turn state unchanged'
 );
 
 -- The club list's agent count moves with it.
 select is(
-  (select (status->>'greens_found')::int from common.games where id = (select id from g1)),
+  (select (status->>'found_agents_count')::int from common.games where id = (select id from g1)),
   1,
-  'a green guess mid-game updates the club-list status greens_found'
+  'a green guess mid-game updates the club-list status found_agents_count'
 );
 
 -- Green keeps the turn alive: no turn spent, clue-giver unchanged.
@@ -142,7 +142,7 @@ select pg_temp.envelope_is(
     pg_temp.find_position((select id from g1), 'A', 'N')
   ),
   '{"type":"ok","outcome":null,"data":{"result":"bystander","revealed":"N",
-    "greens_found":1,"turn_number":2,"turns_remaining":8,
+    "found_agents_count":1,"turn_number":2,"turns_remaining":8,
     "clue_giver":"B","play_state":"playing"}}'::jsonb,
   'a neutral guess answers ok/bystander with the new turn state'
 );
@@ -216,7 +216,7 @@ select pg_temp.envelope_is(
     pg_temp.find_position((select id from g2), 'A', 'A')
   ),
   '{"type":"ok","outcome":null,"data":{"result":"lost","reason":"assassin",
-    "revealed":"A","greens_found":0,"turns_used":0}}'::jsonb,
+    "revealed":"A","found_agents_count":0,"turns_used":0}}'::jsonb,
   'an assassin guess answers ok/lost, reason assassin'
 );
 

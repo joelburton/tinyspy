@@ -396,7 +396,7 @@ begin
     jsonb_build_object(
       'turn_number', 1,
       'turns_remaining', s_turns,
-      'greens_found', 0
+      'found_agents_count', 0
     )
   );
 
@@ -844,7 +844,7 @@ begin
         -- status object, so leaving this out would keep the previous value and
         -- list a won game as "14/15 agents". Every terminal write states its
         -- own number (docs/common-schema.md → Title, status and last activity).
-        'greens_found', green_total
+        'found_agents_count', green_total
       ),
       player_results
     );
@@ -859,7 +859,7 @@ begin
         'result', end_state,
         'reason', end_reason,
         'revealed', revealed_label,
-        'greens_found', green_total,
+        'found_agents_count', green_total,
         'turns_used', turns_used
       )
     );
@@ -877,7 +877,7 @@ begin
       jsonb_build_object(
         'result', 'bystander',
         'revealed', revealed_label,
-        'greens_found', green_total,
+        'found_agents_count', green_total,
         'turn_number', turn_state->'turn_number',
         'turns_remaining', turn_state->'turns_remaining',
         'clue_giver', turn_state->>'clue_giver',
@@ -895,7 +895,7 @@ begin
       returning * into g_row;
   end if;
 
-  -- Green reveal mid-game: bump greens_found in the listing
+  -- Green reveal mid-game: bump found_agents_count in the listing
   -- snapshot. play_state stays 'playing' or 'sudden_death'
   -- depending on the current state.
   perform common.update_state(
@@ -904,7 +904,7 @@ begin
     jsonb_build_object(
       'turn_number', g_row.turn_number,
       'turns_remaining', g_row.turns_remaining,
-      'greens_found', green_total
+      'found_agents_count', green_total
     )
   );
 
@@ -916,7 +916,7 @@ begin
     jsonb_build_object(
       'result', 'agent',
       'revealed', revealed_label,
-      'greens_found', green_total,
+      'found_agents_count', green_total,
       'turn_number', g_row.turn_number,
       'turns_remaining', g_row.turns_remaining,
       'clue_giver', g_row.current_clue_giver,
@@ -1088,7 +1088,7 @@ begin
 
   perform common.reset_game(
     target_game,
-    jsonb_build_object('turn_number', 1, 'turns_remaining', s_turns, 'greens_found', 0)
+    jsonb_build_object('turn_number', 1, 'turns_remaining', s_turns, 'found_agents_count', 0)
   );
   return common.ok_envelope(jsonb_build_object('result', 'replayed'));
 

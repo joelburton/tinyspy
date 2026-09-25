@@ -162,9 +162,9 @@ to be named by every "is there a clue this turn" check. The clues logged
 before the column existed are all `false`, since nothing recorded it.
 
 **The club-list readout is `common.games.status`**: `turn_number`,
-`turns_remaining` and `greens_found` during play, and at the end the
+`turns_remaining` and `found_agents_count` during play, and at the end the
 `reason` and `turns_used`. The three endings a guess causes state
-`greens_found` themselves, because the status merges and the winning guess ends
+`found_agents_count` themselves, because the status merges and the winning guess ends
 the game before the ordinary update would have counted it.
 
 **The club-list title** is the board's first three words in board order,
@@ -269,10 +269,10 @@ result.
 what was turned over and carry the turn state after it — B's first two guesses
 in this game:
 
-- an agent — `{ "result": "agent", "revealed": "G", "greens_found": 1,
+- an agent — `{ "result": "agent", "revealed": "G", "found_agents_count": 1,
   "turn_number": 1, "turns_remaining": 9, "clue_giver": "A", "play_state": "playing" }`
   (SMOKE, position 5; the turn goes on)
-- a bystander — `{ "result": "bystander", "revealed": "N", "greens_found": 1,
+- a bystander — `{ "result": "bystander", "revealed": "N", "found_agents_count": 1,
   "turn_number": 2, "turns_remaining": 8, "clue_giver": "B", "play_state": "playing" }`
   (PAGE, position 0; the turn ended). When that spent the last turn,
   `play_state` is `sudden_death` and `clue_giver` is null — sudden death has no
@@ -281,8 +281,8 @@ in this game:
 The two that end the game are named for the play state they set, and carry
 its reason, the label turned over, the agents found and the turns used:
 
-- `{ "result": "won", "reason": "solved", "revealed": "G", "greens_found": …, "turns_used": … }`
-- `{ "result": "lost", "reason": "assassin" | "turns", "revealed": "A" | "N", "greens_found": …, "turns_used": … }`
+- `{ "result": "won", "reason": "solved", "revealed": "G", "found_agents_count": …, "turns_used": … }`
+- `{ "result": "lost", "reason": "assassin" | "turns", "revealed": "A" | "N", "found_agents_count": …, "turns_used": … }`
 
 The frontend says nothing about any of the four: each is a reveal, and the
 board shows it when the words row arrives.

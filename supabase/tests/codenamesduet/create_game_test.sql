@@ -344,9 +344,9 @@ select is(
   (select jsonb_build_object(
             'turn_number', status->'turn_number',
             'turns_remaining', status->'turns_remaining',
-            'greens_found', status->'greens_found')
+            'found_agents_count', status->'found_agents_count')
      from common.games where id = (select id from created)),
-  '{"turn_number": 1, "turns_remaining": 11, "greens_found": 0}'::jsonb,
+  '{"turn_number": 1, "turns_remaining": 11, "found_agents_count": 0}'::jsonb,
   'create_game: seeds the club-list status at turn 1, the whole budget, no agents'
 );
 

@@ -1351,7 +1351,7 @@ revoke execute on function common._require_turn(uuid, uuid) from public;
 -- keys it is changing and everything else on the row survives. This is
 -- forget-proofing of the same kind as the last_active_at trigger: the
 -- replace-everything version silently DROPPED any key a later write
--- forgot to repeat, and it did — codenamesduet seeded `greens_found` at
+-- forgot to repeat, and it did — codenamesduet seeded `found_agents_count` at
 -- create and the first `_end_turn` write erased it, so the club card
 -- could never show how many agents were found. Merging means "add a
 -- field to the listing label" is a one-line change at the one site that

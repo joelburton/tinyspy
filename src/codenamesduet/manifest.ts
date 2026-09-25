@@ -102,10 +102,10 @@ export const codenamesduetGame: GameManifest = {
   // reason's (LOSS_CAUSE); the status adds the agent tally and, mid-game, the
   // turns left. A play state missing from the map renders as its raw name.
   labelFor: (row) => {
-    const st = (row.status ?? {}) as { greens_found?: number; turns_remaining?: number; reason?: string }
+    const st = (row.status ?? {}) as { found_agents_count?: number; turns_remaining?: number; reason?: string }
     // The agent tally is the useful "should I come back to this?" fact, so it
     // rides on every line. Mid-game the turn budget rides too.
-    const agents = tally(st.greens_found, TOTAL_AGENTS, 'agents')
+    const agents = tally(st.found_agents_count, TOTAL_AGENTS, 'agents')
     const label = row.play_state === 'lost'
       ? verdict('Lost', LOSS_CAUSE[st.reason ?? ''])
       : STATUS_LABEL[row.play_state]

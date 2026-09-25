@@ -40,7 +40,7 @@ type GuessAnswer =
   | {
       result: 'agent' | 'bystander'
       revealed: 'G' | 'N'
-      greens_found: number
+      found_agents_count: number
       turn_number: number
       turns_remaining: number
       // Null once a bystander drops the game into sudden death, and for every
@@ -53,7 +53,7 @@ type GuessAnswer =
       // The `status.reason` the ending wrote.
       reason: 'solved' | 'assassin' | 'turns'
       revealed: 'G' | 'N' | 'A'
-      greens_found: number
+      found_agents_count: number
       turns_used: number
     }
 

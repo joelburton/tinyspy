@@ -120,7 +120,7 @@ select pg_temp.envelope_is(
     pg_temp.find_position((select id from g), 'B', 'G')
   ),
   '{"type":"ok","outcome":null,"data":{"result":"agent","revealed":"G",
-    "greens_found":1,"play_state":"sudden_death"}}'::jsonb,
+    "found_agents_count":1,"play_state":"sudden_death"}}'::jsonb,
   'green reveal in sudden death answers ok/agent and stays in sudden death'
 );
 
@@ -141,7 +141,7 @@ select pg_temp.envelope_is(
     pg_temp.find_position((select id from g), 'B', 'N')
   ),
   '{"type":"ok","outcome":null,"data":{"result":"lost","reason":"turns",
-    "revealed":"N","greens_found":1}}'::jsonb,
+    "revealed":"N","found_agents_count":1}}'::jsonb,
   'a neutral in sudden death answers ok/lost, reason turns — the game is over'
 );
 

@@ -153,7 +153,7 @@ select pg_temp.envelope_is(
      limit 1)
   ),
   '{"type":"ok","outcome":null,"data":{"result":"won","revealed":"G",
-    "greens_found":15}}'::jsonb,
+    "found_agents_count":15}}'::jsonb,
   'the 15th green reveal answers ok/won'
 );
 
@@ -167,14 +167,14 @@ select is(
 -- (5) …and the LISTING status records that 15th agent.
 --
 -- The winning reveal is the one place where the terminal write IS the reveal:
--- every other green bumps `greens_found` through update_state, but the 15th
+-- every other green bumps `found_agents_count` through update_state, but the 15th
 -- takes the end_game branch instead. end_game MERGES its status object, so a
--- blob that doesn't mention greens_found leaves the previous value — 14 — and
+-- blob that doesn't mention found_agents_count leaves the previous value — 14 — and
 -- the club page reads "Won · 14/15 agents" on a game where all fifteen were
 -- found. Terminal writes state their own numbers (docs/common-schema.md →
 -- Title, status and last activity), which is what makes this assertable at all.
 select is(
-  (select (status->>'greens_found')::int from common.games where id = (select id from g)),
+  (select (status->>'found_agents_count')::int from common.games where id = (select id from g)),
   15,
   'the winning reveal records the 15th agent in the listing status'
 );

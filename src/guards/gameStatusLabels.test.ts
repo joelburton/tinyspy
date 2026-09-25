@@ -50,14 +50,14 @@ type Family = {
 const CASES: Record<string, Family> = {
   // No siblings — one manifest, one vocabulary.
   codenamesduet: {
-    playing: { greens_found: 12, turns_remaining: 5 },
+    playing: { found_agents_count: 12, turns_remaining: 5 },
     shared: [
-      ['sudden_death', { greens_found: 12 }, 'sudden death'],
-      ['won', { greens_found: 15, reason: 'solved' }, 'won'],
-      ['lost', { greens_found: 12, reason: 'assassin' }, 'assassin'],
-      ['lost', { greens_found: 12, reason: 'turns' }, 'out of turns'],
-      ['lost', { greens_found: 12, reason: 'timeout' }, 'timeout'],
-      ['ended', { greens_found: 12, reason: 'manual' }, 'manual end'],
+      ['sudden_death', { found_agents_count: 12 }, 'sudden death'],
+      ['won', { found_agents_count: 15, reason: 'solved' }, 'won'],
+      ['lost', { found_agents_count: 12, reason: 'assassin' }, 'assassin'],
+      ['lost', { found_agents_count: 12, reason: 'turns' }, 'out of turns'],
+      ['lost', { found_agents_count: 12, reason: 'timeout' }, 'timeout'],
+      ['ended', { found_agents_count: 12, reason: 'manual' }, 'manual end'],
     ],
   },
   // strands' coop loss is the clock alone: the roster's rule is "you lose if

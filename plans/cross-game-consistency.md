@@ -102,7 +102,10 @@ and a backfill. Park them, or schedule some?
   countdown timer.
 - **`status` count keys.** `found_secrets_count` (psychicnum),
   `found_words_count` (the bee games), `matched_count` (connections),
-  `greens_found` (codenamesduet).
+  ~~`greens_found` (codenamesduet)~~ — done 2026-09-24:
+  `found_agents_count` (`20260924000001_codenamesduet_found_agents_count.sql`).
+  The shape is `found_<noun>_count`, "found" even where a game's own verb
+  differs.
 - **Setup keys for the word band.** `difficulty` (psychicnum),
   `answer_source` + `legal_guess` (wordle), `required` + `legal` (the bee
   games).
