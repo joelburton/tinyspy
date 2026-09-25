@@ -56,14 +56,14 @@ describe('answerMessage', () => {
 // color, and as the peer twin for the header line.
 describe('eventToOutcome and peerAnswerMessage', () => {
   it('reads a row as its outcome', () => {
-    expect(eventToOutcome({ is_correct: true, guess: 'crane' })).toBe('won')
-    expect(eventToOutcome({ is_correct: false, guess: 'crane' })).toBe('neutral')
+    expect(eventToOutcome({ is_correct: true, word: 'crane' })).toBe('won')
+    expect(eventToOutcome({ is_correct: false, word: 'crane' })).toBe('neutral')
   })
 
   it('gives a peer row the twin words and the same color', () => {
-    expect(peerAnswerMessage({ is_correct: true, guess: 'crane' }))
+    expect(peerAnswerMessage({ is_correct: true, word: 'crane' }))
       .toEqual({ outcome: 'won', text: 'guessed CRANE' })
-    expect(peerAnswerMessage({ is_correct: false, guess: 'slate' }))
+    expect(peerAnswerMessage({ is_correct: false, word: 'slate' }))
       .toEqual({ outcome: 'neutral', text: 'guessed SLATE' })
   })
 })

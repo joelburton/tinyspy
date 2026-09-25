@@ -60,14 +60,14 @@ export function historySnapshot(
   const turn = index >= 0 ? guesses[index] : undefined
   const rows = guesses
     .slice(0, index + 1)
-    .map((g) => ({ guess: g.guess, colors: g.colors }))
+    .map((g) => ({ guess: g.word, colors: g.colors }))
   return {
     rows,
     historyLitBoardRow: index,
     historyLabel: !turn
       ? 'This guess'
       : n === null
-        ? turn.guess.toUpperCase()
-        : `Guess ${n}: ${turn.guess.toUpperCase()}`,
+        ? turn.word.toUpperCase()
+        : `Guess ${n}: ${turn.word.toUpperCase()}`,
   }
 }

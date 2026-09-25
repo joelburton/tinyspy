@@ -48,8 +48,8 @@ const BLANK_ROW = (len: number): PrintRow => ({
 /** A guess row → its tiles. `colors` is the server's per-letter g/y/x string. */
 function rowOf(g: EventRow): PrintRow {
   return {
-    letters: [...g.guess.toUpperCase()],
-    states: [...g.guess].map((_, i) => tileColor(g.colors[i])),
+    letters: [...g.word.toUpperCase()],
+    states: [...g.word].map((_, i) => tileColor(g.colors[i])),
   }
 }
 
@@ -62,7 +62,7 @@ function rowOf(g: EventRow): PrintRow {
 function keysOf(guesses: readonly EventRow[]): Map<string, TileColor> {
   const keys = new Map<string, TileColor>()
   for (const g of guesses) {
-    ;[...g.guess].forEach((ch, i) => {
+    ;[...g.word].forEach((ch, i) => {
       const c = tileColor(g.colors[i])
       if (c === 'blank') return
       const prev = keys.get(ch.toUpperCase())
@@ -116,7 +116,7 @@ export function buildWordlePrintModel(o: {
         who,
         // Plain words, no tile treatment — the board above already carries the
         // colors, and repeating them in the log would be noise.
-        text: g.guess.toUpperCase(),
+        text: g.word.toUpperCase(),
       })),
       result: solved
         ? `Solved in ${guesses.length}`
@@ -133,7 +133,7 @@ export function buildWordlePrintModel(o: {
   let tracks: PrintTrack[]
   if (o.mode === 'coop') {
     const t = track('Team', o.guesses, o.solvedBy.size > 0)
-    t.turns = o.guesses.map((g, i) => ({ seq: i + 1, who: nameOf(g.user_id), text: g.guess.toUpperCase() }))
+    t.turns = o.guesses.map((g, i) => ({ seq: i + 1, who: nameOf(g.user_id), text: g.word.toUpperCase() }))
     tracks = [t]
   } else if (o.isTerminal) {
     tracks = o.players.map((p) =>

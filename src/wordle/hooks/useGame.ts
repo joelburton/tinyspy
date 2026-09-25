@@ -40,7 +40,8 @@ export type EventRow = {
   // these.
   id: number
   user_id: string
-  guess: string
+  // The five-letter word guessed.
+  word: string
   colors: string
   is_correct: boolean
 }
@@ -95,7 +96,7 @@ export function useGame(gameId: string): {
         readRows(
           db
             .from('events')
-            .select('id, user_id, guess, colors, is_correct')
+            .select('id, user_id, word, colors, is_correct')
             .eq('game_id', gameId)
             .order('id', { ascending: true }),
         ),

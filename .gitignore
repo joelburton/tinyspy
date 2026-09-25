@@ -83,3 +83,7 @@ deno.lock
 # every time. Snapshots worth keeping get copied to gallery-keep/ (committed)
 # via `gmake gallery-keep NAME=…`. See docs/testing.md → The screenshot gallery.
 /gallery/
+
+# editor backup / vim undo files (can hold secrets)
+*~
+*.un~

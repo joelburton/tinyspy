@@ -148,7 +148,7 @@ Three tables and a view, in `supabase/migrations/20260625000000_wordle.sql`
 |---|---|
 | `wordle.games` | one row per game: the `mode`, the `target`, the budget as `max_guesses`, and `legal_band` — stored so `submit_guess` reads the band off the row it locks. `answer_source` is not kept; it is spent picking the target |
 | `wordle.players` | one row per player: `guesses_used`, `solved`, `solved_at`. **Club-wide readable in both modes** — compete's Guesses strip and its winner are built on it. Coop keeps every row identical |
-| `wordle.events` | the guess log, append-only: `guess`, `colors`, `is_correct`; `kind` is `guess` and `took_turn` is true, since the table holds accepted guesses only and an accepted guess spends a go. Read `order by id` — that is the order of play |
+| `wordle.events` | the guess log, append-only: `word`, `colors`, `is_correct`; `kind` is `guess` and `took_turn` is true, since the table holds accepted guesses only and an accepted guess spends a go. Read `order by id` — that is the order of play |
 | `wordle.games_state` | the view the frontend reads: every readable column of `games`, plus `target` through `_target_for()`, which is null until the game is terminal |
 
 **The target is hidden by a column GRANT, not by a policy.** A client asking

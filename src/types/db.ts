@@ -3871,34 +3871,34 @@ export type Database = {
           colors: string
           created_at: string
           game_id: string
-          guess: string
           id: number
           is_correct: boolean
           kind: string
           took_turn: boolean
           user_id: string
+          word: string
         }
         Insert: {
           colors: string
           created_at?: string
           game_id: string
-          guess: string
           id?: never
           is_correct: boolean
           kind: string
           took_turn?: boolean
           user_id: string
+          word: string
         }
         Update: {
           colors?: string
           created_at?: string
           game_id?: string
-          guess?: string
           id?: never
           is_correct?: boolean
           kind?: string
           took_turn?: boolean
           user_id?: string
+          word?: string
         }
         Relationships: [
           {

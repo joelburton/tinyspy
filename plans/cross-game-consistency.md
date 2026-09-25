@@ -148,8 +148,11 @@ and a backfill. Park them, or schedule some?
   its budget is turns. Not yet ruled: the counting direction (psychicnum's
   `guesses_remaining` down, wordle's `guesses_used` up; Claude's verdict: not
   worth it, both names are accurate).
-- **The guessed word's column.** `psychicnum.events.word` vs
-  `wordle.events.guess`.
+- ~~**The guessed word's column.**~~ Done 2026-09-24: `wordle.events.guess` →
+  `word`, as every other event table has it
+  (`20260924000006_wordle_events_word.sql`). `submit_guess`'s `guess`
+  parameter stays (psychicnum's is `guess` too); the board's display rows
+  `{ guess, colors }` are §4's N16.
 
 ## 3. Bugs found by the survey
 

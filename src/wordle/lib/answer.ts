@@ -75,7 +75,7 @@ export function answerMessage(answer: Answer): AnswerMessage {
 /** The columns of a `wordle.events` row that say what it WAS. Narrower than
  *  `EventRow` on purpose: nothing here may reach for an author, an id or the
  *  colors, which belong to the surface drawing the row. */
-type LoggedGuess = { is_correct: boolean; guess: string }
+type LoggedGuess = { is_correct: boolean; word: string }
 
 /**
  * What COLOR a logged row is — for the event log, which writes its own words
@@ -95,6 +95,6 @@ export function eventToOutcome(row: LoggedGuess): Outcome {
 export function peerAnswerMessage(row: LoggedGuess): AnswerMessage {
   return answerMessage({
     answerType: row.is_correct ? 'correct_peer' : 'incorrect_peer',
-    guess: row.guess,
+    guess: row.word,
   })
 }

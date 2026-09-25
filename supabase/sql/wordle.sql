@@ -135,7 +135,7 @@ as $$
            -- The most recent guess — a readout of what's been DONE,
            -- which is already on the board in front of the players.
            when wg.mode = 'coop' then coalesce(
-             (select upper(gx.guess::text)
+             (select upper(gx.word::text)
                 from wordle.events gx
                where gx.game_id = g_id
                order by gx.id desc
@@ -145,7 +145,7 @@ as $$
            -- would leak their progress to the club list. Once the race is over
            -- there's nothing left to protect, so it reads like coop's.
            when cg.is_terminal then coalesce(
-             (select upper(gx.guess::text)
+             (select upper(gx.word::text)
                 from wordle.events gx
                where gx.game_id = g_id
                order by gx.id desc
@@ -614,17 +614,15 @@ begin
   -- ─── Soft reject: duplicate (no burn) ────────────────────
   -- Coop: anyone's earlier guess on the shared board. Compete: the
   -- caller's own earlier guesses.
-  -- Alias the table: the `guess` function parameter would otherwise be
-  -- ambiguous with the `guess` column.
   if g_row.mode = 'coop' then
     select exists (
       select 1 from wordle.events gx
-       where gx.game_id = target_game and gx.guess = norm
+       where gx.game_id = target_game and gx.word = norm
     ) into is_dup;
   else
     select exists (
       select 1 from wordle.events gx
-       where gx.game_id = target_game and gx.user_id = caller_id and gx.guess = norm
+       where gx.game_id = target_game and gx.user_id = caller_id and gx.word = norm
     ) into is_dup;
   end if;
   if is_dup then
@@ -666,7 +664,7 @@ begin
   -- here (both soft rejects returned above without writing), and an accepted
   -- guess spends a go in either mode — the solving one included.
   insert into wordle.events
-    (game_id, user_id, guess, colors, is_correct, kind, took_turn)
+    (game_id, user_id, word, colors, is_correct, kind, took_turn)
   values
     (target_game, caller_id, norm, v_colors, did_solve, 'guess', true);
 

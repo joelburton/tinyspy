@@ -484,7 +484,7 @@ export function PlayArea({
   // common roster, like `myConceded`.
   const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
 
-  const rows = myGuesses.map((g) => ({ guess: g.guess, colors: g.colors }))
+  const rows = myGuesses.map((g) => ({ guess: g.word, colors: g.colors }))
 
   // When a past turn is open, `historySnap` is that turn's board (the rows up to
   // it, the last one ringed); else null = live.

@@ -5,10 +5,10 @@ import { historySnapshot } from './history'
 import type { EventRow } from '../hooks/useGame'
 
 /** A guess row, defaulting the fields the snapshot ignores. */
-const g = (guess: string, colors: string, is_correct = false): EventRow => ({
+const g = (word: string, colors: string, is_correct = false): EventRow => ({
   user_id: 'u1',
   id: 1,
-  guess,
+  word,
   colors,
   is_correct,
 })

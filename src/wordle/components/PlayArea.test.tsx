@@ -139,7 +139,7 @@ describe('wordle PlayArea — render smoke', () => {
     // A landed guess exercises the GameEventLog row (squares + who cell), not
     // just the empty state.
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxgyx', is_correct: false },
+      { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false },
     ])
     render(<PlayAreaLoader {...makeCtx()} />)
     expect(screen.getByRole('grid', { name: /board/i })).toBeInTheDocument()
@@ -165,7 +165,7 @@ describe('wordle PlayArea — render smoke', () => {
    */
   it('routes each judged code to its class key, on the board and the keyboard', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxgyx', is_correct: false },
+      { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false },
     ])
     render(<PlayAreaLoader {...makeCtx()} />)
     const painted = [...screen.getByRole('grid', { name: /board/i }).querySelectorAll('*')]
@@ -593,14 +593,14 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     const { ctx, shown } = narrationCtx()
     // First render seeds the seen-set with my own guess (no announcement).
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxxxx', is_correct: false },
+      { user_id: 'u1', id: 1, word: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     shown.mockClear()
     // A teammate's guess lands → narrated in the header, the actor leading.
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxxxx', is_correct: false },
-      { user_id: 'u2', id: 2, guess: 'crane', colors: 'ggggg', is_correct: true },
+      { user_id: 'u1', id: 1, word: 'slate', colors: 'xxxxx', is_correct: false },
+      { user_id: 'u2', id: 2, word: 'crane', colors: 'ggggg', is_correct: true },
     ])
     rerender(<PlayAreaLoader {...ctx} />)
     expect(shown).toHaveBeenCalledTimes(1)
@@ -616,7 +616,7 @@ describe('wordle PlayArea — peer narration (global header)', () => {
     const { rerender } = render(<PlayAreaLoader {...ctx} />)
     shown.mockClear()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxxxx', is_correct: false },
+      { user_id: 'u1', id: 1, word: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     rerender(<PlayAreaLoader {...ctx} />)
     expect(shown).not.toHaveBeenCalled()
@@ -796,7 +796,7 @@ describe('wordle PlayArea — physical keyboard (shared useCaptureKeys)', () => 
 describe('wordle PlayArea — click-to-define (event log)', () => {
   it('makes each logged guess a define affordance on the WORD (not the cell)', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxxxx', is_correct: false },
+      { user_id: 'u1', id: 1, word: 'slate', colors: 'xxxxx', is_correct: false },
     ])
     render(<PlayAreaLoader {...makeCtx()} />)
     // The event-log guess carries the click-to-define affordance, and it rides the
@@ -820,7 +820,7 @@ describe('wordle PlayArea — the board-scope marks', () => {
   // that stops being applied looks exactly like a mark that was never asked for.
   it('bands the finished board in its outcome and disables the keyboard', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: 'crane' }, [
-      { user_id: 'u1', id: 1, guess: 'crane', colors: 'ggggg', is_correct: true },
+      { user_id: 'u1', id: 1, word: 'crane', colors: 'ggggg', is_correct: true },
     ])
     render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'won' })} />)
 
@@ -839,7 +839,7 @@ describe('wordle PlayArea — the board-scope marks', () => {
 
   it('bands a lost board in the losing tone', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 1, target: 'crane' }, [
-      { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxgyx', is_correct: false },
+      { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false },
     ])
     render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
 
@@ -884,14 +884,14 @@ describe('wordle Board — the reveal flip', () => {
   // the replayed game's first row is a landing on a fresh board like any other.
   it('flips a row that lands while watching, not the rows present at mount', () => {
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxgyx', is_correct: false },
+      { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false },
     ])
     const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
     expect(tiles()[0].className).not.toMatch(/reveal/)
 
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null }, [
-      { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxgyx', is_correct: false },
-      { user_id: 'u1', id: 2, guess: 'moths', colors: 'xxyxg', is_correct: false },
+      { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false },
+      { user_id: 'u1', id: 2, word: 'moths', colors: 'xxyxg', is_correct: false },
     ])
     rerender(<PlayAreaLoader {...makeCtx()} />)
 
@@ -904,9 +904,9 @@ describe('wordle Board — the reveal flip', () => {
   // that landed while the player was away still does.
   it('does not flip a row again on the way back from a past turn', () => {
     const game = { id: 'g1', mode: 'coop' as const, max_guesses: 6, target: null }
-    const slate = { user_id: 'u1', id: 1, guess: 'slate', colors: 'xxgyx', is_correct: false }
-    const moths = { user_id: 'u1', id: 2, guess: 'moths', colors: 'xxyxg', is_correct: false }
-    const crane = { user_id: 'u1', id: 3, guess: 'crane', colors: 'xxxxg', is_correct: false }
+    const slate = { user_id: 'u1', id: 1, word: 'slate', colors: 'xxgyx', is_correct: false }
+    const moths = { user_id: 'u1', id: 2, word: 'moths', colors: 'xxyxg', is_correct: false }
+    const crane = { user_id: 'u1', id: 3, word: 'crane', colors: 'xxxxg', is_correct: false }
     h.result = loaded(game, [])
     const { rerender } = render(<PlayAreaLoader {...makeCtx()} />)
     h.result = loaded(game, [slate, moths])

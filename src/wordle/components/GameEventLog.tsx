@@ -102,8 +102,8 @@ export function GameEventLog({
             {/* The whole guess is one definable word — every wordle guess is a
                 legal dictionary word, so the affordance rides the five-square
                 group rather than the cells, and one click looks it up. */}
-            <DefinableWord word={g.guess} className={cls(styles.squares, styles.definable)}>
-              {[...g.guess].map((ch, c) => (
+            <DefinableWord word={g.word} className={cls(styles.squares, styles.definable)}>
+              {[...g.word].map((ch, c) => (
                 <span key={c} className={cls(styles.sq, styles[tileColor(g.colors[c])])}>
                   {ch.toUpperCase()}
                 </span>
