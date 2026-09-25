@@ -1591,6 +1591,7 @@ revoke execute on function common.reset_game(uuid, jsonb) from public;
 --   - caller is a player of this game
 --   - the game isn't already over (is_terminal)
 --   - the caller hasn't already conceded (idempotency: concede once)
+--   - the caller isn't otherwise out (locally terminal): nothing to concede
 --
 -- Returns the caller's user_id (the concede RPCs use it downstream).
 create or replace function common._set_conceded(target_game uuid)
@@ -1603,6 +1604,7 @@ declare
   caller_id uuid;
   is_over boolean;
   already boolean;
+  is_out boolean;
 begin
   perform 1 from common.games where id = target_game for update;
   if not found then
@@ -1623,16 +1625,25 @@ begin
       detail = 'play_state is already terminal';
   end if;
 
-  select conceded into already
+  select conceded, locally_terminal into already, is_out
     from common.game_players
    where game_id = target_game and user_id = caller_id;
   if already then
-    -- Also a RACE, and for the same reason: `myConceded` is fed by the
+    -- Also a RACE, and for the same reason: `isConceded` is fed by the
     -- subscription rather than set locally when the call returns, so a second
     -- click — or a second tab — inside that window reaches here.
     raise exception 'Already conceded'
       using errcode = 'PN483', hint = 'race', column = '_', constraint = 'noted',
       detail = 'this player''s conceded flag is already set';
+  end if;
+  if is_out then
+    -- Out without conceding — finished, eliminated or out of budget — so
+    -- there is nothing to concede: a loss is already a loss, and a finisher
+    -- would only throw away a win they may hold. The frontend hides Concede
+    -- once `isLocallyTerminal`, fed by the same subscription, so this is a race.
+    raise exception 'Already out'
+      using errcode = 'PN508', hint = 'race', column = '_', constraint = 'noted',
+      detail = 'this player is already locally terminal';
   end if;
 
   -- A conceder is out, so locally terminal too (docs/win-lose.md → Where a

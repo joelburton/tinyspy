@@ -18,6 +18,8 @@
 --      {"won": false}, no winner) — named 'lost_compete' for a
 --      `*_compete` gametype, plain 'lost' for a single-mode one
 --   5. Non-players rejected; conceding a finished game rejected
+--   6. A single-mode gametype ends plain 'lost'
+--   7. A player who is already out (locally terminal) cannot concede
 --
 -- Uses common.create_game directly (concede is gametype-agnostic — it
 -- only reads game_players + common.games.is_terminal), so this test
@@ -28,7 +30,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(15);
+select plan(17);
 
 \ir ../_shared/setup.psql
 \ir ../_shared/envelope.psql
@@ -206,6 +208,49 @@ select is(
   (select play_state from common.games where id = current_setting('test.solo_id')::uuid),
   'lost',
   'a single-mode gametype ends plain lost (no _compete half to its vocabulary)'
+);
+
+-- ─── (7) A player who is already out cannot concede ───
+-- Locally terminal without conceding: finished, eliminated, or out of budget.
+-- There is nothing to concede — a loss is already a loss, and a finisher would
+-- only throw away a win they may hold. The frontend hides Concede there, so a
+-- concede that reaches here lost a race with the roster's subscription.
+reset role;
+select pg_temp.as_jwt_only('ada11111-1111-1111-1111-111111111111');
+select set_config(
+  'test.out_id',
+  (common.create_game(
+    (select handle from club),
+    'spellingbee_compete',
+    array[
+      'ada11111-1111-1111-1111-111111111111'::uuid,
+      'bea22222-2222-2222-2222-222222222222'::uuid
+    ],
+    'out-title',
+    '{}'::jsonb,
+    null
+  ))::text,
+  true
+);
+reset role;
+select set_config('request.jwt.claims', '', true);
+select common._set_locally_terminal(
+  current_setting('test.out_id')::uuid, 'ada11111-1111-1111-1111-111111111111');
+
+select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
+select pg_temp.envelope_is(
+  common.concede(current_setting('test.out_id')::uuid),
+  '{"type":"not-ok","severity":"race","dbcode":"PN508",
+    "message":"Already out"}'::jsonb,
+  'a player who is already out cannot concede');
+reset role;
+select set_config('request.jwt.claims', '', true);
+select is(
+  (select conceded from common.game_players
+    where game_id = current_setting('test.out_id')::uuid
+      and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  false,
+  'and is not marked conceded'
 );
 
 select * from finish();

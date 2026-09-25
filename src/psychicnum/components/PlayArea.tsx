@@ -128,6 +128,7 @@ function PlayArea({
   players,
   playState,
   isTerminal,
+  isLocallyTerminal,
   isMyTurn,
   turnHolderId,
   setup,
@@ -390,7 +391,7 @@ function PlayArea({
     gameId,
     isTerminal,
     mode,
-    myConceded,
+    isLocallyTerminal,
     localFeedbackSlot,
   })
 

@@ -155,6 +155,12 @@ Two shapes, by how a player can stop racing:
   `<game>._maybe_finish_compete`, shared by its move RPC and its concede, and a
   conceder never wins.
 
+Either way, only a player still racing may concede. `_set_conceded` refuses a
+second concede ("Already conceded") and a player who is out some other way —
+finished, eliminated, out of budget ("Already out"): a loss is already a loss,
+and a finisher would only throw away a win they may hold. Anyone may still End
+the game for all.
+
 **A game whose "anyone still racing?" test reads its own tables must lock its
 own games row before `common.games`.** That test reads two tables at once — the
 game's progress rows and `game_players` — and a final move and a concede both

@@ -931,20 +931,19 @@ describe('wordle Board — the reveal flip', () => {
 })
 
 /**
- * Concede's one wordle-specific gate. A racer who has SOLVED the word and is
- * waiting for the others has a win banked, and the winner query excludes
- * conceded players — so "I'm done waiting" would throw the result away. The
- * binding says `disabled` (`selfSolved`), and the button reads it.
+ * A racer who has SOLVED the word and is waiting for the others is out of the
+ * race (locally terminal) with a win maybe banked: conceding could only throw
+ * it away. Their one flag is End for all.
  */
 describe('wordle PlayArea — a solved racer cannot concede', () => {
   const compete = { id: 'g1', mode: 'compete' as const, max_guesses: 6, target: null }
 
-  it('solved and waiting: Concede is gray', () => {
+  it('solved and waiting: the flag is End, not Concede', () => {
     h.result = loaded(compete, [], [{ ...me, solved: true }, moth])
-    render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
+    render(<PlayAreaLoader {...makeCtx({ players: twoMembers, isLocallyTerminal: true, isStillPlaying: false })} />)
     expect(screen.getByText('Waiting for others')).toBeInTheDocument()
-    expect(stateOf('act-concede')).toBe('disabled')
-    expect(control('act-concede')).toBeDisabled()
+    expect(stateOf('act-concede')).toBe('hidden')
+    expect(stateOf('act-end-game')).toBe('active')
   })
 
   it('still racing: Concede is live', () => {

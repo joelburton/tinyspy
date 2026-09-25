@@ -76,7 +76,7 @@ type SubmittedWord =
   | null
 
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, setup, clubHandle, goToGame, session, status, globalFeedbackSlot, menu, brand, title } = ctx
+  const { gameId, players, isTerminal, isLocallyTerminal, playState, setup, clubHandle, goToGame, session, status, globalFeedbackSlot, menu, brand, title } = ctx
   const { game, foundWords, loading, rowsLoaded, failure } = useGame(gameId)
 
   // The entry is typed at the window rather than into an input, so nothing here
@@ -343,7 +343,7 @@ export function PlayArea(ctx: GamePageCtx) {
     gameId,
     isTerminal,
     mode: game?.mode === 'compete' ? 'compete' : 'coop',
-    myConceded,
+    isLocallyTerminal,
     localFeedbackSlot,
   })
 

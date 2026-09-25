@@ -107,6 +107,7 @@ export function PlayArea({
   players: members,
   playState,
   isTerminal,
+  isLocallyTerminal,
   isMyTurn,
   turnHolderId,
   setup,
@@ -362,10 +363,7 @@ export function PlayArea({
     gameId,
     isTerminal,
     mode: isCompete ? 'compete' : 'coop',
-    myConceded,
-    // Solved and waiting for the others: conceding would forfeit a win already
-    // banked, so it goes gray and you leave via Back to club.
-    selfSolved: mySolved,
+    isLocallyTerminal,
     localFeedbackSlot,
   })
 

@@ -258,10 +258,7 @@ export function PlayArea(ctx: GamePageCtx) {
     gameId,
     isTerminal,
     mode: 'compete',
-    // The raw roster flag (common.game_players). The stronger `isConceded`
-    // below also ANDs `!isTerminal`, for the frozen-board LOOK; the action wants
-    // the plain fact, and grays itself at terminal on its own.
-    myConceded: !!ctx.players.find((p) => p.user_id === ctx.session.user.id)?.conceded,
+    isLocallyTerminal: ctx.isLocallyTerminal,
     localFeedbackSlot,
   })
 

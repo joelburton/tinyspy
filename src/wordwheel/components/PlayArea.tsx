@@ -109,7 +109,7 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
  */
 export function PlayArea(props: PlayAreaProps) {
   const {
-    gameId, isTerminal, playState, players, session, status,
+    gameId, isTerminal, isLocallyTerminal, playState, players, session, status,
     setup, clubHandle, goToGame, menu, brand, title,
     globalFeedbackSlot,
     game, foundWords, rowsLoaded,
@@ -330,7 +330,7 @@ export function PlayArea(props: PlayAreaProps) {
     gameId,
     isTerminal,
     mode: game.mode,
-    myConceded,
+    isLocallyTerminal,
     localFeedbackSlot,
   })
 

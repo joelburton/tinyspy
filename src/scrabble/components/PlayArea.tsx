@@ -63,6 +63,7 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
+  isLocallyTerminal,
   isMyTurn,
   turnHolderId,
   status,
@@ -360,7 +361,7 @@ type Suggested =
     gameId,
     isTerminal,
     mode: isCompete ? 'compete' : 'coop',
-    myConceded,
+    isLocallyTerminal,
     localFeedbackSlot,
   })
 

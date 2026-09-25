@@ -885,8 +885,11 @@ describe('wordwheel PlayArea — concede', () => {
     render(
       <PlayAreaLoader
         {...makeCtx({
-          players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
+          players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), gp('u2', 'moth', 'blue')],
           setup: competeSetup,
+          isConceded: true,
+          isLocallyTerminal: true,
+          isStillPlaying: false,
         })}
       />,
     )

@@ -311,7 +311,12 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
 
     // My Concede is spent, so it goes; ending the table is still open to me.
     h.progress = [progressRow({ user_id: 'u1' }), progressRow({ user_id: 'u2', unplaced: 3 })]
-    rerender(<PlayArea {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true }), two[1]] })} />)
+    rerender(<PlayArea {...makeCtx({
+      players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), two[1]],
+      isConceded: true,
+      isLocallyTerminal: true,
+      isStillPlaying: false,
+    })} />)
     expect(stateOf('act-end-game')).toBe('active')
     expect(stateOf('act-concede')).toBe('hidden')
   })

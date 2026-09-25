@@ -98,6 +98,7 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
+  isLocallyTerminal,
   timer,
   setup,
   status,
@@ -374,7 +375,7 @@ export function PlayArea({
     gameId,
     isTerminal,
     mode: isCompete ? 'compete' : 'coop',
-    myConceded,
+    isLocallyTerminal,
     localFeedbackSlot,
   })
 

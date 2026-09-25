@@ -276,13 +276,24 @@ where it fixes a behavior:
    `GamePage.test.tsx`); the timer never read the turn. Every game still reads
    a null `turnHolderId` as "no turns" and ignores the new terms; step 6
    moves them.
-4. **The Concede bug** (found here): Concede hides only on `isTerminal ||
-   myConceded` (`useStandardGameActions`), so a compete racer who has SOLVED
-   can concede and forfeit a win they may have earned. It hides on
-   `isTerminal || isLocallyTerminal`. Failing test first.
+4. ~~**The Concede bug.**~~ Done 2026-09-24. Only waffle, wordle and strands
+   told the hook a solver was out (`selfSolved`, which grayed Concede), so a
+   racer out any other way — wordiply's fifth guess (ranked, may win),
+   waffle's and wordle's spent budget, psychicnum's spent budget,
+   connections' elimination — could still concede. Joel's rulings: nobody out
+   has a reason to concede (a loss is already a loss; a finisher would only
+   throw away a win, and ends nothing sooner), anyone may End for all, and
+   there is only ever ONE flag, never a disabled one. So
+   `useStandardGameActions` takes `isLocallyTerminal` (not `myConceded` /
+   `selfSolved`): Concede hides on `isTerminal || isLocallyTerminal`, and End
+   comes out on its own for a racer who is out. The server agrees:
+   `common._set_conceded` refuses a locally terminal caller ("Already out",
+   PN508, a race). Failing tests first (the hook's, with a one-flag invariant
+   over every state; `common/concede_test.sql`). strands' `conceded_test`
+   encoded the old solve-then-concede forfeit and now tests the refusal.
 5. **The shared functions' parameter.** `myConceded` → `isConceded` in
-   `useStandardGameActions` and `FeedbackMessage.outOfRace` — sixteen call
-   sites each, a rename only.
+   `FeedbackMessage.outOfRace` — a rename only. (`useStandardGameActions` no
+   longer takes it, since step 4.)
 6. **All sixteen games** (Joel: a future audit must never read an old-meaning
    `isLocallyTerminal`) — one commit per game, that game's e2e run each time.
    Each reads the page's values instead of its own: psychicnum's
@@ -304,6 +315,57 @@ where it fixes a behavior:
    once it is given. In sudden death it supplies `isMyTurn` itself: the move
    belongs to whoever still has words to guess (the rulebook's, below), which
    one pointer cannot say when both do.
+
+## 3b. How it ended for me — won, lost, quit, no result, solved (not started)
+
+Joel, 2026-09-24: "did a conceding player lose?" has no single answer today.
+The words live in three places that don't agree: `common.games.play_state`
+(the game's ending, in its own words), `common.game_players.result.won` (per
+player), and `terminalOutcomeVerb` (the strip's Won › Quit › Lost). Worked
+after §3a, as formulas beside docs/win-lose.md → Where a player stands.
+
+**The draft terms** (not yet in the doc):
+
+- `hasSolved` — I crossed my finish line; the game's own fact. **Not "won"**:
+  a best-style solver can lose (wordle solved in 5 against a rival's 3;
+  strands and waffle rank solvers), and a score race or a standings-ranking
+  clock crowns someone who never solved (scrabble, boggle with no target,
+  wordiply, setgame, letterboxed's timeout).
+- `myEnding` — null until the game is over, then exactly one of, in order:
+  `'won'` (`result.won`), `'quit'` (conceded — beats "no result": conceding is
+  a loss on your record even if the table later Ends), `'noResult'`, `'lost'`.
+  **`'quit'` is not interchangeable with `isConceded`**: `isConceded` is where
+  I stand from the moment I concede; `'quit'` is the verdict, only once the
+  game is over. A conceder can never win (the winner queries leave conceders
+  out, and a player already out is refused a concede), so every conceder ends
+  `'quit'`. `'lost'` is not "didn't win" — that is `myEnding !== 'won'`.
+
+**Found while drafting** (a survey of every `ended` path, 2026-09-24):
+
+- `ended` never carries a winner, but it is not only a manual End: it is also
+  an open-ended COOP game's timeout (boggle, spellingbee, wordwheel with no
+  target) and the normal finish of the two coop games with no win (scrabble
+  coop's bag played out, wordiply coop's five guesses spent). So `'noResult'`
+  cannot be `play_state === 'ended'` alone.
+- **Bug, per Joel's rule**: an open-ended compete word hunt has no goal, so
+  End must adjudicate "most points at the end", as the clock already does.
+  boggle, spellingbee and wordwheel compete End with nobody winning.
+- **Bug**: `result.won` is not written everywhere — boggle coop writes no
+  per-player result on any ending (a win included), and wordiply coop writes
+  `{finished: true}` with no `won` key. Stored data: a migration and backfill.
+- `terminalOutcomeVerb`'s docstring says a conceder can hold a winning result
+  ("conceded a race someone had already ended"); no path reaches that now.
+
+**Open questions for Joel:**
+
+1. Open-ended compete, End pressed: the top score wins (co-winners on a tie,
+   nobody if nobody scored), as at the clock? And wordiply compete, which has
+   a finish line (five guesses each): does End there stay winnerless?
+2. Open-ended coop, stopped by End or the clock: `'noResult'`?
+3. scrabble coop's bag played out, wordiply coop's five guesses spent — a
+   finish with a score and no win: `'noResult'`, or a fifth ending?
+4. The two missing `result.won` writers: fix them, so `'won'` reads off the
+   result in every game?
 
 ## 4. Naming — cheap renames (code and `supabase/sql/` only)
 

@@ -11,9 +11,9 @@
 --   the win condition and be recorded the winner (the connections regression
 --   this guard is copied from).
 --
---   **A conceder can't win.** The forfeit ruling: conceding removes you from
---   the ranking even if a solved row exists for you (solve-then-concede is the
---   odd corner — nonsensical, but reachable by RPC, so the finisher decides).
+--   **A finisher can't concede.** Once you have solved you are out of the race
+--   (locally terminal), and conceding then could only throw away a win you may
+--   hold, so the server refuses it (PN508) and your solve stays ranked.
 --   And when EVERYONE concedes, the loss says so: outcome 'conceded'.
 --
 -- Personas: ada + bea (+ cade for the three-player guard scenario).
@@ -72,10 +72,10 @@ select is(
 );
 
 -- ============================================================
--- (4)–(9) THE FORFEIT: a solved-then-conceded player is ranked OUT
+-- (4)–(9) A FINISHER STAYS RANKED: her concede is refused
 -- ============================================================
--- ada solves on 0 hints… then concedes. bea solves on 1 hint. Without the
--- forfeit rule ada's 0 would win from outside the race.
+-- ada solves on 0 hints… then tries to concede, and is refused. bea solves on
+-- 1 hint. ada's 0 wins.
 
 -- (Created as a persona, not postgres: a temp table made under `reset role`
 -- is owned by postgres and unreadable once we act as a player again.)
@@ -89,12 +89,12 @@ select (strands.create_game(
 
 select strands.submit_path((select id from g_forfeit), pg_temp.strands_row_path(r))
   from generate_series(0, 7) r;
-select strands.concede((select id from g_forfeit));
 
-select is(
-  (select play_state from common.games where id = (select id from g_forfeit)),
-  'playing',
-  'ada''s post-solve concede doesn''t end the game — bea is still racing'
+select pg_temp.envelope_is(
+  strands.concede((select id from g_forfeit)),
+  '{"type":"not-ok","severity":"race","dbcode":"PN508",
+    "message":"Already out"}'::jsonb,
+  'ada''s post-solve concede is refused — she is already out, with a solve'
 );
 
 -- bea earns and spends a hint (cost 1), giving her a WORSE hint count than
@@ -129,29 +129,29 @@ select strands.submit_path((select id from g_forfeit), pg_temp.strands_row_path(
 select is(
   (select play_state from common.games where id = (select id from g_forfeit)),
   'won_compete',
-  'bea finishing ends the game — ada, conceded, no longer counts as racing'
-);
-
-select is(
-  (select result from common.game_players
-    where game_id = (select id from g_forfeit)
-      and user_id = 'bea22222-2222-2222-2222-222222222222'),
-  '{"won": true}'::jsonb,
-  'bea WINS on 1 hint — the only solver still IN the race'
+  'bea finishing ends the game — the last racer still solving'
 );
 
 select is(
   (select result from common.game_players
     where game_id = (select id from g_forfeit)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
+  '{"won": true}'::jsonb,
+  'ada WINS on 0 hints — her refused concede left her solve ranked'
+);
+
+select is(
+  (select result from common.game_players
+    where game_id = (select id from g_forfeit)
+      and user_id = 'bea22222-2222-2222-2222-222222222222'),
   '{"won": false}'::jsonb,
-  'ada''s 0-hint solve is forfeited by her concede'
+  'bea''s 1-hint solve loses to it'
 );
 
 select is(
   (select status->>'best_hints' from common.games where id = (select id from g_forfeit)),
-  '1',
-  'and best_hints is the best IN-RACE count, not the forfeited one'
+  '0',
+  'and best_hints is ada''s 0'
 );
 
 -- ============================================================

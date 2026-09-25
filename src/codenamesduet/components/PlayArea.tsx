@@ -160,6 +160,7 @@ export function PlayArea({
   gameId,
   playState,
   isTerminal,
+  isLocallyTerminal,
   status,
   setup,
   globalFeedbackSlot,
@@ -381,7 +382,7 @@ export function PlayArea({
     gameId,
     isTerminal,
     mode: 'coop',
-    myConceded: false,
+    isLocallyTerminal,
     localFeedbackSlot,
   })
 

@@ -188,7 +188,7 @@ function buildOver({
  */
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, playState, players, session,
+    gameId, isTerminal, isLocallyTerminal, playState, players, session,
     setup, clubHandle, goToGame, menu, brand, title,
     isMyTurn, turnHolderId,
   } = ctx
@@ -587,10 +587,7 @@ export function PlayArea(ctx: GamePageCtx) {
     gameId,
     isTerminal,
     mode: isCompete ? 'compete' : 'coop',
-    myConceded: players.find((p) => p.user_id === session.user.id)?.conceded ?? false,
-    // Solved and waiting for the others: conceding would forfeit a win already
-    // banked, so it goes gray and you leave via Back to club.
-    selfSolved: me?.solved ?? false,
+    isLocallyTerminal,
     localFeedbackSlot,
     // The same board, traced again — so forget my choice about the answer.
     // `reset`, not `hide`: hiding would record an explicit "no" that outranks

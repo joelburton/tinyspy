@@ -101,7 +101,7 @@ type RungAnswer = {
 
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, playState, players, session, status,
+    gameId, isTerminal, isLocallyTerminal, playState, players, session, status,
     isMyTurn, turnHolderId,
     setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
@@ -452,7 +452,7 @@ export function PlayArea(ctx: GamePageCtx) {
     gameId,
     isTerminal,
     mode: game?.mode === 'compete' ? 'compete' : 'coop',
-    myConceded,
+    isLocallyTerminal,
     localFeedbackSlot,
   })
 

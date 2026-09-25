@@ -674,8 +674,9 @@ then its own `_maybe_finish_compete`.
 refuse a conceded caller (`'you have conceded'` — the connections guard: the FE
 freezes the board, but a submit in flight or a stale second tab must not let a
 drop-out complete the win condition), and the finisher's ranking excludes
-conceded players even where a solved row exists — solve-then-concede is
-nonsensical but reachable by RPC, and it forfeits (`conceded_test.sql`).
+conceded players. A solver cannot concede: a player who is already out is
+refused by `common._set_conceded` (PN508), so a solve stays ranked
+(`conceded_test.sql`).
 
 `concede` also takes the `strands.games` row lock **before** the flag flip,
 deliberately: `submit_path` and `end_game` serialize on that row, and without it
@@ -715,7 +716,7 @@ ambiguous-ABBA board that pins the match-by-placement fix):
 | `hint_test.sql` | spend semantics: random pick persisted, coords only, one at a time, cleared by placement, a hint asked of a deleted game |
 | `turn_order_test.sql` | the opt-in turns coop: pointer seating, `'not your turn'`, advance on accepted moves only |
 | `compete_test.sql` | the race: per-player boards, the privacy line, fewest-hints ranking, concede-with-a-solver |
-| `conceded_test.sql` | a conceder gets no more moves and can't win (the forfeit ruling, incl. solve-then-concede); all-conceded → `'conceded'`; the mid-race `active_hint_coords` shield |
+| `conceded_test.sql` | a conceder gets no more moves; a solver's concede is refused and her solve stays ranked; all-conceded → `'conceded'`; the mid-race `active_hint_coords` shield |
 | `timeout_test.sql` | the clock in both modes: coop `lost`/`'timeout'`, compete crowns a solver or ends `lost_compete`/`'timeout'`; the terminal RLS flip on `events` |
 | `terminal_test.sql` | terminal states + the reveal gate |
 | `rls_test.sql` | the solution shield + per-mode row visibility |

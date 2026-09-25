@@ -97,7 +97,7 @@ type RevealAnswer = { result: 'revealed'; solved: boolean }
 type ExportAnswer = { result: 'exported'; solution: (string[] | null)[][] }
 
 export function PlayArea(ctx: GamePageCtx) {
-  const { gameId, players, isTerminal, playState, session, status, menu, clubHandle } = ctx
+  const { gameId, players, isTerminal, isLocallyTerminal, playState, session, status, menu, clubHandle } = ctx
   const myId = session.user.id
 
   const { game, loading, failure } = useGame(gameId)
@@ -492,7 +492,7 @@ type Explained =
     gameId,
     isTerminal,
     mode,
-    myConceded,
+    isLocallyTerminal,
     localFeedbackSlot,
   })
 

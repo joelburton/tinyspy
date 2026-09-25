@@ -45,8 +45,10 @@ type ReplayResult = { result: 'replayed' }
  * Every game calls this and places what it wants: coop shows End, a race shows
  * Concede, and a game that offers neither simply doesn't put them anywhere. The
  * actions themselves say when they apply, so a caller never asks — End is
- * hidden in a race until you have conceded, Concede is hidden outside one, and
- * both are hidden once the game is over (there is no ending an ended game).
+ * hidden in a race while you are still playing, Concede is hidden outside one
+ * and once you are out, and both are hidden once the game is over (there is no
+ * ending an ended game). The two share the flag and `⌥⌫`, so at most one is
+ * ever on screen, and never a disabled one.
  *
  * **Every race can also stop the whole table** (Joel, 2026-09-19: *"yes, every
  * race should offer it"*): Concede's question offers ending as its second
@@ -73,8 +75,7 @@ export function useStandardGameActions({
   gameId,
   isTerminal,
   mode,
-  myConceded,
-  selfSolved,
+  isLocallyTerminal,
   localFeedbackSlot,
 }: {
   db: GameRpcClient
@@ -82,15 +83,10 @@ export function useStandardGameActions({
   isTerminal: boolean
   // Which exit this game's mode offers: coop ends, a race concedes.
   mode: 'coop' | 'compete'
-  // Compete: I've conceded (so I can't concede again). Always false in coop.
-  myConceded: boolean
-  // Compete: I have SOLVED it and am waiting for the others — so Concede goes
-  // gray. Conceding there would silently forfeit a win already banked: the
-  // winner query excludes conceded players, so "I'm done waiting" would throw
-  // away the result. A solved player leaves via Back to club instead. Optional
-  // because not every race HAS this state — where finishing ends the game for
-  // everyone, or where there is nothing to solve, nobody can sit on a banked win.
-  selfSolved?: boolean
+  // I'm out of the race — conceded, lost (out of budget, eliminated), or
+  // finished while the others play on. Never true in coop. The page's own
+  // value (`GamePageCtx`).
+  isLocallyTerminal: boolean
 
   // The game's below-board slot, where a not-ok answer is shown.
   localFeedbackSlot: FeedbackSlot
@@ -111,21 +107,21 @@ export function useStandardGameActions({
     }
   }
 
-  // End — coop's exit. A race normally never draws it: its way out is Concede,
-  // whose question offers ending as the alternative.
+  // End — coop's exit. A racer still playing never sees it: their way out is
+  // Concede, whose question offers ending as the alternative.
   //
-  // The exception is a racer who has ALREADY conceded. Choosing to end is
-  // freely open to them — ending is the group agreeing there is no result, and
-  // a conceder is still in the conversation (Joel, 2026-09-04) — but their
-  // Concede is spent, and with it the question that carried both. So the
-  // table stop comes back out on its own. The two are still never live at once,
-  // which is what lets them share `⌥⌫`.
+  // A racer who is OUT gets it on its own. Anyone in a game may end it for all
+  // — ending is the group agreeing there is no result, and a player who is out
+  // is still in the conversation (Joel, 2026-09-04, 2026-09-24) — but conceding
+  // is closed to them (see Concede), and with it the question that carried
+  // both. The two are still never live at once, which is what lets them share
+  // `⌥⌫`.
   //
   // Irreversible, so the registry gives it the confirm and the shared run asks.
   const actEndGame = useBoundAction('act-end-game', {
     terminal: isTerminal,
     describe: (): ActionState => {
-      if (mode === 'compete' && !myConceded) return 'hidden'
+      if (mode === 'compete' && !isLocallyTerminal) return 'hidden'
       // HIDDEN at terminal, not disabled: there is no ending an ended game, and
       // `disabled` is for what is possible here and not right now. A conceder
       // still gets it while the others race — conceding is not ending.
@@ -143,14 +139,13 @@ export function useStandardGameActions({
     describe: (): ActionState | { state: ActionState; label: string } => {
       if (mode !== 'compete') return 'hidden'
       // Hidden once the game is over — there is no race left to drop out of —
-      // and once you have conceded: End has come back out as its own control
-      // (above), so a spent Concede beside it would be a second flag offering
-      // nothing. Disabled, not hidden, for a win already banked: End is not
-      // offered there, so the button stays to say why you cannot leave by it.
-      if (isTerminal || myConceded) return 'hidden'
-      const state: ActionState = selfSolved ? 'disabled' : 'active'
+      // and once you are out: a conceder has conceded, a player who lost has
+      // nothing to concede, and a finisher would only throw away a win they may
+      // hold, without ending anything sooner for the others. End has come out
+      // as its own control (above).
+      if (isTerminal || isLocallyTerminal) return 'hidden'
       // Named for both answers its question offers.
-      return { state, label: 'Concede / End game' }
+      return { state: 'active', label: 'Concede / End game' }
     },
     runAlternative: endForAll,
     run: async () => {

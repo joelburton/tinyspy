@@ -27,7 +27,7 @@ const flush = () => act(async () => { await new Promise((r) => setTimeout(r, 0))
 type Overrides = {
   isTerminal?: boolean
   mode?: 'coop' | 'compete'
-  myConceded?: boolean
+  isLocallyTerminal?: boolean
   confirmed?: boolean
   // What the question is answered with, for the two-ending case.
   answer?: 'confirm' | 'alternative' | null
@@ -54,7 +54,7 @@ function setup(overrides: Overrides = {}) {
       gameId: 'g1',
       isTerminal: overrides.isTerminal ?? false,
       mode: overrides.mode ?? 'coop',
-      myConceded: overrides.myConceded ?? false,
+      isLocallyTerminal: overrides.isLocallyTerminal ?? false,
       localFeedbackSlot,
     }),
   )
@@ -132,15 +132,32 @@ describe('which exit a game offers', () => {
     expect(result.current.actRestart.describe('key').state).toBe('active')
   })
 
-  it('hands the table stop BACK to a player who has already conceded', () => {
-    // A decision, not an oversight (Joel, 2026-09-04): ending is the group
-    // agreeing there is no result, and choosing it is freely open — a conceder
-    // is still in the conversation. Their Concede is spent, and the question
-    // that carried both endings went with it, so End comes back out on its own
-    // — and Concede goes, so the row does not show two flags.
-    const { result } = setup({ mode: 'compete', myConceded: true })
+  it('hands the table stop BACK to a racer who is out — conceded, lost, or finished', () => {
+    // Anyone in a game may end it for all (Joel, 2026-09-04 and 2026-09-24):
+    // ending is the group agreeing there is no result, and a player who is out
+    // is still in the conversation. Conceding is not open to them — a conceder
+    // has, a player who lost has nothing to concede, and a finisher would only
+    // throw away a win they may hold — so End comes out on its own.
+    const { result } = setup({ mode: 'compete', isLocallyTerminal: true })
     expect(result.current.actConcede.describe('button').state).toBe('hidden')
     expect(result.current.actEndGame.describe('button').state).toBe('active')
+  })
+
+  it('never shows two flags, nor a disabled one', () => {
+    // End and Concede share the flag and ⌥⌫: at most one is ever on screen, and
+    // a flag that is there can be pressed.
+    for (const mode of ['coop', 'compete'] as const) {
+      for (const isTerminal of [false, true]) {
+        for (const isLocallyTerminal of [false, true]) {
+          const { result } = setup({ mode, isTerminal, isLocallyTerminal })
+          const shown = [result.current.actEndGame, result.current.actConcede]
+            .map((a) => a.describe('button').state)
+            .filter((s) => s !== 'hidden')
+          expect(shown.length, `${mode} terminal=${isTerminal} out=${isLocallyTerminal}`).toBeLessThanOrEqual(1)
+          expect(shown).not.toContain('disabled')
+        }
+      }
+    }
   })
 
   it('offers Restart at terminal too — a replayed board is a legal thing to replay', () => {
