@@ -224,6 +224,180 @@ isBoardInteractive = draftsOffTurn ? isStillPlaying : isMyTurn
 isViewingHistory = /* the history viewer has a turn open */
 ```
 
+## How a game ends — the terms (agreed 2026-09-25)
+
+The nomenclature for talking about how a game ends, and how it ended for each
+player. Dashed names are the nailed-down terms, not the everyday English words.
+These define words only; which choices each game makes is a separate, per-game
+determination made in these words. **Where anything else in this doc disagrees,
+this section wins** — the older text above and in [Vocabulary](#vocabulary) is
+still current but is going away, to be rewritten in these terms. `open-ended`
+is retired.
+
+### The game
+
+- **`game-goal`** — what a player or team is trying to reach. Every game that
+  can be won or lost has one.
+  - **`goal-intrinsic`** — the game's own goal: find the word (wordle), turn
+    the board all green (waffle), find every word (spellingbee), the highest
+    score (scrabble compete).
+  - **`goal-chosen`** — an easier goal picked at setup in place of the
+    `goal-intrinsic`: reach Genius in spellingbee.
+  - **`goal-none`** — the game has no goal, so it cannot be won or lost. Today
+    that is only coop score games (scrabble coop, wordiply coop): a score is
+    only a goal as a contest between players.
+  - A score contest is a `game-goal` only in a game with a `natural-finish`.
+- **`natural-finish`** — an end the game reaches by its own rules: the bag
+  runs out, the deck is spent, the guesses are used up.
+  - Doesn't mean: the clock running out. The clock is never a
+    `natural-finish`; it only stops the game.
+  - Doesn't mean: reaching the `game-goal`. A natural-finish ends play
+    whether or not anyone met the goal; a crossword ends only by being solved,
+    so it has none.
+- **`goal-progress`** — a player's measurable movement toward the
+  `game-goal`: words found, categories solved, score. Each game that uses it
+  names its own measure.
+- **`winning-ordering`** — how a compete game orders its players to find the
+  winner (fewest guesses, highest score), with its **`tiebreak`**s in order
+  (wordle: then faster time; scrabble: then the higher score before
+  leftovers). Each compete game names its own.
+- **`decided`** — no remaining play can change who wins.
+  - Doesn't mean: the game has `ended` — play may go on after it is decided.
+- **`done`** — a player is done when they have `reached-goal`, been
+  `eliminated`, or `conceded`.
+- **When a compete game ends** — each compete game is one of:
+  - **`ends-when-decided`** — as soon as it is `decided` (crosswords: the
+    first to solve it).
+  - **`ends-when-all-done`** — only when every player is `done`, so the rest
+    play on after it is `decided` (wordle: short, and fun to finish).
+  - **`ends-when-one-left`** — with two or more players, when only one is not
+    yet `done` (spellingbee: the last player needn't reach the `game-goal` to
+    end it). A solo game ends when its one player is `done`.
+- **When the clock runs out and nobody has `reached-goal`** — each such game
+  is one of:
+  - **`timeout-no-winner`** — nobody won; the `game-goal` existed and nobody
+    met it, so everyone `lost` (in coop, the team).
+  - **`timeout-best-progress`** — the best `goal-progress` wins.
+- **When results are told** — each game is one of:
+  - **`announce-when-decided`** — the winner is told as soon as the game is
+    `decided`.
+  - **`announce-when-ended`** — results come only once the game has `ended`.
+- **`ended`** — the game is over for everyone: the prose and player-facing
+  word for `isTerminal`.
+  - Doesn't mean: `stopped` — a game ends many ways, and being stopped is one.
+- **`stopped`** — any player stopped the whole game (the **Stop** action,
+  formerly "End"). Nobody else `won` or `lost` it; players who `conceded`
+  stay `conceded`, and so `lost`. Shown in a neutral tone.
+  - **`decided-stands`** — stopping a game that is already `decided` keeps its
+    win: the Stop only ends the play-on.
+- **`no-result`** — a `goal-none` game reached its end (its `natural-finish`,
+  or the clock): nobody `won` or `lost`. The same neutral tone as `stopped`,
+  but a different word — nobody chose to stop it.
+
+### The player
+
+- **`reached-goal`** — the player (or team) met the `game-goal`, whether the
+  `goal-intrinsic` or a `goal-chosen`. Winning and losing are judged against
+  it.
+  - Doesn't mean: `solved` — reaching Genius is not solving spellingbee.
+- **`solved`** — met the `goal-intrinsic`: the game completed. In coop, the
+  team's. The word found (wordle), the board all green (waffle), every word
+  found (spellingbee, boggle), the three hidden words found (psychicnum), a
+  longest possible word found (wordiply), the deck cleared of sets (setgame).
+  - Where a game has nothing to complete (scrabble), it is not applicable,
+    not false.
+  - Doesn't mean: `won`. Nor is it needed to win: a compete game's
+    `winning-ordering` can crown a player who never solved (the most sets in
+    setgame, the longest word in wordiply).
+- **`perfect-play`** — `solved` in the best possible way: wordle in one guess,
+  letterboxed in two words, waffle at par, wordiply's longest word the one the
+  board was built around (where two are equally long). Measured in moves,
+  never time. Implies `solved`. In some games every solve is perfect
+  (setgame). Each game that has it names what counts (connections with no
+  mistakes? strands with no hints?); where a game has no such distinction, it
+  is not applicable, not false.
+  - Doesn't mean: `won` — a player with perfect play can lose to an equally
+    good game played faster.
+- **`author-solution`** — the player's solution is exactly the one the board
+  was made with (the author's crossword grid; letterboxed's two built-in
+  words; wordiply's longest word the board was built around, which is
+  `perfect-play` too). Meaningful only where several different solutions are valid. A
+  fact the game uses — it decides whether "reveal solution" is offered on a
+  solved game — not an outcome shown to the player.
+  - Doesn't mean: `solved` or `perfect-play` — both can hold without it.
+- **`won`** — decided by the game's `winning-ordering`.
+  - In coop, the whole team wins or doesn't.
+  - In compete, one player wins, or **`co-winners`** share it when the
+    `tiebreak`s leave them level, or nobody does.
+  - A player who `conceded` can never win.
+  - Doesn't mean: `solved`, `perfect-play` or `reached-goal` — each can hold
+    for a player who did not win.
+- **`lost`** — the game went against the player:
+  - in coop, the team failed the `game-goal`;
+  - in compete, someone else `won` (every `final-placing` below first is
+    lost), or the player was `eliminated`, or `conceded`, or their `game-goal`
+    became impossible.
+  - Doesn't mean: "didn't win". A player in a `stopped` or `no-result` game
+    who had not conceded neither won nor lost.
+- **`conceded`** — a compete player voluntarily withdrew: a loss by choice.
+  The player has `lost`; conceded says how, as `eliminated` does. Compete
+  only. Never "quit".
+  - Doesn't mean: anyone else `won` — see `win-is-earned`.
+  - If every player concedes, nobody won, everybody lost, and the game has
+    `ended`.
+- **`eliminated`** — out by the game's own rules (out of guesses, out of
+  mistakes). The player has `lost`, at once, while the others play on.
+- **`final-placing`** — a player's place in a game that plays on after it is
+  `decided` (`ends-when-all-done`, `ends-when-one-left`). Only players who
+  `reached-goal` are placed, in `winning-ordering` order; ties share a place.
+  First is `won`; every other placing is `lost`.
+  - Doesn't mean: anything for an `eliminated` or `conceded` player — they
+    have no placing.
+
+### Hints
+
+A **hint** is what a game hands a stuck player ([Vocabulary](#vocabulary)).
+Three independent things describe a game's hints, and each mode of a game
+answers them separately (hints may be banned in compete and free in coop).
+
+- **What a hint costs** — exactly one of:
+  - **`hint-banned`** — not offered at all (setgame compete).
+  - **`hint-earned`** — won by play before it can be used (strands).
+  - **`hint-scored`** — counted in the `winning-ordering`.
+  - **`hint-free`** — costs nothing.
+- **`hint-self-informative`** — what a hint tells: it can tell a player they
+  are wrong, never hand them progress.
+  - Doesn't mean: `hint-free`. A free hint may hand over progress, and a
+    self-informative one may cost something. They describe cost and content,
+    two separate things.
+- **`hint-spoiler`** — what a hint tells: it hands over part of the answer
+  outright (reveals a word), rather than nudging toward it. A spoiler is a
+  hint, with its own cost and recording like any other; the tag mostly sets
+  its button and its wording apart ("reveal a word" vs "hint at a word").
+  - Never `hint-self-informative`: handing over the answer is progress.
+- **`hint-recorded`** — a hint is stored with the game and shown in its move
+  log. Any of the costs may be recorded or not.
+  - Doesn't mean: `hint-scored` — a recorded hint may cost nothing.
+- **`hint-priced`** — the name of the existing compete rule ("the priced-hint
+  rule" in the code and the older text), stated in these terms: in compete a
+  hint is `hint-banned`, `hint-earned`, `hint-scored`, or `hint-free` and
+  `hint-self-informative`. Recorded here as the rule that stands today, not
+  ruled anew.
+
+### The rules
+
+- **`win-is-earned`** — a win is never inherited: a player left alone after
+  the others `conceded` must still `reached-goal` to win, or can lose. (The
+  same rule as "no survival wins", above.) So a game whose `game-goal` is
+  rarely reached in practice (spellingbee's every word, with no
+  `goal-chosen` and no clock) can end with nobody winning.
+- **`no-best-of-the-losers`** — failing is final: among players who failed,
+  nobody is crowned for having done better (two connections players who both
+  run out of mistakes both `lost`, whatever their categories).
+- A player who `conceded` can never win.
+- `solved` and `perfect-play` survive a `stopped` game: a player who solved
+  before the Stop still solved, and simply didn't win.
+
 ## Vocabulary
 
 Prefer these in docs, comments, identifiers and setup keys.

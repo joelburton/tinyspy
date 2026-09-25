@@ -160,6 +160,13 @@
   The kind is `leftovers` (renamed from `forfeit` by the events work — "penalty"
   and "forfeit" both imply a judgment this row deliberately does not make; it is
   arithmetic, and its outcome is `neutral`).
+- **A tied compete game skips the official tiebreak.** Joel, 2026-09-25: the
+  Hasbro rules break a tie on final score by the higher score BEFORE the
+  leftover tiles are added or deducted; only a tie that survives that is
+  shared. `scrabble._finish` goes straight to co-winners on a tied final score
+  (every top scorer `{won: true}`, no `winner_seat`). Apply the pre-leftover
+  tiebreak first, and keep co-winners for a tie it cannot break. The winning
+  rules themselves are being worked in `plans/cross-game-consistency.md` §3b.
 - **Where "Waiting for ● name…" belongs.** Joel, 2026-09-25: to investigate
   when auditing scrabble. Today the two modes differ. Turn-by-turn coop shows it
   as a pill in the local feedback slot, which takes the place of the commit
