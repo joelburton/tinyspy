@@ -71,7 +71,7 @@ type HintAnswer = { result: 'hint'; hint: string }
  *
  *   - **`<BoardCol>`** — the stacked-tile board + the live input engine (tile
  *     clicks / keyboard word-building) + the below-board region. Takes the board to
- *     render (live OR a historical snapshot) + `readOnly`; emits the completed word
+ *     render (live OR a historical snapshot) + `isBoardInteractive`; emits the completed word
  *     up (`onSubmitWord`) and "back to live" (`onExitHistory`).
  *   - **`<InfoCol>`** — the state readout, OpponentStrip, action row, setup
  *     disclosure, terminal words reveal, and the GameEventLog log. Every command
@@ -98,7 +98,11 @@ export function PlayArea({
   players,
   playState,
   isTerminal,
+  isPlayer,
+  isConceded,
   isLocallyTerminal,
+  isStillPlaying,
+  isBoardInteractive,
   timer,
   setup,
   status,
@@ -140,9 +144,10 @@ export function PlayArea({
   // The shared coordination state (docs/playarea.md): which log
   // row is open on the board. Identified by the row's POSITION in the log, not its
   // seq (stackdown's seq is per-user — see lib/history). When set, PlayArea feeds
-  // BoardCol that turn's historical snapshot + readOnly; BoardCol shows the viewing
-  // frame + banner and freezes input, and any keystroke / board click / ✕ exits.
-  const { historyId, isViewingHistory, showHistory, exitHistory } = useHistoryViewer()
+  // BoardCol that turn's historical snapshot and its label; BoardCol shows the
+  // viewing frame + banner and freezes input, and any keystroke / board click / ✕
+  // exits.
+  const { historyId, showHistory, exitHistory } = useHistoryViewer()
 
   // ─── The local feedback slot (the below-board pill) ──────────────
   // The player's OWN move results — a rejected word, a keystroke that matched
@@ -210,29 +215,13 @@ export function PlayArea({
   const isCompete = game?.mode === 'compete'
   const mySolved = self?.solved ?? false
 
-  // Concede state (from the common roster, `players` — the GamePlayer list that
-  // carries per-player concede flags). A conceder drops out of the compete race:
-  // they can't play, they see the locally-terminal "You conceded" look, and they
-  // read as "out" in every peer's OpponentStrip while the others race on. Coop
-  // never concedes (it uses the neutral whole-table End), so these stay false.
-  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
+  // Where I stand comes from the page (docs/win-lose.md → Where a player
+  // stands). A conceder drops out of the compete race: they can't play, they
+  // see the "You conceded" look, and they read as "out" in every peer's
+  // OpponentStrip while the others race on — stackdown has no elimination, so
+  // conceding is its only way out mid-game (a compete solve ends the race).
+  // Coop never concedes (it uses the neutral whole-table End).
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
-
-  const canPlay =
-    !!self && !isTerminal && !submitting && !(isCompete && mySolved) && !myConceded
-
-  // The gate on the two CHEATS (hint / spoiler), which is looser than `canPlay`:
-  // a solved compete player waiting out the race still sees both buttons in the
-  // info column, so this mirrors that row's condition exactly rather than
-  // inventing a second answer. Read by the game menu, where the pair's menu
-  // twins live.
-  const canAskHint = !!self && !isTerminal && !myConceded
-
-  // Locally terminal (compete only): I conceded but the game continues for the
-  // others. stackdown has no elimination, so conceding is the only path to it — it
-  // drives a terminal LOOK (a status line + a disabled Concede) so the drop-out reads
-  // loudly, without actually ending the game for anyone else.
-  const isLocallyDone = isCompete && myConceded && !isTerminal
 
   // ─── Submit a completed (5-tile) word ─────────────────────────
   // Each player builds their own word locally (selections aren't shared), so whoever
@@ -386,14 +375,14 @@ export function PlayArea({
   // which word each acts on, which the icon-only buttons have no room for.
   const actHint = useBoundAction('act-hint', {
     describe: () => ({
-      state: canAskHint ? 'active' : 'disabled',
+      state: isStillPlaying ? 'active' : 'disabled',
       label: 'Hint for next word',
     }),
     run: revealHint,
   })
   const actSpoiler = useBoundAction('act-spoiler', {
     describe: () => ({
-      state: canAskHint ? 'active' : 'disabled',
+      state: isStillPlaying ? 'active' : 'disabled',
       label: 'Cheat for next word',
     }),
     run: spoilNext,
@@ -649,10 +638,10 @@ export function PlayArea({
   // conceder sees the drop-out in the slot they've been reading all game, not
   // only in the info column.
   useEffect(function showOutOfRace() {
-    if (!isLocallyDone) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(myConceded))
+    if (isTerminal || !isLocallyTerminal) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyDone, myConceded])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
   if (loading) return <p>Loading game…</p>
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -682,7 +671,7 @@ export function PlayArea({
 
   // Turn viewer: the historical board for the row being viewed (or null when live).
   // `historyId` is the row's own id, resolved against the rows being folded below.
-  // Works at terminal too (reviewing the finished stack). (`isViewingHistory` is from the hook.)
+  // Works at terminal too (reviewing the finished stack).
   //
   // WHOSE board it replays is the row's own author's. Mid-game compete that is
   // always me — RLS shows me nothing else — but at TERMINAL every player's rows
@@ -707,7 +696,8 @@ export function PlayArea({
         tiles={game.tiles}
         offBoard={historySnap ? historySnap.offBoard : offBoard}
         historyLitTiles={historySnap ? historySnap.historyLitTiles : NO_TILES}
-        readOnly={isViewingHistory || !canPlay}
+        isBoardInteractive={isBoardInteractive}
+        submitting={submitting}
         historyLabel={historySnap ? historySnap.historyLabel : null}
         historyActor={historyActor}
         onExitHistory={exitHistory}
@@ -737,8 +727,8 @@ export function PlayArea({
         isCompete={isCompete}
         isTerminal={isTerminal}
         over={over}
-        isPlayer={!!self}
-        isLocallyDone={isLocallyDone}
+        isPlayer={isPlayer}
+        isLocallyTerminal={isLocallyTerminal}
         foundCount={foundCount}
         hintCount={hintCount}
         spoilerCount={spoilerCount}

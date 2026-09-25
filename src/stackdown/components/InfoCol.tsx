@@ -31,7 +31,7 @@ export function InfoCol({
   isTerminal,
   over,
   isPlayer,
-  isLocallyDone,
+  isLocallyTerminal,
   foundCount,
   hintCount,
   spoilerCount,
@@ -61,8 +61,9 @@ export function InfoCol({
   over: TerminalMessage | null
   /** Am I a player in this game (gates the cheats + the "click tiles" help). */
   isPlayer: boolean
-  /** I conceded but the others race on — a terminal LOOK without ending the game. */
-  isLocallyDone: boolean
+  /** I conceded but the others race on — a terminal LOOK without ending the game
+   *  (the page's `isLocallyTerminal`; in this game only by conceding). */
+  isLocallyTerminal: boolean
 
   // ── State readout (the count line at the top) ──
   /** Words cleared, out of six. */
@@ -182,9 +183,9 @@ export function InfoCol({
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : isLocallyDone ? (
+        ) : isLocallyTerminal ? (
           // I conceded; the others race on. Terminal LOOK (a status line + the
-          // now-disabled Concede) so the drop-out reads loudly.
+          // one flag) so the drop-out reads loudly.
           <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
             {/* Reveal keeps its slot while the others race, but inert: the
                 words don't even reach this client until the game is over for
@@ -193,7 +194,11 @@ export function InfoCol({
                 than absent so the row doesn't change shape when the last racer
                 finishes — the button is simply enabled then. */}
             <ActionButton action={actReveal} show="icon" />
+            {/* Both exits are placed and each says whether it applies: out of
+                the race, Concede hides and End comes out in its place — one
+                flag, since anyone in a game may end it for all. */}
             <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
           </InfoActionsRow>
         ) : isPlayer ? (
           <InfoActionsRow>
@@ -216,7 +221,7 @@ export function InfoCol({
         {/* Help — only while the player can act on it (never silently swapped).
             Hidden once conceded: the "click tiles" prompt would contradict the
             now-disabled entry. */}
-        {!over && isPlayer && !isLocallyDone && (
+        {!over && isPlayer && !isLocallyTerminal && (
           <p className={shared.infoHelp}>
             Click exposed tiles — or type a letter — to spell a word.{' '}
             <kbd>Enter</kbd> submits; <kbd>Backspace</kbd> takes one back.

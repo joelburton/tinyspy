@@ -29,9 +29,9 @@ const NO_TILES: ReadonlySet<number> = new Set()
  * is the **live input engine**: it turns tile clicks and physical keystrokes into a
  * word being built, and emits the completed 5-tile word up via `onSubmitWord`. It
  * does NOT own the game state — `PlayArea` hands it **the board to render** (the
- * live board OR a historical snapshot) plus `readOnly`; that split is what makes the
- * turn-history viewer a drop-in (viewing a past turn is just "render this snapshot,
- * readOnly", no reopening of the input path). See docs/playarea.md.
+ * live board OR a historical snapshot) plus where I stand; that split is what makes
+ * the turn-history viewer a drop-in (viewing a past turn is just "render this
+ * snapshot", no reopening of the input path). See docs/playarea.md.
  *
  * State ownership across the seam:
  *   - Owned here: the red ambiguous-tile flash (a typed letter matched >1 exposed
@@ -46,7 +46,8 @@ export function BoardCol({
   tiles,
   offBoard,
   historyLitTiles,
-  readOnly,
+  isBoardInteractive,
+  submitting,
   historyLabel,
   historyActor,
   onExitHistory,
@@ -70,9 +71,11 @@ export function BoardCol({
   offBoard: Set<number>
   // Tiles to ring green — a viewed turn's played word; empty (NO_TILES) when live.
   historyLitTiles: ReadonlySet<number>
-  // Board inert + input frozen: `viewing || !canPlay`. When NOT viewing this is
-  // exactly "can't play right now", which is why the key handler can gate on it.
-  readOnly: boolean
+  // The board responds to me (the page's `isBoardInteractive`). The history
+  // viewer and a word in flight block input on top of it.
+  isBoardInteractive: boolean
+  // My word is with the server — no new pick until it answers.
+  submitting: boolean
 
   // ── History viewer (its overlay lives in the below-board region) ──
   // The viewed turn's label (it drives the banner and the viewing frame), or null
@@ -122,6 +125,11 @@ export function BoardCol({
   refusedWord: boolean
 }) {
   const isViewingHistory = historyLabel != null
+  // May I pick, take back or submit a tile right now? The board is mine to
+  // touch, no word is in flight, and a past turn is not on screen (any key
+  // there leaves history). stackdown does not draft off-turn, so submitting
+  // asks what picking asks.
+  const canPick = isBoardInteractive && !submitting && !isViewingHistory
 
   // Red ambiguous-tile flash — a typed letter matched more than one exposed tile;
   // the candidates outline red for a beat. Purely this column's input feedback, so
@@ -137,20 +145,20 @@ export function BoardCol({
   // is recoverable — the last tile is just another tile.
   const onTileClick = useCallback(
     (tileId: number) => {
-      if (readOnly) return
+      if (!canPick) return
       clearFlash() // starting a new word drops any lingering word flash
       localFeedbackSlot.dismiss() // …and the previous move's result (next-move-dismisses rule)
       appendTile(tileId)
     },
-    [readOnly, appendTile, clearFlash, localFeedbackSlot],
+    [canPick, appendTile, clearFlash, localFeedbackSlot],
   )
 
   // ─── The two explicit move controls ───────────────────────────
   // A word is exactly five tiles, so that's the whole submit gate. Both
   // predicates also drive the buttons' `disabled`, so the keyboard and the
   // buttons can't disagree about what's possible right now.
-  const canSubmit = !readOnly && currentWord.length === 5
-  const canDelete = !readOnly && currentWord.length > 0
+  const canSubmit = canPick && currentWord.length === 5
+  const canDelete = canPick && currentWord.length > 0
 
   const submitWord = useCallback(() => {
     if (canSubmit) onSubmitWord(currentWord)
@@ -172,14 +180,10 @@ export function BoardCol({
   // so the region never reflows (the reserve-the-slot rule, docs/ui.md). The
   // history viewer's any-key exit needs no help from this — the dispatcher gives
   // a MODE priority over a particular key — but a control that stayed live over
-  // a frozen board would be lying about what it can do.
-  //
-  // `readOnly` is already `viewing || !canPlay` (PlayArea sets it), so this one
-  // flag covers both the frozen board and the open past turn.
-  const playable = !readOnly
-
+  // a frozen board would be lying about what it can do. `canPick` covers both
+  // the frozen board and the open past turn.
   const actSubmit = useBoundAction('act-submit', {
-    describe: () => (playable && canSubmit ? 'active' : 'disabled'),
+    describe: () => (canSubmit ? 'active' : 'disabled'),
     run: submitWord,
   })
 
@@ -187,7 +191,7 @@ export function BoardCol({
     // A word here is picked-up TILES, so this returns the last one rather than
     // erasing a letter — the registry's name would say the wrong thing.
     describe: () => ({
-      state: playable && canDelete ? 'active' : 'disabled',
+      state: canDelete ? 'active' : 'disabled',
       label: 'Return the last tile',
     }),
     run: deleteLast,
@@ -203,7 +207,7 @@ export function BoardCol({
   useDismissLocalFeedbackOnKey(localFeedbackSlot.dismiss)
 
   useBoundAction('act-pick-tile', {
-    describe: () => (playable ? 'active' : 'disabled'),
+    describe: () => (canPick ? 'active' : 'disabled'),
     run: (key) => {
       const letter = (key ?? '').toUpperCase()
       // Any handled keystroke is a "next move" — dismiss the previous result.
@@ -236,7 +240,7 @@ export function BoardCol({
       <Board
         tiles={tiles}
         offBoard={offBoard}
-        active={!readOnly}
+        active={canPick}
         ambiguousTiles={isViewingHistory ? NO_TILES : flashIds}
         historyLitTiles={historyLitTiles}
         isViewingHistory={isViewingHistory}
@@ -268,7 +272,7 @@ export function BoardCol({
           <WordEntry
             tiles={tiles}
             currentWord={currentWord}
-            active={!readOnly && !refusedWord}
+            active={canPick && !refusedWord}
             onRetract={retractTo}
             flash={flash}
             verdict={refusedWord ? ANSWER_OUTCOME.invalid : null}

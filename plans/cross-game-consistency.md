@@ -366,6 +366,12 @@ where it fixes a behavior:
    CONCEDER alone: a racer who has spent five guesses is locally terminal too
    but keeps the playing row, which shows End since step 4 — kept, as the
    game's own choice; unit + its 4 e2e + the cross-game specs green).
+   stackdown done 2026-09-25 (`myConceded` / `canPlay` / `canAskHint` /
+   `isLocallyDone` gone; BoardCol's `readOnly` — the retired `viewing ||
+   !canPlay` — is `isBoardInteractive` plus the history viewer and
+   `submitting`, a word in flight; the hint pair keys on `isStillPlaying`;
+   the conceder's row places End — failing test first; unit + its 9 e2e +
+   the cross-game specs green).
    **Step 6 renames only the standing terms** (Joel, 2026-09-25). A game's
    other names that the plan has already settled are owed when its audit
    area opens — the names below, found while converting, with the games
