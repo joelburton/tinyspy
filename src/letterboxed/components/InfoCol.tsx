@@ -34,8 +34,8 @@ export function InfoCol({
   // ── Terminal & turn state ──
   over,
   isTerminal,
-  isLocallyDone,
-  isTurnGame,
+  isLocallyTerminal,
+  isTurnBased,
   turnHolderId,
   // ── State (the chain and its readouts) ──
   chain,
@@ -70,10 +70,13 @@ export function InfoCol({
   /** The terminal message when the game is over (drives the action row), else null. */
   over: TerminalMessage | null
   isTerminal: boolean
-  isLocallyDone: boolean
-  /** Turn-by-turn co-op. Fixed at create time, so the turn line's presence
-   *  never changes mid-game and can't reflow the column. */
-  isTurnGame: boolean
+  /** I conceded but the others race on (the page's `isLocallyTerminal`; in
+   *  this game only by conceding). */
+  isLocallyTerminal: boolean
+  /** Turn-by-turn co-op (the page's `isTurnBased`). Fixed at create time, so
+   *  the turn line's presence never changes mid-game and can't reflow the
+   *  column. */
+  isTurnBased: boolean
   turnHolderId: string | null
   // ── State (the chain and its readouts) ──
   chain: string[]
@@ -135,7 +138,7 @@ export function InfoCol({
         {/* Whose-turn line — only in a turn-order game. Rendering it in a
             free-for-all game would print "Waiting for someone…" forever,
             since the pointer is null there. */}
-        {isTurnGame && (
+        {isTurnBased && (
           <TurnStatusLine
             turnHolderId={turnHolderId}
             players={players}
@@ -163,8 +166,8 @@ export function InfoCol({
         )}
 
         {/* Action row — ICON-ONLY. TERMINAL: outcome line + Restart / New game
-            / Club. CONCEDED (others race on): the terminal look + a disabled
-            Concede. PLAYING: End (coop) / Concede (compete) + back-to-club. */}
+            / Club. CONCEDED (others race on): the terminal look + End.
+            PLAYING: End (coop) / Concede (compete) + back-to-club. */}
         {over ? (
           <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             <ActionButton action={actRestart} show="icon" />
@@ -172,11 +175,13 @@ export function InfoCol({
             <ActionButton action={actNewGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" weight="primary" />
           </InfoActionsRow>
-        ) : isLocallyDone ? (
+        ) : isLocallyTerminal ? (
           <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
-            {/* Concede disables itself once conceded — the row keeps its shape
-                and the button says why it can't be pressed again. */}
+            {/* Both exits are placed and each says whether it applies: out of
+                the race, Concede hides and End comes out in its place — one
+                flag, since anyone in a game may end it for all. */}
             <ActionButton action={actConcede} show="icon" />
+            <ActionButton action={actEndGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>
@@ -195,7 +200,7 @@ export function InfoCol({
 
         {/* Help — the interface in one line, and only while the player can act
             on it (never silently swapped for something else). */}
-        {!over && !isLocallyDone && (
+        {!over && !isLocallyTerminal && (
           <p className={shared.infoHelp}>
             Click letters or type; click the last one again (or press{' '}
             <kbd>Enter</kbd>) to submit. Every word starts where the last one

@@ -18,6 +18,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
+import { whereIStand } from '@/common/game-page/whereIStand'
 import { createFeedbackSlot } from '@/common/feedback/feedbackSlotStore'
 import { gp } from '@/common/members/gamePlayer.fixture'
 import { boundActionFixture } from '@/common/actions/boundAction.fixture'
@@ -95,23 +96,23 @@ function loaded(game: LetterboxedGame): GameHook {
   }
 }
 
+/** A play surface's context. Where I stand is DERIVED from the fixture — the
+ *  roster's flags, `isTerminal`, `isTurnBased` and `turnHolderId` — exactly as
+ *  the page derives it (`whereIStand`), so a test sets up the facts and never
+ *  hand-writes an answer the page could not give. */
 function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
-  return {
+  const facts = {
     session: { user: { id: 'u1' } } as unknown as GamePageCtx['session'],
-    gameId: 'g1',
     players: [gp('u1', 'me', 'red')],
-    playState: 'playing',
     isTerminal: false,
-    timer: { displaySeconds: 0, expired: false },
-    isMyTurn: true,
-    isPlayer: true,
-    isConceded: false,
-    isLocallyTerminal: false,
-    isStillPlaying: true,
     isTurnBased: false,
-    isBoardInteractive: true,
-    isWaitingForTurn: false,
     turnHolderId: null,
+    ...over,
+  }
+  return {
+    gameId: 'g1',
+    playState: 'playing',
+    timer: { displaySeconds: 0, expired: false },
     setup: { extra_words: 3, difficulty: 3, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
@@ -125,7 +126,15 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     },
     brand: 'SnakeBox',
     title: 'New game',
-    ...over,
+    ...facts,
+    ...whereIStand({
+      players: facts.players,
+      myId: facts.session.user.id,
+      isTerminal: facts.isTerminal,
+      isTurnBased: facts.isTurnBased,
+      turnHolderId: facts.turnHolderId,
+      draftsOffTurn: false,
+    }),
   } as unknown as GamePageCtx
 }
 
@@ -172,6 +181,27 @@ beforeEach(() => {
   rpc.mockReset()
   rpc.mockResolvedValue({ error: null, data: null })
   startEdgeFn.mockReset()
+})
+
+describe('letterboxed PlayArea — a conceder keeps the one flag', () => {
+  it('shows "You conceded" with End for all, not a hidden Concede', () => {
+    // Conceding is spent; ending the game for all is open to anyone in it, so
+    // End takes Concede's place in the row.
+    h.result = loaded(loadedGame({ mode: 'compete' }))
+    render(
+      <PlayArea
+        {...makeCtx({
+          players: [
+            gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }),
+            gp('u2', 'moth', 'blue'),
+          ],
+        })}
+      />,
+    )
+    expect(screen.getByText('You conceded')).toBeInTheDocument()
+    expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
+    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
+  })
 })
 
 describe('letterboxed PlayArea — the game menu is the icon legend', () => {

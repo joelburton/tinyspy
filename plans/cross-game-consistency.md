@@ -371,6 +371,11 @@ where it fixes a behavior:
    !canPlay` — is `isBoardInteractive` plus the history viewer and
    `submitting`, a word in flight; the hint pair keys on `isStillPlaying`;
    the conceder's row places End — failing test first; unit + its 9 e2e +
+   the cross-game specs green). letterboxed done 2026-09-25 (`myConceded` /
+   `isLocallyDone` / `chainEditable` / `waiting` / its own `isTurnGame` gone;
+   the chain's × takes a word back, a move sent to the server, so it asks
+   `isMyTurn`, and the entry freezes on `!isBoardInteractive || chainFull`;
+   the conceder's row places End — failing test first; unit + its 15 e2e +
    the cross-game specs green).
    **Step 6 renames only the standing terms** (Joel, 2026-09-25). A game's
    other names that the plan has already settled are owed when its audit

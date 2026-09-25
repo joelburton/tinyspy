@@ -101,8 +101,8 @@ type RungAnswer = {
 
 export function PlayArea(ctx: GamePageCtx) {
   const {
-    gameId, isTerminal, isLocallyTerminal, playState, players, session, status,
-    isMyTurn, turnHolderId,
+    gameId, isTerminal, isConceded, isLocallyTerminal, playState, players, session, status,
+    isTurnBased, turnHolderId, isMyTurn, isWaitingForTurn, isBoardInteractive,
     setup, clubHandle, goToGame, menu, brand, globalFeedbackSlot, title,
   } = ctx
   const { game, playerRows, myRow, events, loading, rowsLoaded, failure } = useGame(gameId, session.user.id)
@@ -158,7 +158,6 @@ export function PlayArea(ctx: GamePageCtx) {
   // board instead of typing behind the banner (the hook binds
   // `act-exit-history`; see `useHistoryViewer`).
   const { historyId, isViewingHistory, showHistory, exitHistory } = useHistoryViewer<number>()
-  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   const chain = useMemo(() => myRow?.chain ?? [], [myRow])
@@ -653,31 +652,29 @@ export function PlayArea(ctx: GamePageCtx) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, over])
 
-  // Locally terminal (compete only): I conceded but the others race on.
-  const isLocallyDone = isCompete && myConceded && !isTerminal
+  // Out of the race while the others play on (compete only; the page's
+  // `isLocallyTerminal` — in this game only by conceding).
   useEffect(function showOutOfRace() {
-    if (!isLocallyDone) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    if (isTerminal || !isLocallyTerminal) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyDone])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
-  // Turn-order (coop, opt-in): a teammate holds the move. `turnHolderId`
-  // is null in a free-for-all game, so this never fires there. On a phone the
-  // InfoCol's TurnStatusLine is off-canvas, so this is the only whose-turn
-  // indicator.
-  const waiting = turnHolderId !== null && !isMyTurn && !isTerminal
+  // A teammate holds the move (turn-order coop; never in a free-for-all). On a
+  // phone the InfoCol's TurnStatusLine is off-canvas, so this is the only
+  // whose-turn indicator.
   const turnHolder = players.find((p) => p.user_id === turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
-    if (!waiting) return
+    if (!isWaitingForTurn) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
         holderName === undefined ? undefined : { username: holderName, color: holderColor ?? '' },
       ),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, waiting, holderName, holderColor])
+  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
 
   // The cap is spent and the board isn't covered. There is no legal move left
   // but taking a word back, so the board and the entry both go inert rather
@@ -731,9 +728,9 @@ export function PlayArea(ctx: GamePageCtx) {
   // TWO different gates, and conflating them is a bug: a full chain freezes the
   // ENTRY (there is no word to compose) but must leave the chain EDITABLE,
   // because taking a word back is the only move left. Passing the entry's gate
-  // to the chain strip hid the × exactly when it was needed.
-  const chainEditable = !isTerminal && !myConceded && isMyTurn
-  const entryDisabled = !chainEditable || chainFull
+  // to the chain strip hid the × exactly when it was needed. Taking a word back
+  // is a move sent to the server, so it asks `isMyTurn`; typing asks the board.
+  const entryDisabled = !isBoardInteractive || chainFull
 
   const wordsByUser = new Map(
     playerRows.map((r) => [r.user_id, r.word_count]),
@@ -761,7 +758,7 @@ export function PlayArea(ctx: GamePageCtx) {
         // "you're out", whose turn it is, the full chain, the verdict.
         localFeedbackSlot={localFeedbackSlot}
         entryDisabled={entryDisabled}
-        chainEditable={chainEditable}
+        isMyTurn={isMyTurn}
         busy={busy}
       />
 
@@ -769,8 +766,8 @@ export function PlayArea(ctx: GamePageCtx) {
         <InfoCol
           over={over}
           isTerminal={isTerminal}
-          isLocallyDone={isLocallyDone}
-          isTurnGame={letterboxedSetup.coop_style === 'turns'}
+          isLocallyTerminal={isLocallyTerminal}
+          isTurnBased={isTurnBased}
           turnHolderId={turnHolderId}
           chain={chain}
           maxWords={maxWords}

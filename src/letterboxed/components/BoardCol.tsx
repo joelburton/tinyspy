@@ -58,7 +58,7 @@ export function BoardCol({
   onRemoveLast,
   localFeedbackSlot,
   entryDisabled,
-  chainEditable,
+  isMyTurn,
   busy,
 }: {
   // ── Board & chain ──
@@ -96,12 +96,14 @@ export function BoardCol({
   // a gesture-cleared message.
   localFeedbackSlot: FeedbackSlot
   // ── Gates ──
-  // Terminal / conceded / not my turn / chain full: board + entry are inert.
+  // The board is not mine to type into (`!isBoardInteractive` — over,
+  // conceded, a teammate's turn) or the chain is full: board + entry are inert.
   entryDisabled: boolean
-  // May the chain still be edited? Deliberately NOT `!entryDisabled`: when the
+  // The move is mine (the page's `isMyTurn`) — the chain's × takes a word back,
+  // a move sent to the server. Deliberately NOT `!entryDisabled`: when the
   // chain is full the entry freezes but the × must stay live, since taking a
   // word back is then the only move on the board.
-  chainEditable: boolean
+  isMyTurn: boolean
   busy: boolean
 }) {
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
@@ -213,7 +215,7 @@ export function BoardCol({
         <ChainStrip
           chain={chain}
           onRemoveLast={onRemoveLast}
-          disabled={!chainEditable || isViewingHistory}
+          disabled={!isMyTurn || isViewingHistory}
         />
 
         <Board
