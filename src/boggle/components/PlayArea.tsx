@@ -180,8 +180,7 @@ export function PlayArea(ctx: GamePageCtx) {
     useFoundWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: myId,
-      // A conceder is locally done: gate word entry as if the game were terminal.
-      isTerminal: isTerminal || myConceded,
+      isMyTurn: ctx.isMyTurn,
       minWordLength: game?.min_word_length ?? 3,
       localFeedbackSlot,
       foundWords,

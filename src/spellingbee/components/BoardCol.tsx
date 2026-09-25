@@ -48,7 +48,8 @@ type SubmittedWord =
  * outer-letter shuffle — a per-player, view-only rearrange — and the letter
  * click that appends to the word.
  *
- * Everything else comes down: the board's letters, `readOnly`, the lists a
+ * Everything else comes down: the board's letters, where I stand
+ * (`isBoardInteractive`, `isMyTurn`), the lists a
  * word is judged against, and the feedback slot, which is the PlayArea's —
  * its standing conditions and InfoCol's End / Concede show into it too. See
  * docs/playarea.md.
@@ -67,7 +68,8 @@ export function BoardCol({
   gameId,
   mode,
   selfId,
-  readOnly,
+  isBoardInteractive,
+  isMyTurn,
   foundWords,
   requiredWords,
   bonusWords,
@@ -92,10 +94,12 @@ export function BoardCol({
   gameId: string
   mode: 'coop' | 'compete'
   selfId: string
-  // No more words from me: the game is over, or I conceded a race the others
-  // play on. The engine refuses, the entry closes and the hive goes inert, all
-  // on this one flag (docs/playarea.md).
-  readOnly: boolean
+  // The page's standing terms (docs/win-lose.md → Where a player stands). The
+  // hive and the entry take letters while the board is interactive; the engine
+  // commits a word while the move is mine. Both go false once the game is over
+  // or I conceded a race the others play on.
+  isBoardInteractive: boolean
+  isMyTurn: boolean
   // The committed rows, the engine's dedup source (mode-aware: the team's in
   // coop, mine in compete).
   foundWords: FoundWordRow[]
@@ -141,7 +145,7 @@ export function BoardCol({
     useFoundWordSubmit({
       mode,
       userId: selfId,
-      isTerminal: readOnly,
+      isMyTurn,
       minWordLength: 4,
       localFeedbackSlot,
       foundWords,
@@ -191,11 +195,11 @@ export function BoardCol({
 
   // The hexes the typed word is using. A Set of its letters is the whole of
   // it: a hive letter can be typed more than once and there is nothing to
-  // count. Empty once the board is read-only, so a word left half-typed when
-  // the game ended, or when I conceded, drops its marks.
+  // count. Empty once the board is inert, so a word left half-typed when the
+  // game ended, or when I conceded, drops its marks.
   const usedLetters = useMemo(
-    () => new Set(readOnly ? '' : word.toUpperCase()),
-    [readOnly, word],
+    () => new Set(isBoardInteractive ? word.toUpperCase() : ''),
+    [isBoardInteractive, word],
   )
 
   // A click is my next action, so it dismisses a gesture-cleared result.
@@ -248,7 +252,8 @@ export function BoardCol({
         refused={refused}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
-        onLetterClick={readOnly ? undefined : handleLetterClick}
+        isBoardInteractive={isBoardInteractive}
+        onLetterClick={handleLetterClick}
         usedLetters={usedLetters}
         // Passed into Letters so it anchors to the visual hive rather than
         // the column (`.floatingShuffle`).
@@ -269,7 +274,7 @@ export function BoardCol({
             onChange={setWord}
             onSubmit={submit}
             placeholder="Type or click letters"
-            disabled={readOnly}
+            disabled={!isBoardInteractive}
             onAnyKey={localFeedbackSlot.dismiss}
             charFor={asciiLetters('upper')}
             recall={lastWord}

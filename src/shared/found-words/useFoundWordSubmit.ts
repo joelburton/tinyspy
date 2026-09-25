@@ -72,8 +72,9 @@ export type WordSubmitReport =
 export type FoundWordSubmitConfig = {
   mode: 'coop' | 'compete'
   userId: string
-  // True once the game is over — submit becomes a no-op.
-  isTerminal: boolean
+  // The move is mine (the page's `isMyTurn`) — otherwise submit is a no-op:
+  // the game is over, I am out of it, or it is a teammate's turn.
+  isMyTurn: boolean
   minWordLength: number
   // The game's below-board slot, for the server's `not-ok` when a commit does
   // not land. Everything else the game shows there itself, from `onAnswer`.
@@ -174,7 +175,7 @@ export function useFoundWordSubmit(cfg: FoundWordSubmitConfig): FoundWordSubmitA
     const c = cfgRef.current
     const raw = wordRef.current
     const w = raw.trim().toLowerCase()
-    if (w === '' || c.isTerminal) return
+    if (w === '' || !c.isMyTurn) return
 
     // Consume the input up front: record it for recall, clear the box (so the pill
     // can reclaim the slot), and blank the ref synchronously — a same-tick second

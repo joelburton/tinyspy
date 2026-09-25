@@ -109,7 +109,8 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
  */
 export function PlayArea(props: PlayAreaProps) {
   const {
-    gameId, isTerminal, isLocallyTerminal, playState, players, session, status,
+    gameId, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive,
+    playState, players, session, status,
     setup, clubHandle, goToGame, menu, brand, title,
     globalFeedbackSlot,
     game, foundWords, rowsLoaded,
@@ -168,9 +169,6 @@ export function PlayArea(props: PlayAreaProps) {
   // filter, so the two cannot disagree.
   const hasBonus = setup.legal_band !== setup.required_band
 
-  // Concede lives on the common roster (`players`).
-  const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false
-
   const isCompete = game.mode === 'compete'
 
   // The rows I score: the team's in coop, my own in compete. Compete filters
@@ -201,14 +199,6 @@ export function PlayArea(props: PlayAreaProps) {
   // terminals write. Both modes: compete's finish line, and coop's optional
   // win threshold (null = the open-ended hunt).
   const targetRankIdx = setup.target_rank ?? null
-
-  // Locally terminal (compete only): I conceded while the race runs on for the
-  // others — the one per-player done state this game has.
-  const isLocallyDone = isCompete && myConceded && !isTerminal
-
-  // The board is inert once I can add nothing: the game is over, or I am out
-  // of a race the others play on.
-  const readOnly = isTerminal || isLocallyDone
 
   // ─── The local slot, and its two standing conditions ───
   // Each condition is an effect on a primitive edge that shows on true and
@@ -255,12 +245,13 @@ export function PlayArea(props: PlayAreaProps) {
     return () => localFeedbackSlot.retract(id)
   }, [localFeedbackSlot, terminalMessage])
 
-  // Out of the race while the others play on.
+  // Out of the race while the others play on — in this game only by
+  // conceding (compete only).
   useEffect(function showOutOfRace() {
-    if (!isLocallyDone) return
-    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(true))
+    if (isTerminal || !isLocallyTerminal) return
+    const id = localFeedbackSlot.show(FeedbackMessage.outOfRace(isConceded))
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isLocallyDone])
+  }, [localFeedbackSlot, isTerminal, isLocallyTerminal, isConceded])
 
   // ─── Narration — what a PEER did, in the header slot ───
   // About somebody else, which is what puts it in the global slot rather than
@@ -453,7 +444,7 @@ export function PlayArea(props: PlayAreaProps) {
   // nothing here is a hook, which is why it may sit after the menu effect.
 
   // Who has bowed out of the race — the opponent strip's "out" cell. From the
-  // common roster, like `myConceded`.
+  // common roster, like `isConceded`.
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   // Compete only: the leaderboard off the live status. Empty before the first
@@ -497,7 +488,8 @@ export function PlayArea(props: PlayAreaProps) {
         gameId={gameId}
         mode={game.mode}
         selfId={session.user.id}
-        readOnly={readOnly}
+        isBoardInteractive={isBoardInteractive}
+        isMyTurn={isMyTurn}
         foundWords={foundWords}
         requiredWords={game.requiredWords}
         bonusWords={game.bonusWords}
@@ -512,7 +504,7 @@ export function PlayArea(props: PlayAreaProps) {
         isCompete={isCompete}
         isTerminal={isTerminal}
         terminalMessage={terminalMessage}
-        isLocallyDone={isLocallyDone}
+        isLocallyTerminal={isLocallyTerminal}
         // ── State (RankBar + Stats) ──
         foundWordsScore={foundWordsScore}
         requiredWordsScore={game.required_words_score}

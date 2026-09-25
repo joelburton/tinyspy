@@ -330,6 +330,13 @@ where it fixes a behavior:
    Concede" had kept passing since step 4 only because its hand-set context
    said the racer was not out; built through `whereIStand`, it failed and now
    asserts End. Expect the same in each game's tests as it converts.
+   spellingbee done 2026-09-25 (`myConceded` / `isLocallyDone` / `readOnly`
+   gone; the hive takes `isBoardInteractive` and a required `onLetterClick`).
+   The shared word engine's gate `useFoundWordSubmit({ isTerminal })` — which
+   no caller passed the game's end — is `isMyTurn` (a commit asks it); boggle
+   and wordiply pass the page's, and wordwheel bridges `!readOnly` until its
+   own commit. Unit + spellingbee's, boggle's and wordiply's e2e + the
+   cross-game specs green.
 7. **codenamesduet's turns.** It keeps its turns in its own table
    (`current_clue_giver` and the phase), so the shared `isMyTurn` is always
    true there. It moves onto the common turn order: both players seated

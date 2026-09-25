@@ -231,7 +231,7 @@ export function PlayArea(ctx: GamePageCtx) {
     useFoundWordSubmit({
       mode: game?.mode ?? 'coop',
       userId: session.user.id,
-      isTerminal: isTerminal || myConceded,
+      isMyTurn,
       // Must be LONGER than the base, so the minimum length is base + 1.
       minWordLength: base.length + 1,
       localFeedbackSlot,

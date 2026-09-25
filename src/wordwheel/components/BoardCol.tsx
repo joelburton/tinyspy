@@ -154,7 +154,7 @@ export function BoardCol({
     useFoundWordSubmit({
       mode,
       userId: selfId,
-      isTerminal: readOnly,
+      isMyTurn: !readOnly,
       minWordLength: 4,
       localFeedbackSlot,
       foundWords,

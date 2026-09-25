@@ -33,7 +33,7 @@ function makeCfg(over: Partial<FoundWordSubmitConfig> = {}): FoundWordSubmitConf
   return {
     mode: 'coop',
     userId: 'u1',
-    isTerminal: false,
+    isMyTurn: true,
     minWordLength: 4,
     // A real slot: the one thing the hook shows (a commit's not-ok) is read
     // back as its top message.
@@ -196,8 +196,8 @@ describe('useFoundWordSubmit', () => {
     expect(lastReport(cfg)).toEqual({ answer: 'not_legal', word: 'qqqq' })
   })
 
-  it('is a no-op once terminal', async () => {
-    const cfg = makeCfg({ isTerminal: true })
+  it('is a no-op unless the move is mine — the game over, or I am out', async () => {
+    const cfg = makeCfg({ isMyTurn: false })
     const { type, submit } = setup(cfg)
 
     type('apple')

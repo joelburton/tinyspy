@@ -14,10 +14,11 @@ type Props = {
   outerLetters: string[]
   // The 1 mandatory center letter.
   centerLetter: string
+  // The board responds to me (the page's `isBoardInteractive`). When false no
+  // hex takes a click, a hover or a press.
+  isBoardInteractive: boolean
   // Called with the clicked letter; the caller appends it to the typed word.
-  // Absent when the board is read-only, and then no hex takes a click, a
-  // hover or a press.
-  onLetterClick?: (letter: string) => void
+  onLetterClick: (letter: string) => void
   // The letters the word being typed is using, uppercase — those hexes wear
   // the selected edge.
   usedLetters: Set<string>
@@ -51,6 +52,7 @@ type Props = {
 export function Letters({
   outerLetters,
   centerLetter,
+  isBoardInteractive,
   onLetterClick,
   usedLetters,
   refused,
@@ -72,7 +74,8 @@ export function Letters({
                 pos={HEX_POSITIONS[i] ?? HEX_POSITIONS[0]}
                 used={usedLetters.has(letter.toUpperCase())}
                 answer={mark?.value.outcome}
-                onClick={onLetterClick && (() => onLetterClick(letter))}
+                // A hex with no handler is inert — no click, hover or press.
+                onClick={isBoardInteractive ? () => onLetterClick(letter) : undefined}
               />
             )
           })}
