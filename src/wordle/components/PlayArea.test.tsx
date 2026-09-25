@@ -79,7 +79,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     currentTurnUserId: null,
     // A realistic setup blob — the info-column disclosure reads it (a `{}` here
     // would crash timerLabel, exactly the kind of render bug these tests guard).
-    setup: { max_guesses: 6, answer_source: 0, legal_guess: 4, timer: { kind: 'none' } },
+    setup: { max_guesses: 6, answer_source: 0, legal_band: 4, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',

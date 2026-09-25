@@ -75,7 +75,7 @@ export function SetupForm({
   const set = setValue as SetupSetter<SpellingbeeValues>
 
   // Disclosure summaries carry the current value so it reads without opening.
-  const dictLabel = `Dictionaries: ${difficultyValue(s.required)} / ${difficultyValue(s.legal)}`
+  const dictLabel = `Dictionaries: ${difficultyValue(s.required_band)} / ${difficultyValue(s.legal_band)}`
   const customCenter = (s.custom_center ?? '').toUpperCase()
   const customOuter = (s.custom_letters ?? '').toUpperCase()
   // The summary is grouped by the SAME function the field uses, not by a
@@ -151,26 +151,26 @@ export function SetupForm({
           (Obscure)"). */}
       <SetupSection label={dictLabel}>
         <DictBandField
-          name="required"
-          error={errors.required}
+          name="required_band"
+          error={errors.required_band}
           label="Required words"
           length={null}
           minBand={1}
           maxBand={6}
           help="Dictionary used to make list of required words on board."
-          value={s.required}
-          onChange={(required) => set('required', required)}
+          value={s.required_band}
+          onChange={(band) => set('required_band', band)}
         />
         <DictBandField
-          name="legal"
-          error={errors.legal}
+          name="legal_band"
+          error={errors.legal_band}
           label="Legal (bonus) words"
           length={null}
-          minBand={s.required}
+          minBand={s.required_band}
           maxBand={6}
           help="Dictionary used to make list of legal words on board."
-          value={s.legal}
-          onChange={(legal) => set('legal', legal)}
+          value={s.legal_band}
+          onChange={(band) => set('legal_band', band)}
         />
       </SetupSection>
 

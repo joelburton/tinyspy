@@ -18,7 +18,7 @@ const base: WordwheelSetup = DEFAULT_WORDWHEEL_SETUP_COOP
  *  the key with the words is the point: a message under the wrong control
  *  looks perfectly correct on screen. */
 const onLetters = (pattern: RegExp) => ({ custom_letters: expect.stringMatching(pattern) })
-const onLegal = (pattern: RegExp) => ({ legal: expect.stringMatching(pattern) })
+const onLegal = (pattern: RegExp) => ({ legal_band: expect.stringMatching(pattern) })
 
 describe('customLettersError', () => {
   it('is empty when both custom fields are blank (→ random board)', () => {
@@ -65,8 +65,8 @@ describe('customLettersError', () => {
 })
 
 describe('wordwheelSetupError — combines legal-band + custom-letters', () => {
-  it('puts a band error under legal', () => {
-    const bad: WordwheelSetup = { ...base, required: 5, legal: 3 }
+  it('puts a band error under legal_band', () => {
+    const bad: WordwheelSetup = { ...base, required_band: 5, legal_band: 3 }
     expect(wordwheelSetupError(bad)).toEqual(legalError(bad))
     expect(wordwheelSetupError(bad)).toEqual(onLegal(/legal words/i))
   })

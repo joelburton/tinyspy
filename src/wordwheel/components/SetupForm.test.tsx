@@ -69,8 +69,8 @@ describe('wordwheel setup — what it offers', () => {
     expect(fieldNames(container)).toEqual([
       'player_user_ids',
       'target_rank',
-      'required',
-      'legal',
+      'required_band',
+      'legal_band',
       'unique_letters',
       'custom_letters',
       'timer',
@@ -116,8 +116,8 @@ describe('wordwheel setup — where a refusal lands', () => {
     // PN195 and PN198: a band with no nine-letter seeds at all, and a band no
     // seed can clear the word-count gate at. Both are about that select.
     const message = 'No pangram seeds at required difficulty 1'
-    draw({ errors: { required: message } })
-    expect(errorUnder('required')).toBe(message)
+    draw({ errors: { required_band: message } })
+    expect(errorUnder('required_band')).toBe(message)
   })
 
   it('puts the unique-letters refusal on the checkbox that caused it', () => {
@@ -129,8 +129,8 @@ describe('wordwheel setup — where a refusal lands', () => {
   })
 
   it('leaves the other fields able to carry one, whoever writes it', () => {
-    draw({ errors: { legal: 'nope', target_rank: 'also nope' } })
-    expect(errorUnder('legal')).toBe('nope')
+    draw({ errors: { legal_band: 'nope', target_rank: 'also nope' } })
+    expect(errorUnder('legal_band')).toBe('nope')
     expect(errorUnder('target_rank')).toBe('also nope')
   })
 })

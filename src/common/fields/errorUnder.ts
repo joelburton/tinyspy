@@ -21,7 +21,7 @@
  * THE WHOLE FIELD called `name` — caption, help, control, entry help, error.
  *
  * `<Field>` stamps its wrapper, so this is one element containing everything
- * that field draws. Scope an assertion to it (`within(fieldBox('legal_guess'))`)
+ * that field draws. Scope an assertion to it (`within(fieldBox('legal_band'))`)
  * and the question becomes "what does THIS field say", which is a different
  * question from "does the page contain these words somewhere" — the second one
  * passes when two fields draw the same caption, or when the message you are

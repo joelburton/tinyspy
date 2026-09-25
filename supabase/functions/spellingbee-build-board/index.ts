@@ -107,10 +107,11 @@ type Setup = {
   // Required when `mode === 'compete'` (validated server-side).
   target_rank?: number
   // Vocabulary bands for this board's word lists (validated server-side by
-  // spellingbee.create_game). `required` (1..6, default 3) = the displayed goal
-  // set; `legal` (required..6, default 5) = the wider accepted set.
-  required?: number
-  legal?: number
+  // spellingbee.create_game). `required_band` (1..6, default 3) = the displayed
+  // goal set; `legal_band` (required_band..6, default 5) = the wider accepted
+  // set.
+  required_band?: number
+  legal_band?: number
   // Optional custom board — the player's own letters. `custom_center` = the
   // center letter, `custom_letters` = the six other letters. Either one set
   // takes the custom path, where both must be valid; we then build a board from
@@ -319,8 +320,8 @@ serve(async (req) => {
     const setup = parsed.setup as Setup
     // Word bands for this board (create_game is the authority on their range;
     // here we just default the classic 3 / 5 and feed candidate_words).
-    const requiredBand = setup.required ?? 3
-    const legalBand = setup.legal ?? 5
+    const requiredBand = setup.required_band ?? 3
+    const legalBand = setup.legal_band ?? 5
 
     // Optional custom board: the player's own letters. Either field set →
     // custom, and a half-filled pair faults below (the dialog refuses one). The
@@ -427,7 +428,7 @@ serve(async (req) => {
         console.log(`reject: no seed/center cleared the ${MIN_REQUIRED_WORDS_COUNT}-word gate in ${MAX_SEED_ATTEMPTS} seeds`)
         return formValidation(
           'PN177',
-          'required',
+          'required_band',
           'No puzzle could be built at that required difficulty. Try a wider one.',
           `spellingbee-build-board: ${MAX_SEED_ATTEMPTS} seeds all under ${MIN_REQUIRED_WORDS_COUNT} words`,
         )

@@ -30,8 +30,8 @@ export function setupRows(
   const rows: SetupRow[] = [
     rosterRow(players),
     ...centerLettersRow(board),
-    { key: 'required', label: 'Dictionary (required)', value: difficultyValue(setup.required) },
-    { key: 'legal', label: 'Dictionary (legal)', value: difficultyValue(setup.legal) },
+    { key: 'required_band', label: 'Dictionary (required)', value: difficultyValue(setup.required_band) },
+    { key: 'legal_band', label: 'Dictionary (legal)', value: difficultyValue(setup.legal_band) },
   ]
   if (setup.target_rank !== null && setup.target_rank !== undefined) {
     rows.push({ key: 'target_rank', label: 'Target rank', value: RANKS[setup.target_rank] ?? '?' })

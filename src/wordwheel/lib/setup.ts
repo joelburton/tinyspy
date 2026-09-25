@@ -24,12 +24,13 @@ import type { FormErrors } from '@/common/forms/formState'
  *     `undefined` in coop means the open-ended word hunt, which
  *     only the clock or the End button stops — the default, and
  *     the right pick for a group that just wants to find words.
- *   - `required` / `legal` — the vocabulary bands. `required`
- *     (1..6) is where the displayed goal words come from; `legal`
- *     (required..6) is the wider set of accepted/bonus words;
- *     `legal` must contain `required` (see `legalError`). The seed
+ *   - `required_band` / `legal_band` — the vocabulary bands, each a
+ *     dictionary difficulty ceiling. `required_band` (1..6) is where
+ *     the displayed goal words come from; `legal_band`
+ *     (required_band..6) is the wider set of accepted/bonus words;
+ *     it must contain the required band (see `legalError`). The seed
  *     pool is tagged by difficulty, so a random board's pangram is
- *     findable at the required band, but a narrow `required` can
+ *     findable at the required band, but a narrow `required_band` can
  *     still leave no board with 15 required words, which the edge
  *     function refuses under this field.
  *   - `custom_center` + `custom_letters` — an OPTIONAL player-
@@ -50,9 +51,9 @@ export type WordwheelValues = {
   // threshold (undefined = no win condition, the coop default).
   target_rank?: number
   // Required-words band (1..6); see the type-level notes.
-  required: number
-  // Legal/bonus-words band (required..6).
-  legal: number
+  required_band: number
+  // Legal/bonus-words band (required_band..6).
+  legal_band: number
   // Optional custom board: the center letter (1) + the eight other letters.
   // Both set → custom board; both empty/undefined → random. See the type notes
   // and `customLettersError`.
@@ -76,14 +77,14 @@ export type WordwheelValues = {
  *  `setupSummary.ts` and `PlayArea` read back. */
 export type WordwheelSetup = SetupOf<WordwheelValues>
 /**
- * Why the current `legal` band is too low to start, under `legal`; `{}` when it
- * isn't: the legal set must contain the required set, so `legal >= required`.
- * The dialog gates Start on this (via the manifest's `validate`); `create_game`
- * re-checks server-side.
+ * Why the current `legal_band` is too low to start, under `legal_band`; `{}`
+ * when it isn't: the legal set must contain the required set, so
+ * `legal_band >= required_band`. The dialog gates Start on this (via the
+ * manifest's `validate`); `create_game` re-checks server-side.
  */
 export function legalError(setup: WordwheelSetup): FormErrors {
-  if (setup.legal < setup.required) {
-    return { legal: `Legal words must reach at least the required band (${setup.required}).` }
+  if (setup.legal_band < setup.required_band) {
+    return { legal_band: `Legal words must reach at least the required band (${setup.required_band}).` }
   }
   return {}
 }
@@ -136,8 +137,8 @@ export function wordwheelSetupError(setup: WordwheelSetup): FormErrors {
  */
 export const DEFAULT_WORDWHEEL_SETUP_COOP: WordwheelSetup = {
   timer: { kind: 'none' },
-  required: 3,
-  legal: 5,
+  required_band: 3,
+  legal_band: 5,
 }
 
 /**
@@ -147,6 +148,6 @@ export const DEFAULT_WORDWHEEL_SETUP_COOP: WordwheelSetup = {
 export const DEFAULT_WORDWHEEL_SETUP_COMPETE: WordwheelSetup = {
   timer: { kind: 'none' },
   target_rank: 5,
-  required: 3,
-  legal: 5,
+  required_band: 3,
+  legal_band: 5,
 }

@@ -25,7 +25,7 @@ export type StrandsValues = CoopTurnSetup & {
    *
    * **Note the direction: a HIGHER band makes strands EASIER.** More words
    * qualify, so hints come faster. That is the same direction as spellingbee's
-   * `legal` band and the OPPOSITE of waffle's tier, where a higher band means a
+   * `legal_band` and the OPPOSITE of waffle's tier, where a higher band means a
    * harder board — which is exactly the sort of thing a setup form gets
    * backwards, so the field's copy says so out loud.
    *

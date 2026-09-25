@@ -24,8 +24,8 @@ export type WordleValues = CoopTurnSetup & {
   answer_source: number
   // What counts as a legal guess: any real 5-letter word of difficulty ≤ this
   // (1..6). Must reach the answer's hardest band so every possible answer is
-  // itself a legal guess — see `legalGuessError` / `answerMaxBand`.
-  legal_guess: number
+  // itself a legal guess — see `legalError` / `answerMaxBand`.
+  legal_band: number
   // Timer mode. `none` / `countup` are purely informational; a `countdown`
   // ends the game when it expires, via the shared `wordle.submit_timeout` RPC.
   timer: TimerMode
@@ -45,7 +45,7 @@ export type WordleSetup = SetupOf<WordleValues>
 export const DEFAULT_WORDLE_SETUP: WordleSetup = {
   max_guesses: 6,
   answer_source: 0,
-  legal_guess: 4,
+  legal_band: 4,
   timer: { kind: 'none' },
   // Coop pacing: free-for-all by default; the setup dialog's "Co-op"
   // section (coop, 2+ players) offers turn-by-turn. first_turn_user_id is
@@ -71,20 +71,20 @@ export function answerMaxBand(setup: WordleSetup): number {
 }
 
 /**
- * Why the current `legal_guess` band is too low to start, or `null`. A guess
- * must be able to spell any possible answer, so `legal_guess` has to reach the
+ * Why the current `legal_band` band is too low to start, or `null`. A guess
+ * must be able to spell any possible answer, so `legal_band` has to reach the
  * answer's hardest band. The dialog gates Start on this (via the manifest's
  * `validate`); `create_game` re-checks server-side.
  */
-export function legalGuessError(setup: WordleSetup): FormErrors {
+export function legalError(setup: WordleSetup): FormErrors {
   const min = answerMaxBand(setup)
-  if (setup.legal_guess < min) {
-    // Under `legal_guess`, not `answer_source`, though moving EITHER can cause
+  if (setup.legal_band < min) {
+    // Under `legal_band`, not `answer_source`, though moving EITHER can cause
     // it: the legal band is the one the sentence asks you to raise, and its own
     // select disables everything below the floor, so the other field has
     // nothing wrong with it to ring.
     return {
-      legal_guess: `Legal guesses must reach at least band ${min}, so every possible answer is itself a guessable word.`,
+      legal_band: `Legal guesses must reach at least band ${min}, so every possible answer is itself a guessable word.`,
     }
   }
   return {}

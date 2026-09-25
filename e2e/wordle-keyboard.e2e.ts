@@ -91,7 +91,7 @@ function keyboardTones(target: string, guess: string): Set<string> {
 /** A legal guess whose KEYBOARD wears all three colors — see `keyboardTones`. */
 function pickTricolorGuess(gameId: string): string {
   const [target, band] = psql(
-    `select target, legal_guess from wordle.games where id = '${gameId}';`,
+    `select target, legal_band from wordle.games where id = '${gameId}';`,
   )[0].split('|')
   const words = psql(
     `select word from common.words where len = 5 and difficulty <= ${Number(band)} ` +

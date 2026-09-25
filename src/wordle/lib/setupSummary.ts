@@ -25,7 +25,7 @@ export function setupRows(
     ...coopRows(setup, mode, players),
     { key: 'max_guesses', label: 'Guesses', value: String(setup.max_guesses) },
     { key: 'answer_source', label: 'Answer', value: answerSourceLabel(setup.answer_source) },
-    { key: 'legal_guess', label: 'Dictionary', value: difficultyValue(setup.legal_guess) },
+    { key: 'legal_band', label: 'Dictionary', value: difficultyValue(setup.legal_band) },
     timerRow(setup.timer),
   ]
 }

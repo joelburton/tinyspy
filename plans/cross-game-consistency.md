@@ -108,9 +108,14 @@ and a backfill. Park them, or schedule some?
   `found_agents_count` (`20260924000001_codenamesduet_found_agents_count.sql`).
   The shape is `found_<noun>_count`, "found" even where a game's own verb
   differs.
-- **Setup keys for the word band.** `difficulty` (psychicnum),
-  `answer_source` + `legal_guess` (wordle), `required` + `legal` (the bee
-  games).
+- ~~**Setup keys for the word band.**~~ Done 2026-09-24: a band is a number,
+  and its key says so — `legal_band` / `required_band`, as boggle and
+  letterboxed already had it. wordle's `legal_guess` (setup and column) and
+  the bee games' `legal` / `required` renamed, in stored setups and the
+  clubs' saved ones (`20260924000003_word_band_setup_keys.sql`). Owed when
+  boggle's area opens: its bare `band` → `required_band`. Not yet ruled:
+  psychicnum's `difficulty` and wordle's `answer_source` (Claude's verdict:
+  not worth it — neither is the legal/required pair).
 - **The guess budget.** Setup `guesses` (psychicnum) vs `max_guesses`
   (wordle) vs `turns` (codenamesduet); psychicnum's `guesses_remaining`
   counts down where wordle's `guesses_used` counts up.

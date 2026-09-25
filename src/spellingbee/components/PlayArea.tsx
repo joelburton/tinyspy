@@ -166,7 +166,7 @@ export function PlayArea(props: PlayAreaProps) {
   // filter removed from required, which is not a list to hand anyone as "what
   // you missed". Gates BOTH the missed-bonus reveal and the word list's KIND
   // filter, so the two cannot disagree.
-  const hasBonus = setup.legal !== setup.required
+  const hasBonus = setup.legal_band !== setup.required_band
 
   // Concede lives on the common roster (`players`).
   const myConceded = players.find((m) => m.user_id === session.user.id)?.conceded ?? false

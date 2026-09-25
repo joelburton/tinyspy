@@ -8,7 +8,7 @@
 -- submit_guess reads the legal-word band LIVE from common.words, but the
 -- target was banded at game creation — so a dictionary edit (or an
 -- upstream re-band + reimport) can move the answer above the game's
--- legal_guess mid-game. A dictionary gate that ran before the target
+-- legal_band mid-game. A dictionary gate that ran before the target
 -- comparison would make such a game UNWINNABLE: typing the actual answer
 -- would return notAWord. The rule this pins: the solution is checked
 -- before the dictionary, so a solved game never hears "not a word",
@@ -21,12 +21,12 @@ set search_path = wordle, common, public, extensions;
 
 select plan(2);
 
--- A strict solo game: legal_guess 2.
+-- A strict solo game: legal_band 2.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table g on commit drop as
 select (wordle.create_game(
   '=ada',
-  '{"max_guesses": 6, "answer_source": 0, "legal_guess": 2, "timer": {"kind": "none"}}'::jsonb,
+  '{"max_guesses": 6, "answer_source": 0, "legal_band": 2, "timer": {"kind": "none"}}'::jsonb,
   array['ada11111-1111-1111-1111-111111111111'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
 -- The word edit: shove the answer far above the game's band, as the

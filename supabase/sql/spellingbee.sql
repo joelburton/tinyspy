@@ -153,7 +153,7 @@ drop function if exists spellingbee._rank_idx(int, int);
 --
 -- This is also where spellingbee's slice of the shared common.words
 -- list is defined, on the 1..6 recognizability bands. Both bands are now a
--- per-game setup choice (`required` 1..6, `legal` required..6), threaded in by
+-- per-game setup choice (`required_band` 1..6, `legal_band` required..6), threaded in by
 -- the edge function:
 --   - legal      difficulty <= legal_band  (returned at all = enterable). No
 --                dialect / slang / crude / slur restriction — anything up
@@ -393,35 +393,35 @@ begin
   end if;
 
   -- ─── Validate the word bands ─────────────────────────────
-  -- required: the band the displayed/required goal words are drawn from (1..6;
-  -- band 1 is the floor the board pool was selected at). legal: how obscure an
-  -- accepted word may be (required..6, so the legal set always contains the
-  -- required set). Both optional — default to the classic 3 / 5. The edge
-  -- function builds the board's word lists from these; create_game is the
-  -- authority on the shape.
+  -- required_band: the band the displayed/required goal words are drawn from
+  -- (1..6; band 1 is the floor the board pool was selected at). legal_band: how
+  -- obscure an accepted word may be (required_band..6, so the legal set always
+  -- contains the required set). Both optional — default to the classic 3 / 5.
+  -- The edge function builds the board's word lists from these; create_game is
+  -- the authority on the shape.
   begin
-    s_required := coalesce((setup->>'required')::int, 3);
+    s_required := coalesce((setup->>'required_band')::int, 3);
   exception when invalid_text_representation then
     raise exception 'BUG: required difficulty that is not a number'
       using errcode = 'PN499', hint = 'fault', column = '_',
-      detail = 'setup.required must be an integer 1..6';
+      detail = 'setup.required_band must be an integer 1..6';
   end;
   if s_required < 1 or s_required > 6 then
     raise exception 'BUG: required difficulty of %', s_required
       using errcode = 'PN160', hint = 'fault', column = '_',
-      detail = 'setup.required must be 1..6';
+      detail = 'setup.required_band must be 1..6';
   end if;
   begin
-    s_legal := coalesce((setup->>'legal')::int, 5);
+    s_legal := coalesce((setup->>'legal_band')::int, 5);
   exception when invalid_text_representation then
     raise exception 'BUG: legal difficulty that is not a number'
       using errcode = 'PN500', hint = 'fault', column = '_',
-      detail = 'setup.legal must be an integer between required and 6';
+      detail = 'setup.legal_band must be an integer between required_band and 6';
   end;
   if s_legal < s_required or s_legal > 6 then
     raise exception 'BUG: legal difficulty of % with required at %', s_legal, s_required
       using errcode = 'PN161', hint = 'fault', column = '_',
-      detail = 'setup.legal must be between required and 6';
+      detail = 'setup.legal_band must be between required_band and 6';
   end if;
 
   perform common.require_valid_timer(setup->'timer');

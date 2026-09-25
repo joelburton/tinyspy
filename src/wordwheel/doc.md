@@ -91,7 +91,7 @@ rank-ladder tests pin the two to the same answer at every boundary.
 | **pangram** | a word that uses all nine tiles — any nine-letter word that fits. `+15`, bold in the list, and the seed every random board is grown from |
 | **seed** | a row of `wordwheel.pangrams`: the sorted letters of a nine-letter word, tagged with the lowest band at which a required-quality word spells them |
 | **required word** · **bonus word** | the goal and the rest of the legal list, split by the two bands at creation; each shipped as `{ word, points, is_pangram }` |
-| **required band** · **legal band** | `setup.required` (1–6, default 3) and `setup.legal` (required–6, default 5), the dictionary difficulty each list is drawn at |
+| **required band** · **legal band** | `setup.required_band` (1–6, default 3) and `setup.legal_band` (required–6, default 5), the dictionary difficulty each list is drawn at |
 | **found word** | a row in `wordwheel.found_words`: who, which word, its points and flags. The team's in coop, each racer's own in compete |
 | **rank** | where a score stands on the ladder, 0–6. The team's in coop; each racer's own in compete, and the one thing rivals can see. (connections uses the word for a category's difficulty; the scope tells them apart) |
 | **target rank** | `setup.target_rank`: compete's finish line, always set; coop's optional win, absent for the open-ended hunt |
@@ -252,8 +252,8 @@ board to `create_game`.
   "target_club": "moths",
   "setup": {
     "target_rank": 5,
-    "required": 3,
-    "legal": 5,
+    "required_band": 3,
+    "legal_band": 5,
     "timer": { "kind": "countdown", "seconds": 600 },
     "custom_center": "d",
     "custom_letters": "aeeginnr"
@@ -264,8 +264,8 @@ board to `create_game`.
 ```
 
 `custom_center` and `custom_letters` are optional and go together;
-`unique_letters` is optional and applies only to a sampled board; `required`
-and `legal` default to 3 and 5. `mode` is a field of the body, not of the
+`unique_letters` is optional and applies only to a sampled board;
+`required_band` and `legal_band` default to 3 and 5. `mode` is a field of the body, not of the
 setup.
 
 **Returned:** exactly what `create_game` returns, below. Five refusals are

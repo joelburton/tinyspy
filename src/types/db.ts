@@ -3922,7 +3922,7 @@ export type Database = {
           club_handle: string
           created_at: string
           id: string
-          legal_guess: number
+          legal_band: number
           max_guesses: number
           mode: string
           target: string
@@ -3931,7 +3931,7 @@ export type Database = {
           club_handle: string
           created_at?: string
           id: string
-          legal_guess?: number
+          legal_band?: number
           max_guesses: number
           mode: string
           target: string
@@ -3940,7 +3940,7 @@ export type Database = {
           club_handle?: string
           created_at?: string
           id?: string
-          legal_guess?: number
+          legal_band?: number
           max_guesses?: number
           mode?: string
           target?: string

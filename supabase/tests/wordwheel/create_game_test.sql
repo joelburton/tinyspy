@@ -291,92 +291,92 @@ select is(
 -- ============================================================
 -- (9) Word-difficulty band validation
 -- ============================================================
--- The setup carries two vocabulary bands: `required` (the goal words,
--- 1..6) and `legal` (the wider accepted set, required..6). create_game
+-- The setup carries two vocabulary bands: `required_band` (the goal words,
+-- 1..6) and `legal_band` (the wider accepted set, required_band..6). create_game
 -- re-checks them server-side. The defaults (required 3 / legal 5) are
 -- absent from pg_temp.wordwheel_setup(), so the happy paths above
 -- exercise the coalesced defaults; these assert the rejection edges.
 
 select pg_temp.envelope_is(
   wordwheel.create_game((select handle from club),
-    pg_temp.wordwheel_setup() || '{"required": 0}'::jsonb,
+    pg_temp.wordwheel_setup() || '{"required_band": 0}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN182",
     "message":"BUG: required difficulty of 0"}'::jsonb,
-  'rejects setup.required below 1 (band floor)');
+  'rejects setup.required_band below 1 (band floor)');
 
 -- required = 1 is the floor — accepted. Same fixture board (its
 -- required_words_count clears the ≥15 gate regardless of the band).
 select isnt(
       (wordwheel.create_game(
       (select pg_temp.create_club('Required one', array['ada','bea']) as handle),
-      pg_temp.wordwheel_setup() || '{"required": 1}'::jsonb,
+      pg_temp.wordwheel_setup() || '{"required_band": 1}'::jsonb,
       array['ada11111-1111-1111-1111-111111111111'::uuid,
             'bea22222-2222-2222-2222-222222222222'::uuid],
       'coop',
       pg_temp.wordwheel_board()
     )->'data'->>'id'),
   null,
-  'accepts setup.required = 1 (the band floor)'
+  'accepts setup.required_band = 1 (the band floor)'
 );
 
 select pg_temp.envelope_is(
   wordwheel.create_game((select handle from club),
-    pg_temp.wordwheel_setup() || '{"required": 7}'::jsonb,
+    pg_temp.wordwheel_setup() || '{"required_band": 7}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN182",
     "message":"BUG: required difficulty of 7"}'::jsonb,
-  'rejects setup.required above 6 (band ceiling)');
+  'rejects setup.required_band above 6 (band ceiling)');
 
 select pg_temp.envelope_is(
   wordwheel.create_game((select handle from club),
-    pg_temp.wordwheel_setup() || '{"required": 4, "legal": 3}'::jsonb,
+    pg_temp.wordwheel_setup() || '{"required_band": 4, "legal_band": 3}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN183"}'::jsonb,
-  'rejects setup.legal below setup.required (legal must contain required)');
+  'rejects setup.legal_band below setup.required_band (legal must contain required)');
 
 select pg_temp.envelope_is(
   wordwheel.create_game((select handle from club),
-    pg_temp.wordwheel_setup() || '{"required": 2, "legal": 7}'::jsonb,
+    pg_temp.wordwheel_setup() || '{"required_band": 2, "legal_band": 7}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN183"}'::jsonb,
-  'rejects setup.legal above 6 (band ceiling)');
+  'rejects setup.legal_band above 6 (band ceiling)');
 
 -- A band that is not a number answers in the envelope rather than escaping
 -- as a bare cast error, the way target_rank's does (PN180).
 select pg_temp.envelope_is(
   wordwheel.create_game((select handle from club),
-    pg_temp.wordwheel_setup() || '{"required": "three"}'::jsonb,
+    pg_temp.wordwheel_setup() || '{"required_band": "three"}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN505",
     "message":"BUG: required difficulty that is not a number"}'::jsonb,
-  'rejects a setup.required that is not a number, in the envelope');
+  'rejects a setup.required_band that is not a number, in the envelope');
 
 select pg_temp.envelope_is(
   wordwheel.create_game((select handle from club),
-    pg_temp.wordwheel_setup() || '{"legal": "5.5"}'::jsonb,
+    pg_temp.wordwheel_setup() || '{"legal_band": "5.5"}'::jsonb,
     array['ada11111-1111-1111-1111-111111111111'::uuid],
     'coop',
     pg_temp.wordwheel_board()),
   '{"type":"not-ok","severity":"fault","field":"_","dbcode":"PN506",
     "message":"BUG: legal difficulty that is not a number"}'::jsonb,
-  'rejects a setup.legal that is not a whole number, in the envelope');
+  'rejects a setup.legal_band that is not a whole number, in the envelope');
 
 -- Happy path with explicit non-default bands: required 4, legal 6.
 select isnt(
       (wordwheel.create_game(
       (select pg_temp.create_club('Bands ok', array['ada','bea']) as handle),
-      pg_temp.wordwheel_setup() || '{"required": 4, "legal": 6}'::jsonb,
+      pg_temp.wordwheel_setup() || '{"required_band": 4, "legal_band": 6}'::jsonb,
       array['ada11111-1111-1111-1111-111111111111'::uuid,
             'bea22222-2222-2222-2222-222222222222'::uuid],
       'coop',

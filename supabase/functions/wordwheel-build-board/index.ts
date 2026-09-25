@@ -114,10 +114,11 @@ type Setup = {
   // Required when `mode === 'compete'` (validated server-side).
   target_rank?: number
   // Vocabulary bands for this board's word lists (validated server-side by
-  // wordwheel.create_game). `required` (1..6, default 3) = the displayed goal
-  // set; `legal` (required..6, default 5) = the wider accepted set.
-  required?: number
-  legal?: number
+  // wordwheel.create_game). `required_band` (1..6, default 3) = the displayed
+  // goal set; `legal_band` (required_band..6, default 5) = the wider accepted
+  // set.
+  required_band?: number
+  legal_band?: number
   // Optional custom board — the player's own letters. `custom_center` = the
   // center letter, `custom_letters` = the eight other letters. When both are set
   // (and valid) we build a board from exactly these letters instead of sampling
@@ -303,8 +304,8 @@ serve(async (req) => {
     const setup = parsed.setup as Setup
     // Word bands for this board (create_game is the authority on their range;
     // here we just default the classic 3 / 5 and feed candidate_words).
-    const requiredBand = setup.required ?? 3
-    const legalBand = setup.legal ?? 5
+    const requiredBand = setup.required_band ?? 3
+    const legalBand = setup.legal_band ?? 5
 
     // Optional custom board: the player's own letters. Both fields set → custom
     // (the FE sends them lowercased/letters-only; we re-normalize defensively).
@@ -363,7 +364,7 @@ serve(async (req) => {
         console.log('reject: no pangram seeds at this required band')
         return formValidation(
           'PN195',
-          'required',
+          'required_band',
           `No pangram seeds at required difficulty ${requiredBand}`,
           'wordwheel-build-board: the nine-letter seed pool is empty at that band',
         )
@@ -396,12 +397,12 @@ serve(async (req) => {
       const eligible = applyOverlapCap(constrained, previousMask)
       if (eligible.length === 0) {
         // Player-reachable, unlike spellingbee's twin: TWO settings have already
-        // narrowed this pool before the overlap cap sees it — `required` and
+        // narrowed this pool before the overlap cap sees it — `required_band` and
         // `unique_letters` can take it from thousands of seeds to a few hundred,
         // and the cap then finishes it off against the club's last board. So
         // there is something to change, which is what makes it a validation.
         //
-        // On the FORM's own line rather than under a field: `required` and
+        // On the FORM's own line rather than under a field: `required_band` and
         // `unique_letters` narrowed it TOGETHER, and neither is the wrong one on
         // its own — the same call PN155 makes in boggle.
         console.log('reject: empty pangram pool after overlap cap')
@@ -460,7 +461,7 @@ serve(async (req) => {
         console.log(`reject: no seed/center cleared the ${MIN_REQUIRED_WORDS_COUNT}-word gate in ${MAX_SEED_ATTEMPTS} seeds`)
         return formValidation(
           'PN198',
-          'required',
+          'required_band',
           'No puzzle could be built at that required difficulty. Try a wider one.',
           `wordwheel-build-board: ${MAX_SEED_ATTEMPTS} seeds all under ${MIN_REQUIRED_WORDS_COUNT} words`,
         )

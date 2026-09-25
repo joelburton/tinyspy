@@ -6,7 +6,7 @@ import type { CommonGameListRow, CreatedGame, GameManifest } from '@/common/mani
 import { db } from './db'
 import { count, dictLabel, verdict, setupNum, statusLine, wonBy } from '@/common/manifest/statusLabel'
 import { makeRpcDispatcher } from '@/common/manifest/manifestRpcs'
-import { DEFAULT_WORDLE_SETUP, legalGuessError, type WordleSetup } from './lib/setup'
+import { DEFAULT_WORDLE_SETUP, legalError, type WordleSetup } from './lib/setup'
 import logoUrl from './logo.svg?url'
 
 /**
@@ -149,7 +149,7 @@ export const wordleCoopGame: GameManifest = {
     defaults: DEFAULT_WORDLE_SETUP,
     // Gate Start until legal guesses reach the answer's hardest band (so every
     // possible answer is itself guessable). create_game re-checks.
-    validate: (setup) => legalGuessError(setup as WordleSetup),
+    validate: (setup) => legalError(setup as WordleSetup),
   },
 
   startGameInClub: startGameInClubFactory('coop'),
@@ -182,7 +182,7 @@ export const wordleCompeteGame: GameManifest = {
     defaults: DEFAULT_WORDLE_SETUP,
     // Gate Start until legal guesses reach the answer's hardest band (so every
     // possible answer is itself guessable). create_game re-checks.
-    validate: (setup) => legalGuessError(setup as WordleSetup),
+    validate: (setup) => legalError(setup as WordleSetup),
   },
 
   startGameInClub: startGameInClubFactory('compete'),

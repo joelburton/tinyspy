@@ -60,7 +60,7 @@ describe('wordle setup — what it offers', () => {
       'coop_style',
       'max_guesses',
       'answer_source',
-      'legal_guess',
+      'legal_band',
       'timer',
     ])
   })
@@ -87,8 +87,8 @@ describe('wordle setup — the two dictionaries', () => {
   it('will not let legal guesses sit below the answer band', () => {
     // The form floors the control rather than letting you pick an impossible
     // pair; `create_game` raises PN056 as the backstop.
-    draw({ values: { answer_source: 5, legal_guess: 5 } })
-    const legal = document.querySelector('[name="legal_guess"]')!
+    draw({ values: { answer_source: 5, legal_band: 5 } })
+    const legal = document.querySelector('[name="legal_band"]')!
     const options = [...legal.querySelectorAll('option')]
     expect(options.find((o) => o.value === '4')).toBeDisabled()
     expect(options.find((o) => o.value === '5')).not.toBeDisabled()

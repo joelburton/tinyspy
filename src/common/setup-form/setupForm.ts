@@ -150,7 +150,7 @@ export type GameSetupForm = {
   // Empty means valid.
   //
   // The key is the whole point. It is the same `FormErrors` object a server
-  // `validation` writes one entry into, so a message about `legal_guess`
+  // `validation` writes one entry into, so a message about `legal_band`
   // appears under the Legal-guesses select whoever noticed it — the frontend
   // before the request, or `create_game` after. A bare sentence instead would
   // land every frontend check on the form's bottom line even when the field

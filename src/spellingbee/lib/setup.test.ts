@@ -18,7 +18,7 @@ const base: SpellingbeeSetup = DEFAULT_SPELLINGBEE_SETUP_COOP
  *  the key with the words is the point: a message under the wrong control
  *  looks perfectly correct on screen. */
 const onLetters = (pattern: RegExp) => ({ custom_letters: expect.stringMatching(pattern) })
-const onLegal = (pattern: RegExp) => ({ legal: expect.stringMatching(pattern) })
+const onLegal = (pattern: RegExp) => ({ legal_band: expect.stringMatching(pattern) })
 
 describe('customLettersError', () => {
   it('is null when both custom fields are blank (→ random board)', () => {
@@ -62,7 +62,7 @@ describe('customLettersError', () => {
 
 describe('spellingbeeSetupError — combines legal-band + custom-letters', () => {
   it('surfaces the legal-band error first', () => {
-    const bad: SpellingbeeSetup = { ...base, required: 5, legal: 3 }
+    const bad: SpellingbeeSetup = { ...base, required_band: 5, legal_band: 3 }
     expect(spellingbeeSetupError(bad)).toEqual(legalError(bad))
     expect(spellingbeeSetupError(bad)).toEqual(onLegal(/legal words/i))
   })

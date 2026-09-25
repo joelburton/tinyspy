@@ -100,7 +100,7 @@ function makeCtx(over: Partial<GamePageCtx> = {}): GamePageCtx {
     isMyTurn: true,
     currentTurnUserId: null,
     // A realistic setup blob — the info-column disclosure + rank target read it.
-    setup: { required: 3, legal: 5, timer: { kind: 'none' } },
+    setup: { required_band: 3, legal_band: 5, timer: { kind: 'none' } },
     status: null,
     globalFeedbackSlot: createFeedbackSlot('global'),
     clubHandle: 'testclub',
@@ -182,7 +182,7 @@ describe('wordwheel PlayArea — render smoke', () => {
 
   it('renders the OpponentStrip (Rank) in compete play', () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
-    render(<PlayAreaLoader {...makeCtx({ players: twoMembers, setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } } })} />)
+    render(<PlayAreaLoader {...makeCtx({ players: twoMembers, setup: { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } } })} />)
     expect(screen.getByText('Rank:')).toBeInTheDocument()
   })
 
@@ -215,7 +215,7 @@ describe('wordwheel PlayArea — compete terminal verdicts', () => {
       isTerminal: true,
       playState,
       status: { reason },
-      setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } },
+      setup: { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } },
     })
 
   beforeEach(() => {
@@ -245,7 +245,7 @@ describe('wordwheel PlayArea — compete terminal verdicts', () => {
  * its title; the pill and the row's line say the verdict in their own words.
  */
 describe('wordwheel PlayArea — the celebration', () => {
-  const target = { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } }
+  const target = { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } }
   /** My pangram: 24 of the board's 25 points. */
   const myPangram: FoundWordRow = {
     game_id: 'g1', user_id: 'u1', word: 'abcdefghi', points: 24,
@@ -379,14 +379,14 @@ describe('wordwheel PlayArea — icon-only action rows', () => {
     // drops the two letter keys, so the edge function takes the random path.
     startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })
     const user = userEvent.setup()
-    const setup = { required: 4, legal: 5, timer: { kind: 'none' }, custom_center: 'e', custom_letters: 'abcdfghi' }
+    const setup = { required_band: 4, legal_band: 5, timer: { kind: 'none' }, custom_center: 'e', custom_letters: 'abcdfghi' }
     render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'ended', setup })} />)
     await user.click(screen.getByRole('button', { name: 'New game' }))
     await waitFor(() => expect(startEdgeFn).toHaveBeenCalled())
     const sent = startEdgeFn.mock.calls[0]![1].setup
     expect(sent.custom_center).toBeUndefined()
     expect(sent.custom_letters).toBeUndefined()
-    expect(sent.required).toBe(4)
+    expect(sent.required_band).toBe(4)
   })
 })
 
@@ -673,7 +673,7 @@ describe('wordwheel PlayArea — the board goes inert when I can add nothing', (
   const conceded = () =>
     makeCtx({
       players: [gp('u1', 'me', 'red', { conceded: true }), gp('u2', 'moth', 'blue')],
-      setup: { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } },
+      setup: { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } },
     })
   /** The tiles the typed word is spending — `data-spent`, see Tile.tsx. */
   const spentTiles = () =>
@@ -803,7 +803,7 @@ describe('wordwheel PlayArea — compete opponent rank climb', () => {
   const competeCtx = (rank_idx: number, over: Partial<GamePageCtx> = {}) =>
     makeCtx({
       players: twoMembers,
-      setup: { required: 3, legal: 5, target_rank: 6, timer: { kind: 'none' } },
+      setup: { required_band: 3, legal_band: 5, target_rank: 6, timer: { kind: 'none' } },
       status: { leaderboard: [entry(rank_idx)] },
       ...over,
     })
@@ -824,7 +824,7 @@ describe('wordwheel PlayArea — compete opponent rank climb', () => {
 })
 
 describe('wordwheel PlayArea — concede', () => {
-  const competeSetup = { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } }
+  const competeSetup = { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } }
 
   it('compete shows Concede and calls wordwheel.concede on click', async () => {
     const user = userEvent.setup()
@@ -931,7 +931,7 @@ describe('wordwheel PlayArea — concede', () => {
  * runs the same call the button does.
  */
 describe('wordwheel PlayArea — the keys', () => {
-  const competeSetup = { required: 3, legal: 5, target_rank: 5, timer: { kind: 'none' } }
+  const competeSetup = { required_band: 3, legal_band: 5, target_rank: 5, timer: { kind: 'none' } }
 
   it('+ at terminal starts the next game with no question', async () => {
     startEdgeFn.mockResolvedValue({ type: 'ok', data: { result: 'created', id: 'fresh-game-id' } })

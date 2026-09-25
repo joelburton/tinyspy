@@ -81,7 +81,7 @@ the setup dialog floors the control there and `create_game` checks it again.
 | **colors** | five characters, one per letter — `g`, `y`, `x` — computed by the server when the row is written. The frontend paints them and never recomputes them |
 | **soft reject** | `duplicate` or `notAWord`: the rules applied, nothing spent, nothing written. Answered as an `ok` naming the case |
 | **budget** | `max_guesses`, 5–8. The team's in coop, each racer's own in compete |
-| **answer source** · **legal band** | `answer_source` picks where the target is drawn from; `legal_guess` is the band a guess must be in. Only the second is stored on the game — the first is spent at creation |
+| **answer source** · **legal band** | `answer_source` picks where the target is drawn from; `legal_band` is the band a guess must be in. Only the second is stored on the game — the first is spent at creation |
 
 ### Coop
 
@@ -146,7 +146,7 @@ Three tables and a view, in `supabase/migrations/20260625000000_wordle.sql`
 
 | | |
 |---|---|
-| `wordle.games` | one row per game: the `mode`, the `target`, the budget as `max_guesses`, and `legal_guess` — stored so `submit_guess` reads the band off the row it locks. `answer_source` is not kept; it is spent picking the target |
+| `wordle.games` | one row per game: the `mode`, the `target`, the budget as `max_guesses`, and `legal_band` — stored so `submit_guess` reads the band off the row it locks. `answer_source` is not kept; it is spent picking the target |
 | `wordle.players` | one row per player: `guesses_used`, `solved`, `solved_at`. **Club-wide readable in both modes** — compete's Guesses strip and its winner are built on it. Coop keeps every row identical |
 | `wordle.events` | the guess log, append-only: `guess`, `colors`, `is_correct`; `kind` is `guess` and `took_turn` is true, since the table holds accepted guesses only and an accepted guess spends a go. Read `order by id` — that is the order of play |
 | `wordle.games_state` | the view the frontend reads: every readable column of `games`, plus `target` through `_target_for()`, which is null until the game is terminal |
@@ -209,7 +209,7 @@ and a race needs two; the server checks both.
   "setup": {
     "max_guesses": 6,
     "answer_source": 0,
-    "legal_guess": 4,
+    "legal_band": 4,
     "timer": { "kind": "countdown", "seconds": 300 },
     "coop_style": "turns",
     "first_turn_user_id": "7b1e…"
@@ -441,7 +441,7 @@ winning guess or five that miss:
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, an accepted guess advances, a soft reject does not, free-for-all leaves the pointer null |
 | `end_game_test` · `replay_test` | the timeout in both modes — coop's loss, a race ended as it stands with and without a solver, the winner's count named — and the manual end, each idempotent and each revealing the target; Restart undoes everything a loss wrote — rows, counts, the clock, the title, and the target's shield — and keeps the word |
 | `reveal_test` | the target unshields at terminal whatever the outcome; `_sync_title` never spells the answer of a game the players may still replay blind |
-| `legal_guess_test` · `banded_answer_test` | the same word is `notAWord` under a strict band and legal under a loose one; an answer banded out from under a live game still solves it |
+| `legal_band_test` · `banded_answer_test` | the same word is `notAWord` under a strict band and legal under a loose one; an answer banded out from under a live game still solves it |
 
 `colors_test` sits in the folder too, but pins `common.wordle_colors` and
 belongs to `shared/wordle-style`.
@@ -452,7 +452,7 @@ Vitest, beside the code:
 |---|---|
 | `lib/answer.test` · `lib/terminal.test` | every `answerType`'s words and outcome; every terminal sentence per mode, play state and reason |
 | `lib/history.test` · `lib/colors.test` | the inclusive boundary and the ringed row, by id; the keyboard's strength order |
-| `lib/setup.test` · `components/SetupForm.test` | the Start gate names `legal_guess`, and the floor the answer source sets; the form's three controls and where a refusal lands |
+| `lib/setup.test` · `components/SetupForm.test` | the Start gate names `legal_band`, and the floor the answer source sets; the form's three controls and where a refusal lands |
 | `pdf/model.test` | the target never prints before it shows on screen; the keyboard is derived per player, never pooled |
 | `components/PlayArea.test` | the surface mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration — the team's win, my race win, never a race I lost or a game opened already won; peer narration in both modes; the picker's labels; Concede vs End per mode; the board-scope marks; a landed row flips and a mounted one does not, nor one already flipped on the way back from a past turn; the physical keys and the two caps |
 

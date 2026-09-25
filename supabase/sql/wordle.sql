@@ -21,7 +21,7 @@
 grant usage on schema wordle to authenticated;
 
 -- Column-level grant: everything EXCEPT `target`, the secret, and
--- `legal_guess`, which the frontend reads off `setup` instead. The presence
+-- `legal_band`, which the frontend reads off `setup` instead. The presence
 -- of any column grant flips the table from "all columns visible" to "only
 -- granted columns," so we enumerate the safe ones. games_state exposes
 -- the target conditionally via a SECURITY DEFINER helper.
@@ -178,7 +178,7 @@ grant select on wordle.games_state to authenticated;
 --   { "max_guesses": 5..8 (default 6),
 --     "answer_source": 0..6 (0 = curated Wordle answer list; 1..6 =
 --       that difficulty band of common.words),
---     "legal_guess": 1..6 (the band a typed guess must exist in to
+--     "legal_band": 1..6 (the band a typed guess must exist in to
 --       count; default 4; must reach the answer's hardest band),
 --     "timer": (none | countup | countdown{seconds}),
 --     "coop_style": 'free-for-all' | 'turns' (coop only),
@@ -208,7 +208,7 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text;
   s_max_guesses   int;
   s_answer_source int;
-  s_legal_guess   int;
+  s_legal_band   int;
   s_answer_max    int;
   v_target        char(5);
   first_turn      uuid;
@@ -240,8 +240,8 @@ begin
 
   -- ─── Validate the word bands ─────────────────────────────
   -- answer_source: 0 = the curated Wordle list, 1..6 = a difficulty band.
-  -- legal_guess: 1..6. A guess must be able to spell any possible answer, so
-  -- legal_guess must reach the answer's hardest band — 2 for the Wordle list
+  -- legal_band: 1..6. A guess must be able to spell any possible answer, so
+  -- legal_band must reach the answer's hardest band — 2 for the Wordle list
   -- (it tops out at band 2), else answer_source.
   s_answer_source := coalesce((setup->>'answer_source')::int, 0);
   if s_answer_source < 0 or s_answer_source > 6 then
@@ -249,14 +249,14 @@ begin
       using errcode = 'PN054', hint = 'fault', column = '_',
       detail = 'setup.answer_source must be 0..6';
   end if;
-  s_legal_guess := coalesce((setup->>'legal_guess')::int, 4);
-  if s_legal_guess < 1 or s_legal_guess > 6 then
-    raise exception 'BUG: legal-guess band of %', s_legal_guess
+  s_legal_band := coalesce((setup->>'legal_band')::int, 4);
+  if s_legal_band < 1 or s_legal_band > 6 then
+    raise exception 'BUG: legal-guess band of %', s_legal_band
       using errcode = 'PN055', hint = 'fault', column = '_',
-      detail = 'setup.legal_guess must be 1..6';
+      detail = 'setup.legal_band must be 1..6';
   end if;
   s_answer_max := case when s_answer_source = 0 then 2 else s_answer_source end;
-  if s_legal_guess < s_answer_max then
+  if s_legal_band < s_answer_max then
     -- A CROSS-FIELD rule: every answer has to be a legal guess, so the legal
     -- band is raised to meet the answer band rather than the answer band
     -- lowered to meet it. The setup form floors the control at `answerMaxBand`
@@ -264,7 +264,7 @@ begin
     -- offers reaches this — a fault, naming no field, like the checks above.
     raise exception 'BUG: legal-guess band below the answer band'
       using errcode = 'PN056', hint = 'fault', column = '_',
-      detail = 'legal_guess must be >= the answer band';
+      detail = 'legal_band must be >= the answer band';
   end if;
 
   perform common.require_valid_timer(setup->'timer');
@@ -333,8 +333,8 @@ begin
     perform common._assign_turn_order(new_id, first_turn);
   end if;
 
-  insert into wordle.games (id, club_handle, mode, target, max_guesses, legal_guess)
-  values (new_id, target_club, mode, v_target, s_max_guesses, s_legal_guess);
+  insert into wordle.games (id, club_handle, mode, target, max_guesses, legal_band)
+  values (new_id, target_club, mode, v_target, s_max_guesses, s_legal_band);
 
   insert into wordle.players (game_id, user_id)
   select new_id, uid from unnest(player_user_ids) uid;
@@ -637,20 +637,20 @@ begin
   end if;
 
   -- ─── Soft reject: not in the legal word slice (no burn) ──
-  -- Legal guess = a real 5-letter word of difficulty ≤ the game's legal_guess
+  -- Legal guess = a real 5-letter word of difficulty ≤ the game's legal_band
   -- band (setup choice). No dialect / slur / slang filter (Wordle is permissive
   -- on guesses — only the difficulty band gates them).
   --
   -- THE ANSWER IS CHECKED FIRST, before the dictionary: the band is read LIVE
   -- from common.words, and the target was banded at game creation — so a word
   -- edit (or an upstream re-band + reimport) can move the answer above
-  -- legal_guess mid-game. Gate-then-compare would make that an UNWINNABLE
+  -- legal_band mid-game. Gate-then-compare would make that an UNWINNABLE
   -- game, typing the actual answer returning notAWord. A solved game must
   -- never hear "not a word", whatever the dictionary says today
   -- (banded_answer_test.sql).
   if norm <> lower(g_row.target) and not exists (
     select 1 from common.words
-     where word = norm and len = 5 and difficulty <= g_row.legal_guess
+     where word = norm and len = 5 and difficulty <= g_row.legal_band
   ) then
     return common.ok_envelope(
       jsonb_build_object('result', 'notAWord', 'guesses_used', p_used,
@@ -966,7 +966,7 @@ grant execute on function wordle.end_game(uuid) to authenticated;
 -- ============================================================
 -- wordle.replay_board — restart this game from scratch
 -- ============================================================
--- The Restart action: reset the working state on the SAME game row. The frozen puzzle (target / max_guesses / legal_guess
+-- The Restart action: reset the working state on the SAME game row. The frozen puzzle (target / max_guesses / legal_band
 -- / mode) stays — the same word, played again; everything the players
 -- did is wiped. Any game player may call it, from a finished game OR
 -- mid-game (no play_state guard — it's a restart). Both modes reset

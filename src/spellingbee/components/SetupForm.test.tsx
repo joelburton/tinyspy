@@ -15,7 +15,7 @@
  * one), so the server has nothing to add there — those arrive as faults. What
  * the form cannot rule out is what only the dictionary knows: whether the
  * typed letters make a puzzle (`custom_letters`), and whether any board clears
- * thirty words at that required band (`required`).
+ * thirty words at that required band (`required_band`).
  *
  * One field, two setup keys: the box writes `custom_center` and `custom_letters`
  * from a single string, split after the first letter. The FIELD is named for
@@ -70,8 +70,8 @@ describe('spellingbee setup — what it offers', () => {
     expect(fieldNames(container)).toEqual([
       'player_user_ids',
       'target_rank',
-      'required',
-      'legal',
+      'required_band',
+      'legal_band',
       'custom_letters',
       'timer',
     ])
@@ -115,13 +115,13 @@ describe('spellingbee setup — where a refusal lands', () => {
     // band, so a narrow one starves it — and that select is the only lever the
     // player has over it.
     const message = 'No puzzle could be built at that required difficulty. Try a wider one.'
-    draw({ errors: { required: message } })
-    expect(errorUnder('required')).toBe(message)
+    draw({ errors: { required_band: message } })
+    expect(errorUnder('required_band')).toBe(message)
   })
 
   it('leaves the other fields able to carry one, whoever writes it', () => {
-    draw({ errors: { legal: 'nope', target_rank: 'also nope' } })
-    expect(errorUnder('legal')).toBe('nope')
+    draw({ errors: { legal_band: 'nope', target_rank: 'also nope' } })
+    expect(errorUnder('legal_band')).toBe('nope')
     expect(errorUnder('target_rank')).toBe('also nope')
   })
 })

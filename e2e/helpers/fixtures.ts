@@ -609,8 +609,8 @@ export async function createSpellingbeeGame(
       target_club: club.handle,
       setup: {
         timer: { kind: 'none' },
-        required: 3,
-        legal: 5,
+        required_band: 3,
+        legal_band: 5,
         ...(targetRank !== undefined ? { target_rank: targetRank } : {}),
       },
       player_user_ids: playerUserIds,
@@ -660,8 +660,8 @@ export async function createWordwheelGame(
       // and then it's the team's win threshold.
       setup: {
         timer: { kind: 'none' },
-        required: 3,
-        legal: 5,
+        required_band: 3,
+        legal_band: 5,
         ...(mode === 'compete'
           ? { target_rank: targetRank ?? 5 }
           : targetRank !== undefined
@@ -768,7 +768,7 @@ export async function createWordleGame(
     .schema('wordle')
     .rpc('create_game', {
       target_club: club.handle,
-      setup: { max_guesses: 6, answer_source: 0, legal_guess: 4, timer: { kind: 'none' } },
+      setup: { max_guesses: 6, answer_source: 0, legal_band: 4, timer: { kind: 'none' } },
       player_user_ids: playerUserIds,
       mode,
     })
@@ -778,7 +778,7 @@ export async function createWordleGame(
 /**
  * Seed `n` accepted guesses on a wordle game so a test loads a board that already
  * has event-log rows (for the turn-history viewer). Picks `n` distinct legal words —
- * real 5-letter words of difficulty ≤ the game's `legal_guess` band, EXCLUDING the
+ * real 5-letter words of difficulty ≤ the game's `legal_band` band, EXCLUDING the
  * hidden target so the game stays mid-play (a correct guess would end it) — then
  * submits each through `wordle.submit_guess` as the player (the same path the FE
  * uses, so the rows + colors are real). Returns the guessed words (upper-cased), in
@@ -805,7 +805,7 @@ export async function seedWordleGuesses(
       .map((s) => s.trim())
       .filter(Boolean)
 
-  const [target, band] = q(`select target, legal_guess from wordle.games where id = '${gameId}';`)[0].split('|')
+  const [target, band] = q(`select target, legal_band from wordle.games where id = '${gameId}';`)[0].split('|')
   const words = q(
     `select word from common.words ` +
       `where len = 5 and difficulty <= ${Number(band)} and word <> '${target}' limit ${Number(n)};`,
