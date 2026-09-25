@@ -516,10 +516,12 @@ but correctly aren't (recorded so a future consistency pass doesn't "fix" them):
 - **`onSubmitWord(tileIds)` (stackdown)** vs argument-less `onSubmit()` (boggle
   / spellingbee) — different signatures (stackdown carries the specific tile set
   spelled off the exposed stack); the self-describing name is deliberate.
-- **Board-gate FE props** — connections `showInput` / psychicnum
-  `isStillPlaying` stay distinct from the shared `readOnly`: they're
-  cross-column input-*phase* flags that show/hide the input UI, not a board-only
-  "visible-but-inert" `readOnly`.
+- **`isStillPlaying` vs `isBoardInteractive`** — the first says I'm still in
+  the game, and shows or hides the input UI across both columns; the second
+  says whether the board responds to me. They part in a turn-based game while I
+  wait — except scrabble, whose board stays live so a waiting player can draft
+  (`draftsOffTurn`). Both are defined in [win-lose.md → Where a player
+  stands](win-lose.md#where-a-player-stands--the-terms-as-formulas).
 - **Per-player metric props** — the three same-shaped `ReadonlyMap<string,
   number>` props were unified on `metricByUser`, but `playerStates` /
   `playerBudgets` (a *rows* shape) stayed distinct — different shapes, not

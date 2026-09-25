@@ -23,8 +23,8 @@ is on the game row, and passes when the guesser turns over a bystander or
 chooses to stop. It does not always alternate: once a player's own agents are
 all found, their partner gives every clue from then on, so the turn flow is
 lopsided on purpose and both players are told so. When the budget is spent the
-game drops into sudden death — no more clues, either player may guess, and
-any word that is not an agent loses the game.
+game drops into sudden death — no more clues, whoever still has words to
+guess guesses, and any word that is not an agent loses the game.
 
 Because "your turn" is the clue arriving, not a shared pointer moving, the
 shell's turn machinery does not reach this game: it never writes
@@ -97,9 +97,11 @@ have hit as a bystander is dead for both. An agent contacted and an assassin
 hit are the same for both players.
 
 **Sudden death** starts when the budget is spent with agents left. There are
-no more clues: either player guesses from memory, a guess is read off the
-PARTNER's side, and every agent is a turn of its own. Anything but an agent
-loses.
+no more clues. A guess is made from memory and read off the PARTNER's side, so
+a player whose partner's agents are all found has no words left to guess. If
+only one player has words left, that player guesses; if both do, either may,
+in any order, without discussing strategy. Every agent is a turn of its own,
+and anything but an agent loses.
 
 ### Vocabulary
 

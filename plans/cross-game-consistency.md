@@ -248,12 +248,13 @@ the same. N4 (may the board take a click) folds into it.
 **Steps**, in order — each its own commit, each with a failing test first
 where it fixes a behavior:
 
-1. **The docs.** The formulas themselves are written (docs/win-lose.md →
-   Where a player stands: `isTurnBased`, `isMyTurn`, `draftsOffTurn`,
-   `isBoardInteractive`, the `isNotFoo` rule). Left: the docs that disagree —
-   docs/playarea.md ("`readOnly` is `viewing || !canPlay`"), docs/naming.md's
-   board-gate entry, codenamesduet's doc on sudden death, and the `isConceded`
-   and `isNotFoo` rules into docs/code-conventions.md.
+1. ~~**The docs.**~~ Done 2026-09-24: the formulas in docs/win-lose.md →
+   Where a player stands; §1's naming preference (with `isConceded`) and the
+   `isNotFoo` rule in docs/code-conventions.md → Names about the viewing
+   player; docs/playarea.md and docs/naming.md read `isBoardInteractive` and
+   the standing terms, not `readOnly` / `isLocallyDone`; codenamesduet's doc
+   states the rulebook's sudden death. docs/games/stackdown.md's `readOnly`
+   goes with its game in step 6.
 2. **The database.** `common._set_conceded` also sets `locally_terminal`; one
    migration backfills `locally_terminal = true` wherever `conceded` is;
    `common._advance_turn` skips locally terminal players, not only conceded

@@ -158,6 +158,35 @@ player in this game, from my point of view (`isPeer`, `peers`) — and has no ty
 of its own. See [naming.md → player](naming.md#player) and
 [→ peer](naming.md#peer).
 
+### Names about the viewing player
+
+**`my`, never `self`.** `self` reads as "this component"; `me` is always a
+person. A value about the viewing player is `my…` (`myId`, `myBudget`).
+
+**A boolean reads as a yes/no question** — `is…` by default, `amI…` where that
+is the clearer question. Pick the one that reads most naturally: `isMyTurn`
+(not `amIOnTurn`), `isEliminated`. The standing flags read as one set with
+`isTerminal`, so it is `isConceded`, not `amIConceded`. A bare past participle
+is not a boolean name — `won` may be a message or a winner — so a flag always
+carries its `is` / `amI`.
+
+**How much name is scope-sized.** A small component that shows only me takes
+the bare word (`solved`); state, a long component, and any component that also
+shows the other players carry the full name.
+
+**The standing terms** — `isTerminal`, `isPlayer`, `isConceded`,
+`isLocallyTerminal`, `isStillPlaying`, `isTurnBased`, `turnHolderId`,
+`isMyTurn`, `isBoardInteractive` — each mean exactly one thing, defined as a
+formula in [win-lose.md → Where a player
+stands](win-lose.md#where-a-player-stands--the-terms-as-formulas). Use a term
+only for that thing; a close idea gets its own name.
+
+**A negation is `!isFoo`, or an `isNotFoo` that means exactly `!isFoo`.**
+`isNotFoo` is only ever written `const isNotFoo = !isFoo` — a spelling for
+readability, never a formula of its own. A negated idea that needs its own
+formula is not `isNot…` of anything: it is a new term with its own name. And
+never `!isNotFoo` — write `isFoo`.
+
 ### Component names
 
 Roles, not implementations, and **file name = component name**, with the folder

@@ -134,11 +134,10 @@ in each formula. (The code is converging on these —
 [plans/cross-game-consistency.md](../plans/cross-game-consistency.md) tracks
 what still differs.)
 
-**A negation is `!isFoo`, or an `isNotFoo` that means exactly `!isFoo`.**
-`isNotFoo` is only ever written `const isNotFoo = !isFoo` — a spelling for
-readability, never a formula of its own. A negated idea that needs its own
-formula is not `isNot…` of anything: it is a new term, and it goes here with
-its own means and doesn't-mean. And never `!isNotFoo` — write `isFoo`.
+A negation is `!isFoo` or an `isNotFoo` that means exactly that ([code
+conventions → Names about the viewing
+player](code-conventions.md#names-about-the-viewing-player)); a negated idea
+with a formula of its own is a new term, and goes here.
 
 ```js
 // isTerminal — the game is over, for everyone.

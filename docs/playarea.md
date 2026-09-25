@@ -210,15 +210,15 @@ left per game.
 | layer | owns | interface |
 |---|---|---|
 | **`Board`** | the presentation of one board state | state down, clicks up |
-| **`BoardCol`** | the live input engine (drag, cursor, keyboard, word-building); draws `Board` and the below-board slot | takes the board to show (live or a snapshot) and a `readOnly` flag; emits one committed action up |
+| **`BoardCol`** | the live input engine (drag, cursor, keyboard, word-building); draws `Board` and the below-board slot | takes the board to show (live or a snapshot) and `isBoardInteractive`; emits one committed action up |
 | **`InfoCol`** | arranging the shared pieces (`OpponentStrip`, `InfoActionsRow`, `SetupDisclosure`, `EventLog`) around the game's readout | props down, including the bound actions it places; a few named callbacks up. Next to no state |
 | **`PlayArea`** | game data (`useGame`), the RPCs, and the state both columns need (the viewed turn, the local slot) | wires the two columns together |
 
 **The load-bearing contract: `BoardCol` owns editing; `PlayArea` hands it the
 board to show.** `BoardCol` does not own the live game state, only how the
 player is editing the board it was given. That is what makes the history viewer
-a drop-in: viewing a past turn is handing `BoardCol` a snapshot and
-`readOnly=true`.
+a drop-in: viewing a past turn is handing `BoardCol` a snapshot and the
+viewer's label.
 
 **bananagrams does not fit the two columns**, because its input engine spans
 both: the hand is a drag source into the board, the dump is a drop target, and
@@ -339,10 +339,13 @@ the same in both, or reading the second game means re-deriving the first.
   the same order. There is no `React.memo` in the app, so grouping props into
   objects buys nothing. Use a real object only for a cluster that always travels
   together to one child, such as the OpponentStrip's inputs.
-- **One vocabulary.** `readOnly`, `over`, `isTerminal`, `isCompete`, `isPlayer`,
-  `historyLabel`, `onExitHistory`, `onShowHistory`, `players`, `selfId`,
-  `playerStates`, `concededIds`, `myConceded`, `setup`, `solution`, `onEndGame`,
-  `onConcede`, `onBackToClub`, … When a new column needs a prop an earlier one
+- **One vocabulary.** The standing terms — `isTerminal`, `isPlayer`,
+  `isConceded`, `isLocallyTerminal`, `isStillPlaying`, `isMyTurn`,
+  `isBoardInteractive` — mean what [win-lose.md → Where a player
+  stands](win-lose.md#where-a-player-stands--the-terms-as-formulas) defines, and
+  nothing else. Beside them: `terminalMessage`, `isCompete`, `historyLabel`, `onExitHistory`,
+  `onShowHistory`, `players`, `myId`, `playerStates`, `concededIds`, `setup`,
+  `solution`, `onEndGame`, `onConcede`, `onBackToClub`, … When a new column needs a prop an earlier one
   already has, reuse the name; diverge only when the meaning differs, and say
   so. The ones that drift:
   - **The viewer passes one prop saying it is open, and the flag is derived.**
@@ -353,9 +356,6 @@ the same in both, or reading the second game means re-deriving the first.
     which prop carries it.
   - **Below-board feedback is `localFeedbackSlot`** (`FeedbackSlot`): the column
     shows its own results into it and draws it with `<FeedbackPill>`.
-  - **`isLocallyDone`** means "I conceded; the others race on". waffle's
-    **`selfDone`** is broader (solved, out of swaps, or conceded), and the
-    different name marks the different meaning. Don't unify them.
   - **`historyId`** is the events row's own id everywhere except scrabble, whose
     id is a union; the hook is generic over `Id`. The viewed turn's marks are
     `historyLit…` everywhere, never named for a color.
@@ -379,9 +379,10 @@ Where the four-layer table is too clean:
   and `BoardCol` draws it and shows its own input results.
 - **Split state by its trigger, not by where it renders.** A flash drawn inside
   `BoardCol` lives in `PlayArea` when a teammate's move is one of its triggers.
-- **`readOnly` is `viewing || !canPlay`.** One flag, not two: when not viewing
-  it means "can't play right now", so a key handler reads `if (viewing) exit; if
-  (readOnly) return`.
+- **Viewing history and an inert board are two flags.** `isBoardInteractive`
+  says whether the live board responds; the history viewer changes what the
+  board shows without touching it. So a key handler reads `if
+  (isViewingHistory) exit; if (!isBoardInteractive) return`.
 - **`BoardCol` owns its RPCs when the result mutates deep input state.**
   scrabble's moves claim `lastActionRef` before the await and their results
   rewrite `optimistic` and `staged`; splitting the RPC from that state would
