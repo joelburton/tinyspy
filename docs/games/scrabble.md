@@ -526,7 +526,7 @@ replay racing a move must not interleave with it. pgTAP: `replay_test.sql`.
 ([§2.7](#27-ending-the-game)). `end_game` is the player-fired stop and **serves
 both modes** — the RPC branches. **Coop** runs final scoring with a
 leftover-tile penalty (a `'leftovers'` row with the negative value lost,
-`play_state 'ended'`, `outcome 'manual'`). **Compete** is the uniform neutral
+`play_state 'ended'`, `reason 'manual'`). **Compete** is the uniform neutral
 stop ([§2.7](#27-ending-the-game)): a flat `'ended'` with every player `{won:
 false}` and **no scoring** — the group agreeing there's no result. The FE
 **menu** surfaces one exit per mode: **End game** in coop, **Concede** in
@@ -838,14 +838,14 @@ visible. A fresh game stays `"New game"` until the first word lands.
 The `status` jsonb (written by the state-transition RPCs) drives the club-list
 `labelFor`:
 
-- **Coop:** `{ mode:'coop', team_score, bag_count, outcome? }` (`outcome` ∈
+- **Coop:** `{ mode:'coop', team_score, bag_count, reason? }` (`reason` ∈
   `complete` / `timeout` / `manual` at terminal).
 - **Compete, mid-game:** `{ mode:'compete', bag_count,
   leaderboard:[{seat, user_id, ai_level, score}] }` — the leaderboard is
   seat-keyed (every entry names its player, bot or person, plus the seat's
   `ai_level` when it is playing at one) and drives the
   in-game `OpponentStrip` (scores aren't hidden — the board reveals them).
-- **Compete, terminal** (`scrabble._finish`): adds `outcome` plus the winner
+- **Compete, terminal** (`scrabble._finish`): adds `reason` plus the winner
   quartet — `winner_user_id` (the winner's uuid, bot or person; null on a tie),
   `winner_seat` (the winning seat; null on a tie), `winner_username` (the
   winner's handle — a bot has one like anyone; **NULL on a tie** /
@@ -861,7 +861,7 @@ left` (coop) / `Playing · 7 tiles left` (compete). **At terminal:**
   label reads `Won · 312 pts` — there is no separate "tie" string;
 - compete manual stop (`ended`) → a plain `Ended`;
 - coop `ended` → `Ended · 152 pts` (the score IS the result — coop has no win
-  state), or `Ended (no moves left) · 152 pts` when `outcome` is `'blocked'`
+  state), or `Ended (no moves left) · 152 pts` when `reason` is `'blocked'`
   (the `COOP_END` lookup — currently defensive, since coop has no pass to feed
   a blocked-end);
 - coop `lost` (the clock, coop's one loss) → `Lost (out of time) · 152 pts`;

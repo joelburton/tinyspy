@@ -1017,10 +1017,9 @@ begin
 
   -- Revealing can complete the grid — including "Reveal puzzle", which fills
   -- the whole thing. That lands the ordinary coop `won` terminal, and that is
-  -- DELIBERATE (2026-08-01): waffle/wordle treat their reveal-answer gesture as
-  -- a give-up (`ended` + outcome 'revealed') because those are guess-economy
-  -- games where the answer IS the contest. A crossword isn't competitive that
-  -- way — reveal is a scoped, incremental solving aid (letter / word / puzzle),
+  -- DELIBERATE (2026-08-01): waffle/wordle offer Reveal only once the game is
+  -- over, because those are guess-economy games where the answer IS the
+  -- contest. A crossword isn't competitive that way — reveal is a scoped, incremental solving aid (letter / word / puzzle),
   -- and there's no honest line between "revealed one letter" and "gave up". So
   -- a finished grid is a finished grid. See docs/games/crosswords.md §9.
   -- `solved` is the answer's, not a side effect to watch for: a reveal that
@@ -1281,7 +1280,7 @@ grant execute on function crosswords.export_solution(uuid) to authenticated;
 -- end_game (coop manual give-up) / concede (compete) / submit_timeout
 -- ============================================================
 
--- Mutual give-up ends NEUTRALLY ('ended' + outcome 'manual') — not a loss
+-- Mutual give-up ends NEUTRALLY ('ended' + reason 'manual') — not a loss
 -- (putting down an unfinished crossword is normal). The solution reveals in
 -- the terminal view (games_state) once is_terminal flips.
 --
@@ -1388,7 +1387,7 @@ grant execute on function crosswords.concede(uuid) to authenticated;
 
 -- Standard manifest requirement, and a live path: the setup form offers the
 -- shared TimerField, so a countdown can expire (timeout_test.sql exercises
--- it). Coop → lost, compete → lost_compete; outcome 'timeout' both ways.
+-- it). Coop → lost, compete → lost_compete; reason 'timeout' both ways.
 drop function if exists crosswords.submit_timeout(uuid);
 
 create or replace function crosswords.submit_timeout(target_game uuid)

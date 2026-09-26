@@ -78,8 +78,8 @@ never a rival's rows, which RLS withholds until the game ends.
 
 First to all three wins and the game ends for everyone. If every budget is
 spent with nobody finished, everyone loses; a countdown expiring does the same.
-There is no way to stop a race for the whole table — see
-`common/game-page/todo.md`.
+Any player may stop the game for the whole table: Concede's question offers
+it, and End shows once the player is `locally-terminal`.
 
 Compete needs an opposing **player**, which is why its manifest takes 2–6 where
 coop takes 1–6: a solo club is offered coop only. A countdown timer does not

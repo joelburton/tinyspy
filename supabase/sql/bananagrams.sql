@@ -1103,7 +1103,7 @@ grant execute on function bananagrams.dump(uuid, text) to authenticated;
 -- Shape vs. the other terminals:
 --   - play_state 'lost' — everyone lost (distinct from 'won' = a
 --     peel-win, and 'ended' = the neutral manual stop)
---   - status.outcome 'timeout'; NO winner_username, so the PlayArea
+--   - status.reason 'timeout'; NO winner_username, so the PlayArea
 --     renders a no-winner "Time's up" loss for all
 --
 -- Idempotent on the in-progress check: a second caller, or a click
@@ -1298,7 +1298,7 @@ grant execute on function bananagrams.replay_board(uuid) to authenticated;
 -- while anyone's still racing the game stays 'playing' (peel already
 -- counts/deals only non-conceded players); when the LAST active player
 -- concedes — including a solo game, N = 1 — the whole game ends as a
--- collective loss (play_state 'lost', status.outcome 'conceded', every
+-- collective loss (play_state 'lost', status.reason 'conceded', every
 -- player {"won": false}, no winner). The conceded flag now lives on
 -- common.game_players (was bananagrams.progress); the FE reads it off
 -- ctx.players and common.end_game wakes the terminal via useCommonGame.
@@ -1332,7 +1332,7 @@ grant execute on function bananagrams.concede(uuid) to authenticated;
 -- ============================================================
 -- The friends' explicit "we're done" action — the uniform neutral terminal
 -- every other gametype has. Writes play_state 'ended' (nobody wins or loses),
--- everyone {"won": false}, status.outcome = 'manual'.
+-- everyone {"won": false}, status.reason = 'manual'.
 --
 -- bananagrams went without one for a long time, on the reasoning that a race
 -- has a per-player Concede and each player leaves on their own. But conceding

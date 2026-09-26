@@ -306,7 +306,7 @@ validated-guess RPC.
     children).
 
 - **`wordiply.submit_timeout(target_game) → jsonb`** — countdown expired →
-  terminal. Coop → **`lost`** (`outcome:'timeout'`): the clock is the ONE way a
+  terminal. Coop → **`lost`** (`reason:'timeout'`): the clock is the ONE way a
   coop table loses, because the team had a reachable end (spend the five shared
   guesses) and didn't reach it — see [states.md → When the clock is a
   LOSS](../states.md#when-the-clock-is-a-loss). Spending the guesses or stopping
@@ -343,11 +343,11 @@ validated-guess RPC.
   "winner_username": "alice",                       // cached at finish time — the club-list
                                                     // label is a pure function of this row
                                                     // and can't resolve a uuid
-  "outcome": "complete" | "timeout" | "manual" | "conceded"
+  "reason": "complete" | "timeout" | "manual" | "conceded"
 }
 ```
 (coop status is simpler: `{ mode, base, max_word_length, guesses_used }`, plus
-`length_score` / `letter_count` / `longest` / `outcome` at terminal. Leaderboard
+`length_score` / `letter_count` / `longest` / `reason` at terminal. Leaderboard
 usernames are resolved FE-side from the club roster; only the winner's is
 cached, in `winner_username`.)
 
@@ -355,8 +355,8 @@ cached, in `winner_username`.)
 status-label vocabulary
 ([docs/game-status-labels.md](../game-status-labels.md)). Mid-game, coop shows
 the shared budget — `Playing · 3/5 guesses` — while compete shows a bare
-`Playing`: per-player progress is **deliberately withheld** (a status line may
-only say what every player already sees, and compete counts are private).
+`Playing`. (Each player's guess count is in `status.leaderboard` and on every
+player's opponent strip; the label just doesn't name one.)
 Terminal, coop (which has no win): `Ended (out of guesses) · 78% · 22 letters`
 when the five guesses were spent, `Ended · 78% · 22 letters` for a manual stop,
 and the one coop loss `Lost (out of time) · 78% · 22 letters`. Terminal,

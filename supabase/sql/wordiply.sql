@@ -488,7 +488,7 @@ grant execute on function wordiply.create_game(text, jsonb, uuid[], text, jsonb)
 -- ============================================================
 -- Internal helper (not granted to authenticated — only the definer RPCs
 -- below call it). Computes the team's length score + letter count from
--- the shared guesses and ends the game with the given outcome label
+-- the shared guesses and ends the game with the given reason
 -- ('complete' | 'timeout' | 'manual'; only 'timeout' is a LOSS). This is where the terminal scores
 -- (hidden until now on the FE) are finally written to status.
 -- `outcome_label` was this parameter's name; it holds a REASON the game ended,
@@ -1045,7 +1045,7 @@ grant execute on function wordiply.submit_timeout(uuid) to authenticated;
 -- wordiply.end_game — manual "we're done" stop
 -- ============================================================
 -- Coop's neutral mutual stop (the "End game" menu item): ends with the
--- team score, outcome='manual'. In compete this is the "players agreed to
+-- team score, reason='manual'. In compete this is the "players agreed to
 -- stop" path — per-player scores, NO winner (compete's per-player drop is
 -- concede, not this). Any game player may fire it; idempotent (a second
 -- click / a race with the timer raises P0001, swallowed by the FE).

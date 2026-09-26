@@ -4,7 +4,7 @@
 -- Test: strands submit_timeout — the clock, in both modes
 -- ============================================================
 -- Coop: the board had a reachable end (find them all) and the team didn't
--- reach it, so the clock is a LOSS — outcome 'timeout', words_found counted,
+-- reach it, so the clock is a LOSS — reason 'timeout', words_found counted,
 -- never the total (that number is part of the answer).
 --
 -- Compete: the clock stops the race wherever it stands and the ranking is

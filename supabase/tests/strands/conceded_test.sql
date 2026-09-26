@@ -14,7 +14,7 @@
 --   **A finisher can't concede.** Once you have solved you are out of the race
 --   (locally terminal), and conceding then could only throw away a win you may
 --   hold, so the server refuses it (PN508) and your solve stays ranked.
---   And when EVERYONE concedes, the loss says so: outcome 'conceded'.
+--   And when EVERYONE concedes, the loss says so: reason 'conceded'.
 --
 -- Personas: ada + bea (+ cade for the three-player guard scenario).
 

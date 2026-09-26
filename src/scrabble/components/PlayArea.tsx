@@ -714,7 +714,7 @@ function buildOver({
     return { pillText: 'Completed', infoColText: `${score} pts`, outcome: 'won' }
   }
   if (playState === 'ended') return { pillText: 'Ended', infoColText: 'Ended', outcome: 'neutral' }
-  // Everyone conceded (play_state 'lost_compete', outcome 'conceded'): a collective
+  // Everyone conceded (play_state 'lost_compete', reason 'conceded'): a collective
   // loss with no eligible winner. Must precede the winner logic below, which
   // would otherwise fall through to the phantom co-winners tie on null winner.
   if (statusOutcome === 'conceded') {

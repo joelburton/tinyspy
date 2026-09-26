@@ -427,9 +427,9 @@ begin
   -- win_percent% of the required-words score, measured against the score of the
   -- REQUIRED words found ONLY — bonus points do NOT count (so 100% means every
   -- required word, and 50% means required finds worth half the required total).
-  -- In compete this is a RACE — the player who just crossed wins immediately
-  -- (scores are private, so "first to cross" is the fair rule); the non-'playing'
-  -- guard above makes a near-simultaneous second crosser a no-op 'gameOver'.
+  -- In compete this is a RACE — the player who just crossed wins immediately;
+  -- the non-'playing' guard above makes a near-simultaneous second crosser a
+  -- no-op 'gameOver'.
   select win_percent, required_words_score into g_win_percent, g_req_score
     from boggle.games where id = target_game;
   if g_win_percent is not null then
@@ -478,7 +478,7 @@ grant execute on function boggle.submit_word(uuid, text, int, boolean) to authen
 -- winner (the team's total is the score); compete without a target ranks by
 -- score (ties share the win). A `'target'` compete win passes `winner_user_id` — the
 -- player who crossed the bar first — and THEY win outright (others lose
--- regardless of their private banked score).
+-- regardless of their banked score).
 -- The parameter was named `outcome`, which is the appearance vocabulary's word
 -- (docs/outcomes.md) and not what this holds — a REASON the game ended. A
 -- rename needs the drop: `create or replace` cannot rename an input parameter.
@@ -577,8 +577,7 @@ begin
 
     -- Name the winner when there's exactly one to name: the target-crosser, or
     -- (score race) the sole player on the top score. A tie leaves it null and
-    -- the label reads "co-winners" — the leaderboard is privacy-scoped, so a
-    -- label can't recompute this itself.
+    -- the label reads "co-winners".
     if winner_user_id is not null then
       top_user := winner_user_id;
     elsif term_state = 'won_compete' then

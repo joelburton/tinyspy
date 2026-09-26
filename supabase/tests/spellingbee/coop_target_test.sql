@@ -11,7 +11,7 @@
 -- Coverage (the coop terminals a target creates):
 --   1. target reached  → play_state 'won',  outcome 'target',  everyone {won:true}
 --   2. …and the game is really over: a later submit_word is rejected
---   3. clock expires with a target set + unreached → 'lost', outcome 'timeout'
+--   3. clock expires with a target set + unreached → 'lost', reason 'timeout'
 --   4. clock expires with NO target                → 'ended' (nothing to fail at)
 --   5. manual End with a target set + unreached    → 'ended' (stopping ≠ losing)
 --

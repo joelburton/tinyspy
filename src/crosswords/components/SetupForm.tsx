@@ -77,7 +77,7 @@ export function SetupForm({
       {/* Timer — the shared field every other game uses (None / Up / Down with
           MM:SS). A countdown expiring routes to crosswords.submit_timeout,
           which ends the table: coop → `lost`, compete → `lost_compete`, both
-          stamped `outcome: 'timeout'` so buildOver can say "Out of time"
+          stamped `reason: 'timeout'` so buildOver can say "Out of time"
           rather than the concede wording those states otherwise carry. */}
       <SetupTimerSection errors={errors} value={s.timer} onChange={(timer) => set('timer', timer)} />
     </div>

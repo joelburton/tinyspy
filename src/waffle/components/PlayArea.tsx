@@ -557,9 +557,8 @@ export function PlayArea({
       : undefined
 
   // The grid shows the caller's own board + live colors (including at game-over) — OR,
-  // while viewing, the historical snapshot. After the MID-GAME "Reveal solution" the
-  // caller's own board IS the solution (the RPC overwrote it), so that needs no
-  // special case. The TERMINAL reveal is display-only: this viewer's own toggle
+  // while viewing, the historical snapshot. The reveal is terminal-only and
+  // display-only: this viewer's own toggle
   // swaps the shown board for the (post-terminal, unshielded) solution, colored
   // all-green by the same FE colorizer the history viewer uses — waffle.players
   // is untouched, which is exactly why hiding again brings back the board the

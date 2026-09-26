@@ -319,7 +319,7 @@ revoke execute on function waffle._format_title(text[], text) from public;
 --   coop            → the correct words so far    "ARENA-EAGER-TOTEM"
 --                     (falling back to "New game" before any word lands)
 --   compete, mid-game → "New compete"
---   compete, terminal → the puzzle's own words    "ARENA-EAGER-TOTEM"
+--   compete, terminal → the furthest board's correct words "ARENA-EAGER-TOTEM"
 --
 -- Coop shares one board, so its correct words are already on every screen —
 -- surfacing them costs nothing. Compete does NOT get a mid-game readout: the
@@ -329,7 +329,7 @@ revoke execute on function waffle._format_title(text[], text) from public;
 -- the puzzle it was.
 --
 -- Derived rather than assigned, so it's correct after ANY transition — a swap,
--- a timeout, a manual end, a give-up reveal, or a replay that rewinds the board
+-- a timeout, a manual end, a concede, or a replay that rewinds the board
 -- (which must un-tell the words). Every one of those calls this instead of
 -- remembering its own formula.
 create or replace function waffle._sync_title(g_id uuid)
@@ -348,8 +348,7 @@ as $$
              -- free, and naming an untouched game after it would be a lie —
              -- worse, a replayed board and a fresh board are in identical
              -- state, so they must read identically. A terminal game is
-             -- exempt: its board is final, whatever the players did to it
-             -- (a "reveal answer" writes the solution without a single swap).
+             -- exempt: its board is final, whatever the players did to it.
              (select case when wp.swaps_used > 0 or cg.is_terminal
                           then waffle._correct_words(wp.board, wg.solution)
                           else '{}'::text[] end
@@ -865,9 +864,9 @@ begin
         into player_results
         from common.game_players
        where game_id = target_game;
-      -- Every terminal write states its `outcome` explicitly. Under the
+      -- Every terminal write states its `reason` explicitly. Under the
       -- merging common.end_game an omitted key would inherit whatever was on
-      -- the row, so "no outcome" is not a safe way to mean "solved normally".
+      -- the row, so "no reason" is not a safe way to mean "solved normally".
       perform common.end_game(
         target_game, term_state,
         jsonb_build_object('mode', 'coop', 'solved', did_solve,
@@ -1126,7 +1125,7 @@ grant execute on function waffle.submit_timeout(uuid) to authenticated;
 -- Shape mirrors submit_timeout, with three deliberate differences:
 --   - play_state is always 'ended' (no mode/solver branching)
 --   - every player gets {"won": false} — there is no winner
---   - status.outcome = 'manual'
+--   - status.reason = 'manual'
 -- Any game player may fire it (it's a user-driven menu action, not
 -- a timer race), and it's idempotent on the play_state check the
 -- same way submit_timeout is: a second click raises P0001, which

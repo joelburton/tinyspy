@@ -302,7 +302,7 @@ table comment in the baseline migration.)
 - `bananagrams.submit_timeout(target_game)` — **countdown expiry** (modeled on
   `stackdown.submit_timeout`). When a chosen countdown hits 0 before anyone goes
   out, GamePage fires this and the race ends as a **collective loss**:
-  `play_state='lost'`, `status={outcome:'timeout'}` (NO `winner_username`), and
+  `play_state='lost'`, `status={reason:'timeout'}` (NO `winner_username`), and
   **every** player's result `{"won": false}`. The RPC is timer-agnostic (it just
   ends the in-progress game; the FE decides *when*). `require_game_player`,
   gametype-row lock, `P0001 'game is not in progress'` idempotency. The PlayArea
@@ -327,7 +327,7 @@ table comment in the baseline migration.)
   **thin wrapper over `common.concede`**. The semantics are unchanged: conceding
   is a **real loss** for the conceder, it marks JUST the caller out and the
   **others keep racing**, and the game ends as a collective loss
-  (`play_state='lost'`, `status={outcome:'conceded'}`, every `{"won": false}`,
+  (`play_state='lost'`, `status={reason:'conceded'}`, every `{"won": false}`,
   no `winner_username`) only when the LAST active player concedes (including a
   solo `N = 1` game). The `conceded` flag now lives on **`common.game_players`**
   (not `bananagrams.progress`), so `peel` / `save_player_board` read it from

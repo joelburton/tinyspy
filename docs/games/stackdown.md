@@ -305,9 +305,8 @@ creation, so it's self-contained; `board_id` is provenance only.
   a later call meets the in-progress gate and reads "Game over". `result` names
   the one case it does answer, because a call site may not take an `ok` branch
   by merely matching `ok`
-  ([envelopes.md](../envelopes.md#choosing-which-ok-branch)). It exists to
-  verify generated boards are solvable in order (and as a playtest hint), and
-  may be removed once boards are trusted. Gated like a move (game player,
+  ([envelopes.md](../envelopes.md#choosing-which-ok-branch)). It is the game's
+  spoiler, the way out for a stuck player. Gated like a move (game player,
   in-progress only). Because strict validity forces clearing in solution order,
   the count of cleared words is exactly the index of the next one. The FE
   surfaces it as a **Spoiler** action button (bare-eye, and amber like the Hint
@@ -356,14 +355,14 @@ while `reset_game` **assigns** a fresh one:
 | `mode` | every write path | `'coop'` / `'compete'` |
 | `found_words_count` | seeded 0 at create; **coop only** — `submit_word` merges the fresh team count on every valid word (the coop win writes the final 6) | the club-list "3/6 words" tally. Compete never updates it: this column is club-wide readable, so a live tally would leak the leader's progress. |
 | `required_words_count` | create / replay only | always 6 (the fixed geometry); stored so the tally isn't a magic number in the FE |
-| `outcome` | terminal writes | why it ended: `'cleared'` (coop win, alongside `solved: true`), `'timeout'`, `'manual'`, or `'conceded'` (the last racer dropping, via `common.concede`) |
+| `reason` | terminal writes | why it ended: `'cleared'` (coop win, alongside `solved: true`), `'timeout'`, `'manual'`, or `'conceded'` (the last racer dropping, via `common.concede`) |
 | `winner_user_id` / `winner_username` | the compete win (`submit_word`'s sixth word) | who cleared it first — the username cached so the label needs no join |
 
 `replay_board` hands `common.reset_game` the same initial blob create_game
 seeds, so a restarted game's tally starts honest rather than inheriting the
 previous run's. The consumer is the manifest's `labelFor`
 (`src/stackdown/manifest.ts`): the coop tally, `Won by <winner_username>`, and
-the `outcome`-keyed loss phrasing.
+the `reason`-keyed loss phrasing.
 
 ### Title formula
 

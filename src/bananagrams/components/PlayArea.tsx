@@ -434,8 +434,8 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // The terminal message, memoized on primitives so the verdict effect sees
   // one object per outcome. Three terminal shapes: a peel-win
-  // (status.winner_username set), a countdown timeout (outcome 'timeout',
-  // everyone lost), and an all-conceded collective loss (outcome 'conceded',
+  // (status.winner_username set), a countdown timeout (reason 'timeout',
+  // everyone lost), and an all-conceded collective loss (reason 'conceded',
   // everyone lost). The no-winner cases are checked FIRST — with no
   // winner_username the peel-win branch would fall through to "someone went
   // out — Bananas!" and show everyone a loss for the wrong reason.

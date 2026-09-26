@@ -21,6 +21,15 @@
   handler repeats the stale reason. Tightening the branch to terminal-only is
   Joel's call, with its own pgTAP; either way the two comments are wrong today.
 
+- **Does a finished coop game still need to skip the title's swap check?**
+  `_sync_title` names a coop game after its correct words only once
+  `swaps_used > 0`, so a scramble's free words never title an untouched game —
+  but a terminal game is exempt. The only reason ever given was the mid-game
+  `reveal_answer`, which wrote the solution without a swap and is gone. Today
+  the exemption lets a game ended untouched be titled after the scramble's
+  free words. Keep it (with a reason) or drop it: Joel's call, with a pgTAP
+  case in `gameplay_test.sql`.
+
 - **The below-board reserve is a hand-tuned constant.**
   `components/Board.module.css`'s `--avail-h` sizes the board as `100svh -
   var(--game-chrome-height) - 3.5rem`, where that last term stands for

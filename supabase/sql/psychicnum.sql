@@ -807,13 +807,12 @@ revoke execute on function psychicnum._maybe_finish_compete(uuid) from public;
 -- ============================================================
 -- psychicnum.concede — a player drops out of a compete race
 -- ============================================================
--- psychicnum is an ELIMINATION game: each player has an independent
--- guess budget, and the compete game ends only when EVERY player is
--- done — either someone completed the set (immediate win, handled in
--- submit_guess) or all budgets are exhausted. A conceder is done too,
--- so after flipping the shared flag we check whether any NON-conceded
--- player still has budget; if not (and nobody won — a win would have
--- ended the game already), the game ends as a collective loss.
+-- Each player has an independent guess budget. The compete game ends
+-- when someone completes the set (immediate win, handled in
+-- submit_guess) or when every player is out — budget spent or
+-- conceded. So after flipping the shared flag we check whether any
+-- NON-conceded player still has budget; if not (and nobody won — a win
+-- would have ended the game already), the game ends as a collective loss.
 -- Compete only (coop is a team; it ends via the shared End).
 drop function if exists psychicnum.concede(uuid);
 

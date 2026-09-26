@@ -6,7 +6,7 @@
 --
 -- The FE fires this RPC when a timed game's countdown hits 0. It ends the
 -- game as a LOSS for everyone: play_state → 'lost' (coop) / 'lost_compete'
--- (compete), status {mode, outcome:'timeout'}, every player's result
+-- (compete), status {mode, reason:'timeout'}, every player's result
 -- won = false.
 --
 -- Unlike codenamesduet / connections (which THROW on a second call),

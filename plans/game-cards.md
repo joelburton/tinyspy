@@ -229,18 +229,7 @@ score toward an optional target; bonus words score too.
       - without: `timeout-ranks-by-progress`
 - **hints** — none
 
-**Mismatches**
-
-- `docs/games/boggle.md` → 1. The game: with no target, "you hunt until the
-  timer expires, a player hits **End game**, or (compete) everyone's done — a
-  neutral end." In compete the timeout crowns the top score, and everyone
-  conceding is a `lost_compete`.
-- `docs/games/boggle.md` §7 names `_finish`'s parameter `outcome`; it is
-  `reason`.
-- `submit_word`'s comment says compete "scores are private", and
-  `_finish`'s that "the leaderboard is privacy-scoped"; `_refresh_status`
-  publishes every player's score to the club-readable status during play,
-  and the opponent strip shows it.
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 
@@ -312,16 +301,7 @@ budget of 3, 5, 7 or 9.
   - `hint-spoiler` — an unfound secret word
     - `hint-free`, `hint-recorded`
 
-**Mismatches**
-
-- `src/psychicnum/doc.md` → Compete says "There is no way to stop a race for
-  the whole table — see `common/game-page/todo.md`." Any compete player may
-  Stop (Concede's question offers it; End once `locally-terminal`),
-  `psychicnum.end_game` has no mode check, and `common/game-page/todo.md` has
-  no such item.
-- `psychicnum.sql`, `concede`'s header: "the compete game ends only when EVERY
-  player is done — either someone completed the set (immediate win) …" — this
-  `race-game` ends at the first finish, which is not "every player done".
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 
@@ -416,20 +396,7 @@ grid, compete gives each player their own.
     - coop: `hint-free`, `hint-recorded`
     - compete: `hint-banned`
 
-**Mismatches**
-
-- `docs/games/crosswords.md` (§1, §4's `end_game` and `submit_timeout` rows,
-  §8, §9) and the SQL headers of `end_game` and `submit_timeout` give the
-  status key as `outcome`; the code writes `reason`.
-- `docs/games/crosswords.md` §4 lists `clear_board`, which `replay_board`
-  replaced.
-- `docs/games/crosswords.md` §9 and `reveal_cells`'s comment say waffle and
-  wordle end a reveal as `ended` + `'revealed'`; both reveals are gone, and
-  Reveal is terminal-only there.
-- `docs/games/crosswords.md` §7: a compete game everyone conceded reads
-  "Lost: out of the race" — the code says "Lost: all conceded". And a conceded
-  player's strip shows "an inert Concede" — Concede is hidden once
-  `locally-terminal`, and End shows instead.
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 
@@ -467,22 +434,6 @@ budget is par plus a few.
 
 **Mismatches**
 
-- `docs/games/waffle.md` → `end_game`: "(**coop**; compete shows Concede
-  instead)" — any compete player may Stop (Concede's question offers it; End
-  once `locally-terminal`). It and `waffle.end_game`'s header give the status as
-  `outcome: 'manual'`; the code writes `reason`. `submit_swap`'s coop comment
-  says each terminal write "states its `outcome`" — it is `reason` there too.
-- `docs/games/waffle.md` → Frontend (`src/waffle/`): "Concede goes gray once
-  you have SOLVED" — Concede is hidden once `locally-terminal`, and End shows
-  instead.
-- `docs/games/waffle.md` → Frontend (`src/waffle/`) and → Title formula,
-  `waffle._sync_title`'s comments, and `PlayArea.tsx`'s board comment still
-  describe the mid-game `reveal_answer`, which ended the game and wrote the
-  solution onto every board. It is gone: Reveal is terminal-only and changes
-  only the board on show.
-- `docs/games/waffle.md` → Rules: "**Star rating** (FE flourish): swaps left
-  at solve → stars" — there are no stars; the coop win reads against par
-  ("Won: par +2").
 - Compete is called a "race" and its players "racers" throughout the SQL,
   the FE and the doc; ranked by swaps, it is not a `race-game`.
 
@@ -523,16 +474,7 @@ each. Other valid words fill a bar that buys a hint.
     - coop: `hint-free`, `hint-earned`, `hint-recorded`
     - compete: `hint-scored`, `hint-earned`, `hint-recorded`
 
-**Mismatches**
-
-- `end_game`'s header gives the status as `outcome = 'manual'`, and
-  `_maybe_finish_compete`'s says "`outcome` names which way it happened"; the
-  code writes `reason`.
-- `docs/games/strands.md` → The winner, and why the race can't end early: "a
-  player who never spends can be beaten on speed by nobody, only matched" —
-  two players on no hints are split by the earlier solve.
-- `docs/games/strands.md` → Terminal vocabulary lists `unsolved` among
-  `lost_compete`'s reasons; nothing can write it (see below).
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 
@@ -564,14 +506,7 @@ each from the tiles left exposed.
   - `hint-spoiler` — the next word
     - `hint-free`, `hint-recorded`
 
-**Mismatches**
-
-- `docs/games/stackdown.md` → The status blob (`common.games.status`) names
-  the key `outcome`, and the label's "`outcome`-keyed loss phrasing"; the
-  code writes and reads `reason`.
-- `docs/games/stackdown.md` §5.2 and `reveal_next_word`'s header call the
-  spoiler a playtest cheat that "may be removed once boards are trusted"; it
-  is the game's spoiler, the way out for a stuck player.
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 
@@ -616,11 +551,7 @@ until all twelve are used. The chain has a word cap; undo refunds.
     - coop: `hint-free`, `hint-recorded`
     - compete: `hint-banned`
 
-**Mismatches**
-
-- `docs/games/letterboxed.md` → Play states: compete is `lost_compete` for "a
-  timed-out race nobody scored in"; `submit_timeout` has no such case, and
-  writes `won_compete` whatever the coverage.
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 
@@ -660,11 +591,7 @@ across all five.
     - compete: `timeout-ranks-by-progress`
 - **hints** — none
 
-**Mismatches**
-
-- `docs/games/wordiply.md` → `status` jsonb: the key is shown as
-  `"outcome": "complete" | "timeout" | "manual" | "conceded"`. The code
-  writes those values under `reason` (`conceded` from `common.concede`).
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 
@@ -694,11 +621,7 @@ is placed, Peel and everyone draws more. Compete only, one to six players.
   - `hint` — check words: marks the board's invalid cells
     - `hint-free`, `hint-self-informative`
 
-**Mismatches**
-
-- `docs/games/bananagrams.md` (`submit_timeout`, `concede`) and the SQL
-  headers of `submit_timeout` and `concede` give the status key as
-  `outcome`; the code writes `reason`.
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 
@@ -746,13 +669,7 @@ scored by tile values and premium squares. Compete can seat AI players.
     - coop: `hint-free`
     - compete: `hint-banned`
 
-**Mismatches**
-
-- `docs/games/scrabble.md` §5.6 and its club-label list give the status key
-  as `outcome`; the code writes `reason`. `_finish`'s header says "`outcome`
-  ∈ complete | timeout | blocked (NOT manual …)": the parameter is `reason`,
-  and coop's manual end (`'manual'`) and the last concede (`'conceded'`) run
-  through it too.
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 

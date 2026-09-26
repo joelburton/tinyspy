@@ -165,8 +165,7 @@ memberships are pinned by the central registry test,
 Coop: `playing` → `won` (all twelve covered) / `lost` (the clock — the roster's
 "reachable end you didn't reach" test, [states.md](../states.md)) / `ended`
 (manual, neutral). Compete: `won_compete` (first solve, or a timeout resolved on
-coverage) / `lost_compete` (all conceded, or a timed-out race nobody scored in)
-/ `ended` (manual — agreeing to stop isn't a race resolution).
+coverage, whatever the coverage) / `lost_compete` (all conceded) / `ended` (manual — agreeing to stop isn't a race resolution).
 
 ---
 

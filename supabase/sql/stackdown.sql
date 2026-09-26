@@ -468,11 +468,9 @@ grant execute on function stackdown.submit_word(uuid, int[]) to authenticated;
 -- ============================================================
 -- stackdown.reveal_next_word — a CHEAT (peek at the next word)
 -- ============================================================
--- Returns the next solution word the caller still has to clear, or NULL
--- if they've cleared all six. This deliberately defeats the hidden-
--- solution invariant — it exists to verify generated boards are
--- solvable in order (and as a hint while playtesting). It may be removed
--- once boards are trusted; until then it's gated like any move (game
+-- Returns the next solution word the caller still has to clear. This
+-- deliberately defeats the hidden-solution invariant: it is the game's
+-- spoiler, the way out for a stuck player. Gated like any move (game
 -- player, in-progress only).
 --
 -- "Next word" = solution[words-cleared + 1]. Strict board validity means

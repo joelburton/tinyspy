@@ -281,8 +281,8 @@ export function PlayArea({
   )
 
   // ─── Spoiler: the next word (a CHEAT — see stackdown.reveal_next_word) ──
-  // Hands over the next solution word the caller still has to clear. Used to verify
-  // generated boards are solvable in order; may be removed once boards are trusted.
+  // Hands over the next solution word the caller still has to clear — the way out
+  // for a stuck player.
   // Named `spoilNext`, not `revealNext`: "reveal" on this page now means the WHOLE
   // solution at game-over (the red boxed-eye button below).
   // Surfaced in the LOCAL feedback slot (the player's own request) as a `hint`,

@@ -54,11 +54,13 @@ minimum length.
   counts bonus words too: a target that needed obscure words would be too
   mean, and bonus words that scored nothing would be no fun to find. Compete
   is a race — the first player to cross wins outright, regardless of the
-  others' private scores (`submit_word` decides it; see [§7](#7-rpcs-all-security-definer)).
-- **Ending.** With no win target, you hunt until the timer expires, a player
-  hits **End game**, or (compete) everyone's done — a neutral end. With a target
-  set, reaching it ends the game as a win (`status.reason = 'target'`). Either
-  way the end-of-game reveal lists the **required** words nobody found.
+  others' scores (`submit_word` decides it; see [§7](#7-rpcs-all-security-definer)).
+- **Ending.** With no win target, you hunt until the timer expires or a player
+  hits **End game**. End is a neutral end; so is coop's timeout, while
+  compete's timeout crowns the top score, and a compete game everyone
+  conceded is a `lost_compete`. With a target set, reaching it ends the game
+  as a win (`status.reason = 'target'`). Either way the end-of-game reveal
+  lists the **required** words nobody found.
 
 ### Modes (sibling-manifest pair)
 
@@ -366,8 +368,8 @@ until the game is terminal, then all.
   `BUG:` — the setup dialog composes every field and the edge function builds
   the board, so any of them means a broken client or a builder that broke its
   own contract.
-- **`_finish(target_game, outcome, winner_user_id default null)`** — the
-  terminal transition. `outcome` ∈ `manual` / `timeout` / `target`; a `target`
+- **`_finish(target_game, reason, winner_user_id default null)`** — the
+  terminal transition. `reason` ∈ `manual` / `timeout` / `target`; a `target`
   compete win passes the crosser as `winner_user_id` (they win outright, others
   lose regardless of banked score). Coop has no per-player result.
 
@@ -396,8 +398,8 @@ until the game is terminal, then all.
   with nothing to reach is an exercise, and any ending is neutral. A manual stop
   is always neutral — the friends chose to stop, so nobody wins. A no-target
   score race names its winner in `status.winner_username` (a tie leaves it null,
-  and the label reads "co-winners"), because the leaderboard is privacy-scoped
-  and a club-list label can't recompute it.
+  and the label reads "co-winners"), because the leaderboard holds user ids,
+  not names.
 - **`end_game` / `submit_timeout`** — flip the game terminal; `submit_timeout`
   mirrors spellingbee's timer-expiry handler. No reveal view: the FE renders the
   missed words from data it already holds. `end_game` is coop's manual stop.

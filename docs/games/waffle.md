@@ -42,7 +42,8 @@ presence-pause, friends-on-a-Zoom-call model.
   difficulty knob (fewer extra swaps = harder). Validated + bounded server-side.
 - **Win** = all 6 words correct (whole board green). **Lose** = budget
   exhausted before solving.
-- **Star rating** (FE flourish): swaps left at solve → stars, like Waffle.
+- **Par verdict** (FE): the coop win reads against par — "Won: par +2", or
+  "Won: par!" on par.
 
 ## Modes (sibling-manifest pair)
 
@@ -272,11 +273,12 @@ members.
   Back-to-Club). Mid-game it confirms first (it wipes the whole group's
   progress); at terminal it fires unconfirmed — the game is over, there's
   nothing left to lose. pgTAP: `replay_test.sql`.
-- **`end_game(game)`** — the manual "End" action-row button in the info column
-  (**coop**; compete shows Concede instead). A
+- **`end_game(game)`** — the manual "End" action-row button in the info column.
+  Any player may Stop, in either mode: in compete, Concede's question offers
+  it, and End shows once the player is locally terminal. A
   *neutral* terminal: writes the uniform `play_state='ended'` (not waffle's
   intrinsic `won`/`lost`/`*_compete`), every player `{"won": false}`, and
-  `status = {outcome:'manual', mode}`. Any game player can call it; idempotent
+  `status = {reason:'manual', mode}`. Any game player can call it; idempotent
   (a second call raises `P0001 'game is not in progress'`, swallowed by the FE).
   Same "realtime touch" tail as `submit_timeout` so the FE refetches and reveals
   the solution. The FE renders a plain "Game ended" outcome line
@@ -395,7 +397,7 @@ A **readout**, not a fixed name. `create_game` seeds a placeholder and
 | coop | **the correct words so far** — first three, alphabetical, dash-joined (`ARENA-EAGER-TOTEM`) |
 | coop, before any swap | `'New game'` |
 | compete, mid-race | `'New compete'` |
-| compete, terminal | **the puzzle's words** (its first three, alphabetical) |
+| compete, terminal | **the correct words on the furthest board** (first three, alphabetical; a solved board's are the puzzle's words) |
 
 A word counts as correct once all five of its cells match the solution, which
 happens well before the puzzle falls — so in coop the title is a live progress
@@ -412,11 +414,10 @@ Two details the formula is careful about:
 - The coop readout is gated on `swaps_used > 0`: a scramble can hand the players
   a whole correct word for free, and a **replayed** board is in identical state
   to a fresh one — they must read identically. A terminal game is exempt from
-  the gate, since `reveal_answer` writes the solution onto every board without a
-  single swap.
+  the gate.
 - Every transition calls the helper rather than assigning its own string —
-  `submit_swap`, `concede`, `submit_timeout`, `end_game`, `reveal_answer`, and
-  `replay_board` (which must un-tell the words). pgTAP: `gameplay_test.sql`
+  `submit_swap`, `concede`, `submit_timeout`, `end_game`, and `replay_board`
+  (which must un-tell the words). pgTAP: `gameplay_test.sql`
   (coop readout), `compete_test.sql` (a solved leader doesn't leak), and
   `replay_test.sql` (both modes reset).
 
@@ -440,9 +441,8 @@ slot (a `notOk` with its ×, the owner-cleared standing states, the filled
 verdict — [ui.md → Feedback pill](../ui.md#feedback-pill)); the action row
 places both exits and lets each hide itself (coop shows End, a race shows
 Concede); a **locally-terminal** state (compete: solved or out of swaps while
-others race on) reuses the terminal look (a bold status line + Concede) and
-disables the grid — and Concede goes gray once you have SOLVED, since conceding
-would forfeit a win already banked; the `.infoCol` follows the canonical **state
+others race on) reuses the terminal look (a bold status line + End, Concede
+hidden) and disables the grid; the `.infoCol` follows the canonical **state
 → opponent strip → action row → help → setup → log** order; the `OpponentStrip`
 carries a `metricLabel="Swaps"`; and the event log renders its own `<tr>` rows.
 An opponent solving reads as `won` (green), the same green a found word always
@@ -505,11 +505,10 @@ layout](../playarea.md#playarea-layout)):
   `<FeedbackPill>` — a refused swap during play, the "waiting" state when the
   player is locally terminal, whose turn it is, or the filled verdict at
   game-over. (The `SolutionReveal` answer list is NOT here — it lives in the
-  info column's status section.) There's no special "reveal" board mode: the
-  **"Reveal solution"** menu action ENDS the game and overwrites every board
-  with the solution server-side (see `reveal_answer` below), so the caller's own
-  board simply *becomes* the answer — the grid renders it all-green for free,
-  with zero FE branching.
+  info column's status section.) **"Reveal solution"** is terminal-only and
+  local: this viewer's toggle swaps the board shown for the solution, colored
+  all-green by the same FE colorizer the history viewer uses, and changes no
+  one's saved board.
 - **Info column** — the shared readouts in canonical order (`.infoState` swap
   tally + par → `SolutionReveal` answer list → `OpponentStrip` (compete) →
   action row → `.infoHelp` → `<SetupDisclosure>`), over the coop `GameEventLog`.

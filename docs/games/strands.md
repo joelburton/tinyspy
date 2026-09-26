@@ -638,8 +638,9 @@ another hint — and the game ends when nobody is still racing: all solved, all
 conceded, or the clock.
 
 Getting a hint POINT costs nothing; only cashing one does. That's the whole
-tension: a player who never spends can be beaten on speed by nobody, only
-matched — so the pressure is to solve *clean*, not fast.
+tension: a player who never spends can be beaten only by another who never
+spent and solved sooner — so the pressure is to solve *clean* first, fast
+second.
 
 ### What a rival may see
 
@@ -696,7 +697,7 @@ right moment.
 ### Terminal vocabulary
 
 `won_compete` / `lost_compete` (nobody solved — `status.reason` names which of
-timeout / all-conceded / unsolved) / `ended`. The `_compete` suffix is
+timeout / all-conceded) / `ended`. The `_compete` suffix is
 load-bearing rather than cosmetic: `common.concede` reads it off the gametype
 string to decide how an all-conceded table ends.
 

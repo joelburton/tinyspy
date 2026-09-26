@@ -104,12 +104,9 @@ function labelFor(mode: 'coop' | 'compete') {
           ? verdict('Lost', 'all conceded')
           : statusLine(verdict('Lost', COMPETE_LOSS[s.reason ?? ''] ?? null), 'no winner')
       case 'ended':
-        // Manual end / "Reveal solution" — both neutral, but they're different
-        // stories: one is "we stopped", the other "we gave up and looked".
-        // No 'answer revealed' variant: the mid-game give-up that wrote
-        // outcome='revealed' is gone (2026-08-03). Revealing is now a display
-        // decision on an already-ended game, and the club list describes the
-        // ENDING, not what the players have since looked at.
+        // Manual end — neutral. No 'answer revealed' variant: revealing is a
+        // display decision on an already-ended game, and the club list
+        // describes the ENDING, not what the players have since looked at.
         return statusLine(verdict('Ended', null), dict)
       default:
         return row.play_state

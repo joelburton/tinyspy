@@ -10,7 +10,7 @@
   It was invisible only because the recap is written twice (below), so this
   string never rendered on the surface players read mid-game.
 - **A manual end may print a winner that doesn't exist.** The terminal message
-  in `PlayArea.tsx` is one chain over `status.outcome` — `timeout`,
+  in `PlayArea.tsx` is one chain over `status.reason` — `timeout`,
   `conceded`, `selfWon`, then a final else that announces
   `${winnerName} went out — Bananas!`. There is no arm for `ended`, the
   terminal every other game routes to the shared `gameEndedTerminalMessage()`. **Verify

@@ -761,7 +761,7 @@ revoke execute on function strands._consumed_keys(uuid, uuid) from public;
 -- crown the wrong person — which is exactly why solving goes LOCALLY terminal
 -- instead of ending the game.
 --
--- Nobody solved → a collective loss. `outcome` names which way it happened,
+-- Nobody solved → a collective loss. `reason` names which way it happened,
 -- because "everyone gave up" and "the clock beat us" read very differently in
 -- the club list.
 create or replace function strands._maybe_finish_compete(
@@ -1424,7 +1424,7 @@ grant execute on function strands.spend_hint(uuid) to authenticated;
 -- ============================================================
 -- Any player may end it: a group decision, not an owner's. Neutral by design —
 -- the friends agreed to stop, so nobody won and nobody lost
--- (status.outcome = 'manual', matching the shared endedCopy on the FE).
+-- (status.reason = 'manual', matching the shared endedCopy on the FE).
 --
 -- Ending unshields the solution (the is_terminal gate on _solution_for) but
 -- puts it on nobody's screen: each player asks for it with their own

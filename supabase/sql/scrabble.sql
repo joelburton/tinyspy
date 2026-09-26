@@ -342,8 +342,10 @@ revoke execute on function scrabble._seat_turn_order(uuid, int) from public;
 -- file is re-applied, not diffed, so a retired signature has to say so.
 drop function if exists scrabble._advance_seat(uuid);
 
--- Tally final scores and end the game. `outcome` ∈ complete | timeout |
--- blocked (NOT manual — manual end is neutral, see scrabble.end_game).
+-- Tally final scores and end the game. `reason` ∈ complete | timeout |
+-- blocked | manual | conceded: `manual` is coop's End (compete's is a
+-- neutral stop with no scoring, see scrabble.end_game), and `conceded` the
+-- last active player conceding.
 -- `going_out_seat` is the seat that emptied its rack, or null; only that seat
 -- collects the going-out bonus. NOT the winner — going out earns the bonus,
 -- but the win is the top score after leftovers, which may be someone else.
@@ -397,7 +399,7 @@ begin
     --
     -- The play surface still says more than the state does — it calls a natural
     -- finish "Completed" rather than "Ended". That detail rides in
-    -- status.outcome; the play_state stays deliberately coarse.
+    -- status.reason; the play_state stays deliberately coarse.
     select jsonb_object_agg(user_id::text, jsonb_build_object('won', false))
       into player_results
       from common.game_players where game_id = g_id;
@@ -491,7 +493,7 @@ begin
 
     -- v_max is NULL only when there are zero non-conceded players — i.e.
     -- everyone conceded (the last-active-player concede path calls _finish
-    -- with outcome='conceded'). That's a collective loss with no eligible
+    -- with reason='conceded'). That's a collective loss with no eligible
     -- winner, so end 'lost_compete' rather than 'won_compete': otherwise the
     -- FE's null-winner branch renders a phantom "It's a tie — co-winners!".
     -- `lost_compete` is what common.concede writes for every other compete
