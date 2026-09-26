@@ -254,6 +254,16 @@ is retired.
   - Doesn't mean: reaching the `game-goal`. A natural-finish ends play
     whether or not anyone met the goal; a crossword ends only by being solved,
     so it has none.
+  - A fact about the gametype: setgame has one whether or not a given game
+    gets there. For a game that ended that way, see `reached-natural-finish`.
+- **`reached-natural-finish`** — this game ended at its `natural-finish`: the
+  act that ended it was the rules running out (the last guess spent, the last
+  card dealt, the bag emptied).
+  - Doesn't mean: nobody won — scrabble's bag running out ends a game someone
+    wins.
+  - Doesn't mean: ended by conceding. If the last player out conceded, the
+    game ended by concession, even when every other player had spent their
+    budget; it is the act that ended the game that counts.
 - **`goal-progress`** — a player's measurable movement toward the
   `game-goal`: words found, categories solved, score. Each game that uses it
   names its own measure.
@@ -265,7 +275,16 @@ is retired.
   - Doesn't mean: the game has `ended` — play may go on after it is decided.
 - **`done`** — a player is done when they have `reached-goal`, been
   `eliminated`, or `conceded`.
-- **When a compete game ends** — each compete game is one of:
+- **`loses-by`** — what the game's own rules make a player (or team) lose
+  by, short of the clock: in compete what makes a player `eliminated`, in
+  coop what fails the team. One of:
+  - **`move-budget`** — every move spends it, right or wrong (guesses, swaps).
+  - **`mistake-budget`** — only a wrong move spends it, so perfect play
+    cannot lose.
+  - **`sudden-death`** — one fatal act ends it.
+  - **`clock-only`** — nothing to exhaust; only the clock can end it in a
+    loss.
+- **`ends-when`** — when a compete game ends; each compete game is one of:
   - **`ends-when-decided`** — as soon as it is `decided` (crosswords: the
     first to solve it).
   - **`ends-when-all-done`** — only when every player is `done`, so the rest
@@ -273,12 +292,12 @@ is retired.
   - **`ends-when-one-left`** — with two or more players, when only one is not
     yet `done` (spellingbee: the last player needn't reach the `game-goal` to
     end it). A solo game ends when its one player is `done`.
-- **When the clock runs out and nobody has `reached-goal`** — each such game
-  is one of:
+- **`timeout-result`** — what happens when the clock runs out and nobody has
+  `reached-goal`; each such game is one of:
   - **`timeout-no-winner`** — nobody won; the `game-goal` existed and nobody
     met it, so everyone `lost` (in coop, the team).
   - **`timeout-best-progress`** — the best `goal-progress` wins.
-- **When results are told** — each game is one of:
+- **`announce-when`** — when results are told; each game is one of:
   - **`announce-when-decided`** — the winner is told as soon as the game is
     `decided`.
   - **`announce-when-ended`** — results come only once the game has `ended`.
@@ -290,6 +309,8 @@ is retired.
   stay `conceded`, and so `lost`. Shown in a neutral tone.
   - **`decided-stands`** — stopping a game that is already `decided` keeps its
     win: the Stop only ends the play-on.
+- **`stop-by`** — which players may Stop the game (anyone; only a player
+  already `done`).
 - **`no-result`** — a `goal-none` game reached its end (its `natural-finish`,
   or the clock): nobody `won` or `lost`. The same neutral tone as `stopped`,
   but a different word — nobody chose to stop it.

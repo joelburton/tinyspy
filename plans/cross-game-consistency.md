@@ -487,6 +487,10 @@ The words live in three places that don't agree: `common.games.play_state`
 player), and `terminalOutcomeVerb` (the strip's Won › Quit › Lost). Worked
 after §3a, as formulas beside docs/win-lose.md → Where a player stands.
 
+**The terms are agreed** (docs/win-lose.md → How a game ends — the terms), and
+[game-cards.md](game-cards.md) is each game's current ending written in them —
+read before anything below, which predates them.
+
 **The draft terms** (not yet in the doc):
 
 - `hasSolved` — I crossed my finish line; the game's own fact. **Not "won"**:
