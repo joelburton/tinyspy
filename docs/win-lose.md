@@ -141,7 +141,7 @@ with a formula of its own is a new term, and goes here.
 
 ```js
 // isTerminal — the game is over, for everyone.
-//   Doesn't mean: I'm out. A racer who finished or conceded while the others
+//   Doesn't mean: I'm out. A player who finished or conceded while the others
 //   play on doesn't make it true.
 isTerminal = common.games.is_terminal
 
@@ -150,8 +150,8 @@ isTerminal = common.games.is_terminal
 //   or their part in it, ends. A club member watching is not a player.
 isPlayer = /* I have a common.game_players row */
 
-// isConceded — I walked away from a race, and forfeit any win.
-//   Doesn't mean: I'm out for any other reason. A racer who solved, was
+// isConceded — I walked away from a compete game, and forfeit any win.
+//   Doesn't mean: I'm out for any other reason. A player who solved, was
 //   eliminated or spent their budget has not conceded. Never true in coop: a
 //   team can't concede.
 isConceded = me.conceded                     // common.game_players.conceded
@@ -249,7 +249,7 @@ is retired.
   - A score contest is a `game-goal` only in a game with a `natural-finish`.
 - **`natural-finish`** — an end the game reaches by its own rules: the bag
   runs out, the deck is spent, the guesses are used up.
-  - Doesn't mean: the clock running out. The clock is never a
+  - Doesn't mean: a `timeout`. A timeout is never a
     `natural-finish`; it only stops the game.
   - Doesn't mean: reaching the `game-goal`. A natural-finish ends play
     whether or not anyone met the goal; a crossword ends only by being solved,
@@ -267,36 +267,71 @@ is retired.
 - **`goal-progress`** — a player's measurable movement toward the
   `game-goal`: words found, categories solved, score. Each game that uses it
   names its own measure.
-- **`winning-ordering`** — how a compete game orders its players to find the
-  winner (fewest guesses, highest score), with its **`tiebreak`**s in order
+- **`ranked-by`** — how a compete game judges its players at the end
+  (fewest guesses, highest score), with its **`tiebreak`**s in order
   (wordle: then faster time; scrabble: then the higher score before
-  leftovers). Each compete game names its own.
+  leftovers). Each compete game names its own. A rule, not a result: the
+  order it produces is the `final-ranking`.
+- **`race-game`** — a compete game `ranked-by` speed: the
+  first player to `reached-goal` wins. It can't tie: the game row's lock
+  serializes two finishes, so one always lands first.
+  - Doesn't mean: the game ends at the first finish. That is `ends-when`, a
+    separate choice: a race-game may end at once (psychicnum,
+    `ends-when-decided`) or play on for a `final-ranking` (a marathon).
+  - Doesn't mean: any compete game where time counts. wordle ranks by fewest
+    guesses and uses time only as a `tiebreak`, so it is not a race-game.
+  - Doesn't mean: the not-ok kind `race` ([envelopes.md](envelopes.md)), two
+    requests colliding.
+  - A player in a race-game may be called a **racer**, but only when the race
+    itself is the point. In names, comments and docs the word is **player**,
+    as in every other compete game.
 - **`decided`** — no remaining play can change who wins.
   - Doesn't mean: the game has `ended` — play may go on after it is decided.
-- **`done`** — a player is done when they have `reached-goal`, been
-  `eliminated`, or `conceded`.
+- **`player-done`** — the player isn't playing any more, while the game may
+  go on for others: the prose word for `isLocallyTerminal`, as `ended` is for
+  `isTerminal`. The reasons vary — `reached-goal`, `eliminated`, `conceded`,
+  or their allotted play used up without losing by it (wordiply's five
+  guesses).
+  - Doesn't mean: `won` or `lost` — it says the player stopped, not how it
+    went.
+  - Doesn't mean: the game `ended`. When the game ends — a Stop, a `timeout`,
+    a win — players who were still playing are not player-done; the game is
+    over.
 - **`loses-by`** — what the game's own rules make a player (or team) lose
-  by, short of the clock: in compete what makes a player `eliminated`, in
+  by, short of a `timeout`: in compete what makes a player `eliminated`, in
   coop what fails the team. One of:
   - **`move-budget`** — every move spends it, right or wrong (guesses, swaps).
   - **`mistake-budget`** — only a wrong move spends it, so perfect play
     cannot lose.
   - **`sudden-death`** — one fatal act ends it.
-  - **`clock-only`** — nothing to exhaust; only the clock can end it in a
+  - **`timeout-only`** — nothing to exhaust; only a `timeout` can end it in a
     loss.
 - **`ends-when`** — when a compete game ends; each compete game is one of:
   - **`ends-when-decided`** — as soon as it is `decided` (crosswords: the
     first to solve it).
-  - **`ends-when-all-done`** — only when every player is `done`, so the rest
+  - **`ends-when-all-done`** — only when every player is `player-done`, so the rest
     play on after it is `decided` (wordle: short, and fun to finish).
   - **`ends-when-one-left`** — with two or more players, when only one is not
-    yet `done` (spellingbee: the last player needn't reach the `game-goal` to
-    end it). A solo game ends when its one player is `done`.
-- **`timeout-result`** — what happens when the clock runs out and nobody has
-  `reached-goal`; each such game is one of:
+    yet `player-done` (spellingbee: the last player needn't reach the
+    `game-goal` to end it). A solo game ends when its one player is
+    `player-done`.
+- **`timer`** — the game's timer: what `setup.timer` chooses and what the
+  screen shows — none, `timer-countup`, or `timer-countdown`. Never "clock".
+  - **`timer-countup`** — shows the time elapsed; ends nothing.
+  - **`timer-countdown`** — runs down to zero: the only timer that can end a
+    game.
+- **`timeout`** — a `timer-countdown` reaching zero.
+- **`timeout-result`** — what happens at a `timeout`. When nobody has
+  `reached-goal`, each game is one of:
   - **`timeout-no-winner`** — nobody won; the `game-goal` existed and nobody
     met it, so everyone `lost` (in coop, the team).
   - **`timeout-best-progress`** — the best `goal-progress` wins.
+
+  When some players have — possible only in a game that plays on after it is
+  `decided` — each such game is:
+  - **`timeout-ranking-stands`** — the timeout ends the game and the
+    `final-ranking` of those who `reached-goal` stands; the players still
+    playing `lost`.
 - **`announce-when`** — when results are told; each game is one of:
   - **`announce-when-decided`** — the winner is told as soon as the game is
     `decided`.
@@ -309,10 +344,10 @@ is retired.
   stay `conceded`, and so `lost`. Shown in a neutral tone.
   - **`decided-stands`** — stopping a game that is already `decided` keeps its
     win: the Stop only ends the play-on.
-- **`stop-by`** — which players may Stop the game (anyone; only a player
-  already `done`).
+- **`can-stop-by`** — which players may Stop the game (anyone; only a player
+  already `player-done`).
 - **`no-result`** — a `goal-none` game reached its end (its `natural-finish`,
-  or the clock): nobody `won` or `lost`. The same neutral tone as `stopped`,
+  or a `timeout`): nobody `won` or `lost`. The same neutral tone as `stopped`,
   but a different word — nobody chose to stop it.
 
 ### The player
@@ -328,7 +363,7 @@ is retired.
   - Where a game has nothing to complete (scrabble), it is not applicable,
     not false.
   - Doesn't mean: `won`. Nor is it needed to win: a compete game's
-    `winning-ordering` can crown a player who never solved (the most sets in
+    `ranked-by` can crown a player who never solved (the most sets in
     setgame, the longest word in wordiply).
 - **`perfect-play`** — `solved` in the best possible way: wordle in one guess,
   letterboxed in two words, waffle at par, wordiply's longest word the one the
@@ -346,7 +381,7 @@ is retired.
   fact the game uses — it decides whether "reveal solution" is offered on a
   solved game — not an outcome shown to the player.
   - Doesn't mean: `solved` or `perfect-play` — both can hold without it.
-- **`won`** — decided by the game's `winning-ordering`.
+- **`won`** — decided by the game's `ranked-by`.
   - In coop, the whole team wins or doesn't.
   - In compete, one player wins, or **`co-winners`** share it when the
     `tiebreak`s leave them level, or nobody does.
@@ -355,8 +390,8 @@ is retired.
     for a player who did not win.
 - **`lost`** — the game went against the player:
   - in coop, the team failed the `game-goal`;
-  - in compete, someone else `won` (every `final-placing` below first is
-    lost), or the player was `eliminated`, or `conceded`, or their `game-goal`
+  - in compete, someone else `won` (every place in the `final-ranking`
+    below first is lost), or the player was `eliminated`, or `conceded`, or their `game-goal`
     became impossible.
   - Doesn't mean: "didn't win". A player in a `stopped` or `no-result` game
     who had not conceded neither won nor lost.
@@ -368,12 +403,13 @@ is retired.
     `ended`.
 - **`eliminated`** — out by the game's own rules (out of guesses, out of
   mistakes). The player has `lost`, at once, while the others play on.
-- **`final-placing`** — a player's place in a game that plays on after it is
-  `decided` (`ends-when-all-done`, `ends-when-one-left`). Only players who
-  `reached-goal` are placed, in `winning-ordering` order; ties share a place.
-  First is `won`; every other placing is `lost`.
+- **`final-ranking`** — the order the players end in, by `ranked-by` and its
+  `tiebreak`s, in a game that plays on after it is `decided`
+  (`ends-when-all-done`, `ends-when-one-left`). Only players who
+  `reached-goal` are ranked; ties share a place. First is `won`; every other
+  place is `lost`.
   - Doesn't mean: anything for an `eliminated` or `conceded` player — they
-    have no placing.
+    are not ranked.
 
 ### Hints
 
@@ -384,7 +420,7 @@ answers them separately (hints may be banned in compete and free in coop).
 - **What a hint costs** — exactly one of:
   - **`hint-banned`** — not offered at all (setgame compete).
   - **`hint-earned`** — won by play before it can be used (strands).
-  - **`hint-scored`** — counted in the `winning-ordering`.
+  - **`hint-scored`** — counted in the game's `ranked-by`.
   - **`hint-free`** — costs nothing.
 - **`hint-self-informative`** — what a hint tells: it can tell a player they
   are wrong, never hand them progress.
@@ -411,7 +447,7 @@ answers them separately (hints may be banned in compete and free in coop).
   the others `conceded` must still `reached-goal` to win, or can lose. (The
   same rule as "no survival wins", above.) So a game whose `game-goal` is
   rarely reached in practice (spellingbee's every word, with no
-  `goal-chosen` and no clock) can end with nobody winning.
+  `goal-chosen` and no `timer-countdown`) can end with nobody winning.
 - **`no-best-of-the-losers`** — failing is final: among players who failed,
   nobody is crowned for having done better (two connections players who both
   run out of mistakes both `lost`, whatever their categories).

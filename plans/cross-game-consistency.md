@@ -491,6 +491,10 @@ after §3a, as formulas beside docs/win-lose.md → Where a player stands.
 [game-cards.md](game-cards.md) is each game's current ending written in them —
 read before anything below, which predates them.
 
+**Target: every game can be Stopped by anyone** (Joel, 2026-09-25). Today
+some compete games let only a `player-done` player Stop; once none do,
+`can-stop-by` leaves the terms and the cards.
+
 **The draft terms** (not yet in the doc):
 
 - `hasSolved` — I crossed my finish line; the game's own fact. **Not "won"**:
