@@ -437,10 +437,15 @@ answers them separately (hints may be banned in compete and free in coop).
   - Doesn't mean: `hint-free`. A free hint may hand over progress, and a
     self-informative one may cost something. They describe cost and content,
     two separate things.
-- **`hint-spoiler`** — what a hint tells: it hands over part of the answer
-  outright (reveals a word), rather than nudging toward it. A spoiler is a
-  hint, with its own cost and recording like any other; the tag mostly sets
-  its button and its wording apart ("reveal a word" vs "hint at a word").
+- **`hint-spoiler`** — what a hint tells: it hands over an answer with
+  nothing left to work out, so the player only has to enter it (psychicnum's
+  secret word, stackdown's next word, a crossword's revealed letter). It is
+  the way out for a player who is stuck. A spoiler is a hint, with its own
+  cost and recording like any other; the tag mostly sets its button and its
+  wording apart ("reveal a word" vs "hint at a word").
+  - Doesn't mean: a generous hint. One that still leaves work to do is a
+    `hint`, however much it gives: strands rings a word's tiles but not
+    their order.
   - Never `hint-self-informative`: handing over the answer is progress.
 - **`hint-recorded`** — a hint is stored with the game and shown in its move
   log. Any of the costs may be recorded or not.

@@ -51,6 +51,11 @@ Below each card:
 One list at the end: **gaps in the terms**, where a game does something the
 terms have no word for.
 
+**After the cards:** fix the mismatches; then each game's doc gains a
+**nomenclature** section — the game's own words (theme word, spangram, par,
+hint bar), each meaning exactly one thing, as win-lose.md's terms do for
+every game — and the game's code and docs are brought to it.
+
 **Groups** — the cards are written in this order: word hunts (spellingbee,
 wordwheel, boggle) · guess what's hidden (wordle, psychicnum, codenamesduet,
 connections) · solve the grid (crosswords, waffle, strands, stackdown) · build
@@ -58,7 +63,7 @@ with words (letterboxed, wordiply, bananagrams) · score contests (scrabble,
 setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
-waffle, crosswords.
+waffle, crosswords, strands.
 
 ## Word hunts
 
@@ -259,6 +264,59 @@ budget is par plus a few.
    player who ran out of swaps. By `final-ranking`, solvers would be ranked
    by swaps, then time.
 
+### strands
+
+A letter board tiled exactly by hidden theme words and a spangram; trace
+each. Other valid words fill a bar that buys a hint.
+
+- **goal**
+  - `game-goal` — `goal-intrinsic`: every theme word and the spangram.
+  - `goal-chosen` — none.
+  - `goal-progress` — words found, the spangram included.
+- **solving**
+  - `solved` — every theme word and the spangram found.
+  - `perfect-play` — no hints spent.
+  - `author-solution` — the theme words and spangram, where they lie.
+- **winning and losing**
+  - `ranked-by`
+    1. fewest hints
+    2. the earlier solve
+    3. `co-winners`
+  - `final-ranking` — only the winner is named.
+  - `loses-by` — `loses-by-timeout-only`.
+  - `announce-when`
+    - coop: `announce-when-decided`.
+    - compete: `announce-when-ended`.
+- **ending**
+  - `natural-finish` — none.
+  - `ends-when` — `ends-when-all-done`.
+  - `timeout-result`
+    - coop: `timeout-no-winner`.
+    - compete: `timeout-ranking-stands`; if nobody solved, `timeout-no-winner`.
+- **hints**
+  - `hint` — rings an unfound theme word's tiles, not their order
+    - coop: `hint-earned`, `hint-recorded`
+    - compete: `hint-earned`, `hint-scored`, `hint-recorded`
+
+**Mismatches**
+
+- `end_game`'s header gives the status as `outcome = 'manual'`, and
+  `_maybe_finish_compete`'s says "`outcome` names which way it happened"; the
+  code writes `reason`.
+- `docs/games/strands.md` → The winner, and why the race can't end early: "a
+  player who never spends can be beaten on speed by nobody, only matched" —
+  two players on no hints are split by the earlier solve.
+- `docs/games/strands.md` → Terminal vocabulary lists `unsolved` among
+  `lost_compete`'s reasons; nothing can write it (see below).
+
+**Surprises and ruling ideas**
+
+1. **`'unsolved'` is dead code.** Without a `timeout`, the game ends only once
+   every player has solved or conceded, and a solver cannot concede; so a
+   no-winner ending there is always `'conceded'`. Filed in
+   `src/strands/todo.md`.
+2. **Beaten solvers get no place**, as in waffle: only the winner is recorded.
+
 ## Build with words
 
 ### wordiply
@@ -364,3 +422,6 @@ deck deals out onto the table as sets are claimed.
 - **A hint kept on the board, with no move log.** crosswords has no log, but
   each revealed cell keeps its `revealed` flag and shows it. `hint-recorded`
   says "stored with the game and shown in its move log" — does this count?
+- **A hint with two costs.** A hint's cost is "exactly one of" banned,
+  earned, scored or free; a strands compete hint is earned (the bar) and
+  scored (`ranked-by` counts it).
