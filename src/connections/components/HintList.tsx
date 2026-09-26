@@ -15,8 +15,8 @@ type Props = {
 
 /**
  * The per-category hint list, unfolded under the info column's action row by
- * the Hints toggle: one row per category, a rank swatch and a Reveal link, and
- * Reveal shows that category's first tile.
+ * the Hints toggle: one row per category, a rank swatch and a Show hint link,
+ * which shows that category's first tile.
  *
  * Purely client-side — nothing is broadcast, written or logged; each player's
  * hints are their own. The revealed set is this component's own and the list
@@ -55,7 +55,7 @@ export function HintList({ categories, open }: Props) {
                   className={cls('link-button', styles.revealButton)}
                   onClick={() => reveal(c.rank)}
                 >
-                  Reveal
+                  Show hint
                 </button>
               )}
             </li>

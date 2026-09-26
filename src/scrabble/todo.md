@@ -18,6 +18,12 @@
 
 ## Soon
 
+- **A compete timeout before anyone plays crowns the lightest rack.** Every
+  score is 0, `_finish` subtracts each rack's leftover tiles, and the least
+  negative score wins. Ruled: if nobody has played a word, the timeout is
+  `timeout-no-winner`, as boggle, wordiply and setgame already do. Once
+  someone has played, the leftovers count as today.
+
 - **scrabble's three marks have no spec.** Its green, yellow and red all
   converted to `useMark` with the rest (2026-09-20), and each was planted: make
   the mark never draw and scrabble's whole suite stays green. The other nine

@@ -574,6 +574,8 @@ where anyone finished. The target:
   skipping (1, 1, 3), null when not ranked. The ranking is that number,
   never the entries' order: an order cannot show a tie. There is no `won`
   key: `won` is `final_ranking` of 1 (docs/win-lose.md → `final-ranking`).
+  This also ranks beaten solvers, where wordle, waffle and strands today
+  record only the winner (their cards' `final-ranking` BUG notes).
   Beside those, the game's own numbers, each named exactly what the game
   already calls it in its SQL columns, views and variables — no synonyms.
   One breaks that today: letterboxed's `words_used` is `word_count`

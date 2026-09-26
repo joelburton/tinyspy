@@ -50,9 +50,11 @@ minimum length.
   moment the team (coop) or a player (compete) reaches `win_percent` % of the
   required-words **score**, measured against the score of the **required words
   found only** — bonus finds don't count, so 100 % means every required word and
-  50 % means required finds worth half the required total. Compete is a race —
-  the first player to cross wins outright, regardless of the others' private
-  scores (`submit_word` decides it; see [§7](#7-rpcs-all-security-definer)).
+  50 % means required finds worth half the required total. The score itself
+  counts bonus words too: a target that needed obscure words would be too
+  mean, and bonus words that scored nothing would be no fun to find. Compete
+  is a race — the first player to cross wins outright, regardless of the
+  others' private scores (`submit_word` decides it; see [§7](#7-rpcs-all-security-definer)).
 - **Ending.** With no win target, you hunt until the timer expires, a player
   hits **End game**, or (compete) everyone's done — a neutral end. With a target
   set, reaching it ends the game as a win (`status.reason = 'target'`). Either

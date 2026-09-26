@@ -353,7 +353,7 @@ then `PlayArea` in the eight sections.
                     ├── TurnStatusLine ← turn-order coop only
                     ├── OpponentStrip ←  compete only: each rival's Found, or "out"
                     ├── InfoActionsRow ← one row, every action, in the menu's order
-                    ├── HintList         unfolds under the row: one Reveal per category
+                    ├── HintList         unfolds under the row: one Show hint per category
                     ├── SetupDisclosure ←
                     └── GameEventLog     two rows per guess
 
@@ -389,7 +389,7 @@ What is connections' own:
   `OpponentStrip`), then the one action row: Hints | Reveal · Restart · New
   game · Concede · End, each shown or hidden by its action's own rule, and
   Back to club at the end. Hints unfolds `<HintList>` inline — one row per
-  category, each with its own Reveal for the category's first word; per
+  category, each with its own Show hint for the category's first word; per
   player, never broadcast, and it closes with the board.
 - **The event log** is two rows per guess (the verdict and who, then the four
   tiles), and a correct row names its category from the board, so an

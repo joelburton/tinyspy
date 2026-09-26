@@ -20,6 +20,14 @@
   - `psychicnum.sql`, `end_game`'s header: "the post-terminal number reveal"
     — what is revealed is the three secret words.
 
+- **The `reason` names the act that ended the game.** When some compete
+  players have spent their budgets and the last one still in concedes,
+  `_maybe_finish_compete` writes `'exhausted'`; it writes `'conceded'` only
+  when every player conceded. Ruled: the last player out conceding is
+  `'conceded'`, even when everyone else spent their budget
+  (docs/win-lose.md → `reached-natural-finish`). Other games that end when
+  every player is out may do the same; check them when this is worked.
+
 ## Someday
 
 ## Maybe

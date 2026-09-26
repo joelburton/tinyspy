@@ -213,10 +213,7 @@ score toward an optional target; bonus words score too.
   publishes every player's score to the club-readable status during play,
   and the opponent strip shows it.
 
-**Surprises and ruling ideas**
-
-1. **Two measures of points.** A target counts required words only; the
-   no-target score race counts bonus words too.
+**Surprises and ruling ideas** — none.
 
 ## Guess what's hidden
 
@@ -271,7 +268,7 @@ budget of 3, 5, 7 or 9.
   - `goal-progress` — secrets found.
 - **solving**
   - `solved` — all three found.
-  - `perfect-play` — three guesses.
+  - `perfect-play` — three guesses, no hints.
   - `author-solution` — the three secrets.
 - **winning and losing**
   - `ranked-by` — first to reach `game-goal`.
@@ -303,12 +300,11 @@ budget of 3, 5, 7 or 9.
 
 1. **Compete's hint and spoiler both hand over progress, free.** Filed in
    `src/psychicnum/todo.md` (Maybe): charge for them, or ban them?
-2. **Is it perfect-play after a hint or spoiler?** The card says three
-   guesses, and nothing about either.
-3. **`reason = 'exhausted'` also covers an ending by concession.** When some
+2. **`reason = 'exhausted'` also covers an ending by concession.** When some
    players spent their budgets and the last one out conceded,
    `_maybe_finish_compete` writes `'exhausted'` (`'conceded'` only when EVERY
    player conceded). By `reached-natural-finish` that game ended by concession.
+   Filed in `src/psychicnum/todo.md`.
 
 ### codenamesduet
 
@@ -371,9 +367,6 @@ mistakes to spend.
 
 1. **Compete's hint hands over progress, free.** Filed in
    `src/connections/todo.md` (Maybe): charge for it, or ban it?
-2. **The hint's button says "Reveal"**, the spoiler's word by
-   `hint-spoiler`; it leaves three words of the category to find.
-
 ## Solve the grid
 
 ### crosswords
@@ -426,7 +419,8 @@ grid, compete gives each player their own.
 
 1. **Reveal puzzle wins coop.** A grid filled entirely by Reveal is `solved`,
    and so `won`; deliberate, per `reveal_cells`'s comment. With the terms, the
-   question is whether that is `solved` at all.
+   question is whether that is `solved` at all. Filed in
+   `src/crosswords/todo.md` (Someday).
 2. **A compete win writes no `reason`**; coop's writes `'solved'`. Filed in
    `src/crosswords/todo.md`.
 
@@ -639,7 +633,8 @@ until all twelve are used. The chain has a word cap; undo refunds.
 
 1. **A compete timeout crowns players who covered nothing.** With every
    chain empty, every player still in ties on zero and is a `co-winner`;
-   boggle guards against this ("if nobody scored, everyone `lost`").
+   boggle guards against this ("if nobody scored, `timeout-no-winner`").
+   Filed in `src/letterboxed/todo.md`.
 2. **No terminal writes a `reason`.** letterboxed says how it ended with its
    own flags (`solved`, `timed_out`, `stopped`), where the other games write
    `reason`. Filed in `src/letterboxed/todo.md`.
@@ -693,10 +688,7 @@ across all five.
    is coop's goal, so the timeout's loss follows. Filed in
    `src/wordiply/todo.md`; the code still ends a coop game neutral on the
    fifth guess.
-2. **Is there a `perfect-play`?** `solved` is five words found; the best
-   solve would add a longest possible word and the most letters possible.
-   Or it stays n/a.
-3. **The leaderboard ranks conceders among the players**, as scrabble's and
+2. **The leaderboard ranks conceders among the players**, as scrabble's and
    setgame's do; `final-ranking` leaves them out. Filed in
    `plans/cross-game-consistency.md` §3b → one leaderboard per compete game.
 
@@ -733,11 +725,7 @@ is placed, Peel and everyone draws more. Compete only, one to six players.
   headers of `submit_timeout` and `concede` give the status key as
   `outcome`; the code writes `reason`.
 
-**Surprises and ruling ideas**
-
-1. **A compete game with coop's play states.** The bare gametype
-   `bananagrams` writes `won` and `lost`, not `won_compete` and
-   `lost_compete` — deliberate, per the doc, since it has no coop sibling.
+**Surprises and ruling ideas** — none.
 
 ## Score-only contests
 
@@ -796,6 +784,7 @@ scored by tile values and premium squares. Compete can seat AI players.
    `src/scrabble/todo.md`.
 2. **A compete timeout before anyone scores crowns the lightest rack.** Every
    score is 0, the leftovers are subtracted, and the least negative wins.
+   Filed in `src/scrabble/todo.md`.
 3. **The leaderboard ranks conceders among the players**, as setgame's does;
    `final-ranking` leaves them out. Filed in
    `plans/cross-game-consistency.md` §3b → one leaderboard per compete game.
@@ -840,13 +829,7 @@ deck deals out onto the table as sets are claimed.
 
 **Mismatches** — none.
 
-**Surprises and ruling ideas**
-
-1. **A lone player can win on fewer sets than a conceder.** A conceder keeps
-   their sets but is ranked out, and the game plays on to the deck's end. So
-   when the leader concedes, the last player left wins with any count above
-   zero. They do have to play the deck out, so the win is not simply
-   outliving; still, it is the nearest thing to a survival win on any card.
+**Surprises and ruling ideas** — none.
 
 ## Gaps in the terms
 

@@ -96,7 +96,15 @@
   rather than a choice. The bar is a documented exemption from the shared
   button (its ON state is a game color), so the size is this game's to keep or
   collapse; the point is only that nothing yet says which.
+
 ## Someday
+
+- **Should Reveal puzzle win coop?** Revealed cells count toward `solved`,
+  so Reveal puzzle on an empty grid fills it and the team has won
+  (deliberate, per `reveal_cells`' comment; compete bans Reveal). The
+  options: every reveal counts, as today (`perfect-play` already excludes
+  reveals); a letter or word still counts but the whole puzzle ends the game
+  `stopped`, as giving up; or any revealed cell means not `solved`.
 
 ## Maybe
 

@@ -25,6 +25,12 @@
 
 ## Soon
 
+- **A compete timeout nobody made progress in crowns everyone.** With every
+  chain empty, `submit_timeout`'s `won` check ties every player still in on
+  zero letters and zero words, and makes them all co-winners. Ruled: if
+  nobody covered a letter, the timeout is `timeout-no-winner`, as boggle,
+  wordiply and setgame already do.
+
 - **No ending of its own writes a `reason`.** Every ending writes one into
   the status blob; letterboxed's solve, timeout and Stop say how the game
   ended with their own flags (`solved`, `timed_out`, `stopped`) instead.
