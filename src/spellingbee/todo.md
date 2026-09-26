@@ -27,16 +27,6 @@
   boggle's does. The setup form offers None in compete only with a countdown.
   wordwheel's todo carries the same change.
 
-- **Every word is the `goal-intrinsic`, and coop with no target should end
-  on it.** Ruled 2026-09-25 (docs/win-lose.md → How a game ends — the terms
-  already describe it). Today finding every required word ends and wins
-  nothing (`gameplay_test` pins "coop has no end at a full clear"), and a
-  coop game with no target is won and lost by nothing, so its timeout is the
-  neutral `ended`. The change: a coop game with no target is `won` when the
-  team finds every required word, and its timeout is `timeout-no-winner`
-  (`lost`) rather than `no-result`. `plans/game-cards.md`'s spellingbee card
-  shows today's behavior until then.
-
 - **The `WordList` marker vocabulary** — ◐ ("more than one player found this
   word", in the first finder's color) and ⦻ ("scored zero because more than one
   player found it"). Both are compete-mode readings this game's list would

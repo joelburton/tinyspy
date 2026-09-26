@@ -180,6 +180,15 @@
 
 ## Someday
 
+- **Going out wins coop.** Ruled 2026-09-25: coop's `goal-intrinsic` is every
+  tile played — a player goes out with the bag empty — as wordiply coop's is
+  its five words. Today going out is the neutral `ended` (`_finish`'s "COOP
+  HAS NO WIN", and `docs/games/scrabble.md` §2.7's "Coop has no win state at
+  all"), and only the clock loses. The change: going out is `won` for the
+  team; the timeout stays `lost`, now because the goal was missed; a Stop
+  stays neutral. `plans/game-cards.md`'s scrabble card shows today's behavior
+  until then.
+
 - **`rank.test.ts` reads `trie.eow[walkWord(…)]` without checking for -1.** On
   a miss that reads `eow[-1]`, which is `undefined` rather than a difficulty.
   Every word the test asks about is in its trie, so nothing fails today; the
@@ -206,7 +215,7 @@
   concede (`docs/win-lose.md` → Clock fairness) — real work: per-player
   accounting, and flag-fall detection on the server. The cheap interim is for
   compete's setup to stop offering a countdown at all.
-- **A coop target.** Coop has no win: playing the bag out is a neutral end. A
+- **A coop target.** Coop's only win is going out (Someday, above). A
   `target_score` on plain points would make reaching it a win and arm the
   clock, the spellingbee pattern — and, with a target set, a bag played out
   below it becomes a LOSS rather than a neutral end (`docs/win-lose.md` →

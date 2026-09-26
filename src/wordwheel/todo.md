@@ -14,16 +14,6 @@
   plans/cross-game-consistency.md §3b, "a compete word hunt needs a target,
   a countdown, or both".
 
-- **Every word is the `goal-intrinsic`, and coop with no target should end
-  on it.** The same ruling as spellingbee's (`src/spellingbee/todo.md`), for
-  the same ending code. Today finding every required word ends and wins
-  nothing (`gameplay_test` pins "coop has no end at a full clear"), and a
-  coop game with no target is won and lost by nothing, so its timeout is the
-  neutral `ended`. The change: a coop game with no target is `won` when the
-  team finds every required word, and its timeout is `timeout-no-winner`
-  (`lost`) rather than `no-result`. `plans/game-cards.md`'s wordwheel card
-  shows today's behavior until then.
-
 ## Maybe
 
 - **`s`-heavy seeds.** An `s` tile lets each word pluralize once — the classic

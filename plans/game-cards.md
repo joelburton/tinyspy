@@ -69,7 +69,8 @@ setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
 waffle, crosswords, strands, stackdown, wordwheel, boggle, wordle,
-codenamesduet, connections, letterboxed, bananagrams.
+codenamesduet, connections, letterboxed, bananagrams, scrabble — every
+game.
 
 ## Word hunts
 
@@ -99,8 +100,7 @@ climb a rank ladder, Start to Genius.
   - `timeout-result` — `timeout-no-winner`; with no target, `no-result`.
 - **hints** — none.
 
-**Mismatches** — none. (The terms' "every word" examples describe the
-ruled design; the code catching up is in `src/spellingbee/todo.md`.)
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 
@@ -131,8 +131,7 @@ Its ending code is spellingbee's.
   - `timeout-result` — `timeout-no-winner`; with no target, `no-result`.
 - **hints** — none.
 
-**Mismatches** — none. (spellingbee's every-word ruling holds here too; the
-change is in `src/wordwheel/todo.md`.)
+**Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
 
@@ -719,6 +718,62 @@ is placed, Peel and everyone draws more. Compete only, one to six players.
    `lost_compete` — deliberate, per the doc, since it has no coop sibling.
 
 ## Score contests
+
+### scrabble
+
+A 15×15 board and a bag of lettered tiles; play words from a rack of seven,
+scored by tile values and premium squares. Compete can seat AI players.
+
+- **goal**
+  - `game-goal`
+    - coop: `goal-none`.
+    - compete: `goal-intrinsic`: the highest score.
+  - `goal-chosen` — none.
+  - `goal-progress` — score.
+- **solving**
+  - `solved` — n/a: nothing to complete.
+  - `perfect-play` — n/a.
+  - `author-solution` — none: nothing is hidden.
+- **winning and losing**
+  - `ranked-by`
+    1. the highest score, after leftover tiles
+    2. `co-winners`
+  - `final-ranking` — the leaderboard, by score.
+  - `loses-by`
+    - coop: `loses-by-timeout-only`.
+    - compete: `loses-by-none`.
+  - `announce-when` — `announce-when-ended`.
+  - `progress-shown` — `progress-shown-count`: score.
+- **ending**
+  - `natural-finish` — a player goes out with the bag empty; in compete
+    also every active seat passing in a row.
+  - `ends-when` — `ends-when-natural-finish`.
+  - `timeout-result`
+    - coop: everyone `lost`.
+    - compete: `timeout-best-progress`.
+  - `no-result` — coop, at its `natural-finish`.
+- **hints**
+  - `hint` — a suggested move
+    - coop: `hint-free`
+    - compete: `hint-banned`
+
+**Mismatches**
+
+- `docs/games/scrabble.md` §5.6 and its club-label list give the status key
+  as `outcome`; the code writes `reason`. `_finish`'s header says "`outcome`
+  ∈ complete | timeout | blocked (NOT manual …)": the parameter is `reason`,
+  and coop's manual end (`'manual'`) and the last concede (`'conceded'`) run
+  through it too.
+
+**Surprises and ruling ideas**
+
+1. **A coop timeout is a loss in a `goal-none` game.** Settled: going out
+   is coop's goal, so the timeout's loss follows. Filed in
+   `src/scrabble/todo.md`.
+2. **A compete timeout before anyone scores crowns the lightest rack.** Every
+   score is 0, the leftovers are subtracted, and the least negative wins.
+3. **The leaderboard ranks conceders among the players**, as setgame's does;
+   `final-ranking` leaves them out.
 
 ### setgame
 

@@ -239,13 +239,16 @@ is retired.
 - **`game-goal`** — what a player or team is trying to reach. Every game that
   can be won or lost has one.
   - **`goal-intrinsic`** — the game's own goal: find the word (wordle), turn
-    the board all green (waffle), find every word (spellingbee), the highest
-    score (scrabble compete).
+    the board all green (waffle), go out (bananagrams), the highest score
+    (scrabble compete).
   - **`goal-chosen`** — an easier goal picked at setup in place of the
     `goal-intrinsic`: reach Genius in spellingbee.
-  - **`goal-none`** — the game has no goal, so it cannot be won or lost. Today
-    that is scrabble coop: a score is only a goal as a contest between
-    players.
+  - **`goal-none`** — the game has no goal, so it cannot be won or lost:
+    spellingbee, wordwheel and boggle coop with no target. A score is only a
+    goal as a contest between players, and every word is out of reach.
+  - A goal is something a table can reasonably reach. Finding every word in
+    a bee game is not, so it is `solved` there, never the goal: missing it is
+    no loss.
   - A score contest is a `game-goal` only in a game with a `natural-finish`
     or a `timer-countdown`: something has to say when the points are judged
     (boggle compete with no target: the top score when time runs out).
@@ -382,12 +385,15 @@ is retired.
   `goal-intrinsic` or a `goal-chosen`. Winning and losing are judged against
   it.
   - Doesn't mean: `solved` — reaching Genius is not solving spellingbee.
-- **`solved`** — met the `goal-intrinsic`: the game completed. In coop, the
-  team's. The word found (wordle), the board all green (waffle), every word
-  found (spellingbee, boggle), the three hidden words found (psychicnum), a
-  five words found (wordiply), the deck cleared of sets (setgame).
+- **`solved`** — completed the puzzle: the game's own end state, whether or
+  not it is the `game-goal`. In coop, the team's. The word found (wordle),
+  the board all green (waffle), every word found (spellingbee, boggle), the
+  three hidden words found (psychicnum), five words found (wordiply), the
+  deck cleared of sets (setgame).
   - Where a game has nothing to complete (scrabble), it is not applicable,
     not false.
+  - Doesn't mean: `reached-goal`. A coop bee game with no target has no goal,
+    yet finding every word there is `solved`, and not `won`.
   - Doesn't mean: `won`. Nor is it needed to win: a compete game's
     `ranked-by` can crown a player who never solved (the most sets in
     setgame, the best score at a `timeout` in wordiply).
@@ -478,9 +484,8 @@ them separately (hints may be banned in compete and free in coop).
 
 - **`win-is-earned`** — a win is never inherited: a player left alone after
   the others `conceded` must still `reached-goal` to win, or can lose. (The
-  same rule as "no survival wins", above.) So a game whose `game-goal` is
-  rarely reached in practice (spellingbee's every word, with no
-  `goal-chosen` and no `timer-countdown`) can end with nobody winning.
+  same rule as "no survival wins", above.) So a game can end with nobody
+  winning.
 - **`no-best-of-the-losers`** — failing is final: among players who failed,
   nobody is crowned for having done better (two connections players who both
   run out of mistakes both `lost`, whatever their categories).
