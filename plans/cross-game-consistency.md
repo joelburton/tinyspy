@@ -529,7 +529,7 @@ read before anything below, which predates them.
 (Joel, 2026-09-25). In a game that plays on for a `final-ranking`, a player
 ranked 2nd, 3rd … last reads as the place ("2nd"), in the `near` outcome.
 "Lost", in `lost`, is left for a player not ranked: `eliminated`, `conceded`,
-or short of the finish. `result.won` stays false for every place below first.
+or short of the finish. Every place below first is still not `won`.
 Two-player games too: a player who solved and was beaten reads "2nd", not
 the "Lost" of one who never solved — the place never depends on how many
 played. It takes:
@@ -550,6 +550,56 @@ spellingbee and wordwheel gain compete with no target when a countdown is
 set, for "best score in ten minutes"; boggle loses the untimed compete game
 with no target, which nobody could win. Each game's `todo.md` carries its
 half. `docs/win-lose.md`'s `score-only-contest` rule already counts a countdown.
+
+**Decided, to do: one leaderboard per compete game, built in one place**
+(Joel, 2026-09-26). Today seven games write a `leaderboard` array into
+`common.games.status`, each with its own code: some live on every move, some
+only at the end, some twice in two places. The strips read it in four games
+and a per-player SQL table in the rest, and no entry says who conceded or
+where anyone finished. The target:
+
+- **Every compete game keeps a live `status.leaderboard`.** A JSON array, one
+  entry per player. setgame, which writes it only at the end, gains a live
+  one; wordle, waffle, stackdown, psychicnum, connections and strands, which
+  write none, gain one. The strip and the club page read only this.
+- **One builder per game: `<game>._leaderboard(target_game uuid)`.** It
+  returns the array, and `'[]'` for a coop game (no game shows a coop
+  leaderboard; if one ever does, the coop guard goes). Every RPC that
+  changes a player's numbers calls it — the moves, `concede`, the timeout,
+  Stop and the ending — so the live and the final leaderboard can't drift
+  apart, and the move RPCs don't grow. A guard in `src/guards/` checks every
+  compete game has one.
+- **Each entry's keys.** Every game: `user_id`, `conceded`, and at the end
+  `final_ranking` — the player's ranking, ties sharing it and the next one
+  skipping (1, 1, 3), null when not ranked. The ranking is that number,
+  never the entries' order: an order cannot show a tie. There is no `won`
+  key: `won` is `final_ranking` of 1 (docs/win-lose.md → `final-ranking`).
+  Beside those, the game's own numbers, each named exactly what the game
+  already calls it in its SQL columns, views and variables — no synonyms.
+  One breaks that today: letterboxed's `words_used` is `word_count`
+  everywhere else. Where a game hides a number until the end (wordiply's
+  scores), the entry gains it then.
+- **Order.** The array is stored in `final_ranking` order, unranked last.
+  Each front end sorts or filters as it likes — co-winners grouped,
+  conceders hidden. This answers the game cards' ruling idea that a
+  leaderboard sorts conceders in among the ranked players, as wordiply's,
+  scrabble's and setgame's do.
+- **Private rows stay private.** The builder runs inside `security definer`
+  RPCs, so it can total rows a rival may not read (the bee games' compete
+  found words, whose policy keeps each player's list their own before the
+  end) and publish only the numbers.
+- **`common.game_players.result` gains `final_ranking` and `solved`** for
+  every player in every game, coop included — a coop team is all 1 or all
+  null. `result` is where a question across games reads ("my solve rate in
+  wordle"), in either mode. `solved` is left out where it means nothing
+  (scrabble), so such a game never counts toward anyone's solve rate. This
+  answers open question 3 below: every game writes the result. Past games
+  keep the `won` they hold (prod data); whether a migration backfills
+  `final_ranking` from it (`won` → 1, else null) is decided when it is
+  written.
+- **Open:** does `username` stay on an entry? Some games copy it in, some
+  don't; the front end has every member's name, and the club page has
+  `winner_username`. Drop it unless a reader needs it.
 
 **Open questions for Joel:**
 

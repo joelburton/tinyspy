@@ -15,12 +15,15 @@
   minimum, but `setgame.create_game` has no `< 2` check for compete, so only the
   FE's hidden Start button stops it. Add the check the other compete games have
   (wordle's is `PN498`, a fault, since the app never sends it).
-- **A compete leaderboard sorts conceders in among the ranked players.**
-  `_finish` orders every player by `sets_found`, conceders included, while
-  the winner is chosen only from players who didn't concede. A conceder can
-  sit above the winner in the stored `leaderboard`, with `won = false`. By
-  `final-ranking` (docs/win-lose.md) a conceder is not ranked: list them
-  after the ranked players, or apart.
+- **A compete leaderboard sorts conceders in among the ranked players, and
+  is written only at the end.** `_finish` orders every player by
+  `sets_found`, conceders included, while the winner is chosen only from
+  players who didn't concede, so a conceder can sit above the winner. And
+  setgame, unlike the other games that keep one, never writes a live
+  `status.leaderboard`. Both are fixed by the cross-game design
+  (`plans/cross-game-consistency.md` §3b → one leaderboard per compete
+  game): a `setgame._leaderboard()` called on every move, entries in
+  `final_ranking` order, conceders unranked and last.
 
 ## Soon
 

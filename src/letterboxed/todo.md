@@ -25,6 +25,12 @@
 
 ## Soon
 
+- **No ending of its own writes a `reason`.** Every ending writes one into
+  the status blob; letterboxed's solve, timeout and Stop say how the game
+  ended with their own flags (`solved`, `timed_out`, `stopped`) instead.
+  Only `common.concede` writes one here (`'conceded'`). The words wait for
+  the shared vocabulary (`plans/game-cards.md` → After the cards, step 7).
+
 - **The below-board reserve is a hand-tuned constant.**
   `components/PlayArea.module.css`'s `--avail-h` sizes the board as `100svh -
   var(--game-chrome-height) - 8rem`, where that last term stands for

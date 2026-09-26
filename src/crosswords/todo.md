@@ -30,6 +30,11 @@
 
 - Investigate how we flag check/reveal.
 
+- **A compete win writes no `reason`.** Every ending writes one into the
+  status blob; `_finish_compete` leaves it out, where coop's win writes
+  `'solved'`. The word waits for the shared vocabulary
+  (`plans/game-cards.md` → After the cards, step 7).
+
 - **Collapse the info-column action row's branches.** This game still FORKS on
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these

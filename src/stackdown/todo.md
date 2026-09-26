@@ -17,6 +17,12 @@
 
 ## Soon
 
+- **A compete win writes no `reason`.** Every ending writes one into the
+  status blob; `submit_word`'s compete win leaves it out, where coop's
+  writes `'cleared'`. The word — `'cleared'` here, `'solved'` in the other
+  games — waits for the shared vocabulary (`plans/game-cards.md` → After the
+  cards, step 7).
+
 - **"Blank this while viewing history" is decided three times at the call
   site.** `PlayArea` hands `BoardCol` three LIVE marks already emptied for the
   viewer:
@@ -159,5 +165,10 @@
   shows for that moment. Swap it in, or say why this surface's is different.
 
 ## Maybe
+
+- **Should compete charge for the hint and the spoiler, or ban them?** Today
+  a compete player can take a clue for the next word, or the word itself,
+  free; both hand over progress toward the win. Both are recorded in
+  `stackdown.events`.
 
 ## Won't do

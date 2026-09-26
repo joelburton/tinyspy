@@ -301,11 +301,8 @@ budget of 3, 5, 7 or 9.
 
 **Surprises and ruling ideas**
 
-1. **Compete's hint and spoiler both hand over progress, free.** Already filed
-   in `src/psychicnum/todo.md` (Maybe) for the spoiler; the HINT breaks
-   `hint-priced` too — a clue points you at an unfound secret, which is
-   progress, so it is not `hint-self-informative`. The todo item should name
-   both.
+1. **Compete's hint and spoiler both hand over progress, free.** Filed in
+   `src/psychicnum/todo.md` (Maybe): charge for them, or ban them?
 2. **Is it perfect-play after a hint or spoiler?** The card says three
    guesses, and nothing about either.
 3. **`reason = 'exhausted'` also covers an ending by concession.** When some
@@ -372,8 +369,8 @@ mistakes to spend.
 
 **Surprises and ruling ideas**
 
-1. **Compete's hint breaks `hint-priced`**, as psychicnum's and stackdown's
-   do: free, and it hands over progress.
+1. **Compete's hint hands over progress, free.** Filed in
+   `src/connections/todo.md` (Maybe): charge for it, or ban it?
 2. **The hint's button says "Reveal"**, the spoiler's word by
    `hint-spoiler`; it leaves three words of the category to find.
 
@@ -430,7 +427,8 @@ grid, compete gives each player their own.
 1. **Reveal puzzle wins coop.** A grid filled entirely by Reveal is `solved`,
    and so `won`; deliberate, per `reveal_cells`'s comment. With the terms, the
    question is whether that is `solved` at all.
-2. **A compete win writes no `reason`**; coop's writes `'solved'`.
+2. **A compete win writes no `reason`**; coop's writes `'solved'`. Filed in
+   `src/crosswords/todo.md`.
 
 ### waffle
 
@@ -583,10 +581,11 @@ each from the tiles left exposed.
 
 **Surprises and ruling ideas**
 
-1. **Compete's hint and spoiler break `hint-priced`**, as psychicnum's do:
-   both free, and neither `hint-self-informative`.
+1. **Compete's hint and spoiler both hand over progress, free.** Filed in
+   `src/stackdown/todo.md` (Maybe): charge for them, or ban them?
 2. **A compete win writes no `reason`**, as in crosswords; coop's writes
-   `'cleared'`, where waffle, crosswords and strands write `'solved'`.
+   `'cleared'`, where waffle, crosswords and strands write `'solved'`. Filed
+   in `src/stackdown/todo.md`.
 
 ## Build with words
 
@@ -643,7 +642,7 @@ until all twelve are used. The chain has a word cap; undo refunds.
    boggle guards against this ("if nobody scored, everyone `lost`").
 2. **No terminal writes a `reason`.** letterboxed says how it ended with its
    own flags (`solved`, `timed_out`, `stopped`), where the other games write
-   `reason`.
+   `reason`. Filed in `src/letterboxed/todo.md`.
 
 ### wordiply
 
@@ -698,7 +697,8 @@ across all five.
    solve would add a longest possible word and the most letters possible.
    Or it stays n/a.
 3. **The leaderboard ranks conceders among the players**, as scrabble's and
-   setgame's do; `final-ranking` leaves them out.
+   setgame's do; `final-ranking` leaves them out. Filed in
+   `plans/cross-game-consistency.md` §3b → one leaderboard per compete game.
 
 ### bananagrams
 
@@ -797,7 +797,8 @@ scored by tile values and premium squares. Compete can seat AI players.
 2. **A compete timeout before anyone scores crowns the lightest rack.** Every
    score is 0, the leftovers are subtracted, and the least negative wins.
 3. **The leaderboard ranks conceders among the players**, as setgame's does;
-   `final-ranking` leaves them out.
+   `final-ranking` leaves them out. Filed in
+   `plans/cross-game-consistency.md` §3b → one leaderboard per compete game.
 
 ### setgame
 

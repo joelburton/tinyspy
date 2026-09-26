@@ -425,18 +425,20 @@ is retired.
   are valid. A fact the game uses — it decides whether "reveal solution" is
   offered on a solved game — not an outcome shown to the player.
   - Doesn't mean: `solved` or `perfect-play` — both can hold without it.
-- **`won`** — decided by the game's `ranked-by`.
-  - In coop, the whole team wins or doesn't.
-  - In compete, one player wins, or **`co-winners`** share it when the
-    steps of `ranked-by` leave them level, or nobody does.
-  - A player who `conceded` can never win.
+- **`won`** — the player's `final-ranking` is 1: first by the game's
+  `ranked-by`.
+  - In coop, the whole team wins or doesn't: every player is ranked 1, or
+    none is.
+  - In compete, one player wins, or **`co-winners`** share 1 when the steps
+    of `ranked-by` leave them level, or nobody does.
+  - A player who `conceded` can never win: a conceder is never ranked.
   - Doesn't mean: `solved`, `perfect-play` or `reached-goal` — each can hold
     for a player who did not win.
 - **`lost`** — the game went against the player:
   - in coop, the team failed the `game-goal`;
-  - in compete, someone else `won` (every place in the `final-ranking`
-    below first is lost), or the player was `eliminated`, or `conceded`, or their `game-goal`
-    became impossible.
+  - in compete, someone else `won` (every player ranked below first is
+    lost), or the player was `eliminated`, or `conceded`, or their
+    `game-goal` became impossible.
   - Doesn't mean: "didn't win". A player in a `stopped` or `no-result` game,
     or at a `timeout-no-result`, who had not conceded neither won nor lost.
 - **`conceded`** — a compete player voluntarily withdrew: a loss by choice.
@@ -447,14 +449,20 @@ is retired.
     `ended`.
 - **`eliminated`** — out by the game's own rules (out of guesses, out of
   mistakes). The player has `lost`, at once, while the others play on.
-- **`final-ranking`** — the order the players end in, by `ranked-by`, in a
-  game that plays on after it is `decided`. A player who
-  failed — `eliminated`, `conceded`, or short of a finish line the game has —
-  is not ranked (`no-best-of-the-losers`); in a `score-only-contest` that leaves
-  everyone who didn't concede. Ties share a place. First is `won`; every
-  other place is `lost`.
+- **`final-ranking`** — each player's ranking at the end, by `ranked-by`, in
+  every game: a number, or none for a player who isn't ranked. In coop the
+  team shares one: 1 when it won, none when it did not. A player who failed
+  — `eliminated`, `conceded`, or short of a finish line the game has — is not
+  ranked (`no-best-of-the-losers`); in a `score-only-contest` that leaves
+  everyone who didn't concede. Players level on every step of `ranked-by`
+  share a ranking, and the next one skips: two tied for first are both 1,
+  and the player after them is 3. A ranking of 1 is `won`; any other ranking
+  is `lost`.
   - Doesn't mean: the players who are, or aren't, `player-done`. A solver is
     `player-done` and ranked; a conceder is `player-done` and not.
+  - Doesn't mean: everyone unranked `lost`. In a `stopped` or `no-result`
+    game the unranked neither won nor lost, except the conceders; a
+    `decided-stands` win keeps its 1.
 
 ### Hints
 
@@ -488,11 +496,6 @@ them separately (hints may be banned in compete and free in coop).
 - **`hint-recorded`** — a hint is stored with the game. Any of the costs may
   be recorded or not.
   - Doesn't mean: `hint-scored` — a recorded hint may cost nothing.
-- **`hint-priced`** — the name of the existing compete rule ("the priced-hint
-  rule" in the code and the older text), stated in these terms: in compete a
-  hint is `hint-banned`, `hint-scored`, `hint-earned`, or `hint-free` and
-  `hint-self-informative`. Recorded here as the rule that stands today, not
-  ruled anew.
 
 ### The rules
 
