@@ -56,10 +56,19 @@ Below each card:
 One list at the end: **gaps in the terms**, where a game does something the
 terms have no word for.
 
-**After the cards:** fix the mismatches; then each game's doc gains a
-**nomenclature** section — the game's own words (theme word, spangram, par,
-hint bar), each meaning exactly one thing, as win-lose.md's terms do for
-every game — and the game's code and docs are brought to it.
+**After the cards** — the steps, in order:
+
+| step | what | why here |
+|---|---|---|
+| 1 | Sanity-check the cards | The early cards predate definitions that changed later (`can-stop-by` dropped; hint costs and `hint-earned`; `hint-recorded`; `loses-by-fatal-move` and several `loses-by`; `progress-shown`; `solved`; the score-contest and reachable-goal rules). Every later step reads the cards. |
+| 2 | Go through the ruling ideas | Leaves nothing ambiguous. Deciding only, not fixing; an answer may change a term. |
+| 3 | Target cards | Only the lines that change, each pointing at the todo that holds its ruling — step 2's rulings and those already filed. |
+| 4 | Clean up `win-lose.md`'s vocabulary | Rewrite the older text above the terms section and the Vocabulary table: each word current, a synonym retired to its better name, or dead. After this the doc has one vocabulary. Needs step 2's answers. |
+| 5 | Update the naming plan | cross-game-consistency §1 and §3b's draft terms (`myEnding`, `'quit'`, `hasSolved` …), brought to step 4's vocabulary before anything is renamed. |
+| 6 | Fix the mismatches | One prose sweep, facts only — every mismatch is a doc or comment wrong against running code. Wording waits for steps 7–8. The race/racer wording is identifiers too, so it goes with 7–8. |
+| 7 | Change vocabulary in common and shared code | `common.end_game` / `concede`, `useStandardGameActions`, `terminalOutcomeVerb`, `docs/states.md` and the other cross-game docs. Done once; every game reads it. |
+| 8 | List each game's vocabulary changes | Recorded per game, not made: picked up when app-audit opens that game. Each game's doc gains its **nomenclature** section then — the game's own words (theme word, spangram, par, hint bar), each meaning exactly one thing. Doing all sixteen now would reopen closed, blessed areas outside the audit. |
+| 9 | Change game behavior | The rulings, filed as todos in each game's `todo.md`, worked as its area opens. |
 
 **Groups** — the cards are written in this order: word hunts (spellingbee,
 wordwheel, boggle) · guess what's hidden (wordle, psychicnum, codenamesduet,
