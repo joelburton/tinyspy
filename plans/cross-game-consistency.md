@@ -491,10 +491,6 @@ after §3a, as formulas beside docs/win-lose.md → Where a player stands.
 [game-cards.md](game-cards.md) is each game's current ending written in them —
 read before anything below, which predates them.
 
-**Target: every game can be Stopped by anyone** (Joel, 2026-09-25). Today
-some compete games let only a `player-done` player Stop; once none do,
-`can-stop-by` leaves the terms and the cards.
-
 **The draft terms** (not yet in the doc):
 
 - `hasSolved` — I crossed my finish line; the game's own fact. **Not "won"**:
@@ -527,6 +523,24 @@ some compete games let only a `player-done` player Stop; once none do,
   `{finished: true}` with no `won` key. Stored data: a migration and backfill.
 - `terminalOutcomeVerb`'s docstring says a conceder can hold a winning result
   ("conceded a race someone had already ended"); no path reaches that now.
+
+**Decided, to do: a ranked place below first shows as `near`, never "Lost"**
+(Joel, 2026-09-25). In a game that plays on for a `final-ranking`, a player
+ranked 2nd, 3rd … last reads as the place ("2nd"), in the `near` outcome.
+"Lost", in `lost`, is left for a player not ranked: `eliminated`, `conceded`,
+or short of the finish. `result.won` stays false for every place below first.
+Two-player games too: a player who solved and was beaten reads "2nd", not
+the "Lost" of one who never solved — the place never depends on how many
+played. It takes:
+
+- `TerminalOutcome` gains `near`, and `docs/outcomes.md` rewrites the reason
+  it gives for the terminal set ("won, lost, or stopped"; `near` and `warning`
+  judge a move) and widens `near` to "finished, not first".
+- `docs/win-lose.md` → How a game ends: `final-ranking` and `lost` say every
+  place below first is `lost`; they gain the rule that such a place is shown
+  by its place, in `near`.
+- Every surface that shows a player's ending (the pill, the action row's line,
+  the player strip) shows the place.
 
 **Open questions for Joel:**
 

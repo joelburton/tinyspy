@@ -357,8 +357,6 @@ is retired.
   stay `conceded`, and so `lost`. Shown in a neutral tone.
   - **`decided-stands`** — stopping a game that is already `decided` keeps its
     win: the Stop only ends the play-on.
-- **`can-stop-by`** — which players may Stop the game (anyone; only a player
-  already `player-done`).
 - **`no-result`** — a `goal-none` game reached its end (its `natural-finish`,
   or a `timeout`): nobody `won` or `lost`. The same neutral tone as `stopped`,
   but a different word — nobody chose to stop it.
