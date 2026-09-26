@@ -64,7 +64,7 @@ with words (letterboxed, wordiply, bananagrams) · score contests (scrabble,
 setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
-waffle, crosswords, strands, stackdown, wordwheel, boggle.
+waffle, crosswords, strands, stackdown, wordwheel, boggle, wordle.
 
 ## Word hunts
 
@@ -180,6 +180,46 @@ score toward an optional target; bonus words score too.
    no-target score race counts bonus words too.
 
 ## Guess what's hidden
+
+### wordle
+
+A hidden five-letter word; each guess colors its letters. A budget of 5–8
+guesses.
+
+- **goal**
+  - `game-goal` — `goal-intrinsic`: the word found.
+  - `goal-chosen` — none.
+  - `goal-progress` — none.
+- **solving**
+  - `solved` — the word found.
+  - `perfect-play` — one guess.
+  - `author-solution` — the word.
+- **winning and losing**
+  - `ranked-by`
+    1. fewest guesses
+    2. the earlier solve
+  - `final-ranking` — only the winner is named.
+  - `loses-by` — `loses-by-move-budget`.
+  - `announce-when`
+    - coop: `announce-when-decided`.
+    - compete: `announce-when-ended`.
+- **ending**
+  - `natural-finish` — the guesses spent.
+  - `ends-when` — `ends-when-all-done`.
+  - `timeout-result`
+    - coop: `timeout-no-winner`.
+    - compete: `timeout-ranking-stands`; if nobody solved, `timeout-no-winner`.
+- **hints** — none.
+
+**Mismatches**
+
+- `src/wordle/doc.md`, the SQL and the FE call compete a "race" and its
+  players "racers"; the terms name wordle as not a `race-game`.
+
+**Surprises and ruling ideas**
+
+1. **Beaten solvers get no place**, as in waffle and strands: only the
+   winner is recorded.
 
 ### psychicnum
 
