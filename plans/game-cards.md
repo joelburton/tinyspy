@@ -64,7 +64,7 @@ with words (letterboxed, wordiply, bananagrams) · score contests (scrabble,
 setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
-waffle, crosswords, strands, stackdown.
+waffle, crosswords, strands, stackdown, wordwheel.
 
 ## Word hunts
 
@@ -95,6 +95,37 @@ climb a rank ladder, Start to Genius.
 
 **Mismatches** — none. (The terms' "every word" examples describe the
 ruled design; the code catching up is in `src/spellingbee/todo.md`.)
+
+**Surprises and ruling ideas** — none.
+
+### wordwheel
+
+Nine tiles on a wheel, letters may repeat; find words that use the center,
+each tile once per word. Points climb the same rank ladder as spellingbee.
+Its ending code is spellingbee's.
+
+- **goal**
+  - `game-goal`
+    - coop: `goal-chosen` when a target rank is set; with none, `goal-none`.
+    - compete: `goal-chosen`, always.
+  - `goal-chosen` — a target rank, Good to Genius.
+  - `goal-progress` — points, read as a rank.
+- **solving**
+  - `solved` — every required word found; nothing reads it.
+  - `perfect-play` — n/a: a wrong word costs nothing.
+  - `author-solution` — the word list.
+- **winning and losing**
+  - `ranked-by` — first to reach the target rank.
+  - `loses-by` — `loses-by-timeout-only`.
+  - `announce-when` — `announce-when-decided`.
+- **ending**
+  - `natural-finish` — none.
+  - `ends-when` — `ends-when-decided`.
+  - `timeout-result` — `timeout-no-winner`; with no target, `no-result`.
+- **hints** — none.
+
+**Mismatches** — none. (spellingbee's every-word ruling holds here too; the
+change is in `src/wordwheel/todo.md`.)
 
 **Surprises and ruling ideas** — none.
 
