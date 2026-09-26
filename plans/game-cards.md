@@ -34,9 +34,9 @@ explanation; the card carries none. psychicnum's card is the model. The rules:
   order. What happens when all are level (`co-winners`) is a step too.
 - **Hints:** one item per hint the game offers, titled by its kind (`hint`,
   or `hint-spoiler`; the title repeats for two of a kind), then a few words
-  on what it hands over. Its tags go on a sub-line beneath: the cost, and
-  `hint-recorded` if it is. Only the tags that apply, never a negative, and
-  never the tag the title already is.
+  on what it hands over. Its tags go on a sub-line beneath: every hint tag
+  that applies — the cost, `hint-self-informative`, `hint-recorded`. Never a
+  negative, and never `hint` or `hint-spoiler`: the title already says it.
 
 Below each card:
 
@@ -58,7 +58,7 @@ with words (letterboxed, wordiply, bananagrams) · score contests (scrabble,
 setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
-waffle.
+waffle, crosswords.
 
 ## Word hunts
 
@@ -147,6 +147,58 @@ budget of 3, 5, 7 or 9.
    player conceded). By `reached-natural-finish` that game ended by concession.
 
 ## Solve the grid
+
+### crosswords
+
+A crossword from the library or the NYT; fill every cell. Coop shares one
+grid, compete gives each player their own.
+
+- **goal**
+  - `game-goal` — `goal-intrinsic`: the grid filled right.
+  - `goal-chosen` — none.
+  - `goal-progress` — none.
+- **solving**
+  - `solved` — every cell right; revealed cells count.
+  - `perfect-play` — no checks, no reveals.
+  - `author-solution` — the author's grid.
+  - `matched-author-solution` — not read: Reveal is offered on every ended
+    game.
+- **winning and losing**
+  - `ranked-by` — first to reach `game-goal`.
+  - `loses-by` — `loses-by-timeout-only`.
+  - `announce-when` — `announce-when-decided`.
+- **ending**
+  - `natural-finish` — none.
+  - `ends-when` — `ends-when-decided`.
+  - `timeout-result` — `timeout-no-winner`.
+- **hints**
+  - `hint` — check a letter, word or puzzle: marks the wrong letters
+    - `hint-free`, `hint-self-informative`
+  - `hint-spoiler` — reveal a letter, word or puzzle
+    - coop: `hint-free`
+    - compete: `hint-banned`
+
+**Mismatches**
+
+- `docs/games/crosswords.md` (§1, §4's `end_game` and `submit_timeout` rows,
+  §8, §9) and the SQL headers of `end_game` and `submit_timeout` give the
+  status key as `outcome`; the code writes `reason`.
+- `docs/games/crosswords.md` §4 lists `clear_board`, which `replay_board`
+  replaced.
+- `docs/games/crosswords.md` §9 and `reveal_cells`'s comment say waffle and
+  wordle end a reveal as `ended` + `'revealed'`; both reveals are gone, and
+  Reveal is terminal-only there.
+- `docs/games/crosswords.md` §7: a compete game everyone conceded reads
+  "Lost: out of the race" — the code says "Lost: all conceded". And a conceded
+  player's strip shows "an inert Concede" — Concede is hidden once
+  `player-done`, and End shows instead.
+
+**Surprises and ruling ideas**
+
+1. **Reveal puzzle wins coop.** A grid filled entirely by Reveal is `solved`,
+   and so `won`; deliberate, per `reveal_cells`'s comment. With the terms, the
+   question is whether that is `solved` at all.
+2. **A compete win writes no `reason`**; coop's writes `'solved'`.
 
 ### waffle
 
@@ -309,4 +361,6 @@ deck deals out onto the table as sets are claimed.
 
 ## Gaps in the terms
 
-None open.
+- **A hint kept on the board, with no move log.** crosswords has no log, but
+  each revealed cell keeps its `revealed` flag and shows it. `hint-recorded`
+  says "stored with the game and shown in its move log" — does this count?
