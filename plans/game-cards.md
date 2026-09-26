@@ -64,7 +64,8 @@ with words (letterboxed, wordiply, bananagrams) · score contests (scrabble,
 setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
-waffle, crosswords, strands, stackdown, wordwheel, boggle, wordle.
+waffle, crosswords, strands, stackdown, wordwheel, boggle, wordle,
+codenamesduet.
 
 ## Word hunts
 
@@ -272,6 +273,35 @@ budget of 3, 5, 7 or 9.
    players spent their budgets and the last one out conceded,
    `_maybe_finish_compete` writes `'exhausted'` (`'conceded'` only when EVERY
    player conceded). By `reached-natural-finish` that game ended by concession.
+
+### codenamesduet
+
+Two players, each seeing a different key to one board of 25 words; clues
+lead the partner to the agents on your key. Coop only, two players.
+
+- **goal**
+  - `game-goal` — `goal-intrinsic`: all fifteen agents contacted.
+  - `goal-chosen` — none.
+  - `goal-progress` — agents contacted.
+- **solving**
+  - `solved` — all fifteen agents contacted.
+  - `perfect-play` — two turns, no bystanders.
+  - `author-solution` — the two keys.
+- **winning and losing**
+  - `loses-by`
+    - `loses-by-fatal-move`: any assassin.
+    - `loses-by-move-budget`: the turns spent, then any miss.
+  - `announce-when` — `announce-when-decided`.
+- **ending**
+  - `natural-finish` — none: a spent budget begins the game's sudden death.
+  - `timeout-result` — `timeout-no-winner`.
+- **hints**
+  - `hint` — an AI-suggested clue, for the clue-giver
+    - `hint-free`, `hint-recorded`
+
+**Mismatches** — none.
+
+**Surprises and ruling ideas** — none.
 
 ## Solve the grid
 
@@ -584,7 +614,7 @@ deck deals out onto the table as sets are claimed.
 
 ## Gaps in the terms
 
-- **A `goal-none` game whose `timeout` crowns someone.** The same game has
-  no goal (a score contest is a `game-goal` only with a `natural-finish`),
+- **A `goal-none` game whose `timeout` crowns someone.** boggle compete
+  without a target has no goal (a score contest is a `game-goal` only with a `natural-finish`),
   yet its timeout is `timeout-best-progress`, which needs one. See
   cross-game-consistency §3b's open question 1.

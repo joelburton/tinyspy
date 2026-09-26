@@ -307,12 +307,14 @@ is retired.
     over.
 - **`loses-by`** — what, other than someone else winning, makes a player
   (or team) lose: in compete what makes a player `eliminated`, in coop what
-  fails the team. One of:
+  fails the team. One or more of the first three (codenamesduet has a move
+  budget and a fatal move), or else one of the last two alone:
   - **`loses-by-move-budget`** — every move spends it, right or wrong
     (guesses, swaps).
   - **`loses-by-mistake-budget`** — only a wrong move spends it, so perfect
     play cannot lose.
-  - **`loses-by-sudden-death`** — one fatal act ends it.
+  - **`loses-by-fatal-move`** — one move ends it (codenamesduet's assassin).
+    "Fatal" as in the game, not a code error.
   - **`loses-by-timeout-only`** — nothing to exhaust; only a `timeout` can
     end it in a loss.
   - **`loses-by-none`** — nothing: a player loses only because someone else
