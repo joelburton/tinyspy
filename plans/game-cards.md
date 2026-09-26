@@ -65,7 +65,7 @@ setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
 waffle, crosswords, strands, stackdown, wordwheel, boggle, wordle,
-codenamesduet.
+codenamesduet, connections.
 
 ## Word hunts
 
@@ -302,6 +302,40 @@ lead the partner to the agents on your key. Coop only, two players.
 **Mismatches** — none.
 
 **Surprises and ruling ideas** — none.
+
+### connections
+
+Sixteen words hiding four categories of four; pick four at a time. Four
+mistakes to spend.
+
+- **goal**
+  - `game-goal` — `goal-intrinsic`: all four categories found.
+  - `goal-chosen` — none.
+  - `goal-progress` — categories found.
+- **solving**
+  - `solved` — all four categories found.
+  - `perfect-play` — no mistakes, no hints.
+  - `author-solution` — the four categories.
+- **winning and losing**
+  - `ranked-by` — first to reach `game-goal`.
+  - `loses-by` — `loses-by-mistake-budget`.
+  - `announce-when` — `announce-when-decided`.
+- **ending**
+  - `natural-finish` — every player's mistakes spent.
+  - `ends-when` — `ends-when-decided`.
+  - `timeout-result` — `timeout-no-winner`.
+- **hints**
+  - `hint` — one word of a category you pick
+    - `hint-free`
+
+**Mismatches** — none.
+
+**Surprises and ruling ideas**
+
+1. **Compete's hint breaks `hint-priced`**, as psychicnum's and stackdown's
+   do: free, and it hands over progress.
+2. **The hint's button says "Reveal"**, the spoiler's word by
+   `hint-spoiler`; it leaves three words of the category to find.
 
 ## Solve the grid
 
