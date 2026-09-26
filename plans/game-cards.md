@@ -57,7 +57,8 @@ connections) · solve the grid (crosswords, waffle, strands, stackdown) · build
 with words (letterboxed, wordiply, bananagrams) · score contests (scrabble,
 setgame).
 
-**Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply.
+**Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
+waffle.
 
 ## Word hunts
 
@@ -84,9 +85,6 @@ climb a rank ladder, Start to Genius.
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
   - `timeout-result` — `timeout-no-winner`; with no target, `no-result`.
-  - `can-stop-by`
-    - coop: anyone.
-    - compete: only a player already `player-done`.
 - **hints** — none.
 
 **Mismatches** — none. (The terms' "every word" examples describe the
@@ -117,9 +115,6 @@ budget of 3, 5, 7 or 9.
   - `natural-finish` — last player spent budget.
   - `ends-when` — `ends-when-decided`.
   - `timeout-result` — `timeout-no-winner`.
-  - `can-stop-by`
-    - coop: anyone.
-    - compete: only a player already `player-done`.
 - **hints**
   - `hint` — a clue for an unfound secret
     - `hint-free`, `hint-recorded`
@@ -150,6 +145,67 @@ budget of 3, 5, 7 or 9.
    players spent their budgets and the last one out conceded,
    `_maybe_finish_compete` writes `'exhausted'` (`'conceded'` only when EVERY
    player conceded). By `reached-natural-finish` that game ended by concession.
+
+## Solve the grid
+
+### waffle
+
+A 5×5 waffle of six crossing words, scrambled; swap two letters at a time
+until every tile is green. Par is the fewest swaps that can solve it; the
+budget is par plus a few.
+
+- **goal**
+  - `game-goal` — `goal-intrinsic`: the board all green.
+  - `goal-chosen` — none.
+  - `goal-progress` — words right.
+- **solving**
+  - `solved` — the board all green.
+  - `perfect-play` — solved at par.
+  - `author-solution` — the solution board, the only one.
+- **winning and losing**
+  - `ranked-by`
+    1. fewest swaps
+    2. the earlier solve
+  - `final-ranking` — only the winner is named.
+  - `loses-by` — `loses-by-move-budget`.
+  - `announce-when`
+    - coop: `announce-when-decided`.
+    - compete: `announce-when-ended`.
+- **ending**
+  - `natural-finish` — the swaps spent.
+  - `ends-when` — `ends-when-all-done`.
+  - `timeout-result`
+    - coop: `timeout-no-winner`.
+    - compete: `timeout-ranking-stands`; if nobody solved, `timeout-no-winner`.
+- **hints** — none.
+
+**Mismatches**
+
+- `docs/games/waffle.md` → `end_game`: "(**coop**; compete shows Concede
+  instead)" — any compete player may Stop (Concede's question offers it; End
+  once `player-done`). It and `waffle.end_game`'s header give the status as
+  `outcome: 'manual'`; the code writes `reason`. `submit_swap`'s coop comment
+  says each terminal write "states its `outcome`" — it is `reason` there too.
+- `docs/games/waffle.md` → Frontend (`src/waffle/`): "Concede goes gray once
+  you have SOLVED" — Concede is hidden once `player-done`, and End shows
+  instead.
+- `docs/games/waffle.md` → Frontend (`src/waffle/`) and → Title formula,
+  `waffle._sync_title`'s comments, and `PlayArea.tsx`'s board comment still
+  describe the mid-game `reveal_answer`, which ended the game and wrote the
+  solution onto every board. It is gone: Reveal is terminal-only and changes
+  only the board on show.
+- `docs/games/waffle.md` → Rules: "**Star rating** (FE flourish): swaps left
+  at solve → stars" — there are no stars; the coop win reads against par
+  ("Won: par +2").
+- Compete is called a "race" and its players "racers" throughout the SQL,
+  the FE and the doc; ranked by swaps, it is not a `race-game`.
+
+**Surprises and ruling ideas**
+
+1. **Beaten solvers get no place.** Compete plays on after it is `decided`,
+   but only the winner is recorded; a second solver is `lost`, the same as a
+   player who ran out of swaps. By `final-ranking`, solvers would be ranked
+   by swaps, then time.
 
 ## Build with words
 
@@ -185,9 +241,6 @@ across all five.
     - coop: everyone `lost`.
     - compete: `timeout-best-progress`; if nobody scored, everyone `lost`.
   - `no-result` — coop, at its `natural-finish`.
-  - `can-stop-by`
-    - coop: anyone.
-    - compete: only a player already `player-done`.
 - **hints** — none.
 
 **Mismatches**
@@ -201,8 +254,7 @@ across all five.
 
 **Surprises and ruling ideas**
 
-1. **Is there a `perfect-play`?** `solved` is five words found; the best
-   solve would add a longest possible word and the most letters possible.
+1. **Is there a `perfect-play`?** `solved` is five words found; the best solve would add a longest possible word and the most letters possible.
    Or it stays n/a.
 
 ## Score contests
@@ -239,9 +291,6 @@ deck deals out onto the table as sets are claimed.
   - `timeout-result`
     - coop: `timeout-no-winner`.
     - compete: `timeout-best-progress`; if nobody scored, everyone `lost`.
-  - `can-stop-by`
-    - coop: anyone.
-    - compete: only a player already `player-done`.
 - **hints**
   - `hint` — one more card of a set on the table, per press
     - coop: `hint-free`, `hint-recorded`
