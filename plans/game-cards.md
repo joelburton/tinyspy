@@ -27,10 +27,26 @@ explanation; the card carries none. psychicnum's card is the model. The rules:
   costs nothing). One that follows from another line goes (no `final-ranking` in a game that ends when
   decided, no `no-result` in a game with a goal).
 - **A card shows what the game does today, never a ruling.** A ruling not
-  yet built lives in the game's `todo.md`; the target cards come later, so
-  the two can be diffed.
+  yet built lives in the game's `todo.md`, and the card's **Target** block
+  below it gives only the lines that ruling changes — so today and the
+  target can be diffed. Each todo is named once, at the end of the first
+  line it changes; a line that changes only because of it carries no
+  pointer. A Target line
+  is the card's line rewritten: the same group heading, the same coop and
+  compete bullets, the same terms, only the changed words different. An undecided
+  todo (a Maybe, an unruled Someday) changes no line.
 - **Where the terms can't say cleanly what the code does**, the line gives
   the nearest term, then "(BUG: …)" saying what the code does.
+- **Smell tests, not rules:** a line that runs past one written line is
+  probably two bullets; one longer than a sentence is doing something wrong.
+- **Alternatives go on their own sub-bullets** ("with target rank:" /
+  "without:"), the same labels under coop and under compete, so the modes
+  line up and the difference shows. A semicolon between two alternatives is
+  fine only when both are a few words (`loses-by-timeout-only`; with no
+  target, `loses-by-none`). A condition on one value is not an alternative:
+  it goes in parentheses: "every required word (requires
+  `timer-countdown`)". Say it in the terms, in backticks; English only where
+  no term says it.
 - **coop and compete sub-items only where the modes differ in substance.**
   "The team's in coop, each player's in compete" is what coop means, and
   never splits a line. Nor does a term that belongs to one mode by
@@ -97,12 +113,17 @@ climb a rank ladder, Start to Genius.
 
 - **goal**
   - `game-goal`
-    - coop: `goal-chosen` when a target rank is set; with none, `goal-none`.
-    - compete: `goal-chosen`, always.
+    - coop:
+      - with target rank: `goal-chosen`.
+      - without: `goal-none`.
+    - compete:
+      - with target rank: `goal-chosen`.
+      - without: not offered.
   - `goal-chosen` — a target rank, Good to Genius.
   - `goal-progress` — points, read as a rank.
-  - `score-formula` — points, for every word found, bonus words too: 1 for
-    four letters, one per letter for longer; +10 for a pangram.
+  - `score-formula`
+    - points per legal word: len=4: +1; len>4: +1/letter
+    - +10 for a pangram.
 - **solving**
   - `solved` — every required word found; nothing reads it.
   - `perfect-play` — n/a: a wrong word costs nothing.
@@ -115,8 +136,34 @@ climb a rank ladder, Start to Genius.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
-  - `timeout-result` — `timeout-no-winner`; with no target, `no-result`.
+  - `timeout-result` — `timeout-ranks-by-goal`; with no target, `no-result`.
 - **hints** — none.
+
+**Target**
+
+- **goal**
+  - `game-goal`
+    - coop:
+      - with target rank: `goal-chosen`.
+      - without: `goal-intrinsic`: every required word. → todo: every
+        required word.
+    - compete:
+      - with target rank: `goal-chosen`.
+      - without: `goal-intrinsic`: every required word (requires
+        `timer-countdown`). → todo: compete with no target.
+- **solving**
+  - `solved` — every required word found.
+- **winning and losing**
+  - `ranked-by` — first to reach `game-goal`.
+  - `loses-by` — `loses-by-timeout-only`; with no target, `loses-by-none`.
+- **ending**
+  - `timeout-result`
+    - coop:
+      - with target rank: `timeout-ranks-by-goal`.
+      - without: `timeout-no-result`.
+    - compete:
+      - with target rank: `timeout-ranks-by-goal`.
+      - without: `timeout-ranks-by-progress`.
 
 **Mismatches** — none.
 
@@ -130,13 +177,17 @@ Its ending code is spellingbee's.
 
 - **goal**
   - `game-goal`
-    - coop: `goal-chosen` when a target rank is set; with none, `goal-none`.
-    - compete: `goal-chosen`, always.
+    - coop:
+      - with target rank: `goal-chosen`.
+      - without: `goal-none`.
+    - compete:
+      - with target rank: `goal-chosen`.
+      - without: not offered.
   - `goal-chosen` — a target rank, Good to Genius.
   - `goal-progress` — points, read as a rank.
-  - `score-formula` — points, for every word found, bonus words too: 1 for
-    four letters, one per letter for longer; +15 for a pangram (all nine
-    tiles).
+  - `score-formula`
+    - points per legal word: len=4: +1; len>4: +1/letter
+    - +15 for a pangram.
 - **solving**
   - `solved` — every required word found; nothing reads it.
   - `perfect-play` — n/a: a wrong word costs nothing.
@@ -149,8 +200,34 @@ Its ending code is spellingbee's.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
-  - `timeout-result` — `timeout-no-winner`; with no target, `no-result`.
+  - `timeout-result` — `timeout-ranks-by-goal`; with no target, `no-result`.
 - **hints** — none.
+
+**Target**
+
+- **goal**
+  - `game-goal`
+    - coop:
+      - with target rank: `goal-chosen`.
+      - without: `goal-intrinsic`: every required word. → todo: every
+        required word.
+    - compete:
+      - with target rank: `goal-chosen`.
+      - without: `goal-intrinsic`: every required word (requires
+        `timer-countdown`). → todo: compete with no target.
+- **solving**
+  - `solved` — every required word found.
+- **winning and losing**
+  - `ranked-by` — first to reach `game-goal`.
+  - `loses-by` — `loses-by-timeout-only`; with no target, `loses-by-none`.
+- **ending**
+  - `timeout-result`
+    - coop:
+      - with target rank: `timeout-ranks-by-goal`.
+      - without: `timeout-no-result`.
+    - compete:
+      - with target rank: `timeout-ranks-by-goal`.
+      - without: `timeout-ranks-by-progress`.
 
 **Mismatches** — none.
 
@@ -163,15 +240,18 @@ score toward an optional target; bonus words score too.
 
 - **goal**
   - `game-goal`
-    - with a target: `goal-chosen`.
-    - without a target: coop, `goal-none`; compete, the top score at the
-      `timeout` (untimed, `goal-none`).
+    - coop:
+      - with target: `goal-chosen`.
+      - without: `goal-none`.
+    - compete:
+      - with target: `goal-chosen`.
+      - without, with `timer-countdown`: the top score at the `timeout`.
+      - without, no `timer-countdown`: `goal-none`.
   - `goal-chosen` — a share of the required words' points, 50% to 100%.
   - `goal-progress` — points.
-  - `score-formula` — points by word length, on a ladder picked at setup
-    (flat, basic, fib, big).
-    - toward a target: required words only.
-    - the score: every word found, bonus words too.
+  - `score-formula` — points by word length, on a ladder picked at setup.
+    - for target: required words only.
+    - for score: all legal words.
 - **solving**
   - `solved` — every required word found; only a 100% target reads it.
   - `perfect-play` — n/a: a wrong word costs nothing.
@@ -195,10 +275,38 @@ score toward an optional target; bonus words score too.
     - with a target: `ends-when-decided`.
     - without a target: none.
   - `timeout-result`
-    - coop: `timeout-no-winner`; without a target, `no-result`.
-    - compete: `timeout-no-winner`; without a target,
-      `timeout-best-progress`, and if nobody scored, `timeout-no-winner`.
+    - coop:
+      - with target: `timeout-ranks-by-goal`.
+      - without: `no-result`.
+    - compete:
+      - with target: `timeout-ranks-by-goal`.
+      - without: `timeout-ranks-by-progress`.
 - **hints** — none.
+
+**Target**
+
+- **goal**
+  - `game-goal`
+    - coop:
+      - with target: `goal-chosen`.
+      - without: `goal-intrinsic`: every required word. → todo: every
+        required word.
+    - compete:
+      - with target: `goal-chosen`.
+      - without: `goal-intrinsic`: every required word (requires
+        `timer-countdown`). → todo: compete with no target needs a
+        countdown.
+- **solving**
+  - `solved` — every required word found.
+- **winning and losing**
+  - `ranked-by` — first to reach `game-goal`.
+  - `announce-when` — `announce-when-decided`.
+- **ending**
+  - `ends-when` — `ends-when-decided`.
+  - `timeout-result`
+    - coop:
+      - with target: `timeout-ranks-by-goal`.
+      - without: `timeout-no-result`.
 
 **Mismatches**
 
@@ -245,10 +353,14 @@ guesses.
 - **ending**
   - `natural-finish` — every player's guesses spent.
   - `ends-when` — `ends-when-all-done`.
-  - `timeout-result`
-    - coop: `timeout-no-winner`.
-    - compete: `timeout-ranking-stands`; if nobody solved, `timeout-no-winner`.
+  - `timeout-result` — `timeout-ranks-by-goal`.
 - **hints** — none.
+
+**Target**
+
+- **winning and losing**
+  - `final-ranking` — by `ranked-by`. → cross-game-consistency §3b: one
+    leaderboard per compete game.
 
 **Mismatches**
 
@@ -278,12 +390,14 @@ budget of 3, 5, 7 or 9.
 - **ending**
   - `natural-finish` — every player's budget spent.
   - `ends-when` — `ends-when-decided`.
-  - `timeout-result` — `timeout-no-winner`.
+  - `timeout-result` — `timeout-ranks-by-goal`.
 - **hints**
   - `hint` — a clue for an unfound secret
     - `hint-free`, `hint-recorded`
   - `hint-spoiler` — an unfound secret word
     - `hint-free`, `hint-recorded`
+
+**Target** — no line changes.
 
 **Mismatches**
 
@@ -296,15 +410,7 @@ budget of 3, 5, 7 or 9.
   player is done — either someone completed the set (immediate win) …" — this
   `race-game` ends at the first finish, which is not "every player done".
 
-**Surprises and ruling ideas**
-
-1. **Compete's hint and spoiler both hand over progress, free.** Filed in
-   `src/psychicnum/todo.md` (Maybe): charge for them, or ban them?
-2. **`reason = 'exhausted'` also covers an ending by concession.** When some
-   players spent their budgets and the last one out conceded,
-   `_maybe_finish_compete` writes `'exhausted'` (`'conceded'` only when EVERY
-   player conceded). By `reached-natural-finish` that game ended by concession.
-   Filed in `src/psychicnum/todo.md`.
+**Surprises and ruling ideas** — none.
 
 ### codenamesduet
 
@@ -326,10 +432,12 @@ lead the partner to the agents on your key. Coop only, two players.
   - `announce-when` — `announce-when-decided`.
 - **ending**
   - `natural-finish` — none: a spent budget begins the game's sudden death.
-  - `timeout-result` — `timeout-no-winner`.
+  - `timeout-result` — `timeout-ranks-by-goal`.
 - **hints**
   - `hint` — an AI-suggested clue, for the clue-giver
     - `hint-free`, `hint-recorded`
+
+**Target** — no line changes.
 
 **Mismatches** — none.
 
@@ -356,17 +464,17 @@ mistakes to spend.
 - **ending**
   - `natural-finish` — every player's mistakes spent.
   - `ends-when` — `ends-when-decided`.
-  - `timeout-result` — `timeout-no-winner`.
+  - `timeout-result` — `timeout-ranks-by-goal`.
 - **hints**
   - `hint` — one word of a category you pick
     - `hint-free`
 
+**Target** — no line changes.
+
 **Mismatches** — none.
 
-**Surprises and ruling ideas**
+**Surprises and ruling ideas** — none.
 
-1. **Compete's hint hands over progress, free.** Filed in
-   `src/connections/todo.md` (Maybe): charge for it, or ban it?
 ## Solve the grid
 
 ### crosswords
@@ -382,8 +490,7 @@ grid, compete gives each player their own.
   - `solved` — every cell right; revealed cells count.
   - `perfect-play` — no checks, no reveals.
   - `author-solution` — the author's grid.
-  - `matched-author-solution` — not read: Reveal is offered on every ended
-    game.
+  - `matched-author-solution` — not read.
 - **winning and losing**
   - `ranked-by` — first to reach `game-goal`.
   - `loses-by` — `loses-by-timeout-only`.
@@ -392,13 +499,15 @@ grid, compete gives each player their own.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
-  - `timeout-result` — `timeout-no-winner`.
+  - `timeout-result` — `timeout-ranks-by-goal`.
 - **hints**
-  - `hint` — check a letter, word or puzzle: marks the wrong letters
+  - `hint` — check letter/word/puzzle: marks the wrong letters
     - `hint-free`, `hint-self-informative`
-  - `hint-spoiler` — reveal a letter, word or puzzle
+  - `hint-spoiler` — reveal a letter/word/puzzle
     - coop: `hint-free`, `hint-recorded`
     - compete: `hint-banned`
+
+**Target** — no line changes.
 
 **Mismatches**
 
@@ -415,14 +524,7 @@ grid, compete gives each player their own.
   player's strip shows "an inert Concede" — Concede is hidden once
   `player-done`, and End shows instead.
 
-**Surprises and ruling ideas**
-
-1. **Reveal puzzle wins coop.** A grid filled entirely by Reveal is `solved`,
-   and so `won`; deliberate, per `reveal_cells`'s comment. With the terms, the
-   question is whether that is `solved` at all. Filed in
-   `src/crosswords/todo.md` (Someday).
-2. **A compete win writes no `reason`**; coop's writes `'solved'`. Filed in
-   `src/crosswords/todo.md`.
+**Surprises and ruling ideas** — none.
 
 ### waffle
 
@@ -453,10 +555,14 @@ budget is par plus a few.
 - **ending**
   - `natural-finish` — every player's swaps spent.
   - `ends-when` — `ends-when-all-done`.
-  - `timeout-result`
-    - coop: `timeout-no-winner`.
-    - compete: `timeout-ranking-stands`; if nobody solved, `timeout-no-winner`.
+  - `timeout-result` — `timeout-ranks-by-goal`.
 - **hints** — none.
+
+**Target**
+
+- **winning and losing**
+  - `final-ranking` — by `ranked-by`. → cross-game-consistency §3b: one
+    leaderboard per compete game.
 
 **Mismatches**
 
@@ -489,7 +595,7 @@ each. Other valid words fill a bar that buys a hint.
 - **goal**
   - `game-goal` — `goal-intrinsic`: every theme word and the spangram.
   - `goal-chosen` — none.
-  - `goal-progress` — words found, the spangram included.
+  - `goal-progress` — theme words and the spangram found.
 - **solving**
   - `solved` — every theme word and the spangram found.
   - `perfect-play` — no hints spent.
@@ -510,13 +616,17 @@ each. Other valid words fill a bar that buys a hint.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-all-done`.
-  - `timeout-result`
-    - coop: `timeout-no-winner`.
-    - compete: `timeout-ranking-stands`; if nobody solved, `timeout-no-winner`.
+  - `timeout-result` — `timeout-ranks-by-goal`.
 - **hints**
   - `hint` — rings an unfound theme word's tiles, not their order
     - coop: `hint-free`, `hint-earned`, `hint-recorded`
     - compete: `hint-scored`, `hint-earned`, `hint-recorded`
+
+**Target**
+
+- **winning and losing**
+  - `final-ranking` — by `ranked-by`. → cross-game-consistency §3b: one
+    leaderboard per compete game.
 
 **Mismatches**
 
@@ -529,12 +639,7 @@ each. Other valid words fill a bar that buys a hint.
 - `docs/games/strands.md` → Terminal vocabulary lists `unsolved` among
   `lost_compete`'s reasons; nothing can write it (see below).
 
-**Surprises and ruling ideas**
-
-1. **`'unsolved'` is dead code.** Without a `timeout`, the game ends only once
-   every player has solved or conceded, and a solver cannot concede; so a
-   no-winner ending there is always `'conceded'`. Filed in
-   `src/strands/todo.md`.
+**Surprises and ruling ideas** — none.
 
 ### stackdown
 
@@ -557,12 +662,14 @@ each from the tiles left exposed.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
-  - `timeout-result` — `timeout-no-winner`.
+  - `timeout-result` — `timeout-ranks-by-goal`.
 - **hints**
   - `hint` — a clue for the next word
     - `hint-free`, `hint-recorded`
   - `hint-spoiler` — the next word
     - `hint-free`, `hint-recorded`
+
+**Target** — no line changes.
 
 **Mismatches**
 
@@ -573,13 +680,7 @@ each from the tiles left exposed.
   spoiler a playtest cheat that "may be removed once boards are trusted"; it
   is the game's spoiler, the way out for a stuck player.
 
-**Surprises and ruling ideas**
-
-1. **Compete's hint and spoiler both hand over progress, free.** Filed in
-   `src/stackdown/todo.md` (Maybe): charge for them, or ban them?
-2. **A compete win writes no `reason`**, as in crosswords; coop's writes
-   `'cleared'`, where waffle, crosswords and strands write `'solved'`. Filed
-   in `src/stackdown/todo.md`.
+**Surprises and ruling ideas** — none.
 
 ## Build with words
 
@@ -597,8 +698,7 @@ until all twelve are used. The chain has a word cap; undo refunds.
   - `solved` — all twelve letters, within the cap.
   - `perfect-play` — two words, no hints.
   - `author-solution` — the two seed words.
-  - `matched-author-solution` — not read: Reveal is offered on every ended
-    game.
+  - `matched-author-solution` — not read.
 - **winning and losing**
   - `ranked-by` — first to reach `game-goal`.
   - `loses-by`
@@ -610,8 +710,9 @@ until all twelve are used. The chain has a word cap; undo refunds.
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
   - `timeout-result`
-    - coop: `timeout-no-winner`.
-    - compete: `timeout-best-progress`:
+    - coop: `timeout-ranks-by-goal`.
+    - compete: `timeout-ranks-by-progress` (BUG: with every chain empty, every
+      player still in co-wins):
       1. most letters covered
       2. fewest words
       3. `co-winners`
@@ -623,21 +724,20 @@ until all twelve are used. The chain has a word cap; undo refunds.
     - coop: `hint-free`, `hint-recorded`
     - compete: `hint-banned`
 
+**Target**
+
+- **ending**
+  - `timeout-result`
+    - compete: `timeout-ranks-by-progress`. → todo: a compete timeout nobody
+      made progress in.
+
 **Mismatches**
 
 - `docs/games/letterboxed.md` → Play states: compete is `lost_compete` for "a
   timed-out race nobody scored in"; `submit_timeout` has no such case, and
   writes `won_compete` whatever the coverage.
 
-**Surprises and ruling ideas**
-
-1. **A compete timeout crowns players who covered nothing.** With every
-   chain empty, every player still in ties on zero and is a `co-winner`;
-   boggle guards against this ("if nobody scored, `timeout-no-winner`").
-   Filed in `src/letterboxed/todo.md`.
-2. **No terminal writes a `reason`.** letterboxed says how it ended with its
-   own flags (`solved`, `timed_out`, `stopped`), where the other games write
-   `reason`. Filed in `src/letterboxed/todo.md`.
+**Surprises and ruling ideas** — none.
 
 ### wordiply
 
@@ -651,9 +751,9 @@ across all five.
     - compete: `goal-intrinsic`: the best score.
   - `goal-chosen` — none.
   - `goal-progress` — the longest word so far.
-  - `score-formula` — two numbers, compared in order: the longest word as a
-    percentage of the longest possible, then the letters across all five
-    words.
+  - `score-formula`
+    1. the longest word, as a % of the longest possible
+    2. the letters across all five words
 - **solving**
   - `solved` — five words found.
   - `perfect-play` — n/a.
@@ -661,7 +761,7 @@ across all five.
 - **winning and losing**
   - `ranked-by`
     1. the best score
-    2. timed: the earlier last guess; untimed: `co-winners`
+    2. with a `timer`: the earlier last guess; without: `co-winners`
   - `loses-by`
     - coop: `loses-by-timeout-only`.
     - compete: `loses-by-none`.
@@ -672,9 +772,20 @@ across all five.
   - `ends-when` — `ends-when-all-done`.
   - `timeout-result`
     - coop: everyone `lost`.
-    - compete: `timeout-best-progress`; if nobody scored, `timeout-no-winner`.
+    - compete: `timeout-ranks-by-progress`.
   - `no-result` — coop, at its `natural-finish`.
 - **hints** — none.
+
+**Target**
+
+- **goal**
+  - `game-goal`
+    - coop: `goal-intrinsic`: five words. → todo: coop's goal is five
+      words.
+- **ending**
+  - `timeout-result`
+    - coop: `timeout-ranks-by-goal`.
+  - `no-result` — none.
 
 **Mismatches**
 
@@ -682,15 +793,7 @@ across all five.
   `"outcome": "complete" | "timeout" | "manual" | "conceded"`. The code
   writes those values under `reason` (`conceded` from `common.concede`).
 
-**Surprises and ruling ideas**
-
-1. **A coop timeout is a loss in a `goal-none` game.** Settled: five words
-   is coop's goal, so the timeout's loss follows. Filed in
-   `src/wordiply/todo.md`; the code still ends a coop game neutral on the
-   fifth guess.
-2. **The leaderboard ranks conceders among the players**, as scrabble's and
-   setgame's do; `final-ranking` leaves them out. Filed in
-   `plans/cross-game-consistency.md` §3b → one leaderboard per compete game.
+**Surprises and ruling ideas** — none.
 
 ### bananagrams
 
@@ -698,8 +801,7 @@ Each player builds a private crossword from a hand of tiles; when every tile
 is placed, Peel and everyone draws more. Compete only, one to six players.
 
 - **goal**
-  - `game-goal` — `goal-intrinsic`: go out — every tile placed when the
-    bunch can't refill the table.
+  - `game-goal` — `goal-intrinsic`: go out.
   - `goal-chosen` — none.
   - `goal-progress` — tiles left in hand.
 - **solving**
@@ -714,10 +816,12 @@ is placed, Peel and everyone draws more. Compete only, one to six players.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
-  - `timeout-result` — `timeout-no-winner`.
+  - `timeout-result` — `timeout-ranks-by-goal`.
 - **hints**
   - `hint` — check words: marks the board's invalid cells
     - `hint-free`, `hint-self-informative`
+
+**Target** — no line changes.
 
 **Mismatches**
 
@@ -740,9 +844,11 @@ scored by tile values and premium squares. Compete can seat AI players.
     - compete: `goal-intrinsic`: the highest score.
   - `goal-chosen` — none.
   - `goal-progress` — score.
-  - `score-formula` — each word's tile values, with premium squares; +50
-    for playing all seven tiles. At the end each rack's leftover tiles are
-    subtracted, and in compete the player who went out gains everyone's.
+  - `score-formula`
+    - each word: tile values, with premium squares
+    - +50 for playing all seven tiles
+    - at the end: −own leftover tiles
+    - compete, at the end: whoever went out +everyone's leftovers
 - **solving**
   - `solved` — n/a: nothing to complete.
   - `perfect-play` — n/a.
@@ -757,17 +863,31 @@ scored by tile values and premium squares. Compete can seat AI players.
   - `announce-when` — `announce-when-ended`.
   - `progress-shown` — `progress-shown-count`: score.
 - **ending**
-  - `natural-finish` — a player goes out with the bag empty; in compete
-    also every active seat passing in a row.
+  - `natural-finish`
+    - a player goes out with the bag empty
+    - compete: also every active seat passing in a row
   - `ends-when` — `ends-when-natural-finish`.
   - `timeout-result`
     - coop: everyone `lost`.
-    - compete: `timeout-best-progress`.
+    - compete: `timeout-ranks-by-progress` (BUG: before anyone plays a word,
+      the lightest rack wins).
   - `no-result` — coop, at its `natural-finish`.
 - **hints**
   - `hint` — a suggested move
     - coop: `hint-free`
     - compete: `hint-banned`
+
+**Target**
+
+- **goal**
+  - `game-goal`
+    - coop: `goal-intrinsic`: go out. → todo: going out wins coop.
+- **ending**
+  - `timeout-result`
+    - coop: `timeout-ranks-by-goal`.
+    - compete: `timeout-ranks-by-progress`. → todo: a compete timeout before
+      anyone plays.
+  - `no-result` — none.
 
 **Mismatches**
 
@@ -777,17 +897,7 @@ scored by tile values and premium squares. Compete can seat AI players.
   and coop's manual end (`'manual'`) and the last concede (`'conceded'`) run
   through it too.
 
-**Surprises and ruling ideas**
-
-1. **A coop timeout is a loss in a `goal-none` game.** Settled: going out
-   is coop's goal, so the timeout's loss follows. Filed in
-   `src/scrabble/todo.md`.
-2. **A compete timeout before anyone scores crowns the lightest rack.** Every
-   score is 0, the leftovers are subtracted, and the least negative wins.
-   Filed in `src/scrabble/todo.md`.
-3. **The leaderboard ranks conceders among the players**, as setgame's does;
-   `final-ranking` leaves them out. Filed in
-   `plans/cross-game-consistency.md` §3b → one leaderboard per compete game.
+**Surprises and ruling ideas** — none.
 
 ### setgame
 
@@ -820,12 +930,14 @@ deck deals out onto the table as sets are claimed.
   - `natural-finish` — the deck spent, and no set on the table.
   - `ends-when` — `ends-when-natural-finish`.
   - `timeout-result`
-    - coop: `timeout-no-winner`.
-    - compete: `timeout-best-progress`; if nobody scored, `timeout-no-winner`.
+    - coop: `timeout-ranks-by-goal`.
+    - compete: `timeout-ranks-by-progress`.
 - **hints**
   - `hint` — one more card of a set on the table, per press
     - coop: `hint-free`, `hint-recorded`
     - compete: `hint-banned`
+
+**Target** — no line changes.
 
 **Mismatches** — none.
 

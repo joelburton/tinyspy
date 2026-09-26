@@ -269,7 +269,8 @@ is retired.
     budget; it is the act that ended the game that counts.
 - **`goal-progress`** — a player's measurable movement toward the
   `game-goal`: words found, categories solved, score. Each game that uses it
-  names its own measure.
+  names its own measure. A player has made progress when their measure is
+  above zero.
 - **`score-formula`** — how a game counts a player's score: what earns
   points, and how many (spellingbee: one point for a four-letter word, one
   per letter for a longer one, and a bonus for a pangram). Each game that
@@ -356,21 +357,21 @@ is retired.
   - **`timer-countdown`** — runs down to zero: the only timer that can end a
     game.
 - **`timeout`** — a `timer-countdown` reaching zero.
-- **`timeout-result`** — what happens at a `timeout`. When nobody has
-  `reached-goal`, each game is one of:
-  - **`timeout-no-winner`** — nobody won; the `game-goal` existed and nobody
-    met it, so everyone `lost` (in coop, the team).
-  - **`timeout-best-progress`** — the best `goal-progress` wins.
+- **`timeout-result`** — what happens at a `timeout`: how the players are
+  ranked when the timer runs out. Each game is one of:
+  - **`timeout-ranks-by-goal`** — only players who `reached-goal` are
+    ranked, by `ranked-by`. A player who fell short isn't ranked, so they
+    `lost`. If nobody reached the goal, everyone `lost`
+    (`timeout-no-winner`).
+  - **`timeout-ranks-by-progress`** — every player who made progress is
+    ranked, by `goal-progress`. A player who made none isn't ranked, so they
+    `lost`. If nobody made progress, everyone `lost` (`timeout-no-winner`).
   - **`timeout-no-result`** — nobody won and nobody lost: the `game-goal`
     existed and nobody met it, but missing it is no loss (a coop word hunt
-    with no target, whose goal is every required word). The same neutral
-    tone as `no-result`.
-
-  When some players have — possible only in a game that plays on after it is
-  `decided` — each such game is:
-  - **`timeout-ranking-stands`** — the timeout ends the game and the
-    `final-ranking` of those who `reached-goal` stands; the players still
-    playing `lost`.
+    with no target). The same neutral tone as `no-result`.
+- **`timeout-no-winner`** — the outcome when a timeout ranks nobody: nobody
+  won, and everyone `lost` (in coop, the team). A result, not a choice a
+  game makes.
 - **`announce-when`** — when results are told; each game is one of:
   - **`announce-when-decided`** — the winner is told as soon as the game is
     `decided`.
@@ -454,7 +455,7 @@ is retired.
   team shares one: 1 when it won, none when it did not. A player who failed
   — `eliminated`, `conceded`, or short of a finish line the game has — is not
   ranked (`no-best-of-the-losers`); in a `score-only-contest` that leaves
-  everyone who didn't concede. Players level on every step of `ranked-by`
+  everyone who didn't concede and made progress. Players level on every step of `ranked-by`
   share a ranking, and the next one skips: two tied for first are both 1,
   and the player after them is 3. A ranking of 1 is `won`; any other ranking
   is `lost`.
