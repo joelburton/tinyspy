@@ -267,6 +267,12 @@ is retired.
 - **`goal-progress`** — a player's measurable movement toward the
   `game-goal`: words found, categories solved, score. Each game that uses it
   names its own measure.
+- **`author-solution`** — the solution the board was built with: what
+  "reveal solution" shows (spellingbee's word list, psychicnum's three
+  secrets, the author's crossword grid).
+  - Doesn't mean: the only valid solution. Where several are valid
+    (crosswords, letterboxed, wordiply), a player can solve without it; see
+    `matched-author-solution`.
 - **`ranked-by`** — how a compete game judges its players at the end
   (fewest guesses, highest score), with its **`tiebreak`**s in order
   (wordle: then faster time; scrabble: then the higher score before
@@ -297,24 +303,29 @@ is retired.
   - Doesn't mean: the game `ended`. When the game ends — a Stop, a `timeout`,
     a win — players who were still playing are not player-done; the game is
     over.
-- **`loses-by`** — what the game's own rules make a player (or team) lose
-  by, short of a `timeout`: in compete what makes a player `eliminated`, in
-  coop what fails the team. One of:
-  - **`move-budget`** — every move spends it, right or wrong (guesses, swaps).
-  - **`mistake-budget`** — only a wrong move spends it, so perfect play
-    cannot lose.
-  - **`sudden-death`** — one fatal act ends it.
-  - **`timeout-only`** — nothing to exhaust; only a `timeout` can end it in a
-    loss.
+- **`loses-by`** — what, other than someone else winning, makes a player
+  (or team) lose: in compete what makes a player `eliminated`, in coop what
+  fails the team. One of:
+  - **`loses-by-move-budget`** — every move spends it, right or wrong
+    (guesses, swaps).
+  - **`loses-by-mistake-budget`** — only a wrong move spends it, so perfect
+    play cannot lose.
+  - **`loses-by-sudden-death`** — one fatal act ends it.
+  - **`loses-by-timeout-only`** — nothing to exhaust; only a `timeout` can
+    end it in a loss.
+  - **`loses-by-none`** — nothing: a player loses only because someone else
+    `won` (setgame compete, whose `timeout` crowns the leader).
 - **`ends-when`** — when a compete game ends; each compete game is one of:
   - **`ends-when-decided`** — as soon as it is `decided` (crosswords: the
     first to solve it).
   - **`ends-when-all-done`** — only when every player is `player-done`, so the rest
     play on after it is `decided` (wordle: short, and fun to finish).
   - **`ends-when-one-left`** — with two or more players, when only one is not
-    yet `player-done` (spellingbee: the last player needn't reach the
-    `game-goal` to end it). A solo game ends when its one player is
-    `player-done`.
+    yet `player-done`: the last player needn't reach the `game-goal` to end
+    it. A solo game ends when its one player is `player-done`.
+  - **`ends-when-natural-finish`** — for everyone at once, at its
+    `natural-finish`, however long before that it was `decided` (setgame:
+    a player already beaten plays the deck out).
 - **`timer`** — the game's timer: what `setup.timer` chooses and what the
   screen shows — none, `timer-countup`, or `timer-countdown`. Never "clock".
   - **`timer-countup`** — shows the time elapsed; ends nothing.
@@ -374,12 +385,12 @@ is retired.
   is not applicable, not false.
   - Doesn't mean: `won` — a player with perfect play can lose to an equally
     good game played faster.
-- **`author-solution`** — the player's solution is exactly the one the board
-  was made with (the author's crossword grid; letterboxed's two built-in
-  words; wordiply's longest word the board was built around, which is
-  `perfect-play` too). Meaningful only where several different solutions are valid. A
-  fact the game uses — it decides whether "reveal solution" is offered on a
-  solved game — not an outcome shown to the player.
+- **`matched-author-solution`** — the player's solution is exactly the
+  game's `author-solution` (the author's crossword grid; letterboxed's two
+  built-in words; wordiply's longest word the board was built around, which
+  is `perfect-play` too). Meaningful only where several different solutions
+  are valid. A fact the game uses — it decides whether "reveal solution" is
+  offered on a solved game — not an outcome shown to the player.
   - Doesn't mean: `solved` or `perfect-play` — both can hold without it.
 - **`won`** — decided by the game's `ranked-by`.
   - In coop, the whole team wins or doesn't.
@@ -404,12 +415,13 @@ is retired.
 - **`eliminated`** — out by the game's own rules (out of guesses, out of
   mistakes). The player has `lost`, at once, while the others play on.
 - **`final-ranking`** — the order the players end in, by `ranked-by` and its
-  `tiebreak`s, in a game that plays on after it is `decided`
-  (`ends-when-all-done`, `ends-when-one-left`). Only players who
-  `reached-goal` are ranked; ties share a place. First is `won`; every other
-  place is `lost`.
-  - Doesn't mean: anything for an `eliminated` or `conceded` player — they
-    are not ranked.
+  `tiebreak`s, in a game that plays on after it is `decided`. A player who
+  failed — `eliminated`, `conceded`, or short of a finish line the game has —
+  is not ranked (`no-best-of-the-losers`); in a score contest that leaves
+  everyone who didn't concede. Ties share a place. First is `won`; every
+  other place is `lost`.
+  - Doesn't mean: the players who are, or aren't, `player-done`. A solver is
+    `player-done` and ranked; a conceder is `player-done` and not.
 
 ### Hints
 

@@ -520,7 +520,8 @@ some compete games let only a `player-done` player Stop; once none do,
   cannot be `play_state === 'ended'` alone.
 - **Bug, per Joel's rule**: an open-ended compete word hunt has no goal, so
   End must adjudicate "most points at the end", as the clock already does.
-  boggle, spellingbee and wordwheel compete End with nobody winning.
+  boggle and wordwheel compete End with nobody winning. (Not spellingbee: its
+  compete always has a target — see its game card.)
 - **Bug**: `result.won` is not written everywhere — boggle coop writes no
   per-player result on any ending (a win included), and wordiply coop writes
   `{finished: true}` with no `won` key. Stored data: a migration and backfill.
