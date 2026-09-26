@@ -35,7 +35,8 @@ explanation; the card carries none. psychicnum's card is the model. The rules:
 - **Hints:** one item per hint the game offers, titled by its kind (`hint`,
   or `hint-spoiler`; the title repeats for two of a kind), then a few words
   on what it hands over. Its tags go on a sub-line beneath: every hint tag
-  that applies — the cost, `hint-self-informative`, `hint-recorded`. Never a
+  that applies — the cost, `hint-earned`, `hint-self-informative`,
+  `hint-recorded`. Never a
   negative, and never `hint` or `hint-spoiler`: the title already says it.
 
 Below each card:
@@ -63,7 +64,7 @@ with words (letterboxed, wordiply, bananagrams) · score contests (scrabble,
 setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
-waffle, crosswords, strands.
+waffle, crosswords, strands, stackdown.
 
 ## Word hunts
 
@@ -180,7 +181,7 @@ grid, compete gives each player their own.
   - `hint` — check a letter, word or puzzle: marks the wrong letters
     - `hint-free`, `hint-self-informative`
   - `hint-spoiler` — reveal a letter, word or puzzle
-    - coop: `hint-free`
+    - coop: `hint-free`, `hint-recorded`
     - compete: `hint-banned`
 
 **Mismatches**
@@ -295,8 +296,8 @@ each. Other valid words fill a bar that buys a hint.
     - compete: `timeout-ranking-stands`; if nobody solved, `timeout-no-winner`.
 - **hints**
   - `hint` — rings an unfound theme word's tiles, not their order
-    - coop: `hint-earned`, `hint-recorded`
-    - compete: `hint-earned`, `hint-scored`, `hint-recorded`
+    - coop: `hint-free`, `hint-earned`, `hint-recorded`
+    - compete: `hint-scored`, `hint-earned`, `hint-recorded`
 
 **Mismatches**
 
@@ -316,6 +317,49 @@ each. Other valid words fill a bar that buys a hint.
    no-winner ending there is always `'conceded'`. Filed in
    `src/strands/todo.md`.
 2. **Beaten solvers get no place**, as in waffle: only the winner is recorded.
+
+### stackdown
+
+A stack of overlapping tiles that spells six words; clear them in order,
+each from the tiles left exposed.
+
+- **goal**
+  - `game-goal` — `goal-intrinsic`: the stack cleared.
+  - `goal-chosen` — none.
+  - `goal-progress` — words cleared.
+- **solving**
+  - `solved` — the stack cleared.
+  - `perfect-play` — no hints, no spoilers.
+  - `author-solution` — the six words, in order; the only one.
+- **winning and losing**
+  - `ranked-by` — first to reach `game-goal`.
+  - `loses-by` — `loses-by-timeout-only`.
+  - `announce-when` — `announce-when-decided`.
+- **ending**
+  - `natural-finish` — none.
+  - `ends-when` — `ends-when-decided`.
+  - `timeout-result` — `timeout-no-winner`.
+- **hints**
+  - `hint` — a clue for the next word
+    - `hint-free`, `hint-recorded`
+  - `hint-spoiler` — the next word
+    - `hint-free`, `hint-recorded`
+
+**Mismatches**
+
+- `docs/games/stackdown.md` → The status blob (`common.games.status`) names
+  the key `outcome`, and the label's "`outcome`-keyed loss phrasing"; the
+  code writes and reads `reason`.
+- `docs/games/stackdown.md` §5.2 and `reveal_next_word`'s header call the
+  spoiler a playtest cheat that "may be removed once boards are trusted"; it
+  is the game's spoiler, the way out for a stuck player.
+
+**Surprises and ruling ideas**
+
+1. **Compete's hint and spoiler break `hint-priced`**, as psychicnum's do:
+   both free, and neither `hint-self-informative`.
+2. **A compete win writes no `reason`**, as in crosswords; coop's writes
+   `'cleared'`, where waffle, crosswords and strands write `'solved'`.
 
 ## Build with words
 
@@ -419,9 +463,4 @@ deck deals out onto the table as sets are claimed.
 
 ## Gaps in the terms
 
-- **A hint kept on the board, with no move log.** crosswords has no log, but
-  each revealed cell keeps its `revealed` flag and shows it. `hint-recorded`
-  says "stored with the game and shown in its move log" — does this count?
-- **A hint with two costs.** A hint's cost is "exactly one of" banned,
-  earned, scored or free; a strands compete hint is earned (the bar) and
-  scored (`ranked-by` counts it).
+None open.

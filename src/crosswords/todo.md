@@ -28,6 +28,8 @@
 
 ## Soon
 
+- Investigate how we flag check/reveal.
+
 - **Collapse the info-column action row's branches.** This game still FORKS on
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these

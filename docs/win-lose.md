@@ -424,14 +424,17 @@ is retired.
 ### Hints
 
 A **hint** is what a game hands a stuck player ([Vocabulary](#vocabulary)).
-Three independent things describe a game's hints, and each mode of a game
-answers them separately (hints may be banned in compete and free in coop).
+Independent things describe a game's hints, and each mode of a game answers
+them separately (hints may be banned in compete and free in coop).
 
 - **What a hint costs** — exactly one of:
   - **`hint-banned`** — not offered at all (setgame compete).
-  - **`hint-earned`** — won by play before it can be used (strands).
-  - **`hint-scored`** — counted in the game's `ranked-by`.
-  - **`hint-free`** — costs nothing.
+  - **`hint-scored`** — counted in the game's `ranked-by` (strands compete).
+  - **`hint-free`** — costs nothing to use.
+- **`hint-earned`** — won by play before it can be used (strands' bar). Goes
+  with `hint-free` or `hint-scored`, never `hint-banned`.
+  - Doesn't mean: a cost. Earning decides when a hint is there to use, not
+    what using it costs.
 - **`hint-self-informative`** — what a hint tells: it can tell a player they
   are wrong, never hand them progress.
   - Doesn't mean: `hint-free`. A free hint may hand over progress, and a
@@ -447,12 +450,12 @@ answers them separately (hints may be banned in compete and free in coop).
     `hint`, however much it gives: strands rings a word's tiles but not
     their order.
   - Never `hint-self-informative`: handing over the answer is progress.
-- **`hint-recorded`** — a hint is stored with the game and shown in its move
-  log. Any of the costs may be recorded or not.
+- **`hint-recorded`** — a hint is stored with the game. Any of the costs may
+  be recorded or not.
   - Doesn't mean: `hint-scored` — a recorded hint may cost nothing.
 - **`hint-priced`** — the name of the existing compete rule ("the priced-hint
   rule" in the code and the older text), stated in these terms: in compete a
-  hint is `hint-banned`, `hint-earned`, `hint-scored`, or `hint-free` and
+  hint is `hint-banned`, `hint-scored`, `hint-earned`, or `hint-free` and
   `hint-self-informative`. Recorded here as the rule that stands today, not
   ruled anew.
 
