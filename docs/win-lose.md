@@ -240,18 +240,17 @@ is retired.
   can be won or lost has one.
   - **`goal-intrinsic`** — the game's own goal: find the word (wordle), turn
     the board all green (waffle), go out (bananagrams), the highest score
-    (scrabble compete).
+    (scrabble compete), every required word (spellingbee, wordwheel,
+    boggle).
   - **`goal-chosen`** — an easier goal picked at setup in place of the
-    `goal-intrinsic`: reach Genius in spellingbee.
-  - **`goal-none`** — the game has no goal, so it cannot be won or lost:
-    spellingbee, wordwheel and boggle coop with no target. A score is only a
-    goal as a contest between players, and every word is out of reach.
-  - A goal is something a table can reasonably reach. Finding every word in
-    a bee game is not, so it is `solved` there, never the goal: missing it is
-    no loss.
+    `goal-intrinsic`: reach Genius in spellingbee. With none picked, the
+    `game-goal` is the `goal-intrinsic`.
+  - **`goal-none`** — the game has no goal, so it cannot be won or lost: an
+    imagined game where the players just enter words they like. A score is
+    only a goal as a contest between players.
   - A score contest is a `game-goal` only in a game with a `natural-finish`
     or a `timer-countdown`: something has to say when the points are judged
-    (boggle compete with no target: the top score when time runs out).
+    (setgame compete: the most sets when the deck is spent).
 - **`natural-finish`** — an end the game reaches by its own rules: the bag
   runs out, the deck is spent, the guesses are used up.
   - Doesn't mean: a `timeout`. A timeout is never a
@@ -259,6 +258,8 @@ is retired.
   - Doesn't mean: reaching the `game-goal`. A natural-finish ends play
     whether or not anyone met the goal; a crossword ends only by being solved,
     so it has none.
+  - Conceded players are left out: "every player's guesses spent" means every
+    player who hasn't conceded.
   - A fact about the gametype: setgame has one whether or not a given game
     gets there. For a game that ended that way, see `reached-natural-finish`.
 - **`reached-natural-finish`** — this game ended at its `natural-finish`: the
@@ -349,6 +350,10 @@ is retired.
   - **`timeout-no-winner`** — nobody won; the `game-goal` existed and nobody
     met it, so everyone `lost` (in coop, the team).
   - **`timeout-best-progress`** — the best `goal-progress` wins.
+  - **`timeout-no-result`** — nobody won and nobody lost: the `game-goal`
+    existed and nobody met it, but missing it is no loss (a coop word hunt
+    with no target, whose goal is every required word). The same neutral
+    tone as `no-result`.
 
   When some players have — possible only in a game that plays on after it is
   `decided` — each such game is:
@@ -392,15 +397,13 @@ is retired.
   deck cleared of sets (setgame).
   - Where a game has nothing to complete (scrabble), it is not applicable,
     not false.
-  - Doesn't mean: `reached-goal`. A coop bee game with no target has no goal,
-    yet finding every word there is `solved`, and not `won`.
+  - Doesn't mean: `reached-goal`; see there.
   - Doesn't mean: `won`. Nor is it needed to win: a compete game's
     `ranked-by` can crown a player who never solved (the most sets in
     setgame, the best score at a `timeout` in wordiply).
 - **`perfect-play`** — `solved` in the best possible way: wordle in one guess,
-  letterboxed in two words, waffle at par. Measured in moves,
-  never time. Implies `solved`. In some games every solve is perfect
-  (setgame). Each game that has it names what counts (connections with no
+  letterboxed in two words, waffle at par. Measured in moves, never time.
+  Implies `solved`. Each game that has it names what counts (connections with no
   mistakes? strands with no hints?); where a game has no such distinction, it
   is not applicable, not false.
   - Doesn't mean: `won` — a player with perfect play can lose to an equally
@@ -423,8 +426,8 @@ is retired.
   - in compete, someone else `won` (every place in the `final-ranking`
     below first is lost), or the player was `eliminated`, or `conceded`, or their `game-goal`
     became impossible.
-  - Doesn't mean: "didn't win". A player in a `stopped` or `no-result` game
-    who had not conceded neither won nor lost.
+  - Doesn't mean: "didn't win". A player in a `stopped` or `no-result` game,
+    or at a `timeout-no-result`, who had not conceded neither won nor lost.
 - **`conceded`** — a compete player voluntarily withdrew: a loss by choice.
   The player has `lost`; conceded says how, as `eliminated` does. Compete
   only. Never "quit".

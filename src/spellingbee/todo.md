@@ -27,6 +27,15 @@
   boggle's does. The setup form offers None in compete only with a countdown.
   wordwheel's todo carries the same change.
 
+- **Every required word is the `goal-intrinsic`: coop with no target wins
+  on it.** With no target rank chosen, the game's goal is every required
+  word (docs/win-lose.md → `goal-intrinsic`). Today finding every required
+  word ends and wins nothing (`gameplay_test` pins "coop has no end at a
+  full clear"). The change: a coop game with no target is `won` when the
+  team finds every required word. Its timeout stays neutral, as it is
+  today: `timeout-no-result`, since missing every word is no loss.
+  wordwheel's and boggle's todos carry the same change.
+
 - **The `WordList` marker vocabulary** — ◐ ("more than one player found this
   word", in the first finder's color) and ⦻ ("scored zero because more than one
   player found it"). Both are compete-mode readings this game's list would

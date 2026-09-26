@@ -26,6 +26,11 @@ explanation; the card carries none. psychicnum's card is the model. The rules:
   "none" or "n/a" (no `goal-chosen`; no `perfect-play` when a wrong word
   costs nothing). One that follows from another line goes (no `final-ranking` in a game that ends when
   decided, no `no-result` in a game with a goal).
+- **A card shows what the game does today, never a ruling.** A ruling not
+  yet built lives in the game's `todo.md`; the target cards come later, so
+  the two can be diffed.
+- **Where the terms can't say cleanly what the code does**, the line gives
+  the nearest term, then "(BUG: …)" saying what the code does.
 - **coop and compete sub-items only where the modes differ in substance.**
   "The team's in coop, each player's in compete" is what coop means, and
   never splits a line. Nor does a term that belongs to one mode by
@@ -181,7 +186,7 @@ score toward an optional target; bonus words score too.
   - `timeout-result`
     - coop: `timeout-no-winner`; without a target, `no-result`.
     - compete: `timeout-no-winner`; without a target,
-      `timeout-best-progress`, and if nobody scored, everyone `lost`.
+      `timeout-best-progress`, and if nobody scored, `timeout-no-winner`.
 - **hints** — none.
 
 **Mismatches**
@@ -221,7 +226,7 @@ guesses.
   - `ranked-by`
     1. fewest guesses
     2. the earlier solve
-  - `final-ranking` — only the winner is named.
+  - `final-ranking` — by `ranked-by` (BUG: only the winner is recorded).
   - `loses-by` — `loses-by-move-budget`.
   - `announce-when`
     - coop: `announce-when-decided`.
@@ -230,7 +235,7 @@ guesses.
     - `progress-shown-count`: guesses used.
     - `progress-shown-milestones`: solved.
 - **ending**
-  - `natural-finish` — the guesses spent.
+  - `natural-finish` — every player's guesses spent.
   - `ends-when` — `ends-when-all-done`.
   - `timeout-result`
     - coop: `timeout-no-winner`.
@@ -242,10 +247,7 @@ guesses.
 - `src/wordle/doc.md`, the SQL and the FE call compete a "race" and its
   players "racers"; the terms name wordle as not a `race-game`.
 
-**Surprises and ruling ideas**
-
-1. **Beaten solvers get no place**, as in waffle and strands: only the
-   winner is recorded.
+**Surprises and ruling ideas** — none.
 
 ### psychicnum
 
@@ -258,7 +260,7 @@ budget of 3, 5, 7 or 9.
   - `goal-progress` — secrets found.
 - **solving**
   - `solved` — all three found.
-  - `perfect-play` — three guesses, no misses.
+  - `perfect-play` — three guesses.
   - `author-solution` — the three secrets.
 - **winning and losing**
   - `ranked-by` — first to reach `game-goal`.
@@ -266,22 +268,22 @@ budget of 3, 5, 7 or 9.
   - `announce-when` — `announce-when-decided`.
   - `progress-shown` — `progress-shown-count`: secrets found.
 - **ending**
-  - `natural-finish` — last player spent budget.
+  - `natural-finish` — every player's budget spent.
   - `ends-when` — `ends-when-decided`.
   - `timeout-result` — `timeout-no-winner`.
 - **hints**
   - `hint` — a clue for an unfound secret
     - `hint-free`, `hint-recorded`
   - `hint-spoiler` — an unfound secret word
-    - `hint-free`, `hint-recorded`.
+    - `hint-free`, `hint-recorded`
 
 **Mismatches**
 
 - `src/psychicnum/doc.md` → Compete says "There is no way to stop a race for
-  the whole table — see `common/game-page/todo.md`." The code lets a player who
-  is out Stop it (`useStandardGameActions`, since `d29adb54`,
-  2026-09-24), `psychicnum.end_game` has no mode check, and
-  `common/game-page/todo.md` has no such item.
+  the whole table — see `common/game-page/todo.md`." Any compete player may
+  Stop (Concede's question offers it; End once `player-done`),
+  `psychicnum.end_game` has no mode check, and `common/game-page/todo.md` has
+  no such item.
 - `psychicnum.sql`, `concede`'s header: "the compete game ends only when EVERY
   player is done — either someone completed the set (immediate win) …" — this
   `race-game` ends at the first finish, which is not "every player done".
@@ -294,7 +296,7 @@ budget of 3, 5, 7 or 9.
    progress, so it is not `hint-self-informative`. The todo item should name
    both.
 2. **Is it perfect-play after a hint or spoiler?** The card says three
-   guesses, no misses, and nothing about either.
+   guesses, and nothing about either.
 3. **`reason = 'exhausted'` also covers an ending by concession.** When some
    players spent their budgets and the last one out conceded,
    `_maybe_finish_compete` writes `'exhausted'` (`'conceded'` only when EVERY
@@ -437,7 +439,7 @@ budget is par plus a few.
   - `ranked-by`
     1. fewest swaps
     2. the earlier solve
-  - `final-ranking` — only the winner is named.
+  - `final-ranking` — by `ranked-by` (BUG: only the winner is recorded).
   - `loses-by` — `loses-by-move-budget`.
   - `announce-when`
     - coop: `announce-when-decided`.
@@ -446,7 +448,7 @@ budget is par plus a few.
     - `progress-shown-count`: swaps used.
     - `progress-shown-milestones`: solved, out of swaps.
 - **ending**
-  - `natural-finish` — the swaps spent.
+  - `natural-finish` — every player's swaps spent.
   - `ends-when` — `ends-when-all-done`.
   - `timeout-result`
     - coop: `timeout-no-winner`.
@@ -474,12 +476,7 @@ budget is par plus a few.
 - Compete is called a "race" and its players "racers" throughout the SQL,
   the FE and the doc; ranked by swaps, it is not a `race-game`.
 
-**Surprises and ruling ideas**
-
-1. **Beaten solvers get no place.** Compete plays on after it is `decided`,
-   but only the winner is recorded; a second solver is `lost`, the same as a
-   player who ran out of swaps. By `final-ranking`, solvers would be ranked
-   by swaps, then time.
+**Surprises and ruling ideas** — none.
 
 ### strands
 
@@ -499,7 +496,7 @@ each. Other valid words fill a bar that buys a hint.
     1. fewest hints
     2. the earlier solve
     3. `co-winners`
-  - `final-ranking` — only the winner is named.
+  - `final-ranking` — by `ranked-by` (BUG: only the winner is recorded).
   - `loses-by` — `loses-by-timeout-only`.
   - `announce-when`
     - coop: `announce-when-decided`.
@@ -535,7 +532,6 @@ each. Other valid words fill a bar that buys a hint.
    every player has solved or conceded, and a solver cannot concede; so a
    no-winner ending there is always `'conceded'`. Filed in
    `src/strands/todo.md`.
-2. **Beaten solvers get no place**, as in waffle: only the winner is recorded.
 
 ### stackdown
 
@@ -548,7 +544,7 @@ each from the tiles left exposed.
   - `goal-progress` — words cleared.
 - **solving**
   - `solved` — the stack cleared.
-  - `perfect-play` — no hints, no spoilers.
+  - `perfect-play` — no hints.
   - `author-solution` — the six words, in order; the only one.
 - **winning and losing**
   - `ranked-by` — first to reach `game-goal`.
@@ -595,7 +591,7 @@ until all twelve are used. The chain has a word cap; undo refunds.
   - `goal-progress` — letters covered.
 - **solving**
   - `solved` — all twelve letters, within the cap.
-  - `perfect-play` — two words, no hints or spoilers.
+  - `perfect-play` — two words, no hints.
   - `author-solution` — the two seed words.
   - `matched-author-solution` — not read: Reveal is offered on every ended
     game.
@@ -665,27 +661,31 @@ across all five.
   - `announce-when` — `announce-when-ended`.
   - `progress-shown` — `progress-shown-count`: guesses used.
 - **ending**
-  - `natural-finish` — every five guesses spent, a conceder's aside.
+  - `natural-finish` — every player's five guesses spent.
   - `ends-when` — `ends-when-all-done`.
   - `timeout-result`
     - coop: everyone `lost`.
-    - compete: `timeout-best-progress`; if nobody scored, everyone `lost`.
+    - compete: `timeout-best-progress`; if nobody scored, `timeout-no-winner`.
   - `no-result` — coop, at its `natural-finish`.
 - **hints** — none.
 
 **Mismatches**
 
-- Coop's goal is ruled `goal-intrinsic`, five words; the code still ends a
-  coop game neutral on the fifth guess. The change is in
-  `src/wordiply/todo.md`; this card shows today's behavior.
 - `docs/games/wordiply.md` → `status` jsonb: the key is shown as
   `"outcome": "complete" | "timeout" | "manual" | "conceded"`. The code
   writes those values under `reason` (`conceded` from `common.concede`).
 
 **Surprises and ruling ideas**
 
-1. **Is there a `perfect-play`?** `solved` is five words found; the best solve would add a longest possible word and the most letters possible.
+1. **A coop timeout is a loss in a `goal-none` game.** Settled: five words
+   is coop's goal, so the timeout's loss follows. Filed in
+   `src/wordiply/todo.md`; the code still ends a coop game neutral on the
+   fifth guess.
+2. **Is there a `perfect-play`?** `solved` is five words found; the best
+   solve would add a longest possible word and the most letters possible.
    Or it stays n/a.
+3. **The leaderboard ranks conceders among the players**, as scrabble's and
+   setgame's do; `final-ranking` leaves them out.
 
 ### bananagrams
 
@@ -747,7 +747,6 @@ scored by tile values and premium squares. Compete can seat AI players.
   - `ranked-by`
     1. the highest score, after leftover tiles
     2. `co-winners`
-  - `final-ranking` — the leaderboard, by score.
   - `loses-by`
     - coop: `loses-by-timeout-only`.
     - compete: `loses-by-none`.
@@ -797,13 +796,12 @@ deck deals out onto the table as sets are claimed.
   - `goal-progress` — sets found.
 - **solving**
   - `solved` — the deck cleared of sets.
-  - `perfect-play` — every solve: a non-set can't be claimed.
+  - `perfect-play` — no hints.
   - `author-solution` — none: nothing is hidden.
 - **winning and losing**
   - `ranked-by`
     1. most sets found
     2. `co-winners`
-  - `final-ranking` — by sets found.
   - `loses-by`
     - coop: `loses-by-timeout-only`.
     - compete: `loses-by-none`.
@@ -816,7 +814,7 @@ deck deals out onto the table as sets are claimed.
   - `ends-when` — `ends-when-natural-finish`.
   - `timeout-result`
     - coop: `timeout-no-winner`.
-    - compete: `timeout-best-progress`; if nobody scored, everyone `lost`.
+    - compete: `timeout-best-progress`; if nobody scored, `timeout-no-winner`.
 - **hints**
   - `hint` — one more card of a set on the table, per press
     - coop: `hint-free`, `hint-recorded`
@@ -830,8 +828,7 @@ deck deals out onto the table as sets are claimed.
    their sets but is ranked out, and the game plays on to the deck's end. So
    when the leader concedes, the last player left wins with any count above
    zero. They do have to play the deck out, so the win is not simply
-   outliving; still, it is the nearest thing to a survival win on the cards
-   so far.
+   outliving; still, it is the nearest thing to a survival win on any card.
 
 ## Gaps in the terms
 

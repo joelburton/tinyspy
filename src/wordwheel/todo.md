@@ -14,6 +14,13 @@
   plans/cross-game-consistency.md §3b, "a compete word hunt needs a target,
   a countdown, or both".
 
+- **Every required word is the `goal-intrinsic`: coop with no target wins
+  on it.** The same change as spellingbee's (`src/spellingbee/todo.md`),
+  for the same ending code: today finding every required word ends and wins
+  nothing; a coop game with no target should be `won` when the team finds
+  every required word, and its timeout stays the neutral
+  `timeout-no-result`.
+
 ## Maybe
 
 - **`s`-heavy seeds.** An `s` tile lets each word pluralize once — the classic
