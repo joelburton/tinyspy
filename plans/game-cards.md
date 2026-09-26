@@ -65,7 +65,7 @@ setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
 waffle, crosswords, strands, stackdown, wordwheel, boggle, wordle,
-codenamesduet, connections.
+codenamesduet, connections, letterboxed.
 
 ## Word hunts
 
@@ -547,6 +547,60 @@ each from the tiles left exposed.
    `'cleared'`, where waffle, crosswords and strands write `'solved'`.
 
 ## Build with words
+
+### letterboxed
+
+Twelve letters, three on each side of a square; chain words, each starting
+with the last one's final letter, never two letters from one side in a row,
+until all twelve are used. The chain has a word cap; undo refunds.
+
+- **goal**
+  - `game-goal` — `goal-intrinsic`: all twelve letters, within the cap.
+  - `goal-chosen` — none.
+  - `goal-progress` — letters covered.
+- **solving**
+  - `solved` — all twelve letters, within the cap.
+  - `perfect-play` — two words, no hints or spoilers.
+  - `author-solution` — the two seed words.
+  - `matched-author-solution` — not read: Reveal is offered on every ended
+    game.
+- **winning and losing**
+  - `ranked-by` — first to reach `game-goal`.
+  - `loses-by`
+    - coop: `loses-by-timeout-only`.
+    - compete: `loses-by-none`.
+  - `announce-when` — `announce-when-decided`.
+- **ending**
+  - `natural-finish` — none.
+  - `ends-when` — `ends-when-decided`.
+  - `timeout-result`
+    - coop: `timeout-no-winner`.
+    - compete: `timeout-best-progress`:
+      1. most letters covered
+      2. fewest words
+      3. `co-winners`
+- **hints**
+  - `hint` — the next word's length and first letters
+    - coop: `hint-free`, `hint-recorded`
+    - compete: `hint-banned`
+  - `hint-spoiler` — the next word
+    - coop: `hint-free`, `hint-recorded`
+    - compete: `hint-banned`
+
+**Mismatches**
+
+- `docs/games/letterboxed.md` → Play states: compete is `lost_compete` for "a
+  timed-out race nobody scored in"; `submit_timeout` has no such case, and
+  writes `won_compete` whatever the coverage.
+
+**Surprises and ruling ideas**
+
+1. **A compete timeout crowns players who covered nothing.** With every
+   chain empty, every player still in ties on zero and is a `co-winner`;
+   boggle guards against this ("if nobody scored, everyone `lost`").
+2. **No terminal writes a `reason`.** letterboxed says how it ended with its
+   own flags (`solved`, `timed_out`, `stopped`), where the other games write
+   `reason`.
 
 ### wordiply
 
