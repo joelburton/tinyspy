@@ -64,7 +64,7 @@ with words (letterboxed, wordiply, bananagrams) · score contests (scrabble,
 setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
-waffle, crosswords, strands, stackdown, wordwheel.
+waffle, crosswords, strands, stackdown, wordwheel, boggle.
 
 ## Word hunts
 
@@ -128,6 +128,56 @@ Its ending code is spellingbee's.
 change is in `src/wordwheel/todo.md`.)
 
 **Surprises and ruling ideas** — none.
+
+### boggle
+
+A grid of letter dice; trace words through touching dice. Required words
+score toward an optional target; bonus words score too.
+
+- **goal**
+  - `game-goal` — `goal-chosen` when a target is set; with none, `goal-none`.
+  - `goal-chosen` — a share of the required words' points, 50% to 100%.
+  - `goal-progress` — points; the target counts required words only.
+- **solving**
+  - `solved` — every required word found; only a 100% target reads it.
+  - `perfect-play` — n/a: a wrong word costs nothing.
+  - `author-solution` — the word lists.
+- **winning and losing**
+  - `ranked-by`
+    - with a target: first to reach it.
+    - without a target:
+      1. most points
+      2. `co-winners`
+  - `loses-by`
+    - with a target: `loses-by-timeout-only`.
+    - without a target: `loses-by-none`.
+  - `announce-when`
+    - with a target: `announce-when-decided`.
+    - without a target: `announce-when-ended`.
+- **ending**
+  - `natural-finish` — none.
+  - `ends-when`
+    - with a target: `ends-when-decided`.
+    - without a target: none.
+  - `timeout-result`
+    - coop: `timeout-no-winner`; without a target, `no-result`.
+    - compete: `timeout-no-winner`; without a target,
+      `timeout-best-progress`, and if nobody scored, everyone `lost`.
+- **hints** — none.
+
+**Mismatches**
+
+- `docs/games/boggle.md` → 1. The game: with no target, "you hunt until the
+  timer expires, a player hits **End game**, or (compete) everyone's done — a
+  neutral end." In compete the timeout crowns the top score, and everyone
+  conceding is a `lost_compete`.
+- `docs/games/boggle.md` §7 names `_finish`'s parameter `outcome`; it is
+  `reason`.
+
+**Surprises and ruling ideas**
+
+1. **Two measures of points.** A target counts required words only; the
+   no-target score race counts bonus words too.
 
 ## Guess what's hidden
 
@@ -494,4 +544,7 @@ deck deals out onto the table as sets are claimed.
 
 ## Gaps in the terms
 
-None open.
+- **A `goal-none` game whose `timeout` crowns someone.** The same game has
+  no goal (a score contest is a `game-goal` only with a `natural-finish`),
+  yet its timeout is `timeout-best-progress`, which needs one. See
+  cross-game-consistency §3b's open question 1.

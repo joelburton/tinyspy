@@ -317,7 +317,10 @@ is retired.
     end it in a loss.
   - **`loses-by-none`** — nothing: a player loses only because someone else
     `won` (setgame compete, whose `timeout` crowns the leader).
-- **`ends-when`** — when a compete game ends; each compete game is one of:
+- **`ends-when`** — when a compete game ends, besides a Stop or a
+  `timeout`, which end every game; each compete game is one of the cases
+  below, or none: nothing in play ends it, only the Stop or the `timeout`
+  (boggle compete without a target).
   - **`ends-when-decided`** — as soon as it is `decided` (crosswords: the
     first to solve it).
   - **`ends-when-all-done`** — only when every player is `player-done`, so the rest
