@@ -515,7 +515,7 @@ read before anything below, which predates them.
   coop's bag played out, wordiply coop's five guesses spent). So `'noResult'`
   cannot be `play_state === 'ended'` alone.
 - **Not a bug** (Joel, 2026-09-25): a Stop stays neutral in every game, a
-  score contest included. The scores stay readable on the ended game, so a
+  `score-only-contest` included. The scores stay readable on the ended game, so a
   table that wants "play until we stop, then see who's ahead" sets a long
   countdown and stops early. The one game nothing could crown goes by the
   rule below.
@@ -549,7 +549,7 @@ target, the countdown crowns the top score (and nobody, if nobody scored).
 spellingbee and wordwheel gain compete with no target when a countdown is
 set, for "best score in ten minutes"; boggle loses the untimed compete game
 with no target, which nobody could win. Each game's `todo.md` carries its
-half. `docs/win-lose.md`'s score-contest rule already counts a countdown.
+half. `docs/win-lose.md`'s `score-only-contest` rule already counts a countdown.
 
 **Open questions for Joel:**
 

@@ -35,6 +35,8 @@ explanation; the card carries none. psychicnum's card is the model. The rules:
   "The team's in coop, each player's in compete" is what coop means, and
   never splits a line. Nor does a term that belongs to one mode by
   definition: it is one line.
+- **`score-formula`:** under goal, after `goal-progress`, naming what the
+  game's score is. A game that keeps no score leaves it out.
 - **`ranked-by`:** one step, on its line; several, as a numbered sublist in
   order. What happens when all are level (`co-winners`) is a step too.
 - **`progress-shown`:** under winning and losing, after `announce-when`;
@@ -78,8 +80,8 @@ terms have no word for.
 **Groups** — the cards are written in this order: word hunts (spellingbee,
 wordwheel, boggle) · guess what's hidden (wordle, psychicnum, codenamesduet,
 connections) · solve the grid (crosswords, waffle, strands, stackdown) · build
-with words (letterboxed, wordiply, bananagrams) · score contests (scrabble,
-setgame).
+with words (letterboxed, wordiply, bananagrams) · score-only contests
+(scrabble, setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
 waffle, crosswords, strands, stackdown, wordwheel, boggle, wordle,
@@ -99,6 +101,8 @@ climb a rank ladder, Start to Genius.
     - compete: `goal-chosen`, always.
   - `goal-chosen` — a target rank, Good to Genius.
   - `goal-progress` — points, read as a rank.
+  - `score-formula` — points, for every word found, bonus words too: 1 for
+    four letters, one per letter for longer; +10 for a pangram.
 - **solving**
   - `solved` — every required word found; nothing reads it.
   - `perfect-play` — n/a: a wrong word costs nothing.
@@ -130,6 +134,9 @@ Its ending code is spellingbee's.
     - compete: `goal-chosen`, always.
   - `goal-chosen` — a target rank, Good to Genius.
   - `goal-progress` — points, read as a rank.
+  - `score-formula` — points, for every word found, bonus words too: 1 for
+    four letters, one per letter for longer; +15 for a pangram (all nine
+    tiles).
 - **solving**
   - `solved` — every required word found; nothing reads it.
   - `perfect-play` — n/a: a wrong word costs nothing.
@@ -160,7 +167,11 @@ score toward an optional target; bonus words score too.
     - without a target: coop, `goal-none`; compete, the top score at the
       `timeout` (untimed, `goal-none`).
   - `goal-chosen` — a share of the required words' points, 50% to 100%.
-  - `goal-progress` — points; the target counts required words only.
+  - `goal-progress` — points.
+  - `score-formula` — points by word length, on a ladder picked at setup
+    (flat, basic, fib, big).
+    - toward a target: required words only.
+    - the score: every word found, bonus words too.
 - **solving**
   - `solved` — every required word found; only a 100% target reads it.
   - `perfect-play` — n/a: a wrong word costs nothing.
@@ -646,15 +657,17 @@ across all five.
     - compete: `goal-intrinsic`: the best score.
   - `goal-chosen` — none.
   - `goal-progress` — the longest word so far.
+  - `score-formula` — two numbers, compared in order: the longest word as a
+    percentage of the longest possible, then the letters across all five
+    words.
 - **solving**
   - `solved` — five words found.
   - `perfect-play` — n/a.
   - `author-solution` — a longest possible word (the first alphabetically).
 - **winning and losing**
   - `ranked-by`
-    1. the longest word as a share of the longest possible
-    2. the letters across all five
-    3. timed: the earlier last guess; untimed: `co-winners`
+    1. the best score
+    2. timed: the earlier last guess; untimed: `co-winners`
   - `loses-by`
     - coop: `loses-by-timeout-only`.
     - compete: `loses-by-none`.
@@ -726,7 +739,7 @@ is placed, Peel and everyone draws more. Compete only, one to six players.
    `bananagrams` writes `won` and `lost`, not `won_compete` and
    `lost_compete` — deliberate, per the doc, since it has no coop sibling.
 
-## Score contests
+## Score-only contests
 
 ### scrabble
 
@@ -739,13 +752,16 @@ scored by tile values and premium squares. Compete can seat AI players.
     - compete: `goal-intrinsic`: the highest score.
   - `goal-chosen` — none.
   - `goal-progress` — score.
+  - `score-formula` — each word's tile values, with premium squares; +50
+    for playing all seven tiles. At the end each rack's leftover tiles are
+    subtracted, and in compete the player who went out gains everyone's.
 - **solving**
   - `solved` — n/a: nothing to complete.
   - `perfect-play` — n/a.
   - `author-solution` — none: nothing is hidden.
 - **winning and losing**
   - `ranked-by`
-    1. the highest score, after leftover tiles
+    1. the highest score
     2. `co-winners`
   - `loses-by`
     - coop: `loses-by-timeout-only`.
@@ -794,6 +810,7 @@ deck deals out onto the table as sets are claimed.
     - compete: the most sets.
   - `goal-chosen` — none.
   - `goal-progress` — sets found.
+  - `score-formula` — sets found, one point each.
 - **solving**
   - `solved` — the deck cleared of sets.
   - `perfect-play` — no hints.

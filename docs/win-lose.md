@@ -248,9 +248,6 @@ is retired.
   - **`goal-none`** — the game has no goal, so it cannot be won or lost: an
     imagined game where the players just enter words they like. A score is
     only a goal as a contest between players.
-  - A score contest is a `game-goal` only in a game with a `natural-finish`
-    or a `timer-countdown`: something has to say when the points are judged
-    (setgame compete: the most sets when the deck is spent).
 - **`natural-finish`** — an end the game reaches by its own rules: the bag
   runs out, the deck is spent, the guesses are used up.
   - Doesn't mean: a `timeout`. A timeout is never a
@@ -273,6 +270,13 @@ is retired.
 - **`goal-progress`** — a player's measurable movement toward the
   `game-goal`: words found, categories solved, score. Each game that uses it
   names its own measure.
+- **`score-formula`** — how a game counts a player's score: what earns
+  points, and how many (spellingbee: one point for a four-letter word, one
+  per letter for a longer one, and a bonus for a pangram). Each game that
+  keeps a score names its own, and says there what its score is called.
+  - Doesn't mean: `goal-progress`. Progress may be read off the score
+    (spellingbee's rank), or be something else entirely (letterboxed's
+    letters covered, where nothing is scored).
 - **`author-solution`** — the solution the board was built with: what
   "reveal solution" shows (spellingbee's word list, psychicnum's three
   secrets, the author's crossword grid).
@@ -300,6 +304,13 @@ is retired.
   - A player in a race-game may be called a **racer**, but only when the race
     itself is the point. In names, comments and docs the word is **player**,
     as in every other compete game.
+- **`score-only-contest`** — a compete game won only by the best score, with
+  no fixed point a player can reach partway through: scrabble, setgame,
+  wordiply, boggle without a target. Something has to say when the score is
+  judged, so it needs a `natural-finish` or a `timer-countdown`.
+  - Doesn't mean: any game that keeps a score or a count. letterboxed counts
+    letters covered, but its goal is a fixed point (all twelve letters), and
+    the count only ranks players at a `timeout`.
 - **`decided`** — no remaining play can change who wins.
   - Doesn't mean: the game has `ended` — play may go on after it is decided.
 - **`player-done`** — the player isn't playing any more, while the game may
@@ -439,7 +450,7 @@ is retired.
 - **`final-ranking`** — the order the players end in, by `ranked-by`, in a
   game that plays on after it is `decided`. A player who
   failed — `eliminated`, `conceded`, or short of a finish line the game has —
-  is not ranked (`no-best-of-the-losers`); in a score contest that leaves
+  is not ranked (`no-best-of-the-losers`); in a `score-only-contest` that leaves
   everyone who didn't concede. Ties share a place. First is `won`; every
   other place is `lost`.
   - Doesn't mean: the players who are, or aren't, `player-done`. A solver is
