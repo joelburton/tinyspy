@@ -514,10 +514,11 @@ read before anything below, which predates them.
   target) and the normal finish of the two coop games with no win (scrabble
   coop's bag played out, wordiply coop's five guesses spent). So `'noResult'`
   cannot be `play_state === 'ended'` alone.
-- **Bug, per Joel's rule**: an open-ended compete word hunt has no goal, so
-  End must adjudicate "most points at the end", as the clock already does.
-  boggle and wordwheel compete End with nobody winning. (Not spellingbee: its
-  compete always has a target — see its game card.)
+- **Not a bug** (Joel, 2026-09-25): a Stop stays neutral in every game, a
+  score contest included. The scores stay readable on the ended game, so a
+  table that wants "play until we stop, then see who's ahead" sets a long
+  countdown and stops early. The one game nothing could crown goes by the
+  rule below.
 - **Bug**: `result.won` is not written everywhere — boggle coop writes no
   per-player result on any ending (a win included), and wordiply coop writes
   `{finished: true}` with no `won` key. Stored data: a migration and backfill.
@@ -542,15 +543,20 @@ played. It takes:
 - Every surface that shows a player's ending (the pill, the action row's line,
   the player strip) shows the place.
 
+**Decided, to do: a compete word hunt needs a target, a countdown, or both**
+(Joel, 2026-09-25) — something must be able to crown a winner. With no
+target, the countdown crowns the top score (and nobody, if nobody scored).
+spellingbee and wordwheel gain compete with no target when a countdown is
+set, for "best score in ten minutes"; boggle loses the untimed compete game
+with no target, which nobody could win. Each game's `todo.md` carries its
+half. `docs/win-lose.md`'s score-contest rule already counts a countdown.
+
 **Open questions for Joel:**
 
-1. Open-ended compete, End pressed: the top score wins (co-winners on a tie,
-   nobody if nobody scored), as at the clock? And wordiply compete, which has
-   a finish line (five guesses each): does End there stay winnerless?
-2. Open-ended coop, stopped by End or the clock: `'noResult'`?
-3. scrabble coop's bag played out, wordiply coop's five guesses spent — a
+1. Open-ended coop, stopped by End or the clock: `'noResult'`?
+2. scrabble coop's bag played out, wordiply coop's five guesses spent — a
    finish with a score and no win: `'noResult'`, or a fifth ending?
-4. The two missing `result.won` writers: fix them, so `'won'` reads off the
+3. The two missing `result.won` writers: fix them, so `'won'` reads off the
    result in every game?
 
 ## 4. Naming — cheap renames (code and `supabase/sql/` only)

@@ -246,7 +246,9 @@ is retired.
   - **`goal-none`** — the game has no goal, so it cannot be won or lost. Today
     that is scrabble coop: a score is only a goal as a contest between
     players.
-  - A score contest is a `game-goal` only in a game with a `natural-finish`.
+  - A score contest is a `game-goal` only in a game with a `natural-finish`
+    or a `timer-countdown`: something has to say when the points are judged
+    (boggle compete with no target: the top score when time runs out).
 - **`natural-finish`** — an end the game reaches by its own rules: the bag
   runs out, the deck is spent, the guesses are used up.
   - Doesn't mean: a `timeout`. A timeout is never a
@@ -354,6 +356,14 @@ is retired.
   - **`announce-when-decided`** — the winner is told as soon as the game is
     `decided`.
   - **`announce-when-ended`** — results come only once the game has `ended`.
+- **`progress-shown`** — what a compete player sees of a rival's progress
+  during play; at the end, every game shows everything. Compete only. One or
+  more of the last two, or else the first alone:
+  - **`progress-shown-none`** — nothing.
+  - **`progress-shown-milestones`** — where a rival stands, in coarse steps
+    and never a number: solved, out of swaps, a rank reached (Genius).
+  - **`progress-shown-count`** — a live number per rival; the card says what
+    it counts (sets found, categories found, hints used).
 - **`ended`** — the game is over for everyone: the prose and player-facing
   word for `isTerminal`.
   - Doesn't mean: `stopped` — a game ends many ways, and being stopped is one.

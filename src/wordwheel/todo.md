@@ -6,6 +6,14 @@
 
 ## Someday
 
+- **Compete with no target, when a countdown is set.** The same change as
+  spellingbee's (`src/spellingbee/todo.md`), for the same ending code: today
+  `create_game` refuses compete with no `target_rank`; compete may leave it
+  empty when the timer is a countdown, and the timeout crowns the top score
+  (`co-winners` on a tie, nobody if nobody scored). The rule is
+  plans/cross-game-consistency.md §3b, "a compete word hunt needs a target,
+  a countdown, or both".
+
 - **Every word is the `goal-intrinsic`, and coop with no target should end
   on it.** The same ruling as spellingbee's (`src/spellingbee/todo.md`), for
   the same ending code. Today finding every required word ends and wins

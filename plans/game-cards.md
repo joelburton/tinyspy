@@ -32,6 +32,10 @@ explanation; the card carries none. psychicnum's card is the model. The rules:
   definition: it is one line.
 - **`ranked-by`:** one step, on its line; several, as a numbered sublist in
   order. What happens when all are level (`co-winners`) is a step too.
+- **`progress-shown`:** under winning and losing, after `announce-when`;
+  each value followed by what it shows ("`progress-shown-count`: sets
+  found"), and a sublist when there are two. Compete only, so a coop-only
+  game leaves it out.
 - **Hints:** one item per hint the game offers, titled by its kind (`hint`,
   or `hint-spoiler`; the title repeats for two of a kind), then a few words
   on what it hands over. Its tags go on a sub-line beneath: every hint tag
@@ -88,6 +92,7 @@ climb a rank ladder, Start to Genius.
   - `ranked-by` — first to reach the target rank.
   - `loses-by` — `loses-by-timeout-only`.
   - `announce-when` — `announce-when-decided`.
+  - `progress-shown` — `progress-shown-milestones`: rank.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
@@ -119,6 +124,7 @@ Its ending code is spellingbee's.
   - `ranked-by` — first to reach the target rank.
   - `loses-by` — `loses-by-timeout-only`.
   - `announce-when` — `announce-when-decided`.
+  - `progress-shown` — `progress-shown-milestones`: rank.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
@@ -136,7 +142,10 @@ A grid of letter dice; trace words through touching dice. Required words
 score toward an optional target; bonus words score too.
 
 - **goal**
-  - `game-goal` — `goal-chosen` when a target is set; with none, `goal-none`.
+  - `game-goal`
+    - with a target: `goal-chosen`.
+    - without a target: coop, `goal-none`; compete, the top score at the
+      `timeout` (untimed, `goal-none`).
   - `goal-chosen` — a share of the required words' points, 50% to 100%.
   - `goal-progress` — points; the target counts required words only.
 - **solving**
@@ -155,6 +164,7 @@ score toward an optional target; bonus words score too.
   - `announce-when`
     - with a target: `announce-when-decided`.
     - without a target: `announce-when-ended`.
+  - `progress-shown` — `progress-shown-count`: score.
 - **ending**
   - `natural-finish` — none.
   - `ends-when`
@@ -174,6 +184,10 @@ score toward an optional target; bonus words score too.
   conceding is a `lost_compete`.
 - `docs/games/boggle.md` §7 names `_finish`'s parameter `outcome`; it is
   `reason`.
+- `submit_word`'s comment says compete "scores are private", and
+  `_finish`'s that "the leaderboard is privacy-scoped"; `_refresh_status`
+  publishes every player's score to the club-readable status during play,
+  and the opponent strip shows it.
 
 **Surprises and ruling ideas**
 
@@ -204,6 +218,9 @@ guesses.
   - `announce-when`
     - coop: `announce-when-decided`.
     - compete: `announce-when-ended`.
+  - `progress-shown`
+    - `progress-shown-count`: guesses used.
+    - `progress-shown-milestones`: solved.
 - **ending**
   - `natural-finish` — the guesses spent.
   - `ends-when` — `ends-when-all-done`.
@@ -239,6 +256,7 @@ budget of 3, 5, 7 or 9.
   - `ranked-by` — first to reach `game-goal`.
   - `loses-by` — `loses-by-move-budget`.
   - `announce-when` — `announce-when-decided`.
+  - `progress-shown` — `progress-shown-count`: secrets found.
 - **ending**
   - `natural-finish` — last player spent budget.
   - `ends-when` — `ends-when-decided`.
@@ -320,6 +338,7 @@ mistakes to spend.
   - `ranked-by` — first to reach `game-goal`.
   - `loses-by` — `loses-by-mistake-budget`.
   - `announce-when` — `announce-when-decided`.
+  - `progress-shown` — `progress-shown-count`: categories found.
 - **ending**
   - `natural-finish` — every player's mistakes spent.
   - `ends-when` — `ends-when-decided`.
@@ -358,6 +377,7 @@ grid, compete gives each player their own.
   - `ranked-by` — first to reach `game-goal`.
   - `loses-by` — `loses-by-timeout-only`.
   - `announce-when` — `announce-when-decided`.
+  - `progress-shown` — `progress-shown-none`.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
@@ -414,6 +434,9 @@ budget is par plus a few.
   - `announce-when`
     - coop: `announce-when-decided`.
     - compete: `announce-when-ended`.
+  - `progress-shown`
+    - `progress-shown-count`: swaps used.
+    - `progress-shown-milestones`: solved, out of swaps.
 - **ending**
   - `natural-finish` — the swaps spent.
   - `ends-when` — `ends-when-all-done`.
@@ -473,6 +496,9 @@ each. Other valid words fill a bar that buys a hint.
   - `announce-when`
     - coop: `announce-when-decided`.
     - compete: `announce-when-ended`.
+  - `progress-shown`
+    - `progress-shown-count`: hints used.
+    - `progress-shown-milestones`: solved.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-all-done`.
@@ -520,6 +546,7 @@ each from the tiles left exposed.
   - `ranked-by` — first to reach `game-goal`.
   - `loses-by` — `loses-by-timeout-only`.
   - `announce-when` — `announce-when-decided`.
+  - `progress-shown` — `progress-shown-count`: words cleared.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
@@ -570,6 +597,7 @@ until all twelve are used. The chain has a word cap; undo refunds.
     - coop: `loses-by-timeout-only`.
     - compete: `loses-by-none`.
   - `announce-when` — `announce-when-decided`.
+  - `progress-shown` — `progress-shown-count`: letters covered, words used.
 - **ending**
   - `natural-finish` — none.
   - `ends-when` — `ends-when-decided`.
@@ -627,6 +655,7 @@ across all five.
     - coop: `loses-by-timeout-only`.
     - compete: `loses-by-none`.
   - `announce-when` — `announce-when-ended`.
+  - `progress-shown` — `progress-shown-count`: guesses used.
 - **ending**
   - `natural-finish` — every five guesses spent, a conceder's aside.
   - `ends-when` — `ends-when-all-done`.
@@ -678,6 +707,7 @@ deck deals out onto the table as sets are claimed.
   - `announce-when`
     - coop: `announce-when-decided`.
     - compete: `announce-when-ended`.
+  - `progress-shown` — `progress-shown-count`: sets found.
 - **ending**
   - `natural-finish` — the deck spent, and no set on the table.
   - `ends-when` — `ends-when-natural-finish`.
@@ -702,7 +732,4 @@ deck deals out onto the table as sets are claimed.
 
 ## Gaps in the terms
 
-- **A `goal-none` game whose `timeout` crowns someone.** boggle compete
-  without a target has no goal (a score contest is a `game-goal` only with a `natural-finish`),
-  yet its timeout is `timeout-best-progress`, which needs one. See
-  cross-game-consistency §3b's open question 1.
+None open.
