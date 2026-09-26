@@ -30,6 +30,8 @@ explanation; the card carries none. psychicnum's card is the model. The rules:
   "The team's in coop, each player's in compete" is what coop means, and
   never splits a line. Nor does a term that belongs to one mode by
   definition: it is one line.
+- **`ranked-by`:** one step, on its line; several, as a numbered sublist in
+  order. What happens when all are level (`co-winners`) is a step too.
 - **Hints:** one item per hint the game offers, titled by its kind (`hint`,
   or `hint-spoiler`; the title repeats for two of a kind), then a few words
   on what it hands over. Its tags go on a sub-line beneath: the cost, and
@@ -55,7 +57,7 @@ connections) · solve the grid (crosswords, waffle, strands, stackdown) · build
 with words (letterboxed, wordiply, bananagrams) · score contests (scrabble,
 setgame).
 
-**Progress:** psychicnum (the worked example), spellingbee, setgame.
+**Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply.
 
 ## Word hunts
 
@@ -76,7 +78,6 @@ climb a rank ladder, Start to Genius.
   - `author-solution` — the word list.
 - **winning and losing**
   - `ranked-by` — first to reach the target rank.
-  - `tiebreak` — none: a `race-game` can't tie.
   - `loses-by` — `loses-by-timeout-only`.
   - `announce-when` — `announce-when-decided`.
 - **ending**
@@ -110,7 +111,6 @@ budget of 3, 5, 7 or 9.
   - `author-solution` — the three secrets.
 - **winning and losing**
   - `ranked-by` — first to reach `game-goal`.
-  - `tiebreak` — none: a `race-game` can't tie.
   - `loses-by` — `loses-by-move-budget`.
   - `announce-when` — `announce-when-decided`.
 - **ending**
@@ -151,6 +151,60 @@ budget of 3, 5, 7 or 9.
    `_maybe_finish_compete` writes `'exhausted'` (`'conceded'` only when EVERY
    player conceded). By `reached-natural-finish` that game ended by concession.
 
+## Build with words
+
+### wordiply
+
+A short base (`AR`); five guesses, each a longer word containing it. Scored
+at the end: the longest word against the longest possible, then the letters
+across all five.
+
+- **goal**
+  - `game-goal`
+    - coop: `goal-none`.
+    - compete: `goal-intrinsic`: the best score.
+  - `goal-chosen` — none.
+  - `goal-progress` — the longest word so far.
+- **solving**
+  - `solved` — five words found.
+  - `perfect-play` — n/a.
+  - `author-solution` — a longest possible word (the first alphabetically).
+- **winning and losing**
+  - `ranked-by`
+    1. the longest word as a share of the longest possible
+    2. the letters across all five
+    3. timed: the earlier last guess; untimed: `co-winners`
+  - `loses-by`
+    - coop: `loses-by-timeout-only`.
+    - compete: `loses-by-none`.
+  - `announce-when` — `announce-when-ended`.
+- **ending**
+  - `natural-finish` — every five guesses spent, a conceder's aside.
+  - `ends-when` — `ends-when-all-done`.
+  - `timeout-result`
+    - coop: everyone `lost`.
+    - compete: `timeout-best-progress`; if nobody scored, everyone `lost`.
+  - `no-result` — coop, at its `natural-finish`.
+  - `can-stop-by`
+    - coop: anyone.
+    - compete: only a player already `player-done`.
+- **hints** — none.
+
+**Mismatches**
+
+- Coop's goal is ruled `goal-intrinsic`, five words; the code still ends a
+  coop game neutral on the fifth guess. The change is in
+  `src/wordiply/todo.md`; this card shows today's behavior.
+- `docs/games/wordiply.md` → `status` jsonb: the key is shown as
+  `"outcome": "complete" | "timeout" | "manual" | "conceded"`. The code
+  writes those values under `reason` (`conceded` from `common.concede`).
+
+**Surprises and ruling ideas**
+
+1. **Is there a `perfect-play`?** `solved` is five words found; the best
+   solve would add a longest possible word and the most letters possible.
+   Or it stays n/a.
+
 ## Score contests
 
 ### setgame
@@ -169,8 +223,9 @@ deck deals out onto the table as sets are claimed.
   - `perfect-play` — every solve: a non-set can't be claimed.
   - `author-solution` — none: nothing is hidden.
 - **winning and losing**
-  - `ranked-by` — most sets found.
-  - `tiebreak` — none: `co-winners`.
+  - `ranked-by`
+    1. most sets found
+    2. `co-winners`
   - `final-ranking` — by sets found.
   - `loses-by`
     - coop: `loses-by-timeout-only`.

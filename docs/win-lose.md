@@ -244,8 +244,8 @@ is retired.
   - **`goal-chosen`** — an easier goal picked at setup in place of the
     `goal-intrinsic`: reach Genius in spellingbee.
   - **`goal-none`** — the game has no goal, so it cannot be won or lost. Today
-    that is only coop score games (scrabble coop, wordiply coop): a score is
-    only a goal as a contest between players.
+    that is scrabble coop: a score is only a goal as a contest between
+    players.
   - A score contest is a `game-goal` only in a game with a `natural-finish`.
 - **`natural-finish`** — an end the game reaches by its own rules: the bag
   runs out, the deck is spent, the guesses are used up.
@@ -273,11 +273,14 @@ is retired.
   - Doesn't mean: the only valid solution. Where several are valid
     (crosswords, letterboxed, wordiply), a player can solve without it; see
     `matched-author-solution`.
-- **`ranked-by`** — how a compete game judges its players at the end
-  (fewest guesses, highest score), with its **`tiebreak`**s in order
-  (wordle: then faster time; scrabble: then the higher score before
-  leftovers). Each compete game names its own. A rule, not a result: the
-  order it produces is the `final-ranking`.
+- **`ranked-by`** — how a compete game judges its players at the end: its
+  steps in order, each consulted only when the ones before leave players
+  level, ending in what happens when every step is exhausted (wordle:
+  fewest guesses → faster; setgame: most sets → `co-winners`). Each compete
+  game names its own. A rule, not a result: the order it produces is the
+  `final-ranking`.
+  - **`tiebreak`** — any step of `ranked-by` after the first. A word for
+    prose ("scrabble's official tiebreak"), not a line of its own.
 - **`race-game`** — a compete game `ranked-by` speed: the
   first player to `reached-goal` wins. It can't tie: the game row's lock
   serializes two finishes, so one always lands first.
@@ -285,7 +288,7 @@ is retired.
     separate choice: a race-game may end at once (psychicnum,
     `ends-when-decided`) or play on for a `final-ranking` (a marathon).
   - Doesn't mean: any compete game where time counts. wordle ranks by fewest
-    guesses and uses time only as a `tiebreak`, so it is not a race-game.
+    guesses and uses time only as a later step, so it is not a race-game.
   - Doesn't mean: the not-ok kind `race` ([envelopes.md](envelopes.md)), two
     requests colliding.
   - A player in a race-game may be called a **racer**, but only when the race
@@ -296,8 +299,7 @@ is retired.
 - **`player-done`** — the player isn't playing any more, while the game may
   go on for others: the prose word for `isLocallyTerminal`, as `ended` is for
   `isTerminal`. The reasons vary — `reached-goal`, `eliminated`, `conceded`,
-  or their allotted play used up without losing by it (wordiply's five
-  guesses).
+  or their allotted play used up without losing by it.
   - Doesn't mean: `won` or `lost` — it says the player stopped, not how it
     went.
   - Doesn't mean: the game `ended`. When the game ends — a Stop, a `timeout`,
@@ -370,15 +372,14 @@ is retired.
 - **`solved`** — met the `goal-intrinsic`: the game completed. In coop, the
   team's. The word found (wordle), the board all green (waffle), every word
   found (spellingbee, boggle), the three hidden words found (psychicnum), a
-  longest possible word found (wordiply), the deck cleared of sets (setgame).
+  five words found (wordiply), the deck cleared of sets (setgame).
   - Where a game has nothing to complete (scrabble), it is not applicable,
     not false.
   - Doesn't mean: `won`. Nor is it needed to win: a compete game's
     `ranked-by` can crown a player who never solved (the most sets in
-    setgame, the longest word in wordiply).
+    setgame, the best score at a `timeout` in wordiply).
 - **`perfect-play`** — `solved` in the best possible way: wordle in one guess,
-  letterboxed in two words, waffle at par, wordiply's longest word the one the
-  board was built around (where two are equally long). Measured in moves,
+  letterboxed in two words, waffle at par. Measured in moves,
   never time. Implies `solved`. In some games every solve is perfect
   (setgame). Each game that has it names what counts (connections with no
   mistakes? strands with no hints?); where a game has no such distinction, it
@@ -387,15 +388,14 @@ is retired.
     good game played faster.
 - **`matched-author-solution`** — the player's solution is exactly the
   game's `author-solution` (the author's crossword grid; letterboxed's two
-  built-in words; wordiply's longest word the board was built around, which
-  is `perfect-play` too). Meaningful only where several different solutions
+  built-in words). Meaningful only where several different solutions
   are valid. A fact the game uses — it decides whether "reveal solution" is
   offered on a solved game — not an outcome shown to the player.
   - Doesn't mean: `solved` or `perfect-play` — both can hold without it.
 - **`won`** — decided by the game's `ranked-by`.
   - In coop, the whole team wins or doesn't.
   - In compete, one player wins, or **`co-winners`** share it when the
-    `tiebreak`s leave them level, or nobody does.
+    steps of `ranked-by` leave them level, or nobody does.
   - A player who `conceded` can never win.
   - Doesn't mean: `solved`, `perfect-play` or `reached-goal` — each can hold
     for a player who did not win.
@@ -414,8 +414,8 @@ is retired.
     `ended`.
 - **`eliminated`** — out by the game's own rules (out of guesses, out of
   mistakes). The player has `lost`, at once, while the others play on.
-- **`final-ranking`** — the order the players end in, by `ranked-by` and its
-  `tiebreak`s, in a game that plays on after it is `decided`. A player who
+- **`final-ranking`** — the order the players end in, by `ranked-by`, in a
+  game that plays on after it is `decided`. A player who
   failed — `eliminated`, `conceded`, or short of a finish line the game has —
   is not ranked (`no-best-of-the-losers`); in a score contest that leaves
   everyone who didn't concede. Ties share a place. First is `won`; every

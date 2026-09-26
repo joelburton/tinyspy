@@ -24,6 +24,17 @@
 
 ## Soon
 
+- **Coop's goal is five words: spending the fifth guess is a win.** Ruled
+  2026-09-25: coop is `goal-intrinsic`, find five words
+  (docs/win-lose.md → How a game ends — the terms), so the score says how
+  well the team did and the win says that it did. Today `_finish_coop`
+  writes the neutral `ended` when the fifth guess is spent and gives every
+  player `{finished: true}`, with no `won` key. The change: `won` on the
+  fifth guess, each player's result `{won: true}`. The timeout stays `lost`
+  (now `timeout-no-winner`), and a Stop stays `ended`. The club label's
+  "Ended (out of guesses)" and the coop terminal verdict change with it.
+  `plans/game-cards.md`'s wordiply card shows today's behavior until then.
+
 - **Collapse the info-column action row's branches.** This game still FORKS on
   `over ? … : locally done ? … : …` and lists a different set of buttons in
   each, which is how a state can quietly lose a button — every one of these
@@ -75,6 +86,21 @@
 ## Someday
 
 ## Maybe
+
+- **Reveal best solution names one longest word of possibly several.**
+  `wordiply.try_base` stores up to three words at the maximum length
+  (`order by word limit 3`, alphabetical, no reason given for three), and
+  `PlayArea` reads only `longestWords[0]` — for the reveal and the printout.
+  When words tie for longest, a player who found another of them is shown a
+  "best solution" that is not theirs. Three ways out:
+  - **Keep up to three, and reveal them all.** The game's `author-solution`
+    (docs/win-lose.md) becomes those three. The cap is still arbitrary: a
+    fourth tied word would go unshown.
+  - **Keep one, and reveal it.** Matches what is shown today, but treats one
+    of several equal words as the answer.
+  - **No `author-solution` at all.** The reveal shows every word at
+    `max_word_length`, filtered from the `legal_words` the board already
+    ships, so no pick and no cap. `longest_words` would then have no reader.
 
 - **A composite score for compete's ranking.** The winner is the
   lexicographic comparator (length score → letter count → …), so the letter
