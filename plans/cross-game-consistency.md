@@ -156,6 +156,10 @@ and a backfill. Park them, or schedule some?
   wordle — `players.guesses_used` and the status key `guesses_used`, against
   `setup.max_guesses`, which the club-page line reads off the row's setup
   ("3/7 guesses", coop only) (`20260924000009_psychicnum_guesses_used.sql`).
+- **The Stop's `reason`.** A Stop writes `status.reason = 'manual'` at 18
+  SQL sites; the term is `stopped`, so `'stopped'`. And stackdown's coop win
+  writes `'cleared'` where the other games write `'solved'` (its todo). The
+  words themselves are step 7's (plans/game-cards.md → After the cards).
 - ~~**The guessed word's column.**~~ Done 2026-09-24: `wordle.events.guess` →
   `word`, as every other event table has it
   (`20260924000006_wordle_events_word.sql`). `submit_guess`'s `guess`
@@ -479,7 +483,7 @@ where it fixes a behavior:
    already names the player. Step 6 keeps it as it is; where the note belongs
    is `src/scrabble/todo.md`'s, for the scrabble audit.
 
-## 3b. How it ended for me — won, lost, quit, no result, solved (not started)
+## 3b. How it ended for me — won, lost, conceded, no result, solved (not started)
 
 Joel, 2026-09-24: "did a conceding player lose?" has no single answer today.
 The words live in three places that don't agree: `common.games.play_state`
@@ -488,32 +492,134 @@ player), and `terminalOutcomeVerb` (the strip's Won › Quit › Lost). Worked
 after §3a, as formulas beside docs/win-lose.md → Where a player stands.
 
 **The terms are agreed** (docs/win-lose.md → How a game ends — the terms), and
-[game-cards.md](game-cards.md) is each game's current ending written in them —
-read before anything below, which predates them.
+[game-cards.md](game-cards.md) is each game's ending written in them — read
+before anything below.
 
-**The draft terms** (not yet in the doc):
+**The draft names** — the code names for the terms, by §1's rules (`my`, a
+boolean as `is…`). Once built, they join the formulas in docs/win-lose.md →
+Where a player stands.
 
-- `hasSolved` — I crossed my finish line; the game's own fact. **Not "won"**:
-  a best-style solver can lose (wordle solved in 5 against a rival's 3;
-  strands and waffle rank solvers), and a score race or a standings-ranking
-  clock crowns someone who never solved (scrabble, boggle with no target,
-  wordiply, setgame, letterboxed's timeout).
-- `myEnding` — null until the game is over, then exactly one of, in order:
-  `'won'` (`result.won`), `'quit'` (conceded — beats "no result": conceding is
-  a loss on your record even if the table later Ends), `'noResult'`, `'lost'`.
-  **`'quit'` is not interchangeable with `isConceded`**: `isConceded` is where
-  I stand from the moment I concede; `'quit'` is the verdict, only once the
-  game is over. A conceder can never win (the winner queries leave conceders
-  out, and a player already out is refused a concede), so every conceder ends
-  `'quit'`. `'lost'` is not "didn't win" — that is `myEnding !== 'won'`.
+- `isSolved` — I completed the puzzle (`solved`), goal or not.
+- `hasReachedGoal` — I met the goal (`reached-goal`). **Neither is "won"**: a
+  wordle solver can be beaten by a rival's fewer guesses (wordle, waffle and
+  strands rank solvers), and a ranking by progress crowns someone who never
+  reached the goal (scrabble, setgame, wordiply, letterboxed's timeout).
+  `has…` rather than `is…` because "is goal reached" reads worse.
+- `myFinalRanking` — my `final-ranking`: null until the game is over and for
+  a player not ranked, else the number (1, 1, 3). Read off `result`. `won`
+  is `myFinalRanking === 1`.
+- `myOutcome` — my `EndOutcome` (today `TerminalOutcome`), null until the
+  game is over: `'won'` (ranked 1), `'near'` (ranked, not first — shown
+  "2nd"), `'lost'` (not ranked, in a game that ended with a result),
+  `'neutral'` (neither: a Stop, `timeout-no-result`, `no-result`). The
+  outcome vocabulary already says which way something went: a move's outcome
+  is any `Outcome`, a player's or team's at the end is an `EndOutcome`, so
+  there is no separate
+  "verdict" layer and no color mapping. HOW it went is not in it — see the
+  discussion below. A conceder can never win, and conceding is a way of
+  losing (`'lost'`), never a value beside it.
+
+**Decided while naming** (Joel, 2026-09-26) — the outcome and reason design,
+built in step 7 with the rest:
+
+- **Decided: a ranking below first is `near`; `lost` means failed** (Joel,
+  2026-09-26). `won` is ranked first. `near` is ranked, not first: the
+  player cleared the game's bar for being ranked (met the goal where the
+  game ranks by goal; made progress where it ranks by progress) and someone
+  did better. `lost` is not ranked, in a game that ended with a result: fell
+  short of the goal, eliminated, or conceded — failed, never merely "didn't
+  win". In wordle, the slower solver is `near` and the player who never
+  solved is `lost`. In a game that ends when decided (psychicnum,
+  connections, crosswords, stackdown, bananagrams), the first finish ends it
+  and only the winner is ranked, so everyone else `lost`: who was ahead is a
+  memory, not a ranking — `near` never occurs there. The terms change in
+  step 7 with the rest: `final-ranking`'s "any other ranking is `lost`"
+  becomes `near`; `lost` drops "someone else `won`" for "not ranked";
+  `near` and `neutral` join as a player's end outcome, pointing at
+  docs/outcomes.md. The decided `near` item below then simplifies: `near` is
+  the outcome, not a display of `lost`.
+- **Why the game ended: a category and a detail.** The category is one
+  fixed list across games, for shared code and reports ("games by why they
+  ended"); the detail is the game's own word, always written, so a second
+  way to reach the same category (another fatal move in codenamesduet) just
+  gets its own detail word. The category never stands in for the detail.
+  Names: `game_ended_reason` / `game_ended_reason_detail`, on the
+  `GameEnded` stem (below). The stem says what kind of reason it is, so the
+  bare `reason` stops being generic; "ended by" read as who, not why. Both
+  are written only when the game ends (today's `status.reason` already is,
+  so "game ended" is true of it). Today's `status.reason` values become the
+  detail; the category is backfilled from them (stored data: §2).
+  codenamesduet's guess answer carries the same two names; wordiply's refused
+  guess, whose `reason` means why a guess was refused, becomes
+  `reject_reason`.
+- **Why a player stopped playing: the per-player pair.** In
+  `common.game_players.result`: `player_ended_reason` / its `_detail`, on the
+  `PlayerEnded` stem (below), never "stopped" (the Stop's term). Written
+  `null` for a player still playing when the game ended — they never ended on
+  their own, and their story is the game's `game_ended_reason`. Old rows lack
+  the key, so "not written" stays distinct from null. `result` also gains
+  `outcome` (the `EndOutcome`), beside the
+  decided `final_ranking` and `solved`: derivable, but a question across
+  games reads it off one key.
+- **Agreed: one reason list, sliced per level** (Joel, 2026-09-26). A
+  superset of every reason either level needs; the game's and a player's
+  lists are slices of it, using the same word wherever it fits both ("everyone
+  conceded" and "I conceded" are both `conceded` — the level makes the
+  difference clear). Built from what the words mean, not from today's games:
+  a setgame with a deck per player would end a player's play at a natural
+  finish, and the list already has the word. The superset:
+
+  | value | the game's slice | a player's slice |
+  |---|---|---|
+  | `reached_goal` | someone met the goal | I met the goal |
+  | `natural_finish` | the shared rules ran out (the bag, the deck, every player's budget) | my own play ran out (my guesses, my deck) |
+  | `fatal_move` | a move ended it for everyone (the assassin) | a move ended only me (none today) |
+  | `conceded` | everyone conceded | I conceded |
+  | `timeout` | the shared timer | my own timer, only if a player timer is built |
+  | `stopped` | someone pressed Stop | — |
+
+  **The reason says how play ended; the outcome says whether it lost.** A
+  `natural_finish` is neutral about the result (docs/win-lose.md →
+  `natural-finish`: "the guesses are used up"): running out of guesses is
+  `lost` in wordle, and the end of play, ranked, in wordiply. So
+  `eliminated` is not a reason: it is a `natural_finish` whose outcome is
+  `lost`, and stays a term and a worked-out fact (`isEliminated`). A player
+  still playing when the game ends has no reason of their own (null; see
+  above).
+- **Decided: Terminal → Ended** (Joel, 2026-09-26). "Terminal" and
+  "locally terminal" are awkward and needlessly long, and `ended` is already
+  the term for `isTerminal` — so code says one word and prose another for
+  one thing. What it takes:
+  - the stems **`GameEnded`** and **`PlayerEnded`** (not "done", which is
+    everywhere for "done sending a request"): `isGameEnded` (`isTerminal`
+    retired), `isPlayerEnded` (`isLocallyTerminal` retired);
+    `locally-terminal` becomes the term `player-ended`; the reason keys
+    follow (`game_ended_reason`, `player_ended_reason`);
+  - the supersets drop "terminal" too, so it survives nowhere: `EndOutcome`
+    (today's `TerminalOutcome`) and `EndReason`, with slices such as
+    `GameEndedOutcome` and `PlayerEndedReason`;
+  - docs/win-lose.md's terms and formulas change with the code (step 7), so
+    the doc never names a column the database doesn't have;
+  - the cost: `common.games.is_terminal` and `common.game_players.locally_terminal`
+    are columns, so a new migration renames them (no data lost), and every
+    function in `supabase/sql/`, the generated types, `whereIStand`,
+    `useCommonGame`, the PlayAreas and the tests follow — one pass, in step
+    7. `common.games` already has `ended_at`, beside which an
+    `is_game_ended` reads naturally.
+
+- **Decided from the naming pass** (Joel, 2026-09-26): `hasReachedGoal`, a
+  noted exception to §1's `is…`; N23 renames the `end_game` RPC to
+  `stop_game` too — Stop names only, nothing else that says "end"; §2's
+  stored `'manual'` becomes `'stopped'`.
 
 **Found while drafting** (a survey of every `ended` path, 2026-09-24):
 
-- `ended` never carries a winner, but it is not only a manual End: it is also
-  an open-ended COOP game's timeout (boggle, spellingbee, wordwheel with no
-  target) and the normal finish of the two coop games with no win (scrabble
-  coop's bag played out, wordiply coop's five guesses spent). So `'noResult'`
-  cannot be `play_state === 'ended'` alone.
+- `play_state = 'ended'` never carries a winner, but it is not only a Stop:
+  it is also a coop word hunt's timeout with no target (boggle, spellingbee,
+  wordwheel), and today the normal finish of scrabble coop and wordiply coop
+  (both ruled to become wins: their todos). So `myEnding` can't read
+  `'stopped'` or `'noResult'` off `play_state` alone; the status `reason`
+  says which.
 - **Not a bug** (Joel, 2026-09-25): a Stop stays neutral in every game, a
   `score-only-contest` included. The scores stay readable on the ended game, so a
   table that wants "play until we stop, then see who's ahead" sets a long
@@ -525,23 +631,29 @@ read before anything below, which predates them.
 - `terminalOutcomeVerb`'s docstring says a conceder can hold a winning result
   ("conceded a race someone had already ended"); no path reaches that now.
 
-**Decided, to do: a ranked place below first shows as `near`, never "Lost"**
-(Joel, 2026-09-25). In a game that plays on for a `final-ranking`, a player
-ranked 2nd, 3rd … last reads as the place ("2nd"), in the `near` outcome.
-"Lost", in `lost`, is left for a player not ranked: `eliminated`, `conceded`,
-or short of the finish. Every place below first is still not `won`.
-Two-player games too: a player who solved and was beaten reads "2nd", not
-the "Lost" of one who never solved — the place never depends on how many
-played. It takes:
+**Decided, to do: a ranking below first shows as `near`, never "Lost"**
+(Joel, 2026-09-25). A player whose `final-ranking` is 2, 3 … reads as the
+ranking ("2nd"), in the `near` outcome. "Lost", in `lost`, is left for a
+player not ranked: `eliminated`, `conceded`, or short of the goal. Every
+ranking below first is still not `won`. Two-player games too: a player who
+solved and was beaten reads "2nd", not the "Lost" of one who never solved —
+the ranking never depends on how many played. It takes:
 
 - `TerminalOutcome` gains `near`, and `docs/outcomes.md` rewrites the reason
   it gives for the terminal set ("won, lost, or stopped"; `near` and `warning`
-  judge a move) and widens `near` to "finished, not first".
+  judge a move) and widens `near` to "ranked, not first".
 - `docs/win-lose.md` → How a game ends: `final-ranking` and `lost` say every
-  place below first is `lost`; they gain the rule that such a place is shown
-  by its place, in `near`.
+  ranking below first is `lost`; they gain the rule that it is shown by its
+  number, in `near`.
 - Every surface that shows a player's ending (the pill, the action row's line,
-  the player strip) shows the place.
+  the player strip) shows the ranking.
+- **Audit every check written for a two-way world** (Joel, 2026-09-26).
+  Code that reads `TerminalOutcome` (to be `EndOutcome`) was written when a
+  player's end was won or lost, so `!== 'won'`, `=== 'lost'`, a ternary on
+  `'won'`, and a `switch` with no `near` case may each mean "lost" and now
+  catch `near` too, or miss it. A first grep finds about fifteen such
+  comparisons outside the tests. Read each, make the best guess at what it
+  meant, and bring the uncertain ones to Joel before changing them.
 
 **Decided, to do: a compete word hunt needs a target, a countdown, or both**
 (Joel, 2026-09-25) — something must be able to crown a winner. With no
@@ -599,17 +711,19 @@ where anyone finished. The target:
   keep the `won` they hold (prod data); whether a migration backfills
   `final_ranking` from it (`won` → 1, else null) is decided when it is
   written.
-- **Open:** does `username` stay on an entry? Some games copy it in, some
-  don't; the front end has every member's name, and the club page has
-  `winner_username`. Drop it unless a reader needs it.
+- **No `username` on an entry** (Joel, 2026-09-26). Some games copy it in
+  today; the front end has every member's name, and the club page has
+  `winner_username`, so a copy per entry is one more thing to go stale.
 
-**Open questions for Joel:**
+**Answered** (the open questions this section carried):
 
-1. Open-ended coop, stopped by End or the clock: `'noResult'`?
-2. scrabble coop's bag played out, wordiply coop's five guesses spent — a
-   finish with a score and no win: `'noResult'`, or a fifth ending?
-3. The two missing `result.won` writers: fix them, so `'won'` reads off the
-   result in every game?
+1. A coop word hunt with no target: a Stop is `'stopped'`, its timeout
+   `'noResult'` (`timeout-no-result`).
+2. scrabble coop's bag played out and wordiply coop's five guesses spent are
+   wins once their rulings are built (going out; five words), so no fifth
+   ending.
+3. The missing `result.won` writers: every game writes `result` with
+   `final_ranking` (the leaderboard item above), and `'won'` reads off it.
 
 ## 4. Naming — cheap renames (code and `supabase/sql/` only)
 
@@ -638,6 +752,11 @@ Most worth fixing first.
 | N19 | `PlayArea` exported in wordle, spellingbee, wordwheel, codenamesduet; nothing imports it | unexported |
 | N20 | the End / Concede / Restart section header in `PlayArea.tsx`, worded four ways (wordle's says "Replay") | psychicnum's wording |
 | N21 | SQL: `wordle.submit_guess` names locals `p_…`, the prefix common keeps for parameters; codenamesduet's `submit_guess` takes `target_position` for the `guess_position` column, and its answers still use old keys (`word`, `count`, `from_ai`, `by_seat`); "You are not in this game" means two things (PN253 vs psychicnum PN271, connections PN250) | match the columns; distinct wording |
+| N23 | the Stop action (`stopped`) is still named End: `act-end-game` labeled "End game", `actEndGame`, `END_GAME_CONFIRM`, Concede's "Concede / End game", each game's `end_game` RPC | Stop: `act-stop`, "Stop game", `actStop`, `STOP_GAME_CONFIRM`, and each game's RPC `stop_game`, with a `DROP` of the retired `end_game` beside it. Stop names only: `ended`, `ended_at`, `common.end_game` (which ends a game any way) and every other "end" stay |
+| N24 | `terminalOutcomeVerb` returns `'Quit'` (the strip's "Quit at 12"); the terms say never "quit" | `'Conceded'` |
+| N25 | "race" / "racer" for games that aren't `race-game`s: wordle's and waffle's compete, their SQL (`racers_with_budget`), FE and docs (the game cards' Mismatches) | player; "race" only for a `race-game` |
+| N26 | "clock" for the timer: wordle's `wonByClock` / `clock_ran_out`, and comments across the games | timer, timeout (`wonByTimeout`, `timed_out`) |
+| N27 | strands' test names a flag `isLocallyDone` | `isLocallyTerminal` |
 | N22 | lower: `LOSS` vs `COMPETE_LOSS`; `const mode` / `isCompete` locals in some games, inline in others; `announceOpponentProgress` vs `narrateRankClimbs`; `players.find(...)` by hand where `memberById` is already imported | settle when the file is open |
 
 **Shared code a game copies:**

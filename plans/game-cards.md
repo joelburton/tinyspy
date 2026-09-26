@@ -4,7 +4,7 @@
 of [docs/win-lose.md → How a game ends — the
 terms](../docs/win-lose.md#how-a-game-ends--the-terms-agreed-2026-09-25).
 It is part of
-[cross-game-consistency §3b](cross-game-consistency.md#3b-how-it-ended-for-me--won-lost-quit-no-result-solved-not-started).
+[cross-game-consistency §3b](cross-game-consistency.md#3b-how-it-ended-for-me--won-lost-conceded-no-result-solved-not-started).
 Each card was read off the code, then brought to the agreed rulings: it says
 how the game SHOULD end. Where the code differs, that is a todo in the game's
 `todo.md` (or cross-game-consistency §3b), not a line on the card.
