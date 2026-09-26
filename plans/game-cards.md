@@ -69,7 +69,7 @@ setgame).
 
 **Progress:** psychicnum (the worked example), spellingbee, setgame, wordiply,
 waffle, crosswords, strands, stackdown, wordwheel, boggle, wordle,
-codenamesduet, connections, letterboxed.
+codenamesduet, connections, letterboxed, bananagrams.
 
 ## Word hunts
 
@@ -678,6 +678,45 @@ across all five.
 
 1. **Is there a `perfect-play`?** `solved` is five words found; the best solve would add a longest possible word and the most letters possible.
    Or it stays n/a.
+
+### bananagrams
+
+Each player builds a private crossword from a hand of tiles; when every tile
+is placed, Peel and everyone draws more. Compete only, one to six players.
+
+- **goal**
+  - `game-goal` — `goal-intrinsic`: go out — every tile placed when the
+    bunch can't refill the table.
+  - `goal-chosen` — none.
+  - `goal-progress` — tiles left in hand.
+- **solving**
+  - `solved` — went out.
+  - `perfect-play` — n/a.
+  - `author-solution` — none: nothing is hidden.
+- **winning and losing**
+  - `ranked-by` — first to reach `game-goal`.
+  - `loses-by` — `loses-by-timeout-only`.
+  - `announce-when` — `announce-when-decided`.
+  - `progress-shown` — `progress-shown-count`: tiles left in hand.
+- **ending**
+  - `natural-finish` — none.
+  - `ends-when` — `ends-when-decided`.
+  - `timeout-result` — `timeout-no-winner`.
+- **hints**
+  - `hint` — check words: marks the board's invalid cells
+    - `hint-free`, `hint-self-informative`
+
+**Mismatches**
+
+- `docs/games/bananagrams.md` (`submit_timeout`, `concede`) and the SQL
+  headers of `submit_timeout` and `concede` give the status key as
+  `outcome`; the code writes `reason`.
+
+**Surprises and ruling ideas**
+
+1. **A compete game with coop's play states.** The bare gametype
+   `bananagrams` writes `won` and `lost`, not `won_compete` and
+   `lost_compete` — deliberate, per the doc, since it has no coop sibling.
 
 ## Score contests
 
