@@ -316,7 +316,7 @@ budget of 3, 5, 7 or 9.
 
 - `src/psychicnum/doc.md` → Compete says "There is no way to stop a race for
   the whole table — see `common/game-page/todo.md`." Any compete player may
-  Stop (Concede's question offers it; End once `player-done`),
+  Stop (Concede's question offers it; End once `locally-terminal`),
   `psychicnum.end_game` has no mode check, and `common/game-page/todo.md` has
   no such item.
 - `psychicnum.sql`, `concede`'s header: "the compete game ends only when EVERY
@@ -429,7 +429,7 @@ grid, compete gives each player their own.
 - `docs/games/crosswords.md` §7: a compete game everyone conceded reads
   "Lost: out of the race" — the code says "Lost: all conceded". And a conceded
   player's strip shows "an inert Concede" — Concede is hidden once
-  `player-done`, and End shows instead.
+  `locally-terminal`, and End shows instead.
 
 **Surprises and ruling ideas** — none.
 
@@ -469,11 +469,11 @@ budget is par plus a few.
 
 - `docs/games/waffle.md` → `end_game`: "(**coop**; compete shows Concede
   instead)" — any compete player may Stop (Concede's question offers it; End
-  once `player-done`). It and `waffle.end_game`'s header give the status as
+  once `locally-terminal`). It and `waffle.end_game`'s header give the status as
   `outcome: 'manual'`; the code writes `reason`. `submit_swap`'s coop comment
   says each terminal write "states its `outcome`" — it is `reason` there too.
 - `docs/games/waffle.md` → Frontend (`src/waffle/`): "Concede goes gray once
-  you have SOLVED" — Concede is hidden once `player-done`, and End shows
+  you have SOLVED" — Concede is hidden once `locally-terminal`, and End shows
   instead.
 - `docs/games/waffle.md` → Frontend (`src/waffle/`) and → Title formula,
   `waffle._sync_title`'s comments, and `PlayArea.tsx`'s board comment still

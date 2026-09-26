@@ -39,7 +39,7 @@ Evidence, read and left:
   `gamePageCtx.ts`'s `timer` slot; `manifest/gameManifest.ts`'s `TimerMode`.
 - `docs/common.md` → the game-clock section (headed "Idle accounting" when the
   area opened, renamed at F-6) and the RPC table's two timer rows;
-  `docs/win-lose.md` → "Clock fairness"; `docs/deferred.md`'s heartbeat item.
+  `docs/win-lose.md` → "Timer fairness"; `docs/deferred.md`'s heartbeat item.
 
 ## What the folder is, in one paragraph
 

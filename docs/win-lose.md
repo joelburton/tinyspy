@@ -1,129 +1,130 @@
 # Win & lose
 
 The ideas every game's winning and losing is built from, and the words for
-them. Each game's own rules — what wins, what loses, what its clock does — are
+them. Each game's own rules — what wins, what loses, what its timer does — are
 in its doc; this is what those rules are made of, and the invariants none of
 them may break.
 
 ## The three primitives
 
-1. **The finish line** — what "done" means, and who supplies it:
-   - **built-in** — the game is its own goal: the word, the grid, the board
-     consumed.
-   - **target** — setup picks the finish line (a rank, a percentage); without
-     one the game is **open-ended** and can only end neutrally.
-   - **none** — no finish line at all; playing just stops (a bag running out,
-     a guess allowance spent), and that stop is neutral.
-2. **The compete style** — what one player finishing means to the others:
-   - **race** — **first past the post**: the first finisher ends the game on
-     the spot. Ties cannot happen, because the game row's lock serializes two
-     simultaneous finishes: the first commits the winner and the second finds a
-     finished game.
-   - **best** — everyone **plays out**: a finisher goes **locally terminal**
-     while the others continue, and a ranking decides at the end. Ties break
-     **quality-then-speed** (`order by <metric>, solved_at`); a game whose
-     ranking deliberately has no speed component has **co-winners** instead.
-3. **The reachable-end rule** ([states.md](states.md)) — what the clock means:
-   *a timeout is a loss iff the game had a reachable end you didn't reach.*
-   It gives the three things a timeout can do:
-   - **all lose** — a finish line existed and nobody crossed it: a collective
-     loss, standings ignored, however high the scores.
-   - **rank the finishers** — a per-player finish line existed and some crossed
-     it: they are ranked, and the players still mid-board simply didn't finish.
-     The winner is "solved, and best at it", never "got furthest".
-   - **rank the standings** — there was no finish line to miss, so the clock is
-     just how the session stops and what each player had IS the result.
+1. **The goal** (`game-goal`) — what a player or team is trying to reach,
+   and who supplies it:
+   - **An intrinsic goal** (`goal-intrinsic`) — the game's own: find the word
+     (wordle), find all four categories (connections), find every required
+     word (spellingbee).
+   - **A chosen goal** (`goal-chosen`) — players pick the target in the setup
+     form (a rank, a percentage), and it becomes the goal in place of the
+     intrinsic one. Without a target, the intrinsic goal is the goal.
+   - **No goal** (`goal-none`) — the game can't be won or lost: an imagined
+     game where the players just enter words they like.
+2. **When a compete game ends** (`ends-when`) — what one player meeting the
+   goal means to the others:
+   - **It ends when decided** (`ends-when-decided`) — the first player to
+     meet the goal ends the game on the spot. Ties can't happen: the game
+     row's lock serializes two simultaneous finishes, so the first commits
+     the winner and the second finds a finished game.
+   - **It plays out** (`ends-when-all-done`) — a player who meets the goal is
+     **locally terminal** while the others continue, and the ranking decides
+     at the end. Ties break **quality-then-speed** (`order by <metric>,
+     solved_at`); a game whose ranking deliberately has no speed step has
+     **co-winners** instead.
 
-**A race's clock always all-loses**, and not by choice: a finisher ends a race,
-so a race still running at timeout has no finishers, and the reachable-end rule
-does the rest. A race cut short by the clock may instead rank the standings,
-when the game's partial progress is a real measure of it — a deliberate
+   A **race** (`race-game`) is ranked by speed: the first to meet the goal
+   wins. That is a separate choice from when it ends: psychicnum's race ends
+   when decided, and a race could play out to rank the rest.
+3. **What a timeout does** (`timeout-result`):
+   - **It ranks by goal** (`timeout-ranks-by-goal`) — only players who met
+     the goal are ranked; the ones still going simply didn't. The winner is
+     "solved, and best at it", never "got furthest". If nobody met the goal,
+     everyone lost, however high the scores.
+   - **It ranks by progress** (`timeout-ranks-by-progress`) — each player's
+     progress (`goal-progress`) is the result, and the timer is just how the
+     session stops. A player who made no progress isn't ranked.
+   - **No result** (`timeout-no-result`) — nobody met the goal, but missing
+     it is no loss: a coop word hunt with no target ends neutrally.
+
+**A game that ends when decided has nobody at the goal when its timer runs
+out**, so ranking by goal means everyone lost. Such a game may rank by
+progress instead, when its progress is a real measure of it — a deliberate
 departure, recorded in that game's doc.
 
-**A collective finish has no finishers to rank** — the bag or the deck runs out
-for everyone at once. Its timeout crowns the leader when the standings at any
-moment are a complete result (a count of sets taken, a score), and otherwise is
-a collective loss.
+**A collective finish** is a natural finish (`natural-finish`) everyone
+shares: the bag or the deck runs out for everyone at once. Its timeout ranks
+by progress when progress at any moment is a complete result (a count of sets
+taken, a score), and otherwise by goal.
 
 ## Where a coop loss comes from
 
-Where the win comes from (the finish line) and where the loss comes from are
-two separate choices. The sources of a coop defeat:
+Where the win comes from (the goal) and where the loss comes from
+(`loses-by`) are two separate choices. The ways a coop team loses:
 
-- **move budget** — every move spends it (guesses, swaps).
-- **mistake budget** — only a wrong move spends it, so perfect play cannot lose.
-- **sudden death** — one fatal act ends it.
-- **clock only** — nothing to exhaust; the only way to lose is running out of
-  time. A game whose board cannot dead-end has only this.
-- **refundable budget** — a cap that blocks play but that undo refunds, so it
-  can never kill.
+- **A move budget** (`loses-by-move-budget`) — every move spends it
+  (guesses, swaps).
+- **A mistake budget** (`loses-by-mistake-budget`) — only a wrong move
+  spends it, so perfect play cannot lose.
+- **A fatal move** (`loses-by-fatal-move`) — one move ends it
+  (codenamesduet's assassin).
+- **Timeout only** (`loses-by-timeout-only`) — nothing to exhaust; the only
+  way to lose is running out of time. A game whose board cannot dead-end has
+  only this.
 
-A game with no finish line (`none`) can be moved to **target** with an opt-in
-setup knob, and the timeout-becomes-a-loss rule comes with it. Where the game
-also has a bounded session, reaching the session's end below the target then
-becomes a loss rather than a neutral stop — a bigger change than arming the
-clock, and one to make knowingly.
+A **refundable budget** is not a way to lose: a cap that blocks play but that
+undo refunds, so it can never lose the game (letterboxed's word cap).
+
+A game with no goal can gain a target through an opt-in setup knob, and a
+timeout that loses comes with it. Where the game also has a bounded session,
+reaching the session's end below the target then becomes a loss rather than a
+neutral stop — a bigger change than arming the timer, and one to make
+knowingly.
 
 ## The invariants
 
-**No survival wins.** Outliving never wins. All-conceded and all-eliminated
-are **collective losses** everywhere, and a last player standing must still
-finish. If surviving crowned you, conceding would hand out wins. This is the
-rule a newly ported game is most likely to break by accident.
+**A win is earned** (`win-is-earned`). Outliving never wins. When every
+player concedes or is eliminated, everyone lost, in every game, and a last
+player standing must still meet the goal. If surviving crowned you,
+conceding would hand out wins. This is the rule a newly ported game is most
+likely to break by accident.
 
-**Refusing to lose is out of scope** (ruled 2026-08-07). In a best-style game a
-trailing player could stall forever rather than be ranked. A site for strangers
-would defend against that; this one does not — the trust model (CLAUDE.md:
-friends, not strangers) answers it. **Don't propose anti-stall machinery.** The
-remedy is opt-in: play with a timer, whose clock ranks the finishers, and End
-is the social way out of a timerless standoff.
+**Refusing to lose is out of scope** (ruled 2026-08-07). In a game that plays
+out, a trailing player could stall forever rather than be ranked. A site for
+strangers would defend against that; this one does not — the trust model
+(CLAUDE.md: friends, not strangers) answers it. **Don't propose anti-stall
+machinery.** The remedy is opt-in: play with a countdown timer
+(`timer-countdown`), whose timeout ranks the players, and End is the social
+way out of a timerless standoff.
 
-**A hint in compete must be priced.** A hint is what a game hands a stuck
-player — a nudge, a reveal, a check, an AI suggestion — and in compete it must
-be one of:
+## Timer fairness
 
-- **banned** in compete;
-- **earned** by play;
-- **scored** into the ranking, which suits a best-style game (one more ranking
-  component) and not a race;
-- free only when **self-informative** — it can tell you you're wrong, never hand
-  you progress.
-
-A free hint that hands over progress in a race is the one indefensible case:
-asking and then using the answer becomes a legal shortcut to the win.
-
-## Clock fairness
-
-The shared game clock is fair exactly when play is **simultaneous**: wall time
+The shared game timer is fair exactly when play is **simultaneous**: wall time
 is every player's thinking time equally. In **turn-based compete** it is not —
 a rival's deliberation spends your time, and a slow opponent can lose the game
-for both of you. In turn-based coop the shared clock is right: a shared fate is
+for both of you. In turn-based coop the shared timer is right: a shared fate is
 the point of coop.
 
-The turn-based-compete answer is a **player clock** (a chess clock): each
-player's own budget, spent only on their own turns. **Flag fall is an automatic
-concede** — never chess's "flag falls, the opponent wins", which would be a
-survival win. As a concede it composes with everything already here: the
-survivor plays on and must still finish, and all flags fallen is all conceded,
-a collective loss. It is real work — today's timer is one game-level count, and
-a player clock needs per-player accounting and server-side flag-fall
-detection.
+The turn-based-compete answer is a **player timer**: each player's own
+countdown, spent only on their own turns. **A player timer running out is an
+automatic concede** — never "time's up, the opponent wins", which would be
+winning by outliving (`win-is-earned`). As a concede it composes with everything already here: the
+survivor plays on and must still meet the goal, and if every player timer
+runs out, everyone conceded, so everyone lost. It is real work — today's timer is one
+game-level count, and a player timer needs per-player accounting and
+server-side detection of its running out.
 
 ## Ideas, not built
 
-- **`setup.compete_style: 'race' | 'best'`** — an opt-in style in setup, the
-  shape of coop's `coop_style: 'turns'`, validated by `create_game` and branched
-  at the terminal transition; not a new gametype. boggle already does this
-  implicitly: a target makes it a race with an all-lose clock, and no target
-  makes it a best game whose clock is the finish line. A game needs a
-  per-player finish for "best" to rank anything, and something slower than a
-  typing contest for "race" to mean anything.
-- **Standings on a collective loss** — keep an all-lose verdict a loss, but
-  attach who was ahead ("Lost (out of time) · closest: melissa 4/6") rather than
-  crowning anyone. Weighed against crowning the closest and preferred: "closest"
-  is ill-defined in most built-in-finish games, and crowning a collective
-  failure muddies won and lost. The carriers exist (per-player `result`, the
-  terminal reveals); the work is each game's choice of standings metric.
+- **`setup.compete_style`** — an opt-in choice in setup of when a compete
+  game ends (`ends-when`): when decided, or playing out. The shape of coop's
+  `coop_style: 'turns'`, validated by `create_game` and branched at the
+  terminal transition; not a new gametype. A game needs a per-player goal for
+  playing out to rank anything, and something slower than a typing contest
+  for ending when decided to mean anything.
+- **Progress on a loss** — keep a verdict where everyone lost a loss, but
+  attach who was ahead ("Lost (out of time) · closest: melissa 4/6") rather
+  than crowning anyone. Weighed against crowning the closest and preferred:
+  "closest" is ill-defined in most games with an intrinsic goal, and crowning
+  a shared failure muddies won and lost. The carriers exist (per-player
+  `result`, the terminal reveals); the work is each game's choice of progress
+  measure.
 
 ## Where a player stands — the terms, as formulas
 
@@ -227,12 +228,12 @@ isViewingHistory = /* the history viewer has a turn open */
 ## How a game ends — the terms (agreed 2026-09-25)
 
 The nomenclature for talking about how a game ends, and how it ended for each
-player. Dashed names are the nailed-down terms, not the everyday English words.
-These define words only; which choices each game makes is a separate, per-game
-determination made in these words. **Where anything else in this doc disagrees,
-this section wins** — the older text above and in [Vocabulary](#vocabulary) is
-still current but is going away, to be rewritten in these terms. `open-ended`
-is retired.
+player. Dashed names are the nailed-down terms: the names for game cards and
+for code. Prose, here and in other docs, may use the everyday words instead;
+[Vocabulary](#vocabulary) pairs each with its term. These define words only;
+which choices each game makes is a separate, per-game determination made in
+these words. **Where anything else in this doc disagrees, this section
+wins.**
 
 ### The game
 
@@ -314,15 +315,16 @@ is retired.
     the count only ranks players at a `timeout`.
 - **`decided`** — no remaining play can change who wins.
   - Doesn't mean: the game has `ended` — play may go on after it is decided.
-- **`player-done`** — the player isn't playing any more, while the game may
-  go on for others: the prose word for `isLocallyTerminal`, as `ended` is for
-  `isTerminal`. The reasons vary — `reached-goal`, `eliminated`, `conceded`,
-  or their allotted play used up without losing by it.
+- **`locally-terminal`** — the player isn't playing any more, while the game
+  may go on for others: `isLocallyTerminal` in code, as `ended` is
+  `isTerminal`, and `common.game_players.locally_terminal` in the database.
+  The reasons vary — `reached-goal`, `eliminated`, `conceded`, or their
+  allotted play used up without losing by it.
   - Doesn't mean: `won` or `lost` — it says the player stopped, not how it
     went.
   - Doesn't mean: the game `ended`. When the game ends — a Stop, a `timeout`,
-    a win — players who were still playing are not player-done; the game is
-    over.
+    a win — players who were still playing are not locally terminal; the
+    game is over.
 - **`loses-by`** — what, other than someone else winning, makes a player
   (or team) lose: in compete what makes a player `eliminated`, in coop what
   fails the team. One or more of the first three (codenamesduet has a move
@@ -343,11 +345,12 @@ is retired.
   (boggle compete without a target).
   - **`ends-when-decided`** — as soon as it is `decided` (crosswords: the
     first to solve it).
-  - **`ends-when-all-done`** — only when every player is `player-done`, so the rest
-    play on after it is `decided` (wordle: short, and fun to finish).
+  - **`ends-when-all-done`** — only when every player is `locally-terminal`,
+    so the rest play on after it is `decided` (wordle: short, and fun to
+    finish).
   - **`ends-when-one-left`** — with two or more players, when only one is not
-    yet `player-done`: the last player needn't reach the `game-goal` to end
-    it. A solo game ends when its one player is `player-done`.
+    yet `locally-terminal`: the last player needn't reach the `game-goal` to
+    end it. A solo game ends when its one player is `locally-terminal`.
   - **`ends-when-natural-finish`** — for everyone at once, at its
     `natural-finish`, however long before that it was `decided` (setgame:
     a player already beaten plays the deck out).
@@ -453,14 +456,15 @@ is retired.
 - **`final-ranking`** — each player's ranking at the end, by `ranked-by`, in
   every game: a number, or none for a player who isn't ranked. In coop the
   team shares one: 1 when it won, none when it did not. A player who failed
-  — `eliminated`, `conceded`, or short of a finish line the game has — is not
+  — `eliminated`, `conceded`, or short of a goal the game has — is not
   ranked (`no-best-of-the-losers`); in a `score-only-contest` that leaves
   everyone who didn't concede and made progress. Players level on every step of `ranked-by`
   share a ranking, and the next one skips: two tied for first are both 1,
   and the player after them is 3. A ranking of 1 is `won`; any other ranking
   is `lost`.
-  - Doesn't mean: the players who are, or aren't, `player-done`. A solver is
-    `player-done` and ranked; a conceder is `player-done` and not.
+  - Doesn't mean: the players who are, or aren't, `locally-terminal`. A
+    solver is locally terminal and ranked; a conceder is locally terminal and
+    not.
   - Doesn't mean: everyone unranked `lost`. In a `stopped` or `no-result`
     game the unranked neither won nor lost, except the conceders; a
     `decided-stands` win keeps its 1.
@@ -502,7 +506,7 @@ them separately (hints may be banned in compete and free in coop).
 
 - **`win-is-earned`** — a win is never inherited: a player left alone after
   the others `conceded` must still `reached-goal` to win, or can lose. (The
-  same rule as "no survival wins", above.) So a game can end with nobody
+  invariant "A win is earned", above.) So a game can end with nobody
   winning.
 - **`no-best-of-the-losers`** — failing is final: among players who failed,
   nobody is crowned for having done better (two connections players who both
@@ -513,30 +517,46 @@ them separately (hints may be banned in compete and free in coop).
 
 ## Vocabulary
 
-Prefer these in docs, comments, identifiers and setup keys.
+One concept, one name. The terms (in backticks) are the names for game cards
+and for code. Prose may use a term's plain short form ("the goal" for
+`game-goal`, "plays out" for `ends-when-all-done`), naming the term once per
+section to tie the two together — never a second name for the same concept.
 
-| term | meaning |
+**Words prose keeps** — a short form of a term, or a thing no term names:
+
+| word | the term | meaning |
+|---|---|---|
+| **target** | `goal-chosen` | the setup field players pick a chosen goal with (a rank, a percentage) |
+| **plays out** | `ends-when-all-done` | the game waits for every player, and a ranking decides at the end |
+| **race** | `race-game` | ranked by speed: the first to meet the goal wins, whether or not the game ends there |
+| **locally terminal** | `locally-terminal` | not playing any more, for whatever reason — met the goal, eliminated, out of budget, or conceded — while others may play on; `common.game_players.locally_terminal` ([common.md](common.md)). See [Where a player stands](#where-a-player-stands--the-terms-as-formulas) |
+| **move budget** / **mistake budget** | `loses-by-move-budget` / `loses-by-mistake-budget` | what a wrong (or any) move spends |
+| **collective finish** | — | a natural finish (`natural-finish`) everyone shares: the bag or the deck running out for everyone |
+| **refundable budget** | — | a cap that blocks play but that undo refunds, so it never loses the game |
+| **quality-then-speed** | — | a ranking whose steps are a measure, then speed as its `tiebreak` (`<metric>, solved_at`) |
+| **composite score** | — | a score made of parts: a weighted blend of components into one number that IS the ranking |
+| **shared timer** / **player timer** | `timer` | the one game-level countdown / a per-player countdown spent on your own turns |
+| **hint** | `hint` | what a game hands a stuck player: a nudge, a reveal, a check, an AI suggestion. **Never "help"** — help is the text explaining a form field, the rules of a game, or what an AI does (Joel, 2026-09-17) |
+| **reveal** | `hint-reveal` | while hint-reveal is formally a kind of hint, when using in prose, make it clear that this reveals an answer |  
+| **refusing to lose** | — | stalling a game that plays out to avoid the ranking — out of scope, never defended against |
+
+**Retired words** — second names for a concept that has one. Older docs and
+comments still use them; say the right-hand word instead:
+
+| retired | say instead |
 |---|---|
-| **finish (line)** | what "done" is for one player or team; **built-in**, **target** (setup-chosen), or **none** |
-| **open-ended** | a target-capable game played without a target — it can only end neutrally |
-| **race** / **best** | the two compete styles: the first finisher ends it, or everyone plays out and a ranking decides |
-| **first past the post** | the race mechanism — an instant end, serialized by the lock, so no ties |
-| **play out** | the best-style property: the game waits for every player |
-| **locally terminal** | not playing any more, for whatever reason — finished, eliminated, out of budget, or conceded — while others may play on; `common.game_players.locally_terminal` ([common.md](common.md)). See [Where a player stands](#where-a-player-stands--the-terms-as-formulas) |
-| **standings** | partial progress read as a ranking |
-| **all lose** / **rank the finishers** / **rank the standings** | the three things a timeout can do |
-| **the reachable-end rule** | a timeout is a loss iff an end was reachable and unreached ([states.md](states.md)) |
-| **collective loss** | everyone loses together — `lost` / `lost_compete`, no winner |
-| **collective finish** | a finish nobody reaches alone: the bag or the deck running out for everyone |
-| **no survival wins** | outliving never wins; conceding or elimination can't crown anyone |
-| **move budget** / **mistake budget** / **sudden death** / **clock only** / **refundable budget** | where a coop loss comes from |
-| **quality-then-speed** | best's tiebreak ordering (`<metric>, solved_at`) |
-| **co-winners** | a shared win: a ranking exhausted with players still level, or one with no tiebreak at all |
-| **comparator** | a lexicographic ranking — later components matter only on an exact tie |
-| **composite score** | a weighted blend of ranking components into one number that IS the ranking |
-| **shared clock** / **player clock** | the one game-level countdown / a per-player budget spent on your own turns |
-| **flag fall** | a player clock running out — an automatic **concede**, never a crowning |
-| **standings on a loss** | a collective loss that records who was ahead, without adjudicating |
-| **hint** | what a game hands a stuck player: a nudge, a reveal, a check, an AI suggestion. **Never "help"** — help is the text explaining a form field, the rules of a game, or what an AI does (Joel, 2026-09-17) |
-| **priced hint** | the compete rule: banned, earned, scored, or free only if self-informative |
-| **refusing to lose** | stalling a best game to avoid the ranking — out of scope, never defended against |
+| player-done | locally terminal (`locally-terminal`) |
+| finish (line), built-in, none | the goal (`game-goal`): intrinsic (`goal-intrinsic`), no goal (`goal-none`) |
+| first past the post | ends when decided (`ends-when-decided`) |
+| best | plays out (`ends-when-all-done`) |
+| standings | progress (`goal-progress`) |
+| rank the finishers, all lose | ranks by goal (`timeout-ranks-by-goal`); nobody wins |
+| rank the standings | ranks by progress (`timeout-ranks-by-progress`) |
+| collective loss | everyone lost |
+| no survival wins | a win is earned (`win-is-earned`) |
+| sudden death (as a way to lose) | a fatal move (`loses-by-fatal-move`) |
+| clock only, timer only | timeout only (`loses-by-timeout-only`) |
+| comparator | ranked by (`ranked-by`) |
+| clock | timer (`timer`) |
+| open-ended | a game with no target |
+| the reachable-end rule | what a timeout does (`timeout-result`); the rule is no longer true, since `timeout-no-result` misses a goal without a loss |

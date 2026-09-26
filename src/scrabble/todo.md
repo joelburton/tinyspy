@@ -217,9 +217,9 @@
 
 - **Compete's shared clock is unfair, because compete is turn-based.** A
   rival's deliberation spends your time, and a slow opponent can lose the
-  game for you. The answer is a player clock with flag fall as an automatic
-  concede (`docs/win-lose.md` → Clock fairness) — real work: per-player
-  accounting, and flag-fall detection on the server. The cheap interim is for
+  game for you. The answer is a player timer whose running out is an
+  automatic concede (`docs/win-lose.md` → Timer fairness) — real work:
+  per-player accounting, and detecting it running out on the server. The cheap interim is for
   compete's setup to stop offering a countdown at all.
 - **A coop target.** Coop's only win is going out (Someday, above). A
   `target_score` on plain points would make reaching it a win and arm the
