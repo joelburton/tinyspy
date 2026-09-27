@@ -1009,7 +1009,7 @@ grant execute on function waffle.concede(uuid) to authenticated;
 -- ends the game, the rest raise "not in progress" which the manifest
 -- swallows. Coop: the shared board wasn't solved → lost. Compete:
 -- time's up — the winner is whoever solved in the fewest swaps (the
--- same rule as a natural finish); nobody solved → lost_compete.
+-- same rule as when every player is done); nobody solved → lost_compete.
 drop function if exists waffle.submit_timeout(uuid);
 
 create or replace function waffle.submit_timeout(target_game uuid)

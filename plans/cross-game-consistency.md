@@ -14,6 +14,10 @@ This plan is the survey's findings (2026-09-24) and what is left of them. The
 ten remaining games are audited against the names settled here. Line numbers
 are as of the survey and will rot; the file and the name are the handle.
 
+**The order of what is left** is in [common-tables.md → The
+path](common-tables.md#the-path): §3a step 6, 7c and §4 first; then
+common-tables, which builds step 7; then §5.
+
 Already consistent, and not work: the `useGame` returns (`game` / `loading` /
 `failure`), the history names, `summaryRows`, `localFeedbackSlot`,
 `terminalMessage`, the reveal pairs (`<noun>Shown` / `toggle<Noun>`), the
@@ -156,8 +160,9 @@ and a backfill. Park them, or schedule some?
   wordle — `players.guesses_used` and the status key `guesses_used`, against
   `setup.max_guesses`, which the club-page line reads off the row's setup
   ("3/7 guesses", coop only) (`20260924000009_psychicnum_guesses_used.sql`).
-- **The Stop's `reason`.** A Stop writes `status.reason = 'manual'` at 18
-  SQL sites; the term is `stopped`, so `'stopped'`. And stackdown's coop win
+- **The Stop's `reason`.** A Stop writes `status.reason = 'manual'` in every
+  game but letterboxed (which writes a `stopped` flag); the term is
+  `stopped`, so `'stopped'`. And stackdown's coop win
   writes `'cleared'` where the other games write `'solved'` (its todo). The
   words themselves are step 7's (plans/game-cards.md → After the cards).
 - ~~**The guessed word's column.**~~ Done 2026-09-24: `wordle.events.guess` →
@@ -552,15 +557,16 @@ built in step 7 with the rest:
   codenamesduet's guess answer carries the same two names; wordiply's refused
   guess, whose `reason` means why a guess was refused, becomes
   `reject_reason`.
-- **Why a player stopped playing: the per-player pair.** In
-  `common.game_players.result`: `player_ended_reason` / its `_detail`, on the
-  `PlayerEnded` stem (below), never "stopped" (the Stop's term). Written
-  `null` for a player still playing when the game ended — they never ended on
-  their own, and their story is the game's `game_ended_reason`. Old rows lack
-  the key, so "not written" stays distinct from null. `result` also gains
-  `outcome` (the `EndOutcome`), beside the
-  decided `final_ranking` and `solved`: derivable, but a question across
-  games reads it off one key.
+- **Why a player stopped playing: the per-player pair.** Columns on
+  `common.game_players` (common-tables, 2026-09-27; this bullet first said
+  keys in `result`, which that plan drops): `player_ended_reason` / its
+  `_detail`, on the `PlayerEnded` stem (below), never "stopped" (the Stop's
+  term). Written `null` for a player still playing when the game ended —
+  they never ended on their own, and their story is the game's
+  `game_ended_reason`; old rows are null too, which is right, since prod
+  holds no player who ended on their own. Beside them `outcome` (the
+  `EndOutcome`), `final_ranking` and `solved`: `outcome` is derivable, but a
+  question across games reads it off one column.
 - **Agreed: one reason list, sliced per level** (Joel, 2026-09-26). A
   superset of every reason either level needs; the game's and a player's
   lists are slices of it, using the same word wherever it fits both ("everyone
@@ -569,20 +575,26 @@ built in step 7 with the rest:
   a setgame with a deck per player would end a player's play at a natural
   finish, and the list already has the word. The superset:
 
-  | value | the game's slice | a player's slice |
+  | value | the game's slice: the act that ended the game was… | a player's slice |
   |---|---|---|
-  | `reached_goal` | someone met the goal | I met the goal |
-  | `natural_finish` | the shared rules ran out (the bag, the deck, every player's budget) | my own play ran out (my guesses, my deck) |
-  | `fatal_move` | a move ended it for everyone (the assassin) | a move ended only me (none today) |
-  | `conceded` | everyone conceded | I conceded |
+  | `reached_goal` | a player meeting the goal | I met the goal |
+  | `resource_exhausted` | a resource running out (the bag, the deck, the last player's budget) | my own resource ran out (my guesses, my deck) |
+  | `all_passed` | every active player passing in a row (scrabble compete) | — |
+  | `fatal_move` | a move that ends it for everyone (the assassin) | a move ended only me (none today) |
+  | `conceded` | a concession | I conceded |
   | `timeout` | the shared timer | my own timer, only if a player timer is built |
-  | `stopped` | someone pressed Stop | — |
+  | `stopped` | someone pressing Stop | — |
+
+  The game's reason is never a result: it doesn't say who won or whether
+  everyone lost. That is the outcome, worked out from the players' facts. A
+  `conceded` game may have a winner (one player solved, the last one out
+  conceded).
 
   **The reason says how play ended; the outcome says whether it lost.** A
-  `natural_finish` is neutral about the result (docs/win-lose.md →
-  `natural-finish`: "the guesses are used up"): running out of guesses is
+  `resource_exhausted` is neutral about the result (docs/win-lose.md →
+  `resource-exhausted`: "the last guess spent"): running out of guesses is
   `lost` in wordle, and the end of play, ranked, in wordiply. So
-  `eliminated` is not a reason: it is a `natural_finish` whose outcome is
+  `eliminated` is not a reason: it is a `resource_exhausted` whose outcome is
   `lost`, and stays a term and a worked-out fact (`isEliminated`). A player
   still playing when the game ends has no reason of their own (null; see
   above).
@@ -601,16 +613,82 @@ built in step 7 with the rest:
   - docs/win-lose.md's terms and formulas change with the code (step 7), so
     the doc never names a column the database doesn't have;
   - the cost: `common.games.is_terminal` and `common.game_players.locally_terminal`
-    are columns, so a new migration renames them (no data lost), and every
-    function in `supabase/sql/`, the generated types, `whereIStand`,
-    `useCommonGame`, the PlayAreas and the tests follow — one pass, in step
-    7. `common.games` already has `ended_at`, beside which an
-    `is_game_ended` reads naturally.
+    are columns — dropped, not renamed, by common-tables (`ended_at` and
+    `player_ended_at` carry the facts), and every function in
+    `supabase/sql/`, the generated types, `whereIStand`, `useCommonGame`,
+    the PlayAreas and the tests follow — one pass, in step 7.
 
 - **Decided from the naming pass** (Joel, 2026-09-26): `hasReachedGoal`, a
   noted exception to §1's `is…`; N23 renames the `end_game` RPC to
   `stop_game` too — Stop names only, nothing else that says "end"; §2's
   stored `'manual'` becomes `'stopped'`.
+
+**Step 7 is built by [common-tables.md](common-tables.md) → The path**
+(Joel, 2026-09-27), except its Stop names, which come first. The old 7a, 7b
+and 7d changed the columns that plan reshapes — renaming `is_terminal` and
+`locally_terminal` it drops, writing the reason pair and a player's end into
+`status` and `result` it replaces — so they are its stages now, and the
+reason map moved there with them. What stays here:
+
+- **7c. Stop names (N23) and N24**, worked before common-tables (The path,
+  step 1). `act-end-game` → `act-stop`, "End game" → "Stop game",
+  `actEndGame` → `actStop` (about 150 uses), `END_GAME_CONFIRM` →
+  `STOP_GAME_CONFIRM`, Concede's "Concede / End game", and each game's
+  `end_game` RPC → `stop_game`, with a `DROP` of the old one.
+  `terminalOutcomeVerb` returns `'Conceded'`, not `'Quit'`. Players see two
+  changes: the button says Stop, and the strip says "Conceded at 12".
+- **The questions below** — the decisions common-tables builds on.
+
+**What step 7 changes.** A name changes in step 7 when a common or shared
+name forces it: a column, a common function, a shared type or component, a
+status key every game writes, an RPC the shared front end calls by name. Every
+game's call sites move with it, in the same pass. A game's own word — "race"
+(N25), "clock" (N26), strands' `isLocallyDone` (N27) — is step 8's, listed
+per game and changed at its audit. "Terminal" is the exception: it goes
+everywhere (question 1).
+
+**Questions for Joel:**
+
+1. **Decided** (Joel, 2026-09-26): **everywhere** — "it is worse to not do
+   it everywhere than not do it at all." Every identifier, key and comment,
+   game-local ones included, and the docs' prose, with the columns
+   (common-tables → The path); an exception to the step-8 rule above. The
+   options were:
+   - **Decision names only:** the columns, `isTerminal`, `isLocallyTerminal`,
+     `TerminalOutcome`, `terminalOutcomeVerb`, `_set_locally_terminal`, and
+     the docs' terms.
+   - **Plus shared code** (recommended): also every common name carrying
+     it — what `src/common/terminal/` exports (`terminalMessage` /
+     `TerminalMessage`, about 200 uses; `buildTerminalMessage`,
+     `gameEndedTerminalMessage`) and the folder; `src/common/feedback`'s
+     `terminalVerdict` kind (`showTerminalVerdict` in 16 PlayAreas); the
+     info sheet's `.terminalActions` / `.terminalExtra` classes; the
+     outcome palette's `terminalFrame` variant
+     (`--outcomes-won-terminalFrame-color` and its siblings). Game-local
+     names (SQL's `out_terminal` / `terminal_state` / `terminal_reason` /
+     `v_terminal`, the `terminal` key in seven games' move answers and the
+     fields that read it) go to step 8, with the comments and doc prose that
+     use the word on their own.
+   - **Everywhere:** every identifier and comment; the word appears about
+     2,000 times outside the tests.
+2. ~~**Where the player's end goes.**~~ **Decided** (Joel, 2026-09-26): with
+   the game's end, in one pass — the player's facts and `near` are one design
+   (`outcome` needs `final_ranking` to tell `won` from `near`), and the
+   game's reason pair already opens every game's end paths. They are
+   `common.game_players` columns now, not `result` keys (common-tables).
+3. ~~**How the pair is written.**~~ **Decided** (Joel, 2026-09-26):
+   required parameters on `common.end_game`. A call without them fails when
+   it runs, and a misspelled category is refused there, in one place.
+4. **Compete games that end when every player is done** (wordle, waffle,
+   strands: `ends-when-all-done`). **Decided** (Joel, 2026-09-27): the
+   game's reason is the last player's act — their last guess spent
+   (`resource_exhausted`), their solve (`reached_goal`), or their concession
+   (`conceded`) — as docs/win-lose.md → `resource-exhausted` says: "it is the
+   act that ended the game that counts". The game's `conceded` means a
+   concession ended it, not that everyone conceded; whether anyone won is
+   the outcome's, worked out from the players. The backfill has no such rows:
+   prod holds one compete game, a scrabble one (common-tables-survey →
+   Prod).
 
 **Found while drafting** (a survey of every `ended` path, 2026-09-24):
 
@@ -664,7 +742,15 @@ with no target, which nobody could win. Each game's `todo.md` carries its
 half. `docs/win-lose.md`'s `score-only-contest` rule already counts a countdown.
 
 **Decided, to do: one leaderboard per compete game, built in one place**
-(Joel, 2026-09-26). Today seven games write a `leaderboard` array into
+(Joel, 2026-09-26). **Where it is stored is decided by common-tables
+(Joel, 2026-09-27):** a `leaderboard` column on `common.games` (common-tables
+→ The model), not a key in `status`; `final_ranking` and `solved` are
+`common.game_players` columns, not `result` keys, so an entry carries
+`user_id` and the game's own numbers and the front end joins the end facts
+from the players' rows. The rest below — one builder per game, the entry
+keys, a ranking by number and never by order, no username, private rows
+totaled by a definer — holds, read with those two changes; built in
+common-tables' stage 3. Today seven games write a `leaderboard` array into
 `common.games.status`, each with its own code: some live on every move, some
 only at the end, some twice in two places. The strips read it in four games
 and a per-player SQL table in the rest, and no entry says who conceded or
@@ -714,6 +800,21 @@ where anyone finished. The target:
 - **No `username` on an entry** (Joel, 2026-09-26). Some games copy it in
   today; the front end has every member's name, and the club page has
   `winner_username`, so a copy per entry is one more thing to go stale.
+
+**Decided, to do: a speed step always resolves; no `co-winners` after it**
+(Joel, 2026-09-27). `solved_at` is the transaction's start time at
+microsecond resolution, so two solves cannot be level after it, and a
+`co-winners` step behind one is dead. Two games change, cards already
+updated:
+
+- **strands** ranks by fewest hints, then the earlier solve. Its
+  `_maybe_finish_compete` takes every solver at the best hint count whose
+  `solved_at` is the minimum; it takes one row, as wordle and waffle do.
+- **wordiply** ranks by the best score, then the earlier last guess —
+  always, not only "with a `timer`". `_finish_compete`'s `timed` flag (read
+  off `setup.timer.kind`, and true for a countup) goes, and with it the
+  untimed `co-winners`. This also removes the one SQL read of the timer's
+  kind (common-tables → Review, question 7).
 
 **Answered** (the open questions this section carried):
 

@@ -850,8 +850,8 @@ grant execute on function wordle.concede(uuid) to authenticated;
 -- Fired by the FE when a countdown hits 0 (every player races to call
 -- it). Idempotent on the play_state check. Coop: not solved → lost.
 -- Compete: time's up — _finish_compete ends the race as it stands, the
--- winner being whoever solved in the fewest guesses (the same rule as a
--- natural finish) and the reason 'timeout' either way.
+-- winner being whoever solved in the fewest guesses (the same rule as when
+-- every player is done) and the reason 'timeout' either way.
 drop function if exists wordle.submit_timeout(uuid);
 
 create or replace function wordle.submit_timeout(target_game uuid)

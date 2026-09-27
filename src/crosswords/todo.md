@@ -108,6 +108,15 @@
 
 ## Maybe
 
+- **Update the club line now and then during play?** A cell change writes
+  only `crosswords.cells`, so `common.games` changes only when someone opens
+  or leaves the game, and at the end. Two things follow: the club line can't
+  show progress ("50% filled"), and a game played for two hours without
+  ending reads as last active when it was opened. Both would take an
+  occasional write to `clubpage_info` (plans/common-tables.md), which also
+  moves `last_active_at` — not one per keystroke, since every write reloads
+  every open club page. Decide whether either is wanted.
+
 - **The cursor speaks its own vocabulary.** Here a cursor is `{ row, col }`
   with `'across'`/`'down'`; the shared board cursor (`common/board-cursor`) is
   `{ x, y }` with `'h'`/`'v'`, and docs/naming.md wants one name per concept.

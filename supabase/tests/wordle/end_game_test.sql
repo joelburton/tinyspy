@@ -40,11 +40,11 @@ select pg_temp.envelope_is(
     "message":"Game over"}'::jsonb,
   'submit_timeout is idempotent (a second call is a race)');
 
--- ── Compete timeout with a solver → won_compete, the same status a
---    natural finish writes ─────────────────────────────────────
+-- ── Compete timeout with a solver → won_compete, the same status as
+--    when every player is done ──────────────────────────────────
 -- The clock ends the race as it stands: whoever solved in the fewest guesses
--- wins, the reason is 'timeout', and the status carries the winner's count the
--- way a natural finish's does — _finish_compete writes both endings.
+-- wins, the reason is 'timeout', and the status carries the winner's count as
+-- it does when every player is done — _finish_compete writes both endings.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 create temp table club3 on commit drop as
 select pg_temp.create_club('Wordle t3', array['ada', 'bea']) as handle;
@@ -73,7 +73,7 @@ select is(
   'ada11111-1111-1111-1111-111111111111'::uuid, 'compete timeout: the solver is the winner');
 select is(
   (select (status->>'winner_guesses')::int from common.games where id = (select id from g3)),
-  1, 'compete timeout: the status names the winner''s guess count, as a natural finish does');
+  1, 'compete timeout: the status names the winner''s guess count, as when every player is done');
 select is(
   (select (result->>'won')::boolean from common.game_players
     where game_id = (select id from g3) and user_id = 'bea22222-2222-2222-2222-222222222222'),

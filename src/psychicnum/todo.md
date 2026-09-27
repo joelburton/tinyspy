@@ -25,7 +25,7 @@
   `_maybe_finish_compete` writes `'exhausted'`; it writes `'conceded'` only
   when every player conceded. Ruled: the last player out conceding is
   `'conceded'`, even when everyone else spent their budget
-  (docs/win-lose.md → `reached-natural-finish`). Other games that end when
+  (docs/win-lose.md → `resource-exhausted`). Other games that end when
   every player is out may do the same; check them when this is worked.
 
 ## Someday

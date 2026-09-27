@@ -5,7 +5,7 @@
 -- ============================================================
 -- Coop: the shared board wasn't solved in time → lost. Compete: time's
 -- up — the winner is whoever solved in the fewest swaps (same rule as
--- a natural finish); a non-solver loses. Idempotent on the play_state
+-- when every player is done); a non-solver loses. Idempotent on the play_state
 -- check (a peer racing to fire it gets "not in progress").
 
 begin;

@@ -129,7 +129,7 @@ climb a rank ladder, Start to Genius.
   - `announce-when` — `announce-when-decided`
   - `progress-shown` — `progress-shown-milestones`: rank
 - **ending**
-  - `natural-finish` — none
+  - `exhaustible-resource` — none
   - `ends-when` — `ends-when-decided`
   - `timeout-result`
     - coop:
@@ -174,7 +174,7 @@ Its ending code is spellingbee's.
   - `announce-when` — `announce-when-decided`
   - `progress-shown` — `progress-shown-milestones`: rank
 - **ending**
-  - `natural-finish` — none
+  - `exhaustible-resource` — none
   - `ends-when` — `ends-when-decided`
   - `timeout-result`
     - coop:
@@ -218,7 +218,7 @@ score toward an optional target; bonus words score too.
   - `announce-when` — `announce-when-decided`
   - `progress-shown` — `progress-shown-count`: score
 - **ending**
-  - `natural-finish` — none
+  - `exhaustible-resource` — none
   - `ends-when` — `ends-when-decided`
   - `timeout-result`
     - coop:
@@ -261,7 +261,7 @@ guesses.
     - `progress-shown-count`: guesses used
     - `progress-shown-milestones`: solved
 - **ending**
-  - `natural-finish` — every player's guesses spent
+  - `exhaustible-resource` — every player's guesses
   - `ends-when` — `ends-when-all-done`
   - `timeout-result` — `timeout-ranks-by-goal`
 - **hints** — none
@@ -292,7 +292,7 @@ budget of 3, 5, 7 or 9.
   - `announce-when` — `announce-when-decided`
   - `progress-shown` — `progress-shown-count`: secrets found
 - **ending**
-  - `natural-finish` — every player's budget spent
+  - `exhaustible-resource` — every player's budget
   - `ends-when` — `ends-when-decided`
   - `timeout-result` — `timeout-ranks-by-goal`
 - **hints**
@@ -324,7 +324,7 @@ lead the partner to the agents on your key. Coop only, two players.
     - `loses-by-move-budget`: the turns spent, then any miss
   - `announce-when` — `announce-when-decided`
 - **ending**
-  - `natural-finish` — none: a spent budget begins the game's sudden death
+  - `exhaustible-resource` — none: a spent budget begins the game's sudden death
   - `timeout-result` — `timeout-ranks-by-goal`
 - **hints**
   - `hint` — an AI-suggested clue, for the clue-giver
@@ -353,7 +353,7 @@ mistakes to spend.
   - `announce-when` — `announce-when-decided`
   - `progress-shown` — `progress-shown-count`: categories found
 - **ending**
-  - `natural-finish` — every player's mistakes spent
+  - `exhaustible-resource` — every player's mistake budget
   - `ends-when` — `ends-when-decided`
   - `timeout-result` — `timeout-ranks-by-goal`
 - **hints**
@@ -386,7 +386,7 @@ grid, compete gives each player their own.
   - `announce-when` — `announce-when-decided`
   - `progress-shown` — `progress-shown-none`
 - **ending**
-  - `natural-finish` — none
+  - `exhaustible-resource` — none
   - `ends-when` — `ends-when-decided`
   - `timeout-result` — `timeout-ranks-by-goal`
 - **hints**
@@ -427,7 +427,7 @@ budget is par plus a few.
     - `progress-shown-count`: swaps used
     - `progress-shown-milestones`: solved, out of swaps
 - **ending**
-  - `natural-finish` — every player's swaps spent
+  - `exhaustible-resource` — every player's swaps
   - `ends-when` — `ends-when-all-done`
   - `timeout-result` — `timeout-ranks-by-goal`
 - **hints** — none
@@ -456,7 +456,6 @@ each. Other valid words fill a bar that buys a hint.
   - `ranked-by`
     1. fewest hints
     2. the earlier solve
-    3. `co-winners`
   - `final-ranking` — by `ranked-by`
   - `loses-by` — `loses-by-timeout-only`
   - `announce-when`
@@ -466,7 +465,7 @@ each. Other valid words fill a bar that buys a hint.
     - `progress-shown-count`: hints used
     - `progress-shown-milestones`: solved
 - **ending**
-  - `natural-finish` — none
+  - `exhaustible-resource` — none
   - `ends-when` — `ends-when-all-done`
   - `timeout-result` — `timeout-ranks-by-goal`
 - **hints**
@@ -497,7 +496,7 @@ each from the tiles left exposed.
   - `announce-when` — `announce-when-decided`
   - `progress-shown` — `progress-shown-count`: words cleared
 - **ending**
-  - `natural-finish` — none
+  - `exhaustible-resource` — none
   - `ends-when` — `ends-when-decided`
   - `timeout-result` — `timeout-ranks-by-goal`
 - **hints**
@@ -535,7 +534,7 @@ until all twelve are used. The chain has a word cap; undo refunds.
   - `announce-when` — `announce-when-decided`
   - `progress-shown` — `progress-shown-count`: letters covered, words used
 - **ending**
-  - `natural-finish` — none
+  - `exhaustible-resource` — none
   - `ends-when` — `ends-when-decided`
   - `timeout-result`
     - coop: `timeout-ranks-by-goal`
@@ -577,14 +576,14 @@ across all five.
 - **winning and losing**
   - `ranked-by`
     1. the best score
-    2. with a `timer`: the earlier last guess; without: `co-winners`
+    2. the earlier last guess
   - `loses-by`
     - coop: `loses-by-timeout-only`
     - compete: `loses-by-none`
   - `announce-when` — `announce-when-ended`
   - `progress-shown` — `progress-shown-count`: guesses used
 - **ending**
-  - `natural-finish` — every player's five guesses spent
+  - `exhaustible-resource` — every player's five guesses
   - `ends-when` — `ends-when-all-done`
   - `timeout-result`
     - coop: `timeout-ranks-by-goal`
@@ -614,7 +613,7 @@ is placed, Peel and everyone draws more. Compete only, one to six players.
   - `announce-when` — `announce-when-decided`
   - `progress-shown` — `progress-shown-count`: tiles left in hand
 - **ending**
-  - `natural-finish` — none
+  - `exhaustible-resource` — none
   - `ends-when` — `ends-when-decided`
   - `timeout-result` — `timeout-ranks-by-goal`
 - **hints**
@@ -657,10 +656,10 @@ scored by tile values and premium squares. Compete can seat AI players.
   - `announce-when` — `announce-when-ended`
   - `progress-shown` — `progress-shown-count`: score
 - **ending**
-  - `natural-finish`
-    - a player goes out with the bag empty
-    - compete: also every active seat passing in a row
-  - `ends-when` — `ends-when-natural-finish`
+  - `exhaustible-resource` — the tiles: a player goes out with the bag empty
+  - `ends-when`
+    - `ends-when-resource-exhausted`
+    - compete: also `ends-when-all-passed`
   - `timeout-result`
     - coop: `timeout-ranks-by-goal`
     - compete: `timeout-ranks-by-progress`
@@ -701,8 +700,8 @@ deck deals out onto the table as sets are claimed.
     - compete: `announce-when-ended`
   - `progress-shown` — `progress-shown-count`: sets found
 - **ending**
-  - `natural-finish` — the deck spent, and no set on the table
-  - `ends-when` — `ends-when-natural-finish`
+  - `exhaustible-resource` — the deck, with no set left on the table
+  - `ends-when` — `ends-when-resource-exhausted`
   - `timeout-result`
     - coop: `timeout-ranks-by-goal`
     - compete: `timeout-ranks-by-progress`

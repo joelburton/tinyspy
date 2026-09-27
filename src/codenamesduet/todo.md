@@ -2,6 +2,21 @@
 
 ## Bugs
 
+- **The turn count reads one short at the end.** A game set to 11 turns,        
+  ending on win on 11th turn. There are 11 rows in the history, yet it
+  shows "10/11 turns used" in the infoCol status.           
+  Game was https://puzpuzpuz.joelburton.com/g/codenamesduet/4d646235-490d-4ba9-9d8b-e17d97cc3a9c
+
+  It's a bug in another place: in game
+  https://puzpuzpuz.joelburton.com/g/codenamesduet/1cc71f03-0cc2-4606-85d2-1fc38d1eaf55
+  it shows two moves in history (2nd an assassin, ending the game), but it reads
+  1/11 turns spent.
+
+  Perhaps it doesn't update "turns spent" except on end-turn manually or by
+  finding a neutral?
+
+  In both games, club-page listing is correct.
+
 ## Soon
 
 ## Someday

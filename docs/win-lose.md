@@ -48,8 +48,8 @@ out**, so ranking by goal means everyone lost. Such a game may rank by
 progress instead, when its progress is a real measure of it — a deliberate
 departure, recorded in that game's doc.
 
-**A collective finish** is a natural finish (`natural-finish`) everyone
-shares: the bag or the deck runs out for everyone at once. Its timeout ranks
+**A collective finish** is an `exhaustible-resource` everyone shares: the bag
+or the deck runs out for everyone at once. Its timeout ranks
 by progress when progress at any moment is a complete result (a count of sets
 taken, a score), and otherwise by goal.
 
@@ -249,25 +249,28 @@ wins.**
   - **`goal-none`** — the game has no goal, so it cannot be won or lost: an
     imagined game where the players just enter words they like. A score is
     only a goal as a contest between players.
-- **`natural-finish`** — an end the game reaches by its own rules: the bag
-  runs out, the deck is spent, the guesses are used up.
-  - Doesn't mean: a `timeout`. A timeout is never a
-    `natural-finish`; it only stops the game.
-  - Doesn't mean: reaching the `game-goal`. A natural-finish ends play
-    whether or not anyone met the goal; a crossword ends only by being solved,
-    so it has none.
-  - Conceded players are left out: "every player's guesses spent" means every
+- **`exhaustible-resource`** — what the game can run out of, ending play by
+  its own rules: the bag, the deck, every player's guesses.
+  - Doesn't mean: time. A `timeout` is never an exhausted resource; it only
+    stops the game.
+  - Doesn't mean: the `game-goal`. Running out ends play whether or not
+    anyone met the goal; a crossword ends only by being solved, so it has
+    none.
+  - Conceded players are left out: "every player's guesses" means every
     player who hasn't conceded.
   - A fact about the gametype: setgame has one whether or not a given game
-    gets there. For a game that ended that way, see `reached-natural-finish`.
-- **`reached-natural-finish`** — this game ended at its `natural-finish`: the
-  act that ended it was the rules running out (the last guess spent, the last
-  card dealt, the bag emptied).
+    gets there. For a game that ended that way, see `resource-exhausted`.
+- **`resource-exhausted`** — this game ended because its
+  `exhaustible-resource` ran out: the act that ended it was the last guess
+  spent, the last card dealt, the bag emptied.
   - Doesn't mean: nobody won — scrabble's bag running out ends a game someone
     wins.
   - Doesn't mean: ended by conceding. If the last player out conceded, the
     game ended by concession, even when every other player had spent their
     budget; it is the act that ended the game that counts.
+- **`all-passed`** — this game ended because every active player passed in
+  a row (scrabble compete).
+  - Doesn't mean: `resource-exhausted`. Nothing ran out; nobody would move.
 - **`goal-progress`** — a player's measurable movement toward the
   `game-goal`: words found, categories solved, score. Each game that uses it
   names its own measure. A player has made progress when their measure is
@@ -309,12 +312,14 @@ wins.**
 - **`score-only-contest`** — a compete game won only by the best score, with
   no fixed point a player can reach partway through: scrabble, setgame,
   wordiply, boggle without a target. Something has to say when the score is
-  judged, so it needs a `natural-finish` or a `timer-countdown`.
+  judged, so it needs an `exhaustible-resource` or a `timer-countdown`.
   - Doesn't mean: any game that keeps a score or a count. letterboxed counts
     letters covered, but its goal is a fixed point (all twelve letters), and
     the count only ranks players at a `timeout`.
 - **`decided`** — no remaining play can change who wins.
   - Doesn't mean: the game has `ended` — play may go on after it is decided.
+  - Doesn't mean: the game has a `final-ranking`. Only the winner is known;
+    the ranking comes at the end.
 - **`locally-terminal`** — the player isn't playing any more, while the game
   may go on for others: `isLocallyTerminal` in code, as `ended` is
   `isTerminal`, and `common.game_players.locally_terminal` in the database.
@@ -340,8 +345,8 @@ wins.**
   - **`loses-by-none`** — nothing: a player loses only because someone else
     `won` (setgame compete, whose `timeout` crowns the leader).
 - **`ends-when`** — when a compete game ends, besides a Stop or a
-  `timeout`, which end every game; each compete game is one of the cases
-  below, or none: nothing in play ends it, only the Stop or the `timeout`
+  `timeout`, which end every game; each compete game is one or more of the
+  cases below, or none: nothing in play ends it, only the Stop or the `timeout`
   (boggle compete without a target).
   - **`ends-when-decided`** — as soon as it is `decided` (crosswords: the
     first to solve it).
@@ -351,9 +356,11 @@ wins.**
   - **`ends-when-one-left`** — with two or more players, when only one is not
     yet `locally-terminal`: the last player needn't reach the `game-goal` to
     end it. A solo game ends when its one player is `locally-terminal`.
-  - **`ends-when-natural-finish`** — for everyone at once, at its
-    `natural-finish`, however long before that it was `decided` (setgame:
-    a player already beaten plays the deck out).
+  - **`ends-when-resource-exhausted`** — for everyone at once, when its
+    `exhaustible-resource` runs out, however long before that it was
+    `decided` (setgame: a player already beaten plays the deck out).
+  - **`ends-when-all-passed`** — for everyone at once, when every active
+    player passes in a row (scrabble).
 - **`timer`** — the game's timer: what `setup.timer` chooses and what the
   screen shows — none, `timer-countup`, or `timer-countdown`. Never "clock".
   - **`timer-countup`** — shows the time elapsed; ends nothing.
@@ -377,7 +384,7 @@ wins.**
   game makes.
 - **`announce-when`** — when results are told; each game is one of:
   - **`announce-when-decided`** — the winner is told as soon as the game is
-    `decided`.
+    `decided`, before there is a `final-ranking`.
   - **`announce-when-ended`** — results come only once the game has `ended`.
 - **`progress-shown`** — what a compete player sees of a rival's progress
   during play; at the end, every game shows everything. Compete only. One or
@@ -395,8 +402,8 @@ wins.**
   stay `conceded`, and so `lost`. Shown in a neutral tone.
   - **`decided-stands`** — stopping a game that is already `decided` keeps its
     win: the Stop only ends the play-on.
-- **`no-result`** — a `goal-none` game reached its end (its `natural-finish`,
-  or a `timeout`): nobody `won` or `lost`. The same neutral tone as `stopped`,
+- **`no-result`** — a `goal-none` game reached its end (its
+  `exhaustible-resource` ran out, or a `timeout`): nobody `won` or `lost`. The same neutral tone as `stopped`,
   but a different word — nobody chose to stop it.
 
 ### The player
@@ -429,8 +436,8 @@ wins.**
   are valid. A fact the game uses — it decides whether "reveal solution" is
   offered on a solved game — not an outcome shown to the player.
   - Doesn't mean: `solved` or `perfect-play` — both can hold without it.
-- **`won`** — the player's `final-ranking` is 1: first by the game's
-  `ranked-by`.
+- **`won`** — the player is first by the game's `ranked-by`: known once the
+  game is `decided`, and recorded at the end as a `final-ranking` of 1.
   - In coop, the whole team wins or doesn't: every player is ranked 1, or
     none is.
   - In compete, one player wins, or **`co-winners`** share 1 when the steps
@@ -531,7 +538,7 @@ section to tie the two together — never a second name for the same concept.
 | **race** | `race-game` | ranked by speed: the first to meet the goal wins, whether or not the game ends there |
 | **locally terminal** | `locally-terminal` | not playing any more, for whatever reason — met the goal, eliminated, out of budget, or conceded — while others may play on; `common.game_players.locally_terminal` ([common.md](common.md)). See [Where a player stands](#where-a-player-stands--the-terms-as-formulas) |
 | **move budget** / **mistake budget** | `loses-by-move-budget` / `loses-by-mistake-budget` | what a wrong (or any) move spends |
-| **collective finish** | — | a natural finish (`natural-finish`) everyone shares: the bag or the deck running out for everyone |
+| **collective finish** | — | an `exhaustible-resource` everyone shares: the bag or the deck running out for everyone |
 | **refundable budget** | — | a cap that blocks play but that undo refunds, so it never loses the game |
 | **quality-then-speed** | — | a ranking whose steps are a measure, then speed as its `tiebreak` (`<metric>, solved_at`) |
 | **composite score** | — | a score made of parts: a weighted blend of components into one number that IS the ranking |
@@ -548,6 +555,7 @@ comments still use them; say the right-hand word instead:
 | player-done | locally terminal (`locally-terminal`) |
 | finish (line), built-in, none | the goal (`game-goal`): intrinsic (`goal-intrinsic`), no goal (`goal-none`) |
 | first past the post | ends when decided (`ends-when-decided`) |
+| natural finish | ran out (`resource-exhausted`); for the gametype's rule, `exhaustible-resource`; scrabble's all-pass is `all-passed` |
 | best | plays out (`ends-when-all-done`) |
 | standings | progress (`goal-progress`) |
 | rank the finishers, all lose | ranks by goal (`timeout-ranks-by-goal`); nobody wins |

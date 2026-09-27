@@ -167,6 +167,7 @@ game's area, consult both.
 | [plans/cross-game-consistency.md](plans/cross-game-consistency.md) | The six closed games checked against each other; worked before the ten remaining games open |
 | [plans/tile-feedback.md](plans/tile-feedback.md) | The design target for board feedback; read it per game area |
 | [plans/playarea-readability.md](plans/playarea-readability.md) | The target shape for each game's `PlayArea.tsx`; read it per game area |
+| [plans/common-tables.md](plans/common-tables.md) | Where a game's facts live: `common.games`, `common.game_players`, `<game>.games`; builds cross-game-consistency's step 7, and holds the order of what is left |
 | [plans/spectating.md](plans/spectating.md) | Proposed, nothing decided: what a watching club member sees |
 | [plans/dark-mode.md](plans/dark-mode.md) | Not scheduled: what a dark theme would still cost |
 
