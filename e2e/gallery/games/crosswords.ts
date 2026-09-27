@@ -2,7 +2,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { asUser, createCrosswordsGameSized, type E2EClub } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
@@ -58,7 +58,7 @@ export const crosswordsGallery: GameGallery = {
     { mode: 'compete', phase: 'fresh' },
     { mode: 'compete', phase: 'mid', note: 'a few squares filled' },
     { mode: 'compete', phase: 'won', note: 'first to complete' },
-    // Coop only: `end_game` here is coop-only by design — a compete racer
+    // Coop only: `stop_game` here is coop-only by design — a compete racer
     // drops out by CONCEDING, which is a loss rather than a neutral stop, so
     // compete has no `ended` to show.
     { mode: 'coop', phase: 'ended', note: 'stopped by agreement' },
@@ -99,7 +99,7 @@ export const crosswordsGallery: GameGallery = {
       if (res.error) throw new Error(`crosswords.set_cell(${sq.row},${sq.col}): ${res.error.message}`)
     }
     if (cell.phase === 'lost') await timeOut(club, 'crosswords', id)
-    if (cell.phase === 'ended') await endGame(club, 'crosswords', id)
+    if (cell.phase === 'ended') await stopGame(club, 'crosswords', id)
 
     return { gametype, id, viewer }
   },

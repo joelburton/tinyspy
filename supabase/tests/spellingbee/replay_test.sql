@@ -36,7 +36,7 @@ select (spellingbee.create_game(
 -- end → found rows, a non-zero status, and a terminal row: what replay undoes.
 select spellingbee.submit_word((select id from g1), 'bead', 1, false, false);
 select spellingbee.submit_word((select id from g1), 'abcdefg', 17, true, false);
-select spellingbee.end_game((select id from g1));
+select spellingbee.stop_game((select id from g1));
 
 reset role;
 select is(

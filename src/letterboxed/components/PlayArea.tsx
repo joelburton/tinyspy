@@ -126,7 +126,7 @@ export function PlayArea(ctx: GamePageCtx) {
   )
 
   const infoSheet = useInfoSheet()
-  // The below-board slot: word results, the two rungs, End / Concede's not-oks, and
+  // The below-board slot: word results, the two rungs, Stop / Concede's not-oks, and
   // the four standing conditions further down.
   const localFeedbackSlot = useFeedbackSlot('local')
 
@@ -445,8 +445,8 @@ export function PlayArea(ctx: GamePageCtx) {
   const { revealed: solutionShown, toggle: toggleSolution } =
     useSolutionReveal()
 
-  // ─── End / Concede / Replay — the shared trio ──────────
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  // ─── Stop / Concede / Replay — the shared trio ─────────
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -566,7 +566,7 @@ export function PlayArea(ctx: GamePageCtx) {
         menu,
         // Both exits, in reading order; each hides itself in the mode that isn't
         // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           { items: [actHint, actSpoiler] },
           { items: [actRestart, actNewGame, actReveal] },
@@ -575,7 +575,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actHint, actSpoiler, actRestart, actNewGame, actReveal, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actHint, actSpoiler, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // ─── Coop peer narration (global header) ───────────────
   // In coop the chain is shared, so a teammate's word changes MY board; say so.
@@ -785,7 +785,7 @@ export function PlayArea(ctx: GamePageCtx) {
           actSpoiler={actSpoiler}
           actReveal={actReveal}
           solutionShown={solutionShown}
-          actEndGame={actEndGame}
+          actStopGame={actStopGame}
           actConcede={actConcede}
           actRestart={actRestart}
           actNewGame={actNewGame}

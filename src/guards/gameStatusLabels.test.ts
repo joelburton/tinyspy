@@ -43,9 +43,8 @@ type Family = {
  * **The status keys must match what the RPC really writes.** A missing key silently falls
  * back to the label's `?? 0` / `?? 'someone'` and prints a plausible-looking lie — that is
  * not a hypothetical: an early version of this matrix omitted spellingbee's `target_rank`
- * on manual end and "found" a bug that the SQL had already fixed (it re-emits target_rank
- * for exactly this reason; see the comment in spellingbee.end_game). Check the RPC before
- * adding a case.
+ * on a Stop and "found" a bug the SQL does not have (every spellingbee ending writes
+ * target_rank). Check the RPC before adding a case.
  */
 const CASES: Record<string, Family> = {
   // No siblings — one manifest, one vocabulary.
@@ -126,7 +125,7 @@ const CASES: Record<string, Family> = {
     ],
     compete: [
       ['won_compete', { target_rank: 6, ...W }, 'someone hit the target'],
-      // end_game re-emits target_rank precisely so this doesn't read "at Start".
+      // submit_timeout and stop_game both write target_rank, so neither reads "at Start".
       ['lost_compete', { reason: 'timeout', target_rank: 6 }, 'timeout'],
       ['ended', { reason: 'manual', target_rank: 6 }, 'manual end'],
       ['lost_compete', { reason: 'conceded' }, 'all conceded'],

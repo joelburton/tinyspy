@@ -130,13 +130,13 @@ export type Database = {
         Returns: Json
       }
       dump: { Args: { target_game: string; tile: string }; Returns: Json }
-      end_game: { Args: { target_game: string }; Returns: Json }
       peel: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
       save_player_board: {
         Args: { board: string; target_game: string }
         Returns: Json
       }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
@@ -252,8 +252,8 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: Json }
       submit_word: {
         Args: {
@@ -432,11 +432,11 @@ export type Database = {
         Args: { player_user_ids: string[]; setup: Json; target_club: string }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       get_clue_context: { Args: { target_game: string }; Returns: Json }
       log_hint: { Args: { target_game: string }; Returns: Json }
       pass_turn: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_clue: {
         Args: {
           clue_count: number
@@ -1255,10 +1255,10 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       next_puzzle_for_club: { Args: { seen_by: string[] }; Returns: Json }
       puzzle_for_date: { Args: { target_date: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_guess: {
         Args: {
           matched_category_rank?: number
@@ -1484,7 +1484,6 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       export_solution: { Args: { target_game: string }; Returns: Json }
       library_for_club: { Args: { target_club: string }; Returns: Json }
       next_nyt_date_for_club: {
@@ -1520,6 +1519,7 @@ export type Database = {
         }
         Returns: Json
       }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
@@ -1822,7 +1822,6 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       log_hint_or_spoiler: {
         Args: { kind: string; target_game: string; word_shown: string }
         Returns: Json
@@ -1846,6 +1845,7 @@ export type Database = {
           word_b: string
         }[]
       }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: Json }
       submit_word: {
         Args: { submitted: string; target_game: string }
@@ -2023,10 +2023,10 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
       request_hint: { Args: { target_game: string }; Returns: Json }
       request_spoiler: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_guess: {
         Args: { guess: string; target_game: string }
         Returns: Json
@@ -2373,7 +2373,6 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       exchange_tiles: {
         Args: {
           base_version: number
@@ -2399,6 +2398,7 @@ export type Database = {
         Returns: Json
       }
       replay_board: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
     Enums: {
@@ -2593,12 +2593,12 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       record_hint: {
         Args: { cards: number[]; target_game: string }
         Returns: Json
       }
       replay_board: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_set: {
         Args: { cards: number[]; target_game: string }
         Returns: Json
@@ -2787,8 +2787,8 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: Json }
       submit_word: {
         Args: {
@@ -3016,10 +3016,10 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
       reveal_next_hint: { Args: { target_game: string }; Returns: Json }
       reveal_next_word: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: Json }
       submit_word: {
         Args: { target_game: string; tile_ids: number[] }
@@ -3373,11 +3373,11 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       next_puzzle_for_club: { Args: { seen_by: string[] }; Returns: Json }
       puzzle_for_date: { Args: { target_date: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
       spend_hint: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_path: { Args: { path: Json; target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: Json }
     }
@@ -3654,8 +3654,8 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_swap: {
         Args: { pos_a: number; pos_b: number; target_game: string }
         Returns: Json
@@ -3830,7 +3830,6 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       matching_words: {
         Args: { base: string; legal_band: number }
         Returns: {
@@ -3839,6 +3838,7 @@ export type Database = {
         }[]
       }
       replay_board: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_guess: {
         Args: { fe_legal?: boolean; target_game: string; word: string }
         Returns: Json
@@ -4036,8 +4036,8 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_guess: {
         Args: { guess: string; target_game: string }
         Returns: Json
@@ -4232,8 +4232,8 @@ export type Database = {
         }
         Returns: Json
       }
-      end_game: { Args: { target_game: string }; Returns: Json }
       replay_board: { Args: { target_game: string }; Returns: Json }
+      stop_game: { Args: { target_game: string }; Returns: Json }
       submit_timeout: { Args: { target_game: string }; Returns: Json }
       submit_word: {
         Args: {

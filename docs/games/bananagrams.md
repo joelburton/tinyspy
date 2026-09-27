@@ -308,17 +308,17 @@ table comment in the baseline migration.)
   gametype-row lock, `P0001 'game is not in progress'` idempotency. The PlayArea
   renders the no-winner timeout as a red "⏰ Time's up — nobody went out." pgTAP:
   `submit_timeout_test.sql`.
-- `bananagrams.end_game(target_game)` — **the whole table stops, with no result
+- `bananagrams.stop_game(target_game)` — **the whole table stops, with no result
   for anyone.** The uniform neutral terminal every other gametype has:
   `play_state='ended'`, `status.reason='manual'`, every player `{"won": false}`.
   Any game player may fire it; idempotent on the play_state check. It is
   deliberately NOT concede's twin — conceding is a loss on your record, and it
   takes every player doing it to close a game the group has simply lost interest
   in, which left a stale game sitting as the club's current view. The FE offers
-  both behind ONE control: the action row runs **[Concede / End game] [Check
+  both behind ONE control: the action row runs **[Concede / Stop game] [Check
   words] [Peel]**, and Concede's question is where the two are told apart
   (`useStandardGameActions`, which gives every race that question). pgTAP:
-  `end_game_test.sql`.
+  `stop_game_test.sql`.
 - `bananagrams.concede(target_game)` — **a player drops out of the race.**
   bananagrams was the *origin* of per-player concede; that mechanism has since
   been promoted into `common` and made a whole-app feature (see
@@ -348,7 +348,7 @@ races are all against the game ENDING under you.
 | `peel` → `dealt` · `won` · `illegal` | `ok` | three named results, so the caller never infers which from the payload. `illegal` is a verdict, not a refusal: `_win_blockers` ran and the board is the answer |
 | `check_board` → `clean` · `invalid` · `empty` | `ok` | `empty` is the server's answer, not a `placed` count read at the call site |
 | `save_player_board` → `saved` · `game-over` · `conceded` | `ok` | the two no-ops are named, not silent. An autosave discarded because the game ended is not a refusal — nothing was asked for that did not happen |
-| `dump` → `dumped`, `create_game` → `created`, `end_game`/`submit_timeout` → `ended`, `replay_board` → `replayed` | `ok` | |
+| `dump` → `dumped`, `create_game` → `created`, `stop_game`/`submit_timeout` → `ended`, `replay_board` → `replayed` | `ok` | |
 | `PN339` · `PN344` "Game over" | `race` | peel and dump, against a game a peer just ended |
 | `PN340` · `PN345` "Already conceded" | `race` | your own concede landing first |
 | `PN347` "Bunch too low to dump" · `PN348` "You don't have that tile" | `race` | both are the FE's own gates losing to a peer's peel or to its own in-flight state |
@@ -444,7 +444,7 @@ collide at ~1-in-16M, which a club of friends will never reach.
   stays in lock-step with `tiles`); the ⟲ shuffle floats over the TILES'
   top-right corner (below the dump zone). The bottom **action row** is
   `shared.infoActions` (natural-width buttons, NOT stretched): while playing
-  it's **[Concede / End game] [Check words] [Peel]** side by side (`act-peel`,
+  it's **[Concede / Stop game] [Check words] [Peel]** side by side (`act-peel`,
   primary, enabled only when the derived hand is empty — it flushes the board
   first so the server's `placed == tiles` check is current; **Enter** and
   **Space** come with the action, so the key and the button are gray at the same

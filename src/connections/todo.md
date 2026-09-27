@@ -2,6 +2,11 @@
 
 ## Bugs
 
+- **The e2e "connections: Restart un-reveals a spent hint" fails every
+  run** (`e2e/restart-resets.e2e.ts`). It counts hint buttons named
+  `/Reveal/i`, and the link has read "Show hint" since the game-cards
+  rulings, so it finds none.
+
 ## Soon
 
 ## Someday

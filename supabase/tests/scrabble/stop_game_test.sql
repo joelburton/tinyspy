@@ -1,10 +1,10 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: scrabble.end_game (manual) + scrabble.submit_timeout
+-- Test: scrabble.stop_game (manual) + scrabble.submit_timeout
 -- ============================================================
 -- The PLAYER-INITIATED ends (this file), as opposed to the game's own
--- automatic terminals in auto_finish_test.sql. COOP end_game FORFEITS the
+-- automatic terminals in auto_finish_test.sql. COOP stop_game FORFEITS the
 -- leftover-tile value from the team score (a penalty, logged as a 'leftovers'
 -- row) so a team is pushed to play its last tiles; a realtime touch wakes
 -- the FE. submit_timeout runs final scoring.
@@ -39,7 +39,7 @@ create temp table ct on commit drop as
   select ctid as tid from scrabble.games where id = (select id from gm);
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select scrabble.end_game((select id from gm));
+select scrabble.stop_game((select id from gm));
 reset role;
 
 select is((select play_state from common.games where id = (select id from gm)),
@@ -60,10 +60,10 @@ select is((select result->>'won' from common.game_players
 select isnt((select ctid from scrabble.games where id = (select id from gm)),
   (select tid from ct), 'the realtime touch rewrote the scrabble.games row');
 
--- Idempotent: a second end_game (or a race) is rejected.
+-- Idempotent: a second stop_game (or a race) is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  scrabble.end_game((select id from gm)),
+  scrabble.stop_game((select id from gm)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'ending an already-terminal game is rejected');

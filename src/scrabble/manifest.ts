@@ -48,7 +48,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 // Timeout + manual end — the shared one-arg RPC dispatchers (see
 // common/manifest/manifestRpcs).
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 /** Pure one-line label for the ClubPage games list. Mid-game shows the tiles
  *  left in the bag (+ the team score in coop); terminal shows the result —
@@ -124,7 +124,7 @@ export const scrabbleCoopGame: GameManifest = {
   startGameInClub: startGameInClubFactory('coop'),
   labelFor: labelFor('coop'),
   submitTimeout,
-  endGame,
+  stopGame,
 }
 
 export const scrabbleCompeteGame: GameManifest = {
@@ -158,5 +158,5 @@ export const scrabbleCompeteGame: GameManifest = {
   startGameInClub: startGameInClubFactory('compete'),
   labelFor: labelFor('compete'),
   submitTimeout,
-  endGame,
+  stopGame,
 }

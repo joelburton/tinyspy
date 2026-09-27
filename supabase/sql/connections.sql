@@ -1059,7 +1059,7 @@ grant execute on function connections.submit_guess(uuid, text[], text, int) to a
 -- — without the table ending), so it can't use the generic
 -- common.concede: after flipping the shared flag it re-runs its own
 -- terminal check, which counts a conceder as "not alive" alongside the
--- eliminated. Compete only (coop is a team; it ends via the shared End).
+-- eliminated. Compete only (coop is a team; it ends via the shared Stop).
 drop function if exists connections.concede(uuid);
 
 create or replace function connections.concede(target_game uuid)
@@ -1217,16 +1217,16 @@ revoke execute on function connections.submit_timeout(uuid) from public;
 grant execute on function connections.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- connections.end_game — manual stop
+-- connections.stop_game — manual stop
 -- ============================================================
 --
 -- The intrinsic connections terminals are all "decided" outcomes: coop
 -- solves/loses (4 matches / 4 mistakes / timeout), compete has a winner
 -- (first to 4 matches) or a no-winner loss. There is no built-in "the friends
--- just want to quit" path — so this RPC is that explicit stop, the End
+-- just want to quit" path — so this RPC is that explicit stop, the Stop
 -- action.
 --
--- Unlike submit_timeout (which writes a "you lost" terminal), end_game is
+-- Unlike submit_timeout (which writes a "you lost" terminal), stop_game is
 -- deliberately NEUTRAL: nobody won, nobody lost — the group agreed to stop.
 -- We encode that as:
 --   - play_state = 'ended' (a terminal the FE and labelFor render as
@@ -1236,7 +1236,7 @@ grant execute on function connections.submit_timeout(uuid) to authenticated;
 --     "Game ended" pill is neutral, because "ended" is not a defeat)
 --
 -- Distinct from suspend (which leaves play_state='playing' and is
--- the "back to club, start something else later" path): end_game
+-- the "back to club, start something else later" path): stop_game
 -- writes a real terminal, so the game lands in the club's
 -- completed section forever and the terminal verdict renders.
 --
@@ -1248,10 +1248,10 @@ grant execute on function connections.submit_timeout(uuid) to authenticated;
 --   - status.reason = 'manual' (vs submit_timeout's 'timeout')
 --   - an EXPLICIT Realtime touch at the tail — see the long
 --     comment there; this is the one wrinkle that submit_timeout
---     doesn't need but end_game does.
-drop function if exists connections.end_game(uuid);
+--     doesn't need but stop_game does.
+drop function if exists connections.stop_game(uuid);
 
-create or replace function connections.end_game(target_game uuid)
+create or replace function connections.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1311,7 +1311,7 @@ begin
   -- submit_guess and submit_timeout each also write a connections
   -- table (events / players) on their way to common.end_game, so
   -- the FE's useGame subscription (postgres_changes on
-  -- connections.{games,events,players}) wakes up naturally. end_game
+  -- connections.{games,events,players}) wakes up naturally. stop_game
   -- writes ONLY common.games via common.end_game — no connections-
   -- schema write — so without this touch the FE would never
   -- refetch and the terminal verdict would never render until a reload.
@@ -1319,7 +1319,7 @@ begin
   -- The self-set (club_handle = club_handle, a real not-null
   -- column on connections.games) is a semantic no-op but produces a
   -- WAL entry on connections.games that Realtime delivers to the
-  -- games-table subscription. Same trick spellingbee.end_game uses.
+  -- games-table subscription. Same trick spellingbee.stop_game uses.
   update connections.games
      set club_handle = club_handle
    where id = target_game;
@@ -1335,8 +1335,11 @@ exception when others then
 end;
 $$;
 
-revoke execute on function connections.end_game(uuid) from public;
-grant execute on function connections.end_game(uuid) to authenticated;
+revoke execute on function connections.stop_game(uuid) from public;
+grant execute on function connections.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists connections.end_game(uuid);
 
 -- ============================================================
 -- connections.replay_board — restart this puzzle from scratch

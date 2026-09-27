@@ -737,7 +737,7 @@ revoke execute on function common.require_valid_mode(text) from public;
 
 -- ─── common.require_compete ────────────────────────────
 -- Guard: concede is a compete-only action. In coop the players are
--- a team, so a game ends via end_game (a mutual "we're done"), not
+-- a team, so a game ends via stop_game (a mutual "we're done"), not
 -- a per-player drop-out — conceding makes no sense. Every gametype's
 -- `concede` wrapper repeated this gate with the same message
 -- ('concede is only for compete games', pinned by the per-game
@@ -808,12 +808,12 @@ revoke execute on function common._raise_game_deleted(text) from public;
 
 -- ─── common._raise_game_over ───────────────────────────────
 -- The one sentence for "this game is not accepting moves any
--- more", raised from the twenty-nine `end_game` / `submit_timeout`
+-- more", raised from the twenty-nine `stop_game` / `submit_timeout`
 -- sites that check `play_state` and find it terminal.
 --
 -- **A RACE**, and the ordinary one: the game ended between the
 -- frontend's gate reading `isTerminal` off the subscription and
--- the call landing. For `end_game` a person clicked End on a game
+-- the call landing. For `stop_game` a person clicked Stop on a game
 -- somebody else had just stopped; for `submit_timeout` every
 -- connected client fires on the same countdown edge and all but
 -- one arrive to find the work done. Neither is a malfunction.

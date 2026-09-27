@@ -270,39 +270,39 @@ export function GamePage({
     },
   })
 
-  // End game, FOR THE PAUSE OVERLAY — the reliable way out of a wedged
+  // Stop game, FOR THE PAUSE OVERLAY — the reliable way out of a wedged
   // presence-pause (both players walked away and presence timed out). It goes
   // through PostgREST, so it works when Realtime is stuck.
   //
   // Bound HERE rather than in the overlay, because the overlay is not a place a
   // binding can live: it exists only while paused, and `<PauseBoundary>` — which
   // this page renders — unmounts the PlayArea to show it, taking the game's own
-  // `act-end-game` off the stack with it. GamePage is above the boundary and
+  // `act-stop-game` off the stack with it. GamePage is above the boundary and
   // stays mounted either way.
   //
   // **Hidden unless paused**, which is what keeps the two bindings from ever
   // being live together: while a game is playing its PlayArea owns `⌥⌫`, and
   // this one is not there at all. Paused is the whole of the condition —
-  // `manifest.endGame` is required, so there is no game this hatch is missing
+  // `manifest.stopGame` is required, so there is no game this hatch is missing
   // from.
-  const endTheGameFromTheOverlay = async () => {
-    const res = await manifest.endGame(gameId)
+  const stopTheGameFromTheOverlay = async () => {
+    const res = await manifest.stopGame(gameId)
     if (res.type === 'not-ok') {
-      // A lost End race shows PN486's "Game over" in its own words and its
-      // own tone — the same sentence the in-game End action shows, because it
+      // A lost Stop race shows PN486's "Game over" in its own words and its
+      // own tone — the same sentence the in-game Stop action shows, because it
       // is the same raise.
       globalFeedbackSlot.show(FeedbackMessage.notOk(res))
     } else if (res.type === 'ok' && res.data?.result === 'ended') {
       // Nothing here: the terminal arrives by subscription and the overlay
       // unmounts with the pause.
     } else {
-      reportUnhandled('end_game', res)
+      reportUnhandled('stop_game', res)
     }
   }
-  const actEndGame = useBoundAction('act-end-game', {
+  const actStopGame = useBoundAction('act-stop-game', {
     terminal: isTerminal,
     describe: () => (paused ? 'active' : 'hidden'),
-    run: endTheGameFromTheOverlay,
+    run: stopTheGameFromTheOverlay,
   })
 
   // ─── The clock ──────────────────────────────────────────────────────────
@@ -444,9 +444,9 @@ export function GamePage({
         // first, and the question is what explains that everyone gets sent
         // back. It goes through PostgREST, so it works when Realtime is stuck.
         actBackToClub={actBackToClub}
-        // End game — bound above, and hidden unless paused, so the overlay is
+        // Stop game — bound above, and hidden unless paused, so the overlay is
         // the only place it is ever drawn.
-        actEndGame={actEndGame}
+        actStopGame={actStopGame}
       >
         {/* The play surface, assembled here rather than by the route: the
             wrappers are identical for every game and none of them needs

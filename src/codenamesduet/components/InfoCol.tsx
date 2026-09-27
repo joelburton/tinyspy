@@ -44,7 +44,7 @@ export function InfoCol({
   actRestart,
   actNewGame,
   actConcede,
-  actEndGame,
+  actStopGame,
   actBackToClub,
   // ── Key card + setup disclosures ──
   myKey,
@@ -93,8 +93,8 @@ export function InfoCol({
   // Placed as every game's row places it, and never drawn: duet is coop, so it
   // hides itself.
   actConcede: BoundAction
-  // End the game for the whole table. Gone at the end.
-  actEndGame: BoundAction
+  // Stop the game for the whole table. Gone at the end.
+  actStopGame: BoundAction
   // Leave for the club — the shell's own action, off `ctx.menu`.
   actBackToClub: BoundAction
 
@@ -159,7 +159,7 @@ export function InfoCol({
           <ActionButton action={actRestart} show="icon" />
           <ActionButton action={actNewGame} show="icon" />
           <ActionButton action={actConcede} show="icon" />
-          <ActionButton action={actEndGame} show="icon" />
+          <ActionButton action={actStopGame} show="icon" />
           <ActionButton action={actBackToClub} show="icon" weight={terminalMessage ? 'primary' : 'secondary'} />
         </InfoActionsRow>
 

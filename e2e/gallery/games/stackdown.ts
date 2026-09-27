@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { asUser, createStackdownGame, seedStackdownFirstWord, type E2EClub } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
@@ -60,7 +60,7 @@ export const stackdownGallery: GameGallery = {
       }
     }
     if (cell.phase === 'lost') await timeOut(club, 'stackdown', id)
-    if (cell.phase === 'ended') await endGame(club, 'stackdown', id)
+    if (cell.phase === 'ended') await stopGame(club,'stackdown', id)
 
     return { gametype, id, viewer: club.members[0] }
   },

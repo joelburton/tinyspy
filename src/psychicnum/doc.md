@@ -79,7 +79,7 @@ never a rival's rows, which RLS withholds until the game ends.
 First to all three wins and the game ends for everyone. If every budget is
 spent with nobody finished, everyone loses; a countdown expiring does the same.
 Any player may stop the game for the whole table: Concede's question offers
-it, and End shows once the player is `locally-terminal`.
+it, and Stop shows once the player is `locally-terminal`.
 
 Compete needs an opposing **player**, which is why its manifest takes 2–6 where
 coop takes 1–6: a solo club is offered coop only. A countdown timer does not
@@ -237,7 +237,7 @@ which word.
 
 ### The rest
 
-`concede`, `end_game`, `submit_timeout` and `replay_board` — the common
+`concede`, `stop_game`, `submit_timeout` and `replay_board` — the common
 shape every game has, doing here what they do everywhere.
 
 ## FE submissions

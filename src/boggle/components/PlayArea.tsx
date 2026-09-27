@@ -56,7 +56,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *     own-move feedback pill, or the permanent terminal pill (they replace each
  *     other in a fixed-height slot so the board never reflows).
  *   - **Info column** — the live word/score state, the compete OpponentStrip, the
- *     End/Concede action row (terminal outcome line at game-over), a help line,
+ *     Stop/Concede action row (terminal outcome line at game-over), a help line,
  *     the setup disclosure, and the found-words `<WordList>` filling the rest.
  *
  * The board is shipped to the FE with its required-word list, so guesses are
@@ -141,7 +141,7 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── The local feedback slot ────
   // The below-board slot every own-move result lands in: the answer to each
-  // word, a commit's not-ok, End / Concede's not-oks, and the two standing
+  // word, a commit's not-ok, Stop / Concede's not-oks, and the two standing
   // conditions below.
   const localFeedbackSlot = useFeedbackSlot('local')
 
@@ -333,11 +333,11 @@ export function PlayArea(ctx: GamePageCtx) {
     },
   })
 
-  // ─── End / Concede / Replay — the shared trio ──────────
+  // ─── Stop / Concede / Replay — the shared trio ─────────
   // The byte-identical shared handlers (useStandardGameActions); only the
   // replay sentence is boggle's. Its not-oks land in the same below-board slot
   // as a word result. New game stays below — its create path diverges per game.
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -412,7 +412,7 @@ export function PlayArea(ctx: GamePageCtx) {
         menu,
         // Both exits, in reading order; each hides itself in the mode that isn't
         // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           { items: [actPrintBoard] },
           // Same board, wiped finds / same setup, fresh board + id.
@@ -421,7 +421,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actPrintBoard])
 
   // ─── Coop peer-word narration (global header) ──────────────────
   // coop's `found_words` is club-wide, so a teammate's accepted word arrives in
@@ -602,7 +602,7 @@ export function PlayArea(ctx: GamePageCtx) {
         metricByUser={scoreByUser}
         concededIds={concededIds}
         // ── Action row ──
-        actEndGame={actEndGame}
+        actStopGame={actStopGame}
         actConcede={actConcede}
         actRestart={actRestart}
         actNewGame={actNewGame}
@@ -638,7 +638,7 @@ type LeaderRow = { user_id: string; found_words_count: number; found_words_score
 
 /**
  * The per-status terminal message. A game ends three ways (`status.reason`):
- * a player hitting End (`'manual'`), the timer expiring (`'timeout'`), or a
+ * a player hitting Stop (`'manual'`), the timer expiring (`'timeout'`), or a
  * score TARGET being reached (`'target'`, when setup.win_percent is set — a
  * real win). Coop is otherwise a neutral shared hunt (no win/loss); compete
  * without a target picks the highest score. A `'target'` compete win names
@@ -702,7 +702,7 @@ function buildOver({
     return { pillText: `Ended: ${tally}`, infoColText: reason, outcome: 'neutral' }
   }
 
-  // A race the friends chose to stop (`ended`, boggle.end_game) is neutral —
+  // A race the friends chose to stop (`ended`, boggle.stop_game) is neutral —
   // no one won, no one lost (Joel, 2026-09-19) — whatever the scores were, so
   // it is answered before anything compares them.
   if (playState === 'ended') return gameEndedTerminalMessage('compete')

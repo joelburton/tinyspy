@@ -54,7 +54,7 @@ type SubmittedWord =
  * Everything else comes down: the wheel's letters, where I stand
  * (`isBoardInteractive`, `isMyTurn`), the lists a
  * word is judged against, and the feedback slot, which is the PlayArea's —
- * its standing conditions and InfoCol's End / Concede show into it too. See
+ * its standing conditions and InfoCol's Stop / Concede show into it too. See
  * docs/playarea.md.
  */
 export function BoardCol({

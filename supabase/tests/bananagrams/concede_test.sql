@@ -3,9 +3,9 @@
 -- ============================================================
 -- Test: bananagrams.concede(target_game)
 -- ============================================================
--- A player drops out of the race (replaces the old whole-table
--- end_game). bananagrams is compete, so conceding is a real loss for
--- the conceder — but it does NOT end the game while others still race.
+-- A player drops out of the race. bananagrams is compete, so conceding
+-- is a real loss for the conceder — but it does NOT end the game while
+-- others still race.
 -- Covers:
 --   1. Concede marks JUST the caller out (progress.conceded), game
 --      stays 'playing' while another player is still active

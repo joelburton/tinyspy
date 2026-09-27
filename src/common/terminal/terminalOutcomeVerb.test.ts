@@ -30,8 +30,8 @@ describe('terminalOutcomeVerb', () => {
     expect(terminalOutcomeVerb(player({ result: { won: true } }))).toBe('Won')
   })
 
-  it('says Quit for a conceder', () => {
-    expect(terminalOutcomeVerb(player({ conceded: true, conceded_at: '2026-09-03T00:00:00Z' }))).toBe('Quit')
+  it('says Conceded for a conceder', () => {
+    expect(terminalOutcomeVerb(player({ conceded: true, conceded_at: '2026-09-03T00:00:00Z' }))).toBe('Conceded')
   })
 
   it('says Lost for anyone else who did not win', () => {
@@ -43,7 +43,7 @@ describe('terminalOutcomeVerb', () => {
 
   it('lets Won TRUMP a concede, which is branch order and not an accident', () => {
     // Reachable: concede a race that someone has already ended in your favor.
-    // If the branches were reordered this would read "Quit" and nothing else
+    // If the branches were reordered this would read "Conceded" and nothing else
     // in the suite would notice.
     expect(terminalOutcomeVerb(player({ conceded: true, result: { won: true } }))).toBe('Won')
   })
@@ -63,6 +63,6 @@ describe('terminalOutcomeVerb', () => {
       player({ conceded: true, result: { won: true } }),
       player({ result: {} }),
     ]
-    for (const c of cases) expect(['Won', 'Quit', 'Lost']).toContain(terminalOutcomeVerb(c))
+    for (const c of cases) expect(['Won', 'Conceded', 'Lost']).toContain(terminalOutcomeVerb(c))
   })
 })

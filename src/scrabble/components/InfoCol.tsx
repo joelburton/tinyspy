@@ -61,7 +61,7 @@ export function InfoCol({
   selfId,
   playerStates,
   concededIds,
-  actEndGame,
+  actStopGame,
   actConcede,
   actRestart,
   actNewGame,
@@ -106,9 +106,9 @@ export function InfoCol({
   playerStates: PlayerRow[]
   concededIds: Set<string>
 
-  // ── Action row (End/Concede, back-to-club at terminal) ──
-  /** End the game for the whole table — coop's exit; it hides itself in a race. */
-  actEndGame: BoundAction
+  // ── Action row (Stop/Concede, back-to-club at terminal) ──
+  /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
+  actStopGame: BoundAction
   /** Drop out of a race while the others play on — hidden outside compete. */
   actConcede: BoundAction
   /** Deal this game again from scratch — same setup, roster and seats, fresh bag
@@ -207,7 +207,7 @@ export function InfoCol({
               if (!isTerminal) return concededIds.has(player.user_id) ? 'out' : scoreOf(player)
               // At terminal the per-seat OUTCOME rides along, and it earns its
               // place: the action row beneath names only the winner, so
-              // this is the only thing distinguishing a player who QUIT from one
+              // this is the only thing distinguishing a player who CONCEDED from one
               // who played to the end and lost — which matters the moment there
               // are three seats rather than two.
               //
@@ -221,7 +221,7 @@ export function InfoCol({
           />
         )}
 
-        {/* Action row — End (coop) / Concede (compete) during play; the "You
+        {/* Action row — Stop (coop) / Concede (compete) during play; the "You
             conceded" terminal look once I've dropped out (others race on); at
             terminal the bold outcome line + a compact back-to-club button. */}
         {over ? (
@@ -235,17 +235,17 @@ export function InfoCol({
         ) : isLocallyTerminal ? (
           <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
             {/* Both exits are placed and each says whether it applies: out of
-                the race, Concede hides and End comes out in its place — one
-                flag, since anyone in a game may end it for all. */}
+                the race, Concede hides and Stop comes out in its place — one
+                flag, since anyone in a game may stop it for all. */}
             <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
+            <ActionButton action={actStopGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
             <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
+            <ActionButton action={actStopGame} show="icon" />
             {/* Suggest-a-move (coop) — the AI hint lives with the other action
                 buttons; its results render in the reserved box below the help
                 text. It hides itself in a race. */}

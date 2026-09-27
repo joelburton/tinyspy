@@ -74,10 +74,10 @@ test.describe('setgame — the deal flash', () => {
     await expect(flashed.first(), 'the cards that moved into the holes are marked')
       .toBeVisible({ timeout: 10000 })
 
-    // ── (2) end, then restart ──
+    // ── (2) stop, then restart ──
     const rpc = (fn: string) =>
       asUser(alice.session.access_token).schema('setgame').rpc(fn, { target_game: id })
-    await rpc('end_game')
+    await rpc('stop_game')
     await page.waitForTimeout(900)
     await rpc('replay_board')
     // Wait on the SCORE going back to zero, not on a card count: replay_board
@@ -97,11 +97,11 @@ test.describe('setgame — opening a finished game', () => {
     const club = await createSoloClub('flsh2')
     const [alice] = club.members
     const { id, gametype } = await createSetgameGame(club)
-    // Play a couple of claims, then end it — so the log is FULL of claims when
+    // Play a couple of claims, then stop it — so the log is FULL of claims when
     // the page first loads. That history is what used to be mistaken for a
     // claim that had just landed.
     for (let i = 0; i < 2; i++) await claim(alice, id, findSetOn(await boardOf(alice, id))!)
-    await asUser(alice.session.access_token).schema('setgame').rpc('end_game', { target_game: id })
+    await asUser(alice.session.access_token).schema('setgame').rpc('stop_game', { target_game: id })
 
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     await signIn(ctx, alice.session)

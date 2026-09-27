@@ -48,10 +48,10 @@ test('terminal: secrets stay hidden until Reveal, go green, then hide again', as
     GREEN)
   expect(await greenTiles()).toHaveLength(0)
 
-  // End the game (the neutral 'ended' terminal) — that flips is_terminal, and the
+  // Stop the game (the neutral 'ended' terminal) — that flips is_terminal, and the
   // secrets arrive on the next realtime refetch.
-  await page.getByRole('button', { name: 'End game' }).first().click()
-  await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
+  await page.getByRole('button', { name: 'Stop game' }).first().click()
+  await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
 
   // The terminal row is up, and the secrets are STILL not shown: a manual end
   // isn't a win, and Restart re-hunts this very board.

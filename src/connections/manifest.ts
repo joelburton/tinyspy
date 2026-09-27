@@ -68,7 +68,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 // common/manifest/manifestRpcs). submit_timeout is mode-aware server-side
 // (writes 'lost' for coop, 'lost_compete' for compete) + idempotent.
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 // The club-list `status` blob, read by both `labelFor`s.
 type StatusBlob = Record<string, unknown>
@@ -129,7 +129,7 @@ export const connectionsCoopGame: GameManifest = {
         return statusLine(
           verdict('Lost', s.reason === 'timeout' ? 'out of time' : `${MISTAKE_BUDGET} mistakes`),
           categories)
-      // Manual end (connections.end_game) — neutral, no win/loss framing.
+      // Manual end (connections.stop_game) — neutral, no win/loss framing.
       case 'ended':
         return statusLine(verdict('Ended'), categories)
       default:
@@ -138,7 +138,7 @@ export const connectionsCoopGame: GameManifest = {
   },
 
   submitTimeout,
-  endGame,
+  stopGame,
 }
 
 export const connectionsCompeteGame: GameManifest = {
@@ -188,7 +188,7 @@ export const connectionsCompeteGame: GameManifest = {
         return (s.reason as string) === 'conceded'
           ? verdict('Lost', 'all conceded')
           : statusLine(verdict('Lost', COMPETE_LOSS[(s.reason as string) ?? ''] ?? null), 'no winner')
-      // Manual end (connections.end_game) — neutral, no winner.
+      // Manual end (connections.stop_game) — neutral, no winner.
       case 'ended':
         return verdict('Ended')
       default:
@@ -197,5 +197,5 @@ export const connectionsCompeteGame: GameManifest = {
   },
 
   submitTimeout,
-  endGame,
+  stopGame,
 }

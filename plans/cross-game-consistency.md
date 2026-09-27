@@ -630,13 +630,43 @@ and 7d changed the columns that plan reshapes — renaming `is_terminal` and
 `status` and `result` it replaces — so they are its stages now, and the
 reason map moved there with them. What stays here:
 
-- **7c. Stop names (N23) and N24**, worked before common-tables (The path,
-  step 1). `act-end-game` → `act-stop`, "End game" → "Stop game",
-  `actEndGame` → `actStop` (about 150 uses), `END_GAME_CONFIRM` →
-  `STOP_GAME_CONFIRM`, Concede's "Concede / End game", and each game's
-  `end_game` RPC → `stop_game`, with a `DROP` of the old one.
-  `terminalOutcomeVerb` returns `'Conceded'`, not `'Quit'`. Players see two
-  changes: the button says Stop, and the strip says "Conceded at 12".
+- ~~**7c. Stop names (N23) and N24**~~ Done 2026-09-27: N23 and N24 below,
+  plus (Joel) the two confirms' wording ("Stop this game?", "Concede, or stop
+  the game?", "Stop for all"), `CONCEDE_OR_STOP_GAME_CONFIRM`,
+  `manifest.stopGame`, `stopGameForAll`, the gallery's `stopGame.ts` and the
+  pgTAP `stop_game_test.sql` files. Docs, todos and comments follow;
+  `plans/areas/` records do not. A name says "stop game", never a bare
+  "stop" (Joel): `act-stop-game`, `actStopGame`; a flag would be
+  `isGameStopped`, never `isStopped`.
+  **Left alone as unsure, to judge with Joel** (not yet worked):
+  1. `docs/games/stackdown.md` (the coop title paragraph): "(`end_game`
+     doesn't touch the title)" — `common.end_game` or `stackdown.stop_game`.
+  2. `docs/games/wordiply.md`: "`common.concede` / `end_game` / timers" —
+     probably `common.end_game`.
+  3. `e2e/gallery/verdict.ts` (header): "where every `end_game` writes its
+     per-player verdict" — probably `common.end_game`, the only writer.
+  4. `docs/games/letterboxed.md` (the `_end_game` wrapper paragraph): "the
+     shared `end_game`" — probably `common.end_game`.
+  5. `src/common/club/useClubGames.ts` (two comments) and
+     `src/common/game-page/useCommonGame.test.ts` (the bot test): "end_game
+     wrote a terminal play_state" / "writes it a result" — only
+     `common.end_game` writes those.
+  6. Ten games' `todo.md` quote the ruling "you cannot end a game that has
+     ended" — possibly about Stop; a quote, so unchanged.
+  7. `src/bananagrams/todo.md`: "A conceded racer's Stop game has no
+     button" — the "You conceded" row now places `actStopGame`, so it may be
+     done.
+  8. Lowercase "quit" for a concession in prose: a boggle PlayArea test ("I
+     quit, the game continues…"), `src/crosswords/manifest.ts`,
+     `src/wordle/lib/terminal.ts` — not the strip's label.
+  9. Rewordings chosen in SQL comments: spellingbee's and wordwheel's "Manual
+     End is NEUTRAL" → "Stop is NEUTRAL"; crosswords' "ending is the whole
+     table agreeing" → "stopping is…", "a compete end" → "a compete Stop".
+  10. docs/common-schema.md's heading "Manual end — every gametype's
+      `stop_game(target_game)`": "Manual end" waits for stage 2's `'manual'`
+      → `'stopped'`.
+  11. `GamePage.tsx`: the pause overlay's local is now
+      `stopTheGameFromTheOverlay`.
 - **The questions below** — the decisions common-tables builds on.
 
 **What step 7 changes.** A name changes in step 7 when a common or shared
@@ -853,8 +883,8 @@ Most worth fixing first.
 | N19 | `PlayArea` exported in wordle, spellingbee, wordwheel, codenamesduet; nothing imports it | unexported |
 | N20 | the End / Concede / Restart section header in `PlayArea.tsx`, worded four ways (wordle's says "Replay") | psychicnum's wording |
 | N21 | SQL: `wordle.submit_guess` names locals `p_…`, the prefix common keeps for parameters; codenamesduet's `submit_guess` takes `target_position` for the `guess_position` column, and its answers still use old keys (`word`, `count`, `from_ai`, `by_seat`); "You are not in this game" means two things (PN253 vs psychicnum PN271, connections PN250) | match the columns; distinct wording |
-| N23 | the Stop action (`stopped`) is still named End: `act-end-game` labeled "End game", `actEndGame`, `END_GAME_CONFIRM`, Concede's "Concede / End game", each game's `end_game` RPC | Stop: `act-stop`, "Stop game", `actStop`, `STOP_GAME_CONFIRM`, and each game's RPC `stop_game`, with a `DROP` of the retired `end_game` beside it. Stop names only: `ended`, `ended_at`, `common.end_game` (which ends a game any way) and every other "end" stay |
-| N24 | `terminalOutcomeVerb` returns `'Quit'` (the strip's "Quit at 12"); the terms say never "quit" | `'Conceded'` |
+| ~~N23~~ | Done 2026-09-27 (7c). the Stop action (`stopped`) is still named End: `act-end-game` labeled "End game", `actEndGame`, `END_GAME_CONFIRM`, Concede's "Concede / End game", each game's `end_game` RPC | Stop: `act-stop-game`, "Stop game", `actStopGame`, `STOP_GAME_CONFIRM`, and each game's RPC `stop_game`, with a `DROP` of the retired `end_game` beside it. Stop names only: `ended`, `ended_at`, `common.end_game` (which ends a game any way) and every other "end" stay |
+| ~~N24~~ | Done 2026-09-27 (7c). `terminalOutcomeVerb` returns `'Quit'` (the strip's "Quit at 12"); the terms say never "quit" | `'Conceded'` |
 | N25 | "race" / "racer" for games that aren't `race-game`s: wordle's and waffle's compete, their SQL (`racers_with_budget`), FE and docs (the game cards' Mismatches) | player; "race" only for a `race-game` |
 | N26 | "clock" for the timer: wordle's `wonByClock` / `clock_ran_out`, and comments across the games | timer, timeout (`wonByTimeout`, `timed_out`) |
 | N27 | strands' test names a flag `isLocallyDone` | `isLocallyTerminal` |

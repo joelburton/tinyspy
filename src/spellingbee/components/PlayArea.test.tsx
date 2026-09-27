@@ -152,7 +152,7 @@ const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
 const bound = (id: ActionId) => liveBindings().find((b) => b.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
- *  share the modal's words ("End game" / "End game"); the modal's is the one
+ *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
  *  the host adds, so it is last in the DOM. */
 async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
   const buttons = await screen.findAllByRole('button', { name })
@@ -763,7 +763,7 @@ describe('spellingbee PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
-  it('coop shows End (not Concede) and calls end_game', async () => {
+  it('coop shows Stop (not Concede) and calls stop_game', async () => {
     const user = userEvent.setup()
     render(
       <>
@@ -772,13 +772,13 @@ describe('spellingbee PlayArea — concede', () => {
       </>,
     )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    // The trigger and the modal's confirm share the name "End game" (an
+    // The trigger and the modal's confirm share the name "Stop game" (an
     // icon-only button's label is its accessible name). The confirm is the one
     // the dialog adds, so it's last in the DOM.
-    await user.click(screen.getByRole('button', { name: 'End game' }))
-    const confirms = await screen.findAllByRole('button', { name: 'End game' })
+    await user.click(screen.getByRole('button', { name: 'Stop game' }))
+    const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1])
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('marks a conceded opponent "out" in the strip (mid-game)', () => {
@@ -805,9 +805,9 @@ describe('spellingbee PlayArea — concede', () => {
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
-    // A spent Concede goes, and End takes its place: one flag, not two.
+    // A spent Concede goes, and Stop takes its place: one flag, not two.
     expect(bound('act-concede').describe('button').state).toBe('hidden')
-    expect(bound('act-end-game').describe('button').state).toBe('active')
+    expect(bound('act-stop-game').describe('button').state).toBe('active')
     // The one row always keeps the way out.
     expect(screen.getByRole('button', { name: 'Back to club' })).toBeInTheDocument()
     // Moving on is still a menu thing until the game is over.
@@ -815,7 +815,7 @@ describe('spellingbee PlayArea — concede', () => {
     expect(bound('act-new-game').describe('button').state).toBe('hidden')
   })
 
-  it('distinguishes Quit / Lost / Won at terminal in the strip', () => {
+  it('distinguishes Conceded / Lost / Won at terminal in the strip', () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
       <PlayAreaLoader
@@ -824,7 +824,7 @@ describe('spellingbee PlayArea — concede', () => {
           playState: 'ended',
           players: [
             gp('u1', 'me', 'red', { result: { won: false } }), // self → Lost
-            gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }), // → Quit
+            gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }), // → Conceded
             gp('u3', 'cade', 'green', { result: { won: true } }), // → Won
           ],
           setup: competeSetup,
@@ -838,7 +838,7 @@ describe('spellingbee PlayArea — concede', () => {
         })}
       />,
     )
-    expect(screen.getByText(/Quit at/)).toBeInTheDocument()
+    expect(screen.getByText(/Conceded at/)).toBeInTheDocument()
     expect(screen.getByText(/Won at/)).toBeInTheDocument()
     expect(screen.getByText(/Lost at/)).toBeInTheDocument()
   })
@@ -886,7 +886,7 @@ describe('spellingbee PlayArea — the keys', () => {
     expect(startEdgeFn).not.toHaveBeenCalled()
   })
 
-  it('⌥⌫ in coop asks to end the game, and yes calls end_game', async () => {
+  it('⌥⌫ in coop asks to stop the game, and yes calls stop_game', async () => {
     const user = userEvent.setup()
     render(
       <>
@@ -896,10 +896,10 @@ describe('spellingbee PlayArea — the keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
-    await answer(user, 'End game')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await answer(user, 'Stop game')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('⌥⌫ in compete asks to concede, and yes calls concede', async () => {
@@ -913,10 +913,10 @@ describe('spellingbee PlayArea — the keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await answer(user, 'Concede')
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
-    expect(rpc).not.toHaveBeenCalledWith('end_game', expect.anything())
+    expect(rpc).not.toHaveBeenCalledWith('stop_game', expect.anything())
   })
 
   describe('⌥Z shuffles the outer letters', () => {

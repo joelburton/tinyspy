@@ -273,7 +273,7 @@ export function PlayArea({
 
   // The below-board slot. Born here because BOTH columns show into it —
   // BoardCol's guess and clue strip (a refused guess / clue / pass) and
-  // InfoCol's End — and while it holds anything the pill takes the clue
+  // InfoCol's Stop — and while it holds anything the pill takes the clue
   // strip's place. Not-ok only, plus the terminal verdict: a guess that lands
   // shows on the board and in the log.
   const localFeedbackSlot = useFeedbackSlot('local')
@@ -373,12 +373,12 @@ export function PlayArea({
   // from another — and `pending` grays every surface of one for the length of
   // its run, so no handler keeps an in-flight flag of its own.
 
-  // End / Restart — the shared pair. Duet is coop-only, so Concede hides itself
-  // and only End is ever placed. Restart is a MULLIGAN: `replay_board` deals
+  // Stop / Restart — the shared pair. Duet is coop-only, so Concede hides itself
+  // and only Stop is ever placed. Restart is a MULLIGAN: `replay_board` deals
   // the same board and key cards again (a blind board is New game, below), and
   // the reveal being local state, the remount a restart causes covers the
   // partner's key again.
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -482,12 +482,12 @@ export function PlayArea({
   // than being typed a second time here.
 
   // The game is coop-only, so Concede hides itself and the exits list draws
-  // as End alone.
+  // as Stop alone.
   useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           // The same actions the info column's row offers, in its order,
           // reachable mid-game too.
@@ -497,7 +497,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actReveal, actRestart, actNewGame, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actReveal, actRestart, actNewGame, actPrintBoard])
 
   // ─── Render ─────────────────────────────────────────
   // Everything below is derived fresh each render and read only by the JSX —
@@ -570,7 +570,7 @@ export function PlayArea({
         actRestart={actRestart}
         actNewGame={actNewGame}
         actConcede={actConcede}
-        actEndGame={actEndGame}
+        actStopGame={actStopGame}
         actBackToClub={menu.actBackToClub}
         // ── Key card + setup disclosures ──
         myKey={myKey}

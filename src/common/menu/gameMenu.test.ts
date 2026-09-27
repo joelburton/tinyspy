@@ -38,7 +38,7 @@ function action(id: string, over: Partial<BoundAction> = {}): BoundAction {
 const actHelp = action('act-help')
 const actChat = action('act-open-chat')
 const actBackToClub = action('act-back-to-club')
-const actEndGame = action('act-end-game')
+const actStopGame = action('act-stop-game')
 const actConcede = action('act-concede')
 
 /** The whole `ctx.menu`, push included — so the cut can be asserted: this
@@ -56,31 +56,31 @@ function idsOf(sections: { items: MenuItem[] }[]): string[] {
 
 describe('buildGameMenu', () => {
   it('frames a coop menu with Help + chat above and the exit + Back below', () => {
-    const sections = buildGameMenu({ menu, exits: [actEndGame] })
-    expect(idsOf(sections)).toEqual(['act-help', 'act-open-chat', 'act-end-game', 'act-back-to-club'])
+    const sections = buildGameMenu({ menu, exits: [actStopGame] })
+    expect(idsOf(sections)).toEqual(['act-help', 'act-open-chat', 'act-stop-game', 'act-back-to-club'])
   })
 
   it('arranges and hands back — the push is the caller\'s', () => {
-    buildGameMenu({ menu, exits: [actEndGame] })
+    buildGameMenu({ menu, exits: [actStopGame] })
     expect(menu.setGameSections).not.toHaveBeenCalled()
   })
 
   it('drops the chat row on a page with no chat panel', () => {
-    const sections = buildGameMenu({ menu: { ...menu, actChat: null }, exits: [actEndGame] })
-    expect(idsOf(sections)).toEqual(['act-help', 'act-end-game', 'act-back-to-club'])
+    const sections = buildGameMenu({ menu: { ...menu, actChat: null }, exits: [actStopGame] })
+    expect(idsOf(sections)).toEqual(['act-help', 'act-stop-game', 'act-back-to-club'])
   })
 
   it('keeps the exits in the order the game gave them', () => {
     // Position, not just membership: a race offering both puts Concede first,
     // because that is the exit it means.
-    const sections = buildGameMenu({ menu, exits: [actConcede, actEndGame] })
+    const sections = buildGameMenu({ menu, exits: [actConcede, actStopGame] })
     expect(idsOf(sections)).toEqual([
-      'act-help', 'act-open-chat', 'act-concede', 'act-end-game', 'act-back-to-club',
+      'act-help', 'act-open-chat', 'act-concede', 'act-stop-game', 'act-back-to-club',
     ])
   })
 
   it('leaves out an exit the action says is hidden — how a mode picks one', () => {
-    const hidden = action('act-end-game', { describe: () => ({ state: 'hidden' }) })
+    const hidden = action('act-stop-game', { describe: () => ({ state: 'hidden' }) })
     const sections = buildGameMenu({ menu, exits: [actConcede, hidden] })
     expect(idsOf(sections)).toEqual([
       'act-help', 'act-open-chat', 'act-concede', 'act-back-to-club',
@@ -90,18 +90,18 @@ describe('buildGameMenu', () => {
   it('drops the game its own sections between the two framing halves', () => {
     const sections = buildGameMenu({
       menu,
-      exits: [actEndGame],
+      exits: [actStopGame],
       extra: [{ items: [boundActionFixture('act-print-board')] }],
     })
     expect(idsOf(sections)).toEqual([
-      'act-help', 'act-open-chat', 'act-print-board', 'act-end-game', 'act-back-to-club',
+      'act-help', 'act-open-chat', 'act-print-board', 'act-stop-game', 'act-back-to-club',
     ])
   })
 
   it('pins a header-only section above everything when a header is given', () => {
     const sections = buildGameMenu({
       menu,
-      exits: [actEndGame],
+      exits: [actStopGame],
       header: { title: 'Sunday Crossword', lines: ['by A. Setter'] },
     })
     // It carries no items of its own — the renderer keeps a section that has a

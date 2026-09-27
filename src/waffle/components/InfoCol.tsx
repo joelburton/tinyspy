@@ -21,7 +21,7 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  * pieces in the fixed order (docs/playarea.md → Info-column readouts): swap-state
  * readout → progressive answer reveal → OpponentStrip → action row → help → setup
  * disclosure → swap log. Every command is a BOUND ACTION the PlayArea handed down
- * (`actEndGame`, `actConcede`, …), so this column places buttons and decides
+ * (`actStopGame`, `actConcede`, …), so this column places buttons and decides
  * nothing about them; the history-viewer selection (`onShowHistory`) is the one
  * callback. Prop names match the other games' columns for the same idea (see
  * docs/playarea.md).
@@ -47,7 +47,7 @@ export function InfoCol({
   selfId,
   playerStates,
   concededIds,
-  actEndGame,
+  actStopGame,
   actConcede,
   actRestart,
   actReveal,
@@ -91,13 +91,13 @@ export function InfoCol({
   concededIds: Set<string>
 
   // ── Action row (ICON-ONLY buttons — waffle's experiment; tooltips carry
-  //    the labels. Playing: End/Concede + back-to-club. Terminal: Restart +
+  //    the labels. Playing: Stop/Concede + back-to-club. Terminal: Restart +
   //    Reveal + New game + back-to-club.) ──
   /** The whole table stops, with no result. Hidden in a race that doesn't offer
    *  it, so the pair can be placed unconditionally. */
-  actEndGame: BoundAction
+  actStopGame: BoundAction
   /** Drop out of a race; the others keep going. Hidden outside one, and once
-   *  you are out (solved, out of swaps, conceded), when End takes its place. */
+   *  you are out (solved, out of swaps, conceded), when Stop takes its place. */
   actConcede: BoundAction
   /** Restart THIS board from scratch. */
   actRestart: BoundAction
@@ -131,19 +131,19 @@ export function InfoCol({
   onShowHistory: (id: number, n: number) => void
 }) {
 
-  // The End / Concede button — error-toned (red), shared by the "playing" and the
+  // The Stop / Concede button — error-toned (red), shared by the "playing" and the
   // "locally terminal" action rows (you can bow out either way). compete CONCEDES
-  // ("I give up, you keep racing"); coop ENDS (a neutral mutual "we're done"). Two
-  // semantically distinct actions (docs/ui.md → Button iconography, End vs
+  // ("I give up, you keep racing"); coop STOPS (a neutral mutual "we're done"). Two
+  // semantically distinct actions (docs/ui.md → Button iconography, Stop vs
   // Concede), each placed as an `<ActionButton>` — and each hides itself in the
   // mode that isn't its own, so both are placed and the row asks nothing. Once
-  // you are out of the race, Concede hides and End comes out in its place
+  // you are out of the race, Concede hides and Stop comes out in its place
   // (useStandardGameActions): one flag either way.
   // Icon-only (the waffle experiment): the styled tooltip carries the label.
   const exits = (
     <>
       <ActionButton action={actConcede} show="icon" />
-      <ActionButton action={actEndGame} show="icon" />
+      <ActionButton action={actStopGame} show="icon" />
     </>
   )
 
@@ -208,7 +208,7 @@ export function InfoCol({
             tooltips carry the labels). TERMINAL: the bold outcome line +
             Restart / Reveal / New game / back-to-club (primary). LOCALLY
             TERMINAL (compete: solved / out of swaps, the rest race on): the
-            terminal LOOK — a bold status + End. PLAYING: End/Concede +
+            terminal LOOK — a bold status + Stop. PLAYING: Stop/Concede +
             back-to-club (secondary, via the suspend-confirm flow). WATCHING
             (not in the game): a bold note, no button. */}
         {over ? (

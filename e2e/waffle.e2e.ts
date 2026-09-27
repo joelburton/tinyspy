@@ -80,16 +80,16 @@ test.describe('waffle replay board', () => {
     await expect(page.getByRole('button', { name: /^B \(/ })).toBeVisible({ timeout: 15000 })
 
     // Reveal is TERMINAL-ONLY — waffle's mid-game give-up was removed
-    // 2026-08-03 so every game has the same order: End, then Reveal. The menu
+    // 2026-08-03 so every game has the same order: Stop, then Reveal. The menu
     // item is present mid-game but inert: there is nothing to show, since the
     // solution reaches a compete client only once the game is over for all.
     await page.getByRole('button', { name: 'Game menu' }).click()
     await expect(page.getByRole('menuitem', { name: 'Reveal solution' })).toBeDisabled()
     await page.keyboard.press('Escape')
 
-    // End it for the table (the neutral 'ended' terminal).
-    await page.getByRole('button', { name: 'End game' }).first().click()
-    await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
+    // Stop it for the table (the neutral 'ended' terminal).
+    await page.getByRole('button', { name: 'Stop game' }).first().click()
+    await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
     await expect(page.getByText('Game ended', { exact: true }).first()).toBeVisible({ timeout: 8000 })
 
     // Nothing autoreveals, so the answer stays covered until asked for…

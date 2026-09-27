@@ -211,7 +211,7 @@ describe('wordle PlayArea — render smoke', () => {
 /**
  * The icon-only action row (labels live in tooltips): ONE row, every action
  * listed once, and which buttons show is each action's own answer — Concede /
- * End and Back-to-club (via the shell's suspend-confirm flow, NOT direct
+ * Stop and Back-to-club (via the shell's suspend-confirm flow, NOT direct
  * navigation) while playing; Reveal, Restart and New game join at terminal.
  * New game = a fresh create_game with THIS game's setup/roster/mode (direct RPC
  * — wordle has no edge function), then ctx.goToGame.
@@ -230,7 +230,7 @@ describe('wordle PlayArea — icon-only action row', () => {
     }
   })
 
-  it('a racer who is done sees Reveal grayed, End, and Back to club', () => {
+  it('a racer who is done sees Reveal grayed, Stop, and Back to club', () => {
     h.result = loaded({ id: 'g1', mode: 'compete', max_guesses: 6, target: null }, [], [
       { ...me, solved: true }, moth,
     ])
@@ -240,9 +240,9 @@ describe('wordle PlayArea — icon-only action row', () => {
     // everyone, and the tooltip says so.
     expect(bound('act-reveal').describe('button').state).toBe('disabled')
     expect(control('act-reveal')).toBeDisabled()
-    // Out of the race, so conceding is closed and ending for all is the flag.
+    // Out of the race, so conceding is closed and stopping for all is the flag.
     expect(control('act-concede')).not.toBeInTheDocument()
-    expect(control('act-end-game')).toBeInTheDocument()
+    expect(control('act-stop-game')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Back to club' })).toBeInTheDocument()
     // Moving on is still a menu thing until the game is over.
     expect(bound('act-restart').describe('button').state).toBe('hidden')
@@ -732,7 +732,7 @@ describe('wordle PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
-  it('coop shows End (not Concede) and calls end_game', async () => {
+  it('coop shows Stop (not Concede) and calls stop_game', async () => {
     const user = userEvent.setup()
     h.result = loaded({ id: 'g1', mode: 'coop', max_guesses: 6, target: null })
     render(
@@ -742,14 +742,14 @@ describe('wordle PlayArea — concede', () => {
       </>,
     )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    // The trigger and the modal's confirm now share the name "End game" (the
-    // button label went from "End" to the full phrase, since icon-only buttons
-    // make the label the accessible name). The confirm is the one the dialog
+    // The trigger and the modal's confirm share the name "Stop game" (the
+    // button's label is the full phrase, since icon-only buttons make the label
+    // the accessible name). The confirm is the one the dialog
     // adds, so it's last in the DOM.
-    await user.click(screen.getByRole('button', { name: 'End game' }))
-    const confirms = await screen.findAllByRole('button', { name: 'End game' })
+    await user.click(screen.getByRole('button', { name: 'Stop game' }))
+    const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1])
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('marks a conceded opponent "out" in the strip', () => {
@@ -947,17 +947,17 @@ describe('wordle Board — the reveal flip', () => {
 /**
  * A racer who has SOLVED the word and is waiting for the others is out of the
  * race (locally terminal) with a win maybe banked: conceding could only throw
- * it away. Their one flag is End for all.
+ * it away. Their one flag is Stop for all.
  */
 describe('wordle PlayArea — a solved racer cannot concede', () => {
   const compete = { id: 'g1', mode: 'compete' as const, max_guesses: 6, target: null }
 
-  it('solved and waiting: the flag is End, not Concede', () => {
+  it('solved and waiting: the flag is Stop, not Concede', () => {
     h.result = loaded(compete, [], [{ ...me, solved: true }, moth])
     render(<PlayAreaLoader {...makeCtx({ players: [meOut, twoMembers[1]] })} />)
     expect(screen.getByText('Waiting for others')).toBeInTheDocument()
     expect(stateOf('act-concede')).toBe('hidden')
-    expect(stateOf('act-end-game')).toBe('active')
+    expect(stateOf('act-stop-game')).toBe('active')
   })
 
   it('still racing: Concede is live', () => {
@@ -1012,7 +1012,7 @@ describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
     expect(rpc).not.toHaveBeenCalledWith('create_game', expect.anything())
   })
 
-  it('⌥⌫ in coop asks End game’s question; yes calls end_game', async () => {
+  it('⌥⌫ in coop asks Stop game’s question; yes calls stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
     h.result = loaded(coop)
@@ -1023,12 +1023,12 @@ describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     // The trigger and the modal's confirm share the name; the confirm is the
     // one the dialog adds, so it's last in the DOM.
-    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
@@ -1042,7 +1042,7 @@ describe('wordle PlayArea — + and ⌥⌫ through the dispatcher', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })

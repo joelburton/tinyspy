@@ -65,7 +65,7 @@ type HintAnswer = { result: 'hint'; hint: string }
  * stackdown's play surface, shared by the coop and compete manifests, on the
  * shared two-column scaffold (docs/playarea.md → PlayArea layout).
  * PlayArea is the **coordinator**: it holds the game data (`useGame`), the server
- * mutations (submit / reveal / hint / end / concede RPCs), and the cross-column
+ * mutations (submit / reveal / hint / stop / concede RPCs), and the cross-column
  * coordination state (the turn-history `historyId`, the local + word-slot
  * feedback), and wires two presentational columns:
  *
@@ -220,7 +220,7 @@ export function PlayArea({
   // see the "You conceded" look, and they read as "out" in every peer's
   // OpponentStrip while the others race on — stackdown has no elimination, so
   // conceding is its only way out mid-game (a compete solve ends the race).
-  // Coop never concedes (it uses the neutral whole-table End).
+  // Coop never concedes (it uses the neutral whole-table Stop).
   const concededIds = new Set(players.filter((m) => m.conceded).map((m) => m.user_id))
 
   // ─── Submit a completed (5-tile) word ─────────────────────────
@@ -352,14 +352,14 @@ export function PlayArea({
     impliedBy: solvedByMe({ isCompete, playState, mine: mySolved }),
   })
 
-  // ─── End / Concede / Replay — the shared trio ─────────────────
-  // The byte-identical shared handlers (useStandardGameActions). End is coop's
+  // ─── Stop / Concede / Replay — the shared trio ────────────────
+  // The byte-identical shared handlers (useStandardGameActions). Stop is coop's
   // neutral whole-table stop (confirmed through the styled modal); Concede is
   // compete's per-player drop-out; Replay restarts THIS stack — same tiles, same
   // solution, everything the players did wiped. stackdown's own bits are the
   // replay sentence and the post-replay cleanup (leave the turn-history view,
   // dismiss the last result, re-hide a revealed solution).
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -552,7 +552,7 @@ export function PlayArea({
         menu,
         // Both exits, in reading order; each hides itself in the mode that isn't
         // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           { items: [actHint, actSpoiler] },
           { items: [actRestart, actNewGame, actReveal] },
@@ -561,7 +561,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actHint, actSpoiler, actRestart, actNewGame, actReveal, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actHint, actSpoiler, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // ─── Coop: narrate teammates' moves ───────────────────────────
   // The player who DIDN'T make a move otherwise saw nothing but the log quietly
@@ -738,7 +738,7 @@ export function PlayArea({
         concededIds={concededIds}
         actHint={actHint}
         actSpoiler={actSpoiler}
-        actEndGame={actEndGame}
+        actStopGame={actStopGame}
         actConcede={actConcede}
         actRestart={actRestart}
         actNewGame={actNewGame}
@@ -790,7 +790,7 @@ function buildOver({
    *  else the handle cached in `status` at finish time. */
   winner: Actor | undefined
 }): TerminalMessage {
-  // Manual end (stackdown.end_game) → the shared neutral message (no winner).
+  // Manual end (stackdown.stop_game) → the shared neutral message (no winner).
   if (playState === 'ended') return gameEndedTerminalMessage(mode)
   if (mode === 'coop') {
     if (playState === 'won') {

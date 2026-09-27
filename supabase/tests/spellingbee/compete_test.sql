@@ -18,7 +18,7 @@
 --     score + rank_idx + found_words_count.
 --   - submit_timeout in compete: everyone {won: false}, status
 --     reason='timeout'.
---   - end_game in compete: everyone {won: false}, reason='manual'.
+--   - stop_game in compete: everyone {won: false}, reason='manual'.
 --   - RLS mid-game scopes guesses to caller; post-terminal opens
 --     the reveal (branch c of the policy).
 --
@@ -274,7 +274,7 @@ select is(
 );
 
 -- ============================================================
--- (13)–(14) end_game in compete — manual stop, no winner
+-- (13)–(14) stop_game in compete — manual stop, no winner
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -288,13 +288,13 @@ select (spellingbee.create_game(
   pg_temp.spellingbee_board()
 )->'data'->>'id')::uuid as id;
 
-select spellingbee.end_game((select id from g_end));
+select spellingbee.stop_game((select id from g_end));
 
 reset role;
 select is(
   (select (status->>'reason') from common.games where id = (select id from g_end)),
   'manual',
-  'compete end_game: status.reason = manual'
+  'compete stop_game: status.reason = manual'
 );
 
 select is(
@@ -304,13 +304,13 @@ select is(
        and (result->>'won') = 'false'
   ),
   2::bigint,
-  'compete end_game: every player gets {won: false} (friends agreed to stop)'
+  'compete stop_game: every player gets {won: false} (friends agreed to stop)'
 );
 
 select is(
   (select (status->>'target_rank')::int from common.games where id = (select id from g_end)),
   5,
-  'compete end_game: status.target_rank survives (= 5, not the ?? 0 fallback)'
+  'compete stop_game: status.target_rank survives (= 5, not the ?? 0 fallback)'
 );
 
 -- ============================================================

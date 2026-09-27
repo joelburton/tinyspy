@@ -56,7 +56,7 @@ type SwapAnswer = {
 /**
  * waffle's play surface, shared by the coop and compete manifests, on the shared
  * two-column scaffold. PlayArea is the **coordinator**: it holds the game data
- * (`useGame`), the server mutations (swap / end / concede RPCs), and the cross-column
+ * (`useGame`), the server mutations (swap / stop / concede RPCs), and the cross-column
  * coordination state (the turn-history viewer, the below-board feedback), and wires
  * two presentational columns:
  *
@@ -74,7 +74,7 @@ type SwapAnswer = {
  * opponent's board as readily as your own. See docs/playarea.md.
  *
  * **Feedback split** (src/common/feedback/doc.md): the player's OWN
- * not-oks (a refused swap, a failed End) show in BoardCol's below-board slot; the
+ * not-oks (a refused swap, a failed Stop) show in BoardCol's below-board slot; the
  * header's global slot carries PEER news — in compete, when an opponent solves
  * or runs out of swaps (coop needs none: the swap log already shows every move).
  */
@@ -115,7 +115,7 @@ export function PlayArea({
     [setup, game, players],
   )
 
-  // The below-board slot: a refused swap, a failed End, and the three standing
+  // The below-board slot: a refused swap, a failed Stop, and the three standing
   // conditions further down — never the header (that's the peer channel).
   const localFeedbackSlot = useFeedbackSlot('local')
   // Any key is the player's next move → dismiss a gesture-cleared message.
@@ -276,12 +276,12 @@ export function PlayArea({
     impliedBy: solvedByMe({ isCompete: game?.mode === 'compete', playState, mine: iSolved }),
   })
 
-  // ─── End / Concede / Replay — the shared trio ──────────
+  // ─── Stop / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); waffle's own
   // bits are the replay sentence and the post-replay cleanup (leave the
   // history view, dismiss the last result, re-hide a locally-revealed
   // answer). New game + Reveal solution stay below.
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -384,7 +384,7 @@ export function PlayArea({
   // Terminal results). There used to be a mid-game shape as well: a give-up
   // that rewrote every `waffle.players.board` to the solution and ended the
   // game in one confirmed click. It's gone, so the order is the same
-  // everywhere — End the game (which ends it for everyone), then Reveal — and
+  // everywhere — Stop the game (which ends it for everyone), then Reveal — and
   // the FE display swap below covers what the board rewrite used to do,
   // without destroying the boards the players actually built.
   //
@@ -437,7 +437,7 @@ export function PlayArea({
         menu,
         // Both exits, in reading order; each hides itself in the mode that
         // isn't its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           { items: [actRestart, actNewGame, actReveal] },
           { items: [actPrintBoard] },
@@ -445,7 +445,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // ─── The three standing conditions of the local slot ───
   // Each is an effect on a primitive edge that shows on true and retracts in
@@ -662,7 +662,7 @@ export function PlayArea({
         selfId={session.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
-        actEndGame={actEndGame}
+        actStopGame={actStopGame}
         actConcede={actConcede}
         actRestart={actRestart}
         actReveal={actReveal}
@@ -706,7 +706,7 @@ function buildOver({
   /** Swaps used minus par — the coop win verdict is golf-style ("Par +2"). */
   swapsOverPar: number
 }): TerminalMessage {
-  // Manual end (waffle.end_game) → 'ended' in either mode. Neutral result:
+  // Manual end (waffle.stop_game) → 'ended' in either mode. Neutral result:
   // nobody won or lost; outcome 'neutral' keeps the info-column line plain.
   // Handled first so an 'ended' game never falls through to a loss verdict.
   // Deliberately NOT worded here: manual end is the one terminal every game

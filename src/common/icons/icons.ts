@@ -79,7 +79,7 @@ export {
   // It stops just your turn and hands play on, so it wears amber rather than
   // red. Worn by both `act-end-turn` and `act-pass`.
   Octagon as IconEndTurn,
-  // STOP PLAYING — worn by `act-end-game` and `act-concede` alike, since a game
+  // STOP PLAYING — worn by `act-stop-game` and `act-concede` alike, since a game
   // offers one or the other and never both at once (a race that can also stop
   // the whole table asks about it inside Concede's question).
   //

@@ -51,7 +51,7 @@ import { signIn } from './helpers/session'
  *     the shape of every observed real failure) lands inside the window.
  *   - after the room's SUBSCRIBED (+300ms so its load()'s read provably
  *     completed first — the console `load #N: play_state=playing` line is
- *     the receipt), end the game server-side via the real end_game RPC.
+ *     the receipt), end the game server-side via the real stop_game RPC.
  *   - the honesty check reads the page's own `[rt]` console lines
  *     (realtimeDiag.ts): the room's `system ok` must NOT have arrived yet,
  *     i.e. the terminal write landed inside the deaf window. A miss means
@@ -63,7 +63,7 @@ import { signIn } from './helpers/session'
  * itself is still dropped by the server — what makes the verdict arrive is
  * the room's refetch when its `system ok` lands (the deaf-window closer in
  * every postgres_changes hook). Before that fix, the page kept a live board
- * with an "End game" button for a game that was already over, forever.
+ * with a "Stop game" button for a game that was already over, forever.
  *
  * If every attempt misses, the spec SKIPS (loudly) rather than fails: an
  * unhittable window is an environment race — the tenant booting faster than
@@ -240,12 +240,12 @@ async function tryOnce(browser: Browser, club: E2EClub): Promise<'hit' | string>
     await page.waitForTimeout(300)
     expect(roomLines('play_state=playing').length).toBeGreaterThan(0)
 
-    // End the game server-side — the same RPC the End-game button calls.
+    // Stop the game server-side — the same RPC the Stop-game button calls.
     // This writes common.games (play_state='ended', is_terminal=true): the
     // exact row the room channel watches.
     const res = await asUser(member.session.access_token)
       .schema('wordwheel')
-      .rpc('end_game', { target_game: game.id })
+      .rpc('stop_game', { target_game: game.id })
     expect(res.error).toBeNull()
 
     // Honesty check: the room's `system ok` must NOT have arrived yet — the

@@ -47,7 +47,7 @@ export function InfoCol({
   actRestart,
   actNewGame,
   actConcede,
-  actEndGame,
+  actStopGame,
   actBackToClub,
   // ── Setup disclosure ──
   setupRows,
@@ -91,8 +91,8 @@ export function InfoCol({
   actNewGame: BoundAction
   // Drop out of a race while the others play on — hidden outside compete.
   actConcede: BoundAction
-  // End the game for the whole table — coop's exit; it hides itself in a race.
-  actEndGame: BoundAction
+  // Stop the game for the whole table — coop's exit; it hides itself in a race.
+  actStopGame: BoundAction
   // Leave for the club — the shell's own action, off `ctx.menu`. It navigates
   // directly at terminal and routes through the suspend-confirm flow mid-game.
   actBackToClub: BoundAction
@@ -143,7 +143,7 @@ export function InfoCol({
               const rankIdx = isSelf ? selfRankIdx : (metricByUser.get(p.user_id) ?? 0)
               const rank = RANKS[rankIdx]
               // Mid-game: a conceder reads as "out". At terminal, prefix the outcome
-              // verb so the two "no longer active" states read differently — "Quit at
+              // verb so the two "no longer active" states read differently — "Conceded at
               // Amazing" vs "Lost at Amazing" vs "Won at Genius".
               if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : rank
               const member = players.find((m) => m.user_id === p.user_id)
@@ -161,7 +161,7 @@ export function InfoCol({
           <ActionButton action={actRestart} show="icon" />
           <ActionButton action={actNewGame} show="icon" />
           <ActionButton action={actConcede} show="icon" />
-          <ActionButton action={actEndGame} show="icon" />
+          <ActionButton action={actStopGame} show="icon" />
           <ActionButton action={actBackToClub} show="icon" weight={terminalMessage ? 'primary' : 'secondary'} />
         </InfoActionsRow>
 

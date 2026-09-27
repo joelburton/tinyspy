@@ -64,7 +64,7 @@ export type Actor = Pick<Member, 'username' | 'color'>
  *                      drives the OpponentStrip's "out" marker —
  *                      rendered by each game's own `metricFor`, so
  *                      the strip itself never names this field — and
- *                      the "Quit at …" vs "Lost at …" terminal verb.
+ *                      the "Conceded at …" vs "Lost at …" terminal verb.
  *   - `conceded_at`  — when they quit, or null. Written with the flag
  *                      and cleared with it, so a true `conceded`
  *                      always carries one.

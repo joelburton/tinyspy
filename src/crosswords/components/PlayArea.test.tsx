@@ -202,20 +202,20 @@ const press = (init: KeyboardEventInit) =>
   })
 
 describe('crosswords PlayArea — render smoke + wiring', () => {
-  it('coop play shows End, not Concede, and offers Reveal', () => {
+  it('coop play shows Stop, not Concede, and offers Reveal', () => {
     render(<PlayArea {...makeCtx()} />)
-    expect(control('act-end-game')).toBeInTheDocument()
+    expect(control('act-stop-game')).toBeInTheDocument()
     expect(control('act-concede')).toBeNull()
     // Reveal is coop-only.
     expect(control('act-reveal-word')).toBeInTheDocument()
     expect(control('act-check-word')).toBeInTheDocument()
   })
 
-  it('compete play shows Concede, not End, and hides Reveal (Check stays)', () => {
+  it('compete play shows Concede, not Stop, and hides Reveal (Check stays)', () => {
     h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
     render(<PlayArea {...makeCtx()} />)
     expect(control('act-concede')).toBeInTheDocument()
-    expect(control('act-end-game')).toBeNull()
+    expect(control('act-stop-game')).toBeNull()
     // Revealing your own grid would trivially win a race — no Reveal in compete.
     expect(control('act-reveal-word')).toBeNull()
     expect(control('act-check-word')).toBeInTheDocument()
@@ -226,7 +226,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     // Two "Back to club" affordances at terminal: the chrome strip + the modal.
     expect(screen.getAllByRole('button', { name: /back to club/i }).length).toBeGreaterThan(0)
     // The play-time action row is gone at terminal.
-    expect(control('act-end-game')).toBeNull()
+    expect(control('act-stop-game')).toBeNull()
     expect(control('act-check-word')).toBeNull()
   })
 
@@ -336,8 +336,8 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
       'act-show-note', 'act-explain-clue', 'act-print-board', 'act-download-ipuz', 'act-print-solution',
       'check', 'reveal',
       'act-restart', 'act-reveal', 'act-new-game',
-      // Concede hides itself in coop, so the exits are End + Back to club.
-      'act-end-game', 'act-back-to-club',
+      // Concede hides itself in coop, so the exits are Stop + Back to club.
+      'act-stop-game', 'act-back-to-club',
     ])
     // The children keep their full names under the parent — the same action is
     // listed in Help with no parent to lend it the verb.
@@ -351,7 +351,7 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     const rows = rowsById(ctx)
     expect(rows.get('check')?.shortcut).toBeUndefined()
     expect(rows.get('act-back-to-club')?.shortcut).toBe('<')
-    expect(rows.get('act-end-game')?.shortcut).toBe('⌥⌫')
+    expect(rows.get('act-stop-game')?.shortcut).toBe('⌥⌫')
     expect(rows.get('act-pencil')?.shortcut).toBe('⌥P')
     expect(rows.get('act-rebus')?.shortcut).toBe('⇧↵')
     expect(rows.get('act-collapse-rebuses')?.disabled).toBe(false)
@@ -381,12 +381,12 @@ describe('crosswords PlayArea — render smoke + wiring', () => {
     // All three Reveal children hide themselves, and a submenu with nothing left
     // to show is not a row you can open — so the whole family is gone.
     expect(ids).not.toContain('reveal')
-    // Check + pencil still present; compete shows Concede (not End game).
+    // Check + pencil still present; compete shows Concede (not Stop game).
     expect(ids).toContain('check')
     expect(submenuOf(ctx, 'check').map((r) => r.id)).toContain('act-check-letter')
     expect(ids).toContain('act-pencil')
     expect(ids).toContain('act-concede')
-    expect(ids).not.toContain('act-end-game')
+    expect(ids).not.toContain('act-stop-game')
   })
 
   it('gates the answer-key PDF in compete: disabled mid-play, enabled at terminal', () => {
@@ -634,9 +634,9 @@ describe('crosswords PlayArea — the page chords', () => {
     expect(h.setCell).not.toHaveBeenCalled()
   })
 
-  it('a conceded racer keeps the one flag — End for all, not a hidden Concede', () => {
-    // Conceding is spent; ending the game for all is open to anyone in it, so
-    // End takes Concede's place in the "You conceded" row.
+  it('a conceded racer keeps the one flag — Stop for all, not a hidden Concede', () => {
+    // Conceding is spent; stopping the game for all is open to anyone in it, so
+    // Stop takes Concede's place in the "You conceded" row.
     h.game = { mode: 'compete', puzzleId: 'p1', meta: template() }
     render(
       <WithKeys
@@ -645,7 +645,7 @@ describe('crosswords PlayArea — the page chords', () => {
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
-    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
+    expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
   })
 })
 
@@ -673,7 +673,7 @@ describe('crosswords PlayArea — the key list', () => {
     expect(rows).toContainEqual(['⌥P', 'Switch to pencil'])
     expect(rows).toContainEqual(['⇧↵', 'Enter rebus'])
     expect(rows).toContainEqual(['A–Z', 'Fill the cell'])
-    expect(rows).toContainEqual(['⌥⌫', 'End game'])
+    expect(rows).toContainEqual(['⌥⌫', 'Stop game'])
     // The ladder: with no submenu parent to lend the verb, a check and a reveal
     // of the same scope must still read apart.
     expect(rows).toContainEqual(['⌥C', 'Check letter'])

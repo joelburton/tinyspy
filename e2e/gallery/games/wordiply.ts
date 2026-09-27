@@ -6,7 +6,7 @@ import {
   type E2EClub,
   type E2EMember,
 } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import { timeOut } from '../timeOut'
 import { seatWithVerdict } from '../verdict'
 import type { Cell, GameGallery } from '../types'
@@ -93,7 +93,7 @@ export const wordiplyGallery: GameGallery = {
     if (cell.phase === 'ended' && cell.mode === 'compete') {
       await play(me, id, ['bar', 'scar'])
       await play(rival, id, ['car'])
-      await endGame(club, 'wordiply', id)
+      await stopGame(club,'wordiply', id)
     }
 
     return { gametype, id, viewer: me }

@@ -30,7 +30,7 @@ async function submitWord(page: Page, word: string): Promise<void> {
  * game ends the moment they cross it.
  *
  * Coop used to have no win at all: it only ever reached 'ended', via the clock
- * or the End button. `setup.target_rank` (optional in coop, required in compete)
+ * or the Stop button. `setup.target_rank` (optional in coop, required in compete)
  * changes that, and this is the browser half of the proof — the pgTAP suite
  * covers the state transition, but only a real render shows that the celebration
  * fires once, that the below-board pill carries the new verdict vocabulary, and
@@ -97,8 +97,8 @@ test('coop: with no target, ending is neutral and nothing celebrates', async ({ 
   await expect(page.getByRole('dialog', { name: /you win/i })).toHaveCount(0)
   await expect(page.getByText(/^Won:/)).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'End game' }).first().click()
-  await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
+  await page.getByRole('button', { name: 'Stop game' }).first().click()
+  await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
 
   await expect(page.getByText(/^Ended: \w+ \d+\/59 points$/)).toBeVisible({ timeout: 8000 })
   await expect(page.getByRole('dialog', { name: /you win/i })).toHaveCount(0)

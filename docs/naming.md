@@ -511,7 +511,7 @@ but correctly aren't (recorded so a future consistency pass doesn't "fix" them):
   0–6 words-cleared count). Different metrics, not one concept under two names.
 - **boggle `play_state = 'ended'`** for a normal finish — boggle has no
   win-threshold state (the winner is *derived* from most-points when the timer /
-  manual End fires), so `'ended'` is its only terminal; `'won_compete'` would
+  manual Stop fires), so `'ended'` is its only terminal; `'won_compete'` would
   invent a state its model doesn't have.
 - **`onSubmitWord(tileIds)` (stackdown)** vs argument-less `onSubmit()` (boggle
   / spellingbee) — different signatures (stackdown carries the specific tile set

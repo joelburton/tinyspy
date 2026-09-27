@@ -134,7 +134,7 @@ const BRAND = 'PsychicNum'
 // Timeout + manual end — the shared one-arg RPC dispatchers, referenced by both
 // sibling manifests (see common/manifest/manifestRpcs).
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 export const psychicnumCoopGame: GameManifest = {
   gametype: 'psychicnum_coop',
@@ -171,7 +171,7 @@ export const psychicnumCoopGame: GameManifest = {
         return statusLine(verdict('Won'), s.winner_username && `${s.winner_username} guessed it`)
       case 'lost':
         return statusLine(verdict('Lost', LOSS[s.reason ?? ''] ?? null), found)
-      // 'ended' is the neutral manual-stop terminal (end_game).
+      // 'ended' is the neutral manual-stop terminal (stop_game).
       case 'ended':
         return statusLine(verdict('Ended'), found)
       default:
@@ -180,7 +180,7 @@ export const psychicnumCoopGame: GameManifest = {
   },
 
   submitTimeout,
-  endGame,
+  stopGame,
 }
 
 export const psychicnumCompeteGame: GameManifest = {
@@ -224,7 +224,7 @@ export const psychicnumCompeteGame: GameManifest = {
           // all conceded says it already.
           s.reason === 'conceded' ? null : 'no winner',
         )
-      // 'ended' is the neutral manual-stop terminal (end_game).
+      // 'ended' is the neutral manual-stop terminal (stop_game).
       case 'ended':
         return verdict('Ended')
       default:
@@ -233,5 +233,5 @@ export const psychicnumCompeteGame: GameManifest = {
   },
 
   submitTimeout,
-  endGame,
+  stopGame,
 }

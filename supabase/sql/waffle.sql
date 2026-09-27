@@ -687,7 +687,7 @@ begin
   -- opponents' boards). submit_swap's terminal already writes waffle.players
   -- /events so it wakes on its own, but the concede path (waffle.concede →
   -- here) writes nothing to the waffle schema — without this, the reveal
-  -- never appears for anyone. Same trick as submit_timeout / end_game.
+  -- never appears for anyone. Same trick as submit_timeout / stop_game.
   update waffle.games set club_handle = club_handle where id = target_game;
   return true;
 end;
@@ -958,7 +958,7 @@ grant execute on function waffle.submit_swap(uuid, int, int) to authenticated;
 -- of swaps — without the table ending), so it can't use the generic
 -- common.concede: after flipping the shared flag it re-runs its own
 -- terminal check, which now counts a conceder as done and excludes
--- them from the win. Compete only (coop ends via the shared End).
+-- them from the win. Compete only (coop ends via the shared Stop).
 drop function if exists waffle.concede(uuid);
 
 create or replace function waffle.concede(target_game uuid)
@@ -1104,7 +1104,7 @@ revoke execute on function waffle.submit_timeout(uuid) from public;
 grant execute on function waffle.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- waffle.end_game — manual stop
+-- waffle.stop_game — manual stop
 -- ============================================================
 --
 -- The friends' explicit "we're done" button, available in BOTH
@@ -1118,7 +1118,7 @@ grant execute on function waffle.submit_timeout(uuid) to authenticated;
 -- win/lose result.
 --
 -- Distinct from suspend: suspend leaves play_state='playing' and is
--- the "back to club, start a new game" path. end_game is terminal,
+-- the "back to club, start a new game" path. stop_game is terminal,
 -- so the game lands in the club's completed section and the
 -- terminal verdict renders.
 --
@@ -1130,9 +1130,9 @@ grant execute on function waffle.submit_timeout(uuid) to authenticated;
 -- a timer race), and it's idempotent on the play_state check the
 -- same way submit_timeout is: a second click raises P0001, which
 -- the manifest swallows.
-drop function if exists waffle.end_game(uuid);
+drop function if exists waffle.stop_game(uuid);
 
-create or replace function waffle.end_game(target_game uuid)
+create or replace function waffle.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1194,15 +1194,18 @@ exception when others then
 end;
 $$;
 
-revoke execute on function waffle.end_game(uuid) from public;
-grant execute on function waffle.end_game(uuid) to authenticated;
+revoke execute on function waffle.stop_game(uuid) from public;
+grant execute on function waffle.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists waffle.end_game(uuid);
 
 -- ============================================================
 -- (removed 2026-08-03) waffle.reveal_answer — the mid-game give-up
 -- ============================================================
 -- Was: overwrite every waffle.players.board with the solution, then end
 -- the game as a neutral give-up. Gone so waffle matches every other
--- game: End the game (which ends it for everyone), THEN Reveal — where
+-- game: Stop the game (which ends it for everyone), THEN Reveal — where
 -- Reveal is a local FE display toggle (docs/ui.md → Terminal results),
 -- terminal-only because the solution doesn't reach a compete client before
 -- then. The FE's display swap covers what
@@ -1227,7 +1230,7 @@ grant execute on function waffle.end_game(uuid) to authenticated;
 -- hands the common-layer reset to common.reset_game (un-terminal,
 -- fresh initial status, clear per-player results + concede).
 --
--- No realtime touch needed (unlike end_game, which writes only
+-- No realtime touch needed (unlike stop_game, which writes only
 -- common.games): the players update + swaps delete wake useGame
 -- (subscribed to waffle.{games,players,events}), and reset_game's
 -- common.games write wakes useCommonGame — so the board, event log,

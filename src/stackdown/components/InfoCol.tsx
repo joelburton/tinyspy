@@ -41,7 +41,7 @@ export function InfoCol({
   concededIds,
   actHint,
   actSpoiler,
-  actEndGame,
+  actStopGame,
   actConcede,
   actRestart,
   actNewGame,
@@ -54,7 +54,7 @@ export function InfoCol({
   onShowHistory,
 }: {
   // ── Mode + phase (read by several regions below) ──
-  /** compete shows the OpponentStrip + Concede; coop shows End. */
+  /** compete shows the OpponentStrip + Concede; coop shows Stop. */
   isCompete: boolean
   isTerminal: boolean
   /** The terminal message when the game is over (drives the action row + words reveal), else null. */
@@ -84,7 +84,7 @@ export function InfoCol({
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
 
-  // ── Action row (cheats + End/Concede, back-to-club at terminal) ──
+  // ── Action row (cheats + Stop/Concede, back-to-club at terminal) ──
   /** The two rungs of the hint ladder — a hint toward the next word, or the
    *  word itself. Both carry their own "which word" wording. */
   actHint: BoundAction
@@ -92,8 +92,8 @@ export function InfoCol({
    *  what it does to a LIVE game — distinct from `actReveal` below, which opens
    *  the whole solution once the game is over. */
   actSpoiler: BoundAction
-  /** End the game for the whole table — coop's exit; it hides itself in a race. */
-  actEndGame: BoundAction
+  /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
+  actStopGame: BoundAction
   /** Drop out of a race while the others play on — hidden outside compete. */
   actConcede: BoundAction
   /** Restart THIS stack — same tiles, same solution — from scratch. */
@@ -169,7 +169,7 @@ export function InfoCol({
           />
         )}
 
-        {/* Action row — Reveal hint / Reveal word cheats + End/Concede during
+        {/* Action row — Reveal hint / Reveal word cheats + Stop/Concede during
             play; at terminal the bold outcome line + a compact back-to-club
             button. */}
         {over ? (
@@ -195,10 +195,10 @@ export function InfoCol({
                 finishes — the button is simply enabled then. */}
             <ActionButton action={actReveal} show="icon" />
             {/* Both exits are placed and each says whether it applies: out of
-                the race, Concede hides and End comes out in its place — one
-                flag, since anyone in a game may end it for all. */}
+                the race, Concede hides and Stop comes out in its place — one
+                flag, since anyone in a game may stop it for all. */}
             <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
+            <ActionButton action={actStopGame} show="icon" />
           </InfoActionsRow>
         ) : isPlayer ? (
           <InfoActionsRow>
@@ -214,7 +214,7 @@ export function InfoCol({
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
             <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
+            <ActionButton action={actStopGame} show="icon" />
           </InfoActionsRow>
         ) : null}
 

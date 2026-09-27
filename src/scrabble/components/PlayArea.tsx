@@ -42,7 +42,7 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  * the game data (`useGame`), the board-viewer coordination (`useHistoryViewer`, whose
  * `HistoryTarget` here carries BOTH a past turn AND a coop teammate's shared move), the
  * coop "show a move" Broadcast transport (`useSharedMove`), the below-board feedback
- * slot (born here because InfoCol's End/Concede show into it too), and the
+ * slot (born here because InfoCol's Stop/Concede show into it too), and the
  * terminal message; it wires two columns:
  *
  *   - **`<BoardCol>`** — the 15×15 board + the rack + the whole turn machine
@@ -104,7 +104,7 @@ export function PlayArea({
 
   // The below-board slot — drawn in the commit slot (docs/ui.md → Feedback
   // pill). Born in the coordinator because BOTH columns show into it:
-  // BoardCol's turn machine (played / rejected / …) AND InfoCol's End /
+  // BoardCol's turn machine (played / rejected / …) AND InfoCol's Stop /
   // Concede; the standing conditions further down are its too.
   const localFeedbackSlot = useFeedbackSlot('local')
 
@@ -324,7 +324,7 @@ type Suggested =
     suggestionApplierRef.current?.(move.placements)
   }, [])
 
-  // ─── End / Concede / Replay — the shared trio ─────────────
+  // ─── Stop / Concede / Replay — the shared trio ────────────
   // The byte-identical shared handlers (useStandardGameActions). scrabble's own
   // bits are the replay sentence and the post-replay cleanup (leave whichever
   // read-only overlay is open — a past turn or a teammate's shared move — since
@@ -334,7 +334,7 @@ type Suggested =
   // the standard layout, not a generated puzzle, so there's no board to restore.
   // A replay re-deals — fresh bag, new racks, empty grid — keeping the setup,
   // roster, seats and any AI opponents. Hence the confirm's wording.
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -458,7 +458,7 @@ type Suggested =
         menu,
         // Both exits, in reading order; each hides itself in the mode that isn't
         // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           { items: [actPrintBoard] },
           // The same pair the terminal action row offers, reachable mid-game too.
@@ -467,7 +467,7 @@ type Suggested =
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actPrintBoard])
 
   // ─── The three standing conditions of the local slot ───
   // Each is an effect on a primitive edge that shows on true and retracts in
@@ -552,7 +552,7 @@ type Suggested =
   // A ready list quietly clears the moment the board moves past it — most
   // commonly because the player just COMMITTED the suggested move, where a
   // "board changed" message read as something going wrong. Also clears once
-  // the game is over (`end_game` never bumps `version`, so the version test
+  // the game is over (`stop_game` never bumps `version`, so the version test
   // alone would leave zombie "stage these tiles" rows on the terminal
   // screen). Derived each render, no clearing effect (the no-setState-in-
   // effects rule) — this is the single staleness authority for the hints.
@@ -609,7 +609,7 @@ type Suggested =
           selfId={session.user.id}
           playerStates={playerStates}
           concededIds={concededIds}
-          actEndGame={actEndGame}
+          actStopGame={actStopGame}
           actConcede={actConcede}
           actRestart={actRestart}
           actNewGame={actNewGame}

@@ -53,7 +53,7 @@ select (wordiply.create_game(
 -- status, and a terminal row: exactly what replay undoes.
 select wordiply.submit_guess((select id from g1), 'arxxxxx');
 select wordiply.submit_guess((select id from g1), 'arxxx');
-select wordiply.end_game((select id from g1));
+select wordiply.stop_game((select id from g1));
 
 reset role;
 select is(

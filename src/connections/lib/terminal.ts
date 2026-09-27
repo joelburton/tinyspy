@@ -42,14 +42,14 @@ export function buildTerminalMessage({
   // loss from "beaten to the punch".
   selfEliminated: boolean
 }): TerminalMessage {
-  // Manual end ('ended', written by connections.end_game) is the uniform
+  // Manual end ('ended', written by connections.stop_game) is the uniform
   // neutral terminal shared with the other games — the shared message owns it.
   if (playState === 'ended') return gameEndedTerminalMessage(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
       return { pillText: 'You win!', infoColText: 'You won!', outcome: 'won' }
     }
-    // lost: the clock, or the mistakes (coop cannot concede — End ends it).
+    // lost: the clock, or the mistakes (coop cannot concede — Stop ends it).
     return {
       pillText: reason === 'timeout' ? 'Lost: out of time' : 'Lost: out of mistakes',
       infoColText: reason === 'timeout' ? 'Out of time' : 'Out of mistakes',

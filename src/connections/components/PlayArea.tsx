@@ -372,11 +372,11 @@ function PlayArea({
   // through a ref it refreshes every render, and the bound value's identity
   // turns on `pending` alone.
 
-  // The shared trio — End / Concede / Restart. connections' own bit is which
+  // The shared trio — Stop / Concede / Restart. connections' own bit is which
   // `db` they call: a restart needs nothing else from this game, since the page
   // unmounts the whole play surface when the run changes and the shared
   // selections in `useGame` go with it, on every client.
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
       db,
       gameId,
       isTerminal,
@@ -530,7 +530,7 @@ function PlayArea({
         menu,
         // Both exits, in reading order; each hides itself in the mode that isn't
         // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           // The menu twin of the info column's Hints button.
           { items: [actHint] },
@@ -542,7 +542,7 @@ function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actHint, actReveal, actRestart, actNewGame, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actHint, actReveal, actRestart, actNewGame, actPrintBoard])
 
   // ─── Render ────────────────────────────────────────────
   // Everything below is derived fresh each render and read only by the JSX —
@@ -655,7 +655,7 @@ function PlayArea({
         actRestart={actRestart}
         actNewGame={actNewGame}
         actConcede={actConcede}
-        actEndGame={actEndGame}
+        actStopGame={actStopGame}
         actBackToClub={menu.actBackToClub}
         // ── The hint list ──
         categories={game.board.categories}

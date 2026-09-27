@@ -53,7 +53,7 @@ select is(
 
 -- End it for everyone (the manual end any player can fire).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select waffle.end_game((select id from g1));
+select waffle.stop_game((select id from g1));
 reset role;
 
 select is(

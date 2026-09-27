@@ -48,7 +48,7 @@ type GuessAnswer = { verdict: 'hit' | 'miss'; found_all: boolean }
  * (the live `results` OR a historical snapshot) and the viewed turn's label, from
  * which it derives `isViewingHistory` — which is what makes the turn-history
  * viewer a drop-in. The local feedback slot is PlayArea's (its
- * standing conditions and InfoCol's Hint / Spoiler / End also show into it);
+ * standing conditions and InfoCol's Hint / Spoiler / Stop also show into it);
  * this column shows the guess results and draws it. See docs/playarea.md.
  */
 export function BoardCol({

@@ -49,14 +49,14 @@ select scrabble.play_word((select id from g1),
     {"x":8,"y":7,"letter":"A","blank":false},
     {"x":9,"y":7,"letter":"T","blank":false}]'::jsonb,
   array['CAT'], 5);
-select scrabble.end_game((select id from g1));
+select scrabble.stop_game((select id from g1));
 reset role;
 
 -- Preconditions: terminal, a play logged, tiles on the board, title rewritten.
 select ok((select is_terminal from common.games where id = (select id from g1)),
   'coop: precondition — the ended game is terminal');
--- TWO rows: the played word, plus the 'leftovers' row coop's end_game writes for
--- the leftover-tile penalty (see end_game_test.sql).
+-- TWO rows: the played word, plus the 'leftovers' row coop's stop_game writes for
+-- the leftover-tile penalty (see stop_game_test.sql).
 select is((select count(*) from scrabble.events where game_id = (select id from g1)),
   2::bigint, 'coop: precondition — the play + the end-game forfeit are logged');
 select isnt((select title from common.games where id = (select id from g1)),

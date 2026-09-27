@@ -109,7 +109,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const historyViewer = useHistoryViewer<number>()
 
   const infoSheet = useInfoSheet()
-  // The below-board slot: a claim's result, the hint's not-oks, End /
+  // The below-board slot: a claim's result, the hint's not-oks, Stop /
   // Concede's, and the standing conditions further down.
   const localFeedbackSlot = useFeedbackSlot('local')
 
@@ -377,8 +377,8 @@ export function PlayArea(ctx: GamePageCtx) {
     run: askHint,
   })
 
-  // ─── End / Concede / Restart — the shared trio ─────────
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  // ─── Stop / Concede / Restart — the shared trio ────────
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -482,7 +482,7 @@ export function PlayArea(ctx: GamePageCtx) {
         menu,
         // Both exits, in reading order; each hides itself in the mode that isn't
         // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           { items: [actRestart, actNewGame] },
           { items: [actPrintBoard] },
@@ -490,7 +490,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actPrintBoard])
 
   // ─── Peer narration (coop, free-for-all only) ──────────
   // A teammate's claim, in the global header. Coop only: in compete the
@@ -659,7 +659,7 @@ export function PlayArea(ctx: GamePageCtx) {
           concededIds={concededIds}
           actHint={actHint}
           hintsUsed={rows.reduce((n, p) => n + p.hints_used, 0)}
-          actEndGame={actEndGame}
+          actStopGame={actStopGame}
           actConcede={actConcede}
           actRestart={actRestart}
           actNewGame={actNewGame}

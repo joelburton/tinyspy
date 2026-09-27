@@ -55,7 +55,7 @@ function pathWord(path: Cell[], view: string[][]): string {
  * tiles reposition, each letter stays upright — never persisted or shared). The
  * word-entry ENGINE (`useFoundWordSubmit`: the typed word, the submit RPC, the results)
  * stays in PlayArea, as does the local feedback slot it shows into — InfoCol's
- * End / Concede and PlayArea's standing conditions show into the same slot — so
+ * Stop / Concede and PlayArea's standing conditions show into the same slot — so
  * PlayArea passes the entry primitives (`word` / `onChange` / `onSubmit` / the
  * slot / …) DOWN and this column renders them. Like the other games' BoardCol
  * it does NOT own the game state: PlayArea hands it the display `grid`. See

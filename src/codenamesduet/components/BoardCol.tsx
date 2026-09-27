@@ -68,7 +68,7 @@ type GuessAnswer =
  * `submit_clue`, `pass_turn` and the AI suggestion. Neither owns game state —
  * the reveal arrives by Realtime, and PlayArea hands this column the board to
  * render, live or a viewed turn's snapshot. Not-oks show into PlayArea's local
- * slot, the one InfoCol's End shows into too. See docs/playarea.md.
+ * slot, the one InfoCol's Stop shows into too. See docs/playarea.md.
  */
 export function BoardCol({
   // ── Mobile-only status strip (above the board) ──

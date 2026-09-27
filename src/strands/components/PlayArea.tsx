@@ -218,7 +218,7 @@ export function PlayArea(ctx: GamePageCtx) {
     playState === 'won_compete'
     && players.find((p) => p.user_id === session.user.id)?.result?.won === true
   const celebration = useCelebration(playState === 'won' || iWonCompete)
-  // The below-board slot: a move's result, the hint bar's answers, End /
+  // The below-board slot: a move's result, the hint bar's answers, Stop /
   // Concede's not-oks, and the standing conditions further down (the theme
   // clue among them).
   const localFeedbackSlot = useFeedbackSlot('local')
@@ -568,7 +568,7 @@ export function PlayArea(ctx: GamePageCtx) {
     }),
   })
 
-  // End / Concede / Replay from the shared hook, so their confirm copy and
+  // Stop / Concede / Replay from the shared hook, so their confirm copy and
   // error handling match the other games'.
   // Reveal the words — a LOCAL display toggle: it shows them to me alone, writes
   // nothing, and affects no peer. Terminal-only, since `_solution_for` withholds
@@ -580,7 +580,7 @@ export function PlayArea(ctx: GamePageCtx) {
     run: toggleSolution,
   })
 
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -750,7 +750,7 @@ export function PlayArea(ctx: GamePageCtx) {
         menu,
         // Both exits, in reading order; each hides itself in the mode that isn't
         // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           { items: [actRestart, actNewGame, actReveal] },
           { items: [actPrintBoard] },
@@ -758,7 +758,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // ─── The four standing conditions of the local slot ───
   // Each is an effect on a primitive edge that shows on true and retracts in
@@ -953,7 +953,7 @@ export function PlayArea(ctx: GamePageCtx) {
           selfId={session.user.id}
           setup={strandsSetup}
           setupRows={summaryRows}
-          actEndGame={actEndGame}
+          actStopGame={actStopGame}
           actConcede={actConcede}
           actRestart={actRestart}
           actNewGame={actNewGame}

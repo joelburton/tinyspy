@@ -343,8 +343,8 @@ revoke execute on function scrabble._seat_turn_order(uuid, int) from public;
 drop function if exists scrabble._advance_seat(uuid);
 
 -- Tally final scores and end the game. `reason` ∈ complete | timeout |
--- blocked | manual | conceded: `manual` is coop's End (compete's is a
--- neutral stop with no scoring, see scrabble.end_game), and `conceded` the
+-- blocked | manual | conceded: `manual` is coop's Stop (compete's is a
+-- neutral stop with no scoring, see scrabble.stop_game), and `conceded` the
 -- last active player conceding.
 -- `going_out_seat` is the seat that emptied its rack, or null; only that seat
 -- collects the going-out bonus. NOT the winner — going out earns the bonus,
@@ -1292,7 +1292,7 @@ grant execute on function scrabble.ai_exchange_tiles(uuid, int, int, text[]) to 
 -- scrabble.pass_turn — forfeit a turn (compete only)
 -- ============================================================
 -- Coop has no turns, so passing is meaningless there (the coop "we're
--- stuck" path is exchange or End game). Feeds the consecutive-pass streak
+-- stuck" path is exchange or Stop game). Feeds the consecutive-pass streak
 -- that ends a blocked game.
 -- The seat-driven core, shared by pass_turn (human) and ai_pass_turn (AI).
 create or replace function scrabble._commit_pass(target_game uuid, p_seat int, base_version int)
@@ -1636,7 +1636,7 @@ revoke execute on function scrabble.submit_timeout(uuid) from public;
 grant execute on function scrabble.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- scrabble.end_game — the "we're done" action
+-- scrabble.stop_game — the "we're done" action
 -- ============================================================
 -- Both modes land the uniform neutral 'ended', but COOP deviates on the way
 -- there: ending with tiles still in hand FORFEITS their value from the team
@@ -1645,9 +1645,9 @@ grant execute on function scrabble.submit_timeout(uuid) to authenticated;
 -- It runs final scoring through _finish and logs a 'leftovers' row with the lost
 -- value as a negative score. COMPETE ends flat: everyone {won:false}, no
 -- scoring, no leaderboard. Idempotent.
-drop function if exists scrabble.end_game(uuid);
+drop function if exists scrabble.stop_game(uuid);
 
-create or replace function scrabble.end_game(target_game uuid)
+create or replace function scrabble.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1684,7 +1684,7 @@ begin
     v_leftover := coalesce((select sum(scrabble._tile_value(t))
                               from unnest(g.shared_rack) t), 0);
     if v_leftover > 0 then
-      -- `took_turn` false: no player made this move. end_game writes it when
+      -- `took_turn` false: no player made this move. stop_game writes it when
       -- the table stops with tiles still in the rack.
       insert into scrabble.events (game_id, user_id, seat, kind, score, tile_count, took_turn)
       values (target_game, caller_id, v_seat, 'leftovers', -v_leftover,
@@ -1714,8 +1714,11 @@ exception when others then
 end;
 $$;
 
-revoke execute on function scrabble.end_game(uuid) from public;
-grant execute on function scrabble.end_game(uuid) to authenticated;
+revoke execute on function scrabble.stop_game(uuid) from public;
+grant execute on function scrabble.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists scrabble.end_game(uuid);
 
 -- ============================================================
 -- scrabble.get_suggest_context — read-only RPC for the move suggester

@@ -60,7 +60,7 @@ walk away — "unofficially paused for dinner" — are the classic case). As a
 manual backstop when a pause won't clear, `<PauseOverlay>` offers two escapes:
 **Back to club** (the same `act-back-to-club` every other surface places — it
 asks first when there are peers, then shelves the game and sends everyone back)
-and **End game** (the gametype's `manifest.endGame`, which every gametype
+and **Stop game** (the gametype's `manifest.stopGame`, which every gametype
 supplies — the overlay's escape would otherwise be missing from exactly the
 games that most need one). Both go through PostgREST, whose token auto-refreshes
 independently of the Realtime socket, so they work **even when Realtime is
@@ -217,7 +217,7 @@ reachable play_states in its CASES matrix). The whole roster's vocabulary today:
 | reason | the cause it names |
 |---|---|
 | `timeout` | the countdown reached 0 |
-| `manual` | a player fired the End-game action |
+| `manual` | a player fired the Stop-game action |
 | `conceded` | every player quit (`common.concede`'s last-racer path) |
 | `exhausted` | a budget ran out — guesses or swaps |
 | `mistakes` | the mistake limit was hit (connections) |
@@ -396,9 +396,9 @@ The asymmetry: the confirm is about the *social* surprise, not the act.
 Suspending loses nothing; what needs a beat of consideration is yanking the rest
 of the group off the puzzle mid-flight.
 
-Contrast **ending** a game (the End button / menu item / pause-overlay escape
+Contrast **stopping** a game (the Stop button / menu item / pause-overlay escape
 hatch), which IS destructive — terminal for the whole group, irreversible — and
-therefore always asks through the shared `ConfirmationBlockingModal` ("End this
+therefore always asks through the shared `ConfirmationBlockingModal` ("Stop this
 game?"), even in a solo or coop game.
 
 ## Exiting a club page (separate concern)

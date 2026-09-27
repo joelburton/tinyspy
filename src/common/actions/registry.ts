@@ -5,7 +5,7 @@ import type { ButtonTone } from '../buttons/StandardButton'
 import type { ConfirmOptions } from '../floating-panels/confirmations'
 import type { KeySpec } from './chord'
 import {
-  END_GAME_CONFIRM,
+  STOP_GAME_CONFIRM,
   NEW_GAME_CONFIRM,
   RESTART_CONFIRM,
 } from '../floating-panels/confirmations'
@@ -99,13 +99,13 @@ export type ActionSpec = {
  * them; this can say what each one does, once, at the moment somebody is
  * choosing.
  */
-const CONCEDE_OR_END_CONFIRM: ConfirmOptions = {
-  title: 'Concede, or end the game?',
+const CONCEDE_OR_STOP_GAME_CONFIRM: ConfirmOptions = {
+  title: 'Concede, or stop the game?',
   message:
     'Conceding puts you out and the others play on — it counts as a loss for you. ' +
-    'Ending stops the game now for everyone, with no winner.',
+    'Stopping ends the game now for everyone, with no winner.',
   confirmLabel: 'Concede',
-  alternativeLabel: 'End for all',
+  alternativeLabel: 'Stop for all',
   cancelLabel: 'Keep playing',
 }
 
@@ -202,23 +202,23 @@ export const ACTIONS = {
     icon: IconRestart,
     confirm: RESTART_CONFIRM,
   },
-  // End and Concede share `⌥⌫`, and can because they are the two modes' ways
-  // out: coop ends, a race concedes, and no game is both. A race that also
-  // wants the whole-table stop does NOT place End beside Concede — it offers
-  // ending as Concede's alternative, below.
-  'act-end-game': {
-    label: 'End game',
+  // Stop and Concede share `⌥⌫`, and can because they are the two modes' ways
+  // out: coop stops, a race concedes, and no game is both. A race that also
+  // wants the whole-table stop does NOT place Stop beside Concede — it offers
+  // stopping as Concede's alternative, below.
+  'act-stop-game': {
+    label: 'Stop game',
     icon: IconConcede,
     tone: 'destructive',
     keys: [alt('Backspace', '⌥⌫')],
-    confirm: END_GAME_CONFIRM,
+    confirm: STOP_GAME_CONFIRM,
   },
   'act-concede': {
     label: 'Concede game',
     icon: IconConcede,
     tone: 'destructive',
     keys: [alt('Backspace', '⌥⌫')],
-    confirm: CONCEDE_OR_END_CONFIRM,
+    confirm: CONCEDE_OR_STOP_GAME_CONFIRM,
   },
 
   // ─── What a game offers over its board ─────────────────────────────────

@@ -65,7 +65,7 @@ function startGameInClub(mode: 'coop' | 'compete') {
 }
 
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 type StatusBlob = Record<string, unknown>
 
@@ -143,7 +143,7 @@ export const strandsCoopGame: GameManifest = {
   labelFor: coopLabel,
 
   submitTimeout,
-  endGame,
+  stopGame,
 }
 
 /**
@@ -176,5 +176,5 @@ export const strandsCompeteGame: GameManifest = {
   labelFor: competeLabel,
 
   submitTimeout,
-  endGame,
+  stopGame,
 }

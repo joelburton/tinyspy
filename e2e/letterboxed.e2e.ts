@@ -251,8 +251,8 @@ test.describe('letterboxed', () => {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await boardReady(page, page.locator('[class*="node"]').first(), 15000)
 
-    await page.getByRole('button', { name: /end game/i }).click()
-    const confirm = page.getByRole('button', { name: /^(end|yes|confirm)/i }).last()
+    await page.getByRole('button', { name: /stop game/i }).click()
+    const confirm = page.getByRole('button', { name: /^(stop|yes|confirm)/i }).last()
     if (await confirm.isVisible().catch(() => false)) await confirm.click()
 
     await expect(page.getByText('Game over')).toBeVisible({ timeout: 10000 })

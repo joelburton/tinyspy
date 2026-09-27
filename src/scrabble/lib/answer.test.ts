@@ -12,7 +12,7 @@ import { ANSWER_OUTCOME } from './answer'
  * `exchange_pass_test.sql` that an exchange answers `neutral`. One rule in two
  * languages, so a word changed in either fails the other's test.
  *
- * `leftovers` has no SQL half to pin. It is the row `end_game` writes when a coop
+ * `leftovers` has no SQL half to pin. It is the row `stop_game` writes when a coop
  * table stops with tiles in hand, and that RPC's envelope is about the GAME
  * ending rather than about the row — so this table is the only authority for it.
  */

@@ -5,7 +5,7 @@ import { supabase } from '@/common/supabase/supabase'
 /**
  * boggle-schema-scoped supabase client. Imported by every boggle-side query
  * (`.from('games')`, `.from('found_words')`) and RPC call (`.rpc('submit_word')`,
- * `.rpc('end_game')`, `.rpc('submit_timeout')`) so the schema is applied
+ * `.rpc('stop_game')`, `.rpc('submit_timeout')`) so the schema is applied
  * uniformly without each call site repeating it.
  *
  * Unlike spellingbee, boggle has NO hidden-solution view — `required_words` is a

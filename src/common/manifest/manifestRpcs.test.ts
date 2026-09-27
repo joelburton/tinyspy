@@ -1,13 +1,13 @@
 // cs-blessed-manifest
 
 /**
- * ONE FRONTEND PATH OVER EVERY GAME'S `submit_timeout` AND `end_game`.
+ * ONE FRONTEND PATH OVER EVERY GAME'S `submit_timeout` AND `stop_game`.
  *
  * Nothing here covers `startGameInClub`: every `create_game` returns the
  * envelope itself, so a manifest calls `runRpc` / `runEdgeFn` and those two
  * are tested where they live (dbResult.test.ts). What this file covers is
  * `makeRpcDispatcher`, which binds a client and a function name and hands the
- * envelope up unchanged for `submit_timeout` and `end_game`. Small but
+ * envelope up unchanged for `submit_timeout` and `stop_game`. Small but
  * load-bearing: it is ONE frontend path over every game's SQL definition, so
  * a regression here breaks every game at once.
  *
@@ -48,14 +48,14 @@ describe('makeRpcDispatcher', () => {
       type: 'not-ok', severity: 'race', outcome: 'noted',
       message: 'Game over', dbcode: 'PN486', field: '_',
     }))
-    const endGame = makeRpcDispatcher({ rpc }, 'end_game')
+    const stopGame = makeRpcDispatcher({ rpc }, 'stop_game')
 
-    const res = await endGame('game-2')
+    const res = await stopGame('game-2')
 
     expect(res.type).toBe('not-ok')
     expect(res.type === 'not-ok' && res.severity).toBe('race')
     expect(res.message).toBe('Game over')
     expect(res.dbcode).toBe('PN486')
-    expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'game-2' })
+    expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'game-2' })
   })
 })

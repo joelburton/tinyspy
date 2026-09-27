@@ -1554,7 +1554,7 @@ revoke execute on function letterboxed.submit_timeout(uuid) from public;
 grant execute on function letterboxed.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- letterboxed.end_game — "we've played as much as we want"
+-- letterboxed.stop_game — "we've played as much as we want"
 -- ============================================================
 -- The player-callable stop, uniform across the roster (see
 -- docs/common-schema.md → Manual end). It writes `ended` in BOTH
@@ -1563,9 +1563,9 @@ grant execute on function letterboxed.submit_timeout(uuid) to authenticated;
 -- (compete resolves on coverage), but a group agreeing to stop is a
 -- group agreeing not to have one. Calling that `lost` would tell them
 -- their own decision beat them.
-drop function if exists letterboxed.end_game(uuid);
+drop function if exists letterboxed.stop_game(uuid);
 
-create or replace function letterboxed.end_game(target_game uuid)
+create or replace function letterboxed.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1621,8 +1621,11 @@ exception when others then
 end;
 $$;
 
-revoke execute on function letterboxed.end_game(uuid) from public;
-grant execute on function letterboxed.end_game(uuid) to authenticated;
+revoke execute on function letterboxed.stop_game(uuid) from public;
+grant execute on function letterboxed.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists letterboxed.end_game(uuid);
 
 -- ============================================================
 -- letterboxed.concede — drop out of a compete race

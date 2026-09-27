@@ -331,7 +331,7 @@ describe('scrabble PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
-  it('coop shows End (not Concede) and calls end_game', async () => {
+  it('coop shows Stop (not Concede) and calls stop_game', async () => {
     const user = userEvent.setup()
     render(
       <>
@@ -341,11 +341,11 @@ describe('scrabble PlayArea — concede', () => {
     )
     expect(control('act-concede')).toBeNull()
     // The trigger by WHICH action it is; the modal's confirm shares its words
-    // ("End game"), and is the one the dialog adds, so it's last in the DOM.
-    await user.click(control('act-end-game')!)
-    const confirms = await screen.findAllByRole('button', { name: 'End game' })
+    // ("Stop game"), and is the one the dialog adds, so it's last in the DOM.
+    await user.click(control('act-stop-game')!)
+    const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1])
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('marks a conceded opponent "out" in the strip', () => {
@@ -369,15 +369,15 @@ describe('scrabble PlayArea — concede', () => {
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
-    // The one flag: conceding is spent, and ending the game for all is open to
-    // anyone in it, so End takes Concede's place.
+    // The one flag: conceding is spent, and stopping the game for all is open to
+    // anyone in it, so Stop takes Concede's place.
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
-    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
+    expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
   })
 
   // Pins scrabble's terminal-strip verbs — the ` · `-separated format (distinct from
   // boggle/spellingbee's ` at `) that the shared `terminalOutcomeVerb` helper feeds:
-  // the three outcomes must still read Won / Quit / Lost.
+  // the three outcomes must still read Won / Conceded / Lost.
   it('stops claiming a turn once the game is over', () => {
     // The line's first clause IS the turn indicator in compete, so a finished
     // game went on saying "Your turn". It now names the state instead, keeping
@@ -389,12 +389,12 @@ describe('scrabble PlayArea — concede', () => {
     expect(screen.getAllByText(/Ended · 86 in bag/)).toHaveLength(2)
   })
 
-  it('distinguishes Quit / Lost / Won at terminal in the strip', () => {
+  it('distinguishes Conceded / Lost / Won at terminal in the strip', () => {
     h.result = loaded(
       loadedGame({ mode: 'compete', sharedRack: null, teamScore: null }),
       [
         selfPlayer({ score: 5, rack: RACK }), // self → Lost
-        { user_id: 'u2', seat: 1, score: 12, rack: null, rack_count: 7, ai_level: null }, // → Quit
+        { user_id: 'u2', seat: 1, score: 12, rack: null, rack_count: 7, ai_level: null }, // → Conceded
         { user_id: 'u3', seat: 2, score: 40, rack: null, rack_count: 7, ai_level: null }, // → Won
       ],
     )
@@ -413,12 +413,12 @@ describe('scrabble PlayArea — concede', () => {
       />,
     )
     // Score first, outcome parenthesised after it. NOT `·`-joined: that is the
-    // strip's PLAYER separator, so "Lost · 5 · Quit · 12" ran one glyph for two
+    // strip's PLAYER separator, so "Lost · 5 · Conceded · 12" ran one glyph for two
     // jobs. The scores are asserted alongside the verbs so the pairing can't
     // silently come apart (a verb on the wrong seat would still match a bare
-    // /quit/).
+    // /conceded/).
     expect(screen.getByText('5 (lost)')).toBeInTheDocument()
-    expect(screen.getByText('12 (quit)')).toBeInTheDocument()
+    expect(screen.getByText('12 (conceded)')).toBeInTheDocument()
     expect(screen.getByText('40 (won)')).toBeInTheDocument()
   })
 })
@@ -584,7 +584,7 @@ describe('scrabble PlayArea — + and ⌥⌫ through the dispatcher', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('⌥⌫ in coop asks End game’s question; yes calls end_game', async () => {
+  it('⌥⌫ in coop asks Stop game’s question; yes calls stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
     render(
@@ -594,12 +594,12 @@ describe('scrabble PlayArea — + and ⌥⌫ through the dispatcher', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     // The trigger and the modal's confirm share the name; the confirm is the
     // one the dialog adds, so it's last in the DOM.
-    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
@@ -613,7 +613,7 @@ describe('scrabble PlayArea — + and ⌥⌫ through the dispatcher', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })

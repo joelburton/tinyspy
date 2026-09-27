@@ -20,7 +20,7 @@ import { supabase } from '../supabase/supabase'
  * socket is already connecting/open — so the guarded call is safe to fire on
  * every focus. (The half-dead-but-"connected" case still falls back to the 25s
  * heartbeat; this handles the common clean-close-after-sleep case right away.
- * The pause overlay's Return-to-club / End-game buttons are the manual backstop
+ * The pause overlay's Return-to-club / Stop-game buttons are the manual backstop
  * for anything this doesn't recover.)
  */
 export function useRealtimeReconnect(): void {

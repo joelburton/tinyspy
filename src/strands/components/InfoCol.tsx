@@ -54,8 +54,8 @@ type Props = {
   /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
   setupRows: SetupRow[]
   // ── Actions ──
-  /** End the game for the whole table — coop's exit; it hides itself in a race. */
-  actEndGame: BoundAction
+  /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
+  actStopGame: BoundAction
   /** Drop out of a race while the others play on — hidden outside compete, and
    *  gray once you have SOLVED it (conceding would forfeit a banked win). */
   actConcede: BoundAction
@@ -106,7 +106,7 @@ export function InfoCol({
   solvedIds,
   selfId,
   setupRows,
-  actEndGame,
+  actStopGame,
   actConcede,
   actRestart,
   actNewGame,
@@ -172,7 +172,7 @@ export function InfoCol({
             New game / back-to-club. Reveal is always PRESENT (it toggles rather
             than spends itself, so the row can't change shape under a click) and
             nothing autoreveals — a board with words left on it keeps them until
-            the player asks. PLAYING: End + back-to-club. */}
+            the player asks. PLAYING: Stop + back-to-club. */}
         {over ? (
           <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             <ActionButton action={actReveal} show="icon" />
@@ -186,17 +186,17 @@ export function InfoCol({
              explanation beside it. */
           <InfoActionsRow message={{ text: iSolved ? 'You solved it — waiting' : 'You conceded', outcome: 'neutral' }}>
             {/* Both exits are placed and each says whether it applies: out of
-                the race, Concede hides and End comes out in its place — one
-                flag, since anyone in a game may end it for all. */}
+                the race, Concede hides and Stop comes out in its place — one
+                flag, since anyone in a game may stop it for all. */}
             <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
+            <ActionButton action={actStopGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
             <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
+            <ActionButton action={actStopGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
           </InfoActionsRow>
         )}

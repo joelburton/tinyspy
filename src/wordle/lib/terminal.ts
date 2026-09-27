@@ -50,14 +50,14 @@ export function buildTerminalMessage({
   // winner's count, later.
   selfTiedWinner: boolean
 }): TerminalMessage {
-  // Manual end ('ended', written by wordle.end_game) is the uniform neutral
+  // Manual end ('ended', written by wordle.stop_game) is the uniform neutral
   // terminal shared with the other games — the shared message owns it.
   if (playState === 'ended') return gameEndedTerminalMessage(mode)
   if (mode === 'coop') {
     if (playState === 'won') {
       return { pillText: 'Won: solved it', infoColText: 'Solved it!', outcome: 'won' }
     }
-    // lost: the clock, or the guesses (coop cannot concede — End ends it).
+    // lost: the clock, or the guesses (coop cannot concede — Stop ends it).
     return {
       pillText: reason === 'timeout' ? 'Lost: out of time' : 'Lost: out of guesses',
       infoColText: reason === 'timeout' ? 'Out of time' : 'Out of guesses',

@@ -64,15 +64,15 @@ describe('KeyList', () => {
   })
 
   /**
-   * One command offered twice is still one key. `act-end-game` really is bound
+   * One command offered twice is still one key. `act-stop-game` really is bound
    * twice — by the game, and by the page for the pause overlay — and the two
    * are kept apart by describing themselves out of each other's way, which is
    * two files agreeing rather than something the list can rely on.
    */
   it('lists a command ONCE however many bindings offer it', () => {
     function Twice() {
-      useBoundAction('act-end-game', { run: () => undefined, describe: () => 'active' })
-      useBoundAction('act-end-game', { run: () => undefined, describe: () => 'active' })
+      useBoundAction('act-stop-game', { run: () => undefined, describe: () => 'active' })
+      useBoundAction('act-stop-game', { run: () => undefined, describe: () => 'active' })
       return <KeyList />
     }
     const reactSaid = vi.spyOn(console, 'error').mockImplementation(() => {})

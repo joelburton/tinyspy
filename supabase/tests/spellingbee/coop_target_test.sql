@@ -197,7 +197,7 @@ select (spellingbee.create_game(
   pg_temp.spellingbee_board()
 )->'data'->>'id')::uuid as id;
 
-select spellingbee.end_game((select id from g4));
+select spellingbee.stop_game((select id from g4));
 
 select is(
   (select play_state from common.games where id = (select id from g4)),

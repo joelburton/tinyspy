@@ -310,7 +310,7 @@ one order, because the row and the menu are two views of one set of bindings.
 psychicnum's is:
 
 ```
-Hint · Spoiler | Reveal · Restart · New game | Concede · End | Back to club
+Hint · Spoiler | Reveal · Restart · New game | Concede · Stop | Back to club
 ```
 
 with the menu adding Print at the end, the one row with no twin in the action
@@ -345,7 +345,7 @@ the same in both, or reading the second game means re-deriving the first.
   stands](win-lose.md#where-a-player-stands--the-terms-as-formulas) defines, and
   nothing else. Beside them: `terminalMessage`, `isCompete`, `historyLabel`, `onExitHistory`,
   `onShowHistory`, `players`, `myId`, `playerStates`, `concededIds`, `setup`,
-  `solution`, `onEndGame`, `onConcede`, `onBackToClub`, … When a new column needs a prop an earlier one
+  `solution`, `actStopGame`, `actConcede`, `actBackToClub`, … When a new column needs a prop an earlier one
   already has, reuse the name; diverge only when the meaning differs, and say
   so. The ones that drift:
   - **The viewer passes one prop saying it is open, and the flag is derived.**

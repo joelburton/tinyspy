@@ -2,7 +2,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { asUser, createScrabbleGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import { timeOut } from '../timeOut'
 import { seatWithVerdict } from '../verdict'
 import type { Cell, GameGallery } from '../types'
@@ -167,7 +167,7 @@ export const scrabbleGallery: GameGallery = {
     for (const row of [7, 9]) if (!(await playWord(row))) break
 
     if (cell.phase === 'lost') await timeOut(club, 'scrabble', id)
-    if (cell.phase === 'ended') await endGame(club, 'scrabble', id)
+    if (cell.phase === 'ended') await stopGame(club,'scrabble', id)
 
     // `lost` is the same terminal from a losing chair — ask the game which that
     // is rather than assuming the first seat.

@@ -8,7 +8,7 @@ import type { ConfirmOptions } from '../floating-panels/confirmations'
  * every question in the app is asked.
  *
  * Pass the game's title: the words name what is being shelved, which is why
- * this is a function and not a constant like `END_GAME_CONFIRM`.
+ * this is a function and not a constant like `STOP_GAME_CONFIRM`.
  *
  * Suspending is not dangerous by itself — the game shelves into the club list,
  * resumable — but it drags every viewing peer back to the club page, and that

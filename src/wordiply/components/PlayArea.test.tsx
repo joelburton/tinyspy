@@ -405,9 +405,9 @@ describe('wordiply PlayArea — compete terminal verdicts', () => {
 })
 
 describe('wordiply PlayArea — a conceder keeps the one flag', () => {
-  it('shows "You conceded" with End for all, not a hidden Concede', () => {
-    // Conceding is closed to a player already out; ending the game for all is
-    // open to anyone in it, so the row's flag is End.
+  it('shows "You conceded" with Stop for all, not a hidden Concede', () => {
+    // Conceding is closed to a player already out; stopping the game for all is
+    // open to anyone in it, so the row's flag is Stop.
     h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
     render(
       <PlayArea
@@ -418,7 +418,7 @@ describe('wordiply PlayArea — a conceder keeps the one flag', () => {
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
-    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
+    expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
   })
 })
 
@@ -684,7 +684,7 @@ describe('wordiply PlayArea — the entry keys', () => {
  * appears with no host is answered no, so the host is what lets these prove the
  * question was asked rather than skipped.
  */
-describe('wordiply PlayArea — new game, end, concede and restart', () => {
+describe('wordiply PlayArea — new game, stop, concede and restart', () => {
   const created = { type: 'ok', data: { result: 'created', id: 'fresh-game-id' } }
 
   it('+ at terminal starts the follow-up game with no question', async () => {
@@ -721,7 +721,7 @@ describe('wordiply PlayArea — new game, end, concede and restart', () => {
     expect(edgeFn).not.toHaveBeenCalled()
   })
 
-  it('⌥⌫ in coop asks End game’s question; yes calls end_game', async () => {
+  it('⌥⌫ in coop asks Stop game’s question; yes calls stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
     render(
@@ -731,12 +731,12 @@ describe('wordiply PlayArea — new game, end, concede and restart', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     // The trigger and the modal's confirm share the name; the confirm is the
     // one the dialog adds, so it's last in the DOM.
-    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
@@ -750,7 +750,7 @@ describe('wordiply PlayArea — new game, end, concede and restart', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
@@ -784,7 +784,7 @@ describe('wordiply PlayArea — the menu', () => {
     const ctx = makeCtx()
     render(<PlayArea {...ctx} />)
     const rows = menuItems(ctx)
-    for (const id of ['act-help', 'act-reveal', 'act-new-game', 'act-restart', 'act-end-game', 'act-back-to-club']) {
+    for (const id of ['act-help', 'act-reveal', 'act-new-game', 'act-restart', 'act-stop-game', 'act-back-to-club']) {
       expect(rows.get(id), id).toBeDefined()
       expect(rows.get(id)!.hidden, id).toBe(false)
     }
@@ -796,11 +796,11 @@ describe('wordiply PlayArea — the menu', () => {
     expect(rows.get('act-reveal')?.label).toBe('Reveal best solution')
   })
 
-  it('a race lists Concede as the exit, not End game', () => {
+  it('a race lists Concede as the exit, not Stop game', () => {
     h.result = { game: loadedGame({ mode: 'compete' }), guesses: [], loading: false }
     const ctx = makeCtx({ players: twoMembers })
     render(<PlayArea {...ctx} />)
     expect(menuItems(ctx).get('act-concede')?.hidden).toBe(false)
-    expect(menuItems(ctx).get('act-end-game')?.hidden).toBe(true)
+    expect(menuItems(ctx).get('act-stop-game')?.hidden).toBe(true)
   })
 })

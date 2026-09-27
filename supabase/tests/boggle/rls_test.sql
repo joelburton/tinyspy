@@ -62,7 +62,7 @@ select is((select count(*) from boggle.found_words where game_id = (select id fr
 
 -- End the game; now everyone sees everything.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select boggle.end_game((select id from cg));
+select boggle.stop_game((select id from cg));
 select is((select count(*) from boggle.found_words where game_id = (select id from cg)),
   2::bigint, 'compete post-terminal: ada sees all finds (the reveal)');
 

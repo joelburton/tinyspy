@@ -248,7 +248,7 @@ members.
   `common._set_conceded` then re-runs `waffle._maybe_finish_compete`, which
   counts a conceder as done and **forfeits their win** (fewest-swaps winner is
   picked among solved, non-conceded players). The FE shows Concede in compete /
-  End in coop, marks a conceder "out" in the OpponentStrip, and folds them into
+  Stop in coop, marks a conceder "out" in the OpponentStrip, and folds them into
   the existing solved/out-of-swaps locally-terminal look. Full mechanism:
   [common-schema.md →
   Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
@@ -273,9 +273,9 @@ members.
   Back-to-Club). Mid-game it confirms first (it wipes the whole group's
   progress); at terminal it fires unconfirmed — the game is over, there's
   nothing left to lose. pgTAP: `replay_test.sql`.
-- **`end_game(game)`** — the manual "End" action-row button in the info column.
+- **`stop_game(game)`** — the manual "Stop" action-row button in the info column.
   Any player may Stop, in either mode: in compete, Concede's question offers
-  it, and End shows once the player is locally terminal. A
+  it, and Stop shows once the player is locally terminal. A
   *neutral* terminal: writes the uniform `play_state='ended'` (not waffle's
   intrinsic `won`/`lost`/`*_compete`), every player `{"won": false}`, and
   `status = {reason:'manual', mode}`. Any game player can call it; idempotent
@@ -284,7 +284,7 @@ members.
   the solution. The FE renders a plain "Game ended" outcome line
   (`outcome: 'neutral'` — no win green, no loss red; the text says there's no
   winner). `buildOver` / `labelFor` both branch on `'ended'` before their
-  win/lose branches. Modeled exactly on `spellingbee.end_game`.
+  win/lose branches. Modeled exactly on `spellingbee.stop_game`.
 - **"New game"** (game-menu item, FE-only — no waffle RPC): start a **fresh
   game** — new id, new randomly-built board — with THIS game's setup + roster +
   mode, in the same club. Calls the same `waffle-build-board` edge function the
@@ -296,7 +296,7 @@ members.
   later.
 - ~~**`reveal_answer(game)`**~~ — **removed 2026-08-03.** It was a mid-game
   give-up that overwrote every `waffle.players.board` with the solution and then
-  ended the game. Waffle now matches every other game: **End the game, then
+  ended the game. Waffle now matches every other game: **Stop the game, then
   Reveal**, and since 2026-08-15 Reveal is not an RPC at all — it's a local,
   per-player display toggle ([ui.md → Terminal
   results](../ui.md#terminal-results--the-moment-vs-the-record)), terminal-only
@@ -416,7 +416,7 @@ Two details the formula is careful about:
   to a fresh one — they must read identically. A terminal game is exempt from
   the gate.
 - Every transition calls the helper rather than assigning its own string —
-  `submit_swap`, `concede`, `submit_timeout`, `end_game`, and `replay_board`
+  `submit_swap`, `concede`, `submit_timeout`, `stop_game`, and `replay_board`
   (which must un-tell the words). pgTAP: `gameplay_test.sql`
   (coop readout), `compete_test.sql` (a solved leader doesn't leak), and
   `replay_test.sql` (both modes reset).
@@ -439,9 +439,9 @@ locally-terminal "waiting" state, whose turn it is, and the terminal verdict all
 show through the local feedback slot's `<FeedbackPill>` in the `.belowBoard`
 slot (a `notOk` with its ×, the owner-cleared standing states, the filled
 verdict — [ui.md → Feedback pill](../ui.md#feedback-pill)); the action row
-places both exits and lets each hide itself (coop shows End, a race shows
+places both exits and lets each hide itself (coop shows Stop, a race shows
 Concede); a **locally-terminal** state (compete: solved or out of swaps while
-others race on) reuses the terminal look (a bold status line + End, Concede
+others race on) reuses the terminal look (a bold status line + Stop, Concede
 hidden) and disables the grid; the `.infoCol` follows the canonical **state
 → opponent strip → action row → help → setup → log** order; the `OpponentStrip`
 carries a `metricLabel="Swaps"`; and the event log renders its own `<tr>` rows.
@@ -541,7 +541,7 @@ layout](../playarea.md#playarea-layout)):
   `<ActorDot>`; coop only. Compete shows the shared
   `common/info-sheet/OpponentStrip` instead, with `metricLabel="Swaps"` and a
   `metricFor` returning swaps-used + a ✓/✗ mark.
-- **Feedback split** — own not-oks (a refused swap / a failed End) show
+- **Feedback split** — own not-oks (a refused swap / a failed Stop) show
   **locally** below the board; the header's global slot carries **peer** news
   (compete: "● moth solved it", "● moth out of swaps"; coop needs none — the
   swap log shows every move). Both of those are `peerMilestone`s rather than
@@ -618,7 +618,7 @@ The **six answer words are terminal-only**, twice over: the server gates
   field per case, the board-integrity guards being the point),
   `gameplay_test` (coop lock-step + compete independence),
   `compete_test` (fewest-swaps winner + `solved_at` tie-break + all-fail),
-  `timeout_test`, `end_game_test` (manual neutral end → `'ended'`, both modes:
+  `timeout_test`, `stop_game_test` (manual neutral end → `'ended'`, both modes:
   `is_terminal`, `status.reason='manual'`, all players `{"won":false}`,
   idempotency, non-player rejected), `concede_test` (elimination-game concede: a
   drop-out keeps the race going but forfeits any win; everyone conceding is a

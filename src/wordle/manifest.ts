@@ -52,7 +52,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 // Timeout (fired by every client on countdown expiry) + manual end — the shared
 // one-arg RPC dispatchers (see common/manifest/manifestRpcs).
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 /**
  * wordle's club-page status line. The answer-source band rides on every row —
@@ -157,7 +157,7 @@ export const wordleCoopGame: GameManifest = {
   labelFor: labelFor('coop'),
 
   submitTimeout,
-  endGame,
+  stopGame,
 }
 
 export const wordleCompeteGame: GameManifest = {
@@ -190,5 +190,5 @@ export const wordleCompeteGame: GameManifest = {
   labelFor: labelFor('compete'),
 
   submitTimeout,
-  endGame,
+  stopGame,
 }

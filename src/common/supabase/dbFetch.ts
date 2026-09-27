@@ -38,7 +38,7 @@ import { logDb, logSlow } from './dbLog'
  * that into the sentence and the modal. Why the split falls there rather than
  * here is on `dbFetch` itself, below.
  *
- * No retry either. These are mutations (`submit_word`, `concede`, `end_game`);
+ * No retry either. These are mutations (`submit_word`, `concede`, `stop_game`);
  * a silent second attempt is worse than a clear message. The player decides.
  *
  * **And it does not turn a failure into a value.** It is a drop-in `fetch` and

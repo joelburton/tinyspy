@@ -140,7 +140,7 @@ nothing has bound it, and the caller drops the row.
 **The key list is one row per command.** `<KeyList>`, at the bottom of every
 help companion, loops over the bound actions that have a key and are not
 hidden: the first key, and what the action is called at that moment. An action
-bound twice — `act-end-game`, by the game and by the page for the pause overlay
+bound twice — `act-stop-game`, by the game and by the page for the pause overlay
 — is listed once, with the words of the binding the dispatcher would fire.
 After the actions come the keys a component answers for itself — a list's
 arrows, a ring's Tab, Escape — which are not actions and are offered from
@@ -150,7 +150,7 @@ arrows, a ring's Tab, Escape — which are not actions and are offered from
 is `nameWithKey`: the words with the first chord on the end, "New game · +",
 spelled one way for `<ActionButton>` and for a bespoke control alike — or the
 reason `describe()` gives, in its place. The accessible name is the words alone:
-a standard button would take its name from the tooltip, and "End game · ⌥⌫" is
+a standard button would take its name from the tooltip, and "Stop game · ⌥⌫" is
 not what the button is called, so `<ActionButton>` says the name itself.
 
 **A pattern is one action, not twenty-six.** "Any letter", "any arrow", "any

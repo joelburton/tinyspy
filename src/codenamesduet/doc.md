@@ -130,7 +130,7 @@ and anything but an agent loses.
 | `lost` | an assassin is hit | `assassin` |
 | `lost` | a bystander in sudden death (an assassin there is still `assassin`) | `turns` |
 | `lost` | the wall-clock countdown ran out | `timeout` |
-| `ended` | somebody pressed End — neutral, not a loss | `manual` |
+| `ended` | somebody pressed Stop — neutral, not a loss | `manual` |
 
 Every ending is the same for both players, and only `won` is a win.
 
@@ -179,7 +179,7 @@ match the title, and the words are on every player's screen, so the title
 gives nothing away.
 
 **Realtime** is two rooms per client: the game row, and the board and the log
-together. `end_game` touches the game row on the way out, so a client wakes
+together. `stop_game` touches the game row on the way out, so a client wakes
 into the finished game.
 
 ## RPCs
@@ -341,8 +341,8 @@ since the model's answer is already in hand; the function logs that failure.
 
 ### The rest
 
-`end_game`, `submit_timeout` and `replay_board` — the common shape every game
-has, doing here what they do everywhere. What is this game's: `end_game` is
+`stop_game`, `submit_timeout` and `replay_board` — the common shape every game
+has, doing here what they do everywhere. What is this game's: `stop_game` is
 the neutral `ended` with the reason `manual`; `submit_timeout` is `lost` with
 the reason `timeout`, distinct from `turns`, which is the budget running
 out; both reach sudden death as well as ordinary play. `replay_board` is a
@@ -523,7 +523,7 @@ test finds a position by its label), `pg_temp.codenamesduet_setup()` and
 | `sudden_death_test` | a real last pass enters it, with nobody holding the clue seat; a clue, a pass and the AI refused in its own words; an agent goes on, a bystander loses on `turns` and an assassin on `assassin` |
 | `turn_pointer_test` | both players seated on the common turn order; the pointer names the clue-giver, then the guesser, then the next giver, and A again on a restart; in sudden death nobody with words on both sides, else the one player with words — and the other's guess is refused ("No words left to guess") |
 | `submit_timeout_test` | a loss on `timeout` from both running states, the reason, both players losing, the turns spent, and a second call refused |
-| `end_game_test` | `ended` with the reason `manual`, nobody winning, the game row written for the realtime wake, and a second call refused |
+| `stop_game_test` | `ended` with the reason `manual`, nobody winning, the game row written for the realtime wake, and a second call refused |
 | `replay_test` | the words and key cards kept; every reveal and event gone; seat A clues turn 1 again |
 | `events_test` | what each move writes to the log, `took_turn` included, a hint under the seat that asked; the one-clue index and the payload CHECK |
 | `clue_context_test` | `get_clue_context`'s gate, every agent, bystander and assassin in its answer, the whole board and the clues given so far; a deleted game is the shared race through it and `log_hint` |

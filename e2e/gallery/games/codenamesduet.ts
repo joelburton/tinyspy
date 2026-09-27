@@ -2,7 +2,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { asUser, createCodenamesduetGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import { gameAlreadyOver } from '../serverError'
 import type { Cell, GameGallery } from '../types'
 
@@ -153,7 +153,7 @@ export const codenamesduetGallery: GameGallery = {
       }
     }
 
-    if (cell.phase === 'ended') await endGame(club, 'codenamesduet', id)
+    if (cell.phase === 'ended') await stopGame(club,'codenamesduet', id)
 
     return { gametype, id, viewer }
   },

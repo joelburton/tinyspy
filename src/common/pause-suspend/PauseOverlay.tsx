@@ -30,11 +30,11 @@ type Props = {
   // game with peers asks first. It goes through PostgREST, so it works even if
   // Realtime is wedged.
   actBackToClub: BoundAction
-  // End the game now — the other escape from a stuck pause. Bound by
+  // Stop the game now — the other escape from a stuck pause. Bound by
   // `GamePage`, above the boundary that unmounts the play area, so this binding
   // survives the pause that the game's own does not. It hides itself unless
   // paused, so this places it without asking.
-  actEndGame: BoundAction
+  actStopGame: BoundAction
 }
 
 /**
@@ -64,7 +64,7 @@ export function PauseOverlay({
   manuallyPausedBy,
   onResume,
   actBackToClub,
-  actEndGame,
+  actStopGame,
 }: Props) {
   // Anyone on the list but off the channel is who we're waiting on, which is
   // what draws the roster. Whether the game is paused at all is not asked here — the
@@ -125,7 +125,7 @@ export function PauseOverlay({
               spells out that leaving shelves the game for everyone — which it
               does better than a longer label could. */}
           <ActionButton action={actBackToClub} show="both" />
-          <ActionButton action={actEndGame} show="both" />
+          <ActionButton action={actStopGame} show="both" />
         </div>
       </div>
     </div>

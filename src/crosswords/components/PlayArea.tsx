@@ -479,13 +479,13 @@ type Explained =
     }
   }, [gameId])
 
-  // ─── End / Concede / Restart — the shared trio ─────────
+  // ─── Stop / Concede / Restart — the shared trio ────────
   // Restart is the shared wipe under the shared name: it clears EVERY grid (a
   // restart is for the table, not just the caller) and it un-terminals a
   // finished puzzle, so a solved crossword can be run back. crosswords' own
   // bit is the cleanup: put the author's answers away, so
   // the stale solution cache can't paint the grid the instant the fills go.
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -790,7 +790,7 @@ type Explained =
         header: menuHeader,
         // Both exits, in reading order; each hides itself in the mode that isn't
         // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           { items: [actPencil, actRebus, actCollapseRebuses] },
           {
@@ -828,7 +828,7 @@ type Explained =
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, game, actConcede, actEndGame, actPencil, actRebus, actCollapseRebuses, actShowNote, actExplainClue, actOpenScratchpad, actPrintBoard, actDownloadIpuz, actPrintSolution, actCheckLetter, actCheckWord, actCheckPuzzle, actRevealLetter, actRevealWord, actRevealPuzzle, actRestart, actReveal, actNewGame, isBoardInteractive])
+  }, [menu, game, actConcede, actStopGame, actPencil, actRebus, actCollapseRebuses, actShowNote, actExplainClue, actOpenScratchpad, actPrintBoard, actDownloadIpuz, actPrintSolution, actCheckLetter, actCheckWord, actCheckPuzzle, actRevealLetter, actRevealWord, actRevealPuzzle, actRestart, actReveal, actNewGame, isBoardInteractive])
 
   // ─── The two standing conditions of the local slot ───
   // Each is an effect on a primitive edge that shows on true and retracts in
@@ -965,7 +965,7 @@ type Explained =
             </div>
 
             {/* Chrome strip — three states, one slot:
-                  - PLAYING: the full control bar (fill / check / reveal / end).
+                  - PLAYING: the full control bar (fill / check / reveal / stop).
                   - CONCEDED (compete, the others still racing): the terminal
                     LOOK — a status line + the now-inert Concede. No Reveal: the
                     solution stays server-shielded until the GAME is terminal.
@@ -1001,20 +1001,20 @@ type Explained =
                       solver finishes. */}
                   <ActionButton action={actReveal} show="icon" />
                   {/* Both exits are placed and each says whether it applies:
-                      out of the race, Concede hides and End comes out in its
-                      place — one flag, since anyone may end it for all. */}
+                      out of the race, Concede hides and Stop comes out in its
+                      place — one flag, since anyone may stop it for all. */}
                   <ActionButton action={actConcede} show="icon" />
-                  <ActionButton action={actEndGame} show="icon" />
+                  <ActionButton action={actStopGame} show="icon" />
                 </InfoActionsRow>
               ) : (
                 <div className={styles.toolRow}>
-                  {/* End / Concede rides INSIDE the bar as icon-only children,
+                  {/* Stop / Concede rides INSIDE the bar as icon-only children,
                       in its own rule-separated group — one row of uniform
                       squares, grouped by what they do. Both are placed; the one
                       this mode doesn't offer hides itself. */}
                   <Controls pencil={pencil} actPencil={actPencil} check={check} reveal={reveal}>
                     <ActionButton action={actConcede} show="icon" />
-                    <ActionButton action={actEndGame} show="icon" />
+                    <ActionButton action={actStopGame} show="icon" />
                   </Controls>
                 </div>
               )}

@@ -90,8 +90,8 @@ every word on the list is at band 2 or easier, so its floor is 2
 
 One board, one budget: every player's `guesses_used` moves in lock-step, and
 every accepted guess is everyone's. The team wins on the guess that solves it
-and loses on the last guess that does not, or when a countdown expires. End is
-the neutral stop — nobody won, nobody lost.
+and loses on the last guess that does not, or when a countdown expires. Stop ends
+the game neutrally — nobody won, nobody lost.
 
 Turn order is opt-in (`coop_style: 'turns'`): the server holds the pointer and
 hands it on after an accepted guess that did not end the game. A soft reject
@@ -279,7 +279,7 @@ all.
 
 ### The rest
 
-`concede`, `end_game`, `submit_timeout` and `replay_board` — the common shape
+`concede`, `stop_game`, `submit_timeout` and `replay_board` — the common shape
 every game has, doing here what they do everywhere. What is this game's:
 `concede` re-runs `_maybe_finish_compete`, since a drop-out can be the last
 racer, and a conceder forfeits any win; `submit_timeout` resolves a race by
@@ -443,7 +443,7 @@ winning guess or five that miss:
 | `loss_test` | coop's last wrong guess is the loss and reveals the target; a racer spending their own budget ends nothing, and their next guess is a fault |
 | `concede_test` | a conceder counts as done and forfeits; the last one out ends the race; everyone out is `conceded`, a mixed table is `exhausted`; coop is refused |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, an accepted guess advances, a soft reject does not, free-for-all leaves the pointer null |
-| `end_game_test` · `replay_test` | the timeout in both modes — coop's loss, a race ended as it stands with and without a solver, the winner's count named — and the manual end, each idempotent and each revealing the target; Restart undoes everything a loss wrote — rows, counts, the clock, the title, and the target's shield — and keeps the word |
+| `stop_game_test` · `replay_test` | the timeout in both modes — coop's loss, a race ended as it stands with and without a solver, the winner's count named — and the manual end, each idempotent and each revealing the target; Restart undoes everything a loss wrote — rows, counts, the clock, the title, and the target's shield — and keeps the word |
 | `reveal_test` | the target unshields at terminal whatever the outcome; `_sync_title` never spells the answer of a game the players may still replay blind |
 | `legal_band_test` · `banded_answer_test` | the same word is `notAWord` under a strict band and legal under a loose one; an answer banded out from under a live game still solves it |
 
@@ -458,7 +458,7 @@ Vitest, beside the code:
 | `lib/history.test` · `lib/colors.test` | the inclusive boundary and the ringed row, by id; the keyboard's strength order |
 | `lib/setup.test` · `components/SetupForm.test` | the Start gate names `legal_band`, and the floor the answer source sets; the form's three controls and where a refusal lands |
 | `pdf/model.test` | the target never prints before it shows on screen; the keyboard is derived per player, never pooled |
-| `components/PlayArea.test` | the surface mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration — the team's win, my race win, never a race I lost or a game opened already won; peer narration in both modes; the picker's labels; Concede vs End per mode; the board-scope marks; a landed row flips and a mounted one does not, nor one already flipped on the way back from a past turn; the physical keys and the two caps |
+| `components/PlayArea.test` | the surface mounts in every mode and state; the judged codes reach their classes on the board and the keyboard; Reveal and Hide, the solver's unasked answer, and the loss that hides it; Restart with and without a question; the celebration — the team's win, my race win, never a race I lost or a game opened already won; peer narration in both modes; the picker's labels; Concede vs Stop per mode; the board-scope marks; a landed row flips and a mounted one does not, nor one already flipped on the way back from a past turn; the physical keys and the two caps |
 
 Playwright, in `e2e/`: `wordle-history` (the viewer's overlay and the exits),
 `wordle-keyboard` (the caps' computed colors, resting and hovered),

@@ -53,7 +53,7 @@ export const MODE_LABEL: Record<'coop' | 'compete', string> = {
 export type CreatedGame = { result: 'created'; id: string }
 
 /**
- * What `end_game` and `submit_timeout` both answer with: the game is over.
+ * What `stop_game` and `submit_timeout` both answer with: the game is over.
  * ONE result for both, because it is one fact — HOW it came to be over is
  * already in `common.games.status`, which every surface reads anyway.
  */
@@ -242,8 +242,8 @@ export type GameManifest = {
   // needing per-gametype branches.
   submitTimeout: (gameId: string) => Promise<Envelope<GameStopResult>>
 
-  // End this game NOW (irreversible). Dispatches to the gametype's own
-  // `<schema>.end_game(target_game)` RPC — the same one the in-game "End game"
+  // Stop this game NOW (irreversible). Dispatches to the gametype's own
+  // `<schema>.stop_game(target_game)` RPC — the same one the in-game "Stop game"
   // menu/button calls — so the terminal outcome + `status` jsonb are computed
   // the game's own way.
   //
@@ -254,16 +254,16 @@ export type GameManifest = {
   // Realtime socket), so it works even when Realtime is stuck.
   //
   // **Required**, which is what makes the pause overlay's escape hatch exist
-  // for every game rather than most of them: a group that cannot reach End
+  // for every game rather than most of them: a group that cannot reach Stop
   // from a wedged pause has no way out of one.
   //
   // Nothing is asked of a game that its schema does not already have — every
-  // schema defines `end_game`, because a group has to be able to abandon any
+  // schema defines `stop_game`, because a group has to be able to abandon any
   // game. A race that also offers per-player `concede` supplies this too:
-  // they are different acts, conceding being a loss on your record while End
+  // they are different acts, conceding being a loss on your record while Stop
   // is the group agreeing there is no result, and wanting the second does not
   // mean taking the first.
-  endGame: (gameId: string) => Promise<Envelope<GameStopResult>>
+  stopGame: (gameId: string) => Promise<Envelope<GameStopResult>>
 }
 
 /**

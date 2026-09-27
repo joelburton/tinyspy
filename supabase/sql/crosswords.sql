@@ -1277,22 +1277,22 @@ revoke execute on function crosswords.export_solution(uuid) from public;
 grant execute on function crosswords.export_solution(uuid) to authenticated;
 
 -- ============================================================
--- end_game (coop manual give-up) / concede (compete) / submit_timeout
+-- stop_game (coop manual give-up) / concede (compete) / submit_timeout
 -- ============================================================
 
 -- Mutual give-up ends NEUTRALLY ('ended' + reason 'manual') — not a loss
 -- (putting down an unfinished crossword is normal). The solution reveals in
 -- the terminal view (games_state) once is_terminal flips.
 --
--- Offered in BOTH modes. Coop's End and compete's Concede are different acts —
--- conceding is one racer's loss, ending is the whole table agreeing there is no
+-- Offered in BOTH modes. Coop's Stop and compete's Concede are different acts —
+-- conceding is one racer's loss, stopping is the whole table agreeing there is no
 -- result — and a race can want the second without the first: the crossword is
--- too hard and everyone is done. Nobody won either way, so a compete end is the
+-- too hard and everyone is done. Nobody won either way, so a compete Stop is the
 -- same neutral 'ended' rather than `lost_compete`, which is the clock or the
 -- last racer quitting.
-drop function if exists crosswords.end_game(uuid);
+drop function if exists crosswords.stop_game(uuid);
 
-create or replace function crosswords.end_game(target_game uuid)
+create or replace function crosswords.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1306,7 +1306,7 @@ declare
 begin
   -- Row check before the gate, and a check at all — crosswords had neither, so
   -- a deleted game read `mode` as null, failed the coop test, and reported the
-  -- WRONG refusal. See boggle.end_game for the ordering rule. Locked, so an End
+  -- WRONG refusal. See boggle.stop_game for the ordering rule. Locked, so a Stop
   -- racing the winning move waits for it (docs/common-schema.md → Manual end).
   select mode into v_mode from crosswords.games where id = target_game for update;
   if v_mode is null then
@@ -1345,8 +1345,11 @@ exception when others then
   return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
-revoke execute on function crosswords.end_game(uuid) from public;
-grant execute on function crosswords.end_game(uuid) to authenticated;
+revoke execute on function crosswords.stop_game(uuid) from public;
+grant execute on function crosswords.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists crosswords.end_game(uuid);
 
 -- Per-player concede (compete): dropping out never ends the table for the
 -- others; the last active conceder → collective loss. Fully handled by
@@ -1402,7 +1405,7 @@ declare
   v_playstate text;
   v_results   jsonb;
 begin
-  -- Row check before the gate, and a check at all, locked — see end_game above.
+  -- Row check before the gate, and a check at all, locked — see stop_game above.
   select mode into v_mode from crosswords.games where id = target_game for update;
   if v_mode is null then
     perform common._raise_game_deleted('crosswords');

@@ -749,15 +749,15 @@ revoke execute on function stackdown.submit_timeout(uuid) from public;
 grant execute on function stackdown.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- stackdown.end_game — manual stop (neutral terminal)
+-- stackdown.stop_game — manual stop (neutral terminal)
 -- ============================================================
 -- The friends' explicit "we're done" button, both modes. Writes the
 -- uniform neutral terminal 'ended' (nobody wins/loses), distinct from the
 -- intrinsic won/lost/won_compete/lost_compete terminals. Idempotent on the
 -- play_state check; any game player may fire it.
-drop function if exists stackdown.end_game(uuid);
+drop function if exists stackdown.stop_game(uuid);
 
-create or replace function stackdown.end_game(target_game uuid)
+create or replace function stackdown.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -802,8 +802,11 @@ exception when others then
   return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
-revoke execute on function stackdown.end_game(uuid) from public;
-grant execute on function stackdown.end_game(uuid) to authenticated;
+revoke execute on function stackdown.stop_game(uuid) from public;
+grant execute on function stackdown.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists stackdown.end_game(uuid);
 
 -- ============================================================
 -- stackdown.concede — a player drops out of a compete race
@@ -813,7 +816,7 @@ grant execute on function stackdown.end_game(uuid) to authenticated;
 -- "eliminated" state, so the active set is exactly "not conceded" and
 -- the generic common.concede handles it: mark the caller out; if that
 -- was the last racer, end as a collective loss. Wrapper keeps the FE
--- uniform and gates concede to compete (coop ends via the shared End).
+-- uniform and gates concede to compete (coop ends via the shared Stop).
 drop function if exists stackdown.concede(uuid);
 
 create or replace function stackdown.concede(target_game uuid)

@@ -36,20 +36,20 @@ closeContextsAfterEach()
  */
 
 /**
- * End the game from the menu, through the confirm modal.
+ * Stop the game from the menu, through the confirm modal.
  *
- * The confirm is unconditional — END_GAME_CONFIRM fires before every pre-terminal
- * `end_game`, in every game — so this CLICKS it rather than probing first. An
+ * The confirm is unconditional — STOP_GAME_CONFIRM fires before every pre-terminal
+ * `stop_game`, in every game — so this CLICKS it rather than probing first. An
  * `if (await confirm.isVisible())` guard here is a race, not defensiveness:
  * `isVisible()` is a one-shot probe, the dialog is a React state render, and
  * under full-suite load the probe lost, skipped the click, and left the dialog
  * sitting open until the verdict assertion timed out (strands, 2026-08-07).
  * Auto-waiting `click()` — what every other e2e file here does — can't lose it.
  */
-async function endGame(page: Page) {
+async function stopGame(page: Page) {
   await page.getByRole('button', { name: 'Game menu' }).click()
-  await actionRow(page, 'act-end-game').click()
-  await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
+  await actionRow(page, 'act-stop-game').click()
+  await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
 }
 
 /** Restart from the menu (no confirm at terminal — see useStandardGameActions). */
@@ -106,7 +106,7 @@ for (const g of GAMES) {
     await page.goto(`/g/${game.gametype}/${game.id}`)
     await expect(page.getByRole('button', { name: 'Game menu' })).toBeVisible({ timeout: 25000 })
 
-    await endGame(page)
+    await stopGame(page)
     await expect(page.getByText(VERDICT).first()).toBeVisible({ timeout: 10000 })
     await revealIfOffered(page)
     await page.waitForTimeout(500)
@@ -145,7 +145,7 @@ test('connections: Restart un-reveals a spent hint', async ({ browser }) => {
   await page.getByRole('button', { name: 'Game menu' }).click()
   await actionRow(page, 'act-restart').click()
   // Mid-game, so RESTART_CONFIRM always shows — click it, don't probe for it
-  // (same one-shot-isVisible race as endGame above).
+  // (same one-shot-isVisible race as stopGame above).
   await page.locator('[data-floating-panel]').getByRole('button', { name: 'Restart' }).click()
   await page.waitForTimeout(2000)
 

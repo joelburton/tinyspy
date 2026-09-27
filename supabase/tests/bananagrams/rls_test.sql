@@ -112,9 +112,9 @@ select is(
 );
 
 -- ─── (7)+(8) The same reads once the game is OVER ─────────────
--- end_game is the manual stop; any player may call it.
+-- stop_game is the manual stop; any player may call it.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select bananagrams.end_game((select id from mg_game));
+select bananagrams.stop_game((select id from mg_game));
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select is(

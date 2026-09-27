@@ -34,7 +34,7 @@ select (boggle.create_game(
 -- A find + a manual end → a found row, a non-zero status, a terminal row:
 -- the state a replay must undo.
 select boggle.submit_word((select id from g1), 'cat', 1, false);
-select boggle.end_game((select id from g1));
+select boggle.stop_game((select id from g1));
 
 reset role;
 select is(

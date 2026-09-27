@@ -15,7 +15,7 @@ export function KeyList() {
   const rows = useBoundActions()
     .map((action) => ({ action, key: action.spec.keys?.[0], ...action.describe('help') }))
     .filter((row) => row.key !== undefined && row.state !== 'hidden')
-  // One row per command, however many places offer it (`act-end-game` is bound
+  // One row per command, however many places offer it (`act-stop-game` is bound
   // by the game and again by the page for the pause overlay): the first binding
   // in stack order keeps its row — it is the one the dispatcher would fire —
   // and any later binding of the same id is dropped.

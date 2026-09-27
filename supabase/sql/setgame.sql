@@ -937,17 +937,17 @@ revoke execute on function setgame.submit_timeout(uuid) from public;
 grant execute on function setgame.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- setgame.end_game — manual stop (neutral terminal)
+-- setgame.stop_game — manual stop (neutral terminal)
 -- ============================================================
 -- The friends' explicit "we're done" button, both modes. Writes the uniform
 -- neutral terminal 'ended' — nobody wins or loses, distinct from the intrinsic
 -- won/lost/won_compete/lost_compete terminals. Deliberately NOT _finish: a
 -- table that stopped early has standings, but stopping early is not a result,
--- and crowning the leader would make "End" a button worth pressing while
+-- and crowning the leader would make "Stop" a button worth pressing while
 -- ahead. Idempotent on the play_state check; any game player may fire it.
-drop function if exists setgame.end_game(uuid);
+drop function if exists setgame.stop_game(uuid);
 
-create or replace function setgame.end_game(target_game uuid)
+create or replace function setgame.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1001,8 +1001,11 @@ exception when others then
   return common.raised_envelope(v_code, v_msg, v_hint, v_detail, v_col, v_out);
 end;
 $$;
-revoke execute on function setgame.end_game(uuid) from public;
-grant execute on function setgame.end_game(uuid) to authenticated;
+revoke execute on function setgame.stop_game(uuid) from public;
+grant execute on function setgame.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists setgame.end_game(uuid);
 
 -- ============================================================
 -- setgame.concede — a player drops out of a compete race
@@ -1010,7 +1013,7 @@ grant execute on function setgame.end_game(uuid) to authenticated;
 -- No per-player elimination state exists here, so the active set is exactly
 -- "not conceded" and the generic common.concede handles it: mark the caller
 -- out, and if that was the last racer, end as a collective loss. The wrapper
--- keeps the FE uniform and gates concede to compete (coop ends via End).
+-- keeps the FE uniform and gates concede to compete (coop ends via Stop).
 --
 -- A conceder keeps the sets they took — they appear in the leaderboard with
 -- their count — but cannot win. Outliving never crowns anyone.

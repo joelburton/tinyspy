@@ -559,7 +559,7 @@ revoke execute on function wordiply._finish_coop(uuid, text) from public;
 -- A conceded player can't win (they're losers with won=false).
 --
 -- pick_winner=false is the "players agreed to stop" path (manual compete
--- end_game): everyone marked won=false, terminal_state 'ended', no winner.
+-- stop_game): everyone marked won=false, terminal_state 'ended', no winner.
 -- The FE's compareCompetitors in lib/scoring.ts MUST match this order.
 drop function if exists wordiply._finish_compete(uuid, text, boolean);
 create or replace function wordiply._finish_compete(
@@ -1042,16 +1042,16 @@ revoke execute on function wordiply.submit_timeout(uuid) from public;
 grant execute on function wordiply.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- wordiply.end_game — manual "we're done" stop
+-- wordiply.stop_game — manual "we're done" stop
 -- ============================================================
--- Coop's neutral mutual stop (the "End game" menu item): ends with the
+-- Coop's neutral mutual stop (the "Stop game" menu item): ends with the
 -- team score, reason='manual'. In compete this is the "players agreed to
 -- stop" path — per-player scores, NO winner (compete's per-player drop is
 -- concede, not this). Any game player may fire it; idempotent (a second
 -- click / a race with the timer raises P0001, swallowed by the FE).
-drop function if exists wordiply.end_game(uuid);
+drop function if exists wordiply.stop_game(uuid);
 
-create or replace function wordiply.end_game(target_game uuid)
+create or replace function wordiply.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1096,8 +1096,11 @@ exception when others then
 end;
 $$;
 
-revoke execute on function wordiply.end_game(uuid) from public;
-grant execute on function wordiply.end_game(uuid) to authenticated;
+revoke execute on function wordiply.stop_game(uuid) from public;
+grant execute on function wordiply.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists wordiply.end_game(uuid);
 
 -- ============================================================
 -- wordiply.replay_board — restart this board from scratch
@@ -1198,7 +1201,7 @@ grant execute on function wordiply.replay_board(uuid) to authenticated;
 -- of guesses with nobody able to submit and re-fire submit_guess's end check,
 -- hanging the game in `playing` forever. We therefore repeat that end check
 -- here after conceding. Gated to compete — coop is a team (it ends via the
--- shared End, never a concede).
+-- shared Stop, never a concede).
 drop function if exists wordiply.concede(uuid);
 
 create or replace function wordiply.concede(target_game uuid)

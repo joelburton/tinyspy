@@ -113,7 +113,7 @@ select is(
 
 -- ─── At terminal, and non-players ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select bananagrams.end_game((select id from g1));
+select bananagrams.stop_game((select id from g1));
 select lives_ok(
   format($$ select bananagrams.replay_board(%L::uuid) $$, (select id from g1)),
   'a finished game can be restarted too');

@@ -1,9 +1,9 @@
 // cs-unmet
 
 /**
- * **End and the timeout lock the game's own row before ending it.**
+ * **Stop and the timeout lock the game's own row before ending it.**
  *
- * `common.end_game` updates `common.games` unconditionally. So an End (or a
+ * `common.end_game` updates `common.games` unconditionally. So a Stop (or a
  * timeout) that reads the play state WITHOUT holding the game's own row can
  * race the winning move: it reads `playing` from before the move committed,
  * then waits on `common.games` and overwrites the win with a neutral `ended`,
@@ -17,7 +17,7 @@
  * 2026-09-24). pgTAP runs a test in one transaction, so it cannot stage the
  * race; the SQL can still be read.
  *
- * **The rule, as checked:** every `<game>.end_game` and `<game>.submit_timeout`
+ * **The rule, as checked:** every `<game>.stop_game` and `<game>.submit_timeout`
  * reads `<game>.games … for update` before it calls `common.end_game` or any
  * function of its own game (which is how a helper ends it).
  */
@@ -44,13 +44,13 @@ const endings = readdirSync(SQL_DIR)
   .flatMap((f) => {
     const game = f.replace('.sql', '')
     const sql = readFileSync(join(SQL_DIR, f), 'utf8')
-    return ['end_game', 'submit_timeout']
+    return ['stop_game', 'submit_timeout']
       .map((fn) => ({ game, name: `${game}.${fn}`, text: body(sql, `${game}.${fn}`) }))
       .filter((e): e is { game: string; name: string; text: string } => e.text !== null)
   })
 
 describe('the end lock', () => {
-  it('finds every end_game and submit_timeout', () => {
+  it('finds every stop_game and submit_timeout', () => {
     // A guard that finds nothing passes just as quietly as one that works.
     expect(endings.length).toBeGreaterThanOrEqual(32)
   })

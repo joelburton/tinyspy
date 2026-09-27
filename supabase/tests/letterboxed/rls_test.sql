@@ -84,7 +84,7 @@ select is(
 -- ── (3) Terminal: the log opens ─────────────────────────────
 -- The manual stop is the cheapest terminal to reach; the arm keys on
 -- common.games.is_terminal, not on HOW it ended.
-select letterboxed.end_game((select id from gcp));
+select letterboxed.stop_game((select id from gcp));
 
 select is(
   (select count(*)::int from letterboxed.events where game_id = (select id from gcp)),

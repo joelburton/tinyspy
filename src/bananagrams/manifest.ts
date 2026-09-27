@@ -118,7 +118,7 @@ export const bananagramsGame: GameManifest = {
   // The whole-table stop, alongside per-player `concede`. They're different
   // acts and bananagrams needs both: conceding is a LOSS on your record and it
   // takes every player doing it to close a game the group has simply lost
-  // interest in. End is the group agreeing there's no result — nobody wins,
+  // interest in. Stop is the group agreeing there's no result — nobody wins,
   // nobody loses.
-  endGame: makeRpcDispatcher(db, 'end_game'),
+  stopGame: makeRpcDispatcher(db, 'stop_game'),
 }

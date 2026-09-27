@@ -21,7 +21,7 @@ import styles from './InfoCol.module.css'
  * in the fixed order (docs/playarea.md → Info-column readouts): state (guess count) →
  * whose-turn line (turn-order) → OpponentStrip (compete) → action row → help →
  * terminal answer reveal → setup disclosure → the event log. Every command is a
- * BOUND ACTION the PlayArea handed down (`actReveal`, `actEndGame`, …), so this
+ * BOUND ACTION the PlayArea handed down (`actReveal`, `actStopGame`, …), so this
  * column places buttons and decides nothing about them — an action that does
  * not apply here draws nothing, which is how one row serves coop and compete.
  * What is a callback is what isn't a command: the history-viewer selection.
@@ -50,7 +50,7 @@ export function InfoCol({
   actRestart,
   actNewGame,
   actConcede,
-  actEndGame,
+  actStopGame,
   actBackToClub,
   // ── Setup disclosure ──
   setupRows,
@@ -106,11 +106,11 @@ export function InfoCol({
   // while the create is in flight.
   actNewGame: BoundAction
   // Drop out of a race while the others play on — hidden outside compete, and
-  // once you are out (solved, out of guesses, conceded), when End takes its
+  // once you are out (solved, out of guesses, conceded), when Stop takes its
   // place.
   actConcede: BoundAction
-  // End the game for the whole table — coop's exit; it hides itself in a race.
-  actEndGame: BoundAction
+  // Stop the game for the whole table — coop's exit; it hides itself in a race.
+  actStopGame: BoundAction
   // Leave for the club — the shell's own action, off `ctx.menu`: it navigates
   // directly at terminal and routes through the suspend-confirm flow mid-game.
   actBackToClub: BoundAction
@@ -191,7 +191,7 @@ export function InfoCol({
           <ActionButton action={actRestart} show="icon" />
           <ActionButton action={actNewGame} show="icon" />
           <ActionButton action={actConcede} show="icon" />
-          <ActionButton action={actEndGame} show="icon" />
+          <ActionButton action={actStopGame} show="icon" />
           {/* `weight` is the placement's to choose, not the action's — filled
               at terminal, outline while the game runs (docs/ui.md → Back to
               club). */}

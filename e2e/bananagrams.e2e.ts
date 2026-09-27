@@ -374,21 +374,21 @@ test.describe('bananagrams new game', () => {
 })
 
 /**
- * The whole-table End — bananagrams' second exit, added alongside per-player
+ * The whole-table Stop — bananagrams' second exit, added alongside per-player
  * Concede in the 2026-08-01 status-line pass. The two are deliberately
  * different acts: conceding is a LOSS on your record and it takes every player
- * doing it to close a game the group has simply lost interest in; ending is the
+ * doing it to close a game the group has simply lost interest in; stopping is the
  * table agreeing there's no result.
  *
  * Asserted through the UI rather than the RPC because the wiring is the part
  * that was missing: bananagrams is compete, and a race's exit is Concede, so
- * ending for everyone reaches the player as Concede's SECOND answer, as it does
+ * stopping for everyone reaches the player as Concede's SECOND answer, as it does
  * in every race. One row, one button, one key — the question is
  * where the two are told apart, since two red squares on the board could only
  * name them.
  */
-test.describe('bananagrams end game', () => {
-  test('Concede offers ending for everyone, and it ends the table neutrally', async ({ browser }) => {
+test.describe('bananagrams stop game', () => {
+  test('Concede offers stopping for everyone, and it ends the table neutrally', async ({ browser }) => {
     const club = await createSoloClub('bgend')
     const game = await createBananagramsGame(club)
     const ctx = await browser.newContext()
@@ -399,14 +399,14 @@ test.describe('bananagrams end game', () => {
 
     // ONE exit row, and its words say it carries both endings.
     await page.getByRole('button', { name: 'Game menu' }).click()
-    await expect(page.getByRole('menuitem', { name: 'End game', exact: true })).toHaveCount(0)
-    await page.getByRole('menuitem', { name: 'Concede / End game' }).click()
+    await expect(page.getByRole('menuitem', { name: 'Stop game', exact: true })).toHaveCount(0)
+    await page.getByRole('menuitem', { name: 'Concede / Stop game' }).click()
 
     // Irreversible either way, so it asks — and this question has two ways to
     // say yes, which is the whole point of it being a question.
     const panel = page.locator('[data-floating-panel]')
-    await expect(panel.getByText('Concede, or end the game?')).toBeVisible()
-    await panel.getByRole('button', { name: 'End for all' }).click()
+    await expect(panel.getByText('Concede, or stop the game?')).toBeVisible()
+    await panel.getByRole('button', { name: 'Stop for all' }).click()
 
     // Neutral terminal: the row offers New game + Back to club, and Peel is gone.
     await expect(actionButton(page, 'act-new-game')).toBeVisible({ timeout: 15000 })

@@ -52,7 +52,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 // Timeout + manual end — the shared one-arg RPC dispatchers (see
 // common/manifest/manifestRpcs).
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 /** One-line label for the ClubPage games list — pure + synchronous.
  *  The coop/compete mode is shown by the card's <ModeBadge>, so it's no
@@ -132,7 +132,7 @@ export const stackdownCoopGame: GameManifest = {
   labelFor: labelFor('coop'),
 
   submitTimeout,
-  endGame,
+  stopGame,
 }
 
 export const stackdownCompeteGame: GameManifest = {
@@ -163,5 +163,5 @@ export const stackdownCompeteGame: GameManifest = {
   labelFor: labelFor('compete'),
 
   submitTimeout,
-  endGame,
+  stopGame,
 }

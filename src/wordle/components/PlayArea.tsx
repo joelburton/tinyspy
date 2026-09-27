@@ -218,7 +218,7 @@ export function PlayArea({
 
   // The local feedback slot — the fixed-height slot between the board and the
   // keyboard. A soft reject or an RPC not-ok is shown into it by BoardCol, the
-  // End / Concede races by InfoCol's actions, and the three standing
+  // Stop / Concede races by InfoCol's actions, and the three standing
   // conditions below are effects on it. Accepted guesses get NO message — the
   // colored row that lands IS the feedback.
   const localFeedbackSlot = useFeedbackSlot('local')
@@ -343,10 +343,10 @@ export function PlayArea({
   // from another — and `pending` grays every surface of one for the length of
   // its run, so no handler keeps an in-flight flag of its own.
 
-  // End / Concede / Replay — the shared handlers, identical across games
+  // Stop / Concede / Replay — the shared handlers, identical across games
   // (`useStandardGameActions`). New game and Reveal are below, their paths
   // being wordle's own.
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -450,7 +450,7 @@ export function PlayArea({
         menu,
         // Both exits, in reading order; each hides itself in the mode that isn't
         // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           // The same three the terminal action row offers, reachable mid-game
           // too — Reveal grayed until the game is over.
@@ -460,7 +460,7 @@ export function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // ─── Render ────────────────────────────────────────────
   // Everything below is derived fresh each render and read only by the JSX —
@@ -545,7 +545,7 @@ export function PlayArea({
         actRestart={actRestart}
         actNewGame={actNewGame}
         actConcede={actConcede}
-        actEndGame={actEndGame}
+        actStopGame={actStopGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setupRows={summaryRows}

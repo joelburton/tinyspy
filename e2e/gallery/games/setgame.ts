@@ -2,7 +2,7 @@
 
 import { asUser, createSetgameGame, type E2EClub } from '../../helpers/fixtures'
 import { boardOf, claim, findSetOn, playOut } from '../../helpers/setgame'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
@@ -68,7 +68,7 @@ export const setgameGallery: GameGallery = {
     // standings" — so the loss cell has to leave the board untouched.)
     if (cell.phase === 'lost') await timeOut(club, id)
 
-    if (cell.phase === 'ended') await endGame(club, 'setgame', id)
+    if (cell.phase === 'ended') await stopGame(club,'setgame', id)
 
     return { gametype, id, viewer }
   },

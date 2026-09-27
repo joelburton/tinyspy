@@ -154,11 +154,11 @@ test.describe('strands play loop', () => {
     // And nothing on the board is wearing the missed-word styling yet.
     await expect(page.locator('[class*="tileMissed"]')).toHaveCount(0)
 
-    // End the game — a manual stop is neutral. It IS over for everyone, so the
+    // Stop the game — a manual stop is neutral. It IS over for everyone, so the
     // shield lifts and the answer now legitimately reaches this client…
-    await page.getByRole('button', { name: /end game/i }).first().click()
-    const confirmEnd = page.getByRole('button', { name: /^End game$/ }).last()
-    if (await confirmEnd.isVisible().catch(() => false)) await confirmEnd.click()
+    await page.getByRole('button', { name: /stop game/i }).first().click()
+    const confirmStopGame = page.getByRole('button', { name: /^Stop game$/ }).last()
+    if (await confirmStopGame.isVisible().catch(() => false)) await confirmStopGame.click()
     await expect(page.getByText(/Game ended/)).toBeVisible({ timeout: 10000 })
     await expect
       .poll(() => solutionsSeen.some((s) => s !== null), { timeout: 10000 })

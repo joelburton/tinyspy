@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { asUser, createLetterboxedGame, type E2EClub } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
@@ -71,7 +71,7 @@ export const letterboxedGallery: GameGallery = {
       }
     }
 
-    if (cell.phase === 'ended') await endGame(club, 'letterboxed', id)
+    if (cell.phase === 'ended') await stopGame(club,'letterboxed', id)
 
     return { gametype, id, viewer }
   },

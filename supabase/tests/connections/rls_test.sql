@@ -162,9 +162,9 @@ select is(
   'compete mid-game: a player sees only their OWN guesses'
 );
 
--- End it. (end_game is the neutral mutual stop; the rule keys on is_terminal,
+-- End it. (stop_game is the neutral mutual stop; the rule keys on is_terminal,
 -- not on how the game ended.)
-select connections.end_game((select id from cg));
+select connections.stop_game((select id from cg));
 
 select is(
   (select count(*) from connections.events where game_id = (select id from cg)),

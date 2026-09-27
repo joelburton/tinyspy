@@ -14,9 +14,9 @@ import { askConfirmation } from './confirmationService'
 import type { ConfirmAnswer, ConfirmOptions } from './confirmations'
 
 const QUESTION: ConfirmOptions = {
-  title: 'End this game?',
-  message: 'This ends it for everyone.',
-  confirmLabel: 'End game',
+  title: 'Stop this game?',
+  message: 'This stops it for everyone.',
+  confirmLabel: 'Stop game',
   cancelLabel: 'Keep playing',
 }
 
@@ -44,17 +44,17 @@ describe('ConfirmationHost', () => {
 
   it('draws the pending question in its own words', () => {
     void ask()
-    expect(screen.getByText('End this game?')).toBeInTheDocument()
-    expect(screen.getByText('This ends it for everyone.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'End game' })).toBeInTheDocument()
+    expect(screen.getByText('Stop this game?')).toBeInTheDocument()
+    expect(screen.getByText('This stops it for everyone.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Stop game' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Keep playing' })).toBeInTheDocument()
   })
 
   it('the confirm button answers "confirm", and the question goes away', async () => {
     const answer = ask()
-    await click('End game')
+    await click('Stop game')
     await expect(answer).resolves.toBe('confirm')
-    expect(screen.queryByText('End this game?')).toBeNull()
+    expect(screen.queryByText('Stop this game?')).toBeNull()
   })
 
   it('the cancel button answers no', async () => {
@@ -65,13 +65,13 @@ describe('ConfirmationHost', () => {
 
   it('offers a third button for a question with two ways to say yes, answering "alternative"', async () => {
     const answer = ask({
-      title: 'Concede, or end the game?',
+      title: 'Concede, or stop the game?',
       message: 'Two endings.',
       confirmLabel: 'Concede',
-      alternativeLabel: 'End for all',
+      alternativeLabel: 'Stop for all',
     })
     expect(screen.getAllByRole('button')).toHaveLength(3)
-    await click('End for all')
+    await click('Stop for all')
     await expect(answer).resolves.toBe('alternative')
   })
 

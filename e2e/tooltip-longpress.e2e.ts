@@ -41,12 +41,12 @@ test('long-press names an icon-only button without pressing it', async ({ browse
   await page.getByRole('button', { name: 'Game info' }).click()
   await page.waitForTimeout(400)
 
-  // "End game" — icon-only here, and the loudest possible detector: a leaked
-  // click opens the end-game confirm. Its bubble is the action's name with its
+  // "Stop game" — icon-only here, and the loudest possible detector: a leaked
+  // click opens the stop-game confirm. Its bubble is the action's name with its
   // key on the end, which is what the hold should show.
-  const target = actionButton(page, 'act-end-game').first()
+  const target = actionButton(page, 'act-stop-game').first()
   await expect(target).toBeVisible({ timeout: 15000 })
-  const label = 'End game · ⌥⌫'
+  const label = 'Stop game · ⌥⌫'
   const box = (await target.boundingBox())!
   const x = box.x + box.width / 2
   const y = box.y + box.height / 2
@@ -57,11 +57,11 @@ test('long-press names an icon-only button without pressing it', async ({ browse
   await expect(page.getByText(label!, { exact: true })).toBeVisible({ timeout: 5000 })
   await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
 
-  // …and the button it named did NOT fire: no end-game confirm opened.
+  // …and the button it named did NOT fire: no stop-game confirm opened.
   await page.waitForTimeout(500)
   await expect(
-    page.getByText('This ends the game for everyone'),
-    'holding End game must not try to end the game',
+    page.getByText('This stops the game for everyone'),
+    'holding Stop game must not try to stop the game',
   ).toHaveCount(0)
 
   await ctx.close()

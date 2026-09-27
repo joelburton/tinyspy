@@ -13,7 +13,7 @@
 --   3. Every player's result is {"won": false} — everyone lost
 --   4. Idempotency: a second call (or a click racing a peel-win) → P0001
 --   5. Non-players rejected
--- Mirror of end_game_test, but the loss-on-time variant.
+-- Mirror of stop_game_test, but the loss-on-time variant.
 -- ============================================================
 
 begin;
@@ -49,7 +49,7 @@ select lives_ok(
 reset role;
 select set_config('request.jwt.claims', '', true);
 
--- (2) Terminal shape: a no-winner LOSS (distinct from end_game's 'ended').
+-- (2) Terminal shape: a no-winner LOSS (distinct from stop_game's 'ended').
 select is(
   (select play_state from common.games where id = (select id from g1)),
   'lost',

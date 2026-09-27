@@ -2,7 +2,7 @@
 
 /**
  * Tests for the actions the game shell binds itself rather than leaving to a
- * game — the pause overlay's End game, New game from setup, and Back to club —
+ * game — the pause overlay's Stop game, New game from setup, and Back to club —
  * read through the binding stack the way the dispatcher and the key list read
  * them: what each says about itself as the game's state moves, and what its run
  * does. (Help is bound here too; it opens a companion and has no states to
@@ -83,7 +83,7 @@ const ENDED_OK = {
   message: null, field: null, meta: null, dbcode: null, detail: null,
 } as const
 
-/** The smallest manifest the shell will take. `endGame` is a spy so a test can
+/** The smallest manifest the shell will take. `stopGame` is a spy so a test can
  *  assert it fired, and `PlayArea` draws a word the mounting tests look for —
  *  the shell builds the play surface off the manifest, so this IS how a test
  *  sees that the surface is up. */
@@ -103,7 +103,7 @@ function makeManifest(over: Partial<GameManifest> = {}): GameManifest {
     startGameInClub: vi.fn(),
     labelFor: () => '',
     submitTimeout: vi.fn(),
-    endGame: vi.fn(async () => ENDED_OK),
+    stopGame: vi.fn(async () => ENDED_OK),
     ...over,
   }
 }
@@ -258,7 +258,7 @@ describe('GamePage — a roster that failed to load', () => {
   })
 })
 
-describe('act-end-game, bound for the pause overlay', () => {
+describe('act-stop-game, bound for the pause overlay', () => {
   it('mounts a NEW play surface when the game is restarted', async () => {
     // The whole restart mechanism: a game's local state is cleared by the
     // surface being replaced, not by the game cleaning up after itself. A
@@ -288,23 +288,23 @@ describe('act-end-game, bound for the pause overlay', () => {
 
   it('is hidden while the game is playing — the PlayArea owns ⌥⌫ then', async () => {
     await mount()
-    expect(bound('act-end-game').describe('button').state).toBe('hidden')
+    expect(bound('act-stop-game').describe('button').state).toBe('hidden')
     // `describe()` is not "is it on screen": the overlay is up only when paused.
     expect(screen.queryByText('play')).toBeInTheDocument()
   })
 
   it('is active while paused', async () => {
     await mount(commonGameState({ paused: true }))
-    expect(bound('act-end-game').describe('button').state).toBe('active')
+    expect(bound('act-stop-game').describe('button').state).toBe('active')
     expect(screen.queryByText('play')).toBeNull()
   })
 
-  it('asks, then fires the manifest endGame with the game id', async () => {
+  it('asks, then fires the manifest stopGame with the game id', async () => {
     const { manifest } = await mount(commonGameState({ paused: true }))
-    act(() => bound('act-end-game').run())
+    act(() => bound('act-stop-game').run())
     await flush()
     expect(askConfirmation).toHaveBeenCalledTimes(1)
-    expect(manifest.endGame).toHaveBeenCalledWith(GAME_ID)
+    expect(manifest.stopGame).toHaveBeenCalledWith(GAME_ID)
   })
 })
 

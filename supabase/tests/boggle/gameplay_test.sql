@@ -1,7 +1,7 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: boggle.submit_word + end_game + submit_timeout
+-- Test: boggle.submit_word + stop_game + submit_timeout
 -- ============================================================
 -- submit_word is trusting-commit: the FE validated the word against the board's
 -- shipped legal list and scored it, so the RPC trusts word + points + is_bonus
@@ -9,7 +9,7 @@
 -- It does NOT validate word content (no tooShort/invalid/notAWord). Coverage:
 --   is_bonus false → 'accepted'; is_bonus true → 'bonus' (stores the flag + the
 --   FE points); 'alreadyFound' (coop = per-team, compete = per-player); 'gameOver'
---   after terminal; status refresh; end_game / submit_timeout transitions +
+--   after terminal; status refresh; stop_game / submit_timeout transitions +
 --   idempotency; non-player rejection.
 --   A word into a game deleted under it is the shared race (PN485).
 
@@ -74,16 +74,16 @@ select is((select is_bonus from boggle.found_words where game_id = (select id fr
 select is((select points from boggle.found_words where game_id = (select id from g) and word = 'zydeco'),
   3, 'bonus word stores FE-supplied points (3)');
 
--- ── (4) end_game (manual) → terminal ──────────────────────
+-- ── (4) stop_game (manual) → terminal ──────────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select lives_ok($$ select boggle.end_game((select id from g)) $$, 'end_game: a player can end the game');
+select lives_ok($$ select boggle.stop_game((select id from g)) $$, 'stop_game: a player can end the game');
 reset role; select set_config('request.jwt.claims', '', true);
 select is((select is_terminal from common.games where id = (select id from g)), true,
-  'end_game sets common.games.is_terminal');
+  'stop_game sets common.games.is_terminal');
 select is((select play_state from common.games where id = (select id from g)), 'ended',
-  'end_game sets play_state ended');
+  'stop_game sets play_state ended');
 select is((select status->>'reason' from common.games where id = (select id from g)), 'manual',
-  'end_game records outcome manual');
+  'stop_game records outcome manual');
 
 -- ── (5) submit after terminal → gameOver ──────────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');

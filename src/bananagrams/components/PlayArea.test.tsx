@@ -223,7 +223,7 @@ describe('bananagrams PlayArea — render smoke', () => {
  * was asked rather than skipped.
  *
  * bananagrams is the one race that can ALSO stop the whole table, so its
- * Concede asks the two-answer question and End hides behind it until a
+ * Concede asks the two-answer question and Stop hides behind it until a
  * conceder's Concede is spent.
  */
 describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
@@ -276,7 +276,7 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('⌥⌫ asks the two-answer question; "End for all" calls end_game', async () => {
+  it('⌥⌫ asks the two-answer question; "Stop for all" calls stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
     h.progress = [progressRow({ user_id: 'u1', unplaced: 7 }), progressRow({ user_id: 'u2', unplaced: 3 })]
@@ -287,13 +287,13 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'End for all' }))
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Stop for all' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
     expect(rpc).not.toHaveBeenCalledWith('concede', expect.anything())
   })
 
-  it('⌥⌫ then "Concede" calls concede, not end_game', async () => {
+  it('⌥⌫ then "Concede" calls concede, not stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'conceded' }))
     h.progress = [progressRow({ user_id: 'u1', unplaced: 7 }), progressRow({ user_id: 'u2', unplaced: 3 })]
@@ -304,31 +304,31 @@ describe('bananagrams PlayArea — + and ⌥⌫ through the dispatcher', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
-    expect(rpc).not.toHaveBeenCalledWith('end_game', expect.anything())
+    expect(rpc).not.toHaveBeenCalledWith('stop_game', expect.anything())
   })
 
-  it('End game hides behind Concede while racing, and comes out once I have conceded', () => {
+  it('Stop game hides behind Concede while racing, and comes out once I have conceded', () => {
     h.progress = [progressRow({ user_id: 'u1', unplaced: 7 }), progressRow({ user_id: 'u2', unplaced: 3 })]
     const { rerender } = render(<PlayArea {...makeCtx({ players: two })} />)
-    expect(stateOf('act-end-game')).toBe('hidden')
+    expect(stateOf('act-stop-game')).toBe('hidden')
     expect(stateOf('act-concede')).toBe('active')
     // The button follows the binding: only Concede draws.
-    expect(document.querySelector('button[data-action="act-end-game"]')).toBeNull()
+    expect(document.querySelector('button[data-action="act-stop-game"]')).toBeNull()
     expect(document.querySelector('button[data-action="act-concede"]')).not.toBeNull()
 
-    // My Concede is spent, so it goes; ending the table is still open to me.
+    // My Concede is spent, so it goes; stopping the table is still open to me.
     h.progress = [progressRow({ user_id: 'u1' }), progressRow({ user_id: 'u2', unplaced: 3 })]
     rerender(<PlayArea {...makeCtx({
       players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), two[1]],
     })} />)
-    expect(stateOf('act-end-game')).toBe('active')
+    expect(stateOf('act-stop-game')).toBe('active')
     expect(stateOf('act-concede')).toBe('hidden')
-    // …and the button follows the binding: the "You conceded" row draws End,
+    // …and the button follows the binding: the "You conceded" row draws Stop,
     // the one flag.
-    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
+    expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
   })
 

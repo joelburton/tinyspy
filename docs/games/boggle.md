@@ -13,7 +13,7 @@ find them all?" reveal and the board-difficulty constraints possible.
 > `~/src/cboggle/make-dawg` (consulted only while building the solver).
 
 boggle is a **coop / compete sibling pair** (`boggle_coop`, `boggle_compete`)
-and inherits the shared chrome — timer, chat, presence-pause, manual "End game"
+and inherits the shared chrome — timer, chat, presence-pause, manual "Stop game"
 — through `<GamePage>` + `useCommonGame`, like every other multiplayer gametype.
 
 > **Status: live.** boggle (its `boggle_coop` / `boggle_compete` are the
@@ -56,7 +56,7 @@ minimum length.
   is a race — the first player to cross wins outright, regardless of the
   others' scores (`submit_word` decides it; see [§7](#7-rpcs-all-security-definer)).
 - **Ending.** With no win target, you hunt until the timer expires or a player
-  hits **End game**. End is a neutral end; so is coop's timeout, while
+  hits **Stop game**. Stop is a neutral end; so is coop's timeout, while
   compete's timeout crowns the top score, and a compete game everyone
   conceded is a `lost_compete`. With a target set, reaching it ends the game
   as a win (`status.reason = 'target'`). Either way the end-of-game reveal
@@ -377,7 +377,7 @@ until the game is terminal, then all.
   boggle used to land every ending on the neutral `'ended'`, which made a
   reached target and a give-up indistinguishable in the club list:
 
-  | | reached the target | clock ran out | manual End |
+  | | reached the target | clock ran out | manual Stop |
   |---|---|---|---|
   | **coop, target set** | `won` | `lost` | `ended` |
   | **coop, no target** | — | `ended` | `ended` |
@@ -400,9 +400,9 @@ until the game is terminal, then all.
   score race names its winner in `status.winner_username` (a tie leaves it null,
   and the label reads "co-winners"), because the leaderboard holds user ids,
   not names.
-- **`end_game` / `submit_timeout`** — flip the game terminal; `submit_timeout`
+- **`stop_game` / `submit_timeout`** — flip the game terminal; `submit_timeout`
   mirrors spellingbee's timer-expiry handler. No reveal view: the FE renders the
-  missed words from data it already holds. `end_game` is coop's manual stop.
+  missed words from data it already holds. `stop_game` is coop's manual stop.
 - **`concede`** — the compete per-player drop-out. boggle is a timed hunt with
   no per-player elimination, so it's a **thin wrapper over `common.concede`**
   (compete-only guard). The FE places `act-concede`, which hides itself outside
@@ -426,7 +426,7 @@ until the game is terminal, then all.
   the manifest uses; the creator jumps in via `ctx.goToGame`. Mid-play it asks
   first (starting one SHELVES this game rather than ending it); at terminal it
   goes straight through. The action rows are **icon-only** (the waffle
-  arrangement — tooltips carry the labels): playing = End/Concede +
+  arrangement — tooltips carry the labels): playing = Stop/Concede +
   back-to-club via the suspend-confirm flow; terminal = the outcome line +
   Restart / New game / primary back-to-club.
 
@@ -524,7 +524,7 @@ flower.
   (see below). Then the compete **`OpponentStrip`** (the shared common one,
   `metricLabel="Score"`, score-only — counts stay private), the **action row**
   (both exits placed, each hiding itself in the mode that isn't its own — coop
-  shows End, a race shows Concede; the bold outcome line + a compact
+  shows Stop, a race shows Concede; the bold outcome line + a compact
   back-to-club button at terminal), a **help line**, the **setup disclosure**,
   and the **`WordList`** filling the rest.
   - **The `Letters` row** leads the setup disclosure, under the roster, and the
@@ -550,9 +550,9 @@ flower.
     info-column state line, so the list header carries the label + the two
     selects).
 
-**End game** is surfaced in both places per the common convention (see
+**Stop game** is surfaced in both places per the common convention (see
 [common-schema.md → Manual
-end](../common-schema.md#manual-end--every-gametypes-end_gametarget_game)): an
+end](../common-schema.md#manual-end--every-gametypes-stop_gametarget_game)): an
 info-column action-row button *and* a GamePage menu row — the SAME bound action
 in both, arranged by `buildGameMenu`. The terminal message comes from a unified
 `buildOver` — the shared `TerminalMessage` shape (`{pillText, infoColText,
@@ -642,7 +642,7 @@ clean-printable design language + helpers live in
 - `gameplay_test` — trusting-commit coverage: required vs bonus recording (the
   RPC trusts the FE's word + points + `is_bonus` and does **no** content
   validation), dedup (coop per-team / compete per-player), `gameOver` after
-  terminal, status refresh, `end_game` / `submit_timeout` transitions +
+  terminal, status refresh, `stop_game` / `submit_timeout` transitions +
   idempotency, non-player rejection.
 - `win_test` — the win-on-target (`setup.win_percent`) play_state matrix: the
   team (coop) or the first player to cross (compete) wins the moment the

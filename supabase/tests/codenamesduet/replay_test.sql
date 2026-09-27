@@ -91,7 +91,7 @@ select is(
 
 -- ─── Terminal, and non-players ───
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select codenamesduet.end_game((select id from g1));
+select codenamesduet.stop_game((select id from g1));
 select lives_ok(
   format($$ select codenamesduet.replay_board(%L::uuid) $$, (select id from g1)),
   'a finished game can be restarted too — the whole point of the feature');

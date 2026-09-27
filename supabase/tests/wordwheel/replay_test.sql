@@ -39,7 +39,7 @@ select (wordwheel.create_game(
 -- end → found rows, a non-zero status, and a terminal row: what replay undoes.
 select wordwheel.submit_word((select id from g1), 'bead', 1, false, false);
 select wordwheel.submit_word((select id from g1), 'abcdefghi', 24, true, false);
-select wordwheel.end_game((select id from g1));
+select wordwheel.stop_game((select id from g1));
 
 reset role;
 select is(

@@ -15,7 +15,7 @@ where almost all of its novelty lives.
 
 scrabble is a **coop / compete sibling pair** (`scrabble_coop`,
 `scrabble_compete`) and inherits the shared chrome — timer, chat,
-presence-pause, manual "End game" — through `<GamePage>` + `useCommonGame`, like
+presence-pause, manual "Stop game" — through `<GamePage>` + `useCommonGame`, like
 every other multiplayer gametype.
 
 > **Status: live.** scrabble is built end-to-end (engine, migration, RPCs, FE)
@@ -162,7 +162,7 @@ future word validation. The tile scores 0 forever.
   Costs the turn (compete) but **clears** the pass streak — it's an attempt to
   get unstuck, not a refusal to move ([§2.7](#27-ending-the-game)).
 - **Pass:** forfeit the turn with no play. Compete only (coop has no turns —
-  the coop "we're stuck" path is exchange-if-possible or **End game**). Feeds
+  the coop "we're stuck" path is exchange-if-possible or **Stop game**). Feeds
   the **consecutive-pass streak** that ends a blocked game, which is why it asks
   first — scrabble's own question (`PASS_CONFIRM`, through `askConfirmation`),
   since the registry's `act-pass` carries none.
@@ -182,10 +182,10 @@ Two natural end triggers, plus the universal manual / timeout paths:
   feeding it — swapping tiles is a real attempt to move, and (needing a 7+ tile
   bag) it's impossible in the endgame where blocked-ends actually happen.
   **Coop has no blocked-end** (and no turns/passes): it ends *only* on going-out
-  or **End game**.
-- **Manual end** (`end_game`): any player stops the game. **Compete** is the
+  or **Stop game**.
+- **Manual end** (`stop_game`): any player stops the game. **Compete** is the
   uniform neutral stop ([common-schema.md → Manual
-  end](../common-schema.md#manual-end--every-gametypes-end_gametarget_game)) —
+  end](../common-schema.md#manual-end--every-gametypes-stop_gametarget_game)) —
   no winner, no scoring. **Coop deviates** (see below): it *forfeits* the
   leftover-tile value.
 - **Timeout** (`submit_timeout`): a countdown clock hit 0.
@@ -520,17 +520,17 @@ three words played — see §7 — so it would otherwise advertise the old deal)
 then hands the common half to `common.reset_game`. Takes the row `FOR UPDATE`: a
 replay racing a move must not interleave with it. pgTAP: `replay_test.sql`.
 
-### 5.6 `end_game` / `concede` / `submit_timeout`
+### 5.6 `stop_game` / `concede` / `submit_timeout`
 
 `submit_timeout` is countdown expiry and always runs final scoring
-([§2.7](#27-ending-the-game)). `end_game` is the player-fired stop and **serves
+([§2.7](#27-ending-the-game)). `stop_game` is the player-fired stop and **serves
 both modes** — the RPC branches. **Coop** runs final scoring with a
 leftover-tile penalty (a `'leftovers'` row with the negative value lost,
 `play_state 'ended'`, `reason 'manual'`). **Compete** is the uniform neutral
 stop ([§2.7](#27-ending-the-game)): a flat `'ended'` with every player `{won:
 false}` and **no scoring** — the group agreeing there's no result. The FE
-**menu** surfaces one exit per mode: **End game** in coop, **Concede** in
-compete, whose question offers the whole-table End as its second answer
+**menu** surfaces one exit per mode: **Stop game** in coop, **Concede** in
+compete, whose question offers the whole-table Stop as its second answer
 (`useStandardGameActions`, for every race), so the neutral compete branch is
 reachable from the board. `scrabble.concede` is the per-player "I quit, the others keep
 playing". Because scrabble is turn-based, concede is more than a flag:
@@ -539,7 +539,7 @@ winner among **non-conceded** players (a drop-out forfeits even a tying score),
 and `scrabble.concede` hands the turn off if it was the conceder's, or ends the
 game (final scoring, nobody eligible to win) when the last active player drops.
 FE: `act-concede` (hidden in coop) in compete, conceder "out" in the
-OpponentStrip (and `Quit · score` at terminal via `terminalOutcomeVerb`), input
+OpponentStrip (and `Conceded · score` at terminal via `terminalOutcomeVerb`), input
 disabled once conceded. See [common-schema.md →
 Concede](../common-schema.md#concede--per-player-drop-out). pgTAP:
 `concede_test.sql`. All the terminal paths do the realtime-touch self-write on a
@@ -609,7 +609,7 @@ input, so it lives with everything else needed to play). That row is pinned to
 the board width and split by a divider — Shuffle (`act-shuffle`, `⌥Z`) + the
 icon-only Recall (`act-recall-tiles`) on the left; the **commit slot** ([Swap]
 [Pass] [Submit]) on the right. The shell-wide keys apply as everywhere: `+` New
-game, `⌥⌫` End / Concede. The commit slot doubles as the **local feedback
+game, `⌥⌫` Stop / Concede. The commit slot doubles as the **local feedback
 area**: the local feedback slot's `<FeedbackPill>` — an own-move result,
 dismissed by the player's next move (a tile tap / a keystroke); a not-ok with
 its ×; "you're out"; whose turn; the terminal verdict ([ui.md → Feedback
@@ -624,7 +624,7 @@ right-justified ("+23"), an em-dash on an empty board, at a fixed width so it
 never resizes. Submit is enabled for *any* placed tiles; an illegal shape isn't
 disabled-away but surfaces as a `lost` pill on submit. The **info column** holds
 the live turn/score state, the compete `OpponentStrip` (metric "Score"), the
-End/Concede action row (the terminal outcome line at game over), a help line,
+Stop/Concede action row (the terminal outcome line at game over), a help line,
 the setup disclosure, and the Moves log filling the rest.
 
 **Mobile** (the [mobile.md](../mobile.md) info-sheet recipe, crosswords'
@@ -759,7 +759,7 @@ board rotation) — never shared, never persisted, doesn't pause.
   just hands it `game` + `gameId`. Also takes the board to show — live, a
   `historyBoard` history snapshot, OR a coop teammate's shared move — the
   `HistoryTarget` union it switches on; and owns the Share trigger), `InfoCol`
-  (the readouts + score + the End/Concede action-row button + the GameEventLog),
+  (the readouts + score + the Stop/Concede action-row button + the GameEventLog),
   `PlayArea` (the thin coordinator: `useGame`, the shared below-board feedback
   slot [both columns show into it], the coop `useSharedMove` transport, the
   terminal message + the compete-win `CelebrationBlockingModal`, and the
@@ -902,8 +902,8 @@ commit), not the TS-owned geometry/scoring:
   going-out bonus, compete; the neutral score report, coop), winner
   determination + ties, and `winner_username` in the status (set on a win,
   NULL on a tie).
-- `end_game` — the **player-initiated** ends, split from `auto_finish` so the
-  two aren't one keystroke apart: `end_game`'s **coop manual-end forfeit** of
+- `stop_game` — the **player-initiated** ends, split from `auto_finish` so the
+  two aren't one keystroke apart: `stop_game`'s **coop manual-end forfeit** of
   the leftover-tile value (the `forfeit` log row + `5 − 11 = −6` team score) vs
   compete's neutral stop, `submit_timeout`'s final scoring, and the
   realtime touch.
@@ -919,7 +919,7 @@ commit), not the TS-owned geometry/scoring:
   **bumped** not zeroed, compete's first seat re-randomized, coop turn-order
   rewound.
 - `concede` — the turn-based concede
-  ([§5.6](#56-end_game--concede--submit_timeout)): the rotation skips conceders,
+  ([§5.6](#56-stop_game--concede--submit_timeout)): the rotation skips conceders,
   a conceder forfeits the win, the turn hands off, the last active player's
   concede ends the game with nobody eligible to win. That last check is
   `scrabble._maybe_finish_compete`, named as the other four elimination games

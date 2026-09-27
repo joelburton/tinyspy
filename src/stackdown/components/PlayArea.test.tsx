@@ -2,14 +2,14 @@
 
 /**
  * Render + behavior tests for stackdown's PlayArea, focused on the per-player
- * **concede** flow (the compete drop-out that replaced the whole-table End).
+ * **concede** flow (compete's drop-out, beside coop's whole-table Stop).
  *
  * Why this exists: concede branches the action row, the OpponentStrip metric,
  * and the "locally terminal" look by mode + per-player flag — glue a `tsc` pass
  * wouldn't catch (the root tsconfig checks nothing — see memory
  * project_typecheck_use_tsc_b). These prove the tree mounts in each mode AND
  * that the concede wiring is right: compete shows Concede and calls
- * `stackdown.concede`, coop shows End and calls `end_game`, a conceded opponent
+ * `stackdown.concede`, coop shows Stop and calls `stop_game`, a conceded opponent
  * reads "out" in the strip, and my own concede flips to the "You conceded" look.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
@@ -201,7 +201,7 @@ describe('stackdown PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
-  it('coop shows End (not Concede) and calls end_game', async () => {
+  it('coop shows Stop (not Concede) and calls stop_game', async () => {
     const user = userEvent.setup()
     render(
       <>
@@ -210,14 +210,13 @@ describe('stackdown PlayArea — concede', () => {
       </>,
     )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    // The trigger and the modal's confirm now share the name "End game" (the
-    // button label went from "End" to the full phrase, since icon-only buttons
-    // make the label the accessible name). The confirm is the one the dialog
-    // adds, so it's last in the DOM.
-    await user.click(screen.getByRole('button', { name: 'End game' }))
-    const confirms = await screen.findAllByRole('button', { name: 'End game' })
+    // The trigger and the modal's confirm share the name "Stop game" (an
+    // icon-only button's label is its accessible name). The confirm is the one
+    // the dialog adds, so it's last in the DOM.
+    await user.click(screen.getByRole('button', { name: 'Stop game' }))
+    const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1])
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('marks a conceded opponent "out" in the strip (mid-game)', () => {
@@ -242,10 +241,10 @@ describe('stackdown PlayArea — concede', () => {
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
-    // The one flag: conceding is spent, and ending the game for all is open to
-    // anyone in it, so End takes Concede's place.
+    // The one flag: conceding is spent, and stopping the game for all is open to
+    // anyone in it, so Stop takes Concede's place.
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
-    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
+    expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
   })
 })
 
@@ -678,7 +677,7 @@ describe('stackdown PlayArea — + and ⌥⌫ through the dispatcher', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('⌥⌫ in coop asks End game’s question; yes calls end_game', async () => {
+  it('⌥⌫ in coop asks Stop game’s question; yes calls stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
     render(
@@ -688,12 +687,12 @@ describe('stackdown PlayArea — + and ⌥⌫ through the dispatcher', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     // The trigger and the modal's confirm share the name; the confirm is the
     // one the dialog adds, so it's last in the DOM.
-    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
@@ -707,7 +706,7 @@ describe('stackdown PlayArea — + and ⌥⌫ through the dispatcher', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })

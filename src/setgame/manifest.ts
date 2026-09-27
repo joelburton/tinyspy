@@ -65,7 +65,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 }
 
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 type StatusBlob = Record<string, unknown>
 type LeaderRow = { user_id?: string; username?: string; sets_found?: number; won?: boolean }
@@ -178,7 +178,7 @@ export const setgameCoopGame: GameManifest = {
   labelFor: (row) => coopLabel(row),
 
   submitTimeout,
-  endGame,
+  stopGame,
 }
 
 export const setgameCompeteGame: GameManifest = {
@@ -210,5 +210,5 @@ export const setgameCompeteGame: GameManifest = {
   labelFor: (row) => competeLabel(row),
 
   submitTimeout,
-  endGame,
+  stopGame,
 }

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { asUser, createWaffleGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
@@ -66,7 +66,7 @@ export const waffleGallery: GameGallery = {
       // Compete budgets are per player; the loss needs every one spent.
       if (cell.mode === 'compete') await spendAllSwaps(rival)
     }
-    if (cell.phase === 'ended') await endGame(club, 'waffle', id)
+    if (cell.phase === 'ended') await stopGame(club,'waffle', id)
 
     return { gametype, id, viewer }
   },

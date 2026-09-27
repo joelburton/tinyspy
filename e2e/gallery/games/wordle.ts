@@ -7,7 +7,7 @@ import {
   seedWordleGuesses,
   type E2EClub,
 } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import type { Cell, GameGallery } from '../types'
 
 const LOCAL_DB = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
@@ -92,7 +92,7 @@ export const wordleGallery: GameGallery = {
       }
     }
 
-    if (cell.phase === 'ended') await endGame(club, 'wordle', id)
+    if (cell.phase === 'ended') await stopGame(club,'wordle', id)
 
     return { gametype, id, viewer }
   },

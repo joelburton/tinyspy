@@ -1,10 +1,10 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: waffle.end_game (manual stop)
+-- Test: waffle.stop_game (manual stop)
 -- ============================================================
 -- The friends' explicit "we're done" button. Available in BOTH modes.
--- Unlike submit_swap / submit_timeout, end_game is a NEUTRAL terminal:
+-- Unlike submit_swap / submit_timeout, stop_game is a NEUTRAL terminal:
 -- it writes the uniform play_state='ended' (not waffle's intrinsic
 -- won/lost verdicts), records every player {"won": false}, and stamps
 -- status.reason='manual'. is_terminal flips true (so the FE reveals
@@ -34,7 +34,7 @@ select (waffle.create_game(
   pg_temp.waffle_board()
 )->'data'->>'id')::uuid as id;
 
-select waffle.end_game((select id from g1));
+select waffle.stop_game((select id from g1));
 
 reset role;
 select is(
@@ -56,10 +56,10 @@ select is(
   2::bigint,
   'coop: both players recorded {"won": false}');
 
--- Idempotent: a second end_game raises (already terminal).
+-- Idempotent: a second stop_game raises (already terminal).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  waffle.end_game((select id from g1)),
+  waffle.stop_game((select id from g1)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'coop: a second end on a finished game raises (idempotent)');
@@ -77,7 +77,7 @@ select (waffle.create_game(
   pg_temp.waffle_board()
 )->'data'->>'id')::uuid as id;
 
-select waffle.end_game((select id from g2));
+select waffle.stop_game((select id from g2));
 
 reset role;
 select is(
@@ -99,10 +99,10 @@ select is(
   2::bigint,
   'compete: both players recorded {"won": false} (no winner)');
 
--- Idempotent: a second end_game raises (already terminal).
+-- Idempotent: a second stop_game raises (already terminal).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  waffle.end_game((select id from g2)),
+  waffle.stop_game((select id from g2)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'compete: a second end on a finished game raises (idempotent)');
@@ -125,7 +125,7 @@ select (waffle.create_game(
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
-  waffle.end_game((select id from g3)),
+  waffle.stop_game((select id from g3)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
   'a non-player cannot end the game');

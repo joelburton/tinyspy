@@ -629,7 +629,7 @@ client should have prevented and says so: `BUG: bad set` (the board is face-up
 and `lib/cards.ts` runs the same algebra before submitting), `BUG: claim that
 was not three different cards`, `BUG: hint request in a race` (compete offers no
 hint button at all), and four `BUG: …` hint-shape checks.
-| `concede` / `submit_timeout` / `end_game` / `replay_board` | the standard four. |
+| `concede` / `submit_timeout` / `stop_game` / `replay_board` | the standard four. |
 | `_third` / `_is_set` / `_find_set` / `_find_set_with` / `_deck_size` / `_board_min` / `_deal_to_playable` / `_finish` | internals. `_deck_size` is the one granted to `authenticated`, because the `games_state` view is `security_invoker` and its body runs as the reader. |
 
 ### Hints are private, computed on the client, and coop-only

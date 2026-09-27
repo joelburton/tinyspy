@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { asUser, createBoggleGame, type E2EClub } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
@@ -52,7 +52,7 @@ export const boggleGallery: GameGallery = {
     if (cell.phase === 'mid') await play(club, id, [{ word: 'cat', points: 1 }, { word: 'art', points: 1 }])
     if (cell.phase === 'won') await play(club, id, [{ word: 'cat', points: 1 }])
     if (cell.phase === 'lost') await timeOut(club, 'boggle', id)
-    if (cell.phase === 'ended') await endGame(club, 'boggle', id)
+    if (cell.phase === 'ended') await stopGame(club,'boggle', id)
 
     return { gametype, id, viewer: club.members[0] }
   },

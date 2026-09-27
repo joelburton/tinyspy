@@ -20,7 +20,7 @@ type Props = {
   /** Reveal is coop-only, and says so itself: in a race all three hide and the
    *  group goes with them. */
   reveal: ScopeActions
-  /** Any remaining action buttons (End / Concede) — rendered icon-only in their
+  /** Any remaining action buttons (Stop / Concede) — rendered icon-only in their
    *  own rule-separated group at the end of the bar, so the destructive action
    *  can't be misread as another check/reveal square. */
   children?: ReactNode

@@ -1,7 +1,7 @@
 -- cs-blessed-codenamesduet
 
 -- ============================================================
--- Test: codenamesduet.end_game — manual stop
+-- Test: codenamesduet.stop_game — manual stop
 -- ============================================================
 --
 -- The friends' explicit "we're done here" button. Any current game
@@ -40,7 +40,7 @@ create temp table club on commit drop as
 select pg_temp.create_club('Ada and Bea', array['ada','bea']) as handle;
 
 -- ============================================================
--- (1) Happy path: playing → ended via end_game
+-- (1) Happy path: playing → ended via stop_game
 -- ============================================================
 
 create temp table g on commit drop as
@@ -56,36 +56,36 @@ select ctid::text as row_address from codenamesduet.games where id = (select id 
 
 select lives_ok(
   format(
-    $$ select codenamesduet.end_game(%L::uuid) $$,
+    $$ select codenamesduet.stop_game(%L::uuid) $$,
     (select id from g)
   ),
-  'end_game: playing game accepts the call'
+  'stop_game: playing game accepts the call'
 );
 
--- The realtime wake: end_game writes codenamesduet.games (a self-set of
+-- The realtime wake: stop_game writes codenamesduet.games (a self-set of
 -- turn_number) so a client subscribed to that table refetches into the ended
 -- game — the end itself is written only to common.games. The write changes no
 -- value, so it shows as a new row version: an UPDATE always moves the tuple,
--- while the `for update` lock end_game also takes does not. (`xmin` cannot
+-- while the `for update` lock stop_game also takes does not. (`xmin` cannot
 -- tell: the whole test is one transaction, create_game's write included.)
 select isnt(
   (select ctid::text from codenamesduet.games where id = (select id from g)),
   (select row_address from ctid_before),
-  'end_game: writes the codenamesduet.games row, the realtime wake'
+  'stop_game: writes the codenamesduet.games row, the realtime wake'
 );
 
 reset role;
 select is(
   (select play_state from common.games where id = (select id from g)),
   'ended',
-  'end_game: flips play_state to ended'
+  'stop_game: flips play_state to ended'
 );
 
--- end_game marks the common.games row terminal.
+-- stop_game marks the common.games row terminal.
 select is(
   (select is_terminal from common.games where id = (select id from g)),
   true,
-  'end_game: end_game sets is_terminal=true on the common header'
+  'stop_game: stop_game sets is_terminal=true on the common header'
 );
 
 -- Status reason carried through to common.games.
@@ -93,7 +93,7 @@ select is(
   (select status->>'reason' from common.games
     where id = (select id from g)),
   'manual',
-  'end_game: status.reason = manual'
+  'stop_game: status.reason = manual'
 );
 
 -- Cooperative game: nobody wins a manually-stopped game. Both
@@ -103,14 +103,14 @@ select is(
     where game_id = (select id from g)
       and user_id = 'ada11111-1111-1111-1111-111111111111'),
   '{"won": false}'::jsonb,
-  'end_game: ada result = {won:false}'
+  'stop_game: ada result = {won:false}'
 );
 select is(
   (select result from common.game_players
     where game_id = (select id from g)
       and user_id = 'bea22222-2222-2222-2222-222222222222'),
   '{"won": false}'::jsonb,
-  'end_game: bea result = {won:false}'
+  'stop_game: bea result = {won:false}'
 );
 
 -- ============================================================
@@ -119,10 +119,10 @@ select is(
 
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
-  codenamesduet.end_game((select id from g)),
+  codenamesduet.stop_game((select id from g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'end_game: rejects on already-terminal games');
+  'stop_game: rejects on already-terminal games');
 
 -- ============================================================
 -- (3) Non-player rejected (require_game_player gate)
@@ -141,10 +141,10 @@ select (codenamesduet.create_game(
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
-  codenamesduet.end_game((select id from g2)),
+  codenamesduet.stop_game((select id from g2)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'end_game: non-player rejected via require_game_player');
+  'stop_game: non-player rejected via require_game_player');
 
 -- ============================================================
 select * from finish();

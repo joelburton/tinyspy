@@ -31,7 +31,7 @@ dialog read one answer whichever way a game was started.
 
 What separates the two modes is whose list a word lands on. Coop is one found
 list: whoever finds a word first claims it in their color, the score is the
-team's, and the game runs until the clock or the End button stops it — or,
+team's, and the game runs until the clock or the Stop button stops it — or,
 when the team set a target rank, until they reach it together. Compete is a
 race to a target rank on private lists: the policy on `found_words` hides an
 opponent's finds until the game is over, so all a racer learns about a rival
@@ -90,11 +90,11 @@ rank-ladder tests pin the two to the same answer at every boundary.
 One found list, one score. A word is anyone's to find and, once found, is
 found for the whole team — a second player typing it gets *already found*.
 The team's rank climbs as the score does, and the game ends three ways: the
-countdown expires, somebody presses End, or — when the team chose a target
+countdown expires, somebody presses Stop, or — when the team chose a target
 rank at setup — the word that carries them to it wins. There is no end at
 100%: a team that clears the required list keeps finding bonus words, and the
 counter overshoots. The clock running out is a loss only when there was a
-target to miss; with none, it is the neutral `ended`. End is neutral either
+target to miss; with none, it is the neutral `ended`. Stop is neutral either
 way.
 
 ### Compete
@@ -111,7 +111,7 @@ stood, and each player's result is written to the common roster. A conceder is
 out while the others race on and can submit nothing more, so they cannot reach
 the target; every racer conceding is a collective loss, written by
 `common.concede`. The countdown expiring before anyone reaches the target is a
-loss for the table, since there was a rank to reach; End is neutral in a race
+loss for the table, since there was a rank to reach; Stop is neutral in a race
 too.
 
 Compete needs an opposing **player**, which is why its manifest takes 2–6
@@ -328,9 +328,9 @@ leaves it standing.
 
 ### The rest
 
-`concede`, `end_game`, `submit_timeout` and `replay_board` — the common shape
+`concede`, `stop_game`, `submit_timeout` and `replay_board` — the common shape
 every game has, doing here what they do everywhere. What is this game's:
-`end_game` is neutral in both modes, `ended` with the reason `manual`, since
+`stop_game` is neutral in both modes, `ended` with the reason `manual`, since
 friends agreeing to stop is not losing; `submit_timeout` is a loss wherever
 there was a rank to reach — `lost` in a coop game that set a target, always
 `lost_compete` in a race — and the neutral `ended` only in the open-ended
@@ -504,7 +504,7 @@ checks shape, not spelling) and three bonus ones, and
 | `rls_test` | coop shows every member every row; an outsider sees no row of any table; a direct insert is denied; compete narrows a racer to their own rows mid-game and opens every row at terminal |
 | `create_game_test` | both modes' rows, the gametype suffix and the denormalized mode; the title formula; the status seeded per mode; an outsider, a bad mode, a short race, a missing or out-of-range target, a bad band, every board-shape fault, and seven players refused |
 | `custom_letters_test` | a hand-picked board is accepted under thirty words and refused at zero; the custom letters are stripped from the saved default; a random board still needs thirty |
-| `coop_target_test` | reaching the target is `won` with reason `target` and everyone winning, and the game is really over; the clock with a target unreached is `lost`; with no target it is `ended`; End with a target unreached is `ended` |
+| `coop_target_test` | reaching the target is `won` with reason `target` and everyone winning, and the game is really over; the clock with a target unreached is `lost`; with no target it is `ended`; Stop with a target unreached is `ended` |
 | `gameplay_test` | each of the four `ok`s, none carrying an outcome; the row stores what was sent; the score and count include bonus finds; the coop duplicate; coop has no end at a full clear; the timeout and the manual end, each idempotent and each touching the rows; the lists un-gated throughout; a word into a game deleted under it is the shared race |
 | `compete_test` | per-player ownership of a word, and a racer's own duplicate refused with the frontend's line; the leaderboard's shape; the target hit answers `won`, ends the race, names the winner, freezes the leaderboard as it stood and writes every result; a post-win submit is refused; the timeout and the manual end with nobody winning |
 | `concede_test` | refused in coop; a conceder is out while the others race and cannot submit a word; the last one out ends the race as a collective loss, and only that concede touches the found rows |
@@ -528,7 +528,7 @@ Vitest, beside the code:
 |---|---|
 | `lib/answer.test` | every answer's words and outcome, and the three-way split of a miss (the terminal sentences are `shared/bee-games`' `terminal.test`) |
 | `lib/setup.test` · `components/SetupForm.test` | the letter rules and the band rule, each refusal under the field it names; the form's settings in order, the compete caption, the solo club's missing picker, and where a server refusal lands |
-| `components/PlayArea.test` | the surface mounts in every mode and state; the hexes a word is using, marked and cleared; the inert board after a concede or an ending; a required, bonus and pangram word accepted with the right call, a miss refused with its reason and answered on the board — its own letters and no others shaking and wearing its own outcome, for `WORD_ANSWER_MS`, and shaking again when refused again; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs End per mode and the strip's *out* / *Quit at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, End, Concede, Shuffle, Restart |
+| `components/PlayArea.test` | the surface mounts in every mode and state; the hexes a word is using, marked and cleared; the inert board after a concede or an ending; a required, bonus and pangram word accepted with the right call, a miss refused with its reason and answered on the board — its own letters and no others shaking and wearing its own outcome, for `WORD_ANSWER_MS`, and shaking again when refused again; the two peer narrations; the celebration — a coop win and my race win pop as they land, somebody else's win and a game opened already won do not; Concede vs Stop per mode and the strip's *out* / *Conceded at*; the action row and the menu; New game dropping hand-picked letters; the keys — New game, Stop, Concede, Shuffle, Restart |
 
 Playwright, in `e2e/`: `spellingbee` (the play loop on screen — a required
 word lands, a bonus word dots, a pangram flourishes, custom letters), 

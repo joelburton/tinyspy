@@ -220,7 +220,7 @@ the clock is merely how a session stops.
 | `create_game(target_club, setup, player_user_ids, mode)` | Copies the puzzle onto the row, seeds counters + `status`, seats turn-order when `setup.coop_style = 'turns'`. Title is `"<date>: <clue>"` — the clue is the prompt, not the answer, so it spoils nothing and tells two games apart far better than a bare date. |
 | `submit_path(target_game, path)` | The move RPC. See the order below. |
 | `spend_hint(target_game)` | Picks a **random** unfound theme word and publishes its **coords**, never its word. Answers `ok` · `{result: 'hinted', coords, hint_points: 0}` with outcome `warning` — a hint is neither good nor bad play. Its three refusals are all RACES the shared pool makes real: `PN432` "Hint bar not full yet", `PN433` "A hint is already showing", `PN431` "You've already finished this board". `PN434` is the fault for a board with nothing left to hint, which the play_state gate should already have caught. |
-| `end_game` / `submit_timeout` / `replay_board` | The neutral manual stop, the clock, and the restart. |
+| `stop_game` / `submit_timeout` / `replay_board` | The neutral manual stop, the clock, and the restart. |
 
 ### The one outcome decision (`lib/answer.ts`)
 
@@ -680,7 +680,7 @@ refused by `common._set_conceded` (PN508), so a solve stays ranked
 (`conceded_test.sql`).
 
 `concede` also takes the `strands.games` row lock **before** the flag flip,
-deliberately: `submit_path` and `end_game` serialize on that row, and without it
+deliberately: `submit_path` and `stop_game` serialize on that row, and without it
 a last solve racing a last concede could each snapshot the other as "still
 racing" and leave the game stuck in `playing` with nobody left to end it. Lock
 order is `strands.games` → `common.games` on every path, so no deadlock.
@@ -690,7 +690,7 @@ compete" are what `common.require_compete` and `common._set_conceded` already
 say, so a null mode falls through the first and is refused by the second. See
 [common-schema.md → Concede](../common-schema.md#concede--per-player-drop-out).
 
-The manual **End** stays neutral in both modes. A race called off early didn't
+The manual **Stop** stays neutral in both modes. A race called off early didn't
 finish, and handing the trophy to whoever was ahead would reward stopping at the
 right moment.
 

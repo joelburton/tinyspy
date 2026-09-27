@@ -1,10 +1,10 @@
 -- cs-blessed-psychicnum
 
 -- ============================================================
--- Test: psychicnum.end_game — manual stop
+-- Test: psychicnum.stop_game — manual stop
 -- ============================================================
 --
--- end_game is the explicit "we're done, stop the game" action,
+-- stop_game is the explicit "we're done, stop the game" action,
 -- available in BOTH modes. Unlike submit_timeout (a genuine
 -- loss), a manual stop is neutral: it writes the UNIFORM terminal
 -- play_state='ended' with status.reason='manual' and everyone's
@@ -14,7 +14,7 @@
 --
 -- Strategy mirrors gameplay_test.sql: build a club, create a
 -- game, pin the secrets with a postgres-role UPDATE (irrelevant to
--- end_game, but keeps the setup identical), then drive with
+-- stop_game, but keeps the setup identical), then drive with
 -- as_user switching.
 
 begin;
@@ -48,15 +48,15 @@ update psychicnum.games set secrets = array['alpha','bravo','charlie'] where id 
 -- (1) Non-player (dee) cannot end the game
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
-  psychicnum.end_game((select id from coop_g)),
+  psychicnum.stop_game((select id from coop_g)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'coop: non-player end_game rejected');
+  'coop: non-player stop_game rejected');
 
 -- (2) A game player ends the game — succeeds
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select lives_ok(
-  format($$ select psychicnum.end_game(%L::uuid) $$, (select id from coop_g)),
+  format($$ select psychicnum.stop_game(%L::uuid) $$, (select id from coop_g)),
   'coop: game player can end the game'
 );
 
@@ -65,21 +65,21 @@ reset role;
 select is(
   (select play_state from common.games where id = (select id from coop_g)),
   'ended',
-  'coop: end_game flips play_state to ended'
+  'coop: stop_game flips play_state to ended'
 );
 
 -- (4) is_terminal set (common.end_game marks the game terminal)
 select is(
   (select is_terminal from common.games where id = (select id from coop_g)),
   true,
-  'coop: end_game marks game terminal'
+  'coop: stop_game marks game terminal'
 );
 
 -- (5) status.reason = 'manual'
 select is(
   (select status->>'reason' from common.games where id = (select id from coop_g)),
   'manual',
-  'coop: end_game writes status.reason = manual'
+  'coop: stop_game writes status.reason = manual'
 );
 
 -- (6) every player's result = {won: false}
@@ -90,13 +90,13 @@ select is(
   'coop: every player gets result = {won: false} on manual end'
 );
 
--- (7) Idempotency — a 2nd end_game on a terminal game is refused as the game-over race
+-- (7) Idempotency — a 2nd stop_game on a terminal game is refused as the game-over race
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
-  psychicnum.end_game((select id from coop_g)),
+  psychicnum.stop_game((select id from coop_g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'coop: second end_game on terminal game is refused as the game-over race');
+  'coop: second stop_game on terminal game is refused as the game-over race');
 
 -- ============================================================
 -- COMPETE block — same shape, mode echoed into status
@@ -117,7 +117,7 @@ update psychicnum.games set secrets = array['alpha','bravo','charlie'] where id 
 -- (8) A game player ends the compete game — succeeds
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select lives_ok(
-  format($$ select psychicnum.end_game(%L::uuid) $$, (select id from comp_g)),
+  format($$ select psychicnum.stop_game(%L::uuid) $$, (select id from comp_g)),
   'compete: game player can end the game'
 );
 
@@ -126,14 +126,14 @@ reset role;
 select is(
   (select play_state from common.games where id = (select id from comp_g)),
   'ended',
-  'compete: end_game flips play_state to the uniform ended (not lost_compete)'
+  'compete: stop_game flips play_state to the uniform ended (not lost_compete)'
 );
 
 -- (10) status echoes mode = compete alongside outcome = manual
 select is(
   (select status->>'mode' from common.games where id = (select id from comp_g)),
   'compete',
-  'compete: end_game echoes mode = compete into status'
+  'compete: stop_game echoes mode = compete into status'
 );
 
 -- (11) every player's result = {won: false} — no winner on manual end
@@ -147,10 +147,10 @@ select is(
 -- (12) Idempotency holds in compete too
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  psychicnum.end_game((select id from comp_g)),
+  psychicnum.stop_game((select id from comp_g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'compete: second end_game on terminal game is refused as the game-over race');
+  'compete: second stop_game on terminal game is refused as the game-over race');
 
 -- ============================================================
 select * from finish();

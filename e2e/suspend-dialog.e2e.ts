@@ -24,14 +24,14 @@ import { signIn } from './helpers/session'
  *     the page's tab ring and crosswords' own useGridKeyboard all bail inside
  *     [data-floating-panel]).
  *
- *   - End-game: ALWAYS the shared ConfirmationBlockingModal (never window.confirm),
- *     even solo/coop — ending is terminal for the whole group.
+ *   - Stop-game: ALWAYS the shared ConfirmationBlockingModal (never window.confirm),
+ *     even solo/coop — stopping is terminal for the whole group.
  *
  * Boggle is used for the keyboard tests precisely because it HAS a window
  * key-capture; multiplayer cases run two signed-in pages so presence-pause
  * doesn't cover the board.
  */
-test.describe('confirm modals — suspend + end game', () => {
+test.describe('confirm modals — suspend + stop game', () => {
   /** Two members, both viewing the same game (no presence-pause). */
   async function twoUp(browser: Browser, makeGame: (club: E2EClub) => Promise<{ id: string; gametype: string }>) {
     const club = await createClubWithMembers(['ada', 'bea'])
@@ -153,7 +153,7 @@ test.describe('confirm modals — suspend + end game', () => {
     await expect(alice).toHaveURL(/\/c\//, { timeout: 10000 })
   })
 
-  test('end game is always the styled modal — even in a SOLO game', async ({ browser }) => {
+  test('stop game is always the styled modal — even in a SOLO game', async ({ browser }) => {
     // The critical case: no window.confirm — a solo page has no dialog handler
     // installed, so a native confirm would auto-dismiss and the game would
     // never end. The styled modal must appear, and Cancel must be a no-op.
@@ -163,21 +163,20 @@ test.describe('confirm modals — suspend + end game', () => {
     await signIn(ctx, club.members[0].session)
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
-    await expect(page.getByRole('button', { name: 'End game' })).toBeVisible({ timeout: 15000 })
+    await expect(page.getByRole('button', { name: 'Stop game' })).toBeVisible({ timeout: 15000 })
 
     // Cancel is a no-op — still playing. (The trigger and the modal's confirm
-    // share the name "End game" since the label went from "End" to the full
-    // phrase — so the trigger is `.first()` and the confirm comes from inside
-    // the panel.)
-    await page.getByRole('button', { name: 'End game' }).first().click()
-    await expect(page.getByText('End this game?')).toBeVisible()
+    // share the name "Stop game" — so the trigger is `.first()` and the
+    // confirm comes from inside the panel.)
+    await page.getByRole('button', { name: 'Stop game' }).first().click()
+    await expect(page.getByText('Stop this game?')).toBeVisible()
     await page.getByRole('button', { name: 'Keep playing' }).click()
-    await expect(page.getByText('End this game?')).toBeHidden()
-    await expect(page.getByRole('button', { name: 'End game' })).toBeVisible() // not ended
+    await expect(page.getByText('Stop this game?')).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Stop game' })).toBeVisible() // not ended
 
     // Confirm → the game ends.
-    await page.getByRole('button', { name: 'End game' }).first().click()
-    await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
+    await page.getByRole('button', { name: 'Stop game' }).first().click()
+    await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
     await expect(page.getByText('Game ended', { exact: false }).first()).toBeVisible({ timeout: 10000 })
     await ctx.close()
   })
@@ -187,13 +186,13 @@ test.describe('confirm modals — suspend + end game', () => {
     // Wait for alice's board to render — it only exists when un-paused (the
     // pause overlay replaces PlayArea), so this absorbs presence-sync. Bob
     // needn't be un-paused first: ending short-circuits pause on his side too.
-    // (`.first()` because "End game" is both the trigger and, once the question
+    // (`.first()` because "Stop game" is both the trigger and, once the question
     // is up, the confirm's own button.)
     await alice.getByRole('grid', { name: /waffle board/i }).waitFor({ timeout: 15000 })
 
-    // Alice ends the game (through the modal) → terminal for both.
-    await alice.getByRole('button', { name: 'End game' }).first().click()
-    await alice.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
+    // Alice stops the game (through the modal) → terminal for both.
+    await alice.getByRole('button', { name: 'Stop game' }).first().click()
+    await alice.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
     await expect(alice.getByText('Game ended', { exact: false }).first()).toBeVisible({ timeout: 10000 })
     await expect(bob.getByText('Game ended', { exact: false }).first()).toBeVisible({ timeout: 10000 })
 

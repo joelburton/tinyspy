@@ -142,11 +142,11 @@
   subtracts the shared rack's tile value from `team_score`; in compete it
   subtracts each player's own leftovers and then hands the going-out seat the
   sum of everybody else's. The row is written in exactly one place —
-  `scrabble.end_game`'s coop branch, the `manual` ending — so:
+  `scrabble.stop_game`'s coop branch, the `manual` ending — so:
 
   | ending | coop | compete |
   |---|---|---|
-  | `manual` (End game) | deducted **and logged** | deducted, not logged |
+  | `manual` (Stop game) | deducted **and logged** | deducted, not logged |
   | `conceded` | deducted, not logged | deducted, not logged |
   | `timeout` | deducted, not logged | deducted, not logged |
   | `blocked` (a lap of passes) | n/a — coop has no turns to pass | deducted, not logged |

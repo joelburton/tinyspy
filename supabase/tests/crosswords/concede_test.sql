@@ -58,9 +58,9 @@ select pg_temp.envelope_is(
   'concede is rejected in coop');
 reset role;
 
--- ── Coop give-up (end_game): a NEUTRAL "finished", not a loss ────────
+-- ── Coop give-up (stop_game): a NEUTRAL "finished", not a loss ────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select crosswords.end_game(:'gc_id');
+select crosswords.stop_game(:'gc_id');
 reset role;
 select is((select play_state from common.games where id = :'gc_id'), 'ended',
   'coop give-up → play_state ended (neutral, not lost)');
@@ -82,12 +82,12 @@ select pg_temp.envelope_is(
   'check_cells is rejected for a conceded compete player');
 reset role;
 
--- ── Compete give-up (end_game): the table stops, neutrally ───────────
+-- ── Compete give-up (stop_game): the table stops, neutrally ───────────
 -- Concede is NOT the only way out of a race. gp2 still has bea racing and ada
 -- conceded above, so this also pins what an end does to a player who already
 -- quit: nothing. Unlike the last-conceder path, which is `lost_compete`.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
-select crosswords.end_game(:'gp2_id');
+select crosswords.stop_game(:'gp2_id');
 reset role;
 select is((select play_state from common.games where id = :'gp2_id'), 'ended',
   'compete give-up → play_state ended (neutral, not lost_compete)');

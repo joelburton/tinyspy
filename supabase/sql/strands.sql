@@ -1420,7 +1420,7 @@ revoke execute on function strands.spend_hint(uuid) from public;
 grant execute on function strands.spend_hint(uuid) to authenticated;
 
 -- ============================================================
--- strands.end_game — the manual, neutral stop
+-- strands.stop_game — the manual, neutral stop
 -- ============================================================
 -- Any player may end it: a group decision, not an owner's. Neutral by design —
 -- the friends agreed to stop, so nobody won and nobody lost
@@ -1429,9 +1429,9 @@ grant execute on function strands.spend_hint(uuid) to authenticated;
 -- Ending unshields the solution (the is_terminal gate on _solution_for) but
 -- puts it on nobody's screen: each player asks for it with their own
 -- RevealButton, a local display toggle (docs/ui.md → Terminal results).
-drop function if exists strands.end_game(uuid);
+drop function if exists strands.stop_game(uuid);
 
-create or replace function strands.end_game(target_game uuid)
+create or replace function strands.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1491,14 +1491,17 @@ exception when others then
 end;
 $$;
 
-revoke execute on function strands.end_game(uuid) from public;
-grant execute on function strands.end_game(uuid) to authenticated;
+revoke execute on function strands.stop_game(uuid) from public;
+grant execute on function strands.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists strands.end_game(uuid);
 
 -- ============================================================
 -- strands.concede — drop out of a compete race
 -- ============================================================
 -- Compete only: a coop team has nobody to keep racing, so it stops with
--- end_game instead.
+-- stop_game instead.
 --
 -- NOT common.concede, which ends a game as a collective loss the moment the
 -- last player drops. strands can't use that: a table where two players quit and
@@ -1517,7 +1520,7 @@ declare
   g_mode text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  -- FOR UPDATE: serialize against submit_path (and end_game), which lock this
+  -- FOR UPDATE: serialize against submit_path (and stop_game), which lock this
   -- same row. Without it a last solve and a last concede run on disjoint locks
   -- (submit_path on strands.games, _set_conceded on common.games), each
   -- snapshots the other as "still racing", and BOTH finishers decline — the

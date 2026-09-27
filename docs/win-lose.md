@@ -90,7 +90,7 @@ out, a trailing player could stall forever rather than be ranked. A site for
 strangers would defend against that; this one does not — the trust model
 (CLAUDE.md: friends, not strangers) answers it. **Don't propose anti-stall
 machinery.** The remedy is opt-in: play with a countdown timer
-(`timer-countdown`), whose timeout ranks the players, and End is the social
+(`timer-countdown`), whose timeout ranks the players, and Stop is the social
 way out of a timerless standoff.
 
 ## Timer fairness

@@ -239,8 +239,8 @@ hour, not a shim. Before each stage's deploy:
      `myConceded` any more). Every game reads the page's values, so changing
      what those values are built from touches `whereIStand` and
      `useCommonGame`, not sixteen PlayAreas.
-   - §3b's 7c, the Stop names, and §4's cheap renames. Neither touches
-     stored data.
+   - §3b's 7c, the Stop names (done 2026-09-27), and §4's cheap renames.
+     Neither touches stored data.
 2. **This plan, in three stages and a per-game debt** — each commit leaves
    the tests green, and each stage deploys when it is done:
    1. **The players.** `common.game_players` gains `player_ended_at`, the

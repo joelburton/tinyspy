@@ -120,10 +120,10 @@ export const codenamesduetGame: GameManifest = {
   // 'timeout' (distinct from 'turns', the Duet rulebook's turns-spent
   // ending) — the play_state carries the verdict, the reason names the
   // cause. Idempotent, so peers racing to
-  // fire it is fine. end_game is the irreversible in-game "End game" button.
+  // fire it is fine. stop_game is the irreversible in-game "Stop game" button.
   // Both are the shared one-arg dispatchers (see common/manifest/manifestRpcs).
   submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
-  endGame: makeRpcDispatcher(db, 'end_game'),
+  stopGame: makeRpcDispatcher(db, 'stop_game'),
 }
 
 // Per-play-state display strings codenamesduet owns — the common
@@ -134,7 +134,7 @@ const STATUS_LABEL: Record<string, string> = {
   // is the thing to scan a club list for.
   sudden_death: 'Sudden death',
   won: verdict('Won'),
-  // Manual end (codenamesduet.end_game): the friends stopped on purpose.
+  // Manual end (codenamesduet.stop_game): the friends stopped on purpose.
   // Neutral phrasing — not a loss.
   ended: verdict('Ended'),
 }

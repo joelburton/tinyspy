@@ -1,13 +1,13 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: wordiply terminal transitions (end_game / submit_timeout /
+-- Test: wordiply terminal transitions (stop_game / submit_timeout /
 --        replay_board / concede)
 -- ============================================================
 --
 -- Covers the non-submit terminal paths (submit_guess's own auto-terminal is
 -- in gameplay_test / winner_test):
---   1. Coop end_game → ended/manual with the team scores in status.
+--   1. Coop stop_game → ended/manual with the team scores in status.
 --   2. Coop submit_timeout → lost/timeout (the clock is a coop loss).
 --   3. replay_board wipes guesses, un-terminals the row, reseeds status.
 --   4. Concede (compete): the caller is flagged conceded; the last racer's
@@ -34,7 +34,7 @@ create temp table club on commit drop as
 select pg_temp.create_club('Ada Bea Cade', array['ada','bea','cade']) as handle;
 
 -- ============================================================
--- (1) Coop end_game → ended/manual + team scores
+-- (1) Coop stop_game → ended/manual + team scores
 -- ============================================================
 
 create temp table end_g on commit drop as
@@ -47,50 +47,50 @@ select (wordiply.create_game(
   pg_temp.wordiply_board()
 )->'data'->>'id')::uuid as id;
 
--- Two guesses (longest 7) so end_game captures a real live aggregate.
+-- Two guesses (longest 7) so stop_game captures a real live aggregate.
 select wordiply.submit_guess((select id from end_g), 'arxxxxx');  -- 7
 select wordiply.submit_guess((select id from end_g), 'arxx');     -- 4
 
-select wordiply.end_game((select id from end_g));
+select wordiply.stop_game((select id from end_g));
 
 reset role;
 select is(
   (select play_state from common.games where id = (select id from end_g)),
   'ended',
-  'coop end_game: play_state flips to "ended"'
+  'coop stop_game: play_state flips to "ended"'
 );
 
 select is(
   (select status->>'reason' from common.games where id = (select id from end_g)),
   'manual',
-  'coop end_game: status.reason = "manual"'
+  'coop stop_game: status.reason = "manual"'
 );
 
 select is(
   (select (status->>'length_score')::int from common.games where id = (select id from end_g)),
   100,
-  'coop end_game: status.length_score = team longest (7) / max (7) = 100'
+  'coop stop_game: status.length_score = team longest (7) / max (7) = 100'
 );
 
 select is(
   (select (status->>'letter_count')::int from common.games where id = (select id from end_g)),
   11,                                       -- 7 + 4
-  'coop end_game: status.letter_count = sum of the team''s guess lengths'
+  'coop stop_game: status.letter_count = sum of the team''s guess lengths'
 );
 
 select is(
   (select (status->>'guesses_used')::int from common.games where id = (select id from end_g)),
   2,
-  'coop end_game: status.guesses_used = the team''s live count'
+  'coop stop_game: status.guesses_used = the team''s live count'
 );
 
 -- Idempotency: a second call raises P0001 (FE swallows it).
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  wordiply.end_game((select id from end_g)),
+  wordiply.stop_game((select id from end_g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'coop end_game: a second call raises P0001');
+  'coop stop_game: a second call raises P0001');
 
 -- ============================================================
 -- (2) Coop submit_timeout → ended/timeout

@@ -795,7 +795,7 @@ grant execute on function wordle.submit_guess(uuid, text) to authenticated;
 -- wordle.concede — a player drops out of a compete race
 -- ============================================================
 -- The per-player quit (compete only — coop is a team, so it ends via
--- the shared End → common.end_game, never a concede). wordle is an
+-- the shared Stop → common.end_game, never a concede). wordle is an
 -- ELIMINATION game (a player can be "done" without the table ending),
 -- so it can't use the generic common.concede: after flipping the
 -- flag, it re-runs its own terminal check, which now counts a
@@ -918,16 +918,16 @@ revoke execute on function wordle.submit_timeout(uuid) from public;
 grant execute on function wordle.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- wordle.end_game — manual stop
+-- wordle.stop_game — manual stop
 -- ============================================================
 -- The friends' explicit "we're done" action, in BOTH modes. Writes the
 -- uniform neutral terminal 'ended' (nobody wins or loses), everyone
 -- {"won": false}, status.reason = 'manual'. Any game player may fire
 -- it; idempotent on the play_state check (a second click, or a race with
 -- submit_timeout, answers a race — the work is already done).
-drop function if exists wordle.end_game(uuid);
+drop function if exists wordle.stop_game(uuid);
 
-create or replace function wordle.end_game(target_game uuid)
+create or replace function wordle.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -938,7 +938,7 @@ declare
   current_play_state text;
   player_results     jsonb;
 begin
-  -- Locked, so an End racing the winning move waits for it and then reads the
+  -- Locked, so a Stop racing the winning move waits for it and then reads the
   -- game as over, rather than overwriting the win (docs/common-schema.md →
   -- Manual end, step 1).
   perform 1 from wordle.games where id = target_game for update;
@@ -982,8 +982,11 @@ exception when others then
 end;
 $$;
 
-revoke execute on function wordle.end_game(uuid) from public;
-grant execute on function wordle.end_game(uuid) to authenticated;
+revoke execute on function wordle.stop_game(uuid) from public;
+grant execute on function wordle.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists wordle.end_game(uuid);
 
 -- ============================================================
 -- wordle.replay_board — restart this game from scratch

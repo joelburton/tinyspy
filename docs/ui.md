@@ -124,9 +124,9 @@ and a menu row all game. [`common/terminal`](../src/common/terminal/doc.md),
 ## Confirm modals — never `window.confirm`
 
 Every question goes through one shared blocking modal (`askConfirmation`), and
-its confirm button **names the act** — "End game", "Suspend" — never a bare
+its confirm button **names the act** — "Stop game", "Suspend" — never a bare
 "OK". An action's standing question lives in the action registry and is asked
-by the shared run, so no placement can forget it: End game always asks; New
+by the shared run, so no placement can forget it: Stop game always asks; New
 game asks only mid-game, and says the old game is shelved, not lost; leaving a
 live game asks only when there are other players to surprise.
 

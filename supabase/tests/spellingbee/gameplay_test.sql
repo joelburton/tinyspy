@@ -1,7 +1,7 @@
 -- cs-blessed-spellingbee
 
 -- ============================================================
--- Test: spellingbee.submit_word + spellingbee.submit_timeout + end_game
+-- Test: spellingbee.submit_word + spellingbee.submit_timeout + stop_game
 -- ============================================================
 --
 -- submit_word is trusting-commit: the FE validated the word against the board's
@@ -25,7 +25,7 @@
 --   9. coop has NO auto-terminal past required_words_count.
 --  10. submit_timeout: terminal, reason 'timeout', idempotent, the rows touched,
 --      and games_state still exposing the required list.
---  11. end_game: terminal, reason 'manual', the live tally, idempotent, the rows
+--  11. stop_game: terminal, reason 'manual', the live tally, idempotent, the rows
 --      touched, and a non-player refused.
 --  12. a word into a game deleted under it is the shared race (PN485).
 --
@@ -422,7 +422,7 @@ select is(
 );
 
 -- ============================================================
--- (11) spellingbee.end_game: manual terminal
+-- (11) spellingbee.stop_game: manual terminal
 -- ============================================================
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
@@ -437,60 +437,60 @@ select (spellingbee.create_game(
   pg_temp.spellingbee_board()
 )->'data'->>'id')::uuid as id;
 
--- One required submission so end_game captures a real live aggregate.
+-- One required submission so stop_game captures a real live aggregate.
 select is(
   spellingbee.submit_word((select id from end_g), 'bead', 1, false, false)->'data'->>'result',
   'accepted',
-  'submit_word: bead accepted in end_game setup'
+  'submit_word: bead accepted in stop_game setup'
 );
 
 create temp table end_before on commit drop as
 select ctid::text as version from spellingbee.found_words where game_id = (select id from end_g);
 
-select spellingbee.end_game((select id from end_g));
+select spellingbee.stop_game((select id from end_g));
 
 select isnt(
   (select ctid::text from spellingbee.found_words where game_id = (select id from end_g)),
   (select version from end_before),
-  'end_game: touches the found rows, so a compete client refetches the reveal'
+  'stop_game: touches the found rows, so a compete client refetches the reveal'
 );
 
 select is(
   (select play_state from common.games where id = (select id from end_g)),
   'ended',
-  'end_game: play_state flips to "ended"'
+  'stop_game: play_state flips to "ended"'
 );
 
 select is(
   (select is_terminal from common.games where id = (select id from end_g)),
   true,
-  'end_game: is_terminal=true'
+  'stop_game: is_terminal=true'
 );
 
 select is(
   (select status->>'reason' from common.games where id = (select id from end_g)),
   'manual',
-  'end_game: status.reason=manual (distinguishes from timeout)'
+  'stop_game: status.reason=manual (distinguishes from timeout)'
 );
 
 select is(
   (select (status->>'found_words_score')::int from common.games where id = (select id from end_g)),
   1,
-  'end_game: status.score reflects the team''s live tally at the moment of end'
+  'stop_game: status.score reflects the team''s live tally at the moment of end'
 );
 
 select is(
   (select (status->>'found_words_count')::int from common.games where id = (select id from end_g)),
   1,
-  'end_game: status.found_words_count reflects the live count'
+  'stop_game: status.found_words_count reflects the live count'
 );
 
 -- Idempotency: a second call is the game-over race.
 select pg_temp.envelope_is(
-  spellingbee.end_game((select id from end_g)),
+  spellingbee.stop_game((select id from end_g)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
-  'end_game: a second call is the game-over race');
+  'stop_game: a second call is the game-over race');
 
 -- Auth: dee (outsider) cannot end a game they're not in. Fresh game (the previous
 -- one is terminal and would short-circuit on play_state).
@@ -508,10 +508,10 @@ select (spellingbee.create_game(
 
 select pg_temp.as_user('dee44444-4444-4444-4444-444444444444');
 select pg_temp.envelope_is(
-  spellingbee.end_game((select id from auth_g)),
+  spellingbee.stop_game((select id from auth_g)),
   '{"type":"not-ok","severity":"fault","dbcode":"PN253",
     "message":"You are not in this game"}'::jsonb,
-  'end_game: non-player (dee, outsider) is rejected (PN253)');
+  'stop_game: non-player (dee, outsider) is rejected (PN253)');
 
 -- ============================================================
 -- (12) A word typed into a game a friend just deleted

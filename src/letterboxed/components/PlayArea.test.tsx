@@ -166,7 +166,7 @@ const OPT_BACKSPACE = { key: 'Backspace', code: 'Backspace', altKey: true }
 const bound = (id: ActionId) => liveBindings().find((b) => b.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
- *  share the modal's words ("End game" / "End game"); the modal's is the one
+ *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
  *  the host adds, so it is last in the DOM. */
 async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
   const buttons = await screen.findAllByRole('button', { name })
@@ -184,9 +184,9 @@ beforeEach(() => {
 })
 
 describe('letterboxed PlayArea — a conceder keeps the one flag', () => {
-  it('shows "You conceded" with End for all, not a hidden Concede', () => {
-    // Conceding is spent; ending the game for all is open to anyone in it, so
-    // End takes Concede's place in the row.
+  it('shows "You conceded" with Stop for all, not a hidden Concede', () => {
+    // Conceding is spent; stopping the game for all is open to anyone in it, so
+    // Stop takes Concede's place in the row.
     h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
       <PlayArea
@@ -200,7 +200,7 @@ describe('letterboxed PlayArea — a conceder keeps the one flag', () => {
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
-    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
+    expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
   })
 })
 
@@ -632,7 +632,7 @@ describe('letterboxed PlayArea — the keys', () => {
     expect(startEdgeFn).not.toHaveBeenCalled()
   })
 
-  it('⌥⌫ in coop asks to end the game, and yes calls end_game', async () => {
+  it('⌥⌫ in coop asks to stop the game, and yes calls stop_game', async () => {
     const user = userEvent.setup()
     render(
       <>
@@ -642,10 +642,10 @@ describe('letterboxed PlayArea — the keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
-    await answer(user, 'End game')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await answer(user, 'Stop game')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('⌥⌫ in compete asks to concede, and yes calls concede', async () => {
@@ -659,10 +659,10 @@ describe('letterboxed PlayArea — the keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await answer(user, 'Concede')
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
-    expect(rpc).not.toHaveBeenCalledWith('end_game', expect.anything())
+    expect(rpc).not.toHaveBeenCalledWith('stop_game', expect.anything())
   })
 
   describe('Restart', () => {

@@ -100,23 +100,23 @@ to copy (`supabase/sql/psychicnum.sql`).
 
 ## Ending a game
 
-### Manual end — every gametype's `end_game(target_game)`
+### Manual end — every gametype's `stop_game(target_game)`
 
 Every gametype has a player-callable stop — the friends agree they've played
 enough — and it is **neutral**: `play_state = 'ended'`, `status.reason =
 'manual'`, and every player's result `{ "won": false }`. It is the co-op stop;
 a race's is [Concede](#concede--per-player-drop-out). Three endings stay
 distinct: **timeout** is a loss, fired by the clients when a countdown reaches
-zero; **end** is neutral; **leaving the page** isn't terminal at all.
+zero; **stop** is neutral; **leaving the page** isn't terminal at all.
 
-The contract every game's `end_game` mirrors:
+The contract every game's `stop_game` mirrors:
 
 1. Lock the game's own row `for update`; a missing row answers the shared
    deleted-game race (`common._raise_game_deleted`) — asked BEFORE membership,
    because a deleted game has no players left to be one of. The lock is what
-   makes an End racing the winning move wait for it and read the game as over;
+   makes a Stop racing the winning move wait for it and read the game as over;
    `common.end_game` itself overwrites whatever ending came first.
-   `src/guards/endLock.test.ts` holds it for every `end_game` and
+   `src/guards/endLock.test.ts` holds it for every `stop_game` and
    `submit_timeout`.
 2. `common.require_game_player` — playership gates acting.
 3. A game already over answers the shared race (`common._raise_game_over`), so
@@ -134,11 +134,11 @@ once, so all but the first find the game already over.
 
 ### Concede — per-player drop-out
 
-**Concede is the compete counterpart to End**: "I quit; the others play on." It
+**Concede is the compete counterpart to Stop**: "I quit; the others play on." It
 is a real loss for the conceder and never a mutual stop — the last player to
 concede ends the game as a collective loss. `game_players.conceded` is the flag,
 the one per-player terminal state that exists before the game ends, which is
-what lets a verdict say "Quit" rather than "Lost". Every compete game has one;
+what lets a verdict say "Conceded" rather than "Lost". Every compete game has one;
 co-op never does.
 
 Two shapes, by how a player can stop racing:
@@ -158,7 +158,7 @@ Two shapes, by how a player can stop racing:
 Either way, only a player still racing may concede. `_set_conceded` refuses a
 second concede ("Already conceded") and a player who is out some other way —
 finished, eliminated, out of budget ("Already out"): a loss is already a loss,
-and a finisher would only throw away a win they may hold. Anyone may still End
+and a finisher would only throw away a win they may hold. Anyone may still Stop
 the game for all.
 
 **A game whose "anyone still racing?" test reads its own tables must lock its
@@ -177,7 +177,7 @@ in the answer; every client, the conceder's included, learns that by
 subscription.
 
 **The concede that ends the game touches a row the frontend subscribes to**,
-for the reason End does (step 5 above): it writes nothing of the game's own,
+for the reason Stop does (step 5 above): it writes nothing of the game's own,
 and a board that never re-reads never gets what the ending releases — wordle's
 answer, a race's rivals' guesses. The game's `_finish_compete` (or
 `_maybe_finish_compete`, where the ending is there) does it once, for every

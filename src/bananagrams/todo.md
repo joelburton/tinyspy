@@ -30,12 +30,12 @@
   early `+` asks the new-game question and then can do nothing. By the rule
   in `src/common/actions/doc.md` that moment is `disabled`; `act-print-board`
   beside it already answers `hidden` for it.
-- **A conceded racer's End game has no button.** Once `myConceded` is true,
-  `act-end-game` answers `active` (the whole-table stop comes back to a
+- **A conceded racer's Stop game has no button.** Once `myConceded` is true,
+  `act-stop-game` answers `active` (the whole-table stop comes back to a
   player whose Concede is spent), but the conceded row is
   `<InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }} />` with no children
   (`PlayArea.tsx`), so the stop is reachable only from the menu row and
-  `⌥⌫`. Place `<ActionButton action={actEndGame} show="icon" />` in that row,
+  `⌥⌫`. Place `<ActionButton action={actStopGame} show="icon" />` in that row,
   the way the playing row does.
 - **`replay_board` takes no game-row lock.** Every other game's replay locks
   the game row (`select … for update`) before resetting, because a replay

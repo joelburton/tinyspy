@@ -220,7 +220,7 @@ grant execute on function spellingbee.candidate_words(bigint, bigint, int, int) 
 -- zeros for a player with no finds. Counts ALL of a player's rows, bonus
 -- included, to match their own Stats card. Written once for its four
 -- readers: submit_word (mid-race and at the win), submit_timeout and
--- end_game.
+-- stop_game.
 --
 -- Internal: no grant, so only this schema's definer RPCs reach it.
 
@@ -370,7 +370,7 @@ begin
   -- coop:    OPTIONAL — present means "reach this rank together and you WIN"
   --          (the game ends the moment the TEAM rank reaches it); absent/null
   --          means the open-ended word hunt that only ends on the clock or the
-  --          End button. Absent and explicit null are the same thing, so a FE
+  --          Stop button. Absent and explicit null are the same thing, so a FE
   --          that always sends the key can send null for "none".
   if mode = 'compete' and (setup->>'target_rank') is null then
     raise exception 'BUG: race with no target rank'
@@ -767,7 +767,7 @@ begin
   -- ─── Recompute aggregates + status ──────────────────────
   -- Coop ends on a submission ONLY when the team picked a target rank and this
   -- word carried them to it. Without a target (the open-ended hunt) coop still
-  -- only ends via timer expiry or the manual End button: players keep finding
+  -- only ends via timer expiry or the manual Stop button: players keep finding
   -- bonus words past the displayed `Y / required_words_count` denominator and
   -- the score overshoots `required_words_score`.
   if g_row.mode = 'coop' then
@@ -1049,15 +1049,15 @@ revoke execute on function spellingbee.submit_timeout(uuid) from public;
 grant execute on function spellingbee.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- spellingbee.end_game — manual stop
+-- spellingbee.stop_game — manual stop
 -- ============================================================
 --
 -- The only automatic terminals are a target rank reached (inside
 -- submit_word, in either mode) and the countdown expiring
 -- (submit_timeout). A coop hunt with no target, and any game the friends
--- are done with, is stopped explicitly — this RPC, the End action the
+-- are done with, is stopped explicitly — this RPC, the Stop action the
 -- play surface binds. Distinct from suspend (which leaves
--- play_state='playing' and is the path "back to club" takes): end_game
+-- play_state='playing' and is the path "back to club" takes): stop_game
 -- writes a terminal play_state='ended' with status.reason='manual', so
 -- the game appears in the club's "completed" section forever after and
 -- the terminal verdict renders.
@@ -1070,9 +1070,9 @@ grant execute on function spellingbee.submit_timeout(uuid) to authenticated;
 -- opponents'-finds reveal is RLS-gated on terminal and useGame subscribes to
 -- found_words alone, so a manual end needs the no-op self-update to wake peers.
 
-drop function if exists spellingbee.end_game(uuid);
+drop function if exists spellingbee.stop_game(uuid);
 
-create or replace function spellingbee.end_game(target_game uuid)
+create or replace function spellingbee.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1127,7 +1127,7 @@ begin
       from common.game_players
      where game_id = target_game;
 
-    -- Manual End is NEUTRAL even when a target was set and missed: the friends
+    -- Stop is NEUTRAL even when a target was set and missed: the friends
     -- chose to stop, which isn't losing (only the clock running out is).
     perform common.end_game(
       target_game, 'ended',
@@ -1180,8 +1180,11 @@ exception when others then
 end;
 $$;
 
-revoke execute on function spellingbee.end_game(uuid) from public;
-grant execute on function spellingbee.end_game(uuid) to authenticated;
+revoke execute on function spellingbee.stop_game(uuid) from public;
+grant execute on function spellingbee.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists spellingbee.end_game(uuid);
 
 -- ============================================================
 -- spellingbee.replay_board — restart this board from scratch
@@ -1287,7 +1290,7 @@ grant execute on function spellingbee.replay_board(uuid) to authenticated;
 -- mark the caller out, and if that was the last racer, end the game
 -- as a collective loss. This wrapper just keeps the FE uniform (every
 -- game calls its own-schema `concede`) and gates concede to compete —
--- coop is a team, it ends via the shared End, never a concede.
+-- coop is a team, it ends via the shared Stop, never a concede.
 drop function if exists spellingbee.concede(uuid);
 
 create or replace function spellingbee.concede(target_game uuid)
@@ -1308,7 +1311,7 @@ begin
   if v_res->>'type' = 'not-ok' then return v_res; end if;
 
   -- If that was the last racer, common.concede ended the game. Wake the
-  -- found_words subscription (same reveal as submit_timeout/end_game) so the
+  -- found_words subscription (same reveal as submit_timeout/stop_game) so the
   -- remaining clients refetch the now-RLS-visible opponents' finds. common.*
   -- writes only common.games, so without this the reveal never loads.
   if (select play_state from common.games where id = target_game) <> 'playing' then

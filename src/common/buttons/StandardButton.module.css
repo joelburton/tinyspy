@@ -4,7 +4,7 @@
  * StandardButton.module.css — the whole look of a standard button.
  *
  * A STANDARD BUTTON is the app's ordinary button: an info-column action
- * (Submit, Hint, End game), a form's commit or cancel, a dialog's
+ * (Submit, Hint, Stop game), a form's commit or cancel, a dialog's
  * acknowledgment. One treatment for all of them, which is the decision this
  * file exists to hold: an info-column action and a form's
  * Cancel are one control wearing different tones.

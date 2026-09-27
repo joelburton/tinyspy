@@ -225,7 +225,7 @@ export function SetupForm({
         <SelectField
           name="win_percent"
           error={errors.win_percent}
-          help={<>Win by reaching this share of the required-words score {mode === 'compete' ? ' (first player there wins)' : ' (the team wins together)'} , or <strong>None</strong> to play until you End (or the timer runs out).</>}
+          help={<>Win by reaching this share of the required-words score {mode === 'compete' ? ' (first player there wins)' : ' (the team wins together)'} , or <strong>None</strong> to play until you Stop (or the timer runs out).</>}
           label="Win at"
           value={s.win_percent === null ? 'none' : String(s.win_percent)}
           onChange={(v) => set('win_percent', v === 'none' ? null : Number(v))}

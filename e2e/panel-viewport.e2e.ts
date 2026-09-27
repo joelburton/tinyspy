@@ -38,7 +38,7 @@ test.describe('floating panels and the viewport', () => {
     const page = await ctx.newPage()
     await page.goto(`/g/${game.gametype}/${game.id}`)
 
-    await page.getByRole('button', { name: 'End game' }).first().click()
+    await page.getByRole('button', { name: 'Stop game' }).first().click()
     await panel(page).waitFor({ timeout: 8000 })
 
     await page.setViewportSize({ width: 600, height: 500 })

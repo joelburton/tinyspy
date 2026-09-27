@@ -575,7 +575,7 @@ revoke execute on function bananagrams._win_blockers(text, integer, integer, boo
 --
 -- This is the game's only intrinsic terminal: "place your last tile and the
 -- bunch is dry" IS the win condition, detected right here in peel (there is no
--- separate "declare done" move — only the manual end_game stop below).
+-- separate "declare done" move — only the manual stop_game below).
 --
 -- peel_count comes from setup (default 1) — a future setup option can make it
 -- 2 without touching this logic. The base gate is "hand empty" (placed ==
@@ -1097,7 +1097,7 @@ grant execute on function bananagrams.dump(uuid, text) to authenticated;
 -- Fired by GamePage when a chosen countdown hits 0 before anyone goes
 -- out. bananagrams is a race, so time expiring with no winner is a
 -- COLLECTIVE loss: every player's result is {"won": false}, same shape
--- as the manual end_game stop but framed as a loss, not a neutral quit.
+-- as the manual stop_game but framed as a loss, not a neutral quit.
 -- Modeled on stackdown.submit_timeout's compete branch.
 --
 -- Shape vs. the other terminals:
@@ -1147,7 +1147,7 @@ begin
     player_results
   );
 
-  -- Realtime touch — same trick as bananagrams.end_game: common.end_game
+  -- Realtime touch — same trick as bananagrams.stop_game: common.end_game
   -- writes common.games (wakes the terminal modal via useCommonGame), but
   -- the bananagrams channels watch player_boards / progress, so nudge
   -- progress with a no-op self-set to produce a WAL entry for them.
@@ -1328,7 +1328,7 @@ revoke execute on function bananagrams.concede(uuid) from public;
 grant execute on function bananagrams.concede(uuid) to authenticated;
 
 -- ============================================================
--- bananagrams.end_game — manual stop
+-- bananagrams.stop_game — manual stop
 -- ============================================================
 -- The friends' explicit "we're done" action — the uniform neutral terminal
 -- every other gametype has. Writes play_state 'ended' (nobody wins or loses),
@@ -1339,13 +1339,13 @@ grant execute on function bananagrams.concede(uuid) to authenticated;
 -- is a LOSS on your record, and it takes every player doing it to stop a game
 -- the group has simply lost interest in — so a table that wants to walk away
 -- together had no way to say so, and the game sat in the club list as the
--- current view forever. End is that way: one click, no verdict for anyone.
+-- current view forever. Stop is that way: one click, no verdict for anyone.
 --
 -- Any game player may fire it; idempotent on the play_state check (a second
 -- click, or one racing a peel-out win, raises P0001 — swallowed by the FE).
-drop function if exists bananagrams.end_game(uuid);
+drop function if exists bananagrams.stop_game(uuid);
 
-create or replace function bananagrams.end_game(target_game uuid)
+create or replace function bananagrams.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1356,7 +1356,7 @@ declare
   current_play_state text;
   player_results     jsonb;
 begin
-  -- Locked, so an End racing the winning move waits for it and then reads the
+  -- Locked, so a Stop racing the winning move waits for it and then reads the
   -- game as over, rather than overwriting the win (docs/common-schema.md →
   -- Manual end, step 1).
   perform 1 from bananagrams.games where id = target_game for update;
@@ -1402,5 +1402,8 @@ exception when others then
 end;
 $$;
 
-revoke execute on function bananagrams.end_game(uuid) from public;
-grant execute on function bananagrams.end_game(uuid) to authenticated;
+revoke execute on function bananagrams.stop_game(uuid) from public;
+grant execute on function bananagrams.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists bananagrams.end_game(uuid);

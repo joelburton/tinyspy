@@ -22,7 +22,7 @@ import type { FormErrors } from '@/common/forms/formState'
  *     there wins). OPTIONAL in coop, where it's the TEAM's win
  *     threshold: reach it together and the game ends as a win.
  *     `undefined` in coop means the open-ended word hunt, which
- *     only the clock or the End button stops — the default, and
+ *     only the clock or the Stop button stops — the default, and
  *     the right pick for a group that just wants to find words.
  *   - `required_band` / `legal_band` — the vocabulary bands, each a
  *     dictionary difficulty ceiling. `required_band` (1..6) is where

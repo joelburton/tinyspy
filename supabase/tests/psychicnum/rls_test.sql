@@ -209,7 +209,7 @@ select pg_temp.envelope_is(
 -- during-play assertions mean.
 
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select psychicnum.end_game((select id from comp_g));
+select psychicnum.stop_game((select id from comp_g));
 
 -- (15) ada now sees BOTH guesses — hers and bea's
 select is(

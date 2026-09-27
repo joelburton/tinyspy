@@ -80,10 +80,10 @@ describe('the dispatcher — matching', () => {
 
 describe('the dispatcher — state', () => {
   it('skips a hidden or disabled binding, so the key can fall through', async () => {
-    // Both want ⌥⌫; the fixture disables End, so Concede answers.
+    // Both want ⌥⌫; the fixture disables Stop, so Concede answers.
     const { runs, view } = setup(
       ['act-concede', {}],
-      ['act-end-game', { describe: () => 'disabled' as ActionState }],
+      ['act-stop-game', { describe: () => 'disabled' as ActionState }],
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
     expect(runs[1]).not.toHaveBeenCalled()
@@ -265,13 +265,13 @@ describe('the dispatcher — where a child sits in the stack', () => {
 describe('the dispatcher — the chord-tie warning', () => {
   it('names both commands when two live ones want the same key', async () => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    // The real case this was built for: bananagrams offers End alongside
+    // The real case this was built for: bananagrams offers Stop alongside
     // Concede, and the registry gives both ⌥⌫.
-    const { view } = setup(['act-end-game', {}], ['act-concede', {}])
+    const { view } = setup(['act-stop-game', {}], ['act-concede', {}])
     // ⌥⌫ matches on the PHYSICAL key — Option changes the character.
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
     expect(warn).toHaveBeenCalledTimes(1)
-    expect(warn.mock.calls[0]![0]).toContain('act-end-game')
+    expect(warn.mock.calls[0]![0]).toContain('act-stop-game')
     expect(warn.mock.calls[0]![0]).toContain('act-concede')
     warn.mockRestore()
     view.unmount()

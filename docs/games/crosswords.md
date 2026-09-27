@@ -33,13 +33,13 @@ Input is the primary axis](../mobile.md#input-is-the-primary-axis)).
 
 - **`crosswords_coop`** (`[1, 8]`) — one **shared** grid; everyone's keystrokes
   are visible live (free-for-all). Solved → the team `won`. A manual mutual
-  give-up (`end_game`) ends as a neutral **`ended`** (`reason: 'manual'`) — not
+  give-up (`stop_game`) ends as a neutral **`ended`** (`reason: 'manual'`) — not
   a loss; putting an unfinished crossword down is normal.
 - **`crosswords_compete`** (`[2, 8]`) — the same puzzle, each player fills a
   **private** grid. The **first fully-correct grid wins outright**
   (`won_compete` + `status.winner_username`). Per-player **concede**
   (`common.concede`); dropping out never ends the table for the others.
-  `end_game` is offered in this mode too — the table agreeing the crossword beat
+  `stop_game` is offered in this mode too — the table agreeing the crossword beat
   them, neutral `ended` like coop's — though no board control reaches it yet
   (§7).
 
@@ -123,7 +123,7 @@ plain RPCs — no edge function needed. The one exception is
 | `check_cells(target_game, cells jsonb)` | FE resolves letter/word/puzzle scope via `cursor.ts` and sends coordinates; server sets/clears `wrong` (skipping empty/pencil). Both modes — free in compete because it is self-informative: it says a letter is wrong and hands over nothing ([win-lose.md → The invariants](../win-lose.md#the-invariants)). |
 | `reveal_cells(target_game, cells jsonb)` | Writes the canonical answer + `revealed`, clears wrong/pencil. **Coop only** (reveal-all would trivially win the compete race). Runs the solve check afterwards, since a reveal can complete the grid — including "Reveal puzzle", which ends the game as a normal `won` (deliberate; §9). On success the FE broadcasts the revealed coords on the peer channel so teammates flash them in the actor's color (the CDC arrives colorless). |
 | `replay_board(target_game)` | The "Restart" game-menu item and terminal-row Restart: blanks every fillable cell for **every** owner (the shared grid in coop, every grid in compete) and drops its `pencil` / `wrong` / `revealed` flags + cryptic edge marks, then `common.reset_game` un-terminals the game (fresh status, results and concede cleared, clock zeroed). Givens live on the template, so they're preserved; the answer is untouched, and it re-shields because `_solution_for` gates on `is_terminal`. Guards: membership only — no `play_state` guard, so it runs mid-game or finished (the FE confirms mid-game). |
-| `end_game(target_game)` | Mutual give-up in EITHER mode → neutral `ended` (`reason: 'manual'`, `status.mode` says which); a racer who had already conceded stays conceded. Not `lost_compete`, which is the clock or the last racer quitting. Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal solution" menu item (§7 → Terminal). |
+| `stop_game(target_game)` | Mutual give-up in EITHER mode → neutral `ended` (`reason: 'manual'`, `status.mode` says which); a racer who had already conceded stays conceded. Not `lost_compete`, which is the clock or the last racer quitting. Terminal unshields the solution (`games_state`), but the FE only shows it on demand — the "Reveal solution" menu item (§7 → Terminal). |
 | `library_for_club(target_club)` — **`security invoker`** | Backs the setup form's Library picker: every library puzzle (id, title, author, width, height) plus a per-club **`status`** — `solved` / `playing` / `lost` / `unplayed` — so each row can carry a club-history color bar. Sorted **alphabetically by title** (case-insensitive, `created_at desc` breaking ties) — the picker is a list you scan by name, where import order was an accident of how the files landed. Invoker is load-bearing twice over: the `puzzles` **column grant** is what hides `solution`, and `common.games`'s club-member RLS is what stops one club's history showing in another's picker (a non-member just sees an all-`unplayed` library). Status **precedence** is solved → playing → lost, so one win makes a puzzle permanently green and `ended` shares the yellow bucket with `playing`. **Mode-agnostic** by design — a coop solve colors the compete dialog too. Why a function and not a view: the join to `play_state` is cross-schema *and* has to be OUTER, and the club is an input to it — a view exposing `club_handle` from the games side is inner by construction and would drop exactly the unplayed rows the picker exists to show. |
 | `concede` / `submit_timeout` | Standard. The setup form offers the shared `<SetupTimerSection>` like every other game; a countdown expiring takes the whole table down (coop → `lost`, compete → `lost_compete`), stamped `reason: 'timeout'` so the verdict reads "Out of time" rather than the concede wording those same states otherwise carry. |
 
@@ -395,7 +395,7 @@ sizing).
     the SAME action as its menu row and its square in the tool bar. **⌥M menu is
     NOT wired** (the shell exposes no programmatic menu open); the check/reveal
     *grid* scope has no shortcut, matching crossplay. Two more are shell-global
-    (any game): **⌥⌫** End/Concede, **`<`** Back to club — see
+    (any game): **⌥⌫** Stop/Concede, **`<`** Back to club — see
     [ui.md → GamePage menu](../ui.md#gamepage-menu).
 - **Controls** — pen/pencil toggle + Check and (coop-only) Reveal at
   letter/word/grid scope (scope resolved client-side via `cursor.ts`). Every
@@ -482,7 +482,7 @@ sizing).
   **The chrome strip has three states**, swapping in place: the control bar
   while playing; an `<InfoActionsRow>` "You conceded" line for a conceded
   compete player, with an inert Reveal (the solution is still shielded while
-  the others race) and End in Concede's place; and at terminal an action row of **Reveal solution / Hide
+  the others race) and Stop in Concede's place; and at terminal an action row of **Reveal solution / Hide
   solution** (the same toggle as the menu item) · **New game** ·
   **Back to club** (primary), with the fill / check / reveal controls gone —
   penciling a finished grid is meaningless.
@@ -545,7 +545,7 @@ Scratchpad (⌥S) / Print board (PDF) / Download as .ipuz / Print answer key (PD
 · **Check ▸** Letter (⌥C) / Word (⌥⇧C) / Grid · **Reveal ▸** Letter (⌥R) / Word
 (⌥⇧R) / Grid *(the whole submenu drops out in compete, since all three children
 hide themselves)* · Restart / Reveal solution / New game (`+`) · **Concede game
-/ End game** (⌥⌫) · **Back to club** (`<`). Every row is a bound action, so its
+/ Stop game** (⌥⌫) · **Back to club** (`<`). Every row is a bound action, so its
 words, glyph, key hint and availability come from the action rather than being
 typed here a second time — which is what makes a row and the square beside it in
 the tool bar the same thing. Notables: **Collapse rebuses** is a display-only

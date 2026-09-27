@@ -16,7 +16,7 @@
  *   - paused toggle remounts children (mount-counter assertion)
  *   - presence-only pause: the roster list, with the absent peer named
  *   - manual pause: "X paused the game" + Resume button
- *   - the End-game escape: placed from a bound action, and absent when that
+ *   - the Stop-game escape: placed from a bound action, and absent when that
  *     action says it is hidden
  *
  * The overlay is otherwise a black box here: its text is read only far enough
@@ -52,7 +52,7 @@ function escapes() {
     manuallyPausedBy: null,
     onResume: vi.fn(),
     actBackToClub: boundActionFixture('act-back-to-club'),
-    actEndGame: boundActionFixture('act-end-game'),
+    actStopGame: boundActionFixture('act-stop-game'),
   }
 }
 
@@ -159,24 +159,24 @@ describe('PauseBoundary', () => {
 
   // The escape from a wedged presence-pause. It is a bound action rather than a
   // callback because the overlay REPLACES the play area — the game's own
-  // `act-end-game` goes off the binding stack with it — so `GamePage`, which is
+  // `act-stop-game` goes off the binding stack with it — so `GamePage`, which is
   // above this boundary, binds a second one and hides it unless paused.
-  it('places End game on the overlay, and fires the action it was given', async () => {
+  it('places Stop game on the overlay, and fires the action it was given', async () => {
     const user = userEvent.setup()
-    const actEndGame = boundActionFixture('act-end-game')
+    const actStopGame = boundActionFixture('act-stop-game')
     render(
       <PauseBoundary
         {...escapes()}
         paused={true}
         players={[BEA]}
         presentUserIds={NONE_PRESENT}
-        actEndGame={actEndGame}
+        actStopGame={actStopGame}
       >
         <div>play</div>
       </PauseBoundary>,
     )
-    await user.click(screen.getByRole('button', { name: 'End game' }))
-    expect(actEndGame.run).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Stop game' }))
+    expect(actStopGame.run).toHaveBeenCalledTimes(1)
   })
 
   it('draws nothing for an action that says it is hidden', () => {
@@ -186,11 +186,11 @@ describe('PauseBoundary', () => {
         paused={true}
         players={[BEA]}
         presentUserIds={NONE_PRESENT}
-        actEndGame={boundActionFixture('act-end-game', () => ({ state: 'hidden' }))}
+        actStopGame={boundActionFixture('act-stop-game', () => ({ state: 'hidden' }))}
       >
         <div>play</div>
       </PauseBoundary>,
     )
-    expect(screen.queryByRole('button', { name: 'End game' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Stop game' })).not.toBeInTheDocument()
   })
 })

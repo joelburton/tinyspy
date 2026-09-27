@@ -4,7 +4,7 @@
 -- Test: wordle — the loss boundary (coop) + budget exhaustion (compete)
 -- ============================================================
 -- gameplay_test covers the coop WIN path and the soft rejects;
--- end_game_test covers the timeout loss. The natural Wordle loss — burn
+-- stop_game_test covers the timeout loss. The natural Wordle loss — burn
 -- every guess without solving — was the remaining gap. This file pins:
 --
 --   Coop: the 5th wrong guess (max_guesses=5) flips the shared board to

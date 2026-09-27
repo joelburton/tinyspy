@@ -8,7 +8,7 @@ import {
   type E2EClub,
   type E2EMember,
 } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
@@ -126,7 +126,7 @@ export const bananagramsGallery: GameGallery = {
       if (result !== 'won') throw new Error(`peel → ${result}, expected won`)
     }
     if (cell.phase === 'lost') await timeOut(club, 'bananagrams', id)
-    if (cell.phase === 'ended') await endGame(club, 'bananagrams', id)
+    if (cell.phase === 'ended') await stopGame(club,'bananagrams', id)
 
     return { gametype, id, viewer }
   },

@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { asUser, createSpellingbeeGame, type E2EClub } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import { gameAlreadyOver } from '../serverError'
 import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
@@ -72,7 +72,7 @@ export const spellingbeeGallery: GameGallery = {
     if (cell.phase === 'mid') await play(club, id, REQUIRED.slice(0, 3))
     if (cell.phase === 'won') await play(club, id, REQUIRED)
     if (cell.phase === 'lost') await timeOut(club, 'spellingbee', id)
-    if (cell.phase === 'ended') await endGame(club, 'spellingbee', id)
+    if (cell.phase === 'ended') await stopGame(club,'spellingbee', id)
 
     return { gametype, id, viewer: club.members[0] }
   },

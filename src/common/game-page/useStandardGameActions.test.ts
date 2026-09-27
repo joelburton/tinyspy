@@ -92,16 +92,16 @@ const REPLAYED_OK = {
 }
 
 describe('which exit a game offers', () => {
-  it('coop offers End and not Concede', () => {
+  it('coop offers Stop and not Concede', () => {
     const { result } = setup({ mode: 'coop' })
-    expect(result.current.actEndGame.describe('button').state).toBe('active')
+    expect(result.current.actStopGame.describe('button').state).toBe('active')
     expect(result.current.actConcede.describe('button').state).toBe('hidden')
   })
 
-  it('a race offers Concede and hides End', () => {
+  it('a race offers Concede and hides Stop', () => {
     const { result } = setup({ mode: 'compete' })
     expect(result.current.actConcede.describe('button').state).toBe('active')
-    expect(result.current.actEndGame.describe('button').state).toBe('hidden')
+    expect(result.current.actStopGame.describe('button').state).toBe('hidden')
   })
 
   it('a race puts BOTH endings behind Concede, not beside it', () => {
@@ -110,8 +110,8 @@ describe('which exit a game offers', () => {
     // Every race offers it (Joel, 2026-09-19).
     const { result } = setup({ mode: 'compete' })
     expect(result.current.actConcede.describe('button').state).toBe('active')
-    expect(result.current.actConcede.describe('button').label).toBe('Concede / End game')
-    expect(result.current.actEndGame.describe('button').state).toBe('hidden')
+    expect(result.current.actConcede.describe('button').label).toBe('Concede / Stop game')
+    expect(result.current.actStopGame.describe('button').state).toBe('hidden')
   })
 
   it('takes the exits away once the game is terminal', () => {
@@ -119,7 +119,7 @@ describe('which exit a game offers', () => {
     // left to end, and `disabled` means "possible here, not right now".
     const { result } = setup({ mode: 'compete', isTerminal: true })
     expect(result.current.actConcede.describe('button').state).toBe('hidden')
-    expect(result.current.actEndGame.describe('button').state).toBe('hidden')
+    expect(result.current.actStopGame.describe('button').state).toBe('hidden')
   })
 
   it('keeps Restart off the BUTTON mid-game, while the menu and its key carry it', () => {
@@ -133,24 +133,24 @@ describe('which exit a game offers', () => {
   })
 
   it('hands the table stop BACK to a racer who is out — conceded, lost, or finished', () => {
-    // Anyone in a game may end it for all (Joel, 2026-09-04 and 2026-09-24):
-    // ending is the group agreeing there is no result, and a player who is out
+    // Anyone in a game may stop it for all (Joel, 2026-09-04 and 2026-09-24):
+    // stopping is the group agreeing there is no result, and a player who is out
     // is still in the conversation. Conceding is not open to them — a conceder
     // has, a player who lost has nothing to concede, and a finisher would only
-    // throw away a win they may hold — so End comes out on its own.
+    // throw away a win they may hold — so Stop comes out on its own.
     const { result } = setup({ mode: 'compete', isLocallyTerminal: true })
     expect(result.current.actConcede.describe('button').state).toBe('hidden')
-    expect(result.current.actEndGame.describe('button').state).toBe('active')
+    expect(result.current.actStopGame.describe('button').state).toBe('active')
   })
 
   it('never shows two flags, nor a disabled one', () => {
-    // End and Concede share the flag and ⌥⌫: at most one is ever on screen, and
+    // Stop and Concede share the flag and ⌥⌫: at most one is ever on screen, and
     // a flag that is there can be pressed.
     for (const mode of ['coop', 'compete'] as const) {
       for (const isTerminal of [false, true]) {
         for (const isLocallyTerminal of [false, true]) {
           const { result } = setup({ mode, isTerminal, isLocallyTerminal })
-          const shown = [result.current.actEndGame, result.current.actConcede]
+          const shown = [result.current.actStopGame, result.current.actConcede]
             .map((a) => a.describe('button').state)
             .filter((s) => s !== 'hidden')
           expect(shown.length, `${mode} terminal=${isTerminal} out=${isLocallyTerminal}`).toBeLessThanOrEqual(1)
@@ -166,19 +166,19 @@ describe('which exit a game offers', () => {
   })
 })
 
-describe('endGame', () => {
-  it('asks, then fires end_game', async () => {
+describe('stopGame', () => {
+  it('asks, then fires stop_game', async () => {
     const { result, rpc } = setup()
     rpc.mockResolvedValue(ENDED_OK)
-    act(() => result.current.actEndGame.run())
+    act(() => result.current.actStopGame.run())
     await flush()
     expect(askConfirmation).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' })
+    expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' })
   })
 
   it('does nothing if the question is answered no', async () => {
     const { result, rpc } = setup({ confirmed: false })
-    act(() => result.current.actEndGame.run())
+    act(() => result.current.actStopGame.run())
     await flush()
     expect(rpc).not.toHaveBeenCalled()
   })
@@ -186,7 +186,7 @@ describe('endGame', () => {
   it('shows a not-ok into the local slot, as a notOk', async () => {
     const { result, rpc, shown } = setup()
     rpc.mockResolvedValue(ALREADY_CONCEDED)
-    act(() => result.current.actEndGame.run())
+    act(() => result.current.actStopGame.run())
     await flush()
     expect(shown).toHaveBeenCalledTimes(1)
     expect(shown.mock.calls[0]![0].kind).toBe('notOk')
@@ -195,7 +195,7 @@ describe('endGame', () => {
   it('says nothing on the ok arm — the terminal arrives by subscription', async () => {
     const { result, rpc, shown } = setup()
     rpc.mockResolvedValue(ENDED_OK)
-    act(() => result.current.actEndGame.run())
+    act(() => result.current.actStopGame.run())
     await flush()
     expect(shown).not.toHaveBeenCalled()
   })
@@ -231,18 +231,18 @@ describe('concede', () => {
       const { result } = setup({ mode: 'compete' })
       act(() => result.current.actConcede.run())
       expect(lastQuestion()).toMatchObject({
-        title: 'Concede, or end the game?',
+        title: 'Concede, or stop the game?',
         confirmLabel: 'Concede',
-        alternativeLabel: 'End for all',
+        alternativeLabel: 'Stop for all',
       })
     })
 
-    it('fires end_game when the alternative is picked', async () => {
+    it('fires stop_game when the alternative is picked', async () => {
       const { result, rpc } = setup({ mode: 'compete', answer: 'alternative' })
       rpc.mockResolvedValue(ENDED_OK)
       act(() => result.current.actConcede.run())
       await flush()
-      expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' })
+      expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' })
       expect(rpc).not.toHaveBeenCalledWith('concede', { target_game: 'g1' })
     })
 

@@ -83,7 +83,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 }
 
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 /**
  * Start is blocked until a puzzle is chosen (library) / a weekday or date is
@@ -186,8 +186,8 @@ export const crosswordsCoopGame: GameManifest = {
   startGameInClub: startGameInClubFactory('coop'),
   labelFor: coopLabel,
   submitTimeout,
-  // Coop has a whole-table "end now" (a neutral mutual give-up).
-  endGame,
+  // Coop has a whole-table "stop now" (a neutral mutual give-up).
+  stopGame,
 }
 
 export const crosswordsCompeteGame: GameManifest = {
@@ -214,8 +214,8 @@ export const crosswordsCompeteGame: GameManifest = {
   labelFor: competeLabel,
   submitTimeout,
   // Compete has BOTH, as every race does: `concede` is one racer dropping out
-  // (a loss on their record), End is the whole table agreeing to stop with no
-  // result. The board offers End inside Concede's question, and the pause
+  // (a loss on their record), Stop is the whole table agreeing to stop with no
+  // result. The board offers Stop inside Concede's question, and the pause
   // overlay uses it too, as the escape from a wedged presence-pause.
-  endGame,
+  stopGame,
 }

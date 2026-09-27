@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { asUser, createConnectionsGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import type { Cell, GameGallery } from '../types'
 
 /**
@@ -85,7 +85,7 @@ export const connectionsGallery: GameGallery = {
         for (const set of WRONG_SETS) await guess(rival, id, set, 'wrong', null)
       }
     }
-    if (cell.phase === 'ended') await endGame(club, 'connections', id)
+    if (cell.phase === 'ended') await stopGame(club,'connections', id)
 
     return { gametype, id, viewer }
   },

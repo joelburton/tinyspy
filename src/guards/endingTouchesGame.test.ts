@@ -11,7 +11,7 @@
  * right after a reload and wrong until then (docs/common-schema.md → Manual end,
  * step 5; → Concede).
  *
- * **This exists because the rule was a step in a doc.** End followed it
+ * **This exists because the rule was a step in a doc.** Stop followed it
  * everywhere; three concede and timeout paths did not (found 2026-09-24).
  * vitest cannot see it — it stubs the server — and e2e passes because a live
  * page re-renders for other reasons. Only reading the SQL finds it, so this

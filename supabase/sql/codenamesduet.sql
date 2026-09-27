@@ -591,7 +591,7 @@ begin
       detail = 'no clues in sudden_death';
   end if;
   if current_play_state <> 'playing' then
-    -- A race: the partner pressed End, or the countdown expired, while this
+    -- A race: the partner pressed Stop, or the countdown expired, while this
     -- clue was being composed. Their action reaches this client by
     -- subscription, so the form is still up when the game is already over.
     raise exception 'Game over'
@@ -752,7 +752,7 @@ begin
     from common.games where id = target_game;
 
   if current_play_state not in ('playing', 'sudden_death') then
-    -- A race: the partner ended the game — pressed End, ran the clock out, or
+    -- A race: the partner ended the game — pressed Stop, ran the clock out, or
     -- in sudden death turned over the word that lost it — while this guess was
     -- in flight.
     raise exception 'Game over'
@@ -1071,7 +1071,7 @@ grant execute on function codenamesduet.submit_guess(uuid, int) to authenticated
 -- realtime carries the loss to both.
 --
 -- Its `current_clue_giver = null` write is also what wakes the
--- codenamesduet.games subscription, which end_game has to do on purpose.
+-- codenamesduet.games subscription, which stop_game has to do on purpose.
 
 drop function if exists codenamesduet.submit_timeout(uuid);
 
@@ -1224,7 +1224,7 @@ revoke execute on function codenamesduet.replay_board(uuid) from public;
 grant execute on function codenamesduet.replay_board(uuid) to authenticated;
 
 -- ============================================================
--- codenamesduet.end_game — manual stop
+-- codenamesduet.stop_game — manual stop
 -- ============================================================
 -- The friends' explicit "we're done here" button. codenamesduet has
 -- plenty of *automatic* terminals (won, and lost by assassin, spent turns or
@@ -1232,10 +1232,10 @@ grant execute on function codenamesduet.replay_board(uuid) to authenticated;
 -- may still want to abandon an in-progress game early. This RPC is that
 -- escape hatch.
 --
--- Fired by `act-end-game`, the End button in the info column's action row
--- and the End game row of the header menu.
+-- Fired by `act-stop-game`, the Stop button in the info column's action row
+-- and the Stop game row of the header menu.
 -- Distinct from suspend (which leaves play_state untouched and is the
--- path "back to club" + start-a-new-game takes): end_game writes a
+-- path "back to club" + start-a-new-game takes): stop_game writes a
 -- terminal play_state='ended' with status.reason='manual', so the
 -- game lands in the club's "completed" section and the
 -- terminal verdict reads a neutral "Game ended" (not a "you lost").
@@ -1250,9 +1250,9 @@ grant execute on function codenamesduet.replay_board(uuid) to authenticated;
 -- terminal, finds the game already over and answers
 -- common._raise_game_over()'s race, as submit_timeout does.
 
-drop function if exists codenamesduet.end_game(uuid);
+drop function if exists codenamesduet.stop_game(uuid);
 
-create or replace function codenamesduet.end_game(target_game uuid)
+create or replace function codenamesduet.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1320,8 +1320,11 @@ exception when others then
 end;
 $$;
 
-revoke execute on function codenamesduet.end_game(uuid) from public;
-grant execute on function codenamesduet.end_game(uuid) to authenticated;
+revoke execute on function codenamesduet.stop_game(uuid) from public;
+grant execute on function codenamesduet.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists codenamesduet.end_game(uuid);
 
 -- ============================================================
 -- codenamesduet.pass_turn

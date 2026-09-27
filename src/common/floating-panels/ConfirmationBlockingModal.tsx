@@ -6,11 +6,11 @@ import { StandardButton } from '../buttons/StandardButton'
 import { CancelButton } from '../buttons/CancelButton'
 
 type Props = {
-  // The question, e.g. "End this game?".
+  // The question, e.g. "Stop this game?".
   title: string
   // The body — what happens if they confirm.
   message: ReactNode
-  // The confirm button's label ("End game", "Suspend"). Never a bare "OK": the
+  // The confirm button's label ("Stop game", "Suspend"). Never a bare "OK": the
   // button names the act.
   confirmLabel: string
   // The SECOND way to say yes, drawn between Cancel and the confirm. Pass it

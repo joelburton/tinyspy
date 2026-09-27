@@ -28,7 +28,7 @@ export type Answer = EventRow['kind']
  *     is a turn that counted and that nothing adjudicates. Calling it `won`
  *     would make trading tiles read like scoring.
  *   - a **pass** is the same shape with nothing bought.
- *   - **leftovers** is the row `end_game` writes when a coop table stops with
+ *   - **leftovers** is the row `stop_game` writes when a coop table stops with
  *     tiles still in hand, carrying their value as a negative score. It is
  *     `neutral` too: the table decided to stop, which is not a defeat, and the
  *     negative number in the row already says what it cost.

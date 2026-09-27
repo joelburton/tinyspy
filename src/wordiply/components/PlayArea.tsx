@@ -159,7 +159,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const base = game?.base ?? ''
 
   // ─── The local feedback slot ────
-  // The slot above the keyboard: the word engine's rejections, End / Concede's
+  // The slot above the keyboard: the word engine's rejections, Stop / Concede's
   // not-oks, and the standing conditions below. At terminal it takes the
   // keyboard's place.
   const localFeedbackSlot = useFeedbackSlot('local')
@@ -289,11 +289,11 @@ export function PlayArea(ctx: GamePageCtx) {
       },
     })
 
-  // ─── End / Concede / Replay — the shared trio ──────────
+  // ─── Stop / Concede / Replay — the shared trio ──────────
   // The byte-identical shared handlers (useStandardGameActions); only the
   // replay sentence is wordiply's. Its not-oks land in the same slot as a
   // rejected word. New game stays below — its create path diverges per game.
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -404,7 +404,7 @@ export function PlayArea(ctx: GamePageCtx) {
         menu,
         // Both exits, in reading order; each hides itself in the mode that isn't
         // its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           { items: [actRestart, actNewGame, actReveal] },
           { items: [actPrintBoard] },
@@ -412,7 +412,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actReveal, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actReveal, actPrintBoard])
 
   // ─── Coop peer-guess narration (global header) ─────────
   // coop's guesses are club-wide, so a teammate's guess arrives in `guesses`;
@@ -585,7 +585,7 @@ export function PlayArea(ctx: GamePageCtx) {
           scoreByUser={scoreByUser}
           concededIds={concededIds}
           actReveal={actReveal}
-          actEndGame={actEndGame}
+          actStopGame={actStopGame}
           actConcede={actConcede}
           actRestart={actRestart}
           actNewGame={actNewGame}

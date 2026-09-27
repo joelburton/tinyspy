@@ -72,7 +72,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 // common/manifest/manifestRpcs). submit_timeout is mode-aware server-side
 // (per-mode terminal vocab lives in wordwheel.submit_timeout) + idempotent.
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 type StatusBlob = Record<string, unknown>
 
@@ -140,7 +140,7 @@ export const wordwheelCoopGame: GameManifest = {
   },
 
   submitTimeout,
-  endGame,
+  stopGame,
 }
 
 export const wordwheelCompeteGame: GameManifest = {
@@ -201,5 +201,5 @@ export const wordwheelCompeteGame: GameManifest = {
   },
 
   submitTimeout,
-  endGame,
+  stopGame,
 }

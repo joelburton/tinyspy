@@ -13,7 +13,7 @@ the ones beneath.
 
 stackdown is a **coop / compete sibling pair** like the other multiplayer
 games (`stackdown_coop`, `stackdown_compete`), and inherits the shared chrome
-— timer (or none), chat, presence-pause, manual "End game" — through
+— timer (or none), chat, presence-pause, manual "Stop game" — through
 `<GamePage>` + `useCommonGame`.
 
 ---
@@ -269,10 +269,10 @@ creation, so it's self-contained; `board_id` is provenance only.
   formula](#title-formula)).
 - **`submit_timeout(target_game)`** — countdown expiry: coop → `lost`, compete →
   `lost_compete` (a race, so no winner if it gets here).
-- **`end_game(target_game)`** — manual neutral stop → `ended`, **both modes**
+- **`stop_game(target_game)`** — manual neutral stop → `ended`, **both modes**
   (the RPC doesn't branch on mode; any game player, idempotent on the
-  `playing` check). Coop's action row and menu show End; compete's show Concede,
-  whose question offers ending for everyone as its second answer
+  `playing` check). Coop's action row and menu show Stop; compete's show Concede,
+  whose question offers stopping for everyone as its second answer
   (`useStandardGameActions`, for every race) — so the
   `stackdown_compete | ended — manual end` labels row is reachable from the
   board.
@@ -337,7 +337,7 @@ creation, so it's self-contained; `board_id` is provenance only.
   "Hint: <clue>") the same way. Both requests ride the events RLS, so a coop
   request shows to everyone and a compete one only to the requester.
 
-`submit_timeout` / `end_game` go through `common.end_game` (which writes
+`submit_timeout` / `stop_game` go through `common.end_game` (which writes
 `common.games`, not `stackdown.*`), so each does a realtime "touch"
 (`update stackdown.games set club_handle = club_handle`) to wake the FE's
 per-schema subscription.
@@ -555,7 +555,7 @@ the pill.
   board + WordEntry input engine + the local feedback slot; takes the board to
   render — live or a `lib/history` snapshot — plus `readOnly`, and emits the
   completed word up), `InfoCol` (the info column: state, compete OpponentStrip,
-  action row of Reveal-hint/Reveal-word cheats + End/Concede as bound actions,
+  action row of Reveal-hint/Reveal-word cheats + Stop/Concede as bound actions,
   help, setup, the asked-for words reveal, and the GameEventLog log), `PlayArea`
   (the thin two-column coordinator: `useGame` + the submit + game-over + the
   history `historyId`; in compete it filters the log to the caller's own so it
@@ -609,7 +609,7 @@ re-run `g-stackdown-genpuzzles` when you actually want NEW boards.)
 
 pgTAP under `supabase/tests/stackdown/`: `create_game` (board claim + hidden
 solution + board-deletion survival), `gameplay` (a full coop solve), `compete`
-(the race + per-player tally), `end_game` (manual stop), `reveal` (the cheat
+(the race + per-player tally), `stop_game` (manual stop), `reveal` (the cheat
 tracks solution order + is player/in-progress gated), `concede` (the thin
 wrapper over the generic `common.concede`: the compete-only mode guard + that it
 delegates — the full matrix lives in `common/concede_test.sql`), `replay`

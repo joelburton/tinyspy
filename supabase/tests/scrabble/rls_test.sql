@@ -71,7 +71,7 @@ reset role;
 
 -- ─── Racks reveal once the game is terminal ──────────────
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
-select scrabble.end_game((select id from g));
+select scrabble.stop_game((select id from g));
 reset role;
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select isnt(

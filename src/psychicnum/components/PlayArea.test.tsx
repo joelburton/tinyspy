@@ -2,14 +2,14 @@
 
 /**
  * Component tests for psychicnum's PlayArea — focused on the per-player
- * CONCEDE flow (compete drop-out) and its coop counterpart (whole-table End).
+ * CONCEDE flow (compete drop-out) and its coop counterpart (whole-table Stop).
  *
  * psychicnum is an ELIMINATION game: each player has an independent guess
  * budget, so "done for me" (out of budget, or conceded) can happen while the
  * others keep racing. Concede is the deliberate version of that — a real loss
- * that leaves the rest playing (the opposite of coop's end_game, which stops the
+ * that leaves the rest playing (the opposite of coop's stop_game, which stops the
  * game for everyone). These tests pin the wiring: compete offers Concede →
- * psychicnum.concede; coop offers End → psychicnum.end_game; a conceded opponent
+ * psychicnum.concede; coop offers Stop → psychicnum.stop_game; a conceded opponent
  * reads "out" mid-game; and after I concede I get the locally-terminal look.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
@@ -46,7 +46,7 @@ vi.mock('../db', () => ({ db: { rpc: vi.fn() } }))
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 
 // Budget rows (psychicnum.players): guesses_used below the setup's 7 so the
-// viewer can act (the "playing" action row with its End/Concede button shows).
+// viewer can act (the "playing" action row with its Stop/Concede button shows).
 const me: PlayerRow = { user_id: 'u1', guesses_used: 0, found_secrets_count: 0 }
 const moth: PlayerRow = { user_id: 'u2', guesses_used: 0, found_secrets_count: 0 }
 
@@ -141,7 +141,7 @@ const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
 const bound = (id: ActionId) => liveBindings().find((b) => b.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
- *  share the modal's words ("End game" / "End game"); the modal's is the one
+ *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
  *  the host adds, so it is last in the DOM. */
 async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
   const buttons = await screen.findAllByRole('button', { name })
@@ -176,7 +176,7 @@ describe('psychicnum PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
-  it('coop shows End (not Concede) and calls end_game', async () => {
+  it('coop shows Stop (not Concede) and calls stop_game', async () => {
     const user = userEvent.setup()
     h.result = loaded(coopGame)
     render(
@@ -186,14 +186,13 @@ describe('psychicnum PlayArea — concede', () => {
       </>,
     )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    // The trigger and the modal's confirm now share the name "End game" (the
-    // button label went from "End" to the full phrase, since icon-only buttons
-    // make the label the accessible name). The confirm is the one the dialog
-    // adds, so it's last in the DOM.
-    await user.click(screen.getByRole('button', { name: 'End game' }))
-    const confirms = await screen.findAllByRole('button', { name: 'End game' })
+    // The trigger and the modal's confirm share the name "Stop game" (an
+    // icon-only button's label is its accessible name). The confirm is the one
+    // the dialog adds, so it's last in the DOM.
+    await user.click(screen.getByRole('button', { name: 'Stop game' }))
+    const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1])
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('keeps each action button its own tone — the color IS what it means', () => {
@@ -203,7 +202,7 @@ describe('psychicnum PlayArea — concede', () => {
     render(<PlayAreaLoader {...makeCtx()} />)
     expect(screen.getByRole('button', { name: 'Hint' }).className).toMatch(/caution/)
     expect(screen.getByRole('button', { name: 'Spoiler' }).className).toMatch(/caution/)
-    expect(screen.getByRole('button', { name: 'End game' }).className).toMatch(/destructive/)
+    expect(screen.getByRole('button', { name: 'Stop game' }).className).toMatch(/destructive/)
   })
 
   it('marks a conceded opponent "out" in the strip', () => {
@@ -738,7 +737,7 @@ describe('psychicnum PlayArea — the keys', () => {
     expect(rpc).not.toHaveBeenCalledWith('create_game', expect.anything())
   })
 
-  it('⌥⌫ in coop asks to end the game, and yes calls end_game', async () => {
+  it('⌥⌫ in coop asks to stop the game, and yes calls stop_game', async () => {
     const user = userEvent.setup()
     render(
       <>
@@ -748,10 +747,10 @@ describe('psychicnum PlayArea — the keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
-    await answer(user, 'End game')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await answer(user, 'Stop game')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('⌥⌫ in compete asks to concede, and yes calls concede', async () => {
@@ -765,10 +764,10 @@ describe('psychicnum PlayArea — the keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await answer(user, 'Concede')
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
-    expect(rpc).not.toHaveBeenCalledWith('end_game', expect.anything())
+    expect(rpc).not.toHaveBeenCalledWith('stop_game', expect.anything())
   })
 
   describe('⌥Z shuffles the board', () => {

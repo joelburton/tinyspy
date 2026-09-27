@@ -1,7 +1,7 @@
 // cs-unmet
 
 import { asUser, createStrandsGame, type E2EClub, type E2EMember } from '../../helpers/fixtures'
-import { endGame } from '../endGame'
+import { stopGame } from '../stopGame'
 import { timeOut } from '../timeOut'
 import type { Cell, GameGallery } from '../types'
 
@@ -63,7 +63,7 @@ export const strandsGallery: GameGallery = {
       if (cell.mode === 'compete') await trace(club.members[1], id, paths)
     }
     if (cell.phase === 'lost') await timeOut(club, 'strands', id)
-    if (cell.phase === 'ended') await endGame(club, 'strands', id)
+    if (cell.phase === 'ended') await stopGame(club,'strands', id)
 
     return { gametype, id, viewer }
   },

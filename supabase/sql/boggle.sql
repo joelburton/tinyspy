@@ -470,9 +470,9 @@ revoke execute on function boggle.submit_word(uuid, text, int, boolean) from pub
 grant execute on function boggle.submit_word(uuid, text, int, boolean) to authenticated;
 
 -- ============================================================
--- _finish / end_game / submit_timeout — terminal transitions.
+-- _finish / stop_game / submit_timeout — terminal transitions.
 -- ============================================================
--- A game ends three ways: a player hits End (`reason = 'manual'`), the timer
+-- A game ends three ways: a player hits Stop (`reason = 'manual'`), the timer
 -- expires (`'timeout'`), or a score TARGET is reached (`'target'`, see
 -- submit_word — only when setup.win_percent is set). Coop has no individual
 -- winner (the team's total is the score); compete without a target ranks by
@@ -566,7 +566,7 @@ begin
     --                               the best score") would flag them ALL winners
     --                               of a game nobody played  → lost_compete
     --   'manual'                  → the friends chose to stop; neutral, no
-    --                               winner, like every other game's End → ended
+    --                               winner, like every other game's Stop → ended
     term_state := case
       when reason = 'target' then 'won_compete'
       when reason = 'timeout' and g_win_pct is not null then 'lost_compete'
@@ -640,9 +640,9 @@ $$;
 
 revoke execute on function boggle._finish(uuid, text, uuid) from public;
 
-drop function if exists boggle.end_game(uuid);
+drop function if exists boggle.stop_game(uuid);
 
-create or replace function boggle.end_game(target_game uuid)
+create or replace function boggle.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -683,8 +683,11 @@ exception when others then
 end;
 $$;
 
-revoke execute on function boggle.end_game(uuid) from public;
-grant execute on function boggle.end_game(uuid) to authenticated;
+revoke execute on function boggle.stop_game(uuid) from public;
+grant execute on function boggle.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists boggle.end_game(uuid);
 
 -- ============================================================
 -- boggle.replay_board — restart this board from scratch
@@ -776,7 +779,7 @@ grant execute on function boggle.replay_board(uuid) to authenticated;
 -- common.concede handles it: mark the caller out; if that was the last
 -- racer, end as a collective loss. This wrapper keeps the FE uniform
 -- (`db.rpc('concede')`) and gates concede to compete (coop ends via
--- the shared End, never a concede).
+-- the shared Stop, never a concede).
 drop function if exists boggle.concede(uuid);
 
 create or replace function boggle.concede(target_game uuid)
@@ -823,7 +826,7 @@ declare
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
   g_playstate text;
 begin
-  -- Row check before the gate, and a check at all — see end_game above.
+  -- Row check before the gate, and a check at all — see stop_game above.
   perform 1 from boggle.games where id = target_game for update;
   if not found then
     perform common._raise_game_deleted('boggle');

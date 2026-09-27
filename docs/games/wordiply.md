@@ -317,7 +317,7 @@ validated-guess RPC.
   carries; see [states.md → Compete is
   different](../states.md#compete-is-different-the-clock-resolves-a-race)).
 
-- **`wordiply.end_game(target_game)`** — the manual "we're done" stop, in
+- **`wordiply.stop_game(target_game)`** — the manual "we're done" stop, in
   **both** modes: coop → `_finish_coop(…, 'manual')`, the neutral `ended`;
   compete → `_finish_compete(…, 'manual', pick_winner => false)` — also `ended`,
   everyone `won: false`, **no winner crowned** (agreeing to stop isn't a race
@@ -484,7 +484,7 @@ stop *random* boards repeating.
 |---|---|---|
 | guesses | **5 shared** (the whole team fills the five lines together) | **5 per player** (each has their own five-line board) |
 | visibility | everyone sees every guess live (each row shows its length); **scores + longest word revealed at terminal** | opponents' **guesses + scores hidden** mid-game (an opponent shows only **guesses used `n/5`**); full reveal at terminal |
-| ends | after the team's 5th guess / timeout / manual `end_game` | once every active player has spent 5 / timeout / concede |
+| ends | after the team's 5th guess / timeout / manual `stop_game` | once every active player has spent 5 / timeout / concede |
 | terminal verdict | "Ended: **N%**, M letters" — outcome `neutral` (coop has no win, you just did as well as you did; the info column fills in the LengthScoreBar + longest word). The clock is the exception: "Lost: out of time, **N%**" | "Won: N%" (co-winners "Won: tied at N%"); a loser sees who won, with their identity dot — "● moth won at 78%" |
 | players | `[1, 6]` (solo allowed) | `[2, 6]` |
 
@@ -521,7 +521,7 @@ follows it line-for-line).
 - **`manifest.ts`** — `wordiplyCoopGame` / `wordiplyCompeteGame`, a single
   `BRAND` const, shared lazy loaders (Help / PlayArea / SetupForm),
   `startGameInClub` → `runEdgeFn('wordiply-build-board', …)`, `submitTimeout` /
-  `endGame` via `makeRpcDispatcher`, per-mode `labelFor`. Register both in the
+  `stopGame` via `makeRpcDispatcher`, per-mode `labelFor`. Register both in the
   games registry + add to the CLAUDE.md doc map.
 - **`db.ts`** — typed client on schema `wordiply`.
 - **`lib/setup.ts`** — `WordiplySetup = CoopTurnSetup & { timer, difficulty,
@@ -755,7 +755,7 @@ fixture in `setup.psql`):
   free-for-all leaves it null.
 - `winner_test` — compete winner by length score; **tiebreak letter count**,
   then **time**; co-winner case; timeout resolves the formula.
-- `terminal_test` — coop `end_game` (→ `ended`/`manual`); coop timeout (the one
+- `terminal_test` — coop `stop_game` (→ `ended`/`manual`); coop timeout (the one
   coop loss); `replay_board` wipes guesses + un-terminals; `concede`, including
   the last-racer's concede resolving the race rather than hanging it.
 - `turn_order_test` also pins the **turn-cost split** (below): a structural
@@ -805,7 +805,7 @@ fixture in `setup.psql`):
   `<WordEntryInput>` (that needs a physical keyboard).
 - **Feedback:** `useFeedbackSlot` / `usePeerFeedback` / `<FeedbackPill>`.
 - **Info column:** `<OpponentStrip>`, `<SetupDisclosure>`, `<Stats>`-style
-  readout, `<InfoActionsRow>`, the standard actions (`act-end-game` /
+  readout, `<InfoActionsRow>`, the standard actions (`act-stop-game` /
   `act-concede` / `act-restart` / `act-new-game` / `act-back-to-club`), each
   placed as an `<ActionButton>`. A `<LengthScoreBar>` is likely new (or a thin
   reskin of wordwheel's `<RankBar>`, which is already "fill to a target

@@ -251,9 +251,9 @@ export function PlayArea(ctx: GamePageCtx) {
 
   // ─── Concede / Restart — the shared exits ──────────────────────────────
   // bananagrams is compete-only, so its exits are a race's: Concede, whose
-  // question also offers stopping the whole table, and End once your Concede
+  // question also offers stopping the whole table, and Stop once your Concede
   // is spent (useStandardGameActions says why the two live behind one button).
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -381,13 +381,13 @@ export function PlayArea(ctx: GamePageCtx) {
   // The FULL bananagrams menu. `buildGameMenu` supplies the framing (Help + chat
   // above, Back to club below); the middle is this game's own rows, each one a
   // binding it already made. The game is compete-only, so the only exit row is
-  // Concede — which reads "Concede / End game", because a race offers both
+  // Concede — which reads "Concede / Stop game", because a race offers both
   // endings inside its question (useStandardGameActions).
   useEffect(function publishGameMenu() {
     menu.setGameSections(
       buildGameMenu({
         menu,
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           { items: [actPrintBoard] },
           // The same pair the terminal row offers, reachable mid-game too.
@@ -396,7 +396,7 @@ export function PlayArea(ctx: GamePageCtx) {
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actRestart, actNewGame, actPrintBoard])
+  }, [menu, actConcede, actStopGame, actRestart, actNewGame, actPrintBoard])
 
   // ─── Did I win? ────────────────────────────────────────────────────────
   // Derived UP HERE (not beside the terminal verdict below) because the
@@ -560,17 +560,17 @@ export function PlayArea(ctx: GamePageCtx) {
   ) : isLocallyTerminal ? (
     <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
       {/* Both exits are placed and each says whether it applies: out of the
-          race, Concede hides and End comes out in its place — one flag, since
-          anyone in a game may end it for all. */}
+          race, Concede hides and Stop comes out in its place — one flag, since
+          anyone in a game may stop it for all. */}
       <ActionButton action={actConcede} show="icon" />
-      <ActionButton action={actEndGame} show="icon" />
+      <ActionButton action={actStopGame} show="icon" />
     </InfoActionsRow>
   ) : (
     // Both exits are placed, but only Concede draws while you are racing: its
-    // question offers ending the table as the second answer.
-    // End comes out on its own only once your Concede is spent.
+    // question offers stopping the table as the second answer.
+    // Stop comes out on its own only once your Concede is spent.
     <>
-      <ActionButton action={actEndGame} show="icon" />
+      <ActionButton action={actStopGame} show="icon" />
       <ActionButton action={actConcede} show="icon" />
     </>
   )

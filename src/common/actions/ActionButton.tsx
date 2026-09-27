@@ -48,7 +48,7 @@ export function ActionButton({ action, ...rest }: Props) {
       icon={icon ?? spec.icon}
       tone={spec.tone}
       tooltip={bubble}
-      // …but the button is still CALLED "End game", not "End game · ⌥⌫". A
+      // …but the button is still CALLED "Stop game", not "Stop game · ⌥⌫". A
       // standard button takes its accessible name from the tooltip when it has
       // one, which is right where the tooltip renames it ("Club" / "Back to
       // club") and wrong here, where the tooltip only adds a hint.

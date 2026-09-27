@@ -813,7 +813,7 @@ revoke execute on function psychicnum._maybe_finish_compete(uuid) from public;
 -- conceded. So after flipping the shared flag we check whether any
 -- NON-conceded player still has budget; if not (and nobody won — a win
 -- would have ended the game already), the game ends as a collective loss.
--- Compete only (coop is a team; it ends via the shared End).
+-- Compete only (coop is a team; it ends via the shared Stop).
 drop function if exists psychicnum.concede(uuid);
 
 create or replace function psychicnum.concede(target_game uuid)
@@ -1181,11 +1181,11 @@ revoke execute on function psychicnum.submit_timeout(uuid) from public;
 grant execute on function psychicnum.submit_timeout(uuid) to authenticated;
 
 -- ============================================================
--- psychicnum.end_game — manual stop
+-- psychicnum.stop_game — manual stop
 -- ============================================================
 --
 -- psychicnum is a deliberately minimal toy, but it carries the
--- same manual "End game" affordance every other game has, for
+-- same manual "Stop game" affordance every other game has, for
 -- consistency: any friend in the game can decide the group is
 -- done and stop it. (The Zoom-call answer to "we're bored, let's
 -- move on" — see CLAUDE.md's audience note.)
@@ -1207,15 +1207,15 @@ grant execute on function psychicnum.submit_timeout(uuid) to authenticated;
 -- status so the labelFor / modal can stay mode-aware if it wants.
 --
 -- The Realtime touch at the end is the same trick documented in
--- the other games' end_game: common.end_game writes to
+-- the other games' stop_game: common.end_game writes to
 -- common.games, but the FE's useGame subscribes to
 -- psychicnum.games (filtered id=eq.gameId). A no-op self-set on
 -- psychicnum.games produces a WAL entry Realtime picks up, so the
 -- FE refetches and the post-terminal number reveal updates.
 
-drop function if exists psychicnum.end_game(uuid);
+drop function if exists psychicnum.stop_game(uuid);
 
-create or replace function psychicnum.end_game(target_game uuid)
+create or replace function psychicnum.stop_game(target_game uuid)
 returns jsonb
 language plpgsql
 security definer
@@ -1276,8 +1276,11 @@ exception when others then
 end;
 $$;
 
-revoke execute on function psychicnum.end_game(uuid) from public;
-grant execute on function psychicnum.end_game(uuid) to authenticated;
+revoke execute on function psychicnum.stop_game(uuid) from public;
+grant execute on function psychicnum.stop_game(uuid) to authenticated;
+
+-- stop_game's old name; supabase/sql is re-applied, not diffed, so it needs an explicit drop.
+drop function if exists psychicnum.end_game(uuid);
 
 -- ============================================================
 -- psychicnum.replay_board — restart this board from scratch

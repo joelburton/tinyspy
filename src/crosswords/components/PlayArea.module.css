@@ -89,7 +89,7 @@
   gap: 0.4rem;
 }
 /* The tool row. Everything in it — the fill toggle, check/reveal, and the
- * End / Concede action — is laid out by <Controls>, which owns the grouping
+ * Stop / Concede action — is laid out by <Controls>, which owns the grouping
  * and the rules between groups (Controls.module.css). */
 /* @@ */ .toolRow {
   display: flex;

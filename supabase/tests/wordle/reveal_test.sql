@@ -36,7 +36,7 @@ select (wordle.create_game(
   'coop')->'data'->>'id')::uuid as id;
 
 -- ── A manual end: over for everyone, but the answer stays covered ──
-select wordle.end_game((select id from g1));
+select wordle.stop_game((select id from g1));
 
 -- Still as ada: the target is now readable through games_state — the shield
 -- lifts at terminal regardless of outcome.

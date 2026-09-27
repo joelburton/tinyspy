@@ -39,7 +39,7 @@ export function buildTerminalMessage({
         default:
           return { pillText: 'Lost', infoColText: 'Lost', outcome: 'lost' }
       }
-    // Manual end (codenamesduet.end_game): the friends stopped the game on
+    // Manual end (codenamesduet.stop_game): the friends stopped the game on
     // purpose — the shared neutral ending.
     case 'ended':
       return gameEndedTerminalMessage('coop')

@@ -4,7 +4,7 @@
 -- Test: scrabble AUTOMATIC finish (_finish) + final scoring
 -- ============================================================
 -- The game-ends-itself paths, as opposed to the player-initiated
--- end_game / submit_timeout in end_game_test.sql (named the standard
+-- stop_game / submit_timeout in stop_game_test.sql (named the standard
 -- per-game way; this file is split out so the two aren't one keystroke
 -- apart). Going-out (bag empty + rack empty) and blocked (every active seat
 -- passed in a row) trigger _finish: coop is a neutral 'ended' score report; compete

@@ -54,7 +54,7 @@ export function InfoCol({
   scoreByUser,
   concededIds,
   // ── Action row ──
-  actEndGame,
+  actStopGame,
   actConcede,
   actRestart,
   actNewGame,
@@ -108,8 +108,8 @@ export function InfoCol({
   concededIds: Set<string>
 
   // ── Action row ──
-  /** End the game for the whole table — coop's exit; it hides itself in a race. */
-  actEndGame: BoundAction
+  /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
+  actStopGame: BoundAction
   /** Drop out of a race while the others play on — hidden outside compete. */
   actConcede: BoundAction
   /** Play this base again from scratch. */
@@ -188,8 +188,8 @@ export function InfoCol({
         )}
 
         {/* Action row — ICON-ONLY. TERMINAL: outcome line + Restart / Reveal /
-            New game / Club. CONCEDED (others race on): the terminal look + End.
-            PLAYING: End (coop) / Concede (compete) + back-to-club. */}
+            New game / Club. CONCEDED (others race on): the terminal look + Stop.
+            PLAYING: Stop (coop) / Concede (compete) + back-to-club. */}
         {over ? (
           <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             <ActionButton action={actRestart} show="icon" />
@@ -204,17 +204,17 @@ export function InfoCol({
         ) : isConceded ? (
           <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
             {/* Both exits are placed and each says whether it applies: out of
-                the race, Concede hides and End comes out in its place — one
-                flag, since anyone in a game may end it for all. */}
+                the race, Concede hides and Stop comes out in its place — one
+                flag, since anyone in a game may stop it for all. */}
             <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
+            <ActionButton action={actStopGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
             <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
+            <ActionButton action={actStopGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
           </InfoActionsRow>
         )}

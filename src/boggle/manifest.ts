@@ -53,7 +53,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 // Timeout (mode-aware + idempotent server-side) + manual end — the shared
 // one-arg RPC dispatchers (see common/manifest/manifestRpcs).
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 type StatusBlob = Record<string, unknown>
 type SetupBlob = Record<string, unknown> | null
@@ -147,7 +147,7 @@ export const boggleCoopGame: GameManifest = {
   startGameInClub: startGameInClubFactory('coop'),
   labelFor: (row) => coopLabel(row),
   submitTimeout,
-  endGame,
+  stopGame,
 }
 
 export const boggleCompeteGame: GameManifest = {
@@ -172,5 +172,5 @@ export const boggleCompeteGame: GameManifest = {
   startGameInClub: startGameInClubFactory('compete'),
   labelFor: (row) => competeLabel(row),
   submitTimeout,
-  endGame,
+  stopGame,
 }

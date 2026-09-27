@@ -1,13 +1,13 @@
 // cs-blessed-manifest
 
 /**
- * Build the `submitTimeout` and `endGame` functions a game's manifest declares.
+ * Build the `submitTimeout` and `stopGame` functions a game's manifest declares.
  *
  * Reach for this from a `manifest.ts` — it is the whole of what those two
  * members need:
  *
  *     submitTimeout: makeRpcDispatcher(db, 'submit_timeout'),
- *     endGame: makeRpcDispatcher(db, 'end_game'),
+ *     stopGame: makeRpcDispatcher(db, 'stop_game'),
  *
  * `GameManifest` wants a `(gameId) => Promise<Envelope<GameStopResult>>` thunk
  * for each, and every game would otherwise write the same closure by hand.
@@ -31,7 +31,7 @@ import type { GameStopResult } from './gameManifest'
  * **Generic over the ONE function name being called**, so a call site only has
  * to prove its client can call *that* function rather than every name this
  * module might use. No game needs that narrowing: every schema defines both
- * `submit_timeout` and `end_game`. It is kept because a per-call constraint
+ * `submit_timeout` and `stop_game`. It is kept because a per-call constraint
  * costs nothing and is the honest requirement — a client that can call one of
  * them is all this function uses.
  *

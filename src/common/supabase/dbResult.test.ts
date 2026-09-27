@@ -851,13 +851,13 @@ describe('reportUnhandled', () => {
 
   it('writes a FAULT line AND raises a modal carrying it', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    reportUnhandled('end_game', okAnswer)
+    reportUnhandled('stop_game', okAnswer)
     await reported()
 
     const line = spy.mock.calls.map((c) => String(c[0])).join('\n')
     expect(line).toContain('[db]')
     expect(line).toContain('FAULT')
-    expect(line).toContain('end_game')
+    expect(line).toContain('stop_game')
     expect(line).toContain('dbcode=PN488')
     // The answer itself, which is what turns "there is a bug" into "here it is".
     expect(line).toContain('already_ended')
@@ -865,7 +865,7 @@ describe('reportUnhandled', () => {
     expect(line).toContain('status=200')
 
     const [fault] = peekFaultsForTest()
-    expect(fault.text).toBe('BUG: end_game fell through to unhandled')
+    expect(fault.text).toBe('BUG: stop_game fell through to unhandled')
     // The half a call site cannot write itself: something under the sentence.
     expect(fault.diagnostics).toContain('dbcode=PN488')
   })
@@ -876,7 +876,7 @@ describe('reportUnhandled', () => {
     // does not have — so the field is left off, and this is the one [db] line
     // where a blank status= means "not known here".
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    reportUnhandled('end_game', {
+    reportUnhandled('stop_game', {
       ...okAnswer, type: 'not-ok', data: null, severity: 'fault',
       message: 'permission denied', dbcode: '42501',
     })
@@ -899,7 +899,7 @@ describe('reportUnhandled', () => {
   it('reports nothing when the tab is stale and reloading instead', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.mocked(reloadIfStaleBuild).mockResolvedValueOnce(true)
-    reportUnhandled('end_game', okAnswer)
+    reportUnhandled('stop_game', okAnswer)
     await reported()
     expect(spy).not.toHaveBeenCalled()
     expect(peekFaultsForTest()).toHaveLength(0)

@@ -17,7 +17,7 @@
     compete's count, so nothing on screen is wrong.
   - `psychicnum.sql`, `submit_guess`: "The FE gates on myConceded" — the
     name is `isConceded`.
-  - `psychicnum.sql`, `end_game`'s header: "the post-terminal number reveal"
+  - `psychicnum.sql`, `stop_game`'s header: "the post-terminal number reveal"
     — what is revealed is the three secret words.
 
 - **The `reason` names the act that ended the game.** When some compete

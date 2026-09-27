@@ -74,7 +74,7 @@ function startGameInClubFactory(mode: 'coop' | 'compete') {
 // Timeout + manual end — the shared one-arg RPC dispatchers. submit_timeout
 // is mode-aware server-side + idempotent.
 const submitTimeout = makeRpcDispatcher(db, 'submit_timeout')
-const endGame = makeRpcDispatcher(db, 'end_game')
+const stopGame = makeRpcDispatcher(db, 'stop_game')
 
 type StatusBlob = Record<string, unknown>
 type LeaderRow = { user_id?: string; guesses_used?: number; length_score?: number; won?: boolean }
@@ -171,7 +171,7 @@ export const wordiplyCoopGame: GameManifest = {
   labelFor: (row) => coopLabel(row),
 
   submitTimeout,
-  endGame,
+  stopGame,
 }
 
 export const wordiplyCompeteGame: GameManifest = {
@@ -203,5 +203,5 @@ export const wordiplyCompeteGame: GameManifest = {
   labelFor: (row) => competeLabel(row),
 
   submitTimeout,
-  endGame,
+  stopGame,
 }

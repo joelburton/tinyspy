@@ -38,7 +38,7 @@ export function InfoCol({
   selfId,
   metricByUser,
   concededIds,
-  actEndGame,
+  actStopGame,
   actConcede,
   actRestart,
   actNewGame,
@@ -71,12 +71,12 @@ export function InfoCol({
   /** Who has conceded (drives the OpponentStrip "out" mid-game). */
   concededIds: Set<string>
 
-  // ── Action row (End/Concede, back-to-club at terminal) ──
+  // ── Action row (Stop/Concede, back-to-club at terminal) ──
   // (ICON-ONLY buttons — the waffle arrangement; tooltips carry the labels.
-  //  Playing: End/Concede + back-to-club. Terminal: Restart + New game +
+  //  Playing: Stop/Concede + back-to-club. Terminal: Restart + New game +
   //  back-to-club.)
-  /** End the game for the whole table — coop's exit; it hides itself in a race. */
-  actEndGame: BoundAction
+  /** Stop the game for the whole table — coop's exit; it hides itself in a race. */
+  actStopGame: BoundAction
   /** Drop out of a race while the others play on — hidden outside compete. */
   actConcede: BoundAction
   /** Restart THIS board — same faces, finds wiped. */
@@ -123,7 +123,7 @@ export function InfoCol({
             metricFor={(p, isSelf) => {
               const peerScore = isSelf ? score : (metricByUser.get(p.user_id) ?? 0)
               // Mid-game: a conceder reads as "out". At terminal, prefix the outcome
-              // verb so the "no longer active" states read differently — "Quit at 12"
+              // verb so the "no longer active" states read differently — "Conceded at 12"
               // vs "Lost at 12" vs "Won at 40"; an ordinary player shows the number.
               if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : peerScore
               const member = players.find((m) => m.user_id === p.user_id)
@@ -136,7 +136,7 @@ export function InfoCol({
             carry the labels). TERMINAL: the bold outcome line + Restart /
             New game / back-to-club (primary). CONCEDED (the others race on):
             the terminal LOOK — a status line + the now-disabled Concede.
-            PLAYING: End/Concede + back-to-club (via the suspend-confirm flow). */}
+            PLAYING: Stop/Concede + back-to-club (via the suspend-confirm flow). */}
         {over ? (
           <InfoActionsRow message={{ text: over.infoColText, outcome: over.outcome }}>
             {/* Stay-here options left of the leave option (Club): run this
@@ -148,17 +148,17 @@ export function InfoCol({
         ) : isLocallyTerminal ? (
           <InfoActionsRow message={{ text: 'You conceded', outcome: 'neutral' }}>
             {/* Both exits are placed and each says whether it applies: out of
-                the race, Concede hides and End comes out in its place — one
-                flag, since anyone in a game may end it for all. */}
+                the race, Concede hides and Stop comes out in its place — one
+                flag, since anyone in a game may stop it for all. */}
             <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
+            <ActionButton action={actStopGame} show="icon" />
           </InfoActionsRow>
         ) : (
           <InfoActionsRow>
             {/* Both exits are placed; each hides itself in the mode that isn't
                 its own, so this row asks nothing about coop vs compete. */}
             <ActionButton action={actConcede} show="icon" />
-            <ActionButton action={actEndGame} show="icon" />
+            <ActionButton action={actStopGame} show="icon" />
             <ActionButton action={actBackToClub} show="icon" />
           </InfoActionsRow>
         )}

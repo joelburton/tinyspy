@@ -238,15 +238,15 @@ describe('strands PlayArea — the three phases', () => {
     expect(screen.queryByText('Words:')).not.toBeInTheDocument()
   })
 
-  it('compete: a racer who is out still has the one flag — End for all', () => {
-    // Conceding is closed to a player already out; ending the game for all is
-    // open to anyone in it, so the row's flag is End.
+  it('compete: a racer who is out still has the one flag — Stop for all', () => {
+    // Conceding is closed to a player already out; stopping the game for all is
+    // open to anyone in it, so the row's flag is Stop.
     const me = player({ solved: true })
     h.result = loaded({ game: loadedGame({ mode: 'compete' }), me, players: [me] })
     const solver = gp('u1', 'me', 'red', { locally_terminal: true })
     render(<PlayArea {...makeCtx({ players: [solver], isTerminal: false, playState: 'playing' })} />)
     expect(control('act-concede')).toBeNull()
-    expect(control('act-end-game')).not.toBeNull()
+    expect(control('act-stop-game')).not.toBeNull()
   })
 })
 
@@ -452,7 +452,7 @@ describe('strands PlayArea — + and ⌥⌫ through the dispatcher', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('⌥⌫ in coop asks End game’s question; yes calls end_game', async () => {
+  it('⌥⌫ in coop asks Stop game’s question; yes calls stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
     render(
@@ -462,12 +462,12 @@ describe('strands PlayArea — + and ⌥⌫ through the dispatcher', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     // The trigger and the modal's confirm share the name; the confirm is the
     // one the dialog adds, so it's last in the DOM.
-    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('⌥⌫ in compete asks Concede’s question; yes calls concede', async () => {
@@ -482,7 +482,7 @@ describe('strands PlayArea — + and ⌥⌫ through the dispatcher', () => {
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Concede' }))
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })

@@ -38,7 +38,7 @@ export function buildTerminalMessage({
   // Compete: the winner's frozen username (for the "X won" message).
   winnerName: string
 }): TerminalMessage {
-  // Manual end ('ended', written by psychicnum.end_game) is the uniform neutral
+  // Manual end ('ended', written by psychicnum.stop_game) is the uniform neutral
   // terminal shared with the other games — the shared message owns it.
   if (playState === 'ended') return gameEndedTerminalMessage(mode)
   if (mode === 'coop') {

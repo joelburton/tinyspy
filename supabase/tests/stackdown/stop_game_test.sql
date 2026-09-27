@@ -1,7 +1,7 @@
 -- cs-unmet
 
 -- ============================================================
--- Test: stackdown.end_game (manual) + submit_timeout
+-- Test: stackdown.stop_game (manual) + submit_timeout
 -- ============================================================
 -- Manual end is the neutral terminal ('ended', nobody wins), idempotent.
 -- A countdown timeout is a loss (coop 'lost').
@@ -25,7 +25,7 @@ select (stackdown.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid],
   'coop')->'data'->>'id')::uuid as id;
-select stackdown.end_game((select id from g1));
+select stackdown.stop_game((select id from g1));
 
 reset role;
 select is(
@@ -42,7 +42,7 @@ select is(
 -- Idempotency: a second end is rejected.
 select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
-  stackdown.end_game((select id from g1)),
+  stackdown.stop_game((select id from g1)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'ending an already-ended game is rejected');

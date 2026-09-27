@@ -368,13 +368,13 @@ function PlayArea({
   // through a ref it refreshes every render, and the bound value's identity
   // turns on `pending` alone.
 
-  // The shared trio — End / Concede / Restart. psychicnum's own bit is which
+  // The shared trio — Stop / Concede / Restart. psychicnum's own bit is which
   // `db` they call; a restart needs nothing else from this game, because the
   // page unmounts the whole play surface when the run changes
   // (common/game-page/doc.md). The turn-history view, a lingering result and
   // the revealed secrets all go with it, so the same three are hunted blind
   // again.
-  const { actEndGame, actConcede, actRestart } = useStandardGameActions({
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
     isTerminal,
@@ -542,7 +542,7 @@ function PlayArea({
         menu,
         // Both exits, in reading order; each hides itself in the mode that
         // isn't its own, so this list is the same in coop and compete.
-        exits: [actConcede, actEndGame],
+        exits: [actConcede, actStopGame],
         extra: [
           // The menu twins of the info column's hint and spoiler buttons.
           { items: [actHint, actSpoiler] },
@@ -562,7 +562,7 @@ function PlayArea({
       }),
     )
     return () => menu.setGameSections([])
-  }, [menu, actConcede, actEndGame, actHint, actSpoiler, actReveal,
+  }, [menu, actConcede, actStopGame, actHint, actSpoiler, actReveal,
       actRestart, actNewGame, actPrintBoard])
 
   // ─── Render ────────────────────────────────────────────
@@ -701,7 +701,7 @@ function PlayArea({
         actRestart={actRestart}
         actNewGame={actNewGame}
         actConcede={actConcede}
-        actEndGame={actEndGame}
+        actStopGame={actStopGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setupRows={summaryRows}

@@ -77,7 +77,7 @@ the app; this folder is where it is enforced.
 **The two escapes are `GamePage`'s bindings, not the overlay's.** The overlay is
 unmounted the moment the pause clears, so an action bound inside it would leave
 the dispatcher's stack with it. `GamePage` sits above the boundary and stays
-mounted, so it binds both and the overlay merely places them. Its `act-end-game`
+mounted, so it binds both and the overlay merely places them. Its `act-stop-game`
 hides itself unless paused, which is what keeps it from ever being live alongside
 the game's own binding of that action.
 
@@ -94,7 +94,7 @@ GamePage                              the shell, above the pause — stays mount
                         ├── Dot              × the players it lists (members/)
                         ├── DotActor         "X paused the game" (members/)
                         ├── StandardButton   Resume (buttons/)
-                        └── ActionButton × 2 back to club, end game — both
+                        └── ActionButton × 2 back to club, stop game — both
                                              bound by GamePage (actions/)
 
 GamePage.requestBackToClub            multiplayer, mid-game:

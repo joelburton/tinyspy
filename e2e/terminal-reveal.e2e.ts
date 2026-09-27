@@ -59,9 +59,9 @@ test('stackdown: a lost game hides its words until Reveal — row and menu', asy
   await expect(revealItem).toBeDisabled()
   await page.keyboard.press('Escape')
 
-  // End the game — a manual end, so NOT a clean win.
-  await page.getByRole('button', { name: 'End game' }).first().click()
-  await page.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
+  // Stop the game — a manual end, so NOT a clean win.
+  await page.getByRole('button', { name: 'Stop game' }).first().click()
+  await page.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
   await expect(revealRow).toBeVisible({ timeout: 8000 })
 
   // Terminal, but the words are still covered.
@@ -130,9 +130,9 @@ test('stackdown: one player revealing does NOT open the words for the other', as
   const wordsA = a.getByText(/^The words were/)
   const wordsB = b.getByText(/^The words were/)
 
-  // A ends it for the table; neither sees the words yet.
-  await a.getByRole('button', { name: 'End game' }).first().click()
-  await a.locator('[data-floating-panel]').getByRole('button', { name: 'End game' }).click()
+  // A stops it for the table; neither sees the words yet.
+  await a.getByRole('button', { name: 'Stop game' }).first().click()
+  await a.locator('[data-floating-panel]').getByRole('button', { name: 'Stop game' }).click()
   await expect(actionButton(a, 'act-reveal')).toBeVisible({ timeout: 8000 })
   await expect(wordsA).toHaveCount(0)
   await expect(wordsB).toHaveCount(0)

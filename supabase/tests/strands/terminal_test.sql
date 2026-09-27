@@ -112,7 +112,7 @@ select (strands.create_game(
   array['ada11111-1111-1111-1111-111111111111'::uuid,
         'bea22222-2222-2222-2222-222222222222'::uuid], 'coop')->'data'->>'id')::uuid as id;
 
-select strands.end_game((select id from game2));
+select strands.stop_game((select id from game2));
 
 select is(
   (select play_state from common.games where id = (select id from game2)),
@@ -144,7 +144,7 @@ select isnt(
 );
 
 select pg_temp.envelope_is(
-  strands.end_game((select id from game2)),
+  strands.stop_game((select id from game2)),
   '{"type":"not-ok","severity":"race","outcome":"noted","dbcode":"PN486",
     "message":"Game over"}'::jsonb,
   'ending twice raises — idempotency the FE swallows, as elsewhere');

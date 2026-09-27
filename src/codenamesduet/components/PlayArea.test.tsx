@@ -457,25 +457,25 @@ describe('codenamesduet PlayArea — the terminal partner-key reveal', () => {
 
 /**
  * The info column's ONE action row: every action placed once, each deciding
- * for itself whether its button shows. While the game runs: End and Back to
+ * for itself whether its button shows. While the game runs: Stop and Back to
  * club. At the end: Reveal, Restart, New game and Back to club. Restart, New
  * game and Reveal stay menu rows all game — "not in the menu" would be
  * `?.hidden === true`, and these are not hidden there.
  */
 describe('codenamesduet PlayArea — the action row', () => {
-  const ROW = ['act-reveal', 'act-restart', 'act-new-game', 'act-concede', 'act-end-game', 'act-back-to-club']
+  const ROW = ['act-reveal', 'act-restart', 'act-new-game', 'act-concede', 'act-stop-game', 'act-back-to-club']
   const buttons = () => ROW.filter((id) => control(id) !== null)
 
-  it('while the game runs: End and Back to club — the rest are the menu\u2019s', () => {
+  it('while the game runs: Stop and Back to club — the rest are the menu\u2019s', () => {
     const live = makeCtx()
     render(<PlayAreaLoader {...live} />)
-    expect(buttons()).toEqual(['act-end-game', 'act-back-to-club'])
+    expect(buttons()).toEqual(['act-stop-game', 'act-back-to-club'])
     for (const id of ['act-reveal', 'act-restart', 'act-new-game']) {
       expect(menuItems(live).get(id)?.hidden).not.toBe(true)
     }
   })
 
-  it('at the end: Reveal, Restart, New game and Back to club — End is gone', () => {
+  it('at the end: Reveal, Restart, New game and Back to club — Stop is gone', () => {
     render(<PlayAreaLoader {...makeCtx({ isTerminal: true, playState: 'lost', status: { reason: 'assassin' } })} />)
     expect(buttons()).toEqual(['act-reveal', 'act-restart', 'act-new-game', 'act-back-to-club'])
   })
@@ -586,7 +586,7 @@ describe('codenamesduet PlayArea — the guesser’s Pass and the giver’s AI',
  * The commands through the dispatcher — `+`, `⌥⌫` and Restart — with the real
  * confirmation host mounted where a question is expected. A question asked
  * with no host is answered no, so the host is what lets these prove a question
- * was asked rather than skipped. Duet is coop-only, so `⌥⌫` is always End.
+ * was asked rather than skipped. Duet is coop-only, so `⌥⌫` is always Stop.
  */
 describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () => {
   it('+ at terminal samples the next board with no question', async () => {
@@ -626,7 +626,7 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('⌥⌫ asks End game’s question; yes calls end_game', async () => {
+  it('⌥⌫ asks Stop game’s question; yes calls stop_game', async () => {
     const user = userEvent.setup()
     rpc.mockResolvedValue(okEnvelope({ result: 'ended' }))
     render(
@@ -636,12 +636,12 @@ describe('codenamesduet PlayArea — + and ⌥⌫ through the dispatcher', () =>
       </>,
     )
     await press({ key: 'Backspace', code: 'Backspace', altKey: true })
-    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     // The trigger and the modal's confirm share the name; the confirm is the
     // one the dialog adds, so it's last in the DOM.
-    const confirms = screen.getAllByRole('button', { name: 'End game' })
+    const confirms = screen.getAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1]!)
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('Restart mid-game asks, and goes straight through at terminal', async () => {

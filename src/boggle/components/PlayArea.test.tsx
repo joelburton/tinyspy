@@ -159,7 +159,7 @@ const OPT_Z = { key: 'Ω', code: 'KeyZ', altKey: true }
 const bound = (id: ActionId) => liveBindings().find((b) => b.id === id)!
 
 /** Answer the open question with the button that says `name`. The trigger can
- *  share the modal's words ("End game" / "End game"); the modal's is the one
+ *  share the modal's words ("Stop game" / "Stop game"); the modal's is the one
  *  the host adds, so it is last in the DOM. */
 async function answer(user: ReturnType<typeof userEvent.setup>, name: string) {
   const buttons = await screen.findAllByRole('button', { name })
@@ -283,7 +283,7 @@ describe('boggle PlayArea — render smoke', () => {
   })
 
   it('compete: a race the friends stopped is neutral, whoever was ahead', () => {
-    // boggle.end_game writes `ended`; without this the scores were compared,
+    // boggle.stop_game writes `ended`; without this the scores were compared,
     // and a stopped race read as a win for the leader and a loss for the rest.
     h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
@@ -315,7 +315,7 @@ describe('boggle PlayArea — render smoke', () => {
 
 /**
  * The icon-only action rows (the waffle arrangement — labels live in
- * tooltips): PLAYING = End/Concede + Back-to-club (the shell's
+ * tooltips): PLAYING = Stop/Concede + Back-to-club (the shell's
  * suspend-confirm flow); TERMINAL = Restart + New game + Back-to-club.
  * Restart = boggle.replay_board (unconfirmed at terminal); New game = the
  * boggle-build-board edge function with THIS game's setup/roster/mode,
@@ -581,7 +581,7 @@ describe('boggle PlayArea — coop peer narration (global header)', () => {
 describe('boggle PlayArea — concede', () => {
   // Concede = a per-player "I quit, the game continues for the others" action for
   // COMPETE (boggle is non-elimination, so it's the only way to a locally-done
-  // state). Coop keeps the neutral whole-table End. Mirrors spellingbee's block.
+  // state). Coop keeps the neutral whole-table Stop. Mirrors spellingbee's block.
 
   it('compete shows Concede and calls boggle.concede on click', async () => {
     const user = userEvent.setup()
@@ -600,7 +600,7 @@ describe('boggle PlayArea — concede', () => {
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
   })
 
-  it('coop shows End (not Concede) and calls end_game', async () => {
+  it('coop shows Stop (not Concede) and calls stop_game', async () => {
     const user = userEvent.setup()
     render(
       <>
@@ -609,14 +609,14 @@ describe('boggle PlayArea — concede', () => {
       </>,
     )
     expect(screen.queryByRole('button', { name: /concede/i })).not.toBeInTheDocument()
-    // The trigger and the modal's confirm now share the name "End game" (the
-    // button label went from "End" to the full phrase, since icon-only buttons
-    // make the label the accessible name). The confirm is the one the dialog
+    // The trigger and the modal's confirm share the name "Stop game" (the
+    // button label is the full phrase, since icon-only buttons make the label
+    // the accessible name). The confirm is the one the dialog
     // adds, so it's last in the DOM.
-    await user.click(screen.getByRole('button', { name: 'End game' }))
-    const confirms = await screen.findAllByRole('button', { name: 'End game' })
+    await user.click(screen.getByRole('button', { name: 'Stop game' }))
+    const confirms = await screen.findAllByRole('button', { name: 'Stop game' })
     await user.click(confirms[confirms.length - 1])
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('marks a conceded opponent "out" in the strip (mid-game)', () => {
@@ -641,13 +641,13 @@ describe('boggle PlayArea — concede', () => {
       />,
     )
     expect(screen.getByText('You conceded')).toBeInTheDocument()
-    // The one flag: conceding is spent, and ending the game for all is open to
-    // anyone in it, so End takes Concede's place.
+    // The one flag: conceding is spent, and stopping the game for all is open to
+    // anyone in it, so Stop takes Concede's place.
     expect(document.querySelector('button[data-action="act-concede"]')).toBeNull()
-    expect(document.querySelector('button[data-action="act-end-game"]')).not.toBeNull()
+    expect(document.querySelector('button[data-action="act-stop-game"]')).not.toBeNull()
   })
 
-  it('distinguishes Quit / Lost / Won at terminal in the strip', () => {
+  it('distinguishes Conceded / Lost / Won at terminal in the strip', () => {
     h.result = loaded(loadedGame({ mode: 'compete' }))
     render(
       <PlayArea
@@ -656,7 +656,7 @@ describe('boggle PlayArea — concede', () => {
           playState: 'ended',
           players: [
             gp('u1', 'me', 'red', { result: { won: false } }), // self → Lost
-            gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }), // → Quit
+            gp('u2', 'moth', 'blue', { conceded: true, result: { won: false } }), // → Conceded
             gp('u3', 'cade', 'green', { result: { won: true } }), // → Won
           ],
           status: {
@@ -668,7 +668,7 @@ describe('boggle PlayArea — concede', () => {
         })}
       />,
     )
-    expect(screen.getByText(/Quit at/)).toBeInTheDocument()
+    expect(screen.getByText(/Conceded at/)).toBeInTheDocument()
     expect(screen.getByText(/Won at/)).toBeInTheDocument()
     expect(screen.getByText(/Lost at/)).toBeInTheDocument()
   })
@@ -714,7 +714,7 @@ describe('boggle PlayArea — the keys', () => {
     expect(startEdgeFn).not.toHaveBeenCalled()
   })
 
-  it('⌥⌫ in coop asks to end the game, and yes calls end_game', async () => {
+  it('⌥⌫ in coop asks to stop the game, and yes calls stop_game', async () => {
     const user = userEvent.setup()
     render(
       <>
@@ -724,10 +724,10 @@ describe('boggle PlayArea — the keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('End this game?')).toBeInTheDocument()
+    expect(await screen.findByText('Stop this game?')).toBeInTheDocument()
     expect(rpc).not.toHaveBeenCalled()
-    await answer(user, 'End game')
-    await waitFor(() => expect(rpc).toHaveBeenCalledWith('end_game', { target_game: 'g1' }))
+    await answer(user, 'Stop game')
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('stop_game', { target_game: 'g1' }))
   })
 
   it('⌥⌫ in compete asks to concede, and yes calls concede', async () => {
@@ -741,10 +741,10 @@ describe('boggle PlayArea — the keys', () => {
     )
 
     press(OPT_BACKSPACE)
-    expect(await screen.findByText('Concede, or end the game?')).toBeInTheDocument()
+    expect(await screen.findByText('Concede, or stop the game?')).toBeInTheDocument()
     await answer(user, 'Concede')
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('concede', { target_game: 'g1' }))
-    expect(rpc).not.toHaveBeenCalledWith('end_game', expect.anything())
+    expect(rpc).not.toHaveBeenCalledWith('stop_game', expect.anything())
   })
 
   describe('⌥Z rotates the board', () => {

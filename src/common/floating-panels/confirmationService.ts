@@ -6,7 +6,7 @@ import type { ConfirmAnswer, ConfirmOptions } from './confirmations'
 /**
  * Ask a confirmation question from anywhere, with no component in the way:
  *
- *     if ((await askConfirmation(END_GAME_CONFIRM)) !== 'confirm') return
+ *     if ((await askConfirmation(STOP_GAME_CONFIRM)) !== 'confirm') return
  *
  * **The only way to ask.** Components call it the same way everything else does
  * — scrabble's Pass and the word dialog's Delete are components and just await

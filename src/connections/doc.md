@@ -80,7 +80,7 @@ answered guess clears everyone's selection — correct, one away, wrong, or
 already tried; a guess the server doesn't take keeps it.
 
 The team wins at four bands, and loses on the fourth mistake or when a
-countdown expires. End is the neutral stop — nobody won, nobody lost. Turn
+countdown expires. Stop ends the game neutrally — nobody won, nobody lost. Turn
 order is opt-in (`coop_style: 'turns'`): the server holds the pointer and
 advances it on every recorded guess, correct or not, since both spend the
 budget; a repeat that the server refuses records nothing and advances
@@ -279,7 +279,7 @@ either.
 
 ### The rest
 
-`concede`, `end_game`, `submit_timeout` and `replay_board` — the common shape
+`concede`, `stop_game`, `submit_timeout` and `replay_board` — the common shape
 every game has, doing here what they do everywhere. Two things are this
 game's: `concede` re-runs `_maybe_finish_compete`, because a conceder leaving
 can be the last one alive; and `replay_board` clears the guess log, which is
@@ -387,7 +387,7 @@ What is connections' own:
   in both modes, and the info column's state line restates the count as text.
 - **The info column** shows the state line, Found for compete (the shared
   `OpponentStrip`), then the one action row: Hints | Reveal · Restart · New
-  game · Concede · End, each shown or hidden by its action's own rule, and
+  game · Concede · Stop, each shown or hidden by its action's own rule, and
   Back to club at the end. Hints unfolds `<HintList>` inline — one row per
   category, each with its own Show hint for the category's first word; per
   player, never broadcast, and it closes with the board.
@@ -426,7 +426,7 @@ fixture puzzle whose date and source id are alien to the real archive:
 | `compete_test` | the compete delta: per-player mistakes and bands, first to four ends it, elimination and the collective loss, an eliminated racer's guess is a race, timeout, and the RLS that scopes rows to the caller |
 | `concede_test` | a conceder counts as not alive; the last one out ends the race as `conceded` |
 | `turn_order_test` | the pointer seats, an out-of-turn guess is refused, a fresh guess advances, a race does not |
-| `end_game_test` · `replay_test` · `rls_test` | the neutral stop and its realtime touch; Restart un-matches by deleting the log; an outsider sees nothing and can change nothing |
+| `stop_game_test` · `replay_test` · `rls_test` | the neutral stop and its realtime touch; Restart un-matches by deleting the log; an outsider sees nothing and can change nothing |
 | `next_puzzle_test` | the queue is per player and across clubs; a spent archive and an empty date are not-oks naming `puzzle_id`; the override filters nothing |
 
 Vitest, beside the code:
@@ -439,7 +439,7 @@ Vitest, beside the code:
 | `lib/selection.test` | the click rule on the union of everyone's picks, and a reducer whose no-op returns the same map |
 | `lib/setup.test` · `lib/setupSummary.test` | the two keys the default leaves out; the recap's order, and a puzzle date that names the same day in every timezone |
 | `hooks/useGame.test` | one stable room per game, rebuilt on `gameId` and never on a session refresh |
-| `components/PlayArea.test` | a failed load is not a missing game; Concede vs End per mode; the ended board, and Reveal / Hide; the celebration, mine only; the board-scope marks; whose pick is ringed; the in-flight dim, the verdict fill and the three ways a mark ends; attention on a band; every key, and the action row per asker |
+| `components/PlayArea.test` | a failed load is not a missing game; Concede vs Stop per mode; the ended board, and Reveal / Hide; the celebration, mine only; the board-scope marks; whose pick is ringed; the in-flight dim, the verdict fill and the three ways a mark ends; attention on a band; every key, and the action row per asker |
 | `components/SetupForm.test` · `manifest.test` | the puzzle line and the date override; the setup passes through with `puzzle_id` absent unless typed |
 | `pdf/model.test` | A–D, whose bands print on whose track, and the log line |
 
