@@ -1142,3 +1142,20 @@ not.
   connections keep a `COMPETE_LOSS` table for compete, and wordle words its
   coop loss with an inline `reason === 'timeout'` check instead. Survey all
   sixteen and decide whether they should share one approach.
+- **How coop keeps team state on the players table** (Joel, 2026-09-28).
+  Most games copy one team value onto every player's row in lock-step —
+  connections (mistakes), psychicnum (guesses), wordle (guesses, solved),
+  letterboxed (the chain), strands (the hint bar), waffle (board, swaps);
+  some games keep a coop value on their own `games` row instead. Audit every
+  game's coop state and settle on one pattern. After common-tables is built.
+- **"difficulty" as a name for a dictionary band** (Joel, 2026-09-28). The
+  schema has been moving to `*_band` (`legal_band`, `required_band`), and
+  "difficulty" fails as a name: a game can have two bands; a higher band
+  makes some games easier (letterboxed, strands: more escape words) and
+  others harder; and games have other knobs that set how hard they are
+  (wordle with a lower legal band is *easier*, yet `difficulty = 1` reads as
+  harder). Scan every place a band is called difficulty — setup keys
+  (`setup.difficulty` in waffle and wordiply), the front end's
+  `difficultyValue`, docs, and `common.words.difficulty` itself — and name
+  each for the band it is. A setup key is stored data, so renaming one is a
+  migration.

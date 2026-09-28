@@ -130,4 +130,12 @@
 
 ## Maybe
 
+- **Coop hints owned per player?** Today the coop hint bar is one pool
+  copied onto every player's row in lock-step. Storing what each player
+  earned (Moth 2, Joel 1, the bar their sum) would allow "in coop you spend
+  only your own points" and, following from it, "only the spender sees the
+  hint" — it would be mean for Moth to spend her points and Joel to
+  unscramble the word first. Needs a decision on the feature before the data
+  changes.
+
 ## Won't do
