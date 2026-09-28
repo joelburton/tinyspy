@@ -335,7 +335,8 @@ so its first commit adds `clubpage_info` and widens `CommonGameListRow` to
 carry both, and its last drops `status`.
 
 **The reason map** (stage 2's backfill): today's stored `reason` to the
-category; the detail is today's value (`stopped` for `manual`). The category
+category; the detail is today's value (`stopped` for `manual`, `neutral` for
+codenamesduet's `turns`). The category
 depends on the game where one word means two things (`cleared`,
 `complete`).
 
@@ -356,7 +357,7 @@ depends on the game where one word means two things (`cleared`,
 | `complete` | scrabble (a player went out with the bag empty) | `resource_exhausted` |
 | `exhausted` | psychicnum, waffle, wordle | `resource_exhausted` |
 | `mistakes` | connections | `resource_exhausted` |
-| `turns` | codenamesduet (a miss in sudden death; the turns running out never ends the game) | `fatal_move` |
+| `turns` | codenamesduet (a miss in sudden death; the turns running out never ends the game) | `fatal_move`, and the detail is rewritten `neutral` (Joel, 2026-09-28: `turns` misleads — the act is guessing a neutral in sudden death); codenamesduet writes `neutral` from then on |
 | `assassin` | codenamesduet | `fatal_move` |
 | `blocked` | scrabble compete (every seat passed in a row) | `all_passed` |
 | `unsolved` | strands, unreachable today | `resource_exhausted` |

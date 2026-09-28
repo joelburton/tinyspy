@@ -90,6 +90,7 @@ of their table. The words the columns hold (`reached_goal`, `won`, `near`,
 | `game_ended_reason` | text | new | why it ended — one of `reached_goal`, `resource_exhausted`, `all_passed`, `fatal_move`, `conceded`, `timeout`, `stopped`; null exactly when `ended_at` is |
 | `game_ended_reason_detail` | text | new | the game's own word for that act (`solved`, `assassin`, `mistakes`, `target`…); null exactly when `ended_at` is |
 | `game_ended_outcome` | text | new | `won`, `lost`, `near` or `neutral`; null exactly when `ended_at` is |
+| `game_ended_by_user_id` | uuid | new | the player whose act ended the game: the Stop-presser, the last to concede, the last passer, the player whose move ended it (a solve, a fatal move, using up a resource, their own or a shared one), or — for a `timeout` in a game played in turns — whoever held the turn. Null only for a `timeout` nobody's turn covers (a game without turns; codenamesduet's sudden death with both players holding words), and while the game is being played |
 | `clubpage_info` | jsonb | new | what the club page shows beyond these columns, as data (the manifest's `labelFor` words it); a copy, written by the game in the move that changes it |
 | `leaderboard` | jsonb | new | compete: one entry per player — `user_id` and the game's own numbers under its own names; coop: `[]`. A copy, written by `<game>._leaderboard()` in the move that changes it |
 | `current_turn_user_id` | uuid | kept | whose turn it is, in a game played in turns; null otherwise |
@@ -99,6 +100,11 @@ of their table. The words the columns hold (`reached_goal`, `won`, `near`,
 | `is_terminal` | boolean | dropped | → `ended_at is not null` |
 | `status` | jsonb | dropped | → `clubpage_info`, `leaderboard`, the reason pair, the game's own tables |
 | `paused` | boolean | dropped | nothing sets it |
+
+`game_ended_by_user_id`'s backfill: past games never recorded who ended
+them, so it is null for every existing row. (A named winner is no stand-in:
+in a game that ends when every player is done, and in scrabble, the winner's
+move is not always the one that ended it.)
 
 Checks: `mode in ('coop','compete')`; the reason from the seven; the outcome
 from the four; the reason, detail and outcome all null or all set, and set
@@ -120,11 +126,17 @@ Moth's facts are here).
 | `player_ended_reason_detail` | text | new | the game's own word for it (`solved`, `mistakes`, `exhausted`, `conceded`) |
 | `final_ranking` | integer | new | the player's `final-ranking`: 1, 1, 3…; null for a player not ranked; null until the game ends |
 | `outcome` | text | new | `won` (ranked 1), `near` (ranked 2 or lower), `lost`, `neutral`; null until the game ends |
-| `solved` | boolean | new | the player (in coop, the team) `solved`; null where the game has nothing to solve (scrabble); set when the game ends |
-| `result` | jsonb | dropped | → `final_ranking`, `outcome`, `solved`; its copied numbers live in the game's own tables |
+| `solved_at` | timestamptz | new | when the player `solved`, written at that moment; null if they haven't. In coop the team solves, so every teammate gets the same moment. Separate from `player_ended_at`: with a chosen goal a player may solve and play on. A game with nothing to solve (scrabble) never writes it — that is a fact about the game, not a per-player value |
+| `result` | jsonb | dropped | → `final_ranking`, `outcome`, `solved_at`; its copied numbers live in the game's own tables |
 | `conceded` | boolean | dropped | → `player_ended_reason = 'conceded'` |
 | `conceded_at` | timestamptz | dropped | → `player_ended_at` |
 | `locally_terminal` | boolean | dropped | → `player_ended_at is not null` |
+
+`solved_at`'s backfill: from the games' own `solved_at` (letterboxed,
+stackdown, strands, waffle, wordle) and bananagrams' `finished_at`, before
+those columns are dropped; for a coop game whose ending was the solve (a
+`solved` or `cleared` ending — never `target`, which is reaching a chosen
+rank, not solving), every teammate gets the game's `ended_at`.
 
 Checks: the ended reason from the five; reason and detail set exactly when
 `player_ended_at` is; the outcome from the four; `final_ranking > 0`;
@@ -143,19 +155,58 @@ above 1.
 
 ## What `common.end_game` takes and does
 
-**Proposed, not yet agreed** (the plan fixes only that the reason pair is a
-required parameter). A game calls it once, when its game `ended`:
+**Agreed** (Joel, 2026-09-28). A game calls it once, when its game `ended`.
+Whether the ending is a `no-result` or `timeout-no-result` is the game's own
+rule, passed as true or false and never stored; what is stored is the
+outcome it produces (`neutral`).
 
-- **It takes:** the game; `game_ended_reason` and its detail; whether the
-  ending is a `no-result` or a `timeout-no-result`; and for each player,
-  their `final_ranking` and `solved`.
-- **It writes:** `ended_at`, the reason pair and `game_ended_outcome` on the
+- **It takes:** the game; `game_ended_reason` and its detail; who ended it
+  (`game_ended_by_user_id`, or none); whether the ending is a `no-result` or
+  a `timeout-no-result`; and for each player, their `final_ranking`.
+  (`solved_at` is not its business: the game writes it the moment a player
+  solves.)
+- **It writes:** `ended_at`, the reason pair, `game_ended_by_user_id` and
+  `game_ended_outcome` on the
   game's row (`won` if anyone ranked 1; otherwise `neutral` if the ending is
   `stopped`, `no-result` or `timeout-no-result`, else `lost`); each player's
-  `final_ranking`, `solved` and `outcome` (1 → `won`; 2 or lower → `near`;
+  `final_ranking` and `outcome` (1 → `won`; 2 or lower → `near`;
   unranked → `lost` for a conceder or in an ending with a result, otherwise
   `neutral`).
 - **It decides only the two outcomes.** Everything else is the game's.
+
+## The views
+
+**They stay, and follow their tables** (Joel, 2026-09-27). Where a game's
+page reads through a view, every change to the table reaches the view in the
+same change: its dropped columns leave the view, and each new column the page
+reads joins it — so no page reads part of a row from the view and part from
+the table. Most of these views exist to hide something until it may be
+shown; whether to keep that is a later plan's question (root `todo.md`), not
+this one's.
+
+| view | columns when this plan is finished |
+|---|---|
+| `crosswords.games_state` | `id`, `puzzle_id`, `meta`, `solution` (revealed by `_solution_for`) |
+| `letterboxed.games_state` | `id`, `sides`, `playable_words`, `clean_words`, `solution`, `max_words`, `legal_band` |
+| `letterboxed.players_state` | `game_id`, `user_id`, `hints_used`, `chain`, `word_count`, `letters_covered` (its helpers join `common.games` for what they read off `club_handle` today) |
+| `psychicnum.games_state` | `id`, `words`, `secrets` (revealed by `_secrets_for`), **`max_guesses`** |
+| `scrabble.games_state` | `id`, `board`, `version`, `shared_rack`, `team_score`, `consecutive_passes`, **`bag`** (`bag_count` goes, question 10) |
+| `scrabble.players_state` | `game_id`, `user_id`, `score`, `ai_level`, `rack`, `rack_count` (by user id; `seat` goes, question 8) |
+| `setgame.games_state` | `id`, `deck_kind`, `board`, `deck_left`, **`palette`** |
+| `spellingbee.games_state` | `id`, `outer_letters`, `center_letter`, `required_words`, `bonus_words`, `required_words_count`, `required_words_score`, **`target_rank`**, **`required_band`**, **`legal_band`** |
+| `stackdown.games_state` | `id`, `tiles`, `solution` (revealed by `_solution_for`) |
+| `strands.games_state` | `id`, `puzzle_id`, `puzzle_date`, `board`, `clue`, `min_word_length`, `hint_cost`, `band`, `solution` (revealed by `_solution_for`) |
+| `strands.players_state` | `game_id`, `user_id`, `hints_spent`, `hint_points`, `active_hint_coords` |
+| `waffle.games_state` | `id`, `scramble`, `par_swaps`, `max_swaps`, `solution` (revealed by `_solution_for`) |
+| `waffle.players_state` | `game_id`, `user_id`, `swaps_used`, `board`, `colors` |
+| `wordiply.games_state` | `id`, `base`, `difficulty`, `max_word_length`, `longest_words`, `legal_words` |
+| `wordle.games_state` | `id`, `max_guesses`, `target` (revealed by `_target_for`) |
+| `wordwheel.games_state` | as spellingbee's, with **`target_rank`**, **`required_band`**, **`legal_band`** |
+| `strands.club_game_status` | dropped — unread |
+
+Every `games_state` view loses `club_handle`, `mode` and `created_at`.
+**Bold** is a column the view gains. bananagrams, boggle, codenamesduet and
+connections have no view: their pages read the tables.
 
 ## Each game's own tables
 
@@ -181,7 +232,7 @@ logic reads after create, in SQL or in the front end.
 | `created_at` | timestamptz | dropped | `common.games.started_at` |
 | `club_handle` | text | dropped | the rules join `common.games` |
 
-unchanged: `bananagrams.player_boards` (`game_id, user_id, board, tiles, updated_at`), `bananagrams.progress` (`game_id, user_id, unplaced, placed, solved, finished_at`).
+unchanged: `bananagrams.player_boards` (`game_id, user_id, board, tiles, updated_at`), `bananagrams.progress` — changed: `solved` and `finished_at` dropped (one moment, now `common.game_players.solved_at`); kept `game_id, user_id, unplaced, placed`.
 
 `status` keys that are not columns: `reason` (the reason pair on `common.games`); `winner_username` (end summary; `clubpage_info` carries `winner_user_id`). Tiles left in each hand, the strip's number, is `progress.unplaced`.
 
@@ -291,7 +342,7 @@ No `setup` value is read after create, in SQL or the front end.
 
 No `setup` read after create, in SQL or the front end (the front end reads it only for the setup rows and New game). Live progress (`words_used`, `letters_covered`) is worked out from `letterboxed.players.chain`. The end keys (`solved`, `winner_id`, `winner_username`, `timed_out`, `stopped`, `best_letters_covered`) go to the reason pair, `game_ended_outcome` and `clubpage_info`: note only.
 
-unchanged: `letterboxed.players` (`game_id`, `user_id`, `chain`, `hints_used`, `solved`, `solved_at`) — `hints_used` is the card's `hint-recorded` in coop.
+`letterboxed.players` — changed: `solved` and `solved_at` dropped (now `common.game_players.solved_at`); kept `game_id`, `user_id`, `chain`, `hints_used` — `hints_used` is the card's `hint-recorded` in coop.
 unchanged: `letterboxed.events` (`id`, `game_id`, `user_id`, `kind`, `word`, `letters_covered`, `created_at`, `took_turn`).
 unchanged: `letterboxed.seeds` (`letters`, `mask`, `word_a`, `word_b`, `difficulty`).
 
@@ -407,7 +458,7 @@ unchanged: `spellingbee.pangrams` (`mask`, `required_words_count`, `has_rare_let
 
 Not columns: `setup.band` on the club line comes through `clubpage_info`; `status.found_words_count` (coop) is the count of valid `stackdown.events`; `status.solved` and the winner keys are end-of-game summary.
 
-unchanged: `stackdown.players` (`game_id`, `user_id`, `found_count`, `solved`, `solved_at`), `stackdown.events` (`game_id`, `user_id`, `kind`, `word`, `tile_ids`, `valid`, `for_word_index`, `created_at`, `id`, `took_turn`), `stackdown.boards` (`id`, `tiles`, `words`, `band`, `created_at`).
+`stackdown.players` — changed: `solved` and `solved_at` dropped (now `common.game_players.solved_at`); kept `game_id`, `user_id`, `found_count`. Unchanged: `stackdown.events` (`game_id`, `user_id`, `kind`, `word`, `tile_ids`, `valid`, `for_word_index`, `created_at`, `id`, `took_turn`), `stackdown.boards` (`id`, `tiles`, `words`, `band`, `created_at`).
 
 ### strands
 
@@ -430,7 +481,7 @@ unchanged: `stackdown.players` (`game_id`, `user_id`, `found_count`, `solved`, `
 
 Not columns: no `status` key is fixed at create (besides `mode`); `status.words_found` (coop) is the count of found words in `strands.events`; `best_hints` is end-of-game summary. `strands.club_game_status` (a view) is dropped by the plan's stage 2.
 
-unchanged: `strands.players` (`game_id`, `user_id`, `hint_points`, `hints_spent`, `active_hint_coords`, `solved`, `solved_at`), `strands.events` (`game_id`, `user_id`, `kind`, `word`, `path`, `result`, `created_at`, `id`, `took_turn`), `strands.puzzles` (`id`, `source_id`, `puzzle_date`, `board`, `clue`, `solution`, `imported_at`).
+`strands.players` — changed: `solved` and `solved_at` dropped (now `common.game_players.solved_at`); kept `game_id`, `user_id`, `hint_points`, `hints_spent`, `active_hint_coords`. Unchanged: `strands.events` (`game_id`, `user_id`, `kind`, `word`, `path`, `result`, `created_at`, `id`, `took_turn`), `strands.puzzles` (`id`, `source_id`, `puzzle_date`, `board`, `clue`, `solution`, `imported_at`).
 
 ### waffle
 
@@ -449,7 +500,7 @@ unchanged: `strands.players` (`game_id`, `user_id`, `hint_points`, `hints_spent`
 
 Not columns: `setup.difficulty` is read only by the club line (through `clubpage_info`) and the setup rows; `status.max_swaps` is already `max_swaps`; `status.swaps_used` (coop) is `waffle.players.swaps_used` (coop rows kept in step); `status.solved` and `winner_swaps` are end-of-game summary.
 
-unchanged: `waffle.players` (`game_id`, `user_id`, `board`, `swaps_used`, `solved`, `solved_at`), `waffle.events` (`game_id`, `user_id`, `pos_a`, `pos_b`, `letter_a`, `letter_b`, `created_at`, `kind`, `id`, `took_turn`, `colors`).
+`waffle.players` — changed: `solved` and `solved_at` dropped (now `common.game_players.solved_at`); kept `game_id`, `user_id`, `board`, `swaps_used`. Unchanged: `waffle.events` (`game_id`, `user_id`, `pos_a`, `pos_b`, `letter_a`, `letter_b`, `created_at`, `kind`, `id`, `took_turn`, `colors`).
 
 ### wordiply
 
@@ -487,7 +538,7 @@ unchanged: `wordiply.events` (`id`, `game_id`, `user_id`, `word`, `length`, `val
 
 Not columns: `setup.answer_band` is read only by the club line (through `clubpage_info`) and the setup rows; `status.max_guesses` is already `max_guesses`; `status.guesses_used` (coop) is `wordle.players.guesses_used`; `status.solved` and `winner_guesses` are end-of-game summary.
 
-unchanged: `wordle.players` (`game_id`, `user_id`, `guesses_used`, `solved`, `solved_at`), `wordle.events` (`game_id`, `user_id`, `word`, `colors`, `is_correct`, `created_at`, `kind`, `id`, `took_turn`).
+`wordle.players` — changed: `solved` and `solved_at` dropped (now `common.game_players.solved_at`); kept `game_id`, `user_id`, `guesses_used`. Unchanged: `wordle.events` (`game_id`, `user_id`, `word`, `colors`, `is_correct`, `created_at`, `kind`, `id`, `took_turn`).
 
 ### wordwheel
 

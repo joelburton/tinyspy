@@ -37,6 +37,13 @@ decision against, so a review doesn't propose it again
   the two, often in one file. One sweep rather than per-game work; CSS classes
   that name what is drawn are exempt. setgame's `card` → `tile` rename is filed
   with setgame, and needs a forward migration.
+- **Decide what the database hides.** Most games' `games_state` and
+  `players_state` views, and thirteen end-of-game security rules on child
+  tables, exist to hide an answer or a rival's progress until it may be shown
+  — which the trust model doesn't ask for. Either drop the hiding (the page
+  shows only what the game allows) or go the other way and hide properly,
+  which is ambitious: a truly secure game is hard. Until then they stay, and
+  follow their tables (plans/common-tables-schema.md → The views).
 
 ## Maybe
 

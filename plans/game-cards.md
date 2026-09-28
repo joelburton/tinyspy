@@ -577,6 +577,7 @@ across all five.
   - `ranked-by`
     1. the best score
     2. the earlier last guess
+    - `solved` is not required to be ranked
   - `loses-by`
     - coop: `loses-by-timeout-only`
     - compete: `loses-by-none`
