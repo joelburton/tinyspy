@@ -347,7 +347,7 @@ export async function createBananagramsGame(
       //
       // The rest mirror DEFAULT_BANANAGRAMS_SETUP. create_game defaults a
       // missing `word_check` to 'off', so the GAME was always fine — but the
-      // setup blob is what the recap reads back, and an absent key rendered
+      // setup blob is what the setup rows read back, and an absent key rendered
       // "Words: checked (undefined)" plus two "undefined (—)" dictionary rows
       // on screen and on paper. The real dialog always sends them.
       setup: {
@@ -1113,7 +1113,7 @@ export async function createStackdownGame(
     .rpc('create_game', {
       target_club: club.handle,
       // `band` explicitly, even though create_game coalesces a missing one to 1:
-      // the SETUP BLOB is what the recap reads back, so leaving it out produced a
+      // the SETUP BLOB is what the setup rows read back, so leaving it out produced a
       // "Dictionary: undefined (—)" row on screen and on paper. The real dialog
       // always sends it (it's in DEFAULT_STACKDOWN_SETUP), so omitting it here
       // made the fixture build a game shape no player can create. Same board

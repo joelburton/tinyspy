@@ -13,6 +13,7 @@ import history from '@/common/event-log/historyViewer.module.css'
 import { eventToOutcome } from '../lib/answer'
 import { boardShape } from '../lib/boardShape'
 import type { Cell } from '@/common/board-cursor/stepCell'
+import { positionAt } from '@/common/board-cursor/boardPosition'
 import styles from './Board.module.css'
 
 /** Empty word set — the resting value of the head-shake mark, so a board with
@@ -32,7 +33,7 @@ type Props = {
   // not drawn (see `useBoardSelectionCursor`).
   cursor?: Cell | null
   // The currently-picked word (highlighted), or null.
-  selected: string | null
+  picked: string | null
   // The board responds to me (the page's `isBoardInteractive`); when false, or
   // while a past turn is open, the tiles render inert.
   isBoardInteractive: boolean
@@ -94,7 +95,7 @@ type Props = {
 export function Board({
   words,
   results,
-  selected,
+  picked,
   cursor = null,
   isBoardInteractive,
   onPick,
@@ -206,9 +207,8 @@ export function Board({
                 styles.tile,
                 decided === 'won' && styles.decidedWon,
                 decided === 'lost' && styles.decidedLost,
-                selected === word && shared.selected,
-                // Tiles fill the grid row by row, so tile i is at (i % cols, i / cols).
-                cursor !== null && cursor.y * cols + cursor.x === i && shared.selectionCursor,
+                picked === word && shared.picked,
+                cursor !== null && positionAt(cursor.x, cursor.y, cols) === i && shared.selectionCursor,
                 word === inFlightWord && shared.dimInFlight,
                 flashing.has(word) && shared.attentionFlash,
                 // NO — the head-shake, once the flash has handed the tile its
@@ -219,7 +219,7 @@ export function Board({
                 historyLitWord === word && styles.historyTile,
               )}
               disabled={guessed || !isBoardInteractive || isViewingHistory}
-              aria-pressed={selected === word || undefined}
+              aria-pressed={picked === word || undefined}
               onClick={() => onPick(word)}
               // NOT a focus target: `preventDefault` on mousedown so a CLICK
               // can't park focus here. Otherwise the next keystroke promotes

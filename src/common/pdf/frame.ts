@@ -6,7 +6,7 @@ import type { SetupRow } from '../setup-form/setupRows'
 export type { SetupRow }
 
 // The frame every printer opens with: the shade palette, the document and its
-// geometry, the `Brand: title` header, the Setup recap, text fitting, the save.
+// geometry, the `Brand: title` header, the setup rows, text fitting, the save.
 // A printer composes these with its own board renderer and one of the body
 // families (see doc.md).
 
@@ -27,9 +27,9 @@ export type PrintHeader = {
   // One-line game-state summary under the title (matches the on-screen status).
   summary: string
   // Every setup option, timer included — the same array the game's info column
-  // renders (`lib/setupSummary.ts`), so paper and screen agree. Why every
+  // renders (`lib/setupRows.ts`), so paper and screen agree. Why every
   // option: doc.md → Details.
-  setup: SetupRow[]
+  setupRows: SetupRow[]
   // Carried by the Setup heading (`Setup: Co-op`), not by a row. Required so
   // that no printer forgets it — a bare "Setup" looks fine and says nothing.
   mode: 'coop' | 'compete'
@@ -51,7 +51,7 @@ export type PrintDoc = {
 // little under it. Every body family reads it through `PrintDoc.contentTop`.
 const HEADER_H = 44
 
-// The Setup recap's line height — the heading, then one line per (wrapped) row.
+// The setup rows' line height — the heading, then one line per (wrapped) row.
 const SETUP_LINE_H = 13
 
 // The page margin — tight, so content uses more of the paper, inside a printer-safe edge.
@@ -140,19 +140,19 @@ export function drawSetup(
 }
 
 /**
- * Draw the Setup recap as a page-wide block at `y` — under the tracks, in the
+ * Draw the setup rows as a page-wide block at `y` — under the tracks, in the
  * track family — or at the top of a new page when it will not fit above
  * `pageBottom`. Nothing is drawn for a game with no rows. The block gets the
  * page's width, so a long value wraps.
  */
 export function drawSetupBelow(pd: PrintDoc, m: PrintHeader, y: number): void {
-  if (!m.setup.length) return
+  if (!m.setupRows.length) return
   const width = pd.pageW - 2 * pd.margin
-  if (y + setupBlockHeight(setupLineCount(pd.doc, m.setup, width)) > pd.pageBottom) {
+  if (y + setupBlockHeight(setupLineCount(pd.doc, m.setupRows, width)) > pd.pageBottom) {
     pd.doc.addPage()
     y = pd.margin
   }
-  drawSetup(pd.doc, m.setup, pd.margin, y, m.mode, width)
+  drawSetup(pd.doc, m.setupRows, pd.margin, y, m.mode, width)
 }
 
 /** Save the doc as `<brand>-<title>.pdf`, handing it to the browser as a download.

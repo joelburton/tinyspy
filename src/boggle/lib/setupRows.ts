@@ -2,14 +2,14 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { BOARD_KEY, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { BOARD_KEY, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import { DICE_BY_NAME } from './dice'
 import { formatBoard } from './customBoard'
 import type { BoggleSetup } from './setup'
 
 /**
  * One "Board constraints" grid row (Words / Score / Longest), read back as a
- * sentence — or `null` when the player set neither bound, since a recap must
+ * sentence — or `null` when the player set neither bound, since a setup row must
  * not assert a choice nobody made (setupRows.ts → The rule).
  *
  * Spelled out rather than punctuated as a range (`10-20`): these rows sit in a
@@ -23,7 +23,7 @@ function boundsValue(min: number | undefined, max: number | undefined): string |
 }
 
 /**
- * boggle's setup recap — ONE array, rendered by the info column and the PDF
+ * boggle's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  *
  * The labels used to differ between the two consumers ("Board" vs "Dice",
@@ -42,7 +42,7 @@ function boundsValue(min: number | undefined, max: number | undefined): string |
  * it's what a rolled board was rolled from, and (custom or not) it's what fixed
  * the side length.
  */
-export function setupRows(
+export function makeSetupRows(
   setup: BoggleSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
@@ -55,10 +55,10 @@ export function setupRows(
   const ladderLabel =
     setup.scoring_ladder.charAt(0).toUpperCase() + setup.scoring_ladder.slice(1)
   // A player-typed board means the roll loop never ran, so its targets applied
-  // to nothing — and a recap must not assert a choice that had no effect.
+  // to nothing — and a setup row must not assert a choice that had no effect.
   const isCustomBoard = (setup.custom_board ?? '').trim() !== ''
   return [
-    rosterRow(players),
+    makeRosterRow(players),
     ...(board ? [{ key: BOARD_KEY, label: 'Letters', value: formatBoard(board.board, board.n) }] : []),
     {
       key: 'dice_set',
@@ -80,7 +80,7 @@ export function setupRows(
     // The "Board constraints" section, one row per grid row, in the dialog's
     // order — the generator's targets, measured against the REQUIRED words. A
     // pair the player left blank produces no row at all, so a board built with
-    // no constraints reads as a recap with none.
+    // no constraints shows none in the Setup options list.
     //
     // Keyed `constraints.*` because the setup holds them in one nested object:
     // setupRows.test.ts excuses `constraints` itself from needing a row of its
@@ -98,7 +98,7 @@ export function setupRows(
           const value = boundsValue(setup.constraints?.[min], setup.constraints?.[max])
           return value ? [{ key: `constraints.${key}`, label, value }] : []
         })),
-    timerRow(setup.timer),
+    makeTimerRow(setup.timer),
   ]
 }
 

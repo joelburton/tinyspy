@@ -10,7 +10,7 @@
 
 ## Won't do
 
-- **Guard the word-list body's Setup against an empty recap.** The event-log
+- **Guard the word-list body's Setup against empty setup rows.** The event-log
   body and `drawSetupBelow` draw nothing for a model with no rows;
   `drawWordListBody` would print a bare `Setup: Co-op`. Ruled no-change
   2026-09-19 (Joel: *"we can skip this concern"*): every game that prints

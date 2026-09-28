@@ -1677,8 +1677,8 @@ grant execute on function letterboxed.concede(uuid) to authenticated;
 -- letterboxed.replay_board — same twelve letters, empty chain
 -- ============================================================
 -- The cheapest replay on the roster: the board is immutable data, so
--- there is nothing to rebuild — clear the chains, drop the log, rewind
--- the turn pointer. Nothing is re-revealed either (nothing was hidden),
+-- there is nothing to rebuild — clear the chains, drop the log, and let
+-- reset_game rewind the turn pointer. Nothing is re-revealed either (nothing was hidden),
 -- so unlike wordle there is no title to re-sync.
 drop function if exists letterboxed.replay_board(uuid);
 
@@ -1714,15 +1714,6 @@ begin
    where game_id = target_game;
 
   delete from letterboxed.events where game_id = target_game;
-
-  -- Turn-order coop: rewind to the original opener. Matches no row (so
-  -- it's a no-op) in a free-for-all game, whose pointer is null.
-  update common.games
-     set current_turn_user_id = (
-           select gp.user_id from common.game_players gp
-            where gp.game_id = target_game and gp.turn_seat = 0
-         )
-   where id = target_game and current_turn_user_id is not null;
 
   -- reset_game ASSIGNS status (it does not merge, unlike update_state /
   -- end_game), so this blob must state everything a fresh game's does —

@@ -97,7 +97,7 @@ test.describe('spellingbee custom letters', () => {
     // our own letters: center A + the six others C H I R O T.
     await page.getByText('Custom letters (optional)').click()
     // ONE box, not two: the center and the ring are typed together as the
-    // hyphenated string the summary and the recap both print (`A-CHIROT`), and
+    // hyphenated string the summary and the setup row both print (`A-CHIROT`), and
     // the field splits it. <ManualBoardField> carries no label of its own — the
     // SetupSection above it is the label — so it is reached by its form name.
     await page.locator('input[name="custom_letters"]').fill('a-chirot')

@@ -494,7 +494,7 @@ flakiness — the browser never plays, so there are no realtime waits.
 
 - **State builders** — one per game, `e2e/gallery/games/<game>.ts`, mirroring
   the per-game seams the repo already uses (`lib/history.ts`,
-  `lib/setupSummary.ts`). Each declares the cells it has and how to reach them.
+  `lib/setupRows.ts`). Each declares the cells it has and how to reach them.
   The contract lives in `e2e/gallery/types.ts`.
 - **Capture** — a context per club member, everyone lands on the game, only the
   viewer's page is shot. *Every* member joins because a game whose players
@@ -606,7 +606,7 @@ before trusting a green run. The full set:
 | `cssTokens` | every stylesheet + `.tsx` in `src/` — token defined ⇄ token read |
 | `noRawServerMessage` | every call site in `src/` — no server `error.message` into a UI sink |
 | `logos` | every `src/<game>/logo.svg` parses as standalone XML |
-| `setupRows` | every game's `lib/setupSummary.ts` (via `import.meta.glob`) |
+| `setupRows` | every game's `lib/setupRows.ts` (via `import.meta.glob`) |
 | `gameStatusLabels` | every manifest's `labelFor` over its reachable states: an unknown state never reads as live, no reason doubles as a play state; `npm run report:labels` prints every line ([game-status-labels.md](game-status-labels.md)) |
 | `deployLists` | `supabase/config.toml`, `supabase/deploy/env.sh`, `Makefile` vs the registry |
 | `edgeFnErrorKeys` | every `json({ error: … })` in `supabase/functions/` carries an error key (none remain: functions answer envelopes) |

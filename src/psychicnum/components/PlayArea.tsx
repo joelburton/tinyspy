@@ -21,7 +21,7 @@ import { useBoundAction } from '@/common/actions/useBoundAction'
 import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { memberById } from '@/common/members/memberList'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { db } from '../db'
@@ -67,7 +67,7 @@ type SpoilerAnswer = {
  * gray itself or lie.
  */
 export function PlayAreaLoader(ctx: GamePageCtx) {
-  const { game, players: playerBudgets, guesses, loading, failure } = useGame(ctx.gameId)
+  const { game, playerBudgets, guesses, loading, failure } = useGame(ctx.gameId)
 
   if (loading) return <Loading />
   // A failed read is NOT a missing game. Both leave `game` null, and saying
@@ -145,7 +145,7 @@ function PlayArea({
   brand,
   title,
 }: PlayAreaProps) {
-  const mode = game.mode
+  const isCompete = game.mode === 'compete'
 
   // ─── Page hooks ────────────────────────────────────────
   // What this surface IS, before anything this game knows: where Tab may go,
@@ -198,14 +198,14 @@ function PlayArea({
   const maxGuesses = setup.max_guesses
   const guessesUsed = myBudgetRow?.guesses_used ?? maxGuesses
 
-  // The setup recap, built ONCE and handed to both consumers — the info column
-  // renders it as <li>s, the print model prints the same array (common/setup-form/doc.md →
+  // The setup rows, built ONCE and handed to both consumers — the info column
+  // renders them as <li>s, the print model prints the same array (common/setup-form/doc.md →
   // Setup rows). Literally the same object, which beats "both call the same
   // function": this is the game whose two hand-written lists had drifted into
   // reporting different facts on paper than on screen.
-  const summaryRows = useMemo(
-    () => setupRows(setup, mode, players),
-    [setup, mode, players],
+  const setupRows = useMemo(
+    () => makeSetupRows(setup, game.mode, players),
+    [setup, game.mode, players],
   )
 
   // The terminal secrets reveal — derived state, because the Reveal binding
@@ -229,7 +229,7 @@ function PlayArea({
     impliedBySolve,
   } = useSolutionReveal({
     impliedBy: solvedByMe({
-      isCompete: mode === 'compete',
+      isCompete,
       playState,
       mine: iFoundThemAll,
     }),
@@ -251,13 +251,13 @@ function PlayArea({
   // clock's: the RPC that ended the game wrote the reason, and the club-list
   // label reads the same column.
   const reason = status?.reason as string | undefined
-  const selfWon = mode === 'compete' ? iFoundThemAll : true
+  const selfWon = isCompete ? iFoundThemAll : true
   const terminalMessage = useMemo(
     () =>
       isTerminal
-        ? buildTerminalMessage({ mode, playState, reason, selfWon, winnerName })
+        ? buildTerminalMessage({ mode: game.mode, playState, reason, selfWon, winnerName })
         : null,
-    [isTerminal, mode, playState, reason, selfWon, winnerName],
+    [isTerminal, game.mode, playState, reason, selfWon, winnerName],
   )
   useEffect(function showTerminalVerdict() {
     if (!terminalMessage) return
@@ -280,20 +280,20 @@ function PlayArea({
   // TurnStatusLine is off-canvas; without it a frozen board just ignored taps.
   // The holder is read as two primitives so the effect settles in one pass — a
   // fresh `players` array on a re-render would look like a change.
-  const turnHolder = players.find((p) => p.user_id === turnHolderId)
-  const turnHolderName = turnHolder?.username
-  const turnHolderColor = turnHolder?.color
+  const holder = turnHolderId === null ? undefined : memberById(players, turnHolderId)
+  const holderName = holder?.username
+  const holderColor = holder?.color
   useEffect(function showWaiting() {
     if (!isWaitingForTurn) return
     const id = localFeedbackSlot.show(
       FeedbackMessage.waiting(
-        turnHolderName === undefined
+        holderName === undefined
             ? undefined
-            : { username: turnHolderName, color: turnHolderColor ?? '' },
+            : { username: holderName, color: holderColor ?? '' },
       ),
     )
     return () => localFeedbackSlot.retract(id)
-  }, [localFeedbackSlot, isWaitingForTurn, turnHolderName, turnHolderColor])
+  }, [localFeedbackSlot, isWaitingForTurn, holderName, holderColor])
 
   // ─── Narration — what a PEER did, in the header slot ───
   // Both of these are about somebody else, which is what puts them in the
@@ -308,7 +308,7 @@ function PlayArea({
   // hand-rolled version only looked at the latest row, dropping any that
   // batched between refetches). keyOf is the guess id; own events return null.
   usePeerFeedback({
-    enabled: mode === 'coop',
+    enabled: !isCompete,
     items: guesses,
     keyOf: (g) => String(g.id),
     messageFor: (g) => {
@@ -327,18 +327,24 @@ function PlayArea({
   // secret word" — the COUNT, never which word (that stays private). It reads as
   // the HIT it is, the same as coop's line for a peer's correct guess: green
   // means "they found a word" in both modes, so the player doesn't maintain a
-  // compete-only color-meaning. Watches the players rows; the ref seeds silently
-  // on first load so history isn't replayed.
-  // Per-opponent secrets-found count we've already announced (compete tension).
+  // compete-only color-meaning. A delta detector over the budget rows: the first
+  // pass seeds every opponent's count silently so history is not replayed, and
+  // after that a row the ref has not seen counts from 0.
   const seenOpponentFoundRef = useRef<Map<string, number>>(new Map())
+  const opponentsReadyRef = useRef(false)
   useEffect(function announceOpponentProgress() {
-    if (mode !== 'compete') return
+    if (!isCompete) return
+    const prev = seenOpponentFoundRef.current
+    if (!opponentsReadyRef.current) {
+      opponentsReadyRef.current = true
+      for (const p of playerBudgets) prev.set(p.user_id, p.found_secrets_count)
+      return
+    }
     for (const p of playerBudgets) {
+      const was = prev.get(p.user_id) ?? 0
+      prev.set(p.user_id, p.found_secrets_count)
       if (p.user_id === session.user.id) continue
-      const prev = seenOpponentFoundRef.current.get(p.user_id)
-      seenOpponentFoundRef.current.set(p.user_id, p.found_secrets_count)
-      if (prev === undefined) continue  // first sighting — seed, don't announce
-      if (p.found_secrets_count <= prev) continue
+      if (p.found_secrets_count <= was) continue
       const member = memberById(players, p.user_id)
       // `found_peer`, not `hit_peer`: in compete a racer may learn THAT an
       // opponent found a secret and never which, so the answer that names a
@@ -346,7 +352,7 @@ function PlayArea({
       const { outcome, text } = answerMessage({ answerType: 'found_peer' })
       globalFeedbackSlot.show(FeedbackMessage.peer(member, outcome, text))
     }
-  }, [playerBudgets, mode, players, session.user.id, globalFeedbackSlot])
+  }, [playerBudgets, isCompete, players, session.user.id, globalFeedbackSlot])
 
   // ─── The turn-history viewer ───────────────────────────
   // Click an event-log #N to replay that turn's board (the tiles decided up to that
@@ -378,7 +384,7 @@ function PlayArea({
     db,
     gameId,
     isTerminal,
-    mode,
+    mode: game.mode,
     isLocallyTerminal,
     localFeedbackSlot,
   })
@@ -466,7 +472,7 @@ function PlayArea({
         target_club: clubHandle,
         setup,
         player_user_ids: players.map((p) => p.user_id),
-        mode,
+        mode: game.mode,
       }),
     )
     if (res.type === 'not-ok') {
@@ -476,7 +482,7 @@ function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`psychicnum_${mode}`, res.data.id)
+      goToGame(`psychicnum_${game.mode}`, res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)
@@ -512,13 +518,13 @@ function PlayArea({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
-          mode,
+          mode: game.mode,
           isTerminal,
           words: game.words,
           guesses,
           players,
           selfId: session.user.id,
-          setup: summaryRows,
+          setupRows,
         }),
       )
     },
@@ -584,7 +590,7 @@ function PlayArea({
   // (coop only; see `<Board>`). Built from the guess rows rather than from
   // `results`, which is what keeps a REVEALED secret dot-less: nobody guessed it.
   const decidedBy = new Map(
-    guessed.map((g) => [g.word, players.find((m) => m.user_id === g.user_id)]),
+    guessed.map((g) => [g.word, memberById(players, g.user_id)]),
   )
 
   // A revealed secret joins `results` as a HIT rather than getting a mark of its
@@ -605,7 +611,7 @@ function PlayArea({
   // so the filter is a no-op there.
   const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
   const historyRows =
-    mode === 'compete' && historyRow
+    isCompete && historyRow
       ? guesses.filter((g) => g.user_id === historyRow.user_id)
       : guesses
   const historySnap = historyId !== null ? historySnapshot(historyRows, historyId) : null
@@ -613,7 +619,7 @@ function PlayArea({
   // compete can be. Coop is one shared board, so a teammate's row replays the
   // board you are already looking at and there is no "whose" to answer.
   const historyActor =
-    mode === 'compete' && historyRow && historyRow.user_id !== session.user.id
+    isCompete && historyRow && historyRow.user_id !== session.user.id
       ? memberById(players, historyRow.user_id)
       : undefined
 
@@ -622,7 +628,7 @@ function PlayArea({
   const teamFound = new Set(
     guesses.filter((g) => g.kind === 'guess' && g.is_correct).map((g) => g.word),
   ).size
-  const found = mode === 'coop' ? teamFound : selfSecretsFound
+  const found = isCompete ? selfSecretsFound : teamFound
 
   return (
     <div className={cls(shared.layout, shared.mobileFill, styles.layout)}>
@@ -645,7 +651,7 @@ function PlayArea({
         // one player on it (in a solo game every tile has the same one possible
         // author, so a dot per tile is a label that says "you" nine times). A
         // history snapshot carries the same rows, so it keeps its dots.
-        decidedBy={mode === 'coop' && players.length > 1 ? decidedBy : null}
+        decidedBy={!isCompete && players.length > 1 ? decidedBy : null}
         historyLitWord={historySnap?.historyLitWord ?? null}
         // ── History viewer ──
         historyLabel={historySnap?.historyLabel ?? null}
@@ -676,7 +682,7 @@ function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
         // ── Mode + phase ──
-        isCompete={mode === 'compete'}
+        isCompete={isCompete}
         terminalMessage={terminalMessage}
         isStillPlaying={isStillPlaying}
         isConceded={isConceded}
@@ -704,7 +710,7 @@ function PlayArea({
         actStopGame={actStopGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
-        setupRows={summaryRows}
+        setupRows={setupRows}
         // ── Turn-history log ──
         guesses={guesses}
         isTerminal={isTerminal}
@@ -719,7 +725,7 @@ function PlayArea({
       {celebration.show && (
         <CelebrationBlockingModal
           title="You win! 🎉"
-          body={mode === 'compete' ? 'You found all three first.' : 'All three secret words found.'}
+          body={isCompete ?'You found all three first.' : 'All three secret words found.'}
           onClose={celebration.close}
         />
       )}

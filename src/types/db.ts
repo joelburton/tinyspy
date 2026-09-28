@@ -447,7 +447,7 @@ export type Database = {
         Returns: Json
       }
       submit_guess: {
-        Args: { target_game: string; target_position: number }
+        Args: { guess_position: number; target_game: string }
         Returns: Json
       }
       submit_timeout: { Args: { target_game: string }; Returns: Json }

@@ -191,7 +191,7 @@ never `!isNotFoo` — write `isFoo`.
 ### Component names
 
 Roles, not implementations, and **file name = component name**, with the folder
-telling which game: every game has a `PlayArea.tsx` exporting `PlayArea`, a
+telling which game: every game has a `PlayArea.tsx` holding `PlayArea`, a
 `SetupForm`, a `Help`, a `useGame`; never `ConnectionsPlayArea`. The shared
 shell is `GamePage`; cross-cutting chrome (title, timer, pause, chat) is its,
 never a PlayArea's. The two-column split is [playarea.md → The shape of a

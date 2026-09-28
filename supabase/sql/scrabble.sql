@@ -1910,12 +1910,13 @@ grant execute on function scrabble.get_ai_context(uuid) to authenticated;
 --     so every in-flight move fails its version check, which is exactly
 --     right — that move was for the old deal.
 --   - **compete re-randomizes the opener**, matching create_game. The
---     deal is new, so who opens is drawn afresh.
+--     deal is new, so who opens is drawn afresh — after reset_game, which
+--     rewinds the turn to seat 0.
 --   - **coop turn-order rewinds** to the player seated first
---     (`game_players.turn_seat = 0`). The rotation itself was assigned at
---     create time and doesn't change, so this restores the original
---     opener without re-reading `setup.first_turn_user_id`. A free-for-all
---     game has a null pointer and stays null.
+--     (`game_players.turn_seat = 0`) inside reset_game. The rotation itself
+--     was assigned at create time and doesn't change, so this restores the
+--     original opener without re-reading `setup.first_turn_user_id`. A
+--     free-for-all game has a null pointer and stays null.
 --
 -- No realtime touch needed: the games/players update + events delete wake
 -- useGame (subscribed to scrabble.{games,players,events}), and
@@ -1968,13 +1969,10 @@ begin
          set score = 0, rack = v_drawn
        where game_id = target_game and seat = r.seat;
     end loop;
-    select count(*) into v_seats from scrabble.players where game_id = target_game;
-    v_first := floor(random() * v_seats)::int;
     update scrabble.games
        set board = v_board, bag = v_bag, version = g_row.version + 1,
            consecutive_passes = 0
      where id = target_game;
-    perform scrabble._seat_turn_order(target_game, v_first);
   else
     -- Coop: one shared rack + one team score on the game row; the player rows
     -- carry only seats (score/rack stay null), so they need no reset.
@@ -1984,15 +1982,6 @@ begin
        set board = v_board, bag = v_bag, version = g_row.version + 1,
            shared_rack = v_drawn, team_score = 0, consecutive_passes = 0
      where id = target_game;
-
-    -- Turn-order coop: rewind the pointer to the original opener (turn_seat 0).
-    -- Null pointer (free-for-all) stays null — the update matches no row.
-    update common.games
-       set current_turn_user_id = (
-             select gp.user_id from common.game_players gp
-              where gp.game_id = target_game and gp.turn_seat = 0
-           )
-     where id = target_game and current_turn_user_id is not null;
   end if;
 
   -- The club-list title is the first three words played (scrabble._title_for), so a
@@ -2000,6 +1989,15 @@ begin
   update common.games set title = 'New game' where id = target_game;
 
   perform common.reset_game(target_game, scrabble._status(target_game));
+
+  -- Compete opens on a random seat, so it points the turn after reset_game
+  -- has rewound it to seat 0.
+  if g_row.mode = 'compete' then
+    select count(*) into v_seats from scrabble.players where game_id = target_game;
+    v_first := floor(random() * v_seats)::int;
+    perform scrabble._seat_turn_order(target_game, v_first);
+  end if;
+
   return common.ok_envelope(jsonb_build_object('result', 'replayed'));
 
 exception when others then

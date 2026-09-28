@@ -394,8 +394,8 @@ bold glyph.)
 - **The puzzle itself:** WK, CP (the NYT weekday is its difficulty)
 - **Hand-pick the board instead of a random one:** FB MW (a center + the
   others; MW also has a "unique letters only" constraint) MC (the whole grid)
-  SB (the four sides) WW (the base). All but WW also print the board in the
-  setup recap, random or hand-picked, so a board you liked can be copied into
+  SB (the four sides) WW (the base). All but WW also print the board as a
+  setup row, random or hand-picked, so a board you liked can be copied into
   the next game; WW's base is already the game's title.
 
 ## Timer

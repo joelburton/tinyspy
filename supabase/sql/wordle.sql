@@ -545,8 +545,8 @@ declare
   g_row              wordle.games%rowtype;
   current_play_state text;
   norm               text;
-  p_used             int;
-  p_solved           boolean;
+  caller_used        int;
+  caller_solved      boolean;
   is_dup             boolean;
   v_colors           char(5);
   did_solve          boolean;
@@ -606,10 +606,10 @@ begin
 
   -- The caller's working state (coop rows are identical; compete is the
   -- caller's own).
-  select guesses_used, solved into p_used, p_solved
+  select guesses_used, solved into caller_used, caller_solved
     from wordle.players
    where game_id = target_game and user_id = caller_id;
-  if p_solved then
+  if caller_solved then
     -- A fault, in both modes, for the same reason as the budget guard below.
     -- COOP: solving ENDS the game, so a later guess meets the play_state guard
     -- forty lines above and reads "Game over" — this is unreachable there.
@@ -619,7 +619,7 @@ begin
       using errcode = 'PN257', hint = 'fault', column = '_',
       detail = 'this player has already found the answer';
   end if;
-  if p_used >= g_row.max_guesses then
+  if caller_used >= g_row.max_guesses then
     -- COMPETE-ONLY in practice, and a fault. Spending the last COOP guess ends
     -- the game, so a coop player who guesses again meets the play_state guard
     -- above and reads "Game over"; only compete keeps playing with an exhausted
@@ -650,7 +650,7 @@ begin
     -- burned. `result` names the case; the frontend picks its branch by it and
     -- says the words.
     return common.ok_envelope(
-      jsonb_build_object('result', 'duplicate', 'guesses_used', p_used,
+      jsonb_build_object('result', 'duplicate', 'guesses_used', caller_used,
                          'solved', false, 'terminal', false));
   end if;
 
@@ -671,14 +671,14 @@ begin
      where word = norm and len = 5 and difficulty <= g_row.legal_band
   ) then
     return common.ok_envelope(
-      jsonb_build_object('result', 'notAWord', 'guesses_used', p_used,
+      jsonb_build_object('result', 'notAWord', 'guesses_used', caller_used,
                          'solved', false, 'terminal', false));
   end if;
 
   -- ─── Accept: color, log, count, resolve ──────────────────
   v_colors  := common.wordle_colors(norm, g_row.target);
   did_solve := (norm = lower(g_row.target));
-  new_used  := p_used + 1;
+  new_used  := caller_used + 1;
 
   -- `took_turn` is a literal, not a branch: only an ACCEPTED guess reaches
   -- here (both soft rejects returned above without writing), and an accepted
@@ -1043,15 +1043,6 @@ begin
    where game_id = target_game;
 
   delete from wordle.events where game_id = target_game;
-
-  -- Turn-order coop: rewind to the original opener. Matches no row (so it's a
-  -- no-op) in a free-for-all game, whose pointer is null.
-  update common.games
-     set current_turn_user_id = (
-           select gp.user_id from common.game_players gp
-            where gp.game_id = target_game and gp.turn_seat = 0
-         )
-   where id = target_game and current_turn_user_id is not null;
 
   -- Same shape create_game seeds (counters coop-only) — a restart must land on
   -- a status indistinguishable from a fresh game's.

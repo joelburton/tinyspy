@@ -51,8 +51,8 @@ const me: PlayerRow = { user_id: 'u1', guesses_used: 0, found_secrets_count: 0 }
 const moth: PlayerRow = { user_id: 'u2', guesses_used: 0, found_secrets_count: 0 }
 
 /** A loaded game-hook result; override the game header + budget rows per test. */
-function loaded(game: PsychicnumGame, players: PlayerRow[] = [me]): GameHook {
-  return { game, players, guesses: [], loading: false, failure: null }
+function loaded(game: PsychicnumGame, playerBudgets: PlayerRow[] = [me]): GameHook {
+  return { game, playerBudgets, guesses: [], loading: false, failure: null }
 }
 
 /** A board word list — Board renders a tile per word; needs at least one. */
@@ -359,8 +359,8 @@ describe('psychicnum PlayArea — turn order', () => {
     // text node beside the identity <Dot>. Coop has no OpponentStrip, but the
     // event log's player picker also lists every player by handle — so exclude
     // its <option> to keep this counting the turn text alone.
-    // Exclude the event log's player-picker <option>s AND the setup recap's
-    // <li>s: the recap now opens with a "Players: …" roster row (common/setup-form/doc.md →
+    // Exclude the event log's player-picker <option>s AND the Setup options
+    // list's <li>s: the list now opens with a "Players: …" roster row (common/setup-form/doc.md →
     // Setup rows), which names everyone too. This counts the TURN TEXT alone.
     const named = screen
       .getAllByText(/moth/)
@@ -411,7 +411,7 @@ describe('psychicnum PlayArea — click-to-define (event log)', () => {
   it('makes a guessed word in the log a define affordance (not the hint sentence)', () => {
     h.result = {
       game: coopGame,
-      players: [me],
+      playerBudgets: [me],
       failure: null,
       guesses: [
         { id: 1, user_id: 'u1', word: 'bravo', is_correct: false, kind: 'guess', created_at: '2026-07-02' },
@@ -652,12 +652,12 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     const tile = () => within(gridIn(container)).getByRole('button', { name: 'alpha' })
 
     await user.click(tile())
-    expect(tile().className).toMatch(/selected/)
+    expect(tile().className).toMatch(/picked/)
 
     // A rival's guess ends the race while my pick is still pending.
     h.result = loaded({ ...competeGame, secrets: ['alpha', 'charlie', 'echo'] }, [me, { ...moth, found_secrets_count: 3 }])
     rerender(<PlayAreaLoader {...makeCtx({ players: two, playState: 'won_compete', isTerminal: true })} />)
-    expect(tile().className).not.toMatch(/selected/)
+    expect(tile().className).not.toMatch(/picked/)
   })
 
   it('drops a pending selection when I concede', async () => {
@@ -668,10 +668,10 @@ describe('psychicnum PlayArea — the board-scope marks', () => {
     const tile = () => within(gridIn(container)).getByRole('button', { name: 'alpha' })
 
     await user.click(tile())
-    expect(tile().className).toMatch(/selected/)
+    expect(tile().className).toMatch(/picked/)
 
     rerender(<PlayAreaLoader {...makeCtx({ players: [gp('u1', 'me', 'red', { conceded: true, locally_terminal: true }), two[1]] })} />)
-    expect(tile().className).not.toMatch(/selected/)
+    expect(tile().className).not.toMatch(/picked/)
   })
 
   // The attention flash reads the event log, not the board — so the one board
@@ -862,7 +862,7 @@ describe('psychicnum PlayArea — the selection cursor', () => {
   // and a cell names a known word.
   beforeEach(() => {
     vi.spyOn(Math, 'random').mockReturnValue(0.999999)
-    rpc.mockResolvedValue(okEnvelope({ verdict: 'hit', found_all: false }))
+    rpc.mockResolvedValue(okEnvelope({ result: 'hit', found_all: false }))
   })
   afterEach(() => {
     vi.restoreAllMocks()
@@ -871,7 +871,7 @@ describe('psychicnum PlayArea — the selection cursor', () => {
   const tileFor = (word: string) => document.querySelector(`[data-tile="${word}"]`) as HTMLElement
   /** The words wearing the cursor ring — at most one. */
   const ringed = () => WORDS.filter((w) => /selectionCursor/.test(tileFor(w).className))
-  const isPicked = (word: string) => /selected/.test(tileFor(word).className)
+  const isPicked = (word: string) => /picked/.test(tileFor(word).className)
   // Awaited: a bound action's run settles a microtask after the keystroke.
   const key = (k: string) => act(async () => press({ key: k }))
   const guessed = (word: string) =>
@@ -944,7 +944,7 @@ describe('psychicnum PlayArea — the selection cursor', () => {
     expect(ringed()).toEqual(['echo'])
   })
 
-  it('⌫ and Clear selection un-pick; Submit guesses', async () => {
+  it('⌫ and Clear picks un-pick; Submit guesses', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await user.click(tileFor('alpha'))
@@ -952,7 +952,7 @@ describe('psychicnum PlayArea — the selection cursor', () => {
     expect(isPicked('alpha')).toBe(false)
 
     await user.click(tileFor('alpha'))
-    await user.click(screen.getByRole('button', { name: 'Clear selection' }))
+    await user.click(screen.getByRole('button', { name: 'Clear picks' }))
     expect(isPicked('alpha')).toBe(false)
 
     await user.click(tileFor('alpha'))

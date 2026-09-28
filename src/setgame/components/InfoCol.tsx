@@ -72,7 +72,7 @@ type Props = {
 /**
  * setgame's info column, in the canonical order (docs/playarea.md): state
  * readouts, then the turn line, then the opponent strip, then the action row,
- * then the setup recap.
+ * then the Setup options list.
  *
  * **Coop never shows a per-player breakdown** — not mid-game, where individual
  * counts would quietly turn a cooperative game into a visible contest, and not

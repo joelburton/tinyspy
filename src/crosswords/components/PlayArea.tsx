@@ -479,21 +479,6 @@ type Explained =
     }
   }, [gameId])
 
-  // ─── Stop / Concede / Restart — the shared trio ────────
-  // Restart is the shared wipe under the shared name: it clears EVERY grid (a
-  // restart is for the table, not just the caller) and it un-terminals a
-  // finished puzzle, so a solved crossword can be run back. crosswords' own
-  // bit is the cleanup: put the author's answers away, so
-  // the stale solution cache can't paint the grid the instant the fills go.
-  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
-    db,
-    gameId,
-    isTerminal,
-    mode,
-    isLocallyTerminal,
-    localFeedbackSlot,
-  })
-
   // Show note — open the setter's note locally AND (in coop) broadcast so
   // teammates open it too ("read it together", crossplay's showNotes). A no-op
   // broadcast in compete, where the peer channel is disabled.
@@ -650,9 +635,22 @@ type Explained =
   )
 
   // ─── The commands, bound ───────────────────────────────
-  // Each one is offered exactly once here and placed twice — a menu row and a
-  // square in the tool bar — so the two can't disagree about what it is called,
-  // whether it applies or which key also does it.
+  // Stop / Concede / Restart, from the shared hook. Restart is the shared wipe
+  // under the shared name: it clears EVERY grid (a restart is for the table,
+  // not just the caller) and it un-terminals a finished puzzle, so a solved
+  // crossword can be run back.
+  const { actStopGame, actConcede, actRestart } = useStandardGameActions({
+    db,
+    gameId,
+    isTerminal,
+    mode,
+    isLocallyTerminal,
+    localFeedbackSlot,
+  })
+
+  // The game's own tools are each offered exactly once here and placed twice —
+  // a menu row and a square in the tool bar — so the two can't disagree about
+  // what one is called, whether it applies or which key also does it.
 
   /** Every tool in the bar — the hint ladder, and the pencil beside it —
    *  applies while the board is writable, and grays with it. */

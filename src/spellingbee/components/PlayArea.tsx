@@ -23,7 +23,7 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { buildWordListRows } from '@/shared/found-words/wordListRows'
 import { buildGameMenu } from '@/common/menu/gameMenu'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -107,7 +107,7 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
  * compete scores the caller's own rows (RLS hides the rest until terminal),
  * shows each opponent's rank in the strip, and narrates a rank climbed.
  */
-export function PlayArea(props: PlayAreaProps) {
+function PlayArea(props: PlayAreaProps) {
   const {
     gameId, isTerminal, isConceded, isLocallyTerminal, isMyTurn, isBoardInteractive,
     playState, players, session, status,
@@ -147,13 +147,13 @@ export function PlayArea(props: PlayAreaProps) {
   // columns all ask the same questions, and they must not answer them
   // differently.
 
-  // The setup recap, built ONCE and handed to both consumers — the info column
+  // The setup rows, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows). The letters go in as stored;
   // the row alphabetizes them.
-  const summaryRows = useMemo(
+  const setupRows = useMemo(
     () =>
-      setupRows(
+      makeSetupRows(
         setup,
         game.mode,
         players,
@@ -176,10 +176,10 @@ export function PlayArea(props: PlayAreaProps) {
   // every player's rows and a plain sum would then jump.
   const myFoundRows = useMemo(
     () =>
-      game.mode === 'compete'
+      isCompete
         ? foundWords.filter((r) => r.user_id === session.user.id)
         : foundWords,
-    [foundWords, game.mode, session.user.id],
+    [foundWords, isCompete, session.user.id],
   )
   // Points over every row, bonus finds included; the count is every accepted
   // word, so "X / Y words" can pass Y once the bonus list is being mined — the
@@ -213,7 +213,7 @@ export function PlayArea(props: PlayAreaProps) {
   // The per-status terminal message, memoized on primitives so the verdict
   // effect sees one object per outcome, not one per render. The winner is
   // read as name + color rather than as the member object for the same reason.
-  const winner = players.find((p) => p.user_id === winnerId)
+  const winner = winnerId ? memberById(players, winnerId) : undefined
   const winnerName = winner?.username
   const winnerColor = winner?.color
   const reason = (status?.reason as string | undefined) ?? 'ended'
@@ -226,9 +226,7 @@ export function PlayArea(props: PlayAreaProps) {
             playState,
             reason,
             winnerId,
-            winner: winnerName === undefined
-                ? undefined
-                : { username: winnerName, color: winnerColor ?? '' },
+            winner: winnerName === undefined ? undefined : { username: winnerName, color: winnerColor ?? '' },
             targetRankIdx,
             foundWordsScore,
             requiredWordsScore,
@@ -270,7 +268,7 @@ export function PlayArea(props: PlayAreaProps) {
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {
       if (r.user_id === session.user.id) return null // own word → the local slot
-      const member = players.find((p) => p.user_id === r.user_id)
+      const member = memberById(players, r.user_id)
       const { outcome, text } = peerAnswerMessage(r)
       return FeedbackMessage.peer(member, outcome, text)
     },
@@ -285,8 +283,8 @@ export function PlayArea(props: PlayAreaProps) {
   // a player STANDS (docs/ui.md → Feedback pill). My own rank is the RankBar's.
   const prevRankRef = useRef<Map<string, number>>(new Map())
   const ranksReadyRef = useRef(false)
-  useEffect(function narrateRankClimbs() {
-    if (game.mode !== 'compete') return
+  useEffect(function announceOpponentRankClimb() {
+    if (!isCompete) return
     const board = readLeaderboard<LeaderboardEntry>(status)
     const prev = prevRankRef.current
     if (!ranksReadyRef.current) {
@@ -299,7 +297,7 @@ export function PlayArea(props: PlayAreaProps) {
       prev.set(row.user_id, row.rank_idx)
       if (row.user_id === session.user.id) continue // own rank → RankBar
       if (row.rank_idx > was) {
-        const member = players.find((p) => p.user_id === row.user_id)
+        const member = memberById(players, row.user_id)
         const { outcome, text } = answerMessage({
           answerType: 'reached_peer',
           rank: RANKS[row.rank_idx] ?? 'a new rank',
@@ -307,7 +305,7 @@ export function PlayArea(props: PlayAreaProps) {
         globalFeedbackSlot.show(FeedbackMessage.peerMilestone(member, outcome, text))
       }
     }
-  }, [game.mode, status, players, session.user.id, globalFeedbackSlot])
+  }, [isCompete, status, players, session.user.id, globalFeedbackSlot])
 
   // ─── The commands, bound ───────────────────────────────
   // Every command this game offers, in one order that three readers keep: this
@@ -403,13 +401,13 @@ export function PlayArea(props: PlayAreaProps) {
         // Compete's are per player — each section carries its own — so the
         // header states only the shared targets.
         summary:
-          game.mode === 'compete'
+          isCompete
             ? `Target: ${game.required_words_score} pts · ${game.required_words_count} words`
             : `${RANKS[selfRankIdx]} · Score ${foundWordsScore} / ${game.required_words_score} · Words ${foundWordsCount} / ${game.required_words_count}`,
         outerLetters: game.outer_letters.split(''),
         centerLetter: game.center_letter,
         mode: game.mode,
-        setup: summaryRows,
+        setupRows,
         // Coop prints one shared list; compete a section per player, plus a
         // trailing "Not found" at terminal.
         sections: buildWordSections(words, game.mode, players, session.user.id),
@@ -467,13 +465,7 @@ export function PlayArea(props: PlayAreaProps) {
   })
 
   return (
-      <div className={ cls(
-          shared.layout,
-          shared.responsiveInfoCol,
-          shared.mobileFill,
-          surface.layout,
-          styles.layout,
-      ) }>
+    <div className={cls(shared.layout, shared.responsiveInfoCol, shared.mobileFill, surface.layout, styles.layout)}>
       <BoardCol
         // ── Mobile-only status block (the readouts the InfoCol renders too) ──
         foundWordsScore={foundWordsScore}
@@ -524,7 +516,7 @@ export function PlayArea(props: PlayAreaProps) {
         actStopGame={actStopGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
-        setupRows={summaryRows}
+        setupRows={setupRows}
         // ── Found-words list ──
         wordRows={wordRows}
         hasBonus={hasBonus}

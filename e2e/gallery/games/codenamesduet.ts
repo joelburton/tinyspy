@@ -85,7 +85,7 @@ export const codenamesduetGallery: GameGallery = {
     const pick = async (guesser: E2EMember, position: number): Promise<boolean> => {
       const res = await asUser(guesser.session.access_token)
         .schema('codenamesduet')
-        .rpc('submit_guess', { target_game: id, target_position: position })
+        .rpc('submit_guess', { target_game: id, guess_position: position })
       // Same rot as the pass below: `/not in|guessable state/` was written
       // against prose, and `game-not-in-play|` hyphenates "not-in", so it
       // stopped matching and a guess into a just-ended game threw instead of

@@ -41,7 +41,7 @@ const base = {
   solution: ['adgjbehk', 'kcfil'],
   selfId: ALICE,
   summary: '3/12 letters · 1/5 words',
-  setup: [{ key: 'legal_band', label: 'Dictionary', value: '5 (Obscure)' }],
+  setupRows: [{ key: 'legal_band', label: 'Dictionary', value: '5 (Obscure)' }],
 }
 
 describe('buildLetterboxedPrintModel', () => {

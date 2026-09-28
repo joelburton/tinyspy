@@ -12,7 +12,7 @@ import { FeedbackMessage } from '@/common/feedback/FeedbackMessage'
 import { buildWafflePrintModel } from '../pdf/model'
 import { printWafflePdf } from '../pdf/printWafflePdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalFeedbackOnKey'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
@@ -107,11 +107,11 @@ export function PlayArea({
   // browser.
   useTabRing([])
   const { game, players: playerStates, swaps, loading, failure } = useGame(gameId)
-  // The setup recap, built ONCE and handed to both consumers — the info column
+  // The setup rows, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
-  const summaryRows = useMemo(
-    () => setupRows(setup as unknown as WaffleSetup, game?.mode ?? 'coop', players, game?.par_swaps ?? 0),
+  const setupRows = useMemo(
+    () => makeSetupRows(setup as unknown as WaffleSetup, game?.mode ?? 'coop', players, game?.par_swaps ?? 0),
     [setup, game, players],
   )
 
@@ -169,7 +169,7 @@ export function PlayArea({
         const prev = seenOpponentRef.current.get(ps.user_id)
         seenOpponentRef.current.set(ps.user_id, { solved: ps.solved, out })
         if (prev === undefined) continue // first sighting — seed, don't announce
-        const member = players.find((m) => m.user_id === ps.user_id)
+        const member = memberById(players, ps.user_id)
         if (ps.solved && !prev.solved) {
           // A solve is a GOOD outcome → won (green) — the same green a found
           // word reads as in both modes (docs/ui.md → Feedback pill: the
@@ -276,7 +276,7 @@ export function PlayArea({
     impliedBy: solvedByMe({ isCompete: game?.mode === 'compete', playState, mine: iSolved }),
   })
 
-  // ─── Stop / Concede / Replay — the shared trio ──────────
+  // ─── The commands, bound ───────────────────────────────
   // The byte-identical shared handlers (useStandardGameActions); waffle's own
   // bits are the replay sentence and the post-replay cleanup (leave the
   // history view, dismiss the last result, re-hide a locally-revealed
@@ -420,7 +420,7 @@ export function PlayArea({
                 .filter((w): w is string => w !== null))
             : null,
           answerShown,
-          setup: summaryRows,
+          setupRows,
         }),
       )
     },
@@ -669,7 +669,7 @@ export function PlayArea({
         actNewGame={actNewGame}
         actBackToClub={menu.actBackToClub}
         setup={waffleSetup}
-        setupRows={summaryRows}
+        setupRows={setupRows}
         answerWords={answerWords}
         swaps={swaps}
         historyId={historyId}

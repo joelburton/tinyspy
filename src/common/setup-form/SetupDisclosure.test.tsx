@@ -1,11 +1,11 @@
 // cs-blessed-setup-form
 
 /**
- * THE SETUP RECAP SHOWN WHILE PLAYING (see SetupDisclosure.tsx) — the
- * info-column "Setup options" list, not a setup form.
+ * THE SETUP OPTIONS LIST SHOWN WHILE PLAYING (see SetupDisclosure.tsx) — the
+ * info-column list, not a setup form.
  *
  * Only the name links it to `<SetupSection>`: that one wraps a field you are
- * editing before the game starts, this one recaps the settings afterwards and
+ * editing before the game starts, this one lists the settings afterwards and
  * lives on the play surface. It exists so every game's info column doesn't
  * re-author the same `<details>`, so what is worth holding is that a game hands
  * over rows and gets the whole list back.

@@ -33,7 +33,7 @@ import type { Member } from '../members/member'
  * is where every one of these values is decided. The only difference is the
  * players: they are the RPC's own argument and become `common.game_players`
  * rows, so they are never in the setup blob — which matters, because
- * `<game>/lib/setupSummary.ts` and each `PlayArea` read that blob BACK as
+ * `<game>/lib/setupRows.ts` and each `PlayArea` read that blob BACK as
  * `<Game>Setup` and would otherwise be typed for a key that is never there.
  */
 export type SetupOf<V> = Omit<V, 'player_user_ids'>

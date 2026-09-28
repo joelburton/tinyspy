@@ -78,7 +78,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from turn_g), 'zdelta'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"miss","found_all":false}}'::jsonb,
+    "data":{"result":"miss","found_all":false}}'::jsonb,
   'turns: the current player''s guess is accepted'
 );
 
@@ -104,7 +104,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from turn_g), 'zecho'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"miss","found_all":false}}'::jsonb,
+    "data":{"result":"miss","found_all":false}}'::jsonb,
   'turns: the new current player may guess'
 );
 reset role;
@@ -135,7 +135,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from turn_g), 'zalpha'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"hit","found_all":false}}'::jsonb,
+    "data":{"result":"hit","found_all":false}}'::jsonb,
   'turns: finding a secret (not the last) is an accepted guess'
 );
 reset role;
@@ -194,7 +194,7 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from ffa_g), 'zdelta'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"miss","found_all":false}}'::jsonb,
+    "data":{"result":"miss","found_all":false}}'::jsonb,
   'free-for-all: any player may guess in any order'
 );
 
@@ -224,7 +224,7 @@ select psychicnum.submit_guess((select id from solo_g), 'zdelta');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from solo_g), 'zecho'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"miss","found_all":false}}'::jsonb,
+    "data":{"result":"miss","found_all":false}}'::jsonb,
   'solo turns: the lone player keeps the turn (advance wraps to self)'
 );
 reset role;

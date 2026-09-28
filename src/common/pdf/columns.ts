@@ -26,7 +26,7 @@ export type Track = {
  * to it. Runs `draw` once per item, adding pages as needed; the caller draws
  * everything inside a track, this only decides where each one starts and how
  * wide it is. Returns the y the tallest track on the LAST page ended at —
- * where `drawSetupBelow` puts the Setup recap — and the page-wide left edge
+ * where `drawSetupBelow` puts the setup rows — and the page-wide left edge
  * and width, for a caller's own block that spans the page under the columns.
  *
  * Width is computed from the cap, not from how many items this page happens

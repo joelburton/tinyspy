@@ -2,6 +2,7 @@
 
 import { terminalOutcomeVerb } from '@/common/terminal/terminalOutcomeVerb'
 import { type GamePlayer } from '@/common/members/member'
+import { memberById } from '@/common/members/memberList'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
 import { InfoActionsRow, type InfoActionsMessage } from '@/common/info-sheet/InfoActionsRow'
 import { OpponentStrip } from '@/common/info-sheet/OpponentStrip'
@@ -98,7 +99,7 @@ export function InfoCol({
   actBackToClub: BoundAction
 
   // ── Setup disclosure ──
-  // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
+  // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
   setupRows: SetupRow[]
 
   // ── Found-words list ──
@@ -146,7 +147,7 @@ export function InfoCol({
               // verb so the two "no longer active" states read differently — "Conceded at
               // Amazing" vs "Lost at Amazing" vs "Won at Genius".
               if (!isTerminal) return concededIds.has(p.user_id) ? 'out' : rank
-              const member = players.find((m) => m.user_id === p.user_id)
+              const member = memberById(players, p.user_id)
               return `${terminalOutcomeVerb(member)} at ${rank}`
             }}
           />

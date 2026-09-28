@@ -76,7 +76,7 @@ export type BananagramsValues = {
 
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupSummary.ts` and `PlayArea` read back. */
+ *  `setupRows.ts` and `PlayArea` read back. */
 export type BananagramsSetup = SetupOf<BananagramsValues>
 /** The full Bananagrams bag — the hard cap on `bunch_size`. */
 export const BANANAGRAMS_BUNCH_MAX = 144

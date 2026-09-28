@@ -123,8 +123,8 @@ select isnt(
 
 select pg_temp.envelope_is(
   submit_clue((select id from g1), 'HAMMER', 1, true),
-  '{"type":"ok","data":{"result":"clued","word":"HAMMER","count":1,
-    "from_ai":true,"turn_number":2,"by_seat":"B"}}'::jsonb,
+  '{"type":"ok","data":{"result":"clued","clue_word":"HAMMER","clue_count":1,
+    "clue_from_ai":true,"turn_number":2,"seat":"B"}}'::jsonb,
   'submit_clue answers with the clue as stored, provenance included'
 );
 select is(

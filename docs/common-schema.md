@@ -218,7 +218,9 @@ and only *who may act now* changing. The mechanism is all common:
 - **`common._advance_turn`**, after an **accepted, non-terminal** move only: a
   refused word must not cost the turn, and a move that ends the game has no one
   to hand it to. It skips anyone locally terminal.
-- **Restart rewinds the pointer** to seat 0.
+- **`common.reset_game`**, on Restart, rewinds a set pointer to seat 0; a null
+  one stays null. A game that opens elsewhere points the turn itself after the
+  call.
 
 Two setup keys carry the choice, both written by the shared
 `SetupCoopStyleSection`: `coop_style` (`'turns' | 'free-for-all'`) and
@@ -243,7 +245,7 @@ player with words left, or nobody when either may guess.
 setup says. scrabble compete does, with its own seating: `scrabble._seat_turn_order`
 sets each player's `turn_seat` to their scrabble seat (humans, then bots), so
 the turn walks the opponent strip, and points the turn at a random seat — on a
-restart too. It advances, gates and skips conceders with the common three.
+restart too, after `reset_game` has rewound it. It advances, gates and skips conceders with the common three.
 
 ## Players and clubs
 

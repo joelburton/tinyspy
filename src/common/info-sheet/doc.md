@@ -184,9 +184,9 @@ info page you thought you had left.
 
 **The rows run in one order, top to bottom:** the state (the game's own line and
 the turn line), the opponent strip, the action row, the help line, a terminal
-extra, the disclosures, then the log. A terminal extra sits above the setup recap
-because the reveal is the payoff and the recap is bookkeeping — the recap must
-never push the answer down.
+extra, the disclosures, then the log. A terminal extra sits above the Setup
+options list because the reveal is the payoff and the list is bookkeeping — the
+list must never push the answer down.
 
 **The action row holds what changes the game or the turn** — Hint, Reveal, End.
 A control that changes only how the board is seen, like Shuffle, floats on the
@@ -194,9 +194,9 @@ board instead, and stays live at terminal ("could I have found that with a
 reshuffle?"). A move itself — a clue, a typed word — is entered in the board
 column, not here.
 
-**At terminal the column swaps rather than grows.** The state line and the setup
-recap stay; the help line goes; the action row trades its play buttons for the
-verdict line and the game's terminal actions. The one row allowed to appear is
+**At terminal the column swaps rather than grows.** The state line and the Setup
+options list stay; the help line goes; the action row trades its play buttons
+for the verdict line and the game's terminal actions. The one row allowed to appear is
 `.terminalExtra`, for an end-of-game readout too tall for the below-board slot
 (its comment in `infoCol.module.css` says why that growth is safe). The one
 growth allowed during play is a disclosure, which the player opens and closes.

@@ -44,7 +44,7 @@ Every color has a **name**, and every name says which **bucket** it belongs to.
 --<bucket>-<thing>-<modifier>-<quality>
    outcomes    lost      fill      color
    member      purple    dot       color
-   tile        selected  border    width
+   tile        picked    edge      width
 ```
 
 - **The bucket comes first**, so a cross-bucket borrow looks wrong at the call

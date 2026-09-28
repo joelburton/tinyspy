@@ -16,8 +16,9 @@ import type { ClueEvent } from '../lib/events'
 import type { Player } from '../lib/seats'
 import type { KeyLabel } from '../lib/labels'
 import { isGuessable, type Seat } from '../lib/phase'
-import { BOARD_SHAPE, cellAt, positionAt } from '../lib/boardShape'
+import { BOARD_SHAPE } from '../lib/boardShape'
 import { useBoundAction } from '@/common/actions/useBoundAction'
+import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import type { Cell } from '@/common/board-cursor/stepCell'
 import { Board } from './Board'
@@ -182,7 +183,7 @@ export function BoardCol({
       setSubmittedPos(position)
       const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', {
         target_game: gameId,
-        target_position: position,
+        guess_position: position,
       }))
       // Four answers, and every one of them says nothing here: each is a
       // REVEAL, and the reveal arrives via Realtime → useBoard
@@ -249,7 +250,7 @@ export function BoardCol({
   // Space toggles, so a second press un-picks and a press elsewhere moves the
   // pick. A word the click couldn't guess can't be picked either.
   function toggleAt(cell: Cell) {
-    const position = positionAt(cell.x, cell.y)
+    const position = positionAt(cell.x, cell.y, BOARD_SHAPE.cols)
     const word = words[position]
     if (word === undefined || !isGuessable(word, mySeat)) return
     localFeedbackSlot.dismiss() // a pick is the next move
@@ -267,7 +268,7 @@ export function BoardCol({
   // again until its reveal lands.
   function handleTileClick(position: number) {
     if (inFlightPos !== null) return
-    point(cellAt(position))
+    point(cellAt(position, BOARD_SHAPE.cols))
     setPickedAt(null)
     void handleGuess(position)
   }
@@ -288,7 +289,7 @@ export function BoardCol({
   })
 
   // ⌫ un-picks.
-  useBoundAction('act-clear-selection', {
+  useBoundAction('act-clear-picks', {
     describe: () => {
       if (!canGuess) return 'hidden'
       return picked !== null ? 'active' : 'disabled'

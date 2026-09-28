@@ -22,8 +22,8 @@ export const DIFFICULTY_LABELS = [
 ] as const
 
 /**
- * A difficulty band formatted as the value shown in a game's "Setup options"
- * recap — `"2 (Common)"`. Every game's dictionary row uses it, so a band always
+ * A difficulty band formatted as the value shown in a game's setup rows —
+ * `"2 (Common)"`. Every game's dictionary row uses it, so a band always
  * reads the same way (`Dictionary: 2 (Common)`, `Dictionary (legal): 4
  * (Uncommon)`). An out-of-range band degrades to `"N (—)"`.
  */

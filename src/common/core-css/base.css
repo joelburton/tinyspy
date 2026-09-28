@@ -271,15 +271,15 @@
   --pill-border-width:        var(--border-width-line-thick);
   --pill-bar-width:           0.4rem;
 
-  /* Border WIDTH is the "selected" channel on a game piece — the
+  /* Border WIDTH is the "picked" channel on a game piece — the
      tile's edge thickens to say "this piece is part of the move I'm
      building", leaving the background free for state and attention,
      which have nowhere else to go. Two widths, one token each, so the
-     resting edge and the selected edge can be tuned against each other
-     in one place. A selected class re-sets `--tile-edge-width` to the
-     selected value rather than re-declaring the border shorthand. */
+     resting edge and the picked edge can be tuned against each other
+     in one place. A picked class re-sets `--tile-edge-width` to the
+     picked value rather than re-declaring the border shorthand. */
   --tile-edge-width:           2px;
-  --tile-selected-edge-width:  4px;
+  --tile-picked-edge-width:    4px;
 
   /* The history viewer's ring on a tile the viewed turn decided. OUTSIDE the
      tile: it only ever lands on a decided tile, and inside it would draw the

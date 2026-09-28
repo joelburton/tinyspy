@@ -80,8 +80,8 @@ select pg_temp.envelope_is(
 
 select pg_temp.envelope_is(
   submit_clue((select id from g1), 'TOOLS', 2),
-  '{"type":"ok","data":{"result":"clued","word":"TOOLS","count":2,
-    "from_ai":false,"turn_number":1,"by_seat":"A"}}'::jsonb,
+  '{"type":"ok","data":{"result":"clued","clue_word":"TOOLS","clue_count":2,
+    "clue_from_ai":false,"turn_number":1,"seat":"A"}}'::jsonb,
   'submit_clue succeeds for the current clue-giver in the clue phase'
 );
 

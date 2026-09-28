@@ -46,8 +46,8 @@ describe('drawInTracks', () => {
   })
 
   it('reports the tallest column on the LAST page, not the tallest ever', () => {
-    // Page one ends at 700; page two's lone track ends at 100 — the Setup
-    // recap goes under THAT, on the page the cursor is on.
+    // Page one ends at 700; page two's lone track ends at 100 — the setup
+    // rows go under THAT, on the page the cursor is on.
     const { out } = layFour()
     expect(out.bottom).toBe(100)
     expect(out.left).toBe(28)

@@ -27,7 +27,7 @@ import { memberById } from '@/common/members/memberList'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { historyChainAt, historyLabelAt } from '../lib/history'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { ANSWER_OUTCOME } from '../lib/answer'
 import { hintOrSpoilerPillText } from '../lib/hintOrSpoiler'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
@@ -114,14 +114,14 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const letterboxedSetup = setup as LetterboxedSetup
 
-  // The setup recap, built ONCE and handed to both consumers — the info column
-  // renders it as <li>s, the print model prints the same array. Literally the
+  // The setup rows, built ONCE and handed to both consumers — the info column
+  // renders them as <li>s, the print model prints the same array. Literally the
   // same object, which is a stronger guarantee than "both call the same
   // function" (common/setup-form/doc.md → Setup rows). Empty until the game row lands; the
   // print effect below is guarded on `game` anyway, and the info column doesn't
   // render until after the loading return.
-  const summaryRows = useMemo(
-    () => (game ? setupRows(letterboxedSetup, game.mode, players, game.sides) : []),
+  const setupRows = useMemo(
+    () => (game ? makeSetupRows(letterboxedSetup, game.mode, players, game.sides) : []),
     [letterboxedSetup, game, players],
   )
 
@@ -445,7 +445,7 @@ export function PlayArea(ctx: GamePageCtx) {
   const { revealed: solutionShown, toggle: toggleSolution } =
     useSolutionReveal()
 
-  // ─── Stop / Concede / Replay — the shared trio ─────────
+  // ─── The commands, bound ───────────────────────────────
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -548,7 +548,7 @@ export function PlayArea(ctx: GamePageCtx) {
           events,
           selfId: session.user.id,
           summary: `${lettersCovered}/${BOARD_SIZE} letters · ${chain.length}/${maxWords} words`,
-          setup: summaryRows,
+          setupRows,
         }),
       )
     },
@@ -586,7 +586,7 @@ export function PlayArea(ctx: GamePageCtx) {
     keyOf: (e) => String(e.id),
     messageFor: (e) => {
       if (e.user_id === session.user.id) return null
-      const member = players.find((p) => p.user_id === e.user_id)
+      const member = memberById(players, e.user_id)
       // A peer's hint is TWO messages (Joel's spec, 2026-08-05): the header names
       // the ACT ("● joel got a hint"), and the CONTENT — the same hint the
       // requester saw — lands in the local slot, so a hint one player asks
@@ -780,7 +780,7 @@ export function PlayArea(ctx: GamePageCtx) {
           wordsByUser={wordsByUser}
           coveredByUser={coveredByUser}
           concededIds={concededIds}
-          setupRows={summaryRows}
+          setupRows={setupRows}
           actHint={actHint}
           actSpoiler={actSpoiler}
           actReveal={actReveal}

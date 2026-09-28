@@ -499,12 +499,12 @@ describe('scrabble PlayArea — the rack row says why', () => {
     expect(control('act-exchange')?.getAttribute('aria-label')).toBe('Swap')
   })
 
-  it('Exchange on your turn with nothing selected asks for a selection', () => {
+  it('Exchange on your turn with nothing picked asks for a pick', () => {
     render(<PlayArea {...makeCtx()} />)
     expect(describeOf('act-exchange')).toEqual({
       state: 'disabled',
       label: 'Swap',
-      tooltip: 'Select rack tiles first',
+      tooltip: 'Pick rack tiles first',
     })
   })
 

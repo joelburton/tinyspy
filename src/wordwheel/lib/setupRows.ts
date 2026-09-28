@@ -2,12 +2,12 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { centerLettersRow, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeCenterLettersRow, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { WordwheelSetup } from './setup'
 
 /**
- * wordwheel's setup recap — ONE array, rendered by the info column and the PDF
+ * wordwheel's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows): the roster, the wheel's
  * letters, the two dictionary bands, the target rank when one was chosen, the
  * unique-letters constraint when it's on (a control that didn't apply produces
@@ -20,7 +20,7 @@ import type { WordwheelSetup } from './setup'
  * roster — on a kept record, WHICH board this was outranks how it was
  * configured.
  */
-export function setupRows(
+export function makeSetupRows(
   setup: WordwheelSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
@@ -28,8 +28,8 @@ export function setupRows(
   board: { center: string; outer: string } | null = null,
 ): SetupRow[] {
   const rows: SetupRow[] = [
-    rosterRow(players),
-    ...centerLettersRow(board),
+    makeRosterRow(players),
+    ...makeCenterLettersRow(board),
     { key: 'required_band', label: 'Dictionary (required)', value: difficultyValue(setup.required_band) },
     { key: 'legal_band', label: 'Dictionary (legal)', value: difficultyValue(setup.legal_band) },
   ]
@@ -42,6 +42,6 @@ export function setupRows(
     // label would read as one fact contradicting itself.
     rows.push({ key: 'unique_letters', label: 'Board constraint', value: 'unique letters only' })
   }
-  rows.push(timerRow(setup.timer))
+  rows.push(makeTimerRow(setup.timer))
   return rows
 }

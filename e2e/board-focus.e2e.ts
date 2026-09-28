@@ -72,8 +72,8 @@ test('connections: clicking a tile leaves no focus behind, and ⌥Z shuffles', a
   await clickTileThenType(page, '[data-tile]')
   expect(await focusState(page, '[data-tile]')).toEqual({ onTile: false, focusVisible: false })
 
-  // The tile IS still selected — the click did its job; only the focus went.
-  await expect(page.locator('[data-tile][class*="selected"]')).toHaveCount(1)
+  // The tile IS still picked — the click did its job; only the focus went.
+  await expect(page.locator('[data-tile][class*="picked"]')).toHaveCount(1)
 
   // ⌥Z shuffles: the same sixteen tiles, a new order.
   const order = () => page.$$eval('[data-tile]', (ts) => ts.map((t) => t.textContent).join(''))
@@ -83,8 +83,8 @@ test('connections: clicking a tile leaves no focus behind, and ⌥Z shuffles', a
     await page.waitForTimeout(120)
   }
   expect(await order()).not.toBe(before)
-  // …and shuffling is not a move: the selection survives it.
-  await expect(page.locator('[data-tile][class*="selected"]')).toHaveCount(1)
+  // …and shuffling is not a move: the pick survives it.
+  await expect(page.locator('[data-tile][class*="picked"]')).toHaveCount(1)
 
   await ctx.close()
 })

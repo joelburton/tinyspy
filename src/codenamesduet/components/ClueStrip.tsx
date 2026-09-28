@@ -25,10 +25,11 @@ import { reportUnhandled } from '@/common/supabase/dbEnvelope'
  *  see rather than what this form sent. */
 type ClueAnswer = {
   result: 'clued'
-  word: string
-  count: number
+  clue_word: string
+  clue_count: number
+  clue_from_ai: boolean
   turn_number: number
-  by_seat: Seat
+  seat: Seat
 }
 
 /** What `pass_turn` answers: one `ok`, carrying the turn state the pass

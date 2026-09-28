@@ -27,7 +27,7 @@ import { printBananagramsPdf } from '../pdf/printBananagramsPdf'
 import { PlayerBoard } from './PlayerBoard'
 import type { BananagramsCheckResult } from '../hooks/usePlayerBoard'
 import { PeersStrip } from './PeersStrip'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import shared from '@/common/info-sheet/infoCol.module.css'
 import { EnvelopeErrorPage } from '@/common/error-page/ErrorPage'
@@ -83,12 +83,12 @@ export function PlayArea(ctx: GamePageCtx) {
   // Everyone's finished grids, for the printout's per-player columns. Empty
   // until the game ends — see usePeerBoards / the player_boards RLS.
   const peerBoards = usePeerBoards(ctx.gameId, ctx.isTerminal)
-  // The setup recap, built ONCE and handed to both consumers — the disclosure
+  // The setup rows, built ONCE and handed to both consumers — the disclosure
   // below renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows). bananagrams keeps its disclosure in this file
   // rather than an InfoCol, being the v3 layout exception.
-  const summaryRows = useMemo(
-    () => setupRows(ctx.setup as unknown as BananagramsSetup, 'compete', ctx.players),
+  const setupRows = useMemo(
+    () => makeSetupRows(ctx.setup as unknown as BananagramsSetup, 'compete', ctx.players),
     [ctx.setup, ctx.players],
   )
   const progress = useProgress(ctx.gameId)
@@ -249,7 +249,7 @@ export function PlayArea(ctx: GamePageCtx) {
     seenTilesLen.current = tiles.length
   }, [tiles, loading, localFeedbackSlot])
 
-  // ─── Concede / Restart — the shared exits ──────────────────────────────
+  // ─── The commands, bound ───────────────────────────────
   // bananagrams is compete-only, so its exits are a race's: Concede, whose
   // question also offers stopping the whole table, and Stop once your Concede
   // is spent (useStandardGameActions says why the two live behind one button).
@@ -372,7 +372,7 @@ export function PlayArea(ctx: GamePageCtx) {
         summary: mine.result,
         // Relevant setup only — the timer + dump destination don't describe the board.
         mode: 'compete' as const,
-        setup: summaryRows,
+        setupRows,
         tracks: [mine, ...others],
       })
     },
@@ -538,7 +538,7 @@ export function PlayArea(ctx: GamePageCtx) {
       )}
 
       {/* Setup — behind a disclosure (closed by default). */}
-      <SetupDisclosure rows={summaryRows} />
+      <SetupDisclosure rows={setupRows} />
     </>
   )
 

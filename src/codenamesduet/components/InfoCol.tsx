@@ -103,7 +103,7 @@ export function InfoCol({
   myKey: KeyLabel[]
   // Read for its turn budget.
   setup: CodenamesduetSetup
-  // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
+  // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
   setupRows: SetupRow[]
 
   // ── Turn-history log (GameEventLog) ──
@@ -130,7 +130,7 @@ export function InfoCol({
           <StateLine
             greenFound={greenFound}
             turnNumber={turnNumber}
-            turns={setup.turns}
+            turnBudget={setup.turns}
           />
         </p>
 
@@ -195,7 +195,7 @@ export function InfoCol({
         guesses={guesses}
         players={players}
         selfId={selfId}
-        currentTurn={turnNumber}
+        turnNumber={turnNumber}
         isTerminal={isTerminal}
         turnBudget={setup.turns}
         historyId={historyId}

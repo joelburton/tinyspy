@@ -2,22 +2,22 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { coopRows, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeCoopRows, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import type { WordiplySetup } from './setup'
 
 /**
- * wordiply's setup recap — ONE array, rendered by the info column and the PDF
+ * wordiply's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  */
-export function setupRows(
+export function makeSetupRows(
   setup: WordiplySetup,
   mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {
   return [
-    rosterRow(players),
-    ...coopRows(setup, mode, players),
+    makeRosterRow(players),
+    ...makeCoopRows(setup, mode, players),
     { key: 'difficulty', label: 'Dictionary', value: difficultyValue(setup.difficulty) },
-    timerRow(setup.timer),
+    makeTimerRow(setup.timer),
   ]
 }

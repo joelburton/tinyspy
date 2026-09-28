@@ -78,14 +78,14 @@ export function buildLetterboxedPrintModel(o: {
   selfId: string
   /** The on-screen status line, repeated under the title. */
   summary: string
-  setup: SetupRow[]
+  setupRows: SetupRow[]
 }): LetterboxedPrintModel {
   const header: PrintHeader = {
     brand: o.brand,
     gameTitle: o.gameTitle,
     date: o.date,
     summary: o.summary,
-    setup: o.setup,
+    setupRows: o.setupRows,
     mode: o.mode,
   }
 

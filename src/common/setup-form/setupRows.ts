@@ -6,15 +6,15 @@ import type { Member } from '../members/member'
 import { timerLabel } from '../timer/timerLabel'
 
 /**
- * The setup recap — **one array per game, for the info column and the PDF to
- * share.** A game exports `setupRows()` from `<game>/lib/setupSummary.ts`;
+ * The setup rows — **one array per game, for the info column and the PDF to
+ * share.** A game exports `makeSetupRows()` from `<game>/lib/setupRows.ts`;
  * `<SetupDisclosure>` renders it as `<li>`s and `drawSetup` prints the same
  * array, which is what makes the screen and the paper agree.
  *
  * **The rules that shape a game's rows live in
- * [common/setup-form/doc.md → Setup rows](../../../common/pdf/doc.md#setup-rows)** — what earns a
+ * [common/setup-form/doc.md → Setup rows](./doc.md#setup-rows)** — what earns a
  * row, why the mode isn't one, and why a board's letters are printed even when
- * nobody typed them. Read that before writing a game's `setupRows`.
+ * nobody typed them. Read that before writing a game's `makeSetupRows`.
  *
  * What this file owns is the TYPE and the rows more than one game draws: the roster,
  * coop pacing, a center-letter board, the timer. `guards/setupRows.test.ts`
@@ -22,7 +22,7 @@ import { timerLabel } from '../timer/timerLabel'
  * exempted from it.
  */
 
-/** One line of the recap: what it describes, what it's called, what it says. */
+/** One setup row: what it describes, what it's called, what it says. */
 export type SetupRow = {
   // The setup key this row describes — `'timer'`, `'legal_band'`, … Nothing
   // RENDERS it; it exists so `src/guards/setupRows.test.ts` can assert that
@@ -53,19 +53,19 @@ export const ROSTER_KEY = 'players'
  * setup.
  *
  * Two routes to it, decided by board shape rather than by game: a board that is
- * a center plus an outer ring gets its row from `centerLettersRow()` below and
+ * a center plus an outer ring gets its row from `makeCenterLettersRow()` below and
  * never names this constant; any other shape imports it and builds its own row.
  */
 export const BOARD_KEY = 'letters'
 
 /**
- * Who played — the FIRST row of every game's recap.
+ * Who played — the FIRST of every game's setup rows.
  *
  * It belongs here rather than being an exception to the "only controls" rule:
  * who plays is chosen in the create-game dialog too, right above the per-game
  * body. And on a record you keep, it's the single most useful line.
  */
-export function rosterRow(players: Member[]): SetupRow {
+export function makeRosterRow(players: Member[]): SetupRow {
   return {
     key: ROSTER_KEY,
     label: 'Players',
@@ -82,7 +82,7 @@ export function rosterRow(players: Member[]): SetupRow {
  * Two keys, one control, so this returns up to two rows: the style, then the
  * opening seat when (and only when) turns were picked.
  */
-export function coopRows(
+export function makeCoopRows(
   setup: CoopTurnSetup,
   mode: 'coop' | 'compete',
   players: Member[],
@@ -113,7 +113,7 @@ export function coopRows(
  * `A-CHIROT`: the center, a dash, then the rest.
  *
  * The dash is load-bearing: it's the shape their setup dialogs' own summary
- * line uses (`Custom letters: A-CHIROT`), so what the recap prints is what you
+ * line uses (`Custom letters: A-CHIROT`), so what the setup row prints is what you
  * would type back in.
  *
  * `outer` is printed SORTED — a canonical spelling, so one board always reads
@@ -133,7 +133,7 @@ export function coopRows(
  * Returns nothing while the board is still loading (`null`), so a game page
  * that hasn't fetched its row yet omits the line rather than printing a stub.
  */
-export function centerLettersRow(board: { center: string; outer: string } | null): SetupRow[] {
+export function makeCenterLettersRow(board: { center: string; outer: string } | null): SetupRow[] {
   if (!board) return []
   return [
     {
@@ -145,6 +145,6 @@ export function centerLettersRow(board: { center: string; outer: string } | null
 }
 
 /** The timer, which every game's dialog offers. Always a row — "none" is a choice. */
-export function timerRow(timer: TimerMode): SetupRow {
+export function makeTimerRow(timer: TimerMode): SetupRow {
   return { key: 'timer', label: 'Timer', value: timerLabel(timer) }
 }

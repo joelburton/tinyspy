@@ -10,11 +10,11 @@ import type { TimerMode } from '../manifest/gameManifest'
  * `none` reads as it does rather than "no timer". Two places print it, and both
  * supply that label themselves:
  *
- *  - `setupRows.ts`'s `timerRow()`, for the setup recap — the info column and
+ *  - `setupRows.ts`'s `makeTimerRow()`, for the setup rows — the info column and
  *    the PDF then render the row like any other.
  *  - `<SetupTimerSection>`, for its own section heading while you are still
- *    choosing. So the string you pick by is the string the recap shows you
- *    later, which is the point of formatting in one place.
+ *    choosing. So the string you pick by is the string the Setup options list
+ *    shows you later, which is the point of formatting in one place.
  */
 export function timerLabel(t: TimerMode): string {
   if (t.kind === 'countup') return 'count-up'

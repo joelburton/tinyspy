@@ -6,7 +6,7 @@
 
 - ~~**The custom-letters field became one box, and nobody has looked at it.**~~
   The setup form once took a center letter and six others in two boxes; it now
-  takes the hyphenated string both the summary and the recap print (`A-CHIROT`)
+  takes the hyphenated string both the summary and the Setup options list print (`A-CHIROT`)
   in a single `<ManualBoardField>`, which splits it. That shipped from the
   `forms` area on 2026-08-26 (`1599b751`, the field five games stopped
   hand-rolling), and the e2e spec was deliberately left RED so the UI change
@@ -53,7 +53,7 @@
 
 ## Won't do
 
-- **`Letters.module.css` + `Letter.module.css` and `Wheel.module.css` +
+- **`Hive.module.css` + `Letter.module.css` and `Wheel.module.css` +
   `Tile.module.css` are deliberately NOT folded** with wordwheel's. The two sides are structurally
   parallel — `.board`, `.grid`, `.floatAnchor`, a tile — so a fold looks
   mechanically easy, and the reason

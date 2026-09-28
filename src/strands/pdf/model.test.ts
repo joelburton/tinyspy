@@ -48,7 +48,7 @@ const SOLUTION: StrandsSolution = {
 }
 
 const base = {
-  header: { mode: 'coop' as const, brand: 'PaulPath', gameTitle: 't', date: 'd', summary: 's', setup: [] },
+  header: { mode: 'coop' as const, brand: 'PaulPath', gameTitle: 't', date: 'd', summary: 's', setupRows: [] },
   board: ['ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF', 'ABCDEF'],
   players,
   selfId: ADA,

@@ -49,7 +49,7 @@ export type ScrabbleValues = CoopTurnSetup & {
 
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupSummary.ts` and `PlayArea` read back. */
+ *  `setupRows.ts` and `PlayArea` read back. */
 export type ScrabbleSetup = SetupOf<ScrabbleValues>
 /** The five AI strength levels (policy.ts `LEVELS`), weakest → strongest. */
 export const AI_LEVELS = ['beginner', 'casual', 'intermediate', 'strong', 'best'] as const

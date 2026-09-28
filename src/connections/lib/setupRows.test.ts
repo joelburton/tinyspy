@@ -2,11 +2,11 @@
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Member } from '@/common/members/member'
-import { setupRows } from './setupSummary'
+import { makeSetupRows } from './setupRows'
 import type { ConnectionsSetup } from './setup'
 
 /**
- * Tests for connections' setup recap — the one array the info column and the
+ * Tests for connections' setup rows — the one array the info column and the
  * PDF both draw (common/setup-form/doc.md → Setup rows).
  *
  * `src/guards/setupRows.test.ts` already holds every game to the SHAPE of this
@@ -23,25 +23,25 @@ const PLAYERS: Member[] = [
   { user_id: 'u2', username: 'bea', color: 'green' },
 ]
 
-/** The recap's value for one key, or undefined if the key produced no row. */
+/** The setup row's value for one key, or undefined if the key produced no row. */
 function valueOf(rows: { key: string; value: string }[], key: string) {
   return rows.find((r) => r.key === key)?.value
 }
 
-describe('connections setup recap', () => {
+describe('connections setup rows', () => {
   it('leads with the roster, then pacing, the puzzle and the timer', () => {
-    const rows = setupRows(SETUP, 'coop', PLAYERS, '2026-06-15')
+    const rows = makeSetupRows(SETUP, 'coop', PLAYERS, '2026-06-15')
     expect(rows.map((r) => r.key)).toEqual(['players', 'coop_style', 'puzzle_id', 'timer'])
     expect(rows.map((r) => r.label)).toEqual(['Players', 'Pacing', 'Puzzle', 'Timer'])
   })
 
   it('drops the pacing row in a race — a control that did not apply prints nothing', () => {
-    const rows = setupRows(SETUP, 'compete', PLAYERS, '2026-06-15')
+    const rows = makeSetupRows(SETUP, 'compete', PLAYERS, '2026-06-15')
     expect(rows.map((r) => r.key)).toEqual(['players', 'puzzle_id', 'timer'])
   })
 
   it('names a board with no NYT date "custom puzzle" rather than leaving it blank', () => {
-    expect(valueOf(setupRows(SETUP, 'coop', PLAYERS, null), 'puzzle_id')).toBe('custom puzzle')
+    expect(valueOf(makeSetupRows(SETUP, 'coop', PLAYERS, null), 'puzzle_id')).toBe('custom puzzle')
   })
 })
 
@@ -68,14 +68,14 @@ describe('the puzzle date, from the far side of the date line', () => {
   })
 
   it('names the day on the puzzle, not the day before it', () => {
-    const value = valueOf(setupRows(SETUP, 'coop', PLAYERS, '2026-06-15'), 'puzzle_id')!
+    const value = valueOf(makeSetupRows(SETUP, 'coop', PLAYERS, '2026-06-15'), 'puzzle_id')!
     expect(value).toContain('15')
     expect(value).not.toContain('14')
     expect(value).toContain('2026')
   })
 
   it('holds across a year boundary, where the slip also moves the year', () => {
-    const value = valueOf(setupRows(SETUP, 'coop', PLAYERS, '2026-01-01'), 'puzzle_id')!
+    const value = valueOf(makeSetupRows(SETUP, 'coop', PLAYERS, '2026-01-01'), 'puzzle_id')!
     expect(value).toContain('2026')
     expect(value).not.toContain('2025')
   })

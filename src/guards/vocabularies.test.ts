@@ -539,7 +539,7 @@ const VOCABULARIES: Vocabulary[] = [
       'Use `--border-width-line` (a divider or a field edge), `-line-thick` ' +
       '("this box is a thing") or `-frame` ("something is happening to what ' +
       'is inside"). A game piece\'s own edge is not on this ramp — it has ' +
-      '`--tile-edge-width` and `--tile-selected-edge-width`, which are a ' +
+      '`--tile-edge-width` and `--tile-picked-edge-width`, which are a ' +
       'channel rather than a weight of line.',
   },
   {

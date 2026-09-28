@@ -408,17 +408,17 @@ grant execute on function psychicnum.create_game(text, jsonb, uuid[], text) to a
 -- secret? — because its only consumer is the pill flashed in the
 -- entry box. Its `data` carries two facts, so neither has to be
 -- decoded out of the other:
---   'verdict'    — 'hit' or 'miss'.
+--   'result'     — 'hit' or 'miss'.
 --   'found_all'  — true only on the guess that completes the set;
 --                  the caller (compete) / team (coop) wins.
--- The envelope carries NO outcome and NO message: `verdict` is the
+-- The envelope carries NO outcome and NO message: `result` is the
 -- fact, and how a fact reads is the frontend's, in one place
 -- (src/psychicnum/lib/answer.ts). A word already in the log is
 -- PN497, a `race` — the board refuses a repeat itself, so the
 -- server seeing one means the FE's map was stale. The terminal
 -- transition the FE observes via realtime, not the envelope.
 --
--- `verdict` is the CALLER's, never the game's fate: a correct guess
+-- `result` is the CALLER's, never the game's fate: a correct guess
 -- that happens to empty the budget still says `hit`, and the loss
 -- reaches the FE over realtime like every other way this game ends
 -- (timeout, concede, a compete opponent finishing).
@@ -522,7 +522,7 @@ begin
   if caller_used is null then
     -- Shouldn't happen — require_game_player passed, so the row
     -- exists. Defensive.
-    raise exception 'You are not in this game'
+    raise exception 'BUG: you are not in this game'
       using errcode = 'PN271', hint = 'fault', column = '_',
       detail = 'no psychicnum.players budget row for the caller';
   end if;
@@ -604,9 +604,8 @@ begin
   -- Distinct secrets found in scope (coop: the team; compete: the caller).
   -- Counting real guesses keeps this independent of the found_secrets_count tally.
   -- `events.is_correct` is QUALIFIED on purpose: this function also holds a
-  -- local `is_correct` for the caller's own verdict, and PL/pgSQL treats an
-  -- unqualified match as an error rather than picking one. (The column was
-  -- `was_correct` until 2026-08-01, which is what hid the collision.)
+  -- local `is_correct` for the caller's own result, and PL/pgSQL treats an
+  -- unqualified match as an error rather than picking one.
   select count(distinct word) into found_count
     from psychicnum.events
    where game_id = target_game and kind = 'guess' and events.is_correct
@@ -653,7 +652,7 @@ begin
     -- Two facts, two fields, so neither has to be decoded out of the other:
     -- this guess hit, AND it was the last secret.
     return common.ok_envelope(
-      jsonb_build_object('verdict', 'hit', 'found_all', true));
+      jsonb_build_object('result', 'hit', 'found_all', true));
   end if;
 
   -- ─── Budget exhausted before completing the set = loss ───
@@ -696,12 +695,12 @@ begin
          end,
       player_results
     );
-    -- The caller's own verdict, NOT the game's — the game's fate travels by
+    -- The caller's own result, NOT the game's — the game's fate travels by
     -- realtime (end_game above). A correct guess that empties the budget is
     -- still a correct guess to the person who made it.
     --
     return common.ok_envelope(
-      jsonb_build_object('verdict', case when is_correct then 'hit' else 'miss' end,
+      jsonb_build_object('result', case when is_correct then 'hit' else 'miss' end,
                          'found_all', false));
   end if;
 
@@ -735,7 +734,7 @@ begin
          end
   );
   return common.ok_envelope(
-    jsonb_build_object('verdict', case when is_correct then 'hit' else 'miss' end,
+    jsonb_build_object('result', case when is_correct then 'hit' else 'miss' end,
                        'found_all', false));
 
 exception when others then
@@ -1296,11 +1295,8 @@ drop function if exists psychicnum.end_game(uuid);
 -- Every player's used count goes back to 0; the budget itself is
 -- `setup.max_guesses`, which a replay does not touch.
 --
--- Turn-order coop rewinds the pointer to the player seated first
--- (`game_players.turn_seat = 0`). The rotation was assigned at create
--- time and doesn't change, so this restores the original opener without
--- re-reading `setup.first_turn_user_id`; a free-for-all game's null pointer
--- stays null.
+-- Turn-order coop goes back to the player seated first; common.reset_game
+-- rewinds the pointer.
 --
 -- The secrets re-hide on their own: games_state gates them on
 -- common.games.is_terminal, which reset_game clears.
@@ -1343,15 +1339,6 @@ begin
    where game_id = target_game;
 
   delete from psychicnum.events where game_id = target_game;
-
-  -- Turn-order coop: rewind to the original opener. Matches no row (so it's a
-  -- no-op) in a free-for-all game, whose pointer is null.
-  update common.games
-     set current_turn_user_id = (
-           select gp.user_id from common.game_players gp
-            where gp.game_id = target_game and gp.turn_seat = 0
-         )
-   where id = target_game and current_turn_user_id is not null;
 
   -- The club-list label: nothing used yet, in either mode — the same key
   -- submit_guess writes.

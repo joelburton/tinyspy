@@ -23,7 +23,7 @@ import shared from '@/common/game-page/playArea.module.css'
  * The commit buttons:
  *   - **Swap** (`act-exchange`, icon-only) — return rack tiles. Its bubble
  *     carries its own reason when it can't act ("Need ≥ 7 tiles in the bag",
- *     "Select rack tiles first"), so this row places it and explains nothing.
+ *     "Pick rack tiles first"), so this row places it and explains nothing.
  *   - **Pass** (`act-pass`, which HIDES itself in coop; the end-turn octagon
  *     de-emphasized to icon-only + secondary, in caution amber — forgoing a
  *     move is uncommon here, unlike codenamesduet's every-turn `act-end-turn`).
@@ -89,7 +89,7 @@ export function Controls({
         ) : (
           <div className={styles.commitButtons}>
             {/* Swap's bubble carries its OWN reason when it can't act ("Need ≥
-                7 tiles in the bag", "Select rack tiles first"), which is
+                7 tiles in the bag", "Pick rack tiles first"), which is
                 `describe()`'s doing rather than a `title` worked out here. */}
             <ActionButton action={actExchange} show="icon" />
             {/* Pass — the end-turn octagon in the registry's caution tone

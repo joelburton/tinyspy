@@ -17,6 +17,7 @@ import { useDismissLocalFeedbackOnKey } from '@/common/feedback/useDismissLocalF
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import type { Cell } from '@/common/board-cursor/stepCell'
+import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { db } from '../db'
 import { answerMessage, type Answer } from '../lib/answer'
 import { boardShape } from '../lib/boardShape'
@@ -28,10 +29,10 @@ import { shuffle } from '@/common/utils/shuffle'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
-/** What `psychicnum.submit_guess` puts in `data` — the caller's own verdict,
+/** What `psychicnum.submit_guess` puts in `data` — the caller's own result,
  *  plus whether that guess completed the set. Every `ok` this RPC answers
  *  carries one; its refusals are all `not-ok`. */
-type GuessAnswer = { verdict: 'hit' | 'miss'; found_all: boolean }
+type GuessAnswer = { result: 'hit' | 'miss'; found_all: boolean }
 
 /**
  * psychicnum's board column — the `Board` (with the floating Shuffle) plus the
@@ -129,7 +130,7 @@ export function BoardCol({
   // Live, or a past turn's snapshot. PlayArea has already picked which `results`
   // to hand down, so this column only needs to know WHICH it got — and then
   // everything that would WRITE to the board answers to it: the tiles go inert,
-  // the selection and the in-flight dim are dropped, the keys and Clear/Submit
+  // the pick and the in-flight dim are dropped, the keys and Clear/Submit
   // go inert, and the banner overlays the slot.
 
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
@@ -168,12 +169,12 @@ export function BoardCol({
   // run changes (common/game-page/doc.md).
   const inFlightWord = submittedLanded ? null : submittedWord
 
-  // Drawn only while I can still play: a selection means "the move I am
+  // Drawn only while I can still play: a pick means "the move I am
   // building", and a finished board or a player out of the race builds
   // nothing — so a tile picked just before that moment must not keep the
   // border, since nothing else would ever take it off. Waiting my turn is not
   // that: the pick stays for when the turn comes back.
-  const selected = isStillPlaying ? picked : null
+  const drawnPick = isStillPlaying ? picked : null
 
   // Picking (or un-picking) is the player's next action, so it dismisses a
   // gesture-cleared result. (submitGuess clears `picked` directly, NOT through
@@ -214,11 +215,11 @@ export function BoardCol({
     }
     setSubmitting(true)
     setSubmittedWord(guess)
-    // `verdict` is the caller's OWN answer and nothing else. Whether the game
+    // `result` is the caller's OWN answer and nothing else. Whether the game
     // ended rides beside it in `found_all`, which this surface ignores: every
     // terminal transition reaches us by realtime, and a hit that empties the
     // budget is still a hit to the person who made it. That is also why the two
-    // verdict branches below cover THREE server returns (the win, the guess that
+    // result branches below cover THREE server returns (the win, the guess that
     // spends the last of the budget, and the ordinary one) — they differ in what
     // they did to the game, not in what they did for the player.
     const res = await runRpc<GuessAnswer>(db.rpc('submit_guess', { target_game: gameId, guess }))
@@ -226,9 +227,9 @@ export function BoardCol({
     if (res.type === 'not-ok') {
       setSubmittedWord(null)
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
-    } else if (res.type === 'ok' && res.data.verdict === 'hit') {
+    } else if (res.type === 'ok' && res.data.result === 'hit') {
       show({ answerType: 'hit', word: guess })
-    } else if (res.type === 'ok' && res.data.verdict === 'miss') {
+    } else if (res.type === 'ok' && res.data.result === 'miss') {
       show({ answerType: 'miss', word: guess })
     } else {
       // Nothing named this answer, so the tile must not keep claiming to be in
@@ -268,7 +269,7 @@ export function BoardCol({
   // under it while the pick, being a word, moves with its tile.
 
   const shape = boardShape(shuffledWords.length)
-  const wordAt = (cell: Cell) => shuffledWords[cell.y * shape.cols + cell.x]
+  const wordAt = (cell: Cell) => shuffledWords[positionAt(cell.x, cell.y, shape.cols)]
 
   // Space toggles, so a second press un-picks. A decided tile can't be picked,
   // as it can't be clicked.
@@ -287,7 +288,7 @@ export function BoardCol({
   // A tile click: the pick, and the cursor moves there, hidden.
   function handleTileClick(word: string) {
     const i = shuffledWords.indexOf(word)
-    point({ x: i % shape.cols, y: Math.floor(i / shape.cols) })
+    point(cellAt(i, shape.cols))
     pick(word)
   }
 
@@ -299,7 +300,7 @@ export function BoardCol({
   })
 
   // Clear un-picks, on its button or ⌫.
-  const actClearSelection = useBoundAction('act-clear-selection', {
+  const actClearPicks = useBoundAction('act-clear-picks', {
     describe: () => (canPick && picked !== null ? 'active' : 'disabled'),
     run: () => pick(null),
   })
@@ -320,7 +321,7 @@ export function BoardCol({
       <Board
         words={shuffledWords}
         results={results}
-        selected={isViewingHistory ? null : selected}
+        picked={isViewingHistory ? null : drawnPick}
         cursor={cursor}
         decidedBy={decidedBy}
         terminalOutcome={terminalOutcome}
@@ -329,7 +330,7 @@ export function BoardCol({
         moveCount={moveCount}
         // The word with the server, if any: its tile dims until the answer lands.
         // Never while viewing a past turn — that board is not the one the guess
-        // is in flight on, the same reason `selected` is dropped above.
+        // is in flight on, the same reason the pick is dropped above.
         inFlightWord={isViewingHistory ? null : inFlightWord}
         isBoardInteractive={isBoardInteractive}
         onPick={handleTileClick}
@@ -366,7 +367,7 @@ export function BoardCol({
           ) : (
             <div className={styles.moveArea}>
               <ActionButton
-                action={actClearSelection}
+                action={actClearPicks}
                 show={phone ? 'icon' : 'both'}
               />
               <ActionButton

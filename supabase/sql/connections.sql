@@ -770,7 +770,7 @@ begin
   if caller_mistakes is null then
     -- require_game_player passed but there's no players row;
     -- shouldn't happen since create_game seeds them. Defensive.
-    raise exception 'You are not in this game'
+    raise exception 'BUG: you are not in this game'
       using errcode = 'PN250', hint = 'fault', column = '_',
       detail = 'no connections.players row for the caller';
   end if;
@@ -1362,10 +1362,6 @@ drop function if exists connections.end_game(uuid);
 -- `status` from its insert, so a fresh game's is NULL where a replayed one's is
 -- '{}'. No behavioral difference — both `labelFor`s read `row.status ?? {}`.
 --
--- Turn-order coop rewinds the pointer to the player seated first
--- (`game_players.turn_seat = 0`); a free-for-all game's null pointer stays
--- null.
---
 -- No realtime touch needed: the players update + events delete wake useGame
 -- (subscribed to connections.{games,players,events}), and reset_game's
 -- common.games write wakes useCommonGame.
@@ -1404,13 +1400,6 @@ begin
    where game_id = target_game;
 
   delete from connections.events where game_id = target_game;
-
-  update common.games
-     set current_turn_user_id = (
-           select gp.user_id from common.game_players gp
-            where gp.game_id = target_game and gp.turn_seat = 0
-         )
-   where id = target_game and current_turn_user_id is not null;
 
   perform common.reset_game(target_game, '{}'::jsonb);
   return common.ok_envelope(jsonb_build_object('result', 'replayed'));

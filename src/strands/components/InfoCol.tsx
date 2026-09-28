@@ -51,7 +51,7 @@ type Props = {
   selfId: string
   // ── Setup echo ──
   setup: StrandsSetup
-  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
   // ── Actions ──
   /** Stop the game for the whole table — coop's exit; it hides itself in a race. */

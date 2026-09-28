@@ -6,9 +6,9 @@ import { ROSTER_KEY, type SetupRow } from '@/common/setup-form/setupRows'
 import type { Member } from '@/common/members/member'
 
 /**
- * The roster-wide guard on setup recaps (common/setup-form/doc.md → Setup rows).
+ * The roster-wide guard on setup rows (common/setup-form/doc.md → Setup rows).
  *
- * Each game exports `setupRows()` from `<game>/lib/setupSummary.ts`, and BOTH
+ * Each game exports `makeSetupRows()` from `<game>/lib/setupRows.ts`, and BOTH
  * its info column and its PDF render that one array. Before it, the two lists
  * were written by hand in different files and drifted — in labels everywhere,
  * and in psychicnum's case into reporting different FACTS on paper than on
@@ -17,8 +17,8 @@ import type { Member } from '@/common/members/member'
  *
  * What this pins:
  *
- *   1. **Every game has a summary** (or is named in `NO_RECAP` with a reason),
- *      so a new game can't dodge the rule by not having a module.
+ *   1. **Every game has a setup-rows module** (or is named in `NO_SETUP_ROWS` with a
+ *      reason), so a new game can't dodge the rule by not having a module.
  *   2. **Every key of a game's default setup produces a row** (or is named in
  *      `NOT_A_ROW` with a reason). Adding a setup field therefore forces a
  *      decision about whether players should see it recorded.
@@ -30,13 +30,13 @@ import type { Member } from '@/common/members/member'
 
 /** Modules keyed by game folder — the folder is the manifest's `schema`. */
 const MODULES = import.meta.glob<{
-  setupRows: (setup: never, mode: 'coop' | 'compete', players: Member[], ...rest: never[]) => SetupRow[]
-}>('../*/lib/setupSummary.ts', { eager: true })
+  makeSetupRows: (setup: never, mode: 'coop' | 'compete', players: Member[], ...rest: never[]) => SetupRow[]
+}>('../*/lib/setupRows.ts', { eager: true })
 
-/** Games with NO setup recap on either surface — nothing to unify. */
-const NO_RECAP: Record<string, string> = {
+/** Games with NO setup rows on either surface — nothing to unify. */
+const NO_SETUP_ROWS: Record<string, string> = {
   crosswords:
-    'never had a recap on either surface: no <SetupDisclosure>, and its PDF is the ' +
+    'never had setup rows on either surface: no <SetupDisclosure>, and its PDF is the ' +
     'whole-cloth ported printer with no Setup block. Adding one would be new UI, ' +
     'not the unification this rule is about.',
 }
@@ -55,7 +55,7 @@ const NOT_A_ROW: Record<string, string> = {
   unique_letters: 'omitted unless the constraint is on',
   ai_count: 'compete-only, and only when AI seats were taken',
   ai_level: 'reported inside the AI row, not on its own',
-  // The three letter games' board overrides. Each DOES reach the recap — as the
+  // The three letter games' board overrides. Each DOES reach the setup rows — as the
   // `Letters` row naming the board it produced (setupRows.ts → BOARD_KEY) — but
   // that row is keyed to the board, not to the override, and it's there whether
   // the letters were typed or rolled. The override itself is never a row.
@@ -68,13 +68,13 @@ const NOT_A_ROW: Record<string, string> = {
   // game title, the letters above the grid, and the PDF's own `base` line. A
   // Starter row would restate it.
   custom_base: 'a board-generation override; the base it set is the title + the board itself',
-  // Puzzle-identity plumbing: the recap shows ONE "Puzzle" row built from these.
+  // Puzzle-identity plumbing: the setup rows hold ONE "Puzzle" row built from these.
   puzzle_id: 'folded into the single Puzzle row',
   date: 'folded into the single Puzzle row',
   series: 'folded into the single Puzzle row',
   source: 'folded into the single Puzzle row',
   filename: 'folded into the single Puzzle row',
-  board: 'an uploaded board, not a choice to recap',
+  board: 'an uploaded board, not a choice to read back',
   // bananagrams' word-check bands qualify `word_check`, so they follow it and
   // vanish with it — and the default is 'off'. (This test is what found them
   // missing from BOTH surfaces.)
@@ -102,7 +102,7 @@ const PLAYERS: Member[] = [
 ]
 
 /**
- * Trailing args past `(setup, mode, players)`, for the games whose `setupRows`
+ * Trailing args past `(setup, mode, players)`, for the games whose `makeSetupRows`
  * takes more. The default `[0, null]` covers the games that take a NUMBER
  * (waffle's par) or a nullable object (connections' puzzle date) and is enough
  * to exercise the shape.
@@ -116,26 +116,26 @@ const EXTRA_ARGS: Record<string, unknown[]> = {
   letterboxed: ['abcdefghijkl'],
 }
 
-/** One manifest per game FAMILY — a coop/compete pair shares a summary module. */
+/** One manifest per game FAMILY — a coop/compete pair shares a setup-rows module. */
 const BY_SCHEMA = new Map(GAMES.map((g) => [g.schema, g]))
 
-describe('setup recaps', () => {
-  it('every game either has a summary module or is a documented exception', () => {
+describe('setup rows', () => {
+  it('every game either has a setup-rows module or is a documented exception', () => {
     const missing = [...BY_SCHEMA.keys()].filter(
-      (schema) => !MODULES[`../${schema}/lib/setupSummary.ts`] && !NO_RECAP[schema],
+      (schema) => !MODULES[`../${schema}/lib/setupRows.ts`] && !NO_SETUP_ROWS[schema],
     )
-    expect(missing, 'add <game>/lib/setupSummary.ts, or document it in NO_RECAP').toEqual([])
+    expect(missing, 'add <game>/lib/setupRows.ts, or document it in NO_SETUP_ROWS').toEqual([])
   })
 
   for (const [schema, manifest] of BY_SCHEMA) {
-    const mod = MODULES[`../${schema}/lib/setupSummary.ts`]
+    const mod = MODULES[`../${schema}/lib/setupRows.ts`]
     if (!mod) continue
 
     describe(schema, () => {
       // Extra args (waffle's par, connections' puzzle date) are game-specific;
       // the generic pair exercises the shape, EXTRA_ARGS overrides it where a
       // game needs a real value, and TS pins the real call sites.
-      const rows = mod.setupRows(
+      const rows = mod.makeSetupRows(
         manifest.setupForm.defaults as never,
         manifest.mode,
         PLAYERS,

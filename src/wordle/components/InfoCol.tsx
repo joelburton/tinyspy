@@ -9,8 +9,7 @@ import type { SetupRow } from '@/common/setup-form/setupRows'
 import { SetupDisclosure } from '@/common/setup-form/SetupDisclosure'
 import { DefinableWord } from '@/common/definitions/DefinableWord'
 import type { TerminalMessage } from '@/common/terminal/terminalMessage'
-import type { Member } from '@/common/members/member'
-import type { WordlePlayerState, EventRow } from '../hooks/useGame'
+import type { Player, PlayerRow, EventRow } from '../hooks/useGame'
 import { GameEventLog } from './GameEventLog'
 import { TurnStatusLine } from '@/common/info-sheet/TurnStatusLine'
 import shared from '@/common/info-sheet/infoCol.module.css'
@@ -87,10 +86,10 @@ export function InfoCol({
 
   // ── Opponent strip (compete) ──
   // The common roster (identity + concede bits) — the strip + the event-log picker.
-  players: Member[]
+  players: Player[]
   selfId: string
   // Per-player wordle state — the strip reads each peer's `guesses_used`.
-  playerStates: WordlePlayerState[]
+  playerStates: PlayerRow[]
   // Who has conceded (drives the strip's "out" cell).
   concededIds: Set<string>
 
@@ -116,7 +115,7 @@ export function InfoCol({
   actBackToClub: BoundAction
 
   // ── Setup disclosure ──
-  // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
+  // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
   setupRows: SetupRow[]
 
   // ── Terminal answer reveal ──

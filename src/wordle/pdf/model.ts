@@ -4,6 +4,7 @@ import type { PrintHeader , SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import { tileColor, type TileColor } from '@/shared/wordle-style/tileColor'
 import { colorRank } from '../lib/colors'
+import { memberById } from '@/common/members/memberList'
 import type { EventRow } from '../hooks/useGame'
 
 /**
@@ -93,9 +94,9 @@ export function buildWordlePrintModel(o: {
   answerShown: boolean
   // Per-player solved flags, for the outcome line.
   solvedBy: ReadonlySet<string>
-  setup: SetupRow[]
+  setupRows: SetupRow[]
 }): WordlePrintModel {
-  const nameOf = (id: string) => o.players.find((p) => p.user_id === id)?.username ?? 'someone'
+  const nameOf = (id: string) => memberById(o.players, id)?.username ?? 'someone'
 
   const track = (who: string, guesses: EventRow[], solved: boolean): PrintTrack => {
     const played = guesses.map(rowOf)
@@ -157,7 +158,7 @@ export function buildWordlePrintModel(o: {
       o.mode === 'coop'
         ? `Co-op · ${o.guesses.length}/${o.maxGuesses} guesses`
         : `Compete · ${o.players.length} players`,
-    setup: o.setup,
+    setupRows: o.setupRows,
     mode: o.mode,
     tracks,
     // The answer is the game, and it prints under exactly the rule the screen

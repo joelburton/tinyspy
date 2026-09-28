@@ -206,10 +206,10 @@ parse the server runs. This is freebee's and MooseWheel's "custom letters"
 feature, in the shape a grid needs — the three letter games now all have one.
 
 The **written form** is the board read like English: rows top to bottom, a space
-between them, e.g. `ABCD EFGH IJKL MNOP`. It is exactly what the recap's
-`Letters` row prints ([§8](#8-frontend-srcboggle)), which is the point — you
-read a board off a game you liked (on screen or on paper) and paste it into the
-next game's dialog to hand a friend the same puzzle.
+between them, e.g. `ABCD EFGH IJKL MNOP`. It is exactly what the
+`Letters` setup row prints ([§8](#8-frontend-srcboggle)), which is the point —
+you read a board off a game you liked (on screen or on paper) and paste it into
+the next game's dialog to hand a friend the same puzzle.
 `src/boggle/lib/customBoard.ts` owns **both** directions so they can't drift,
 and `customBoard.test.ts` asserts `parse(format(board)) === board` over rolls of
 every dice set.
@@ -227,11 +227,11 @@ every dice set.
   for the currently-picked set; a mismatch is a Start-blocking message ("A 4×4
   board needs 16 tiles — that's 25"), deliberately not a guess at which of the
   four 5×5 sets you meant. The set therefore still chose something real, which
-  is why its `Board` recap row stays.
-- **Constraints don't apply, and their recap rows vanish.** Nothing is being
+  is why its `Board` setup row stays.
+- **Constraints don't apply, and their setup rows vanish.** Nothing is being
   rejection-sampled, so the min/max word/score/longest targets had no effect on
-  this board — and a recap must not assert a choice that didn't apply
-  (`lib/setupSummary.ts`).
+  this board — and a setup row must not assert a choice that didn't apply
+  (`lib/setupRows.ts`).
 - **The floor is ≥1 required word.** A custom board is whatever the player's
   tiles yield, so there's no quality gate — but `setup.win_percent` is a *share
   of the required-words score*, so a board with none would put the threshold at
@@ -528,16 +528,16 @@ flower.
   back-to-club button at terminal), a **help line**, the **setup disclosure**,
   and the **`WordList`** filling the rest.
   - **The `Letters` row** leads the setup disclosure, under the roster, and the
-    PDF prints the identical row (one `setupRows()` feeds both —
+    PDF prints the identical row (one `makeSetupRows()` feeds both —
     [setup-form/doc.md → Setup
     rows](../../src/common/setup-form/doc.md#setup-rows)). It names the board
     this game was played on — `Letters: ABCD EFGH IJKL MNOP` — **rolled or typed
     alike**, in the written form the setup dialog's custom-board field takes
     back ([§4 → Custom board](#custom-board-player-typed-tiles)). Printing it
-    for a ROLLED board is the documented board-identity exception to "the recap
-    is the dialog read back" (`common/setup-form/setupRows.ts` → `BOARD_KEY`): a
-    row that appeared only on hand-picked boards would be exactly the half you
-    never need to copy.
+    for a ROLLED board is the documented board-identity exception to "the setup
+    rows are the dialog read back" (`common/setup-form/setupRows.ts` →
+    `BOARD_KEY`): a row that appeared only on hand-picked boards would be
+    exactly the half you never need to copy.
   - **`WordList`:** the **shared `common/word-list/WordList`** (identical to
     spellingbee's, since it IS the same component) — finder color (coop), a
     bonus dot, a recently-found underline (`common/word-list/useRecentlyFound`),
@@ -654,7 +654,7 @@ clean-printable design language + helpers live in
   not (the floor is custom-only, on purpose).
 
 **e2e** (`e2e/boggle.e2e.ts`) — drives the running app: the board renders, a
-required word lands, an off-board word is rejected, and the recap's `Letters`
+required word lands, an off-board word is rejected, and the `Letters` setup
 row names the (rolled) board. A second spec drives the setup dialog through the
 real edge function with a **typed** board and reads it back off the info column
 in the form it was typed — the round trip end to end.
@@ -674,10 +674,10 @@ allowlist.
 
 ## 11. Deferred
 
-- **Two e2e specs assert the recap's OLD separator.** `boggle.e2e.ts` → "boggle
-  play loop" (line 52) and "boggle custom board" (line 203) both wait for
+- **Two e2e specs assert the `Letters` setup row's OLD separator.**
+  `boggle.e2e.ts` → "boggle play loop" (line 52) and "boggle custom board" (line 203) both wait for
   `Letters: CATS AREA TILE NEST` — spaces. `formatBoard` joins rows with DASHES
-  now (`CATS-AREA-TILE-NEST`), so the recap and the setup field agree on one
+  now (`CATS-AREA-TILE-NEST`), so the setup row and the setup field agree on one
   written form and a board reads back the way you would paste it. **The change
   is right and the specs are simply behind it**; they were left red on purpose
   (Joel, 2026-08-26: punted to boggle's own pass rather than fixed from the CSS

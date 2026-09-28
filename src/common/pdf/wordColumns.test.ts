@@ -63,7 +63,7 @@ describe('drawWordListBody', () => {
   const header: PrintHeader & { sections: WordSection[] } = {
     brand: 'MothCubes', gameTitle: 'g', date: '', summary: '',
     mode: 'coop' as const,
-    setup: [{ key: 'x', label: 'Difficulty', value: 'Hard' }],
+    setupRows: [{ key: 'x', label: 'Difficulty', value: 'Hard' }],
     // Coop's single unattributed section — the shape buildWordSections returns.
     sections: [{ who: null, tally: null, words: wordRows(3) }],
   }

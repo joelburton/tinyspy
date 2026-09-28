@@ -8,6 +8,7 @@ import type { Outcome } from '@/common/outcomes/outcomes'
 import type { Mark } from '@/common/board-marks/useMark'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import type { Cell } from '@/common/board-cursor/stepCell'
+import { positionAt } from '@/common/board-cursor/boardPosition'
 import { RANK_TOKEN } from '../lib/rankColors'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
@@ -42,7 +43,7 @@ type Props = {
   // chrome then drops the pointer cursor and the hover lift, so a record
   // doesn't advertise itself as an input.
   isBoardInteractive: boolean
-  // tile → user_id (the inverted selections map). Says which tiles are in the
+  // tile → user_id (the inverted picks map). Says which tiles are in the
   // guess being built, and whose pick each one was.
   ownerByTile: ReadonlyMap<string, string>
   onToggle: (tile: string) => void
@@ -104,7 +105,7 @@ type Props = {
  *
  * Every mark on it is the SHARED vocabulary (common/board-marks/doc.md), and
  * the element each one lands on is what says how far it reaches. On a TILE: the
- * `.selected` border for a tile in the guess being built — worn whoever picked
+ * `.picked` border for a tile in the guess being built — worn whoever picked
  * it, because in coop the four tiles are one shared move — with `.peerPick`
  * naming the picker where that is worth saying; `.dimInFlight` while the guess
  * is with the server; `.verdictFill` in its pill's outcome when the answer lands.
@@ -187,7 +188,7 @@ export function Board({
       style={{
         ['--tile-slot-fill-color' as string]: RANK_TOKEN[c.rank],
         // The edge is the rank color stepped darker. A band is inert — never
-        // selected, nothing refused on it — so nothing else ever claims its
+        // picked, nothing refused on it — so nothing else ever claims its
         // border.
         ['--tile-slot-edge-color' as string]: `color-mix(in srgb, ${RANK_TOKEN[c.rank]} 84%, #000)`,
         // --len drives the same auto-fit the tiles use (here for the band name).
@@ -258,9 +259,9 @@ export function Board({
               className={cls(
                 shared.tileFace,
                 shared.tile,
-                // SELECTED, whoever picked it: the border says "in the move",
+                // PICKED, whoever picked it: the border says "in the move",
                 // the ring below says whose.
-                ownerId !== undefined && shared.selected,
+                ownerId !== undefined && shared.picked,
                 ownerColor && styles.peerPick,
                 // The answer landing here — the attention flash first, then the
                 // head-shake over the verdict color the flash hands back. One
@@ -274,9 +275,7 @@ export function Board({
                 isHistoryLit && shared.verdictFill,
                 isHistoryLit && OUTCOME_TO_VERDICT_CLASS[historyLitOutcome],
                 isHistoryLit && styles.historyTile,
-                // The loose tiles fill their rows four across, so tile i is at
-                // (i % COLS, i / COLS).
-                cursor !== null && cursor.y * COLS + cursor.x === i && shared.selectionCursor,
+                cursor !== null && positionAt(cursor.x, cursor.y, COLS) === i && shared.selectionCursor,
               )}
               style={ownerColor ? { ['--peer-color' as string]: ownerColor } : undefined}
               onClick={() => onToggle(tile)}

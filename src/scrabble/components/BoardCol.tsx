@@ -264,7 +264,7 @@ export function BoardCol({
   // conventions: one prop says so, and the flag is derived, never passed).
   const isViewingHistory = historyTarget !== null
   const [staged, setStaged] = useState<Staged[]>([])
-  const [selected, setSelected] = useState<Set<number>>(new Set()) // exchange selection
+  const [picked, setPicked] = useState<Set<number>>(new Set()) // rack tiles picked for exchange
   const [order, setOrder] = useState<number[]>([])
   const [blankAt, setBlankAt] = useState<{ x: number; y: number; rackIdx: number } | null>(null)
   const [cursor, setCursor] = useState<GridCursor>({ x: 7, y: 7, dir: 'h' })
@@ -367,7 +367,7 @@ export function BoardCol({
   useEffect(() => {
     if (prevVersion.current === game.version) return
     prevVersion.current = game.version
-    setSelected(new Set())
+    setPicked(new Set())
     onExitHistory() // a new move landed — drop back to the live board
     setOptimistic([]) // the server board now holds any just-played tiles
     // Leave the cursor where it is — the next word is usually nearby.
@@ -449,8 +449,8 @@ export function BoardCol({
   )
 
   // ─── Drag gesture (shared pointer plumbing — see useDragGesture) ──
-  const toggleSelect = useCallback((rackIdx: number) => {
-    setSelected((prev) => {
+  const togglePick = useCallback((rackIdx: number) => {
+    setPicked((prev) => {
       const next = new Set(prev)
       if (next.has(rackIdx)) next.delete(rackIdx)
       else next.add(rackIdx)
@@ -515,10 +515,10 @@ export function BoardCol({
   // moves the keyboard cursor there.
   const onTap = useCallback(
     (g: DragGesture<DragSource>) => {
-      if (g.source.kind === 'rack') toggleSelect(g.source.rackIdx)
+      if (g.source.kind === 'rack') togglePick(g.source.rackIdx)
       else if (g.cell) setCursor({ x: g.cell.x, y: g.cell.y, dir: 'h' })
     },
-    [toggleSelect],
+    [togglePick],
   )
 
   const { drag, hover, start } = useDragGesture<DragSource>({
@@ -668,7 +668,7 @@ export function BoardCol({
       flashGreen({ cells: new Set(placements.map((p) => cellIndex(p.x, p.y))) })
       pendingDrawRef.current = res.data.drawn.length // exact draw count now known
       setStaged([])
-      setSelected(new Set())
+      setPicked(new Set())
       const words = ev.words.map((w) => w.word).join(' · ')
       // The score line is this surface's — the server sends no sentence, since
       // only the client holds the words `evaluatePlay` read off the board. What
@@ -707,12 +707,12 @@ export function BoardCol({
   }, [game.version, board, staged, actingRack, gameId, localFeedbackSlot, flashGreen, flashRed])
 
   const exchange = useCallback(async () => {
-    const tiles = [...selected].map((i) => actingRack[i])
+    const tiles = [...picked].map((i) => actingRack[i])
     setSubmitting(true)
     // Claim before the await — same realtime-beats-RPC race as play_word.
     const prevAction = lastActionRef.current
     const prevDraw = pendingDrawRef.current
-    lastActionRef.current = { removed: new Set(selected), oldLen: actingRack.length }
+    lastActionRef.current = { removed: new Set(picked), oldLen: actingRack.length }
     pendingDrawRef.current = tiles.length // optimistic; corrected on success
     const res = await runRpc<SwapAnswer>(
       db.rpc('exchange_tiles', { target_game: gameId, base_version: game.version, rack_tiles: tiles }),
@@ -724,7 +724,7 @@ export function BoardCol({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'exchanged' && res.outcome !== null) {
-      setSelected(new Set())
+      setPicked(new Set())
       pendingDrawRef.current = res.data.drawn?.length ?? tiles.length
       localFeedbackSlot.show(FeedbackMessage.result(res.outcome, `Swapped ${tiles.length}`))
       return
@@ -734,7 +734,7 @@ export function BoardCol({
       reportUnhandled('exchange_tiles', res)
       return
     }
-  }, [game.version, selected, actingRack, gameId, localFeedbackSlot])
+  }, [game.version, picked, actingRack, gameId, localFeedbackSlot])
 
   const pass = useCallback(async () => {
     // Confirm — passing forfeits the turn AND feeds the blocked-end streak (once
@@ -742,7 +742,7 @@ export function BoardCol({
     // misclick. Asked here rather than by the registry because the question is
     // scrabble's alone: codenamesduet's end-turn is an every-turn move and asks
     // nothing. Exchange needs no confirm: it's disabled until tiles are
-    // selected, so it's rarely hit by accident.
+    // picked, so it's rarely hit by accident.
     if ((await askConfirmation(PASS_CONFIRM)) !== 'confirm') return
     const res = await runRpc<PassAnswer>(
       db.rpc('pass_turn', { target_game: gameId, base_version: game.version }),
@@ -842,16 +842,16 @@ export function BoardCol({
   })
 
   // Swap rack tiles for fresh ones — a turn-consuming move, so it waits for your
-  // turn, for a selection, and for a bag deep enough to draw from. The two gates
+  // turn, for a pick, and for a bag deep enough to draw from. The two gates
   // a player can do something about say so in the bubble; the words stay "Swap".
   const actExchange = useBoundAction('act-exchange', {
     describe: () => {
       if (!canExchange) return { state: 'disabled', label: 'Swap', tooltip: 'Need ≥ 7 tiles in the bag' }
       if (!canCommit || staged.length > 0) return { state: 'disabled', label: 'Swap' }
-      if (selected.size === 0) return { state: 'disabled', label: 'Swap', tooltip: 'Select rack tiles first' }
+      if (picked.size === 0) return { state: 'disabled', label: 'Swap', tooltip: 'Pick rack tiles first' }
       return {
         state: 'active',
-        label: `Swap ${selected.size} selected tile${selected.size === 1 ? '' : 's'}`,
+        label: `Swap ${picked.size} picked tile${picked.size === 1 ? '' : 's'}`,
       }
     },
     run: exchange,
@@ -946,7 +946,7 @@ export function BoardCol({
           {self ? (
             <div className={styles.moveArea}>
               <div className={styles.rackWrap}>
-                <Rack tiles={rackTiles} used={usedRackIdx} selected={selected} flashIds={yellowFlash} active={canPlace} onPointerDown={onRackPointerDown} />
+                <Rack tiles={rackTiles} used={usedRackIdx} picked={picked} flashIds={yellowFlash} active={canPlace} onPointerDown={onRackPointerDown} />
                 {/* Shuffle floats over the rack's top-right corner — a quick
                     reshuffle of the RACK (not a turn action), so it sits on the
                     rack, not in the commit row. Hidden when the rack is empty

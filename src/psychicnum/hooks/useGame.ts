@@ -93,7 +93,8 @@ export type EventRow = {
  *
  * Reads three tables:
  *   - `games_state` view (game row + conditional `secrets` reveal)
- *   - `players` (per-player budgets, club-wide visible)
+ *   - `players` (per-player budgets, club-wide visible), returned as
+ *     `playerBudgets`
  *   - `events` (the turn log; RLS scopes to caller in compete)
  *
  * Subscribes to all three for realtime refetch via
@@ -107,7 +108,9 @@ export type EventRow = {
  */
 export function useGame(gameId: string): {
   game: PsychicnumGame | null
-  players: PlayerRow[]
+  // The `psychicnum.players` rows: each player's guess budget, not the roster
+  // (the page's `players` is that).
+  playerBudgets: PlayerRow[]
   guesses: EventRow[]
   loading: boolean
   // Set when a read FAILED, which is not the same as the game being absent.
@@ -116,7 +119,7 @@ export function useGame(gameId: string): {
   failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<PsychicnumGame | null>(null)
-  const [players, setPlayers] = useState<PlayerRow[]>([])
+  const [playerBudgets, setPlayerBudgets] = useState<PlayerRow[]>([])
   const [guesses, setGuesses] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
@@ -159,7 +162,7 @@ export function useGame(gameId: string): {
       const gameData = gameRes.data[0]
       if (!gameData) {
         setGame(null)
-        setPlayers([])
+        setPlayerBudgets([])
         setGuesses([])
         setLoading(false)
         return
@@ -202,11 +205,11 @@ export function useGame(gameId: string): {
         secrets: gameData.secrets as string[] | null,
         created_at: gameData.created_at as string,
       })
-      setPlayers(playersRes.data as PlayerRow[])
+      setPlayerBudgets(playersRes.data as PlayerRow[])
       setGuesses(guessesRes.data as EventRow[])
       setLoading(false)
     },
   })
 
-  return { game, players, guesses, loading, failure }
+  return { game, playerBudgets, guesses, loading, failure }
 }

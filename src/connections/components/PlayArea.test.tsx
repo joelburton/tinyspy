@@ -102,7 +102,7 @@ function loaded(over: Partial<GameHook> = {}): GameHook {
     mistakeCount: 0,
     opponentFound: new Map(),
     isEliminated: false,
-    selections: new Map(),
+    picks: new Map(),
     unionTiles: [],
     toggleTile: vi.fn(),
     sendClear: vi.fn(),
@@ -510,20 +510,20 @@ describe('connections PlayArea — the board-scope marks', () => {
   })
 })
 
-describe('connections PlayArea — selection, identity, and the guess in flight', () => {
+describe('connections PlayArea — picks, identity, and the guess in flight', () => {
   const tile = (name: string) => document.querySelector(`[data-tile="${name}"]`) as HTMLElement
 
   it('rings every pick on a shared board, in whoever’s color — mine included', () => {
     h.result = loaded({
       game: game('coop'),
-      selections: new Map([['u1', ['a']], ['u2', ['b']]]),
+      picks: new Map([['u1', ['a']], ['u2', ['b']]]),
       unionTiles: ['a', 'b'],
     })
     render(<PlayAreaLoader {...makeCtx({ players: twoMembers })} />)
 
     // In coop the four tiles are ONE shared move, so both are "in the guess"…
-    expect(tile('a').className).toMatch(/selected/)
-    expect(tile('b').className).toMatch(/selected/)
+    expect(tile('a').className).toMatch(/picked/)
+    expect(tile('b').className).toMatch(/picked/)
     // …and the ring says who picked which. Everyone gets one, including me: a
     // board where only SOME picks carry a color reads as missing data rather
     // than as "the unmarked ones are yours".
@@ -535,7 +535,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
 
   it('rings nothing when the board isn’t shared', () => {
     // Solo: every pick is mine, so a color would be decoration on top of the
-    // selection border. Same in compete, where the selection never leaves this
+    // picked border. Same in compete, where the picks never leave this
     // client however many are racing.
     const cases: Array<['coop' | 'compete', typeof twoMembers]> = [
       ['coop', [gp('u1', 'me', 'red')]],
@@ -544,11 +544,11 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
     for (const [mode, players] of cases) {
       h.result = loaded({
         game: game(mode),
-        selections: new Map([['u1', ['a']]]),
+        picks: new Map([['u1', ['a']]]),
         unionTiles: ['a'],
       })
       const { unmount } = render(<PlayAreaLoader {...makeCtx({ players })} />)
-      expect(tile('a').className).toMatch(/selected/)
+      expect(tile('a').className).toMatch(/picked/)
       expect(tile('a').className).not.toMatch(/peerPick/)
       unmount()
     }
@@ -562,7 +562,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
     h.result = loaded({
       game: game('coop'),
       // 2 from RED + 1 GREEN + 1 BLUE — a plain wrong guess.
-      selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+      picks: new Map([['u1', ['a', 'b', 'e', 'i']]]),
       unionTiles: ['a', 'b', 'e', 'i'],
     })
     render(<PlayAreaLoader {...makeCtx()} />)
@@ -598,7 +598,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
           created_at: '2026-06-15T00:01:00Z',
         },
       ],
-      selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+      picks: new Map([['u1', ['a', 'b', 'e', 'i']]]),
       unionTiles: ['a', 'b', 'e', 'i'],
     })
     render(<PlayAreaLoader {...makeCtx()} />)
@@ -633,7 +633,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
             created_at: '2026-06-15T00:01:00Z',
           },
         ],
-        selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+        picks: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
       render(<PlayAreaLoader {...makeCtx()} />)
@@ -672,7 +672,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
           created_at: '2026-06-15T00:01:00Z',
         },
       ],
-      selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+      picks: new Map([['u1', ['a', 'b', 'e', 'i']]]),
       unionTiles: ['a', 'b', 'e', 'i'],
     })
     render(<PlayAreaLoader {...makeCtx()} />)
@@ -705,7 +705,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       const user = userEvent.setup()
       h.result = loaded({
         game: game('coop'),
-        selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+        picks: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
       const view = render(<PlayAreaLoader {...ctx} />)
@@ -724,7 +724,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       h.result = loaded({
         game: game('coop'),
         guesses: [wrongGuess(1, 'u1')],
-        selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+        picks: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
       rerender(<PlayAreaLoader {...ctx} />)
@@ -745,7 +745,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       h.result = loaded({
         game: game('coop'),
         guesses: [{ ...wrongGuess(2, 'u2'), tiles: ['c', 'd', 'f', 'g'] }],
-        selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+        picks: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
       rerender(<PlayAreaLoader {...ctx} />)
@@ -761,7 +761,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       h.result = loaded({
         game: game('coop'),
         guesses: [{ ...wrongGuess(2, 'u2'), outcome: 'won' as const, result: 'correct' as const, matched: true }],
-        selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+        picks: new Map([['u1', ['a', 'b', 'e', 'i']]]),
         unionTiles: ['a', 'b', 'e', 'i'],
       })
       rerender(<PlayAreaLoader {...ctx} />)
@@ -771,13 +771,13 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
 
   })
 
-  it('draws no selection once the board is finished', () => {
-    // The selection is ephemeral broadcast chatter that no server row
-    // contradicts, so it outlives the game unless the board refuses to draw it.
-    // A frozen board wearing selection borders reads as a move in progress.
+  it('draws no picks once the board is finished', () => {
+    // The picks are ephemeral broadcast chatter that no server row
+    // contradicts, so they outlive the game unless the board refuses to draw them.
+    // A frozen board wearing picked borders reads as a move in progress.
     h.result = loaded({
       game: game('coop'),
-      selections: new Map([['u1', ['a']], ['u2', ['b']]]),
+      picks: new Map([['u1', ['a']], ['u2', ['b']]]),
       unionTiles: ['a', 'b'],
       mistakeCount: 4,
     })
@@ -787,7 +787,7 @@ describe('connections PlayArea — selection, identity, and the guess in flight'
       />,
     )
 
-    expect(tile('a').className).not.toMatch(/selected/)
+    expect(tile('a').className).not.toMatch(/picked/)
     expect(tile('b').className).not.toMatch(/peerPick/)
   })
 })
@@ -923,12 +923,12 @@ describe('connections PlayArea — the keys', () => {
   const fourPicked = (over: Partial<GameHook> = {}) =>
     loaded({
       game: game('coop'),
-      selections: new Map([['u1', ['a', 'b', 'e', 'i']]]),
+      picks: new Map([['u1', ['a', 'b', 'e', 'i']]]),
       unionTiles: ['a', 'b', 'e', 'i'],
       ...over,
     })
 
-  it('Enter submits the four selected tiles', async () => {
+  it('Enter submits the four picked tiles', async () => {
     h.result = fourPicked()
     render(<WithKeys {...makeCtx()} />)
     expect(bound('act-submit').describe('button').state).toBe('active')
@@ -940,7 +940,7 @@ describe('connections PlayArea — the keys', () => {
   it('Enter with fewer than four picked is here but gray — it fires nothing', async () => {
     h.result = loaded({
       game: game('coop'),
-      selections: new Map([['u1', ['a', 'b']]]),
+      picks: new Map([['u1', ['a', 'b']]]),
       unionTiles: ['a', 'b'],
     })
     render(<WithKeys {...makeCtx()} />)
@@ -950,16 +950,16 @@ describe('connections PlayArea — the keys', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('⌫ clears the selection — and broadcasts it, so a teammate’s board drops it too', async () => {
+  it('⌫ clears the picks — and broadcasts it, so a teammate’s board drops them too', async () => {
     const sendClear = vi.fn()
     h.result = loaded({
       game: game('coop'),
-      selections: new Map([['u1', ['a', 'b']]]),
+      picks: new Map([['u1', ['a', 'b']]]),
       unionTiles: ['a', 'b'],
       sendClear,
     })
     render(<WithKeys {...makeCtx({ players: twoMembers })} />)
-    expect(bound('act-clear-selection').describe('button').state).toBe('active')
+    expect(bound('act-clear-picks').describe('button').state).toBe('active')
 
     await act(async () => press(BACKSPACE))
     expect(sendClear).toHaveBeenCalledTimes(1)
@@ -969,14 +969,14 @@ describe('connections PlayArea — the keys', () => {
     h.result = fourPicked()
     render(<WithKeys {...makeCtx({ isTurnBased: true, turnHolderId: 'u2', players: twoMembers })} />)
     expect(bound('act-submit').describe('button').state).toBe('hidden')
-    expect(bound('act-clear-selection').describe('button').state).toBe('hidden')
+    expect(bound('act-clear-picks').describe('button').state).toBe('hidden')
   })
 
   it('both leave once the board is finished', () => {
     h.result = fourPicked({ mistakeCount: 4 })
     render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'lost' })} />)
     expect(bound('act-submit').describe('button').state).toBe('hidden')
-    expect(bound('act-clear-selection').describe('button').state).toBe('hidden')
+    expect(bound('act-clear-picks').describe('button').state).toBe('hidden')
   })
 
   // The row is one list, every action listed once; which buttons are on screen
@@ -1171,7 +1171,7 @@ describe('connections PlayArea — the selection cursor', () => {
   //   m n o p
   // Space is a click on the tile under the ring, so what it DOES — the union
   // rule, four across the table, a teammate's pick coming out — is
-  // `eventForClick`'s (selection.test.ts); here it is enough that Space hands
+  // `eventForClick`'s (picks.test.ts); here it is enough that Space hands
   // `toggleTile` the ringed tile.
   const tileFor = (tile: string) => document.querySelector(`[data-tile="${tile}"]`) as HTMLElement
   const ringed = () =>

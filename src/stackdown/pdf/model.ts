@@ -81,7 +81,7 @@ export function buildStackdownPrintModel(o: {
   /** Words cleared so far, and the target (six). */
   found: number
   target: number
-  setup: SetupRow[]
+  setupRows: SetupRow[]
 }): StackdownPrintModel {
   const nameOf = (userId: string) =>
     o.players.find((p) => p.user_id === userId)?.username ?? 'someone'
@@ -141,7 +141,7 @@ export function buildStackdownPrintModel(o: {
       o.mode === 'coop'
         ? `${o.found}/${o.target} words cleared · ${shown} tile${shown === 1 ? '' : 's'} left`
         : `${o.found}/${o.target} words cleared`,
-    setup: o.setup,
+    setupRows: o.setupRows,
     mode: o.mode,
     tracks,
     // Never reach for the solution before terminal. The server already withholds

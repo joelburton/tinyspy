@@ -1,5 +1,6 @@
 // cs-unmet
 
+import { positionAt } from '@/common/board-cursor/boardPosition'
 import type { BoardShape } from '@/common/board-cursor/stepCell'
 import { GRID, isHole } from './waffle'
 
@@ -11,15 +12,5 @@ import { GRID, isHole } from './waffle'
 export const BOARD_SHAPE: BoardShape = {
   cols: GRID,
   rows: GRID,
-  exists: (x, y) => !isHole(positionAt(x, y)),
-}
-
-/** The board position at a cell — row by row, as the board string is. */
-export function positionAt(x: number, y: number): number {
-  return y * GRID + x
-}
-
-/** The cell a board position sits at. */
-export function cellAt(position: number): { x: number; y: number } {
-  return { x: position % GRID, y: Math.floor(position / GRID) }
+  exists: (x, y) => !isHole(positionAt(x, y, GRID)),
 }

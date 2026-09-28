@@ -45,7 +45,7 @@ export type PsychicnumValues = CoopTurnSetup & {
 
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupSummary.ts` and `PlayArea` read back. */
+ *  `setupRows.ts` and `PlayArea` read back. */
 export type PsychicnumSetup = SetupOf<PsychicnumValues>
 
 /**

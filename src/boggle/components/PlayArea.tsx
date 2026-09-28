@@ -7,7 +7,7 @@ import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { readLeaderboard } from '@/common/game-page/readLeaderboard'
 import { useTabRing } from '@/common/keyboard/useTabRing'
 import { buildGameMenu } from '@/common/menu/gameMenu'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -114,14 +114,14 @@ export function PlayArea(ctx: GamePageCtx) {
   // which TS won't treat as index-compatible with Record, so route through unknown.
   const boggleSetup = setup as unknown as BoggleSetup
 
-  // The setup recap, built ONCE and handed to both consumers — the info column
-  // renders it as <li>s, the print model prints the same array object
+  // The setup rows, built ONCE and handed to both consumers — the info column
+  // renders them as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
-  // The board itself rides along as the recap's `Letters` row — the raw face
-  // string, which `setupRows` writes out the way the setup dialog takes it back.
-  const summaryRows = useMemo(
+  // The board itself rides along as the `Letters` setup row — the raw face
+  // string, which `makeSetupRows` writes out the way the setup dialog takes it back.
+  const setupRows = useMemo(
     () =>
-      setupRows(
+      makeSetupRows(
         boggleSetup,
         game?.mode ?? 'coop',
         players,
@@ -325,7 +325,7 @@ export function PlayArea(ctx: GamePageCtx) {
             : `${myCount} / ${game.required_words_count} words · ${myScore} pts`,
         board: boardToDisplay(game.board, game.n),
         mode: game.mode,
-        setup: summaryRows,
+        setupRows,
         // Coop prints one shared list; compete a section per player, each with
         // its own score, plus a trailing "Not found" for the terminal reveal.
         sections: buildWordSections(words, game.mode, players, myId),
@@ -333,7 +333,7 @@ export function PlayArea(ctx: GamePageCtx) {
     },
   })
 
-  // ─── Stop / Concede / Replay — the shared trio ─────────
+  // ─── The commands, bound ───────────────────────────────
   // The byte-identical shared handlers (useStandardGameActions); only the
   // replay sentence is boggle's. Its not-oks land in the same below-board slot
   // as a word result. New game stays below — its create path diverges per game.
@@ -439,7 +439,7 @@ export function PlayArea(ctx: GamePageCtx) {
     keyOf: (r) => `${r.user_id}:${r.word}`,
     messageFor: (r) => {
       if (r.user_id === myId) return null // own word → the local slot
-      const member = players.find((p) => p.user_id === r.user_id)
+      const member = memberById(players, r.user_id)
       const { outcome, text } = peerAnswerMessage(r)
       return FeedbackMessage.peer(member, outcome, text)
     },
@@ -609,7 +609,7 @@ export function PlayArea(ctx: GamePageCtx) {
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
         setup={boggleSetup}
-        setupRows={summaryRows}
+        setupRows={setupRows}
         diceLabel={diceLabel}
         ladderLabel={ladderLabel}
         minWordLength={game.min_word_length}

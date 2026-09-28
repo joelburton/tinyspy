@@ -12,7 +12,7 @@ type WordListOpts = {
 
 /**
  * The body layout for the word-list family: the board at the top-left, the
- * Setup recap to its right, and the word list below both — one stacked block
+ * setup rows to its right, and the word list below both — one stacked block
  * per section (see `buildWordSections`). The offsets live here rather than in
  * each printer.
  *
@@ -36,7 +36,7 @@ export function drawWordListBody(
   // width so a long value (boggle's whole board on the `Letters` row, a big
   // roster) wraps inside the page instead of off it.
   const setupX = margin + w + 26
-  const setupBottom = drawSetup(doc, m.setup, setupX, boardTop + 9, m.mode, pd.pageW - margin - setupX)
+  const setupBottom = drawSetup(doc, m.setupRows, setupX, boardTop + 9, m.mode, pd.pageW - margin - setupX)
 
   // ── Words: one stacked block per section, below the board + setup ──
   let y = Math.max(boardBottom, setupBottom) + 24

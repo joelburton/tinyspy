@@ -40,7 +40,7 @@
    * tile read as a game piece. A playing card reads as one already. */
 /* @@ */   --setgame-card-bg: #ffffff;
   /* Hover: the card GRAYS, rather than growing a ring. A ring on hover competes
-   * with the thick edge that means "selected" — the one mark on this board that
+   * with the thick edge that means "picked" — the one mark on this board that
    * has to be unmistakable — and a border that thickens under the pointer also
    * nudges the eye toward the edges of a card whose content is its middle. */
 /* @@ */   --setgame-card-hover-bg: #ededed;
@@ -52,7 +52,7 @@
 /* @@ */   --setgame-card-border: rgb(128 128 128);
 
   /* The card's depth: a hairline at rest, and a deeper one under a card that
-   * is lifted (Card.module.css `.selected`). Here rather than in the
+   * is lifted (Card.module.css `.picked`). Here rather than in the
    * colorblind block below because depth is not one of the card's four
    * attributes — and because a token defined only in that block is UNDEFINED
    * on the default palette, where a `var()` that resolves to nothing voids the
@@ -68,7 +68,7 @@
    * the theory that a hint is not an outcome — but a hint you have to hunt for
    * is not a hint, and a thin gray dash on a white card next to eleven other
    * white cards was genuinely easy to miss. It stays DASHED, which is what
-   * keeps it distinct from the solid edge of a selected card. */
+   * keeps it distinct from the solid edge of a picked card. */
 /* @@ */   --setgame-hint-ring: #16a34a;
 
   /* ── The claim flash (lib/flash.ts) ─────────────────────────────────────

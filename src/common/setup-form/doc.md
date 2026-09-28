@@ -1,6 +1,6 @@
 # setup-form
 
-The start-a-game dialog, its sections, and the recap rows that the info column and the printed board both show.
+The start-a-game dialog, its sections, and the setup rows that the info column and the printed board both show.
 
 ## Intro to area
 
@@ -24,8 +24,8 @@ at a glance and you open a section only to change it. A section is shared when
 it is the same question wherever it is asked — who is playing, the timer, coop
 pacing, which puzzle — and a game writes the rest itself.
 
-The same choices are read back later. `setupRows.ts` is the recap the in-game
-info column and the printed board both draw from one array, and
+The same choices are read back later. `setupRows.ts` builds the setup rows,
+the one array the in-game info column and the printed board both draw from, and
 `<SetupDisclosure>` is the "Setup options" list the info column shows inside
 an `info-sheet` `<InfoDisclosure>` — the one thing here that renders during
 play rather than before it.
@@ -114,23 +114,23 @@ the game's InfoCol ──> SetupDisclosure ──> the rows setupRows.ts builds 
   would make "we have not asked yet" read as an error for the instant between
   typing a date and the answer arriving.
 
-- **What earns a recap row is [Setup rows](#setup-rows), below.** The short
-  version: the recap is the dialog read back, so a control that did not apply
-  produces no row — and the board a game built out of letters is the standing
-  exception, because those dialogs can take the letters back as input.
+- **What earns a setup row is [Setup rows](#setup-rows), below.** The short
+  version: the setup rows are the dialog read back, so a control that did not
+  apply produces no row — and the board a game built out of letters is the
+  standing exception, because those dialogs can take the letters back as input.
 
 ## Setup rows
 
 One source per game feeds both the info column and the paper. A game exports
-`setupRows(setup, mode, players, …) => SetupRow[]` from
-`<game>/lib/setupSummary.ts`; `<SetupDisclosure>` renders it as `<li>`s and the
+`makeSetupRows(setup, mode, players, …) => SetupRow[]` from
+`<game>/lib/setupRows.ts`; `<SetupDisclosure>` renders it as `<li>`s and the
 print model passes the identical array to the printer's `drawSetup`. Sharing
 the array is what makes the two surfaces agree — two hand-maintained lists of
 the same facts will not stay in step.
 
 Three rules hold the shape:
 
-- **The recap is the setup dialog, read back.** Every control the dialog
+- **The setup rows are the setup dialog, read back.** Every control the dialog
   showed produces exactly one row, in the dialog's order. A control that did
   not apply produces **no row** — omit rather than print "n/a", since a record
   must not assert a choice nobody made (`coop_style` exists only for 2+ coop,
@@ -165,7 +165,7 @@ default setup produces a row, with an explicit opt-out list for keys that are
 not player choices — so adding a setup field forces a decision about whether
 players see it recorded, rather than leaving two lists to agree by convention.
 
-**A game with no recap on either surface has no rows to unify**, and the guard
-names it: crosswords has no `setupSummary.ts`, no `<SetupDisclosure>`, and its
+**A game with no setup rows on either surface has none to unify**, and the guard
+names it: crosswords has no `lib/setupRows.ts`, no `<SetupDisclosure>`, and its
 PDF is the ported printer with no Setup block. Adding one would be new UI, not
 the unification this rule is about.

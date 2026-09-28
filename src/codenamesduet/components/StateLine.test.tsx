@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { StateLine } from './StateLine'
 
 const line = (turnNumber: number) =>
-  render(<StateLine greenFound={3} turnNumber={turnNumber} turns={9} />).container.textContent
+  render(<StateLine greenFound={3} turnNumber={turnNumber} turnBudget={9} />).container.textContent
 
 describe('codenamesduet StateLine', () => {
   it('counts the turns SPENT, the last ordinary turn included', () => {

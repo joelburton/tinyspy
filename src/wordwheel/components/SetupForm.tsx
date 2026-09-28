@@ -12,46 +12,7 @@ import type { WordwheelValues } from '../lib/setup'
 import { ManualBoardField } from '@/common/fields/ManualBoardField'
 import { groupTiles } from '@/common/fields/groupTiles'
 import { CheckboxField } from '@/common/fields/CheckboxField'
-
-/** Normalize a letter input: lowercase, drop anything but a–z, cap the length.
- *  Keeps state canonical (lowercase, letters-only) so validation + the edge
- *  function agree; the UI uppercases via CSS for the wheel look. */
-const cleanLetters = (raw: string, max: number) =>
-  raw.toLowerCase().replace(/[^a-z]/g, '').slice(0, max)
-
-/**
- * Split the one typed field into the two setup keys.
- *
- * THE HYPHEN IS OPTIONAL. `D-AEEGINNR` and `DAEEGINNR` mean the same thing — the
- * first letter is the center and the rest are the outer ring — because the
- * hyphen is punctuation in a display form, not data. `cleanLetters` drops it
- * either way; this just decides where the cut falls, which is always after the
- * first letter. The two keys stay separate in the setup blob, since
- * `create_game` and `customLettersError` each validate them by name.
- */
-function splitCustomLetters(raw: string): { center?: string; letters?: string } {
-  const letters = cleanLetters(raw, 1 + 8)
-  return {
-    center: letters.slice(0, 1) || undefined,
-    letters: letters.slice(1) || undefined,
-  }
-}
-
-
-/**
- * Allowed target-rank choices, shared by both modes' pickers. The full
- * 7-rank ladder is `RANKS[0..6]` (Start, Good, Solid, Nice, Great, Amazing,
- * Genius); only Start (0) is withheld, because every player begins at it — a
- * target of Start is won by the first accepted word in compete and instantly
- * in coop (`_rank_idx >= 0` is true from the off). So the list runs
- * Good..Genius (1..6). Compete's default lands on Amazing (5).
- */
-const TARGET_RANK_CHOICES = [1, 2, 3, 4, 5, 6] as const
-
-/** The coop picker's "None" option. A UI-only sentinel — choosing it removes
- *  `target_rank` from the setup blob entirely (the server reads absent/null as
- *  "no win condition"), so this number never leaves this file. */
-const NO_TARGET = -1
+import { NO_TARGET, splitCustomLetters, TARGET_RANK_CHOICES } from '@/shared/bee-games/beeSetup'
 
 /**
  * wordwheel's per-game setup form. Mode is locked at the gametype level
@@ -215,7 +176,7 @@ export function SetupForm({
           error={errors.custom_letters}
           value={customEntry}
           onChange={(raw) => {
-            const { center, letters } = splitCustomLetters(raw)
+            const { center, letters } = splitCustomLetters(raw, 9)
             set('custom_center', center)
             set('custom_letters', letters)
           }}

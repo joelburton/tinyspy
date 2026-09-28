@@ -7,7 +7,7 @@ import type { Mark } from '@/common/board-marks/useMark'
 import shared from '@/common/game-page/playArea.module.css'
 import { HEX_POSITIONS } from '../lib/honeycomb'
 import { Letter } from './Letter'
-import styles from './Letters.module.css'
+import styles from './Hive.module.css'
 
 type Props = {
   // The 6 outer letters in their display order — shuffled by the caller.
@@ -49,7 +49,7 @@ type Props = {
  * letters not yet used. A refused word's letters take its answer and shake,
  * each hex on its own.
  */
-export function Letters({
+export function Hive({
   outerLetters,
   centerLetter,
   isBoardInteractive,

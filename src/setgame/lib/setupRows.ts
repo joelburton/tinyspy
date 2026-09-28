@@ -1,21 +1,21 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { coopRows, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeCoopRows, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import { paletteOf, type SetgameSetup } from './setup'
 
 /**
- * setgame's setup recap — ONE array, rendered by the info column and the PDF
+ * setgame's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  */
-export function setupRows(
+export function makeSetupRows(
   setup: SetgameSetup,
   mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {
   return [
-    rosterRow(players),
-    ...coopRows(setup, mode, players),
+    makeRosterRow(players),
+    ...makeCoopRows(setup, mode, players),
     {
       key: 'deck',
       label: 'Deck',
@@ -28,6 +28,6 @@ export function setupRows(
         ? 'Colorblind-safe (blue / orange / magenta)'
         : 'Traditional (red / green / purple)',
     },
-    timerRow(setup.timer),
+    makeTimerRow(setup.timer),
   ]
 }

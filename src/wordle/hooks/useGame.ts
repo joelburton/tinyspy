@@ -5,6 +5,12 @@ import { useRealtimeRefetch } from '@/common/realtime/useRealtimeRefetch'
 import { readRows } from '@/common/supabase/dbResult'
 import type { NotOkEnvelope } from '@/common/supabase/envelope'
 import { db } from '../db'
+import type { Member } from '@/common/members/member'
+
+/**
+ * One player in a wordle game.
+ */
+export type Player = Member
 
 /**
  * The game header, projected from `wordle.games_state`. `target` is
@@ -20,7 +26,7 @@ export type WordleGame = {
 
 /** Per-player state, from `wordle.players`. Coop rows move in
  *  lock-step (shared budget); compete rows are independent. */
-export type WordlePlayerState = {
+export type PlayerRow = {
   user_id: string
   guesses_used: number
   solved: boolean
@@ -56,7 +62,7 @@ export type EventRow = {
  */
 export function useGame(gameId: string): {
   game: WordleGame | null
-  playerStates: WordlePlayerState[]
+  playerStates: PlayerRow[]
   guesses: EventRow[]
   loading: boolean
   // Set when a read FAILED, which is not the same as the game being absent.
@@ -64,7 +70,7 @@ export function useGame(gameId: string): {
   failure: NotOkEnvelope | null
 } {
   const [game, setGame] = useState<WordleGame | null>(null)
-  const [playerStates, setPlayerStates] = useState<WordlePlayerState[]>([])
+  const [playerStates, setPlayerStates] = useState<PlayerRow[]>([])
   const [guesses, setGuesses] = useState<EventRow[]>([])
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
@@ -147,7 +153,7 @@ export function useGame(gameId: string): {
         max_guesses: row.max_guesses as number,
         target: (row.target as string | null) ?? null,
       })
-      setPlayerStates(playersRes.data as WordlePlayerState[])
+      setPlayerStates(playersRes.data as PlayerRow[])
       setGuesses(guessesRes.data as EventRow[])
       setLoading(false)
     },

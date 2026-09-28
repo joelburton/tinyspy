@@ -11,7 +11,7 @@ closeContextsAfterEach()
 
 /**
  * Smoke tests for setgame (HareTrigger), covering the two things that only
- * exist in a browser: the two input routes onto one selection, and the
+ * exist in a browser: the two input routes onto one set of picks, and the
  * CONTENTION case — a rival claiming a card out from under a half-made pick,
  * which no other game on the roster can produce.
  *
@@ -71,7 +71,7 @@ test.describe('setgame', () => {
     await expect(page.getByText(/Last set:/)).toBeVisible()
   })
 
-  test('typing a card letter selects it, and Backspace clears the selection', async ({
+  test('typing a card letter picks it, and Backspace clears the picks', async ({
     browser,
   }) => {
     const club = await createSoloClub('sgk')
@@ -91,19 +91,19 @@ test.describe('setgame', () => {
     // Two of the three, then take them back.
     await page.keyboard.press(letterForSlot(slots[0]))
     await page.keyboard.press(letterForSlot(slots[1]))
-    await expect(cards(page).nth(slots[0])).toHaveClass(/selected/)
+    await expect(cards(page).nth(slots[0])).toHaveClass(/picked/)
     await page.keyboard.press('Backspace')
-    await expect(cards(page).nth(slots[0])).not.toHaveClass(/selected/)
+    await expect(cards(page).nth(slots[0])).not.toHaveClass(/picked/)
 
     // Now all three: the third completes the claim.
     for (const slot of slots) await page.keyboard.press(letterForSlot(slot))
     await expect(counts(page)).toContainText('Found: 1', { timeout: 10000 })
   })
 
-  test('a card claimed by someone else drops out of my selection', async ({ browser }) => {
-    // THE contention case, and the reason selection is keyed by card rather
+  test('a card claimed by someone else drops out of my picks', async ({ browser }) => {
+    // THE contention case, and the reason the picks are keyed by card rather
     // than by slot: the slot will be refilled with a different card, and a
-    // selection that followed the slot would silently re-point at it.
+    // pick that followed the slot would silently re-point at it.
     const club = await createClubWithMembers(['ann', 'bo'])
     const [ann, bo] = club.members
     const { id, gametype } = await createSetgameGame(club, 'compete')
@@ -131,19 +131,19 @@ test.describe('setgame', () => {
     const stolen = findSetOn(board)!
 
     // ann picks one of the three cards bo is about to take.
-    const selected = page.locator('button[class*="card"][class*="selected"]')
+    const picked = page.locator('button[class*="card"][class*="picked"]')
     await cards(page).nth(board.indexOf(stolen[0])).click()
-    await expect(selected).toHaveCount(1)
+    await expect(picked).toHaveCount(1)
 
     // bo claims the set from another session entirely.
     await claim(bo, id, stolen)
 
-    // Once the replacements have finished arriving, NOTHING is selected on
+    // Once the replacements have finished arriving, NOTHING is picked on
     // ann's board. Asserting the count rather than a particular tile is the
-    // point: a selection that followed the SLOT would still show one card
+    // point: a pick that followed the SLOT would still show one card
     // highlighted here — the new one that landed in the hole, which ann never
     // looked at and would claim with her next click.
     await expect(cards(page)).toHaveCount(12, { timeout: 15000 })
-    await expect(selected).toHaveCount(0)
+    await expect(picked).toHaveCount(0)
   })
 })

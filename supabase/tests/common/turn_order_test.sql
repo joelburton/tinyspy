@@ -2,7 +2,8 @@
 
 -- ============================================================
 -- Test: the common turn-order primitive
---   common._assign_turn_order / _advance_turn / _require_turn
+--   common._assign_turn_order / _advance_turn / _require_turn, and
+--   common.reset_game's rewind
 -- ============================================================
 -- The opt-in turn-by-turn coop mode's server core. Free-for-all is the
 -- default (games.current_turn_user_id null ⇒ all three helpers inert);
@@ -19,6 +20,8 @@
 --      passes EVERYONE; _advance_turn is a no-op
 --   5. Solo (1 player) ⇒ pointer is that player; advance wraps to self;
 --      _require_turn always passes
+--   6. common.reset_game rewinds a set pointer to seat 0 and leaves a
+--      null one null
 --
 -- Uses common.create_game directly (the primitive is gametype-agnostic —
 -- it only touches common.game_players + common.games), so this test
@@ -31,7 +34,7 @@ begin;
 
 set search_path = common, public, extensions;
 
-select plan(15);
+select plan(17);
 
 \ir ../_shared/setup.psql
 
@@ -223,6 +226,20 @@ select is(
     where id = current_setting('test.solo_game')::uuid),
   'ada11111-1111-1111-1111-111111111111'::uuid,
   'solo: advance wraps back to the sole player'
+);
+
+-- ─── (6) reset_game rewinds the pointer to seat 0 ────────────
+-- The turn game's pointer is on seat 2 after (3a); the free-for-all game's
+-- is null.
+select common.reset_game(current_setting('test.turn_game')::uuid, '{}'::jsonb);
+select is(pg_temp.current_seat(current_setting('test.turn_game')::uuid), 0,
+  'reset_game rewinds the turn to seat 0');
+select common.reset_game(current_setting('test.ffa_game')::uuid, '{}'::jsonb);
+select is(
+  (select current_turn_user_id from common.games
+    where id = current_setting('test.ffa_game')::uuid),
+  null,
+  'reset_game leaves a free-for-all game''s null pointer null'
 );
 
 select * from finish();

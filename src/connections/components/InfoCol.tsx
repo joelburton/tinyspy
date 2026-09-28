@@ -22,7 +22,7 @@ import shared from '@/common/info-sheet/infoCol.module.css'
  * PlayArea handed down (`actHint`, `actStopGame`, …), so this column places buttons
  * and decides nothing about them — an action that does not apply here draws
  * nothing, which is how one row serves coop and compete. What is a callback is
- * what isn't a command: the history-viewer selection. Prop names match the other
+ * what isn't a command: opening a past turn in the history viewer. Prop names match the other
  * games' columns for the same idea (docs/playarea.md).
  */
 export function InfoCol({
@@ -115,7 +115,7 @@ export function InfoCol({
   hintsOpen: boolean
 
   // ── Setup disclosure ──
-  // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
+  // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
   setupRows: SetupRow[]
 
   // ── Turn-history log (GameEventLog) ──

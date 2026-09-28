@@ -75,7 +75,7 @@ export function buildWafflePrintModel(o: {
    * wordle does, and paper has to hold the same line.
    */
   answerShown: boolean
-  setup: SetupRow[]
+  setupRows: SetupRow[]
 }): WafflePrintModel {
   const nameOf = (id: string) => o.players.find((p) => p.user_id === id)?.username ?? 'someone'
 
@@ -131,7 +131,7 @@ export function buildWafflePrintModel(o: {
       o.mode === 'coop'
         ? `Co-op · par ${o.parSwaps} · ${o.maxSwaps} swaps allowed`
         : `Compete · par ${o.parSwaps} · ${o.maxSwaps} swaps allowed`,
-    setup: o.setup,
+    setupRows: o.setupRows,
     mode: o.mode,
     tracks,
     // The solution is the answer, printed under the same rule the screen uses:

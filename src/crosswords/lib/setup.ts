@@ -63,7 +63,7 @@ export type CrosswordsValues = {
 
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupSummary.ts` and `PlayArea` read back. */
+ *  `PlayArea` reads back. */
 /**
  * WHICH PUZZLE — every key the four pickers write, and nothing else.
  *

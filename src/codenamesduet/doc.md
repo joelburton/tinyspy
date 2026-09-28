@@ -244,10 +244,10 @@ police their own clues, as they would at a table.
 **Returned** — one answer, the clue as it was stored:
 
 ```json
-{ "result": "clued", "word": "WORD", "count": 2, "from_ai": false, "turn_number": 1, "by_seat": "A" }
+{ "result": "clued", "clue_word": "WORD", "clue_count": 2, "clue_from_ai": false, "turn_number": 1, "seat": "A" }
 ```
 
-### `codenamesduet.submit_guess(target_game, target_position)`
+### `codenamesduet.submit_guess(target_game, guess_position)`
 
 The guesser's move, and the one that decides the game. The label a word turns
 over as is read from the CLUE-GIVER's key in ordinary play — the guess answers
@@ -270,7 +270,7 @@ reason `turns`). Each ending records its
 reason, the turns used and the agents found, and both players get the same
 result.
 
-**Passed:** `{ "target_game": "88ae6f5a…", "target_position": 5 }`
+**Passed:** `{ "target_game": "88ae6f5a…", "guess_position": 5 }`
 
 **Returned.** Four answers. The two that leave the game running are named for
 what was turned over and carry the turn state after it — B's first two guesses

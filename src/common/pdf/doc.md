@@ -22,7 +22,7 @@ and red to the same gray. Where the screen says something with color, the paper
 says it with a shape or a weight: a drawn ✓ or ✗, a heavier ring, a filled tile.
 
 What every page shares is the frame: a `Brand: title` header with the date, a
-one-line summary, a "Setup" recap of every option the game was played with, and
+one-line summary, the setup rows for every option the game was played with, and
 the save. Below that, the games' bodies differ too much for one template — a
 two-column log beside a board is nothing like a board per player with its own
 log, or a board with a word list under it — so this folder is a toolkit rather
@@ -40,10 +40,10 @@ purpose. One `render()` with callbacks was the alternative, and the bodies
 would have spent it all on exceptions; a printer that composes primitives is
 short, and stays in control of its own page.
 
-**The Setup recap prints every option, the timer included.** A printout is a
+**The PDF's setup rows print every option, the timer included.** A printout is a
 record, and a record that omits the constraints misreports the achievement:
 "we scored 300" reads differently when the next line says the whole game had a
-twenty-minute clock. The rows come from the game's own `lib/setupSummary.ts`,
+twenty-minute clock. The rows come from the game's own `lib/setupRows.ts`,
 the same array its info column renders, so the paper and the screen cannot
 drift. The mode rides the heading (`Setup: Co-op`) rather than a row — it is
 fixed per gametype and never a control on the form — and the field is required
@@ -52,7 +52,7 @@ looks perfectly fine. The screen need not repeat the mode; a PDF has no chrome
 and must carry its own framing. Which controls earn a row is
 [setup-form/doc.md → Setup rows](../setup-form/doc.md#setup-rows).
 
-**A long recap value wraps; it is never truncated.** Two rows have no natural
+**A long setup-row value wraps; it is never truncated.** Two rows have no natural
 length bound: a letter game's `Letters` row prints the whole board, and the
 roster prints every username. The `Letters` row exists to be copied off the
 paper into the next game's dialog, and half a board is worse than a wrapped
@@ -172,9 +172,9 @@ and live in scrabble's own renderer, so the exception cannot leak.
   `name`, the title from `common.games.title`), the date top-right, small and
   black, and a summary line below that matches the game's on-screen status
   ("9 / 214 words · 14 pts").
-- **The Setup recap**: a smaller sub-heading whose text carries the mode
+- **The setup rows**: a smaller sub-heading whose text carries the mode
   (`Setup: Co-op`, `Setup: Compete`), then one `label: value` line per row of
-  the game's `setupRows()`. Where it sits is the family's choice: to the
+  the game's `makeSetupRows()`. Where it sits is the family's choice: to the
   board's right in the word-list family, at the end of the flow in the
   event-log family, under the tracks in the track family.
 - **Margins** are tight (28pt) so content uses more of the paper, inside a
@@ -189,7 +189,7 @@ the log flows down under it, headed by the word the game's on-screen event
 log wears, as a `#` / `Player` / <what happened> table with a
 thin rule between rows, continues at the top of the right column, then onto
 further pages — a hand-managed cursor, since a PDF paginates by page and not by
-column. The Setup recap is appended at the end of the flow and moved whole to
+column. The setup rows are appended at the end of the flow and moved whole to
 the next column when it will not fit. A game with no board worth printing
 starts the log at the column top. `twoColGeom` is the geometry a board drawn
 above the log shares with it; setgame takes the geometry alone and draws its
@@ -215,7 +215,7 @@ the crossplay module it came from, kept as that produces it: a title block over
 the grid, the clues flowed into balanced columns with continuation pages, and a
 separate answer key, which needs the server-held solution and so fetches it
 through an RPC. It is already grayscale and lands within the spirit of this
-doc without adopting the frame or the Setup recap. A consistency pass must not
+doc without adopting the frame or the setup rows. A consistency pass must not
 "fix" it onto the shared frame; the only touchpoints with this folder are
 incidental. See [docs/games/crosswords.md](../../../docs/games/crosswords.md).
 

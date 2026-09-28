@@ -20,8 +20,8 @@ argument for why it exists — most were written after the bug they now prevent.
 paths do not — `edgeFnErrorKeys` used one and broke when this folder was created.
 
 **`import.meta.glob` is file-relative, and its keys carry the pattern verbatim.**
-`setupRows` globs `'../*/lib/setupSummary.ts'`, so its keys are
-`../<game>/lib/setupSummary.ts`. A lookup built from the wrong prefix matches
+`setupRows` globs `'../*/lib/setupRows.ts'`, so its keys are
+`../<game>/lib/setupRows.ts`. A lookup built from the wrong prefix matches
 nothing — and if the guard does `if (!mod) continue`, it skips every assertion and
 passes green. Pair a glob with a "we found *something*" assertion, the way
 `logos.test.ts` asserts `logos.length > 0`.

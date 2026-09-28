@@ -58,7 +58,7 @@ export function printWordiplyPdf(m: WordiplyPrintModel): void {
     // guess, matching the on-screen log's heading.
     moveLabel: 'Guess',
     rows: m.turns,
-    setup: m.setup,
+    setupRows: m.setupRows,
     mode: m.mode,
     emptyText: 'No guesses yet.',
   })

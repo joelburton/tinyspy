@@ -32,7 +32,7 @@ const base = {
   selfId: 'u1',
   solutionWords: ['ABCDE', 'FGHIJ'],
   answerShown: false,
-  setup: [{ key: 'extra_swaps', label: 'Extra swaps', value: '5' }],
+  setupRows: [{ key: 'extra_swaps', label: 'Extra swaps', value: '5' }],
 }
 
 describe('buildWafflePrintModel — the solution is a secret', () => {

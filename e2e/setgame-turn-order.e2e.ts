@@ -71,13 +71,13 @@ test.describe('setgame turn order (coop)', () => {
     // their move on any surface.
     await expect(pageB.getByText('Waiting for your move')).toHaveCount(0)
 
-    // ── Bob cannot select a card. ──
+    // ── Bob cannot pick a card. ──
     // Clicking is the whole input surface (typing a letter routes through the
-    // same handler), and selection is what a click does, so a card that never
-    // takes the selected class proves the gate without needing an RPC to fail.
+    // same handler), and a pick is what a click does, so a card that never
+    // takes the picked class proves the gate without needing an RPC to fail.
     await cardsB.nth(0).click({ force: true })
     await cardsB.nth(1).click({ force: true })
-    await expect(pageB.locator('button[class*="selected"]')).toHaveCount(0)
+    await expect(pageB.locator('button[class*="picked"]')).toHaveCount(0)
 
     // Nor cash a hint — the button is there (so it can say why), disabled.
     await expect(actionButton(pageB, 'act-hint')).toBeDisabled()

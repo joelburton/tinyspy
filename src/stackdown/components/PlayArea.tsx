@@ -10,7 +10,7 @@ import { gameEndedTerminalMessage, type TerminalMessage } from '@/common/termina
 import { buildStackdownPrintModel } from '../pdf/model'
 import { printStackdownPdf } from '../pdf/printStackdownPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
@@ -131,11 +131,11 @@ export function PlayArea({
   } = useGame(gameId)
   const stackdownSetup = setup as unknown as StackdownSetup
 
-  // The setup recap, built ONCE and handed to both consumers — the info column
+  // The setup rows, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
-  const summaryRows = useMemo(
-    () => setupRows(stackdownSetup, game?.mode ?? 'coop', players),
+  const setupRows = useMemo(
+    () => makeSetupRows(stackdownSetup, game?.mode ?? 'coop', players),
     [stackdownSetup, game, players],
   )
   const [submitting, setSubmitting] = useState(false)
@@ -352,7 +352,7 @@ export function PlayArea({
     impliedBy: solvedByMe({ isCompete, playState, mine: mySolved }),
   })
 
-  // ─── Stop / Concede / Replay — the shared trio ────────────────
+  // ─── The commands, bound ───────────────────────────────
   // The byte-identical shared handlers (useStandardGameActions). Stop is coop's
   // neutral whole-table stop (confirmed through the styled modal); Concede is
   // compete's per-player drop-out; Replay restarts THIS stack — same tiles, same
@@ -534,7 +534,7 @@ export function PlayArea({
           isTerminal,
           found: foundCount,
           target: SOLUTION_WORDS,
-          setup: summaryRows,
+          setupRows,
         }),
       )
     },
@@ -575,7 +575,7 @@ export function PlayArea({
     keyOf: (s) => String(s.id),
     messageFor: (s) => {
       if (s.user_id === session.user.id) return null // own → the local slot / flash
-      const member = players.find((p) => p.user_id === s.user_id)
+      const member = memberById(players, s.user_id)
       if (s.kind === 'hint')
         return FeedbackMessage.peer(member, ANSWER_OUTCOME.hint, 'revealed a hint')
       if (s.kind === 'spoiler')
@@ -723,7 +723,7 @@ export function PlayArea({
           players → action row → setup+reveal → log). */}
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
         <InfoCol
-          setupRows={summaryRows}
+          setupRows={setupRows}
         isCompete={isCompete}
         isTerminal={isTerminal}
         over={over}

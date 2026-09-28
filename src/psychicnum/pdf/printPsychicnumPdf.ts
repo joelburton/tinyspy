@@ -13,6 +13,7 @@ import {
 import { drawInTracks, type Track } from '@/common/pdf/columns'
 import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
 import { drawCheck, drawCross } from '@/common/pdf/marks'
+import { cellAt } from '@/common/board-cursor/boardPosition'
 import type { PrintTile, PrintTrack, PsychicnumPrintModel } from './model'
 
 /**
@@ -61,7 +62,7 @@ export function printPsychicnumPdf(m: PsychicnumPrintModel): void {
       heading: 'Turns',
       moveLabel: 'Guess',
       rows: t.turns,
-      setup: m.setup,
+      setupRows: m.setupRows,
       mode: m.mode,
     })
   } else {
@@ -117,8 +118,9 @@ function drawBoard(
   // border weight survives a marked cell.
   doc.setLineWidth(BORDER_W).setDrawColor(DARK_GRAY)
   board.forEach((tile, i) => {
-    const px = x0 + (i % cols) * cellW
-    const py = y0 + Math.floor(i / cols) * cellH
+    const cell = cellAt(i, cols)
+    const px = x0 + cell.x * cellW
+    const py = y0 + cell.y * cellH
     doc.rect(px, py, cellW, cellH, 'S')
     // Word a hair below center so it clears the top-corner mark.
     doc.text(tile.word, px + cellW / 2, py + cellH / 2 + size * 0.35 + 2, { align: 'center' })

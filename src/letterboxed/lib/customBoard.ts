@@ -32,8 +32,8 @@ export type ParsedSides = { ok: true; sides: string } | { ok: false; error: stri
  * of everything that isn't an ASCII letter, capped at twelve.
  *
  * The strip is what lets a player paste a board in whatever shape they found
- * it — `ABC-DEF-GHI-JKL` (what the app itself writes, in the title, the setup
- * recap and the PDF), or four space-separated triples, or a middot-separated
+ * it — `ABC-DEF-GHI-JKL` (what the app itself writes, in the title, the Setup
+ * options list and the PDF), or four space-separated triples, or a middot-separated
  * title from a game started before 2026-08-12 — all clean to the same twelve
  * letters. That last case is the point of being liberal here rather than
  * demanding one separator: an old board is exactly the kind you want to
@@ -55,7 +55,7 @@ export function cleanSides(raw: string): string {
  * A board as `ABC-DEF-GHI-JKL` — four sides of three, clockwise from the
  * top-left letter, which is exactly `sides`' own order (see the file header).
  *
- * Used by the setup recap row (which the info column and the PDF both render
+ * Used by the `Board` setup row (which the info column and the PDF both render
  * from one array) and by the setup dialog's section summary. NOT used on the
  * input itself: the field shows the normalized letters as typed, because
  * reformatting under a moving cursor is worse than reading a plain string.

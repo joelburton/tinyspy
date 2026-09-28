@@ -291,7 +291,7 @@
  * the info-column action row. A drop shadow so it reads as hovering above.
  *
  * Anchoring: each game renders this INSIDE its board root (psychicnum's /
- * connections' `floatingControl` prop, spellingbee's Letters `.floatAnchor`,
+ * connections' `floatingControl` prop, spellingbee's Hive `.floatAnchor`,
  * boggle's grid), and that root is the `position: relative` containing block.
  * It must NOT anchor to `.boardCol`: the column spans the full layout height
  * while the board stack centers vertically within it, so the column's top-right
@@ -569,7 +569,7 @@
 /* Reduced motion: the lift and the press-scale go, the shadows stay. Nothing is
  * lost, because neither movement was carrying a message on its own — hover's is
  * the deepened shadow, and a press announces itself by what the click DOES (a
- * selection border appears, a move goes out). Motion here is confirmation of
+ * picked border appears, a move goes out). Motion here is confirmation of
  * something that is about to be said anyway. */
 @media (prefers-reduced-motion: reduce) {
   .tile:hover:not(:disabled),
@@ -743,7 +743,7 @@
  * belongs where the board is written.
  *
  * The resting look comes ENTIRELY from the --tile-* tokens (common/themes/daylight.css), so
- * a state class (a result fill, the selected state) overrides by re-setting a
+ * a state class (a result fill, the picked state) overrides by re-setting a
  * token on the same element — robust against stylesheet insertion order, unlike
  * trying to out-cascade another module. See plans/tile-feedback.md. */
 /* @@ */ .tileFace {
@@ -757,7 +757,7 @@
   font: inherit;
   color: var(--tile-slot-ink-color);
   background: var(--tile-slot-fill-color);
-  /* Width is a TOKEN because it is a channel: the vocabulary puts "selected —
+  /* Width is a TOKEN because it is a channel: the vocabulary puts "picked —
    * part of the move I'm building" on border WIDTH, and a state class must be
    * able to thicken the edge by re-setting a property on the same element rather
    * than by out-cascading this shorthand from another module (which would depend
@@ -937,7 +937,7 @@
   opacity: 1;
 }
 
-/* SELECTED — this piece is part of the move I am building.
+/* PICKED — this piece is part of the move I am building.
  *
  * The edge goes thick and BLACK, and that is the whole mark. The background stays
  * whatever state put there, because on most boards it is already spoken for and
@@ -945,13 +945,13 @@
  * the thicker edge eats inward — the tile does not grow and the grid does not
  * move. See plans/tile-feedback.md.
  *
- * Selected qualifies `.tile` rather than standing alone, so it beats the game
+ * Picked qualifies `.tile` rather than standing alone, so it beats the game
  * class that set the resting edge on specificity instead of on stylesheet order:
  * a game's color class sets `--tile-slot-edge-color` from its own module, and a
  * single-class rule here would be a coin flip between the two. */
-/* @@ */ .tile.selected {
-  border-width: var(--tile-selected-edge-width);
-  border-color: var(--tile-selected-edge-color);
+/* @@ */ .tile.picked {
+  border-width: var(--tile-picked-edge-width);
+  border-color: var(--tile-picked-edge-color);
 }
 
 /* THE SELECTION CURSOR — where the keyboard is pointing, on a board whose arrows

@@ -19,12 +19,12 @@ import { usePeerFeedback } from '@/common/feedback/usePeerFeedback'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
-import { buildDuetPrintModel } from '../pdf/model'
+import { buildCodenamesduetPrintModel } from '../pdf/model'
 import { printCodenamesduetPdf } from '../pdf/printCodenamesduetPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import type { GameRow } from '../hooks/useGame'
 import { useGame } from '../hooks/useGame'
 import type { WordRow } from '../hooks/useBoard'
@@ -154,7 +154,7 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
   setup: CodenamesduetSetup
 }
 
-export function PlayArea({
+function PlayArea({
   session,
   gameId,
   playState,
@@ -224,11 +224,11 @@ export function PlayArea({
   const clues = useMemo(() => cluesOf(events), [events])
   const guesses = useMemo(() => guessesOf(events, words), [events, words])
 
-  // The setup recap, built ONCE and handed to both consumers — the info column
-  // renders it as <li>s, the print model prints the same array object
+  // The setup rows, built ONCE and handed to both consumers — the info column
+  // renders them as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
-  const summaryRows = useMemo(
-    () => setupRows(setup, 'coop' as const, players),
+  const setupRows = useMemo(
+    () => makeSetupRows(setup, 'coop' as const, players),
     [setup, players],
   )
 
@@ -451,7 +451,7 @@ export function PlayArea({
     describe: () => 'active',
     run: () => {
       printCodenamesduetPdf(
-        buildDuetPrintModel({
+        buildCodenamesduetPrintModel({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
@@ -467,9 +467,9 @@ export function PlayArea({
           greenFound,
           totalAgents: TOTAL_AGENTS,
           turnNumber: game.turn_number,
-          turnCap: setup.turns,
+          turnBudget: setup.turns,
           mode: 'coop' as const,
-          setup: summaryRows,
+          setupRows,
         }),
       )
     },
@@ -520,7 +520,7 @@ export function PlayArea({
           <StateLine
             greenFound={greenFound}
             turnNumber={game.turn_number}
-            turns={setup.turns}
+            turnBudget={setup.turns}
           />
         }
         // ── Board to render (live OR the historical snapshot — picked here) ──
@@ -575,7 +575,7 @@ export function PlayArea({
         // ── Key card + setup disclosures ──
         myKey={myKey}
         setup={setup}
-        setupRows={summaryRows}
+        setupRows={setupRows}
         // ── Turn-history log ──
         clues={clues}
         guesses={guesses}

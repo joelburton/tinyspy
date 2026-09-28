@@ -21,7 +21,7 @@ import { TOTAL_AGENTS } from '../lib/agents'
 export function StateLine({
   greenFound,
   turnNumber,
-  turns,
+  turnBudget,
 }: {
   // Green agents contacted, out of `TOTAL_AGENTS`.
   greenFound: number
@@ -29,18 +29,18 @@ export function StateLine({
   // component renders it as turns spent.
   turnNumber: number
   // The game's turn budget (`setup.turns`).
-  turns: number
+  turnBudget: number
 }) {
   return (
     <>
       <strong>{greenFound}</strong>/{TOTAL_AGENTS} agents ·{' '}
-      {isSuddenDeathTurn(turnNumber, turns) ? (
+      {isSuddenDeathTurn(turnNumber, turnBudget) ? (
         'sudden death'
       ) : (
         <>
           {/* `max(0, …)` guards a turn_number of 0, which the schema's
               `default 1` rules out. */}
-          <strong>{Math.max(0, turnNumber - 1)}</strong>/{turns} turns spent
+          <strong>{Math.max(0, turnNumber - 1)}</strong>/{turnBudget} turns spent
         </>
       )}
     </>

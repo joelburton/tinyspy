@@ -20,11 +20,11 @@ import { findSet, third, type Card } from './cards'
  *
  *   1st → one card    "there is a set through here"
  *   2nd → two cards   "these two go together"
- *   3rd → all three   which, since three selected cards submit a claim, hands
+ *   3rd → all three   which, since three picked cards submit a claim, hands
  *                     you the set outright
  *
  * The third rung needs no special case anywhere: it returns three cards, the
- * caller selects them, and the existing "three selected cards claim" rule does
+ * caller picks them, and the existing "three picked cards claim" rule does
  * the rest.
  */
 

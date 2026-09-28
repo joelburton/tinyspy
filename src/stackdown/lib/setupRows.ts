@@ -2,25 +2,25 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import type { StackdownSetup } from './setup'
 
 /**
- * stackdown's setup recap — ONE array, rendered by the info column and the PDF
+ * stackdown's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  *
  * "Tiles: 30" and "Words to clear: 6" have gone. Both were on the old
  * info-column list, and both are game CONSTANTS rather than controls the dialog
- * offers — the recap is the dialog read back, nothing more. They belong in Help.
+ * offers — the setup rows are the dialog read back, nothing more. They belong in Help.
  */
-export function setupRows(
+export function makeSetupRows(
   setup: StackdownSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {
   return [
-    rosterRow(players),
+    makeRosterRow(players),
     { key: 'band', label: 'Dictionary', value: difficultyValue(setup.band) },
-    timerRow(setup.timer),
+    makeTimerRow(setup.timer),
   ]
 }

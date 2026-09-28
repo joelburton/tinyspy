@@ -1,6 +1,6 @@
 /* cs-blessed-setup-form */
 
-/* The "Setup options" recap's list. The disclosure around it — its closed
+/* The Setup options list. The disclosure around it — its closed
  * default, its summary, its type size — is `info-sheet/InfoDisclosure`'s. */
 /* @@ */ .rows {
   margin: 0.3rem 0 0;

@@ -98,6 +98,13 @@ of three things it is:
 
 "Selected" has no job outside the cursor's own code.
 
+**The names** (Joel, 2026-09-27; built in §4's pass): connections'
+`SelectionMap` / `selections` → `PickMap` / `picks`; the shared `.tile.selected`
+and `--tile-selected-edge-width` / `-color` → `.tile.picked` and
+`--tile-picked-edge-…`; `act-clear-selection` "Clear selection" →
+`act-clear-picks` "Clear picks"; `selected` → `picked` in psychicnum's
+`Board`, setgame, and scrabble (`setPicked`, `togglePick`, "Swap N picked").
+
 ## 1c. The server bounds a setup number; the form picks the menu (Joel, 2026-09-24)
 
 Where a setup number is arbitrary — changing it forces no real change in the
@@ -860,50 +867,169 @@ updated:
 
 Most worth fixing first.
 
+**Built 2026-09-27:** N6, N7, N9, N10 (§1b's names), N11, N12, N14, N15,
+N16, N19, N20, N21, N22 and the shared-code decisions below, as each row
+says. Left: **N8, its own item, next**; then the unsure list at the end of
+this section.
+
 | # | today | settle on |
 |---|---|---|
 | ~~N1~~ | `gameOver` is the ending (`TerminalOutcome \| null`) on psychicnum / connections / wordle's `Board` and `BoardCol`; in codenamesduet it is a boolean, and its ending is `terminalOutcome` | Done 2026-09-24, the other way round: the ending is `terminalOutcome` everywhere (it says what it holds; `gameOver` reads as a yes/no), the yes/no is `isTerminal`, typed `TerminalOutcome \| null` in all four. The shared `gameOver*` CSS classes stay. `common/game-page/GamePage.tsx`'s own yes/no is `isTerminal` too, read off `is_terminal` (it was `ended_at !== null`) — the answer every PlayArea is handed. waffle's is outside the six |
 | ~~N2~~ | the refused-word mark: `answered` (spellingbee `Letters`), `refused` (wordwheel `Wheel`), `reject` (wordle `Board`); the bee pair also swaps `answered` / `refused` between them | Done 2026-09-24: `refused` / `showRefused` in all three. The per-tile slice is `mark` in both bees, and the single tile's prop stays `answer` (`Letter`, `Tile`) |
 | ~~N3~~ | the move still with the server: `inFlightWord` (psychicnum), `inFlightTiles` (connections), `pending` / `pendingWord` / `.inFlight` (wordle), `pendingPos` (codenamesduet) | Done 2026-09-24: `inFlight…` everywhere (`inFlightWord`, `inFlightTiles`, `inFlightPos`), and a board's per-tile/row local is `isInFlight`. psychicnum and wordle, whose result lands by realtime, share one shape in named steps: state `submittedWord` (the word I last sent), `submittedLanded` (its result is on the board), `inFlightWord = submittedLanded ? null : submittedWord` — `null`, not `''`, for nothing out. The single-flight `pending` is a different thing and stays |
 | N4 | may the board take a click: `interactive` (connections), `cellsClickable` (codenamesduet), the handler left out (psychicnum, the bee games) | Folded into §3a, step 6: every board takes `isBoardInteractive` and a required handler |
-| N5 | am I still in the game: `isStillPlaying` (psychicnum), `showInput` (connections, wordle — where it gates a help line) | `isStillPlaying` |
-| N6 | psychicnum, the control, is the odd one: `turnHolderName` / `turnHolderColor`; `useGame` returns budget rows as `players`; the move answers `verdict` + `found_all` | `holderName` / `holderColor`; `playerBudgets`; `result` |
+| ~~N5~~ | am I still in the game: `isStillPlaying` (psychicnum), `showInput` (connections, wordle — where it gates a help line) | Done (verified 2026-09-27): `isStillPlaying` everywhere, `showInput` gone |
+| N6 | psychicnum, the control, is the odd one: `turnHolderName` / `turnHolderColor`; `useGame` returns budget rows as `players`; the move answers `verdict` + `found_all` | `holderName` / `holderColor`; `useGame` returns `playerBudgets`; the answer is `{ result: 'hit' \| 'miss', found_all }` — `found_all` stays (Joel, 2026-09-27) |
 | N7 | the print model's `setup: SetupRow[]` (`common/pdf/eventLog.ts` and four game models) where the columns say `setupRows` | `setupRows` |
-| N8 | "Game over" and "Already conceded" inside moves, written by hand at about fifteen SQL sites, none carrying `noted` (docs/envelopes.md says a race does) | one common helper each; closes wordle's missing check (§3) |
-| N9 | Restart rewinds `current_turn_user_id` by hand in eight games' `replay_board`; docs/common-schema.md counts it as the common turn mechanism | move it into `common.reset_game` |
-| N10 | `picked` (state) renamed `selected` on psychicnum's `Board` | §1b |
+| N8 | "Game over" and "Already conceded" inside moves, written by hand at 55 SQL sites (35 and 20) in the sixteen games, each with its own code; `common._raise_game_over()` exists but only Stop and the timeout call it. wordle's missing check is closed (§3) | **Its own item, after §4's renames** (Joel, 2026-09-27). Every site calls a common helper: `common._raise_game_over()`, and a new `common._raise_already_conceded()`; the per-site codes go (players never see a code). **Every race is one color**: `race`'s default, `warning`, from `SEVERITY_TO_OUTCOME` in `src/common/supabase/dbResult.ts` — a move that changed nothing warns, it is not a note. So no race raise sets a `constraint`: the four `noted` in `common.sql` (`_raise_game_over`, and `_set_conceded`'s PN482 / PN483 / PN508) go. The one exception, kept (Joel): a deleted game is `lost` (red) — `delete_game`'s PN010 and `common._raise_game_deleted`'s PN485. docs/envelopes.md stops giving colors (its Appearance table, and "a race that is news … takes `noted`") and points at the map in code |
+| N9 | Restart rewinds `current_turn_user_id` by hand in eight games' `replay_board`; docs/common-schema.md counts it as the common turn mechanism | move it into `common.reset_game`, **in this pass** (Joel, 2026-09-27); the eight copies go. codenamesduet's `_point_turn` still runs after it and always writes while `playing`, so its turn is unchanged |
+| N10 | `picked` (state) renamed `selected` on psychicnum's `Board` | §1b, with its names (in this pass) |
 | N11 | wordle's `players: members` rename, with no stated reason (codenamesduet states one) | `players` |
 | N12 | `totalGuesses` (psychicnum) vs `maxGuesses` (wordle); connections' print model `mistakes` / `maxMistakes` vs its columns' `mistakeCount` / `mistakeBudget`; codenamesduet's `turns` / `turnBudget` / `turnCap` and `turnNumber` / `currentTurn` | `maxGuesses`; `mistakeCount` / `mistakeBudget`; `turnBudget` / `turnNumber` |
 | ~~N13~~ | connections' `selfEliminated` recomputes the `isEliminated` its `useGame` returns | Done 2026-09-25, in §3a step 6: the verdict reads `isEliminated` |
-| N14 | codenamesduet: `DuetPrintModel` / `buildDuetPrintModel`, `PrintCell` / `drawCell`, `CodenamesduetAISuggestCompanion.tsx`, the pdf `Mark` type that clashes with common's `Mark<T>` | `CodenamesduetPrintModel` / `buildCodenamesduetPrintModel`, `PrintTile`, `AISuggestCompanion`, `KeyRole` |
+| N14 | codenamesduet: `DuetPrintModel` / `buildDuetPrintModel`, `PrintCell` / `drawCell`, the pdf `Mark` type that clashes with common's `Mark<T>` | `CodenamesduetPrintModel` / `buildCodenamesduetPrintModel`, `PrintTile` / `drawTile`, `KeyRole`. `CodenamesduetAISuggestCompanion` keeps its name: every game-owned companion carries its game's (Joel, 2026-09-27) |
 | N15 | spellingbee's board is `Letters.tsx`; its glossary word is "hive" | `Hive.tsx` |
 | N16 | wordle declares no `Player` type; its row types `SubmittedRow` and `HistorySnapshotRow` are one shape; `WordlePlayerState` where the house form is `PlayerRow` | `Player`, one `BoardRow`, `PlayerRow` |
-| N17 | wordle has two different functions named `answerSourceLabel` (`manifest.ts`, `lib/setupSummary.ts`) | two names |
-| N18 | theme tokens without the quality ending docs/tokens.md asks for (`--spellingbee-hex`, and the like in wordwheel, codenamesduet, connections, wordle) | `-fill-color` / `-ink-color` / `-edge-color` |
+| ~~N17~~ | wordle has two different functions named `answerSourceLabel` (`manifest.ts`, `lib/setupRows.ts`) | Done (c0957810): `answerDictLabel` and `answerBandValue` |
+| ~~N18~~ | theme tokens without the quality ending docs/tokens.md asks for (`--spellingbee-hex`, and the like in wordwheel, codenamesduet, connections, wordle) | Not this plan's (Joel, 2026-09-27): a game's own tokens aren't a between-games question. codenamesduet's are a bug in its todo |
 | N19 | `PlayArea` exported in wordle, spellingbee, wordwheel, codenamesduet; nothing imports it | unexported |
-| N20 | the End / Concede / Restart section header in `PlayArea.tsx`, worded four ways (wordle's says "Replay") | psychicnum's wording |
-| N21 | SQL: `wordle.submit_guess` names locals `p_…`, the prefix common keeps for parameters; codenamesduet's `submit_guess` takes `target_position` for the `guess_position` column, and its answers still use old keys (`word`, `count`, `from_ai`, `by_seat`); "You are not in this game" means two things (PN253 vs psychicnum PN271, connections PN250) | match the columns; distinct wording |
+| N20 | the End / Concede / Restart section header in `PlayArea.tsx`, worded four ways (wordle's says "Replay") | psychicnum's wording, `// ─── The commands, bound ───` — done in the six; the other ten in this pass (Joel, 2026-09-27), crosswords' two sections under one header |
+| N21 | SQL: `wordle.submit_guess` names locals `p_…`, the prefix common keeps for parameters; codenamesduet's `submit_guess` takes `target_position` for the `guess_position` column, and its answers still use old keys (`word`, `count`, `from_ai`, `by_seat`); "You are not in this game" means two things (PN253 vs psychicnum PN271, connections PN250) | `wordle.submit_guess`'s `p_used` / `p_solved` → `caller_used` / `caller_solved`. codenamesduet's answer keys match the columns — `clue_word`, `clue_count`, `clue_from_ai`, `seat` — in `give_clue`, the AI's previous clues, `ClueStrip` and the suggest-clue edge function (Joel, 2026-09-27). PN271 / PN250 read "BUG: you are not in this game": a fault's message is still for a person, and the technical words stay in `detail` (Joel, 2026-09-27). codenamesduet's `submit_guess` parameter `target_position` → `guess_position`, with the front end's call (Joel, 2026-09-27); the `target_` prefix on every other RPC input stays — it keeps a parameter from sharing a column's name, which PL/pgSQL refuses |
 | ~~N23~~ | Done 2026-09-27 (7c). the Stop action (`stopped`) is still named End: `act-end-game` labeled "End game", `actEndGame`, `END_GAME_CONFIRM`, Concede's "Concede / End game", each game's `end_game` RPC | Stop: `act-stop-game`, "Stop game", `actStopGame`, `STOP_GAME_CONFIRM`, and each game's RPC `stop_game`, with a `DROP` of the retired `end_game` beside it. Stop names only: `ended`, `ended_at`, `common.end_game` (which ends a game any way) and every other "end" stay |
 | ~~N24~~ | Done 2026-09-27 (7c). `terminalOutcomeVerb` returns `'Quit'` (the strip's "Quit at 12"); the terms say never "quit" | `'Conceded'` |
 | N25 | "race" / "racer" for games that aren't `race-game`s: wordle's and waffle's compete, their SQL (`racers_with_budget`), FE and docs (the game cards' Mismatches) | player; "race" only for a `race-game` |
 | N26 | "clock" for the timer: wordle's `wonByClock` / `clock_ran_out`, and comments across the games | timer, timeout (`wonByTimeout`, `timed_out`) |
 | N27 | strands' test names a flag `isLocallyDone` | `isLocallyTerminal` |
-| N22 | lower: `LOSS` vs `COMPETE_LOSS`; `const mode` / `isCompete` locals in some games, inline in others; `announceOpponentProgress` vs `narrateRankClimbs`; `players.find(...)` by hand where `memberById` is already imported | settle when the file is open |
+| N22 | lower: `LOSS` vs `COMPETE_LOSS`; `const mode` / `isCompete` locals in some games, inline in others; `announceOpponentProgress` vs `narrateRankClimbs`; `players.find(...)` by hand where `memberById` is already imported | Settled 2026-09-27 (Joel), in this pass: `LOSS` stays — psychicnum reads it in both modes, so `COMPETE_LOSS` would be wrong (how games word a loss is §6); `isCompete` in every PlayArea, the `mode` locals gone; `memberById` wherever the array is the member list, other lookups left. The watchers are named for what they announce into the global feedback slot: psychicnum's `announceOpponentProgress` stays, the bee pair's `narrateRankClimbs` → `announceOpponentRankClimb` |
 
 **Shared code a game copies:**
 
-- `PuzzleAnswer` (connections, copied in strands) re-declares common's
-  `NextPuzzle`.
+- ~~`PuzzleAnswer` (connections, copied in strands) re-declares common's
+  `NextPuzzle`.~~ Not worth it (Joel, 2026-09-27): the two copies stay.
 - Flat index ↔ board position: codenamesduet names it (`positionAt` /
   `cellAt`); psychicnum and connections write the arithmetic inline. A home
-  in `common/board-cursor`.
+  in `common/board-cursor`. **Do it, in this pass** (Joel, 2026-09-27):
+  `positionAt(x, y, cols)` and `cellAt(position, cols)` there; codenamesduet
+  and waffle call them with their width, and the inline sites (the two games'
+  `Board.tsx` cursor checks, their `boardShape.ts` `exists`, the two PDF
+  printers) use them.
 - The bee pair copies `splitCustomLetters`, `TARGET_RANK_CHOICES`,
-  `NO_TARGET` and `legalError`; `shared/bee-games` exists for them. Their two
+  `NO_TARGET` and `legalError`; `shared/bee-games` exists for them.
+  **Decided** (Joel, 2026-09-27), in this pass: `TARGET_RANK_CHOICES` and
+  `NO_TARGET` move to `shared/bee-games`; so does `splitCustomLetters`,
+  taking the letter count (7, 9). `legalError` stays copied — not worth it.
+  `customLettersError` differs on purpose (the set vs the multiset) and stays
+  per game.
+  Their two `PlayArea.tsx` files are identical but for names and three
+  "hive"/"wheel" comments. **Decided** (Joel, 2026-09-27), in this pass: they
+  stay two copies — each game keeps a PlayArea that reads top to bottom — and
+  `shared/bee-games/doc.md` says so: the copies are kept identical, and a
+  change to one is made to the other. The stray differences go, so the two
+  diff clean: wordwheel's `useInfoSheet` import order, a blank line, and two
+  blocks in spellingbee's wrapped in the foreign `{ cls( … ) }` style, which
+  take the repo's one-line form. Their two
   `PlayArea.tsx` files are identical but for names, and nothing says why the
   whole component is two copies.
 - The per-opponent "did their number go up" watcher is hand-written twice
   (psychicnum, the bee games) with different start-up logic; a candidate for a
-  shared hook.
+  shared hook. **Decided** (Joel, 2026-09-27), in this pass: no shared hook,
+  one start-up rule — the bee pair's (seed every row silently on the first
+  pass, then a row not seen before counts from 0), which fits both games'
+  data; psychicnum's `announceOpponentProgress` takes it. Players see no
+  change.
+
+**Unsure from the §4 pass (2026-09-27), to judge with Joel** (not yet
+worked). "Done" means the pass made the change and it may want undoing;
+"left" means it made none.
+
+- *A change beyond the letter of the ruling:*
+  1. Done — scrabble compete's `replay_board` picked a random opener before
+     `common.reset_game`, which now rewinds the turn to seat 0 and would undo
+     it; the pick moved after `reset_game`. Same behavior.
+  2. Done — psychicnum's and connections' `BoardCol.tsx` (`wordAt`,
+     `handleTileClick`, the cursor toggle) and codenamesduet's PDF printer use
+     `positionAt` / `cellAt` too, beyond the sites the ruling named.
+  3. Done — psychicnum's watcher now also records the viewer's own row before
+     skipping it, and an opponent first seen after the first pass counts
+     from 0 (the bee rule); no visible change.
+  4. Done — `memberById` with a null guard (`id ? memberById(…) : undefined`)
+     where the id can be null: the bee pair's winner, psychicnum's turn
+     holder. The same shape was left as `.find` in letterboxed, setgame,
+     strands, waffle, wordiply (turn holder) and boggle (winner, leader).
+  5. Done — `memberById` also in the bee pair's `InfoCol.tsx` and the
+     psychicnum and wordle PDF models' `nameOf`; left in waffle's,
+     stackdown's and wordiply's `nameOf` and other InfoCol / GameEventLog /
+     LastSet files that don't import it yet.
+  6. Done — comment fixes beside renamed keys: psychicnum's "says `won`" →
+     `hit` (two pgTAP comments, doc.md), its `replay_board` header now one
+     line pointing at `common.reset_game`; wordwheel/spellingbee todos and
+     doc trees say `Hive`.
+- *Names:*
+  7. psychicnum `BoardCol.tsx`: the drawn pick is `drawnPick`, because
+     `picked` is already the state it's built from — or rename the state.
+  8. wordle's `BoardRow` lives in `components/Board.tsx`, so
+     `lib/history.ts` imports a type from `components/` — or keep it in lib.
+  9. wordle `lib/setupRows.ts` types `players` as `Member[]`, not the new
+     `Player` (psychicnum's and spellingbee's do the same).
+  10. wordle `PlayArea.tsx` docstring: "`mode` is what differs between the
+      manifests" — there is no `mode` local now; `game.mode`?
+  11. codenamesduet: `MARK_OF` / `MARK_RGB` keep "mark" though the type is
+      `KeyRole`; the model field is still `cells: PrintTile[]` (`tiles`?);
+      a local `summaryRows` is passed as `setupRows`; `lib/boardShape.ts` is
+      now only `BOARD_SHAPE`.
+  12. codenamesduet `ClueStrip.tsx`'s `ClueAnswer` has never listed
+      `clue_from_ai`, which `submit_clue` returns.
+  13. connections' Broadcast wire words — the event `'selection'` and
+      `'select'` / `'deselect'` / `'clear'` — kept: renaming them leaves two
+      tabs on different builds unable to hear each other's picks for a
+      deploy's minute.
+  14. `--scrabble-rack-selected-outline-color` is read only by the
+      fresh-drawn flash, never a pick: keep, or name it for what it marks.
+- *Words:*
+  15. "selected" meaning the pick, left in prose: the strands trace
+      (`lib/trace.ts`, `Board.tsx`, `PlayArea.tsx`, docs/games/strands.md),
+      stackdown (`BoardCol.tsx`, `WordEntry.tsx`, its doc), setgame
+      `useGame.ts` ("partial selection"), `common/pause-suspend/doc.md`,
+      psychicnum's test titles ("pending selection"), and scrabble's tooltip
+      "Select rack tiles first".
+  16. connections: `InfoCol.tsx`'s "the history-viewer selection" (choosing
+      a past turn) became "opening a past turn in the history viewer";
+      `theme.css`'s "dark selected fill" became "dark picked border".
+- *Found on the way, not this pass's:*
+  17. boggle `theme.css`: the comment says path tiles wear
+      `--tile-picked-edge-color`, but `.picked` uses
+      `--tile-spent-edge-color`.
+  18. crosswords' shared-actions block (moved under the one header): its
+      comment says crosswords' own cleanup puts the answers away, but the call
+      passes none; the section intro says every command is placed twice,
+      which Stop / Concede / Restart are not.
+  19. strands' `useStandardGameActions({…})` holds a comment ("`reset`, not
+      `hide`…") with no code after it.
+  20. spellingbee `SetupForm.tsx`'s custom-letters `onChange` is a
+      one-liner where wordwheel's is two lines.
+  21. psychicnum `doc.md` still lists the reason `manual`; `psychicnum.sql`
+      has a history comment ("was `was_correct` until 2026-08-01").
+  22. `scripts/css-token-baseline.json` still lists the two
+      `--tile-selected-edge-…` tokens; it is regenerated by its script.
+
+**Answered and worked (Joel, 2026-09-27): 8–22.** 8 `BoardRow` → wordle
+`lib/board.ts`; 9 `Player[]`; 10 `game.mode`; 11 `ROLE_OF` / `ROLE_RGB`,
+the model's `tiles`, and — for every game — the value is `setupRows` and the
+function that builds it `makeSetupRows()` (a function name leads with its
+verb; `summaryRows` said nothing); 12 `ClueAnswer` gains `clue_from_ai`; 13
+the Broadcast words are `pick` / `unpick` / `clear` on the `pick` event; 14
+`--scrabble-rack-flash-new-outline-color`; 15 no game's player-facing words
+mix pick and select (scrabble's tooltip and help now say Pick); 16 left as
+is; 17 boggle's comment fixed (the khaki is deliberate); 18 crosswords'
+two comments; 19 strands' dangling comment gone; 20 spellingbee's
+`onChange` as wordwheel's; 21 the history comment gone (`manual` in the doc
+is today's stored word until stage 2); 22 the baseline's two keys renamed.
+Following from 11 (Joel, 2026-09-27): common's row builders lead with a
+verb too — `makeRosterRow`, `makeCoopRows`, `makeCenterLettersRow`,
+`makeTimerRow`; each game's `lib/setupSummary.ts` is `lib/setupRows.ts`; and
+"recap" is retired — the place is **the Setup options list**
+(`<SetupDisclosure>`), the data **the setup rows**.
+1–7 accepted as done (Joel, 2026-09-27). Nothing on this list is open.
 
 ## 5. Placement — docs and comments
 
@@ -1007,3 +1133,13 @@ connections') leaves out `CelebrationBlockingModal`, and it says a racer sees
 each rival's remaining budget, which the `OpponentStrip` does not show. The
 psychicnum and connections intros open paragraphs in bold where the others do
 not.
+
+## 6. To investigate
+
+- **How a game words a loss on its club line** (Joel, 2026-09-27). Each
+  manifest's `labelFor` turns a stored reason into words ("out of time", "out
+  of guesses") for a game nobody won, and the games do it in different ways:
+  psychicnum reads one `LOSS` table in both modes; wordle, waffle and
+  connections keep a `COMPETE_LOSS` table for compete, and wordle words its
+  coop loss with an inline `reason === 'timeout'` check instead. Survey all
+  sixteen and decide whether they should share one approach.

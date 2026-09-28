@@ -18,8 +18,8 @@ import { formatTimerSeconds, timerLabel } from './timerLabel'
  * than drifting.
  *
  * Asserting `'none'` is likewise not a restatement of the code. The value is
- * always printed after a "Timer:" label — by `setupRows.ts`'s `timerRow()` for
- * the recap, and by `<SetupTimerSection>` for its own heading while you choose
+ * always printed after a "Timer:" label — by `setupRows.ts`'s `makeTimerRow()` for
+ * the setup rows, and by `<SetupTimerSection>` for its own heading while you choose
  * — so it has to read as the answer to that label rather than stand alone. That
  * is why the string is `none` and not `no timer`.
  */

@@ -8,6 +8,7 @@ import type { Mark } from '@/common/board-marks/useMark'
 import { OUTCOME_TO_VERDICT_CLASS } from '@/common/game-page/outcomeToVerdictClass'
 import { revealBorderVar, revealInkVar, revealVar, tileColor } from '../lib/colors'
 import { WORD_LENGTH } from '../lib/setup'
+import type { BoardRow } from '../lib/board'
 import shared from '@/common/game-page/playArea.module.css'
 import history from '@/common/event-log/historyViewer.module.css'
 import tileColors from '@/shared/wordle-style/tileColors.module.css'
@@ -16,11 +17,9 @@ import styles from './Board.module.css'
 /** Per-tile stagger so a row's letters flip left-to-right, not at once. */
 const REVEAL_STEP_S = 0.22
 
-type SubmittedRow = { guess: string; colors: string }
-
 type Props = {
-  // Submitted guesses (letters + their g/y/x colors), in order.
-  rows: SubmittedRow[]
+  // Submitted guesses, in order.
+  rows: BoardRow[]
   // How many rows the LIVE board has, even while `rows` is a past turn's
   // snapshot — where the flip line moves to when a past turn opens.
   liveRowCount: number

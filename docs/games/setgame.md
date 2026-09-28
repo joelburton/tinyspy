@@ -77,7 +77,7 @@ penalty to design and nothing to price. The server still re-checks everything �
 it is the authority — it just never sees one in practice.
 
 The rejection that *does* happen in real play is **contention**: a rival
-claiming a card out from under your selection. See §6.
+claiming a card out from under your pick. See §6.
 
 
 ## 3. Schema — `setgame.*`
@@ -335,10 +335,10 @@ Two defenses, and they are independent:
 
 - **Server:** `submit_set` takes the games-row lock before checking membership
   on the board, so overlapping claims serialize. The loser gets `cards-gone`.
-- **Client:** the selection holds **card codes, not slot indices**, and is
+- **Client:** the picks hold **card codes, not slot indices**, and are
   filtered against the **server's** board every render. A card that leaves is
-  simply not selected any more, and its letter is free again. Keyed by slot, the
-  selection would silently re-point at whatever refilled the hole — and the next
+  simply not picked any more, and its letter is free again. Keyed by slot, a
+  pick would silently re-point at whatever refilled the hole — and the next
   keystroke would claim a card the player never looked at. Filtered against the
   server board rather than against what's on screen, because during a departure
   hold the screen still shows cards that are already gone.
@@ -397,8 +397,8 @@ being edited alone.
 
 **Info column**, in the canonical order: one row of counts (`Found · Deck
 remaining · Hints` — the third only in coop), the turn line (turn games only),
-the **last-set panel**, the OpponentStrip in compete, the actions, the setup
-recap, then the **event log**. There is deliberately no count of the cards
+the **last-set panel**, the OpponentStrip in compete, the actions, the Setup
+options list, then the **event log**. There is deliberately no count of the cards
 face-up: they are right there to be looked at.
 
 ### The one outcome decision (`lib/answer.ts`)
@@ -456,8 +456,8 @@ nothing is live on paper, so the reason to hold it back doesn't apply
 ### The keyboard
 
 A letter under every card, typing toggles it, Backspace clears, and the third
-selected card submits. Two bound actions — `act-toggle-card` and
-`act-clear-selection` — not the shared `useCaptureKeys`: that helper accumulates
+picked card submits. Two bound actions — `act-toggle-card` and
+`act-clear-picks` — not the shared `useCaptureKeys`: that helper accumulates
 *text*, and a letter here is a toggle on a card, not a character appended to a
 word. `act-toggle-card` is a PATTERN action, handed whichever letter fired it,
 which is what makes twenty-one cards one binding rather than twenty-one.
@@ -647,7 +647,7 @@ you didn't ask for is being played *for*. Everyone is still charged, because the
 count is the table's, and the log names who asked.
 
 The **ladder** is one more card of the SAME set per press: one, two, then all
-three — and the third rung needs no special case, since three selected cards
+three — and the third rung needs no special case, since three picked cards
 already claim. Growing the same set matters; recomputing from scratch could
 point at a different set on the second press and leave the player chasing two
 answers.
@@ -705,8 +705,8 @@ only the deal size differs (9, ceiling 12).
   those three used to land unmarked).
 - **`lib/hint.test.ts`** — the ladder grows one card of the SAME set per press,
   and returns `null` once the ring is complete (the rapid-press regression).
-- **`lib/selection.test.ts`** — the toggle, the fourth-card refusal, and the
-  contention case: a card claimed out from under the selection drops out of it.
+- **`lib/picks.test.ts`** — the toggle, the fourth-card refusal, and the
+  contention case: a card claimed out from under the picks drops out of them.
 - **`lib/history.test.ts`** — the viewer shows the board the row RECORDED rather
   than the live one, rings that turn's own cards, and names how far a hint went
   ("Turn 1 — hint (1 of 3)").

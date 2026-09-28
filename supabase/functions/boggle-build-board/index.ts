@@ -67,8 +67,8 @@ interface BoggleSetup {
   min_word_length?: number
   scoring_ladder?: LadderName
   constraints?: BoardConstraints
-  /** Optional custom board — the player's own tiles, written as the recap prints
-   *  them ("ABQuD EFGH IJKL MNOP"). Set → we solve exactly this board instead of
+  /** Optional custom board — the player's own tiles, written as the setup row
+   *  prints them ("ABQuD EFGH IJKL MNOP"). Set → we solve exactly this board instead of
    *  rolling one. Re-parsed here rather than trusted: the FE's Start gate runs
    *  the same function, but it's a fail-fast, not the authority. */
   custom_board?: string

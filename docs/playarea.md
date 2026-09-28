@@ -82,7 +82,7 @@ strip, action row, help, terminal extra, setup disclosure, then the log — and
 each kind is drawn the same way everywhere. The order, what each row is for, how
 each behaves at terminal, and the two allowed kinds of growth are
 [src/common/info-sheet/doc.md](../src/common/info-sheet/doc.md)'s; the setup
-recap's rows are
+rows are
 [setup-form/doc.md → Setup rows](../src/common/setup-form/doc.md#setup-rows).
 
 ## Text entry — capture, not `<input>`

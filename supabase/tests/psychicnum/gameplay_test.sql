@@ -20,15 +20,15 @@
 -- board (e.g. 'zzulu') exercises the board-word guard.
 --
 -- Every envelope is asserted to carry NO outcome, which is half of one rule:
--- an RPC answers with the FACT (`verdict`, `result`) and the frontend decides
+-- an RPC answers with the FACT (`result`) and the frontend decides
 -- what a fact reads as, in one place (src/psychicnum/lib/answer.ts). The other
 -- half is that file's own test. An outcome reappearing here is the rule
 -- breaking, which is why the null is asserted rather than the key ignored.
 --
 -- Coop assertions:
 --   - a word not on the board is rejected
---   - wrong guess counts up EVERYONE's budget, verdict 'miss'
---   - finding a secret (not the last) is verdict 'hit', with
+--   - wrong guess counts up EVERYONE's budget, result 'miss'
+--   - finding a secret (not the last) is result 'hit', with
 --     `found_all` false — the game continues, and it bumps the caller's
 --     players.found_secrets_count
 --   - re-guessing a taken word (game-wide) is rejected
@@ -105,8 +105,8 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zdelta'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"miss","found_all":false}}'::jsonb,
-  'coop: a wrong guess is verdict miss, and carries no outcome'
+    "data":{"result":"miss","found_all":false}}'::jsonb,
+  'coop: a wrong guess is result miss, and carries no outcome'
 );
 
 reset role;
@@ -122,7 +122,7 @@ select pg_temp.as_user('ada11111-1111-1111-1111-111111111111');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zalpha'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"hit","found_all":false}}'::jsonb,
+    "data":{"result":"hit","found_all":false}}'::jsonb,
   'coop: finding a secret (not the last) is a hit, found_all false'
 );
 
@@ -225,7 +225,7 @@ select psychicnum.submit_guess((select id from coop_g), 'zbravo');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_g), 'zcharlie'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"hit","found_all":true}}'::jsonb,
+    "data":{"result":"hit","found_all":true}}'::jsonb,
   'coop: finding the last secret returns won'
 );
 
@@ -282,14 +282,14 @@ select is(
   'coop: 2 wrong guesses keeps play_state=playing'
 );
 
--- 3rd wrong → team loses. The envelope is the CALLER'S verdict on their own
+-- 3rd wrong → team loses. The envelope is the CALLER'S result on their own
 -- guess (a miss, `lost`), not the game's fate — the loss reaches the FE by
 -- realtime.
 select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_loss), 'zfoxtrot'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"miss","found_all":false}}'::jsonb,
+    "data":{"result":"miss","found_all":false}}'::jsonb,
   'coop: the budget-exhausting wrong guess is still a miss'
 );
 
@@ -302,7 +302,7 @@ select is(
 
 -- ── The budget-exhausting CORRECT guess ──
 -- The same loss, reached by a guess that DID find a secret. The envelope is
--- the caller's own verdict, so it says `won` even though the game ends on it:
+-- the caller's own result, so it says `hit` even though the game ends on it:
 -- a loss word here would flash a red "Wrong" for a beat before the
 -- terminal verdict landed. The game still ends: one of three found.
 -- (as_user BEFORE the create: a temp table is owned by whoever creates it, and
@@ -328,8 +328,8 @@ select psychicnum.submit_guess((select id from coop_loss_hit), 'zecho');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from coop_loss_hit), 'zalpha'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"hit","found_all":false}}'::jsonb,
-  'coop: the budget-exhausting CORRECT guess still says won, not a loss value'
+    "data":{"result":"hit","found_all":false}}'::jsonb,
+  'coop: the budget-exhausting CORRECT guess still says hit, not a loss value'
 );
 
 reset role;
@@ -385,14 +385,14 @@ select pg_temp.as_user('bea22222-2222-2222-2222-222222222222');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_g), 'zalpha'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"hit","found_all":false}}'::jsonb,
+    "data":{"result":"hit","found_all":false}}'::jsonb,
   'compete: finding a secret (not the last) is a hit, found_all false'
 );
 select psychicnum.submit_guess((select id from comp_g), 'zbravo');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_g), 'zcharlie'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"hit","found_all":true}}'::jsonb,
+    "data":{"result":"hit","found_all":true}}'::jsonb,
   'compete: finding the last secret returns won'
 );
 
@@ -495,7 +495,7 @@ select psychicnum.submit_guess((select id from comp_loss), 'zecho');
 select pg_temp.envelope_is(
   psychicnum.submit_guess((select id from comp_loss), 'zgolf'),
   '{"type":"ok","outcome":null,
-    "data":{"verdict":"miss","found_all":false}}'::jsonb,
+    "data":{"result":"miss","found_all":false}}'::jsonb,
   'compete: the all-exhausting wrong guess is still a miss'
 );
 

@@ -11,13 +11,13 @@
  * values on its GRID and these override them on the TILE, so the winner is
  * element-level-beats-inherited rather than a race between two single-class
  * rules in different modules — and the shared marks that must beat a color
- * (`.tile.selected`, `.tileFace.verdictFill`) are doubly qualified for the same
+ * (`.tile.picked`, `.tileFace.verdictFill`) are doubly qualified for the same
  * reason.
  *
  * The border is a slightly DARKER shade of the fill (~16%, the step the warm
  * tile ramp takes between a shade and its border) rather than the fill itself —
  * the quiet definition every other surface in this app has, instead of a flat
- * block of color. It is also what makes waffle's selection legible: a picked-up
+ * block of color. It is also what makes waffle's pick legible: a picked-up
  * tile thickens this edge, which needs the edge to be a different color from
  * the fill in the first place.
  *

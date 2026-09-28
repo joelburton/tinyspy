@@ -17,6 +17,7 @@ import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useIsPhone } from '@/common/mobile/useIsPhone'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import type { Cell } from '@/common/board-cursor/stepCell'
+import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { db } from '../db'
 import { boardShape } from '../lib/boardShape'
 import { evaluateGuess, sameTileSet } from '../lib/evaluate'
@@ -34,7 +35,7 @@ import history from '@/common/event-log/historyViewer.module.css'
 import styles from './BoardCol.module.css'
 import { reportUnhandled } from '@/common/supabase/dbEnvelope'
 
-/** Empty selection map — the board draws no selection while viewing a past turn. */
+/** Empty owner map — the board draws no picks while viewing a past turn. */
 const NO_OWNERS: ReadonlyMap<string, string> = new Map()
 
 /** Empty tile set — the resting value of the in-flight mark. */
@@ -60,8 +61,8 @@ type GuessAnswer = { result: GuessResult }
  * It owns the marks on the guessed tiles (the in-flight dim, the verdict
  * fill), this client's view of the tile order, the keyboard's selection cursor
  * over it (`useBoardSelectionCursor`), and the `submit_guess` call.
- * The tile SELECTION is `useGame`'s, since coop shares it over Broadcast, so
- * PlayArea hands the selection primitives down and this column renders and
+ * The tile PICKS are `useGame`'s, since coop shares them over Broadcast, so
+ * PlayArea hands the pick primitives down and this column renders and
  * commits them; the board it draws is whatever PlayArea hands it, live or a
  * snapshot, which is what makes the turn-history viewer a drop-in. See
  * docs/playarea.md.
@@ -82,7 +83,7 @@ export function BoardCol({
   myTurnJustStarted,
   terminalOutcome,
   onExitHistory,
-  // ── Tile selection (state owned by useGame; this renders + commits it) ──
+  // ── Tile picks (state owned by useGame; this renders + commits them) ──
   ownerByTile,
   toggleTile,
   sendClear,
@@ -116,7 +117,7 @@ export function BoardCol({
   // Whose board is on screen, when it is not the viewer's own.
   historyActor?: Actor | null
   // The page's standing terms (docs/win-lose.md → Where a player stands).
-  // Still in the game — the shuffle, the drawn selection. Waiting my turn is
+  // Still in the game — the shuffle, the drawn picks. Waiting my turn is
   // still playing.
   isStillPlaying: boolean
   // The board takes a pick — the tiles, the cursor and Clear.
@@ -133,12 +134,12 @@ export function BoardCol({
   // Return to the live board (the banner click / ✕).
   onExitHistory: () => void
 
-  // ── Tile selection ──
-  // tile → user_id (the inverted selections map) — the per-tile mine/peer treatment.
+  // ── Tile picks ──
+  // tile → user_id (the inverted picks map) — the per-tile mine/peer treatment.
   ownerByTile: ReadonlyMap<string, string>
   toggleTile: (tile: string) => void
   sendClear: () => void
-  // The flat union of every player's selection (coop) / the caller's (compete).
+  // The flat union of every player's picks (coop) / the caller's (compete).
   unionTiles: string[]
   selfId: string
   colorByUserId: ReadonlyMap<string, string>
@@ -164,7 +165,7 @@ export function BoardCol({
 }) {
   // ─── Which board is on screen ──────────────────────────
   // Live, or a past turn's snapshot — and everything that would WRITE to the
-  // board answers to it: the commands hide, the selection is not drawn, a
+  // board answers to it: the commands hide, the picks are not drawn, a
   // teammate's verdict is not marked. And which screen: a phone shortens the
   // commit row.
   // Viewing a past turn ⟺ there is one open (docs/playarea.md → Prop
@@ -265,8 +266,8 @@ export function BoardCol({
 
   async function handleSubmit() {
     if (submitting || unionTiles.length !== TILES_PER_CATEGORY) return
-    // The tiles as they were at SEND. The selection is cleared on the way out
-    // (and a teammate can move it in coop), so every mark about this guess has
+    // The tiles as they were at SEND. The picks are cleared on the way out
+    // (and a teammate can move them in coop), so every mark about this guess has
     // to carry its own copy rather than re-reading `unionTiles` afterwards.
     const sent = [...unionTiles]
 
@@ -311,7 +312,7 @@ export function BoardCol({
       return
     // One branch per recorded verdict, each asserting `data` and nothing else
     // (docs/envelopes.md → The shape of a call site) — never the value this
-    // client sent up. Each shows the answer, then clears the selection.
+    // client sent up. Each shows the answer, then clears the picks.
     } else if (res.type === 'ok' && res.data.result === 'correct') {
       // A correct guess that wrote NOTHING comes back as PN300, so reaching
       // here means the match is durably recorded. No mark: these four collapse
@@ -342,7 +343,7 @@ export function BoardCol({
   // The board's commands. Each is ONE binding behind both its button and its
   // key, so the two can't disagree about whether it applies, and each is hidden
   // while a past turn is open: a live Submit over a frozen historical board
-  // would be lying about what it can do. An incomplete selection leaves Submit
+  // would be lying about what it can do. Fewer than four picks leaves Submit
   // gray rather than firing a no-op.
   const actSubmit = useBoundAction('act-submit', {
     describe: () => {
@@ -353,9 +354,9 @@ export function BoardCol({
     run: handleSubmit,
   })
 
-  // Clear drops the selection — and BROADCASTS, so a teammate's board drops it
+  // Clear drops the picks — and BROADCASTS, so a teammate's board drops them
   // too.
-  const actClearSelection = useBoundAction('act-clear-selection', {
+  const actClearPicks = useBoundAction('act-clear-picks', {
     describe: () => {
       if (!canPick) return 'hidden'
       return unionTiles.length === 0 ? 'disabled' : 'active'
@@ -365,10 +366,10 @@ export function BoardCol({
 
   // Tile click: dismiss any lingering own-result first (the commit buttons
   // return), then toggle the tile — the player has moved on to the next
-  // selection.
+  // pick.
   function handleToggle(tile: string) {
     // A frozen board still DRAWS its tiles (the record of where the players
-    // got to), and a waiting player must not build or broadcast a selection, so
+    // got to), and a waiting player must not build or broadcast a pick, so
     // the guard is explicit.
     if (!isBoardInteractive) return
     localFeedbackSlot.dismiss()
@@ -394,7 +395,7 @@ export function BoardCol({
   const handleShuffle = () => setLocalOrder(shuffle(displayedTiles))
 
   // Shuffle — a fresh visual scan of the SAME sixteen tiles, never a move (the
-  // selection survives it). Not gated on `isMyTurn`: rearranging your own view
+  // picks survive it). Not gated on `isMyTurn`: rearranging your own view
   // is not acting on the board.
   const actShuffle = useBoundAction('act-shuffle', {
     describe: () => {
@@ -416,15 +417,14 @@ export function BoardCol({
     shape,
     enabled: canPick,
     onToggle: (cell: Cell) => {
-      const tile = displayedTiles[cell.y * shape.cols + cell.x]
+      const tile = displayedTiles[positionAt(cell.x, cell.y, shape.cols)]
       if (tile !== undefined) handleToggle(tile)
     },
   })
 
   // A tile click: the cursor moves there, hidden, and the click does its move.
   function handleTileClick(tile: string) {
-    const i = displayedTiles.indexOf(tile)
-    point({ x: i % shape.cols, y: Math.floor(i / shape.cols) })
+    point(cellAt(displayedTiles.indexOf(tile), shape.cols))
     handleToggle(tile)
   }
 
@@ -447,7 +447,7 @@ export function BoardCol({
         // is a promise the board can't keep. A historical snapshot is a record
         // too, and the Board makes it inert itself.
         isBoardInteractive={isBoardInteractive}
-        // No selection is drawn on a board that can't take a move — a past
+        // No picks are drawn on a board that can't take a move — a past
         // turn, or a player who is finished — though the broadcast state
         // itself outlives both.
         ownerByTile={isViewingHistory || !isStillPlaying ? NO_OWNERS : ownerByTile}
@@ -511,7 +511,7 @@ export function BoardCol({
                   <StrikeMarks used={mistakeCount} total={mistakeBudget} />
                 </div>
                 <ActionButton
-                  action={actClearSelection}
+                  action={actClearPicks}
                   show={phone ? 'icon' : 'both'}
                   className={styles.inputButton}
                 />

@@ -1,8 +1,8 @@
 // cs-blessed-wordle
 
-import type { Member } from '@/common/members/member'
+import type { Player } from '../hooks/useGame'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { coopRows, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeCoopRows, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import type { WordleSetup } from './setup'
 
 /** The setup row's value for the answer band. `0` = the curated NYT-Wordle
@@ -12,20 +12,20 @@ function answerBandValue(n: number): string {
 }
 
 /**
- * wordle's setup recap — ONE array, rendered by the info column and the PDF
+ * wordle's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  */
-export function setupRows(
+export function makeSetupRows(
   setup: WordleSetup,
   mode: 'coop' | 'compete',
-  players: Member[],
+  players: Player[],
 ): SetupRow[] {
   return [
-    rosterRow(players),
-    ...coopRows(setup, mode, players),
+    makeRosterRow(players),
+    ...makeCoopRows(setup, mode, players),
     { key: 'max_guesses', label: 'Guesses', value: String(setup.max_guesses) },
     { key: 'answer_band', label: 'Answer', value: answerBandValue(setup.answer_band) },
     { key: 'legal_band', label: 'Dictionary', value: difficultyValue(setup.legal_band) },
-    timerRow(setup.timer),
+    makeTimerRow(setup.timer),
   ]
 }

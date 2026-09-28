@@ -12,8 +12,9 @@ import { db } from '../db'
 import { answerMessage } from '../lib/answer'
 import { WORD_LENGTH } from '../lib/setup'
 import { colorRank, tileColor, type TileColor } from '../lib/colors'
-import type { HistorySnapshotRow, HistorySnapshot } from '../lib/history'
+import type { HistorySnapshot } from '../lib/history'
 import { Board } from './Board'
+import type { BoardRow } from '../lib/board'
 import { GuessKeyboard, type KeyTone } from '@/shared/onscreen-keyboard/GuessKeyboard'
 import { HistoryBanner } from '@/common/event-log/HistoryBanner'
 import type { Actor } from '@/common/members/member'
@@ -87,7 +88,7 @@ export function BoardCol({
   // The LIVE board rows (the viewer's own / the coop team board) — drives the
   // keyboard letter-coloring, the `submittedLanded` check, and the grid when
   // not viewing history.
-  rows: HistorySnapshotRow[]
+  rows: BoardRow[]
   // The open history turn's snapshot (its rows + ringed row + banner label), or null
   // when live. Non-null exactly when viewing, so this column derives `isViewingHistory` from
   // it.

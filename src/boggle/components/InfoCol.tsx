@@ -91,7 +91,7 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: BoggleSetup
-  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
   /** The board's dice-set description (setup echo). */
   diceLabel: string

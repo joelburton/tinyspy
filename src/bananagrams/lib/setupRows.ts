@@ -1,25 +1,25 @@
 // cs-unmet
 
 import type { Member } from '@/common/members/member'
-import { rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import { difficultyValue } from '@/common/setup-form/difficulty'
 import { WORD_CHECK_OPTIONS, type BananagramsSetup } from './setup'
 
 /**
- * bananagrams's setup recap — ONE array, rendered by the info column and the
+ * bananagrams's setup rows — ONE array, rendered by the info column and the
  * PDF alike (common/setup-form/doc.md → Setup rows). Order and words mirror
- * `components/SetupForm.tsx`: the recap is the dialog read back.
+ * `components/SetupForm.tsx`: the setup rows are the dialog read back.
  *
  * The disclosure lives in `components/PlayArea.tsx` rather than an `InfoCol`,
  * this game being the v3 layout exception — the rows are the same either way.
  */
-export function setupRows(
+export function makeSetupRows(
   setup: BananagramsSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {
   const rows: SetupRow[] = [
-    rosterRow(players),
+    makeRosterRow(players),
     { key: 'hand_size', label: 'Starter hand', value: `${setup.hand_size} tiles` },
     { key: 'bunch_size', label: 'Bunch', value: `${setup.bunch_size} tiles` },
     {
@@ -44,6 +44,6 @@ export function setupRows(
       { key: 'dict_3plus', label: 'Dictionary (longer)', value: difficultyValue(setup.dict_3plus) },
     )
   }
-  rows.push(timerRow(setup.timer))
+  rows.push(makeTimerRow(setup.timer))
   return rows
 }

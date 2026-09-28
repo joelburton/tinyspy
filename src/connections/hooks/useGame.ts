@@ -14,12 +14,12 @@ import type { Database } from '@/types/db'
 import type { Member } from '@/common/members/member'
 import { MISTAKE_BUDGET, type Board, type CategoryRank } from '../lib/board'
 import {
-  applySelectionEvent,
+  applyPickEvent,
   eventForClick,
   unionTiles,
-  type SelectionEvent,
-  type SelectionMap,
-} from '../lib/selection'
+  type PickEvent,
+  type PickMap,
+} from '../lib/picks'
 
 /** One player in a connections game — a `Member` as-is. What this game keeps
  *  per player lives on `connections.players` (`PlayerRow`), not on the person. */
@@ -105,11 +105,11 @@ export type ConnectionsGame = {
 
 /**
  * connections' per-game data hook: the game row, the guess log, the player
- * rows and, in coop, the shared selection — one Realtime room per game.
+ * rows and, in coop, the shared picks — one Realtime room per game.
  *
  * Broadcast-coupled (src/common/realtime/doc.md): the
  * room is the stable `connections:${gameId}` so peers share it for the
- * selection Broadcast, and the postgres-changes on
+ * picks Broadcast, and the postgres-changes on
  * `connections.{games, events, players}` ride the same channel. Compete keeps
  * every pick local — `broadcast()` applies and never sends.
  *
@@ -129,7 +129,7 @@ export function useGame(
   mistakeCount: number
   opponentFound: ReadonlyMap<string, number>
   isEliminated: boolean
-  selections: SelectionMap
+  picks: PickMap
   unionTiles: string[]
   toggleTile: (tile: string) => void
   sendClear: () => void
@@ -147,7 +147,7 @@ export function useGame(
   const [game, setGame] = useState<ConnectionsGame | null>(null)
   const [guesses, setGuesses] = useState<EventRow[]>([])
   const [players, setPlayers] = useState<PlayerRow[]>([])
-  const [selections, setSelections] = useState<SelectionMap>(() => new Map())
+  const [picks, setPicks] = useState<PickMap>(() => new Map())
   const [loading, setLoading] = useState(true)
   const [failure, setFailure] = useState<NotOkEnvelope | null>(null)
   const [channel, setChannel] = useState<
@@ -158,15 +158,15 @@ export function useGame(
   // body returns (the join waits on any in-flight teardown of this room).
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
 
-  // Fold an incoming selection event into local state; the rules (and why an
-  // echo of our own broadcast is safe) are `lib/selection.ts`'s.
-  const applySelection = useCallback((event: SelectionEvent) => {
-    setSelections((prev) => applySelectionEvent(prev, event))
+  // Fold an incoming pick event into local state; the rules (and why an
+  // echo of our own broadcast is safe) are `lib/picks.ts`'s.
+  const applyPick = useCallback((event: PickEvent) => {
+    setPicks((prev) => applyPickEvent(prev, event))
   }, [])
 
   // Join this game's connections-specific Realtime room: load the
   // game row + events + players, attach postgres-changes on
-  // connections.{games, events, players}, attach the shared-selection
+  // connections.{games, events, players}, attach the shared-picks
   // Broadcast handler (coop semantics — compete senders short-
   // circuit in `broadcast()` below, so foreign events shouldn't
   // arrive in compete; the handler is registered unconditionally
@@ -267,7 +267,7 @@ export function useGame(
       setLoading(false)
     }
 
-    // Stable channel name — selection Broadcast (coop) needs a shared room
+    // Stable channel name — the picks Broadcast (coop) needs a shared room
     // across peers, so a UUID suffix (what `useRealtimeRefetch` adds when no
     // broadcast is in play) would defeat the purpose. That means a remount
     // inside the previous mount's leave round-trip (StrictMode's double-mount;
@@ -297,8 +297,8 @@ export function useGame(
         { event: '*', schema: 'connections', table: 'players', filter: `game_id=eq.${gameId}` },
         load,
       )
-      ch.on('broadcast', { event: 'selection' }, ({ payload }) =>
-        applySelection(payload as SelectionEvent),
+      ch.on('broadcast', { event: 'pick' }, ({ payload }) =>
+        applyPick(payload as PickEvent),
       )
 
       // Deaf-window closer: re-read once the postgres_changes attach is
@@ -333,36 +333,36 @@ export function useGame(
       setChannel(null)
       if (ch) void releaseChannel(ch) // null if we tore down before joining
     }
-  }, [applySelection, gameId])
+  }, [applyPick, gameId])
 
   // Send a broadcast event + apply locally (optimistic). The local
   // apply ensures the clicker sees the change immediately; the
   // echo-back of the broadcast is a no-op due to idempotency
-  // inside applySelection.
+  // inside applyPick.
   //
-  // **Compete short-circuit**: each player's selection is private,
+  // **Compete short-circuit**: each player's picks are private,
   // so we skip the `channel.send` and only apply locally. Peers
   // in compete also short-circuit, so no foreign events should
-  // arrive — the `applySelection` map stays caller-only and the
+  // arrive — the picks map stays caller-only and the
   // Board renders every tile as "mine" (no peer attribution).
   const broadcast = useCallback(
-    (event: SelectionEvent) => {
+    (event: PickEvent) => {
       if (!channel) return
-      applySelection(event)
+      applyPick(event)
       if (game?.mode === 'compete') return
-      channel.send({ type: 'broadcast', event: 'selection', payload: event })
+      channel.send({ type: 'broadcast', event: 'pick', payload: event })
     },
-    [applySelection, channel, game?.mode],
+    [applyPick, channel, game?.mode],
   )
 
   // What a click does is `eventForClick`'s (doc.md → Coop); `null` is the
   // refused click on a full guess, which sends nothing.
   const toggleTile = useCallback(
     (tile: string) => {
-      const event = eventForClick(selections, tile, session.user.id)
+      const event = eventForClick(picks, tile, session.user.id)
       if (event) broadcast(event)
     },
-    [broadcast, selections, session.user.id],
+    [broadcast, picks, session.user.id],
   )
 
   const sendClear = useCallback(() => {
@@ -370,7 +370,7 @@ export function useGame(
   }, [broadcast])
 
   // Flat union for submit + display.
-  const union = unionTiles(selections)
+  const union = unionTiles(picks)
 
   // Project the matched categories from the guess log and the board. In
   // compete RLS hands a caller only their own rows, so these are their own
@@ -421,7 +421,7 @@ export function useGame(
     mistakeCount,
     opponentFound,
     isEliminated,
-    selections,
+    picks,
     unionTiles: union,
     toggleTile,
     sendClear,

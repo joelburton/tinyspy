@@ -509,11 +509,13 @@ every seat. Three subtleties:
   it monotonic so every in-flight move fails its check — correct, since that
   move was for the old deal.
 - **Compete re-randomizes the opener**, matching `create_game`: the deal is
-  new, so who opens is drawn afresh (`scrabble._seat_turn_order`).
+  new, so who opens is drawn afresh (`scrabble._seat_turn_order`, called after
+  `common.reset_game`, which rewinds the turn to seat 0).
 - **Coop turn-order rewinds** to the player seated first
-  (`game_players.turn_seat = 0`). The rotation was assigned at create time and
-  doesn't change, so this restores the original opener without re-reading
-  `setup.first_turn_user_id`. A free-for-all game's null pointer stays null.
+  (`game_players.turn_seat = 0`) — `common.reset_game` does it. The rotation
+  was assigned at create time and doesn't change, so this restores the original
+  opener without re-reading `setup.first_turn_user_id`. A free-for-all game's
+  null pointer stays null.
 
 It also puts `common.games.title` back to `"New game"` (the title is the first
 three words played — see §7 — so it would otherwise advertise the old deal),

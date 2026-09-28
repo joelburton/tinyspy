@@ -133,7 +133,7 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: ScrabbleSetup
-  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
 
   // ── Turn-history log (Moves) ──

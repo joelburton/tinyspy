@@ -594,14 +594,14 @@
 /* @@ */   --tile-slot-ink-color:   #1a1a1a;
 
   /* BLACK, not a darker shade of whatever the tile already is.
-     Selection has to be unmistakable at a glance across a board of
+     A pick has to be unmistakable at a glance across a board of
      colored tiles, and a tile-derived edge is a different color on
      every tile — so it reads as "this tile has a slightly heavier
      version of its own border" rather than as a mark. Black belongs to
      nothing else on a board, which is what makes it legible on all of
-     them. (The WIDTH is the selected channel; it lives in base.css
+     them. (The WIDTH is the picked channel; it lives in base.css
      beside the resting width it is tuned against.) */
-/* @@ */   --tile-selected-edge-color:  #000000;
+/* @@ */   --tile-picked-edge-color:    #000000;
 
   /* ══ BOARD ══════════════════════════════════════════════════════
      The ground a game piece casts its shadow onto.

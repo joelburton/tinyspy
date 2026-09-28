@@ -1,6 +1,7 @@
 // cs-fixed-outcome-fix
 
 import type { jsPDF } from 'jspdf'
+import { cellAt } from '@/common/board-cursor/boardPosition'
 import { BLACK, DARK_GRAY, drawHeader, drawSetupBelow, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
 import { drawInTracks, type Track } from '@/common/pdf/columns'
 import { drawTile, drawTileLegend } from '@/shared/wordle-style/pdfTiles'
@@ -54,9 +55,10 @@ function drawTrack(doc: jsPDF, t: PrintTrack, track: Track, m: WafflePrintModel)
   t.cells.forEach((cell, i) => {
     // Holes draw nothing — drawTile's 'blank' state is borderless, so the
     // notches in the waffle shape read as absent rather than as empty slots.
+    const at = cellAt(i, GRID)
     drawTile(doc, {
-      x: track.x + (i % GRID) * (tile + gap),
-      y: y + Math.floor(i / GRID) * (tile + gap),
+      x: track.x + at.x * (tile + gap),
+      y: y + at.y * (tile + gap),
       size: tile,
       letter: cell.letter,
       state: cell.state,

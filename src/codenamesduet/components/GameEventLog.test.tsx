@@ -82,13 +82,13 @@ function guess(overrides: Partial<WordedGuess>): WordedGuess {
  *  a row, so role 'row' returns exactly the turn items, in DOM order. */
 const turnRows = () => screen.getAllByRole('row')
 
-/** Render with the in-progress inputs defaulted. `currentTurn: 99` is a turn no
+/** Render with the in-progress inputs defaulted. `turnNumber: 99` is a turn no
  *  fixture clue uses, so a guess-less turn reads "(no guesses)" unless a test
  *  opts into the live-turn case explicitly. */
 function renderLog(props: {
   clues: ClueEvent[]
   guesses: WordedGuess[]
-  currentTurn?: number
+  turnNumber?: number
   isTerminal?: boolean
 }) {
   return render(
@@ -97,7 +97,7 @@ function renderLog(props: {
       guesses={props.guesses}
       players={PLAYERS}
       selfId="ada"
-      currentTurn={props.currentTurn ?? 99}
+      turnNumber={props.turnNumber ?? 99}
       isTerminal={props.isTerminal ?? false}
       turnBudget={9}
       historyId={null}
@@ -172,14 +172,14 @@ describe('GameEventLog', () => {
 
   it('reads "(clue given)" for the current, still-live turn with no guesses yet', () => {
     const clues = [clue({ id: 1, turn_number: 3, seat: 'A', clue_word: 'WAIT', clue_count: 1 })]
-    renderLog({ clues, guesses: [], currentTurn: 3, isTerminal: false })
+    renderLog({ clues, guesses: [], turnNumber: 3, isTerminal: false })
     expect(screen.getByText('(clue given)')).toBeInTheDocument()
     expect(screen.queryByText('(no guesses)')).not.toBeInTheDocument()
   })
 
   it('reads "(no guesses)" once a guess-less turn has ended (no longer current)', () => {
     const clues = [clue({ id: 1, turn_number: 1, seat: 'A', clue_word: 'PASS', clue_count: 1 })]
-    renderLog({ clues, guesses: [], currentTurn: 2, isTerminal: false })
+    renderLog({ clues, guesses: [], turnNumber: 2, isTerminal: false })
     expect(screen.getByText('(no guesses)')).toBeInTheDocument()
     expect(screen.queryByText('(clue given)')).not.toBeInTheDocument()
   })
@@ -198,7 +198,7 @@ describe('GameEventLog', () => {
 
   it('reads "(no guesses)" for a guess-less current turn once the game is over', () => {
     const clues = [clue({ id: 1, turn_number: 4, seat: 'A', clue_word: 'DONE', clue_count: 1 })]
-    renderLog({ clues, guesses: [], currentTurn: 4, isTerminal: true })
+    renderLog({ clues, guesses: [], turnNumber: 4, isTerminal: true })
     expect(screen.getByText('(no guesses)')).toBeInTheDocument()
   })
 })
@@ -287,7 +287,7 @@ describe('GameEventLog — the history link', () => {
         guesses={[]}
         players={PLAYERS}
         selfId="ada"
-        currentTurn={99}
+        turnNumber={99}
         isTerminal={false}
         turnBudget={9}
         historyId={null}

@@ -37,7 +37,7 @@ export interface BoggleValues {
   constraints?: BoardConstraints
   /**
    * An OPTIONAL player-typed board — the tiles themselves, written the way the
-   * recap prints them (`"ABQuD EFGH IJKL MNOP"`; see `lib/customBoard.ts`).
+   * `Letters` setup row prints them (`"ABQuD EFGH IJKL MNOP"`; see `lib/customBoard.ts`).
    * Set → the edge function solves exactly this board instead of rolling one;
    * blank/absent → the normal roll. Either mode.
    *
@@ -62,7 +62,7 @@ export interface BoggleValues {
 
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupSummary.ts` and `PlayArea` read back. */
+ *  `setupRows.ts` and `PlayArea` read back. */
 export type BoggleSetup = SetupOf<BoggleValues>
 /** The `win_percent` dropdown options: None (null) + 50…100 by 5. */
 export const WIN_PERCENT_OPTIONS: ReadonlyArray<number | null> = [

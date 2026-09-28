@@ -151,7 +151,7 @@ export function SetupForm({
           // THE ONE GAME THAT KEEPS ITS CASE. `Qu` is one tile and `QU` is a Q
           // beside a U — both are real boards — so uppercasing the display would
           // show a different board than the field holds, and contradict the
-          // recap and the printout, which both write `Qu`.
+          // Setup options list and the printout, which both write `Qu`.
           uppercase={false}
           // Dashes between ROWS, counted in TILES — so `Qu` is one and the dash
           // lands where the row really ends. Type `ABQU` into a 4-wide board and

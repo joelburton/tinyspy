@@ -2,6 +2,7 @@
 
 import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
+import { memberById } from '@/common/members/memberList'
 import type { EventRow } from '../hooks/useGame'
 import { SECRET_COUNT } from '../lib/setup'
 
@@ -71,9 +72,9 @@ export function buildPsychicnumPrintModel(o: {
   guesses: EventRow[]
   players: { user_id: string; username: string }[]
   selfId: string
-  setup: SetupRow[]
+  setupRows: SetupRow[]
 }): PsychicnumPrintModel {
-  const nameOf = (id: string) => o.players.find((p) => p.user_id === id)?.username ?? 'someone'
+  const nameOf = (id: string) => memberById(o.players, id)?.username ?? 'someone'
 
   const track = (who: string, guesses: EventRow[], whoOf: (g: EventRow) => string): PrintTrack => {
     const board = boardOf(o.words, guesses)
@@ -115,7 +116,7 @@ export function buildPsychicnumPrintModel(o: {
     // Coop's header line carries the team score (each compete track carries
     // its own); compete's says only what the page holds.
     summary: o.mode === 'coop' ? `Co-op · ${tracks[0].result}` : `Compete · ${o.players.length} players`,
-    setup: o.setup,
+    setupRows: o.setupRows,
     mode: o.mode,
     cols: Math.ceil(Math.sqrt(o.words.length)),
     tracks,

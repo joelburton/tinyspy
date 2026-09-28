@@ -21,13 +21,13 @@ import { isSet, type Card as CardCode } from '../lib/cards'
 import { nextHint, ringFromLog } from '../lib/hint'
 import { historySnapshot } from '../lib/history'
 import { useHistoryViewer } from '@/common/event-log/useHistoryViewer'
-import { CLAIM_SIZE, liveSelection, toggleCard } from '../lib/selection'
+import { CLAIM_SIZE, livePicks, toggleCard } from '../lib/picks'
 import { ARRIVE_MS, claimTransition, DEPART_MS, type FlashKind } from '../lib/flash'
 import { useChangeCause } from '@/common/board-marks/useChangeCause'
 import { useMark } from '@/common/board-marks/useMark'
 import { slotForKey } from '../lib/letters'
 import { hintLabel } from '../lib/readouts'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { paletteOf, type SetgameSetup } from '../lib/setup'
 import { buildPrintModel } from '../pdf/model'
 import { printSetgamePdf } from '../pdf/printSetgamePdf'
@@ -70,7 +70,7 @@ type LeaderRow = {
  *
  * The game is unusual for this roster in how LITTLE the client has to be told:
  * every card is face-up, so the FE holds the whole rule and can judge a
- * selection itself. Two things follow.
+ * pick itself. Two things follow.
  *
  * **A wrong claim never reaches the server.** Picking a third card that doesn't
  * complete a set is refused right here, with a result — so there is no
@@ -80,8 +80,8 @@ type LeaderRow = {
  *
  * **The one rejection that does happen is contention.** In compete (and in
  * free-for-all coop) a rival can claim a card out from under a half-made
- * selection. Two defenses: selection is keyed by CARD rather than by slot, so a
- * card that leaves the board simply drops out of the selection; and the server
+ * pick. Two defenses: the picks are keyed by CARD rather than by slot, so a
+ * card that leaves the board simply drops out of them; and the server
  * takes a row lock, so of two overlapping claims exactly one wins and the other
  * comes back `cards-gone` — a normal not-ok, not a fault: nobody did anything
  * wrong, and the cards visibly leaving is most of the explanation.
@@ -98,8 +98,8 @@ export function PlayArea(ctx: GamePageCtx) {
   const selfId = session.user.id
   const setgameSetup = setup as SetgameSetup
 
-  const summaryRows = useMemo(
-    () => setupRows(setgameSetup, game?.mode ?? 'coop', players),
+  const setupRows = useMemo(
+    () => makeSetupRows(setgameSetup, game?.mode ?? 'coop', players),
     [setgameSetup, game, players],
   )
 
@@ -200,18 +200,18 @@ export function PlayArea(ctx: GamePageCtx) {
     return marks
   }, [arriving, depart, submitted])
 
-  // ─── Selection ─────────────────────────────────────────
+  // ─── Picks ─────────────────────────────────────────────
   // Stored as card codes and FILTERED against the live board every render, so a
-  // card a rival took is not selected any more — no stale highlight, no claim
+  // card a rival took is not picked any more — no stale highlight, no claim
   // fired at a card that isn't there. Derived rather than repaired in an effect,
   // which is what keeps the two in step without a synchronising write.
   const [picked, setPicked] = useState<CardCode[]>([])
   // Filtered against the SERVER board, not against what is on screen: during a
   // departure hold the screen still shows cards that are already gone, and a
-  // selection that included one would submit a claim doomed to `cards-gone`.
+  // pick that included one would submit a claim doomed to `cards-gone`.
   // Held cards are unclickable (see `Board`), so nothing can be added to it
-  // either — this only heals a selection made before the claim landed.
-  const selected = useMemo(() => liveSelection(picked, board), [picked, board])
+  // either — this only heals a pick made before the claim landed.
+  const livePicked = useMemo(() => livePicks(picked, board), [picked, board])
 
   // ─── Claiming ──────────────────────────────────────────
   const submitClaim = useCallback(
@@ -259,14 +259,14 @@ export function PlayArea(ctx: GamePageCtx) {
     (card: CardCode) => {
       if (!isBoardInteractive) return
       localFeedbackSlot.dismiss() // a click is the next move, like a keystroke
-      const next = toggleCard(selected, card)
+      const next = toggleCard(livePicked, card)
       if (next.length < CLAIM_SIZE) {
         setPicked(next)
         return
       }
       // The third card completes a claim, and the FE can judge it: the whole
       // board is face-up, so a non-set is refused here instead of round-tripping
-      // to be told the same thing. The selection clears either way — a rejected
+      // to be told the same thing. The picks clear either way — a rejected
       // pick is not a state worth keeping around to correct.
       setPicked([])
       if (isSet(next[0], next[1], next[2])) {
@@ -277,7 +277,7 @@ export function PlayArea(ctx: GamePageCtx) {
         )
       }
     },
-    [isBoardInteractive, selected, submitClaim, localFeedbackSlot],
+    [isBoardInteractive, livePicked, submitClaim, localFeedbackSlot],
   )
 
   // ─── Keyboard ──────────────────────────────────────────
@@ -304,7 +304,7 @@ export function PlayArea(ctx: GamePageCtx) {
       if (card !== null) onCardClick(card)
     },
   })
-  useBoundAction('act-clear-selection', {
+  useBoundAction('act-clear-picks', {
     describe: () => (isBoardInteractive && !historyViewer.isViewingHistory ? 'active' : 'hidden'),
     run: () => {
       setPicked([])
@@ -354,7 +354,7 @@ export function PlayArea(ctx: GamePageCtx) {
       //
       // The claim lives IN this branch, because a recorded hint is the only
       // answer it may follow. The third rung needs no special case beyond that:
-      // three selected cards claim, which is the same path a player's own third
+      // three picked cards claim, which is the same path a player's own third
       // click takes, and only the third press gets here — the ladder hands back
       // one card, then two, then three.
       if (next.length === CLAIM_SIZE) void submitClaim(next)
@@ -377,7 +377,7 @@ export function PlayArea(ctx: GamePageCtx) {
     run: askHint,
   })
 
-  // ─── Stop / Concede / Restart — the shared trio ────────
+  // ─── The commands, bound ───────────────────────────────
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -465,7 +465,7 @@ export function PlayArea(ctx: GamePageCtx) {
           hintsByUser,
           events,
           palette: paletteOf(setgameSetup),
-          setup: summaryRows,
+          setupRows,
         }),
       )
     },
@@ -620,7 +620,7 @@ export function PlayArea(ctx: GamePageCtx) {
     >
       <BoardCol
         board={historySnap ? historySnap.board : shown}
-        selected={historySnap ? [] : selected}
+        picked={historySnap ? [] : livePicked}
         ringed={historySnap ? historySnap.historyLitCards : ring}
         flashes={flashes}
         disabled={!isBoardInteractive || historySnap !== null}
@@ -664,7 +664,7 @@ export function PlayArea(ctx: GamePageCtx) {
           actRestart={actRestart}
           actNewGame={actNewGame}
           actBackToClub={menu.actBackToClub}
-          setupRows={summaryRows}
+          setupRows={setupRows}
         />
       </InfoSheet>
 

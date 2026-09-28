@@ -117,7 +117,7 @@ export function InfoCol({
   actBackToClub: BoundAction
 
   // ── Setup disclosure ──
-  // The setup recap — the SAME array the PDF prints (lib/setupSummary.ts).
+  // The setup rows — the SAME array the PDF prints (lib/setupRows.ts).
   setupRows: SetupRow[]
 
   // ── Turn-history log (GameEventLog) ──

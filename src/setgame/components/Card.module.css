@@ -59,23 +59,23 @@
   cursor: default;
 }
 
-/* Selected: the card's EDGE thickens and goes black, which is the shared
+/* Picked: the card's EDGE thickens and goes black, which is the shared
  * "this piece is part of the move I'm building" mark — the same two tokens
- * `.tile.selected` sets in common/game-page/playArea.module.css, restated here
+ * `.tile.picked` sets in common/game-page/playArea.module.css, restated here
  * because a card is not a `.tile`. Never a fill: a fill would bury the symbols,
  * and the symbols are the entire content of the card. Universal
  * `box-sizing: border-box` means the thicker edge eats INWARD, so the card does
  * not grow and the board does not move.
  *
  * A border rather than an outline, and that is load-bearing: a card can be
- * selected and hinted at once, the hint owns `outline` (below), and an element
+ * picked and hinted at once, the hint owns `outline` (below), and an element
  * gets exactly one of those.
  *
  * The small lift is inside the card's own box (transform, not layout), so it
  * cannot nudge a neighbor. */
-/* @@ */ .selected {
-  border-width: var(--tile-selected-edge-width);
-  border-color: var(--tile-selected-edge-color);
+/* @@ */ .picked {
+  border-width: var(--tile-picked-edge-width);
+  border-color: var(--tile-picked-edge-color);
   transform: translateY(-2px);
   box-shadow: var(--setgame-card-lift-shadow);
 }
@@ -84,7 +84,7 @@
  * turn touched (PlayArea feeds this one prop from either). Dashed and neutral so
  * it reads as "look here", not as an outcome — the hint never says which set,
  * only that one runs through this card. Drawn OUTSIDE the card's edge, where
- * selection is the edge itself, so a card can wear both at once and each stays
+ * the pick is the edge itself, so a card can wear both at once and each stays
  * a distinct kind of mark.
  *
  * Note it is the HINT's color in both cases, where every other game rings a

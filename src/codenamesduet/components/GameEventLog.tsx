@@ -29,7 +29,7 @@ type Props = {
   // The game's current turn number (`games.turn_number`). Lets a guess-less
   // turn read "(clue given)" while it's still live vs "(no guesses)" once it
   // has ended.
-  currentTurn: number
+  turnNumber: number
   // Whether the game has ended. A guess-less *current* turn at terminal is no
   // longer in progress, so it reads "(no guesses)", not "(clue given)".
   isTerminal: boolean
@@ -73,7 +73,7 @@ type Props = {
  * between-turns line (so there's no line *within* a turn). A guess-less turn reads
  * **"(clue given)"** while it's the current, still-live turn (the guesser hasn't
  * acted yet) and **"(no guesses)"** once it has ended empty (the guesser passed) —
- * distinguished by `currentTurn` + `isTerminal`, since both look identical in the
+ * distinguished by `turnNumber` + `isTerminal`, since both look identical in the
  * data (a clue, no guess rows). All grouping is client-side (the data set is
  * tiny); the shared `<EventLog>` snaps to the latest row.
  *
@@ -93,7 +93,7 @@ export function GameEventLog({
   guesses,
   players,
   selfId,
-  currentTurn,
+  turnNumber,
   isTerminal,
   turnBudget,
   historyId,
@@ -192,7 +192,7 @@ export function GameEventLog({
         // A guess-less turn is still "in progress" (clue given, guesser yet to
         // act) only while it's the current turn AND the game is live; otherwise
         // it ended empty (a pass). See the docstring.
-        const inProgress = turnGuesses.length === 0 && t === currentTurn && !isTerminal
+        const inProgress = turnGuesses.length === 0 && t === turnNumber && !isTerminal
         return (
           <Fragment key={t}>
             {/* Row 1, real columns: [bar ⇣rowSpan 2] | #N handle (<EventLogNumber>) | count

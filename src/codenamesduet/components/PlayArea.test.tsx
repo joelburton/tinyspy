@@ -226,7 +226,7 @@ describe('codenamesduet PlayArea — guess in-flight guard', () => {
     fireEvent.click(apple) // guess in flight (rpc never resolves)
     fireEvent.click(berry) // a DIFFERENT tile — not disabled, but the ref must block it
     expect(rpc).toHaveBeenCalledTimes(1)
-    expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', target_position: 0 })
+    expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess_position: 0 })
   })
 
   // The reply and the reveal are two events: the reveal comes by realtime, a
@@ -680,10 +680,10 @@ describe('codenamesduet PlayArea — the selection cursor', () => {
   /** The words wearing the cursor ring — at most one. */
   const ringed = () => boardTiles().filter((t) => /selectionCursor/.test(t.className)).map((t) => t.textContent)
   /** The words the keyboard has picked — at most one. */
-  const picked = () => boardTiles().filter((t) => /selected/.test(t.className)).map((t) => t.textContent)
+  const picked = () => boardTiles().filter((t) => /picked/.test(t.className)).map((t) => t.textContent)
   const key = (k: string) => press({ key: k })
   const guessed = (p: number) =>
-    expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', target_position: p })
+    expect(rpc).toHaveBeenCalledWith('submit_guess', { target_game: 'g1', guess_position: p })
 
   it('is hidden until an arrow; the first arrow rings the first word, the next moves it', async () => {
     render(<WithKeys {...makeCtx()} />)

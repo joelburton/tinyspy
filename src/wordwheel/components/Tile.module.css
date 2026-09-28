@@ -50,7 +50,7 @@
  * and this face is a circle inset in its seat, sized in `--u`, with its own
  * border width and font — composing it would mean overriding most of what it
  * sets. It takes the shared VALUES instead (`--tile-shadow`,
- * `--tile-hover-shadow`, `--tile-selected-edge-width`, the verdict tokens). */
+ * `--tile-hover-shadow`, `--tile-picked-edge-width`, the verdict tokens). */
 /* @@ */ .face {
   --wheel-ring: calc(14 * var(--u));
   width: calc(var(--d) - 2 * var(--wheel-ring));
@@ -58,7 +58,7 @@
   box-sizing: border-box;
   border-radius: 50%;
   background: var(--wordwheel-tile);
-  border: var(--tile-selected-edge-width) solid transparent;
+  border: var(--tile-picked-edge-width) solid transparent;
   box-shadow: var(--tile-shadow);
   color: var(--wordwheel-tile-text);
   display: flex;

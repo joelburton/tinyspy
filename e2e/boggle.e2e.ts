@@ -44,7 +44,7 @@ test.describe('boggle play loop', () => {
     await page.keyboard.press('Enter')
     await expect(page.locator('[data-word="zzz"]')).toHaveCount(0)
 
-    // The recap names the board — and this game's board was NOT hand-picked,
+    // The Setup options list names the board — and this game's board was NOT hand-picked,
     // which is the half of the rule worth pinning: the `Letters` row is there
     // either way, so the letters can always be copied into a next game
     // (setupRows.ts → the board-identity exception).
@@ -73,41 +73,41 @@ test.describe('boggle play loop', () => {
     await expect(tiles).toHaveCount(16, { timeout: 15000 })
     // …and is LISTENING, not merely mounted (see helpers/ready).
     await settled(page)
-    // Highlighted path tiles carry the (hashed) `.selected` class.
-    const selected = page.locator('[data-boggle-tile][class*="selected"]')
+    // Highlighted path tiles carry the (hashed) `.picked` class.
+    const picked = page.locator('[data-boggle-tile][class*="picked"]')
 
     // Trace C(0) → A(1) → T(2): three adjacent tiles along the top row.
     await tiles.nth(0).click()
     await tiles.nth(1).click()
     await tiles.nth(2).click()
-    await expect(selected).toHaveCount(3)
+    await expect(picked).toHaveCount(3)
 
     // Adjacency guard: tile 6 (row 1, col 2) is NOT king-adjacent to T at (0,2)
     // via (0,1)… actually T→(1,2) IS adjacent; use a clearly-distant tile instead.
     // Tile 15 (bottom-right corner) is far from the top row — tapping it is ignored.
     await tiles.nth(15).click()
-    await expect(selected).toHaveCount(3)
+    await expect(picked).toHaveCount(3)
 
     // Backtrack: re-tapping an on-path tile drops it and everything after. Tapping
     // T (the last, tile 2) steps back to just C→A.
     await tiles.nth(2).click()
-    await expect(selected).toHaveCount(2)
+    await expect(picked).toHaveCount(2)
 
     // Backspace is the keyboard twin of that backtrack: it deletes the last letter
-    // AND de-selects the tile that contributed it, leaving a shorter REAL path
+    // AND un-picks the tile that contributed it, leaving a shorter REAL path
     // (it used to drop the whole highlight, so the surviving text had no path).
     await page.keyboard.press('Backspace')
-    await expect(selected).toHaveCount(1)
+    await expect(picked).toHaveCount(1)
 
     // Re-extend and submit: tap A then T → C A T, then the icon-only Submit button
     // (a tap user's commit path — pressing Enter here would land on the focused
     // tile's own key handler, not the word submit). The word lands; path clears.
     await tiles.nth(1).click()
     await tiles.nth(2).click()
-    await expect(selected).toHaveCount(3)
+    await expect(picked).toHaveCount(3)
     await page.getByRole('button', { name: 'Submit' }).click()
     await expect(page.locator('[data-word="cat"]')).toBeVisible({ timeout: 10000 })
-    await expect(selected).toHaveCount(0)
+    await expect(picked).toHaveCount(0)
 
     await ctx.close()
   })
@@ -156,7 +156,7 @@ test.describe('boggle play loop', () => {
 })
 
 /**
- * Custom board (setup) + the `Letters` recap row — the round trip that is the
+ * Custom board (setup) + the `Letters` setup row — the round trip that is the
  * whole point of the feature: you read a board off one game and type it into
  * the next. Drives the real setup dialog through the real
  * `boggle-build-board` edge function (custom branch: no rolling, no
@@ -169,12 +169,12 @@ test.describe('boggle play loop', () => {
  */
 test.describe('boggle custom board', () => {
   // Dashed, because that is the ONE form the round trip runs in now: the field
-  // groups tiles with '-' as you type, and the recap prints the same string. The
+  // groups tiles with '-' as you type, and the setup row prints the same string. The
   // field strips separators on the way in, so spaces would still build the board
   // — but then this constant could not be both halves of the assertion below.
   const CUSTOM_BOARD = 'CATS-AREA-TILE-NEST'
 
-  test('a typed board is the board you play, and the recap reads it back', async ({
+  test('a typed board is the board you play, and the Setup options list reads it back', async ({
     browser,
   }) => {
     const club = await createSoloClub('bgcb')
@@ -189,7 +189,7 @@ test.describe('boggle custom board', () => {
     await startGameRow(page, /MothCubes/).click()
 
     // The custom board lives behind a collapsed disclosure — expand it, then
-    // type the tiles exactly as a recap would print them.
+    // type the tiles exactly as a setup row would print them.
     await page.getByText('Custom board (optional)').click()
     await page.locator('input[name="custom_board"]').fill(CUSTOM_BOARD)
 
@@ -201,7 +201,7 @@ test.describe('boggle custom board', () => {
     // The tiles ARE the typed board, in row-major order.
     expect((await tiles.allInnerTexts()).join('')).toBe(CUSTOM_BOARD.replace(/-/g, ''))
 
-    // And the recap prints it back in the form the dialog takes — the round
+    // And the Setup options list prints it back in the form the dialog takes — the round
     // trip a friend actually uses (docs/games/boggle.md → Custom board).
     await page.getByText('Setup options').click()
     await expect(page.getByText(`Letters: ${CUSTOM_BOARD}`)).toBeVisible()

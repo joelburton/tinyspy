@@ -118,7 +118,7 @@
   justify-content: center;
   background: var(--boggle-tile);
   color: var(--boggle-tile-text);
-  /* `border-box` sized, so the selected border below costs no layout — it
+  /* `border-box` sized, so the picked border below costs no layout — it
    * thickens inward and nothing on the board moves. */
   border: var(--tile-edge-width) solid var(--boggle-tile-edge);
   box-sizing: border-box;
@@ -221,12 +221,12 @@
  *
  * Only a TYPED word raises this. A tapped path names its tiles outright, so
  * there is nothing for it to be unsure about. */
-/* @@ */ .maybeSelected {
+/* @@ */ .maybePicked {
   border-color: var(--boggle-tile-maybe-edge);
-  border-width: var(--tile-selected-edge-width);
+  border-width: var(--tile-picked-edge-width);
 }
 
-/* A tile on the current traced path, in the SELECTED channel: a border thicker
+/* A tile on the current traced path, in the PICKED channel: a border thicker
  * than the resting one, in the khaki the word-finding games wear for it rather
  * than the usual black — a traced word lights several dice at once, and a crowd
  * of black edges distracts. spellingbee's hexes and wordwheel's spent tiles
@@ -238,11 +238,11 @@
  * app's normal tile face: the border sits on that, on shade 3, as it does on
  * every other board.
  *
- * The resting border is drawn transparent so selecting one changes only the
+ * The resting border is drawn transparent so picking one changes only the
  * color and the width — a border appearing from nothing would move the letter. */
-/* @@ */ .selected {
+/* @@ */ .picked {
   border-color: var(--tile-spent-edge-color);
-  border-width: var(--tile-selected-edge-width);
+  border-width: var(--tile-picked-edge-width);
 }
 
 /* The below-board region and the loading/empty states are the family's —

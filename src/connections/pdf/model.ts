@@ -4,6 +4,7 @@ import type { PrintHeader, SetupRow } from '@/common/pdf/frame'
 import type { TurnRow } from '@/common/pdf/eventLog'
 import type { Category, CategoryRank } from '../lib/board'
 import type { EventRow, MatchedCategory } from '../hooks/useGame'
+import { memberById } from '@/common/members/memberList'
 
 /**
  * Build the connections print model — the pure half, away from jsPDF so the
@@ -82,19 +83,18 @@ export function buildConnectionsPrintModel(o: {
   selfId: string
   mode: 'coop' | 'compete'
   isTerminal: boolean
-  mistakes: number
-  maxMistakes: number
-  setup: SetupRow[]
+  mistakeCount: number
+  mistakeBudget: number
+  setupRows: SetupRow[]
 }): ConnectionsPrintModel {
-  const nameOf = (userId: string) =>
-    o.players.find((p) => p.user_id === userId)?.username ?? 'someone'
+  const nameOf = (userId: string) => memberById(o.players, userId)?.username ?? 'someone'
   const total = o.categories.length
 
   const turnsOf = (guesses: EventRow[], whoOf: (g: EventRow) => string): TurnRow[] =>
     guesses.map((g, i) => ({ seq: i + 1, who: whoOf(g), text: `${verdict(g)}: ${g.tiles.join(' · ')}` }))
 
   const resultOf = (found: number, mistakes: number) =>
-    `${found}/${total} categories found · ${mistakes}/${o.maxMistakes} mistakes`
+    `${found}/${total} categories found · ${mistakes}/${o.mistakeBudget} mistakes`
 
   // The viewer's own track. Solved and end-of-game-revealed bands print
   // IDENTICALLY — a category you worked out and one the game handed you look
@@ -108,7 +108,7 @@ export function buildConnectionsPrintModel(o: {
       bands,
       remainingTiles: o.remainingTiles.filter((t) => !banded.has(t)),
       turns: turnsOf(guesses, whoOf),
-      result: resultOf(o.matched.length, o.mistakes),
+      result: resultOf(o.matched.length, o.mistakeCount),
     }
   }
 
@@ -161,7 +161,7 @@ export function buildConnectionsPrintModel(o: {
     // Coop's header carries the team readout (each compete track carries its
     // own); compete's says only what the page holds.
     summary: o.mode === 'coop' ? tracks[0].result : `Compete · ${o.players.length} players`,
-    setup: o.setup,
+    setupRows: o.setupRows,
     mode: o.mode,
     tracks,
   }

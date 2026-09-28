@@ -120,7 +120,7 @@ describe('psychicnum useGame — a load that worked', () => {
 
     expect(result.current.game?.id).toBe(GAME_ID)
     expect(result.current.game?.words).toEqual(['apple', 'brick', 'cedar'])
-    expect(result.current.players).toEqual([PLAYER_ROW])
+    expect(result.current.playerBudgets).toEqual([PLAYER_ROW])
     expect(result.current.guesses).toEqual([EVENT_ROW])
     expect(result.current.loading).toBe(false)
     expect(result.current.failure).toBeNull()

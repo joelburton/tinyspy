@@ -17,17 +17,12 @@
  * Pure (no React / supabase) + unit-tested.
  */
 import type { EventRow } from '../hooks/useGame'
-
-/** The board row shape `<Board rows>` renders — a guess + its g/y/x colors. */
-export interface HistorySnapshotRow {
-  guess: string
-  colors: string
-}
+import type { BoardRow } from './board'
 
 export interface HistorySnapshot {
   // The guess rows as of the END of the viewed turn — feed straight to
-  // `<Board rows>` (each is `{ guess, colors }`).
-  rows: HistorySnapshotRow[]
+  // `<Board rows>`.
+  rows: BoardRow[]
   // The board row this turn added — ring it in the history blue (it already
   // wears its g/y/x tile colors). The last row in `rows`; -1 when nothing was
   // replayed.

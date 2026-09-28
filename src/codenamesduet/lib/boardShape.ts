@@ -12,9 +12,3 @@ const SIDE = 5
  * lays them out.
  */
 export const BOARD_SHAPE: BoardShape = { cols: SIDE, rows: SIDE, exists: () => true }
-
-/** The board position at a cell. */
-export const positionAt = (x: number, y: number) => y * SIDE + x
-
-/** The cell a board position sits at. */
-export const cellAt = (position: number) => ({ x: position % SIDE, y: Math.floor(position / SIDE) })

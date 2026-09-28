@@ -28,7 +28,7 @@ export function twoColGeom(pd: PrintDoc) {
  * column, then a `# / <who> / <move>` table that fills the left column,
  * continues at the top of the right one, then onto further pages — a
  * hand-managed cursor, since a PDF paginates by page and not by column. The
- * Setup recap is appended at the end of the flow, moved whole to the next
+ * setup rows are appended at the end of the flow, moved whole to the next
  * column when it will not fit. A game draws its own board above `startY`,
  * using `twoColGeom` for the column width.
  */
@@ -47,7 +47,7 @@ export function drawEventLog(
     // two actors (codenamesduet: a giver and a guesser) names the one shown.
     whoLabel?: string
     rows: TurnRow[]
-    setup: SetupRow[]
+    setupRows: SetupRow[]
     // Carried by the Setup heading — see PrintHeader.mode.
     mode: 'coop' | 'compete'
     // Shown as the sole row when there are no turns yet. Default "No turns yet."
@@ -100,15 +100,15 @@ export function drawEventLog(
 
   // Setup — appended after the turns in the same flow. Kept together: if the block
   // won't fit in the rest of the column, move it whole to the next column.
-  if (o.setup.length) {
-    const blockH = 22 + setupBlockHeight(setupLineCount(doc, o.setup, colW))
+  if (o.setupRows.length) {
+    const blockH = 22 + setupBlockHeight(setupLineCount(doc, o.setupRows, colW))
     if (cy + blockH > pageBottom) {
       nextColumn()
       cy = columnTop()
     } else {
       cy += 22 // space before the Setup section
     }
-    drawSetup(doc, o.setup, colX(), cy, o.mode, colW)
+    drawSetup(doc, o.setupRows, colX(), cy, o.mode, colW)
   }
 }
 

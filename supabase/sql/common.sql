@@ -1518,6 +1518,10 @@ drop function if exists common.reveal_solution(uuid);
 --     countdown replays from the full duration, a countup from
 --     0:00. (The FE's tick-merge accepts the big backward jump as
 --     the deliberate reset it is — see useGameTimer.)
+--   - common.games.current_turn_user_id = the turn_seat 0 player, in a
+--     turn-order game; a free-for-all game's null pointer stays null.
+--     A game that opens on another seat points the turn itself after
+--     this call.
 --
 -- The gametype's OWN working-state reset (its per-game tables +
 -- event log) happens in the calling RPC; this helper only owns the
@@ -1558,6 +1562,15 @@ begin
          conceded_at = null,
          locally_terminal = false
    where game_id = target_game;
+
+  -- The turn goes back to the opener; a null pointer (free-for-all) matches
+  -- no row, so it stays null.
+  update common.games
+     set current_turn_user_id = (
+           select gp.user_id from common.game_players gp
+            where gp.game_id = target_game and gp.turn_seat = 0
+         )
+   where id = target_game and current_turn_user_id is not null;
 
   -- Fresh start ⇒ fresh clock (see the header comment). last_tick renews so
   -- the next tick_timer call can't instantly advance off a stale anchor.

@@ -4,7 +4,7 @@
  * rest / hover / press depth, the `<polygon>` that is the hex's fill and border,
  * the `<text>` that is its letter, and the three states a hex can be in — the
  * center letter, USED by the typed word, and wearing a refused word's answer.
- * The svg the hexes sit in, and its touch behavior, are `Letters.module.css`.
+ * The svg the hexes sit in, and its touch behavior, are `Hive.module.css`.
  *
  * Every length here is in the hive's coordinate units (an SVG transform length
  * and a filter length are user units), so the depth scales with the board —
@@ -106,7 +106,7 @@
  * through. */
 /* @@ */ .used .hexShape {
   stroke: var(--tile-spent-edge-color);
-  stroke-width: var(--tile-selected-edge-width);
+  stroke-width: var(--tile-picked-edge-width);
 }
 
 

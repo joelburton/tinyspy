@@ -408,23 +408,23 @@ describe('boggle PlayArea — submit behavior (shared useFoundWordSubmit)', () =
  * again as the word grows.
  */
 describe('boggle PlayArea — trace as you type', () => {
-  /** View indices of the tiles wearing one of the two selection marks. The CSS
+  /** View indices of the tiles wearing one of the two pick marks. The CSS
    *  module hashes a class to `_<name>_<hash>`, so the underscores are what keep
-   *  `selected` from also matching `maybeSelected`. */
-  const wearing = (mark: 'selected' | 'maybeSelected') =>
+   *  `picked` from also matching `maybePicked`. */
+  const wearing = (mark: 'picked' | 'maybePicked') =>
     [...document.querySelectorAll('[data-boggle-tile]')]
       .flatMap((t, i) => (t.className.includes(`_${mark}_`) ? [i] : []))
 
   it('lights the tiles a typed word can only mean one way', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    expect(wearing('selected')).toEqual([])
+    expect(wearing('picked')).toEqual([])
 
     // abcd / efgh / ijkl / mnop — sixteen distinct faces, so a(0) → f(5) → k(10)
     // is the only run that spells it and nothing is ever in doubt.
     await user.keyboard('afk')
-    expect(wearing('selected')).toEqual([0, 5, 10])
-    expect(wearing('maybeSelected')).toEqual([])
+    expect(wearing('picked')).toEqual([0, 5, 10])
+    expect(wearing('maybePicked')).toEqual([])
   })
 
   it('holds both tiles while a letter is open, and settles the rest around it', async () => {
@@ -437,16 +437,16 @@ describe('boggle PlayArea — trace as you type', () => {
     render(<WithKeys {...makeCtx()} />)
 
     await user.keyboard('he')
-    expect(wearing('selected')).toEqual([0, 1])
-    expect(wearing('maybeSelected')).toEqual([])
+    expect(wearing('picked')).toEqual([0, 1])
+    expect(wearing('maybePicked')).toEqual([])
 
     await user.keyboard('a')
-    expect(wearing('selected')).toEqual([0, 1])
-    expect(wearing('maybeSelected')).toEqual([2, 6])
+    expect(wearing('picked')).toEqual([0, 1])
+    expect(wearing('maybePicked')).toEqual([2, 6])
 
     await user.keyboard('r')
-    expect(wearing('selected')).toEqual([0, 1, 7])
-    expect(wearing('maybeSelected')).toEqual([2, 6])
+    expect(wearing('picked')).toEqual([0, 1, 7])
+    expect(wearing('maybePicked')).toEqual([2, 6])
   })
 
   /** The typed word, character by character, with a `·` under each letter the
@@ -482,12 +482,12 @@ describe('boggle PlayArea — trace as you type', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('ac')
-    expect(wearing('selected')).toEqual([0])
+    expect(wearing('picked')).toEqual([0])
     expect(typedWord()).toBe('AC/ ·')
 
     // Everything after a stopped path is unspellable too, without re-asking.
     await user.keyboard('e')
-    expect(wearing('selected')).toEqual([0])
+    expect(wearing('picked')).toEqual([0])
     expect(typedWord()).toBe('ACE/ ··')
   })
 
@@ -495,8 +495,8 @@ describe('boggle PlayArea — trace as you type', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('zz')
-    expect(wearing('selected')).toEqual([])
-    expect(wearing('maybeSelected')).toEqual([])
+    expect(wearing('picked')).toEqual([])
+    expect(wearing('maybePicked')).toEqual([])
     expect(typedWord()).toBe('ZZ/··')
   })
 
@@ -504,12 +504,12 @@ describe('boggle PlayArea — trace as you type', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('afk')
-    expect(wearing('selected')).toEqual([0, 5, 10])
+    expect(wearing('picked')).toEqual([0, 5, 10])
 
     // The box is consumed on submit, so the marks it lit go with it — what the
     // tiles wear after a refusal is the ANSWER, on the one route picked for it.
     await user.keyboard('{Enter}')
-    expect(wearing('selected')).toEqual([])
+    expect(wearing('picked')).toEqual([])
   })
 })
 

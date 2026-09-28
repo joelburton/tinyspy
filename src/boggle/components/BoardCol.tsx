@@ -169,7 +169,7 @@ export function BoardCol({
 
   // ── Tap-to-trace a word ───────────────────────────────────────────────────
   // Build a word by tapping tiles along a Boggle path — the touch input, and a
-  // fine desktop affordance too. `path` is the selected tiles (in VIEW coords, so
+  // fine desktop affordance too. `path` is the picked tiles (in VIEW coords, so
   // it's cleared on rotate below, since the coords would no longer point at the
   // same letters). The traced word drives the shared `word`/`onChange` engine, so
   // submit + validation (traceableStr) are unchanged. Typing clears the path (you
@@ -182,7 +182,7 @@ export function BoardCol({
     const idx = path.findIndex((c) => c.y === y && c.x === x)
     let next: Cell[]
     if (idx >= 0) {
-      // Tapping a selected tile deselects it AND everything after — tap the last
+      // Tapping a picked tile un-picks it AND everything after — tap the last
       // to step back one, tap an earlier one to undo back to it, tap the first to
       // clear.
       next = path.slice(0, idx)
@@ -282,13 +282,13 @@ export function BoardCol({
                   // it takes none of the pointer/hover/press treatment either —
                   // said on the TILE, since `.blank` styles the letter inside it.
                   isBlank && styles.tileBlank,
-                  // Selected: the tiles this word uses — the ones tapped, or,
+                  // Picked: the tiles this word uses — the ones tapped, or,
                   // for a typed word, the ones a letter has settled on.
                   (step >= 0 || (path.length === 0 && typed?.certain.has(`${y}-${x}`))) &&
-                    styles.selected,
+                    styles.picked,
                   // …and the same border, held back, where a letter still has more
                   // than one tile it could mean.
-                  path.length === 0 && typed?.possible.has(`${y}-${x}`) && styles.maybeSelected,
+                  path.length === 0 && typed?.possible.has(`${y}-${x}`) && styles.maybePicked,
                 )}
                 // The stable test handle; `data-step` is the tile's 1-based
                 // position in the traced word, absent when it isn't on the path.

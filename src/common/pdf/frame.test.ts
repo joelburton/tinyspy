@@ -44,7 +44,7 @@ describe('fit', () => {
 })
 
 describe('drawHeader', () => {
-  const m = { brand: 'MothCubes', gameTitle: 'x'.repeat(600), date: 'today', summary: 'sum', setup: [], mode: 'coop' as const }
+  const m = { brand: 'MothCubes', gameTitle: 'x'.repeat(600), date: 'today', summary: 'sum', setupRows: [], mode: 'coop' as const }
 
   it('draws the date top-right, the summary under the title, and truncates the title clear of the date', () => {
     const { pd, calls } = fakePd()
@@ -141,7 +141,7 @@ describe('drawSetup', () => {
 describe('drawSetupBelow', () => {
   const m = {
     brand: '', gameTitle: '', date: '', summary: '', mode: 'coop' as const,
-    setup: [{ key: 'a', label: 'A', value: '1' }, { key: 'b', label: 'B', value: '2' }],
+    setupRows: [{ key: 'a', label: 'A', value: '1' }, { key: 'b', label: 'B', value: '2' }],
   }
 
   it('draws at y when the block fits', () => {
@@ -160,13 +160,13 @@ describe('drawSetupBelow', () => {
 
   it('draws nothing for a game with no rows', () => {
     const { pd, calls } = fakePd()
-    drawSetupBelow(pd, { ...m, setup: [] }, 500)
+    drawSetupBelow(pd, { ...m, setupRows: [] }, 500)
     expect(calls).toHaveLength(0)
   })
 })
 
 describe('savePrint', () => {
-  const header = { brand: '', gameTitle: '', date: '', summary: '', setup: [], mode: 'coop' as const }
+  const header = { brand: '', gameTitle: '', date: '', summary: '', setupRows: [], mode: 'coop' as const }
 
   it('slugifies brand + title into a lowercase filename', () => {
     const { pd, calls } = fakePd()

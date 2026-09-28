@@ -488,7 +488,7 @@ test.describe('letterboxed', () => {
 })
 
 /**
- * Custom board (setup) + the `Board` recap row — the round trip that is the
+ * Custom board (setup) + the `Board` setup row — the round trip that is the
  * whole point of the feature: you play a board you like and hand it to a
  * friend. Drives the real setup dialog through the real
  * `letterboxed-build-board` edge function (custom branch: no sampling, no
@@ -516,7 +516,7 @@ test.describe('letterboxed custom board', () => {
   const readBoard = async (page: import('@playwright/test').Page) =>
     (await page.locator('[class*="node"]').allTextContents()).join('')
 
-  test('a rolled board can be typed back, and the recap reads it in the same form', async ({
+  test('a rolled board can be typed back, and the Setup options list reads it in the same form', async ({
     browser,
   }) => {
     // Two clubs and two contexts: createSoloClub mints its OWN member each
@@ -563,7 +563,7 @@ test.describe('letterboxed custom board', () => {
     await expect(page.locator('[class*="node"]')).toHaveCount(12)
     expect(await readBoard(page)).toBe(rolled)
 
-    // And the recap prints it in the form the dialog takes back — the round
+    // And the Setup options list prints it in the form the dialog takes back — the round
     // trip a friend actually uses.
     await page.getByText('Setup options').click()
     await expect(page.getByText(`Board: ${written}`)).toBeVisible()

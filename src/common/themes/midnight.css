@@ -357,11 +357,11 @@
 /* @@ */   --tile-slot-ink-color:   #f0ece4;
 
   /* WHITE, where daylight uses black, and for the identical argument:
-     selection has to be unmistakable across a board of colored tiles,
+     a pick has to be unmistakable across a board of colored tiles,
      and the color that belongs to nothing else on the board is the one
      that reads on all of them. On a dark board that color is white.
      The RULE survived the flip; only the value moved. */
-/* @@ */   --tile-selected-edge-color:  #ffffff;
+/* @@ */   --tile-picked-edge-color:    #ffffff;
 
   /* ══ BOARD ══════════════════════════════════════════════════════
      The ground a game piece casts its shadow onto. On a dark page it

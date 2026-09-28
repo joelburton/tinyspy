@@ -49,7 +49,7 @@ what is the game:
 | `usePeerFeedback` | 10 | peer narration into the global slot |
 | `useCelebration`, `useTurnStartFlash` | 14 / 4 | the coop-win confetti; the your-turn flash |
 | `useHistoryViewer` | 9 (+ scrabble's own) | the turn-history viewer |
-| `summaryRows` via `setupRows` | 15 | the setup recap, built once for the column and the paper |
+| `summaryRows` via `setupRows` | 15 | the setup rows, built once for the column and the paper |
 | `publishGameMenu` effect via `buildGameMenu` | 16 | the menu, pushed from the bindings |
 | a pure `buildOver` tail | 15 | the terminal message per play state |
 

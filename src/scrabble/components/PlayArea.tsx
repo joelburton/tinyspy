@@ -18,7 +18,7 @@ import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { ANSWER_OUTCOME } from '../lib/answer'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { runEdgeFn } from '@/common/supabase/dbResult'
 import { db } from '../db'
 import type { ScrabbleSetup } from '../lib/setup'
@@ -82,11 +82,11 @@ export function PlayArea({
   // and an empty ring is what keeps it from walking out to the browser.
   useTabRing([])
   const { game, players: playerStates, plays, loading, failure } = useGame(gameId)
-  // The setup recap, built ONCE and handed to both consumers — the info column
+  // The setup rows, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
-  const summaryRows = useMemo(
-    () => setupRows(setup as unknown as ScrabbleSetup, game?.mode ?? 'coop', players),
+  const setupRows = useMemo(
+    () => makeSetupRows(setup as unknown as ScrabbleSetup, game?.mode ?? 'coop', players),
     [setup, game, players],
   )
 
@@ -324,7 +324,7 @@ type Suggested =
     suggestionApplierRef.current?.(move.placements)
   }, [])
 
-  // ─── Stop / Concede / Replay — the shared trio ────────────
+  // ─── The commands, bound ───────────────────────────────
   // The byte-identical shared handlers (useStandardGameActions). scrabble's own
   // bits are the replay sentence and the post-replay cleanup (leave whichever
   // read-only overlay is open — a past turn or a teammate's shared move — since
@@ -443,7 +443,7 @@ type Suggested =
         // Relevant setup only — the dictionary bands (the timer isn't relevant
         // on a print).
         mode: game.mode ?? 'coop',
-        setup: summaryRows,
+        setupRows,
       })
     },
   })
@@ -618,7 +618,7 @@ type Suggested =
           actSuggestMove={actSuggestMove}
           onApplySuggestion={handleApplySuggestion}
           setup={scrabbleSetup}
-          setupRows={summaryRows}
+          setupRows={setupRows}
           plays={plays}
           historyId={historyId}
           onShowHistory={(id, n) => showHistory({ kind: 'turn', id }, n)}

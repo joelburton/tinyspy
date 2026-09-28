@@ -17,7 +17,7 @@ const SIDES = 'abcdefghijkl'
 describe('cleanSides', () => {
   it('strips every separator a board might be written with', () => {
     // The shapes a player will actually paste: what the app writes today
-    // (title, recap row, PDF), the middot title older games still carry, and
+    // (title, setup row, PDF), the middot title older games still carry, and
     // hand-typed triples.
     expect(cleanSides('ABC-DEF-GHI-JKL')).toBe(SIDES)
     expect(cleanSides('ABC·DEF·GHI·JKL')).toBe(SIDES)

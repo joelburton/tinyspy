@@ -6,8 +6,9 @@ import { tileColor } from '@/shared/wordle-style/tileColor'
 import type { TerminalOutcome } from '@/common/terminal/terminalMessage'
 import { useIsCoarsePointer } from '@/common/mobile/useIsCoarsePointer'
 import { useMoveAttention } from '@/common/board-marks/useMoveAttention'
-import { CELLS, isHole } from '../lib/waffle'
-import { BOARD_SHAPE, cellAt, positionAt } from '../lib/boardShape'
+import { CELLS, GRID, isHole } from '../lib/waffle'
+import { BOARD_SHAPE } from '../lib/boardShape'
+import { cellAt, positionAt } from '@/common/board-cursor/boardPosition'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { useBoardSelectionCursor } from '@/common/board-cursor/useBoardSelectionCursor'
 import type { Cell } from '@/common/board-cursor/stepCell'
@@ -95,7 +96,7 @@ type Props = {
  * recomputes it (it doesn't hold the solution).
  *
  * Tiles use the SHARED `.tile` chrome (box / radius / shadow / hover shadow) and
- * the SHARED feedback marks (`.selected`, `.dimInFlight`, `.attentionFlash`)
+ * the SHARED feedback marks (`.picked`, `.dimInFlight`, `.attentionFlash`)
  * from common; waffle's own classes just re-set the `--tile-*` tokens to a
  * Wordle color. The square board lives in a `.board` wrapper, top-aligned in
  * the shared `.boardCol` (see Board.module.css).
@@ -198,7 +199,7 @@ export function Board({
   // is refused, as connections refuses a fifth: un-pick one first.
   function toggleAt(cell: Cell) {
     if (disabled || inFlight) return
-    const pos = positionAt(cell.x, cell.y)
+    const pos = positionAt(cell.x, cell.y, GRID)
     if (picks.includes(pos)) setPicks(picks.filter((p) => p !== pos))
     else if (picks.length < 2) setPicks([...picks, pos])
   }
@@ -226,7 +227,7 @@ export function Board({
   })
 
   // ⌫ drops the picks.
-  useBoundAction('act-clear-selection', {
+  useBoundAction('act-clear-picks', {
     describe: () => {
       if (disabled) return 'hidden'
       return picks.length > 0 ? 'active' : 'disabled'
@@ -277,8 +278,8 @@ export function Board({
                 shared.tileFace,
                 shared.tile,
                 colorClass,
-                picks.includes(pos) && shared.selected,
-                cursor !== null && positionAt(cursor.x, cursor.y) === pos && shared.selectionCursor,
+                picks.includes(pos) && shared.picked,
+                cursor !== null && positionAt(cursor.x, cursor.y, GRID) === pos && shared.selectionCursor,
                 pendingSwap?.includes(pos) && styles.inFlight,
                 pendingSwap?.includes(pos) && shared.dimInFlight,
                 flashing.has(pos) && shared.attentionFlash,
@@ -302,7 +303,7 @@ export function Board({
               onClick={(e) => {
                 e.currentTarget.blur()
                 // The cursor follows the hand, hidden, so the keys resume here.
-                point(cellAt(pos))
+                point(cellAt(pos, GRID))
                 activate(pos)
               }}
               onDragStart={(e) => {

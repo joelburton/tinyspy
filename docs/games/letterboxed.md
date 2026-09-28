@@ -68,7 +68,7 @@ recovers a solution rather than trusting the player for one.
 expressed as slack rather than a bare integer because slack is the number
 players can reason about: "solve it in 5" says nothing on its own, while "par is
 2, you get 3 spare" says exactly how much room there is. The info column and the
-setup recap both quote it against par for the same reason.
+setup rows both quote it against par for the same reason.
 
 **The cap is a shape constraint, not a bustable budget.** Undo **refunds**
 against it (§5), so you can't lose by exhausting it — your chain may simply
@@ -181,7 +181,7 @@ coverage, whatever the coverage) / `lost_compete` (all conceded) / `ended` (manu
 | `submit_timeout(target_game)` | Coop → **`lost`** (one chain, it didn't reach twelve; nothing to rank). Compete → resolve on **most letters covered → fewest words → co-winners** (the wordiply comparator shape: a shared win beats an arbitrary one). Both ranking numbers were already public during the race, so the resolution reveals nothing new. |
 | `stop_game(target_game)` | The neutral manual stop, `ended` in **both** modes — a group agreeing to stop is agreeing not to have a result. |
 | `concede(target_game)` | A wrapper over `common.concede` — the generic helper is right here because letterboxed is **not** an elimination game (undo refunds, so the only way a non-conceded player stops racing is winning, which already ends the game). A conceder is out in both directions: the move RPCs refuse them, and the timeout ranking excludes them. It also refuses a coop caller (`common.require_compete`, PN484); the menu never offers Concede in coop, but this wrapper was the only one with a coop sibling and no such check until 2026-09-01. |
-| `replay_board(target_game)` | The cheapest replay on the roster — the board is immutable data, so there's nothing to rebuild: clear the chains, drop the log, rewind the turn pointer, `reset_game` a fresh status blob. Nothing is re-revealed (no ending opens the pair by itself, so a replay is a genuine second try). |
+| `replay_board(target_game)` | The cheapest replay on the roster — the board is immutable data, so there's nothing to rebuild: clear the chains, drop the log, `reset_game` a fresh status blob (which also rewinds the turn pointer). Nothing is re-revealed (no ending opens the pair by itself, so a replay is a genuine second try). |
 | ~~`_end_game(...)`~~ | **Removed 2026-08-15.** It wrapped `common.end_game` for one reason: the shared helper opened the solution on any winning `play_state`, on the premise that a win *is* the solution produced — true for waffle and wordle, false here (§4). Revealing is now local FE state and nothing autoreveals, so there is no flag to put back and every terminal write calls `common.end_game` directly. The `drop function` stays in `supabase/sql/letterboxed.sql`: that file is re-applied rather than diffed, so deleting the definition alone would strand the old function in every database that ran it. |
 
 Every mid-game transition calls `_sync_status` (the wordle `_sync_title`

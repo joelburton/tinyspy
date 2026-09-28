@@ -3,9 +3,10 @@
 What spellingbee and wordwheel share and nothing else does: the hook factory
 behind their identical data lifecycles, the board header it returns, the compete
 leaderboard row, the coordinate-unit geometry a hive and a wheel are both drawn
-by, and the sentences a finished game says. Everything the wider found-words family shares — the submit engine,
-the reveal, the rows, the row and word types, the typed-word look, the
-play-surface scaffolding — is [shared/found-words](../found-words/doc.md).
+by, the setup form's target-rank choices and custom-letters split, and the
+sentences a finished game says. Everything the wider found-words family
+shares — the submit engine, the reveal, the rows, the row and word types, the
+typed-word look, the play-surface scaffolding — is [shared/found-words](../found-words/doc.md).
 
 ## Intro to area
 
@@ -55,7 +56,14 @@ the two BoardCols ─▶ beeBoard.module.css   (.boardCol → --u · --board-wid
 the two PlayAreas ─▶ beeLeaderboard.ts     (LeaderboardEntry, via readLeaderboard)
                   ─▶ terminal.ts           (buildTerminalMessage — the pill and the
                                             action row's line at the end)
+the two SetupForms ─▶ beeSetup.ts          (TARGET_RANK_CHOICES · NO_TARGET ·
+                                            splitCustomLetters(raw, 7 | 9))
 ```
+
+**The two `PlayArea.tsx` files are deliberately two identical copies.** Each
+game keeps a PlayArea that reads top to bottom like every other game's, so the
+component is not shared; a change to one is made to the other. Diffing them
+with the game names swapped shows only the "hive" / "wheel" wording.
 
 **The endings are shared because the games end alike.** Both modes, every play
 state and every reason are the same in the two games, and so is every sentence

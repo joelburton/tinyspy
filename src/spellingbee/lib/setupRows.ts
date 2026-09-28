@@ -2,12 +2,12 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { centerLettersRow, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeCenterLettersRow, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import { RANKS } from '@/shared/rank-ladder/rankLadder'
 import type { SpellingbeeSetup } from './setup'
 
 /**
- * spellingbee's setup recap — ONE array, rendered by the info column and the
+ * spellingbee's setup rows — ONE array, rendered by the info column and the
  * PDF alike (common/setup-form/doc.md → Setup rows): the roster, the board's
  * letters, the two dictionary bands, the target rank when one was chosen (a
  * control that didn't apply produces no row, rather than a row saying
@@ -19,7 +19,7 @@ import type { SpellingbeeSetup } from './setup'
  * takes back. It leads, right under the roster — on a kept record, WHICH board
  * this was outranks how it was configured.
  */
-export function setupRows(
+export function makeSetupRows(
   setup: SpellingbeeSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
@@ -27,8 +27,8 @@ export function setupRows(
   board: { center: string; outer: string } | null = null,
 ): SetupRow[] {
   const rows: SetupRow[] = [
-    rosterRow(players),
-    ...centerLettersRow(board),
+    makeRosterRow(players),
+    ...makeCenterLettersRow(board),
     { key: 'required_band', label: 'Dictionary (required)', value: difficultyValue(setup.required_band) },
     { key: 'legal_band', label: 'Dictionary (legal)', value: difficultyValue(setup.legal_band) },
   ]
@@ -39,6 +39,6 @@ export function setupRows(
       value: RANKS[setup.target_rank] ?? '?',
     })
   }
-  rows.push(timerRow(setup.timer))
+  rows.push(makeTimerRow(setup.timer))
   return rows
 }

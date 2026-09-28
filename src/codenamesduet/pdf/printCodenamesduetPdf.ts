@@ -4,7 +4,8 @@ import type { jsPDF } from 'jspdf'
 import { BLACK, DARK_GRAY, drawHeader, fit, newPrintDoc, savePrint } from '@/common/pdf/frame'
 import { drawCheck, drawCross, drawDash } from '@/common/pdf/marks'
 import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
-import type { DuetPrintModel, Mark, PrintCell } from './model'
+import { cellAt } from '@/common/board-cursor/boardPosition'
+import type { CodenamesduetPrintModel, KeyRole, PrintTile } from './model'
 
 /**
  * codenamesduet's print-to-PDF — the **event-log body family** (common/pdf/doc.md): the
@@ -34,7 +35,7 @@ import type { DuetPrintModel, Mark, PrintCell } from './model'
 
 /** Print colors for the three meanings. Darker than the screen's fills — these
  *  are strokes on white, and the screen values are tuned as backgrounds. */
-const MARK_RGB: Record<Mark, [number, number, number]> = {
+const ROLE_RGB: Record<KeyRole, [number, number, number]> = {
   agent: [46, 106, 42], // green
   neutral: [150, 124, 74], // tan
   assassin: [150, 45, 45], // red
@@ -49,7 +50,7 @@ const INSET = 7 // side of a keycard inset box
 const REVEALED_MARK = 8
 
 /** Generate the PDF and hand it to the browser as a download. */
-export function printCodenamesduetPdf(m: DuetPrintModel): void {
+export function printCodenamesduetPdf(m: CodenamesduetPrintModel): void {
   const pd = newPrintDoc()
   const { doc } = pd
   const { leftX, colW, colTop } = twoColGeom(pd)
@@ -58,13 +59,14 @@ export function printCodenamesduetPdf(m: DuetPrintModel): void {
 
   const cell = (colW - (COLS - 1) * CELL_GAP) / COLS
   const cellH = cell * 0.66
-  m.cells.forEach((c, i) => {
-    const px = leftX + (i % COLS) * (cell + CELL_GAP)
-    const py = colTop + Math.floor(i / COLS) * (cellH + CELL_GAP)
-    drawCell(doc, c, px, py, cell, cellH)
+  m.tiles.forEach((c, i) => {
+    const { x, y } = cellAt(i, COLS)
+    const px = leftX + x * (cell + CELL_GAP)
+    const py = colTop + y * (cellH + CELL_GAP)
+    drawTile(doc, c, px, py, cell, cellH)
   })
 
-  let y = colTop + Math.ceil(m.cells.length / COLS) * (cellH + CELL_GAP) + 6
+  let y = colTop + Math.ceil(m.tiles.length / COLS) * (cellH + CELL_GAP) + 6
   y = drawLegend(doc, m, leftX, y, colW) + 12
 
   drawEventLog(pd, {
@@ -76,7 +78,7 @@ export function printCodenamesduetPdf(m: DuetPrintModel): void {
     // bare "Player" wouldn't say which this column names. It's the clue-giver.
     whoLabel: 'Giver',
     rows: m.turns,
-    setup: m.setup,
+    setupRows: m.setupRows,
     mode: m.mode,
     emptyText: 'No clues yet.',
   })
@@ -85,21 +87,21 @@ export function printCodenamesduetPdf(m: DuetPrintModel): void {
 }
 
 /** Draw one mark centered in a `size` box at (cx, cy). */
-function mark(doc: jsPDF, kind: Mark, cx: number, cy: number, size: number): void {
-  const o = { cx, cy, size, color: MARK_RGB[kind] }
+function mark(doc: jsPDF, kind: KeyRole, cx: number, cy: number, size: number): void {
+  const o = { cx, cy, size, color: ROLE_RGB[kind] }
   if (kind === 'agent') drawCheck(o, doc)
   else if (kind === 'assassin') drawCross(o, doc)
   else drawDash(o, doc)
 }
 
 /**
- * One board cell: the word, the border + corner mark for what it revealed, the
+ * One board tile: the word, the border + corner mark for what it revealed, the
  * keycard inset(s), and the bystander triangles.
  */
-function drawCell(doc: jsPDF, c: PrintCell, x: number, y: number, w: number, h: number): void {
+function drawTile(doc: jsPDF, c: PrintTile, x: number, y: number, w: number, h: number): void {
   // The tile's own border says what HAPPENED. An untouched word gets the plain
   // dark-gray box — it revealed nothing, so no color.
-  const outline = c.revealed ? MARK_RGB[c.revealed] : null
+  const outline = c.revealed ? ROLE_RGB[c.revealed] : null
   doc.setLineWidth(outline ? 1.6 : 0.6)
   if (outline) doc.setDrawColor(...outline)
   else doc.setDrawColor(DARK_GRAY)
@@ -130,15 +132,15 @@ function drawCell(doc: jsPDF, c: PrintCell, x: number, y: number, w: number, h: 
 }
 
 /** A keycard inset: a small bordered box carrying its mark. */
-function drawInset(doc: jsPDF, kind: Mark, x: number, y: number): void {
-  doc.setLineWidth(1).setDrawColor(...MARK_RGB[kind]).rect(x, y, INSET, INSET, 'S')
+function drawInset(doc: jsPDF, kind: KeyRole, x: number, y: number): void {
+  doc.setLineWidth(1).setDrawColor(...ROLE_RGB[kind]).rect(x, y, INSET, INSET, 'S')
   mark(doc, kind, x + INSET / 2, y + INSET / 2, INSET * 0.6)
 }
 
 /** A small filled triangle — the "someone burned this" marker. */
 function triangle(doc: jsPDF, cx: number, cy: number, s: number, dir: 'up' | 'down'): void {
   const dy = dir === 'up' ? -s : s
-  doc.setFillColor(...MARK_RGB.neutral)
+  doc.setFillColor(...ROLE_RGB.neutral)
   doc.triangle(cx - s * 0.8, cy - dy * 0.4, cx + s * 0.8, cy - dy * 0.4, cx, cy + dy * 0.6, 'F')
 }
 
@@ -146,11 +148,11 @@ function triangle(doc: jsPDF, cx: number, cy: number, s: number, dir: 'up' | 'do
  * The legend. Not optional: the marks are a private vocabulary, and a printout
  * gets read away from the app where nothing else explains them.
  */
-function drawLegend(doc: jsPDF, m: DuetPrintModel, x: number, y: number, colW: number): number {
+function drawLegend(doc: jsPDF, m: CodenamesduetPrintModel, x: number, y: number, colW: number): number {
   doc.setFont('helvetica', 'bold').setFontSize(8).setTextColor(DARK_GRAY)
   doc.text('KEY', x, y + 6)
 
-  const items: [Mark, string][] = [
+  const items: [KeyRole, string][] = [
     ['agent', 'agent'],
     ['neutral', 'bystander'],
     ['assassin', 'assassin'],

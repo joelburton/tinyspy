@@ -6,7 +6,7 @@
 import { faceToDisplay } from './dice.ts'
 
 /**
- * The custom-board round trip: turning a board into the string the recap prints,
+ * The custom-board round trip: turning a board into the string its setup row prints,
  * and turning a string a player typed back into a board.
  *
  * Both halves live here because they are one agreement. The point of the feature
@@ -78,10 +78,10 @@ export function cleanCustomBoard(raw: string): string {
 
 /**
  * A board string as ROWS of written tiles — `"ABQuD-EFGH-IJKL-MNOP"`. This is
- * what the recap prints and what the setup field takes back.
+ * what the `Letters` setup row prints and what the setup field takes back.
  *
  * DASHES, matching what the setup field draws as you type and what letterboxed
- * writes its four sides in. A recap that separated rows differently would be a
+ * writes its four sides in. A setup row that separated rows differently would be a
  * second written form of the same thing, against the whole point: you read a
  * board off the info column or the printout and paste it straight back.
  */
@@ -172,7 +172,7 @@ export function capBoard(text: string, n: number): string {
 export function readTiles(text: string): string[] {
   const tiles: string[] = []
   // Separators are presentation, wherever they came from — a paste, an old
-  // space-separated recap, or the dashes the field itself draws.
+  // space-separated setup row, or the dashes the field itself draws.
   const s = text.replace(/[\s-]+/g, '')
   for (let i = 0; i < s.length; ) {
     // A two-character tile, but only spelled as it prints (see the mixed-case

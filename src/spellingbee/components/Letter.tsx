@@ -25,7 +25,7 @@ type Props = {
 
 /**
  * One hex in the honeycomb — an SVG `<polygon>` plus a centered `<text>`, drawn
- * inside the parent `<Letters>` svg so it shares the flower's coordinate space.
+ * inside the parent `<Hive>` svg so it shares the flower's coordinate space.
  *
  * The group carries the click, since a real `<button>` cannot nest in SVG, and
  * the polygon's fill is the hit area, so a click lands on the hex shape and

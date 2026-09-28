@@ -2,11 +2,11 @@
 
 import type { Member } from '@/common/members/member'
 import { difficultyValue } from '@/common/setup-form/difficulty'
-import { coopRows, rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeCoopRows, makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import type { WaffleSetup } from './setup'
 
 /**
- * waffle's setup recap — ONE array, rendered by the info column and the PDF
+ * waffle's setup rows — ONE array, rendered by the info column and the PDF
  * alike (common/setup-form/doc.md → Setup rows). Order mirrors `components/SetupForm.tsx`.
  *
  * Swaps are quoted against PAR the way the form asks for them — a bare cap says
@@ -14,21 +14,21 @@ import type { WaffleSetup } from './setup'
  * is. Par is per-BOARD (the generator's minimum), so it's passed in rather than
  * read off the setup.
  */
-export function setupRows(
+export function makeSetupRows(
   setup: WaffleSetup,
   mode: 'coop' | 'compete',
   players: Member[],
   parSwaps: number,
 ): SetupRow[] {
   return [
-    rosterRow(players),
-    ...coopRows(setup, mode, players),
+    makeRosterRow(players),
+    ...makeCoopRows(setup, mode, players),
     { key: 'difficulty', label: 'Dictionary', value: difficultyValue(setup.difficulty) },
     {
       key: 'extra_swaps',
       label: 'Swaps',
       value: `${parSwaps + setup.extra_swaps} (par ${parSwaps} + ${setup.extra_swaps} extra)`,
     },
-    timerRow(setup.timer),
+    makeTimerRow(setup.timer),
   ]
 }

@@ -10,7 +10,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import { buildDuetPrintModel } from './model'
+import { buildCodenamesduetPrintModel } from './model'
 import type { WordRow } from '../hooks/useBoard'
 import type { ClueEvent, WordedGuess } from '../lib/events'
 
@@ -58,85 +58,85 @@ const base = {
   greenFound: 3,
   totalAgents: 15,
   turnNumber: 4,
-  turnCap: 9,
+  turnBudget: 9,
   mode: 'coop' as const,
-  setup: [{ key: 'turns', label: 'Turns', value: '9' }],
+  setupRows: [{ key: 'turns', label: 'Turns', value: '9' }],
 }
 
-describe('buildDuetPrintModel — the peer key is a secret', () => {
+describe('buildCodenamesduetPrintModel — the peer key is a secret', () => {
   it('withholds it mid-game, even when handed one', () => {
     // useBoard already gates it on revealPeer; this is the second lock, so a
     // refactor there can't quietly put the partner's card on paper.
-    const m = buildDuetPrintModel({ ...base })
+    const m = buildCodenamesduetPrintModel({ ...base })
     expect(m.showsBothKeys).toBe(false)
-    expect(m.cells.every((c) => c.peer === null)).toBe(true)
+    expect(m.tiles.every((c) => c.peer === null)).toBe(true)
   })
 
   it('prints it at terminal', () => {
-    const m = buildDuetPrintModel({ ...base, isTerminal: true })
+    const m = buildCodenamesduetPrintModel({ ...base, isTerminal: true })
     expect(m.showsBothKeys).toBe(true)
-    expect(m.cells[0].peer).toBe('assassin')
-    expect(m.cells[2].peer).toBe('agent')
+    expect(m.tiles[0].peer).toBe('assassin')
+    expect(m.tiles[2].peer).toBe('agent')
   })
 
   it('still shows MY key mid-game — that is the point of the printout', () => {
-    const m = buildDuetPrintModel({ ...base })
-    expect(m.cells[0].mine).toBe('agent')
-    expect(m.cells[1].mine).toBe('assassin')
+    const m = buildCodenamesduetPrintModel({ ...base })
+    expect(m.tiles[0].mine).toBe('agent')
+    expect(m.tiles[1].mine).toBe('assassin')
   })
 })
 
-describe('buildDuetPrintModel — what happened on a cell', () => {
+describe('buildCodenamesduetPrintModel — what happened on a tile', () => {
   it('maps the global reveals', () => {
-    const m = buildDuetPrintModel({
+    const m = buildCodenamesduetPrintModel({
       ...base,
       words: board({ 0: { revealed_as: 'G' }, 1: { revealed_as: 'A' } }),
     })
-    expect(m.cells[0].revealed).toBe('agent')
-    expect(m.cells[1].revealed).toBe('assassin')
+    expect(m.tiles[0].revealed).toBe('agent')
+    expect(m.tiles[1].revealed).toBe('assassin')
   })
 
   it('treats a bystander burned by EITHER seat as revealing a neutral', () => {
     // A neutral isn't a global reveal — it's per-seat — so what the cell
     // revealed is derived from the two burn flags rather than revealed_as.
-    const m = buildDuetPrintModel({
+    const m = buildCodenamesduetPrintModel({
       ...base,
       words: board({ 3: { neutral_a: true }, 4: { neutral_b: true } }),
     })
-    expect(m.cells[3].revealed).toBe('neutral')
-    expect(m.cells[4].revealed).toBe('neutral')
+    expect(m.tiles[3].revealed).toBe('neutral')
+    expect(m.tiles[4].revealed).toBe('neutral')
   })
 
   it('leaves an untouched word revealing nothing', () => {
-    expect(buildDuetPrintModel({ ...base }).cells[5].revealed).toBeNull()
+    expect(buildCodenamesduetPrintModel({ ...base }).tiles[5].revealed).toBeNull()
   })
 })
 
-describe('buildDuetPrintModel — the bystander triangles', () => {
+describe('buildCodenamesduetPrintModel — the bystander triangles', () => {
   it('keeps mine and my partner’s apart, from MY seat', () => {
     // The asymmetry is the point: a word my partner burned is still mine to
     // guess; one I burned is locked to me. Seat A here.
-    const m = buildDuetPrintModel({
+    const m = buildCodenamesduetPrintModel({
       ...base,
       words: board({ 6: { neutral_a: true }, 7: { neutral_b: true } }),
     })
-    expect([m.cells[6].burnedByMe, m.cells[6].burnedByPeer]).toEqual([true, false])
-    expect([m.cells[7].burnedByMe, m.cells[7].burnedByPeer]).toEqual([false, true])
+    expect([m.tiles[6].burnedByMe, m.tiles[6].burnedByPeer]).toEqual([true, false])
+    expect([m.tiles[7].burnedByMe, m.tiles[7].burnedByPeer]).toEqual([false, true])
   })
 
   it('flips with the seat', () => {
-    const m = buildDuetPrintModel({
+    const m = buildCodenamesduetPrintModel({
       ...base,
       mySeat: 'B',
       words: board({ 6: { neutral_a: true } }),
     })
-    expect([m.cells[6].burnedByMe, m.cells[6].burnedByPeer]).toEqual([false, true])
+    expect([m.tiles[6].burnedByMe, m.tiles[6].burnedByPeer]).toEqual([false, true])
   })
 })
 
-describe('buildDuetPrintModel — the clue log', () => {
+describe('buildCodenamesduetPrintModel — the clue log', () => {
   it('reads a turn as its clue plus what the clue actually got', () => {
-    const m = buildDuetPrintModel({
+    const m = buildCodenamesduetPrintModel({
       ...base,
       clues: [clue('A', 'ocean', 2)],
       guesses: [guess(1, 'salt'), guess(2, 'wave')],
@@ -150,7 +150,7 @@ describe('buildDuetPrintModel — the clue log', () => {
   })
 
   it('shows a clue that got nothing as just the clue', () => {
-    const m = buildDuetPrintModel({
+    const m = buildCodenamesduetPrintModel({
       ...base,
       clues: [clue('B', 'ocean', 2)],
     })
@@ -161,7 +161,7 @@ describe('buildDuetPrintModel — the clue log', () => {
   it('prints each sudden-death guess as its own row, after the clues, under its guesser', () => {
     const past = (id: number, turn: number, seat: 'A' | 'B', word: string) =>
       ({ ...guess(id, word), turn_number: turn, seat })
-    const m = buildDuetPrintModel({
+    const m = buildCodenamesduetPrintModel({
       ...base,
       clues: [clue('A', 'ocean', 2)],
       guesses: [past(2, 10, 'A', 'steel'), past(3, 11, 'B', 'coffee')],
@@ -173,27 +173,27 @@ describe('buildDuetPrintModel — the clue log', () => {
   })
 })
 
-describe('buildDuetPrintModel — summary', () => {
+describe('buildCodenamesduetPrintModel — summary', () => {
   it('mirrors the on-screen readout: the turns SPENT, during turn 4', () => {
-    expect(buildDuetPrintModel({ ...base }).summary).toBe(
+    expect(buildCodenamesduetPrintModel({ ...base }).summary).toBe(
       '3/15 agents contacted · 3/9 turns spent',
     )
   })
 
   it('says sudden death once the budget is gone, as the screen does', () => {
-    expect(buildDuetPrintModel({ ...base, turnNumber: 11 }).summary).toBe(
+    expect(buildCodenamesduetPrintModel({ ...base, turnNumber: 11 }).summary).toBe(
       '3/15 agents contacted · sudden death',
     )
   })
 
   it('still says sudden death after such a game has ended, never "10/9"', () => {
-    expect(buildDuetPrintModel({ ...base, turnNumber: 11, isTerminal: true }).summary).toBe(
+    expect(buildCodenamesduetPrintModel({ ...base, turnNumber: 11, isTerminal: true }).summary).toBe(
       '3/15 agents contacted · sudden death',
     )
   })
 
   it('counts the last ordinary turn as spent-but-one, not as sudden death', () => {
-    expect(buildDuetPrintModel({ ...base, turnNumber: 9 }).summary).toBe(
+    expect(buildCodenamesduetPrintModel({ ...base, turnNumber: 9 }).summary).toBe(
       '3/15 agents contacted · 8/9 turns spent',
     )
   })

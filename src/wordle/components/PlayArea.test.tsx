@@ -29,7 +29,7 @@ import { liveBindings } from '@/common/actions/useBoundAction'
 import { ConfirmationHost } from '@/common/floating-panels/ConfirmationHost'
 import { menuRow, type MenuSection } from '@/common/menu/menuModel'
 import { WORD_ANSWER_MS } from '@/common/board-marks/feedbackTiming'
-import type { WordleGame, WordlePlayerState, EventRow } from '../hooks/useGame'
+import type { WordleGame, PlayerRow, EventRow } from '../hooks/useGame'
 import { db } from '../db'
 import { db as commonDb } from '@/common/supabase/db'
 import { PlayAreaLoader } from './PlayArea'
@@ -51,8 +51,8 @@ vi.mock('@/common/supabase/db', () => ({ db: { rpc: vi.fn() } }))
 const rpc = db.rpc as unknown as ReturnType<typeof vi.fn>
 const commonRpc = commonDb.rpc as unknown as ReturnType<typeof vi.fn>
 
-const me: WordlePlayerState = { user_id: 'u1', guesses_used: 0, solved: false, solved_at: null }
-const moth: WordlePlayerState = { user_id: 'u2', guesses_used: 0, solved: false, solved_at: null }
+const me: PlayerRow = { user_id: 'u1', guesses_used: 0, solved: false, solved_at: null }
+const moth: PlayerRow ={ user_id: 'u2', guesses_used: 0, solved: false, solved_at: null }
 
 /** Two club members, for the peer-narration tests (the lookup is by ctx.players). */
 const twoMembers = [gp('u1', 'me', 'red'), gp('u2', 'moth', 'blue')]
@@ -63,7 +63,7 @@ const meOut = gp('u1', 'me', 'red', { locally_terminal: true })
 function loaded(
   game: WordleGame,
   guesses: EventRow[] = [],
-  playerStates: WordlePlayerState[] = [me],
+  playerStates: PlayerRow[] = [me],
 ): GameHook {
   return { game, playerStates, guesses, loading: false, failure: null }
 }

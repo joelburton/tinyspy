@@ -55,7 +55,7 @@ export function buildPrintModel({
   hintsByUser,
   events,
   palette,
-  setup,
+  setupRows,
 }: {
   brand: string
   gameTitle: string
@@ -69,7 +69,7 @@ export function buildPrintModel({
   hintsByUser: ReadonlyMap<string, number>
   events: EventRow[]
   palette: Palette
-  setup: SetupRow[]
+  setupRows: SetupRow[]
 }): SetgamePrintModel {
   const sets = `${teamFound} ${teamFound === 1 ? 'set' : 'sets'}`
   // The summary reads as a state line, matching what the info column says: how
@@ -85,7 +85,7 @@ export function buildPrintModel({
     gameTitle,
     date,
     summary,
-    setup,
+    setupRows,
     mode,
     palette,
     scores: players

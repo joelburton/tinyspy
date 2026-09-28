@@ -74,7 +74,7 @@ export type WordwheelValues = {
 
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupSummary.ts` and `PlayArea` read back. */
+ *  `setupRows.ts` and `PlayArea` read back. */
 export type WordwheelSetup = SetupOf<WordwheelValues>
 /**
  * Why the current `legal_band` is too low to start, under `legal_band`; `{}`

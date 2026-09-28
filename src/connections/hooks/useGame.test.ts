@@ -5,7 +5,7 @@
  *
  * The game joins ONE Supabase Realtime room per game, named
  * `connections:<gameId>` — deliberately stable so all coop peers share
- * a selection-Broadcast room. Because the effect owns a real channel
+ * a picks-Broadcast room. Because the effect owns a real channel
  * (it tears the old one down via `removeChannel` and resubscribes on
  * re-run), its dependency array is load-bearing: it must react to the
  * inputs the room is actually keyed on (`gameId`) and NOT to values the
@@ -14,7 +14,7 @@
  * The guarded contract: the room is game-scoped, so a new `Session`
  * object (what a routine JWT refresh hands React) must NOT rebuild it —
  * even if the user id itself differs. `gameId` changing, on the other
- * hand, MUST rebuild it. See the `[applySelection, gameId]` deps in the
+ * hand, MUST rebuild it. See the `[applyPick, gameId]` deps in the
  * hook.
  */
 

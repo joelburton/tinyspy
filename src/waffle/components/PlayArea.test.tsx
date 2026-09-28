@@ -873,7 +873,7 @@ describe('waffle PlayArea — the selection cursor', () => {
   }
   const positions = Array.from({ length: 25 }, (_, p) => p).filter((p) => !HOLES.includes(p))
   const ringed = () => positions.filter((p) => /selectionCursor/.test(tileAt(p).className))
-  const picked = () => positions.filter((p) => /selected/.test(tileAt(p).className))
+  const picked = () => positions.filter((p) => /picked/.test(tileAt(p).className))
   // Awaited: a bound action's run settles a microtask after the keystroke.
   const key = (k: string) => act(async () => press({ key: k }))
   const swapsSent = () => rpc.mock.calls.filter(([fn]) => fn === 'submit_swap')

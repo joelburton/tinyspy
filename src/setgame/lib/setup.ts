@@ -59,7 +59,7 @@ export type SetgameValues = CoopTurnSetup & {
 
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupSummary.ts` and `PlayArea` read back. */
+ *  `setupRows.ts` and `PlayArea` read back. */
 export type SetgameSetup = SetupOf<SetgameValues>
 /**
  * The palette a game is played with, defaulting to traditional.
@@ -68,7 +68,7 @@ export type SetgameSetup = SetupOf<SetgameValues>
  * existed simply has no key — and any code that indexes a lookup table by it
  * would read `undefined` and fall over. (That is not hypothetical: it crashed
  * the printer the first time it drew a card.) One place decides the default, so
- * the board, the setup recap and the PDF cannot disagree about what an old game
+ * the board, the Setup options list and the PDF cannot disagree about what an old game
  * looked like.
  */
 export function paletteOf(setup: Partial<SetgameSetup> | null | undefined): Palette {

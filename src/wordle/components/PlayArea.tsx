@@ -9,7 +9,7 @@ import { buildWordlePrintModel } from '../pdf/model'
 import { printWordlePdf } from '../pdf/printWordlePdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
 import { answerMessage, peerAnswerMessage } from '../lib/answer'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { CelebrationBlockingModal } from '@/common/terminal/CelebrationBlockingModal'
 import { useCelebration } from '@/common/terminal/useCelebration'
 import { useTurnStartFlash } from '@/common/board-marks/useTurnStartFlash'
@@ -24,7 +24,7 @@ import { describeReveal } from '@/common/reveal/describeReveal'
 import { solvedByMe, useSolutionReveal } from '@/common/reveal/useSolutionReveal'
 import { InfoSheet } from '@/common/info-sheet/InfoSheet'
 import { db } from '../db'
-import { useGame, type WordleGame, type WordlePlayerState, type EventRow } from '../hooks/useGame'
+import { useGame, type WordleGame, type PlayerRow, type EventRow } from '../hooks/useGame'
 import { historySnapshot } from '../lib/history'
 import { buildTerminalMessage } from '../lib/terminal'
 import { WORD_LENGTH, type WordleSetup } from '../lib/setup'
@@ -77,7 +77,7 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
   // The loaded game row. Non-null by construction — the loader holds the gates.
   game: WordleGame
   // Per-player guess counts and solved flags (`wordle.players`).
-  playerStates: WordlePlayerState[]
+  playerStates: PlayerRow[]
   // The guess log, oldest first.
   guesses: EventRow[]
   // This game's setup, narrowed once by the loader.
@@ -94,17 +94,17 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
  * actions, and the derivations the two columns must agree on. The game rows
  * arrive as props from the loader above.
  *
- * `mode` is what differs between the manifests, and it differs in one place
+ * `game.mode` is what differs between the manifests, and it differs in one place
  * each: coop shows the SHARED guess list and team budget, compete only the
  * caller's own guesses (RLS hides the rest until terminal) plus an
  * OpponentStrip of their counts.
  */
-export function PlayArea({
+function PlayArea({
   session,
   gameId,
   brand,
   title,
-  players: members,
+  players,
   playState,
   isTerminal,
   isPlayer,
@@ -126,8 +126,6 @@ export function PlayArea({
   playerStates,
   guesses,
 }: PlayAreaProps) {
-  const mode = game.mode
-
   // ─── Page hooks ────────────────────────────────────────
   // What this surface IS, before anything this game knows: where Tab may go,
   // where the info column sits on a phone, and the two things that fire at a
@@ -168,7 +166,7 @@ export function PlayArea({
   // them so. What is wordle's own is read off the hook's rows.
 
   const self = playerStates.find((p) => p.user_id === session.user.id)
-  const isCompete = mode === 'compete'
+  const isCompete = game.mode === 'compete'
   const maxGuesses = game.max_guesses
   const guessesUsed = self?.guesses_used ?? 0
   // I solved it — which picks the out-of-the-race words and the verdict's. Not
@@ -186,12 +184,12 @@ export function PlayArea({
     ? guesses.filter((g) => g.user_id === session.user.id)
     : guesses
 
-  // The setup recap, built ONCE and handed to both consumers — the info column
+  // The setup rows, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
-  const summaryRows = useMemo(
-    () => setupRows(setup, mode, members),
-    [setup, mode, members],
+  const setupRows = useMemo(
+    () => makeSetupRows(setup, game.mode, players),
+    [setup, game.mode, players],
   )
 
   // The word shows only when I ask for it, and the ask is local and reversible
@@ -250,10 +248,10 @@ export function PlayArea({
     () =>
       isTerminal
         ? buildTerminalMessage({
-            mode, playState, reason, selfWon, selfSolved: mySolved, wonByClock, selfTiedWinner,
+            mode: game.mode, playState, reason, selfWon, selfSolved: mySolved, wonByClock, selfTiedWinner,
           })
         : null,
-    [isTerminal, mode, playState, reason, selfWon, mySolved, wonByClock, selfTiedWinner],
+    [isTerminal, game.mode, playState, reason, selfWon, mySolved, wonByClock, selfTiedWinner],
   )
   useEffect(function showTerminalVerdict() {
     if (!terminalMessage) return
@@ -275,7 +273,7 @@ export function PlayArea({
 
   // A teammate holds the move (turn-order coop; never in a free-for-all). The
   // holder is read as two primitives so the effect settles in one pass.
-  const turnHolder = turnHolderId === null ? undefined : memberById(members, turnHolderId)
+  const turnHolder = turnHolderId === null ? undefined : memberById(players, turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
@@ -299,12 +297,12 @@ export function PlayArea({
   // instead. Compete never narrates a guess at all: RLS scopes the log to the
   // caller, and the gate below says coop besides.
   usePeerFeedback({
-    enabled: mode === 'coop',
+    enabled: !isCompete,
     items: guesses,
     keyOf: (g) => String(g.id),
     messageFor: (g) => {
       if (g.user_id === session.user.id) return null // mine → board, no narration
-      const member = memberById(members, g.user_id)
+      const member = memberById(players, g.user_id)
       const { outcome, text } = peerAnswerMessage(g)
       return FeedbackMessage.peer(member, outcome, text)
     },
@@ -317,12 +315,12 @@ export function PlayArea({
   // than my stake in it (docs/ui.md → Feedback pill). My own solve is excluded,
   // being covered by the terminal feedback.
   usePeerFeedback({
-    enabled: mode === 'compete',
+    enabled: isCompete,
     items: solvedIds,
     keyOf: (id) => id,
     messageFor: (id) => {
       if (id === session.user.id) return null // my own solve → terminal handling
-      const member = memberById(members, id)
+      const member = memberById(players, id)
       const { outcome, text } = answerMessage({ answerType: 'solved_peer' })
       return FeedbackMessage.peerMilestone(member, outcome, text)
     },
@@ -350,7 +348,7 @@ export function PlayArea({
     db,
     gameId,
     isTerminal,
-    mode: isCompete ? 'compete' : 'coop',
+    mode: game.mode,
     isLocallyTerminal,
     localFeedbackSlot,
   })
@@ -380,8 +378,8 @@ export function PlayArea({
       db.rpc('create_game', {
         target_club: clubHandle,
         setup,
-        player_user_ids: members.map((m) => m.user_id),
-        mode,
+        player_user_ids: players.map((p) => p.user_id),
+        mode: game.mode,
       }),
     )
     if (res.type === 'not-ok') {
@@ -392,7 +390,7 @@ export function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`wordle_${mode}`, res.data.id)
+      goToGame(`wordle_${game.mode}`, res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)
@@ -423,17 +421,17 @@ export function PlayArea({
           brand,
           gameTitle: title,
           date: new Date().toLocaleDateString(),
-          mode,
+          mode: game.mode,
           isTerminal,
           maxGuesses,
           wordLength: WORD_LENGTH,
           guesses,
-          players: members,
+          players,
           selfId: session.user.id,
           target: game.target,
           answerShown,
           solvedBy: new Set(solvedIds),
-          setup: summaryRows,
+          setupRows,
         }),
       )
     },
@@ -468,7 +466,7 @@ export function PlayArea({
 
   // Who has bowed out of the race — the opponent strip's "out" cell. From the
   // common roster, like `isConceded`.
-  const concededIds = new Set(members.filter((m) => m.conceded).map((m) => m.user_id))
+  const concededIds = new Set(players.filter((p) => p.conceded).map((p) => p.user_id))
 
   const rows = myGuesses.map((g) => ({ guess: g.word, colors: g.colors }))
 
@@ -493,7 +491,7 @@ export function PlayArea({
   // board you are already looking at.
   const historyActor =
     isCompete && historyRow && historyRow.user_id !== session.user.id
-      ? memberById(members, historyRow.user_id)
+      ? memberById(players, historyRow.user_id)
       : undefined
 
   return (
@@ -536,7 +534,7 @@ export function PlayArea({
         guessesUsed={guessesUsed}
         maxGuesses={maxGuesses}
         // ── Opponent strip (compete) ──
-        players={members}
+        players={players}
         selfId={session.user.id}
         playerStates={playerStates}
         concededIds={concededIds}
@@ -548,12 +546,12 @@ export function PlayArea({
         actStopGame={actStopGame}
         actBackToClub={menu.actBackToClub}
         // ── Setup disclosure ──
-        setupRows={summaryRows}
+        setupRows={setupRows}
         // ── Terminal answer reveal (null while hidden — incl. on a loss) ──
         solution={answerShown ? game.target : null}
         // ── Event log ──
         guesses={guesses}
-        mode={mode}
+        mode={game.mode}
         historyId={historyId}
         onShowHistory={showHistory}
         />

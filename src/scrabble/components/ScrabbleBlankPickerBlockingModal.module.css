@@ -30,5 +30,5 @@
   cursor: pointer;
 }
 /* @@ */ .letter:hover {
-  background: var(--scrabble-tile-selected);
+  background: var(--scrabble-tile-picked);
 }

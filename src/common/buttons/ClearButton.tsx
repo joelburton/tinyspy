@@ -9,7 +9,7 @@ import { StandardButton, type PurposeButtonProps } from './StandardButton'
  * neither the main move nor an irreversible one. Default label "Clear".
  *
  * Chrome, not a command: a game's own clear is a registry action
- * (`act-clear-selection`, `act-recall-tiles`); this is the generic control for
+ * (`act-clear-picks`, `act-recall-tiles`); this is the generic control for
  * a surface that is not a game.
  */
 export function ClearButton({ label = 'Clear', icon = IconClear, ...rest }: PurposeButtonProps) {

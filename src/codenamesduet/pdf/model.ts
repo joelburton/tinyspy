@@ -7,40 +7,40 @@ import type { Seat } from '../lib/phase'
 import type { WordRow } from '../hooks/useBoard'
 import { isSuddenDeathTurn, type ClueEvent, type WordedGuess } from '../lib/events'
 
-/** What a mark means. Renders as ✓ / – / ✗. */
-export type Mark = 'agent' | 'neutral' | 'assassin'
+/** A word's role on a key card. Renders as ✓ / – / ✗. */
+export type KeyRole = 'agent' | 'neutral' | 'assassin'
 
-/** One printed board cell. */
-export type PrintCell = {
+/** One printed board tile. */
+export type PrintTile = {
   word: string
-  // What was REVEALED here — null while the word is untouched. A `Mark`, which
-  // is this game's key-card vocabulary and not the app's outcome one: a
+  // What was REVEALED here — null while the word is untouched. A `KeyRole`,
+  // which is this game's key-card vocabulary and not the app's outcome one: a
   // bystander is neither a good move nor a bad one, it is a bystander.
-  revealed: Mark | null
+  revealed: KeyRole | null
   // My key's label. Always present: the print exists to be thought about.
-  mine: Mark
+  mine: KeyRole
   // The partner's label — terminal only, null during play.
-  peer: Mark | null
+  peer: KeyRole | null
   // I burned this as a bystander (locked to me, still open to my partner).
   burnedByMe: boolean
   // My partner burned it (still open to ME — the Duet asymmetry).
   burnedByPeer: boolean
 }
 
-/** What the renderer draws: the frame's header, the 25 cells, and the clue log. */
-export type DuetPrintModel = PrintHeader & {
-  // 25 cells in board order (row-major, 5×5).
-  cells: PrintCell[]
+/** What the renderer draws: the frame's header, the 25 tiles, and the clue log. */
+export type CodenamesduetPrintModel = PrintHeader & {
+  // 25 tiles in board order (row-major, 5×5).
+  tiles: PrintTile[]
   // True once both keys print — drives the legend and the second inset.
   showsBothKeys: boolean
   turns: TurnRow[]
 }
 
-const MARK_OF: Record<KeyLabel, Mark> = { G: 'agent', N: 'neutral', A: 'assassin' }
+const ROLE_OF: Record<KeyLabel, KeyRole> = { G: 'agent', N: 'neutral', A: 'assassin' }
 
 /** The global reveal: 'G' contacted an agent, 'A' hit the assassin. A bystander
  *  is NOT global (it's per-seat), so it's derived from the two burn flags. */
-function revealedOf(w: WordRow): Mark | null {
+function revealedOf(w: WordRow): KeyRole | null {
   if (w.revealed_as === 'G') return 'agent'
   if (w.revealed_as === 'A') return 'assassin'
   return w.neutral_a || w.neutral_b ? 'neutral' : null
@@ -60,7 +60,7 @@ function revealedOf(w: WordRow): Mark | null {
  *   3. **the peer's key** — secret until the game ends, then the other half of
  *      the story.
  *
- * Each becomes a `Mark` ('agent' | 'neutral' | 'assassin'), which the renderer
+ * Each becomes a `KeyRole` ('agent' | 'neutral' | 'assassin'), which the renderer
  * draws as ✓ / – / ✗ plus a color. Shape carries it; color is the bonus.
  *
  * The bystander TRIANGLES survive too (who burned a word — me or my partner),
@@ -68,7 +68,7 @@ function revealedOf(w: WordRow): Mark | null {
  * locked to me. That asymmetry is exactly what you want when planning a clue on
  * paper, so it isn't decoration.
  */
-export function buildDuetPrintModel(o: {
+export function buildCodenamesduetPrintModel(o: {
   brand: string
   gameTitle: string
   date: string
@@ -88,10 +88,10 @@ export function buildDuetPrintModel(o: {
   greenFound: number
   totalAgents: number
   turnNumber: number
-  turnCap: number
-  setup: SetupRow[]
+  turnBudget: number
+  setupRows: SetupRow[]
   mode: 'coop' | 'compete'
-}): DuetPrintModel {
+}): CodenamesduetPrintModel {
   // The peer's key is a SECRET while the game is live, and post-game it's held
   // back until someone presses Reveal (`useBoard` gates it on the loader's
   // reveal) — so `o.peerKey` is already null in both cases and a printout
@@ -100,13 +100,13 @@ export function buildDuetPrintModel(o: {
   // away from putting the answer on paper mid-game.
   const peerKey = o.isTerminal ? o.peerKey : null
 
-  const cells: PrintCell[] = [...o.words]
+  const tiles: PrintTile[] = [...o.words]
     .sort((a, b) => a.position - b.position)
     .map((w) => ({
       word: w.word,
       revealed: revealedOf(w),
-      mine: MARK_OF[o.myKey[w.position]],
-      peer: peerKey ? MARK_OF[peerKey[w.position]] : null,
+      mine: ROLE_OF[o.myKey[w.position]],
+      peer: peerKey ? ROLE_OF[peerKey[w.position]] : null,
       // Which seat burned it decides who it's still open to, so the two flags
       // aren't interchangeable — see the triangles note above.
       burnedByMe: o.mySeat === 'A' ? w.neutral_a : o.mySeat === 'B' ? w.neutral_b : false,
@@ -143,7 +143,7 @@ export function buildDuetPrintModel(o: {
   // Sudden death has no clue, and each guess there is a turn of its own, made
   // by either player — so each prints as its own row, under its guesser.
   for (const g of o.guesses) {
-    if (!isSuddenDeathTurn(g.turn_number, o.turnCap)) continue
+    if (!isSuddenDeathTurn(g.turn_number, o.turnBudget)) continue
     turns.push({
       seq: g.turn_number,
       who: o.nameForSeat(g.seat),
@@ -159,12 +159,12 @@ export function buildDuetPrintModel(o: {
     // sudden death once the budget is gone — still, after such a game ends.
     summary:
       `${o.greenFound}/${o.totalAgents} agents contacted · ` +
-      (isSuddenDeathTurn(o.turnNumber, o.turnCap)
+      (isSuddenDeathTurn(o.turnNumber, o.turnBudget)
         ? 'sudden death'
-        : `${Math.max(0, o.turnNumber - 1)}/${o.turnCap} turns spent`),
-    setup: o.setup,
+        : `${Math.max(0, o.turnNumber - 1)}/${o.turnBudget} turns spent`),
+    setupRows: o.setupRows,
     mode: o.mode,
-    cells,
+    tiles,
     showsBothKeys: peerKey !== null,
     turns,
   }

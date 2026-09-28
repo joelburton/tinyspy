@@ -18,7 +18,7 @@ type Props = {
   //
   board: readonly CardCode[]
   // Cards the player has picked, by card code (not by slot — see below).
-  selected: readonly CardCode[]
+  picked: readonly CardCode[]
   // Cards a coop hint is ringing.
   ringed: readonly CardCode[]
   // Transient marks, keyed by card code.
@@ -46,15 +46,15 @@ type Props = {
  * deal only ever adds cards on the right, and nothing already on the table
  * moves.
  *
- * **Selection is keyed by CARD, not by slot.** A rival can claim a card out
- * from under your selection; keyed by card, that card simply drops out of the
- * selection when it leaves the board, and its letter is free again. Keyed by
- * slot, the selection would silently re-point at whatever card refilled the
+ * **The picks are keyed by CARD, not by slot.** A rival can claim a card out
+ * from under your pick; keyed by card, that card simply drops out of the
+ * picks when it leaves the board, and its letter is free again. Keyed by
+ * slot, a pick would silently re-point at whatever card refilled the
  * hole, and the next keystroke would claim something you never looked at.
  */
 export function Board({
   board,
-  selected,
+  picked,
   ringed,
   flashes,
   disabled,
@@ -94,7 +94,7 @@ export function Board({
         <div key={slot} className={styles.cell}>
           <Card
             card={card}
-            selected={selected.includes(card)}
+            picked={picked.includes(card)}
             ringed={ringed.includes(card)}
             flash={flash}
             // A card being held on its way off the table is spent — it is on

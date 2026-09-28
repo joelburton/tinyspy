@@ -17,6 +17,15 @@
 
   In both games, club-page listing is correct.
 
+- **The theme tokens don't say what they paint.** docs/tokens.md → The
+  grammar ends a color token in what it paints (`-fill-color`, `-ink-color`,
+  `-edge-color`); `theme.css` has none. `--codenamesduet-agent` and
+  `-assassin` each fill a tile, draw its edge and color log text — one name
+  for three jobs, so a reader of `Board.module.css` can't tell which change
+  moves what. The pale backgrounds are named three ways (`-agent-soft-banner`,
+  `-neutral-soft-bright`, `-assassin-soft`), and `-agent-key` / `-neutral-key`
+  / `-assassin-key` are the key card's fills.
+
 ## Soon
 
 ## Someday

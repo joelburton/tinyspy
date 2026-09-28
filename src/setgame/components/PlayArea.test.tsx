@@ -7,7 +7,7 @@
  * addresses is the primary way to pick them (`docs/games/setgame.md` → The
  * keyboard). That path had no test until the keys became bound actions, so this
  * file starts where the risk is: a letter reaches the card sitting in that slot,
- * ⌫ drops the selection, and neither happens in the states where the board is
+ * ⌫ drops the picks, and neither happens in the states where the board is
  * not the player's to touch.
  *
  * `useGame` (realtime + supabase) and `db` are mocked so no client/network is
@@ -142,10 +142,10 @@ function WithKeys(props: React.ComponentProps<typeof PlayArea>) {
   return <PlayArea {...props} />
 }
 
-/** The cards currently drawn as selected. Class names are hashed by the CSS
+/** The cards currently drawn as picked. Class names are hashed by the CSS
  *  module, so this asks the way the other games' board tests do. */
-const selectedCards = () =>
-  Array.from(document.querySelectorAll('button[class*="selected"]'))
+const pickedCards = () =>
+  Array.from(document.querySelectorAll('button[class*="picked"]'))
 
 /** What a bound action says about itself right now. The board's two keys must
  *  go HIDDEN rather than merely inert where they don't apply: a live-but-doing-
@@ -181,19 +181,19 @@ beforeEach(() => {
 })
 
 describe('setgame PlayArea — the letters are the input', () => {
-  it('a letter selects the card in that slot; typing it again drops it', async () => {
+  it('a letter picks the card in that slot; typing it again drops it', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
-    expect(selectedCards()).toHaveLength(0)
+    expect(pickedCards()).toHaveLength(0)
 
     // `A` is slot 0 and `H` is slot 1 — the letters run down each column, which
     // is the whole reason a letter keeps meaning the same card all game.
     await user.keyboard('a')
-    expect(selectedCards()).toHaveLength(1)
+    expect(pickedCards()).toHaveLength(1)
     await user.keyboard('h')
-    expect(selectedCards()).toHaveLength(2)
+    expect(pickedCards()).toHaveLength(2)
     await user.keyboard('h')
-    expect(selectedCards()).toHaveLength(1)
+    expect(pickedCards()).toHaveLength(1)
   })
 
   it('the third letter claims — no click needed anywhere', async () => {
@@ -213,13 +213,13 @@ describe('setgame PlayArea — the letters are the input', () => {
     expect(rpc).not.toHaveBeenCalled()
   })
 
-  it('⌫ clears the whole selection', async () => {
+  it('⌫ clears all the picks', async () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx()} />)
     await user.keyboard('ah')
-    expect(selectedCards()).toHaveLength(2)
+    expect(pickedCards()).toHaveLength(2)
     await user.keyboard('{Backspace}')
-    expect(selectedCards()).toHaveLength(0)
+    expect(pickedCards()).toHaveLength(0)
   })
 
   it('a letter with no card at that slot does nothing', async () => {
@@ -227,7 +227,7 @@ describe('setgame PlayArea — the letters are the input', () => {
     render(<WithKeys {...makeCtx()} />)
     // `G` is slot 18 — past the twelve dealt, so there is no card to toggle.
     await user.keyboard('g')
-    expect(selectedCards()).toHaveLength(0)
+    expect(pickedCards()).toHaveLength(0)
   })
 })
 
@@ -284,7 +284,7 @@ describe('setgame PlayArea — when the board is not yours to touch', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx({ isTerminal: true, playState: 'ended' })} />)
     await user.keyboard('a')
-    expect(selectedCards()).toHaveLength(0)
+    expect(pickedCards()).toHaveLength(0)
     expect(cardKeyState()).toBe('hidden')
   })
 
@@ -292,7 +292,7 @@ describe('setgame PlayArea — when the board is not yours to touch', () => {
     const user = userEvent.setup()
     render(<WithKeys {...makeCtx({ players: twoMembers, isTurnBased: true, turnHolderId: 'u2' })} />)
     await user.keyboard('a')
-    expect(selectedCards()).toHaveLength(0)
+    expect(pickedCards()).toHaveLength(0)
     expect(cardKeyState()).toBe('hidden')
   })
 

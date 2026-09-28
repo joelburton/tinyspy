@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { BoardShape } from '@/common/board-cursor/stepCell'
+import { positionAt } from '@/common/board-cursor/boardPosition'
 
 /**
  * The shape of a board of `wordCount` tiles: a roughly-square grid
@@ -13,6 +14,6 @@ export function boardShape(wordCount: number): BoardShape {
   return {
     cols,
     rows: Math.ceil(wordCount / cols),
-    exists: (x, y) => y * cols + x < wordCount,
+    exists: (x, y) => positionAt(x, y, cols) < wordCount,
   }
 }

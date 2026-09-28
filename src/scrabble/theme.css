@@ -21,7 +21,7 @@
      played): the normal tile with the shared attention OVERLAY stacked on top —
      brighter + more yellow, so it clearly stands out from the committed C tiles. */
 /* @@ */   --scrabble-tile-attention: linear-gradient(var(--mark-attention-tile-color), var(--mark-attention-tile-color)), var(--scrabble-tile-bg);
-/* @@ */   --scrabble-tile-selected: #ffd24d; /* a rack tile picked for exchange */
+/* @@ */   --scrabble-tile-picked:   #ffd24d; /* a rack tile picked for exchange */
 
   /* ── Premium-square ink + board chrome, named during the palette sweep ────
    * The premium letters are the board's printed notation, one color per premium
@@ -39,5 +39,5 @@
 /* @@ */   --scrabble-tile-lift-shadow: 0 4px 10px rgb(0 0 0 / 30%);
 /* @@ */   --scrabble-rack-bg-color:  #6b4a2a;
 /* @@ */   --scrabble-rack-shadow:    0 2px 0 rgb(0 0 0 / 20%);
-/* @@ */   --scrabble-rack-selected-outline-color: #e6b324;
+/* @@ */   --scrabble-rack-flash-new-outline-color: #e6b324;
 }

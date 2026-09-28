@@ -113,9 +113,9 @@
  * them shared. STATE (the live state) is important → full text color; HELP (UI
  * instructions) is muted; ACTIONS is the button row.
  *
- * The setup recap that sits in the same column is NOT one of these: it is a
- * common component (`setup-form/SetupDisclosure`) a game mounts, and it brings
- * its own stylesheet. */
+ * The Setup options list that sits in the same column is NOT one of these: it is
+ * a common component (`setup-form/SetupDisclosure`) a game mounts, and it
+ * brings its own stylesheet. */
 
 /* @@ */ .infoState {
   color: var(--page-text-color);
@@ -185,8 +185,8 @@
  * (e.g. wordle's answer reveal: words too tall for the below-board slot, which
  * would overflow the viewport and scroll the page — a hard no). It sits INSIDE
  * `.noShrinkRow`, ABOVE the setup disclosure (Joel's rule, 2026-08-05: the
- * reveal is the payoff, the setup recap is bookkeeping — the recap must never
- * push the answer down). It is allowed to APPEAR on the play→terminal
+ * reveal is the payoff, the Setup options list is bookkeeping — the list must
+ * never push the answer down). It is allowed to APPEAR on the play→terminal
  * transition — a DELIBERATE exception to the layout-stability rule (docs/ui.md
  * → "Layout stability") — because by then the play surface is done and the
  * INFO column absorbs it: the board doesn't move, and the scrolling event log

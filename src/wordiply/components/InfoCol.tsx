@@ -124,7 +124,7 @@ export function InfoCol({
 
   // ── Setup disclosure ──
   setup: WordiplySetup
-  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
   /** EVERY row for the event log — rejects included. Distinct from the accepted
    *  guesses the board + the readouts above are built from. */

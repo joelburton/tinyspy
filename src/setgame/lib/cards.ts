@@ -21,7 +21,7 @@
  *     board that can exist.
  *
  * The server re-implements the same algebra in plpgsql and is the authority on
- * every claim. These exist so the board can validate a selection instantly
+ * every claim. These exist so the board can validate a pick instantly
  * (the whole board is face-up, so the FE genuinely can) and so the hint and
  * the deal-more rule have something to ask.
  */

@@ -484,7 +484,7 @@ layout](../playarea.md#playarea-layout)):
   waffle, with holes), sized via container-query units. Tiles use the shared
   `.tile` chrome, painted with the shared **Wordle colors** (`--wordle-*` in
   `common/themes/daylight.css`, shared with wordle); a picked-up tile wears
-  the shared `.selected` border.
+  the shared `.picked` border.
 - **The keyboard swaps too.** Arrows move a selection cursor over the tiles,
   jumping the holes (`useBoardSelectionCursor`, the shape
   `lib/boardShape.ts`); Space picks up to two — a third is refused — and Enter

@@ -28,7 +28,7 @@ const base = {
   target: 'crane',
   answerShown: false,
   solvedBy: new Set<string>(),
-  setup: [{ key: 'guesses', label: 'Guesses', value: '6' }],
+  setupRows: [{ key: 'guesses', label: 'Guesses', value: '6' }],
 }
 
 describe('buildWordlePrintModel — the target is a secret', () => {

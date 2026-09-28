@@ -14,7 +14,7 @@ tell a hit from a miss on its own, and it does not count progress, advance the
 turn, or end the game. It is told all of it.
 
 **And it is told twice, on two channels that arrive at different moments.** The
-`submit_guess` reply carries the caller's own verdict, and the below-board pill
+`submit_guess` reply carries the caller's own result, and the below-board pill
 reads it immediately. The board's permanent green or red does not come from
 that reply at all: it comes from the `psychicnum.events` row over the
 subscription, which is what every player sees and what a reload rebuilds from.
@@ -188,18 +188,18 @@ one to six.
 The only mid-game move, and the only one that writes a `kind = 'guess'` row.
 The guess must be a board word, compared case-folded. **The answer is about the
 CALLER's guess and never about the game's fate** — a correct guess that empties
-the last of the budget still says `won`, and that the game just ended reaches
+the last of the budget still says `hit`, and that the game just ended reaches
 every client over realtime instead. `found_all` is true only on the guess that
 completes the set.
 
 **Passed:** `{ "target_game": "3f2a…", "guess": "lantern" }`
 
-**Returned — kind: `guess`.** Three shapes. `verdict` is the fact; the words
+**Returned — kind: `guess`.** Three shapes. `result` is the fact; the words
 and the color come from `answerMessage({ answerType: 'hit' | 'miss', word })`.
 
-- hit a secret — `{ "verdict": "hit", "found_all": false }`
-- **completed the set** (the win) — `{ "verdict": "hit", "found_all": true }`
-- missed — `{ "verdict": "miss", "found_all": false }`
+- hit a secret — `{ "result": "hit", "found_all": false }`
+- **completed the set** (the win) — `{ "result": "hit", "found_all": true }`
+- missed — `{ "result": "miss", "found_all": false }`
 
 The guess that spends the last of the budget without completing the set is not
 a fourth shape: it is whichever of the first and third it was, unchanged. The

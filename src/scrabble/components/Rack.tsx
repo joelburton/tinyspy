@@ -10,22 +10,22 @@ export type RackTile = { glyph: string; rackIdx: number }
 
 /**
  * The player's tile rack. Press-and-drag a tile onto the board to place it
- * (PlayArea runs the shared gesture); a plain tap toggles the tile's
- * selection for Exchange. Staged tiles show grayed; exchange-selected tiles
+ * (PlayArea runs the shared gesture); a plain tap picks or un-picks the tile
+ * for Exchange. Staged tiles show grayed; tiles picked for exchange
  * highlight. The container carries `data-zone="rack"` so a board tile
  * dragged back here is recalled.
  */
 export function Rack({
   tiles,
   used,
-  selected,
+  picked,
   flashIds,
   active,
   onPointerDown,
 }: {
   tiles: RackTile[]
   used: Set<number>
-  selected: Set<number>
+  picked: Set<number>
   /** Rack slots to outline yellow for a beat (freshly-drawn tiles). */
   flashIds: ReadonlySet<number>
   active: boolean
@@ -47,7 +47,7 @@ export function Rack({
               styles.tile,
               isBlank && styles.blank,
               isUsed && styles.used,
-              selected.has(rackIdx) && styles.selected,
+              picked.has(rackIdx) && styles.picked,
               flashIds.has(rackIdx) && styles.flashNew,
             )}
           >

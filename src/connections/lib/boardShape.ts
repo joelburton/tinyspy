@@ -1,6 +1,7 @@
 // cs-unmet
 
 import type { BoardShape } from '@/common/board-cursor/stepCell'
+import { positionAt } from '@/common/board-cursor/boardPosition'
 import { TILES_PER_CATEGORY } from './board'
 
 /**
@@ -15,6 +16,6 @@ export function boardShape(tileCount: number): BoardShape {
   return {
     cols,
     rows: Math.ceil(tileCount / cols),
-    exists: (x, y) => y * cols + x < tileCount,
+    exists: (x, y) => positionAt(x, y, cols) < tileCount,
   }
 }

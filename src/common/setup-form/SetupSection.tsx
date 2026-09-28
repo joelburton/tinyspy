@@ -10,7 +10,7 @@ import styles from './SetupSection.module.css'
  * player sees the current setting at a glance and expands only to change it.
  * Closed by default.
  *
- * Distinct from the info-column `<SetupDisclosure>` (the "Setup options" recap
+ * Distinct from the info-column `<SetupDisclosure>` (the Setup options list
  * shown WHILE playing): this one wraps a single editable field in the setup
  * dialog, and its summary carries that field's live value. Every shared
  * section here wraps itself in one, and a game's own form uses it directly for

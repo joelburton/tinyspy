@@ -91,7 +91,7 @@ export function buildWordiplyPrintModel(o: {
   letterCount: number
   /** Terminal compete only: per-player scores off `status.leaderboard`. */
   leaderboard: { user_id: string; length_score?: number; letter_count?: number; won?: boolean }[]
-  setup: SetupRow[]
+  setupRows: SetupRow[]
 }): WordiplyPrintModel {
   const nameOf = (userId: string) =>
     o.players.find((p) => p.user_id === userId)?.username ?? 'someone'
@@ -147,7 +147,7 @@ export function buildWordiplyPrintModel(o: {
     gameTitle: o.gameTitle,
     date: o.date,
     summary,
-    setup: o.setup,
+    setupRows: o.setupRows,
     mode: o.mode,
     base: o.base.toUpperCase(),
     turns,

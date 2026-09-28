@@ -92,8 +92,8 @@ export function InfoCol({
   coveredByUser: Map<string, number>
   concededIds: Set<string>
   // ── Setup disclosure ──
-  /** What was picked at create time, recapped in the disclosure — the SAME
-   *  array the PDF prints (lib/setupSummary.ts), so the two can't drift. Built
+  /** What was picked at create time, as the disclosure's setup rows — the SAME
+   *  array the PDF prints (lib/setupRows.ts), so the two can't drift. Built
    *  in PlayArea, which holds mode + roster. */
   setupRows: SetupRow[]
   // ── Action row ──
@@ -219,7 +219,7 @@ export function InfoCol({
             grow when the viewer opens it and to give the space back when they
             close it (a blessed exception to docs/ui.md → Layout stability),
             ABOVE the setup disclosure per the canonical order (the reveal is
-            the payoff; the recap is bookkeeping). */}
+            the payoff; the Setup options list is bookkeeping). */}
         {solutionShown && solution.length > 0 && (
           <div className={cls(shared.terminalExtra, styles.chainBlock)}>
             <div className={styles.blockTitle}>Solvable in two</div>

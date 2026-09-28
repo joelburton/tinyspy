@@ -18,7 +18,7 @@ import styles from './PlayArea.module.css'
 
 type Props = {
   board: readonly CardCode[]
-  selected: readonly CardCode[]
+  picked: readonly CardCode[]
   ringed: readonly CardCode[]
   flashes: ReadonlyMap<CardCode, FlashKind>
   disabled: boolean
@@ -68,7 +68,7 @@ type Props = {
  */
 export function BoardCol({
   board,
-  selected,
+  picked,
   ringed,
   flashes,
   disabled,
@@ -98,7 +98,7 @@ export function BoardCol({
 
       <Board
         board={board}
-        selected={selected}
+        picked={picked}
         ringed={ringed}
         flashes={flashes}
         disabled={disabled}

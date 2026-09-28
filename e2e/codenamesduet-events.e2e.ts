@@ -111,9 +111,9 @@ test.describe('codenamesduet event log', () => {
 
     const { pageAlice, pageBob, close } = await openBoth(browser, club, game.id)
 
-    await asAlice.rpc('submit_guess', { target_game: game.id, target_position: agentOfBob })
+    await asAlice.rpc('submit_guess', { target_game: game.id, guess_position: agentOfBob })
     await asUser(bob.session.access_token).schema('codenamesduet')
-      .rpc('submit_guess', { target_game: game.id, target_position: bystanderOfAlice })
+      .rpc('submit_guess', { target_game: game.id, guess_position: bystanderOfAlice })
 
     // Two rows, one per guess, each naming its own guesser.
     const rows = pageAlice.getByRole('row').filter({ hasText: 'Sudden death:' })

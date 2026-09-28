@@ -36,7 +36,7 @@ create temp table club on commit drop as
 select pg_temp.create_club('Custom Board', array['ada','bea']) as handle;
 
 -- A custom setup = the default coop setup + the typed board. The string is the
--- WRITTEN form (what the recap prints and the dialog takes back); the RPC only
+-- WRITTEN form (what the setup row prints and the dialog takes back); the RPC only
 -- cares that it's non-empty, since the edge function did the parsing.
 create temp table cset on commit drop as
 select pg_temp.boggle_setup()

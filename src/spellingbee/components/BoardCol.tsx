@@ -21,7 +21,7 @@ import { useFoundWordSubmit, type LegalWord } from '@/shared/found-words/useFoun
 import { db } from '../db'
 import type { FoundWordRow, SpellingbeeGame } from '../hooks/useGame'
 import { answerMessage, answerOf } from '../lib/answer'
-import { Letters } from './Letters'
+import { Hive } from './Hive'
 import { TypedWord } from './TypedWord'
 import shared from '@/common/game-page/playArea.module.css'
 import surface from '@/shared/found-words/foundWordsPlayArea.module.css'
@@ -38,7 +38,7 @@ type SubmittedWord =
   | null
 
 /**
- * spellingbee's board column — the honeycomb `<Letters>`, a floating Shuffle
+ * spellingbee's board column — the honeycomb `<Hive>`, a floating Shuffle
  * over its top-right, and the below-board region: the shared `<WordEntryArea>`,
  * whose typed word is drawn through `<TypedWord>` so a letter off the hive dims.
  *
@@ -248,14 +248,14 @@ export function BoardCol({
           />
         </div>
       </MobileStatusBar>
-      <Letters
+      <Hive
         refused={refused}
         outerLetters={outerShuffled}
         centerLetter={centerLetter}
         isBoardInteractive={isBoardInteractive}
         onLetterClick={handleLetterClick}
         usedLetters={usedLetters}
-        // Passed into Letters so it anchors to the visual hive rather than
+        // Passed into Hive so it anchors to the visual hive rather than
         // the column (`.floatingShuffle`).
         floatingControl={
           <ShuffleButton

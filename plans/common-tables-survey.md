@@ -456,7 +456,7 @@ stackdown (coop). The rest set it once at create.
   InfoCols) and strands' PlayArea (`result.won` three times). No SQL reads
   it.
 - **`setup`, by the FE during play:**
-  - every game but crosswords builds its setup recap from it (`setupRows`,
+  - every game but crosswords builds its setup rows from it (`setupRows`,
     the info column and the PDF), and re-sends it for a new game;
   - as game facts: codenamesduet `turns`, psychicnum `max_guesses`,
     spellingbee and wordwheel `target_rank` and the bands, boggle

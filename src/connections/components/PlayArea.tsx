@@ -24,7 +24,7 @@ import { memberById } from '@/common/members/memberList'
 import { buildConnectionsPrintModel } from '../pdf/model'
 import { printConnectionsPdf } from '../pdf/printConnectionsPdf'
 import { buildGameMenu } from '@/common/menu/gameMenu'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { useStandardGameActions } from '@/common/game-page/useStandardGameActions'
 import { useBoundAction } from '@/common/actions/useBoundAction'
 import { describeReveal } from '@/common/reveal/describeReveal'
@@ -33,7 +33,7 @@ import { db } from '../db'
 import { peerAnswerMessage } from '../lib/answer'
 import { CATEGORY_COUNT, MISTAKE_BUDGET } from '../lib/board'
 import { useGame, type ConnectionsGame, type EventRow, type MatchedCategory } from '../hooks/useGame'
-import type { SelectionMap } from '../lib/selection'
+import type { PickMap } from '../lib/picks'
 import type { ConnectionsSetup, PuzzleAnswer } from '../lib/setup'
 import { historySnapshot } from '../lib/history'
 import { buildTerminalMessage } from '../lib/terminal'
@@ -62,7 +62,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
     mistakeCount,
     opponentFound,
     isEliminated,
-    selections,
+    picks,
     unionTiles,
     toggleTile,
     sendClear,
@@ -90,7 +90,7 @@ export function PlayAreaLoader(ctx: GamePageCtx) {
       mistakeCount={mistakeCount}
       opponentFound={opponentFound}
       isEliminated={isEliminated}
-      selections={selections}
+      picks={picks}
       unionTiles={unionTiles}
       toggleTile={toggleTile}
       sendClear={sendClear}
@@ -113,9 +113,9 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
   isEliminated: boolean
   // Compete: each opponent's categories-found, from the public players rows.
   opponentFound: ReadonlyMap<string, number>
-  // The shared selection state `useGame` keeps (Broadcast in coop, local in
-  // compete): who has which tiles picked, their union, and the two senders.
-  selections: SelectionMap
+  // The shared picks `useGame` keeps (Broadcast in coop, local in compete):
+  // who has which tiles picked, their union, and the two senders.
+  picks: PickMap
   unionTiles: string[]
   toggleTile: (tile: string) => void
   sendClear: () => void
@@ -129,7 +129,7 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
  * `<InfoCol>` the readouts and the action row, and this component decides what
  * each of them is handed.
  *
- * Both manifests mount it, and `mode` (`game.mode`, fixed at create-game time)
+ * Both manifests mount it, and the mode (`game.mode`, fixed at create-game time)
  * is what differs: whose picks the board shows (coop shares them over
  * Broadcast, compete keeps them local), whose progress a readout counts, and
  * which verdict `lib/terminal.ts` builds. What a guess is worth is decided in
@@ -137,7 +137,7 @@ type PlayAreaProps = Omit<GamePageCtx, 'setup'> & {
  *
  * Above it, `<GamePage>` owns members, the timer, play_state, pause and chat,
  * and unmounts this surface on pause — every piece of state below goes with it,
- * the shared selections in `useGame` included.
+ * the shared picks in `useGame` included.
  */
 function PlayArea({
   game,
@@ -146,7 +146,7 @@ function PlayArea({
   mistakeCount,
   opponentFound,
   isEliminated,
-  selections,
+  picks,
   unionTiles,
   toggleTile,
   sendClear,
@@ -172,7 +172,7 @@ function PlayArea({
   brand,
   title,
 }: PlayAreaProps) {
-  const mode = game.mode
+  const isCompete = game.mode === 'compete'
   const puzzleDate = game.puzzleDate
 
   // ─── Page hooks ────────────────────────────────────────
@@ -241,18 +241,18 @@ function PlayArea({
     impliedBySolve,
   } = useSolutionReveal({
     impliedBy: solvedByMe({
-      isCompete: mode === 'compete',
+      isCompete,
       playState,
       mine: iMatchedThemAll,
     }),
   })
 
-  // The setup recap, built ONCE and handed to both consumers — the info column
-  // renders it as <li>s, the print model prints the same array object
+  // The setup rows, built ONCE and handed to both consumers — the info column
+  // renders them as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
-  const summaryRows = useMemo(
-    () => setupRows(setup, mode, players, puzzleDate),
-    [setup, mode, players, puzzleDate],
+  const setupRows = useMemo(
+    () => makeSetupRows(setup, game.mode, players, puzzleDate),
+    [setup, game.mode, players, puzzleDate],
   )
 
   // Board derivations the print model and the render both read — the same
@@ -294,9 +294,9 @@ function PlayArea({
   const terminalMessage = useMemo(
     () =>
       isTerminal
-        ? buildTerminalMessage({ mode, playState, reason, selfWon, selfEliminated: isEliminated })
+        ? buildTerminalMessage({ mode: game.mode, playState, reason, selfWon, selfEliminated: isEliminated })
         : null,
-    [isTerminal, mode, playState, reason, selfWon, isEliminated],
+    [isTerminal, game.mode, playState, reason, selfWon, isEliminated],
   )
   useEffect(function showTerminalVerdict() {
     if (!terminalMessage) return
@@ -318,7 +318,7 @@ function PlayArea({
   // carries the whose-turn answer on MOBILE, where the InfoCol's
   // TurnStatusLine is off-canvas; without it a frozen board just ignored taps.
   // The holder is read as two primitives so the effect settles in one pass.
-  const turnHolder = players.find((p) => p.user_id === turnHolderId)
+  const turnHolder = turnHolderId === null ? undefined : memberById(players, turnHolderId)
   const holderName = turnHolder?.username
   const holderColor = turnHolder?.color
   useEffect(function showWaiting() {
@@ -340,7 +340,7 @@ function PlayArea({
   // answer is the local slot's. Compete never reaches here: RLS scopes the
   // guess log to the caller, so no foreign rows arrive, and we gate on coop.
   usePeerFeedback({
-    enabled: mode === 'coop',
+    enabled: !isCompete,
     items: guesses,
     keyOf: (g) => String(g.id),
     messageFor: (g) => {
@@ -375,12 +375,12 @@ function PlayArea({
   // The shared trio — Stop / Concede / Restart. connections' own bit is which
   // `db` they call: a restart needs nothing else from this game, since the page
   // unmounts the whole play surface when the run changes and the shared
-  // selections in `useGame` go with it, on every client.
+  // picks in `useGame` go with it, on every client.
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
       db,
       gameId,
       isTerminal,
-      mode,
+      mode: game.mode,
       isLocallyTerminal,
       localFeedbackSlot,
     })
@@ -456,7 +456,7 @@ function PlayArea({
         target_club: clubHandle,
         setup: carried,
         player_user_ids: players.map((p) => p.user_id),
-        mode,
+        mode: game.mode,
       }),
     )
     if (res.type === 'not-ok') {
@@ -464,7 +464,7 @@ function PlayArea({
       localFeedbackSlot.show(FeedbackMessage.notOk(res))
       return
     } else if (res.type === 'ok' && res.data.result === 'created') {
-      goToGame(`connections_${mode}`, res.data.id)
+      goToGame(`connections_${game.mode}`, res.data.id)
       return
     } else {
       reportUnhandled('create_game', res)
@@ -504,11 +504,11 @@ function PlayArea({
           guesses,
           players,
           selfId: session.user.id,
-          mode,
+          mode: game.mode,
           isTerminal,
-          mistakes: mistakeCount,
-          maxMistakes: MISTAKE_BUDGET,
-          setup: summaryRows,
+          mistakeCount,
+          mistakeBudget: MISTAKE_BUDGET,
+          setupRows,
         }),
       )
     },
@@ -563,7 +563,7 @@ function PlayArea({
   // is one shared board, so the filter is a no-op there.
   const historyRow = historyId !== null ? guesses.find((g) => g.id === historyId) : undefined
   const historyRows =
-    mode === 'compete' && historyRow
+    isCompete && historyRow
       ? guesses.filter((g) => g.user_id === historyRow.user_id)
       : guesses
   const historySnap =
@@ -571,14 +571,14 @@ function PlayArea({
   // Named only when the board on screen is not the viewer's own — which only
   // compete can be. Coop is one shared grid.
   const historyActor =
-    mode === 'compete' && historyRow && historyRow.user_id !== session.user.id
+    isCompete && historyRow && historyRow.user_id !== session.user.id
       ? memberById(players, historyRow.user_id)
       : undefined
 
   // tile → user_id. In coop this carries every peer's picks; in compete only
   // the caller's, since the broadcast is local there.
   const ownerByTile = new Map<string, string>()
-  for (const [userId, list] of selections) {
+  for (const [userId, list] of picks) {
     for (const t of list) ownerByTile.set(t, userId)
   }
 
@@ -609,7 +609,7 @@ function PlayArea({
         // gray — their board is inert, which is all the frame claims.
         terminalOutcome={terminalMessage ? terminalMessage.outcome : isLocallyTerminal ? 'neutral' : null}
         onExitHistory={exitHistory}
-        // ── Tile selection (state in useGame; BoardCol renders and commits it) ──
+        // ── Tile picks (state in useGame; BoardCol renders and commits them) ──
         ownerByTile={ownerByTile}
         toggleTile={toggleTile}
         sendClear={sendClear}
@@ -619,7 +619,7 @@ function PlayArea({
         // Identity is only information on a genuinely shared board: coop, with
         // somebody else here. Solo, every pick is mine; in compete the picks
         // never leave this client.
-        sharedBoard={mode === 'coop' && players.length > 1}
+        sharedBoard={!isCompete && players.length > 1}
         // ── Own-guess feedback (the slot is PlayArea's) ──
         localFeedbackSlot={localFeedbackSlot}
         // ── Guess dispatch ──
@@ -633,7 +633,7 @@ function PlayArea({
       <InfoSheet open={infoSheet.isOpen} onClose={infoSheet.close}>
       <InfoCol
         // ── Mode + phase ──
-        isCompete={mode === 'compete'}
+        isCompete={isCompete}
         terminalMessage={terminalMessage}
         isStillPlaying={isStillPlaying}
         isConceded={isConceded}
@@ -661,7 +661,7 @@ function PlayArea({
         categories={game.board.categories}
         hintsOpen={hintsOpen}
         // ── Setup disclosure ──
-        setupRows={summaryRows}
+        setupRows={setupRows}
         // ── Turn-history log ──
         guesses={guesses}
         historyId={historyId}
@@ -676,7 +676,7 @@ function PlayArea({
         <CelebrationBlockingModal
           title="You win! 🎉"
           body={
-            mode === 'compete'
+            isCompete
               ? 'You found all four first.'
               : 'All four categories found.'
           }

@@ -4,7 +4,7 @@ import { runRpc } from '@/common/supabase/dbResult'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { cls } from '@/common/utils/cls'
 import { ANSWER_OUTCOME } from '../lib/answer'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import type { CreatedGame } from '@/common/manifest/gameManifest'
 import type { GamePageCtx } from '@/common/game-page/gamePageCtx'
 import { useFeedbackSlot } from '@/common/feedback/useFeedbackSlot'
@@ -216,7 +216,7 @@ export function PlayArea(ctx: GamePageCtx) {
    */
   const iWonCompete =
     playState === 'won_compete'
-    && players.find((p) => p.user_id === session.user.id)?.result?.won === true
+    && memberById(players, session.user.id)?.result?.won === true
   const celebration = useCelebration(playState === 'won' || iWonCompete)
   // The below-board slot: a move's result, the hint bar's answers, Stop /
   // Concede's not-oks, and the standing conditions further down (the theme
@@ -227,11 +227,11 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const strandsSetup = setup as unknown as StrandsSetup
 
-  // The setup recap, built ONCE and handed to both consumers — the info column
+  // The setup rows, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
-  const summaryRows = useMemo(
-    () => setupRows(strandsSetup, game?.mode ?? 'coop', players),
+  const setupRows = useMemo(
+    () => makeSetupRows(strandsSetup, game?.mode ?? 'coop', players),
     [strandsSetup, game, players],
   )
 
@@ -568,8 +568,6 @@ export function PlayArea(ctx: GamePageCtx) {
     }),
   })
 
-  // Stop / Concede / Replay from the shared hook, so their confirm copy and
-  // error handling match the other games'.
   // Reveal the words — a LOCAL display toggle: it shows them to me alone, writes
   // nothing, and affects no peer. Terminal-only, since `_solution_for` withholds
   // them until the game is over for everyone, so a rival who solved early or
@@ -580,6 +578,9 @@ export function PlayArea(ctx: GamePageCtx) {
     run: toggleSolution,
   })
 
+  // ─── The commands, bound ───────────────────────────────
+  // Stop / Concede / Replay from the shared hook, so their confirm copy and
+  // error handling match the other games'.
   const { actStopGame, actConcede, actRestart } = useStandardGameActions({
     db,
     gameId,
@@ -587,10 +588,6 @@ export function PlayArea(ctx: GamePageCtx) {
     mode: isCompete ? 'compete' : 'coop',
     isLocallyTerminal,
     localFeedbackSlot,
-    // The same board, traced again — so forget my choice about the answer.
-    // `reset`, not `hide`: hiding would record an explicit "no" that outranks
-    // the solve-implied default, so solving the replayed board wouldn't show
-    // the words.
   })
 
   /**
@@ -724,7 +721,7 @@ export function PlayArea(ctx: GamePageCtx) {
             // one that can be relied on to carry the theme.
             summary: `“${game.clue}” · ${found.length} word${found.length === 1 ? '' : 's'}`,
             mode: game.mode,
-            setup: summaryRows,
+            setupRows,
           },
           board: game.board,
           mode: game.mode,
@@ -769,7 +766,7 @@ export function PlayArea(ctx: GamePageCtx) {
   // one object per outcome. The compete arm reads the winners off the roster
   // and the hint counts off the now-open player rows, reduced here to the
   // few values the text needs.
-  const iWon = players.find((p) => p.user_id === selfId)?.result?.won === true
+  const iWon = memberById(players, selfId)?.result?.won === true
   const winners = players.filter((p) => p.result?.won === true)
   const winnerNames = winners.map((p) => p.username).join(' + ')
   const iSolved = me?.solved ?? false
@@ -952,7 +949,7 @@ export function PlayArea(ctx: GamePageCtx) {
           players={players}
           selfId={session.user.id}
           setup={strandsSetup}
-          setupRows={summaryRows}
+          setupRows={setupRows}
           actStopGame={actStopGame}
           actConcede={actConcede}
           actRestart={actRestart}

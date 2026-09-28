@@ -613,7 +613,7 @@ begin
   -- A `case` with no `else` yields NULL, and every comparison against NULL is
   -- NULL, which `if` reads as false — so without this the seat gate below would
   -- fail OPEN for a caller who is in the game but sits in neither column, and
-  -- the insert would write a clue with by_seat = NULL. Unreachable today
+  -- the insert would write a clue with seat = NULL. Unreachable today
   -- (create_game seats both players and PN091 rejects any count but two), which
   -- is exactly why it is a fault: getting here means those invariants broke.
   if caller_seat is null then
@@ -661,11 +661,11 @@ begin
   -- stored".
   return common.ok_envelope(jsonb_build_object(
     'result', 'clued',
-    'word', stored.clue_word,
-    'count', stored.clue_count,
-    'from_ai', stored.clue_from_ai,
+    'clue_word', stored.clue_word,
+    'clue_count', stored.clue_count,
+    'clue_from_ai', stored.clue_from_ai,
     'turn_number', stored.turn_number,
-    'by_seat', stored.seat
+    'seat', stored.seat
   ));
 
 -- One block, and it has never heard of any specific condition: it reads the
@@ -706,13 +706,18 @@ grant execute on function codenamesduet.submit_clue(uuid, text, int, boolean) to
 -- turn state arrive by subscription. In sudden death the race is the textbook
 -- one — either player may guess, so the partner can turn a word over, or lose
 -- the game outright, while your guess is in flight.
+--
+-- `guess_position` shares its name with the `codenamesduet.events` column it
+-- fills, so the body reads it qualified — `submit_guess.guess_position` — as
+-- submit_clue does its parameters.
 
--- Dropped first because `create or replace` cannot change a function's return
--- type; `if exists` because this file is re-applied in full on every deploy,
--- so the drop has to be a no-op the second time.
+-- Dropped first because `create or replace` can change neither a function's
+-- return type nor a parameter's name; `if exists` because this file is
+-- re-applied in full on every deploy, so the drop has to be a no-op the second
+-- time.
 drop function if exists codenamesduet.submit_guess(uuid, int);
 
-create or replace function codenamesduet.submit_guess(target_game uuid, target_position int)
+create or replace function codenamesduet.submit_guess(target_game uuid, guess_position int)
 returns jsonb
 language plpgsql
 security definer
@@ -734,7 +739,7 @@ declare
   end_reason text;
   v_msg text; v_detail text; v_hint text; v_code text; v_col text; v_out text;
 begin
-  if target_position < 0 or target_position > 24 then
+  if submit_guess.guess_position < 0 or submit_guess.guess_position > 24 then
     -- The position comes from the tile that was clicked, so an off-board one
     -- never came from our board.
     raise exception 'BUG: a guess off the board'
@@ -830,7 +835,7 @@ begin
   -- is why the second condition is seat-scoped and the first is not.
   if exists (
     select 1 from codenamesduet.words w
-    where w.game_id = target_game and w.position = target_position
+    where w.game_id = target_game and w.position = submit_guess.guess_position
       and w.revealed_as is not null
   ) then
     -- A race: in sudden death the partner may have turned it over while this
@@ -843,7 +848,7 @@ begin
 
   if exists (
     select 1 from codenamesduet.words w
-    where w.game_id = target_game and w.position = target_position
+    where w.game_id = target_game and w.position = submit_guess.guess_position
       and ((caller_seat = 'A' and w.neutral_a)
            or (caller_seat = 'B' and w.neutral_b))
   ) then
@@ -860,23 +865,23 @@ begin
                 when 'B' then g_row.key_card_b
               end;
 
-  revealed_label := key_card ->> target_position;
+  revealed_label := key_card ->> submit_guess.guess_position;
 
   -- Denormalize the board state onto codenamesduet.words. Green (agent contacted) and
   -- assassin are GLOBAL — true for both players. A neutral only marks the
   -- guesser's own seat, so the partner can still guess the word.
   if revealed_label = 'G' then
     update codenamesduet.words set revealed_as = 'G'
-      where game_id = target_game and position = target_position;
+      where game_id = target_game and position = submit_guess.guess_position;
   elsif revealed_label = 'A' then
     update codenamesduet.words set revealed_as = 'A'
-      where game_id = target_game and position = target_position;
+      where game_id = target_game and position = submit_guess.guess_position;
   elsif caller_seat = 'A' then
     update codenamesduet.words set neutral_a = true
-      where game_id = target_game and position = target_position;
+      where game_id = target_game and position = submit_guess.guess_position;
   else
     update codenamesduet.words set neutral_b = true
-      where game_id = target_game and position = target_position;
+      where game_id = target_game and position = submit_guess.guess_position;
   end if;
 
   -- The agent count as it stands after this reveal. Computed once, before the
@@ -895,7 +900,7 @@ begin
     target_game, caller_id, 'guess',
     (revealed_label = 'N' and current_play_state = 'playing')
       or (revealed_label = 'G' and current_play_state = 'sudden_death' and green_total < 15),
-    g_row.turn_number, caller_seat, target_position, revealed_label
+    g_row.turn_number, caller_seat, submit_guess.guess_position, revealed_label
   );
 
   -- Terminal-transition check. The three terminal cases share a
@@ -1548,7 +1553,7 @@ revoke execute on function codenamesduet._require_clue_giver(uuid) from public;
 --                              this is an ARRAY of the 0..3 not-yet-revealed
 --                              ones — never a single word. Empty [] once all
 --                              three are revealed.
---   previous_clues: array of {word, count, by_seat, turn_number}
+--   previous_clues: array of {clue_word, clue_count, seat, turn_number}
 --
 -- Authorization is `_require_clue_giver`, above, so the Edge Function can stay
 -- a thin orchestrator: it gets back either a clean context or a clean
@@ -1608,9 +1613,9 @@ begin
     'previous_clues', coalesce((
       select jsonb_agg(
         jsonb_build_object(
-          'word', e.clue_word,
-          'count', e.clue_count,
-          'by_seat', e.seat,
+          'clue_word', e.clue_word,
+          'clue_count', e.clue_count,
+          'seat', e.seat,
           'turn_number', e.turn_number
         ) order by e.id
       )

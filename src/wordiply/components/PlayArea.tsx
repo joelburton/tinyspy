@@ -26,7 +26,7 @@ import { BoardCol } from './BoardCol'
 import { InfoCol } from './InfoCol'
 import { MAX_GUESSES } from './GuessBoard'
 import { buildGameMenu } from '@/common/menu/gameMenu'
-import { setupRows } from '../lib/setupSummary'
+import { makeSetupRows } from '../lib/setupRows'
 import { runEdgeFn, runRpc } from '@/common/supabase/dbResult'
 import { useInfoSheet } from '@/common/info-sheet/useInfoSheet'
 import { buildWordiplyPrintModel } from '../pdf/model'
@@ -95,11 +95,11 @@ export function PlayArea(ctx: GamePageCtx) {
 
   const wordiplySetup = setup as WordiplySetup
 
-  // The setup recap, built ONCE and handed to both consumers — the info column
+  // The setup rows, built ONCE and handed to both consumers — the info column
   // renders it as <li>s, the print model prints the same array object
   // (common/setup-form/doc.md → Setup rows).
-  const summaryRows = useMemo(
-    () => setupRows(wordiplySetup, game?.mode ?? 'coop', players),
+  const setupRows = useMemo(
+    () => makeSetupRows(wordiplySetup, game?.mode ?? 'coop', players),
     [wordiplySetup, game, players],
   )
 
@@ -289,7 +289,7 @@ export function PlayArea(ctx: GamePageCtx) {
       },
     })
 
-  // ─── Stop / Concede / Replay — the shared trio ──────────
+  // ─── The commands, bound ───────────────────────────────
   // The byte-identical shared handlers (useStandardGameActions); only the
   // replay sentence is wordiply's. Its not-oks land in the same slot as a
   // rejected word. New game stays below — its create path diverges per game.
@@ -387,7 +387,7 @@ export function PlayArea(ctx: GamePageCtx) {
           lengthScore: lengthScore(longest, game.max_word_length),
           letterCount: letters,
           leaderboard,
-          setup: summaryRows,
+          setupRows,
         }),
       )
     },
@@ -591,7 +591,7 @@ export function PlayArea(ctx: GamePageCtx) {
           actNewGame={actNewGame}
           actBackToClub={menu.actBackToClub}
           setup={wordiplySetup}
-          setupRows={summaryRows}
+          setupRows={setupRows}
         />
       </InfoSheet>
       {/* No modal at terminal (docs/ui.md → Terminal results) — the result is

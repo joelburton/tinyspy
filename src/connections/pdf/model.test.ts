@@ -55,9 +55,9 @@ const base = {
   selfId: 'u1',
   mode: 'coop' as const,
   isTerminal: false,
-  mistakes: 1,
-  maxMistakes: 4,
-  setup: [{ key: 'puzzle', label: 'Puzzle', value: '2026-01-01' }],
+  mistakeCount: 1,
+  mistakeBudget: 4,
+  setupRows: [{ key: 'puzzle', label: 'Puzzle', value: '2026-01-01' }],
 }
 
 /** Coop's single shared track — where most band judgments are pinned. */
@@ -187,7 +187,7 @@ describe('buildConnectionsPrintModel — compete splits per player', () => {
 
 describe('buildConnectionsPrintModel — summary', () => {
   it('coop mirrors the on-screen readout; compete says what the page holds', () => {
-    const coop = buildConnectionsPrintModel({ ...base, matched: [matched(0), matched(1)], mistakes: 3 })
+    const coop = buildConnectionsPrintModel({ ...base, matched: [matched(0), matched(1)], mistakeCount: 3 })
     expect(coop.summary).toBe('2/4 categories found · 3/4 mistakes')
     const compete = buildConnectionsPrintModel({ ...base, mode: 'compete' })
     expect(compete.summary).toBe('Compete · 2 players')

@@ -41,6 +41,7 @@ common/board-cursor/
  ├── gridCursor.module.css    the ring: .cursor + .cursorH / .cursorV
  ├── useSelectionCursor.ts    a selection cursor's show/hide rules
  ├── stepCell.ts              where an arrow takes a selection cursor on a board; clampCell when it shrinks
+ ├── boardPosition.ts         positionAt · cellAt: a flat board position and its cell, given the width
  ├── useBoardSelectionCursor.ts   the two above, bound to the arrows and Space: a board's selection cursor
  └── reachability.fixture.ts  for a test: the cells a cursor can never reach on a board's shape
 bananagrams/hooks/usePlayerBoard.ts     runs the hook and the math; BoardArena renders the ring
@@ -103,6 +104,9 @@ common/lists/SelectionList.tsx          runs useSelectionCursor over its rows
   place. A board that SHRINKS under the cursor (connections, a row per solved
   band) stands it on the nearest cell left (`clampCell`). Every board's shape
   carries a reachability test (`reachability.fixture.ts`).
+- **A board position is counted row by row.** A game that stores its pieces
+  in one flat list turns a cursor's cell into a position with
+  `positionAt(x, y, cols)`, and back with `cellAt(position, cols)`.
 - **The selection ring is a shared mark**, `.selectionCursor` in
   `common/game-page/playArea.module.css`: the app's cursor ring, outside the
   piece. The game puts it on the piece `cursor` names

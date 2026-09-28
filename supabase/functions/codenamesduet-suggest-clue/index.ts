@@ -56,9 +56,9 @@ type ClueContext = {
   // every one of them is an instant-loss word the clue must avoid.
   assassins: string[]
   previous_clues: Array<{
-    word: string
-    count: number
-    by_seat: 'A' | 'B'
+    clue_word: string
+    clue_count: number
+    seat: 'A' | 'B'
     turn_number: number
   }>
 }
@@ -284,7 +284,7 @@ function buildPrompt(ctx: ClueContext): string {
   const prevClues =
     ctx.previous_clues.length > 0
       ? ctx.previous_clues
-          .map((c) => `  ${c.by_seat} (turn ${c.turn_number}): ${c.word} · ${c.count}`)
+          .map((c) => `  ${c.seat} (turn ${c.turn_number}): ${c.clue_word} · ${c.clue_count}`)
           .join('\n')
       : '  (none yet)'
 

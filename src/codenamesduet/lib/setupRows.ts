@@ -1,27 +1,27 @@
 // cs-blessed-codenamesduet
 
 import type { Member } from '@/common/members/member'
-import { rosterRow, timerRow, type SetupRow } from '@/common/setup-form/setupRows'
+import { makeRosterRow, makeTimerRow, type SetupRow } from '@/common/setup-form/setupRows'
 import type { CodenamesduetSetup } from './setup'
 
 /**
- * codenamesduet's setup recap — ONE array, rendered by the info column and the
+ * codenamesduet's setup rows — ONE array, rendered by the info column and the
  * PDF alike (common/setup-form/doc.md → Setup rows). Order mirrors
  * `components/SetupForm.tsx`.
  *
  * The first-clue SEAT is a control (the dialog picks who opens), so it earns a
  * row — resolved to a username here rather than printing a uuid.
  */
-export function setupRows(
+export function makeSetupRows(
   setup: CodenamesduetSetup,
   _mode: 'coop' | 'compete',
   players: Member[],
 ): SetupRow[] {
   const first = players.find((p) => p.user_id === setup.first_clue_giver_user_id)
   return [
-    rosterRow(players),
+    makeRosterRow(players),
     { key: 'turns', label: 'Turns', value: String(setup.turns) },
     { key: 'first_clue_giver_user_id', label: 'First clue', value: first?.username ?? '—' },
-    timerRow(setup.timer),
+    makeTimerRow(setup.timer),
   ]
 }

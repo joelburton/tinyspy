@@ -53,8 +53,8 @@ belongs to the game's type color rather than to the ladder.
 ## Details
 
 ```
-spellingbee: manifest · InfoCol · BoardCol · PlayArea · SetupForm · lib/setupSummary  ┐
-  wordwheel: manifest · InfoCol · BoardCol · PlayArea · SetupForm · lib/setupSummary  ┴─▶ rankLadder.ts
+spellingbee: manifest · InfoCol · BoardCol · PlayArea · SetupForm · lib/setupRows  ┐
+  wordwheel: manifest · InfoCol · BoardCol · PlayArea · SetupForm · lib/setupRows  ┴─▶ rankLadder.ts
                                                      (RANKS · currentRankIndex · rankPoints)
   the two InfoCols + BoardCols ─▶ <RankBar> ─▶ data-tooltip-on="readout" ─▶ common/tooltips
                                └▶ <Stats>

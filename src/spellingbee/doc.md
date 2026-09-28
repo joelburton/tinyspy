@@ -424,7 +424,7 @@ then `PlayArea` in the eight sections.
   └── PlayArea                           the coordinator: draws no board, no control
         ├── BoardCol                     the board column — the word engine and submit_word
         │     ├── MobileStatusBar ←      phone only: the RankBar and Stats, mirrored above the hive
-        │     ├── Letters                the hive: seven <Letter> hexes in one svg
+        │     ├── Hive                   the hive: seven <Letter> hexes in one svg
         │     │     └── ShuffleButton ←  floated over its top-right
         │     └── WordEntryArea ←        ⌫, the typed word (drawn through TypedWord), Submit, the
         │                                capture keyboard — or the local slot's pill in their place

@@ -21,7 +21,7 @@ import styles from './Card.module.css'
  */
 export function Card({
   card,
-  selected = false,
+  picked = false,
   ringed = false,
   flash = null,
   disabled = false,
@@ -29,7 +29,7 @@ export function Card({
   onClick,
 }: {
   card: CardCode
-  selected?: boolean
+  picked?: boolean
   // Wearing the ring, from either of its two causes: a live coop hint ("there
   // is a set through this card") or a viewed past turn's own cards.
   ringed?: boolean
@@ -63,7 +63,7 @@ export function Card({
   const className = cls(
     styles.card,
     readOnly && styles.readOnly,
-    selected && styles.selected,
+    picked && styles.picked,
     ringed && styles.ringed,
     flash === 'held' && styles.held,
     flash === 'leaving' && styles.leaving,

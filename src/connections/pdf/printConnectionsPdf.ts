@@ -12,6 +12,7 @@ import {
 } from '@/common/pdf/frame'
 import { drawInTracks, type Track } from '@/common/pdf/columns'
 import { drawEventLog, twoColGeom } from '@/common/pdf/eventLog'
+import { cellAt } from '@/common/board-cursor/boardPosition'
 import type { CategoryRank } from '../lib/board'
 import type { ConnectionsPrintModel, PrintBand, PrintTrack } from './model'
 
@@ -77,7 +78,7 @@ export function printConnectionsPdf(m: ConnectionsPrintModel): void {
       heading: 'Guesses',
       moveLabel: 'Guess',
       rows: t.turns,
-      setup: m.setup,
+      setupRows: m.setupRows,
       mode: m.mode,
       emptyText: 'No guesses yet.',
     })
@@ -171,8 +172,9 @@ function drawTiles(
   const longest = tiles.reduce((t, w2) => (w2.length > t.length ? w2 : t), '')
   const size = Math.min(s.tileFontMax, (s.tileFontMax * (cellW - 8)) / Math.max(doc.getTextWidth(longest), 1))
   tiles.forEach((t, i) => {
-    const px = x + (i % COLS) * cellW
-    const py = y + Math.floor(i / COLS) * s.tileH
+    const cell = cellAt(i, COLS)
+    const px = x + cell.x * cellW
+    const py = y + cell.y * s.tileH
     doc.setDrawColor(DARK_GRAY).rect(px, py, cellW, s.tileH, 'S')
     doc.setFontSize(size).setTextColor(BLACK)
     doc.text(t, px + cellW / 2, py + s.tileH / 2 + size * 0.35, { align: 'center' })

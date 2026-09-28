@@ -35,7 +35,7 @@ shows nothing, and the whole display is a pure function of a number the server
 owns. `useCommonGame` runs the hook for every game; `GamePage` prints the number
 in the header and is the one that fires the timeout-loss RPC when a countdown
 runs out. The other half of the folder never touches the clock at all: the setup
-dialog and the setup recap have to say which timer a game was configured with,
+dialog and the setup rows have to say which timer a game was configured with,
 and `timerLabel` is the sentence they both print.
 
 ## Details
@@ -85,6 +85,6 @@ ask, a minute's gap costing one, and a deleted game answering moot.
 
 **M:SS is written once**, in `timerLabel.ts`, which is the file that owns the
 timer's words: `formatTimerSeconds` for the header and the countdown input,
-`timerLabel` for the setup recap's "none · count-up · 2:30 countdown". The hook
-file is the clock and nothing else, so a component that only wants to print a
+`timerLabel` for the `Timer` setup row's "none · count-up · 2:30 countdown".
+The hook file is the clock and nothing else, so a component that only wants to print a
 number does not pull in the poller to get it.

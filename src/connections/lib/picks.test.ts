@@ -2,14 +2,14 @@
 
 import { describe, expect, it } from 'vitest'
 import {
-  applySelectionEvent,
+  applyPickEvent,
   eventForClick,
   unionTiles,
-  type SelectionMap,
-} from './selection'
+  type PickMap,
+} from './picks'
 
 /**
- * Tests for the shared-selection rules — the coop click rule (doc.md → Coop)
+ * Tests for the shared-picks rules — the coop click rule (doc.md → Coop)
  * and the reducer the Broadcast handler folds peer events through.
  *
  * Pure, so the rules are exercised outright, with no channel and no React.
@@ -23,14 +23,14 @@ const ME = 'u-me'
 const PEER = 'u-peer'
 
 /** Shorthand for a map literal, since every case here starts from one. */
-function held(...entries: [string, string[]][]): SelectionMap {
+function held(...entries: [string, string[]][]): PickMap {
   return new Map(entries)
 }
 
-describe('applySelectionEvent — select', () => {
+describe('applyPickEvent — pick', () => {
   it('adds a tile to the picker, in pick order', () => {
-    const after = applySelectionEvent(held([ME, ['apple']]), {
-      type: 'select',
+    const after = applyPickEvent(held([ME, ['apple']]), {
+      type: 'pick',
       tile: 'brick',
       userId: ME,
     })
@@ -38,8 +38,8 @@ describe('applySelectionEvent — select', () => {
   })
 
   it('starts an entry for a player holding nothing yet', () => {
-    const after = applySelectionEvent(held([ME, ['apple']]), {
-      type: 'select',
+    const after = applyPickEvent(held([ME, ['apple']]), {
+      type: 'pick',
       tile: 'brick',
       userId: PEER,
     })
@@ -54,18 +54,18 @@ describe('applySelectionEvent — select', () => {
     // applied locally. Identity, not just equality — a new map would re-render
     // the board on every peer's every pick.
     const before = held([ME, ['apple']])
-    expect(applySelectionEvent(before, { type: 'select', tile: 'apple', userId: ME })).toBe(
+    expect(applyPickEvent(before, { type: 'pick', tile: 'apple', userId: ME })).toBe(
       before,
     )
   })
 })
 
-describe('applySelectionEvent — deselect', () => {
+describe('applyPickEvent — unpick', () => {
   it('takes the tile out of whoever holds it, not the sender', () => {
     // No user id on the event: the coop rule is that a tile anyone put up
     // comes out on a click, so the reducer searches for its holder.
-    const after = applySelectionEvent(held([ME, ['apple']], [PEER, ['brick', 'cedar']]), {
-      type: 'deselect',
+    const after = applyPickEvent(held([ME, ['apple']], [PEER, ['brick', 'cedar']]), {
+      type: 'unpick',
       tile: 'brick',
     })
     expect(after.get(PEER)).toEqual(['cedar'])
@@ -76,8 +76,8 @@ describe('applySelectionEvent — deselect', () => {
     // Absent rather than present-and-empty — an empty list would draw that
     // player into `unionTiles`'s loop and into the board's per-player colors
     // for a player with no picks.
-    const after = applySelectionEvent(held([ME, ['apple']], [PEER, ['brick']]), {
-      type: 'deselect',
+    const after = applyPickEvent(held([ME, ['apple']], [PEER, ['brick']]), {
+      type: 'unpick',
       tile: 'brick',
     })
     expect([...after.keys()]).toEqual([ME])
@@ -85,13 +85,13 @@ describe('applySelectionEvent — deselect', () => {
 
   it('returns the same map when nobody holds the tile', () => {
     const before = held([ME, ['apple']])
-    expect(applySelectionEvent(before, { type: 'deselect', tile: 'brick' })).toBe(before)
+    expect(applyPickEvent(before, { type: 'unpick', tile: 'brick' })).toBe(before)
   })
 })
 
-describe('applySelectionEvent — clear', () => {
+describe('applyPickEvent — clear', () => {
   it('empties every player, not just the sender', () => {
-    const after = applySelectionEvent(held([ME, ['apple']], [PEER, ['brick']]), {
+    const after = applyPickEvent(held([ME, ['apple']], [PEER, ['brick']]), {
       type: 'clear',
     })
     expect(after.size).toBe(0)
@@ -99,14 +99,14 @@ describe('applySelectionEvent — clear', () => {
 
   it('returns the same map when there is nothing to clear', () => {
     const before = held()
-    expect(applySelectionEvent(before, { type: 'clear' })).toBe(before)
+    expect(applyPickEvent(before, { type: 'clear' })).toBe(before)
   })
 })
 
 describe('eventForClick', () => {
   it('picks an unheld tile up as mine', () => {
     expect(eventForClick(held(), 'apple', ME)).toEqual({
-      type: 'select',
+      type: 'pick',
       tile: 'apple',
       userId: ME,
     })
@@ -116,7 +116,7 @@ describe('eventForClick', () => {
     // The rule that makes the board shared: I can undo a teammate's pick, and
     // the event says nothing about who is clicking.
     expect(eventForClick(held([PEER, ['apple']]), 'apple', ME)).toEqual({
-      type: 'deselect',
+      type: 'unpick',
       tile: 'apple',
     })
   })
@@ -131,7 +131,7 @@ describe('eventForClick', () => {
   it('still lets the fourth tile through', () => {
     const three = held([ME, ['apple']], [PEER, ['brick', 'cedar']])
     expect(eventForClick(three, 'dune', ME)).toEqual({
-      type: 'select',
+      type: 'pick',
       tile: 'dune',
       userId: ME,
     })
@@ -141,7 +141,7 @@ describe('eventForClick', () => {
     // The board is never stuck: with four up, the only click that does
     // anything is one that takes a tile back off.
     const full = held([ME, ['apple', 'brick', 'cedar', 'dune']])
-    expect(eventForClick(full, 'dune', ME)).toEqual({ type: 'deselect', tile: 'dune' })
+    expect(eventForClick(full, 'dune', ME)).toEqual({ type: 'unpick', tile: 'dune' })
   })
 })
 

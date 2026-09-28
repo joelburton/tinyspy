@@ -116,7 +116,7 @@ export function InfoCol({
 
   // ── Setup disclosure + answer reveal ──
   setup: WaffleSetup
-  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
   /** The 6 answer words in `WORDS` order (3 across, 3 down): a solved word's letters,
    *  or null for one still hidden. Revealed progressively throughout the game. */

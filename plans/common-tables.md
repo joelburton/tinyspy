@@ -126,8 +126,8 @@ Agreed 2026-09-26:
 Decided 2026-09-27:
 
 - **`setup` is the form's record, and is read for two things only**: showing
-  the form's choices back (the "Setup options" recap in the info column, the
-  PDF's header) and replaying it (Restart, a new game with the same setup).
+  the form's choices back (the Setup options list in the info column, the
+  PDF's setup rows) and replaying it (Restart, a new game with the same setup).
   Anything the game's logic needs after create — in SQL or in the front end
   — is a typed column, copied at create: on `<game>.games` for the game's
   own fact (wordle's `max_guesses` and `legal_band` today; codenamesduet's
@@ -239,8 +239,9 @@ hour, not a shim. Before each stage's deploy:
      `myConceded` any more). Every game reads the page's values, so changing
      what those values are built from touches `whereIStand` and
      `useCommonGame`, not sixteen PlayAreas.
-   - §3b's 7c, the Stop names (done 2026-09-27), and §4's cheap renames.
-     Neither touches stored data.
+   - §3b's 7c, the Stop names (done 2026-09-27), and §4's cheap renames
+     (built 2026-09-27; N8 is its own item, next). Neither touches stored
+     data.
 2. **This plan, in three stages and a per-game debt** — each commit leaves
    the tests green, and each stage deploys when it is done:
    1. **The players.** `common.game_players` gains `player_ended_at`, the
@@ -383,7 +384,7 @@ name, not a rule (1); `clubpage_info` holds `winner_user_id` only (2); the
 backfill rewrites scrabble coop's and wordiply coop's `complete` as wins (3);
 a player's `outcome` and `final_ranking` are written at the end, and no
 constraint excludes `near` from `game_ended_outcome` (4); setgame coop's
-`cleared` is `reached_goal` (6); `setup` is read only for the recap and for
+`cleared` is `reached_goal` (6); `setup` is read only for the setup rows and for
 replaying, everything else is a column, with the timer's `kind` and
 `seconds` on `common.timers` (7); scrabble's bots win when every human
 concedes (8). Item 9 was a finding, not a question; it is in the bugs.

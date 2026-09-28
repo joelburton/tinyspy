@@ -106,7 +106,7 @@ export function InfoCol({
 
   // ── Setup disclosure + terminal words reveal ──
   setup: StackdownSetup
-  /** The setup recap — the SAME array the PDF prints (lib/setupSummary.ts). */
+  /** The setup rows — the SAME array the PDF prints (lib/setupRows.ts). */
   setupRows: SetupRow[]
   /** The six solution words — non-null ONLY while THIS viewer is looking at
    *  them. Hidden by default at a terminal this viewer did not solve, so Restart
@@ -238,7 +238,7 @@ export function InfoCol({
             again (a blessed exception to docs/ui.md → Layout stability: the
             reflow IS the reveal, and only ever fires on the viewer's own
             click). ABOVE the setup disclosure per the canonical order (the
-            reveal is the payoff; the recap is bookkeeping). */}
+            reveal is the payoff; the Setup options list is bookkeeping). */}
         {over && solution && (
           <div className={cls(shared.terminalExtra, styles.reveal)}>
             <span className="muted">The words were</span>{' '}

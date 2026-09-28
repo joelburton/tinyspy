@@ -45,7 +45,7 @@ export function Help({ onClose, brand }: Props) {
           when you play it, and it's fixed for the rest of the game.
         </li>
         <li>
-          Stuck? Select tiles and <strong>Exchange</strong> them for new ones
+          Stuck? Pick tiles and <strong>Exchange</strong> them for new ones
           (needs ≥ 7 tiles left in the bag).
         </li>
       </ul>

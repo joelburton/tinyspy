@@ -74,7 +74,7 @@ export type LetterboxedValues = CoopTurnSetup & {
 
 /** What is SENT and STORED — every value the form collects except the players
  *  (see `SetupOf`). This is the shape `common.games.setup` holds, and what
- *  `setupSummary.ts` and `PlayArea` read back. */
+ *  `setupRows.ts` and `PlayArea` read back. */
 export type LetterboxedSetup = SetupOf<LetterboxedValues>
 /**
  * Why the optional custom board is invalid, or `null` if it's fine (including

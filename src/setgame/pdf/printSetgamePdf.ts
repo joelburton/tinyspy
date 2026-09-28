@@ -239,7 +239,7 @@ export function printSetgamePdf(m: SetgamePrintModel): void {
 
   // Setup goes last, after the log it describes.
   if (y + 70 > pageBottom) nextColumn()
-  drawSetup(doc, m.setup, colX(), y + 14, m.mode, colW)
+  drawSetup(doc, m.setupRows, colX(), y + 14, m.mode, colW)
 
   savePrint(pd, m, 'setgame')
 }
